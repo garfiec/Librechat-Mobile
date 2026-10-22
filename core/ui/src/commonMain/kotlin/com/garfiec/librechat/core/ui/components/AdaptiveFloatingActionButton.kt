@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.ui.components
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -8,10 +9,14 @@ import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.FloatingActionButtonElevation
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.material3.Text
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.glass.GlassBackdrop
 import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
@@ -63,10 +68,14 @@ fun AdaptiveFloatingActionButton(
  * The labelled FAB: [icon] beside [text], collapsing to the icon alone when [expanded] is false
  * (callers collapse it once the list scrolls). Same glass and colour rules as
  * [AdaptiveFloatingActionButton].
+ *
+ * [text] is also the button's accessible name, expanded or collapsed: M3 clears the label's
+ * semantics, so without it a screen reader would read a bare "Button". The icon's own semantics are
+ * cleared, so a caller's content description can't be read twice.
  */
 @Composable
 fun AdaptiveExtendedFloatingActionButton(
-    text: @Composable () -> Unit,
+    text: String,
     icon: @Composable () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -78,14 +87,15 @@ fun AdaptiveExtendedFloatingActionButton(
 ) {
     val glass = rememberGlassStyle()
     val bounce = rememberPressBounce()
+    val labelled = modifier.semantics { contentDescription = text }
     val fabModifier = if (glass == null) {
-        modifier.pressBounce(bounce)
+        labelled.pressBounce(bounce)
     } else {
-        modifier.glassSurface(glass, GlassFabShape, backdrop)
+        labelled.glassSurface(glass, GlassFabShape, backdrop)
     }
     ExtendedFloatingActionButton(
-        text = text,
-        icon = icon,
+        text = { Text(text) },
+        icon = { Box(Modifier.clearAndSetSemantics {}) { icon() } },
         onClick = onClick,
         modifier = fabModifier,
         expanded = expanded,

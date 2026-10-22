@@ -26,6 +26,7 @@ import com.garfiec.librechat.core.data.repository.FavoritesRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.KeyRepository
 import com.garfiec.librechat.core.data.repository.McpRepository
+import com.garfiec.librechat.core.data.repository.MemoryRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
@@ -37,6 +38,7 @@ import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.data.util.PermissionGate
+import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
 import com.garfiec.librechat.core.model.usage.ContextDetailPreset
 import com.garfiec.librechat.core.model.usage.DEFAULT_COMPACT_NUDGE_THRESHOLD
@@ -91,6 +93,19 @@ internal class ChatViewModelTestFixture {
     val mcpRepository = mockk<McpRepository>(relaxed = true)
     val userRepository = mockk<UserRepository>(relaxed = true)
     val roleRepository = mockk<RoleRepository>(relaxed = true)
+    val memoryRepository = mockk<MemoryRepository>(relaxed = true)
+
+    /** The shared memory opt-out; null until a test publishes one, as before any fetch. */
+    val memoriesEnabled = MutableStateFlow<Boolean?>(null)
+
+    /** Moves on every [toggleMemoriesInSettings], like MemoryRepositoryImpl's write generation. */
+    private var memoryPreferenceWrites = 0
+
+    /** A Settings toggle: a preference write the stubbed profile read must not undo. */
+    fun toggleMemoriesInSettings(enabled: Boolean) {
+        memoryPreferenceWrites++
+        memoriesEnabled.value = enabled
+    }
     val permissionGate = mockk<PermissionGate>(relaxed = true)
     val connectivityObserver = mockk<ConnectivityObserver>(relaxed = true)
     val serverDataStore = mockk<ServerDataStore>(relaxed = true)
@@ -113,6 +128,17 @@ internal class ChatViewModelTestFixture {
         every { configRepository.endpointConfigs } returns MutableStateFlow(emptyMap())
         every { configRepository.availableModels } returns MutableStateFlow(emptyMap())
         every { roleRepository.userPermissions } returns MutableStateFlow(null)
+        every { memoryRepository.memoriesEnabled } returns memoriesEnabled
+        // The real repository's contract: run the caller's profile GET and publish the opt-out it
+        // carries, unless a preference write happened while it was in flight.
+        coEvery { memoryRepository.fetchUserPublishingPreference(any()) } coAnswers {
+            val generation = memoryPreferenceWrites
+            val result = firstArg<suspend () -> Result<User>>().invoke()
+            if (result is Result.Success && memoryPreferenceWrites == generation) {
+                memoriesEnabled.value = result.data.personalization?.memories ?: true
+            }
+            result
+        }
         every { favoritesRepository.favorites } returns MutableStateFlow(emptyList())
         every { keyRepository.keyInvalidations } returns MutableSharedFlow()
         every { agentRepository.revision } returns MutableStateFlow(0L)
@@ -183,6 +209,7 @@ internal class ChatViewModelTestFixture {
         mcpRepository = mcpRepository,
         userRepository = userRepository,
         roleRepository = roleRepository,
+        memoryRepository = memoryRepository,
         permissionGate = permissionGate,
         connectivityObserver = connectivityObserver,
         serverDataStore = serverDataStore,

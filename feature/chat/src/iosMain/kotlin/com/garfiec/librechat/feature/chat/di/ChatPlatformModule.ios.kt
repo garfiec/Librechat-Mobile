@@ -55,6 +55,7 @@ actual val chatPlatformModule: Module = module {
             mcpRepository = get(),
             userRepository = get(),
             roleRepository = get(),
+            memoryRepository = get(),
             permissionGate = get(),
             connectivityObserver = get(),
             activeAccountProvider = get(),

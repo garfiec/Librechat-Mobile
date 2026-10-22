@@ -304,18 +304,39 @@
     <string name="cd_mcp_resource">مورد MCP: %1$s</string>
 
     <!-- Memory artifact -->
-    <string name="cd_memory_artifact">عنصر الذاكرة: %1$s</string>
-    <string name="memory_artifact_untitled">بدون عنوان</string>
     <string name="label_memory">الذاكرة</string>
-    <string name="cd_memory_artifacts">تحديثات الذاكرة: %1$d</string>
-    <string name="memory_updated">تم تحديث الذاكرة المحفوظة</string>
+    <string name="memory_manage">إدارة</string>
+    <string name="cd_memory_manage">إدارة الذكريات</string>
+    <plurals name="cd_memory_artifacts_summary">
+        <item quantity="zero">%1$s، %2$s تغيير</item>
+        <item quantity="one">%1$s، تغيير واحد</item>
+        <item quantity="two">%1$s، تغييران</item>
+        <item quantity="few">%1$s، %2$s تغييرات</item>
+        <item quantity="many">%1$s، %2$s تغييرًا</item>
+        <item quantity="other">%1$s، %2$s تغيير</item>
+    </plurals>
+    <string name="memory_updated">تم تحديث الذكرى المحفوظة</string>
     <string name="memory_error">خطأ في الذاكرة</string>
     <string name="memory_updated_items">الذكريات المحدّثة</string>
     <string name="memory_deleted_items">الذكريات المحذوفة</string>
-    <string name="memory_deleted">تم حذف الذاكرة</string>
-    <string name="memory_storage_full">مساحة الذاكرة ممتلئة</string>
-    <string name="memory_already_exceeded">مساحة الذاكرة ممتلئة بالفعل — تم تجاوزها بمقدار %1$d رمز. احذف ذكريات موجودة قبل إضافة ذكريات جديدة.</string>
-    <string name="memory_would_exceed">تعذّر الحفظ — سيتم تجاوز الحد بمقدار %1$d رمز. احذف ذكريات موجودة لإفساح المجال.</string>
+    <string name="memory_deleted">تم حذف الذكرى</string>
+    <string name="memory_storage_full">مساحة الذكريات ممتلئة</string>
+    <plurals name="memory_already_exceeded">
+        <item quantity="zero">مساحة الذكريات ممتلئة بالفعل — تم تجاوزها بمقدار %1$s رمز. احذف ذكريات موجودة قبل إضافة ذكريات جديدة.</item>
+        <item quantity="one">مساحة الذكريات ممتلئة بالفعل — تم تجاوزها بمقدار رمز واحد. احذف ذكريات موجودة قبل إضافة ذكريات جديدة.</item>
+        <item quantity="two">مساحة الذكريات ممتلئة بالفعل — تم تجاوزها بمقدار رمزين. احذف ذكريات موجودة قبل إضافة ذكريات جديدة.</item>
+        <item quantity="few">مساحة الذكريات ممتلئة بالفعل — تم تجاوزها بمقدار %1$s رموز. احذف ذكريات موجودة قبل إضافة ذكريات جديدة.</item>
+        <item quantity="many">مساحة الذكريات ممتلئة بالفعل — تم تجاوزها بمقدار %1$s رمزًا. احذف ذكريات موجودة قبل إضافة ذكريات جديدة.</item>
+        <item quantity="other">مساحة الذكريات ممتلئة بالفعل — تم تجاوزها بمقدار %1$s رمز. احذف ذكريات موجودة قبل إضافة ذكريات جديدة.</item>
+    </plurals>
+    <plurals name="memory_would_exceed">
+        <item quantity="zero">تعذّر الحفظ — سيتم تجاوز الحد بمقدار %1$s رمز. احذف ذكريات موجودة لإفساح المجال.</item>
+        <item quantity="one">تعذّر الحفظ — سيتم تجاوز الحد بمقدار رمز واحد. احذف ذكريات موجودة لإفساح المجال.</item>
+        <item quantity="two">تعذّر الحفظ — سيتم تجاوز الحد بمقدار رمزين. احذف ذكريات موجودة لإفساح المجال.</item>
+        <item quantity="few">تعذّر الحفظ — سيتم تجاوز الحد بمقدار %1$s رموز. احذف ذكريات موجودة لإفساح المجال.</item>
+        <item quantity="many">تعذّر الحفظ — سيتم تجاوز الحد بمقدار %1$s رمزًا. احذف ذكريات موجودة لإفساح المجال.</item>
+        <item quantity="other">تعذّر الحفظ — سيتم تجاوز الحد بمقدار %1$s رمز. احذف ذكريات موجودة لإفساح المجال.</item>
+    </plurals>
     <string name="files_searched">تم البحث في ملفاتك</string>
     <string name="cd_file_search_source">مصدر البحث في الملفات: %1$s</string>
     <string name="file_search_relevance">%1$d%%</string>

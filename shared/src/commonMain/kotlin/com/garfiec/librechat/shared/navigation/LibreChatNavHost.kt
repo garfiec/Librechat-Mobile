@@ -34,6 +34,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -44,6 +45,8 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
@@ -102,6 +105,7 @@ import com.garfiec.librechat.feature.files.navigation.filePickerEntries
 import com.garfiec.librechat.feature.files.navigation.filesEntries
 import com.garfiec.librechat.feature.schedules.navigation.SchedulesList
 import com.garfiec.librechat.feature.schedules.navigation.schedulesEntries
+import com.garfiec.librechat.feature.settings.navigation.Memories
 import com.garfiec.librechat.feature.settings.navigation.SettingsTabbed
 import com.garfiec.librechat.feature.settings.navigation.WhatsNew
 import com.garfiec.librechat.feature.settings.navigation.mcpServersEntry
@@ -187,7 +191,14 @@ fun LibreChatNavHost(
         navigationSavedStateConfig,
         if (navHostViewModel.isLoggedIn.value) NewChat() else ServerUrl,
     )
-    val navigator = remember(backStack) { Navigator(backStack) }
+    // Leaving a screen drops focus and the keyboard; see Navigator's onScreenChange.
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val dropFocus by rememberUpdatedState {
+        focusManager.clearFocus()
+        keyboardController?.hide()
+    }
+    val navigator = remember(backStack) { Navigator(backStack, onScreenChange = { dropFocus() }) }
 
     // Redirect to auth if not logged in — once per saved-state lifecycle, NOT on every recreation.
     // LaunchedEffect(Unit) restarts on each Activity recreation (config change / process-death restore,
@@ -797,6 +808,7 @@ fun MainNavDisplay(
                     }
                     navigator.navigate(FilesPicker(targetConversationId = launchingId))
                 },
+                onOpenMemories = { navigator.navigate(Memories) },
                 onOpenWhatsNew = { navigator.navigate(WhatsNew) },
             )
             conversationsEntries(

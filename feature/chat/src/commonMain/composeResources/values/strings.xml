@@ -308,18 +308,27 @@
     <string name="cd_mcp_resource">MCP resource: %1$s</string>
 
     <!-- Memory artifact -->
-    <string name="cd_memory_artifact">Memory artifact: %1$s</string>
-    <string name="memory_artifact_untitled">Untitled</string>
     <string name="label_memory">Memory</string>
-    <string name="cd_memory_artifacts">Memory updates: %1$d</string>
+    <string name="memory_manage">Manage</string>
+    <string name="cd_memory_manage">Manage memories</string>
+    <plurals name="cd_memory_artifacts_summary">
+        <item quantity="one">%1$s, %2$s change</item>
+        <item quantity="other">%1$s, %2$s changes</item>
+    </plurals>
     <string name="memory_updated">Updated saved memory</string>
-    <string name="memory_error">Memory Error</string>
-    <string name="memory_updated_items">Updated Memories</string>
-    <string name="memory_deleted_items">Deleted Memories</string>
+    <string name="memory_error">Memory error</string>
+    <string name="memory_updated_items">Updated memories</string>
+    <string name="memory_deleted_items">Deleted memories</string>
     <string name="memory_deleted">Memory deleted</string>
-    <string name="memory_storage_full">Memory Storage Full</string>
-    <string name="memory_already_exceeded">Memory storage already full — exceeded by %1$d tokens. Delete existing memories before adding new ones.</string>
-    <string name="memory_would_exceed">Cannot save — would exceed limit by %1$d tokens. Delete existing memories to make space.</string>
+    <string name="memory_storage_full">Memory storage full</string>
+    <plurals name="memory_already_exceeded">
+        <item quantity="one">Memory storage already full — exceeded by %1$s token. Delete existing memories before adding new ones.</item>
+        <item quantity="other">Memory storage already full — exceeded by %1$s tokens. Delete existing memories before adding new ones.</item>
+    </plurals>
+    <plurals name="memory_would_exceed">
+        <item quantity="one">Cannot save — would exceed limit by %1$s token. Delete existing memories to make space.</item>
+        <item quantity="other">Cannot save — would exceed limit by %1$s tokens. Delete existing memories to make space.</item>
+    </plurals>
 
     <!-- File search sources -->
     <string name="files_searched">Searched your files</string>

@@ -20,7 +20,6 @@
     <string name="action_verifying">Vérification…</string>
 
     <!-- Content descriptions -->
-    <string name="cd_add_memory">Ajouter une mémoire</string>
     <string name="cd_add_server">Ajouter un serveur</string>
     <string name="cd_back">Retour</string>
     <string name="cd_change_avatar">Changer l'avatar</string>
@@ -31,11 +30,10 @@
     <string name="cd_current_avatar">Avatar actuel</string>
     <string name="cd_delete">Supprimer</string>
     <string name="cd_delete_api_key">Supprimer la clé API</string>
-    <string name="cd_delete_memory">Supprimer la mémoire</string>
     <string name="cd_delete_preset">Supprimer le préréglage</string>
-    <string name="cd_edit_memory">Modifier la mémoire</string>
     <string name="memory_redacted_key">Entrée masquée</string>
     <string name="memory_redacted_value">La politique de contenu de ce serveur masque ce qui est stocké ici. Vous pouvez tout de même la supprimer.</string>
+    <string name="memory_redacted_value_no_delete">La politique de contenu de ce serveur masque ce qui est stocké ici.</string>
     <string name="cd_loading_profile">Chargement du profil</string>
     <string name="cd_make_private">Rendre privé</string>
     <string name="cd_make_public">Rendre public</string>
@@ -47,7 +45,6 @@
     <string name="cd_test_tts_voice">Tester la voix TTS sélectionnée</string>
     <string name="cd_toggle_auto_read">Activer/désactiver la lecture automatique des réponses</string>
     <string name="cd_toggle_auto_send_stt">Activer/désactiver l'envoi automatique après la dictée</string>
-    <string name="cd_toggle_memories">Activer/désactiver les mémoires</string>
     <string name="cd_tts_voice_selector">Sélectionner la voix TTS. Actuellement %1$s</string>
     <string name="cd_user_avatar">Avatar de l'utilisateur</string>
     <string name="cd_view_all_tools">Voir tous les outils</string>
@@ -463,19 +460,69 @@
     <string name="tts_preview_voice">Aperçu de la voix</string>
 
     <!-- Memories -->
-    <string name="enable_memories">Activer les mémoires</string>
-    <string name="enable_memories_desc">Permettre à l'IA de mémoriser des informations entre les conversations</string>
-    <string name="no_memories_saved">Aucune mémoire enregistrée pour l'instant</string>
-    <string name="memories_add_hint">Appuyez sur le bouton + pour ajouter une mémoire</string>
     <string name="add_memory">Ajouter une mémoire</string>
     <string name="edit_memory">Modifier la mémoire</string>
     <string name="dialog_title_delete_memory">Supprimer la mémoire</string>
-    <string name="dialog_delete_memory_message">Voulez-vous vraiment supprimer la mémoire "%1$s" ?</string>
+    <string name="dialog_delete_memory_message">Voulez-vous vraiment supprimer la mémoire « %1$s » ?</string>
     <string name="memory_key_label">Clé</string>
     <string name="memory_value_label">Valeur</string>
-    <string name="memory_key_hint">Utilisez uniquement des lettres minuscules et des tirets bas</string>
-    <string name="memory_key_invalid">La clé ne doit contenir que des lettres minuscules et des tirets bas</string>
+    <string name="memory_key_hint">Utilisez uniquement des lettres minuscules a–z et des tirets bas</string>
+    <string name="memory_key_invalid">La clé ne doit contenir que des lettres minuscules a–z et des tirets bas</string>
     <string name="memory_key_exists">Une mémoire avec cette clé existe déjà</string>
+    <string name="memory_key_reserved">Cette clé est réservée. Choisissez-en une autre.</string>
+    <string name="memory_key_too_long">Les clés peuvent contenir au maximum %1$s caractères.</string>
+    <string name="memory_error_forbidden">Vous n'avez pas l'autorisation de modifier les mémoires.</string>
+    <string name="memory_error_toggle_forbidden">Votre rôle ne permet pas d'activer ou de désactiver les mémoires.</string>
+    <string name="memory_error_content_filtered">Bloqué par le filtre de contenu de votre serveur.</string>
+    <string name="memory_error_agent">Les mémoires de cet agent ne peuvent pas être modifiées.</string>
+    <string name="memory_error_network">Impossible de joindre le serveur. Vérifiez votre connexion.</string>
+    <string name="memory_error_save">Impossible d'enregistrer la mémoire.</string>
+    <string name="memory_error_delete">Impossible de supprimer la mémoire.</string>
+    <string name="memory_error_toggle">Impossible de modifier le réglage des mémoires.</string>
+    <string name="memory_error_not_found">Cette mémoire a été supprimée ailleurs.</string>
+    <string name="memory_error_not_found_readd">Cette mémoire a été supprimée ailleurs. Enregistrez pour l'ajouter à nouveau.</string>
+    <!-- Memories index -->
+    <string name="memories_use_title">Utiliser les mémoires enregistrées</string>
+    <string name="memories_use_desc">Les discussions peuvent lire et enregistrer des mémoires</string>
+    <string name="memories_use_load_failed">Impossible de charger ce réglage.</string>
+    <string name="memories_use_loading">Chargement</string>
+    <string name="memories_usage_percent">%1$s %</string>
+    <plurals name="memories_usage_tokens">
+        <item quantity="one">%1$s / %2$s jeton</item>
+        <item quantity="other">%1$s / %2$s jetons</item>
+    </plurals>
+    <plurals name="memories_usage_a11y">
+        <item quantity="one">Utilisation des mémoires : %1$s, %2$s sur %3$s jeton</item>
+        <item quantity="other">Utilisation des mémoires : %1$s, %2$s sur %3$s jetons</item>
+    </plurals>
+    <plurals name="memory_token_count">
+        <item quantity="one">%1$s jeton</item>
+        <item quantity="other">%1$s jetons</item>
+    </plurals>
+    <string name="memory_agent_fallback">Mémoire d'agent</string>
+    <string name="memory_agent_numbered">%1$s (%2$s)</string>
+    <string name="memories_search_hint">Rechercher des mémoires</string>
+    <string name="memories_no_match">Aucune mémoire ne correspond à « %1$s »</string>
+    <string name="memories_personal_empty">Aucune mémoire personnelle pour l'instant</string>
+    <string name="memories_filter_all">Toutes</string>
+    <string name="memories_filter_personal">Personnelles</string>
+    <string name="memories_empty_title">Aucune mémoire pour l'instant</string>
+    <string name="memories_empty_desc">Les discussions enregistrent ici ce qui mérite d'être retenu. Vous pouvez aussi en ajouter une vous-même.</string>
+    <string name="memories_empty_desc_no_create">Les discussions enregistrent ici ce qui mérite d'être retenu.</string>
+    <string name="memories_view_only">Votre rôle permet de consulter les mémoires, mais pas d'en ajouter ni de les modifier.</string>
+    <string name="memories_no_access_title">Pas d'accès aux mémoires</string>
+    <string name="memories_no_access_desc">Votre rôle n'a pas l'autorisation de consulter les mémoires.</string>
+    <string name="memory_action_edit">Modifier</string>
+    <string name="cd_memory_options">Options pour %1$s</string>
+    <!-- Memory sheet -->
+    <string name="view_memory">Voir la mémoire</string>
+    <string name="action_close">Fermer</string>
+    <string name="memory_value_counter">%1$s / %2$s</string>
+    <plurals name="memory_token_share">
+        <item quantity="one">%1$s jeton · %2$s % de votre mémoire</item>
+        <item quantity="other">%1$s jetons · %2$s % de votre mémoire</item>
+    </plurals>
+    <string name="memory_updated_at">Mis à jour : %1$s</string>
 
     <!-- MCP -->
     <string name="add_mcp_server">Ajouter un serveur MCP</string>
@@ -614,16 +661,27 @@
     <string name="provider_keys_revoke_all_action">Tout révoquer</string>
 
     <!-- Admin: role skill access -->
-    <string name="role_skills_settings_row">Accès aux compétences (admin)</string>
-    <string name="role_skills_title">Accès aux compétences</string>
-    <string name="role_skills_back">Retour</string>
+    <string name="role_skills_settings_row">Autorisations des compétences</string>
+    <string name="role_skills_title">Autorisations des compétences</string>
     <string name="role_skills_description">Contrôlez les capacités de compétences dont dispose chaque rôle. Les modifications s'appliquent à tous les utilisateurs ayant le rôle sélectionné.</string>
-    <string name="role_skills_role_label">Rôle</string>
+    <string name="role_permissions_role_label">Rôle</string>
     <string name="role_skills_use">Utiliser les compétences</string>
     <string name="role_skills_create">Créer &amp; modifier des compétences</string>
     <string name="role_skills_share">Partager des compétences</string>
     <string name="role_skills_share_public">Partager des compétences publiquement</string>
-    <string name="role_skills_save">Enregistrer</string>
+    <string name="role_memories_settings_row">Autorisations des mémoires</string>
+    <string name="role_memories_title">Autorisations des mémoires</string>
+    <string name="role_memories_description">Contrôlez les capacités de mémoire dont dispose chaque rôle. Les modifications s'appliquent à tous les utilisateurs ayant le rôle sélectionné.</string>
+    <string name="role_memories_use">Autoriser l'utilisation des mémoires</string>
+    <string name="role_memories_create">Autoriser la création de mémoires</string>
+    <string name="role_memories_update">Autoriser la modification des mémoires</string>
+    <string name="role_memories_read">Autoriser la lecture des mémoires</string>
+    <string name="role_memories_opt_out">Autoriser les utilisateurs à désactiver les mémoires</string>
+    <string name="role_permissions_saved">Enregistré</string>
+    <string name="role_permissions_load_failed">Impossible de charger les autorisations de ce rôle.</string>
+    <string name="role_permissions_save_failed">Impossible d'enregistrer les autorisations. Réessayez.</string>
+    <string name="role_permissions_admin_access_warning">Désactiver l'accès administrateur à cette fonctionnalité peut entraîner des problèmes imprévus jusqu'à ce que l'app recharge vos autorisations. Une fois enregistré, le seul moyen de revenir en arrière est le paramètre interface de librechat.yaml, qui affecte tous les rôles.</string>
+    <string name="role_permissions_more_info">Plus d'informations</string>
     <string name="artifact_shortcuts_title">Raccourcis de l'écran d'accueil</string>
     <string name="artifact_shortcuts_empty">Aucun artefact épinglé à l'écran d'accueil pour l'instant.</string>
     <string name="artifact_shortcuts_disabled_message">Ce raccourci d'artefact a été supprimé.</string>
@@ -715,9 +773,10 @@
     <string name="date_time_preview">Aperçu</string>
     <string name="data_summary_off">Désactivé</string>
     <string name="data_summary_none">Aucun</string>
+    <string name="data_memories_none">Aucune</string>
     <plurals name="data_memories_count">
-        <item quantity="one">%1$d enregistrée</item>
-        <item quantity="other">%1$d enregistrées</item>
+        <item quantity="one">%1$s enregistrée</item>
+        <item quantity="other">%1$s enregistrées</item>
     </plurals>
     <plurals name="data_mcp_servers_count">
         <item quantity="one">%1$d serveur</item>
@@ -773,6 +832,7 @@
     <string name="mcp_editor_load_failed">Impossible de charger ce serveur.</string>
     <string name="mcp_trust_label">Je fais confiance à ce serveur</string>
     <string name="mcp_trust_sublabel">Il peut lire ce que vous lui envoyez et agir pour vous dans l’app à laquelle il se connecte. N’ajoutez que des serveurs de confiance.</string>
+    <string name="memory_error_key_route_shadowed">Ce serveur ne peut pas modifier une mémoire avec cette clé. Supprimez-la et ajoutez-la à nouveau sous une autre clé.</string>
     <string name="shared_chats_title">Discussions partagées</string>
     <string name="shared_chats_summary">Liens vers les discussions que vous avez partagées</string>
     <string name="shared_chats_untitled">Discussion sans titre</string>

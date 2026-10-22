@@ -135,7 +135,7 @@ fun McpServersScreen(
             // The empty state carries its own Add button; two of them would compete.
             if (uiState.canCreateServer && uiState.servers.isNotEmpty()) {
                 AdaptiveExtendedFloatingActionButton(
-                    text = { Text(stringResource(Res.string.cd_add_server)) },
+                    text = stringResource(Res.string.cd_add_server),
                     icon = { Icon(Icons.Default.Add, contentDescription = null) },
                     onClick = onAddServer,
                     expanded = fabExpanded,

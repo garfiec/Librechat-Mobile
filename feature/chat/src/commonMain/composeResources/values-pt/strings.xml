@@ -304,18 +304,27 @@
     <string name="cd_mcp_resource">Recurso MCP: %1$s</string>
 
     <!-- Memory artifact -->
-    <string name="cd_memory_artifact">Artefato de memória: %1$s</string>
-    <string name="memory_artifact_untitled">Sem título</string>
     <string name="label_memory">Memória</string>
-    <string name="cd_memory_artifacts">Atualizações de memória: %1$d</string>
+    <string name="memory_manage">Gerenciar</string>
+    <string name="cd_memory_manage">Gerenciar memórias</string>
+    <plurals name="cd_memory_artifacts_summary">
+        <item quantity="one">%1$s, %2$s alteração</item>
+        <item quantity="other">%1$s, %2$s alterações</item>
+    </plurals>
     <string name="memory_updated">Memória salva atualizada</string>
     <string name="memory_error">Erro de memória</string>
     <string name="memory_updated_items">Memórias atualizadas</string>
     <string name="memory_deleted_items">Memórias excluídas</string>
     <string name="memory_deleted">Memória excluída</string>
     <string name="memory_storage_full">Armazenamento de memória cheio</string>
-    <string name="memory_already_exceeded">Armazenamento de memória já está cheio — excedido em %1$d tokens. Exclua memórias existentes antes de adicionar novas.</string>
-    <string name="memory_would_exceed">Não é possível salvar — excederia o limite em %1$d tokens. Exclua memórias existentes para liberar espaço.</string>
+    <plurals name="memory_already_exceeded">
+        <item quantity="one">Armazenamento de memória já está cheio — excedido em %1$s token. Exclua memórias existentes antes de adicionar novas.</item>
+        <item quantity="other">Armazenamento de memória já está cheio — excedido em %1$s tokens. Exclua memórias existentes antes de adicionar novas.</item>
+    </plurals>
+    <plurals name="memory_would_exceed">
+        <item quantity="one">Não é possível salvar — excederia o limite em %1$s token. Exclua memórias existentes para liberar espaço.</item>
+        <item quantity="other">Não é possível salvar — excederia o limite em %1$s tokens. Exclua memórias existentes para liberar espaço.</item>
+    </plurals>
     <string name="files_searched">Pesquisou seus arquivos</string>
     <string name="cd_file_search_source">Fonte da busca em arquivos: %1$s</string>
     <string name="file_search_relevance">%1$d%%</string>

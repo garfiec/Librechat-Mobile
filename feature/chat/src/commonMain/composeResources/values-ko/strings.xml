@@ -304,18 +304,24 @@
     <string name="cd_mcp_resource">MCP 리소스: %1$s</string>
 
     <!-- Memory artifact -->
-    <string name="cd_memory_artifact">메모리 아티팩트: %1$s</string>
-    <string name="memory_artifact_untitled">제목 없음</string>
     <string name="label_memory">메모리</string>
-    <string name="cd_memory_artifacts">메모리 업데이트: %1$d</string>
+    <string name="memory_manage">관리</string>
+    <string name="cd_memory_manage">메모리 관리</string>
+    <plurals name="cd_memory_artifacts_summary">
+        <item quantity="other">%1$s, 변경 %2$s건</item>
+    </plurals>
     <string name="memory_updated">저장된 메모리 업데이트됨</string>
     <string name="memory_error">메모리 오류</string>
     <string name="memory_updated_items">업데이트된 메모리</string>
     <string name="memory_deleted_items">삭제된 메모리</string>
     <string name="memory_deleted">메모리 삭제됨</string>
     <string name="memory_storage_full">메모리 저장 공간 가득 참</string>
-    <string name="memory_already_exceeded">메모리 저장 공간이 이미 가득 찼습니다 — %1$d 토큰 초과. 새 메모리를 추가하기 전에 기존 메모리를 삭제하세요.</string>
-    <string name="memory_would_exceed">저장할 수 없습니다 — 한도를 %1$d 토큰 초과합니다. 공간을 확보하려면 기존 메모리를 삭제하세요.</string>
+    <plurals name="memory_already_exceeded">
+        <item quantity="other">메모리 저장 공간이 이미 가득 찼습니다 — %1$s 토큰 초과. 새 메모리를 추가하기 전에 기존 메모리를 삭제하세요.</item>
+    </plurals>
+    <plurals name="memory_would_exceed">
+        <item quantity="other">저장할 수 없습니다 — 한도를 %1$s 토큰 초과합니다. 공간을 확보하려면 기존 메모리를 삭제하세요.</item>
+    </plurals>
     <string name="files_searched">파일을 검색함</string>
     <string name="cd_file_search_source">파일 검색 출처: %1$s</string>
     <string name="file_search_relevance">%1$d%%</string>

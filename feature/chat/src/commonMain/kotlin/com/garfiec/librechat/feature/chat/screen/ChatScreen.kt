@@ -106,6 +106,8 @@ fun ChatScreen(
     onAttachFromServer: () -> Unit = {},
     /** Opens What's new from the update banner shown on an empty chat. */
     onOpenWhatsNew: () -> Unit = {},
+    /** Opens the Memories page from a memory card's Manage action. Null hides the action. */
+    onOpenMemories: (() -> Unit)? = null,
 ) {
     val viewModel: ChatViewModel =
         koinViewModel {
@@ -323,6 +325,7 @@ fun ChatScreen(
         siteIcons = prefs.siteIcons,
         onSiteIconsChoice = viewModel::setShowSiteIcons,
         onSiteIconsPromptDismiss = viewModel::dismissSiteIconPrompt,
+        onOpenMemories = onOpenMemories?.takeIf { uiState.gates.memoriesPageEnabled },
     ) {
     Scaffold(
         modifier = modifier
@@ -694,6 +697,7 @@ fun NewChatScreen(
     onNavigateToPromptsLibrary: (() -> Unit)? = null,
     onAttachFromServer: () -> Unit = {},
     onOpenWhatsNew: () -> Unit = {},
+    onOpenMemories: (() -> Unit)? = null,
 ) {
     ChatScreen(
         modifier = modifier,
@@ -708,5 +712,6 @@ fun NewChatScreen(
         onNavigateToProviderKeys = onNavigateToProviderKeys,
         onAttachFromServer = onAttachFromServer,
         onOpenWhatsNew = onOpenWhatsNew,
+        onOpenMemories = onOpenMemories,
     )
 }

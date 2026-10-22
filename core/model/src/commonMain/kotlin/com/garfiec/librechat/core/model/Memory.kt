@@ -12,19 +12,23 @@ data class Memory(
      * unprojected `.lean()` find, at v0.8.8-rc1 as much as rc3 — so its presence says nothing
      * about the server version and must not be used as one.
      *
-     * It is the only handle that survives [contentFilterBlocked]: a redaction blanks [key], and a
+     * It is the only handle that survives [contentFilterBlocked]: a redaction can blank [key], and a
      * key-addressed route cannot then address the row at all. See `MemoriesApi`'s by-id calls.
      */
     @SerialName("_id") val id: String? = null,
     /**
-     * True when the deployment's `filters.memories.pii` policy matched this entry and the server
-     * BLANKED the content fields it matched — [key], [value] and [summary] come back as empty
-     * strings, not omitted.
+     * True when the deployment's `filters.memories.pii` policy matched this entry. The server
+     * blanks ONLY the matched fields among [key], [value] and [summary] (upstream
+     * `memory/protection.ts` `redactStoredMemory`): each matched one comes back as an empty string,
+     * not omitted, and the others arrive intact. `pii.fields` may name any subset of the three, so
+     * a flagged row can carry its real key with a blank value, or both intact when only the summary
+     * matched.
      *
      * So an empty [value] here means "withheld", not "the user stored nothing", and rendering it
      * as an empty row with no explanation is the bug this field exists to prevent. The projection
-     * runs on the list route and on the PATCH response alike, so an edit can come back redacted
-     * too.
+     * runs on the list route and on the by-id PATCH response (`PATCH /api/memories/id/:id`), so an
+     * edit through that route can come back redacted too. The key-addressed `PATCH /:key` and the
+     * create route echo the stored record unprojected.
      */
     val contentFilterBlocked: Boolean? = null,
     /** Server-generated precis, when the deployment stores one. Subject to the same redaction. */
@@ -47,6 +51,11 @@ data class Memory(
      * whose agent is no longer visible.
      */
     val agentName: String? = null,
+    /**
+     * Tokens the server counted for [value] when it was written. Absent on rows written before the
+     * column existed; the server's pool total counts a missing one as zero.
+     */
+    val tokenCount: Int? = null,
 )
 
 /** The `preferences` object of `PATCH /api/memories/preferences`, whose sole key is `memories`. */

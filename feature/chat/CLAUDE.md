@@ -714,6 +714,10 @@ tool block. It is pure because this module has no Compose test harness.
   boundary so a later filled label cannot reach back past it. With no label at all the block
   re-splits into the legacy shape (reasoning standalone, runs of ≥2 tools grouped), so a server
   without the feature renders exactly as before.
+- **The header's failed colour is `activityGroupFailed`, joined with attachments at the render
+  site**: the label's `failed`/`partial` status, or a refused memory write in the block judged by
+  the memory card's own rule (`isFailedMemoryToolCall`), as web's `outcome.ts` does. Run-step
+  `failed` and generic error output on other tools are not counted yet.
 - **Group identity is anchored to the first TOOL CALL, never the first part.** A label absorbs the
   block's leading `THINK` when its text lands, so `parts[0]` flips at the instant the block becomes
   a group; keying on it remounts the group and drops the user's expansion.

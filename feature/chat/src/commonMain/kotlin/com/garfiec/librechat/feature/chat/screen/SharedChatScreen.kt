@@ -222,6 +222,8 @@ fun SharedChatScreen(
         siteIcons = display.siteIcons,
         onSiteIconsChoice = rememberSiteIconsChoice(),
         onSiteIconsPromptDismiss = koinInject<SiteIconPromptSession>()::dismiss,
+        // The memories shown are the sharer's, not the viewer's: no Manage.
+        onOpenMemories = null,
     ) {
         ProvideSharedFileOpeners(state, viewModel) {
             SharedChatScaffold(
@@ -430,7 +432,7 @@ private fun overflowMenu(actions: SharedChatActions): BarAction.Menu {
 private fun ContinueButton(busy: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     AdaptiveExtendedFloatingActionButton(
         modifier = modifier,
-        text = { Text(stringResource(Res.string.shared_chat_continue)) },
+        text = stringResource(Res.string.shared_chat_continue),
         icon = {
             if (busy) {
                 AdaptiveCircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)

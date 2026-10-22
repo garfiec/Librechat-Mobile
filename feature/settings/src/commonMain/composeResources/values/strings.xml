@@ -20,7 +20,6 @@
     <string name="action_verifying">Verifying…</string>
 
     <!-- Content descriptions -->
-    <string name="cd_add_memory">Add memory</string>
     <string name="cd_add_server">Add server</string>
     <string name="cd_back">Back</string>
     <string name="cd_change_avatar">Change avatar</string>
@@ -31,11 +30,10 @@
     <string name="cd_current_avatar">Current avatar</string>
     <string name="cd_delete">Delete</string>
     <string name="cd_delete_api_key">Delete API key</string>
-    <string name="cd_delete_memory">Delete memory</string>
     <string name="cd_delete_preset">Delete preset</string>
-    <string name="cd_edit_memory">Edit memory</string>
     <string name="memory_redacted_key">Hidden entry</string>
     <string name="memory_redacted_value">This server's content policy hides what's stored here. You can still delete it.</string>
+    <string name="memory_redacted_value_no_delete">This server's content policy hides what's stored here.</string>
     <string name="cd_loading_profile">Loading profile</string>
     <string name="cd_make_private">Make private</string>
     <string name="cd_make_public">Make public</string>
@@ -47,7 +45,6 @@
     <string name="cd_test_tts_voice">Test selected TTS voice</string>
     <string name="cd_toggle_auto_read">Toggle auto-read responses</string>
     <string name="cd_toggle_auto_send_stt">Toggle auto-send after speech</string>
-    <string name="cd_toggle_memories">Toggle memories</string>
     <string name="cd_tts_voice_selector">Select TTS voice. Currently %1$s</string>
     <string name="cd_user_avatar">User avatar</string>
     <string name="cd_view_all_tools">View all tools</string>
@@ -472,19 +469,69 @@
     <string name="tts_preview_voice">Preview Voice</string>
 
     <!-- Memories -->
-    <string name="enable_memories">Enable Memories</string>
-    <string name="enable_memories_desc">Allow the AI to remember information across conversations</string>
-    <string name="no_memories_saved">No memories saved yet</string>
-    <string name="memories_add_hint">Tap the + button to add a memory</string>
-    <string name="add_memory">Add Memory</string>
-    <string name="edit_memory">Edit Memory</string>
-    <string name="dialog_title_delete_memory">Delete Memory</string>
-    <string name="dialog_delete_memory_message">Are you sure you want to delete the memory "%1$s"?</string>
+    <string name="add_memory">Add memory</string>
+    <string name="edit_memory">Edit memory</string>
+    <string name="dialog_title_delete_memory">Delete memory</string>
+    <string name="dialog_delete_memory_message">Are you sure you want to delete the memory “%1$s”?</string>
     <string name="memory_key_label">Key</string>
     <string name="memory_value_label">Value</string>
-    <string name="memory_key_hint">Use lowercase letters and underscores only</string>
-    <string name="memory_key_invalid">Key must only contain lowercase letters and underscores</string>
+    <string name="memory_key_hint">Use only lowercase letters a–z and underscores</string>
+    <string name="memory_key_invalid">Keys can only contain lowercase letters a–z and underscores</string>
     <string name="memory_key_exists">A memory with this key already exists</string>
+    <string name="memory_key_reserved">This key is reserved. Choose another.</string>
+    <string name="memory_key_too_long">Keys can be at most %1$s characters.</string>
+    <string name="memory_error_forbidden">You don't have permission to change memories.</string>
+    <string name="memory_error_toggle_forbidden">Your role can't turn memories on or off.</string>
+    <string name="memory_error_content_filtered">Blocked by your server's content filter.</string>
+    <string name="memory_error_agent">This agent's memories can't be changed.</string>
+    <string name="memory_error_network">Couldn't reach the server. Check your connection.</string>
+    <string name="memory_error_save">Couldn't save the memory.</string>
+    <string name="memory_error_delete">Couldn't delete the memory.</string>
+    <string name="memory_error_toggle">Couldn't change the memory setting.</string>
+    <string name="memory_error_not_found">This memory was deleted elsewhere.</string>
+    <string name="memory_error_not_found_readd">This memory was deleted elsewhere. Save to add it again.</string>
+    <!-- Memories index -->
+    <string name="memories_use_title">Use saved memories</string>
+    <string name="memories_use_desc">Chats can read and save memories</string>
+    <string name="memories_use_load_failed">Couldn't load this setting.</string>
+    <string name="memories_use_loading">Loading</string>
+    <string name="memories_usage_percent">%1$s%</string>
+    <plurals name="memories_usage_tokens">
+        <item quantity="one">%1$s / %2$s token</item>
+        <item quantity="other">%1$s / %2$s tokens</item>
+    </plurals>
+    <plurals name="memories_usage_a11y">
+        <item quantity="one">Memory usage: %1$s, %2$s of %3$s token</item>
+        <item quantity="other">Memory usage: %1$s, %2$s of %3$s tokens</item>
+    </plurals>
+    <plurals name="memory_token_count">
+        <item quantity="one">%1$s token</item>
+        <item quantity="other">%1$s tokens</item>
+    </plurals>
+    <string name="memory_agent_fallback">Agent memory</string>
+    <string name="memory_agent_numbered">%1$s (%2$s)</string>
+    <string name="memories_search_hint">Search memories</string>
+    <string name="memories_no_match">No memories match “%1$s”</string>
+    <string name="memories_personal_empty">No personal memories yet</string>
+    <string name="memories_filter_all">All</string>
+    <string name="memories_filter_personal">Personal</string>
+    <string name="memories_empty_title">No memories yet</string>
+    <string name="memories_empty_desc">Chats save things worth remembering here. You can also add one yourself.</string>
+    <string name="memories_empty_desc_no_create">Chats save things worth remembering here.</string>
+    <string name="memories_view_only">Your role can view memories but not add or change them.</string>
+    <string name="memories_no_access_title">No access to memories</string>
+    <string name="memories_no_access_desc">Your role doesn't have permission to view memories.</string>
+    <string name="memory_action_edit">Edit</string>
+    <string name="cd_memory_options">Options for %1$s</string>
+    <!-- Memory sheet -->
+    <string name="view_memory">View memory</string>
+    <string name="action_close">Close</string>
+    <string name="memory_value_counter">%1$s / %2$s</string>
+    <plurals name="memory_token_share">
+        <item quantity="one">%1$s token · %2$s% of your memory</item>
+        <item quantity="other">%1$s tokens · %2$s% of your memory</item>
+    </plurals>
+    <string name="memory_updated_at">Updated %1$s</string>
 
     <!-- MCP -->
     <string name="add_mcp_server">Add MCP Server</string>
@@ -623,16 +670,27 @@
     <string name="provider_keys_revoke_all_action">Revoke All</string>
 
     <!-- Admin: role skill access -->
-    <string name="role_skills_settings_row">Skill access (admin)</string>
-    <string name="role_skills_title">Skill access</string>
-    <string name="role_skills_back">Back</string>
+    <string name="role_skills_settings_row">Skill permissions</string>
+    <string name="role_skills_title">Skill permissions</string>
     <string name="role_skills_description">Control which skill capabilities each role has. Changes apply to all users with the selected role.</string>
-    <string name="role_skills_role_label">Role</string>
+    <string name="role_permissions_role_label">Role</string>
     <string name="role_skills_use">Use skills</string>
     <string name="role_skills_create">Create &amp; edit skills</string>
     <string name="role_skills_share">Share skills</string>
     <string name="role_skills_share_public">Share skills publicly</string>
-    <string name="role_skills_save">Save</string>
+    <string name="role_memories_settings_row">Memory permissions</string>
+    <string name="role_memories_title">Memory permissions</string>
+    <string name="role_memories_description">Control which memory capabilities each role has. Changes apply to all users with the selected role.</string>
+    <string name="role_memories_use">Allow using memories</string>
+    <string name="role_memories_create">Allow creating memories</string>
+    <string name="role_memories_update">Allow updating memories</string>
+    <string name="role_memories_read">Allow reading memories</string>
+    <string name="role_memories_opt_out">Allow users to turn memories off</string>
+    <string name="role_permissions_saved">Saved</string>
+    <string name="role_permissions_load_failed">Couldn't load this role's permissions.</string>
+    <string name="role_permissions_save_failed">Couldn't save the permissions. Try again.</string>
+    <string name="role_permissions_admin_access_warning">Turning off Admin access to this feature may cause unexpected issues until the app reloads your permissions. Once saved, the only way to undo it is the interface setting in librechat.yaml, which affects all roles.</string>
+    <string name="role_permissions_more_info">More info</string>
 
     <!-- Home-screen artifact shortcuts -->
     <string name="artifact_shortcuts_title">Home-screen shortcuts</string>
@@ -731,9 +789,10 @@
     <string name="date_time_preview">Preview</string>
     <string name="data_summary_off">Off</string>
     <string name="data_summary_none">None</string>
+    <string name="data_memories_none">None</string>
     <plurals name="data_memories_count">
-        <item quantity="one">%1$d saved</item>
-        <item quantity="other">%1$d saved</item>
+        <item quantity="one">%1$s saved</item>
+        <item quantity="other">%1$s saved</item>
     </plurals>
     <plurals name="data_mcp_servers_count">
         <item quantity="one">%1$d server</item>
@@ -779,6 +838,7 @@
     <string name="mcp_editor_load_failed">Couldn't load this server.</string>
     <string name="mcp_trust_label">I trust this server</string>
     <string name="mcp_trust_sublabel">It can read what you send it and act for you in the app it connects to. Only add servers you trust.</string>
+    <string name="memory_error_key_route_shadowed">This server can't edit a memory with this key. Delete it and add it again under another key.</string>
     <string name="shared_chats_title">Shared chats</string>
     <string name="shared_chats_summary">Links to chats you've shared</string>
     <string name="shared_chats_untitled">Untitled chat</string>

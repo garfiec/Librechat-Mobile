@@ -10,7 +10,12 @@ import kotlinx.serialization.Serializable
  *
  * [totalTokens] / [tokenLimit] / [usagePercentage] count the SHARED personal pool only (the server
  * excludes agent-partitioned entries, because the limit applies per partition). [charLimit] is the
- * per-value cap the create/update endpoints enforce. Parsed for completeness; no UI reads them yet.
+ * per-value cap the create/update endpoints enforce. [tokenLimit] and [usagePercentage] are null
+ * unless the deployment configures a token limit; [charLimit] falls back to 10,000 server-side when
+ * unconfigured, and is null here only from a server that predates the field.
+ *
+ * Returned whole by `MemoriesApi.getMemories` and `MemoryRepository.getMemories`, so the Memories
+ * page can show the pool's usage next to the list.
  */
 @Serializable
 data class MemoriesResponse(
@@ -22,10 +27,11 @@ data class MemoriesResponse(
 )
 
 /**
- * `POST /api/memories` (`{ created: true, memory }`) and `PATCH /api/memories/:key`
- * (`{ updated: true, memory }`). The flag carries no information the HTTP status doesn't, so only
- * the entry is modeled. [memory] is nullable because the server resolves it by re-reading the
- * partition and re-finding the key, which can come back empty.
+ * `POST /api/memories` (`{ created: true, memory }`), `PATCH /api/memories/:key` and
+ * `PATCH /api/memories/id/:id` (both `{ updated: true, memory }`). The flag carries no information
+ * the HTTP status doesn't, so only the entry is modeled. [memory] is nullable because the key routes
+ * resolve it by re-reading the partition and re-finding the key, which can come back empty; the
+ * by-id route echoes the stored record, content-filter projected.
  */
 @Serializable
 data class MemoryMutationResponse(

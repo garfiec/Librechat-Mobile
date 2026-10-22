@@ -20,7 +20,6 @@
     <string name="action_verifying">確認中…</string>
 
     <!-- Content descriptions -->
-    <string name="cd_add_memory">メモリを追加</string>
     <string name="cd_add_server">サーバーを追加</string>
     <string name="cd_back">戻る</string>
     <string name="cd_change_avatar">アバターを変更</string>
@@ -31,11 +30,10 @@
     <string name="cd_current_avatar">現在のアバター</string>
     <string name="cd_delete">削除</string>
     <string name="cd_delete_api_key">APIキーを削除</string>
-    <string name="cd_delete_memory">メモリを削除</string>
     <string name="cd_delete_preset">プリセットを削除</string>
-    <string name="cd_edit_memory">メモリを編集</string>
     <string name="memory_redacted_key">非表示の項目</string>
     <string name="memory_redacted_value">このサーバーのコンテンツポリシーにより、保存内容は非表示になっています。削除は引き続き可能です。</string>
+    <string name="memory_redacted_value_no_delete">このサーバーのコンテンツポリシーにより、保存内容は非表示になっています。</string>
     <string name="cd_loading_profile">プロフィールを読み込み中</string>
     <string name="cd_make_private">非公開にする</string>
     <string name="cd_make_public">公開にする</string>
@@ -47,7 +45,6 @@
     <string name="cd_test_tts_voice">選択したTTS音声をテスト</string>
     <string name="cd_toggle_auto_read">応答の自動読み上げを切り替え</string>
     <string name="cd_toggle_auto_send_stt">音声入力後の自動送信を切り替え</string>
-    <string name="cd_toggle_memories">メモリを切り替え</string>
     <string name="cd_tts_voice_selector">TTS音声を選択。現在は %1$s</string>
     <string name="cd_user_avatar">ユーザーのアバター</string>
     <string name="cd_view_all_tools">すべてのツールを表示</string>
@@ -457,19 +454,65 @@
     <string name="tts_preview_voice">音声をプレビュー</string>
 
     <!-- Memories -->
-    <string name="enable_memories">メモリを有効にする</string>
-    <string name="enable_memories_desc">会話をまたいで情報を記憶することをAIに許可します</string>
-    <string name="no_memories_saved">保存されたメモリはまだありません</string>
-    <string name="memories_add_hint">＋ボタンをタップしてメモリを追加</string>
     <string name="add_memory">メモリを追加</string>
     <string name="edit_memory">メモリを編集</string>
     <string name="dialog_title_delete_memory">メモリを削除</string>
     <string name="dialog_delete_memory_message">メモリ「%1$s」を削除してもよろしいですか？</string>
     <string name="memory_key_label">キー</string>
     <string name="memory_value_label">値</string>
-    <string name="memory_key_hint">小文字の英字とアンダースコアのみ使用してください</string>
-    <string name="memory_key_invalid">キーには小文字の英字とアンダースコアのみ使用できます</string>
+    <string name="memory_key_hint">半角の小文字（a–z）とアンダースコアのみ使用してください</string>
+    <string name="memory_key_invalid">キーには半角の小文字（a–z）とアンダースコアのみ使用できます</string>
     <string name="memory_key_exists">このキーのメモリはすでに存在します</string>
+    <string name="memory_key_reserved">このキーは予約されています。別のキーを選んでください。</string>
+    <string name="memory_key_too_long">キーは最大 %1$s 文字までです。</string>
+    <string name="memory_error_forbidden">メモリを変更する権限がありません。</string>
+    <string name="memory_error_toggle_forbidden">あなたのロールではメモリのオン/オフを切り替えられません。</string>
+    <string name="memory_error_content_filtered">サーバーのコンテンツフィルターによってブロックされました。</string>
+    <string name="memory_error_agent">このエージェントのメモリは変更できません。</string>
+    <string name="memory_error_network">サーバーに接続できません。接続を確認してください。</string>
+    <string name="memory_error_save">メモリを保存できませんでした。</string>
+    <string name="memory_error_delete">メモリを削除できませんでした。</string>
+    <string name="memory_error_toggle">メモリの設定を変更できませんでした。</string>
+    <string name="memory_error_not_found">このメモリは別の場所で削除されました。</string>
+    <string name="memory_error_not_found_readd">このメモリは別の場所で削除されました。保存すると再度追加されます。</string>
+    <!-- Memories index -->
+    <string name="memories_use_title">保存したメモリを使う</string>
+    <string name="memories_use_desc">チャットがメモリを読み取り、保存できます</string>
+    <string name="memories_use_load_failed">この設定を読み込めませんでした。</string>
+    <string name="memories_use_loading">読み込み中</string>
+    <string name="memories_usage_percent">%1$s%</string>
+    <plurals name="memories_usage_tokens">
+        <item quantity="other">%1$s / %2$s トークン</item>
+    </plurals>
+    <plurals name="memories_usage_a11y">
+        <item quantity="other">メモリ使用量: %1$s、%3$s トークン中 %2$s</item>
+    </plurals>
+    <plurals name="memory_token_count">
+        <item quantity="other">%1$s トークン</item>
+    </plurals>
+    <string name="memory_agent_fallback">エージェントのメモリ</string>
+    <string name="memory_agent_numbered">%1$s（%2$s）</string>
+    <string name="memories_search_hint">メモリを検索</string>
+    <string name="memories_no_match">「%1$s」に一致するメモリはありません</string>
+    <string name="memories_personal_empty">個人のメモリはまだありません</string>
+    <string name="memories_filter_all">すべて</string>
+    <string name="memories_filter_personal">個人</string>
+    <string name="memories_empty_title">メモリはまだありません</string>
+    <string name="memories_empty_desc">覚えておく価値のあることをチャットがここに保存します。自分で追加することもできます。</string>
+    <string name="memories_empty_desc_no_create">覚えておく価値のあることをチャットがここに保存します。</string>
+    <string name="memories_view_only">あなたのロールではメモリを閲覧できますが、追加や変更はできません。</string>
+    <string name="memories_no_access_title">メモリにアクセスできません</string>
+    <string name="memories_no_access_desc">あなたのロールにはメモリを閲覧する権限がありません。</string>
+    <string name="memory_action_edit">編集</string>
+    <string name="cd_memory_options">%1$sのオプション</string>
+    <!-- Memory sheet -->
+    <string name="view_memory">メモリを表示</string>
+    <string name="action_close">閉じる</string>
+    <string name="memory_value_counter">%1$s / %2$s</string>
+    <plurals name="memory_token_share">
+        <item quantity="other">%1$s トークン · メモリの %2$s%</item>
+    </plurals>
+    <string name="memory_updated_at">更新: %1$s</string>
 
     <!-- MCP -->
     <string name="add_mcp_server">MCPサーバーを追加</string>
@@ -608,16 +651,27 @@
     <string name="provider_keys_revoke_all_action">すべて取り消す</string>
 
     <!-- Admin: role skill access -->
-    <string name="role_skills_settings_row">スキルへのアクセス（管理者）</string>
-    <string name="role_skills_title">スキルへのアクセス</string>
-    <string name="role_skills_back">戻る</string>
+    <string name="role_skills_settings_row">スキルの権限</string>
+    <string name="role_skills_title">スキルの権限</string>
     <string name="role_skills_description">各ロールが持つスキル機能を制御します。変更は選択したロールのすべてのユーザーに適用されます。</string>
-    <string name="role_skills_role_label">ロール</string>
+    <string name="role_permissions_role_label">ロール</string>
     <string name="role_skills_use">スキルを使用</string>
     <string name="role_skills_create">スキルの作成と編集</string>
     <string name="role_skills_share">スキルを共有</string>
     <string name="role_skills_share_public">スキルを公開で共有</string>
-    <string name="role_skills_save">保存</string>
+    <string name="role_memories_settings_row">メモリの権限</string>
+    <string name="role_memories_title">メモリの権限</string>
+    <string name="role_memories_description">各ロールが持つメモリ機能を制御します。変更は選択したロールのすべてのユーザーに適用されます。</string>
+    <string name="role_memories_use">メモリの使用を許可</string>
+    <string name="role_memories_create">メモリの作成を許可</string>
+    <string name="role_memories_update">メモリの更新を許可</string>
+    <string name="role_memories_read">メモリの閲覧を許可</string>
+    <string name="role_memories_opt_out">ユーザーがメモリをオフにすることを許可</string>
+    <string name="role_permissions_saved">保存しました</string>
+    <string name="role_permissions_load_failed">このロールの権限を読み込めませんでした。</string>
+    <string name="role_permissions_save_failed">権限を保存できませんでした。もう一度お試しください。</string>
+    <string name="role_permissions_admin_access_warning">この機能への管理者アクセスを無効にすると、アプリが権限を再読み込みするまで予期しない問題が発生する場合があります。保存後に元に戻すには librechat.yaml の interface 設定を編集するしかなく、この変更はすべてのロールに影響します。</string>
+    <string name="role_permissions_more_info">詳細</string>
     <string name="artifact_shortcuts_title">ホーム画面のショートカット</string>
     <string name="artifact_shortcuts_empty">ホーム画面にピン留めされたアーティファクトはまだありません。</string>
     <string name="artifact_shortcuts_disabled_message">このアーティファクトのショートカットは削除されました。</string>
@@ -709,8 +763,9 @@
     <string name="date_time_preview">プレビュー</string>
     <string name="data_summary_off">オフ</string>
     <string name="data_summary_none">なし</string>
+    <string name="data_memories_none">なし</string>
     <plurals name="data_memories_count">
-        <item quantity="other">%1$d件保存済み</item>
+        <item quantity="other">%1$s件保存済み</item>
     </plurals>
     <plurals name="data_mcp_servers_count">
         <item quantity="other">%1$d件のサーバー</item>
@@ -764,6 +819,7 @@
     <string name="mcp_editor_load_failed">このサーバーを読み込めませんでした。</string>
     <string name="mcp_trust_label">このサーバーを信頼する</string>
     <string name="mcp_trust_sublabel">送信した内容を読み取り、接続先のアプリであなたの代わりに操作できます。信頼できるサーバーだけを追加してください。</string>
+    <string name="memory_error_key_route_shadowed">このサーバーでは、このキーのメモリを編集できません。削除してから、別のキーで追加し直してください。</string>
     <string name="shared_chats_title">共有したチャット</string>
     <string name="shared_chats_summary">共有したチャットへのリンク</string>
     <string name="shared_chats_untitled">無題のチャット</string>

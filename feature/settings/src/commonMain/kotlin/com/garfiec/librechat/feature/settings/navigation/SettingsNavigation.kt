@@ -75,6 +75,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
             onNavigateToFavorites = { onNavigate(Favorites) },
             onNavigateToProviderKeys = navigateToProviderKeys,
             onNavigateToRoleSkillsAdmin = { onNavigate(RoleSkillsAdmin) },
+            onNavigateToRoleMemoriesAdmin = { onNavigate(RoleMemoriesAdmin) },
             onNavigateToWhatsNew = { onNavigate(WhatsNew) },
             onNavigateToReleaseNotes = { onNavigate(ReleaseNotes) },
         )
@@ -103,6 +104,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
             onNavigateToFavorites = { onNavigate(Favorites) },
             onNavigateToProviderKeys = navigateToProviderKeys,
             onNavigateToRoleSkillsAdmin = { onNavigate(RoleSkillsAdmin) },
+            onNavigateToRoleMemoriesAdmin = { onNavigate(RoleMemoriesAdmin) },
         )
     }
     entry<SettingsData> {
@@ -137,6 +139,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
     }
     favoritesEntry(onBack = onBack)
     roleSkillsAdminEntry(onBack = onBack)
+    roleMemoriesAdminEntry(onBack = onBack)
     artifactShortcutsEntry(onBack = onBack)
     prefetchEntries(onNavigate = onNavigate, onBack = onBack)
     contextUsageSettingsEntry(onBack = onBack)
@@ -162,6 +165,7 @@ val settingsSerializersModule = SerializersModule {
         subclass(McpServerEditor::class, McpServerEditor.serializer())
         subclass(Favorites::class, Favorites.serializer())
         subclass(RoleSkillsAdmin::class, RoleSkillsAdmin.serializer())
+        subclass(RoleMemoriesAdmin::class, RoleMemoriesAdmin.serializer())
         subclass(ArtifactShortcuts::class, ArtifactShortcuts.serializer())
         subclass(PrefetchSettings::class, PrefetchSettings.serializer())
         subclass(PrefetchActivity::class, PrefetchActivity.serializer())

@@ -72,13 +72,13 @@ private fun ListPieces() {
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             AdaptiveExtendedFloatingActionButton(
-                text = { Text("Add server") },
+                text = "Add server",
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 onClick = {},
             )
             AdaptiveExtendedFloatingActionButton(
-                text = { Text("Add server") },
-                icon = { Icon(Icons.Default.Add, contentDescription = "Add server") },
+                text = "Add server",
+                icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 onClick = {},
                 expanded = false,
             )

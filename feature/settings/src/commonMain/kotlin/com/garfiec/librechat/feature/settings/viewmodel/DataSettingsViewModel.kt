@@ -12,11 +12,12 @@ import com.garfiec.librechat.core.data.repository.KeyRepository
 import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.repository.MemoryRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
-import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
+import com.garfiec.librechat.core.model.permissions.canOpenMemories
+import com.garfiec.librechat.core.model.permissions.canReachMemoriesSettings
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.DataManagementDelegate
@@ -73,11 +74,16 @@ data class DataSettingsUiState(
     val logsExportReady: LogsExportPayload? = null,
     // Summary rows for the Memories and MCP servers pages; null until read.
     val memoryCount: Int? = null,
-    /** The user's own opt-out (`user.personalization.memories`); off shows the row as "Off". */
-    val memoriesEnabled: Boolean = true,
+    /**
+     * The user's own opt-out (`user.personalization.memories`), from the repository's shared
+     * flow; off shows the row as "Off". Null while unknown: the row then shows neither "Off" nor a
+     * count, since an opted-out user's count is not what the row means.
+     */
+    val memoriesEnabled: Boolean? = null,
     val mcpServerCount: Int? = null,
-    // Role-permission gates. `serverMemoriesEnabled` is the SERVER-level MEMORIES.USE
-    // gate and is orthogonal to [memoriesEnabled]. Each hides its row entirely.
+    // Role-permission gates. `serverMemoriesEnabled` is the role's MEMORIES USE plus READ or
+    // OPT_OUT (the list, or the opt-out switch alone) and is orthogonal to [memoriesEnabled]. Each
+    // hides its row entirely. The memory count needs READ as well; without it the row has no count.
     val mcpServersEnabled: Boolean = true,
     val serverMemoriesEnabled: Boolean = true,
 )
@@ -92,7 +98,6 @@ class DataSettingsViewModel(
     diagnosticLogRepository: DiagnosticLogRepository,
     private val mcpRepository: McpRepository,
     private val memoryRepository: MemoryRepository,
-    private val userRepository: UserRepository,
     roleRepository: RoleRepository,
     private val permissionGate: PermissionGate,
     configRepository: ConfigRepository,
@@ -119,10 +124,12 @@ class DataSettingsViewModel(
         _uiState,
         roleRepository.userPermissions,
         configRepository.detectedBackend,
-    ) { state, role, backend ->
+        memoryRepository.memoriesEnabled,
+    ) { state, role, backend, memoriesEnabled ->
         state.copy(
+            memoriesEnabled = memoriesEnabled,
             mcpServersEnabled = role.hasAccessOrPermissive(PermissionType.MCP_SERVERS, Permission.USE),
-            serverMemoriesEnabled = role.hasAccessOrPermissive(PermissionType.MEMORIES, Permission.USE),
+            serverMemoriesEnabled = role.canReachMemoriesSettings(),
             archiveAllSupported = state.archiveAllSupported &&
                 !BackendVersion.featureSupport(backend, minVersion = "0.8.8-rc2").isRuledOut,
         )
@@ -135,11 +142,12 @@ class DataSettingsViewModel(
 
     /**
      * Re-reads what the Memories and MCP rows summarise. The screen calls it on every resume, so
-     * the rows catch up after the user edits on either page and comes back.
+     * the rows catch up after the user edits on either page and comes back. The latest call wins:
+     * one still running may have read the counts before those edits, so it is replaced rather than
+     * left to answer.
      */
     fun refreshSummaries() {
-        // The pager recomposes this page on tab swipes; one refresh at a time is enough.
-        if (summariesJob?.isActive == true) return
+        summariesJob?.cancel()
         summariesJob = viewModelScope.launch {
             launch { loadOptOut() }
             loadRoleGatedCounts()
@@ -148,15 +156,13 @@ class DataSettingsViewModel(
 
     private var summariesJob: Job? = null
 
-    /** The opt-out lives on the user profile; an absent block is the server default (on). */
+    /**
+     * The opt-out lives on the user profile. Read through the repository so it lands in the flow
+     * the Memories page writes and [uiState] reads; an absent block is the server default (on).
+     */
     private suspend fun loadOptOut() {
-        when (val result = userRepository.getUser()) {
-            is Result.Success -> _uiState.update {
-                it.copy(memoriesEnabled = result.data.personalization?.memories ?: true)
-            }
-            is Result.Error -> Logger.d(result.exception) { "Failed to load memories opt-out: ${result.message}" }
-            is Result.Loading -> { /* no-op */ }
-        }
+        val result = memoryRepository.refreshMemoriesPreference()
+        if (result is Result.Error) Logger.d(result.exception) { "Failed to load memories opt-out: ${result.message}" }
     }
 
     /**
@@ -173,10 +179,10 @@ class DataSettingsViewModel(
                     if (result is Result.Success) _uiState.update { it.copy(mcpServerCount = result.data.size) }
                 }
             }
-            if (role?.hasAccess(PermissionType.MEMORIES, Permission.USE) != false) {
+            if (role.canOpenMemories()) {
                 launch {
                     val result = memoryRepository.getMemories()
-                    if (result is Result.Success) _uiState.update { it.copy(memoryCount = result.data.size) }
+                    if (result is Result.Success) _uiState.update { it.copy(memoryCount = result.data.memories.size) }
                 }
             }
         }

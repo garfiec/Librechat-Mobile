@@ -150,11 +150,21 @@ every write there goes to memory and a test would pass for the wrong reason. It 
 - All DAO read methods that the UI observes should return `Flow`, not suspend functions.
 
 ### New Repositories (Round 2)
-- `MemoryRepository` / `MemoryRepositoryImpl` — wraps `MemoriesApi` for memory CRUD + preferences
+- `MemoryRepository` / `MemoryRepositoryImpl` — wraps `MemoriesApi` for memory CRUD + preferences.
+  `getMemories()` returns the whole `MemoriesResponse` (list + pool usage + charLimit). The user's
+  opt-out lives in `memoriesEnabled: StateFlow<Boolean?>`, account-scoped (null until known, reset
+  on switch/logout), seeded by `refreshMemoriesPreference()` (`GET /api/user`) and updated by a
+  successful `updatePreferences`; every screen that shows or obeys the opt-out reads it there.
+  Failures carry no English of their own: status codes on `ApiException`, or
+  `MemoryContentFilteredException`.
 - `McpRepository` / `McpRepositoryImpl` — wraps `McpApi` for server CRUD, tools, connection status, reinitialize
-- Both bound in `DataModule.kt` via `singleOf`
+- `McpRepository` is bound via `singleOf`; `MemoryRepository` via an explicit `single` (it takes the
+  application scope)
 - Both use `safeApiCall` — no local caching (server is sole source of truth for memories and MCP)
-- **Gotcha**: Memory delete/update use `key` as identifier (not a separate ID field)
+- **Gotcha**: Memory delete/update address the row by `_id` (by-id routes, v0.8.8-rc2) and fall back
+  to `key` + `agentId` only on a 404 without a memory-handler JSON `error` (a missing route). A
+  by-id 404 saying `Memory not found.` or `Agent not found.` is returned as is: falling back would
+  hit a re-created row of the same key. A rename sends the new `key` in the body only when it changed
 - **Gotcha**: MCP server operations use `serverName` as identifier
 
 ### New Repositories (Round 3)

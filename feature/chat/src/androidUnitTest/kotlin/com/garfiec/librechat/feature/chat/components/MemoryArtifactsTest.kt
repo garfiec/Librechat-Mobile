@@ -86,6 +86,30 @@ class MemoryArtifactsTest {
     }
 
     @Test
+    fun `a write with no tool call id is not drawn on a call's card`() {
+        val attachments = listOf(memoryAttachment(null, key = "background"), memoryAttachment("c1", key = "mine"))
+
+        assertThat(collectMemoryArtifacts(attachments, "c1").map { it.title }).containsExactly("mine")
+    }
+
+    @Test
+    fun `a call with no id owns no writes`() {
+        val attachments = listOf(memoryAttachment(null), memoryAttachment("c1"))
+
+        assertThat(collectMemoryArtifacts(attachments, null)).isEmpty()
+        assertThat(collectMemoryArtifacts(attachments, "")).isEmpty()
+    }
+
+    @Test
+    fun `a write with no tool call id is drawn once, on the saved-memory line`() {
+        val attachments = listOf(memoryAttachment(null, key = "background"))
+        val calls = listOf("c1", "c2")
+
+        assertThat(calls.flatMap { collectMemoryArtifacts(attachments, it) }).isEmpty()
+        assertThat(collectUnrenderedMemoryArtifacts(attachments, calls).map { it.title }).containsExactly("background")
+    }
+
+    @Test
     fun `orphan collection keeps only the writes no tool call rendered`() {
         val attachments = listOf(
             memoryAttachment("inline-call", key = "inline"),
@@ -130,5 +154,37 @@ class MemoryArtifactsTest {
         assertThat(artifact?.title).isNull()
         assertThat(artifact?.content).isEqualTo("Memory set for key \"tone\" (12 tokens)")
         assertThat(artifact?.kind).isEqualTo(MemoryChangeKind.UPDATE)
+    }
+
+    @Test
+    fun `the live line and the saved message name the same open state, however many writes arrived`() {
+        val first = memoryAttachment(toolCallId = null).copy(messageId = "reply-1")
+        val second = memoryAttachment(toolCallId = null, key = "tone").copy(messageId = "reply-1")
+
+        val liveEarly = memoryArtifactsStateKey(listOf(first), fallback = "")
+        val liveLater = memoryArtifactsStateKey(listOf(first, second), fallback = "")
+        val saved = memoryArtifactsStateKey(listOf(first, second), fallback = "reply-1")
+
+        assertThat(liveEarly).isEqualTo("reply-1")
+        assertThat(liveLater).isEqualTo(liveEarly)
+        assertThat(saved).isEqualTo(liveEarly)
+    }
+
+    @Test
+    fun `the line's state key ignores other attachments and falls back without a stamped id`() {
+        val image = Attachment(type = "image", messageId = "other")
+        val unstamped = memoryAttachment(toolCallId = null)
+
+        assertThat(memoryArtifactsStateKey(listOf(image, unstamped), fallback = "msg-9")).isEqualTo("msg-9")
+        assertThat(memoryArtifactsStateKey(listOf(image, unstamped), fallback = "")).isEmpty()
+    }
+
+    @Test
+    fun `each card a call draws has its own state key, and a call without an id carries nothing`() {
+        assertThat(memoryCardStateKey("call_1", 0)).isEqualTo(memoryCardStateKey("call_1", 0))
+        assertThat(memoryCardStateKey("call_1", 0)).isNotEqualTo(memoryCardStateKey("call_1", 1))
+        assertThat(memoryCardStateKey("call_1", 0)).isNotEqualTo(memoryCardStateKey("call_2", 0))
+        assertThat(memoryCardStateKey(null, 0)).isEmpty()
+        assertThat(memoryCardStateKey("", 0)).isEmpty()
     }
 }

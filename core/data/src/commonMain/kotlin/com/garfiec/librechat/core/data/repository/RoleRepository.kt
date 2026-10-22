@@ -2,6 +2,7 @@ package com.garfiec.librechat.core.data.repository
 
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
+import com.garfiec.librechat.core.model.request.UpdateRoleMemoriesRequest
 import com.garfiec.librechat.core.model.request.UpdateRoleSkillsRequest
 import kotlinx.coroutines.flow.StateFlow
 
@@ -26,7 +27,16 @@ interface RoleRepository {
      *  the current user's. Does not touch the userPermissions StateFlow/cache. */
     suspend fun getRole(roleName: String): Result<UserRolePermissions>
 
+    /** Admin: the names of every role on the server, custom ones included (GET /api/admin/roles). */
+    suspend fun listRoleNames(): Result<List<String>>
+
     /** Admin: sets a role's SKILLS permission booleans via PUT /roles/:role/skills;
-     *  returns the updated role. Server enforces admin (manageRoles). */
+     *  returns the updated role. Server enforces admin (manageRoles). When that role is the
+     *  current user's, the answer also replaces [userPermissions] and its cache. */
     suspend fun updateRoleSkills(roleName: String, request: UpdateRoleSkillsRequest): Result<UserRolePermissions>
+
+    /** Admin: sets a role's MEMORIES permission booleans via PUT /roles/:role/memories;
+     *  returns the updated role. Server enforces admin (manageRoles). When that role is the
+     *  current user's, the answer also replaces [userPermissions] and its cache. */
+    suspend fun updateRoleMemories(roleName: String, request: UpdateRoleMemoriesRequest): Result<UserRolePermissions>
 }

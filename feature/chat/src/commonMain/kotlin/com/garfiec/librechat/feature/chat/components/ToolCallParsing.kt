@@ -83,6 +83,14 @@ internal fun isWebSearchToolCall(toolNameLower: String): Boolean =
 internal fun isFileSearchToolCall(toolNameLower: String): Boolean =
     toolNameLower == ToolConstants.FILE_SEARCH || toolNameLower == ToolConstants.RETRIEVAL
 
+/**
+ * The inline memory tools, by EXACT, case-sensitive name on the tool's own (not lowercased) name —
+ * upstream `Part.tsx` routes on `toolCall.name === 'set_memory' || … 'delete_memory'`. A substring
+ * match would draw any MCP tool with "memory" in its name as a memory write.
+ */
+internal fun isMemoryToolCall(toolName: String?): Boolean =
+    toolName == ToolConstants.SET_MEMORY || toolName == ToolConstants.DELETE_MEMORY
+
 // --- Parsing helpers ---
 
 /**
@@ -285,6 +293,81 @@ internal fun parseMemoryArtifact(output: String?): MemoryArtifact? {
         log.d(e) { "Failed to parse memory artifact as JSON, using raw output" }
         MemoryArtifact(title = null, content = output)
     }
+}
+
+// The prose the server's memory tools answer a successful write with (`Memory set for key "k"
+// (n tokens)`, `Memory deleted for key "k"`, packages/api/src/agents/memory.ts). Every other
+// sentence they return is a refusal ("Invalid key …", "Failed to set memory …", "Memory storage
+// exceeded …"). Ported verbatim from upstream `isMemoryFailureOutput` (MemoryCall.tsx); kept to
+// plain alternation and `\b` so ICU (Android), JVM and Kotlin/Native all compile it. Registered in
+// scripts/mirrors.json.
+private val SET_MEMORY_SUCCESS = Regex("""^(?:Memory set for key|Memory saved\b)""", RegexOption.IGNORE_CASE)
+private val DELETE_MEMORY_SUCCESS = Regex("""^Memory deleted(?: for key|\.)""", RegexOption.IGNORE_CASE)
+
+/**
+ * Whether a memory tool's [output] reports a refusal. Empty output is NOT a failure: a call still
+ * streaming, or one that returned nothing, must not render as an error. Upstream
+ * `isMemoryFailureOutput`.
+ */
+internal fun isMemoryFailureOutput(toolName: String?, output: String?): Boolean {
+    val trimmed = output?.trim().orEmpty()
+    if (trimmed.isEmpty()) return false
+    val success = if (toolName == ToolConstants.SET_MEMORY) SET_MEMORY_SUCCESS else DELETE_MEMORY_SUCCESS
+    return !success.containsMatchIn(trimmed)
+}
+
+/**
+ * Whether a call is a memory write its card shows as failed: a `set_memory`/`delete_memory` whose
+ * [output] is a refusal, or with an `error` memory artifact among its [attachments] (scoped as
+ * [memoryToolArtifacts] scopes them, so the card and anything summarizing it agree). False for any
+ * other tool. Upstream `MemoryCall`'s verdict, which `outcome.ts` `getToolMeta` reuses for a
+ * group header.
+ */
+internal fun isFailedMemoryToolCall(
+    toolName: String?,
+    output: String?,
+    attachments: List<Attachment>,
+    toolCallId: String?,
+): Boolean {
+    if (!isMemoryToolCall(toolName)) return false
+    return isMemoryFailureOutput(toolName, output) ||
+        collectMemoryArtifacts(attachments, toolCallId).any { it.kind == MemoryChangeKind.ERROR }
+}
+
+/**
+ * The cards one `set_memory`/`delete_memory` call draws. Upstream `MemoryCall` fails the call when
+ * the output is a refusal OR any of its `memory` attachments is an `error` artifact; the
+ * attachments are drawn as they are (an error artifact already renders as an error card). A prose
+ * refusal with no error artifact to explain it becomes an error card carrying the server's own
+ * sentence, which is what web prints in its failed panel; an error artifact whose blob carried no
+ * known reason borrows that sentence too, rather than the bare generic label.
+ */
+internal fun memoryToolArtifacts(
+    toolName: String?,
+    output: String?,
+    attachments: List<Attachment>,
+    toolCallId: String?,
+): List<MemoryArtifact> {
+    val fromPayload = collectMemoryArtifacts(attachments, toolCallId)
+    if (!isMemoryFailureOutput(toolName, output)) {
+        return fromPayload.ifEmpty { listOfNotNull(parseMemoryArtifact(output)) }
+    }
+    val refusal = output.orEmpty().trim()
+    val errors = fromPayload.filter { it.kind == MemoryChangeKind.ERROR }
+    if (errors.isEmpty()) {
+        return listOf(MemoryArtifact(title = null, content = refusal, kind = MemoryChangeKind.ERROR))
+    }
+    return errors.map { if (it.error == null && it.content == null) it.copy(content = refusal) else it }
+}
+
+/**
+ * [memoryToolArtifacts] for a call still in the live stream: empty for any other tool, and for a
+ * memory write with neither output nor a memory attachment yet (it is still running, which is not a
+ * failure), so the generic running card stays until there is something to judge.
+ */
+internal fun streamingMemoryArtifacts(toolCall: ActiveToolCall, attachments: List<Attachment>): List<MemoryArtifact> {
+    if (!isMemoryToolCall(toolCall.name)) return emptyList()
+    return memoryToolArtifacts(toolCall.name, toolCall.output, attachments, toolCall.id)
 }
 
 @Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output

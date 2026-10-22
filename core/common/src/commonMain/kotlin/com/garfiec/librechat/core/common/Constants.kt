@@ -15,6 +15,13 @@ object ToolConstants {
     /** Inline memory tools (`set_memory`/`delete_memory`). Doubles as the `memory` agent
      *  capability key and the `ephemeralAgent.memory` request flag. */
     const val MEMORY = "memory"
+
+    /** The two inline memory tools, matched EXACTLY and case-sensitively on the tool's own name
+     *  (upstream `Part.tsx` routes on `toolCall.name === 'set_memory' || … 'delete_memory'`), so
+     *  an MCP tool whose name merely contains "memory" is not drawn as a memory write.
+     *  Registered in scripts/mirrors.json. */
+    const val SET_MEMORY = "set_memory"
+    const val DELETE_MEMORY = "delete_memory"
     const val FILE_SEARCH = "file_search"
     const val EXECUTE_CODE = "execute_code"
     const val PROGRAMMATIC_TOOLS = "programmatic_tools"

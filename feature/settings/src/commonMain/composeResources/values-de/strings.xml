@@ -20,7 +20,6 @@
     <string name="action_verifying">Wird überprüft…</string>
 
     <!-- Content descriptions -->
-    <string name="cd_add_memory">Erinnerung hinzufügen</string>
     <string name="cd_add_server">Server hinzufügen</string>
     <string name="cd_back">Zurück</string>
     <string name="cd_change_avatar">Avatar ändern</string>
@@ -31,11 +30,10 @@
     <string name="cd_current_avatar">Aktueller Avatar</string>
     <string name="cd_delete">Löschen</string>
     <string name="cd_delete_api_key">API-Schlüssel löschen</string>
-    <string name="cd_delete_memory">Erinnerung löschen</string>
     <string name="cd_delete_preset">Vorlage löschen</string>
-    <string name="cd_edit_memory">Erinnerung bearbeiten</string>
     <string name="memory_redacted_key">Verborgener Eintrag</string>
     <string name="memory_redacted_value">Die Inhaltsrichtlinie dieses Servers verbirgt, was hier gespeichert ist. Du kannst den Eintrag trotzdem löschen.</string>
+    <string name="memory_redacted_value_no_delete">Die Inhaltsrichtlinie dieses Servers verbirgt, was hier gespeichert ist.</string>
     <string name="cd_loading_profile">Profil wird geladen</string>
     <string name="cd_make_private">Privat machen</string>
     <string name="cd_make_public">Öffentlich machen</string>
@@ -47,7 +45,6 @@
     <string name="cd_test_tts_voice">Ausgewählte TTS-Stimme testen</string>
     <string name="cd_toggle_auto_read">Automatisches Vorlesen von Antworten umschalten</string>
     <string name="cd_toggle_auto_send_stt">Automatisches Senden nach Sprache umschalten</string>
-    <string name="cd_toggle_memories">Erinnerungen umschalten</string>
     <string name="cd_tts_voice_selector">TTS-Stimme auswählen. Aktuell %1$s</string>
     <string name="cd_user_avatar">Benutzer-Avatar</string>
     <string name="cd_view_all_tools">Alle Tools anzeigen</string>
@@ -463,19 +460,69 @@
     <string name="tts_preview_voice">Stimme anhören</string>
 
     <!-- Memories -->
-    <string name="enable_memories">Erinnerungen aktivieren</string>
-    <string name="enable_memories_desc">Der KI erlauben, Informationen über Unterhaltungen hinweg zu merken</string>
-    <string name="no_memories_saved">Noch keine Erinnerungen gespeichert</string>
-    <string name="memories_add_hint">Tippe auf die +-Schaltfläche, um eine Erinnerung hinzuzufügen</string>
     <string name="add_memory">Erinnerung hinzufügen</string>
     <string name="edit_memory">Erinnerung bearbeiten</string>
     <string name="dialog_title_delete_memory">Erinnerung löschen</string>
-    <string name="dialog_delete_memory_message">Möchtest du die Erinnerung "%1$s" wirklich löschen?</string>
+    <string name="dialog_delete_memory_message">Möchtest du die Erinnerung „%1$s“ wirklich löschen?</string>
     <string name="memory_key_label">Schlüssel</string>
     <string name="memory_value_label">Wert</string>
-    <string name="memory_key_hint">Nur Kleinbuchstaben und Unterstriche verwenden</string>
-    <string name="memory_key_invalid">Der Schlüssel darf nur Kleinbuchstaben und Unterstriche enthalten</string>
+    <string name="memory_key_hint">Nur Kleinbuchstaben a–z und Unterstriche verwenden</string>
+    <string name="memory_key_invalid">Der Schlüssel darf nur Kleinbuchstaben a–z und Unterstriche enthalten</string>
     <string name="memory_key_exists">Eine Erinnerung mit diesem Schlüssel existiert bereits</string>
+    <string name="memory_key_reserved">Dieser Schlüssel ist reserviert. Wähle einen anderen.</string>
+    <string name="memory_key_too_long">Schlüssel dürfen höchstens %1$s Zeichen lang sein.</string>
+    <string name="memory_error_forbidden">Du hast keine Berechtigung, Erinnerungen zu ändern.</string>
+    <string name="memory_error_toggle_forbidden">Deine Rolle darf Erinnerungen nicht ein- oder ausschalten.</string>
+    <string name="memory_error_content_filtered">Vom Inhaltsfilter deines Servers blockiert.</string>
+    <string name="memory_error_agent">Die Erinnerungen dieses Agenten können nicht geändert werden.</string>
+    <string name="memory_error_network">Server nicht erreichbar. Prüfe deine Verbindung.</string>
+    <string name="memory_error_save">Die Erinnerung konnte nicht gespeichert werden.</string>
+    <string name="memory_error_delete">Die Erinnerung konnte nicht gelöscht werden.</string>
+    <string name="memory_error_toggle">Die Erinnerungseinstellung konnte nicht geändert werden.</string>
+    <string name="memory_error_not_found">Diese Erinnerung wurde an anderer Stelle gelöscht.</string>
+    <string name="memory_error_not_found_readd">Diese Erinnerung wurde an anderer Stelle gelöscht. Speichere sie, um sie erneut hinzuzufügen.</string>
+    <!-- Memories index -->
+    <string name="memories_use_title">Gespeicherte Erinnerungen nutzen</string>
+    <string name="memories_use_desc">Chats können Erinnerungen lesen und speichern</string>
+    <string name="memories_use_load_failed">Diese Einstellung konnte nicht geladen werden.</string>
+    <string name="memories_use_loading">Wird geladen</string>
+    <string name="memories_usage_percent">%1$s %</string>
+    <plurals name="memories_usage_tokens">
+        <item quantity="one">%1$s / %2$s Token</item>
+        <item quantity="other">%1$s / %2$s Tokens</item>
+    </plurals>
+    <plurals name="memories_usage_a11y">
+        <item quantity="one">Belegung der Erinnerungen: %1$s, %2$s von %3$s Token</item>
+        <item quantity="other">Belegung der Erinnerungen: %1$s, %2$s von %3$s Tokens</item>
+    </plurals>
+    <plurals name="memory_token_count">
+        <item quantity="one">%1$s Token</item>
+        <item quantity="other">%1$s Tokens</item>
+    </plurals>
+    <string name="memory_agent_fallback">Agent-Erinnerung</string>
+    <string name="memory_agent_numbered">%1$s (%2$s)</string>
+    <string name="memories_search_hint">Erinnerungen durchsuchen</string>
+    <string name="memories_no_match">Keine Erinnerung passt zu „%1$s“</string>
+    <string name="memories_personal_empty">Noch keine persönlichen Erinnerungen</string>
+    <string name="memories_filter_all">Alle</string>
+    <string name="memories_filter_personal">Persönlich</string>
+    <string name="memories_empty_title">Noch keine Erinnerungen</string>
+    <string name="memories_empty_desc">Chats speichern hier, was sich zu merken lohnt. Du kannst auch selbst eine hinzufügen.</string>
+    <string name="memories_empty_desc_no_create">Chats speichern hier, was sich zu merken lohnt.</string>
+    <string name="memories_view_only">Deine Rolle kann Erinnerungen ansehen, aber keine hinzufügen oder ändern.</string>
+    <string name="memories_no_access_title">Kein Zugriff auf Erinnerungen</string>
+    <string name="memories_no_access_desc">Deine Rolle hat keine Berechtigung, Erinnerungen anzusehen.</string>
+    <string name="memory_action_edit">Bearbeiten</string>
+    <string name="cd_memory_options">Optionen für %1$s</string>
+    <!-- Memory sheet -->
+    <string name="view_memory">Erinnerung ansehen</string>
+    <string name="action_close">Schließen</string>
+    <string name="memory_value_counter">%1$s / %2$s</string>
+    <plurals name="memory_token_share">
+        <item quantity="one">%1$s Token · %2$s % deines Speichers</item>
+        <item quantity="other">%1$s Tokens · %2$s % deines Speichers</item>
+    </plurals>
+    <string name="memory_updated_at">Aktualisiert: %1$s</string>
 
     <!-- MCP -->
     <string name="add_mcp_server">MCP-Server hinzufügen</string>
@@ -614,16 +661,27 @@
     <string name="provider_keys_revoke_all_action">Alle widerrufen</string>
 
     <!-- Admin: role skill access -->
-    <string name="role_skills_settings_row">Skill-Zugriff (Admin)</string>
-    <string name="role_skills_title">Skill-Zugriff</string>
-    <string name="role_skills_back">Zurück</string>
+    <string name="role_skills_settings_row">Skill-Berechtigungen</string>
+    <string name="role_skills_title">Skill-Berechtigungen</string>
     <string name="role_skills_description">Steuere, welche Skill-Funktionen jede Rolle hat. Änderungen gelten für alle Benutzer mit der ausgewählten Rolle.</string>
-    <string name="role_skills_role_label">Rolle</string>
+    <string name="role_permissions_role_label">Rolle</string>
     <string name="role_skills_use">Skills verwenden</string>
     <string name="role_skills_create">Skills erstellen &amp; bearbeiten</string>
     <string name="role_skills_share">Skills teilen</string>
     <string name="role_skills_share_public">Skills öffentlich teilen</string>
-    <string name="role_skills_save">Speichern</string>
+    <string name="role_memories_settings_row">Erinnerungs-Berechtigungen</string>
+    <string name="role_memories_title">Erinnerungs-Berechtigungen</string>
+    <string name="role_memories_description">Steuere, welche Erinnerungsfunktionen jede Rolle hat. Änderungen gelten für alle Benutzer mit der ausgewählten Rolle.</string>
+    <string name="role_memories_use">Erinnerungen nutzen erlauben</string>
+    <string name="role_memories_create">Erinnerungen erstellen erlauben</string>
+    <string name="role_memories_update">Erinnerungen bearbeiten erlauben</string>
+    <string name="role_memories_read">Erinnerungen lesen erlauben</string>
+    <string name="role_memories_opt_out">Benutzern erlauben, Erinnerungen abzuschalten</string>
+    <string name="role_permissions_saved">Gespeichert</string>
+    <string name="role_permissions_load_failed">Die Berechtigungen dieser Rolle konnten nicht geladen werden.</string>
+    <string name="role_permissions_save_failed">Die Berechtigungen konnten nicht gespeichert werden. Versuche es erneut.</string>
+    <string name="role_permissions_admin_access_warning">Wenn du den Admin-Zugriff auf diese Funktion deaktivierst, kann das zu unerwarteten Problemen führen, bis die App deine Berechtigungen neu lädt. Nach dem Speichern lässt sich das nur über die Einstellung interface in librechat.yaml rückgängig machen, die sich auf alle Rollen auswirkt.</string>
+    <string name="role_permissions_more_info">Mehr Infos</string>
     <string name="artifact_shortcuts_title">Startbildschirm-Verknüpfungen</string>
     <string name="artifact_shortcuts_empty">Noch keine Artefakte an den Startbildschirm angeheftet.</string>
     <string name="artifact_shortcuts_disabled_message">Diese Artefakt-Verknüpfung wurde entfernt.</string>
@@ -715,9 +773,10 @@
     <string name="date_time_preview">Vorschau</string>
     <string name="data_summary_off">Aus</string>
     <string name="data_summary_none">Keine</string>
+    <string name="data_memories_none">Keine</string>
     <plurals name="data_memories_count">
-        <item quantity="one">%1$d gespeichert</item>
-        <item quantity="other">%1$d gespeichert</item>
+        <item quantity="one">%1$s gespeichert</item>
+        <item quantity="other">%1$s gespeichert</item>
     </plurals>
     <plurals name="data_mcp_servers_count">
         <item quantity="one">%1$d Server</item>
@@ -773,6 +832,7 @@
     <string name="mcp_editor_load_failed">Dieser Server konnte nicht geladen werden.</string>
     <string name="mcp_trust_label">Ich vertraue diesem Server</string>
     <string name="mcp_trust_sublabel">Er kann lesen, was du ihm sendest, und in der verbundenen App für dich handeln. Füge nur Server hinzu, denen du vertraust.</string>
+    <string name="memory_error_key_route_shadowed">Dieser Server kann eine Erinnerung mit diesem Schlüssel nicht bearbeiten. Lösche sie und füge sie unter einem anderen Schlüssel neu hinzu.</string>
     <string name="shared_chats_title">Geteilte Chats</string>
     <string name="shared_chats_summary">Links zu Chats, die du geteilt hast</string>
     <string name="shared_chats_untitled">Unbenannter Chat</string>

@@ -304,18 +304,27 @@
     <string name="cd_mcp_resource">Recurso MCP: %1$s</string>
 
     <!-- Memory artifact -->
-    <string name="cd_memory_artifact">Artefacto de memoria: %1$s</string>
-    <string name="memory_artifact_untitled">Sin título</string>
     <string name="label_memory">Memoria</string>
-    <string name="cd_memory_artifacts">Actualizaciones de memoria: %1$d</string>
-    <string name="memory_updated">Memoria guardada actualizada</string>
+    <string name="memory_manage">Gestionar</string>
+    <string name="cd_memory_manage">Gestionar recuerdos</string>
+    <plurals name="cd_memory_artifacts_summary">
+        <item quantity="one">%1$s, %2$s cambio</item>
+        <item quantity="other">%1$s, %2$s cambios</item>
+    </plurals>
+    <string name="memory_updated">Recuerdo guardado actualizado</string>
     <string name="memory_error">Error de memoria</string>
-    <string name="memory_updated_items">Memorias actualizadas</string>
-    <string name="memory_deleted_items">Memorias eliminadas</string>
-    <string name="memory_deleted">Memoria eliminada</string>
-    <string name="memory_storage_full">Almacenamiento de memoria lleno</string>
-    <string name="memory_already_exceeded">El almacenamiento de memoria ya está lleno: se ha superado en %1$d tokens. Elimina memorias existentes antes de añadir otras nuevas.</string>
-    <string name="memory_would_exceed">No se puede guardar: se superaría el límite en %1$d tokens. Elimina memorias existentes para liberar espacio.</string>
+    <string name="memory_updated_items">Recuerdos actualizados</string>
+    <string name="memory_deleted_items">Recuerdos eliminados</string>
+    <string name="memory_deleted">Recuerdo eliminado</string>
+    <string name="memory_storage_full">Almacenamiento de recuerdos lleno</string>
+    <plurals name="memory_already_exceeded">
+        <item quantity="one">El almacenamiento de recuerdos ya está lleno: se ha superado en %1$s token. Elimina recuerdos existentes antes de añadir otros nuevos.</item>
+        <item quantity="other">El almacenamiento de recuerdos ya está lleno: se ha superado en %1$s tokens. Elimina recuerdos existentes antes de añadir otros nuevos.</item>
+    </plurals>
+    <plurals name="memory_would_exceed">
+        <item quantity="one">No se puede guardar: se superaría el límite en %1$s token. Elimina recuerdos existentes para liberar espacio.</item>
+        <item quantity="other">No se puede guardar: se superaría el límite en %1$s tokens. Elimina recuerdos existentes para liberar espacio.</item>
+    </plurals>
     <string name="files_searched">Buscó en tus archivos</string>
     <string name="cd_file_search_source">Fuente de la búsqueda en archivos: %1$s</string>
     <string name="file_search_relevance">%1$d%%</string>

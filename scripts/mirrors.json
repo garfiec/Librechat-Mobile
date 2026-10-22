@@ -280,7 +280,113 @@
         "symbol": "MEMORY_ERROR_ALREADY_EXCEEDED / MEMORY_ERROR_WOULD_EXCEED"
       },
       "why": "The two errorType values set_memory stringifies into a failed memory artifact's value. They decide which sentence the user is shown -- that the memory store is already full, or that this particular write would overflow it -- and the server sends only the raw key, never a display string. Watched file-level rather than by block: both literals sit inside createMemoryTool's body, and no smaller exported symbol wraps them -- a block anchored on createMemoryTool extracts only its signature and would compare equal across every revision, which is the inert-watch trap check-mirrors.py warns about. Consequence of watching the whole file: unrelated churn reports DRIFT. It did over 91adcf3f..db431210 (registerMemoryTools gained a toolNames field) and again over 361553f3..6a1d30ca (v0.8.8: memoryInstructions rewritten, formatMemoryContext added, read-failure short-circuits), and both times was dismissed after verifying both literals byte-identical at each end -- verify the two literals, not the file, before re-investigating a report here.",
-      "failure_mode": "A renamed or added errorType silently degrades every storage-limit failure to the generic 'Memory Error' label, dropping the token count and the 'delete some memories' instruction that tells the user how to fix it. Nothing errors: the artifact still decodes and a card still renders."
+      "failure_mode": "A renamed or added errorType silently degrades every storage-limit failure to the generic 'Memory error' label, dropping the token count and the 'delete some memories' instruction that tells the user how to fix it. Nothing errors: the artifact still decodes and a card still renders."
+    },
+    {
+      "id": "memory-tool-failure-predicate",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/Parts/MemoryCall.tsx",
+        "symbol": "isMemoryFailureOutput",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/ToolCallParsing.kt",
+        "symbol": "isMemoryFailureOutput / SET_MEMORY_SUCCESS / DELETE_MEMORY_SUCCESS"
+      },
+      "why": "Whether an inline set_memory/delete_memory call failed. The server reports a refusal in prose ('Invalid key ...', 'Failed to set memory ...', 'Memory storage exceeded ...'), so web trims the output and fails a set unless it matches /^(?:Memory set for key|Memory saved\\b)/i and a delete unless it matches /^Memory deleted(?: for key|\\.)/i; empty output is never a failure (a call still streaming, or one that returned nothing). MemoryCall also fails the call on any memory attachment whose type is 'error' (the memoryErrors block in the same file, outside this symbol); memoryToolArtifacts ports both halves. The Kotlin regexes are copied verbatim with IGNORE_CASE.",
+      "failure_mode": "A refusal renders as a successful 'Memory' card quoting the refusal sentence, or a success renders as an error card. Nothing decodes wrong; the card is just the wrong colour and says the wrong thing."
+    },
+    {
+      "id": "memory-tool-success-sentences",
+      "upstream": {
+        "file": "packages/api/src/agents/memory.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/ToolCallParsing.kt",
+        "symbol": "SET_MEMORY_SUCCESS / DELETE_MEMORY_SUCCESS"
+      },
+      "why": "The sentences the memory tools return on success, which the failure predicate (memory-tool-failure-predicate) keys on: set_memory's `Memory set for key \"${key}\" (${tokenCount} tokens)` and delete_memory's `Memory deleted for key \"${key}\"` (memory.ts:265 and :344 at v0.8.8). Watched file-level because both are inline template literals inside the tool factories. The same file is watched by memory-storage-error-types, so a DRIFT report here may be that entry's churn: check these two return strings, not the file.",
+      "failure_mode": "A reworded success sentence makes every successful memory write render as an error card, on mobile and on web alike until web's pattern follows."
+    },
+    {
+      "id": "memory-tool-names",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/Part.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/common/src/commonMain/kotlin/com/garfiec/librechat/core/common/Constants.kt",
+        "symbol": "ToolConstants.SET_MEMORY / ToolConstants.DELETE_MEMORY (used by isMemoryToolCall)"
+      },
+      "why": "Which tool calls draw the memory card: web routes on toolCall.name === 'set_memory' || toolCall.name === 'delete_memory' (Part.tsx:361 at v0.8.8), exact and case-sensitive on the tool's own name. The mobile dispatcher matched any name containing 'memory' before this, which drew MCP tools such as memory_search_mcp_x as memory writes. Watched file-level: the comparison is inline in the Part component's body.",
+      "failure_mode": "A renamed or added memory tool falls through to the generic tool card (or an MCP tool is drawn as a memory write). Nothing errors."
+    },
+    {
+      "id": "memory-tool-group-outcome",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/outcome.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/ActivityGroup.kt",
+        "symbol": "activityGroupFailed (via isFailedMemoryToolCall in ToolCallParsing.kt)"
+      },
+      "why": "Web's getToolMeta reuses isMemoryFailureOutput plus the memory error-attachment check (outcome.ts at v0.8.8) so an activity-group header does not claim success over a failed memory card. activityGroupFailed ORs the same verdict, isFailedMemoryToolCall (the card's own rule, no second copy of the regexes), into the batch label's failed/partial status. Web's header also counts a run step closed as failed and generic error output on other tools; the mobile header does not yet (not a memory rule).",
+      "failure_mode": "Web changes which memory calls count as failed in its group header and the mobile card keeps the old rule. The card is still drawn; its error state disagrees with web's."
+    },
+    {
+      "id": "admin-access-warning",
+      "upstream": {
+        "file": "client/src/components/ui/AdminSettingsDialog.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/screen/RolePermissionsEditor.kt",
+        "symbol": "AdminAccessWarning / RolePermissionToggle.showAdminWarning / ADMIN_ACCESS_DOCS_URL"
+      },
+      "why": "When the warning under a role editor's switch shows: web draws com_ui_admin_access_warning plus a 'More info' link to the librechat.yaml interface docs under the USE permission whenever SystemRoles.ADMIN is selected and the dialog's showAdminWarning is on (the default; the memories and skills dialogs keep it, the marketplace and people-picker dialogs turn it off). The mobile skills and memories editors set showAdminWarning on their USE toggle and copy the docs URL. Watched file-level: the condition is inline in the dialog's render.",
+      "failure_mode": "Web moves the warning to another permission, adds it to another dialog, or changes the docs link, and mobile keeps warning about the old switch (or links a dead page). Nothing errors; an admin can still save ADMIN's access off without the warning web now gives."
+    },
+    {
+      "id": "admin-role-picker-fallback",
+      "upstream": {
+        "file": "client/src/hooks/useRoleSelector.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/AdminRoleNames.kt",
+        "symbol": "FALLBACK_ROLE_NAMES / pickerRoleNames"
+      },
+      "why": "Which roles the skills and memories role editors offer. Web fills the picker from GET /api/admin/roles (data-service listRoles, page size watched by admin-role-list-page-size) and falls back to [SystemRoles.USER, SystemRoles.ADMIN] when that list is missing or empty; mobile copies the fallback.",
+      "failure_mode": "Web changes where the role list comes from or the fallback, and mobile keeps the old source: an admin's picker silently lists fewer roles than web's, so a custom role's permissions can only be changed on the web."
+    },
+    {
+      "id": "admin-role-list-page-size",
+      "upstream": {
+        "file": "packages/data-provider/src/data-service.ts",
+        "symbol": "listRoles",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/api/RolesApi.kt",
+        "symbol": "ROLE_LIST_LIMIT"
+      },
+      "why": "The role editors ask GET /api/admin/roles for one page of ROLE_LIST_LIMIT (200), the limit web's listRoles puts in its URL. There is no second page request on either side.",
+      "failure_mode": "Web raises the limit or starts paging, and mobile keeps asking for 200 in one page: past 200 roles an admin's picker silently omits the rest."
+    },
+    {
+      "id": "memory-key-route-shadowed-keys",
+      "upstream": {
+        "file": "api/server/routes/memories.js",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/MemoryRepository.kt",
+        "symbol": "MEMORY_KEY_ROUTE_SHADOWED_KEYS"
+      },
+      "why": "The keys whose PATCH /api/memories/:key path another route owns: router.patch('/preferences') (the opt-out) is mounted before router.patch('/:key'), and Express matches paths ignoring case. MemoryRepositoryImpl.updateMemory refuses an edit of such a key rather than send it to the key route (the by-id route has no such clash).",
+      "failure_mode": "Upstream mounts another fixed PATCH path ahead of /:key (or moves /preferences after it), and the set goes stale: an edit of a memory with that key reaches the other handler and comes back as its English error, or an edit that would now work is refused."
     },
     {
       "id": "anthropic-document-mime-types",
@@ -864,8 +970,22 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/MemoryKey.kt",
         "symbol": "MEMORY_KEY_PATTERN"
       },
-      "why": "The shape a memory key must have, enforced by the CREATE route from v0.8.8-rc3 and never served to a client. Upstream labels its own client-side copy a mirror of this validator (`client/src/utils/memory.ts`), which is the same reason this one exists. The mobile check is version-gated and fails OPEN -- rc1 and rc2 accept keys rc3 rejects, so an unknown server must not be refused locally.",
+      "why": "The shape a memory key must have, never served to a client. The schema validator has rejected any other key on every version, rc1 included; rc3 only moved the refusal from a bare 500 (`Failed to create memory`) to a 400 by checking in the route first. Upstream labels its own client-side copy a mirror of this validator (`client/src/utils/memory.ts`), which is the same reason this one exists. The mobile check is not version-gated: it applies to every create and rename, and an unchanged key is never sent, so a legacy key stays editable.",
       "failure_mode": "A widened pattern leaves the client refusing keys the server would take, with no way for the user to tell why. A narrowed one lets a key through to a 400 the client could have prevented. Neither shows up as a decode or a version mismatch."
+    },
+    {
+      "id": "memory-token-share",
+      "upstream": {
+        "file": "client/src/components/SidePanel/Memories/MemoryEditDialog.tsx",
+        "symbol": "memoryUsage",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/MemoriesViewModel.kt",
+        "symbol": "memoryTokenShare"
+      },
+      "why": "The memory sheet's \"x tokens · y% of your memory\": web works out one entry's share of what the personal pool leaves it, tokenCount / (tokenLimit - totalTokens + tokenCount), rounded with Math.round. The server sends the three inputs but never the share. The Kotlin side is deliberately narrower than web's `!tokenCount || !tokenLimit` guard: it also skips agent-partitioned entries (the totals count the personal pool only) and a denominator at or below zero (edits don't enforce the limit, so the pool can run over it).",
+      "failure_mode": "A changed formula or rounding leaves the mobile sheet quoting a different percentage from web's dialog for the same memory. Nothing fails to decode; the number is just wrong."
     },
     {
       "id": "queued-turn-cancel-outcomes",
@@ -1813,6 +1933,263 @@
       },
       "why": "How the web decides a description is HTML at all. The rule lives in Description.tsx: `isHtmlDescription` matches `^<\\s*\\/?\\s*([a-z][a-z0-9]*)\\b` on the trimmed text and checks the tag against `descriptionHtmlTags` (CONFIG_HTML_RICH_TEXT_TAGS plus CONFIG_HTML_MEDIA_TAGS, so `img` counts). This client ports it as `isAgentDescriptionHtml` (decisions C7): only a description that starts with such a tag is HTML, so `List<String>` or a tag mid-sentence stays plain. Other upstream revisions use `description.trim().startsWith('<')` instead. The whole file is watched so a change to the regex or the tag set is seen.",
       "failure_mode": "Upstream changes its detection, and a description the web shows as text renders as HTML here (placeholders vanish) or the reverse (markup shows raw). Nothing fails to decode."
+    },
+    {
+      "id": "role-permission-keys",
+      "upstream": {
+        "file": "packages/data-provider/src/permissions.ts",
+        "symbol": "Permissions",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/permissions/Permission.kt",
+        "symbol": "Permission"
+      },
+      "why": "The permission keys every role gate looks up in the served role map (USE, CREATE, UPDATE, READ, SHARE, OPT_OUT, SHARE_PUBLIC). The map arrives from the server, the key names do not. READ and OPT_OUT gate the Memories list and its opt-out switch.",
+      "failure_mode": "Upstream renames a key or moves a route onto a new one, and the lookup misses it. hasAccess is permissive on a missing key, so the app keeps offering the affordance and every use is refused with 403. No decode fails."
+    },
+    {
+      "id": "memory-reserved-key",
+      "upstream": {
+        "file": "packages/data-schemas/src/methods/memory.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/MemoryKey.kt",
+        "symbol": "MEMORY_RESERVED_KEY"
+      },
+      "why": "The key the storage layer refuses to write: createMemory, setMemory and setMemoryById each return { ok: false } for a key equal to 'nothing' ignoring case, which the routes turn into a bare 500 ('Failed to create memory.'). 'nothing' passes MEMORY_KEY_PATTERN, so only this check stops it before the request. Watched file-level because the comparison is inline in three function bodies with no exported symbol of its own.",
+      "failure_mode": "A renamed or added reserved key is let through the local check and the save fails with the generic 'Couldn't save the memory' instead of a field error. A removed one keeps refusing a key the server would now take. Nothing decodes wrong."
+    },
+    {
+      "id": "memory-key-max-length",
+      "upstream": {
+        "file": "api/server/routes/memories.js",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/MemoryKey.kt",
+        "symbol": "MEMORY_KEY_MAX_LENGTH"
+      },
+      "why": "The 1000-character key cap the create route and the key-addressed PATCH enforce with a 400. The by-id PATCH repeats it (memory-key-max-length-by-id), and the agent tools carry their own MEMORY_KEY_CHAR_LIMIT in packages/api/src/agents/memory.ts. The client checks it locally so the field says why rather than relaying the server's English sentence. Watched file-level: the literal sits inline in two route handlers. api/server/routes/memories.js is watched file-level by memory-key-max-length, memory-char-limit-default and memory-key-route-not-found, so a DRIFT report here may be any of their literals: check all of them before dismissing it, namely the three `memoryConfig?.charLimit || 10000` fallbacks (GET /, POST /, PATCH /:key), the two `key.length > 1000` / `newKey.length > 1000` caps (POST /, PATCH /:key) and the two `'Memory not found.'` 404s (PATCH /:key, DELETE /:key). The generateCheckAccess pairs at the top of the file have block entries of their own (memory-route-check-*).",
+      "failure_mode": "A raised cap leaves the client refusing keys the server would take; a lowered one lets a key through to a 400 whose English text is shown verbatim. No decode fails."
+    },
+    {
+      "id": "memory-char-limit-default",
+      "upstream": {
+        "file": "api/server/routes/memories.js",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/MemoriesUiState.kt",
+        "symbol": "DEFAULT_MEMORY_CHAR_LIMIT"
+      },
+      "why": "The per-value character cap the memory routes fall back to when the deployment configures none: `memoryConfig?.charLimit || 10000` in GET / (the envelope's charLimit), POST / and PATCH /:key. The memory sheet counts the value against it and blocks Save over it whenever the envelope leaves charLimit out (v0.8.8 always sends it). The by-id PATCH repeats the literal (memory-char-limit-default-by-id). Watched file-level: the literal is inline in three handlers. api/server/routes/memories.js is watched file-level by memory-key-max-length, memory-char-limit-default and memory-key-route-not-found, so a DRIFT report here may be any of their literals: check all of them before dismissing it, namely the three `memoryConfig?.charLimit || 10000` fallbacks (GET /, POST /, PATCH /:key), the two `key.length > 1000` / `newKey.length > 1000` caps (POST /, PATCH /:key) and the two `'Memory not found.'` 404s (PATCH /:key, DELETE /:key). The generateCheckAccess pairs at the top of the file have block entries of their own (memory-route-check-*).",
+      "failure_mode": "A changed default makes the sheet block values the server would take, or let an over-limit value through to a 400 whose English text is shown verbatim. Only a server that omits charLimit is affected. No decode fails."
+    },
+    {
+      "id": "memory-char-limit-default-by-id",
+      "upstream": {
+        "file": "packages/api/src/memory/handlers.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/MemoriesUiState.kt",
+        "symbol": "DEFAULT_MEMORY_CHAR_LIMIT"
+      },
+      "why": "The by-id PATCH's copy of the same fallback, `req.config?.memory?.charLimit || 10000` (see memory-char-limit-default). The sheet edits through this route whenever the memory has an id. Watched file-level: the literal is inline in the handler. packages/api/src/memory/handlers.ts is watched file-level by memory-char-limit-default-by-id, memory-key-max-length-by-id and memory-by-id-not-found, so a DRIFT report here may be any of their literals: check all of them before dismissing it, namely the PATCH handler's `req.config?.memory?.charLimit || 10000` and `key.length > 1000`, and the two `'Memory not found.'` 404s (PATCH /id/:id, DELETE /id/:id).",
+      "failure_mode": "The by-id route moves its default apart from the key routes, and an edit is checked against the wrong cap. No decode fails."
+    },
+    {
+      "id": "memory-agent-partition-errors",
+      "upstream": {
+        "file": "packages/api/src/memory/authorization.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/MemoryRepository.kt",
+        "symbol": "MEMORY_AGENT_NOT_FOUND / MEMORY_AGENT_ACCESS_DENIED"
+      },
+      "why": "The agent-partition middleware answers a write to an agent's memories with 404 'Agent not found.' or 403 'Agent access denied.' under `error`, with no code. The text is the only thing separating that 404 from 'Memory not found.' or a missing by-id route, and that 403 from a role refusal. MemoryRepositoryImpl uses the 404 to skip the key-route fallback (the key route sits behind the same middleware), and the Memories page matches both to show its own 'This agent's memories can't be changed'.",
+      "failure_mode": "Reworded text makes the by-id 404 fall back to the key route (one wasted request, same refusal) and falls through to the generic save/delete failure (404, with a needless reload) or the role-permission string (403): the user is told the wrong reason. Nothing errors."
+    },
+    {
+      "id": "memory-by-id-not-found",
+      "upstream": {
+        "file": "packages/api/src/memory/handlers.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/MemoryRepository.kt",
+        "symbol": "MEMORY_NOT_FOUND"
+      },
+      "why": "The by-id PATCH and DELETE handlers answer a row that is gone with 404 'Memory not found.' under `error`, with no code. MemoryRepositoryImpl reads that text to tell the handler's 404 from a missing route (a pre-rc2 server's Express default 404 has no JSON `error`) and returns it instead of falling back to the key route; MemoryFailureMapping.isNotFound reads it to treat a delete of a row already gone as done and to turn an edit of one into a re-add. The key routes send the same text (memory-key-route-not-found). Watched file-level: the literal is inline in both handlers. packages/api/src/memory/handlers.ts is watched file-level by memory-char-limit-default-by-id, memory-key-max-length-by-id and memory-by-id-not-found, so a DRIFT report here may be any of their literals: check all of them before dismissing it, namely the PATCH handler's `req.config?.memory?.charLimit || 10000` and `key.length > 1000`, and the two `'Memory not found.'` 404s (PATCH /id/:id, DELETE /id/:id).",
+      "failure_mode": "Reworded text makes a by-id 404 for a deleted row fall back to the key route, which edits, or for a rename replaces, any row re-created elsewhere with the same key. The user's other memory is silently overwritten; nothing errors."
+    },
+    {
+      "id": "memory-key-route-not-found",
+      "upstream": {
+        "file": "api/server/routes/memories.js",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/MemoryFailureMapping.kt",
+        "symbol": "isNotFound (MEMORY_NOT_FOUND in core/data MemoryRepository.kt)"
+      },
+      "why": "The key-addressed PATCH /:key and DELETE /:key answer a row that is gone with 404 'Memory not found.' under `error`, the same text as the by-id handlers (memory-by-id-not-found). The Memories page goes through these routes on a server without the by-id routes (pre-rc2) and for a memory with no id. MemoryFailureMapping.isNotFound matches the text: a delete that answers it counts as done (the row goes, no error), and an edit that answers it removes the row and offers the draft as a re-add. Watched file-level: the literal is inline in both handlers. api/server/routes/memories.js is watched file-level by memory-key-max-length, memory-char-limit-default and memory-key-route-not-found, so a DRIFT report here may be any of their literals: check all of them before dismissing it, namely the three `memoryConfig?.charLimit || 10000` fallbacks (GET /, POST /, PATCH /:key), the two `key.length > 1000` / `newKey.length > 1000` caps (POST /, PATCH /:key) and the two `'Memory not found.'` 404s (PATCH /:key, DELETE /:key). The generateCheckAccess pairs at the top of the file have block entries of their own (memory-route-check-*).",
+      "failure_mode": "Reworded text on the key routes makes deleting a memory already gone show a generic failure whose Retry can only fail again, and an edit of a deleted memory a generic error instead of the re-add. Nothing errors."
+    },
+    {
+      "id": "memory-key-max-length-by-id",
+      "upstream": {
+        "file": "packages/api/src/memory/handlers.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/MemoryKey.kt",
+        "symbol": "MEMORY_KEY_MAX_LENGTH"
+      },
+      "why": "The by-id PATCH's copy of the 1000-character key cap, `key != null && key.length > 1000`, answered with a 400 (see memory-key-max-length for the key routes). A rename through the sheet goes through this handler whenever the memory has an id, and the sheet checks MEMORY_KEY_MAX_LENGTH locally so the field says why. Watched file-level: the literal is inline in the handler. packages/api/src/memory/handlers.ts is watched file-level by memory-char-limit-default-by-id, memory-key-max-length-by-id and memory-by-id-not-found, so a DRIFT report here may be any of their literals: check all of them before dismissing it, namely the PATCH handler's `req.config?.memory?.charLimit || 10000` and `key.length > 1000`, and the two `'Memory not found.'` 404s (PATCH /id/:id, DELETE /id/:id).",
+      "failure_mode": "The by-id cap moves apart from the key routes' and a rename is checked against the wrong length: refused locally when the server would take it, or let through to a 400 whose English text is shown verbatim. No decode fails."
+    },
+    {
+      "id": "memory-route-check-read",
+      "upstream": {
+        "file": "api/server/routes/memories.js",
+        "symbol": "checkMemoryRead",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/permissions/UserRolePermissions.kt",
+        "symbol": "canOpenMemories"
+      },
+      "why": "The permission pair the memory routes' checkMemoryRead middleware requires for GET / (the list and its usage envelope): USE + READ. The role map is served, the pair each route checks is not. The client offers the action only when the role holds the same pair (permissive on a missing key): canOpenMemories() in core/model UserRolePermissions.kt: the Data tab's Memories row and its count fetch (DataSettingsViewModel), the Memories page itself (MemoriesUiState.canRead) and the chat memory card's Manage action (ChatConfigDelegate memoriesPageEnabled).",
+      "failure_mode": "Upstream changes the pair (adds a DELETE bit, moves a route onto another check) and the UI keeps offering an action the server refuses with 403, or hides one the server would allow. Nothing errors."
+    },
+    {
+      "id": "memory-route-check-create",
+      "upstream": {
+        "file": "api/server/routes/memories.js",
+        "symbol": "checkMemoryCreate",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/MemoriesViewModel.kt",
+        "symbol": "canMemories / canCreate"
+      },
+      "why": "The permission pair the memory routes' checkMemoryCreate middleware requires for POST / (create): USE + CREATE. The role map is served, the pair each route checks is not. The client offers the action only when the role holds the same pair (permissive on a missing key): canMemories(Permission.CREATE) in MemoriesViewModel.derive (MemoriesUiState.canCreate): the Add button, the FAB and the empty state's action.",
+      "failure_mode": "Upstream changes the pair (adds a DELETE bit, moves a route onto another check) and the UI keeps offering an action the server refuses with 403, or hides one the server would allow. Nothing errors."
+    },
+    {
+      "id": "memory-route-check-update",
+      "upstream": {
+        "file": "api/server/routes/memories.js",
+        "symbol": "checkMemoryUpdate",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/MemoriesViewModel.kt",
+        "symbol": "canMemories / canUpdate"
+      },
+      "why": "The permission pair the memory routes' checkMemoryUpdate middleware requires for PATCH /:key and PATCH /id/:id (edit and rename): USE + UPDATE. The role map is served, the pair each route checks is not. The client offers the action only when the role holds the same pair (permissive on a missing key): canMemories(Permission.UPDATE) in MemoriesViewModel.derive (MemoriesUiState.canUpdate): the card's menu and an editable sheet; without it the sheet opens read-only.",
+      "failure_mode": "Upstream changes the pair (adds a DELETE bit, moves a route onto another check) and the UI keeps offering an action the server refuses with 403, or hides one the server would allow. Nothing errors."
+    },
+    {
+      "id": "memory-route-check-delete",
+      "upstream": {
+        "file": "api/server/routes/memories.js",
+        "symbol": "checkMemoryDelete",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/MemoriesViewModel.kt",
+        "symbol": "canMemories / canUpdate"
+      },
+      "why": "The permission pair the memory routes' checkMemoryDelete middleware requires for DELETE /:key and DELETE /id/:id: USE + UPDATE (there is no DELETE bit). The role map is served, the pair each route checks is not. The client offers the action only when the role holds the same pair (permissive on a missing key): canMemories(Permission.UPDATE) in MemoriesViewModel.derive (MemoriesUiState.canUpdate): Delete sits in the same menu as Edit.",
+      "failure_mode": "Upstream changes the pair (adds a DELETE bit, moves a route onto another check) and the UI keeps offering an action the server refuses with 403, or hides one the server would allow. Nothing errors."
+    },
+    {
+      "id": "memory-route-check-opt-out",
+      "upstream": {
+        "file": "api/server/routes/memories.js",
+        "symbol": "checkMemoryOptOut",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/MemoriesViewModel.kt",
+        "symbol": "canMemories / canOptOut"
+      },
+      "why": "The permission pair the memory routes' checkMemoryOptOut middleware requires for PATCH /preferences (the opt-out switch): USE + OPT_OUT. The role map is served, the pair each route checks is not. The client offers the action only when the role holds the same pair (permissive on a missing key): canMemories(Permission.OPT_OUT) in MemoriesViewModel.derive (MemoriesUiState.canOptOut): the \"Use saved memories\" switch card.",
+      "failure_mode": "Upstream changes the pair (adds a DELETE bit, moves a route onto another check) and the UI keeps offering an action the server refuses with 403, or hides one the server would allow. Nothing errors."
+    },
+    {
+      "id": "memory-tool-availability-gate",
+      "upstream": {
+        "file": "api/server/services/Endpoints/agents/skillDeps.js",
+        "symbol": "resolveMemoryAvailability",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/ChatConfigDelegate.kt",
+        "symbol": "memoryEnabled (folded into ChatUiState.isMemoryToolAvailable)"
+      },
+      "why": "Whether a run gets the inline memory tools: the agents endpoint's memory capability, memory enabled in the deployment config, the user not opted out (personalization.memories !== false), and the role holding MEMORIES USE + CREATE + UPDATE. The composer's memory toggle and the request's ephemeralAgent.memory follow the same gate (ChatConfigDelegate memoryEnabled, ChatUiState.isMemoryToolAvailable, ChatRequestBuilder), so a role the server would refuse never sees the toggle.",
+      "failure_mode": "Upstream changes the permission set or adds a condition and the toggle shows for a role whose send the server silently runs without memory (the user believes the chat is remembering), or hides for one the server would allow. Nothing errors."
+    },
+    {
+      "id": "memory-content-filter-code",
+      "upstream": {
+        "file": "packages/api/src/middleware/contentFilter.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/MemoryFailureMapping.kt",
+        "symbol": "MEMORY_CONTENT_FILTER_CODE"
+      },
+      "why": "The `error` value of a 400 the content filter returns for a memory write (contentFilterBlockResponse: { error: 'content_filter_block', message, source, field }). The page shows its own localized string on this code instead of the English `message`. Watched file-level: the literal is inside the function body.",
+      "failure_mode": "A renamed code makes a filtered write show the server's English sentence verbatim (as any other 400) instead of the localized string. Nothing errors."
+    },
+    {
+      "id": "memory-usage-thresholds",
+      "upstream": {
+        "file": "client/src/components/SidePanel/Memories/MemoryUsageBadge.tsx",
+        "symbol": "getStatusColor",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/screen/MemoriesHeader.kt",
+        "symbol": "memoryUsageLevel"
+      },
+      "why": "How full the personal memory pool reads on the Memories page: over 90% the error colour, over 75% the warning colour, else success, applied to the server's usagePercentage. The server sends the number, not the grade.",
+      "failure_mode": "Upstream moves a threshold and the pill and bar grade the same usage differently from web (amber where web is red). Nothing errors."
+    },
+    {
+      "id": "role-memory-permission-keys",
+      "upstream": {
+        "file": "packages/data-provider/src/permissions.ts",
+        "symbol": "memoryPermissionsSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/request/UpdateRoleMemoriesRequest.kt",
+        "symbol": "UpdateRoleMemoriesRequest"
+      },
+      "why": "The five MEMORIES permission keys the admin Memory permissions screen writes with PUT /api/roles/:roleName/memories (USE, CREATE, UPDATE, READ, OPT_OUT). The route parses the body with memoryPermissionsSchema.partial() and merges it onto the stored role; the key set is never served.",
+      "failure_mode": "Upstream renames or adds a key and zod strips what it does not know: the save returns 200 with the role unchanged (or the new permission is never offered), so the admin's switch silently does nothing. Nothing errors."
+    },
+    {
+      "id": "role-skill-permission-keys",
+      "upstream": {
+        "file": "packages/data-provider/src/permissions.ts",
+        "symbol": "skillPermissionsSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/request/UpdateRoleSkillsRequest.kt",
+        "symbol": "UpdateRoleSkillsRequest"
+      },
+      "why": "The four SKILLS permission keys the admin Skills permissions screen writes with PUT /api/roles/:roleName/skills (USE, CREATE, SHARE, SHARE_PUBLIC); RoleSkillsAdminViewModel.save() maps its switches onto them. The route (createPermissionUpdateHandler('skills') in api/server/routes/roles.js) parses the body with skillPermissionsSchema.partial() and merges it onto the stored role; the key set is never served.",
+      "failure_mode": "Upstream renames or adds a key and zod strips what it does not know: the save returns 200 with the role unchanged (or the new permission is never offered), so the admin's switch silently does nothing. Nothing errors."
     },
     {
       "id": "share-files-default-on",

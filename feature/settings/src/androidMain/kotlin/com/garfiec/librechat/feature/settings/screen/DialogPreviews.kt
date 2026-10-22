@@ -35,10 +35,6 @@ private fun BackupCodesGlassPreview() = BackupCodesHost(UiStyle.LIQUID_GLASS)
 
 @PreviewNarrowScreens
 @Composable
-private fun MemoryEditGlassKeyboardPreview() = MemoryEditHost(UiStyle.LIQUID_GLASS, height = 400.dp)
-
-@PreviewNarrowScreens
-@Composable
 private fun ApiKeyCreateMaterialPreview() = ApiKeyCreateHost(UiStyle.MATERIAL)
 
 @PreviewNarrowScreens
@@ -78,11 +74,6 @@ private fun DisableTwoFactorHost(style: UiStyle, height: Dp = 640.dp) = DialogPr
 @Composable
 private fun BackupCodesHost(style: UiStyle, height: Dp = 640.dp) = DialogPreviewHost(style, height = height) {
     BackupCodesDialog(backupCodes = List(10) { "${1000 + it * 1111}-${9000 - it * 777}" }, onDismiss = {})
-}
-
-@Composable
-private fun MemoryEditHost(style: UiStyle, height: Dp = 640.dp) = DialogPreviewHost(style, height = height) {
-    MemoryEditDialog(memories = emptyList(), enforceKeyPattern = true, editingMemory = null, onDismiss = {}, onSave = { _, _ -> })
 }
 
 @Composable

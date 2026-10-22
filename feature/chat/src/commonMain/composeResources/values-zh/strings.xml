@@ -304,18 +304,24 @@
     <string name="cd_mcp_resource">MCP 资源：%1$s</string>
 
     <!-- Memory artifact -->
-    <string name="cd_memory_artifact">记忆 artifact：%1$s</string>
-    <string name="memory_artifact_untitled">无标题</string>
     <string name="label_memory">记忆</string>
-    <string name="cd_memory_artifacts">记忆更新：%1$d</string>
+    <string name="memory_manage">管理</string>
+    <string name="cd_memory_manage">管理记忆</string>
+    <plurals name="cd_memory_artifacts_summary">
+        <item quantity="other">%1$s，%2$s 项更改</item>
+    </plurals>
     <string name="memory_updated">已更新保存的记忆</string>
     <string name="memory_error">记忆错误</string>
     <string name="memory_updated_items">已更新的记忆</string>
     <string name="memory_deleted_items">已删除的记忆</string>
     <string name="memory_deleted">记忆已删除</string>
     <string name="memory_storage_full">记忆存储已满</string>
-    <string name="memory_already_exceeded">记忆存储已满——已超出 %1$d 个 token。请先删除现有记忆再添加新记忆。</string>
-    <string name="memory_would_exceed">无法保存——将超出限制 %1$d 个 token。请删除现有记忆以腾出空间。</string>
+    <plurals name="memory_already_exceeded">
+        <item quantity="other">记忆存储已满——已超出 %1$s 个令牌。请先删除现有记忆再添加新记忆。</item>
+    </plurals>
+    <plurals name="memory_would_exceed">
+        <item quantity="other">无法保存——将超出限制 %1$s 个令牌。请删除现有记忆以腾出空间。</item>
+    </plurals>
     <string name="files_searched">已搜索你的文件</string>
     <string name="cd_file_search_source">文件搜索来源：%1$s</string>
     <string name="file_search_relevance">%1$d%%</string>

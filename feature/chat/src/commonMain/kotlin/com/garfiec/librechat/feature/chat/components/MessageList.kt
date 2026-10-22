@@ -712,12 +712,17 @@ fun MessageList(
                     streamingCallIds,
                 )
                 if (orphanMemory.isNotEmpty()) {
-                    item(key = "streaming_memory_artifacts") {
-                        MemoryArtifactsSection(
-                            artifacts = orphanMemory,
-                            modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
-                            stateKey = "streaming",
-                        )
+                    // Keyed per reply, so the next run's line never restores this one's open state.
+                    item(key = "streaming_memory_artifacts_$streamingSlotKey") {
+                        CompositionLocalProvider(LocalExpansionScope provides replyScope) {
+                            MemoryArtifactsSection(
+                                artifacts = orphanMemory,
+                                modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
+                                stateKey = memoryArtifactsStateKey(streamingWorkspace.inline, fallback = ""),
+                                onManage = LocalOpenMemories.current,
+                                live = true,
+                            )
+                        }
                     }
                 }
 

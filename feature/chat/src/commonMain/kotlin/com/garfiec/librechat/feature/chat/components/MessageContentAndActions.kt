@@ -511,8 +511,12 @@ internal fun MessageContentAndActions(
                                                             group.groupedToolCallIds(),
                                                         )
                                                     }
+                                                    val groupFailed = remember(inlineAttachments, group) {
+                                                        activityGroupFailed(group, inlineAttachments)
+                                                    }
                                                     ActivityGroup(
                                                         group = group,
+                                                        failed = groupFailed,
                                                         stateKey = "${message.messageId}:${group.key}",
                                                         autoExpand = group.key == focusedGroupKey,
                                                         autoExpandKey = LocalSearchFocusNonce.current,
@@ -620,7 +624,10 @@ internal fun MessageContentAndActions(
                     DisableSelection {
                         MemoryArtifactsSection(
                             artifacts = orphanMemory,
-                            stateKey = message.messageId,
+                            stateKey = remember(inlineAttachments, message.messageId) {
+                                memoryArtifactsStateKey(inlineAttachments, message.messageId)
+                            },
+                            onManage = LocalOpenMemories.current,
                         )
                     }
                 }

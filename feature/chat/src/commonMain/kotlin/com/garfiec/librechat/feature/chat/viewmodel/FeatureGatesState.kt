@@ -66,6 +66,12 @@ data class FeatureGatesState(
      */
     val memoryEnabled: Boolean = false,
     /**
+     * The memory card's Manage action, which opens the Memories page. = MEMORIES USE+READ
+     * (permissive), the same gate as the Data tab row that opens that page. Independent of the
+     * user's own opt-out: the page is where they turn memories back on.
+     */
+    val memoriesPageEnabled: Boolean = false,
+    /**
      * Mid-run steering (v0.8.8): whether `POST /api/agents/chat/steer` exists on this server.
      *
      * Fails closed, and unlike the HITL pause this one *can* fail closed safely. A pause is

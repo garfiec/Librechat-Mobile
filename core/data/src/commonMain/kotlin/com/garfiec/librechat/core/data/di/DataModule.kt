@@ -535,7 +535,15 @@ val dataModule = module {
     singleOf(::KeyRepositoryImpl) bind KeyRepository::class
     singleOf(::ApiKeyRepositoryImpl) bind ApiKeyRepository::class
     singleOf(::McpRepositoryImpl) bind McpRepository::class
-    singleOf(::MemoryRepositoryImpl) bind MemoryRepository::class
+    single<MemoryRepository> {
+        MemoryRepositoryImpl(
+            memoriesApi = get(),
+            userApi = get(),
+            configRepository = get(),
+            activeAccountProvider = get(),
+            applicationScope = get<CoroutineScope>(KoinQualifiers.ApplicationScope),
+        )
+    }
     singleOf(::PermissionsRepositoryImpl) bind PermissionsRepository::class
     singleOf(::EndpointTokenRepositoryImpl) bind EndpointTokenRepository::class
     singleOf(::PresetRepositoryImpl) bind PresetRepository::class

@@ -68,3 +68,25 @@ fun UserRolePermissions?.hasAccessStrictOrDenied(type: PermissionType, permissio
  */
 fun UserRolePermissions?.canCreateSharedLinks(sharedLinksEnabled: Boolean): Boolean =
     sharedLinksEnabled && hasAccessOrPermissive(PermissionType.SHARED_LINKS, Permission.CREATE)
+
+/**
+ * Whether saved memories may be listed: MEMORIES USE and READ, the pair the list route
+ * (`GET /api/memories`) checks. Permissive on an unknown role or key (via [hasAccessOrPermissive]).
+ * Gates the Memories page's list, the Data tab's memory count and a chat memory card's Manage.
+ */
+fun UserRolePermissions?.canOpenMemories(): Boolean =
+    hasAccessOrPermissive(PermissionType.MEMORIES, Permission.USE) &&
+        hasAccessOrPermissive(PermissionType.MEMORIES, Permission.READ)
+
+/**
+ * Whether the Memories page has anything for this role: the list ([canOpenMemories]), or the
+ * opt-out switch alone, which `PATCH /api/memories/preferences` allows on USE and OPT_OUT without
+ * READ (web's Data controls toggle needs no READ either). Gates the Data tab's Memories row.
+ * Permissive like [canOpenMemories].
+ */
+fun UserRolePermissions?.canReachMemoriesSettings(): Boolean =
+    hasAccessOrPermissive(PermissionType.MEMORIES, Permission.USE) &&
+        (
+            hasAccessOrPermissive(PermissionType.MEMORIES, Permission.READ) ||
+                hasAccessOrPermissive(PermissionType.MEMORIES, Permission.OPT_OUT)
+            )

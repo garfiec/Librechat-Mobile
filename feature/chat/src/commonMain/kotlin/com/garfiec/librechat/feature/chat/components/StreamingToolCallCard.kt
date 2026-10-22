@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -95,6 +96,28 @@ fun StreamingToolCallCard(
             modifier = modifier,
             failed = failed,
         )
+        return
+    }
+
+    // A memory write draws the card the reload draws as soon as its output or a memory attachment
+    // arrives (web renders MemoryCall live and persisted alike), so a refused write is red at once
+    // rather than a generic green check until the message finalizes. Before then, the generic
+    // running card: empty output is not a failure.
+    val memoryArtifacts = remember(toolCall.name, toolCall.output, toolCall.id, streamingAttachments) {
+        streamingMemoryArtifacts(toolCall, streamingAttachments)
+    }
+    if (memoryArtifacts.isNotEmpty()) {
+        val onManage = LocalOpenMemories.current
+        Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            memoryArtifacts.forEachIndexed { index, artifact ->
+                MemoryArtifactCard(
+                    artifact = artifact,
+                    onManage = onManage,
+                    stateKey = memoryCardStateKey(toolCall.id, index),
+                    live = true,
+                )
+            }
+        }
         return
     }
 

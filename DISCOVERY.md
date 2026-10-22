@@ -239,7 +239,7 @@ DELETE /api/skills/:id/files/:relPath    → delete file
 POST   /api/skills/import                → import skill (atomic from rc4 — see v0.8.8-rc4 sync)
 GET    /api/user/settings/skills/active  → per-user active-skill states (DEFERRED)
 POST   /api/user/settings/skills/active  → set active-skill states (DEFERRED)
-PUT    /api/roles/:roleName/skills       → admin skill-permission grant (DEFERRED; admin)
+PUT    /api/roles/:roleName/skills       → admin skill-permission grant (BUILT; admin, Settings → Account → Skill permissions)
 
 # Deferred-preview poll for inline office-doc rendering (DEFERRED — pairs with TFile.status/text)
 GET    /api/files/:file_id/preview       → { file_id, status: pending|ready|failed,
@@ -424,9 +424,32 @@ DELETE /api/memories/id/:id                 `{updated, memory}` / `{deleted}`. A
                                             construction (keys are unique only *within* a partition). PATCH
                                             answers 409 on a key collision inside the partition and 404 on an
                                             unresolved id; its returned memory is content-filter projected.
-                                            Mobile prefers these and falls back to the key-addressed routes on
-                                            404 — except for a redacted entry, where no fallback can address
-                                            anything. (BUILT)
+                                            Mobile prefers these and falls back to the key-addressed routes only
+                                            on a 404 that means the ROUTE is missing: one whose JSON names no
+                                            memory handler (Express's HTML 404, or LibreChat's own
+                                            `{message:"Endpoint not found"}` from `apiNotFound` on `/api`).
+                                            `Memory not found.` (the row is gone; the key may now name a
+                                            re-created row) and `Agent not found.` (the partition middleware,
+                                            which the key routes sit behind too) never fall back. Nor does a
+                                            redacted entry, whose blank key addresses nothing, or an edit of a
+                                            memory keyed `preferences`: `PATCH /api/memories/preferences` is the
+                                            opt-out route, mounted first (and Express matches paths ignoring
+                                            case), so that edit is refused with a typed error rather than sent.
+                                            A DELETE of that key has no such twin and still goes by key. (BUILT)
+PATCH  /api/memories/:key  (rename)       `{ value, key? }`: a body `key` renames — trimmed, pattern-checked
+                                            only when it differs from the URL key, 409 on a collision in the
+                                            partition — as create-then-delete, so a failure part-way can leave
+                                            both rows; mobile reloads after any failed rename. The URL carries
+                                            the ORIGINAL key. (BUILT)
+PUT    /api/roles/:roleName/memories      (admin) flat partial body `{ USE?, CREATE?, UPDATE?, READ?, OPT_OUT? }`
+                                            → the updated role; partial bodies merge. The role name is ONE path
+                                            segment (a custom role may hold a space or slash). An admin saving
+                                            their own role gets the PUT's answer published as the app's role.
+                                            (BUILT — Settings → Account → Memory permissions)
+GET    /api/admin/roles?limit=200         (v0.8.8, READ_ROLES) every role, custom ones included, for the
+                                            role editors' picker; web asks for one page of 200 and falls back
+                                            to USER/ADMIN when it fails or is empty, and so does mobile (mirrors
+                                            `admin-role-picker-fallback`, `admin-role-list-page-size`). (BUILT)
 POST   /api/convos/archive/all            (v0.8.8-rc2) no body — unlike every other convo mutation it reads
                                             nothing off `arg` — → `{ archivedCount }`. Archives every
                                             conversation the caller can currently see. Mobile surfaces it in

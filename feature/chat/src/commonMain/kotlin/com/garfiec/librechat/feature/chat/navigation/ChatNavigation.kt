@@ -134,6 +134,12 @@ fun EntryProviderScope<NavKey>.chatEntries(
     onNavigateToProviderKeys: (endpointName: String?) -> Unit,
     /** Navigates to the server-file picker; wired by the host to `navigator.navigate(FilesPicker)`. */
     onAttachFromServer: () -> Unit,
+    /**
+     * Opens the Memories page (owned by settings) from a memory card's Manage action; wired by the
+     * host to `navigator.navigate(Memories)`. The chat hides the action from a role that may not
+     * read memories.
+     */
+    onOpenMemories: () -> Unit,
     /** Opens What's new (owned by settings) from the update banner on an empty chat. */
     onOpenWhatsNew: () -> Unit = {},
 ) {
@@ -163,6 +169,7 @@ fun EntryProviderScope<NavKey>.chatEntries(
             onNavigateToProviderKeys = onNavigateToProviderKeys,
             onAttachFromServer = onAttachFromServer,
             onOpenWhatsNew = onOpenWhatsNew,
+            onOpenMemories = onOpenMemories,
         )
     }
     entry<Chat> { key ->
@@ -185,6 +192,7 @@ fun EntryProviderScope<NavKey>.chatEntries(
                 onNavigateToProviderKeys = onNavigateToProviderKeys,
                 onAttachFromServer = onAttachFromServer,
                 onOpenWhatsNew = onOpenWhatsNew,
+                onOpenMemories = onOpenMemories,
             )
         }
     }

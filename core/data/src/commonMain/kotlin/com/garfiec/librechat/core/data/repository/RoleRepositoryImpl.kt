@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.data.repository
 
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
@@ -10,9 +11,12 @@ import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.common.result.toSafeError
 import com.garfiec.librechat.core.data.datastore.RoleCacheDataStore
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
+import com.garfiec.librechat.core.model.request.UpdateRoleMemoriesRequest
 import com.garfiec.librechat.core.model.request.UpdateRoleSkillsRequest
 import com.garfiec.librechat.core.network.api.RolesApi
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,7 +29,7 @@ class RoleRepositoryImpl(
     private val userRepository: UserRepository,
     private val cacheDataStore: RoleCacheDataStore,
     private val activeAccountProvider: ActiveAccountProvider,
-    applicationScope: CoroutineScope,
+    private val applicationScope: CoroutineScope,
 ) : RoleRepository {
 
     private val _userPermissions = MutableStateFlow<UserRolePermissions?>(null)
@@ -95,9 +99,51 @@ class RoleRepositoryImpl(
     override suspend fun getRole(roleName: String): Result<UserRolePermissions> =
         safeApiCall { rolesApi.getRole(roleName) }
 
+    override suspend fun listRoleNames(): Result<List<String>> =
+        safeApiCall { rolesApi.listRoles().roles.map { it.name }.filter { it.isNotBlank() } }
+
     override suspend fun updateRoleSkills(
         roleName: String,
         request: UpdateRoleSkillsRequest,
+    ): Result<UserRolePermissions> {
+        val origin = activeAccountProvider.currentAccountId()
+        return putRole(origin) { rolesApi.updateRoleSkills(roleName, request) }
+    }
+
+    override suspend fun updateRoleMemories(
+        roleName: String,
+        request: UpdateRoleMemoriesRequest,
+    ): Result<UserRolePermissions> {
+        val origin = activeAccountProvider.currentAccountId()
+        return putRole(origin) { rolesApi.updateRoleMemories(roleName, request) }
+    }
+
+    /**
+     * Runs a role PUT in the application scope, so a caller cancelled mid-request (the admin leaves
+     * the editor by swipe-back, a deep link or a destroyed activity) still publishes what the server
+     * stored: the PUT was already sent. Started undispatched so the request goes out before this
+     * returns control, as [MemoryRepositoryImpl.updatePreferences] does.
+     */
+    private suspend fun putRole(
+        origin: AccountId?,
+        call: suspend () -> UserRolePermissions,
     ): Result<UserRolePermissions> =
-        safeApiCall { rolesApi.updateRoleSkills(roleName, request) }
+        applicationScope.async(start = CoroutineStart.UNDISPATCHED) {
+            safeApiCall { call() }.also { if (it is Result.Success) publishIfOwnRole(it.data, origin) }
+        }.await()
+
+    /**
+     * An admin who edited their OWN role: the PUT answers with the updated role (the same document
+     * `GET /api/roles/:name` returns), so it replaces the cached permissions here rather than in the
+     * editor, whose scope ends the moment the admin leaves.
+     */
+    private fun publishIfOwnRole(role: UserRolePermissions, origin: AccountId?) {
+        if (role.name != _userPermissions.value?.name) return
+        // An account switch while the PUT ran: the role belongs to the outgoing account.
+        if (activeAccountProvider.currentAccountId() != origin) return
+        _userPermissions.value = role
+        applicationScope.launch {
+            if (activeAccountProvider.currentAccountId() == origin) cacheDataStore.save(role)
+        }
+    }
 }

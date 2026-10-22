@@ -119,23 +119,20 @@ private fun parseMemoryError(value: String?): MemoryErrorInfo? {
 }
 
 /**
- * The memory writes belonging to one tool call, for the inline `set_memory`/`delete_memory` card.
- * Scoped by the same rule as [collectWebSearchSources].
+ * The memory writes belonging to one tool call, for the inline `set_memory`/`delete_memory` card:
+ * only the attachments whose `toolCallId` is this call's, as upstream's `mapAttachments` keys them.
+ * An attachment with no `toolCallId` belongs to no call, so it is drawn once, by
+ * [collectUnrenderedMemoryArtifacts], rather than on every memory card in the message; a call with
+ * no id owns none and falls back to its output.
  */
 internal fun collectMemoryArtifacts(
     attachments: List<Attachment>,
     toolCallId: String?,
 ): List<MemoryArtifact> {
-    val memoryAttachments = attachments.filter {
-        it.type == ToolConstants.MEMORY && it.memory != null
-    }
-    if (memoryAttachments.isEmpty()) return emptyList()
-    val scoped = if (toolCallId == null) {
-        memoryAttachments
-    } else {
-        memoryAttachments.filter { it.toolCallId == toolCallId || it.toolCallId == null }
-    }
-    return scoped.mapNotNull { it.memory?.let(::memoryArtifactFrom) }
+    if (toolCallId.isNullOrEmpty()) return emptyList()
+    return attachments
+        .filter { it.type == ToolConstants.MEMORY && it.memory != null && it.toolCallId == toolCallId }
+        .mapNotNull { it.memory?.let(::memoryArtifactFrom) }
 }
 
 /**
@@ -175,3 +172,21 @@ internal fun collectUnrenderedMemoryArtifacts(
     .filter { it.type == ToolConstants.MEMORY && it.memory != null }
     .filter { it.toolCallId !in renderedToolCallIds }
     .mapNotNull { it.memory?.let(::memoryArtifactFrom) }
+
+/**
+ * Keys the "Updated saved memory" line's open state across the live reply and its saved message:
+ * the reply's message id, which the server stamps on each memory attachment, so both sides name
+ * the same line however many writes have arrived. [fallback] covers attachments without one.
+ */
+internal fun memoryArtifactsStateKey(attachments: List<Attachment>, fallback: String): String =
+    attachments.firstNotNullOfOrNull { attachment ->
+        attachment.messageId?.takeIf { attachment.type == ToolConstants.MEMORY && it.isNotEmpty() }
+    } ?: fallback
+
+/**
+ * Keys one memory card's open state: its tool call and its place among the cards that call
+ * draws, which the live card and the saved one compute from the same attachments. Blank without
+ * a call id, which keeps the state local to the card.
+ */
+internal fun memoryCardStateKey(toolCallId: String?, index: Int): String =
+    toolCallId?.takeIf(String::isNotEmpty)?.let { "$it#$index" }.orEmpty()

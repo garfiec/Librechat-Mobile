@@ -26,6 +26,7 @@ import com.garfiec.librechat.core.data.repository.FavoritesRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.KeyRepository
 import com.garfiec.librechat.core.data.repository.McpRepository
+import com.garfiec.librechat.core.data.repository.MemoryRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
@@ -157,6 +158,7 @@ class ChatViewModel(
     mcpRepository: McpRepository,
     userRepository: UserRepository,
     roleRepository: RoleRepository,
+    memoryRepository: MemoryRepository,
     private val permissionGate: PermissionGate,
     private val connectivityObserver: ConnectivityObserver,
     private val activeAccountProvider: ActiveAccountProvider,
@@ -508,6 +510,7 @@ class ChatViewModel(
         roleRepository = roleRepository,
         fileRepository = fileRepository,
         userRepository = userRepository,
+        memoryRepository = memoryRepository,
     )
 
     private val pendingActionDelegate = PendingActionDelegate(
@@ -905,6 +908,7 @@ class ChatViewModel(
         // so the chat-side pin stars and Settings → Favorites stay in sync from cold start.
         favoritesDelegate.load()
         chatConfigDelegate.loadUserProfile()
+        chatConfigDelegate.observeMemoriesPreference()
         chatConfigDelegate.loadFlags()
         observeTraceAvailability()
         chatConfigDelegate.loadFileConfig()
@@ -1324,10 +1328,11 @@ class ChatViewModel(
                 ),
                 presetPrompts = current.presetPrompts,
                 voice = VoiceState(serverSttEnabled = current.serverSttEnabled),
-                account = AccountConfigState(
-                    userName = current.userName,
-                    userAvatarUrl = current.userAvatarUrl,
-                ),
+                // Server- and account-derived slices carry over: their sources are StateFlows behind
+                // distinctUntilChanged, so a reset here would never be refilled while this landing
+                // lives, and every later new chat would lose (say) the memory toggle.
+                account = current.account,
+                gates = current.gates.copy(traceViewerConversationId = null),
                 conversation = ConversationMetaState(sharedLinksEnabled = current.sharedLinksEnabled),
             )
         }

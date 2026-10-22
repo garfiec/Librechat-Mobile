@@ -34,6 +34,9 @@ Material 3 theme and shared Compose components used across all feature modules. 
   owns `onBackRequested()` and the dialog flag, `PlatformBackHandler` is enabled only while dirty (a
   clean form keeps predictive back), and the top bar's back goes through the same check, since the
   handler never fires on iOS. Dirty = what Save would send differs from what was loaded.
+  A sheet editor (the memory sheet) uses the `AdaptiveModalBottomSheet(interceptDismiss = dirty)`
+  overload instead: while it is true, swipe, scrim, handle tap and back leave the sheet up and call
+  `onDismissRequest`, which raises the dialog; the sheet closes when the caller drops it.
 - `ModelIcon` - Endpoint-specific model icons.
 - `EndpointBadge` - Colored badge showing the AI provider.
 - `SearchBar` - Reusable search input field.
@@ -155,7 +158,10 @@ Rules — follow these when writing or reviewing UI:
    up a second time, it belongs in a new `Adaptive*` component.
 
 Known gaps (stay M3 in glass until someone adds a wrapper): `ExposedDropdownMenuBox` menus, `Slider`,
-`LinearProgressIndicator`, scrolling tab rows. `ForbiddenImport` also misses a fully-qualified call
+scrolling tab rows, and the indeterminate `LinearProgressIndicator`. The determinate bar has
+`AdaptiveLinearProgressIndicator`, but raw `LinearProgressIndicator` is not banned yet: the context
+gauge, the context-usage settings pill, file upload progress and the iOS media loader still call it.
+`ForbiddenImport` also misses a fully-qualified call
 (`androidx.compose.material3.AlertDialog(…)` with no import) — write the import and use the wrapper.
 
 **Adding a new style-aware control:** write `AdaptiveX` in `components/` with the M3 signature,
@@ -201,7 +207,7 @@ the controls bullet below.
   is the tappable list card, so don't add `Modifier.clickable` to the plain one. The adaptive
   dialogs and the M3 sheet provide `LocalInSeparateWindow`: inside their own window a sheet falls back
   to the opaque M3 sheet and a top bar stays in Compose, with nothing for the caller to set.
-- **Controls look like iOS in glass mode**, drawn in Compose: `AdaptiveSwitch`, `AdaptiveRadioButton`
+- **Controls look like iOS in glass mode**, drawn in Compose: `AdaptiveSwitch` (with `AdaptiveSwitchPlaceholder`, the bare off track in each style, for a value not known yet), `AdaptiveRadioButton`
   (a checkmark), `AdaptiveCheckbox`, `AdaptiveDivider` (inset hairline), `AdaptiveButton` (flat
   capsule) and `AdaptiveOutlinedButton`/`AdaptiveFilledTonalButton` (borderless capsule on
   `GlassControlColors.fill`, accent label unless the caller picked a colour),
@@ -212,8 +218,9 @@ the controls bullet below.
   liquid segmented control in glass), `AdaptiveFloatingActionButton` (`small` for the M3
   small FAB), `AdaptiveExtendedFloatingActionButton` (labelled; collapse it with `expanded` on scroll), `AdaptiveSectionHeader`, the four
   `Adaptive*Chip`s (pills), `AdaptiveSnackbarHost` (a glass capsule toast that samples the
-  `AdaptiveScaffold` backdrop) and `AdaptiveCircularProgressIndicator` (iOS activity indicator when
-  indeterminate). Each mirrors the M3 signature and passes straight through in Material, and detekt
+  `AdaptiveScaffold` backdrop), `AdaptiveCircularProgressIndicator` (iOS activity indicator when
+  indeterminate) and `AdaptiveLinearProgressIndicator` (determinate only: an iOS capsule progress
+  bar in glass; progress clamped to 0..1, NaN as 0; its raw M3 bar isn't banned yet, see Known gaps). Each mirrors the M3 signature and passes straight through in Material, and detekt
   bans the raw M3 control. Scrolling tab rows have no glass counterpart and stay M3. Settings
   pages group rows with `adaptiveSection { row(key) { … } }` inside `AdaptiveGroupedPage` (rounded,
   inset cells on a grouped background in both styles); a row's own

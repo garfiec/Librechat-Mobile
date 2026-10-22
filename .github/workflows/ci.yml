@@ -115,12 +115,12 @@ jobs:
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug
 
-      # Compile-only gate for :feature:chat's instrumented tests (they execute on a
-      # local emulator via connectedDebugAndroidTest, never in CI). Scoped to the one
-      # module on purpose: a repo-wide assembleDebugAndroidTest would also compile
-      # :app's stale androidTest sources.
-      - name: Compile chat instrumented tests
-        run: ./gradlew :feature:chat:assembleDebugAndroidTest
+      # Compile-only gate for the instrumented tests (they execute on a local emulator via
+      # connectedDebugAndroidTest, never in CI). Scoped to the modules named on purpose: a
+      # repo-wide assembleDebugAndroidTest would also compile :app's stale androidTest sources.
+      # :core:ui's holds the only test of the Material sheet's dismiss hold (the discard prompt).
+      - name: Compile instrumented tests
+        run: ./gradlew :feature:chat:assembleDebugAndroidTest :core:ui:assembleDebugAndroidTest
 
       # The device half of this check runs locally on a no-GMS emulator; the manifest half is
       # cheap enough for every PR.

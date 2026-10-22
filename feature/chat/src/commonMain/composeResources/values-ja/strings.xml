@@ -304,18 +304,24 @@
     <string name="cd_mcp_resource">MCPリソース: %1$s</string>
 
     <!-- Memory artifact -->
-    <string name="cd_memory_artifact">メモリアーティファクト: %1$s</string>
-    <string name="memory_artifact_untitled">無題</string>
     <string name="label_memory">メモリ</string>
-    <string name="cd_memory_artifacts">メモリの更新: %1$d</string>
+    <string name="memory_manage">管理</string>
+    <string name="cd_memory_manage">メモリを管理</string>
+    <plurals name="cd_memory_artifacts_summary">
+        <item quantity="other">%1$s、%2$s 件の変更</item>
+    </plurals>
     <string name="memory_updated">保存されたメモリを更新しました</string>
     <string name="memory_error">メモリエラー</string>
     <string name="memory_updated_items">更新されたメモリ</string>
     <string name="memory_deleted_items">削除されたメモリ</string>
     <string name="memory_deleted">メモリを削除しました</string>
     <string name="memory_storage_full">メモリの保存容量が上限に達しました</string>
-    <string name="memory_already_exceeded">メモリの保存容量はすでに上限を %1$d トークン超えています。新しいメモリを追加する前に既存のメモリを削除してください。</string>
-    <string name="memory_would_exceed">保存できません — 上限を %1$d トークン超えます。既存のメモリを削除して空きを作ってください。</string>
+    <plurals name="memory_already_exceeded">
+        <item quantity="other">メモリの保存容量はすでに上限を %1$s トークン超えています。新しいメモリを追加する前に既存のメモリを削除してください。</item>
+    </plurals>
+    <plurals name="memory_would_exceed">
+        <item quantity="other">保存できません — 上限を %1$s トークン超えます。既存のメモリを削除して空きを作ってください。</item>
+    </plurals>
     <string name="files_searched">ファイルを検索しました</string>
     <string name="cd_file_search_source">ファイル検索のソース: %1$s</string>
     <string name="file_search_relevance">%1$d%%</string>

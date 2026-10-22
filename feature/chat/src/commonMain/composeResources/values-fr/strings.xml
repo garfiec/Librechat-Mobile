@@ -304,18 +304,27 @@
     <string name="cd_mcp_resource">Ressource MCP : %1$s</string>
 
     <!-- Memory artifact -->
-    <string name="cd_memory_artifact">Artefact de mémoire : %1$s</string>
-    <string name="memory_artifact_untitled">Sans titre</string>
     <string name="label_memory">Mémoire</string>
-    <string name="cd_memory_artifacts">Mises à jour de la mémoire : %1$d</string>
+    <string name="memory_manage">Gérer</string>
+    <string name="cd_memory_manage">Gérer les mémoires</string>
+    <plurals name="cd_memory_artifacts_summary">
+        <item quantity="one">%1$s, %2$s modification</item>
+        <item quantity="other">%1$s, %2$s modifications</item>
+    </plurals>
     <string name="memory_updated">Mémoire enregistrée mise à jour</string>
     <string name="memory_error">Erreur de mémoire</string>
-    <string name="memory_updated_items">Souvenirs mis à jour</string>
-    <string name="memory_deleted_items">Souvenirs supprimés</string>
-    <string name="memory_deleted">Souvenir supprimé</string>
-    <string name="memory_storage_full">Stockage de la mémoire plein</string>
-    <string name="memory_already_exceeded">Stockage de la mémoire déjà plein — dépassé de %1$d jetons. Supprimez des souvenirs existants avant d'en ajouter de nouveaux.</string>
-    <string name="memory_would_exceed">Enregistrement impossible — la limite serait dépassée de %1$d jetons. Supprimez des souvenirs existants pour libérer de l'espace.</string>
+    <string name="memory_updated_items">Mémoires mises à jour</string>
+    <string name="memory_deleted_items">Mémoires supprimées</string>
+    <string name="memory_deleted">Mémoire supprimée</string>
+    <string name="memory_storage_full">Stockage des mémoires plein</string>
+    <plurals name="memory_already_exceeded">
+        <item quantity="one">Stockage des mémoires déjà plein — dépassé de %1$s jeton. Supprimez des mémoires existantes avant d'en ajouter de nouvelles.</item>
+        <item quantity="other">Stockage des mémoires déjà plein — dépassé de %1$s jetons. Supprimez des mémoires existantes avant d'en ajouter de nouvelles.</item>
+    </plurals>
+    <plurals name="memory_would_exceed">
+        <item quantity="one">Enregistrement impossible — la limite serait dépassée de %1$s jeton. Supprimez des mémoires existantes pour libérer de l'espace.</item>
+        <item quantity="other">Enregistrement impossible — la limite serait dépassée de %1$s jetons. Supprimez des mémoires existantes pour libérer de l'espace.</item>
+    </plurals>
     <string name="files_searched">Recherche dans vos fichiers effectuée</string>
     <string name="cd_file_search_source">Source de la recherche de fichiers : %1$s</string>
     <string name="file_search_relevance">%1$d %%</string>

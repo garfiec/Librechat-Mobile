@@ -304,18 +304,27 @@
     <string name="cd_mcp_resource">MCP-Ressource: %1$s</string>
 
     <!-- Memory artifact -->
-    <string name="cd_memory_artifact">Erinnerungsartefakt: %1$s</string>
-    <string name="memory_artifact_untitled">Ohne Titel</string>
     <string name="label_memory">Erinnerung</string>
-    <string name="cd_memory_artifacts">Aktualisierte Erinnerungen: %1$d</string>
+    <string name="memory_manage">Verwalten</string>
+    <string name="cd_memory_manage">Erinnerungen verwalten</string>
+    <plurals name="cd_memory_artifacts_summary">
+        <item quantity="one">%1$s, %2$s Änderung</item>
+        <item quantity="other">%1$s, %2$s Änderungen</item>
+    </plurals>
     <string name="memory_updated">Gespeicherte Erinnerung aktualisiert</string>
     <string name="memory_error">Erinnerungsfehler</string>
     <string name="memory_updated_items">Aktualisierte Erinnerungen</string>
     <string name="memory_deleted_items">Gelöschte Erinnerungen</string>
     <string name="memory_deleted">Erinnerung gelöscht</string>
     <string name="memory_storage_full">Erinnerungsspeicher voll</string>
-    <string name="memory_already_exceeded">Erinnerungsspeicher bereits voll – um %1$d Tokens überschritten. Lösche vorhandene Erinnerungen, bevor du neue hinzufügst.</string>
-    <string name="memory_would_exceed">Speichern nicht möglich – Limit würde um %1$d Tokens überschritten. Lösche vorhandene Erinnerungen, um Platz zu schaffen.</string>
+    <plurals name="memory_already_exceeded">
+        <item quantity="one">Erinnerungsspeicher bereits voll – um %1$s Token überschritten. Lösche vorhandene Erinnerungen, bevor du neue hinzufügst.</item>
+        <item quantity="other">Erinnerungsspeicher bereits voll – um %1$s Tokens überschritten. Lösche vorhandene Erinnerungen, bevor du neue hinzufügst.</item>
+    </plurals>
+    <plurals name="memory_would_exceed">
+        <item quantity="one">Speichern nicht möglich – Limit würde um %1$s Token überschritten. Lösche vorhandene Erinnerungen, um Platz zu schaffen.</item>
+        <item quantity="other">Speichern nicht möglich – Limit würde um %1$s Tokens überschritten. Lösche vorhandene Erinnerungen, um Platz zu schaffen.</item>
+    </plurals>
     <string name="files_searched">Deine Dateien durchsucht</string>
     <string name="cd_file_search_source">Quelle der Dateisuche: %1$s</string>
     <string name="file_search_relevance">%1$d %%</string>

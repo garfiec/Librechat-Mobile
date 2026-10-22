@@ -8,6 +8,10 @@ import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
+import com.garfiec.librechat.core.model.request.UpdateRoleMemoriesRequest
+import com.garfiec.librechat.core.model.request.UpdateRoleSkillsRequest
+import com.garfiec.librechat.core.model.response.RoleListItem
+import com.garfiec.librechat.core.model.response.RoleListResponse
 import com.garfiec.librechat.core.network.api.RolesApi
 import com.google.common.truth.Truth.assertThat
 import io.mockk.Runs
@@ -19,6 +23,8 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -239,5 +245,148 @@ class RoleRepositoryImplTest {
 
         assertThat(repo.userPermissions.value).isNull()
         coVerify(exactly = 0) { cacheDataStore.save(any()) }
+    }
+
+    /**
+     * An admin saving their own role: the PUT's answer replaces the cached permissions inside the
+     * repository call. Done in the screen, leaving it at once would cancel the refresh and the app
+     * would gate on the old flags for the rest of the session.
+     */
+    @Test
+    fun `saving the current user's role publishes and caches the PUT's answer`() = runTest {
+        val updated = adminRole.copy(permissions = mapOf("MEMORIES" to mapOf("OPT_OUT" to false)))
+        coEvery { cacheDataStore.load() } returns adminRole
+        coEvery { rolesApi.updateRoleMemories("ADMIN", any()) } returns updated
+        val repo = newRepo()
+        advanceUntilIdle()
+
+        val result = repo.updateRoleMemories("ADMIN", UpdateRoleMemoriesRequest(optOut = false))
+        advanceUntilIdle()
+
+        assertThat((result as Result.Success).data).isEqualTo(updated)
+        assertThat(repo.userPermissions.value).isEqualTo(updated)
+        coVerify(exactly = 1) { cacheDataStore.save(updated) }
+        coVerify(exactly = 0) { rolesApi.getRole(any()) }
+    }
+
+    @Test
+    fun `saving the current user's skills role publishes the PUT's answer`() = runTest {
+        val updated = userRole.copy(permissions = mapOf("SKILLS" to mapOf("USE" to false)))
+        coEvery { cacheDataStore.load() } returns userRole
+        coEvery { rolesApi.updateRoleSkills("USER", any()) } returns updated
+        val repo = newRepo()
+        advanceUntilIdle()
+
+        repo.updateRoleSkills("USER", UpdateRoleSkillsRequest(use = false))
+        advanceUntilIdle()
+
+        assertThat(repo.userPermissions.value).isEqualTo(updated)
+    }
+
+    @Test
+    fun `saving another role leaves the current user's permissions alone`() = runTest {
+        coEvery { cacheDataStore.load() } returns adminRole
+        coEvery { rolesApi.updateRoleMemories("USER", any()) } returns userRole
+        val repo = newRepo()
+        advanceUntilIdle()
+
+        repo.updateRoleMemories("USER", UpdateRoleMemoriesRequest(use = true))
+        advanceUntilIdle()
+
+        assertThat(repo.userPermissions.value).isEqualTo(adminRole)
+        coVerify(exactly = 0) { cacheDataStore.save(any()) }
+    }
+
+    @Test
+    fun `an own-role save that lands after an account switch is not published`() = runTest {
+        coEvery { cacheDataStore.load() } returns adminRole
+        val gate = CompletableDeferred<Unit>()
+        coEvery { rolesApi.updateRoleMemories("ADMIN", any()) } coAnswers {
+            gate.await()
+            adminRole.copy(permissions = emptyMap())
+        }
+        val repo = newRepo()
+        advanceUntilIdle()
+
+        val save = async { repo.updateRoleMemories("ADMIN", UpdateRoleMemoriesRequest(use = false)) }
+        runCurrent()
+        activeAccountProvider.set(AccountId("srv:other"))
+        advanceUntilIdle()
+        gate.complete(Unit)
+        save.await()
+        advanceUntilIdle()
+
+        assertThat(repo.userPermissions.value).isEqualTo(adminRole)
+        coVerify(exactly = 0) { cacheDataStore.save(any()) }
+    }
+
+    /**
+     * The editor's scope ends while its own-role PUT is in flight (iOS swipe-back, a deep link, a
+     * destroyed activity). The server still applies the change, so the app must still publish it.
+     */
+    @Test
+    fun `an own-role memories save whose caller is cancelled still publishes the PUT's answer`() = runTest {
+        val updated = adminRole.copy(permissions = mapOf("MEMORIES" to mapOf("USE" to false)))
+        coEvery { cacheDataStore.load() } returns adminRole
+        val gate = CompletableDeferred<Unit>()
+        coEvery { rolesApi.updateRoleMemories("ADMIN", any()) } coAnswers {
+            gate.await()
+            updated
+        }
+        val repo = newRepo()
+        advanceUntilIdle()
+        val callerScope = CoroutineScope(StandardTestDispatcher(testScheduler))
+
+        val save = callerScope.launch { repo.updateRoleMemories("ADMIN", UpdateRoleMemoriesRequest(use = false)) }
+        runCurrent()
+        save.cancel()
+        runCurrent()
+        gate.complete(Unit)
+
+        // The PUT hops to the IO dispatcher, so wait for the publish in real time; runTest's own
+        // timeout bounds it if it never comes.
+        assertThat(repo.userPermissions.first { it == updated }).isEqualTo(updated)
+        advanceUntilIdle()
+        assertThat(save.isCancelled).isTrue()
+        coVerify(exactly = 1) { cacheDataStore.save(updated) }
+    }
+
+    @Test
+    fun `an own-role skills save whose caller is cancelled still publishes the PUT's answer`() = runTest {
+        val updated = userRole.copy(permissions = mapOf("SKILLS" to mapOf("USE" to false)))
+        coEvery { cacheDataStore.load() } returns userRole
+        val gate = CompletableDeferred<Unit>()
+        coEvery { rolesApi.updateRoleSkills("USER", any()) } coAnswers {
+            gate.await()
+            updated
+        }
+        val repo = newRepo()
+        advanceUntilIdle()
+        val callerScope = CoroutineScope(StandardTestDispatcher(testScheduler))
+
+        val save = callerScope.launch { repo.updateRoleSkills("USER", UpdateRoleSkillsRequest(use = false)) }
+        runCurrent()
+        save.cancel()
+        runCurrent()
+        gate.complete(Unit)
+
+        // The PUT hops to the IO dispatcher, so wait for the publish in real time; runTest's own
+        // timeout bounds it if it never comes.
+        assertThat(repo.userPermissions.first { it == updated }).isEqualTo(updated)
+        advanceUntilIdle()
+        assertThat(save.isCancelled).isTrue()
+    }
+
+    @Test
+    fun `listRoleNames returns the server's role names in its order`() = runTest {
+        coEvery { cacheDataStore.load() } returns null
+        coEvery { rolesApi.listRoles() } returns RoleListResponse(
+            roles = listOf(RoleListItem("ADMIN"), RoleListItem("USER"), RoleListItem("STAFF"), RoleListItem(" ")),
+        )
+        val repo = newRepo()
+
+        val result = repo.listRoleNames()
+
+        assertThat((result as Result.Success).data).containsExactly("ADMIN", "USER", "STAFF").inOrder()
     }
 }

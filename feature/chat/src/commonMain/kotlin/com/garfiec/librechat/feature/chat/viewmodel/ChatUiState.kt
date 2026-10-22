@@ -538,9 +538,10 @@ data class ChatUiState(
      * [FeatureGatesState.memoryEnabled], AND the agents endpoint advertising the `memory`
      * capability.
      *
-     * Unlike [isCodeInterpreterAvailable] this fails CLOSED on a config that hasn't arrived: the
-     * capability is off by default server-side, so assuming it would flash a toggle that mostly
-     * shouldn't be there and, worse, let a send carry `ephemeralAgent.memory` the server drops.
+     * Unlike [isCodeInterpreterAvailable] this fails CLOSED on a config that hasn't arrived. The
+     * capability is on by default server-side (`defaultAgentCapabilities`), but an admin's
+     * `capabilities` list can leave it out, and a toggle offered before the config says so would
+     * let a send carry `ephemeralAgent.memory` the server drops.
      */
     val isMemoryToolAvailable: Boolean
         get() = memoryEnabled &&

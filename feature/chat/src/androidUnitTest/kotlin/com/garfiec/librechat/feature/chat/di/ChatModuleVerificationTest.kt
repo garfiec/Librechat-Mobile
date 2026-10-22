@@ -18,6 +18,7 @@ import com.garfiec.librechat.core.data.repository.FavoritesRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.KeyRepository
 import com.garfiec.librechat.core.data.repository.McpRepository
+import com.garfiec.librechat.core.data.repository.MemoryRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
@@ -83,6 +84,7 @@ class ChatModuleVerificationTest {
                 TraceRepository::class,
                 SpeechRepository::class,
                 McpRepository::class,
+                MemoryRepository::class,
                 UserRepository::class,
                 ConnectivityObserver::class,
                 ActiveAccountProvider::class,

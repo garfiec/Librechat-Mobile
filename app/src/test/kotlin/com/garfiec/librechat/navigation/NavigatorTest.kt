@@ -15,7 +15,10 @@ import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.conversations.navigation.ProjectChats
 import com.garfiec.librechat.feature.conversations.navigation.Projects
 import com.garfiec.librechat.feature.conversations.navigation.Search
+import com.garfiec.librechat.feature.settings.navigation.Memories
 import com.garfiec.librechat.feature.settings.navigation.ProviderKeys
+import com.garfiec.librechat.feature.settings.navigation.RoleMemoriesAdmin
+import com.garfiec.librechat.feature.settings.navigation.RoleSkillsAdmin
 import com.garfiec.librechat.feature.settings.navigation.SettingsTabbed
 import com.garfiec.librechat.shared.navigation.Navigator
 import org.junit.Assert.assertEquals
@@ -65,6 +68,60 @@ class NavigatorTest {
         val navigator = createNavigator(NewChat())
         navigator.navigate(SettingsTabbed)
         assertEquals(listOf(NewChat(), SettingsTabbed), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `a second tap on a route already on top pushes nothing`() {
+        val navigator = createNavigator(Chat("c1"))
+        navigator.navigate(Memories)
+        navigator.navigate(Memories)
+        assertEquals(listOf(Chat("c1"), Memories), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `the role editors are not stacked twice either`() {
+        val navigator = createNavigator(NewChat(), SettingsTabbed)
+        navigator.navigate(RoleMemoriesAdmin)
+        navigator.navigate(RoleMemoriesAdmin)
+        navigator.goBack()
+        navigator.navigate(RoleSkillsAdmin)
+        navigator.navigate(RoleSkillsAdmin)
+        assertEquals(listOf(NewChat(), SettingsTabbed, RoleSkillsAdmin), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `a route further down the stack is still pushed`() {
+        val navigator = createNavigator(NewChat(), Memories, SettingsTabbed)
+        navigator.navigate(Memories)
+        assertEquals(listOf(NewChat(), Memories, SettingsTabbed, Memories), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `focus is dropped whenever a different screen comes on top, and only then`() {
+        var drops = 0
+        val navigator = Navigator(NavBackStack(NewChat()), onScreenChange = { drops++ })
+
+        navigator.navigateToChat("c1")
+        assertEquals(1, drops)
+        navigator.navigate(Memories)
+        assertEquals(2, drops)
+        navigator.navigate(Memories)
+        assertEquals("a deduped push changes no screen", 2, drops)
+        navigator.goBack()
+        assertEquals(3, drops)
+        navigator.navigateToSearch("tea")
+        assertEquals(4, drops)
+        navigator.navigateToMessage("c2", "m1", "tea")
+        assertEquals(5, drops)
+        navigator.navigateToTopLevel(NewChat())
+        assertEquals(6, drops)
+        navigator.navigateToTopLevel(NewChat())
+        assertEquals("re-selecting the landing changes no screen", 6, drops)
+        navigator.navigate(Memories)
+        navigator.navigate(SettingsTabbed)
+        assertEquals(8, drops)
+        navigator.remove(Memories)
+        assertEquals("removing a screen below the top changes no screen", 8, drops)
     }
 
     @Test

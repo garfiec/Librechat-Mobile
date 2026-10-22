@@ -20,7 +20,6 @@
     <string name="action_verifying">验证中…</string>
 
     <!-- Content descriptions -->
-    <string name="cd_add_memory">添加记忆</string>
     <string name="cd_add_server">添加服务器</string>
     <string name="cd_back">返回</string>
     <string name="cd_change_avatar">更换头像</string>
@@ -31,11 +30,10 @@
     <string name="cd_current_avatar">当前头像</string>
     <string name="cd_delete">删除</string>
     <string name="cd_delete_api_key">删除 API 密钥</string>
-    <string name="cd_delete_memory">删除记忆</string>
     <string name="cd_delete_preset">删除预设</string>
-    <string name="cd_edit_memory">编辑记忆</string>
     <string name="memory_redacted_key">已隐藏的条目</string>
     <string name="memory_redacted_value">此服务器的内容策略隐藏了此处存储的内容。你仍可以将其删除。</string>
+    <string name="memory_redacted_value_no_delete">此服务器的内容策略隐藏了此处存储的内容。</string>
     <string name="cd_loading_profile">正在加载个人资料</string>
     <string name="cd_make_private">设为私有</string>
     <string name="cd_make_public">设为公开</string>
@@ -47,7 +45,6 @@
     <string name="cd_test_tts_voice">测试所选 TTS 语音</string>
     <string name="cd_toggle_auto_read">切换自动朗读回复</string>
     <string name="cd_toggle_auto_send_stt">切换语音后自动发送</string>
-    <string name="cd_toggle_memories">切换记忆</string>
     <string name="cd_tts_voice_selector">选择 TTS 语音。当前为 %1$s</string>
     <string name="cd_user_avatar">用户头像</string>
     <string name="cd_view_all_tools">查看全部工具</string>
@@ -457,19 +454,65 @@
     <string name="tts_preview_voice">试听语音</string>
 
     <!-- Memories -->
-    <string name="enable_memories">启用记忆</string>
-    <string name="enable_memories_desc">允许 AI 在不同对话间记住信息</string>
-    <string name="no_memories_saved">尚未保存任何记忆</string>
-    <string name="memories_add_hint">点击 + 按钮添加记忆</string>
     <string name="add_memory">添加记忆</string>
     <string name="edit_memory">编辑记忆</string>
     <string name="dialog_title_delete_memory">删除记忆</string>
-    <string name="dialog_delete_memory_message">确定要删除记忆 "%1$s" 吗？</string>
+    <string name="dialog_delete_memory_message">确定要删除记忆“%1$s”吗？</string>
     <string name="memory_key_label">键</string>
     <string name="memory_value_label">值</string>
-    <string name="memory_key_hint">仅可使用小写字母和下划线</string>
-    <string name="memory_key_invalid">键只能包含小写字母和下划线</string>
+    <string name="memory_key_hint">仅可使用小写英文字母 a–z 和下划线</string>
+    <string name="memory_key_invalid">键只能包含小写英文字母 a–z 和下划线</string>
     <string name="memory_key_exists">已存在使用此键的记忆</string>
+    <string name="memory_key_reserved">此键已被保留，请选择其他键。</string>
+    <string name="memory_key_too_long">键最多只能包含 %1$s 个字符。</string>
+    <string name="memory_error_forbidden">你没有更改记忆的权限。</string>
+    <string name="memory_error_toggle_forbidden">你的角色无法开启或关闭记忆。</string>
+    <string name="memory_error_content_filtered">已被服务器的内容过滤器拦截。</string>
+    <string name="memory_error_agent">无法更改此智能体的记忆。</string>
+    <string name="memory_error_network">无法连接到服务器，请检查网络连接。</string>
+    <string name="memory_error_save">无法保存记忆。</string>
+    <string name="memory_error_delete">无法删除记忆。</string>
+    <string name="memory_error_toggle">无法更改记忆设置。</string>
+    <string name="memory_error_not_found">此记忆已在其他地方被删除。</string>
+    <string name="memory_error_not_found_readd">此记忆已在其他地方被删除。保存即可重新添加。</string>
+    <!-- Memories index -->
+    <string name="memories_use_title">使用已保存的记忆</string>
+    <string name="memories_use_desc">聊天可以读取和保存记忆</string>
+    <string name="memories_use_load_failed">无法加载此设置。</string>
+    <string name="memories_use_loading">正在加载</string>
+    <string name="memories_usage_percent">%1$s%</string>
+    <plurals name="memories_usage_tokens">
+        <item quantity="other">%1$s / %2$s 个令牌</item>
+    </plurals>
+    <plurals name="memories_usage_a11y">
+        <item quantity="other">记忆用量：%1$s，%3$s 个令牌中已用 %2$s</item>
+    </plurals>
+    <plurals name="memory_token_count">
+        <item quantity="other">%1$s 个令牌</item>
+    </plurals>
+    <string name="memory_agent_fallback">智能体记忆</string>
+    <string name="memory_agent_numbered">%1$s（%2$s）</string>
+    <string name="memories_search_hint">搜索记忆</string>
+    <string name="memories_no_match">没有与“%1$s”匹配的记忆</string>
+    <string name="memories_personal_empty">还没有个人记忆</string>
+    <string name="memories_filter_all">全部</string>
+    <string name="memories_filter_personal">个人</string>
+    <string name="memories_empty_title">还没有记忆</string>
+    <string name="memories_empty_desc">聊天会把值得记住的内容保存在这里。你也可以自己添加。</string>
+    <string name="memories_empty_desc_no_create">聊天会把值得记住的内容保存在这里。</string>
+    <string name="memories_view_only">你的角色可以查看记忆，但不能添加或更改。</string>
+    <string name="memories_no_access_title">无法访问记忆</string>
+    <string name="memories_no_access_desc">你的角色没有查看记忆的权限。</string>
+    <string name="memory_action_edit">编辑</string>
+    <string name="cd_memory_options">%1$s 的选项</string>
+    <!-- Memory sheet -->
+    <string name="view_memory">查看记忆</string>
+    <string name="action_close">关闭</string>
+    <string name="memory_value_counter">%1$s / %2$s</string>
+    <plurals name="memory_token_share">
+        <item quantity="other">%1$s 个令牌 · 占记忆的 %2$s%</item>
+    </plurals>
+    <string name="memory_updated_at">更新于 %1$s</string>
 
     <!-- MCP -->
     <string name="add_mcp_server">添加 MCP 服务器</string>
@@ -608,16 +651,27 @@
     <string name="provider_keys_revoke_all_action">全部吊销</string>
 
     <!-- Admin: role skill access -->
-    <string name="role_skills_settings_row">技能访问权限（管理员）</string>
-    <string name="role_skills_title">技能访问权限</string>
-    <string name="role_skills_back">返回</string>
+    <string name="role_skills_settings_row">技能权限</string>
+    <string name="role_skills_title">技能权限</string>
     <string name="role_skills_description">控制每个角色拥有哪些技能能力。更改将应用于所有具有所选角色的用户。</string>
-    <string name="role_skills_role_label">角色</string>
+    <string name="role_permissions_role_label">角色</string>
     <string name="role_skills_use">使用技能</string>
     <string name="role_skills_create">创建和编辑技能</string>
     <string name="role_skills_share">分享技能</string>
     <string name="role_skills_share_public">公开分享技能</string>
-    <string name="role_skills_save">保存</string>
+    <string name="role_memories_settings_row">记忆权限</string>
+    <string name="role_memories_title">记忆权限</string>
+    <string name="role_memories_description">控制每个角色拥有哪些记忆能力。更改将应用于所有具有所选角色的用户。</string>
+    <string name="role_memories_use">允许使用记忆</string>
+    <string name="role_memories_create">允许创建记忆</string>
+    <string name="role_memories_update">允许更新记忆</string>
+    <string name="role_memories_read">允许读取记忆</string>
+    <string name="role_memories_opt_out">允许用户关闭记忆</string>
+    <string name="role_permissions_saved">已保存</string>
+    <string name="role_permissions_load_failed">无法加载此角色的权限。</string>
+    <string name="role_permissions_save_failed">无法保存权限，请重试。</string>
+    <string name="role_permissions_admin_access_warning">禁用管理员对此功能的访问可能会导致异常，直到应用重新加载你的权限。保存后，唯一的恢复方式是修改 librechat.yaml 中的 interface 设置，这将影响所有角色。</string>
+    <string name="role_permissions_more_info">更多信息</string>
     <string name="artifact_shortcuts_title">主屏幕快捷方式</string>
     <string name="artifact_shortcuts_empty">尚未将任何 artifact 固定到主屏幕。</string>
     <string name="artifact_shortcuts_disabled_message">此 artifact 快捷方式已被移除。</string>
@@ -709,8 +763,9 @@
     <string name="date_time_preview">预览</string>
     <string name="data_summary_off">关闭</string>
     <string name="data_summary_none">无</string>
+    <string name="data_memories_none">无</string>
     <plurals name="data_memories_count">
-        <item quantity="other">已保存 %1$d 条</item>
+        <item quantity="other">已保存 %1$s 条</item>
     </plurals>
     <plurals name="data_mcp_servers_count">
         <item quantity="other">%1$d 个服务器</item>
@@ -764,6 +819,7 @@
     <string name="mcp_editor_load_failed">无法加载此服务器。</string>
     <string name="mcp_trust_label">我信任此服务器</string>
     <string name="mcp_trust_sublabel">它可以读取你发送的内容，并代表你在其连接的应用中执行操作。请只添加你信任的服务器。</string>
+    <string name="memory_error_key_route_shadowed">此服务器无法编辑使用此键的记忆。请删除后以其他键重新添加。</string>
     <string name="shared_chats_title">已分享的对话</string>
     <string name="shared_chats_summary">你分享过的对话链接</string>
     <string name="shared_chats_untitled">未命名对话</string>

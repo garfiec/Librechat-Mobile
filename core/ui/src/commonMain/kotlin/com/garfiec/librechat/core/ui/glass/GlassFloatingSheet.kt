@@ -60,11 +60,16 @@ import kotlinx.coroutines.launch
 /**
  * A floating Liquid Glass sheet, composed over the app by [GlassSheetHost]; don't call it directly.
  * Re-implements the M3 sheet's slide, scrim, back, drag/fling-to-dismiss and nested-scroll pull.
+ *
+ * While [interceptDismiss] reads true, those gestures leave the sheet up (a drag settles back) and
+ * call [onDismissRequest] straight away; otherwise it is called once the sheet has slid away. If
+ * [interceptDismiss] turned true during that slide, the sheet slides back up as it asks.
  */
 @Composable
 internal fun GlassFloatingSheet(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
+    interceptDismiss: () -> Boolean = { false },
     dragHandle: @Composable (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -73,6 +78,7 @@ internal fun GlassFloatingSheet(
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
     val dismissRequest by rememberUpdatedState(onDismissRequest)
+    val intercept by rememberUpdatedState(interceptDismiss)
 
     // 0 = off screen below, 1 = resting. Drives the slide and the scrim together.
     val shown = remember { Animatable(0f) }
@@ -81,12 +87,32 @@ internal fun GlassFloatingSheet(
     var dragged by remember { mutableFloatStateOf(0f) }
     var dismissing by remember { mutableStateOf(false) }
 
+    val settleBack: () -> Unit = {
+        scope.launch { animate(dragged, 0f, animationSpec = SettleSpec) { value, _ -> dragged = value } }
+    }
     val dismiss: () -> Unit = {
-        if (!dismissing) {
-            dismissing = true
-            scope.launch {
-                shown.animateTo(0f, HideSpec)
+        when {
+            dismissing -> Unit
+            intercept() -> {
+                if (dragged > 0f) settleBack()
                 dismissRequest()
+            }
+            else -> {
+                dismissing = true
+                scope.launch {
+                    shown.animateTo(0f, HideSpec)
+                    if (intercept()) {
+                        // The caller started holding during the slide (a keystroke dirtied a draft, a
+                        // save went out): it will refuse to close, so come back rather than stay
+                        // composed off screen behind a scrim that eats every touch and Back.
+                        dismissing = false
+                        dragged = 0f
+                        dismissRequest()
+                        shown.animateTo(1f, ShowSpec)
+                    } else {
+                        dismissRequest()
+                    }
+                }
             }
         }
     }
@@ -94,7 +120,7 @@ internal fun GlassFloatingSheet(
         if (dragged > panelHeight * DISMISS_FRACTION || velocity > with(density) { DismissVelocity.toPx() }) {
             dismiss()
         } else {
-            scope.launch { animate(dragged, 0f, animationSpec = SettleSpec) { value, _ -> dragged = value } }
+            settleBack()
         }
     }
     PlatformBackHandler(enabled = true, onBack = dismiss)

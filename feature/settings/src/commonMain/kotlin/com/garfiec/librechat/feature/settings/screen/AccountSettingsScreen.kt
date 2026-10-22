@@ -15,7 +15,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -77,6 +79,7 @@ fun AccountSettingsScreen(
     onNavigateToFavorites: () -> Unit,
     onNavigateToProviderKeys: () -> Unit,
     onNavigateToRoleSkillsAdmin: () -> Unit,
+    onNavigateToRoleMemoriesAdmin: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -100,6 +103,7 @@ fun AccountSettingsScreen(
             onNavigateToFavorites = onNavigateToFavorites,
             onNavigateToProviderKeys = onNavigateToProviderKeys,
             onNavigateToRoleSkillsAdmin = onNavigateToRoleSkillsAdmin,
+            onNavigateToRoleMemoriesAdmin = onNavigateToRoleMemoriesAdmin,
             snackbarHostState = snackbarHostState,
             modifier = Modifier
                 .fillMaxSize()
@@ -119,6 +123,7 @@ fun AccountSettingsContent(
     onNavigateToFavorites: () -> Unit,
     onNavigateToProviderKeys: () -> Unit,
     onNavigateToRoleSkillsAdmin: () -> Unit,
+    onNavigateToRoleMemoriesAdmin: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
@@ -272,14 +277,23 @@ fun AccountSettingsContent(
                         onClick = onNavigateToFavorites,
                     )
                 }
-                // Admin-only: role skill access. Fail-CLOSED — shown only for ADMIN.
+                // Admin-only: role skill and memory access. Fail-CLOSED — shown only for ADMIN.
                 if (uiState.isAdmin) {
                     row(key = "role_skills_admin_row") {
                         AccountSettingsRow(
-                            icon = Icons.Default.Star,
+                            // Skills' own icon, as on the Skills page: Star is Favorites, the row above.
+                            icon = Icons.Default.Extension,
                             title = stringResource(Res.string.role_skills_settings_row),
                             subtitle = stringResource(Res.string.role_skills_description),
                             onClick = onNavigateToRoleSkillsAdmin,
+                        )
+                    }
+                    row(key = "role_memories_admin_row") {
+                        AccountSettingsRow(
+                            icon = Icons.Default.Lightbulb,
+                            title = stringResource(Res.string.role_memories_settings_row),
+                            subtitle = stringResource(Res.string.role_memories_description),
+                            onClick = onNavigateToRoleMemoriesAdmin,
                         )
                     }
                 }

@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.getOrNull
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
+import com.garfiec.librechat.core.data.repository.MemoryRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.model.Attachment
@@ -14,11 +15,13 @@ import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
+import com.garfiec.librechat.core.model.permissions.canOpenMemories
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.feature.chat.viewmodel.ChatConfigHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonElement
 
@@ -36,6 +39,7 @@ class ChatConfigDelegate(
     private val roleRepository: RoleRepository,
     private val fileRepository: FileRepository,
     private val userRepository: UserRepository,
+    private val memoryRepository: MemoryRepository,
 ) {
 
     // Cached so tapping several generated-file chips doesn't re-fetch the user each time.
@@ -43,7 +47,10 @@ class ChatConfigDelegate(
 
     fun loadUserProfile() {
         handle.scope.launch {
-            when (val result = userRepository.getUser()) {
+            // The profile carries the opt-out, so this read refreshes the shared value too: a value
+            // cached earlier in the process (the user may since have changed it on the web) must
+            // not outrank it.
+            when (val result = memoryRepository.fetchUserPublishingPreference(userRepository::getUser)) {
                 is Result.Success -> {
                     val user = result.data
                     cachedUserId = user.id
@@ -51,7 +58,11 @@ class ChatConfigDelegate(
                         account = account.copy(
                             userName = user.name ?: user.username,
                             userAvatarUrl = user.avatar,
-                            memoriesOptedOut = user.personalization?.memories == false,
+                            // The shared value is this read's answer once published. It differs only
+                            // when the repository refused to publish: a Settings toggle overlapped
+                            // the GET, and the toggle is newer.
+                            memoriesOptedOut = memoryRepository.memoriesEnabled.value?.not()
+                                ?: (user.personalization?.memories == false),
                         )
                     }
                 }
@@ -59,6 +70,19 @@ class ChatConfigDelegate(
                     Logger.d(result.exception) { "Failed to load user profile: ${result.message}" }
                 }
                 is Result.Loading -> { /* no-op */ }
+            }
+        }
+    }
+
+    /**
+     * Follows the user's memory opt-out as the Memories page changes it, so a chat that stays open
+     * while the user flips the switch in Settings shows or hides its composer memory toggle without
+     * being reopened. Null (not known yet for this account) leaves the profile seed in place.
+     */
+    fun observeMemoriesPreference() {
+        handle.scope.launch {
+            memoryRepository.memoriesEnabled.filterNotNull().distinctUntilChanged().collect { enabled ->
+                handle.update { account = account.copy(memoriesOptedOut = !enabled) }
             }
         }
     }
@@ -148,6 +172,9 @@ class ChatConfigDelegate(
                         memoryEnabled = role.hasAccessOrPermissive(PermissionType.MEMORIES, Permission.USE) &&
                             role.hasAccessOrPermissive(PermissionType.MEMORIES, Permission.CREATE) &&
                             role.hasAccessOrPermissive(PermissionType.MEMORIES, Permission.UPDATE),
+                        // The memory card's Manage action opens the Memories page, so it is gated
+                        // like the Data tab row that opens the same page: USE + READ.
+                        memoriesPageEnabled = role.canOpenMemories(),
                         // Pinned tools (v0.8.7): raw interface list; mapped/filtered by pinnedToolChips.
                         pinnedTools = iface?.defaultPinnedTools ?: emptyList(),
                         dropParamsMap = inputs.dropParamsMap,

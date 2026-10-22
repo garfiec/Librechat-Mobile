@@ -20,7 +20,6 @@
     <string name="action_verifying">Verificando…</string>
 
     <!-- Content descriptions -->
-    <string name="cd_add_memory">Añadir recuerdo</string>
     <string name="cd_add_server">Añadir servidor</string>
     <string name="cd_back">Atrás</string>
     <string name="cd_change_avatar">Cambiar avatar</string>
@@ -31,11 +30,10 @@
     <string name="cd_current_avatar">Avatar actual</string>
     <string name="cd_delete">Eliminar</string>
     <string name="cd_delete_api_key">Eliminar clave de API</string>
-    <string name="cd_delete_memory">Eliminar recuerdo</string>
     <string name="cd_delete_preset">Eliminar preajuste</string>
-    <string name="cd_edit_memory">Editar recuerdo</string>
     <string name="memory_redacted_key">Entrada oculta</string>
     <string name="memory_redacted_value">La política de contenido de este servidor oculta lo que hay guardado aquí. Aun así, puedes eliminarlo.</string>
+    <string name="memory_redacted_value_no_delete">La política de contenido de este servidor oculta lo que hay guardado aquí.</string>
     <string name="cd_loading_profile">Cargando perfil</string>
     <string name="cd_make_private">Hacer privado</string>
     <string name="cd_make_public">Hacer público</string>
@@ -47,7 +45,6 @@
     <string name="cd_test_tts_voice">Probar la voz de TTS seleccionada</string>
     <string name="cd_toggle_auto_read">Activar o desactivar la lectura automática de respuestas</string>
     <string name="cd_toggle_auto_send_stt">Activar o desactivar el envío automático tras el habla</string>
-    <string name="cd_toggle_memories">Activar o desactivar recuerdos</string>
     <string name="cd_tts_voice_selector">Seleccionar voz de TTS. Actualmente %1$s</string>
     <string name="cd_user_avatar">Avatar de usuario</string>
     <string name="cd_view_all_tools">Ver todas las herramientas</string>
@@ -463,19 +460,69 @@
     <string name="tts_preview_voice">Previsualizar voz</string>
 
     <!-- Memories -->
-    <string name="enable_memories">Activar recuerdos</string>
-    <string name="enable_memories_desc">Permitir que la IA recuerde información entre conversaciones</string>
-    <string name="no_memories_saved">Aún no hay recuerdos guardados</string>
-    <string name="memories_add_hint">Toca el botón + para añadir un recuerdo</string>
     <string name="add_memory">Añadir recuerdo</string>
     <string name="edit_memory">Editar recuerdo</string>
     <string name="dialog_title_delete_memory">Eliminar recuerdo</string>
-    <string name="dialog_delete_memory_message">¿Seguro que quieres eliminar el recuerdo "%1$s"?</string>
+    <string name="dialog_delete_memory_message">¿Seguro que quieres eliminar el recuerdo «%1$s»?</string>
     <string name="memory_key_label">Clave</string>
     <string name="memory_value_label">Valor</string>
-    <string name="memory_key_hint">Usa solo letras minúsculas y guiones bajos</string>
-    <string name="memory_key_invalid">La clave solo puede contener letras minúsculas y guiones bajos</string>
+    <string name="memory_key_hint">Usa solo letras minúsculas a–z y guiones bajos</string>
+    <string name="memory_key_invalid">La clave solo puede contener letras minúsculas a–z y guiones bajos</string>
     <string name="memory_key_exists">Ya existe un recuerdo con esta clave</string>
+    <string name="memory_key_reserved">Esta clave está reservada. Elige otra.</string>
+    <string name="memory_key_too_long">Las claves pueden tener como máximo %1$s caracteres.</string>
+    <string name="memory_error_forbidden">No tienes permiso para cambiar los recuerdos.</string>
+    <string name="memory_error_toggle_forbidden">Tu rol no puede activar ni desactivar los recuerdos.</string>
+    <string name="memory_error_content_filtered">Bloqueado por el filtro de contenido de tu servidor.</string>
+    <string name="memory_error_agent">Los recuerdos de este agente no se pueden cambiar.</string>
+    <string name="memory_error_network">No se pudo conectar con el servidor. Comprueba tu conexión.</string>
+    <string name="memory_error_save">No se pudo guardar el recuerdo.</string>
+    <string name="memory_error_delete">No se pudo eliminar el recuerdo.</string>
+    <string name="memory_error_toggle">No se pudo cambiar el ajuste de recuerdos.</string>
+    <string name="memory_error_not_found">Este recuerdo se eliminó en otro lugar.</string>
+    <string name="memory_error_not_found_readd">Este recuerdo se eliminó en otro lugar. Guárdalo para volver a añadirlo.</string>
+    <!-- Memories index -->
+    <string name="memories_use_title">Usar recuerdos guardados</string>
+    <string name="memories_use_desc">Los chats pueden leer y guardar recuerdos</string>
+    <string name="memories_use_load_failed">No se pudo cargar este ajuste.</string>
+    <string name="memories_use_loading">Cargando</string>
+    <string name="memories_usage_percent">%1$s %</string>
+    <plurals name="memories_usage_tokens">
+        <item quantity="one">%1$s / %2$s token</item>
+        <item quantity="other">%1$s / %2$s tokens</item>
+    </plurals>
+    <plurals name="memories_usage_a11y">
+        <item quantity="one">Uso de recuerdos: %1$s, %2$s de %3$s token</item>
+        <item quantity="other">Uso de recuerdos: %1$s, %2$s de %3$s tokens</item>
+    </plurals>
+    <plurals name="memory_token_count">
+        <item quantity="one">%1$s token</item>
+        <item quantity="other">%1$s tokens</item>
+    </plurals>
+    <string name="memory_agent_fallback">Recuerdo de agente</string>
+    <string name="memory_agent_numbered">%1$s (%2$s)</string>
+    <string name="memories_search_hint">Buscar recuerdos</string>
+    <string name="memories_no_match">Ningún recuerdo coincide con «%1$s»</string>
+    <string name="memories_personal_empty">Aún no hay recuerdos personales</string>
+    <string name="memories_filter_all">Todos</string>
+    <string name="memories_filter_personal">Personales</string>
+    <string name="memories_empty_title">Aún no hay recuerdos</string>
+    <string name="memories_empty_desc">Los chats guardan aquí lo que vale la pena recordar. También puedes añadir uno tú mismo.</string>
+    <string name="memories_empty_desc_no_create">Los chats guardan aquí lo que vale la pena recordar.</string>
+    <string name="memories_view_only">Tu rol puede ver los recuerdos, pero no añadirlos ni cambiarlos.</string>
+    <string name="memories_no_access_title">Sin acceso a los recuerdos</string>
+    <string name="memories_no_access_desc">Tu rol no tiene permiso para ver los recuerdos.</string>
+    <string name="memory_action_edit">Editar</string>
+    <string name="cd_memory_options">Opciones de %1$s</string>
+    <!-- Memory sheet -->
+    <string name="view_memory">Ver recuerdo</string>
+    <string name="action_close">Cerrar</string>
+    <string name="memory_value_counter">%1$s / %2$s</string>
+    <plurals name="memory_token_share">
+        <item quantity="one">%1$s token · %2$s % de tu memoria</item>
+        <item quantity="other">%1$s tokens · %2$s % de tu memoria</item>
+    </plurals>
+    <string name="memory_updated_at">Actualizado: %1$s</string>
 
     <!-- MCP -->
     <string name="add_mcp_server">Añadir servidor MCP</string>
@@ -614,16 +661,27 @@
     <string name="provider_keys_revoke_all_action">Revocar todo</string>
 
     <!-- Admin: role skill access -->
-    <string name="role_skills_settings_row">Acceso a habilidades (admin)</string>
-    <string name="role_skills_title">Acceso a habilidades</string>
-    <string name="role_skills_back">Atrás</string>
+    <string name="role_skills_settings_row">Permisos de habilidades</string>
+    <string name="role_skills_title">Permisos de habilidades</string>
     <string name="role_skills_description">Controla qué capacidades de habilidades tiene cada rol. Los cambios se aplican a todos los usuarios con el rol seleccionado.</string>
-    <string name="role_skills_role_label">Rol</string>
+    <string name="role_permissions_role_label">Rol</string>
     <string name="role_skills_use">Usar habilidades</string>
     <string name="role_skills_create">Crear y editar habilidades</string>
     <string name="role_skills_share">Compartir habilidades</string>
     <string name="role_skills_share_public">Compartir habilidades públicamente</string>
-    <string name="role_skills_save">Guardar</string>
+    <string name="role_memories_settings_row">Permisos de recuerdos</string>
+    <string name="role_memories_title">Permisos de recuerdos</string>
+    <string name="role_memories_description">Controla qué capacidades de recuerdos tiene cada rol. Los cambios se aplican a todos los usuarios con el rol seleccionado.</string>
+    <string name="role_memories_use">Permitir usar recuerdos</string>
+    <string name="role_memories_create">Permitir crear recuerdos</string>
+    <string name="role_memories_update">Permitir actualizar recuerdos</string>
+    <string name="role_memories_read">Permitir leer recuerdos</string>
+    <string name="role_memories_opt_out">Permitir a los usuarios desactivar los recuerdos</string>
+    <string name="role_permissions_saved">Guardado</string>
+    <string name="role_permissions_load_failed">No se pudieron cargar los permisos de este rol.</string>
+    <string name="role_permissions_save_failed">No se pudieron guardar los permisos. Inténtalo de nuevo.</string>
+    <string name="role_permissions_admin_access_warning">Desactivar el acceso de Administrador a esta función puede causar problemas inesperados hasta que la app vuelva a cargar tus permisos. Una vez guardado, la única forma de revertirlo es la opción interface de librechat.yaml, que afecta a todos los roles.</string>
+    <string name="role_permissions_more_info">Más información</string>
     <string name="artifact_shortcuts_title">Accesos directos en la pantalla de inicio</string>
     <string name="artifact_shortcuts_empty">Aún no hay artefactos fijados en la pantalla de inicio.</string>
     <string name="artifact_shortcuts_disabled_message">Se eliminó este acceso directo al artefacto.</string>
@@ -715,9 +773,10 @@
     <string name="date_time_preview">Vista previa</string>
     <string name="data_summary_off">Desactivado</string>
     <string name="data_summary_none">Ninguno</string>
+    <string name="data_memories_none">Ninguno</string>
     <plurals name="data_memories_count">
-        <item quantity="one">%1$d guardada</item>
-        <item quantity="other">%1$d guardadas</item>
+        <item quantity="one">%1$s guardado</item>
+        <item quantity="other">%1$s guardados</item>
     </plurals>
     <plurals name="data_mcp_servers_count">
         <item quantity="one">%1$d servidor</item>
@@ -773,6 +832,7 @@
     <string name="mcp_editor_load_failed">No se pudo cargar este servidor.</string>
     <string name="mcp_trust_label">Confío en este servidor</string>
     <string name="mcp_trust_sublabel">Puede leer lo que le envías y actuar por ti en la app a la que se conecta. Añade solo servidores de confianza.</string>
+    <string name="memory_error_key_route_shadowed">Este servidor no puede editar un recuerdo con esta clave. Elimínalo y vuelve a añadirlo con otra clave.</string>
     <string name="shared_chats_title">Chats compartidos</string>
     <string name="shared_chats_summary">Enlaces a chats que has compartido</string>
     <string name="shared_chats_untitled">Chat sin título</string>

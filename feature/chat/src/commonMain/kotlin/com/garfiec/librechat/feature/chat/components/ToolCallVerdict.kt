@@ -26,6 +26,9 @@ internal enum class ToolCallVerdict {
  *
  * [isComplete] is the pre-rc2 heuristic and the fallback for every server and endpoint that emits
  * no close event, where it decides alone exactly as it always did.
+ *
+ * A memory tool's refusal is not a run-step verdict; the memory card and the activity-group header
+ * read it from [isFailedMemoryToolCall].
  */
 internal fun toolCallVerdict(closedStatus: RunStepStatus?, isComplete: Boolean): ToolCallVerdict =
     when (closedStatus) {

@@ -20,7 +20,6 @@
     <string name="action_verifying">Проверка…</string>
 
     <!-- Content descriptions -->
-    <string name="cd_add_memory">Добавить запись памяти</string>
     <string name="cd_add_server">Добавить сервер</string>
     <string name="cd_back">Назад</string>
     <string name="cd_change_avatar">Изменить аватар</string>
@@ -31,11 +30,10 @@
     <string name="cd_current_avatar">Текущий аватар</string>
     <string name="cd_delete">Удалить</string>
     <string name="cd_delete_api_key">Удалить API-ключ</string>
-    <string name="cd_delete_memory">Удалить запись памяти</string>
     <string name="cd_delete_preset">Удалить пресет</string>
-    <string name="cd_edit_memory">Изменить запись памяти</string>
     <string name="memory_redacted_key">Скрытая запись</string>
     <string name="memory_redacted_value">Политика содержимого этого сервера скрывает сохранённые здесь данные. Удалить запись всё равно можно.</string>
+    <string name="memory_redacted_value_no_delete">Политика содержимого этого сервера скрывает сохранённые здесь данные.</string>
     <string name="cd_loading_profile">Загрузка профиля</string>
     <string name="cd_make_private">Сделать приватным</string>
     <string name="cd_make_public">Сделать публичным</string>
@@ -47,7 +45,6 @@
     <string name="cd_test_tts_voice">Проверить выбранный голос TTS</string>
     <string name="cd_toggle_auto_read">Переключить автоозвучивание ответов</string>
     <string name="cd_toggle_auto_send_stt">Переключить автоотправку после речи</string>
-    <string name="cd_toggle_memories">Переключить память</string>
     <string name="cd_tts_voice_selector">Выберите голос TTS. Сейчас выбран %1$s</string>
     <string name="cd_user_avatar">Аватар пользователя</string>
     <string name="cd_view_all_tools">Показать все инструменты</string>
@@ -475,19 +472,77 @@
     <string name="tts_preview_voice">Прослушать голос</string>
 
     <!-- Memories -->
-    <string name="enable_memories">Включить память</string>
-    <string name="enable_memories_desc">Разрешить ИИ запоминать информацию между беседами</string>
-    <string name="no_memories_saved">Пока нет сохранённых записей памяти</string>
-    <string name="memories_add_hint">Нажмите кнопку +, чтобы добавить запись памяти</string>
     <string name="add_memory">Добавить запись памяти</string>
     <string name="edit_memory">Изменить запись памяти</string>
     <string name="dialog_title_delete_memory">Удалить запись памяти</string>
-    <string name="dialog_delete_memory_message">Вы уверены, что хотите удалить запись памяти "%1$s"?</string>
+    <string name="dialog_delete_memory_message">Вы уверены, что хотите удалить запись памяти «%1$s»?</string>
     <string name="memory_key_label">Ключ</string>
     <string name="memory_value_label">Значение</string>
-    <string name="memory_key_hint">Используйте только строчные буквы и подчёркивания</string>
-    <string name="memory_key_invalid">Ключ может содержать только строчные буквы и подчёркивания</string>
+    <string name="memory_key_hint">Используйте только строчные латинские буквы a–z и подчёркивания</string>
+    <string name="memory_key_invalid">Ключ может содержать только строчные латинские буквы a–z и подчёркивания</string>
     <string name="memory_key_exists">Запись памяти с таким ключом уже существует</string>
+    <string name="memory_key_reserved">Этот ключ зарезервирован. Выберите другой.</string>
+    <string name="memory_key_too_long">Ключ может содержать не более %1$s символов.</string>
+    <string name="memory_error_forbidden">У вас нет прав на изменение записей памяти.</string>
+    <string name="memory_error_toggle_forbidden">Ваша роль не позволяет включать или отключать память.</string>
+    <string name="memory_error_content_filtered">Заблокировано фильтром содержимого вашего сервера.</string>
+    <string name="memory_error_agent">Записи памяти этого агента нельзя изменить.</string>
+    <string name="memory_error_network">Не удалось связаться с сервером. Проверьте подключение.</string>
+    <string name="memory_error_save">Не удалось сохранить запись памяти.</string>
+    <string name="memory_error_delete">Не удалось удалить запись памяти.</string>
+    <string name="memory_error_toggle">Не удалось изменить настройку памяти.</string>
+    <string name="memory_error_not_found">Эта запись памяти была удалена в другом месте.</string>
+    <string name="memory_error_not_found_readd">Эта запись памяти была удалена в другом месте. Сохраните, чтобы добавить её снова.</string>
+    <!-- Memories index -->
+    <string name="memories_use_title">Использовать сохранённую память</string>
+    <string name="memories_use_desc">Чаты могут читать и сохранять записи памяти</string>
+    <string name="memories_use_load_failed">Не удалось загрузить этот параметр.</string>
+    <string name="memories_use_loading">Загрузка</string>
+    <string name="memories_usage_percent">%1$s %</string>
+    <plurals name="memories_usage_tokens">
+        <item quantity="one">%1$s / %2$s токен</item>
+        <item quantity="few">%1$s / %2$s токена</item>
+        <item quantity="many">%1$s / %2$s токенов</item>
+        <item quantity="other">%1$s / %2$s токена</item>
+    </plurals>
+    <plurals name="memories_usage_a11y">
+        <item quantity="one">Использование памяти: %1$s, %2$s из %3$s токена</item>
+        <item quantity="few">Использование памяти: %1$s, %2$s из %3$s токенов</item>
+        <item quantity="many">Использование памяти: %1$s, %2$s из %3$s токенов</item>
+        <item quantity="other">Использование памяти: %1$s, %2$s из %3$s токена</item>
+    </plurals>
+    <plurals name="memory_token_count">
+        <item quantity="one">%1$s токен</item>
+        <item quantity="few">%1$s токена</item>
+        <item quantity="many">%1$s токенов</item>
+        <item quantity="other">%1$s токена</item>
+    </plurals>
+    <string name="memory_agent_fallback">Память агента</string>
+    <string name="memory_agent_numbered">%1$s (%2$s)</string>
+    <string name="memories_search_hint">Поиск в памяти</string>
+    <string name="memories_no_match">Нет записей, совпадающих с «%1$s»</string>
+    <string name="memories_personal_empty">Личных записей пока нет</string>
+    <string name="memories_filter_all">Все</string>
+    <string name="memories_filter_personal">Личные</string>
+    <string name="memories_empty_title">Записей памяти пока нет</string>
+    <string name="memories_empty_desc">Чаты сохраняют здесь то, что стоит запомнить. Вы также можете добавить запись сами.</string>
+    <string name="memories_empty_desc_no_create">Чаты сохраняют здесь то, что стоит запомнить.</string>
+    <string name="memories_view_only">Ваша роль позволяет просматривать память, но не добавлять и не изменять записи.</string>
+    <string name="memories_no_access_title">Нет доступа к памяти</string>
+    <string name="memories_no_access_desc">У вашей роли нет прав на просмотр памяти.</string>
+    <string name="memory_action_edit">Изменить</string>
+    <string name="cd_memory_options">Действия для %1$s</string>
+    <!-- Memory sheet -->
+    <string name="view_memory">Просмотр записи памяти</string>
+    <string name="action_close">Закрыть</string>
+    <string name="memory_value_counter">%1$s / %2$s</string>
+    <plurals name="memory_token_share">
+        <item quantity="one">%1$s токен · %2$s % вашей памяти</item>
+        <item quantity="few">%1$s токена · %2$s % вашей памяти</item>
+        <item quantity="many">%1$s токенов · %2$s % вашей памяти</item>
+        <item quantity="other">%1$s токена · %2$s % вашей памяти</item>
+    </plurals>
+    <string name="memory_updated_at">Обновлено: %1$s</string>
 
     <!-- MCP -->
     <string name="add_mcp_server">Добавить сервер MCP</string>
@@ -626,16 +681,27 @@
     <string name="provider_keys_revoke_all_action">Отозвать все</string>
 
     <!-- Admin: role skill access -->
-    <string name="role_skills_settings_row">Доступ к навыкам (админ)</string>
-    <string name="role_skills_title">Доступ к навыкам</string>
-    <string name="role_skills_back">Назад</string>
+    <string name="role_skills_settings_row">Права на навыки</string>
+    <string name="role_skills_title">Права на навыки</string>
     <string name="role_skills_description">Управляйте тем, какие возможности навыков есть у каждой роли. Изменения применяются ко всем пользователям с выбранной ролью.</string>
-    <string name="role_skills_role_label">Роль</string>
+    <string name="role_permissions_role_label">Роль</string>
     <string name="role_skills_use">Использовать навыки</string>
     <string name="role_skills_create">Создавать и редактировать навыки</string>
     <string name="role_skills_share">Делиться навыками</string>
     <string name="role_skills_share_public">Делиться навыками публично</string>
-    <string name="role_skills_save">Сохранить</string>
+    <string name="role_memories_settings_row">Права на память</string>
+    <string name="role_memories_title">Права на память</string>
+    <string name="role_memories_description">Управляйте тем, какие возможности памяти есть у каждой роли. Изменения применяются ко всем пользователям с выбранной ролью.</string>
+    <string name="role_memories_use">Разрешить использовать память</string>
+    <string name="role_memories_create">Разрешить создавать записи памяти</string>
+    <string name="role_memories_update">Разрешить изменять записи памяти</string>
+    <string name="role_memories_read">Разрешить читать записи памяти</string>
+    <string name="role_memories_opt_out">Разрешить пользователям отключать память</string>
+    <string name="role_permissions_saved">Сохранено</string>
+    <string name="role_permissions_load_failed">Не удалось загрузить права этой роли.</string>
+    <string name="role_permissions_save_failed">Не удалось сохранить права. Попробуйте ещё раз.</string>
+    <string name="role_permissions_admin_access_warning">Отключение доступа администратора к этой функции может вызвать непредвиденные проблемы, пока приложение не перезагрузит ваши права. После сохранения вернуть настройку можно только через параметр interface в librechat.yaml, который влияет на все роли.</string>
+    <string name="role_permissions_more_info">Подробнее</string>
     <string name="artifact_shortcuts_title">Ярлыки на главном экране</string>
     <string name="artifact_shortcuts_empty">На главный экран пока не закреплено ни одного артефакта.</string>
     <string name="artifact_shortcuts_disabled_message">Этот ярлык артефакта удалён.</string>
@@ -727,11 +793,12 @@
     <string name="date_time_preview">Предпросмотр</string>
     <string name="data_summary_off">Выкл.</string>
     <string name="data_summary_none">Нет</string>
+    <string name="data_memories_none">Нет</string>
     <plurals name="data_memories_count">
-        <item quantity="one">Сохранено: %1$d</item>
-        <item quantity="few">Сохранено: %1$d</item>
-        <item quantity="many">Сохранено: %1$d</item>
-        <item quantity="other">Сохранено: %1$d</item>
+        <item quantity="one">Сохранено: %1$s</item>
+        <item quantity="few">Сохранено: %1$s</item>
+        <item quantity="many">Сохранено: %1$s</item>
+        <item quantity="other">Сохранено: %1$s</item>
     </plurals>
     <plurals name="data_mcp_servers_count">
         <item quantity="one">Серверов: %1$d</item>
@@ -791,6 +858,7 @@
     <string name="mcp_editor_load_failed">Не удалось загрузить этот сервер.</string>
     <string name="mcp_trust_label">Я доверяю этому серверу</string>
     <string name="mcp_trust_sublabel">Он может читать то, что вы ему отправляете, и действовать от вашего имени в подключённом приложении. Добавляйте только серверы, которым доверяете.</string>
+    <string name="memory_error_key_route_shadowed">Этот сервер не может изменить запись памяти с этим ключом. Удалите её и добавьте снова под другим ключом.</string>
     <string name="shared_chats_title">Общие чаты</string>
     <string name="shared_chats_summary">Ссылки на чаты, которыми вы поделились</string>
     <string name="shared_chats_untitled">Чат без названия</string>

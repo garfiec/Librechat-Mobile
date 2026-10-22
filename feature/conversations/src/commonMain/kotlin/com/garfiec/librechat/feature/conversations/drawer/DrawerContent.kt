@@ -110,6 +110,7 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -399,6 +400,7 @@ fun DrawerContent(
         onUpdateTags = { data, tags -> viewModel.updateConversationTags(data.conversationId, data.tags, tags) },
         onExportFormat = { data, format -> viewModel.exportConversation(data.conversationId, data.title, format) },
         modifier = modifier,
+        isOpen = isOpen,
     )
 
     ShareLinkSheetHost(controller = viewModel.shareLink, onDismiss = viewModel::closeShareSheet)
@@ -485,6 +487,8 @@ fun DrawerContent(
     searchFieldText: String = uiState.searchQuery,
     /** Cursor and scroll position, kept where the next drawer composed (fold ↔ unfold) finds them. */
     viewMemory: DrawerViewMemory = remember { DrawerViewMemory() },
+    /** Whether the drawer is showing; closing it drops the search field's focus and keyboard. */
+    isOpen: Boolean = true,
 ) {
     // Which row's long-press action menu is currently open (null = none). Keyed by the row's
     // LazyColumn key, not the conversation id: a favorited conversation appears in BOTH the
@@ -585,6 +589,16 @@ fun DrawerContent(
             focusManager.clearFocus()
             searchExpanded = false
             onSearchQueryChange("")
+        }
+        // The closed drawer stays composed, so a search field that still holds focus keeps the
+        // keyboard up over the screen behind it (closing by scrim tap, swipe or back). The query is
+        // kept: a restored search stays visible.
+        val keyboardController = LocalSoftwareKeyboardController.current
+        LaunchedEffect(isOpen) {
+            if (!isOpen && searchFocused) {
+                focusManager.clearFocus()
+                keyboardController?.hide()
+            }
         }
         val slotColor by animateColorAsState(
             targetValue = when {

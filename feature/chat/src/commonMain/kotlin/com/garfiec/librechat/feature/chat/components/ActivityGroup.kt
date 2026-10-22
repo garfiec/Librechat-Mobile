@@ -38,6 +38,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.ContentGroup
@@ -67,6 +68,8 @@ internal val LocalSuppressGroupAutoCollapse = compositionLocalOf { false }
 @Composable
 internal fun ActivityGroup(
     group: ContentGroup.Activity,
+    /** The header reads as failed: [activityGroupFailed], joined with attachments at the render site. */
+    failed: Boolean,
     stateKey: String,
     modifier: Modifier = Modifier,
     // Pops the block open when the in-conversation search focuses a match inside it; without this
@@ -145,7 +148,7 @@ internal fun ActivityGroup(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.width(8.dp))
-            val labelColor = if (group.failed) {
+            val labelColor = if (failed) {
                 MaterialTheme.colorScheme.error
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
@@ -181,6 +184,28 @@ internal fun ActivityGroup(
         hoistedAttachments()
     }
 }
+
+/**
+ * Whether a group's header reads as failed: the batch label reported `failed`/`partial`, or a
+ * memory write in the block was refused (its card is an error card). Upstream `outcome.ts`
+ * `getToolMeta` counts the same memory verdict, so a group never claims success over a failed
+ * memory card.
+ *
+ * Takes the attachments here, at the render site, rather than in [ContentGroup] (see
+ * `groupedToolCallIds`). Not counted, unlike web: a step the run closed as `failed`, and generic
+ * error output on other tools; for those the header still reads the label alone.
+ */
+internal fun activityGroupFailed(group: ContentGroup.Activity, attachments: List<Attachment>): Boolean =
+    group.failed || group.entries.any { entry ->
+        val call = entry.part.toolCall ?: return@any false
+        // The dispatcher's own name and output reads, so the header and the card judge one call.
+        isFailedMemoryToolCall(
+            toolName = call.name ?: call.function?.name,
+            output = call.output ?: call.function?.output,
+            attachments = attachments,
+            toolCallId = call.id,
+        )
+    }
 
 @Composable
 private fun ActivityHeaderLabel(text: String, color: Color, modifier: Modifier = Modifier) {

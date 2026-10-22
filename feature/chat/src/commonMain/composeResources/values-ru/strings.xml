@@ -304,18 +304,33 @@
     <string name="cd_mcp_resource">Ресурс MCP: %1$s</string>
 
     <!-- Memory artifact -->
-    <string name="cd_memory_artifact">Артефакт памяти: %1$s</string>
-    <string name="memory_artifact_untitled">Без названия</string>
     <string name="label_memory">Память</string>
-    <string name="cd_memory_artifacts">Обновления памяти: %1$d</string>
+    <string name="memory_manage">Управление</string>
+    <string name="cd_memory_manage">Управление памятью</string>
+    <plurals name="cd_memory_artifacts_summary">
+        <item quantity="one">%1$s, %2$s изменение</item>
+        <item quantity="few">%1$s, %2$s изменения</item>
+        <item quantity="many">%1$s, %2$s изменений</item>
+        <item quantity="other">%1$s, %2$s изменения</item>
+    </plurals>
     <string name="memory_updated">Сохранённая память обновлена</string>
     <string name="memory_error">Ошибка памяти</string>
-    <string name="memory_updated_items">Обновлённые воспоминания</string>
-    <string name="memory_deleted_items">Удалённые воспоминания</string>
-    <string name="memory_deleted">Воспоминание удалено</string>
+    <string name="memory_updated_items">Обновлённые записи памяти</string>
+    <string name="memory_deleted_items">Удалённые записи памяти</string>
+    <string name="memory_deleted">Запись памяти удалена</string>
     <string name="memory_storage_full">Хранилище памяти заполнено</string>
-    <string name="memory_already_exceeded">Хранилище памяти уже заполнено — превышение на %1$d токенов. Удалите существующие воспоминания, прежде чем добавлять новые.</string>
-    <string name="memory_would_exceed">Невозможно сохранить — лимит будет превышен на %1$d токенов. Удалите существующие воспоминания, чтобы освободить место.</string>
+    <plurals name="memory_already_exceeded">
+        <item quantity="one">Хранилище памяти уже заполнено — превышение на %1$s токен. Удалите существующие записи памяти, прежде чем добавлять новые.</item>
+        <item quantity="few">Хранилище памяти уже заполнено — превышение на %1$s токена. Удалите существующие записи памяти, прежде чем добавлять новые.</item>
+        <item quantity="many">Хранилище памяти уже заполнено — превышение на %1$s токенов. Удалите существующие записи памяти, прежде чем добавлять новые.</item>
+        <item quantity="other">Хранилище памяти уже заполнено — превышение на %1$s токена. Удалите существующие записи памяти, прежде чем добавлять новые.</item>
+    </plurals>
+    <plurals name="memory_would_exceed">
+        <item quantity="one">Невозможно сохранить — лимит будет превышен на %1$s токен. Удалите существующие записи памяти, чтобы освободить место.</item>
+        <item quantity="few">Невозможно сохранить — лимит будет превышен на %1$s токена. Удалите существующие записи памяти, чтобы освободить место.</item>
+        <item quantity="many">Невозможно сохранить — лимит будет превышен на %1$s токенов. Удалите существующие записи памяти, чтобы освободить место.</item>
+        <item quantity="other">Невозможно сохранить — лимит будет превышен на %1$s токена. Удалите существующие записи памяти, чтобы освободить место.</item>
+    </plurals>
     <string name="files_searched">Выполнен поиск по вашим файлам</string>
     <string name="cd_file_search_source">Источник поиска по файлам: %1$s</string>
     <string name="file_search_relevance">%1$d%%</string>

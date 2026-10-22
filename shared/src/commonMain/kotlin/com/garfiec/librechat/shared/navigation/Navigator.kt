@@ -23,20 +23,39 @@ import com.garfiec.librechat.feature.settings.navigation.ProviderKeys
 /**
  * Encapsulates all back stack mutations for Nav 3 navigation.
  * Follows UDF: UI events → Navigator → back stack state → NavDisplay recomposition.
+ *
+ * [onScreenChange] runs, synchronously, after any call that leaves a different entry on top. The
+ * host drops focus and the keyboard there: a field outside NavDisplay (the drawer's search, which
+ * the closed drawer keeps composed) or on the outgoing screen would otherwise keep the keyboard up
+ * over a screen with no field. It runs before the new screen composes, so a screen that focuses
+ * its own field on entry still gets the keyboard.
  */
-class Navigator(val backStack: NavBackStack<NavKey>) {
+class Navigator(
+    val backStack: NavBackStack<NavKey>,
+    private val onScreenChange: () -> Unit = {},
+) {
 
     val currentRoute: NavKey? get() = backStack.lastOrNull()
 
     val isInAuthFlow: Boolean get() = currentRoute is AuthRoute
 
-    /** Navigate forward to a route. */
-    fun navigate(route: NavKey) {
-        backStack.add(route)
+    private inline fun changing(mutation: () -> Unit) {
+        val top = backStack.lastOrNull()
+        mutation()
+        if (backStack.lastOrNull() != top) onScreenChange()
+    }
+
+    /**
+     * Navigate forward to a route. A no-op when [route] is already on top: a second tap that lands
+     * before the first push has animated in would stack a copy, and equal keys share one ViewModel,
+     * so the copy is only an extra Back. A copy deeper in the stack is left alone.
+     */
+    fun navigate(route: NavKey) = changing {
+        if (backStack.lastOrNull() != route) backStack.add(route)
     }
 
     /** Pop the top entry. Safe on empty stacks. */
-    fun goBack() {
+    fun goBack() = changing {
         backStack.removeLastOrNull()
     }
 
@@ -46,7 +65,7 @@ class Navigator(val backStack: NavBackStack<NavKey>) {
      * underneath. Equal keys share one ViewModel, so a copy left behind would be just as closed.
      * Never empties the stack.
      */
-    fun remove(route: NavKey) {
+    fun remove(route: NavKey) = changing {
         if (backStack.any { it != route }) backStack.removeAll { it == route }
     }
 
@@ -55,14 +74,15 @@ class Navigator(val backStack: NavBackStack<NavKey>) {
      * a screen that hands itself over once a request finishes can't drop a different screen when the
      * user has already left it and the result lands during its exit animation.
      */
-    fun replace(route: NavKey, replacement: NavKey) {
-        if (backStack.lastOrNull() != route) return
-        backStack.removeLastOrNull()
-        backStack.add(replacement)
+    fun replace(route: NavKey, replacement: NavKey) = changing {
+        if (backStack.lastOrNull() == route) {
+            backStack.removeLastOrNull()
+            backStack.add(replacement)
+        }
     }
 
     /** Pop while [predicate] holds for the top entry. Never pops the last one. */
-    fun popWhile(predicate: (NavKey) -> Boolean) {
+    fun popWhile(predicate: (NavKey) -> Boolean) = changing {
         while (backStack.size > 1 && predicate(backStack.last())) {
             backStack.removeLastOrNull()
         }
@@ -87,7 +107,7 @@ class Navigator(val backStack: NavBackStack<NavKey>) {
     }
 
     /** Open the Search screen with [query]; an open Search screen is replaced rather than stacked. */
-    fun navigateToSearch(query: String) {
+    fun navigateToSearch(query: String) = changing {
         if (backStack.lastOrNull() is Search) backStack.removeLastOrNull()
         backStack.add(Search(query))
     }
@@ -96,7 +116,7 @@ class Navigator(val backStack: NavBackStack<NavKey>) {
      *  temporary chat so a restored Chat(id) entry stays temp-aware and never persists
      *  the server-hidden conversation to Room — see [Chat.isTemporary]. A project-scoped landing
      *  is replaced too, so Back from the chat it started returns to the project. */
-    fun navigateToChat(conversationId: String, isTemporary: Boolean = false) {
+    fun navigateToChat(conversationId: String, isTemporary: Boolean = false) = changing {
         val top = backStack.lastOrNull()
         if (top is Chat || (top is NewChat && !top.isPlainLanding)) {
             backStack.removeLastOrNull()
@@ -109,9 +129,9 @@ class Navigator(val backStack: NavBackStack<NavKey>) {
      * project page, say). A chat or another project's landing on top is replaced, as [navigateToChat]
      * replaces one, so chats never stack; the same project's landing is kept.
      */
-    fun navigateToNewChatInProject(projectId: String, projectName: String) {
+    fun navigateToNewChatInProject(projectId: String, projectName: String) = changing {
         val top = backStack.lastOrNull()
-        if (top is NewChat && top.chatProjectId == projectId) return
+        if (top is NewChat && top.chatProjectId == projectId) return@changing
         if (top is Chat || (top is NewChat && !top.isPlainLanding)) backStack.removeLastOrNull()
         // The same project's landing further down would share this one's key, and with it its
         // ViewModel: move it up rather than holding two.
@@ -125,26 +145,28 @@ class Navigator(val backStack: NavBackStack<NavKey>) {
      * beneath stays, so back returns to the results.
      */
     fun navigateToMessage(conversationId: String, messageId: String, query: String, inReasoning: Boolean = false) {
-        // Replaces what navigateToChat replaces, so both ways of opening a chat leave one back stack.
-        val top = backStack.lastOrNull()
-        if (top is Chat || (top is NewChat && !top.isPlainLanding)) {
-            backStack.removeLastOrNull()
+        changing {
+            // Replaces what navigateToChat replaces, so both ways of opening a chat leave one back stack.
+            val top = backStack.lastOrNull()
+            if (top is Chat || (top is NewChat && !top.isPlainLanding)) {
+                backStack.removeLastOrNull()
+            }
+            backStack.add(
+                Chat(
+                    conversationId,
+                    targetMessageId = messageId,
+                    highlightQuery = query.ifBlank { null },
+                    targetInReasoning = inReasoning,
+                ),
+            )
         }
-        backStack.add(
-            Chat(
-                conversationId,
-                targetMessageId = messageId,
-                highlightQuery = query.ifBlank { null },
-                targetInReasoning = inReasoning,
-            ),
-        )
     }
 
     /**
      * Opens the shared-chat viewer on [shareId], over the current screen. A second tap on the same
      * link adds nothing.
      */
-    fun navigateToSharedChat(shareId: String) {
+    fun navigateToSharedChat(shareId: String) = changing {
         val route = SharedChat(shareId)
         if (backStack.lastOrNull() != route) backStack.add(route)
     }
@@ -154,10 +176,10 @@ class Navigator(val backStack: NavBackStack<NavKey>) {
      * top of the stack is already [ProviderKeys]: no-op when the pending endpoint is
      * identical, otherwise replace so the dialog refreshes for a different endpoint.
      */
-    fun navigateToProviderKeys(endpointName: String?) {
+    fun navigateToProviderKeys(endpointName: String?) = changing {
         val top = backStack.lastOrNull()
         if (top is ProviderKeys) {
-            if (top.pendingDialogEndpoint == endpointName) return
+            if (top.pendingDialogEndpoint == endpointName) return@changing
             backStack.removeLastOrNull()
         }
         backStack.add(ProviderKeys(pendingDialogEndpoint = endpointName))
@@ -168,7 +190,7 @@ class Navigator(val backStack: NavBackStack<NavKey>) {
      *  e.g. NewChat("agent_X") must replace the bare landing NewChat() so the agent id
      *  actually reaches the chat — a class-only check silently dropped it. Re-selecting
      *  an identical route (data-object tabs, or NewChat()→NewChat()) still no-ops. */
-    fun navigateToTopLevel(route: NavKey) {
+    fun navigateToTopLevel(route: NavKey) = changing {
         while (backStack.size > 1) {
             backStack.removeLastOrNull()
         }
@@ -205,8 +227,10 @@ class Navigator(val backStack: NavBackStack<NavKey>) {
         // just ended, and the nav host cancels the pending add by watching those routes leave the
         // stack — so skipping the reset there would strand the flow with a dead parent session.
         if (isInAuthFlow && backStack.none { it.isAddAccountFlowRoute }) return
-        backStack.clear()
-        backStack.add(ServerUrl)
+        changing {
+            backStack.clear()
+            backStack.add(ServerUrl)
+        }
     }
 
     /**
@@ -215,7 +239,7 @@ class Navigator(val backStack: NavBackStack<NavKey>) {
      * backing out of it lands on login rather than a half-initialized logged-out screen. The shared
      * host's initial auth redirect is skipped when a deep link is pending, so this owns that setup.
      */
-    fun navigateToDeepLinkLoggedOut(route: NavKey) {
+    fun navigateToDeepLinkLoggedOut(route: NavKey) = changing {
         backStack.clear()
         backStack.add(ServerUrl)
         backStack.add(route)
@@ -227,7 +251,7 @@ class Navigator(val backStack: NavBackStack<NavKey>) {
      * a flip discards the outgoing account's retained landing ViewModel instead of reusing it. See
      * [NewChat.accountScope].
      */
-    fun navigateToChat(accountScope: String? = null) {
+    fun navigateToChat(accountScope: String? = null) = changing {
         backStack.clear()
         backStack.add(NewChat(accountScope = accountScope))
     }
