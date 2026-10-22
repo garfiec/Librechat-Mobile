@@ -82,6 +82,49 @@ class SkillSerializationTest {
         assertNull(decoded.warnings)
     }
 
+    /** One row of `GET /api/skills` as `handlers.ts` serializes a summary. */
+    @Test
+    fun skillSummaryDecodesTheListRowShape() {
+        val wire = """
+            {
+              "_id": "6650f1a2b3c4d5e6f7a8b9c0",
+              "name": "pdf-tools",
+              "displayTitle": "PDF tools",
+              "description": "Split and merge PDFs.",
+              "category": "documents",
+              "disableModelInvocation": false,
+              "userInvocable": true,
+              "allowedTools": [],
+              "author": "65f0c0ffee0000000000abcd",
+              "authorName": "Ada",
+              "version": 4,
+              "source": "inline",
+              "fileCount": 3,
+              "alwaysApply": false,
+              "isPublic": true,
+              "createdAt": "2026-10-01T10:00:00.000Z",
+              "updatedAt": "2026-10-19T08:30:00.000Z"
+            }
+        """.trimIndent()
+        val decoded = json.decodeFromString(SkillSummary.serializer(), wire)
+        assertEquals("65f0c0ffee0000000000abcd", decoded.author)
+        assertEquals("Ada", decoded.authorName)
+        assertEquals(3, decoded.fileCount)
+        assertEquals(true, decoded.isPublic)
+        assertEquals(false, decoded.alwaysApply)
+        assertEquals("inline", decoded.source)
+        assertEquals("2026-10-19T08:30:00.000Z", decoded.updatedAt)
+        assertEquals(true, decoded.userInvocable)
+    }
+
+    @Test
+    fun skillSummaryToleratesTheMinimalShape() {
+        val decoded = json.decodeFromString(SkillSummary.serializer(), """{ "_id": "a", "name": "n" }""")
+        assertEquals(0, decoded.fileCount)
+        assertNull(decoded.author)
+        assertNull(decoded.source)
+    }
+
     @Test
     fun skillConflictResponseDecodesNestedCurrent() {
         val wire = """

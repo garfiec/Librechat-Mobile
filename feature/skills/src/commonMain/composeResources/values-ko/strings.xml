@@ -3,35 +3,37 @@
     <!-- List -->
     <string name="skills_title">스킬</string>
     <string name="skills_back">뒤로</string>
-    <string name="skills_create">스킬 생성</string>
     <string name="skills_import">스킬 가져오기</string>
     <string name="skills_search_hint">스킬 검색…</string>
+    <string name="skills_search_clear">검색 지우기</string>
     <string name="skills_empty">아직 스킬이 없습니다.</string>
-    <string name="skills_empty_hint">+를 눌러 만들거나 스킬 파일을 가져오세요.</string>
-    <string name="skills_no_matches">검색과 일치하는 스킬이 없습니다.</string>
     <string name="skills_retry">다시 시도</string>
 
     <!-- Files -->
     <string name="skill_files_title">파일</string>
     <string name="skill_files_empty">첨부된 파일이 없습니다.</string>
     <string name="skill_files_add">파일 추가</string>
-    <string name="skill_files_remove">%1$s 제거</string>
     <string name="skill_file_save">저장</string>
-    <string name="skill_file_close">닫기</string>
     <string name="skill_file_reload">다시 불러오기</string>
     <string name="skill_file_conflict">이 파일이 다른 곳에서 변경되었습니다. 최신 버전을 보려면 다시 불러오세요. 여기서 수정한 내용은 삭제됩니다.</string>
     <string name="skill_file_binary">이 파일은 텍스트로 표시할 수 없습니다.</string>
+    <string name="skill_file_note_skill_body">스킬 자체의 내용입니다. 변경하려면 스킬을 편집하세요.</string>
+    <string name="skill_file_note_no_access">이 파일을 볼 수는 있지만 변경할 수는 없습니다.</string>
+    <string name="skill_file_note_access_unknown">이 파일을 편집할 수 있는지 확인하지 못했습니다. 다시 불러와서 다시 시도하세요.</string>
+    <string name="skill_file_note_too_large">이 파일은 여기서 편집하기에 너무 커서 읽기 전용으로 열립니다.</string>
+    <string name="skill_file_note_truncated">이 파일은 너무 커서 여기서 전체를 표시할 수 없습니다. 앞부분만 읽기 전용으로 표시됩니다.</string>
+    <string name="skill_file_note_no_revision">이 서버는 파일을 직접 편집할 수 없으므로 이 파일은 읽기 전용으로 열립니다.</string>
+    <string name="skill_file_load_failed">이 파일을 불러올 수 없습니다.</string>
+    <string name="skill_file_save_failed">이 파일을 저장할 수 없습니다.</string>
+    <string name="skill_file_image_description">%1$s 미리보기</string>
 
     <!-- Detail -->
     <string name="skill_edit">편집</string>
     <string name="skill_delete">삭제</string>
-    <string name="skill_category_label">카테고리: %1$s</string>
     <string name="skill_version_label">버전 %1$d</string>
     <string name="skill_delete_confirm_title">스킬을 삭제하시겠습니까?</string>
     <string name="skill_delete_confirm_message">"%1$s"이(가) 영구적으로 삭제됩니다. 되돌릴 수 없습니다.</string>
     <string name="skill_empty_body">이 스킬에는 내용이 없습니다.</string>
-    <string name="skill_active_label">활성</string>
-    <string name="skill_active_description">이 스킬을 채팅에서 사용할 수 있도록 합니다.</string>
 
     <!-- Editor -->
     <string name="skill_editor_create_title">새 스킬</string>
@@ -39,10 +41,12 @@
     <string name="skill_field_name">이름</string>
     <string name="skill_field_name_hint">lowercase-kebab-case</string>
     <string name="skill_field_name_error">소문자, 숫자, 대시를 사용하세요 (최대 64자).</string>
+    <string name="skill_field_name_taken">이 이름의 스킬이 이미 있습니다.</string>
     <string name="skill_field_display_title">표시 제목</string>
     <string name="skill_field_description">설명</string>
     <string name="skill_field_description_error">설명은 필수입니다 (최대 1024자).</string>
     <string name="skill_field_body">내용 (markdown)</string>
+    <string name="skill_field_body_error">내용이 너무 깁니다 (최대 100,000자).</string>
     <string name="skill_field_category">카테고리</string>
     <string name="skill_category_none">없음</string>
     <string name="skill_field_always_apply">이 스킬을 항상 적용</string>
@@ -51,12 +55,11 @@
     <string name="skill_conflict_dismiss">확인</string>
 
     <!-- Sharing (ACL) -->
-    <string name="skill_acl_title">공유 &amp; 권한</string>
     <string name="skill_acl_no_grants">아직 아무와도 공유되지 않았습니다.</string>
-    <string name="skill_acl_add_principal">사용자 또는 그룹 추가</string>
     <string name="skill_acl_grant_dialog_title">스킬 공유</string>
     <string name="skill_acl_search_hint">사용자, 그룹 또는 역할 검색</string>
     <string name="skill_acl_search_empty">일치하는 항목 없음</string>
+    <string name="skill_acl_search_all_shared">찾은 사람 모두 이미 액세스 권한이 있습니다.</string>
     <string name="skill_acl_role">역할</string>
     <string name="skill_acl_revoke">접근 제거</string>
     <string name="skill_acl_public_label">공개</string>
@@ -64,13 +67,7 @@
     <string name="skill_acl_principal_user">사용자</string>
     <string name="skill_acl_principal_group">그룹</string>
     <string name="skill_acl_principal_role">역할</string>
-    <string name="skill_acl_collapse">접기</string>
-    <string name="skill_acl_expand">펼치기</string>
-    <string name="skill_acl_close">닫기</string>
     <string name="skill_import_failed_title">가져오기 실패</string>
-    <string name="skill_import_incomplete">가져오기 취소됨: 압축 파일에서 파일 %1$d개를 가져올 수 없습니다. 압축 파일을 수정한 후 다시 업로드하세요.</string>
-    <string name="skill_import_rollback_failed">파일 %1$d개를 가져오지 못했으며, 불완전한 스킬을 자동으로 제거할 수 없습니다. 다시 시도하기 전에 삭제하세요.</string>
-    <string name="skill_import_cleanup_incomplete">파일 %1$d개를 가져오지 못했습니다. 불완전한 스킬은 제거되었지만 자동 정리가 완료되지 않았습니다.</string>
     <string name="skill_import_failed_files">다음 파일을 가져올 수 없습니다:</string>
     <string name="skill_import_rollback_failed_files">다음 파일을 가져오지 못했으며, 불완전한 스킬이 남아 있습니다:</string>
     <string name="skill_import_cleanup_incomplete_files">다음 파일을 가져오지 못했으며 자동 정리가 완료되지 않았습니다:</string>
@@ -81,4 +78,91 @@
     <string name="skill_import_reason_persistence_failed">저장할 수 없습니다</string>
     <string name="skill_import_reason_unknown">가져올 수 없습니다</string>
     <string name="skill_toggle_source">소스 보기</string>
+    <!-- Built-in category labels (upstream categories.ts options, by value) -->
+    <string name="skill_category_idea">아이디어</string>
+    <string name="skill_category_travel">여행</string>
+    <string name="skill_category_learning">학습</string>
+    <string name="skill_category_writing">글쓰기</string>
+    <string name="skill_category_shopping">쇼핑</string>
+    <string name="skill_category_code">코드</string>
+    <string name="skill_category_misc">기타</string>
+    <string name="skill_category_roleplay">롤플레이</string>
+    <string name="skill_category_finance">재무</string>
+    <!-- List (cards, empty and search states) -->
+    <string name="skills_new">새 스킬</string>
+    <string name="skills_more_options">옵션 더보기</string>
+    <string name="skills_importing">스킬 가져오는 중…</string>
+    <string name="skills_empty_body">스킬은 어시스턴트에게 작업 처리 방법을 알려 줍니다. 스킬을 만들거나 스킬 파일을 가져오세요.</string>
+    <string name="skills_empty_body_no_create">공유받은 스킬이 여기에 표시됩니다.</string>
+    <string name="skills_no_results">"%1$s"와(과) 일치하는 스킬이 없습니다</string>
+    <string name="skills_load_more_failed">스킬을 더 불러오지 못했습니다.</string>
+    <string name="skills_owner_you">나</string>
+    <string name="skills_badge_public">공개</string>
+    <string name="skills_badge_always_on">항상 적용</string>
+    <string name="skills_badge_off">꺼짐</string>
+    <plurals name="skill_file_count">
+        <item quantity="other">파일 %1$d개</item>
+    </plurals>
+    <!-- Detail, sharing sheet and file rows -->
+    <string name="skill_by_author">작성자: %1$s</string>
+    <string name="skill_by_you">작성자: 나</string>
+    <string name="skill_updated">업데이트: %1$s</string>
+    <string name="skill_toggle_rendered">렌더링 보기</string>
+    <string name="skill_share">공유</string>
+    <string name="skill_use_in_chats">내 채팅에서 사용</string>
+    <string name="skill_sharing">공유</string>
+    <string name="skill_share_private">비공개</string>
+    <string name="skill_share_load_failed">공유 정보를 불러올 수 없음</string>
+    <string name="skill_delete_failed">이 스킬을 삭제할 수 없습니다.</string>
+    <string name="skill_deleting">삭제 중…</string>
+    <string name="skill_toggle_failed">이 스킬을 내 채팅에서 사용할지 변경할 수 없습니다.</string>
+    <string name="skill_toggle_too_many_overrides">기본값과 다르게 설정된 스킬이 너무 많습니다. 일부를 기본값으로 되돌린 후 다시 시도하세요.</string>
+    <string name="skill_active_load_failed">이 스킬을 내 채팅에서 사용하는지 불러올 수 없습니다.</string>
+    <string name="skill_acl_people">사용자 및 그룹</string>
+    <string name="skill_acl_add">추가</string>
+    <string name="skill_acl_role_for">%1$s의 역할</string>
+    <string name="skill_acl_dismiss">닫기</string>
+    <string name="skill_acl_search_failed">지금은 검색할 수 없습니다.</string>
+    <string name="skill_acl_search_unavailable">내 역할로는 사용자나 그룹을 검색할 수 없습니다. 관리자에게 내 역할의 사용자 선택 기능을 켜 달라고 요청하세요.</string>
+    <string name="skill_acl_roles_failed">역할을 불러올 수 없어 아직 아무도 추가할 수 없습니다.</string>
+    <string name="skill_acl_load_failed">이 스킬의 공유 대상을 불러올 수 없습니다.</string>
+    <string name="skill_acl_update_failed">공유를 업데이트할 수 없습니다.</string>
+    <string name="skill_file_open">열기</string>
+    <string name="skill_file_options">%1$s 옵션</string>
+    <string name="skill_file_remove">제거</string>
+    <string name="skill_file_remove_confirm_title">파일을 제거할까요?</string>
+    <string name="skill_file_remove_confirm_message">"%1$s" 파일이 이 스킬에서 제거됩니다. 이 작업은 되돌릴 수 없습니다.</string>
+    <string name="skill_file_replace_confirm_title">파일을 바꿀까요?</string>
+    <string name="skill_file_replace_confirm_message">이 스킬에 이미 "%1$s" 파일이 있습니다. 추가하면 기존 파일이 대체되며 현재 내용은 복구할 수 없습니다.</string>
+    <string name="skill_file_replace">바꾸기</string>
+    <plurals name="skill_share_shared">
+        <item quantity="other">%1$d명 또는 그룹과 공유됨</item>
+    </plurals>
+    <!-- Editor: reserved names, title limit, conflict -->
+    <string name="skill_field_name_reserved_prefix">이름은 "anthropic-" 또는 "claude-"로 시작할 수 없습니다.</string>
+    <string name="skill_field_name_reserved_word">"%1$s"은(는) 예약된 이름입니다.</string>
+    <string name="skill_field_display_title_error">128자 이하로 입력하세요.</string>
+    <string name="skill_editor_conflict">이 스킬을 연 후 서버에서 변경되었습니다. 편집 내용은 유지됩니다. 덮어쓰려면 다시 저장하세요.</string>
+    <!-- Errors the app words when the server sent no text -->
+    <string name="skill_error_load_skill">이 스킬을 불러올 수 없습니다.</string>
+    <string name="skill_error_load_skills">스킬을 불러올 수 없습니다.</string>
+    <string name="skill_error_load_files">파일을 불러올 수 없습니다.</string>
+    <string name="skill_error_upload_file">이 파일을 업로드할 수 없습니다.</string>
+    <string name="skill_error_delete_file">이 파일을 제거할 수 없습니다.</string>
+    <string name="skill_error_create">이 스킬을 만들 수 없습니다.</string>
+    <string name="skill_error_save">이 스킬을 저장할 수 없습니다.</string>
+    <string name="skill_error_import">이 스킬을 가져올 수 없습니다.</string>
+    <string name="skill_error_skill_md_upload">SKILL.md는 스킬 자체의 내용입니다. 변경하려면 스킬을 편집하세요.</string>
+    <string name="skill_error_changed_on_server">이 스킬이 서버에서 변경되었고 최신 버전을 불러오지 못했습니다. 편집한 내용은 유지됩니다. 다시 저장해 보세요.</string>
+    <string name="skill_acl_principal_unknown">알 수 없음</string>
+    <!-- Skill import failure summaries -->
+    <plurals name="skill_import_incomplete">
+        <item quantity="other">가져오기 취소됨: 압축 파일에서 파일 %1$d개를 가져올 수 없습니다. 압축 파일을 수정한 후 다시 업로드하세요.</item>
+    </plurals>
+    <plurals name="skill_import_rollback_failed">
+        <item quantity="other">파일 %1$d개를 가져오지 못했으며, 불완전한 스킬을 자동으로 제거할 수 없습니다. 다시 시도하기 전에 삭제하세요.</item>
+    </plurals>
+    <plurals name="skill_import_cleanup_incomplete">
+        <item quantity="other">파일 %1$d개를 가져오지 못했습니다. 불완전한 스킬은 제거되었지만 자동 정리가 완료되지 않았습니다.</item>
+    </plurals>
 </resources>

@@ -3,35 +3,37 @@
     <!-- List -->
     <string name="skills_title">Habilidades</string>
     <string name="skills_back">Atrás</string>
-    <string name="skills_create">Crear habilidad</string>
     <string name="skills_import">Importar habilidad</string>
     <string name="skills_search_hint">Buscar habilidades…</string>
+    <string name="skills_search_clear">Borrar búsqueda</string>
     <string name="skills_empty">Aún no hay habilidades.</string>
-    <string name="skills_empty_hint">Toca + para crear una o importa un archivo de habilidad.</string>
-    <string name="skills_no_matches">Ninguna habilidad coincide con tu búsqueda.</string>
     <string name="skills_retry">Reintentar</string>
 
     <!-- Files -->
     <string name="skill_files_title">Archivos</string>
     <string name="skill_files_empty">No hay archivos adjuntos.</string>
     <string name="skill_files_add">Añadir archivo</string>
-    <string name="skill_files_remove">Eliminar %1$s</string>
     <string name="skill_file_save">Guardar</string>
-    <string name="skill_file_close">Cerrar</string>
     <string name="skill_file_reload">Recargar</string>
     <string name="skill_file_conflict">Este archivo se modificó en otro lugar. Recarga para ver la versión más reciente; tus cambios aquí se descartarán.</string>
     <string name="skill_file_binary">Este archivo no se puede mostrar como texto.</string>
+    <string name="skill_file_note_skill_body">Este es el contenido de la propia habilidad. Edita la habilidad para cambiarlo.</string>
+    <string name="skill_file_note_no_access">Puedes ver este archivo, pero no cambiarlo.</string>
+    <string name="skill_file_note_access_unknown">No se pudo comprobar si puedes editar este archivo. Recarga para volver a intentarlo.</string>
+    <string name="skill_file_note_too_large">Este archivo es demasiado grande para editarlo aquí, así que se abre en solo lectura.</string>
+    <string name="skill_file_note_truncated">Este archivo es demasiado grande para mostrarlo completo aquí. Solo se muestra el principio, en solo lectura.</string>
+    <string name="skill_file_note_no_revision">Este servidor no puede editar archivos directamente, así que este archivo se abre en solo lectura.</string>
+    <string name="skill_file_load_failed">No se pudo cargar este archivo.</string>
+    <string name="skill_file_save_failed">No se pudo guardar este archivo.</string>
+    <string name="skill_file_image_description">Vista previa de %1$s</string>
 
     <!-- Detail -->
     <string name="skill_edit">Editar</string>
     <string name="skill_delete">Eliminar</string>
-    <string name="skill_category_label">Categoría: %1$s</string>
     <string name="skill_version_label">Versión %1$d</string>
     <string name="skill_delete_confirm_title">¿Eliminar habilidad?</string>
     <string name="skill_delete_confirm_message">Esto elimina permanentemente "%1$s". Esta acción no se puede deshacer.</string>
     <string name="skill_empty_body">Esta habilidad no tiene contenido.</string>
-    <string name="skill_active_label">Activa</string>
-    <string name="skill_active_description">Hacer que esta habilidad esté disponible para usar en los chats.</string>
 
     <!-- Editor -->
     <string name="skill_editor_create_title">Nueva habilidad</string>
@@ -39,10 +41,12 @@
     <string name="skill_field_name">Nombre</string>
     <string name="skill_field_name_hint">minúsculas-kebab-case</string>
     <string name="skill_field_name_error">Usa letras minúsculas, dígitos y guiones (máx. 64).</string>
+    <string name="skill_field_name_taken">Ya existe una habilidad con este nombre.</string>
     <string name="skill_field_display_title">Título visible</string>
     <string name="skill_field_description">Descripción</string>
     <string name="skill_field_description_error">La descripción es obligatoria (máx. 1024 caracteres).</string>
     <string name="skill_field_body">Contenido (markdown)</string>
+    <string name="skill_field_body_error">El contenido es demasiado largo (máx. 100.000 caracteres).</string>
     <string name="skill_field_category">Categoría</string>
     <string name="skill_category_none">Ninguna</string>
     <string name="skill_field_always_apply">Aplicar siempre esta habilidad</string>
@@ -51,12 +55,11 @@
     <string name="skill_conflict_dismiss">Aceptar</string>
 
     <!-- Sharing (ACL) -->
-    <string name="skill_acl_title">Compartir y permisos</string>
     <string name="skill_acl_no_grants">Aún no se ha compartido con nadie.</string>
-    <string name="skill_acl_add_principal">Añadir personas o grupos</string>
     <string name="skill_acl_grant_dialog_title">Compartir habilidad</string>
     <string name="skill_acl_search_hint">Buscar usuarios, grupos o roles</string>
     <string name="skill_acl_search_empty">Sin coincidencias</string>
+    <string name="skill_acl_search_all_shared">Todas las personas encontradas ya tienen acceso.</string>
     <string name="skill_acl_role">Rol</string>
     <string name="skill_acl_revoke">Quitar acceso</string>
     <string name="skill_acl_public_label">Público</string>
@@ -64,13 +67,7 @@
     <string name="skill_acl_principal_user">Usuario</string>
     <string name="skill_acl_principal_group">Grupo</string>
     <string name="skill_acl_principal_role">Rol</string>
-    <string name="skill_acl_collapse">Contraer</string>
-    <string name="skill_acl_expand">Expandir</string>
-    <string name="skill_acl_close">Cerrar</string>
     <string name="skill_import_failed_title">Error al importar</string>
-    <string name="skill_import_incomplete">Importación cancelada: no se pudieron importar %1$d archivo(s) del archivo comprimido. Corrige el archivo comprimido y vuelve a subirlo.</string>
-    <string name="skill_import_rollback_failed">La importación falló para %1$d archivo(s) y no se pudo eliminar automáticamente la habilidad incompleta. Elimínala antes de volver a intentarlo.</string>
-    <string name="skill_import_cleanup_incomplete">La importación falló para %1$d archivo(s). Se eliminó la habilidad incompleta, pero la limpieza automática no terminó.</string>
     <string name="skill_import_failed_files">No se pudieron importar estos archivos:</string>
     <string name="skill_import_rollback_failed_files">La importación falló para estos archivos y la habilidad incompleta se quedó sin eliminar:</string>
     <string name="skill_import_cleanup_incomplete_files">La importación falló para estos archivos; la limpieza automática no terminó:</string>
@@ -81,4 +78,100 @@
     <string name="skill_import_reason_persistence_failed">No se pudo guardar</string>
     <string name="skill_import_reason_unknown">No se pudo importar</string>
     <string name="skill_toggle_source">Ver código fuente</string>
+    <!-- Built-in category labels (upstream categories.ts options, by value) -->
+    <string name="skill_category_idea">Ideas</string>
+    <string name="skill_category_travel">Viajes</string>
+    <string name="skill_category_learning">Aprendizaje</string>
+    <string name="skill_category_writing">Escritura</string>
+    <string name="skill_category_shopping">Compras</string>
+    <string name="skill_category_code">Código</string>
+    <string name="skill_category_misc">Varios</string>
+    <string name="skill_category_roleplay">Juego de rol</string>
+    <string name="skill_category_finance">Finanzas</string>
+    <!-- List (cards, empty and search states) -->
+    <string name="skills_new">Nueva habilidad</string>
+    <string name="skills_more_options">Más opciones</string>
+    <string name="skills_importing">Importando habilidad…</string>
+    <string name="skills_empty_body">Las habilidades enseñan al asistente cómo realizar una tarea. Crea una o importa un archivo de habilidad.</string>
+    <string name="skills_empty_body_no_create">Las habilidades compartidas contigo aparecerán aquí.</string>
+    <string name="skills_no_results">Ninguna habilidad coincide con "%1$s"</string>
+    <string name="skills_load_more_failed">No se pudieron cargar más habilidades.</string>
+    <string name="skills_owner_you">Tú</string>
+    <string name="skills_badge_public">Pública</string>
+    <string name="skills_badge_always_on">Siempre activa</string>
+    <string name="skills_badge_off">Desactivada</string>
+    <plurals name="skill_file_count">
+        <item quantity="one">%1$d archivo</item>
+        <item quantity="many">%1$d archivos</item>
+        <item quantity="other">%1$d archivos</item>
+    </plurals>
+    <!-- Detail, sharing sheet and file rows -->
+    <string name="skill_by_author">por %1$s</string>
+    <string name="skill_by_you">por ti</string>
+    <string name="skill_updated">actualizada %1$s</string>
+    <string name="skill_toggle_rendered">Mostrar renderizado</string>
+    <string name="skill_share">Compartir</string>
+    <string name="skill_use_in_chats">Usar en mis chats</string>
+    <string name="skill_sharing">Compartir</string>
+    <string name="skill_share_private">Privada</string>
+    <string name="skill_share_load_failed">No se pudo cargar el uso compartido</string>
+    <string name="skill_delete_failed">No se pudo eliminar esta habilidad.</string>
+    <string name="skill_deleting">Eliminando…</string>
+    <string name="skill_toggle_failed">No se pudo cambiar si esta habilidad se usa en tus chats.</string>
+    <string name="skill_toggle_too_many_overrides">Demasiadas de tus habilidades tienen un ajuste distinto del predeterminado. Devuelve algunas a su valor predeterminado e inténtalo de nuevo.</string>
+    <string name="skill_active_load_failed">No se pudo cargar si esta habilidad se usa en tus chats.</string>
+    <string name="skill_acl_people">Personas y grupos</string>
+    <string name="skill_acl_add">Añadir</string>
+    <string name="skill_acl_role_for">Rol para %1$s</string>
+    <string name="skill_acl_dismiss">Descartar</string>
+    <string name="skill_acl_search_failed">No se puede buscar en este momento.</string>
+    <string name="skill_acl_search_unavailable">Tu rol no puede buscar personas ni grupos. Pide a un administrador que active el selector de personas para tu rol.</string>
+    <string name="skill_acl_roles_failed">No se pudieron cargar los roles, así que aún no se puede añadir a nadie.</string>
+    <string name="skill_acl_load_failed">No se pudo cargar con quién se comparte esta habilidad.</string>
+    <string name="skill_acl_update_failed">No se pudo actualizar el uso compartido.</string>
+    <string name="skill_file_open">Abrir</string>
+    <string name="skill_file_options">Opciones de %1$s</string>
+    <string name="skill_file_remove">Quitar</string>
+    <string name="skill_file_remove_confirm_title">¿Quitar el archivo?</string>
+    <string name="skill_file_remove_confirm_message">«%1$s» se quitará de esta habilidad. Esta acción no se puede deshacer.</string>
+    <string name="skill_file_replace_confirm_title">¿Reemplazar el archivo?</string>
+    <string name="skill_file_replace_confirm_message">Esta habilidad ya tiene un archivo llamado «%1$s». Al añadir este, se reemplaza y su contenido actual no se puede recuperar.</string>
+    <string name="skill_file_replace">Reemplazar</string>
+    <plurals name="skill_share_shared">
+        <item quantity="one">Compartida con %1$d persona o grupo</item>
+        <item quantity="other">Compartida con %1$d personas o grupos</item>
+    </plurals>
+    <!-- Editor: reserved names, title limit, conflict -->
+    <string name="skill_field_name_reserved_prefix">Los nombres no pueden empezar por "anthropic-" ni por "claude-".</string>
+    <string name="skill_field_name_reserved_word">"%1$s" es un nombre reservado.</string>
+    <string name="skill_field_display_title_error">Usa 128 caracteres como máximo.</string>
+    <string name="skill_editor_conflict">Esta habilidad cambió en el servidor desde que la abriste. Tus cambios se conservan; guarda de nuevo para sobrescribirla.</string>
+    <!-- Errors the app words when the server sent no text -->
+    <string name="skill_error_load_skill">No se pudo cargar esta habilidad.</string>
+    <string name="skill_error_load_skills">No se pudieron cargar las habilidades.</string>
+    <string name="skill_error_load_files">No se pudieron cargar los archivos.</string>
+    <string name="skill_error_upload_file">No se pudo subir este archivo.</string>
+    <string name="skill_error_delete_file">No se pudo quitar este archivo.</string>
+    <string name="skill_error_create">No se pudo crear esta habilidad.</string>
+    <string name="skill_error_save">No se pudo guardar esta habilidad.</string>
+    <string name="skill_error_import">No se pudo importar esta habilidad.</string>
+    <string name="skill_error_skill_md_upload">SKILL.md es el contenido de la propia habilidad. Edita la habilidad para cambiarlo.</string>
+    <string name="skill_error_changed_on_server">Esta habilidad cambió en el servidor y no se pudo cargar su versión más reciente. Tus cambios se conservan: intenta guardar de nuevo.</string>
+    <string name="skill_acl_principal_unknown">Desconocido</string>
+    <!-- Skill import failure summaries -->
+    <plurals name="skill_import_incomplete">
+        <item quantity="one">Importación cancelada: no se pudo importar %1$d archivo del archivo comprimido. Corrige el archivo comprimido y vuelve a subirlo.</item>
+        <item quantity="many">Importación cancelada: no se pudieron importar %1$d archivos del archivo comprimido. Corrige el archivo comprimido y vuelve a subirlo.</item>
+        <item quantity="other">Importación cancelada: no se pudieron importar %1$d archivos del archivo comprimido. Corrige el archivo comprimido y vuelve a subirlo.</item>
+    </plurals>
+    <plurals name="skill_import_rollback_failed">
+        <item quantity="one">La importación falló para %1$d archivo y no se pudo eliminar automáticamente la habilidad incompleta. Elimínala antes de volver a intentarlo.</item>
+        <item quantity="many">La importación falló para %1$d archivos y no se pudo eliminar automáticamente la habilidad incompleta. Elimínala antes de volver a intentarlo.</item>
+        <item quantity="other">La importación falló para %1$d archivos y no se pudo eliminar automáticamente la habilidad incompleta. Elimínala antes de volver a intentarlo.</item>
+    </plurals>
+    <plurals name="skill_import_cleanup_incomplete">
+        <item quantity="one">La importación falló para %1$d archivo. Se eliminó la habilidad incompleta, pero la limpieza automática no terminó.</item>
+        <item quantity="many">La importación falló para %1$d archivos. Se eliminó la habilidad incompleta, pero la limpieza automática no terminó.</item>
+        <item quantity="other">La importación falló para %1$d archivos. Se eliminó la habilidad incompleta, pero la limpieza automática no terminó.</item>
+    </plurals>
 </resources>

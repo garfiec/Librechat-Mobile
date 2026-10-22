@@ -10,9 +10,13 @@ import com.garfiec.librechat.core.data.repository.DraftRepository
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.request.AddedConversation
+import com.garfiec.librechat.core.model.request.MAX_MANUAL_SKILLS
+import com.garfiec.librechat.core.model.request.manualSkillsSupportedOn
 import com.garfiec.librechat.core.model.steer.mergeRestagedQuotes
 import com.garfiec.librechat.feature.chat.util.NEW_CHAT_DRAFT_KEY
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
+import com.garfiec.librechat.feature.chat.util.sendableManualSkills
+import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
@@ -33,7 +37,8 @@ import kotlin.uuid.Uuid
  * which is why the config rides the spec while the lineage (conversation, parent, minted id) is
  * recomputed from the current tree.
  *
- * Also owns the quote chips (`ComposerState.pendingQuotes`) end to end, and the reply-settled wait
+ * Also owns the quote chips (`ComposerState.pendingQuotes`) and the skill chips
+ * (`ComposerState.pendingManualSkills`) end to end, and the reply-settled wait
  * a drain makes before chaining onto the finished turn. Which path a tap takes is decided by the
  * entry points (`ChatViewModel.sendMessage` / `queueMessage` / `sendDuringRun` / `steerMessage`);
  * what happens once the server answers belongs to the streaming, queue and completion delegates.
@@ -61,7 +66,23 @@ class SendDispatchDelegate(
     /** The project a new chat from this landing is filed into; sent on its first turn only. */
     private val chatProjectId: String? = null,
     private val newChatDraftKey: String = NEW_CHAT_DRAFT_KEY,
+    /**
+     * `SkillsToggleDelegate.turnOn`: a turn that carries skill picks turns the conversation's
+     * Skills toggle on, as picking one does, so the following turns keep skills available.
+     */
+    private val turnSkillsOn: () -> Unit = {},
+    /**
+     * `SkillPickerDelegate.ensureLoaded(newTrigger = true)`: a send found chips that wait on the
+     * skill catalog ([stageHeldBackManualSkills]) with none loaded, so it asks for one again.
+     */
+    private val loadSkillCatalog: () -> Unit = {},
 ) {
+    /**
+     * Staged chips a new chat's first send already held back, handed to this chat
+     * ([stageHeldBackManualSkills]). Some were held back for what only the catalog shows, so
+     * until a catalog is loaded no send takes them.
+     */
+    private var heldBackForCatalog: Set<String> = emptySet()
 
     /**
      * Snapshots the current send config into a [QueuedMessage]. Used both for a normal send
@@ -105,10 +126,108 @@ class SendDispatchDelegate(
 
     fun sendNow(text: String) {
         val spec = buildSendSpec(text) ?: return
-        doSendWithSpec(
-            spec.copy(quotes = takePendingQuotes(spec.endpoint)),
-            clearComposerOnSend = true,
+        if (doSendWithSpec(spec, fromComposer = true)) noticeHeldBackManualSkills()
+    }
+
+    /**
+     * Says so when a send or queue that just took the chips left some staged: whatever
+     * [takePendingManualSkills] did not take is a chip this chat can't run. Called after the send,
+     * which clears the error channel.
+     */
+    fun noticeHeldBackManualSkills() {
+        if (handle.state.pendingManualSkills.isNotEmpty()) handle.setError(ChatNotice.SKILLS_NOT_SENT.marker())
+    }
+
+    /**
+     * Atomically takes (and clears) the pending skill chips for a send on [endpoint] — web's
+     * `drainPendingManualSkills`. Like [takePendingQuotes], assistants endpoints take nothing and
+     * leave the chips staged. Regenerate, edit and continue never call this: they replay the user
+     * turn's persisted picks (or none). Taking a non-empty list turns the conversation's Skills
+     * toggle on.
+     *
+     * Only the chips this chat can still run are taken ([sendableManualSkills]): a spec, agent or
+     * endpoint chosen after a chip was staged may refuse it. The rest stay staged and visible, as
+     * they do on assistants, rather than riding out as a pill for a skill that never runs; the
+     * caller then shows [noticeHeldBackManualSkills].
+     */
+    fun takePendingManualSkills(endpoint: String): List<String> {
+        val state = handle.state
+        if (state.skillCatalog == null && state.pendingManualSkills.any { it in heldBackForCatalog }) {
+            // The load that would check them failed or hasn't landed: try again, so the next
+            // send can take whichever of them this chat can run.
+            loadSkillCatalog()
+        }
+        val sendable = sendablePendingManualSkills(endpoint).toSet()
+        if (sendable.isEmpty()) return emptyList()
+        var taken: List<String> = emptyList()
+        handle.update {
+            taken = pendingManualSkills.filter { it in sendable }
+            if (taken.isNotEmpty()) pendingManualSkills = pendingManualSkills - taken.toSet()
+        }
+        heldBackForCatalog = heldBackForCatalog - taken.toSet()
+        if (taken.isNotEmpty()) turnSkillsOn()
+        return taken
+    }
+
+    /**
+     * Stages the chips a new chat's first send held back, handed to this chat with the
+     * conversation, and the notice that said so when [notice]. Until a skill catalog is loaded
+     * they stay staged: with only their names to check, a chip held back for a skill turned off
+     * or outside the agent's scope would go out on the next send as a pill for a skill that
+     * never runs.
+     */
+    fun stageHeldBackManualSkills(names: List<String>, notice: Boolean) {
+        if (names.isEmpty()) return
+        heldBackForCatalog = heldBackForCatalog + names
+        handle.update {
+            pendingManualSkills = (pendingManualSkills + names).distinct().take(MAX_MANUAL_SKILLS)
+            if (notice) error = ChatNotice.SKILLS_NOT_SENT.marker()
+        }
+    }
+
+    /**
+     * The staged chips a send on [endpoint] would take, without taking them: the filter
+     * [takePendingManualSkills] applies. A queued edit reads its chips through this, because its
+     * composer is swapped back to the stashed draft afterwards rather than cleared.
+     */
+    fun sendablePendingManualSkills(endpoint: String): List<String> {
+        if (!manualSkillsSupportedOn(endpoint)) return emptyList()
+        val state = handle.state
+        return sendableManualSkills(
+            pending = state.pendingManualSkills,
+            catalog = state.skillCatalog,
+            canPick = state.skillsAllowedHere,
+            endpoint = endpoint,
+            selectedModel = state.selectedModel,
+            agents = state.agents,
+            specSkills = state.activeSpecSkills,
+            needsCatalog = heldBackForCatalog,
         )
+    }
+
+    /**
+     * Stages a picked skill as a pending chip. Deduped by name (two same-name skills resolve to
+     * one server-side) and capped at [MAX_MANUAL_SKILLS]. Refused where the picker's rules
+     * (`ChatUiState.skillRules`) refuse it: skills unavailable here, an agent that offers none,
+     * or an active model spec that turns them off or does not list this one. Returns whether a
+     * chip was added.
+     */
+    fun addPendingManualSkill(name: String): Boolean {
+        if (handle.state.skillRules?.allowsName(name) != true) return false
+        var added = false
+        handle.update {
+            if (name !in pendingManualSkills && pendingManualSkills.size < MAX_MANUAL_SKILLS) {
+                pendingManualSkills = pendingManualSkills + name
+                added = true
+            }
+        }
+        return added
+    }
+
+    /** Removes one pending skill chip (its ×). */
+    fun removePendingManualSkill(name: String) {
+        handle.update { pendingManualSkills = pendingManualSkills - name }
+        heldBackForCatalog = heldBackForCatalog - name
     }
 
     /**
@@ -190,18 +309,29 @@ class SendDispatchDelegate(
      * is recomputed from the *current* tree, so a drained item chains onto the freshly-
      * finalized turn.
      *
-     * [clearComposerOnSend] clears the composer only once the streaming guard has passed — set
-     * true on the live-send path (so a lost readiness race can't wipe an unsent message) and
-     * false for drains (which must leave the user's in-progress composer untouched).
+     * [fromComposer] is the live send: only once the streaming guard has passed does it take the
+     * staged quote and skill chips onto the spec (which also turns Skills on) and clear the
+     * composer, so a lost readiness race can't wipe an unsent message or its chips. False for
+     * drains, which carry their own chips and must leave the user's composer untouched.
+     *
+     * Returns whether the turn was sent.
      */
     @OptIn(ExperimentalUuidApi::class)
-    fun doSendWithSpec(spec: QueuedMessage, clearComposerOnSend: Boolean = false) {
-        val fileRefs = spec.attachments.map { it.toFileReference() }
+    fun doSendWithSpec(baseSpec: QueuedMessage, fromComposer: Boolean = false): Boolean {
+        val fileRefs = baseSpec.attachments.map { it.toFileReference() }
         val hasFiles = fileRefs.isNotEmpty()
-        val messageText = spec.text
-        if ((messageText.isBlank() && !hasFiles) || handle.state.isStreaming) return
-        // Guard passed: safe to clear the composer for a live send without risking message loss.
-        if (clearComposerOnSend) clearComposer()
+        val messageText = baseSpec.text
+        if ((messageText.isBlank() && !hasFiles) || handle.state.isStreaming) return false
+        // Guard passed: safe to take the chips and clear the composer without risking their loss.
+        val spec = if (fromComposer) {
+            baseSpec.copy(
+                quotes = takePendingQuotes(baseSpec.endpoint),
+                manualSkills = takePendingManualSkills(baseSpec.endpoint),
+            )
+        } else {
+            baseSpec
+        }
+        if (fromComposer) clearComposer()
 
         // Count one "used" tick for the picked model — the real usage signal for the most-used
         // ranking behind home-screen shortcuts. Fires on every dispatched send (live or a drained
@@ -228,6 +358,8 @@ class SendDispatchDelegate(
             // The server persists and echoes them; painting them optimistically keeps the user
             // bubble's quote blocks from popping in a turn later.
             quotes = spec.quotes.takeIf { it.isNotEmpty() },
+            // Painted now for the same reason: the user bubble's skill pills.
+            manualSkills = spec.manualSkills.takeIf { it.isNotEmpty() },
         )
         val isNewChat = conversationId == null
         handle.update {
@@ -285,11 +417,13 @@ class SendDispatchDelegate(
             isTemporary = spec.isTemporary,
             modelParams = spec.modelParamsPayload,
             quotes = spec.quotes.takeIf { it.isNotEmpty() },
+            manualSkills = spec.manualSkills.takeIf { it.isNotEmpty() },
             // First turn only: the server saves it on every turn that carries it, so a later one
             // would move the chat. A temporary chat is never filed.
             chatProjectId = if (isNewChat && !spec.isTemporary) chatProjectId else null,
         )
         launchStream(stream)
+        return true
     }
 
     private companion object {

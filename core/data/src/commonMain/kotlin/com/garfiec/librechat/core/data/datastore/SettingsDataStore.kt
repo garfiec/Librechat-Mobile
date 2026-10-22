@@ -507,6 +507,58 @@ class SettingsDataStore(
         }
     }
 
+    /**
+     * The chat Skills toggle stored for one slot: a conversation id, or one of the shared new-chat
+     * slots ([SKILLS_TOGGLE_NEW_CHAT_SLOT], [SKILLS_TOGGLE_SPEC_DEFAULTS_SLOT]). Null when nothing
+     * is stored for it, which callers read as off.
+     *
+     * Per conversation, the way web keeps `LAST_SKILLS_TOGGLE_<suffix>` (`BadgeRowContext.tsx`),
+     * where every other chat tool here stays global. Account-scoped, because conversation ids
+     * belong to one server and the logout prefix purge then sweeps the map with the account.
+     * Bounded by recency to [MAX_SKILLS_TOGGLES] conversation slots; the shared new-chat slots are
+     * always kept.
+     */
+    fun skillsToggle(slot: String): Flow<Boolean?> =
+        activeAccountProvider.flatMapAccountOrEmpty<Boolean?>(null) { id ->
+            val key = skillsToggleKey(id.value)
+            // Deduped on the raw blob first: every unrelated preference write re-emits `data`.
+            dataStore.data.map { prefs -> prefs[key] }
+                .distinctUntilChanged()
+                .map { raw -> decodeSkillsToggles(raw)[slot]?.on }
+        }.distinctUntilChanged()
+
+    /** Stores the Skills toggle for [slot]; see [skillsToggle]. No-ops without an account. */
+    suspend fun setSkillsToggle(slot: String, on: Boolean) {
+        if (slot.isBlank()) return
+        val accountId = activeAccountProvider.currentAccountId()?.value ?: return
+        val key = skillsToggleKey(accountId)
+        // A durable write: the new-chat handoff clears the landing ViewModel right after it.
+        withContext(NonCancellable) {
+            dataStore.edit { prefs ->
+                val current = decodeSkillsToggles(prefs[key])
+                val nextSeq = (current.values.maxOfOrNull { it.seq } ?: 0L) + 1
+                val merged = current + (slot to SkillsToggleEntry(on, nextSeq))
+                // The shared new-chat slots sit outside the budget: they are written only when the
+                // user toggles in a new chat, so by recency alone they would age out under the
+                // per-conversation writes and every fresh chat would silently start off again.
+                val (shared, conversations) = merged.entries.partition { it.key in SHARED_SKILLS_TOGGLE_SLOTS }
+                val trimmed = if (conversations.size > MAX_SKILLS_TOGGLES) {
+                    shared.associate { it.toPair() } +
+                        conversations.sortedByDescending { it.value.seq }.take(MAX_SKILLS_TOGGLES).associate { it.toPair() }
+                } else {
+                    merged
+                }
+                prefs[key] = usageJson.encodeToString(trimmed)
+            }
+        }
+    }
+
+    private fun skillsToggleKey(accountId: String) = accountScopedKey(accountId, SKILLS_TOGGLES)
+
+    private fun decodeSkillsToggles(raw: String?): Map<String, SkillsToggleEntry> =
+        raw?.let { runCatching { usageJson.decodeFromString<Map<String, SkillsToggleEntry>>(it) }.getOrNull() }
+            ?: emptyMap()
+
     /** Tolerant decode — a malformed or absent blob reads as "no custom mix". */
     private fun decodeSections(raw: String?): ContextDetailSections? =
         raw?.let { runCatching { usageJson.decodeFromString<ContextDetailSections>(it) }.getOrNull() }
@@ -864,6 +916,15 @@ class SettingsDataStore(
          */
         const val DEFAULT_LANGUAGE = "system"
 
+        /** The Skills toggle slot every new chat shares (web's `Constants.NEW_CONVO`). */
+        const val SKILLS_TOGGLE_NEW_CHAT_SLOT = "new"
+
+        /**
+         * The new-chat slot while the server offers model specs and none is selected (web's
+         * `Constants.spec_defaults_key`), kept apart from [SKILLS_TOGGLE_NEW_CHAT_SLOT].
+         */
+        const val SKILLS_TOGGLE_SPEC_DEFAULTS_SLOT = "__defaults__"
+
         private val KEY_SELECTED_LANGUAGE = stringPreferencesKey("selected_language")
         private val KEY_LATEX_RENDERER = stringPreferencesKey("latex_renderer")
         private val KEY_CHAT_FONT_SIZE = stringPreferencesKey("chat_font_size")
@@ -882,6 +943,9 @@ class SettingsDataStore(
         private val KEY_COMPACT_NUDGE_THRESHOLD = intPreferencesKey("compact_nudge_threshold")
         private val KEY_COMPACT_NUDGE_SNOOZES = stringPreferencesKey("compact_nudge_snoozes")
         private const val MAX_COMPACT_SNOOZES = 200
+        private const val SKILLS_TOGGLES = "skills_toggles"
+        private const val MAX_SKILLS_TOGGLES = 200
+        private val SHARED_SKILLS_TOGGLE_SLOTS = setOf(SKILLS_TOGGLE_NEW_CHAT_SLOT, SKILLS_TOGGLE_SPEC_DEFAULTS_SLOT)
         private val KEY_AUTO_READ_ENABLED = booleanPreferencesKey("auto_read_enabled")
         private val KEY_SHOW_IMAGE_DESCRIPTIONS = booleanPreferencesKey("show_image_descriptions")
         private val KEY_SELECTED_VOICE_ID = stringPreferencesKey("selected_voice_id")
@@ -930,6 +994,10 @@ class SettingsDataStore(
 /** Per-model usage record: total send [count], plus a monotonic [seq] for the recency tie-break. */
 @Serializable
 private data class UsageEntry(val count: Int, val seq: Long)
+
+/** One slot's Skills toggle; [seq] orders entries for the size cap. */
+@Serializable
+private data class SkillsToggleEntry(val on: Boolean, val seq: Long)
 
 /** A "Not now" on the compact suggestion; [seq] orders entries for the size cap. */
 @Serializable

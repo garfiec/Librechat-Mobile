@@ -654,6 +654,32 @@ internal fun parseToolIntent(raw: JsonElement?): String? = when (raw) {
     else -> null
 }
 
+/**
+ * The `skillName` a `skill` tool call names (upstream `SkillCall.tsx` reads the same field), or
+ * null when the args carry none. The card then falls back to a generic "skill" label.
+ */
+internal fun parseSkillName(raw: JsonElement?): String? = when (raw) {
+    is JsonObject -> raw.stringField(SKILL_NAME_KEY)?.trim()?.takeIf { it.isNotEmpty() }
+    is JsonPrimitive -> if (raw.isString) parseSkillName(raw.content) else null
+    else -> null
+}
+
+/** [parseSkillName] for args held as raw text — the persisted shape, and the streaming `input`. */
+@Suppress("TooGenericExceptionCaught") // untrusted tool args; a malformed shape degrades to null
+internal fun parseSkillName(raw: String?): String? {
+    val text = raw?.trim().orEmpty()
+    if (text.isEmpty()) return null
+    val parsed = try {
+        toolCallJson.parseToJsonElement(text)
+    } catch (e: Exception) {
+        log.d(e) { "Failed to parse skill args" }
+        return null
+    }
+    return (parsed as? JsonObject)?.stringField(SKILL_NAME_KEY)?.trim()?.takeIf { it.isNotEmpty() }
+}
+
+private const val SKILL_NAME_KEY = "skillName"
+
 /** [parseToolIntent] for args held as raw text — the persisted shape, and the streaming `input`. */
 @Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
 internal fun parseToolIntent(raw: String?): String? {

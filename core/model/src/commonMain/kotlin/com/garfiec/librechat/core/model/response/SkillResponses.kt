@@ -14,7 +14,18 @@ import kotlinx.serialization.json.Json
 data class SkillConflictResponse(
     val error: String,
     val current: Skill,
-)
+) {
+    companion object {
+        /** `error` of a stale-version 409. */
+        const val VERSION_CONFLICT = "skill_version_conflict"
+
+        /**
+         * `error` of the other 409, on create and on a rename (upstream `handlers.ts`). A sentence,
+         * not a code, so a reword upstream silently turns name collisions into generic errors.
+         */
+        const val NAME_TAKEN = "A skill with this name already exists"
+    }
+}
 
 /** Response of `DELETE /api/skills/:id` (upstream `{ id, deleted: true }`). */
 @Serializable

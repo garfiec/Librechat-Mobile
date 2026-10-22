@@ -237,6 +237,9 @@ class StreamingManagerDelegate(
      */
     private var currentTurnSpec: QueuedMessage? = null
 
+    /** The skill names a spec-less turn (regenerate / edit) replayed; re-pinned with [currentTurnSpec]. */
+    private var currentTurnManualSkills: List<String>? = null
+
     /**
      * Resets the streaming-internal session state (buffer, edit flag, traces) and starts the
      * throttled updater. Does NOT touch UI state — callers that already mutate UI state
@@ -253,6 +256,7 @@ class StreamingManagerDelegate(
         isEdit: Boolean,
         optimisticUserMessageId: String? = null,
         turnSpec: QueuedMessage? = null,
+        turnManualSkills: List<String>? = null,
     ) {
         isEditOrRegenerate = isEdit
         // A new turn: settle anything the previous one stranded before its records can render
@@ -261,8 +265,9 @@ class StreamingManagerDelegate(
         steeringDelegate.onTurnBoundary()
         startStreamSession()
         currentTurnSpec = turnSpec
+        currentTurnManualSkills = turnManualSkills
         // After startStreamSession: its pendingActionDelegate.clear() drops the pin.
-        pendingActionDelegate.onTurnStarted(turnSpec)
+        pendingActionDelegate.onTurnStarted(turnSpec, turnManualSkills)
         currentTurnOptimisticUserMessageId = optimisticUserMessageId
         reattachedAfterCeiling = false
         // Capture the origin account at stream start so a post-switch finalize attributes to it.
@@ -276,12 +281,16 @@ class StreamingManagerDelegate(
      * Resets streaming-related UI state and the buffer in preparation for a new stream
      * (edit, regenerate, or continue).
      */
-    fun prepareForStreaming(isEdit: Boolean, optimisticUserMessageId: String? = null) {
+    fun prepareForStreaming(
+        isEdit: Boolean,
+        optimisticUserMessageId: String? = null,
+        manualSkills: List<String>? = null,
+    ) {
         handle.update {
             content = content.resetLiveReply(isStreaming = true)
             error = null
         }
-        beginStreaming(isEdit, optimisticUserMessageId)
+        beginStreaming(isEdit, optimisticUserMessageId, turnManualSkills = manualSkills)
     }
 
     /**
@@ -314,6 +323,7 @@ class StreamingManagerDelegate(
         streamJob?.cancel()
         streamJob = null
         currentTurnSpec = null
+        currentTurnManualSkills = null
         // Hard reset (conversation switch): the previous turn's steer records must not follow the
         // ViewModel into an unrelated conversation.
         steeringDelegate.onTurnBoundary()
@@ -664,6 +674,7 @@ class StreamingManagerDelegate(
         // The run is over: its spec must not be re-pinned onto a later reconnect that finds some
         // other run (started elsewhere) still active on this conversation.
         currentTurnSpec = null
+        currentTurnManualSkills = null
         // Whatever ended the run usually made any human-review pause unresolvable (the job is
         // gone, so a resume can only 409) — with ONE exception: a network StreamError says
         // nothing about the server-side run, which stays parked on its pause until it expires.
@@ -898,7 +909,7 @@ class StreamingManagerDelegate(
         startStreamSession()
         // Same run, new session: restore the pin the session boundary just dropped, so a pause
         // that survives a reconnect still resumes against the config the run was started with.
-        pendingActionDelegate.onTurnStarted(currentTurnSpec)
+        pendingActionDelegate.onTurnStarted(currentTurnSpec, currentTurnManualSkills)
         buffer.clear()
         buffer.startUpdater()
         streamJob?.cancel()

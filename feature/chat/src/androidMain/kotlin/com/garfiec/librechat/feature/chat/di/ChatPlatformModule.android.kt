@@ -55,6 +55,7 @@ actual val chatPlatformModule: Module = module {
             shareLinkControllerFactory = get(),
             traceRepository = get(),
             mcpRepository = get(),
+            skillsRepository = get(),
             userRepository = get(),
             roleRepository = get(),
             memoryRepository = get(),

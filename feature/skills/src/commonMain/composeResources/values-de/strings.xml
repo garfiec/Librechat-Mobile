@@ -3,35 +3,37 @@
     <!-- List -->
     <string name="skills_title">Skills</string>
     <string name="skills_back">Zurück</string>
-    <string name="skills_create">Skill erstellen</string>
     <string name="skills_import">Skill importieren</string>
     <string name="skills_search_hint">Skills suchen…</string>
+    <string name="skills_search_clear">Suche löschen</string>
     <string name="skills_empty">Noch keine Skills.</string>
-    <string name="skills_empty_hint">Tippe auf +, um einen Skill zu erstellen, oder importiere eine Skill-Datei.</string>
-    <string name="skills_no_matches">Keine Skills entsprechen deiner Suche.</string>
     <string name="skills_retry">Erneut versuchen</string>
 
     <!-- Files -->
     <string name="skill_files_title">Dateien</string>
     <string name="skill_files_empty">Keine Dateien angehängt.</string>
     <string name="skill_files_add">Datei hinzufügen</string>
-    <string name="skill_files_remove">%1$s entfernen</string>
     <string name="skill_file_save">Speichern</string>
-    <string name="skill_file_close">Schließen</string>
     <string name="skill_file_reload">Neu laden</string>
     <string name="skill_file_conflict">Diese Datei wurde an anderer Stelle geändert. Lade neu, um die neueste Version zu sehen; deine Änderungen hier werden verworfen.</string>
     <string name="skill_file_binary">Diese Datei kann nicht als Text angezeigt werden.</string>
+    <string name="skill_file_note_skill_body">Das ist der Inhalt des Skills selbst. Bearbeite den Skill, um ihn zu ändern.</string>
+    <string name="skill_file_note_no_access">Du kannst diese Datei ansehen, aber nicht ändern.</string>
+    <string name="skill_file_note_access_unknown">Konnte nicht prüfen, ob du diese Datei bearbeiten darfst. Lade neu, um es erneut zu versuchen.</string>
+    <string name="skill_file_note_too_large">Diese Datei ist zu groß, um sie hier zu bearbeiten, daher wird sie schreibgeschützt geöffnet.</string>
+    <string name="skill_file_note_truncated">Diese Datei ist zu groß, um sie hier vollständig anzuzeigen. Nur ihr Anfang wird schreibgeschützt angezeigt.</string>
+    <string name="skill_file_note_no_revision">Dieser Server kann Dateien nicht direkt bearbeiten, daher wird diese Datei schreibgeschützt geöffnet.</string>
+    <string name="skill_file_load_failed">Diese Datei konnte nicht geladen werden.</string>
+    <string name="skill_file_save_failed">Diese Datei konnte nicht gespeichert werden.</string>
+    <string name="skill_file_image_description">Vorschau von %1$s</string>
 
     <!-- Detail -->
     <string name="skill_edit">Bearbeiten</string>
     <string name="skill_delete">Löschen</string>
-    <string name="skill_category_label">Kategorie: %1$s</string>
     <string name="skill_version_label">Version %1$d</string>
     <string name="skill_delete_confirm_title">Skill löschen?</string>
     <string name="skill_delete_confirm_message">Dies löscht "%1$s" dauerhaft. Dies kann nicht rückgängig gemacht werden.</string>
     <string name="skill_empty_body">Dieser Skill hat keinen Inhalt.</string>
-    <string name="skill_active_label">Aktiv</string>
-    <string name="skill_active_description">Diesen Skill zur Verwendung in Chats verfügbar machen.</string>
 
     <!-- Editor -->
     <string name="skill_editor_create_title">Neuer Skill</string>
@@ -39,10 +41,12 @@
     <string name="skill_field_name">Name</string>
     <string name="skill_field_name_hint">lowercase-kebab-case</string>
     <string name="skill_field_name_error">Verwende Kleinbuchstaben, Ziffern und Bindestriche (max. 64).</string>
+    <string name="skill_field_name_taken">Es gibt bereits einen Skill mit diesem Namen.</string>
     <string name="skill_field_display_title">Anzeigetitel</string>
     <string name="skill_field_description">Beschreibung</string>
     <string name="skill_field_description_error">Beschreibung ist erforderlich (max. 1024 Zeichen).</string>
     <string name="skill_field_body">Inhalt (Markdown)</string>
+    <string name="skill_field_body_error">Der Inhalt ist zu lang (max. 100.000 Zeichen).</string>
     <string name="skill_field_category">Kategorie</string>
     <string name="skill_category_none">Keine</string>
     <string name="skill_field_always_apply">Diesen Skill immer anwenden</string>
@@ -51,12 +55,11 @@
     <string name="skill_conflict_dismiss">OK</string>
 
     <!-- Sharing (ACL) -->
-    <string name="skill_acl_title">Teilen &amp; Berechtigungen</string>
     <string name="skill_acl_no_grants">Noch mit niemandem geteilt.</string>
-    <string name="skill_acl_add_principal">Personen oder Gruppen hinzufügen</string>
     <string name="skill_acl_grant_dialog_title">Skill teilen</string>
     <string name="skill_acl_search_hint">Benutzer, Gruppen oder Rollen suchen</string>
     <string name="skill_acl_search_empty">Keine Treffer</string>
+    <string name="skill_acl_search_all_shared">Alle Gefundenen haben bereits Zugriff.</string>
     <string name="skill_acl_role">Rolle</string>
     <string name="skill_acl_revoke">Zugriff entfernen</string>
     <string name="skill_acl_public_label">Öffentlich</string>
@@ -64,13 +67,7 @@
     <string name="skill_acl_principal_user">Benutzer</string>
     <string name="skill_acl_principal_group">Gruppe</string>
     <string name="skill_acl_principal_role">Rolle</string>
-    <string name="skill_acl_collapse">Einklappen</string>
-    <string name="skill_acl_expand">Ausklappen</string>
-    <string name="skill_acl_close">Schließen</string>
     <string name="skill_import_failed_title">Import fehlgeschlagen</string>
-    <string name="skill_import_incomplete">Import abgebrochen: %1$d Datei(en) im Archiv konnten nicht importiert werden. Korrigiere das Archiv und lade es erneut hoch.</string>
-    <string name="skill_import_rollback_failed">Import für %1$d Datei(en) fehlgeschlagen, und der unvollständige Skill konnte nicht automatisch entfernt werden. Lösche ihn, bevor du es erneut versuchst.</string>
-    <string name="skill_import_cleanup_incomplete">Import für %1$d Datei(en) fehlgeschlagen. Der unvollständige Skill wurde entfernt, aber die automatische Bereinigung wurde nicht abgeschlossen.</string>
     <string name="skill_import_failed_files">Diese Dateien konnten nicht importiert werden:</string>
     <string name="skill_import_rollback_failed_files">Import für diese Dateien fehlgeschlagen, und der unvollständige Skill wurde zurückgelassen:</string>
     <string name="skill_import_cleanup_incomplete_files">Import für diese Dateien fehlgeschlagen; die automatische Bereinigung wurde nicht abgeschlossen:</string>
@@ -81,4 +78,96 @@
     <string name="skill_import_reason_persistence_failed">Konnte nicht gespeichert werden</string>
     <string name="skill_import_reason_unknown">Konnte nicht importiert werden</string>
     <string name="skill_toggle_source">Quelltext anzeigen</string>
+    <!-- Built-in category labels (upstream categories.ts options, by value) -->
+    <string name="skill_category_idea">Ideen</string>
+    <string name="skill_category_travel">Reisen</string>
+    <string name="skill_category_learning">Lernen</string>
+    <string name="skill_category_writing">Schreiben</string>
+    <string name="skill_category_shopping">Einkaufen</string>
+    <string name="skill_category_code">Code</string>
+    <string name="skill_category_misc">Sonstiges</string>
+    <string name="skill_category_roleplay">Rollenspiel</string>
+    <string name="skill_category_finance">Finanzen</string>
+    <!-- List (cards, empty and search states) -->
+    <string name="skills_new">Neuer Skill</string>
+    <string name="skills_more_options">Weitere Optionen</string>
+    <string name="skills_importing">Skill wird importiert…</string>
+    <string name="skills_empty_body">Skills zeigen dem Assistenten, wie er eine Aufgabe erledigt. Erstelle einen Skill oder importiere eine Skill-Datei.</string>
+    <string name="skills_empty_body_no_create">Skills, die mit dir geteilt werden, erscheinen hier.</string>
+    <string name="skills_no_results">Keine Skills passend zu "%1$s"</string>
+    <string name="skills_load_more_failed">Weitere Skills konnten nicht geladen werden.</string>
+    <string name="skills_owner_you">Du</string>
+    <string name="skills_badge_public">Öffentlich</string>
+    <string name="skills_badge_always_on">Immer aktiv</string>
+    <string name="skills_badge_off">Aus</string>
+    <plurals name="skill_file_count">
+        <item quantity="one">%1$d Datei</item>
+        <item quantity="other">%1$d Dateien</item>
+    </plurals>
+    <!-- Detail, sharing sheet and file rows -->
+    <string name="skill_by_author">von %1$s</string>
+    <string name="skill_by_you">von dir</string>
+    <string name="skill_updated">aktualisiert %1$s</string>
+    <string name="skill_toggle_rendered">Gerendert anzeigen</string>
+    <string name="skill_share">Teilen</string>
+    <string name="skill_use_in_chats">In meinen Chats verwenden</string>
+    <string name="skill_sharing">Freigabe</string>
+    <string name="skill_share_private">Privat</string>
+    <string name="skill_share_load_failed">Freigabe konnte nicht geladen werden</string>
+    <string name="skill_delete_failed">Dieser Skill konnte nicht gelöscht werden.</string>
+    <string name="skill_deleting">Wird gelöscht…</string>
+    <string name="skill_toggle_failed">Es konnte nicht geändert werden, ob dieser Skill in deinen Chats verwendet wird.</string>
+    <string name="skill_toggle_too_many_overrides">Zu viele deiner Skills weichen von ihrer Standardeinstellung ab. Setze einige auf den Standard zurück und versuche es dann erneut.</string>
+    <string name="skill_active_load_failed">Es konnte nicht geladen werden, ob dieser Skill in deinen Chats verwendet wird.</string>
+    <string name="skill_acl_people">Personen und Gruppen</string>
+    <string name="skill_acl_add">Hinzufügen</string>
+    <string name="skill_acl_role_for">Rolle für %1$s</string>
+    <string name="skill_acl_dismiss">Schließen</string>
+    <string name="skill_acl_search_failed">Suche ist gerade nicht möglich.</string>
+    <string name="skill_acl_search_unavailable">Deine Rolle kann nicht nach Personen oder Gruppen suchen. Bitte einen Admin, die Personenauswahl für deine Rolle zu aktivieren.</string>
+    <string name="skill_acl_roles_failed">Rollen konnten nicht geladen werden, daher kann noch niemand hinzugefügt werden.</string>
+    <string name="skill_acl_load_failed">Es konnte nicht geladen werden, mit wem dieser Skill geteilt ist.</string>
+    <string name="skill_acl_update_failed">Freigabe konnte nicht aktualisiert werden.</string>
+    <string name="skill_file_open">Öffnen</string>
+    <string name="skill_file_options">Optionen für %1$s</string>
+    <string name="skill_file_remove">Entfernen</string>
+    <string name="skill_file_remove_confirm_title">Datei entfernen?</string>
+    <string name="skill_file_remove_confirm_message">„%1$s“ wird aus diesem Skill entfernt. Das kann nicht rückgängig gemacht werden.</string>
+    <string name="skill_file_replace_confirm_title">Datei ersetzen?</string>
+    <string name="skill_file_replace_confirm_message">Dieser Skill hat bereits eine Datei namens „%1$s“. Wenn du diese hinzufügst, wird sie ersetzt, und ihr aktueller Inhalt lässt sich nicht wiederherstellen.</string>
+    <string name="skill_file_replace">Ersetzen</string>
+    <plurals name="skill_share_shared">
+        <item quantity="one">Mit %1$d Person oder Gruppe geteilt</item>
+        <item quantity="other">Mit %1$d Personen oder Gruppen geteilt</item>
+    </plurals>
+    <!-- Editor: reserved names, title limit, conflict -->
+    <string name="skill_field_name_reserved_prefix">Namen dürfen nicht mit „anthropic-“ oder „claude-“ beginnen.</string>
+    <string name="skill_field_name_reserved_word">„%1$s“ ist ein reservierter Name.</string>
+    <string name="skill_field_display_title_error">Verwende höchstens 128 Zeichen.</string>
+    <string name="skill_editor_conflict">Dieser Skill wurde auf dem Server geändert, seit du ihn geöffnet hast. Deine Änderungen bleiben erhalten; speichere erneut, um ihn zu überschreiben.</string>
+    <!-- Errors the app words when the server sent no text -->
+    <string name="skill_error_load_skill">Dieser Skill konnte nicht geladen werden.</string>
+    <string name="skill_error_load_skills">Skills konnten nicht geladen werden.</string>
+    <string name="skill_error_load_files">Dateien konnten nicht geladen werden.</string>
+    <string name="skill_error_upload_file">Diese Datei konnte nicht hochgeladen werden.</string>
+    <string name="skill_error_delete_file">Diese Datei konnte nicht entfernt werden.</string>
+    <string name="skill_error_create">Dieser Skill konnte nicht erstellt werden.</string>
+    <string name="skill_error_save">Dieser Skill konnte nicht gespeichert werden.</string>
+    <string name="skill_error_import">Dieser Skill konnte nicht importiert werden.</string>
+    <string name="skill_error_skill_md_upload">SKILL.md ist der Inhalt des Skills selbst. Bearbeite den Skill, um ihn zu ändern.</string>
+    <string name="skill_error_changed_on_server">Dieser Skill wurde auf dem Server geändert, und seine neueste Version konnte nicht geladen werden. Deine Änderungen bleiben erhalten: Versuche erneut zu speichern.</string>
+    <string name="skill_acl_principal_unknown">Unbekannt</string>
+    <!-- Skill import failure summaries -->
+    <plurals name="skill_import_incomplete">
+        <item quantity="one">Import abgebrochen: %1$d Datei im Archiv konnte nicht importiert werden. Korrigiere das Archiv und lade es erneut hoch.</item>
+        <item quantity="other">Import abgebrochen: %1$d Dateien im Archiv konnten nicht importiert werden. Korrigiere das Archiv und lade es erneut hoch.</item>
+    </plurals>
+    <plurals name="skill_import_rollback_failed">
+        <item quantity="one">Import für %1$d Datei fehlgeschlagen, und der unvollständige Skill konnte nicht automatisch entfernt werden. Lösche ihn, bevor du es erneut versuchst.</item>
+        <item quantity="other">Import für %1$d Dateien fehlgeschlagen, und der unvollständige Skill konnte nicht automatisch entfernt werden. Lösche ihn, bevor du es erneut versuchst.</item>
+    </plurals>
+    <plurals name="skill_import_cleanup_incomplete">
+        <item quantity="one">Import für %1$d Datei fehlgeschlagen. Der unvollständige Skill wurde entfernt, aber die automatische Bereinigung wurde nicht abgeschlossen.</item>
+        <item quantity="other">Import für %1$d Dateien fehlgeschlagen. Der unvollständige Skill wurde entfernt, aber die automatische Bereinigung wurde nicht abgeschlossen.</item>
+    </plurals>
 </resources>

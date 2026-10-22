@@ -5,6 +5,9 @@ import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.request.ChatRequest
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.core.model.request.NO_PARENT
+import com.garfiec.librechat.core.model.request.manualSkillsSupportedOn
+import com.garfiec.librechat.core.model.request.normalizeManualSkills
+import com.garfiec.librechat.core.model.request.withManualSkillsFlag
 import kotlinx.datetime.TimeZone
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -41,8 +44,15 @@ object ChatPayloadBuilder {
         quotes: List<String>? = null,
         spec: String? = null,
         chatProjectId: String? = null,
+        manualSkills: List<String>? = null,
     ): ChatRequest {
         val resolvedParentMessageId = parentMessageId ?: NO_PARENT
+        // Assistants take none (upstream createPayload strips them there). Otherwise deduped and
+        // capped the way the server resolves them.
+        val sentSkills = if (manualSkillsSupportedOn(endpoint)) normalizeManualSkills(manualSkills) else emptyList()
+        // A non-agent turn that names skills sends the ephemeral skills flag; the resume pin
+        // applies the same rule so the two fingerprints match.
+        val resolvedEphemeralAgent = ephemeralAgent.withManualSkillsFlag(endpoint, sentSkills)
 
         return ChatRequest(
             text = text,
@@ -77,7 +87,8 @@ object ChatPayloadBuilder {
             quotes = quotes?.takeIf { it.isNotEmpty() },
             files = files?.takeIf { it.isNotEmpty() },
             addedConvo = addedConvo,
-            ephemeralAgent = ephemeralAgent,
+            ephemeralAgent = resolvedEphemeralAgent,
+            manualSkills = sentSkills.ifEmpty { null },
             isTemporary = if (isTemporary) true else null,
             // v0.8.7 #13815: the user's IANA zone (e.g. "America/New_York") so the server resolves
             // agent {{current_date}}/{{current_datetime}} to the user's wall clock, not its own.

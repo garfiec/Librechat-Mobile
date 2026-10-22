@@ -74,7 +74,8 @@ data class DrawerUiState(
     /** MARKETPLACE.USE: browsing agents. Upstream's USER role is denied it by default. */
     val marketplaceEnabled: Boolean = true,
     val bookmarksEnabled: Boolean = true,
-    val skillsEnabled: Boolean = true,
+    /** Role SKILLS.USE (permissive) AND the agents `skills` capability (fail-closed). */
+    val skillsEnabled: Boolean = false,
     /** Scheduled chats: the SCHEDULES permission AND the server's `interface.schedules` flag,
      *  which is absent-means-OFF. Default false — the feature is opt-in. */
     val schedulesEnabled: Boolean = false,

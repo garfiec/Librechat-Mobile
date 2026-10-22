@@ -92,6 +92,7 @@ internal fun ChatOptionsSheetHost(
             runCodeEnabled = uiState.runCodeEnabled,
             fileSearchEnabled = uiState.fileSearchEnabled,
             memoryEnabled = uiState.isMemoryToolAvailable,
+            skillsEnabled = uiState.isSkillsToolAvailable,
             mcpServersEnabled = uiState.mcpServersEnabled,
             gates = uiState.chatInputGates,
             contextGauge = uiState.contextGaugeDetails,

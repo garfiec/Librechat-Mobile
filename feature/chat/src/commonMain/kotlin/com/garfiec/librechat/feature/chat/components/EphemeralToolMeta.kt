@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.FindInPage
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Psychology
@@ -15,6 +16,8 @@ import com.garfiec.librechat.feature.chat.resources.tool_file_search
 import com.garfiec.librechat.feature.chat.resources.tool_file_search_desc
 import com.garfiec.librechat.feature.chat.resources.tool_memory
 import com.garfiec.librechat.feature.chat.resources.tool_memory_desc
+import com.garfiec.librechat.feature.chat.resources.tool_skills
+import com.garfiec.librechat.feature.chat.resources.tool_skills_desc
 import com.garfiec.librechat.feature.chat.resources.tool_url_context
 import com.garfiec.librechat.feature.chat.resources.tool_url_context_desc
 import com.garfiec.librechat.feature.chat.resources.tool_web_search
@@ -44,5 +47,7 @@ internal fun ephemeralToolMeta(toolKey: String): EphemeralToolMeta? = when (tool
         EphemeralToolMeta(Icons.Default.Code, Res.string.tool_code, Res.string.tool_code_desc)
     ToolConstants.MEMORY ->
         EphemeralToolMeta(Icons.Default.Psychology, Res.string.tool_memory, Res.string.tool_memory_desc)
+    ToolConstants.SKILLS ->
+        EphemeralToolMeta(Icons.Default.Extension, Res.string.tool_skills, Res.string.tool_skills_desc)
     else -> null
 }

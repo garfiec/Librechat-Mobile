@@ -22,6 +22,10 @@ object ToolConstants {
      *  Registered in scripts/mirrors.json. */
     const val SET_MEMORY = "set_memory"
     const val DELETE_MEMORY = "delete_memory"
+
+    /** The `skills` agent capability key: without it the server injects no skills into any run
+     *  (upstream `resolveAgentScopedSkillIds`). Doubles as the `ephemeralAgent.skills` flag. */
+    const val SKILLS = "skills"
     const val FILE_SEARCH = "file_search"
     const val EXECUTE_CODE = "execute_code"
     const val PROGRAMMATIC_TOOLS = "programmatic_tools"

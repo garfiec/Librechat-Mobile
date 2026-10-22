@@ -121,6 +121,23 @@ fun StreamingToolCallCard(
         return
     }
 
+    // A model-invoked skill streams like any tool call; a manual pick's card only comes with the
+    // final message (see PendingSkillCallRow), or with a resync after the run.
+    if (isSkillToolCall(toolCall.name)) {
+        val skillName = remember(toolCall.input) { parseSkillName(toolCall.input) }
+        val intent = remember(toolCall.input) { parseToolIntent(toolCall.input) }
+        SkillCallCard(
+            skillName = skillName,
+            verdict = toolCallVerdict(toolCall.closedStatus, toolCall.isComplete),
+            intent = intent,
+            durationMs = toolCall.durationMs,
+            output = toolCall.output,
+            stateKey = toolCall.id,
+            modifier = modifier,
+        )
+        return
+    }
+
     // Status only while the step runs — the wire carries no args at step start and no progressive
     // output — then the code and output the completion reports, in the card the reload renders.
     if (isCodeExecutionToolCall(toolCall.name.lowercase())) {

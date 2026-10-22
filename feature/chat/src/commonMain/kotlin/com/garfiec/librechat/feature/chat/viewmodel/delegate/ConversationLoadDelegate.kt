@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.logging.LogOrigin
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.core.model.request.MAX_MANUAL_SKILLS
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.NEW_CHAT_DRAFT_KEY
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
@@ -256,8 +257,8 @@ class ConversationLoadDelegate(
                         val kept = emission.messages.any {
                             it.messageId == unsent.messageId || it.isServerCopyOf(unsent)
                         }
-                        if (!kept && unsent.text.isNotBlank()) {
-                            restoreUnsentInput(unsent.text, unsent.quotes.orEmpty())
+                        if (!kept) {
+                            restoreUnsentInput(unsent.text, unsent.quotes.orEmpty(), unsent.manualSkills.orEmpty())
                         }
                     }
                     // Restore comparison mode when reopening a Compare Models conversation: the
@@ -291,18 +292,26 @@ class ConversationLoadDelegate(
      * landed before the server persisted anything, so the optimistic bubble was removed).
      * Yields to anything the user has since typed — same rule as [restoreDraft] — and persists
      * as a draft so the restored text survives process death, same as `ChatViewModel.onInputChanged`.
+     * A turn with no text (files only) still puts its quote and skill chips back.
      */
-    fun restoreUnsentInput(text: String, quotes: List<String> = emptyList()) {
+    fun restoreUnsentInput(
+        text: String,
+        quotes: List<String> = emptyList(),
+        manualSkills: List<String> = emptyList(),
+    ) {
         handle.update {
-            if (inputText.isBlank()) {
-                inputText = text
+            if (inputText.isBlank() || text.isBlank()) {
+                if (text.isNotBlank()) inputText = text
                 // The chips were taken (and cleared) when the spec was minted, so an
                 // un-send has to put them back or the retry silently loses the excerpts.
                 // Anything staged since wins — same yield-to-the-user rule as the text.
                 pendingQuotes = pendingQuotes.ifEmpty { quotes }
+                // The skill chips likewise, or the retry runs without the picked skills. Merged
+                // rather than yielded: chips the send held back are still staged beside them.
+                pendingManualSkills = (manualSkills + pendingManualSkills).distinct().take(MAX_MANUAL_SKILLS)
             }
         }
-        if (handle.state.inputText != text) return
+        if (text.isBlank() || handle.state.inputText != text) return
         val draftKey = handle.state.conversationId ?: newChatDraftKey
         handle.scope.launch {
             draftRepository.saveDraft(draftKey, text)

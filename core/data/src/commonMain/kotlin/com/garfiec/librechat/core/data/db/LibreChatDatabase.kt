@@ -44,7 +44,7 @@ import com.garfiec.librechat.core.data.db.entity.ServerEntity
         MessageSearchEntity::class,
         MessageSearchFtsEntity::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -66,6 +66,9 @@ import com.garfiec.librechat.core.data.db.entity.ServerEntity
         // never reads `messages`. SearchIndexBackfillSessionTask fills them after launch.
         AutoMigration(from = 9, to = 10),
         AutoMigration(from = 10, to = 11),
+        // 11 -> 12 adds `manualSkills` and `alwaysAppliedSkills` on messages, so a user turn's
+        // skill pills survive a reload and a regenerate after reload replays its picks.
+        AutoMigration(from = 11, to = 12),
     ],
 )
 @TypeConverters(Converters::class)

@@ -82,6 +82,8 @@ data class ChatToolsPageParams(
     val runCodeEnabled: Boolean = true,
     val fileSearchEnabled: Boolean = true,
     val memoryEnabled: Boolean = false,
+    /** Whether to offer the per-conversation Skills toggle. See [ChatUiState.isSkillsToolAvailable]. */
+    val skillsEnabled: Boolean = false,
     val mcpServersEnabled: Boolean = true,
     val gates: ChatInputGates = ChatInputGates(),
     val contextGauge: ContextGaugeDetails? = null,
@@ -253,6 +255,7 @@ fun ChatOptionsBottomSheet(
                         runCodeEnabled = tools.runCodeEnabled,
                         fileSearchEnabled = tools.fileSearchEnabled,
                         memoryEnabled = tools.memoryEnabled,
+                        skillsEnabled = tools.skillsEnabled,
                         mcpServersEnabled = tools.mcpServersEnabled,
                         gates = tools.gates,
                         contextGauge = tools.contextGauge,

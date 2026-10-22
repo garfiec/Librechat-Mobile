@@ -165,6 +165,22 @@ internal fun ToolCallDispatcher(
     Column(modifier = modifier) {
         val cardModifier = Modifier.fillMaxWidth()
         when {
+            // Exact name, as upstream routes it: `contains` would claim an MCP tool named
+            // "find_skill". Ahead of the `contains` branches below for the same reason.
+            isSkillToolCall(namedTool) -> {
+                val skillName = remember(toolCall) {
+                    parseSkillName(toolCall?.args) ?: parseSkillName(toolCall?.function?.arguments)
+                }
+                SkillCallCard(
+                    skillName = skillName,
+                    verdict = toolCallVerdict(toolCall?.effectiveRunStepStatus, isComplete = true),
+                    intent = intent,
+                    durationMs = toolCall?.runStepDurationMs,
+                    output = output,
+                    stateKey = cardKey,
+                    modifier = cardModifier,
+                )
+            }
             toolNameLower.startsWith(ToolConstants.LC_TRANSFER_TO_PREFIX) -> {
                 val target = toolName.substring(ToolConstants.LC_TRANSFER_TO_PREFIX.length).ifBlank { toolName }
                 AgentHandoffCard(

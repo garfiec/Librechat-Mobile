@@ -97,6 +97,8 @@ fun AttachmentChipsRow(
                 hasWebSearch = ToolConstants.WEB_SEARCH in enabledTools,
                 hasCode = ToolConstants.CODE_INTERPRETER in enabledTools,
                 hasFileSearch = ToolConstants.FILE_SEARCH in enabledTools,
+                // Present only where the toggle is offered and on (see ChatUiState.effectiveEnabledTools).
+                hasSkills = ToolConstants.SKILLS in enabledTools,
                 selectedMcpServers = mcpServers.filter { it.name in selectedMcpServerNames },
             )
         }
@@ -104,9 +106,10 @@ fun AttachmentChipsRow(
     val hasWebSearch = ephemeral.hasWebSearch
     val hasCode = ephemeral.hasCode
     val hasFileSearch = ephemeral.hasFileSearch
+    val hasSkills = ephemeral.hasSkills
     val selectedMcpServers = ephemeral.selectedMcpServers
     val hasMcp = selectedMcpServers.isNotEmpty()
-    val hasAnyChip = hasFiles || hasWebSearch || hasCode || hasFileSearch || hasMcp
+    val hasAnyChip = hasFiles || hasWebSearch || hasCode || hasFileSearch || hasSkills || hasMcp
 
     var showFilePreview by remember { mutableStateOf(false) }
 
@@ -175,6 +178,15 @@ fun AttachmentChipsRow(
                         label = stringResource(Res.string.tool_file_search),
                         icon = Icons.Default.FindInPage,
                         semanticDescription = stringResource(Res.string.cd_file_search_enabled),
+                    )
+                }
+
+                // Skills chip (per-conversation toggle)
+                if (hasSkills) {
+                    ToolIndicatorChip(
+                        label = stringResource(Res.string.tool_skills),
+                        icon = Icons.Default.Extension,
+                        semanticDescription = stringResource(Res.string.cd_skills_enabled),
                     )
                 }
 
@@ -459,5 +471,6 @@ private data class EphemeralChips(
     val hasWebSearch: Boolean = false,
     val hasCode: Boolean = false,
     val hasFileSearch: Boolean = false,
+    val hasSkills: Boolean = false,
     val selectedMcpServers: List<McpServerDisplayData> = emptyList(),
 )

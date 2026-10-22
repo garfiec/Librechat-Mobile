@@ -487,8 +487,12 @@ internal fun AgentEditorForm(
         when {
             uiState.isAclAvailable && uiState.agentId != null -> {
                 val aclViewModel: AgentAclViewModel = koinViewModel()
-                LaunchedEffect(uiState.agentId) {
-                    aclViewModel.load(uiState.agentId!!)
+                // The permissions routes take the agent's database _id, not its agent_… id; until the
+                // agent has loaded there is nothing to ask for, and the section stays hidden.
+                val agentDbId = uiState.loadedAgent?.mongoId
+                val authorId = uiState.loadedAgent?.author
+                LaunchedEffect(agentDbId, authorId) {
+                    if (agentDbId != null) aclViewModel.load(agentDbId, authorId)
                 }
                 AgentAclSharingSection(viewModel = aclViewModel)
             }

@@ -375,6 +375,20 @@ internal fun MessageContentAndActions(
                         )
                     }
 
+                    // The skills primed into this turn (always-applied, then picked), beside its
+                    // quotes as on web. Chrome, so "Select all" leaves the names out.
+                    val alwaysAppliedSkills = message.alwaysAppliedSkills.orEmpty()
+                    val manualSkills = message.manualSkills.orEmpty()
+                    if (isUser && (alwaysAppliedSkills.isNotEmpty() || manualSkills.isNotEmpty())) {
+                        DisableSelection {
+                            SkillPills(
+                                alwaysApplied = alwaysAppliedSkills,
+                                manual = manualSkills,
+                                modifier = Modifier.padding(bottom = 6.dp),
+                            )
+                        }
+                    }
+
                     // Render attached files above message text (matches web app behavior)
                     val messageFiles = message.files
                     if (!messageFiles.isNullOrEmpty()) {

@@ -47,8 +47,12 @@ class ChatRequestBuilder(
         val mcpServers = state.selectedMcpServerNames.toList().ifEmpty { null }
         val enabledTools = state.enabledTools
         val webSearchEnabled = state.modelParameters.webSearch
+        // The conversation's own toggle, sent only where it is offered: a model spec that
+        // configures skills overrides it server-side, and without the capability or role the
+        // server ignores it.
+        val skillsOn = state.skillsToggle && state.isSkillsToolAvailable
 
-        val hasAnything = mcpServers != null || enabledTools.isNotEmpty() || webSearchEnabled
+        val hasAnything = mcpServers != null || enabledTools.isNotEmpty() || webSearchEnabled || skillsOn
         if (!hasAnything) return null
 
         return EphemeralAgent(
@@ -60,6 +64,7 @@ class ChatRequestBuilder(
             // config/permission change that has since withdrawn memory, and the server would then
             // silently drop the tools from a run the user believes is remembering.
             memory = if (ToolConstants.MEMORY in enabledTools && state.isMemoryToolAvailable) true else null,
+            skills = if (skillsOn) true else null,
         )
     }
 

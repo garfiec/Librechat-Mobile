@@ -127,4 +127,53 @@ class SkillsApiMultipartTest {
         assertThat(path).contains("/api/skills/sk-1/files/")
         assertThat(path).contains("dir%2Fa.txt")
     }
+
+    @Test
+    fun `getSkillFileRaw asks for raw bytes on the encoded file path and returns them untouched`() = runTest {
+        var path: String? = null
+        var raw: String? = null
+        // A PNG signature: not valid UTF-8, so a text decode anywhere on the way would mangle it.
+        val png = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+        val engine = MockEngine { request ->
+            path = request.url.encodedPath
+            raw = request.url.parameters["raw"]
+            respond(
+                content = png,
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "image/png"),
+            )
+        }
+
+        val bytes = SkillsApi(client(engine)).getSkillFileRaw("sk-1", "img/logo.png")
+
+        assertThat(path).isEqualTo("/api/skills/sk-1/files/img%2Flogo.png")
+        assertThat(raw).isEqualTo("true")
+        assertThat(bytes).isEqualTo(png)
+    }
+
+    @Test
+    fun `getSkillFileRawPrefix reads no more than asked of a larger file`() = runTest {
+        var raw: String? = null
+        val log = ByteArray(8 * 1024) { 0x61 }
+        val engine = MockEngine { request ->
+            raw = request.url.parameters["raw"]
+            respond(content = log, status = HttpStatusCode.OK, headers = headersOf(HttpHeaders.ContentType, "text/plain"))
+        }
+
+        val prefix = SkillsApi(client(engine)).getSkillFileRawPrefix("sk-1", "logs/run.log", maxBytes = 1025)
+
+        assertThat(raw).isEqualTo("true")
+        assertThat(prefix.size).isEqualTo(1025)
+    }
+
+    @Test
+    fun `getSkillFileRawPrefix returns a shorter file whole`() = runTest {
+        val engine = MockEngine {
+            respond(content = "short".encodeToByteArray(), status = HttpStatusCode.OK)
+        }
+
+        val prefix = SkillsApi(client(engine)).getSkillFileRawPrefix("sk-1", "a.txt", maxBytes = 1025)
+
+        assertThat(prefix.decodeToString()).isEqualTo("short")
+    }
 }

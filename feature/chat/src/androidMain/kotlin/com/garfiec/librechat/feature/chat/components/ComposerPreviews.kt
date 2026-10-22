@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.model.ui.UiStyle
@@ -154,7 +155,8 @@ private fun ContextPillComposerHost() {
 private fun ToolsSheetHost() {
     var expanded by remember { mutableStateOf(false) }
     ChatToolsSheetContent(
-        enabledTools = emptySet(),
+        // Skills on, so the per-conversation row renders in its checked state.
+        enabledTools = setOf(ToolConstants.SKILLS),
         onToggleTool = {},
         mcpServers = emptyList(),
         selectedMcpServerNames = emptySet(),
@@ -167,6 +169,7 @@ private fun ToolsSheetHost() {
         onOpenModelSelector = {},
         selectedModelDisplay = "gpt-5.1",
         onDismiss = {},
+        skillsEnabled = true,
         contextGauge = gaugeWithNudge,
         contextUsageEnabled = true,
         onCompact = {},

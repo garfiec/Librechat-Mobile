@@ -72,6 +72,12 @@ data class FeatureGatesState(
      */
     val memoriesPageEnabled: Boolean = false,
     /**
+     * Role half of the composer Skills toggle and the skill picker: SKILLS.USE, permissive until
+     * the role loads (the drawer's shape). The agents `skills` capability half is folded in at
+     * read time (`ChatUiState.isSkillsToolAvailable`), fail-closed.
+     */
+    val skillsEnabled: Boolean = true,
+    /**
      * Mid-run steering (v0.8.8): whether `POST /api/agents/chat/steer` exists on this server.
      *
      * Fails closed, and unlike the HITL pause this one *can* fail closed safely. A pause is

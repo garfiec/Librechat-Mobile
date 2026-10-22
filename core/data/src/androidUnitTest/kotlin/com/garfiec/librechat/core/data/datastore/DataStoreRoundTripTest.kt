@@ -507,6 +507,52 @@ class DataStoreRoundTripTest {
         assertThat(snoozes).containsKey("c200")
     }
 
+    @Test
+    fun settingsDataStore_skillsToggle_isPerSlotAndPerAccount() = runTest(testDispatcher) {
+        val ds = createDataStore("settings-skills-toggle")
+        val accountA = InMemoryActiveAccountProvider().apply { set(AccountId("srv:a")) }
+        val store = settingsStore(ds, accountA)
+
+        assertThat(store.skillsToggle("c1").first()).isNull()
+        store.setSkillsToggle("c1", on = true)
+        store.setSkillsToggle(SettingsDataStore.SKILLS_TOGGLE_NEW_CHAT_SLOT, on = false)
+        assertThat(store.skillsToggle("c1").first()).isTrue()
+        assertThat(store.skillsToggle(SettingsDataStore.SKILLS_TOGGLE_NEW_CHAT_SLOT).first()).isFalse()
+        // The specs' defaults slot is separate from the plain new-chat slot.
+        assertThat(store.skillsToggle(SettingsDataStore.SKILLS_TOGGLE_SPEC_DEFAULTS_SLOT).first()).isNull()
+
+        // Another account on the same device does not see account A's conversations.
+        val storeB = settingsStore(ds, InMemoryActiveAccountProvider().apply { set(AccountId("srv:b")) })
+        assertThat(storeB.skillsToggle("c1").first()).isNull()
+    }
+
+    @Test
+    fun settingsDataStore_skillsToggle_evictsTheOldestPastTheCap() = runTest(testDispatcher) {
+        val store = settingsStore(createDataStore("settings-skills-cap"))
+
+        repeat(201) { store.setSkillsToggle("c$it", on = true) }
+
+        assertThat(store.skillsToggle("c0").first()).isNull()
+        assertThat(store.skillsToggle("c200").first()).isTrue()
+    }
+
+    @Test
+    fun settingsDataStore_skillsToggle_keepsTheSharedNewChatSlotsPastTheCap() = runTest(testDispatcher) {
+        val store = settingsStore(createDataStore("settings-skills-shared"))
+        store.setSkillsToggle(SettingsDataStore.SKILLS_TOGGLE_NEW_CHAT_SLOT, on = true)
+        store.setSkillsToggle(SettingsDataStore.SKILLS_TOGGLE_SPEC_DEFAULTS_SLOT, on = true)
+
+        // Every new chat's first send writes its own slot; the shared ones are never rewritten.
+        repeat(250) { store.setSkillsToggle("c$it", on = true) }
+
+        assertThat(store.skillsToggle(SettingsDataStore.SKILLS_TOGGLE_NEW_CHAT_SLOT).first()).isTrue()
+        assertThat(store.skillsToggle(SettingsDataStore.SKILLS_TOGGLE_SPEC_DEFAULTS_SLOT).first()).isTrue()
+        // Conversations still keep only the most recent 200.
+        assertThat(store.skillsToggle("c49").first()).isNull()
+        assertThat(store.skillsToggle("c50").first()).isTrue()
+        assertThat(store.skillsToggle("c249").first()).isTrue()
+    }
+
     // --- ConfigCacheDataStore ---
 
     @Test

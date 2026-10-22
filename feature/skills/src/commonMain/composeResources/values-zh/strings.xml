@@ -3,35 +3,37 @@
     <!-- List -->
     <string name="skills_title">技能</string>
     <string name="skills_back">返回</string>
-    <string name="skills_create">创建技能</string>
     <string name="skills_import">导入技能</string>
     <string name="skills_search_hint">搜索技能…</string>
+    <string name="skills_search_clear">清除搜索</string>
     <string name="skills_empty">暂无技能。</string>
-    <string name="skills_empty_hint">点按 + 创建技能，或导入技能文件。</string>
-    <string name="skills_no_matches">没有与搜索匹配的技能。</string>
     <string name="skills_retry">重试</string>
 
     <!-- Files -->
     <string name="skill_files_title">文件</string>
     <string name="skill_files_empty">未附加文件。</string>
     <string name="skill_files_add">添加文件</string>
-    <string name="skill_files_remove">移除 %1$s</string>
     <string name="skill_file_save">保存</string>
-    <string name="skill_file_close">关闭</string>
     <string name="skill_file_reload">重新加载</string>
     <string name="skill_file_conflict">此文件已在其他位置被修改。请重新加载以查看最新版本；你在此处的修改将被丢弃。</string>
     <string name="skill_file_binary">此文件无法以文本形式显示。</string>
+    <string name="skill_file_note_skill_body">这是技能本身的内容。如需更改，请编辑技能。</string>
+    <string name="skill_file_note_no_access">你可以查看此文件，但无法更改。</string>
+    <string name="skill_file_note_access_unknown">无法确认你是否可以编辑此文件。请重新加载后重试。</string>
+    <string name="skill_file_note_too_large">此文件过大，无法在此编辑，因此以只读方式打开。</string>
+    <string name="skill_file_note_truncated">此文件过大，无法在此完整显示。仅以只读方式显示开头部分。</string>
+    <string name="skill_file_note_no_revision">此服务器无法直接编辑文件，因此此文件以只读方式打开。</string>
+    <string name="skill_file_load_failed">无法加载此文件。</string>
+    <string name="skill_file_save_failed">无法保存此文件。</string>
+    <string name="skill_file_image_description">%1$s 的预览</string>
 
     <!-- Detail -->
     <string name="skill_edit">编辑</string>
     <string name="skill_delete">删除</string>
-    <string name="skill_category_label">类别：%1$s</string>
     <string name="skill_version_label">版本 %1$d</string>
     <string name="skill_delete_confirm_title">删除技能？</string>
     <string name="skill_delete_confirm_message">这将永久删除 "%1$s"。此操作无法撤销。</string>
     <string name="skill_empty_body">此技能没有内容。</string>
-    <string name="skill_active_label">已启用</string>
-    <string name="skill_active_description">让此技能可在聊天中使用。</string>
 
     <!-- Editor -->
     <string name="skill_editor_create_title">新建技能</string>
@@ -39,10 +41,12 @@
     <string name="skill_field_name">名称</string>
     <string name="skill_field_name_hint">lowercase-kebab-case</string>
     <string name="skill_field_name_error">请使用小写字母、数字和连字符（最多 64 个字符）。</string>
+    <string name="skill_field_name_taken">已存在同名技能。</string>
     <string name="skill_field_display_title">显示标题</string>
     <string name="skill_field_description">描述</string>
     <string name="skill_field_description_error">描述为必填项（最多 1024 个字符）。</string>
     <string name="skill_field_body">内容（markdown）</string>
+    <string name="skill_field_body_error">内容过长（最多 100,000 个字符）。</string>
     <string name="skill_field_category">类别</string>
     <string name="skill_category_none">无</string>
     <string name="skill_field_always_apply">始终应用此技能</string>
@@ -51,12 +55,11 @@
     <string name="skill_conflict_dismiss">确定</string>
 
     <!-- Sharing (ACL) -->
-    <string name="skill_acl_title">分享与权限</string>
     <string name="skill_acl_no_grants">尚未与任何人分享。</string>
-    <string name="skill_acl_add_principal">添加用户或群组</string>
     <string name="skill_acl_grant_dialog_title">分享技能</string>
     <string name="skill_acl_search_hint">搜索用户、群组或角色</string>
     <string name="skill_acl_search_empty">无匹配项</string>
+    <string name="skill_acl_search_all_shared">找到的所有人都已有访问权限。</string>
     <string name="skill_acl_role">角色</string>
     <string name="skill_acl_revoke">移除访问权限</string>
     <string name="skill_acl_public_label">公开</string>
@@ -64,13 +67,7 @@
     <string name="skill_acl_principal_user">用户</string>
     <string name="skill_acl_principal_group">群组</string>
     <string name="skill_acl_principal_role">角色</string>
-    <string name="skill_acl_collapse">收起</string>
-    <string name="skill_acl_expand">展开</string>
-    <string name="skill_acl_close">关闭</string>
     <string name="skill_import_failed_title">导入失败</string>
-    <string name="skill_import_incomplete">导入已取消：压缩包中有 %1$d 个文件无法导入。请修复压缩包后重新上传。</string>
-    <string name="skill_import_rollback_failed">%1$d 个文件导入失败，且不完整的技能无法自动移除。请先将其删除再重试。</string>
-    <string name="skill_import_cleanup_incomplete">%1$d 个文件导入失败。不完整的技能已被移除，但自动清理未完成。</string>
     <string name="skill_import_failed_files">以下文件无法导入：</string>
     <string name="skill_import_rollback_failed_files">以下文件导入失败，且留下了不完整的技能：</string>
     <string name="skill_import_cleanup_incomplete_files">以下文件导入失败；自动清理未完成：</string>
@@ -81,4 +78,91 @@
     <string name="skill_import_reason_persistence_failed">无法保存</string>
     <string name="skill_import_reason_unknown">无法导入</string>
     <string name="skill_toggle_source">查看源代码</string>
+    <!-- Built-in category labels (upstream categories.ts options, by value) -->
+    <string name="skill_category_idea">创意</string>
+    <string name="skill_category_travel">旅行</string>
+    <string name="skill_category_learning">学习</string>
+    <string name="skill_category_writing">写作</string>
+    <string name="skill_category_shopping">购物</string>
+    <string name="skill_category_code">代码</string>
+    <string name="skill_category_misc">其他</string>
+    <string name="skill_category_roleplay">角色扮演</string>
+    <string name="skill_category_finance">财务</string>
+    <!-- List (cards, empty and search states) -->
+    <string name="skills_new">新建技能</string>
+    <string name="skills_more_options">更多选项</string>
+    <string name="skills_importing">正在导入技能…</string>
+    <string name="skills_empty_body">技能告诉助手如何处理某项任务。创建一个技能，或导入技能文件。</string>
+    <string name="skills_empty_body_no_create">与你共享的技能将显示在这里。</string>
+    <string name="skills_no_results">没有与"%1$s"匹配的技能</string>
+    <string name="skills_load_more_failed">无法加载更多技能。</string>
+    <string name="skills_owner_you">你</string>
+    <string name="skills_badge_public">公开</string>
+    <string name="skills_badge_always_on">始终应用</string>
+    <string name="skills_badge_off">已关闭</string>
+    <plurals name="skill_file_count">
+        <item quantity="other">%1$d 个文件</item>
+    </plurals>
+    <!-- Detail, sharing sheet and file rows -->
+    <string name="skill_by_author">作者：%1$s</string>
+    <string name="skill_by_you">作者：你</string>
+    <string name="skill_updated">更新于 %1$s</string>
+    <string name="skill_toggle_rendered">显示渲染效果</string>
+    <string name="skill_share">共享</string>
+    <string name="skill_use_in_chats">在我的聊天中使用</string>
+    <string name="skill_sharing">共享</string>
+    <string name="skill_share_private">私有</string>
+    <string name="skill_share_load_failed">无法加载共享信息</string>
+    <string name="skill_delete_failed">无法删除此技能。</string>
+    <string name="skill_deleting">正在删除…</string>
+    <string name="skill_toggle_failed">无法更改此技能是否在你的聊天中使用。</string>
+    <string name="skill_toggle_too_many_overrides">你有太多技能的设置与默认值不同。请将部分技能恢复为默认设置，然后重试。</string>
+    <string name="skill_active_load_failed">无法加载此技能是否在你的聊天中使用。</string>
+    <string name="skill_acl_people">用户和群组</string>
+    <string name="skill_acl_add">添加</string>
+    <string name="skill_acl_role_for">%1$s 的角色</string>
+    <string name="skill_acl_dismiss">关闭</string>
+    <string name="skill_acl_search_failed">目前无法搜索。</string>
+    <string name="skill_acl_search_unavailable">你的角色无法搜索用户或群组。请让管理员为你的角色开启人员选择器。</string>
+    <string name="skill_acl_roles_failed">无法加载角色，暂时无法添加任何人。</string>
+    <string name="skill_acl_load_failed">无法加载此技能的共享对象。</string>
+    <string name="skill_acl_update_failed">无法更新共享设置。</string>
+    <string name="skill_file_open">打开</string>
+    <string name="skill_file_options">%1$s 的选项</string>
+    <string name="skill_file_remove">移除</string>
+    <string name="skill_file_remove_confirm_title">移除文件？</string>
+    <string name="skill_file_remove_confirm_message">“%1$s”将从此技能中移除。此操作无法撤销。</string>
+    <string name="skill_file_replace_confirm_title">替换文件？</string>
+    <string name="skill_file_replace_confirm_message">此技能已有名为“%1$s”的文件。添加此文件会将其替换，且当前内容无法恢复。</string>
+    <string name="skill_file_replace">替换</string>
+    <plurals name="skill_share_shared">
+        <item quantity="other">已与 %1$d 个用户或群组共享</item>
+    </plurals>
+    <!-- Editor: reserved names, title limit, conflict -->
+    <string name="skill_field_name_reserved_prefix">名称不能以“anthropic-”或“claude-”开头。</string>
+    <string name="skill_field_name_reserved_word">“%1$s”是保留名称。</string>
+    <string name="skill_field_display_title_error">最多 128 个字符。</string>
+    <string name="skill_editor_conflict">自你打开后，此技能已在服务器上被更改。你的编辑已保留；再次保存即可覆盖。</string>
+    <!-- Errors the app words when the server sent no text -->
+    <string name="skill_error_load_skill">无法加载此技能。</string>
+    <string name="skill_error_load_skills">无法加载技能。</string>
+    <string name="skill_error_load_files">无法加载文件。</string>
+    <string name="skill_error_upload_file">无法上传此文件。</string>
+    <string name="skill_error_delete_file">无法移除此文件。</string>
+    <string name="skill_error_create">无法创建此技能。</string>
+    <string name="skill_error_save">无法保存此技能。</string>
+    <string name="skill_error_import">无法导入此技能。</string>
+    <string name="skill_error_skill_md_upload">SKILL.md 是技能本身的内容。如需更改，请编辑技能。</string>
+    <string name="skill_error_changed_on_server">此技能已在服务器上被更改，且无法加载其最新版本。你的编辑已保留，请再次尝试保存。</string>
+    <string name="skill_acl_principal_unknown">未知</string>
+    <!-- Skill import failure summaries -->
+    <plurals name="skill_import_incomplete">
+        <item quantity="other">导入已取消：压缩包中有 %1$d 个文件无法导入。请修复压缩包后重新上传。</item>
+    </plurals>
+    <plurals name="skill_import_rollback_failed">
+        <item quantity="other">%1$d 个文件导入失败，且不完整的技能无法自动移除。请先将其删除再重试。</item>
+    </plurals>
+    <plurals name="skill_import_cleanup_incomplete">
+        <item quantity="other">%1$d 个文件导入失败。不完整的技能已被移除，但自动清理未完成。</item>
+    </plurals>
 </resources>

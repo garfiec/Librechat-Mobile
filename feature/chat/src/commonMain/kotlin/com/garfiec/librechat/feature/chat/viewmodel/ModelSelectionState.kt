@@ -62,6 +62,12 @@ data class ModelSelectionState(
     val mcpServers: List<McpServerDisplayData> = emptyList(),
     val selectedMcpServerNames: Set<String> = emptySet(),
     /**
+     * This conversation's Skills toggle (`ephemeralAgent.skills`). Per conversation, unlike
+     * [enabledTools]: owned by `SkillsToggleDelegate`, which reads and writes the slot the
+     * conversation maps to. Only sent while `ChatUiState.isSkillsToolAvailable` holds.
+     */
+    val skillsToggle: Boolean = false,
+    /**
      * Whether the detected backend is v0.8.5+ and therefore accepts the `xhigh`
      * and `max` values in the reasoning-effort and effort dropdowns. False on
      * older or unknown servers (per VERSION_GATES.md guideline #2).

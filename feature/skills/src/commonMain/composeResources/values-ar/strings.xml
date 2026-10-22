@@ -3,35 +3,37 @@
     <!-- List -->
     <string name="skills_title">المهارات</string>
     <string name="skills_back">رجوع</string>
-    <string name="skills_create">إنشاء مهارة</string>
     <string name="skills_import">استيراد مهارة</string>
     <string name="skills_search_hint">البحث في المهارات…</string>
+    <string name="skills_search_clear">مسح البحث</string>
     <string name="skills_empty">لا توجد مهارات بعد.</string>
-    <string name="skills_empty_hint">اضغط + لإنشاء مهارة، أو استورد ملف مهارة.</string>
-    <string name="skills_no_matches">لا توجد مهارات تطابق بحثك.</string>
     <string name="skills_retry">إعادة المحاولة</string>
 
     <!-- Files -->
     <string name="skill_files_title">الملفات</string>
     <string name="skill_files_empty">لا توجد ملفات مرفقة.</string>
     <string name="skill_files_add">إضافة ملف</string>
-    <string name="skill_files_remove">إزالة %1$s</string>
     <string name="skill_file_save">حفظ</string>
-    <string name="skill_file_close">إغلاق</string>
     <string name="skill_file_reload">إعادة التحميل</string>
     <string name="skill_file_conflict">تم تغيير هذا الملف في مكان آخر. أعد التحميل لرؤية أحدث إصدار؛ سيتم تجاهل تعديلاتك هنا.</string>
     <string name="skill_file_binary">لا يمكن عرض هذا الملف كنص.</string>
+    <string name="skill_file_note_skill_body">هذا هو محتوى المهارة نفسه. عدّل المهارة لتغييره.</string>
+    <string name="skill_file_note_no_access">يمكنك عرض هذا الملف لكن لا يمكنك تغييره.</string>
+    <string name="skill_file_note_access_unknown">تعذّر التحقق مما إذا كان بإمكانك تعديل هذا الملف. أعد التحميل للمحاولة مرة أخرى.</string>
+    <string name="skill_file_note_too_large">هذا الملف كبير جدًا لتعديله هنا، لذا يُفتح للقراءة فقط.</string>
+    <string name="skill_file_note_truncated">هذا الملف كبير جدًا لعرضه كاملًا هنا. تُعرض بدايته فقط، دون إمكانية التعديل.</string>
+    <string name="skill_file_note_no_revision">لا يدعم هذا الخادم تعديل الملفات في مكانها، لذا يُفتح هذا الملف للقراءة فقط.</string>
+    <string name="skill_file_load_failed">تعذّر تحميل هذا الملف.</string>
+    <string name="skill_file_save_failed">تعذّر حفظ هذا الملف.</string>
+    <string name="skill_file_image_description">معاينة %1$s</string>
 
     <!-- Detail -->
     <string name="skill_edit">تعديل</string>
     <string name="skill_delete">حذف</string>
-    <string name="skill_category_label">الفئة: %1$s</string>
     <string name="skill_version_label">الإصدار %1$d</string>
     <string name="skill_delete_confirm_title">حذف المهارة؟</string>
     <string name="skill_delete_confirm_message">سيؤدي هذا إلى حذف "%1$s" نهائيًا. لا يمكن التراجع عن ذلك.</string>
     <string name="skill_empty_body">لا تحتوي هذه المهارة على محتوى.</string>
-    <string name="skill_active_label">نشط</string>
-    <string name="skill_active_description">اجعل هذه المهارة متاحة للاستخدام في المحادثات.</string>
 
     <!-- Editor -->
     <string name="skill_editor_create_title">مهارة جديدة</string>
@@ -39,10 +41,12 @@
     <string name="skill_field_name">الاسم</string>
     <string name="skill_field_name_hint">lowercase-kebab-case</string>
     <string name="skill_field_name_error">استخدم أحرفًا صغيرة وأرقامًا وشرطات (بحد أقصى 64).</string>
+    <string name="skill_field_name_taken">توجد مهارة بهذا الاسم بالفعل.</string>
     <string name="skill_field_display_title">عنوان العرض</string>
     <string name="skill_field_description">الوصف</string>
     <string name="skill_field_description_error">الوصف مطلوب (بحد أقصى 1024 حرفًا).</string>
     <string name="skill_field_body">المحتوى (markdown)</string>
+    <string name="skill_field_body_error">المحتوى طويل جدًا (بحد أقصى 100,000 حرف).</string>
     <string name="skill_field_category">الفئة</string>
     <string name="skill_category_none">بدون</string>
     <string name="skill_field_always_apply">تطبيق هذه المهارة دائمًا</string>
@@ -51,12 +55,11 @@
     <string name="skill_conflict_dismiss">حسنًا</string>
 
     <!-- Sharing (ACL) -->
-    <string name="skill_acl_title">المشاركة والأذونات</string>
     <string name="skill_acl_no_grants">غير مشتركة مع أحد بعد.</string>
-    <string name="skill_acl_add_principal">إضافة أشخاص أو مجموعات</string>
     <string name="skill_acl_grant_dialog_title">مشاركة المهارة</string>
     <string name="skill_acl_search_hint">البحث عن المستخدمين أو المجموعات أو الأدوار</string>
     <string name="skill_acl_search_empty">لا توجد تطابقات</string>
+    <string name="skill_acl_search_all_shared">كل من تم العثور عليهم لديهم حق الوصول بالفعل.</string>
     <string name="skill_acl_role">الدور</string>
     <string name="skill_acl_revoke">إزالة الوصول</string>
     <string name="skill_acl_public_label">عام</string>
@@ -64,13 +67,7 @@
     <string name="skill_acl_principal_user">مستخدم</string>
     <string name="skill_acl_principal_group">مجموعة</string>
     <string name="skill_acl_principal_role">دور</string>
-    <string name="skill_acl_collapse">طي</string>
-    <string name="skill_acl_expand">توسيع</string>
-    <string name="skill_acl_close">إغلاق</string>
     <string name="skill_import_failed_title">فشل الاستيراد</string>
-    <string name="skill_import_incomplete">أُلغي الاستيراد: تعذّر استيراد %1$d ملف في الأرشيف. أصلح الأرشيف وارفعه مجددًا.</string>
-    <string name="skill_import_rollback_failed">فشل استيراد %1$d ملف، وتعذّرت إزالة المهارة غير المكتملة تلقائيًا. احذفها قبل المحاولة مجددًا.</string>
-    <string name="skill_import_cleanup_incomplete">فشل استيراد %1$d ملف. أُزيلت المهارة غير المكتملة، لكن التنظيف التلقائي لم يكتمل.</string>
     <string name="skill_import_failed_files">تعذّر استيراد هذه الملفات:</string>
     <string name="skill_import_rollback_failed_files">فشل استيراد هذه الملفات، وبقيت المهارة غير المكتملة:</string>
     <string name="skill_import_cleanup_incomplete_files">فشل استيراد هذه الملفات؛ لم يكتمل التنظيف التلقائي:</string>
@@ -81,4 +78,116 @@
     <string name="skill_import_reason_persistence_failed">تعذّر الحفظ</string>
     <string name="skill_import_reason_unknown">تعذّر الاستيراد</string>
     <string name="skill_toggle_source">عرض المصدر</string>
+    <!-- Built-in category labels (upstream categories.ts options, by value) -->
+    <string name="skill_category_idea">أفكار</string>
+    <string name="skill_category_travel">السفر</string>
+    <string name="skill_category_learning">التعلّم</string>
+    <string name="skill_category_writing">الكتابة</string>
+    <string name="skill_category_shopping">التسوق</string>
+    <string name="skill_category_code">البرمجة</string>
+    <string name="skill_category_misc">متفرقات</string>
+    <string name="skill_category_roleplay">لعب الأدوار</string>
+    <string name="skill_category_finance">المالية</string>
+    <!-- List (cards, empty and search states) -->
+    <string name="skills_new">مهارة جديدة</string>
+    <string name="skills_more_options">خيارات إضافية</string>
+    <string name="skills_importing">جارٍ استيراد المهارة…</string>
+    <string name="skills_empty_body">تعلّم المهارات المساعد كيفية التعامل مع مهمة ما. أنشئ مهارة أو استورد ملف مهارة.</string>
+    <string name="skills_empty_body_no_create">ستظهر هنا المهارات التي تمت مشاركتها معك.</string>
+    <string name="skills_no_results">لا توجد مهارات تطابق "%1$s"</string>
+    <string name="skills_load_more_failed">تعذّر تحميل المزيد من المهارات.</string>
+    <string name="skills_owner_you">أنت</string>
+    <string name="skills_badge_public">عامة</string>
+    <string name="skills_badge_always_on">مفعّلة دائمًا</string>
+    <string name="skills_badge_off">متوقفة</string>
+    <plurals name="skill_file_count">
+        <item quantity="zero">%1$d ملف</item>
+        <item quantity="one">ملف واحد</item>
+        <item quantity="two">ملفان</item>
+        <item quantity="few">%1$d ملفات</item>
+        <item quantity="many">%1$d ملفًا</item>
+        <item quantity="other">%1$d ملف</item>
+    </plurals>
+    <!-- Detail, sharing sheet and file rows -->
+    <string name="skill_by_author">بواسطة %1$s</string>
+    <string name="skill_by_you">بواسطتك</string>
+    <string name="skill_updated">حُدّثت %1$s</string>
+    <string name="skill_toggle_rendered">عرض المُنسَّق</string>
+    <string name="skill_share">مشاركة</string>
+    <string name="skill_use_in_chats">استخدامها في محادثاتي</string>
+    <string name="skill_sharing">المشاركة</string>
+    <string name="skill_share_private">خاصة</string>
+    <string name="skill_share_load_failed">تعذّر تحميل المشاركة</string>
+    <string name="skill_delete_failed">تعذّر حذف هذه المهارة.</string>
+    <string name="skill_deleting">جارٍ الحذف…</string>
+    <string name="skill_toggle_failed">تعذّر تغيير استخدام هذه المهارة في محادثاتك.</string>
+    <string name="skill_toggle_too_many_overrides">عدد كبير جدًا من مهاراتك مضبوط بشكل مختلف عن إعداده الافتراضي. أعِد بعضها إلى الإعداد الافتراضي، ثم حاول مرة أخرى.</string>
+    <string name="skill_active_load_failed">تعذّر تحميل حالة استخدام هذه المهارة في محادثاتك.</string>
+    <string name="skill_acl_people">الأشخاص والمجموعات</string>
+    <string name="skill_acl_add">إضافة</string>
+    <string name="skill_acl_role_for">دور %1$s</string>
+    <string name="skill_acl_dismiss">تجاهل</string>
+    <string name="skill_acl_search_failed">تعذّر البحث الآن.</string>
+    <string name="skill_acl_search_unavailable">لا يمكن لدورك البحث عن أشخاص أو مجموعات. اطلب من المسؤول تفعيل أداة اختيار الأشخاص لدورك.</string>
+    <string name="skill_acl_roles_failed">تعذّر تحميل الأدوار، لذا لا يمكن إضافة أحد بعد.</string>
+    <string name="skill_acl_load_failed">تعذّر تحميل من تُشارَك معهم هذه المهارة.</string>
+    <string name="skill_acl_update_failed">تعذّر تحديث المشاركة.</string>
+    <string name="skill_file_open">فتح</string>
+    <string name="skill_file_options">خيارات %1$s</string>
+    <string name="skill_file_remove">إزالة</string>
+    <string name="skill_file_remove_confirm_title">إزالة الملف؟</string>
+    <string name="skill_file_remove_confirm_message">ستُزال «%1$s» من هذه المهارة. لا يمكن التراجع عن ذلك.</string>
+    <string name="skill_file_replace_confirm_title">استبدال الملف؟</string>
+    <string name="skill_file_replace_confirm_message">تحتوي هذه المهارة بالفعل على ملف باسم «%1$s». إضافة هذا الملف تستبدله، ولا يمكن استعادة محتواه الحالي.</string>
+    <string name="skill_file_replace">استبدال</string>
+    <plurals name="skill_share_shared">
+        <item quantity="zero">مُشارَكة مع %1$d شخص أو مجموعة</item>
+        <item quantity="one">مُشارَكة مع شخص أو مجموعة واحدة</item>
+        <item quantity="two">مُشارَكة مع شخصين أو مجموعتين</item>
+        <item quantity="few">مُشارَكة مع %1$d أشخاص أو مجموعات</item>
+        <item quantity="many">مُشارَكة مع %1$d شخصًا أو مجموعة</item>
+        <item quantity="other">مُشارَكة مع %1$d شخص أو مجموعة</item>
+    </plurals>
+    <!-- Editor: reserved names, title limit, conflict -->
+    <string name="skill_field_name_reserved_prefix">لا يمكن أن يبدأ الاسم بـ "anthropic-" أو "claude-".</string>
+    <string name="skill_field_name_reserved_word">"%1$s" اسم محجوز.</string>
+    <string name="skill_field_display_title_error">استخدم 128 حرفًا أو أقل.</string>
+    <string name="skill_editor_conflict">تغيّرت هذه المهارة على الخادم منذ فتحتها. احتفظنا بتعديلاتك؛ احفظ مرة أخرى للكتابة فوقها.</string>
+    <!-- Errors the app words when the server sent no text -->
+    <string name="skill_error_load_skill">تعذّر تحميل هذه المهارة.</string>
+    <string name="skill_error_load_skills">تعذّر تحميل المهارات.</string>
+    <string name="skill_error_load_files">تعذّر تحميل الملفات.</string>
+    <string name="skill_error_upload_file">تعذّر رفع هذا الملف.</string>
+    <string name="skill_error_delete_file">تعذّرت إزالة هذا الملف.</string>
+    <string name="skill_error_create">تعذّر إنشاء هذه المهارة.</string>
+    <string name="skill_error_save">تعذّر حفظ هذه المهارة.</string>
+    <string name="skill_error_import">تعذّر استيراد هذه المهارة.</string>
+    <string name="skill_error_skill_md_upload">SKILL.md هو محتوى المهارة نفسه. عدّل المهارة لتغييره.</string>
+    <string name="skill_error_changed_on_server">تغيّرت هذه المهارة على الخادم، وتعذّر تحميل أحدث إصدار منها. تعديلاتك محفوظة: حاول الحفظ مرة أخرى.</string>
+    <string name="skill_acl_principal_unknown">غير معروف</string>
+    <!-- Skill import failure summaries -->
+    <plurals name="skill_import_incomplete">
+        <item quantity="zero">أُلغي الاستيراد: تعذّر استيراد %1$d ملف في الأرشيف. أصلح الأرشيف وارفعه مجددًا.</item>
+        <item quantity="one">أُلغي الاستيراد: تعذّر استيراد ملف واحد في الأرشيف. أصلح الأرشيف وارفعه مجددًا.</item>
+        <item quantity="two">أُلغي الاستيراد: تعذّر استيراد ملفين في الأرشيف. أصلح الأرشيف وارفعه مجددًا.</item>
+        <item quantity="few">أُلغي الاستيراد: تعذّر استيراد %1$d ملفات في الأرشيف. أصلح الأرشيف وارفعه مجددًا.</item>
+        <item quantity="many">أُلغي الاستيراد: تعذّر استيراد %1$d ملفًا في الأرشيف. أصلح الأرشيف وارفعه مجددًا.</item>
+        <item quantity="other">أُلغي الاستيراد: تعذّر استيراد %1$d ملف في الأرشيف. أصلح الأرشيف وارفعه مجددًا.</item>
+    </plurals>
+    <plurals name="skill_import_rollback_failed">
+        <item quantity="zero">فشل استيراد %1$d ملف، وتعذّرت إزالة المهارة غير المكتملة تلقائيًا. احذفها قبل المحاولة مجددًا.</item>
+        <item quantity="one">فشل استيراد ملف واحد، وتعذّرت إزالة المهارة غير المكتملة تلقائيًا. احذفها قبل المحاولة مجددًا.</item>
+        <item quantity="two">فشل استيراد ملفين، وتعذّرت إزالة المهارة غير المكتملة تلقائيًا. احذفها قبل المحاولة مجددًا.</item>
+        <item quantity="few">فشل استيراد %1$d ملفات، وتعذّرت إزالة المهارة غير المكتملة تلقائيًا. احذفها قبل المحاولة مجددًا.</item>
+        <item quantity="many">فشل استيراد %1$d ملفًا، وتعذّرت إزالة المهارة غير المكتملة تلقائيًا. احذفها قبل المحاولة مجددًا.</item>
+        <item quantity="other">فشل استيراد %1$d ملف، وتعذّرت إزالة المهارة غير المكتملة تلقائيًا. احذفها قبل المحاولة مجددًا.</item>
+    </plurals>
+    <plurals name="skill_import_cleanup_incomplete">
+        <item quantity="zero">فشل استيراد %1$d ملف. أُزيلت المهارة غير المكتملة، لكن التنظيف التلقائي لم يكتمل.</item>
+        <item quantity="one">فشل استيراد ملف واحد. أُزيلت المهارة غير المكتملة، لكن التنظيف التلقائي لم يكتمل.</item>
+        <item quantity="two">فشل استيراد ملفين. أُزيلت المهارة غير المكتملة، لكن التنظيف التلقائي لم يكتمل.</item>
+        <item quantity="few">فشل استيراد %1$d ملفات. أُزيلت المهارة غير المكتملة، لكن التنظيف التلقائي لم يكتمل.</item>
+        <item quantity="many">فشل استيراد %1$d ملفًا. أُزيلت المهارة غير المكتملة، لكن التنظيف التلقائي لم يكتمل.</item>
+        <item quantity="other">فشل استيراد %1$d ملف. أُزيلت المهارة غير المكتملة، لكن التنظيف التلقائي لم يكتمل.</item>
+    </plurals>
 </resources>

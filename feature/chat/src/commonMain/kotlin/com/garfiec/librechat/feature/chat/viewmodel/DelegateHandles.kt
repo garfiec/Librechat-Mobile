@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.ContextUsageTotals
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
+import com.garfiec.librechat.feature.chat.util.CatalogSkill
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
@@ -127,6 +128,21 @@ class ModelSelectionHandle(root: ChatStateHandle) : DelegateHandle(root) {
         root.update { ModelSelectionWrites(this).apply(block).applyTo(this) }
 }
 
+// ── SkillsToggleDelegate ──────────────────────────────────────────────────
+// Owns only the conversation's Skills toggle value; everything that decides which slot it reads
+// (conversation id, temp-ness, spec) is written by others.
+class SkillsToggleWrites internal constructor(state: ChatUiState) {
+    var skillsToggle: Boolean = state.selection.skillsToggle
+    internal fun applyTo(s: ChatUiState) = s.copy(selection = s.selection.copy(skillsToggle = skillsToggle))
+}
+
+class SkillsToggleHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    /** Read-only observation of the full state (the slot follows conversation, temp-ness and spec). */
+    val stateFlow: StateFlow<ChatUiState> get() = root.stateFlow
+    fun update(block: SkillsToggleWrites.() -> Unit) =
+        root.update { SkillsToggleWrites(this).apply(block).applyTo(this) }
+}
+
 // ── EndpointKeyStatusDelegate ─────────────────────────────────────────────
 // Narrower than ModelSelectionHandle on purpose: this delegate owns only the
 // per-endpoint key-state map, so it may not touch the rest of the selection slice.
@@ -159,6 +175,26 @@ class PresetPromptWrites internal constructor(state: ChatUiState) {
 class PresetPromptHandle(root: ChatStateHandle) : DelegateHandle(root) {
     fun update(block: PresetPromptWrites.() -> Unit) =
         root.update { PresetPromptWrites(this).apply(block).applyTo(this) }
+}
+
+// ── SkillPickerDelegate ───────────────────────────────────────────────────
+// Owns only the picker's skill catalog; picking a skill goes through the send-dispatch chips.
+class SkillPickerWrites internal constructor(state: ChatUiState) {
+    var skillCatalog: List<CatalogSkill>? = state.presetPrompts.skillCatalog
+    var isLoadingSkills: Boolean = state.presetPrompts.isLoadingSkills
+    var skillsLoadFailed: Boolean = state.presetPrompts.skillsLoadFailed
+    internal fun applyTo(s: ChatUiState) = s.copy(
+        presetPrompts = s.presetPrompts.copy(
+            skillCatalog = skillCatalog,
+            isLoadingSkills = isLoadingSkills,
+            skillsLoadFailed = skillsLoadFailed,
+        ),
+    )
+}
+
+class SkillPickerHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    fun update(block: SkillPickerWrites.() -> Unit) =
+        root.update { SkillPickerWrites(this).apply(block).applyTo(this) }
 }
 
 // ── ConversationActionsDelegate ───────────────────────────────────────────
@@ -370,16 +406,21 @@ class ChatConfigHandle(root: ChatStateHandle) : DelegateHandle(root) {
 // Owns the message slice wholesale (every Room emission rebuilds messages/displayMessages and
 // the load flags live there too). On the composer it may only put text and quote chips back,
 // and on the conversation slice only the title: identity, temp-chat and navigation stay with
-// the ViewModel's open/reset transactions.
+// the ViewModel's open/reset transactions. Skill chips come back with the text the same way.
 class ConversationLoadWrites internal constructor(state: ChatUiState) {
     var content: MessagesState = state.content
     var inputText: String = state.composer.inputText
     var pendingQuotes: List<String> = state.composer.pendingQuotes
+    var pendingManualSkills: List<String> = state.composer.pendingManualSkills
     var conversationTitle: String? = state.conversation.conversationTitle
     var error: String? = state.error
     internal fun applyTo(s: ChatUiState) = s.copy(
         content = content,
-        composer = s.composer.copy(inputText = inputText, pendingQuotes = pendingQuotes),
+        composer = s.composer.copy(
+            inputText = inputText,
+            pendingQuotes = pendingQuotes,
+            pendingManualSkills = pendingManualSkills,
+        ),
         conversation = s.conversation.copy(conversationTitle = conversationTitle),
         error = error,
     )
@@ -409,6 +450,7 @@ class SendDispatchWrites internal constructor(state: ChatUiState) {
     var content: MessagesState = state.content
     var inputText: String = state.composer.inputText
     var pendingQuotes: List<String> = state.composer.pendingQuotes
+    var pendingManualSkills: List<String> = state.composer.pendingManualSkills
     var pendingUploadRouting: PendingUploadRouting? = state.composer.pendingUploadRouting
     var error: String? = state.error
     internal fun applyTo(s: ChatUiState) = s.copy(
@@ -416,6 +458,7 @@ class SendDispatchWrites internal constructor(state: ChatUiState) {
         composer = s.composer.copy(
             inputText = inputText,
             pendingQuotes = pendingQuotes,
+            pendingManualSkills = pendingManualSkills,
             pendingUploadRouting = pendingUploadRouting,
         ),
         error = error,
@@ -432,28 +475,32 @@ class SendDispatchHandle(root: ChatStateHandle) : DelegateHandle(root) {
 // ── QueueOrchestrationDelegate ────────────────────────────────────────────
 // Writes nothing on the queue slice: every row change goes through MessageQueueDelegate and
 // QueuedTurnDelegate. What it owns is the composer swap a queued edit makes — the text, a staged
-// batch, the edit session — and the four selection fields that swap carries, so `applyComposer`
+// batch, the skill chips, the edit session — and the selection fields that swap carries, so `applyComposer`
 // stays one emission.
 class QueueOrchestrationWrites internal constructor(state: ChatUiState) {
     var inputText: String = state.composer.inputText
     var pendingUploadRouting: PendingUploadRouting? = state.composer.pendingUploadRouting
     var editingQueuedItem: QueuedEditSession? = state.composer.editingQueuedItem
+    var pendingManualSkills: List<String> = state.composer.pendingManualSkills
     var choice: ModelChoice = state.selection.choice
     var enabledTools: Set<String> = state.selection.enabledTools
     var selectedMcpServerNames: Set<String> = state.selection.selectedMcpServerNames
     var modelParameters: ModelParameters = state.selection.modelParameters
+    var skillsToggle: Boolean = state.selection.skillsToggle
     var error: String? = state.error
     internal fun applyTo(s: ChatUiState) = s.copy(
         composer = s.composer.copy(
             inputText = inputText,
             pendingUploadRouting = pendingUploadRouting,
             editingQueuedItem = editingQueuedItem,
+            pendingManualSkills = pendingManualSkills,
         ),
         selection = s.selection.copy(
             choice = choice,
             enabledTools = enabledTools,
             selectedMcpServerNames = selectedMcpServerNames,
             modelParameters = modelParameters,
+            skillsToggle = skillsToggle,
         ),
         error = error,
     )

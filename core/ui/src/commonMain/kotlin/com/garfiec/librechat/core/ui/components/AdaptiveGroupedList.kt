@@ -38,24 +38,30 @@ enum class GroupPosition {
 internal val LocalGroupPosition = staticCompositionLocalOf<GroupPosition?> { null }
 
 class AdaptiveSectionScope internal constructor() {
-    internal val rows = mutableListOf<Pair<Any, @Composable () -> Unit>>()
+    internal class Row(val key: Any, val contentType: Any?, val content: @Composable () -> Unit)
 
-    fun row(key: Any, content: @Composable () -> Unit) {
-        rows += key to content
+    internal val rows = mutableListOf<Row>()
+
+    /**
+     * One row. Pass [contentType] where a list mixes kinds of row (rule 9), so rows of a kind reuse
+     * each other's compositions as they scroll.
+     */
+    fun row(key: Any, contentType: Any? = null, content: @Composable () -> Unit) {
+        rows += Row(key, contentType, content)
     }
 }
 
 /** One lazy item per row. Positions are computed here so conditional rows can't leave a stray corner. */
 fun LazyListScope.adaptiveSection(content: AdaptiveSectionScope.() -> Unit) {
     val rows = AdaptiveSectionScope().apply(content).rows
-    rows.forEachIndexed { index, (key, row) ->
+    rows.forEachIndexed { index, row ->
         val position = when {
             rows.size == 1 -> GroupPosition.ONLY
             index == 0 -> GroupPosition.FIRST
             index == rows.lastIndex -> GroupPosition.LAST
             else -> GroupPosition.MIDDLE
         }
-        item(key = key) { AdaptiveGroupedCell(position) { row() } }
+        item(key = row.key, contentType = row.contentType) { AdaptiveGroupedCell(position) { row.content() } }
     }
 }
 

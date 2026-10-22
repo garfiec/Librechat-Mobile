@@ -3,6 +3,11 @@ package com.garfiec.librechat.core.model.config
 import com.garfiec.librechat.core.model.Preset
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
 
 @Serializable
 data class ModelSpec(
@@ -28,4 +33,54 @@ data class ModelSpec(
      * the whole `/api/config`.
      */
     val order: Double? = null,
-)
+    /**
+     * Raw `skills` key: `true`, `false` or a list of skill names. Absent means the spec leaves
+     * skills to the user's own toggle. Kept as a [JsonElement] because the key is a union; read it
+     * through [skillsSetting].
+     *
+     * Not sent by v0.8.8: `GET /api/config` runs the specs through `sanitizeModelSpecs`, which
+     * deletes `skills` from every spec (registered in `scripts/mirrors.json` as
+     * `model-spec-skills-sanitized`), so this is always null against the targeted backend and
+     * every spec-governed skills branch built on it is inert. The server still applies the spec's
+     * setting to the run; the client just can't see it. Kept so the handling switches on if
+     * upstream starts sending the key.
+     */
+    val skills: JsonElement? = null,
+) {
+    /**
+     * What this spec says about skills, or null when it configures none.
+     *
+     * MIRRORED from `api/server/services/Endpoints/agents/initialize.js` (registered in
+     * `scripts/mirrors.json` as `model-spec-skills`): `true` turns the full catalog on, `false`
+     * turns skills off, a list limits them to those names. A spec that has the key governs the
+     * ephemeral agent's skills outright, so the per-conversation toggle is not consulted.
+     * An empty list means no skills, like `false`. A value of any other shape is ignored, as the
+     * server's `Array.isArray` / `=== true` / `=== false` checks would ignore it.
+     */
+    val skillsSetting: ModelSpecSkills?
+        get() = when (val raw = skills) {
+            null -> null
+            is JsonArray -> {
+                val names = raw.mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.contentOrNull }
+                if (names.isEmpty()) ModelSpecSkills.Off else ModelSpecSkills.Only(names)
+            }
+            is JsonPrimitive -> when (raw.takeUnless { it.isString }?.booleanOrNull) {
+                true -> ModelSpecSkills.All
+                false -> ModelSpecSkills.Off
+                null -> null
+            }
+            else -> null
+        }
+}
+
+/** A model spec's `skills` setting. See [ModelSpec.skillsSetting]. */
+sealed interface ModelSpecSkills {
+    /** `skills: true`: the whole catalog the user can reach. */
+    data object All : ModelSpecSkills
+
+    /** `skills: false` or `[]`: no skills, manual picks included. */
+    data object Off : ModelSpecSkills
+
+    /** `skills: [names]`: only these skills. */
+    data class Only(val names: List<String>) : ModelSpecSkills
+}

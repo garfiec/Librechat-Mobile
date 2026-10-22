@@ -580,6 +580,21 @@
     <string name="cd_collapse_ask_user_question">收起问题详情</string>
     <string name="tool_memory">记忆</string>
     <string name="tool_memory_desc">让助手记住此对话中的细节</string>
+    <string name="tool_skills">技能</string>
+    <string name="tool_skills_desc">允许助手在此对话中使用你的技能</string>
+    <string name="cd_skills_enabled">已启用技能</string>
+    <string name="picker_type_prompt">提示词</string>
+    <string name="picker_type_skill">技能</string>
+    <string name="picker_no_matches">没有匹配项</string>
+    <string name="picker_loading_skills">正在加载技能…</string>
+    <string name="picker_skills_failed">无法加载技能</string>
+    <string name="cd_pending_skills">下一条消息使用的技能</string>
+    <string name="cd_remove_skill">移除技能 %1$s</string>
+    <string name="cd_skill_always_applied">始终应用的技能：%1$s</string>
+    <string name="cd_skill_used">已使用的技能：%1$s</string>
+    <string name="skill_call_running">正在运行 %1$s</string>
+    <string name="skill_call_finished">已运行 %1$s</string>
+    <string name="skill_call_fallback_name">技能</string>
     <string name="cd_steer_message">引导此回复</string>
     <string name="cd_cancel_steer">取消引导</string>
     <string name="cd_during_run_options">选择现在发送的方式</string>
@@ -679,6 +694,8 @@
     <string name="notice_speech_permission_denied">语音识别权限被拒绝</string>
     <string name="notice_speech_unavailable">语音识别不可用。请检查“设置”&gt;“隐私”&gt;“语音识别”。</string>
     <string name="notice_send_refused">服务器拒绝了此消息。</string>
+    <string name="notice_skills_not_sent">部分技能无法在此聊天中使用，未被发送。</string>
+    <string name="notice_skills_removed_from_queued">部分技能无法在此聊天中使用，已从排队的消息中移除。</string>
     <plurals name="notice_message_limit_retry_minutes">
         <item quantity="other">你已达到此服务器的消息上限。请在 %1$d 分钟后重试。</item>
     </plurals>

@@ -13,6 +13,7 @@ import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.SkillsRepository
 import com.garfiec.librechat.core.data.repository.ToolFavoritesRepository
+import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import kotlinx.coroutines.CoroutineDispatcher
 import org.junit.Test
@@ -35,6 +36,7 @@ class AgentsModuleVerificationTest {
                 RoleRepository::class,
                 SkillsRepository::class,
                 ToolFavoritesRepository::class,
+                UserRepository::class,
                 PermissionGate::class,
                 ServerDataStore::class,
                 // Provided by core:common CommonModule via KoinQualifiers.IO.

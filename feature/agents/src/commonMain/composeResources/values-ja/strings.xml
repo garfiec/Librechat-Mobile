@@ -245,13 +245,20 @@
     <string name="acl_public_label">公開</string>
     <string name="acl_public_description">サーバーにアクセスできるすべての人に許可します</string>
     <string name="acl_role">ロール</string>
-    <string name="acl_revoke">取り消す</string>
+    <string name="acl_revoke_principal">%1$s のアクセスを取り消す</string>
     <string name="acl_search_hint">ユーザーまたはグループを検索…</string>
     <string name="acl_search_empty">一致するものがありません</string>
+    <string name="acl_search_failed">現在検索できません。</string>
+    <string name="acl_search_unavailable">あなたのロールではユーザーやグループを検索できません。管理者にロールのユーザー選択を有効にするよう依頼してください。</string>
+    <string name="acl_roles_failed">ロールを読み込めなかったため、まだ誰も追加できません。</string>
+    <string name="acl_load_failed">アクセスできるユーザーを読み込めませんでした。</string>
+    <string name="acl_share_check_failed">このエージェントを共有できるか確認できませんでした。</string>
+    <string name="acl_retry">再試行</string>
     <string name="acl_grant_dialog_title">ユーザーまたはグループを追加</string>
     <string name="acl_principal_user">ユーザー</string>
     <string name="acl_principal_group">グループ</string>
     <string name="acl_principal_role">ロール</string>
+    <string name="acl_principal_unknown">不明</string>
     <string name="acl_create_mode_notice">共有とアクセス制御はエージェントの保存後に利用できます。</string>
 
     <!-- Tool select dialog -->

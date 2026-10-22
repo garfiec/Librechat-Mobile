@@ -245,13 +245,20 @@
     <string name="acl_public_label">公开</string>
     <string name="acl_public_description">允许任何能访问服务器的人</string>
     <string name="acl_role">角色</string>
-    <string name="acl_revoke">吊销</string>
+    <string name="acl_revoke_principal">吊销 %1$s 的访问权限</string>
     <string name="acl_search_hint">搜索用户或群组…</string>
     <string name="acl_search_empty">无匹配项</string>
+    <string name="acl_search_failed">目前无法搜索。</string>
+    <string name="acl_search_unavailable">你的角色无法搜索用户或群组。请让管理员为你的角色开启人员选择器。</string>
+    <string name="acl_roles_failed">无法加载角色，暂时无法添加任何人。</string>
+    <string name="acl_load_failed">无法加载有访问权限的人员。</string>
+    <string name="acl_share_check_failed">无法检查你是否可以共享此智能体。</string>
+    <string name="acl_retry">重试</string>
     <string name="acl_grant_dialog_title">添加用户或群组</string>
     <string name="acl_principal_user">用户</string>
     <string name="acl_principal_group">群组</string>
     <string name="acl_principal_role">角色</string>
+    <string name="acl_principal_unknown">未知</string>
     <string name="acl_create_mode_notice">分享与访问控制在智能体保存后可用。</string>
 
     <!-- Tool select dialog -->

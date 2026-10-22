@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.ChatLayoutConstants
+import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.model.AskUserQuestionRequest
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.Message
@@ -164,7 +165,7 @@ private fun AttachmentTileHost() {
             AttachedFile(uri = "file://report", name = "quarterly-report.pdf", fileId = "f1"),
             AttachedFile(uri = "file://notes", name = "notes.txt", fileId = "f2"),
         ),
-        enabledTools = emptySet(),
+        enabledTools = setOf(ToolConstants.SKILLS),
         onRemoveFile = {},
     )
 }

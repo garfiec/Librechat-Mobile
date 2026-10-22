@@ -70,6 +70,9 @@ class MessageEditingDelegate(
             sender = "User",
             createdAt = Clock.System.now().toString(),
             files = originalMessage.files,
+            // The edited turn keeps its skill pills and primes the same skills (web's
+            // `overrideManualSkills: message.manualSkills` on save-and-submit).
+            manualSkills = originalMessage.manualSkills,
         )
         handle.update {
             val updatedMessages = content.messages + optimisticMessage
@@ -84,6 +87,7 @@ class MessageEditingDelegate(
             parentMessageId = parentMessageId,
             userMessageId = optimisticMessage.messageId,
             files = originalMessage.files,
+            manualSkills = originalMessage.manualSkills,
             isEdited = true,
             logLabel = "editUserMessage",
         )
@@ -108,6 +112,7 @@ class MessageEditingDelegate(
             overrideParentMessageId = parentUserMessage.messageId,
             files = parentUserMessage.files,
             quotes = parentUserMessage.quotes,
+            manualSkills = parentUserMessage.manualSkills,
             isEdited = true,
             isRegenerate = true,
             logLabel = "editAiMessage",
@@ -135,6 +140,7 @@ class MessageEditingDelegate(
             overrideParentMessageId = parentUserMessage.messageId,
             files = parentUserMessage.files,
             quotes = parentUserMessage.quotes,
+            manualSkills = parentUserMessage.manualSkills,
             isRegenerate = true,
             logLabel = "regenerateMessage",
         )
@@ -211,7 +217,9 @@ class MessageEditingDelegate(
      * the parent user turn also carry its persisted [quotes] (web's `overrideQuotes`): the
      * server rebuilds the user message from `req.body.quotes` on a regenerate, so omitting
      * them silently drops the quoted context while the chips stay visible. Continue sends
-     * none, matching web. The new-message send path
+     * none, matching web. Regenerate and both edits likewise replay the user turn's persisted
+     * [manualSkills] (web's `overrideManualSkills`), so the new reply is primed with the skills
+     * its pills show; continue and compaction send none. The new-message send path
      * (`SendDispatchDelegate.doSendWithSpec`) is separate: it additionally carries an
      * added-conversation for comparison mode and a bespoke stream-terminated callback this helper
      * deliberately omits.
@@ -232,6 +240,7 @@ class MessageEditingDelegate(
         responseMessageId: String? = null,
         files: List<FileReference>? = null,
         quotes: List<String>? = null,
+        manualSkills: List<String>? = null,
         isEdited: Boolean = false,
         isRegenerate: Boolean = false,
         isContinued: Boolean = false,
@@ -243,6 +252,8 @@ class MessageEditingDelegate(
         streamingManager.prepareForStreaming(
             isEdit = true,
             optimisticUserMessageId = optimisticUserMessageId,
+            // The resume pin applies the same skills-flag rule as the body.
+            manualSkills = manualSkills,
         )
 
         val state = handle.state
@@ -273,6 +284,7 @@ class MessageEditingDelegate(
                 webSearch = webSearchEnabled,
                 files = files,
                 quotes = quotes,
+                manualSkills = manualSkills,
                 ephemeralAgent = ephemeralAgent,
                 isTemporary = state.isTemporaryChat,
                 modelParams = requestBuilder.buildModelParams(),

@@ -91,6 +91,6 @@ private val chats = listOf(
 )
 
 /** What a fresh server shows: Agents, Skills and Files, no Schedules, no Projects. */
-private val defaultGates = DrawerUiState(groupedConversations = chats)
+private val defaultGates = DrawerUiState(groupedConversations = chats, skillsEnabled = true)
 
 private val allGates = defaultGates.copy(schedulesEnabled = true, projectsEnabled = true)

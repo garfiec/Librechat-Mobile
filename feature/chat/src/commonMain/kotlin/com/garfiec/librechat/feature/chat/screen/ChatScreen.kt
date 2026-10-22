@@ -258,6 +258,17 @@ fun ChatScreen(
     } else {
         displayModel
     }
+    // The picker's skill rows, narrowed for this chat. Recomputed only when an input changes, not
+    // on every chrome emission.
+    val pickerSkills = remember(
+        uiState.skillCatalog,
+        uiState.canPickSkills,
+        uiState.activeSpecSkills,
+        uiState.selectedEndpoint,
+        uiState.selectedModel,
+        uiState.agents,
+        uiState.pendingManualSkills,
+    ) { uiState.pickerSkills }
     // One launcher set, registered here and shared by both the composer "+" sheet (ChatInput) and
     // the pull-up sheet: a launcher stays usable from descendant compositions while the one that
     // registered it (this screen) is alive, so a second registration would be redundant.
@@ -520,6 +531,8 @@ fun ChatScreen(
                                 pendingSteers = uiState.pendingSteers,
                                 pendingQuotes = uiState.pendingQuotes,
                                 onRemoveQuote = viewModel::removePendingQuote,
+                                pendingManualSkills = uiState.pendingManualSkills,
+                                onRemoveManualSkill = viewModel::removePendingManualSkill,
                                 onCancelSteer = viewModel::cancelSteer,
                                 onSetDuringRunAction = viewModel::setDuringRunAction,
                                 attachedFiles = attachedFiles,
@@ -527,7 +540,12 @@ fun ChatScreen(
                                 onPasteFiles = viewModel::onFilesSelected,
                                 pasteScope = coroutineScope,
                                 promptSuggestions = uiState.availablePrompts,
-                                onSlashCommandSelect = viewModel::handleSlashCommand,
+                                skillSuggestions = pickerSkills,
+                                isLoadingSkills = uiState.isLoadingSkills && uiState.canPickSkills,
+                                skillsLoadFailed = uiState.skillsLoadFailed && uiState.canPickSkills,
+                                canPickSkills = uiState.canPickSkills,
+                                onRetrySkills = viewModel::retrySkillCatalog,
+                                onPickerSelect = viewModel::selectPickerItem,
                                 isRecording = uiState.isRecording,
                                 isTranscribing = uiState.isTranscribing,
                                 onStartRecording = onStartRecordingWithPermission,

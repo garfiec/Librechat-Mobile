@@ -34,6 +34,10 @@ data class MessageEntity(
     val metadata: String?,
     /** JSON-encoded `List<String>` of verbatim quote excerpts (v0.8.7). Null when absent. */
     val quotes: String? = null,
+    /** JSON-encoded `List<String>`: skill names the user picked for this turn. Null when absent. */
+    val manualSkills: String? = null,
+    /** JSON-encoded `List<String>`: skills the server primed on its own (`always-apply`). Null when absent. */
+    val alwaysAppliedSkills: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     /** Row-tenancy owner (self-owning; stamped from the carried command, not only transitively via conversation). See ConversationEntity.accountId. */

@@ -849,6 +849,7 @@ fun MainNavDisplay(
             skillsEntries(
                 onNavigate = { navigator.navigate(it) },
                 onBack = { navigator.goBack() },
+                onReplace = { route, replacement -> navigator.replace(route, replacement) },
             )
             schedulesEntries(
                 onNavigate = { navigator.navigate(it) },

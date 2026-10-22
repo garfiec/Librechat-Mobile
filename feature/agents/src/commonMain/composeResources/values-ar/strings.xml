@@ -245,13 +245,20 @@
     <string name="acl_public_label">عام</string>
     <string name="acl_public_description">السماح لأي شخص لديه وصول إلى الخادم</string>
     <string name="acl_role">الدور</string>
-    <string name="acl_revoke">إبطال</string>
+    <string name="acl_revoke_principal">إبطال وصول %1$s</string>
     <string name="acl_search_hint">البحث عن المستخدمين أو المجموعات…</string>
     <string name="acl_search_empty">لا توجد تطابقات</string>
+    <string name="acl_search_failed">تعذّر البحث الآن.</string>
+    <string name="acl_search_unavailable">لا يمكن لدورك البحث عن أشخاص أو مجموعات. اطلب من المسؤول تفعيل أداة اختيار الأشخاص لدورك.</string>
+    <string name="acl_roles_failed">تعذّر تحميل الأدوار، لذا لا يمكن إضافة أحد بعد.</string>
+    <string name="acl_load_failed">تعذّر تحميل من لديه حق الوصول.</string>
+    <string name="acl_share_check_failed">تعذّر التحقق مما إذا كان بإمكانك مشاركة هذا الوكيل.</string>
+    <string name="acl_retry">إعادة المحاولة</string>
     <string name="acl_grant_dialog_title">إضافة مستخدم أو مجموعة</string>
     <string name="acl_principal_user">مستخدم</string>
     <string name="acl_principal_group">مجموعة</string>
     <string name="acl_principal_role">دور</string>
+    <string name="acl_principal_unknown">غير معروف</string>
     <string name="acl_create_mode_notice">تتوفر عناصر التحكم في المشاركة والوصول بعد حفظ الوكيل.</string>
 
     <!-- Tool select dialog -->

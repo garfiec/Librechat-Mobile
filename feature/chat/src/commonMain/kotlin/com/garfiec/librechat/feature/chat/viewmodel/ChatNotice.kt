@@ -45,6 +45,12 @@ enum class ChatNotice(val wire: String) {
     /** The server's middleware refused a send with a code this build does not recognize. */
     SEND_REFUSED("send_refused"),
 
+    /** A send or queue left skill chips this chat can't run staged in the composer. */
+    SKILLS_NOT_SENT("skills_not_sent"),
+
+    /** Saving a queued edit removed skill chips this chat can't run from the queued message. */
+    SKILLS_REMOVED_FROM_QUEUED("skills_removed_from_queued"),
+
     /**
      * Arg: whole seconds until the server's message limit lets a send through again. Rendered as a
      * plural in the largest unit that fits (see `localizedStreamError`).

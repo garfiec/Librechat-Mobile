@@ -28,6 +28,16 @@ data class Principal(
 )
 
 /**
+ * The shortest trimmed query `GET /api/permissions/search-principals` accepts; anything shorter is
+ * refused with a 400 (`createPrincipalSearch` in packages/api/src/acl/search.ts). Mirror: scripts/mirrors.json
+ * `principal-search-min-query`.
+ */
+const val PRINCIPAL_SEARCH_MIN_QUERY_LENGTH = 2
+
+/** Whether [query] is one the principal search would answer rather than refuse. */
+fun isSearchablePrincipalQuery(query: String): Boolean = query.trim().length >= PRINCIPAL_SEARCH_MIN_QUERY_LENGTH
+
+/**
  * The `GET /api/permissions/{resourceType}/{resourceId}` response shape (see
  * PermissionsController.js getResourcePermissions).
  */
@@ -40,11 +50,17 @@ data class ResourcePermissions(
 
 /**
  * The `PUT /api/permissions/{resourceType}/{resourceId}` request body
- * (PermissionsController.js updateResourcePermissions).
+ * (PermissionsController.js updateResourcePermissions:58).
  *
- * [public] is three-state on the wire: null leaves public access as it is (and skips the server's
- * SHARE_PUBLIC check), `false` revokes it, `true` grants [publicAccessRoleId]. It is nullable so
- * that `false` is not the default and survives the client's `encodeDefaults = false`.
+ * [public] is three-state on the wire, and the app's JSON drops nulls and defaults: null leaves
+ * public access alone, `true` (with [publicAccessRoleId]) grants it, and `false` revokes it. Send
+ * it only when the public state or its role changes, as web does: a truthy `public` runs the
+ * server's SHARE_PUBLIC check, which refuses a plain grant from a role that can share but not
+ * publicly.
+ *
+ * The response is NOT a [ResourcePermissions]: it is `{ message, results: { principals, public?,
+ * publicAccessRoleId } }`, and `results.principals` holds only what that call granted. Refetch
+ * with `GET` for the resource's grants.
  */
 @Serializable
 data class UpdateResourcePermissionsRequest(

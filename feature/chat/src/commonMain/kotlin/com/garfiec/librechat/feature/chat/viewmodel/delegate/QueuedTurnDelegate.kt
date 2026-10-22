@@ -101,6 +101,7 @@ class QueuedTurnDelegate(
                         file.fileId?.let { QueuedTurnFileRef(fileId = it) }
                     }.ifEmpty { null },
                     quotes = spec.quotes.ifEmpty { null },
+                    manualSkills = spec.manualSkills.ifEmpty { null },
                     expectedPredecessorCreatedAt = spec.expectedPredecessorCreatedAt,
                 ),
             )

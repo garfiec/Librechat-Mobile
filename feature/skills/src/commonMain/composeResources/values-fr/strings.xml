@@ -3,35 +3,37 @@
     <!-- List -->
     <string name="skills_title">Compétences</string>
     <string name="skills_back">Retour</string>
-    <string name="skills_create">Créer une compétence</string>
     <string name="skills_import">Importer une compétence</string>
     <string name="skills_search_hint">Rechercher des compétences…</string>
+    <string name="skills_search_clear">Effacer la recherche</string>
     <string name="skills_empty">Aucune compétence pour l'instant.</string>
-    <string name="skills_empty_hint">Appuyez sur + pour en créer une ou importez un fichier de compétence.</string>
-    <string name="skills_no_matches">Aucune compétence ne correspond à votre recherche.</string>
     <string name="skills_retry">Réessayer</string>
 
     <!-- Files -->
     <string name="skill_files_title">Fichiers</string>
     <string name="skill_files_empty">Aucun fichier joint.</string>
     <string name="skill_files_add">Ajouter un fichier</string>
-    <string name="skill_files_remove">Supprimer %1$s</string>
     <string name="skill_file_save">Enregistrer</string>
-    <string name="skill_file_close">Fermer</string>
     <string name="skill_file_reload">Recharger</string>
     <string name="skill_file_conflict">Ce fichier a été modifié ailleurs. Rechargez pour voir la dernière version ; vos modifications ici seront abandonnées.</string>
     <string name="skill_file_binary">Ce fichier ne peut pas être affiché sous forme de texte.</string>
+    <string name="skill_file_note_skill_body">Il s'agit du contenu même de la compétence. Modifiez la compétence pour le changer.</string>
+    <string name="skill_file_note_no_access">Vous pouvez consulter ce fichier, mais pas le modifier.</string>
+    <string name="skill_file_note_access_unknown">Impossible de vérifier si vous pouvez modifier ce fichier. Rechargez pour réessayer.</string>
+    <string name="skill_file_note_too_large">Ce fichier est trop volumineux pour être modifié ici ; il s'ouvre donc en lecture seule.</string>
+    <string name="skill_file_note_truncated">Ce fichier est trop volumineux pour être affiché en entier ici. Seul son début est affiché, en lecture seule.</string>
+    <string name="skill_file_note_no_revision">Ce serveur ne peut pas modifier les fichiers sur place ; ce fichier s'ouvre donc en lecture seule.</string>
+    <string name="skill_file_load_failed">Impossible de charger ce fichier.</string>
+    <string name="skill_file_save_failed">Impossible d'enregistrer ce fichier.</string>
+    <string name="skill_file_image_description">Aperçu de %1$s</string>
 
     <!-- Detail -->
     <string name="skill_edit">Modifier</string>
     <string name="skill_delete">Supprimer</string>
-    <string name="skill_category_label">Catégorie : %1$s</string>
     <string name="skill_version_label">Version %1$d</string>
     <string name="skill_delete_confirm_title">Supprimer la compétence ?</string>
     <string name="skill_delete_confirm_message">Ceci supprime définitivement "%1$s". Cette action est irréversible.</string>
     <string name="skill_empty_body">Cette compétence n'a aucun contenu.</string>
-    <string name="skill_active_label">Active</string>
-    <string name="skill_active_description">Rendre cette compétence disponible dans les discussions.</string>
 
     <!-- Editor -->
     <string name="skill_editor_create_title">Nouvelle compétence</string>
@@ -39,10 +41,12 @@
     <string name="skill_field_name">Nom</string>
     <string name="skill_field_name_hint">minuscules-en-kebab-case</string>
     <string name="skill_field_name_error">Utilisez des lettres minuscules, des chiffres et des tirets (max 64).</string>
+    <string name="skill_field_name_taken">Une compétence porte déjà ce nom.</string>
     <string name="skill_field_display_title">Titre d'affichage</string>
     <string name="skill_field_description">Description</string>
     <string name="skill_field_description_error">La description est requise (max 1024 caractères).</string>
     <string name="skill_field_body">Contenu (markdown)</string>
+    <string name="skill_field_body_error">Le contenu est trop long (max 100 000 caractères).</string>
     <string name="skill_field_category">Catégorie</string>
     <string name="skill_category_none">Aucune</string>
     <string name="skill_field_always_apply">Toujours appliquer cette compétence</string>
@@ -51,12 +55,11 @@
     <string name="skill_conflict_dismiss">OK</string>
 
     <!-- Sharing (ACL) -->
-    <string name="skill_acl_title">Partage &amp; autorisations</string>
     <string name="skill_acl_no_grants">Pas encore partagée avec quiconque.</string>
-    <string name="skill_acl_add_principal">Ajouter des personnes ou des groupes</string>
     <string name="skill_acl_grant_dialog_title">Partager la compétence</string>
     <string name="skill_acl_search_hint">Rechercher des utilisateurs, des groupes ou des rôles</string>
     <string name="skill_acl_search_empty">Aucune correspondance</string>
+    <string name="skill_acl_search_all_shared">Toutes les personnes trouvées y ont déjà accès.</string>
     <string name="skill_acl_role">Rôle</string>
     <string name="skill_acl_revoke">Retirer l'accès</string>
     <string name="skill_acl_public_label">Public</string>
@@ -64,13 +67,7 @@
     <string name="skill_acl_principal_user">Utilisateur</string>
     <string name="skill_acl_principal_group">Groupe</string>
     <string name="skill_acl_principal_role">Rôle</string>
-    <string name="skill_acl_collapse">Réduire</string>
-    <string name="skill_acl_expand">Développer</string>
-    <string name="skill_acl_close">Fermer</string>
     <string name="skill_import_failed_title">Échec de l'importation</string>
-    <string name="skill_import_incomplete">Importation annulée : %1$d fichier(s) de l'archive n'ont pas pu être importés. Corrigez l'archive et téléversez-la à nouveau.</string>
-    <string name="skill_import_rollback_failed">Échec de l'importation de %1$d fichier(s), et la compétence incomplète n'a pas pu être supprimée automatiquement. Supprimez-la avant de réessayer.</string>
-    <string name="skill_import_cleanup_incomplete">Échec de l'importation de %1$d fichier(s). La compétence incomplète a été supprimée, mais le nettoyage automatique ne s'est pas terminé.</string>
     <string name="skill_import_failed_files">Ces fichiers n'ont pas pu être importés :</string>
     <string name="skill_import_rollback_failed_files">Échec de l'importation de ces fichiers, et la compétence incomplète a été laissée en place :</string>
     <string name="skill_import_cleanup_incomplete_files">Échec de l'importation de ces fichiers ; le nettoyage automatique ne s'est pas terminé :</string>
@@ -81,4 +78,100 @@
     <string name="skill_import_reason_persistence_failed">Impossible de l'enregistrer</string>
     <string name="skill_import_reason_unknown">Impossible de l'importer</string>
     <string name="skill_toggle_source">Voir la source</string>
+    <!-- Built-in category labels (upstream categories.ts options, by value) -->
+    <string name="skill_category_idea">Idées</string>
+    <string name="skill_category_travel">Voyages</string>
+    <string name="skill_category_learning">Apprentissage</string>
+    <string name="skill_category_writing">Rédaction</string>
+    <string name="skill_category_shopping">Achats</string>
+    <string name="skill_category_code">Code</string>
+    <string name="skill_category_misc">Divers</string>
+    <string name="skill_category_roleplay">Jeu de rôle</string>
+    <string name="skill_category_finance">Finance</string>
+    <!-- List (cards, empty and search states) -->
+    <string name="skills_new">Nouvelle compétence</string>
+    <string name="skills_more_options">Plus d'options</string>
+    <string name="skills_importing">Importation de la compétence…</string>
+    <string name="skills_empty_body">Les compétences indiquent à l'assistant comment accomplir une tâche. Créez-en une ou importez un fichier de compétence.</string>
+    <string name="skills_empty_body_no_create">Les compétences partagées avec vous apparaîtront ici.</string>
+    <string name="skills_no_results">Aucune compétence ne correspond à « %1$s »</string>
+    <string name="skills_load_more_failed">Impossible de charger plus de compétences.</string>
+    <string name="skills_owner_you">Vous</string>
+    <string name="skills_badge_public">Publique</string>
+    <string name="skills_badge_always_on">Toujours active</string>
+    <string name="skills_badge_off">Désactivée</string>
+    <plurals name="skill_file_count">
+        <item quantity="one">%1$d fichier</item>
+        <item quantity="many">%1$d fichiers</item>
+        <item quantity="other">%1$d fichiers</item>
+    </plurals>
+    <!-- Detail, sharing sheet and file rows -->
+    <string name="skill_by_author">par %1$s</string>
+    <string name="skill_by_you">par vous</string>
+    <string name="skill_updated">mise à jour %1$s</string>
+    <string name="skill_toggle_rendered">Afficher le rendu</string>
+    <string name="skill_share">Partager</string>
+    <string name="skill_use_in_chats">Utiliser dans mes discussions</string>
+    <string name="skill_sharing">Partage</string>
+    <string name="skill_share_private">Privée</string>
+    <string name="skill_share_load_failed">Impossible de charger le partage</string>
+    <string name="skill_delete_failed">Impossible de supprimer cette compétence.</string>
+    <string name="skill_deleting">Suppression…</string>
+    <string name="skill_toggle_failed">Impossible de modifier l'utilisation de cette compétence dans vos discussions.</string>
+    <string name="skill_toggle_too_many_overrides">Trop de vos compétences sont réglées différemment de leur valeur par défaut. Remettez-en certaines par défaut, puis réessayez.</string>
+    <string name="skill_active_load_failed">Impossible de charger l'utilisation de cette compétence dans vos discussions.</string>
+    <string name="skill_acl_people">Personnes et groupes</string>
+    <string name="skill_acl_add">Ajouter</string>
+    <string name="skill_acl_role_for">Rôle pour %1$s</string>
+    <string name="skill_acl_dismiss">Ignorer</string>
+    <string name="skill_acl_search_failed">Recherche impossible pour le moment.</string>
+    <string name="skill_acl_search_unavailable">Votre rôle ne permet pas de rechercher des personnes ou des groupes. Demandez à un administrateur d'activer le sélecteur de personnes pour votre rôle.</string>
+    <string name="skill_acl_roles_failed">Impossible de charger les rôles : personne ne peut encore être ajouté.</string>
+    <string name="skill_acl_load_failed">Impossible de charger les personnes avec qui cette compétence est partagée.</string>
+    <string name="skill_acl_update_failed">Impossible de mettre à jour le partage.</string>
+    <string name="skill_file_open">Ouvrir</string>
+    <string name="skill_file_options">Options pour %1$s</string>
+    <string name="skill_file_remove">Retirer</string>
+    <string name="skill_file_remove_confirm_title">Retirer le fichier ?</string>
+    <string name="skill_file_remove_confirm_message">« %1$s » sera retiré de cette compétence. Cette action est irréversible.</string>
+    <string name="skill_file_replace_confirm_title">Remplacer le fichier ?</string>
+    <string name="skill_file_replace_confirm_message">Cette compétence contient déjà un fichier nommé « %1$s ». L’ajouter le remplace, et son contenu actuel ne pourra pas être récupéré.</string>
+    <string name="skill_file_replace">Remplacer</string>
+    <plurals name="skill_share_shared">
+        <item quantity="one">Partagée avec %1$d personne ou groupe</item>
+        <item quantity="other">Partagée avec %1$d personnes ou groupes</item>
+    </plurals>
+    <!-- Editor: reserved names, title limit, conflict -->
+    <string name="skill_field_name_reserved_prefix">Un nom ne peut pas commencer par « anthropic- » ni par « claude- ».</string>
+    <string name="skill_field_name_reserved_word">« %1$s » est un nom réservé.</string>
+    <string name="skill_field_display_title_error">Utilisez 128 caractères au maximum.</string>
+    <string name="skill_editor_conflict">Cette compétence a été modifiée sur le serveur depuis son ouverture. Vos modifications sont conservées ; enregistrez à nouveau pour l'écraser.</string>
+    <!-- Errors the app words when the server sent no text -->
+    <string name="skill_error_load_skill">Impossible de charger cette compétence.</string>
+    <string name="skill_error_load_skills">Impossible de charger les compétences.</string>
+    <string name="skill_error_load_files">Impossible de charger les fichiers.</string>
+    <string name="skill_error_upload_file">Impossible de téléverser ce fichier.</string>
+    <string name="skill_error_delete_file">Impossible de retirer ce fichier.</string>
+    <string name="skill_error_create">Impossible de créer cette compétence.</string>
+    <string name="skill_error_save">Impossible d'enregistrer cette compétence.</string>
+    <string name="skill_error_import">Impossible d'importer cette compétence.</string>
+    <string name="skill_error_skill_md_upload">SKILL.md est le contenu même de la compétence. Modifiez la compétence pour le changer.</string>
+    <string name="skill_error_changed_on_server">Cette compétence a été modifiée sur le serveur et sa dernière version n'a pas pu être chargée. Vos modifications sont conservées : réessayez d'enregistrer.</string>
+    <string name="skill_acl_principal_unknown">Inconnu</string>
+    <!-- Skill import failure summaries -->
+    <plurals name="skill_import_incomplete">
+        <item quantity="one">Importation annulée : %1$d fichier de l'archive n'a pas pu être importé. Corrigez l'archive et téléversez-la à nouveau.</item>
+        <item quantity="many">Importation annulée : %1$d fichiers de l'archive n'ont pas pu être importés. Corrigez l'archive et téléversez-la à nouveau.</item>
+        <item quantity="other">Importation annulée : %1$d fichiers de l'archive n'ont pas pu être importés. Corrigez l'archive et téléversez-la à nouveau.</item>
+    </plurals>
+    <plurals name="skill_import_rollback_failed">
+        <item quantity="one">Échec de l'importation de %1$d fichier, et la compétence incomplète n'a pas pu être supprimée automatiquement. Supprimez-la avant de réessayer.</item>
+        <item quantity="many">Échec de l'importation de %1$d fichiers, et la compétence incomplète n'a pas pu être supprimée automatiquement. Supprimez-la avant de réessayer.</item>
+        <item quantity="other">Échec de l'importation de %1$d fichiers, et la compétence incomplète n'a pas pu être supprimée automatiquement. Supprimez-la avant de réessayer.</item>
+    </plurals>
+    <plurals name="skill_import_cleanup_incomplete">
+        <item quantity="one">Échec de l'importation de %1$d fichier. La compétence incomplète a été supprimée, mais le nettoyage automatique ne s'est pas terminé.</item>
+        <item quantity="many">Échec de l'importation de %1$d fichiers. La compétence incomplète a été supprimée, mais le nettoyage automatique ne s'est pas terminé.</item>
+        <item quantity="other">Échec de l'importation de %1$d fichiers. La compétence incomplète a été supprimée, mais le nettoyage automatique ne s'est pas terminé.</item>
+    </plurals>
 </resources>

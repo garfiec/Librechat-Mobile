@@ -3,35 +3,37 @@
     <!-- List -->
     <string name="skills_title">スキル</string>
     <string name="skills_back">戻る</string>
-    <string name="skills_create">スキルを作成</string>
     <string name="skills_import">スキルをインポート</string>
     <string name="skills_search_hint">スキルを検索…</string>
+    <string name="skills_search_clear">検索をクリア</string>
     <string name="skills_empty">スキルはまだありません。</string>
-    <string name="skills_empty_hint">+ をタップして作成するか、スキルファイルをインポートします。</string>
-    <string name="skills_no_matches">検索に一致するスキルはありません。</string>
     <string name="skills_retry">再試行</string>
 
     <!-- Files -->
     <string name="skill_files_title">ファイル</string>
     <string name="skill_files_empty">添付されたファイルはありません。</string>
     <string name="skill_files_add">ファイルを追加</string>
-    <string name="skill_files_remove">%1$s を削除</string>
     <string name="skill_file_save">保存</string>
-    <string name="skill_file_close">閉じる</string>
     <string name="skill_file_reload">再読み込み</string>
     <string name="skill_file_conflict">このファイルは別の場所で変更されました。最新版を表示するには再読み込みしてください。ここでの編集内容は破棄されます。</string>
     <string name="skill_file_binary">このファイルはテキストとして表示できません。</string>
+    <string name="skill_file_note_skill_body">これはスキル自体の内容です。変更するにはスキルを編集してください。</string>
+    <string name="skill_file_note_no_access">このファイルは表示できますが、変更はできません。</string>
+    <string name="skill_file_note_access_unknown">このファイルを編集できるか確認できませんでした。再読み込みしてもう一度お試しください。</string>
+    <string name="skill_file_note_too_large">このファイルはここで編集するには大きすぎるため、読み取り専用で開きます。</string>
+    <string name="skill_file_note_truncated">このファイルは大きすぎてここでは全体を表示できません。冒頭部分のみを読み取り専用で表示しています。</string>
+    <string name="skill_file_note_no_revision">このサーバーはファイルをその場で編集できないため、このファイルは読み取り専用で開きます。</string>
+    <string name="skill_file_load_failed">このファイルを読み込めませんでした。</string>
+    <string name="skill_file_save_failed">このファイルを保存できませんでした。</string>
+    <string name="skill_file_image_description">%1$s のプレビュー</string>
 
     <!-- Detail -->
     <string name="skill_edit">編集</string>
     <string name="skill_delete">削除</string>
-    <string name="skill_category_label">カテゴリ: %1$s</string>
     <string name="skill_version_label">バージョン %1$d</string>
     <string name="skill_delete_confirm_title">スキルを削除しますか？</string>
     <string name="skill_delete_confirm_message">「%1$s」を完全に削除します。この操作は取り消せません。</string>
     <string name="skill_empty_body">このスキルには内容がありません。</string>
-    <string name="skill_active_label">有効</string>
-    <string name="skill_active_description">このスキルをチャットで使用できるようにします。</string>
 
     <!-- Editor -->
     <string name="skill_editor_create_title">新しいスキル</string>
@@ -39,10 +41,12 @@
     <string name="skill_field_name">名前</string>
     <string name="skill_field_name_hint">lowercase-kebab-case</string>
     <string name="skill_field_name_error">小文字、数字、ハイフンを使用してください（最大64文字）。</string>
+    <string name="skill_field_name_taken">この名前のスキルはすでに存在します。</string>
     <string name="skill_field_display_title">表示タイトル</string>
     <string name="skill_field_description">説明</string>
     <string name="skill_field_description_error">説明は必須です（最大1024文字）。</string>
     <string name="skill_field_body">内容（Markdown）</string>
+    <string name="skill_field_body_error">内容が長すぎます（最大100,000文字）。</string>
     <string name="skill_field_category">カテゴリ</string>
     <string name="skill_category_none">なし</string>
     <string name="skill_field_always_apply">このスキルを常に適用する</string>
@@ -51,12 +55,11 @@
     <string name="skill_conflict_dismiss">OK</string>
 
     <!-- Sharing (ACL) -->
-    <string name="skill_acl_title">共有と権限</string>
     <string name="skill_acl_no_grants">まだ誰とも共有されていません。</string>
-    <string name="skill_acl_add_principal">ユーザーまたはグループを追加</string>
     <string name="skill_acl_grant_dialog_title">スキルを共有</string>
     <string name="skill_acl_search_hint">ユーザー、グループ、またはロールを検索</string>
     <string name="skill_acl_search_empty">一致するものがありません</string>
+    <string name="skill_acl_search_all_shared">見つかった全員がすでにアクセスできます。</string>
     <string name="skill_acl_role">ロール</string>
     <string name="skill_acl_revoke">アクセスを削除</string>
     <string name="skill_acl_public_label">公開</string>
@@ -64,13 +67,7 @@
     <string name="skill_acl_principal_user">ユーザー</string>
     <string name="skill_acl_principal_group">グループ</string>
     <string name="skill_acl_principal_role">ロール</string>
-    <string name="skill_acl_collapse">折りたたむ</string>
-    <string name="skill_acl_expand">展開</string>
-    <string name="skill_acl_close">閉じる</string>
     <string name="skill_import_failed_title">インポートに失敗しました</string>
-    <string name="skill_import_incomplete">インポートを中止しました: アーカイブ内の %1$d 個のファイルをインポートできませんでした。アーカイブを修正して、もう一度アップロードしてください。</string>
-    <string name="skill_import_rollback_failed">%1$d 個のファイルのインポートに失敗し、不完全なスキルを自動で削除できませんでした。もう一度試す前に削除してください。</string>
-    <string name="skill_import_cleanup_incomplete">%1$d 個のファイルのインポートに失敗しました。不完全なスキルは削除されましたが、自動クリーンアップは完了しませんでした。</string>
     <string name="skill_import_failed_files">次のファイルをインポートできませんでした:</string>
     <string name="skill_import_rollback_failed_files">次のファイルのインポートに失敗し、不完全なスキルが残っています:</string>
     <string name="skill_import_cleanup_incomplete_files">次のファイルのインポートに失敗し、自動クリーンアップは完了しませんでした:</string>
@@ -81,4 +78,91 @@
     <string name="skill_import_reason_persistence_failed">保存できませんでした</string>
     <string name="skill_import_reason_unknown">インポートできませんでした</string>
     <string name="skill_toggle_source">ソースを表示</string>
+    <!-- Built-in category labels (upstream categories.ts options, by value) -->
+    <string name="skill_category_idea">アイデア</string>
+    <string name="skill_category_travel">旅行</string>
+    <string name="skill_category_learning">学習</string>
+    <string name="skill_category_writing">文章作成</string>
+    <string name="skill_category_shopping">ショッピング</string>
+    <string name="skill_category_code">コード</string>
+    <string name="skill_category_misc">その他</string>
+    <string name="skill_category_roleplay">ロールプレイ</string>
+    <string name="skill_category_finance">財務</string>
+    <!-- List (cards, empty and search states) -->
+    <string name="skills_new">新しいスキル</string>
+    <string name="skills_more_options">その他のオプション</string>
+    <string name="skills_importing">スキルをインポート中…</string>
+    <string name="skills_empty_body">スキルはタスクのこなし方をアシスタントに教えます。作成するか、スキルファイルをインポートしてください。</string>
+    <string name="skills_empty_body_no_create">共有されたスキルがここに表示されます。</string>
+    <string name="skills_no_results">「%1$s」に一致するスキルはありません</string>
+    <string name="skills_load_more_failed">スキルをさらに読み込めませんでした。</string>
+    <string name="skills_owner_you">あなた</string>
+    <string name="skills_badge_public">公開</string>
+    <string name="skills_badge_always_on">常に適用</string>
+    <string name="skills_badge_off">オフ</string>
+    <plurals name="skill_file_count">
+        <item quantity="other">%1$d 個のファイル</item>
+    </plurals>
+    <!-- Detail, sharing sheet and file rows -->
+    <string name="skill_by_author">作成者: %1$s</string>
+    <string name="skill_by_you">作成者: あなた</string>
+    <string name="skill_updated">更新: %1$s</string>
+    <string name="skill_toggle_rendered">レンダリング表示</string>
+    <string name="skill_share">共有</string>
+    <string name="skill_use_in_chats">自分のチャットで使用</string>
+    <string name="skill_sharing">共有</string>
+    <string name="skill_share_private">非公開</string>
+    <string name="skill_share_load_failed">共有情報を読み込めませんでした</string>
+    <string name="skill_delete_failed">このスキルを削除できませんでした。</string>
+    <string name="skill_deleting">削除中…</string>
+    <string name="skill_toggle_failed">このスキルをチャットで使用するかどうかを変更できませんでした。</string>
+    <string name="skill_toggle_too_many_overrides">既定と異なる設定のスキルが多すぎます。いくつかを既定に戻してから、もう一度お試しください。</string>
+    <string name="skill_active_load_failed">このスキルをチャットで使用しているかどうかを読み込めませんでした。</string>
+    <string name="skill_acl_people">ユーザーとグループ</string>
+    <string name="skill_acl_add">追加</string>
+    <string name="skill_acl_role_for">%1$s のロール</string>
+    <string name="skill_acl_dismiss">閉じる</string>
+    <string name="skill_acl_search_failed">現在検索できません。</string>
+    <string name="skill_acl_search_unavailable">あなたのロールではユーザーやグループを検索できません。管理者にロールのユーザー選択を有効にするよう依頼してください。</string>
+    <string name="skill_acl_roles_failed">ロールを読み込めなかったため、まだ誰も追加できません。</string>
+    <string name="skill_acl_load_failed">このスキルの共有先を読み込めませんでした。</string>
+    <string name="skill_acl_update_failed">共有を更新できませんでした。</string>
+    <string name="skill_file_open">開く</string>
+    <string name="skill_file_options">%1$s のオプション</string>
+    <string name="skill_file_remove">削除</string>
+    <string name="skill_file_remove_confirm_title">ファイルを削除しますか？</string>
+    <string name="skill_file_remove_confirm_message">「%1$s」はこのスキルから削除されます。この操作は元に戻せません。</string>
+    <string name="skill_file_replace_confirm_title">ファイルを置き換えますか？</string>
+    <string name="skill_file_replace_confirm_message">このスキルには「%1$s」という名前のファイルがすでにあります。追加すると置き換えられ、現在の内容は元に戻せません。</string>
+    <string name="skill_file_replace">置き換える</string>
+    <plurals name="skill_share_shared">
+        <item quantity="other">%1$d 人またはグループと共有</item>
+    </plurals>
+    <!-- Editor: reserved names, title limit, conflict -->
+    <string name="skill_field_name_reserved_prefix">名前を「anthropic-」または「claude-」で始めることはできません。</string>
+    <string name="skill_field_name_reserved_word">「%1$s」は予約された名前です。</string>
+    <string name="skill_field_display_title_error">128文字以内で入力してください。</string>
+    <string name="skill_editor_conflict">開いた後にこのスキルがサーバー上で変更されました。編集内容は保持されています。上書きするにはもう一度保存してください。</string>
+    <!-- Errors the app words when the server sent no text -->
+    <string name="skill_error_load_skill">このスキルを読み込めませんでした。</string>
+    <string name="skill_error_load_skills">スキルを読み込めませんでした。</string>
+    <string name="skill_error_load_files">ファイルを読み込めませんでした。</string>
+    <string name="skill_error_upload_file">このファイルをアップロードできませんでした。</string>
+    <string name="skill_error_delete_file">このファイルを削除できませんでした。</string>
+    <string name="skill_error_create">このスキルを作成できませんでした。</string>
+    <string name="skill_error_save">このスキルを保存できませんでした。</string>
+    <string name="skill_error_import">このスキルをインポートできませんでした。</string>
+    <string name="skill_error_skill_md_upload">SKILL.md はスキル自体の内容です。変更するにはスキルを編集してください。</string>
+    <string name="skill_error_changed_on_server">このスキルはサーバー上で変更され、最新版を読み込めませんでした。編集内容は保持されています。もう一度保存してください。</string>
+    <string name="skill_acl_principal_unknown">不明</string>
+    <!-- Skill import failure summaries -->
+    <plurals name="skill_import_incomplete">
+        <item quantity="other">インポートを中止しました: アーカイブ内の %1$d 個のファイルをインポートできませんでした。アーカイブを修正して、もう一度アップロードしてください。</item>
+    </plurals>
+    <plurals name="skill_import_rollback_failed">
+        <item quantity="other">%1$d 個のファイルのインポートに失敗し、不完全なスキルを自動で削除できませんでした。もう一度試す前に削除してください。</item>
+    </plurals>
+    <plurals name="skill_import_cleanup_incomplete">
+        <item quantity="other">%1$d 個のファイルのインポートに失敗しました。不完全なスキルは削除されましたが、自動クリーンアップは完了しませんでした。</item>
+    </plurals>
 </resources>

@@ -245,13 +245,20 @@
     <string name="acl_public_label">Публичный</string>
     <string name="acl_public_description">Разрешить всем, у кого есть доступ к серверу</string>
     <string name="acl_role">Роль</string>
-    <string name="acl_revoke">Отозвать</string>
+    <string name="acl_revoke_principal">Отозвать доступ для %1$s</string>
     <string name="acl_search_hint">Поиск пользователей или групп…</string>
     <string name="acl_search_empty">Совпадений нет</string>
+    <string name="acl_search_failed">Сейчас не удаётся выполнить поиск.</string>
+    <string name="acl_search_unavailable">Ваша роль не может искать людей или группы. Попросите администратора включить выбор людей для вашей роли.</string>
+    <string name="acl_roles_failed">Не удалось загрузить роли, поэтому пока никого нельзя добавить.</string>
+    <string name="acl_load_failed">Не удалось загрузить, у кого есть доступ.</string>
+    <string name="acl_share_check_failed">Не удалось проверить, можете ли вы поделиться этим агентом.</string>
+    <string name="acl_retry">Повторить</string>
     <string name="acl_grant_dialog_title">Добавить пользователя или группу</string>
     <string name="acl_principal_user">Пользователь</string>
     <string name="acl_principal_group">Группа</string>
     <string name="acl_principal_role">Роль</string>
+    <string name="acl_principal_unknown">Неизвестно</string>
     <string name="acl_create_mode_notice">Управление доступом и совместным использованием доступно после сохранения агента.</string>
 
     <!-- Tool select dialog -->

@@ -184,6 +184,9 @@ fun SecondaryMessageList(
                     )
                     val streamingSlotKey = displayMessages.lastOrNull()?.message?.messageId
                         ?: "streaming_message"
+                    // No "Running X" stand-ins for picked skills here (MessageList draws them for
+                    // the primary pane): whether the added conversation's run primes the picks
+                    // was not established. Its final message still renders any skill cards.
                     item(key = "secondary_$streamingSlotKey") {
                         ProvideMarkdownMedia(liveAttachments, baseUrl) {
                             StreamingMessageBubble(

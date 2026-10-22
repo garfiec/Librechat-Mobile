@@ -12,12 +12,15 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.common.extensions.formatLocalizedNumber
 import com.garfiec.librechat.core.model.response.SkillImportFailedFile
 import com.garfiec.librechat.core.model.response.SkillImportFailedResponse
 import com.garfiec.librechat.core.model.response.SkillImportFailureReason
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.feature.skills.resources.*
 import com.garfiec.librechat.feature.skills.resources.Res
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -33,13 +36,13 @@ internal fun SkillImportFailureDialog(
     val count = failure.failedFiles.size
     val (summary, heading) = when (failure.error) {
         SkillImportFailedResponse.ROLLBACK_FAILED ->
-            stringResource(Res.string.skill_import_rollback_failed, count) to
+            pluralStringResource(Res.plurals.skill_import_rollback_failed, count, count) to
                 stringResource(Res.string.skill_import_rollback_failed_files)
         SkillImportFailedResponse.CLEANUP_INCOMPLETE ->
-            stringResource(Res.string.skill_import_cleanup_incomplete, count) to
+            pluralStringResource(Res.plurals.skill_import_cleanup_incomplete, count, count) to
                 stringResource(Res.string.skill_import_cleanup_incomplete_files)
         else ->
-            stringResource(Res.string.skill_import_incomplete, count) to
+            pluralStringResource(Res.plurals.skill_import_incomplete, count, count) to
                 stringResource(Res.string.skill_import_failed_files)
     }
     AdaptiveAlertDialog(
@@ -73,7 +76,8 @@ internal fun SkillImportFailureDialog(
 
 @Composable
 private fun failedFileReason(file: SkillImportFailedFile): String {
-    val limit = file.limitMb?.let(::formatMegabytes)
+    val localeTag = LocalDateTimeFormat.current.localeTag
+    val limit = file.limitMb?.let { formatMegabytes(it, localeTag) }
     return when {
         file.reason == SkillImportFailureReason.INVALID_PATH ->
             stringResource(Res.string.skill_import_reason_invalid_path)
@@ -90,6 +94,11 @@ private fun failedFileReason(file: SkillImportFailedFile): String {
     }
 }
 
-/** `5.0` reads as `5`; a fractional limit keeps its decimals. */
-internal fun formatMegabytes(mb: Double): String =
-    if (mb % 1.0 == 0.0) mb.toLong().toString() else mb.toString()
+/**
+ * `5.0` reads as `5`; a fractional limit keeps up to two decimals, with [localeTag]'s separator
+ * (`1,5` in German), as the sentence around it is translated.
+ */
+internal fun formatMegabytes(mb: Double, localeTag: String): String =
+    formatLocalizedNumber(mb, localeTag, maxFractionDigits = MEGABYTE_FRACTION_DIGITS)
+
+private const val MEGABYTE_FRACTION_DIGITS = 2

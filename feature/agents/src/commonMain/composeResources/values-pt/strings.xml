@@ -245,13 +245,20 @@
     <string name="acl_public_label">Público</string>
     <string name="acl_public_description">Permitir qualquer pessoa com acesso ao servidor</string>
     <string name="acl_role">Função</string>
-    <string name="acl_revoke">Revogar</string>
+    <string name="acl_revoke_principal">Revogar o acesso de %1$s</string>
     <string name="acl_search_hint">Buscar usuários ou grupos…</string>
     <string name="acl_search_empty">Nenhuma correspondência</string>
+    <string name="acl_search_failed">Não foi possível pesquisar agora.</string>
+    <string name="acl_search_unavailable">Sua função não pode pesquisar pessoas ou grupos. Peça a um administrador para ativar o seletor de pessoas para sua função.</string>
+    <string name="acl_roles_failed">Não foi possível carregar as funções, então ainda não é possível adicionar ninguém.</string>
+    <string name="acl_load_failed">Não foi possível carregar quem tem acesso.</string>
+    <string name="acl_share_check_failed">Não foi possível verificar se você pode compartilhar este agente.</string>
+    <string name="acl_retry">Tentar novamente</string>
     <string name="acl_grant_dialog_title">Adicionar usuário ou grupo</string>
     <string name="acl_principal_user">Usuário</string>
     <string name="acl_principal_group">Grupo</string>
     <string name="acl_principal_role">Função</string>
+    <string name="acl_principal_unknown">Desconhecido</string>
     <string name="acl_create_mode_notice">Os controles de compartilhamento &amp; acesso ficam disponíveis após o agente ser salvo.</string>
 
     <!-- Tool select dialog -->

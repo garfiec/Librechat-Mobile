@@ -245,13 +245,20 @@
     <string name="acl_public_label">Öffentlich</string>
     <string name="acl_public_description">Jedem mit Zugriff auf den Server erlauben</string>
     <string name="acl_role">Rolle</string>
-    <string name="acl_revoke">Widerrufen</string>
+    <string name="acl_revoke_principal">Zugriff für %1$s widerrufen</string>
     <string name="acl_search_hint">Benutzer oder Gruppen suchen…</string>
     <string name="acl_search_empty">Keine Treffer</string>
+    <string name="acl_search_failed">Suche ist gerade nicht möglich.</string>
+    <string name="acl_search_unavailable">Deine Rolle kann nicht nach Personen oder Gruppen suchen. Bitte einen Admin, die Personenauswahl für deine Rolle zu aktivieren.</string>
+    <string name="acl_roles_failed">Rollen konnten nicht geladen werden, daher kann noch niemand hinzugefügt werden.</string>
+    <string name="acl_load_failed">Konnte nicht laden, wer Zugriff hat.</string>
+    <string name="acl_share_check_failed">Konnte nicht prüfen, ob du diesen Agenten teilen kannst.</string>
+    <string name="acl_retry">Erneut versuchen</string>
     <string name="acl_grant_dialog_title">Benutzer oder Gruppe hinzufügen</string>
     <string name="acl_principal_user">Benutzer</string>
     <string name="acl_principal_group">Gruppe</string>
     <string name="acl_principal_role">Rolle</string>
+    <string name="acl_principal_unknown">Unbekannt</string>
     <string name="acl_create_mode_notice">Teilen- &amp; Zugriffssteuerungen sind verfügbar, nachdem der Agent gespeichert wurde.</string>
 
     <!-- Tool select dialog -->

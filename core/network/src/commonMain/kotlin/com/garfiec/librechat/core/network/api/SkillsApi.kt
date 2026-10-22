@@ -19,12 +19,16 @@ import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
+import io.ktor.client.request.prepareGet
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsChannel
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.http.URLBuilder
 import io.ktor.http.appendPathSegments
 import io.ktor.http.path
+import io.ktor.utils.io.readRemaining
+import kotlinx.io.readByteArray
 
 /**
  * Read-only access to the Skills catalog (`GET /api/skills`). Used by the
@@ -40,7 +44,8 @@ class SkillsApi(
      * Lists available skill summaries. All filters are optional; web calls bare
      * `/api/skills?limit=100`.
      *
-     * @param limit max results (upstream default 100)
+     * @param limit max results, always sent: upstream `parseLimit` clamps it to 1..100 and
+     *   defaults an absent one to 20
      * @param search free-text filter on skill name
      * @param category category filter
      * @param cursor pagination cursor (`after` from a prior response)
@@ -154,6 +159,29 @@ class SkillsApi(
         client.get {
             url { skillFilePath(skillId, relativePath) }
         }.body()
+
+    /**
+     * `GET /api/skills/:id/files/:relativePath?raw=true` → the stored bytes, streamed with the
+     * file's own Content-Type. The JSON route leaves `content` out of binary files and of text
+     * over its 1 MB cap; this is how those are read. ACL VIEW. Not for `SKILL.md`, which has no
+     * stored file (the JSON route answers it from the skill body).
+     */
+    suspend fun getSkillFileRaw(skillId: String, relativePath: String): ByteArray =
+        client.get {
+            url { skillFilePath(skillId, relativePath) }
+            parameter("raw", "true")
+        }.body()
+
+    /**
+     * The first [maxBytes] of [getSkillFileRaw]'s bytes, or fewer when the file is shorter. The
+     * body is streamed and the read stops there, so a file of any size costs at most [maxBytes] in
+     * memory; the rest of the response is discarded with the connection.
+     */
+    suspend fun getSkillFileRawPrefix(skillId: String, relativePath: String, maxBytes: Long): ByteArray =
+        client.prepareGet {
+            url { skillFilePath(skillId, relativePath) }
+            parameter("raw", "true")
+        }.execute { response -> response.bodyAsChannel().readRemaining(maxBytes).readByteArray() }
 
     /**
      * `POST /api/skills/:id/files/:relativePath` (v0.8.8) — replace one file's bytes only if its

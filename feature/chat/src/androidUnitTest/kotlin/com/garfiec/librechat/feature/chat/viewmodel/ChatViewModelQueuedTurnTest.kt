@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.viewmodel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.BackendBuildClass
 import com.garfiec.librechat.core.common.DetectedBackend
+import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
@@ -180,6 +181,29 @@ class ChatViewModelQueuedTurnTest {
         // assistant descendant, which is how a queue of several chains correctly.
         assertThat(request.captured.parentMessageId).isEqualTo(USER_MESSAGE_ID)
         assertThat(request.captured.expectedPredecessorCreatedAt).isEqualTo(EPOCH)
+    }
+
+    @Test
+    fun `a queued turn takes the skill chips onto its enqueue claim`() = queuedTurnTest(
+        arrange = {
+            // An agents server that advertises skills: a persisted agent's run honours the
+            // claim's manualSkills (upstream host.ts copies them into the run's body).
+            every { configRepository.endpointConfigs } returns MutableStateFlow(
+                mapOf(ENDPOINT to EndpointConfig(capabilities = listOf(ToolConstants.SKILLS))),
+            )
+        },
+    ) { vm ->
+        vm.addPendingManualSkill("pdf-tools")
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+
+        val request = slot<EnqueueQueuedTurnRequest>()
+        coVerify(exactly = 1) { queuedTurnRepository.enqueue(capture(request)) }
+        assertThat(request.captured.manualSkills).containsExactly("pdf-tools")
+        assertThat(vm.uiState.value.pendingManualSkills).isEmpty()
+        // Reconciled from the receipt, the row still holds the picks an edit would restore.
+        assertThat(vm.uiState.value.messageQueue.single().manualSkills).containsExactly("pdf-tools")
     }
 
     @Test
@@ -476,6 +500,59 @@ class ChatViewModelQueuedTurnTest {
         coVerify(exactly = 3) { queuedTurnRepository.enqueue(capture(requests)) }
         assertThat(requests.map { it.text }).containsExactly("first", "first, fixed", "second").inOrder()
         assertThat(vm.uiState.value.messageQueue.map { it.server != null }).containsExactly(true, true)
+    }
+
+    /**
+     * A withdrawn row is rebuilt locally and claimed again, and the second claim's picks are the
+     * chips on screen during the edit, not the draft's staged ones and not the first claim's.
+     */
+    @Test
+    fun `a withdrawn queued edit claims again with the chips picked during it`() = queuedTurnTest(
+        arrange = {
+            every { configRepository.endpointConfigs } returns MutableStateFlow(
+                mapOf(ENDPOINT to EndpointConfig(capabilities = listOf(ToolConstants.SKILLS))),
+            )
+        },
+    ) { vm ->
+        vm.addPendingManualSkill("pdf-tools")
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+        val queued = vm.uiState.value.messageQueue.single()
+        assertThat(queued.server).isNotNull()
+        coEvery { queuedTurnRepository.cancel(queued.server!!.id!!) } answers {
+            serverRows.removeAll { it.clientRequestId == queued.clientRequestId }
+            QueuedTurnOutcome.Committed(
+                AgentQueuedTurnReceipt(
+                    queuedTurnId = queued.server!!.id!!,
+                    clientRequestId = queued.clientRequestId!!,
+                    text = queued.text,
+                    status = QueuedTurnStatus.CANCELLED,
+                ),
+            )
+        }
+        // A chip staged for the next new message, before the edit starts.
+        vm.addPendingManualSkill("draft-skill")
+
+        vm.editQueued(queued.localId)
+        runCurrent()
+        coVerify(exactly = 1) { queuedTurnRepository.cancel(any()) }
+        assertThat(vm.uiState.value.isEditingQueued).isTrue()
+        assertThat(vm.uiState.value.pendingManualSkills).containsExactly("pdf-tools")
+
+        vm.addPendingManualSkill("translator")
+        vm.removePendingManualSkill("pdf-tools")
+        vm.commitQueuedEdit()
+        runCurrent()
+
+        val requests = mutableListOf<EnqueueQueuedTurnRequest>()
+        coVerify(exactly = 2) { queuedTurnRepository.enqueue(capture(requests)) }
+        assertThat(requests[0].manualSkills).containsExactly("pdf-tools")
+        assertThat(requests[1].manualSkills).containsExactly("translator")
+        assertThat(requests[1].clientRequestId).isNotEqualTo(requests[0].clientRequestId)
+        assertThat(vm.uiState.value.messageQueue.single().manualSkills).containsExactly("translator")
+        // The draft gets its own chip back, and nothing picked for the edit leaks onto it.
+        assertThat(vm.uiState.value.pendingManualSkills).containsExactly("draft-skill")
     }
 
     /**
@@ -975,6 +1052,7 @@ class ChatViewModelQueuedTurnTest {
         revision = 1,
         position = 1,
         expectedPredecessorCreatedAt = request.expectedPredecessorCreatedAt,
+        manualSkills = request.manualSkills,
     )
 
     private fun queuedTurnTest(

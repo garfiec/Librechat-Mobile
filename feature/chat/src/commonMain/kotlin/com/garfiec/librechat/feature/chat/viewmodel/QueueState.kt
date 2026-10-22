@@ -98,6 +98,13 @@ data class QueuedMessage(
      * is recovered from, so `SteeringDelegate` strips it once the chips hold the copy.
      */
     val quotes: List<String> = emptyList(),
+    /**
+     * Skill names taken from the pending skill chips when this spec was minted, sent as the turn's
+     * `manualSkills`. Like [quotes] they ride the spec, so a queued follow-up sends the picks it
+     * was composed with. A steer's spec carries none (the steer route takes no skills); its chips
+     * stay in the composer.
+     */
+    val manualSkills: List<String> = emptyList(),
     val dispatch: EndpointDispatch,
     val isTemporary: Boolean = false,
     /**
@@ -189,4 +196,6 @@ fun QueuedMessage.toComposerSnapshot(): ComposerSnapshot = ComposerSnapshot(
     enabledTools = enabledTools,
     mcpServerNames = mcpServerNames,
     modelParameters = modelParameters,
+    manualSkills = manualSkills,
+    skillsToggle = ephemeralAgent?.skills == true,
 )

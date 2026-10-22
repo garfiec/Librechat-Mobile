@@ -41,6 +41,10 @@ import org.jetbrains.compose.resources.stringResource
  * first delta. See StreamingCursor.kt. The reply's reasoning so far ([streamingThinking]) sits above
  * it in a collapsed Thinking block, as the persisted message shows its THINK parts, rather than as
  * body text.
+ *
+ * [pendingSkills] are the skills the turn picked, each a "Running X" row at the top of the reply's
+ * content, under the sender row: where the finalized message draws the skill cards the server
+ * prepends, so the swap doesn't move them past the header.
  */
 @Composable
 fun StreamingMessageBubble(
@@ -55,6 +59,7 @@ fun StreamingMessageBubble(
     showBubbles: Boolean = false,
     useKatex: Boolean = false,
     streamingThinking: String = "",
+    pendingSkills: List<String> = emptyList(),
 ) {
     if (chatLayoutStyle == ChatLayoutConstants.TWO_SIDED) {
         TwoSidedStreamingBubble(
@@ -67,6 +72,7 @@ fun StreamingMessageBubble(
             showBubbles = showBubbles,
             useKatex = useKatex,
             streamingThinking = streamingThinking,
+            pendingSkills = pendingSkills,
             modifier = modifier,
         )
     } else {
@@ -80,6 +86,7 @@ fun StreamingMessageBubble(
             showBubbles = showBubbles,
             useKatex = useKatex,
             streamingThinking = streamingThinking,
+            pendingSkills = pendingSkills,
             modifier = modifier,
         )
     }
@@ -96,6 +103,7 @@ private fun ThreadStreamingBubble(
     showBubbles: Boolean,
     useKatex: Boolean,
     streamingThinking: String,
+    pendingSkills: List<String>,
     modifier: Modifier = Modifier,
 ) {
     val liveCd = streamingLiveDescription(streamingContent)
@@ -155,6 +163,7 @@ private fun ThreadStreamingBubble(
                     contentDescription = liveCd
                 },
         ) {
+            StreamingPendingSkills(pendingSkills)
             StreamingThinking(streamingThinking, fontSizeMultiplier, useKatex)
             if (streamingContent.isNotBlank()) {
                 // Routed through TextContentPart so artifact directives render as cards while the
@@ -186,6 +195,7 @@ private fun TwoSidedStreamingBubble(
     showBubbles: Boolean,
     useKatex: Boolean,
     streamingThinking: String,
+    pendingSkills: List<String>,
     modifier: Modifier = Modifier,
 ) {
     val liveCd = streamingLiveDescription(streamingContent)
@@ -246,6 +256,7 @@ private fun TwoSidedStreamingBubble(
                 },
             )
             Spacer(modifier = Modifier.height(4.dp))
+            StreamingPendingSkills(pendingSkills)
             StreamingThinking(streamingThinking, fontSizeMultiplier, useKatex)
             if (streamingContent.isNotBlank()) {
                 // Routed through TextContentPart so artifact directives render as cards while the
@@ -277,6 +288,14 @@ private fun streamingLiveDescription(streamingContent: String): String = if (str
     stringResource(Res.string.cd_assistant_responding, streamingContent)
 } else {
     stringResource(Res.string.cd_generating_response)
+}
+
+/** One "Running X" row per picked skill, until the final message brings the real cards. */
+@Composable
+private fun StreamingPendingSkills(names: List<String>) {
+    names.forEach { name ->
+        PendingSkillCallRow(skillName = name, modifier = Modifier.padding(bottom = 4.dp))
+    }
 }
 
 @Composable

@@ -5,7 +5,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.AccessRole
 import com.garfiec.librechat.core.model.Principal
-import com.garfiec.librechat.core.model.SkillSummary
 import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.ui.preview.DialogPreviewHost
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
@@ -22,10 +21,6 @@ private fun CodeToolAuthGlassKeyboardPreview() = CodeToolAuthHost(UiStyle.LIQUID
 @PreviewNarrowScreens
 @Composable
 private fun GrantAccessGlassKeyboardPreview() = GrantAccessHost(UiStyle.LIQUID_GLASS, height = 400.dp)
-
-@PreviewNarrowScreens
-@Composable
-private fun SkillSelectGlassKeyboardPreview() = SkillSelectHost(UiStyle.LIQUID_GLASS, height = 400.dp)
 
 @Composable
 private fun CodeToolAuthHost(style: UiStyle, height: Dp = 640.dp) = DialogPreviewHost(style, height = height) {
@@ -45,21 +40,15 @@ private fun GrantAccessHost(style: UiStyle, height: Dp = 640.dp, results: Int = 
         searchQuery = "sam",
         results = List(results) { Principal(type = "user", id = "u$it", name = PrincipalNames[it % PrincipalNames.size]) },
         isSearching = false,
-        roles = listOf(AccessRole(accessRoleId = "agent_viewer", name = "Viewer")),
+        searchFailed = false,
+        canSearchPeople = true,
+        roles = listOf(AccessRole(accessRoleId = "agent_viewer", name = "com_ui_role_viewer")),
+        rolesFailed = false,
+        enabled = true,
         onQueryChange = {},
+        onRetrySearch = {},
+        onRetryRoles = {},
         onGrant = { _, _ -> },
-        onDismiss = {},
-    )
-}
-
-@Composable
-private fun SkillSelectHost(style: UiStyle, height: Dp = 640.dp) = DialogPreviewHost(style, height = height) {
-    SkillSelectDialog(
-        availableSkills = List(6) {
-            SkillSummary(id = "s$it", name = "skill-$it", displayTitle = "Spreadsheet helper $it", description = "Edits workbooks")
-        },
-        selectedSkillIds = setOf("s1"),
-        onToggle = {},
         onDismiss = {},
     )
 }

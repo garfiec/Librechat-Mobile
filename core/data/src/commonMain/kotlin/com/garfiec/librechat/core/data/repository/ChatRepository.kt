@@ -46,6 +46,8 @@ interface ChatRepository {
         spec: String? = null,
         /** Project to file a NEW conversation into; pass it on the first turn only. */
         chatProjectId: String? = null,
+        /** Skill names picked for this turn; see `ChatRequest.manualSkills`. */
+        manualSkills: List<String>? = null,
     ): Flow<StreamEvent>
 
     /**

@@ -30,7 +30,9 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
+import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
+import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_attach_file
@@ -66,6 +68,8 @@ fun IosChatInput(
     onCancelSteer: (steerId: String) -> Unit = {},
     pendingQuotes: List<String> = emptyList(),
     onRemoveQuote: (index: Int) -> Unit = {},
+    pendingManualSkills: List<String> = emptyList(),
+    onRemoveManualSkill: (name: String) -> Unit = {},
     onSetDuringRunAction: (DuringRunAction) -> Unit = {},
     queuedPausedCount: Int = 0,
     queueHeldForRefusal: Boolean = false,
@@ -109,7 +113,12 @@ fun IosChatInput(
     compactSuggested: Boolean = false,
     contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     promptSuggestions: List<PromptMentionDisplayData> = emptyList(),
-    onSlashCommandSelect: (PromptMentionDisplayData) -> Unit = {},
+    skillSuggestions: List<PickerSkill> = emptyList(),
+    isLoadingSkills: Boolean = false,
+    skillsLoadFailed: Boolean = false,
+    canPickSkills: Boolean = false,
+    onRetrySkills: () -> Unit = {},
+    onPickerSelect: (ComposerPickerItem) -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -132,6 +141,7 @@ fun IosChatInput(
         duringRunSendTarget = duringRunSendTarget,
         pendingSteers = pendingSteers,
         pendingQuotes = pendingQuotes,
+        pendingManualSkills = pendingManualSkills,
         isEditingQueued = isEditingQueued,
         isAwaitingUploadSend = isAwaitingUploadSend,
         arePicksUnsettled = arePicksUnsettled,
@@ -143,19 +153,25 @@ fun IosChatInput(
         onSnoozeCompact = onSnoozeCompact,
         contextBarPlacement = contextBarPlacement,
         promptSuggestions = promptSuggestions,
+        skillSuggestions = skillSuggestions,
+        isLoadingSkills = isLoadingSkills,
+        skillsLoadFailed = skillsLoadFailed,
+        canPickSkills = canPickSkills,
     )
 
     CommonChatInputCore(
         state = state,
         onSend = onSend,
         onStop = onStop,
-        onSelectPrompt = onSlashCommandSelect,
+        onSelectPickerItem = onPickerSelect,
         onToggleTool = onToggleTool,
         onQueue = onQueue,
         onDuringRunSend = onDuringRunSend,
         onSteer = onSteer,
         onCancelSteer = onCancelSteer,
         onRemoveQuote = onRemoveQuote,
+        onRemoveManualSkill = onRemoveManualSkill,
+        onRetrySkills = onRetrySkills,
         onSetDuringRunAction = onSetDuringRunAction,
         queuedPausedCount = queuedPausedCount,
         queueHeldForRefusal = queueHeldForRefusal,

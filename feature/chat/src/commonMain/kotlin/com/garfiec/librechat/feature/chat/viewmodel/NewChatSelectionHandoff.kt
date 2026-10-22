@@ -46,12 +46,40 @@ class NewChatSelectionHandoff {
          * resumed stream instead of vanishing until completion.
          */
         val optimisticUserMessage: Message? = null,
+        /**
+         * The Skills toggle the first turn was sent with, so the Chat(id) VM shows it at once.
+         * Null when a model spec governed skills (nothing to carry). For a temporary chat, which
+         * stores no toggle, this is the only carrier.
+         */
+        val skillsToggle: Boolean? = null,
+        /**
+         * Skill chips still staged on the landing when it navigated: ones the first send held
+         * back (and any picked since). The landing is reset at navigation, so without this they
+         * would vanish with it.
+         */
+        val stagedManualSkills: List<String> = emptyList(),
+        /** The landing was showing the "skills not sent" notice for [stagedManualSkills]. */
+        val skillsNotSentNotice: Boolean = false,
     )
 
     private var pending: Selection? = null
 
-    fun put(conversationId: String, choice: ModelChoice, optimisticUserMessage: Message? = null) {
-        pending = Selection(conversationId, choice, optimisticUserMessage)
+    fun put(
+        conversationId: String,
+        choice: ModelChoice,
+        optimisticUserMessage: Message? = null,
+        skillsToggle: Boolean? = null,
+        stagedManualSkills: List<String> = emptyList(),
+        skillsNotSentNotice: Boolean = false,
+    ) {
+        pending = Selection(
+            conversationId = conversationId,
+            choice = choice,
+            optimisticUserMessage = optimisticUserMessage,
+            skillsToggle = skillsToggle,
+            stagedManualSkills = stagedManualSkills,
+            skillsNotSentNotice = skillsNotSentNotice,
+        )
     }
 
     /** Returns and clears the pending selection only when it was staged for [conversationId]. */

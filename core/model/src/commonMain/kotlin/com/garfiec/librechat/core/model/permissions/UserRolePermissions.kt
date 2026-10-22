@@ -90,3 +90,17 @@ fun UserRolePermissions?.canReachMemoriesSettings(): Boolean =
             hasAccessOrPermissive(PermissionType.MEMORIES, Permission.READ) ||
                 hasAccessOrPermissive(PermissionType.MEMORIES, Permission.OPT_OUT)
             )
+
+/**
+ * Fail-CLOSED: whether the role may search people (`GET /api/permissions/search-principals`).
+ * Mirrors upstream createPeoplePickerAccess: ADMIN passes, and otherwise a search that names no
+ * type needs any one of PEOPLE_PICKER VIEW_USERS, VIEW_GROUPS or VIEW_ROLES (all false for USER
+ * by default). Without it every search is refused with a 403, so the sharing UIs offer no search.
+ */
+fun UserRolePermissions?.canSearchPeople(): Boolean =
+    this?.name == PEOPLE_PICKER_ADMIN_ROLE ||
+        PEOPLE_PICKER_VIEWS.any { hasAccessStrictOrDenied(PermissionType.PEOPLE_PICKER, it) }
+
+private const val PEOPLE_PICKER_ADMIN_ROLE = "ADMIN"
+
+private val PEOPLE_PICKER_VIEWS = listOf(Permission.VIEW_USERS, Permission.VIEW_GROUPS, Permission.VIEW_ROLES)

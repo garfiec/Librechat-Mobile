@@ -39,8 +39,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
@@ -101,6 +99,12 @@ fun ChatToolsSheetContent(
      * appear for every host that never enabled it.
      */
     memoryEnabled: Boolean = false,
+    /**
+     * Whether to offer the Skills toggle: SKILLS.USE, the agents `skills` capability, and no
+     * active model spec configuring skills. Defaults OFF for the same reason as [memoryEnabled].
+     * Its state is per conversation; the row reads it from [enabledTools] like the others.
+     */
+    skillsEnabled: Boolean = false,
     mcpServersEnabled: Boolean = true,
     /**
      * Server/endpoint feature gates for the sheet: model-select row, parameters row,
@@ -269,6 +273,7 @@ fun ChatToolsSheetContent(
                 ToolConstants.CODE_INTERPRETER to (isCodeInterpreterAvailable && runCodeEnabled),
                 ToolConstants.FILE_SEARCH to fileSearchEnabled,
                 ToolConstants.MEMORY to memoryEnabled,
+                ToolConstants.SKILLS to skillsEnabled,
             )
             toolRows.forEach { (toolKey, enabled) ->
                 val meta = ephemeralToolMeta(toolKey)
@@ -359,14 +364,11 @@ private fun ToolToggleRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .dragSelectRow(dragSelection, onClick = onToggle)
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            // The platform reads the on/off state out in the user's language.
-            .semantics {
-                contentDescription = title
-                toggleableState = ToggleableState(isEnabled)
-                role = Role.Switch
-            },
+            // The platform reads the on/off state out in the user's language. The title and
+            // subtitle below name the row, so no description is set on top of them.
+            .semantics { toggleableState = ToggleableState(isEnabled) }
+            .dragSelectRow(dragSelection, role = Role.Switch, onClick = onToggle)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -391,9 +393,11 @@ private fun ToolToggleRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        // The row is the control (it carries the state, and its texts name the tool); a clickable
+        // switch inside it would be a second, unnamed toggle to a screen reader.
         AdaptiveSwitch(
             checked = isEnabled,
-            onCheckedChange = { onToggle() },
+            onCheckedChange = null,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = MaterialTheme.colorScheme.primary,
                 checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,

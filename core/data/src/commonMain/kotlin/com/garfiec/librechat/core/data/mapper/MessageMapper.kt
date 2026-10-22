@@ -55,6 +55,8 @@ fun Message.toEntity(): MessageEntity = MessageEntity(
     attachments = attachments?.let { json.encodeToString(ListSerializer(Attachment.serializer()), it) },
     metadata = metadata?.toString(),
     quotes = quotes?.let { json.encodeToString(ListSerializer(String.serializer()), it) },
+    manualSkills = manualSkills?.let { json.encodeToString(ListSerializer(String.serializer()), it) },
+    alwaysAppliedSkills = alwaysAppliedSkills?.let { json.encodeToString(ListSerializer(String.serializer()), it) },
     createdAt = parseTimestamp(createdAt),
     updatedAt = parseTimestamp(updatedAt),
 )
@@ -89,6 +91,12 @@ fun MessageEntity.toModel(): Message = Message(
         try { json.decodeFromString<JsonObject>(it) } catch (_: Exception) { null }
     },
     quotes = quotes?.let {
+        try { json.decodeFromString<List<String>>(it) } catch (_: Exception) { null }
+    },
+    manualSkills = manualSkills?.let {
+        try { json.decodeFromString<List<String>>(it) } catch (_: Exception) { null }
+    },
+    alwaysAppliedSkills = alwaysAppliedSkills?.let {
         try { json.decodeFromString<List<String>>(it) } catch (_: Exception) { null }
     },
     createdAt = formatTimestamp(createdAt),

@@ -72,7 +72,9 @@ import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.glassSurface
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
+import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
+import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_add_to_queue
@@ -137,6 +139,8 @@ data class ChatInputState(
     val pendingSteers: List<PendingSteerChip> = emptyList(),
     /** Staged "Add to chat" excerpts (v0.8.7 quotes); chips above the composer. */
     val pendingQuotes: List<String> = emptyList(),
+    /** Skills picked for the next message; removable chips above the composer. */
+    val pendingManualSkills: List<String> = emptyList(),
     /** True while the composer is editing a queued item (queued-edit mode): the send button
      *  becomes "Update" and an editing banner shows above the input. */
     val isEditingQueued: Boolean = false,
@@ -158,8 +162,16 @@ data class ChatInputState(
     /** User preference (Settings → Chat) for where the context gauge is surfaced. The composer
      *  only renders it when this is [ContextBarPlacement.ABOVE_INPUT]. */
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
-    /** Prompt groups available to the `/` picker. Filtering happens here, off [inputText]. */
+    /** Prompt groups the `/` and `$` picker lists. Filtering happens here, off [inputText]. */
     val promptSuggestions: List<PromptMentionDisplayData> = emptyList(),
+    /** Skills the picker may offer here, already narrowed (`ChatUiState.pickerSkills`). */
+    val skillSuggestions: List<PickerSkill> = emptyList(),
+    /** The skill catalog is loading for the picker. */
+    val isLoadingSkills: Boolean = false,
+    /** The skill catalog failed to load; the open picker offers a retry. */
+    val skillsLoadFailed: Boolean = false,
+    /** A skill can be picked here (`ChatUiState.canPickSkills`): only then does a leading `$` open the picker. */
+    val canPickSkills: Boolean = false,
     /** The active comparison's second model, shown as the "Also asking" row. Null when not comparing. */
     val comparison: ComposerComparison? = null,
     /** What the field says about an active or pending comparison; setup also holds sends. */
@@ -197,6 +209,10 @@ fun CommonChatInputCore(
     onCancelSteer: (steerId: String) -> Unit = {},
     /** Remove one staged quote chip (v0.8.7 "Add to chat"). */
     onRemoveQuote: (index: Int) -> Unit = {},
+    /** Remove one picked skill's chip. */
+    onRemoveManualSkill: (name: String) -> Unit = {},
+    /** Retry the picker's failed skill catalog load. */
+    onRetrySkills: () -> Unit = {},
     /** Persist a new default for what a mid-stream send does. */
     onSetDuringRunAction: (DuringRunAction) -> Unit = {},
     /** Number of queued messages held by a Stop/error pause. >0 shows the "Send queued" banner
@@ -221,8 +237,8 @@ fun CommonChatInputCore(
     onCancelQueuedMessage: (localId: String) -> Unit = {},
     onReorderQueuedMessages: (fromIndex: Int, toIndex: Int) -> Unit = { _, _ -> },
     fontSizeMultiplier: Float = 1f,
-    /** Selection from the `/` prompt picker. */
-    onSelectPrompt: (PromptMentionDisplayData) -> Unit = {},
+    /** A row picked from the `/` and `$` list: a prompt or a skill. */
+    onSelectPickerItem: (ComposerPickerItem) -> Unit = {},
     leadingButtons: @Composable RowScope.(compact: Boolean) -> Unit = {},
     trailingSpacer: @Composable RowScope.(compact: Boolean) -> Unit = {},
     bottomContent: @Composable BoxScope.() -> Unit = {},
@@ -266,6 +282,12 @@ fun CommonChatInputCore(
                 pendingQuotes = state.pendingQuotes,
                 onRemove = onRemoveQuote,
                 fontSizeMultiplier = fontSizeMultiplier,
+            )
+
+            // Picked skills attach to the message being composed, like the quotes above.
+            PendingSkillChipsSection(
+                skills = state.pendingManualSkills,
+                onRemove = onRemoveManualSkill,
             )
 
             PendingSteerChipsSection(
@@ -350,14 +372,21 @@ fun CommonChatInputCore(
                 }
             }
 
-            // Prompt picker, above the input and below the chips/gauge.
-            val slashQuery = remember(state.inputText) { parseSlashQuery(state.inputText) }
-            val promptSuggestions = remember(slashQuery, state.promptSuggestions) {
-                slashQuery?.let { filterMatchingSlashCommands(it, state.promptSuggestions) }.orEmpty()
+            // Prompt and skill picker, above the input and below the chips/gauge.
+            val pickerQuery = remember(state.inputText, state.canPickSkills) {
+                parsePickerQuery(state.inputText, state.canPickSkills)
+            }
+            val pickerRows = remember(pickerQuery, state.promptSuggestions, state.skillSuggestions) {
+                pickerQuery?.let { buildPickerRows(it, state.promptSuggestions, state.skillSuggestions) }.orEmpty()
             }
             PromptSuggestionList(
-                suggestions = promptSuggestions,
-                onSelect = onSelectPrompt,
+                rows = pickerRows,
+                isOpen = pickerQuery != null,
+                hasCandidates = state.promptSuggestions.isNotEmpty() || state.skillSuggestions.isNotEmpty(),
+                isLoadingSkills = state.isLoadingSkills,
+                onSelect = onSelectPickerItem,
+                skillsLoadFailed = state.skillsLoadFailed,
+                onRetrySkills = onRetrySkills,
             )
 
             // Material stacks the comparison row like the banners above; glass draws it inside the

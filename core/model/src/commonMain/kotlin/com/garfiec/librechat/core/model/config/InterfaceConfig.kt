@@ -29,7 +29,8 @@ data class InterfaceConfig(
     val remoteAgents: JsonElement? = null,
     // --- v0.8.6 detection (parse-surface only; no gating UI yet) ---
     /** Skills feature toggle. `bool | { use, create, share, public, defaultActiveOnShare }`.
-     *  Kept as raw JSON for forward-compat, mirroring [prompts] / [agents] / [remoteAgents]. */
+     *  Kept as raw JSON for forward-compat, mirroring [prompts] / [agents] / [remoteAgents].
+     *  Read the share default through [skillsDefaultActiveOnShare]. */
     val skills: JsonElement? = null,
     /** When true, the server exposes build metadata for an About-screen display. */
     val buildInfo: Boolean? = null,
@@ -54,8 +55,6 @@ data class InterfaceConfig(
     /** Shared-link sub-capabilities. `bool | { create, share, public, snapshotFiles }`.
      *  Kept as raw JSON for forward-compat, mirroring [prompts] / [agents] / [skills]. */
     val sharedLinks: JsonElement? = null,
-    /** Maximum number of skills shown in the catalog. Parse-surface only (no mobile skills UI). */
-    val maxCatalogSkills: Int? = null,
     // --- v0.8.8-rc2 ---
     /** Whether message feedback (thumbs up/down + reason tags) is offered. Server default is
      *  `true`; a deployment that sets it false wants the affordance gone, not disabled. */
@@ -94,6 +93,19 @@ data class InterfaceConfig(
      */
     val mcpServers: JsonElement? = null,
 )
+
+/**
+ * Whether a skill shared with the user (not owned, not a deployment skill) is active for them until
+ * they toggle it: `interface.skills.defaultActiveOnShare`.
+ *
+ * Mirrors upstream `resolveDefaultActiveOnShare` (`packages/api/src/skills/skillStates.ts`): only the
+ * object form can carry the key, and only an explicit `true` turns it on. The boolean form of
+ * `interface.skills`, an absent section and any other value all read as `false`.
+ */
+fun skillsDefaultActiveOnShare(skills: JsonElement?): Boolean {
+    val obj = skills as? JsonObject ?: return false
+    return (obj["defaultActiveOnShare"] as? JsonPrimitive)?.let { !it.isString && it.booleanOrNull == true } == true
+}
 
 /**
  * Whether the conversation trace viewer is enabled on this server.

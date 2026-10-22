@@ -15,9 +15,11 @@ import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.PendingAction
+import com.garfiec.librechat.core.model.config.ModelSpecSkills
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.content.Compaction
 import com.garfiec.librechat.core.model.endpoint.KeyState
+import com.garfiec.librechat.core.model.request.manualSkillsSupportedOn
 import com.garfiec.librechat.core.model.response.FilePreviewResponse
 import com.garfiec.librechat.core.model.response.FileUploadConfig
 import com.garfiec.librechat.core.model.response.UploadRoute
@@ -34,12 +36,17 @@ import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.core.ui.contextusage.ContextBreakdownModel
 import com.garfiec.librechat.core.ui.media.MediaPreviewState
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
+import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
+import com.garfiec.librechat.feature.chat.util.CatalogSkill
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.PendingUsage
+import com.garfiec.librechat.feature.chat.util.SkillPickRules
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
+import com.garfiec.librechat.feature.chat.util.pickableSkills
+import com.garfiec.librechat.feature.chat.util.skillPickRules
 
 /**
  * The agents endpoint capability that enables server-side text extraction (`tool_resource=context`).
@@ -132,6 +139,100 @@ data class ChatUiState(
     val editingQueuedItem: QueuedEditSession? get() = composer.editingQueuedItem
     val isAwaitingUploadSend: Boolean get() = composer.isAwaitingUploadSend
     val pendingQuotes: List<String> get() = composer.pendingQuotes
+    val pendingManualSkills: List<String> get() = composer.pendingManualSkills
+    val skillsToggle: Boolean get() = selection.skillsToggle
+    val skillCatalog: List<CatalogSkill>? get() = presetPrompts.skillCatalog
+    val isLoadingSkills: Boolean get() = presetPrompts.isLoadingSkills
+    val skillsLoadFailed: Boolean get() = presetPrompts.skillsLoadFailed
+    val skillsEnabled: Boolean get() = gates.skillsEnabled
+
+    /**
+     * The active model spec's `skills` setting, or null when no spec is selected or it leaves
+     * skills to the user. While non-null the spec governs: the Skills row and chip are hidden and
+     * the per-conversation toggle is neither read nor written. [ModelSpecSkills.Off] also means
+     * no skill can be picked; [ModelSpecSkills.Only] limits picks to its names.
+     *
+     * Always null against v0.8.8, whose config route strips the spec's `skills` key (see
+     * `ModelSpec.skills`): the spec-governed branches keyed on this are forward-compatible and
+     * inert until upstream sends it. Web doesn't read the key either; it stops restoring the
+     * stored toggles under any active spec instead.
+     */
+    val activeSpecSkills: ModelSpecSkills?
+        get() = selectedSpec?.let { name -> selection.modelSpecs?.list?.firstOrNull { it.name == name } }?.skillsSetting
+
+    /**
+     * Whether skills can be used in this chat at all: role SKILLS.USE (permissive until the role
+     * loads, as the drawer), the agents endpoint advertising the `skills` capability (fail-closed,
+     * as [isMemoryToolAvailable]), and not an assistants endpoint.
+     */
+    val skillsCapable: Boolean
+        get() = skillsEnabled &&
+            endpointConfigs[EndpointConstants.AGENTS]?.capabilities?.contains(ToolConstants.SKILLS) == true &&
+            manualSkillsSupportedOn(selectedEndpoint)
+
+    /**
+     * Whether skills may be picked or sent in this chat before any agent's scope is consulted:
+     * [skillsCapable] and no active model spec that turns skills off. The input to
+     * [skillPickRules]; the send recheck reads it too, because an agent not loaded yet must not
+     * hold chips back there.
+     */
+    val skillsAllowedHere: Boolean
+        get() = skillsCapable && activeSpecSkills != ModelSpecSkills.Off
+
+    /**
+     * Whether the picker could offer a skill here at all: [skillsAllowedHere], and in a
+     * persisted-agent chat an agent whose scope offers some (an agent not loaded yet reads as
+     * offering none, as the picker's rows do). Gates the leading `$`, the catalog load and the
+     * picker's loading and failed rows, so none of them appear where no skill can be picked.
+     */
+    val canPickSkills: Boolean
+        get() = skillPickRules(
+            canPick = skillsAllowedHere,
+            endpoint = selectedEndpoint,
+            selectedModel = selectedModel,
+            agents = agents,
+            specSkills = activeSpecSkills,
+            unloadedAgentRefuses = true,
+        ) != null
+
+    /**
+     * The skill rows the composer's `/` and `$` picker offers here: the loaded catalog narrowed by
+     * [skillsAllowedHere], the persisted agent's scope, the active spec and the staged chips. See
+     * [pickableSkills]. Empty until the catalog has loaded.
+     */
+    val pickerSkills: List<PickerSkill>
+        get() = pickableSkills(
+            catalog = skillCatalog,
+            canPick = skillsAllowedHere,
+            endpoint = selectedEndpoint,
+            selectedModel = selectedModel,
+            agents = agents,
+            specSkills = activeSpecSkills,
+            pending = pendingManualSkills,
+        )
+
+    /**
+     * The rules a skill picked here must pass to be staged as a chip: the ones a send applies
+     * ([skillPickRules], as `sendableManualSkills` uses them), so a chip is staged wherever a
+     * send could still carry it. Null when no skill can be picked.
+     */
+    val skillRules: SkillPickRules?
+        get() = skillPickRules(
+            canPick = skillsAllowedHere,
+            endpoint = selectedEndpoint,
+            selectedModel = selectedModel,
+            agents = agents,
+            specSkills = activeSpecSkills,
+            unloadedAgentRefuses = false,
+        )
+
+    /**
+     * Whether the composer offers the Skills toggle (tools-sheet row and active chip): skills are
+     * usable, the ephemeral tools show — never in a persisted-agent chat, where the agent's own
+     * `skills_enabled` governs — and no active model spec configures skills.
+     */
+    val isSkillsToolAvailable: Boolean
+        get() = skillsCapable && showEphemeralTools && activeSpecSkills == null
 
     /**
      * Whether the "Add to chat" quote affordance is offered (v0.8.7, upstream #13868).
@@ -368,6 +469,9 @@ data class ChatUiState(
             var tools = enabledTools
             tools = if (modelParameters.webSearch) tools + ToolConstants.WEB_SEARCH else tools - ToolConstants.WEB_SEARCH
             tools = if (modelParameters.urlContext) tools + ToolConstants.URL_CONTEXT else tools - ToolConstants.URL_CONTEXT
+            // The Skills toggle is per conversation and lives apart from [enabledTools]; it is
+            // synthesized in only where it would be sent.
+            tools = if (skillsToggle && isSkillsToolAvailable) tools + ToolConstants.SKILLS else tools - ToolConstants.SKILLS
             return tools
         }
 
@@ -403,6 +507,7 @@ data class ChatUiState(
                     ToolConstants.EXECUTE_CODE, ToolConstants.CODE_INTERPRETER ->
                         ToolConstants.CODE_INTERPRETER.takeIf { isCodeInterpreterAvailable && runCodeEnabled }
                     ToolConstants.MEMORY -> ToolConstants.MEMORY.takeIf { isMemoryToolAvailable }
+                    ToolConstants.SKILLS -> ToolConstants.SKILLS.takeIf { isSkillsToolAvailable }
                     else -> null
                 }
             }.distinct()

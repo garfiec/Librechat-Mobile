@@ -43,7 +43,9 @@ import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.ui.components.pressBounce
 import com.garfiec.librechat.core.ui.components.rememberPressBounce
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
+import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
+import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -78,6 +80,8 @@ fun ChatInput(
     onCancelSteer: (steerId: String) -> Unit = {},
     pendingQuotes: List<String> = emptyList(),
     onRemoveQuote: (index: Int) -> Unit = {},
+    pendingManualSkills: List<String> = emptyList(),
+    onRemoveManualSkill: (name: String) -> Unit = {},
     onSetDuringRunAction: (DuringRunAction) -> Unit = {},
     queuedPausedCount: Int = 0,
     queueHeldForRefusal: Boolean = false,
@@ -99,7 +103,12 @@ fun ChatInput(
     attachedFiles: List<AttachedFile> = emptyList(),
     onRemoveFile: (AttachedFile) -> Unit = {},
     promptSuggestions: List<PromptMentionDisplayData> = emptyList(),
-    onSlashCommandSelect: (PromptMentionDisplayData) -> Unit = {},
+    skillSuggestions: List<PickerSkill> = emptyList(),
+    isLoadingSkills: Boolean = false,
+    skillsLoadFailed: Boolean = false,
+    canPickSkills: Boolean = false,
+    onRetrySkills: () -> Unit = {},
+    onPickerSelect: (ComposerPickerItem) -> Unit = {},
     isRecording: Boolean = false,
     isTranscribing: Boolean = false,
     onStartRecording: () -> Unit = {},
@@ -166,6 +175,7 @@ fun ChatInput(
         duringRunSendTarget = duringRunSendTarget,
         pendingSteers = pendingSteers,
         pendingQuotes = pendingQuotes,
+        pendingManualSkills = pendingManualSkills,
         isEditingQueued = isEditingQueued,
         isAwaitingUploadSend = isAwaitingUploadSend,
         arePicksUnsettled = arePicksUnsettled,
@@ -177,19 +187,25 @@ fun ChatInput(
         onSnoozeCompact = onSnoozeCompact,
         contextBarPlacement = contextBarPlacement,
         promptSuggestions = promptSuggestions,
+        skillSuggestions = skillSuggestions,
+        isLoadingSkills = isLoadingSkills,
+        skillsLoadFailed = skillsLoadFailed,
+        canPickSkills = canPickSkills,
     )
 
     CommonChatInputCore(
         state = state,
         onSend = onSend,
         onStop = onStop,
-        onSelectPrompt = onSlashCommandSelect,
+        onSelectPickerItem = onPickerSelect,
         onToggleTool = onToggleTool,
         onQueue = onQueue,
         onDuringRunSend = onDuringRunSend,
         onSteer = onSteer,
         onCancelSteer = onCancelSteer,
         onRemoveQuote = onRemoveQuote,
+        onRemoveManualSkill = onRemoveManualSkill,
+        onRetrySkills = onRetrySkills,
         onSetDuringRunAction = onSetDuringRunAction,
         queuedPausedCount = queuedPausedCount,
         queueHeldForRefusal = queueHeldForRefusal,

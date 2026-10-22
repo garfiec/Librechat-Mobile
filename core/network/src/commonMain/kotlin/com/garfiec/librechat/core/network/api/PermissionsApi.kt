@@ -89,7 +89,7 @@ class PermissionsApi(
      * GET /api/permissions/search-principals?q=... — autocomplete users/groups via the people
      * picker. The server answers `{query, limit, types, results, count, sources}` and searches only
      * the principal types the caller's PEOPLE_PICKER permissions allow (403 when none); this
-     * returns the `results`.
+     * returns the `results`. The server refuses a trimmed query under 2 characters with a 400.
      */
     suspend fun searchPrincipals(query: String, limit: Int? = null): List<Principal> =
         client.get {

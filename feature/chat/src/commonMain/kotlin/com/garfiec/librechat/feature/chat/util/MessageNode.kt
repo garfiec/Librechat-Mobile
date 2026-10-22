@@ -195,8 +195,8 @@ fun stabilizeMessageInstances(incoming: List<Message>, previous: List<Message>):
  *  - **Volatile, server-canonical fields** the backfill reformats/injects: `createdAt`,
  *    `updatedAt`, `tokenCount`, `finishReason`.
  *  - **Fields `MessageEntity` does not persist** (`responseMessageId`,
- *    `overrideParentMessageId`, `user`, `threadId`, `contextMeta`, `title`, `manualSkills`,
- *    `alwaysAppliedSkills`): the finalized SSE messages carry some of these, but Room nulls
+ *    `overrideParentMessageId`, `user`, `threadId`, `contextMeta`, `title`): the finalized SSE
+ *    messages carry some of these, but Room nulls
  *    them on round-trip, so an emission can only ever *drop* them — never introduce a new
  *    value — making this neutralization one-directional-safe. Keep in sync with the columns
  *    [com.garfiec.librechat.core.data.db.entity.MessageEntity] omits.
@@ -217,6 +217,4 @@ private fun Message.isRenderEquivalentTo(other: Message): Boolean =
         threadId = threadId,
         contextMeta = contextMeta,
         title = title,
-        manualSkills = manualSkills,
-        alwaysAppliedSkills = alwaysAppliedSkills,
     )

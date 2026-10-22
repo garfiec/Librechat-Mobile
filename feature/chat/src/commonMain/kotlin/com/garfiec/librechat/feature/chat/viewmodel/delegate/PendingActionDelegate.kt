@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.model.ToolApprovalDecisions
 import com.garfiec.librechat.core.model.request.ChatResumeRequest
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
+import com.garfiec.librechat.core.model.request.withManualSkillsFlag
 import com.garfiec.librechat.feature.chat.components.PAUSE_PANEL_AUTO_ADVANCE_DELAY_MS
 import com.garfiec.librechat.feature.chat.components.PausePanelAutoAdvance
 import com.garfiec.librechat.feature.chat.components.pausePanelActiveIndex
@@ -192,10 +193,13 @@ class PendingActionDelegate(
      * client only reconnected to — there the live selection, restored from the conversation, is
      * the best available guess).
      *
+     * [manualSkills] are the skill names a spec-less turn (regenerate / edit) replays: they can
+     * turn the ephemeral skills flag on in the body, so the pin has to apply the same rule.
+     *
      * Must run AFTER the session boundary that calls [clear], or the new turn's pin is wiped.
      */
-    fun onTurnStarted(spec: QueuedMessage?) {
-        pinnedTurn = spec?.toPinnedTurn() ?: captureTurnConfig()
+    fun onTurnStarted(spec: QueuedMessage?, manualSkills: List<String>? = null) {
+        pinnedTurn = spec?.toPinnedTurn() ?: captureTurnConfig(manualSkills)
         persistPin()
     }
 
@@ -725,7 +729,8 @@ class PendingActionDelegate(
         model = model,
         spec = modelSpec,
         promptPrefix = modelParamsPayload.promptPrefix(),
-        ephemeralAgent = ephemeralAgent,
+        // What the body carried: picked skills turn the ephemeral flag on there.
+        ephemeralAgent = ephemeralAgent.withManualSkillsFlag(endpoint, manualSkills),
         isTemporary = isTemporary,
     )
 
@@ -751,7 +756,7 @@ class PendingActionDelegate(
         isTemporary = isTemporary,
     )
 
-    private fun captureTurnConfig(): PinnedTurnConfig {
+    private fun captureTurnConfig(manualSkills: List<String>? = null): PinnedTurnConfig {
         val state = handle.state
         val dispatch = requestBuilder.currentDispatch()
         val isAgent = state.selectedEndpoint == EndpointConstants.AGENTS
@@ -762,7 +767,7 @@ class PendingActionDelegate(
             model = state.selectedModel,
             spec = state.selectedSpec,
             promptPrefix = requestBuilder.buildModelParams().promptPrefix(),
-            ephemeralAgent = requestBuilder.buildEphemeralAgent(),
+            ephemeralAgent = requestBuilder.buildEphemeralAgent().withManualSkillsFlag(state.selectedEndpoint, manualSkills),
             isTemporary = state.isTemporaryChat,
         )
     }

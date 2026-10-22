@@ -198,6 +198,19 @@ fun MessageList(
     val renderedToolCalls = remember(activeToolCalls, pausedAskToolCallId, pausedAskQuestion) {
         activeToolCalls.withoutUnansweredQuestions(pausedAskToolCallId, pausedAskQuestion)
     }
+    // One "Running X" row per skill the streaming turn picked, until the final message brings
+    // the real cards. The turn's user message is the last displayed node (fresh send, regenerate
+    // and edit alike), and a resync that already carries a skill's card retires its row.
+    val pendingSkills = remember(isStreaming, displayMessages, renderedToolCalls) {
+        if (!isStreaming) {
+            emptyList()
+        } else {
+            pendingSkillRows(
+                manualSkills = displayMessages.lastOrNull()?.message?.takeIf { it.isCreatedByUser }?.manualSkills,
+                liveSkillNames = renderedToolCalls.filter { isSkillToolCall(it.name) }.mapNotNull { parseSkillName(it.input) },
+            )
+        }
+    }
     val streamingToolCallCount = if (isStreaming) renderedToolCalls.size else 0
     val totalItemCount = displayMessages.size + streamingToolCallCount + if (isStreaming) 1 else 0
 
@@ -651,6 +664,9 @@ fun MessageList(
                             showBubbles = showBubbles,
                             useKatex = useKatex,
                             streamingThinking = streamingThinking,
+                            // Inside the reply, under its sender row, where the finalized
+                            // message draws the cards that replace them.
+                            pendingSkills = pendingSkills,
                         )
                     }
                 }

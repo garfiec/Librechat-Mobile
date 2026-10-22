@@ -580,6 +580,21 @@
     <string name="cd_collapse_ask_user_question">質問の詳細を折りたたむ</string>
     <string name="tool_memory">メモリ</string>
     <string name="tool_memory_desc">このチャットの詳細をアシスタントが記憶できるようにする</string>
+    <string name="tool_skills">スキル</string>
+    <string name="tool_skills_desc">このチャットでアシスタントがあなたのスキルを使えるようにする</string>
+    <string name="cd_skills_enabled">スキルが有効</string>
+    <string name="picker_type_prompt">プロンプト</string>
+    <string name="picker_type_skill">スキル</string>
+    <string name="picker_no_matches">一致するものはありません</string>
+    <string name="picker_loading_skills">スキルを読み込み中…</string>
+    <string name="picker_skills_failed">スキルを読み込めませんでした</string>
+    <string name="cd_pending_skills">次のメッセージで使うスキル</string>
+    <string name="cd_remove_skill">スキル %1$s を削除</string>
+    <string name="cd_skill_always_applied">常に適用されるスキル: %1$s</string>
+    <string name="cd_skill_used">使用したスキル: %1$s</string>
+    <string name="skill_call_running">%1$s を実行中</string>
+    <string name="skill_call_finished">%1$s を実行しました</string>
+    <string name="skill_call_fallback_name">スキル</string>
     <string name="cd_steer_message">この応答を軌道修正</string>
     <string name="cd_cancel_steer">軌道修正をキャンセル</string>
     <string name="cd_during_run_options">送信時の動作を選択</string>
@@ -679,6 +694,8 @@
     <string name="notice_speech_permission_denied">音声認識へのアクセスが許可されていません</string>
     <string name="notice_speech_unavailable">音声認識を利用できません。設定 &gt; プライバシー &gt; 音声認識 を確認してください。</string>
     <string name="notice_send_refused">サーバーがこのメッセージを拒否しました。</string>
+    <string name="notice_skills_not_sent">このチャットでは使用できないスキルがあるため、送信されませんでした。</string>
+    <string name="notice_skills_removed_from_queued">このチャットでは使用できないスキルがあるため、キュー内のメッセージから削除しました。</string>
     <plurals name="notice_message_limit_retry_minutes">
         <item quantity="other">このサーバーのメッセージ上限に達しました。%1$d分後にもう一度お試しください。</item>
     </plurals>

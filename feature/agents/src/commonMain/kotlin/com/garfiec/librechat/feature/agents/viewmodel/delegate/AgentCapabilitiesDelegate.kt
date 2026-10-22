@@ -219,7 +219,7 @@ class AgentCapabilitiesDelegate(
      * the first page. Stopping at 100 truncates the picker, and — because this
      * same list resolves chip names — a skill already saved on the agent whose
      * id sits past page one renders as a raw id, which reads as data loss on a
-     * configuration the user did not touch. The `maxCatalogSkills` interface key
+     * configuration the user did not touch. `endpoints.agents.skills.maxCatalogSkills`
      * bounds what the model is shown, not what the picker lists, so it is no
      * mitigation. Upstream fixed the same defect in #14429.
      */

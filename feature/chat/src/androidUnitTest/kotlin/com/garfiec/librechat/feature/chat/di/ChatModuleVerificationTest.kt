@@ -27,6 +27,7 @@ import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
+import com.garfiec.librechat.core.data.repository.SkillsRepository
 import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.data.repository.SubagentRepository
 import com.garfiec.librechat.core.data.repository.TraceRepository
@@ -85,6 +86,7 @@ class ChatModuleVerificationTest {
                 SpeechRepository::class,
                 McpRepository::class,
                 MemoryRepository::class,
+                SkillsRepository::class,
                 UserRepository::class,
                 ConnectivityObserver::class,
                 ActiveAccountProvider::class,

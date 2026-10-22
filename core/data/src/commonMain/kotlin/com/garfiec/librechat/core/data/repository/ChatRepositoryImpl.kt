@@ -80,6 +80,7 @@ class ChatRepositoryImpl(
         quotes: List<String>?,
         spec: String?,
         chatProjectId: String?,
+        manualSkills: List<String>?,
     ): Flow<StreamEvent> = flow {
         // Phase 1: POST to start the chat - get back a streamId (= conversationId)
         val request = ChatPayloadBuilder.build(
@@ -107,6 +108,7 @@ class ChatRepositoryImpl(
             isTemporary = isTemporary,
             quotes = quotes,
             chatProjectId = chatProjectId,
+            manualSkills = manualSkills,
         )
         // A send whose parent response is still being written now 409s ("Cannot submit a
         // follow-up while the selected parent response is still being saved"), which an

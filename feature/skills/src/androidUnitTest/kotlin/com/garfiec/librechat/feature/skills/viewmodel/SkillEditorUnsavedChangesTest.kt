@@ -6,8 +6,10 @@ import com.garfiec.librechat.core.data.repository.SkillUpdateResult
 import com.garfiec.librechat.core.data.repository.SkillsRepository
 import com.garfiec.librechat.core.model.Skill
 import com.garfiec.librechat.core.model.response.Category
+import com.garfiec.librechat.feature.skills.SkillSaveNotices
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -53,7 +55,7 @@ class SkillEditorUnsavedChangesTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun editor(skillId: String? = skill.id) = SkillEditorViewModel(skillsRepository, configRepository, skillId)
+    private fun editor(skillId: String? = skill.id) = SkillEditorViewModel(skillsRepository, configRepository, SkillSaveNotices(), skillId)
 
     private fun TestScope.eventsOf(viewModel: SkillEditorViewModel): List<SkillEditorEvent> {
         val events = mutableListOf<SkillEditorEvent>()
@@ -145,7 +147,7 @@ class SkillEditorUnsavedChangesTest {
         viewModel.save()
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.conflictNotice).isNotNull()
+        assertThat(viewModel.uiState.value.showConflictNotice).isTrue()
         assertThat(viewModel.uiState.value.hasUnsavedChanges).isTrue()
     }
 
@@ -166,5 +168,26 @@ class SkillEditorUnsavedChangesTest {
 
         assertThat(viewModel.uiState.value.showDiscardConfirm).isFalse()
         assertThat(events).isEmpty()
+    }
+
+    /** Saved pops the editor; a back or save tap during that exit animation must not act again. */
+    @Test
+    fun `once saved, back and save do nothing more`() = runTest(dispatcher) {
+        coEvery { skillsRepository.updateSkill(skill.id, any()) } returns
+            SkillUpdateResult.Success(skill.copy(body = "Be thorough.", version = 4))
+        val viewModel = editor()
+        val events = eventsOf(viewModel)
+        advanceUntilIdle()
+        viewModel.onBodyChanged("Be thorough.")
+        viewModel.save()
+        advanceUntilIdle()
+        assertThat(events).containsExactly(SkillEditorEvent.Saved(skill.id))
+
+        viewModel.onBackRequested()
+        viewModel.save()
+        advanceUntilIdle()
+
+        assertThat(events).containsExactly(SkillEditorEvent.Saved(skill.id))
+        coVerify(exactly = 1) { skillsRepository.updateSkill(skill.id, any()) }
     }
 }

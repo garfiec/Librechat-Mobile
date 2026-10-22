@@ -34,6 +34,7 @@ import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
+import com.garfiec.librechat.core.data.repository.SkillsRepository
 import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
@@ -50,6 +51,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 
 /**
@@ -91,6 +93,7 @@ internal class ChatViewModelTestFixture {
     val shareLinkControllerFactory = mockk<ShareLinkControllerFactory>(relaxed = true)
     val traceRepository = mockk<TraceRepository>(relaxed = true)
     val mcpRepository = mockk<McpRepository>(relaxed = true)
+    val skillsRepository = mockk<SkillsRepository>(relaxed = true)
     val userRepository = mockk<UserRepository>(relaxed = true)
     val roleRepository = mockk<RoleRepository>(relaxed = true)
     val memoryRepository = mockk<MemoryRepository>(relaxed = true)
@@ -117,6 +120,9 @@ internal class ChatViewModelTestFixture {
     val selectionHandoff = NewChatSelectionHandoff()
     val siteIconPromptSession = SiteIconPromptSession()
     val promptInsertionHandoff = PromptInsertionHandoff()
+
+    /** The per-conversation Skills toggle store, by slot (a conversation id, `new` or `__defaults__`). */
+    val skillsToggles = MutableStateFlow<Map<String, Boolean>>(emptyMap())
 
     /** Driven by hand where a test needs a prompt mutation to reach a retained ViewModel. */
     val promptRevision = MutableStateFlow(0L)
@@ -174,6 +180,14 @@ internal class ChatViewModelTestFixture {
         every { preferenceStore.observe(AppPreferences.SiteIcons) } returns MutableStateFlow(null)
         every { preferenceStore.initial(AppPreferences.SiteIcons) } returns null
         every { settingsDataStore.duringRunAction } returns MutableStateFlow(DuringRunAction.QUEUE)
+        // A real slot map rather than a relaxed Flow, so a toggle written here reads back.
+        every { settingsDataStore.skillsToggle(any()) } answers {
+            val slot = firstArg<String>()
+            skillsToggles.map { it[slot] }
+        }
+        coEvery { settingsDataStore.setSkillsToggle(any(), any()) } answers {
+            skillsToggles.value = skillsToggles.value + (firstArg<String>() to secondArg<Boolean>())
+        }
     }
 
     fun build(
@@ -207,6 +221,7 @@ internal class ChatViewModelTestFixture {
         shareLinkControllerFactory = shareLinkControllerFactory,
         traceRepository = traceRepository,
         mcpRepository = mcpRepository,
+        skillsRepository = skillsRepository,
         userRepository = userRepository,
         roleRepository = roleRepository,
         memoryRepository = memoryRepository,

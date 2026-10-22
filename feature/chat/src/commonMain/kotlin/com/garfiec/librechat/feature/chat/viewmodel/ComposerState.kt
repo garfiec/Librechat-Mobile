@@ -54,6 +54,14 @@ data class ComposerState(
      * composer-origin steers leave them staged, and assistants endpoints never take them.
      */
     val pendingQuotes: List<String> = emptyList(),
+    /**
+     * Skill names picked for the next turn, one chip each above the composer (deduped by name,
+     * at most `MAX_MANUAL_SKILLS`). Taken with the quote chips by a fresh send or a composer-origin
+     * queue (`SendDispatchDelegate.takePendingManualSkills`); a steer leaves them staged (the steer
+     * route carries no skills), and assistants endpoints never take them. During a queued edit
+     * these are the edited item's own picks; the draft's are stashed in `ComposerSnapshot`.
+     */
+    val pendingManualSkills: List<String> = emptyList(),
 ) {
     /** True while at least one intake is still in flight. See [resolvingPickCount]. */
     val isResolvingPickedFiles: Boolean get() = resolvingPickCount > 0
@@ -125,6 +133,13 @@ data class ComposerSnapshot(
     val enabledTools: Set<String> = emptySet(),
     val mcpServerNames: Set<String> = emptySet(),
     val modelParameters: ModelParameters = ModelParameters.DEFAULT,
+    /** The pending skill chips: the draft's while stashed, the queued item's picks while editing. */
+    val manualSkills: List<String> = emptyList(),
+    /**
+     * The Skills toggle (`ephemeralAgent.skills`): the conversation's while stashed, the queued
+     * item's own while editing, so saving the edit sends it as it was queued.
+     */
+    val skillsToggle: Boolean = false,
 ) {
     val endpoint: String get() = choice.endpoint
     val model: String? get() = choice.model

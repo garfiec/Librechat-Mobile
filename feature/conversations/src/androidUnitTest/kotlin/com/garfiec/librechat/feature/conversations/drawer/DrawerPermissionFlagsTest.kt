@@ -1,16 +1,20 @@
 package com.garfiec.librechat.feature.conversations.drawer
 
+import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 class DrawerPermissionFlagsTest {
 
+    /** An agents endpoint that offers skills, so the Skills entry is gated by the role alone. */
+    private val skillsCapable = listOf(ToolConstants.SKILLS)
+
     private fun role(vararg permissions: Pair<String, Map<String, Boolean>>) =
         UserRolePermissions(name = "USER", permissions = mapOf(*permissions))
 
     private fun entryVisible(role: UserRolePermissions?): Boolean {
-        val flags = drawerPermissionFlags(role)
+        val flags = drawerPermissionFlags(role, skillsCapable)
         return DrawerUiState(agentsEnabled = flags.agentsEnabled, marketplaceEnabled = flags.marketplaceEnabled)
             .agentsEntryVisible
     }
@@ -30,7 +34,7 @@ class DrawerPermissionFlagsTest {
     fun `a role without MARKETPLACE use hides the Agents entry`() {
         val denied = role("AGENTS" to mapOf("USE" to true), "MARKETPLACE" to mapOf("USE" to false))
 
-        assertThat(drawerPermissionFlags(denied).marketplaceEnabled).isFalse()
+        assertThat(drawerPermissionFlags(denied, skillsCapable).marketplaceEnabled).isFalse()
         assertThat(entryVisible(denied)).isFalse()
     }
 
@@ -41,7 +45,7 @@ class DrawerPermissionFlagsTest {
 
     @Test
     fun `MARKETPLACE use gates only the Agents entry`() {
-        val flags = drawerPermissionFlags(role("MARKETPLACE" to mapOf("USE" to false)))
+        val flags = drawerPermissionFlags(role("MARKETPLACE" to mapOf("USE" to false)), skillsCapable)
 
         assertThat(flags.agentsEnabled).isTrue()
         assertThat(flags.skillsEnabled).isTrue()
