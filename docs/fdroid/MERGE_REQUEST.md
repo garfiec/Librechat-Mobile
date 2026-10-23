@@ -335,9 +335,9 @@ disappear against a dark theme. Regenerate it with `scripts/make-fdroid-icon.py`
 Without it F-Droid falls back to the launcher icon from the APK, which works but draws review
 comments.
 
-**Gradle 9.5.1 and the packaged wrapper script**, kept here because it does not affect F-Droid's
-own infrastructure: 9.5.1 resolves from `gradle-wrapper.properties` and is in the
+**Gradle 9.6.1 and the packaged wrapper script**, kept here because it does not affect F-Droid's
+own infrastructure: 9.6.1 resolves from `gradle-wrapper.properties` and is in the
 gradle-transparency-log, but the `gradlew-fdroid` shipped by the Debian `fdroidserver` package
 (2.4.2, trixie) is an older bash script whose hash table ends at 8.14.2 and aborts with `No hash
-for gradle version 9.5.1!`. Only the Python `gradle` shim in the buildserver image handles it.
+for gradle version 9.6.1!`. Only the Python `gradle` shim in the buildserver image handles it.
 Raise it only if a build fails.
