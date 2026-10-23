@@ -236,6 +236,16 @@ fun SecondaryMessageList(
                     }
                 }
             }
+            ScrollToBottomButton(
+                listState = listState,
+                follower = follower,
+                extraEndPx = extraEndPx,
+                // Compare's panes don't record the glass backdrop (see MessageList's recordsGlassBackdrop).
+                backdrop = null,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = scrollToBottomButtonPadding(bottomContentPadding)),
+            )
         }
     }
 }

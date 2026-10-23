@@ -1,10 +1,7 @@
 package com.garfiec.librechat.feature.chat.components
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,11 +11,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButtonDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
@@ -26,7 +19,6 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,12 +41,10 @@ import com.garfiec.librechat.core.common.ChatLayoutConstants
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.PendingAction
-import com.garfiec.librechat.core.ui.components.AdaptiveFloatingActionButton
 import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.feature.chat.resources.*
-import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.withPreviews
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
@@ -65,7 +55,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import org.jetbrains.compose.resources.stringResource
 import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -220,18 +209,6 @@ fun MessageList(
     var listHasFocus by remember { mutableStateOf(false) }
 
     val isNearBottom = rememberIsNearBottom(listState, extraEndPx)
-
-    val showScrollToBottom by remember {
-        derivedStateOf {
-            val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            // The LIST's own count, not the hand-computed [totalItemCount] above: that one omits
-            // the trailing office-preview and human-review-pause items, so with one of those off
-            // screen the last visible index equals it and the FAB — the only cue that the thread
-            // scrolls further — is suppressed exactly when it is needed.
-            val rendered = listState.layoutInfo.totalItemsCount
-            rendered > 0 && lastVisibleItem < rendered - 1
-        }
-    }
 
     // ── Auto-scroll behavior ──────────────────────────────────────────
     //
@@ -759,37 +736,15 @@ fun MessageList(
             }
         }
 
-        // Scroll-to-bottom FAB
-        AnimatedVisibility(
-            visible = showScrollToBottom,
+        ScrollToBottomButton(
+            listState = listState,
+            follower = follower,
+            extraEndPx = extraEndPx,
+            backdrop = LocalGlassBackdrop.current.takeIf { recordsGlassBackdrop },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                // Float the FAB just above the input bar, tracking the same inset as the content.
-                .padding(bottom = scrollToBottomPadding ?: (bottomContentPadding - 30.dp).coerceAtLeast(16.dp)),
-            enter = fadeIn(),
-            exit = fadeOut(),
-        ) {
-            AdaptiveFloatingActionButton(
-                onClick = {
-                    follower.userScrolledUp = false
-                    coroutineScope.launch {
-                        if (totalItemCount > 0) {
-                            listState.animateScrollToTail(totalItemCount - 1, extraEndPx)
-                        }
-                    }
-                },
-                small = true,
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                contentColor = MaterialTheme.colorScheme.onSurface,
-                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp),
-                backdrop = LocalGlassBackdrop.current.takeIf { recordsGlassBackdrop },
-            ) {
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = stringResource(Res.string.cd_scroll_to_bottom),
-                )
-            }
-        }
+                .padding(bottom = scrollToBottomPadding ?: scrollToBottomButtonPadding(bottomContentPadding)),
+        )
     }
 }
 
