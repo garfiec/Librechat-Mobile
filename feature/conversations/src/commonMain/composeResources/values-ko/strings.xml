@@ -101,6 +101,8 @@
     <!-- Archived conversations screen -->
     <string name="archived_conversations">보관된 대화</string>
     <string name="could_not_load_archived">보관된 대화를 불러올 수 없습니다</string>
+    <string name="could_not_load_more_archived">보관된 채팅을 더 불러올 수 없습니다</string>
+    <string name="archived_load_more_retry">다시 시도</string>
     <string name="no_archived_conversations">보관된 대화가 없습니다</string>
     <string name="archived_will_appear_here">보관된 대화가 여기에 표시됩니다</string>
 

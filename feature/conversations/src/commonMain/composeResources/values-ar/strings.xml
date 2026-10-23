@@ -101,6 +101,8 @@
     <!-- Archived conversations screen -->
     <string name="archived_conversations">المحادثات المؤرشفة</string>
     <string name="could_not_load_archived">تعذّر تحميل المحادثات المؤرشفة</string>
+    <string name="could_not_load_more_archived">تعذّر تحميل المزيد من الدردشات المؤرشفة</string>
+    <string name="archived_load_more_retry">إعادة المحاولة</string>
     <string name="no_archived_conversations">لا توجد محادثات مؤرشفة</string>
     <string name="archived_will_appear_here">ستظهر المحادثات المؤرشفة هنا</string>
 

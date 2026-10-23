@@ -101,6 +101,8 @@
     <!-- Archived conversations screen -->
     <string name="archived_conversations">Archived Conversations</string>
     <string name="could_not_load_archived">Could not load archived conversations</string>
+    <string name="could_not_load_more_archived">Couldn't load more archived chats</string>
+    <string name="archived_load_more_retry">Retry</string>
     <string name="no_archived_conversations">No archived conversations</string>
     <string name="archived_will_appear_here">Archived conversations will appear here</string>
 

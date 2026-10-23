@@ -52,6 +52,7 @@ fun EntryProviderScope<NavKey>.conversationsEntries(
     entry<ArchivedConversations> {
         ArchivedConversationsScreen(
             onNavigateBack = onBack,
+            onConversationClick = onConversationClick,
         )
     }
     entry<Projects> {

@@ -101,6 +101,8 @@
     <!-- Archived conversations screen -->
     <string name="archived_conversations">アーカイブ済みの会話</string>
     <string name="could_not_load_archived">アーカイブ済みの会話を読み込めませんでした</string>
+    <string name="could_not_load_more_archived">アーカイブ済みのチャットをこれ以上読み込めませんでした</string>
+    <string name="archived_load_more_retry">再試行</string>
     <string name="no_archived_conversations">アーカイブ済みの会話がありません</string>
     <string name="archived_will_appear_here">アーカイブした会話はここに表示されます</string>
 

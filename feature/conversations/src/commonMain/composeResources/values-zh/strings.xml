@@ -101,6 +101,8 @@
     <!-- Archived conversations screen -->
     <string name="archived_conversations">已归档对话</string>
     <string name="could_not_load_archived">无法加载已归档对话</string>
+    <string name="could_not_load_more_archived">无法加载更多已归档聊天</string>
+    <string name="archived_load_more_retry">重试</string>
     <string name="no_archived_conversations">没有已归档对话</string>
     <string name="archived_will_appear_here">已归档的对话将显示在此处</string>
 

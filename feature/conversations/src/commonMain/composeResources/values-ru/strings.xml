@@ -101,6 +101,8 @@
     <!-- Archived conversations screen -->
     <string name="archived_conversations">Архивированные беседы</string>
     <string name="could_not_load_archived">Не удалось загрузить архивированные беседы</string>
+    <string name="could_not_load_more_archived">Не удалось загрузить другие архивированные чаты</string>
+    <string name="archived_load_more_retry">Повторить</string>
     <string name="no_archived_conversations">Нет архивированных бесед</string>
     <string name="archived_will_appear_here">Архивированные беседы появятся здесь</string>
 

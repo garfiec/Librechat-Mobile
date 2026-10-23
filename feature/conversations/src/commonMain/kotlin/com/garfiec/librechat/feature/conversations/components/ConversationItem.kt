@@ -153,7 +153,7 @@ fun ConversationItem(
 
 /** Provider brands stay as written; the generic endpoint kinds are translated. */
 @Composable
-private fun endpointDisplayLabel(endpoint: String?): String {
+internal fun endpointDisplayLabel(endpoint: String?): String {
     if (endpoint == null) return stringResource(Res.string.endpoint_label_chat)
     return when (EModelEndpoint.fromName(endpoint)) {
         EModelEndpoint.OPENAI -> "OpenAI"

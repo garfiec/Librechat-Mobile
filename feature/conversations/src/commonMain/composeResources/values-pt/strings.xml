@@ -101,6 +101,8 @@
     <!-- Archived conversations screen -->
     <string name="archived_conversations">Conversas arquivadas</string>
     <string name="could_not_load_archived">Não foi possível carregar as conversas arquivadas</string>
+    <string name="could_not_load_more_archived">Não foi possível carregar mais conversas arquivadas</string>
+    <string name="archived_load_more_retry">Tentar novamente</string>
     <string name="no_archived_conversations">Nenhuma conversa arquivada</string>
     <string name="archived_will_appear_here">As conversas arquivadas aparecerão aqui</string>
 
