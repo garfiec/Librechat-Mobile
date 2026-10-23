@@ -28,7 +28,6 @@ import com.garfiec.librechat.feature.chat.components.MessageList
 import com.garfiec.librechat.feature.chat.components.SecondaryMessageList
 import com.garfiec.librechat.feature.chat.components.comparisonSyncLead
 import com.garfiec.librechat.feature.chat.components.rememberComparisonScrollSync
-import com.garfiec.librechat.feature.chat.util.READING_LINE
 import com.garfiec.librechat.feature.chat.util.buildComparisonDisplayMessages
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
@@ -143,14 +142,14 @@ internal fun ComparisonPanes(
     // a little room at its foot; the tab pager's lists run under the composer and need all of it.
     val listBottomPadding = if (wide) PaneListBottomPadding else bottomContentPadding
 
-    // Reading room past the last line, enough to scroll it up to the reading line the panes are
-    // synced on, so a reply's end can be compared where the rest of it was. The same in both panes,
-    // so their ends still meet. Measured from pane A's list; both panes are the same height. In
-    // both layouts: on a phone it gives each tab the same comfortable end to read into.
+    // Reading room past the last line, so a reply's end can be scrolled up clear of the composer.
+    // The same in both panes, so their ends still meet. Measured from pane A's list; both panes are
+    // the same height. In both layouts: on a phone it gives each tab the same comfortable end to
+    // read into.
     val settingUp = comparisonState.isSettingUp
     var paneListHeightPx by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
-    val extraEndSpace = with(density) { (paneListHeightPx * (1f - READING_LINE)).toDp() }
+    val extraEndSpace = with(density) { (paneListHeightPx * PaneEndSpaceFraction).toDp() }
         .minus(listBottomPadding + MESSAGE_LIST_BOTTOM_GAP)
         .coerceAtLeast(0.dp)
     val extraEndPx = with(density) { extraEndSpace.toPx() }
@@ -352,3 +351,4 @@ internal fun ComparisonPanes(
 }
 
 private val PaneListBottomPadding = 16.dp
+private const val PaneEndSpaceFraction = 1f / 3f
