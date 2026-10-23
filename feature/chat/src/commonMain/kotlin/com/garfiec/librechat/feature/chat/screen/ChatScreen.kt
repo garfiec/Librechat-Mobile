@@ -42,6 +42,7 @@ import com.garfiec.librechat.feature.chat.components.ChatFloatingTopBar
 import com.garfiec.librechat.feature.chat.components.ChatRoot
 import com.garfiec.librechat.feature.chat.components.ComposerComparison
 import com.garfiec.librechat.feature.chat.components.ComposerComparisonHint
+import com.garfiec.librechat.feature.chat.components.LandingStarters
 import com.garfiec.librechat.feature.chat.components.ToolApprovalPanel
 import com.garfiec.librechat.feature.chat.components.UpdateAvailableBanner
 import com.garfiec.librechat.feature.chat.components.UploadRoutingSheet
@@ -433,6 +434,14 @@ fun ChatScreen(
                                     modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp),
                                 )
                             }
+                        }
+                        if (askPause == null && !uiState.showsComparisonPanes(comparisonWide)) {
+                            LandingStarters(
+                                starters = uiState.landingStarters,
+                                visible = uiState.showsLandingStarters,
+                                onSend = viewModel::sendStarter,
+                                onEdit = viewModel::editStarter,
+                            )
                         }
                         toolPause?.let { pause ->
                             ToolApprovalPanel(

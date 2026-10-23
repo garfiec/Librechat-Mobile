@@ -79,6 +79,9 @@
     <string name="cd_more_options">추가 옵션</string>
     <string name="cd_scroll_to_bottom">맨 아래로 스크롤</string>
     <string name="cd_select_model">모델 선택</string>
+    <string name="cd_starter_send">보내기</string>
+    <string name="cd_starter_edit">보내기 전에 편집</string>
+    <string name="starters_try_asking">이렇게 물어보세요</string>
     <string name="cd_librechat">Switchboard</string>
     <string name="cd_comparison_enabled">비교 사용</string>
 

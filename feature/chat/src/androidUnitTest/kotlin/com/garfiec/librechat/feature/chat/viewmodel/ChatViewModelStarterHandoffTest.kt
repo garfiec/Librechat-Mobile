@@ -6,17 +6,22 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.LastUsedSelection
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.EndpointConfig
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -31,6 +36,7 @@ import org.junit.Test
  * host, which then opens `NewChat(agentId)`. The landing's chat screen calls
  * [ChatViewModel.consumePendingPromptInsertion] when it enters composition; these call it where the
  * screen would, and assert the starter sits unsent in the composer with the agent still selected.
+ * The landing's own starters (a tap sends, a hold fills the composer) share this harness.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModelStarterHandoffTest {
@@ -58,7 +64,21 @@ class ChatViewModelStarterHandoffTest {
             )
             coEvery { permissionGate.awaitRole() } returns null
             coEvery { agentRepository.getAgents(any()) } coAnswers { agentsList.await() }
-            coEvery { agentRepository.getAgentProvider(any()) } returns Result.Success("openAI")
+            coEvery { agentRepository.getAgentForViewing(any()) } returns Result.Success(
+                Agent(id = AGENT_ID, provider = "openAI", conversationStarters = listOf(STARTER, " ", "Another")),
+            )
+            // A send reads the attachments; none are attached.
+            val fileHandler = mockk<PlatformFileHandler>(relaxed = true)
+            every { fileHandler.attachedFiles } returns MutableStateFlow(emptyList())
+            every { platformDelegateFactory.createFileHandler(any()) } returns fileHandler
+            // A send's stream, held open so the run stays live.
+            every {
+                chatRepository.startChat(
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                    any(), any(), any(), any(), any(), any(),
+                )
+            } returns MutableSharedFlow()
         }
     }
 
@@ -131,6 +151,74 @@ class ChatViewModelStarterHandoffTest {
         assertEquals(EndpointConstants.AGENTS, state.selectedEndpoint)
         assertEquals(AGENT_ID, state.selectedModel)
         assertNull(fixture.promptInsertionHandoff.take())
+    }
+
+    @Test
+    fun `the landing offers the selected agent's own starters`() = landingTest { vm ->
+        agentsList.complete(Result.Success(listOf(Agent(id = AGENT_ID))))
+        advanceUntilIdle()
+
+        // From the single-agent read: the list projection carries none. Blank ones are dropped.
+        assertEquals(listOf(STARTER, "Another"), vm.uiState.value.landingStarters)
+    }
+
+    @Test
+    fun `a landing starter tap sends it without leaving a new-chat draft`() = landingTest { vm ->
+        agentsList.complete(Result.Success(listOf(Agent(id = AGENT_ID))))
+        advanceUntilIdle()
+
+        vm.sendStarter(STARTER)
+        // The run is live now, and its watchdogs never let advanceUntilIdle return.
+        runCurrent()
+
+        val state = vm.uiState.value
+        assertEquals("", state.inputText)
+        assertTrue(state.messages.any { it.isCreatedByUser && it.text == STARTER })
+        coVerify(exactly = 0) { fixture.draftRepository.saveDraft(any(), STARTER) }
+    }
+
+    @Test
+    fun `the next new chat on the same agent still offers its starters and provider`() = landingTest { vm ->
+        agentsList.complete(Result.Success(listOf(Agent(id = AGENT_ID))))
+        advanceUntilIdle()
+        vm.sendStarter(STARTER)
+        runCurrent()
+
+        // The chat was handed off: the landing resets for the next new chat on the same agent.
+        vm.onPendingNavigationHandled()
+        runCurrent()
+
+        val state = vm.uiState.value
+        assertEquals(AGENT_ID, state.selectedModel)
+        assertEquals(listOf(STARTER, "Another"), state.landingStarters)
+        assertEquals("openAI", state.selectedAgentProvider)
+    }
+
+    @Test
+    fun `a landing starter tap never replaces text in the composer`() = landingTest { vm ->
+        agentsList.complete(Result.Success(listOf(Agent(id = AGENT_ID))))
+        advanceUntilIdle()
+        vm.onInputChanged("half a thought")
+
+        vm.sendStarter(STARTER)
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals("half a thought", state.inputText)
+        assertTrue(state.messages.isEmpty())
+    }
+
+    @Test
+    fun `a landing starter hold fills the composer unsent`() = landingTest { vm ->
+        agentsList.complete(Result.Success(listOf(Agent(id = AGENT_ID))))
+        advanceUntilIdle()
+
+        vm.editStarter(STARTER)
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals(STARTER, state.inputText)
+        assertTrue(state.messages.isEmpty())
     }
 
     private fun landingTest(body: suspend TestScope.(ChatViewModel) -> Unit) = runTest(testDispatcher) {

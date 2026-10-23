@@ -1283,7 +1283,7 @@ class ModelSelectionDelegateTest {
         val scope = TestScope(StandardTestDispatcher(testScheduler))
         val handle = newHandle(scope, uiState(selectedModel = "agent_1"))
         val delegate = newDelegate(handle)
-        coEvery { agentRepository.getAgentProvider("agent_1") } returns Result.Success("anthropic")
+        coEvery { agentRepository.getAgentForViewing("agent_1") } returns viewed("anthropic")
 
         delegate.observeSelectedAgentProvider()
         advanceUntilIdle()
@@ -1296,9 +1296,9 @@ class ModelSelectionDelegateTest {
         val scope = TestScope(StandardTestDispatcher(testScheduler))
         val handle = newHandle(scope, uiState(selectedModel = "agent_1"))
         val delegate = newDelegate(handle)
-        val secondFetch = CompletableDeferred<Result<String?>>()
-        coEvery { agentRepository.getAgentProvider("agent_1") } returns Result.Success("anthropic")
-        coEvery { agentRepository.getAgentProvider("agent_2") } coAnswers { secondFetch.await() }
+        val secondFetch = CompletableDeferred<Result<Agent>>()
+        coEvery { agentRepository.getAgentForViewing("agent_1") } returns viewed("anthropic")
+        coEvery { agentRepository.getAgentForViewing("agent_2") } coAnswers { secondFetch.await() }
 
         delegate.observeSelectedAgentProvider()
         advanceUntilIdle()
@@ -1311,7 +1311,7 @@ class ModelSelectionDelegateTest {
         // attachment against it for a network round-trip is exactly the wrong-answer window.
         assertThat(handle.state.selectedAgentProvider).isNull()
 
-        secondFetch.complete(Result.Success("ollama"))
+        secondFetch.complete(viewed("ollama"))
         advanceUntilIdle()
         assertThat(handle.state.selectedAgentProvider).isEqualTo("ollama")
     }
@@ -1321,7 +1321,7 @@ class ModelSelectionDelegateTest {
         val scope = TestScope(StandardTestDispatcher(testScheduler))
         val handle = newHandle(scope, uiState(selectedModel = "agent_1"))
         val delegate = newDelegate(handle)
-        coEvery { agentRepository.getAgentProvider(any()) } returns Result.Success("anthropic")
+        coEvery { agentRepository.getAgentForViewing(any()) } returns viewed("anthropic")
 
         delegate.observeSelectedAgentProvider()
         advanceUntilIdle()
@@ -1331,7 +1331,7 @@ class ModelSelectionDelegateTest {
         advanceUntilIdle()
 
         assertThat(handle.state.selectedAgentProvider).isEqualTo("anthropic")
-        coVerify(exactly = 1) { agentRepository.getAgentProvider("agent_1") }
+        coVerify(exactly = 1) { agentRepository.getAgentForViewing("agent_1") }
     }
 
     @Test
@@ -1339,7 +1339,7 @@ class ModelSelectionDelegateTest {
         val scope = TestScope(StandardTestDispatcher(testScheduler))
         val handle = newHandle(scope, uiState(selectedModel = "agent_1"))
         val delegate = newDelegate(handle)
-        coEvery { agentRepository.getAgentProvider("agent_1") } returns Result.Success("anthropic")
+        coEvery { agentRepository.getAgentForViewing("agent_1") } returns viewed("anthropic")
 
         delegate.observeSelectedAgentProvider()
         advanceUntilIdle()
@@ -1352,7 +1352,7 @@ class ModelSelectionDelegateTest {
         // On a non-agents endpoint the endpoint name IS the provider; a stale agent provider
         // here would silently outrank it.
         assertThat(handle.state.selectedAgentProvider).isNull()
-        coVerify(exactly = 0) { agentRepository.getAgentProvider("gpt-4o") }
+        coVerify(exactly = 0) { agentRepository.getAgentForViewing("gpt-4o") }
     }
 
     @Test
@@ -1360,7 +1360,7 @@ class ModelSelectionDelegateTest {
         val scope = TestScope(StandardTestDispatcher(testScheduler))
         val handle = newHandle(scope, uiState(selectedModel = "agent_1"))
         val delegate = newDelegate(handle)
-        coEvery { agentRepository.getAgentProvider("agent_1") } returns Result.Error(message = "boom")
+        coEvery { agentRepository.getAgentForViewing("agent_1") } returns Result.Error(message = "boom")
 
         delegate.observeSelectedAgentProvider()
         advanceUntilIdle()
@@ -1373,7 +1373,7 @@ class ModelSelectionDelegateTest {
         val scope = TestScope(StandardTestDispatcher(testScheduler))
         val handle = newHandle(scope, uiState(selectedModel = "agent_1"))
         val delegate = newDelegate(handle)
-        coEvery { agentRepository.getAgentProvider("agent_1") } returns Result.Error(message = "boom")
+        coEvery { agentRepository.getAgentForViewing("agent_1") } returns Result.Error(message = "boom")
 
         delegate.observeSelectedAgentProvider()
         advanceUntilIdle()
@@ -1382,7 +1382,7 @@ class ModelSelectionDelegateTest {
         // The observer is driven by `distinctUntilChanged` on the agent id, so a still-selected
         // agent never re-triggers it. Without a retry at the point of use, one transient error
         // routes every attachment to the provider for the rest of the ViewModel's life.
-        coEvery { agentRepository.getAgentProvider("agent_1") } returns Result.Success("ollama")
+        coEvery { agentRepository.getAgentForViewing("agent_1") } returns viewed("ollama")
         val resolved = scope.async { delegate.awaitSelectedAgentProvider() }
         advanceUntilIdle()
 
@@ -1395,7 +1395,7 @@ class ModelSelectionDelegateTest {
         val scope = TestScope(StandardTestDispatcher(testScheduler))
         val handle = newHandle(scope, uiState(selectedModel = "agent_1"))
         val delegate = newDelegate(handle)
-        coEvery { agentRepository.getAgentProvider("agent_1") } returns Result.Success("bedrock")
+        coEvery { agentRepository.getAgentForViewing("agent_1") } returns viewed("bedrock")
 
         delegate.observeSelectedAgentProvider()
         advanceUntilIdle()
@@ -1404,11 +1404,59 @@ class ModelSelectionDelegateTest {
         // Editing an agent doesn't change its id, so the memo would otherwise serve the pre-edit
         // provider for as long as the chat screen lives — and Bedrock vs openAI is precisely the
         // difference between a .docx going natively and going as text.
-        coEvery { agentRepository.getAgentProvider("agent_1") } returns Result.Success("openAI")
+        coEvery { agentRepository.getAgentForViewing("agent_1") } returns viewed("openAI")
         agentRevision.value += 1
         advanceUntilIdle()
 
         assertThat(handle.state.selectedAgentProvider).isEqualTo("openAI")
+    }
+
+    @Test
+    fun theSameFetchPublishesTheAgentsStarters() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope, uiState(selectedModel = "agent_1"))
+        val delegate = newDelegate(handle)
+        coEvery { agentRepository.getAgentForViewing("agent_1") } returns viewed("anthropic", listOf("Plan my week"))
+
+        delegate.observeSelectedAgentProvider()
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedAgentStarters).containsExactly("Plan my week")
+        coVerify(exactly = 1) { agentRepository.getAgentForViewing("agent_1") }
+    }
+
+    @Test
+    fun startersAreUnresolvedWhileTheFetchRunsAndClearedOffTheAgentsEndpoint() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope, uiState(selectedModel = "agent_1"))
+        val delegate = newDelegate(handle)
+        val fetch = CompletableDeferred<Result<Agent>>()
+        coEvery { agentRepository.getAgentForViewing("agent_1") } coAnswers { fetch.await() }
+
+        delegate.observeSelectedAgentProvider()
+        advanceUntilIdle()
+        // Null, not empty: the landing must not fall back to a spec's starters for one round trip.
+        assertThat(handle.state.selectedAgentStarters).isNull()
+
+        fetch.complete(viewed("anthropic", listOf("Plan my week")))
+        advanceUntilIdle()
+        handle.update { copy(selection = selection.copy(choice = ModelChoice.Raw("openAI", "gpt-4o"))) }
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedAgentStarters).isNull()
+    }
+
+    @Test
+    fun aFailedFetchResolvesToNoStartersSoTheSpecFallbackShows() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val handle = newHandle(scope, uiState(selectedModel = "agent_1"))
+        val delegate = newDelegate(handle)
+        coEvery { agentRepository.getAgentForViewing("agent_1") } returns Result.Error(message = "boom")
+
+        delegate.observeSelectedAgentProvider()
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedAgentStarters).isEmpty()
     }
 
     @Test
@@ -1421,7 +1469,7 @@ class ModelSelectionDelegateTest {
         advanceUntilIdle()
 
         assertThat(resolved.await()).isNull()
-        coVerify(exactly = 0) { agentRepository.getAgentProvider(any()) }
+        coVerify(exactly = 0) { agentRepository.getAgentForViewing(any()) }
     }
 
     // ── Group G: server model specs (#538) ─────────────────────────────────
@@ -2433,4 +2481,8 @@ class ModelSelectionDelegateTest {
         advanceUntilIdle()
         assertThat(handle.state.selectedModel).isEqualTo("gpt-4.1")
     }
+
+    /** `GET /api/agents/:id`'s answer, as the delegate reads it: the provider and the starters. */
+    private fun viewed(provider: String?, starters: List<String> = emptyList()): Result<Agent> =
+        Result.Success(Agent(id = "agent", provider = provider, conversationStarters = starters))
 }

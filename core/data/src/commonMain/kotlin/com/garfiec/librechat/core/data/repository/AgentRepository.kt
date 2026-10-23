@@ -68,16 +68,6 @@ interface AgentRepository {
     suspend fun getAgentForViewing(id: String): Result<Agent>
 
     /**
-     * The agent's LLM `provider`, straight from `GET /api/agents/:id` (returned at VIEW permission).
-     *
-     * Deliberately not expressed as `getAgent(id).provider`: the agent *list* projection omits
-     * `provider` entirely (`getListAgentsByAccess` upstream), and [getAgent] serves from that list's
-     * cache whenever it's warm — so it answers `null` for an agent whose provider the server knows
-     * perfectly well. Callers that route on the provider need the single-agent read, uncached.
-     */
-    suspend fun getAgentProvider(id: String): Result<String?>
-
-    /**
      * The full agent from `GET /api/agents/:id/expanded`, which requires EDIT permission: everything
      * [getAgentForViewing] carries plus instructions, tools, category and the full
      * model_parameters. Fails for a user who can only view the agent. Never served from cache.

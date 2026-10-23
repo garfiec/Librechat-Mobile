@@ -46,6 +46,8 @@ data class ModelSpec(
      * upstream starts sending the key.
      */
     val skills: JsonElement? = null,
+    /** Shown on the new-chat screen when the spec's agent, if it has one, has none of its own. */
+    @SerialName("conversation_starters") val conversationStarters: List<String> = emptyList(),
 ) {
     /**
      * What this spec says about skills, or null when it configures none.

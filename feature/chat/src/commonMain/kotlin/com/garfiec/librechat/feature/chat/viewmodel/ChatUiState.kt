@@ -46,6 +46,7 @@ import com.garfiec.librechat.feature.chat.util.PendingUsage
 import com.garfiec.librechat.feature.chat.util.SkillPickRules
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.util.pickableSkills
+import com.garfiec.librechat.feature.chat.util.resolveLandingStarters
 import com.garfiec.librechat.feature.chat.util.skillPickRules
 
 /**
@@ -127,6 +128,23 @@ data class ChatUiState(
     val agents: List<Agent> get() = selection.agents
     val agentsLoaded: Boolean get() = selection.agentsLoaded
     val selectedAgentProvider: String? get() = selection.selectedAgentProvider
+    val selectedAgentStarters: List<String>? get() = selection.selectedAgentStarters
+
+    /** What the new-chat screen offers to send in one tap ([resolveLandingStarters]). */
+    val landingStarters: List<String>
+        get() = resolveLandingStarters(
+            isAgent = selectedEndpoint == EndpointConstants.AGENTS,
+            agentStarters = selectedAgentStarters,
+            spec = modelSpecs?.list?.find { it.name == selectedSpec },
+        )
+
+    /** Whether the new-chat screen has starters to offer; they keep their space while the user types. */
+    val hasLandingStarters: Boolean
+        get() = screenState == ChatScreenState.LANDING && landingStarters.isNotEmpty()
+
+    /** Whether the new-chat screen is showing its starters: there are some, and the composer is empty. */
+    val showsLandingStarters: Boolean
+        get() = hasLandingStarters && inputText.isBlank()
     val modelParameters: ModelParameters get() = selection.modelParameters
     val showModelSheet: Boolean get() = selection.showModelSheet
     val enabledTools: Set<String> get() = selection.enabledTools

@@ -262,21 +262,22 @@ class ModelSelectionDelegate(
     private var agentsFetchedNonEmpty = false
 
     /**
-     * Providers already resolved this session, keyed by agent id — including agents whose fetch
-     * came back with no provider at all, so switching back and forth doesn't re-hit the network
+     * What the single-agent read told us, keyed by agent id — including agents whose fetch came
+     * back with no provider or no starters, so switching back and forth doesn't re-hit the network
      * for an answer we already have. Confined to the handle's Main-dispatched scope, like
      * [cachedLastUsed].
      */
-    private val agentProviders = mutableMapOf<String, String?>()
+    private val agentViews = mutableMapOf<String, AgentViewFacts>()
 
     /** The in-flight provider fetch, cancelled when the selection moves on before it lands. */
     private var agentProviderJob: Job? = null
 
     /**
-     * Keeps [ModelSelectionState.selectedAgentProvider] in step with the selected agent.
+     * Keeps [ModelSelectionState.selectedAgentProvider] and
+     * [ModelSelectionState.selectedAgentStarters] in step with the selected agent.
      *
-     * The provider is only reachable through the single-agent read — the list projection omits it
-     * — so it has to be fetched once per agent rather than derived from state. Continuous, because
+     * Both are only reachable through the single-agent read — the list projection omits them — so
+     * they have to be fetched once per agent rather than derived from state. Continuous, because
      * the selection changes long after this is started: seeding, a conversation load, and the
      * model selector all move it.
      */
@@ -293,7 +294,7 @@ class ModelSelectionDelegate(
         // by id, and the id doesn't change when the agent does. `drop(1)` skips the seed value.
         handle.scope.launch {
             agentRepository.revision.drop(1).collect {
-                agentProviders.clear()
+                agentViews.clear()
                 resolveAgentProvider(currentAgentId())
             }
         }
@@ -306,17 +307,17 @@ class ModelSelectionDelegate(
     private fun resolveAgentProvider(agentId: String?) {
         agentProviderJob?.cancel()
         if (agentId == null) {
-            publishAgentProvider(null)
+            publishAgentView(provider = null, starters = null)
             return
         }
-        if (agentProviders.containsKey(agentId)) {
-            publishAgentProvider(agentProviders[agentId])
+        agentViews[agentId]?.let {
+            publishAgentView(it.provider, it.conversationStarters)
             return
         }
         // Clear first: the previous agent's provider must not linger over the new selection while
         // the fetch runs, or an attachment routes against the wrong provider for a network RTT.
-        publishAgentProvider(null)
-        agentProviderJob = handle.scope.launch { fetchAgentProvider(agentId) }
+        publishAgentView(provider = null, starters = null)
+        agentProviderJob = handle.scope.launch { fetchAgentView(agentId) }
     }
 
     /**
@@ -339,7 +340,7 @@ class ModelSelectionDelegate(
         // lands on the pre-feature behaviour, not on a wrong route.
         val provider = withTimeoutOrNull(AGENT_PROVIDER_RESOLVE_TIMEOUT_MS) {
             val agentId = awaitCurrentAgentId() ?: return@withTimeoutOrNull null
-            fetchAgentProvider(agentId)
+            fetchAgentView(agentId)?.provider
         }
         if (provider == null) {
             Logger.d { "awaitSelectedAgentProvider: unresolved; routing as unknown" }
@@ -370,20 +371,23 @@ class ModelSelectionDelegate(
 
     /**
      * Serves the memo or fetches, publishing to state on success. A failure is deliberately NOT
-     * memoized so the next attach retries it.
+     * memoized so the next attach retries it, but it publishes no starters rather than leaving
+     * them unresolved, so the landing falls back to the spec's.
      */
-    private suspend fun fetchAgentProvider(agentId: String): String? {
-        if (agentProviders.containsKey(agentId)) return agentProviders[agentId]
-        return when (val result = agentRepository.getAgentProvider(agentId)) {
+    private suspend fun fetchAgentView(agentId: String): AgentViewFacts? {
+        agentViews[agentId]?.let { return it }
+        return when (val result = agentRepository.getAgentForViewing(agentId)) {
             is Result.Success -> {
-                agentProviders[agentId] = result.data
+                val facts = AgentViewFacts(result.data.provider, result.data.conversationStarters)
+                agentViews[agentId] = facts
                 // The selection may have moved while the fetch was in flight.
-                if (currentAgentId() == agentId) publishAgentProvider(result.data)
-                result.data
+                if (currentAgentId() == agentId) publishAgentView(facts.provider, facts.conversationStarters)
+                facts
             }
 
             is Result.Error -> {
                 Logger.d(result.exception) { "Failed to resolve agent provider" }
+                if (currentAgentId() == agentId) publishAgentView(provider = null, starters = emptyList())
                 null
             }
 
@@ -391,10 +395,16 @@ class ModelSelectionDelegate(
         }
     }
 
-    private fun publishAgentProvider(provider: String?) {
-        if (handle.state.selectedAgentProvider == provider) return
-        handle.update { selection = selection.copy(selectedAgentProvider = provider) }
+    private fun publishAgentView(provider: String?, starters: List<String>?) {
+        val current = handle.state.selection
+        if (current.selectedAgentProvider == provider && current.selectedAgentStarters == starters) return
+        handle.update {
+            selection = selection.copy(selectedAgentProvider = provider, selectedAgentStarters = starters)
+        }
     }
+
+    /** The single-agent read's answers this delegate keeps: the two the list projection omits. */
+    private data class AgentViewFacts(val provider: String?, val conversationStarters: List<String>)
 
     /**
      * Re-filters availableModels into UI state and, for EXISTING conversations,

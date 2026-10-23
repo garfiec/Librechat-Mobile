@@ -9,11 +9,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.model.config.labelFor
+import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.feature.chat.components.LandingContent
+import com.garfiec.librechat.feature.chat.components.LandingHeroIcon
 import com.garfiec.librechat.feature.chat.components.MessageList
 import com.garfiec.librechat.feature.chat.components.MessagesUnavailable
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -143,6 +146,9 @@ internal fun ColumnScope.ChatContent(
                     onSelectModel = viewModel::openModelSheet.takeIf { uiState.modelPickerShown },
                     // A temporary chat is never filed (SendDispatchDelegate), so it claims no project.
                     projectName = projectName?.takeIf { !uiState.isTemporaryChat },
+                    heroIcon = uiState.landingHeroIcon(),
+                    showSubtitle = !uiState.hasLandingStarters,
+                    bottomPadding = maxOf(120.dp, paneBottomInset),
                     modifier = topInsetModifier.then(pullUpModifier),
                 )
             }
@@ -300,4 +306,26 @@ private fun ChatMessageListPane(
         pendingAction = uiState.renderablePendingAction,
         modifier = modifier,
     )
+}
+
+/**
+ * The new chat's own icon, as web's landing shows it: the selected spec's `iconURL` (an image, or
+ * an endpoint whose glyph to borrow), else the selected agent's avatar. Null keeps the app tile.
+ */
+internal fun ChatUiState.landingHeroIcon(): LandingHeroIcon? {
+    val specIcon = modelSpecs?.list?.find { it.name == selectedSpec }?.iconURL?.takeIf(String::isNotBlank)
+    if (specIcon != null) {
+        val isImage = specIcon.startsWith("http") || specIcon.startsWith("/")
+        return if (isImage) {
+            LandingHeroIcon(endpointName = selectedEndpoint, iconUrl = resolveAvatarUrl(specIcon, serverUrl))
+        } else {
+            LandingHeroIcon(endpointName = specIcon, iconUrl = null)
+        }
+    }
+    val agentAvatar = agents.takeIf { selectedEndpoint == EndpointConstants.AGENTS }
+        ?.find { it.id == selectedModel }
+        ?.avatarUrl
+        ?.let { resolveAvatarUrl(it, serverUrl) }
+        ?: return null
+    return LandingHeroIcon(endpointName = null, iconUrl = agentAvatar)
 }

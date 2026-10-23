@@ -79,6 +79,9 @@
     <string name="cd_more_options">Дополнительно</string>
     <string name="cd_scroll_to_bottom">Прокрутить вниз</string>
     <string name="cd_select_model">Выбрать модель</string>
+    <string name="cd_starter_send">Отправить</string>
+    <string name="cd_starter_edit">Изменить перед отправкой</string>
+    <string name="starters_try_asking">Попробуйте спросить</string>
     <string name="cd_librechat">Switchboard</string>
     <string name="cd_comparison_enabled">Сравнение включено</string>
 

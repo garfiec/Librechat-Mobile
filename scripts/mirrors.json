@@ -3083,6 +3083,33 @@
       },
       "why": "A manually picked skill's card is not streamed: after the run, `api/server/controllers/agents/client.js` unshifts the parts this builds (completed `skill` tool calls) onto the reply's content, so they reach the client only with the final message. The streaming reply therefore shows a \"Running X\" stand-in per pick until the FINAL event. The unshift call sits in a 5,000-line controller, so the builder it calls is what is watched.",
       "failure_mode": "If upstream starts streaming these cards, each pick shows twice mid-stream (the stand-in and the live card); if it stops adding them, the stand-in vanishes at the end with no card in its place. Nothing errors."
+    },
+    {
+      "id": "convo-starters",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "Constants",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/ConversationStarters.kt",
+        "symbol": "MAX_CONVO_STARTERS"
+      },
+      "why": "How many conversation starters the new-chat screen shows. `MAX_CONVO_STARTERS` is one member of the large `Constants` enum, so most changes to this block are unrelated; check only that member.",
+      "failure_mode": "The new-chat screen shows more or fewer starters than web does. Nothing errors."
+    },
+    {
+      "id": "convo-starters-precedence",
+      "upstream": {
+        "file": "client/src/components/Chat/Input/ConversationStarters.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/ConversationStarters.kt",
+        "symbol": "resolveLandingStarters"
+      },
+      "why": "Which starters the new-chat screen offers: the agent's own, else the selected model spec's. Web computes it in this component, and the server never says which applies.",
+      "failure_mode": "If upstream changes the order, adds a source or drops one, mobile offers different starters than web for the same agent or spec, or none at all. Nothing errors."
     }
   ]
 }

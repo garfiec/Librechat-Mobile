@@ -103,11 +103,6 @@ class AgentRepositoryImpl(
         }
     }
 
-    override suspend fun getAgentProvider(id: String): Result<String?> {
-        // No cache read: the warm one holds list-projection agents, whose provider is always null.
-        return safeApiCall { agentsApi.getAgent(id).provider }
-    }
-
     override suspend fun getAgentForEditing(id: String): Result<Agent> {
         // No cache read: list rows and the VIEW route both lack instructions, tools and category.
         return safeApiCall {

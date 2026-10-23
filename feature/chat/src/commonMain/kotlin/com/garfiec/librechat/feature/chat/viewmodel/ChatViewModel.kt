@@ -1389,6 +1389,12 @@ class ChatViewModel(
             ChatUiState(
                 selection = ModelSelectionState(
                     choice = current.selection.choice,
+                    // They describe the agent in `choice`, and the observer that resolves them only
+                    // fires when the agent id changes, so dropping them here would leave the next
+                    // new chat with no provider and its starters unresolved until another agent is
+                    // picked.
+                    selectedAgentProvider = current.selection.selectedAgentProvider,
+                    selectedAgentStarters = current.selection.selectedAgentStarters,
                     modelSpecs = current.selection.modelSpecs,
                     availableModels = current.availableModels,
                     endpointConfigs = current.endpointConfigs,
@@ -1654,6 +1660,22 @@ class ChatViewModel(
     fun consumePendingPromptInsertion() {
         promptInsertionHandoff.take()?.let(presetPromptDelegate::insertPromptText)
     }
+
+    /**
+     * Sends a new-chat starter through the composer, so the upload gate, the send preflight and a
+     * failed send's restore all treat it as typed text. Refused over a non-blank composer, which
+     * the starters are never shown over, so a draft is never replaced. The text skips
+     * [onInputChanged]'s draft save: that would race the send's draft delete and could bring the
+     * starter back as the next new chat's draft.
+     */
+    fun sendStarter(text: String) {
+        if (_uiState.value.inputText.isNotBlank()) return
+        presetPromptDelegate.insertPromptText(text)
+        sendMessage()
+    }
+
+    /** Puts a new-chat starter in the composer unsent, as an agent page's starter arrives. */
+    fun editStarter(text: String) = presetPromptDelegate.insertPromptText(text)
 
     fun confirmVariablePrompt(interpolated: String) = presetPromptDelegate.confirmVariablePrompt(interpolated)
     fun dismissVariablePrompt() = presetPromptDelegate.dismissVariablePrompt()

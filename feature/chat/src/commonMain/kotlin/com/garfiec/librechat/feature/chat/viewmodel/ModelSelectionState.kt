@@ -51,6 +51,12 @@ data class ModelSelectionState(
      * provider — never to a behaviour that only makes sense for a *known* provider.
      */
     val selectedAgentProvider: String? = null,
+    /**
+     * The selected agent's conversation starters, fetched alongside [selectedAgentProvider] (the
+     * list projection omits them too). Null while unresolved or on a non-agents endpoint; empty
+     * when the agent has none or the fetch failed.
+     */
+    val selectedAgentStarters: List<String>? = null,
     val modelParameters: ModelParameters = ModelParameters.DEFAULT,
     /** Single source of truth for whether the *standalone* model-selector sheet is open — the
      *  top-bar chip, the comparison dual-pane, and send-block auto-opens. Preflight failures and

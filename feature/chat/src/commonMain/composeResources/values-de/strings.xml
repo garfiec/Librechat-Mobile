@@ -79,6 +79,9 @@
     <string name="cd_more_options">Weitere Optionen</string>
     <string name="cd_scroll_to_bottom">Nach unten scrollen</string>
     <string name="cd_select_model">Modell auswählen</string>
+    <string name="cd_starter_send">Senden</string>
+    <string name="cd_starter_edit">Vor dem Senden bearbeiten</string>
+    <string name="starters_try_asking">Frag zum Beispiel</string>
     <string name="cd_librechat">Switchboard</string>
     <string name="cd_comparison_enabled">Vergleich aktiviert</string>
 

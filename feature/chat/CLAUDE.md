@@ -52,6 +52,16 @@ feature added to only one composer does not.
 ## Screen States
 `ChatScreenState` enum: `LANDING` | `LOADING` | `ACTIVE`
 - **Landing**: no conversation selected, shows greeting + model icon + optional conversation starters
+  - Starters (`ChatUiState.landingStarters`, `util/ConversationStarters.kt`): the agent's own, else the
+    selected spec's, at most 4. The agent list omits them, so they come from the same
+    `GET /api/agents/:id` read that resolves the agent's provider; `null` means not resolved yet and
+    shows nothing rather than the spec's for a round trip. A tap sends through the composer
+    (`sendStarter`), a hold fills it unsent (`editStarter`); hidden while the composer has text.
+  - They render as `LandingStarters` in `ChatScreen`'s measured bottom box, docked on the composer, not
+    inside `LandingContent`: that way they ride the keyboard and never sit under the composer. The hero
+    centres in the space they leave (`bottomPadding`) and drops its icon when that is too short.
+  - The hero shows the selected spec's `iconURL` or the agent's avatar, as web's landing does
+    (`landingHeroIcon`), and falls back to the app tile.
 - **Loading**: full-screen spinner — *nothing is cached* and the message fetch has not settled
 - **Active**: message list + streaming content + input area
 
