@@ -7,11 +7,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
+import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -33,12 +35,21 @@ internal fun PinnedToolsRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
+        // Filled when off: the composer overlays the message list and is transparent up here, so
+        // M3's outline-only chip would show scrolled text through its label. Glass keeps M3's defaults,
+        // which is what tells AdaptiveFilterChip to apply its glass label and icon colours.
+        val chipColors = if (isLiquidGlass) {
+            FilterChipDefaults.filterChipColors()
+        } else {
+            FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+        }
         pinnedToolKeys.forEach { key ->
             val meta = ephemeralToolMeta(key) ?: return@forEach
             AdaptiveFilterChip(
                 selected = key in enabledTools,
                 onClick = { onToggleTool(key) },
                 label = { Text(stringResource(meta.titleRes)) },
+                colors = chipColors,
                 leadingIcon = {
                     Icon(
                         imageVector = meta.icon,
