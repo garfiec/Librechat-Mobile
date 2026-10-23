@@ -122,6 +122,8 @@ internal fun ColumnScope.ChatContent(
             primaryLaneLabel = primaryLaneLabel,
             primaryListState = primaryListState,
             secondaryListState = secondaryListState,
+            listPullUpModifier = listPullUpModifier,
+            emptyPanePullUpModifier = pullUpModifier,
             modifier = topInsetModifier,
         )
     }

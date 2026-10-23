@@ -72,6 +72,10 @@ internal fun ComparisonPanes(
     /** Pane B's scroll position, hoisted beside pane A's (see ChatContent). */
     secondaryListState: LazyListState,
     modifier: Modifier = Modifier,
+    /** The pull-up tools sheet's nested-scroll bridge, for the live panes (not setup). */
+    listPullUpModifier: Modifier = Modifier,
+    /** The pull-up sheet's direct drag, for a live pane with no messages: only its centred column scrolls. */
+    emptyPanePullUpModifier: Modifier = Modifier,
 ) {
     val comparisonState = uiState.comparisonState
 
@@ -148,6 +152,7 @@ internal fun ComparisonPanes(
     // so their ends still meet. Measured from pane A's list; both panes are the same height. In
     // both layouts: on a phone it gives each tab the same comfortable end to read into.
     val settingUp = comparisonState.isSettingUp
+    val emptyPaneModifier = if (settingUp) Modifier else emptyPanePullUpModifier
     var paneListHeightPx by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
     val extraEndSpace = with(density) { (paneListHeightPx * (1f - READING_LINE)).toDp() }
@@ -167,7 +172,12 @@ internal fun ComparisonPanes(
     val syncHold = { scrollSync.holdingTails }
     val primaryMessageListBody: @Composable () -> Unit = {
         if (primaryDisplayMessages.isEmpty() && !comparisonState.primaryIsStreaming && !uiState.isStreaming) {
-            ComparisonPaneEmpty(ComparisonLane.A, primaryLaneLabel, bottomPadding = listBottomPadding)
+            ComparisonPaneEmpty(
+                ComparisonLane.A,
+                primaryLaneLabel,
+                bottomPadding = listBottomPadding,
+                modifier = emptyPaneModifier,
+            )
         } else {
             MessageList(
                 recordsGlassBackdrop = false,
@@ -240,7 +250,12 @@ internal fun ComparisonPanes(
 
     val secondaryMessageList: @Composable () -> Unit = {
         if (secondaryDisplayMessages.isEmpty() && !comparisonState.secondaryIsStreaming) {
-            ComparisonPaneEmpty(ComparisonLane.B, secondaryModelName, bottomPadding = listBottomPadding)
+            ComparisonPaneEmpty(
+                ComparisonLane.B,
+                secondaryModelName,
+                bottomPadding = listBottomPadding,
+                modifier = emptyPaneModifier,
+            )
         } else {
             SecondaryMessageList(
                 displayMessages = secondaryDisplayMessages,
@@ -334,7 +349,7 @@ internal fun ComparisonPanes(
                     primaryDisplayMessages.isNotEmpty() && secondaryDisplayMessages.isNotEmpty()
                 },
                 onSyncScrollChange = viewModel::setCompareSyncScroll,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().then(listPullUpModifier),
             )
         } else {
             ComparisonTabBar(
@@ -345,7 +360,7 @@ internal fun ComparisonPanes(
                 onContinueWithPrimary = onContinuePrimary,
                 onContinueWithSecondary = onContinueSecondary,
                 onTabChange = onComparisonTabChange,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().then(listPullUpModifier),
             )
         }
     }
