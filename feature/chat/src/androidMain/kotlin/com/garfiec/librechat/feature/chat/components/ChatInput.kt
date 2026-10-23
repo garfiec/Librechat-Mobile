@@ -179,7 +179,6 @@ fun ChatInput(
         isEditingQueued = isEditingQueued,
         isAwaitingUploadSend = isAwaitingUploadSend,
         arePicksUnsettled = arePicksUnsettled,
-        comparison = comparison,
         comparisonHint = comparisonHint,
         contextGauge = contextGauge,
         contextUsageEnabled = contextUsageEnabled,
@@ -294,6 +293,9 @@ fun ChatInput(
         },
         textFieldContent = {
             Box(modifier = Modifier.weight(1f)) {
+                val compactComparison = comparison?.takeIf { it.compact }
+                val comparisonCollapsed = compactComparison?.collapsedFor(textFieldValue.text) == true
+                val comparisonCollapse by animateComposerComparisonCollapse(comparisonCollapsed)
                 // The composer draws its own field (ChatInputDefaults), glass included; not the adaptive one.
                 OutlinedTextField(
                     value = textFieldValue,
@@ -315,9 +317,10 @@ fun ChatInput(
                             comparisonHint = comparisonHint,
                         )
                     },
-                    leadingIcon = (comparison as? ComposerComparison.BothModels)?.let { both ->
-                        { ComposerComparisonBadges(both) }
+                    leadingIcon = comparison?.takeUnless { it.compact }?.let { comparison ->
+                        { ComposerComparisonBadges(comparison) }
                     },
+                    prefix = compactComparison?.let { { ComposerComparisonReserve { comparisonCollapse } } },
                     textStyle = MaterialTheme.typography.bodyLarge,
                     shape = ChatInputDefaults.shape,
                     colors = ChatInputDefaults.textFieldColors(),
@@ -354,6 +357,14 @@ fun ChatInput(
                         }
                     },
                 )
+                if (compactComparison != null) {
+                    ComposerComparisonMorph(
+                        comparison = compactComparison,
+                        collapsed = comparisonCollapsed,
+                        collapse = { comparisonCollapse },
+                        modifier = Modifier.align(Alignment.TopStart),
+                    )
+                }
             }
         },
         trailingSpacer = { compact ->

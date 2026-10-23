@@ -43,10 +43,7 @@
     <string name="compare_empty_ready">Tippe auf „Starten“ und sende dann eine Nachricht. Beide Modelle antworten nebeneinander.</string>
     <string name="compare_browse_all">Alle Modelle durchsuchen</string>
     <string name="compare_pick_second_model">Zweites Modell wählen</string>
-    <string name="compare_also_asking">Fragt auch</string>
     <string name="cd_change_compared_models">Verglichene Modelle ändern</string>
-    <string name="cd_change_first_model">Erstes Modell ändern, %1$s</string>
-    <string name="cd_change_second_model">Zweites Modell ändern, %1$s</string>
     <string name="compare_lane_a">A</string>
     <string name="compare_lane_b">B</string>
     <string name="how_can_i_help">Wie kann ich dir heute helfen?</string>

@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -13,8 +14,8 @@ import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 
-// Compare Models: the setup header (empty and picked), the composer's "Also asking" row and the
-// laned tabs, in both interface styles. Long model ids are the case worth checking on a narrow screen.
+// Compare Models: the setup header (empty and picked), the composer's A·B badges (compact, then wide)
+// and the laned tabs, in both interface styles. Long model ids are the case worth checking on a narrow screen.
 
 @PreviewNarrowScreens
 @Composable
@@ -47,14 +48,17 @@ private fun CompareSetupPreview(dark: Boolean, style: UiStyle) {
                     onCancel = {},
                     onStart = {},
                 )
-                ComposerComparisonRow(
-                    comparison = ComposerComparison.OtherModel(
-                        lane = ComparisonLane.B,
-                        label = "claude-opus-4-5-20251101-thinking",
-                        onChangeModel = {},
-                    ),
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                )
+                Row(modifier = Modifier.padding(horizontal = 12.dp)) {
+                    ComposerComparisonBadges(
+                        comparison = ComposerComparison(
+                            primaryLabel = "gpt-5",
+                            secondaryLabel = "claude-opus-4-5-20251101-thinking",
+                            onChangePrimary = {},
+                            onChangeSecondary = {},
+                            compact = false,
+                        ),
+                    )
+                }
                 Box(Modifier.height(160.dp)) {
                     ComparisonTabBar(
                         primaryModelName = "gpt-5",

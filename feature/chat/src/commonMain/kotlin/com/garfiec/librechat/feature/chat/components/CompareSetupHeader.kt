@@ -19,16 +19,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
@@ -100,12 +103,16 @@ fun ComparisonLaneBadge(
             },
         )
     Box(modifier = badgeModifier, contentAlignment = Alignment.Center) {
-        Text(
-            text = lane.letter,
-            color = if (filled) lane.onAccent else lane.accent,
-            style = letterStyle,
-            fontWeight = FontWeight.Bold,
-        )
+        // Fixed-size circle, so the letter ignores font scale (see InitialTile).
+        val density = LocalDensity.current
+        CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 1f)) {
+            Text(
+                text = lane.letter,
+                color = if (filled) lane.onAccent else lane.accent,
+                style = letterStyle,
+                fontWeight = FontWeight.Bold,
+            )
+        }
     }
 }
 

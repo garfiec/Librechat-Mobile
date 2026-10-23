@@ -43,10 +43,7 @@
     <string name="compare_empty_ready">시작을 탭한 다음 메시지를 보내세요. 두 모델이 나란히 답변합니다.</string>
     <string name="compare_browse_all">모든 모델 보기</string>
     <string name="compare_pick_second_model">두 번째 모델 선택</string>
-    <string name="compare_also_asking">함께 묻는 모델</string>
     <string name="cd_change_compared_models">비교 중인 모델 변경</string>
-    <string name="cd_change_first_model">첫 번째 모델 변경, %1$s</string>
-    <string name="cd_change_second_model">두 번째 모델 변경, %1$s</string>
     <string name="compare_lane_a">A</string>
     <string name="compare_lane_b">B</string>
     <string name="how_can_i_help">오늘 무엇을 도와드릴까요?</string>

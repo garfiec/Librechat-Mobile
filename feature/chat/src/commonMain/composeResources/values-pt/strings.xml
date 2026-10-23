@@ -43,10 +43,7 @@
     <string name="compare_empty_ready">Toque em Começar e envie uma mensagem. Os dois modelos respondem lado a lado.</string>
     <string name="compare_browse_all">Ver todos os modelos</string>
     <string name="compare_pick_second_model">Escolha o segundo modelo</string>
-    <string name="compare_also_asking">Também perguntando a</string>
     <string name="cd_change_compared_models">Alterar os modelos comparados</string>
-    <string name="cd_change_first_model">Alterar o primeiro modelo, %1$s</string>
-    <string name="cd_change_second_model">Alterar o segundo modelo, %1$s</string>
     <string name="compare_lane_a">A</string>
     <string name="compare_lane_b">B</string>
     <string name="how_can_i_help">Como posso ajudar você hoje?</string>

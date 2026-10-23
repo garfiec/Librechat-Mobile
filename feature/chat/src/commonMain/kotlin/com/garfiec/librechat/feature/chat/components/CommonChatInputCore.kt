@@ -172,8 +172,6 @@ data class ChatInputState(
     val skillsLoadFailed: Boolean = false,
     /** A skill can be picked here (`ChatUiState.canPickSkills`): only then does a leading `$` open the picker. */
     val canPickSkills: Boolean = false,
-    /** The active comparison's second model, shown as the "Also asking" row. Null when not comparing. */
-    val comparison: ComposerComparison? = null,
     /** What the field says about an active or pending comparison; setup also holds sends. */
     val comparisonHint: ComposerComparisonHint = ComposerComparisonHint.NONE,
 )
@@ -389,13 +387,6 @@ fun CommonChatInputCore(
                 onRetrySkills = onRetrySkills,
             )
 
-            // Material stacks the comparison row like the banners above; glass draws it inside the
-            // capsule, below.
-            val otherModel = state.comparison as? ComposerComparison.OtherModel
-            if (glass == null) {
-                otherModel?.let { ComposerComparisonRow(it, Modifier.padding(bottom = 6.dp)) }
-            }
-
             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                 // Below a 360dp screen the gaps beside the field go, and the during-run caret folds
                 // into the send button, so the field keeps room for more than a word a line.
@@ -411,9 +402,6 @@ fun CommonChatInputCore(
                             },
                         ),
                 ) {
-                    if (glass != null) {
-                        otherModel?.let { ComposerComparisonRow(it, Modifier.padding(start = 12.dp)) }
-                    }
                     ComposerInputRow(
                         state = state,
                         compact = compact,

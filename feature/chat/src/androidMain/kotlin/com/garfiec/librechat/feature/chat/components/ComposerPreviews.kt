@@ -53,6 +53,18 @@ private fun ComposerTemporaryChatGlassPreview() = ComposerSurface(UiStyle.LIQUID
 
 @PreviewNarrowScreens
 @Composable
+private fun ComposerCompareMaterialPreview() = ComposerSurface(UiStyle.MATERIAL) { CompareComposerHost() }
+
+@PreviewNarrowScreens
+@Composable
+private fun ComposerCompareGlassPreview() = ComposerSurface(UiStyle.LIQUID_GLASS) { CompareComposerHost() }
+
+@PreviewNarrowScreens
+@Composable
+private fun ComposerCompareEmptyMaterialPreview() = ComposerSurface(UiStyle.MATERIAL) { CompareComposerHost(draft = "") }
+
+@PreviewNarrowScreens
+@Composable
 private fun ComposerContextPillPreview() = ComposerSurface(UiStyle.MATERIAL) { ContextPillComposerHost() }
 
 @PreviewNarrowScreens
@@ -131,6 +143,28 @@ private fun TemporaryChatComposerHost() {
         onStop = {},
         onOpenTools = {},
         isTemporaryChat = true,
+    )
+}
+
+/** A phone tab while comparing: the compact A·B badges in the empty field, the dots once a draft is typed. */
+@Composable
+private fun CompareComposerHost(draft: String = "Which of these sorting algorithms is stable?") {
+    var text by remember { mutableStateOf(draft) }
+    ChatInput(
+        inputText = text,
+        isStreaming = false,
+        onInputChange = { text = it },
+        onSend = {},
+        onStop = {},
+        onOpenTools = {},
+        comparison = ComposerComparison(
+            primaryLabel = "gpt-5",
+            secondaryLabel = "claude-opus-4-5-20251101-thinking",
+            onChangePrimary = {},
+            onChangeSecondary = {},
+            compact = true,
+        ),
+        comparisonHint = ComposerComparisonHint.BOTH,
     )
 }
 

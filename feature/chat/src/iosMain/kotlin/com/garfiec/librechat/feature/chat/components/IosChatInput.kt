@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -145,7 +146,6 @@ fun IosChatInput(
         isEditingQueued = isEditingQueued,
         isAwaitingUploadSend = isAwaitingUploadSend,
         arePicksUnsettled = arePicksUnsettled,
-        comparison = comparison,
         comparisonHint = comparisonHint,
         contextGauge = contextGauge,
         contextUsageEnabled = contextUsageEnabled,
@@ -236,6 +236,9 @@ fun IosChatInput(
             Box(
                 modifier = Modifier.weight(1f),
             ) {
+                val compactComparison = comparison?.takeIf { it.compact }
+                val comparisonCollapsed = compactComparison?.collapsedFor(inputText) == true
+                val comparisonCollapse by animateComposerComparisonCollapse(comparisonCollapsed)
                 // The composer draws its own field (ChatInputDefaults), glass included; not the adaptive one.
                 OutlinedTextField(
                     value = inputText,
@@ -250,9 +253,10 @@ fun IosChatInput(
                             comparisonHint = comparisonHint,
                         )
                     },
-                    leadingIcon = (comparison as? ComposerComparison.BothModels)?.let { both ->
-                        { ComposerComparisonBadges(both) }
+                    leadingIcon = comparison?.takeUnless { it.compact }?.let { comparison ->
+                        { ComposerComparisonBadges(comparison) }
                     },
+                    prefix = compactComparison?.let { { ComposerComparisonReserve { comparisonCollapse } } },
                     textStyle = MaterialTheme.typography.bodyLarge,
                     shape = ChatInputDefaults.shape,
                     colors = ChatInputDefaults.textFieldColors(),
@@ -264,6 +268,15 @@ fun IosChatInput(
                         Spacer(modifier = Modifier.width(36.dp))
                     },
                 )
+
+                if (compactComparison != null) {
+                    ComposerComparisonMorph(
+                        comparison = compactComparison,
+                        collapsed = comparisonCollapsed,
+                        collapse = { comparisonCollapse },
+                        modifier = Modifier.align(Alignment.TopStart),
+                    )
+                }
 
                 // Mic button overlaid at trailing edge of the text field
                 IconButton(

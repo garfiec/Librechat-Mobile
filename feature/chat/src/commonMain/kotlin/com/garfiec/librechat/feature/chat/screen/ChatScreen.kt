@@ -40,7 +40,6 @@ import com.garfiec.librechat.feature.chat.components.AskUserQuestionPanel
 import com.garfiec.librechat.feature.chat.components.ChatComposer
 import com.garfiec.librechat.feature.chat.components.ChatFloatingTopBar
 import com.garfiec.librechat.feature.chat.components.ChatRoot
-import com.garfiec.librechat.feature.chat.components.ComparisonLane
 import com.garfiec.librechat.feature.chat.components.ComposerComparison
 import com.garfiec.librechat.feature.chat.components.ComposerComparisonHint
 import com.garfiec.librechat.feature.chat.components.ToolApprovalPanel
@@ -211,12 +210,11 @@ fun ChatScreen(
     }
     val composerComparisonHint = when {
         uiState.comparisonState.isSettingUp -> ComposerComparisonHint.SETTING_UP
-        uiState.comparisonState.isEnabled && comparisonWide -> ComposerComparisonHint.BOTH
+        uiState.comparisonState.isEnabled -> ComposerComparisonHint.BOTH
         else -> ComposerComparisonHint.NONE
     }
-    // On a phone the composer names its tab's model, so an "Also asking" row names the other tab's
-    // (A on the B tab). Side by side it is the A·B badge pair inside the field, whose menu opens
-    // either model's selector.
+    // Both models, as the A·B badge pair inside the field, whose menu opens either model's selector.
+    // Compact on a phone, where the tab bar already names both models, and dots once a draft is typed.
     // Lane A without a model reads "Select model", never B's name.
     val primaryLaneLabel = comparisonLaneLabel(
         uiState.selectedEndpoint,
@@ -228,29 +226,17 @@ fun ChatScreen(
     val composerComparison = remember(
         secondaryModelLabel,
         primaryLaneLabel,
-        isSecondaryTab,
         comparisonWide,
         viewModel,
     ) {
         secondaryModelLabel?.let { secondaryLabel ->
-            when {
-                comparisonWide -> ComposerComparison.BothModels(
-                    primaryLabel = primaryLaneLabel,
-                    secondaryLabel = secondaryLabel,
-                    onChangePrimary = viewModel::openModelSheet,
-                    onChangeSecondary = { showSecondaryModelSheet = true },
-                )
-                isSecondaryTab -> ComposerComparison.OtherModel(
-                    lane = ComparisonLane.A,
-                    label = primaryLaneLabel,
-                    onChangeModel = viewModel::openModelSheet,
-                )
-                else -> ComposerComparison.OtherModel(
-                    lane = ComparisonLane.B,
-                    label = secondaryLabel,
-                    onChangeModel = { showSecondaryModelSheet = true },
-                )
-            }
+            ComposerComparison(
+                primaryLabel = primaryLaneLabel,
+                secondaryLabel = secondaryLabel,
+                onChangePrimary = viewModel::openModelSheet,
+                onChangeSecondary = { showSecondaryModelSheet = true },
+                compact = !comparisonWide,
+            )
         }
     }
     val effectiveSelectedModelDisplay = if (isSecondaryTab) {
