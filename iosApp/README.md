@@ -92,3 +92,44 @@ The following keys are configured in `Info.plist`:
 ## URL Scheme
 
 The app registers the `librechat://` URL scheme for deep linking (conversations, OAuth callbacks), matching the Android app's behavior.
+
+## TestFlight / App Store Distribution
+
+Store builds are produced by the **App Store Upload** workflow
+(`.github/workflows/appstore.yml`), not by hand: it archives a tagged release with Xcode
+cloud signing (an App Store Connect API key is the only credential — no certificates or
+profiles are stored anywhere) and uploads during export. The one-time App Store Connect
+setup and the per-release runbook are in [`docs/RELEASING.md`](../docs/RELEASING.md)
+("One-time App Store Connect setup" and "Uploading to TestFlight / the App Store").
+
+Things that are already handled, so there is nothing to bump or declare per build:
+
+- **Versions** come from `version.properties` via the *Stamp Version* build phase, which
+  overwrites the committed `Info.plist` literals at build time. `CFBundleShortVersionString`
+  is the numeric calver core (`-rcN` stripped); `CFBundleVersion` is `YYYYMMPP`, or
+  `YYYYMMPP.N` when `IOS_BUILD_NUMBER_SUFFIX` is set, which the upload workflow does so a
+  re-run never reuses a build number (App Store Connect rejects those permanently).
+- **Export compliance** is declared once in `Info.plist` (`ITSAppUsesNonExemptEncryption =
+  false`): the app only uses the OS's standard TLS, so uploads never wait on the manual
+  compliance prompt. Revisit the key if the app ever ships its own cryptography.
+- **Signing identity** stays `Apple Development` in both configurations. The archive is
+  development-signed and `xcodebuild -exportArchive` re-signs it for distribution, which
+  is the standard automatic-signing flow; do not switch the Release config to
+  `Apple Distribution`, and do not commit a `DEVELOPMENT_TEAM`.
+
+### Local archive (optional)
+
+For a one-off upload from a Mac with a paid developer account, set your Team under
+*Signing & Capabilities* (leave it uncommitted), then **Product → Archive** and distribute
+from the Organizer. The Kotlin framework is built by the *Compile Kotlin Framework* build
+phase inside the archive, so no separate Gradle step is needed. A local archive stamps a
+plain `YYYYMMPP` build number, which collides with any workflow upload of the same version;
+prefer the workflow, or give the CLI archive an explicit suffix:
+
+```bash
+IOS_BUILD_NUMBER_SUFFIX=1 xcodebuild archive \
+  -project iosApp/iosApp.xcodeproj -scheme iosApp \
+  -configuration Release -destination 'generic/platform=iOS' \
+  -archivePath iosApp/build/iosApp.xcarchive \
+  -allowProvisioningUpdates DEVELOPMENT_TEAM=<your-10-char-team-id>
+```
