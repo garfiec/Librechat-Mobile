@@ -20,10 +20,16 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /** Project index orderings, as the `GET /api/projects` `sortBy`/`sortDirection` pair. */
-enum class ProjectSort(val wire: String, val direction: String) {
+enum class ProjectSort(val wire: String?, val direction: String?) {
     ACTIVITY("lastConversationAt", "desc"),
     CREATED("createdAt", "desc"),
     NAME("name", "asc"),
+
+    /**
+     * **Switchboard-only**: the order the user dragged the folders into in the drawer, kept on the
+     * device. The server has no such sort, so this one sends no pair and loads every project at once.
+     */
+    CUSTOM(null, null),
 }
 
 @Immutable
@@ -77,6 +83,15 @@ class ProjectsViewModel(
         onError = { message -> _uiState.update { it.copy(error = message) } },
     ) { cursor, limit ->
         val state = _uiState.value
+        if (state.sort == ProjectSort.CUSTOM) {
+            return@CursorPager when (
+                val result = projectRepository.listAllProjectsInCustomOrder(search = requestedQuery.ifBlank { null })
+            ) {
+                is Result.Success -> Result.Success(CursorPage(result.data.projects, nextCursor = null))
+                is Result.Error -> result
+                is Result.Loading -> result
+            }
+        }
         when (
             val result = projectRepository.listProjects(
                 cursor = cursor,
@@ -112,6 +127,11 @@ class ProjectsViewModel(
         // A project changed here or elsewhere, or a chat was filed into one.
         viewModelScope.launch {
             projectRepository.revision.drop(1).collect { pager.reloadQuietly() }
+        }
+        viewModelScope.launch {
+            projectRepository.orderRevision.drop(1).collect {
+                if (_uiState.value.sort == ProjectSort.CUSTOM) pager.reloadQuietly()
+            }
         }
     }
 

@@ -90,6 +90,7 @@ import com.garfiec.librechat.feature.conversations.resources.project_edit
 import com.garfiec.librechat.feature.conversations.resources.project_new
 import com.garfiec.librechat.feature.conversations.resources.project_sort_activity
 import com.garfiec.librechat.feature.conversations.resources.project_sort_created
+import com.garfiec.librechat.feature.conversations.resources.project_sort_custom
 import com.garfiec.librechat.feature.conversations.resources.project_sort_label
 import com.garfiec.librechat.feature.conversations.resources.project_sort_name
 import com.garfiec.librechat.feature.conversations.resources.project_unassigned
@@ -329,6 +330,7 @@ private val ProjectSort.label: StringResource
         ProjectSort.ACTIVITY -> Res.string.project_sort_activity
         ProjectSort.CREATED -> Res.string.project_sort_created
         ProjectSort.NAME -> Res.string.project_sort_name
+        ProjectSort.CUSTOM -> Res.string.project_sort_custom
     }
 
 @Composable

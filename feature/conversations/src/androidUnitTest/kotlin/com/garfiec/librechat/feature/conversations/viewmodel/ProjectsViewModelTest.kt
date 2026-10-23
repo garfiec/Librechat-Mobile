@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.conversations.viewmodel
 
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.repository.AllProjects
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.model.response.ProjectListResponse
@@ -40,6 +41,7 @@ class ProjectsViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         every { projectRepository.revision } returns MutableStateFlow(0L)
+        every { projectRepository.orderRevision } returns MutableStateFlow(0L)
         coEvery { projectRepository.listProjects(any(), any(), any(), any()) } returns page("Alpha", "Beta")
     }
 
@@ -58,6 +60,41 @@ class ProjectsViewModelTest {
         }
         assertThat(viewModel.uiState.value.projects.map { it.name }).containsExactly("Alpha", "Beta").inOrder()
         assertThat(viewModel.uiState.value.isLoading).isFalse()
+    }
+
+    @Test
+    fun `custom order shows the drawer's order, every project at once`() = runTest(testDispatcher) {
+        coEvery { projectRepository.listAllProjectsInCustomOrder(null) } returns Result.Success(
+            AllProjects(listOf(ChatProject(id = "id-Beta", name = "Beta"), ChatProject(id = "id-Alpha", name = "Alpha")), true),
+        )
+        val viewModel = ProjectsViewModel(projectRepository)
+        advanceUntilIdle()
+
+        viewModel.setSort(ProjectSort.CUSTOM)
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.projects.map { it.name }).containsExactly("Beta", "Alpha").inOrder()
+        assertThat(viewModel.uiState.value.hasMore).isFalse()
+    }
+
+    @Test
+    fun `a new drawer order reloads only the custom sort`() = runTest(testDispatcher) {
+        val orderRevision = MutableStateFlow(0L)
+        every { projectRepository.orderRevision } returns orderRevision
+        coEvery { projectRepository.listAllProjectsInCustomOrder(null) } returns
+            Result.Success(AllProjects(listOf(ChatProject(id = "id-Alpha", name = "Alpha")), true))
+        val viewModel = ProjectsViewModel(projectRepository)
+        advanceUntilIdle()
+
+        orderRevision.value = 1
+        advanceUntilIdle()
+        coVerify(exactly = 0) { projectRepository.listAllProjectsInCustomOrder(any()) }
+
+        viewModel.setSort(ProjectSort.CUSTOM)
+        advanceUntilIdle()
+        orderRevision.value = 2
+        advanceUntilIdle()
+        coVerify(exactly = 2) { projectRepository.listAllProjectsInCustomOrder(null) }
     }
 
     @Test

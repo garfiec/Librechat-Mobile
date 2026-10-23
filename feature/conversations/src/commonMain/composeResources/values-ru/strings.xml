@@ -59,7 +59,6 @@
     <string name="project_delete_confirm">Удалить проект "%1$s"? Беседы сохранятся, но будут убраны из проекта.</string>
     <string name="project_unassigned">Без проекта</string>
     <string name="projects_all">Все проекты</string>
-    <string name="projects_see_all">Показать все проекты</string>
     <string name="project_new">Новый проект</string>
     <string name="project_name_label">Название проекта</string>
     <string name="project_edit">Изменить проект</string>
@@ -73,6 +72,9 @@
     <string name="projects_search">Поиск проектов</string>
     <string name="project_sort_activity">Последняя активность</string>
     <string name="project_sort_name">Название</string>
+    <string name="project_sort_custom">Свой порядок</string>
+    <string name="project_move_up">Переместить вверх</string>
+    <string name="project_move_down">Переместить вниз</string>
     <string name="projects_empty_description">Проект объединяет чаты на одну тему. Переместите любой чат в проект через его меню.</string>
     <string name="projects_no_match">Нет проектов по запросу «%1$s»</string>
     <string name="tags">Теги</string>

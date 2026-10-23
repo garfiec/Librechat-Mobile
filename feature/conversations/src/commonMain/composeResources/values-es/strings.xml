@@ -59,7 +59,6 @@
     <string name="project_delete_confirm">¿Eliminar el proyecto "%1$s"? Las conversaciones se conservan, pero se quitan del proyecto.</string>
     <string name="project_unassigned">Sin proyecto</string>
     <string name="projects_all">Todos los proyectos</string>
-    <string name="projects_see_all">Ver todos los proyectos</string>
     <string name="project_new">Nuevo proyecto</string>
     <string name="project_name_label">Nombre del proyecto</string>
     <string name="project_edit">Editar proyecto</string>
@@ -73,6 +72,9 @@
     <string name="projects_search">Buscar proyectos</string>
     <string name="project_sort_activity">Actividad reciente</string>
     <string name="project_sort_name">Nombre</string>
+    <string name="project_sort_custom">Orden personalizado</string>
+    <string name="project_move_up">Subir</string>
+    <string name="project_move_down">Bajar</string>
     <string name="projects_empty_description">Un proyecto agrupa los chats sobre un tema. Mueve cualquier chat a un proyecto desde su menú.</string>
     <string name="projects_no_match">Ningún proyecto coincide con "%1$s"</string>
     <string name="tags">Etiquetas</string>

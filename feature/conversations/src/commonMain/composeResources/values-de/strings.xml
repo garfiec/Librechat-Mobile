@@ -59,7 +59,6 @@
     <string name="project_delete_confirm">Projekt "%1$s" löschen? Die Unterhaltungen bleiben erhalten, werden aber aus dem Projekt entfernt.</string>
     <string name="project_unassigned">Ohne Projekt</string>
     <string name="projects_all">Alle Projekte</string>
-    <string name="projects_see_all">Alle Projekte ansehen</string>
     <string name="project_new">Neues Projekt</string>
     <string name="project_name_label">Projektname</string>
     <string name="project_edit">Projekt bearbeiten</string>
@@ -73,6 +72,9 @@
     <string name="projects_search">Projekte durchsuchen</string>
     <string name="project_sort_activity">Letzte Aktivität</string>
     <string name="project_sort_name">Name</string>
+    <string name="project_sort_custom">Eigene Reihenfolge</string>
+    <string name="project_move_up">Nach oben</string>
+    <string name="project_move_down">Nach unten</string>
     <string name="projects_empty_description">Ein Projekt fasst Chats zu einem Thema zusammen. Verschiebe einen Chat über sein Menü in ein Projekt.</string>
     <string name="projects_no_match">Keine Projekte passend zu "%1$s"</string>
     <string name="tags">Tags</string>

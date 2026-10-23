@@ -59,7 +59,6 @@
     <string name="project_delete_confirm">Supprimer le projet "%1$s" ? Les conversations sont conservées, mais retirées du projet.</string>
     <string name="project_unassigned">Sans projet</string>
     <string name="projects_all">Tous les projets</string>
-    <string name="projects_see_all">Voir tous les projets</string>
     <string name="project_new">Nouveau projet</string>
     <string name="project_name_label">Nom du projet</string>
     <string name="project_edit">Modifier le projet</string>
@@ -73,6 +72,9 @@
     <string name="projects_search">Rechercher des projets</string>
     <string name="project_sort_activity">Activité récente</string>
     <string name="project_sort_name">Nom</string>
+    <string name="project_sort_custom">Ordre personnalisé</string>
+    <string name="project_move_up">Monter</string>
+    <string name="project_move_down">Descendre</string>
     <string name="projects_empty_description">Un projet rassemble les discussions sur un même sujet. Déplacez une discussion dans un projet depuis son menu.</string>
     <string name="projects_no_match">Aucun projet ne correspond à « %1$s »</string>
     <string name="tags">Étiquettes</string>

@@ -275,6 +275,21 @@ sequence number, read-modify-write inside `dataStore.edit` under `NonCancellable
   nowhere else to live (cert pinning, detected backend version, a user-chosen label) belongs here. It
   carries only the headers today; see the natural-primary-key bullet before adding a column.
 
+### Custom project order (`project_order`) — Switchboard-only
+LibreChat stores no project order, so the drawer's drag-to-reorder order lives here, keyed by
+`(accountId, projectId)` and purged with the account by `AccountDataPurger`.
+- `ProjectRepository.listAllProjectsInCustomOrder` fetches every page and applies it
+  (`ProjectOrdering`): saved projects by slot, never-placed ones after, oldest first. With nothing
+  saved the server's order (latest activity) is kept, and that first load is what gets saved.
+- Only an unfiltered, complete list saves back (it is also what prunes projects deleted elsewhere);
+  a search, or a fetch cut off by the page cap (`AllProjects.isComplete`), never does.
+- The read-arrange-write and `saveProjectOrder` share one `Mutex`, so a load can't write the order a
+  drop just replaced. `saveProjectOrder` takes the account captured at the drop, not the active one.
+- `saveProjectOrder` bumps `orderRevision` (the Custom sort reloads on it), not `revision`: nothing
+  changed on the server.
+- If upstream ships ordering, drop the table with an `@DeleteTable` AutoMigrationSpec and read the
+  server's order; nothing else references it.
+
 ### Message search index (`message_search` + `messages_fts`)
 Offline full-text search over cached messages. FTS4 + `unicode61` (the only full-text setup both
 drivers have; no FTS5 on Android's framework SQLite), external-content over a narrow side table.

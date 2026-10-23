@@ -59,7 +59,6 @@
     <string name="project_delete_confirm">Delete project "%1$s"? Conversations stay, but are removed from the project.</string>
     <string name="project_unassigned">Not in a project</string>
     <string name="projects_all">All projects</string>
-    <string name="projects_see_all">See all projects</string>
     <string name="project_new">New project</string>
     <string name="project_name_label">Project name</string>
     <string name="project_edit">Edit project</string>
@@ -73,6 +72,9 @@
     <string name="projects_search">Search projects</string>
     <string name="project_sort_activity">Latest activity</string>
     <string name="project_sort_name">Name</string>
+    <string name="project_sort_custom">Custom order</string>
+    <string name="project_move_up">Move up</string>
+    <string name="project_move_down">Move down</string>
     <string name="projects_empty_description">A project groups chats on one topic. Move any chat into a project from its menu.</string>
     <string name="projects_no_match">No projects match "%1$s"</string>
     <string name="tags">Tags</string>

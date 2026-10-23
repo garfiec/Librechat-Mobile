@@ -132,14 +132,12 @@ class DrawerViewModel(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DrawerActionMenuState())
 
     // Chat Projects (v0.8.7). Loaded lazily for the move-to-project picker and the drawer's Projects
-    // tab folder list; the server is the source of truth (no local cache).
+    // tab folder list, every page, in the user's Switchboard-only custom order (the server keeps none).
     private val _projects = MutableStateFlow<List<ChatProject>>(emptyList())
     val projects: StateFlow<List<ChatProject>> = _projects.asStateFlow()
 
-    // The drawer shows only the first page; true when the server has more, so it can point at the index.
-    private val _hasMoreProjects = MutableStateFlow(false)
-    val hasMoreProjects: StateFlow<Boolean> = _hasMoreProjects.asStateFlow()
     private var projectsLoadJob: Job? = null
+    private var projectOrderSaveJob: Job? = null
     private var expandedChatsJob: Job? = null
     private var lastProjectsReload: TimeSource.Monotonic.ValueTimeMark? = null
 
@@ -392,9 +390,10 @@ class DrawerViewModel(
                 conversationActions.closeShareSheet()
                 // A load started for the outgoing account would otherwise land after this reset.
                 projectsLoadJob?.cancel()
+                // An order not yet written for an account being signed out would outlive its purge.
+                projectOrderSaveJob?.cancel()
                 lastProjectsReload = null
                 _projects.value = emptyList()
-                _hasMoreProjects.value = false
                 closeExpandedProject()
                 conversationListStateHolder.reset()
                 // No tagRepository.clearCache() here: observeTags() is account-scoped, so the
@@ -490,7 +489,8 @@ class DrawerViewModel(
         loadExpandedChats(projectId)
     }
 
-    private fun closeExpandedProject() {
+    /** Also run when a folder is picked up to drag, so every row is one line and the rows swap evenly. */
+    fun closeExpandedProject() {
         expandedChatsJob?.cancel()
         _expandedProjectId.value = null
         _expandedProjectChats.value = emptyList()
@@ -537,18 +537,19 @@ class DrawerViewModel(
         // Latest wins: create-then-assign bumps the revision twice, and an older answer landing last
         // would leave a stale count.
         projectsLoadJob?.cancel()
+        val pendingSave = projectOrderSaveJob
         projectsLoadJob = viewModelScope.launch {
-            when (val result = projectRepository.listProjects()) {
+            // Arranged against the saved order, so a drop still being written would be undone.
+            pendingSave?.join()
+            when (val result = projectRepository.listAllProjectsInCustomOrder()) {
                 is Result.Success -> {
                     _projects.value = result.data.projects
-                    _hasMoreProjects.value = result.data.nextCursor != null
                     // The open folder was deleted (here or on the Projects index): close it, which
                     // also drops the header's "New chat in" for it. Only a whole list can say a
-                    // project is gone; past one page it may just have sorted further down. Not in a
-                    // project is never listed.
+                    // project is gone. Not in a project is never listed.
                     val expanded = _expandedProjectId.value
                     if (expanded != null && expanded != ChatProject.UNASSIGNED &&
-                        result.data.nextCursor == null &&
+                        result.data.isComplete &&
                         result.data.projects.none { it.id == expanded }
                     ) {
                         closeExpandedProject()
@@ -558,6 +559,32 @@ class DrawerViewModel(
                 is Result.Loading -> Unit
             }
         }
+    }
+
+    /**
+     * **Switchboard-only.** The user dropped a dragged folder: [orderedIds] is the drawer's new order.
+     * Shown at once and saved on the device. A load in flight would be arranged against the old
+     * order and land over the drop, so it is restarted behind the save instead.
+     */
+    fun reorderProjects(orderedIds: List<String>) {
+        val current = _projects.value
+        val byId = current.associateBy { it.id }
+        val dropped = orderedIds.toSet()
+        // A reload during the drag may have added a project the dragged list never had: it keeps
+        // its place at the end rather than voiding the drop.
+        val reordered = orderedIds.mapNotNull(byId::get) + current.filter { it.id !in dropped }
+        if (reordered == current) return
+        // The list on screen is this account's; the save must go to it even if it runs after a switch.
+        val accountId = activeAccountProvider.currentAccountId() ?: return
+        val loadWasRunning = projectsLoadJob?.isActive == true
+        projectsLoadJob?.cancel()
+        _projects.value = reordered
+        val previousSave = projectOrderSaveJob
+        projectOrderSaveJob = viewModelScope.launch {
+            previousSave?.join()
+            projectRepository.saveProjectOrder(accountId, reordered.map { it.id })
+        }
+        if (loadWasRunning) loadProjects()
     }
 
     /** Assigns [conversationId] to [projectId], or unassigns it when null. */

@@ -155,6 +155,7 @@ val dataModule = module {
     single { get<LibreChatDatabase>().artifactShortcutDao() }
     single { get<LibreChatDatabase>().serverDao() }
     single { get<LibreChatDatabase>().prefetchWatermarkDao() }
+    single { get<LibreChatDatabase>().projectOrderDao() }
 
     // --- Message search index ---
     single { SearchIndexState(get()) }
@@ -257,6 +258,7 @@ val dataModule = module {
             draftDao = get(),
             tagDao = get(),
             prefetchWatermarkDao = get(),
+            projectOrderDao = get(),
             ioDispatcher = get(KoinQualifiers.IO),
             searchIndexMaintenance = get(),
         )

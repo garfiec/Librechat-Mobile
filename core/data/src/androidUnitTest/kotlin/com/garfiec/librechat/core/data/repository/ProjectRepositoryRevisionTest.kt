@@ -2,6 +2,7 @@ package com.garfiec.librechat.core.data.repository
 
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.data.db.dao.ConversationDao
+import com.garfiec.librechat.core.data.db.dao.ProjectOrderDao
 import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.model.response.DeleteChatProjectResponse
 import com.garfiec.librechat.core.model.response.ProjectListResponse
@@ -22,6 +23,7 @@ class ProjectRepositoryRevisionTest {
     private val repository = ProjectRepositoryImpl(
         projectsApi = projectsApi,
         conversationDao = mockk<ConversationDao>(relaxed = true),
+        projectOrderDao = mockk<ProjectOrderDao>(relaxed = true),
         activeAccountProvider = mockk<ActiveAccountProvider>(relaxed = true),
         projectChanges = ProjectChangeSignal(),
     )

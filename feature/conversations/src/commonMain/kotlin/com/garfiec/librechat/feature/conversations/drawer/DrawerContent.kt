@@ -8,6 +8,7 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -53,6 +54,7 @@ import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -99,19 +101,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
@@ -125,6 +132,7 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.common.datetime.listLabel
@@ -184,12 +192,13 @@ import com.garfiec.librechat.feature.conversations.resources.no_conversations_fo
 import com.garfiec.librechat.feature.conversations.resources.pinned
 import com.garfiec.librechat.feature.conversations.resources.project_create_confirm
 import com.garfiec.librechat.feature.conversations.resources.project_edit
+import com.garfiec.librechat.feature.conversations.resources.project_move_down
+import com.garfiec.librechat.feature.conversations.resources.project_move_up
 import com.garfiec.librechat.feature.conversations.resources.project_new
 import com.garfiec.librechat.feature.conversations.resources.project_new_chat_in
 import com.garfiec.librechat.feature.conversations.resources.project_unassigned
 import com.garfiec.librechat.feature.conversations.resources.projects
 import com.garfiec.librechat.feature.conversations.resources.projects_all
-import com.garfiec.librechat.feature.conversations.resources.projects_see_all
 import com.garfiec.librechat.feature.conversations.resources.remove_bookmark
 import com.garfiec.librechat.feature.conversations.resources.save
 import com.garfiec.librechat.feature.conversations.resources.schedules
@@ -218,8 +227,10 @@ private val ActiveIndicatorShape = RoundedCornerShape(2.dp)
 // Pulls a tappable drawer row in from the edges and clips its ripple to [ItemShape], so every row
 // reads as the same inset, rounded button instead of a full-bleed rectangular highlight. Apply
 // before .clickable so the indication is bounded by the rounded shape.
-private fun Modifier.drawerRowShape(): Modifier =
-    padding(horizontal = 4.dp, vertical = 1.dp).clip(ItemShape)
+private fun Modifier.drawerRowShape(): Modifier = drawerRowInset().clip(ItemShape)
+
+/** [drawerRowShape]'s inset alone, for a row that draws a shadow between the inset and the clip. */
+private fun Modifier.drawerRowInset(): Modifier = padding(horizontal = 4.dp, vertical = 1.dp)
 
 private const val STAR_SWELL = 0.35f
 
@@ -274,7 +285,6 @@ fun DrawerContent(
     // a frame or more later, and a field showing that copy drops keystrokes typed in between.
     val searchFieldText by viewModel.searchQuery.collectAsStateWithLifecycle()
     val projects by viewModel.projects.collectAsStateWithLifecycle()
-    val hasMoreProjects by viewModel.hasMoreProjects.collectAsStateWithLifecycle()
     val inlineProjectChats by viewModel.inlineProjectChats.collectAsStateWithLifecycle()
     val libraryTab by viewModel.drawerLibraryTab.collectAsStateWithLifecycle()
 
@@ -382,7 +392,6 @@ fun DrawerContent(
         onDelete = viewModel::deleteConversation,
         onPin = viewModel::pinConversation,
         projects = projects,
-        hasMoreProjects = hasMoreProjects,
         onLoadProjects = { viewModel.reloadProjects() },
         onMoveToProject = viewModel::moveConversationToProject,
         onCreateProjectAndAssign = viewModel::createProjectAndAssign,
@@ -391,6 +400,8 @@ fun DrawerContent(
         onSelectTab = viewModel::setDrawerLibraryTab,
         inlineProjectChats = inlineProjectChats,
         onToggleProject = viewModel::toggleProjectExpanded,
+        onPickUpProject = viewModel::closeExpandedProject,
+        onReorderProjects = viewModel::reorderProjects,
         onCreateProject = viewModel::createProject,
         onEditProject = viewModel::editProject,
         onNewChatInProject = onNewChatInProject,
@@ -463,7 +474,6 @@ fun DrawerContent(
     onDelete: (String) -> Unit = {},
     onPin: (String, Boolean) -> Unit = { _, _ -> },
     projects: List<ChatProject> = emptyList(),
-    hasMoreProjects: Boolean = false,
     onLoadProjects: () -> Unit = {},
     onMoveToProject: (String, String?) -> Unit = { _, _ -> },
     onCreateProjectAndAssign: (String, String) -> Unit = { _, _ -> },
@@ -475,6 +485,9 @@ fun DrawerContent(
     onSelectTab: (DrawerTab) -> Unit = {},
     inlineProjectChats: InlineProjectChatsState = InlineProjectChatsState(),
     onToggleProject: (String) -> Unit = {},
+    // Switchboard-only custom folder order: a folder was picked up / dropped in its new place.
+    onPickUpProject: () -> Unit = {},
+    onReorderProjects: (orderedIds: List<String>) -> Unit = {},
     onCreateProject: (String, String) -> Unit = { _, _ -> },
     onEditProject: (String, String, String) -> Unit = { _, _, _ -> },
     onDeleteProject: (String) -> Unit = {},
@@ -1052,9 +1065,10 @@ fun DrawerContent(
         if (showProjects) {
             DrawerProjectsList(
                 projects = projects,
-                hasMoreProjects = hasMoreProjects,
                 inlineProjectChats = inlineProjectChats,
                 onToggleProject = onToggleProject,
+                onPickUpProject = onPickUpProject,
+                onReorderProjects = onReorderProjects,
                 onOpenProjectsIndex = onOpenProjectsIndex,
                 onCreateProject = onCreateProject,
                 onEditProject = onEditProject,
@@ -1325,9 +1339,10 @@ private val NewChatStartPadding = 16.dp
 @Composable
 private fun DrawerProjectsList(
     projects: List<ChatProject>,
-    hasMoreProjects: Boolean,
     inlineProjectChats: InlineProjectChatsState,
     onToggleProject: (String) -> Unit,
+    onPickUpProject: () -> Unit,
+    onReorderProjects: (orderedIds: List<String>) -> Unit,
     onOpenProjectsIndex: () -> Unit,
     onCreateProject: (name: String, description: String) -> Unit,
     onEditProject: (projectId: String, name: String, description: String) -> Unit,
@@ -1376,7 +1391,38 @@ private fun DrawerProjectsList(
         }
     }
 
-    LazyColumn(modifier = modifier.fillMaxWidth()) {
+    val listState = rememberLazyListState()
+    val reorder = rememberProjectFolderReorderState(listState)
+    val projectIds = remember(projects) { projects.map { it.id } }
+    val currentProjectIds by rememberUpdatedState(projectIds)
+    LaunchedEffect(projects) { reorder.onProjectsChanged() }
+    val byId = remember(projects) { projects.associateBy { it.id } }
+    val indexOf = remember(projectIds) { projectIds.withIndex().associate { it.value to it.index } }
+    val shownIds = reorder.shownIds(projectIds)
+    val shownProjects = remember(shownIds, byId) { shownIds.mapNotNull(byId::get) }
+    val pickUp = rememberPickUpHaptic(onPickUpProject)
+    val currentOnReorder by rememberUpdatedState(onReorderProjects)
+    val moveUpLabel = stringResource(Res.string.project_move_up)
+    val moveDownLabel = stringResource(Res.string.project_move_down)
+    val moveBy: (String, Int) -> Unit = { id, by ->
+        val from = indexOf[id] ?: -1
+        val to = from + by
+        if (from >= 0 && to in projectIds.indices) {
+            onReorderProjects(projectIds.toMutableList().apply { add(to, removeAt(from)) })
+        }
+    }
+
+    LazyColumn(
+        state = listState,
+        modifier = modifier
+            .fillMaxWidth()
+            .projectFolderReorder(
+                state = reorder,
+                projectIds = { currentProjectIds },
+                onPickUp = pickUp,
+                onDrop = { currentOnReorder(it) },
+            ),
+    ) {
         // Action row: link to the full-page index (advanced controls) + create a new folder.
         item(key = "projects_actions") {
             Row(
@@ -1429,8 +1475,25 @@ private fun DrawerProjectsList(
             )
         }
 
-        items(items = projects, key = { it.id }) { folder ->
+        items(items = shownProjects, key = { it.id }) { folder ->
+            val held = reorder.heldId == folder.id
+            val index = indexOf[folder.id] ?: -1
             ProjectFolderAccordion(
+                modifier = Modifier
+                    // The held row follows the finger; the rest slide aside to open its new slot.
+                    .then(if (held) Modifier else Modifier.animateItem())
+                    .zIndex(if (held) 1f else 0f)
+                    .graphicsLayer { translationY = reorder.translationOf(folder.id) }
+                    .semantics {
+                        customActions = buildList {
+                            if (index > 0) add(CustomAccessibilityAction(moveUpLabel) { moveBy(folder.id, -1); true })
+                            if (index in 0 until projectIds.lastIndex) {
+                                add(CustomAccessibilityAction(moveDownLabel) { moveBy(folder.id, 1); true })
+                            }
+                        }
+                    },
+                lifted = held,
+                onHeaderSizeChange = { reorder.onHeaderSizeChange(folder.id, it) },
                 name = folder.name,
                 conversationCount = folder.conversationCount,
                 leading = { ProjectTile(projectId = folder.id, name = folder.name, size = 20.dp) },
@@ -1448,22 +1511,6 @@ private fun DrawerProjectsList(
                 },
                 expandedContent = { expandedChats(folder.id) },
             )
-        }
-
-        if (hasMoreProjects) {
-            item(key = "projects_more") {
-                TextButton(
-                    onClick = onOpenProjectsIndex,
-                    modifier = Modifier.padding(start = 4.dp, top = 4.dp),
-                ) {
-                    Text(
-                        text = stringResource(Res.string.projects_see_all),
-                        style = MaterialTheme.typography.labelMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
         }
     }
 
@@ -1522,18 +1569,28 @@ private fun ProjectFolderAccordion(
     menuContent: (@Composable () -> Unit)? = null,
     /** The selected project (the open folder), which the drawer's New chat files into. */
     highlighted: Boolean = false,
+    /** Held by a reorder drag: drawn raised above the rows it passes over. */
+    lifted: Boolean = false,
+    /** The folder row's height in px, without its chats: a reorder picks up only from the row. */
+    onHeaderSizeChange: ((Int) -> Unit)? = null,
 ) {
     val chevronRotation by animateFloatAsState(
         targetValue = if (expanded) 0f else -90f,
         label = "ProjectChevronRotation",
     )
+    val liftElevation by animateDpAsState(if (lifted) 6.dp else 0.dp, label = "ProjectLiftElevation")
     Column(modifier = modifier) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .drawerRowShape()
+                .then(if (onHeaderSizeChange != null) Modifier.onSizeChanged { onHeaderSizeChange(it.height) } else Modifier)
+                .drawerRowInset()
+                // Opaque while held: the rows it passes over must not show through it.
+                .shadow(liftElevation, ItemShape)
+                .clip(ItemShape)
+                .background(if (lifted) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent)
                 .background(
-                    if (highlighted) adaptiveSelectedRowColor else Color.Transparent,
+                    if (highlighted || lifted) adaptiveSelectedRowColor else Color.Transparent,
                 )
                 .clickable(onClick = onToggle)
                 .padding(start = 4.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),

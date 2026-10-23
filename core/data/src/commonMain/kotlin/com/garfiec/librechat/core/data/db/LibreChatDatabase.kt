@@ -17,6 +17,7 @@ import com.garfiec.librechat.core.data.db.dao.MessageDao
 import com.garfiec.librechat.core.data.db.dao.MessageSearchDao
 import com.garfiec.librechat.core.data.db.dao.PrefetchWatermarkDao
 import com.garfiec.librechat.core.data.db.dao.PresetDao
+import com.garfiec.librechat.core.data.db.dao.ProjectOrderDao
 import com.garfiec.librechat.core.data.db.dao.ServerDao
 import com.garfiec.librechat.core.data.db.entity.AgentEntity
 import com.garfiec.librechat.core.data.db.entity.ArtifactShortcutEntity
@@ -28,6 +29,7 @@ import com.garfiec.librechat.core.data.db.entity.MessageSearchEntity
 import com.garfiec.librechat.core.data.db.entity.MessageSearchFtsEntity
 import com.garfiec.librechat.core.data.db.entity.PrefetchWatermarkEntity
 import com.garfiec.librechat.core.data.db.entity.PresetEntity
+import com.garfiec.librechat.core.data.db.entity.ProjectOrderEntity
 import com.garfiec.librechat.core.data.db.entity.ServerEntity
 
 @Database(
@@ -43,8 +45,9 @@ import com.garfiec.librechat.core.data.db.entity.ServerEntity
         PrefetchWatermarkEntity::class,
         MessageSearchEntity::class,
         MessageSearchFtsEntity::class,
+        ProjectOrderEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -69,6 +72,8 @@ import com.garfiec.librechat.core.data.db.entity.ServerEntity
         // 11 -> 12 adds `manualSkills` and `alwaysAppliedSkills` on messages, so a user turn's
         // skill pills survive a reload and a regenerate after reload replays its picks.
         AutoMigration(from = 11, to = 12),
+        // 12 -> 13 adds the account-scoped project_order table (Switchboard-only drawer folder order).
+        AutoMigration(from = 12, to = 13),
     ],
 )
 @TypeConverters(Converters::class)
@@ -85,6 +90,7 @@ abstract class LibreChatDatabase : RoomDatabase() {
     abstract fun serverDao(): ServerDao
     abstract fun prefetchWatermarkDao(): PrefetchWatermarkDao
     abstract fun messageSearchDao(): MessageSearchDao
+    abstract fun projectOrderDao(): ProjectOrderDao
 }
 
 // Room KSP auto-generates the actual implementations for each platform

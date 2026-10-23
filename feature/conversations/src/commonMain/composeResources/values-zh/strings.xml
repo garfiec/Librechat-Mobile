@@ -59,7 +59,6 @@
     <string name="project_delete_confirm">删除项目 "%1$s"？对话会保留，但会从项目中移除。</string>
     <string name="project_unassigned">不在项目中</string>
     <string name="projects_all">所有项目</string>
-    <string name="projects_see_all">查看全部项目</string>
     <string name="project_new">新建项目</string>
     <string name="project_name_label">项目名称</string>
     <string name="project_edit">编辑项目</string>
@@ -73,6 +72,9 @@
     <string name="projects_search">搜索项目</string>
     <string name="project_sort_activity">最近活动</string>
     <string name="project_sort_name">名称</string>
+    <string name="project_sort_custom">自定义顺序</string>
+    <string name="project_move_up">上移</string>
+    <string name="project_move_down">下移</string>
     <string name="projects_empty_description">项目将同一主题的对话归为一组。可通过对话菜单将其移入项目。</string>
     <string name="projects_no_match">没有与"%1$s"匹配的项目</string>
     <string name="tags">标签</string>

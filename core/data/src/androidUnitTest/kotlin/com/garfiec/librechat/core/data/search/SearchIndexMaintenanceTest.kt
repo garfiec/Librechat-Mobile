@@ -84,6 +84,7 @@ class SearchIndexMaintenanceTest : AccountIsolationTestBase() {
             draftDao = db.draftDao(),
             tagDao = db.conversationTagDao(),
             prefetchWatermarkDao = db.prefetchWatermarkDao(),
+            projectOrderDao = db.projectOrderDao(),
             ioDispatcher = Dispatchers.Unconfined,
             searchIndexMaintenance = maintenance,
         )

@@ -59,7 +59,6 @@
     <string name="project_delete_confirm">プロジェクト「%1$s」を削除しますか？会話は残りますが、プロジェクトからは外されます。</string>
     <string name="project_unassigned">プロジェクト外</string>
     <string name="projects_all">すべてのプロジェクト</string>
-    <string name="projects_see_all">すべてのプロジェクトを表示</string>
     <string name="project_new">新しいプロジェクト</string>
     <string name="project_name_label">プロジェクト名</string>
     <string name="project_edit">プロジェクトを編集</string>
@@ -73,6 +72,9 @@
     <string name="projects_search">プロジェクトを検索</string>
     <string name="project_sort_activity">最近のアクティビティ</string>
     <string name="project_sort_name">名前</string>
+    <string name="project_sort_custom">カスタム順</string>
+    <string name="project_move_up">上へ移動</string>
+    <string name="project_move_down">下へ移動</string>
     <string name="projects_empty_description">プロジェクトは 1 つのテーマのチャットをまとめます。チャットはそのメニューからプロジェクトに移動できます。</string>
     <string name="projects_no_match">「%1$s」に一致するプロジェクトはありません</string>
     <string name="tags">タグ</string>
