@@ -151,7 +151,7 @@ Without this setting, the server's violation system may accumulate ban points ag
 | Xcode | 15+ (iOS only, Apple Silicon Mac required — IDE not needed, CLI only) |
 | iOS Deployment Target | 16.0+ |
 | Gradle | 9.5.1 (via wrapper) |
-| Kotlin | 2.4.10 |
+| Kotlin | 2.4.20 |
 
 ## Building from Source
 
@@ -200,7 +200,7 @@ See [iosApp/README.md](iosApp/README.md) for full build and launch instructions.
 - Ktor Client (OkHttp on Android, Darwin on iOS)
 - Kotlinx Serialization
 - Room (cache), DataStore (preferences), EncryptedSharedPreferences / Keychain (tokens)
-- Kotlin 2.4.10, compileSdk 37, minSdk 26
+- Kotlin 2.4.20, compileSdk 37, minSdk 26
 
 ## Contributing
 
