@@ -89,6 +89,7 @@ import com.garfiec.librechat.core.data.repository.SearchRepository
 import com.garfiec.librechat.core.data.repository.SearchRepositoryImpl
 import com.garfiec.librechat.core.data.repository.ServerRepository
 import com.garfiec.librechat.core.data.repository.ServerRepositoryImpl
+import com.garfiec.librechat.core.data.repository.ServerSessionRevoker
 import com.garfiec.librechat.core.data.repository.ShareChangeSignal
 import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.ShareRepositoryImpl
@@ -323,6 +324,16 @@ val dataModule = module {
 
     // --- Repositories (special wiring) ---
 
+    single {
+        ServerSessionRevoker(
+            authApi = get(),
+            tokenManager = get(),
+            refreshCookieCredentials = get(),
+            roster = get(),
+            serverHeadersProvider = get(),
+        )
+    }
+
     single<AuthRepository> {
         AuthRepositoryImpl(
             authApi = get(),
@@ -336,6 +347,7 @@ val dataModule = module {
             sessionManager = get(),
             accountSwitcher = get(),
             switchGate = get(),
+            serverSessionRevoker = get(),
         )
     }
 

@@ -8,8 +8,8 @@ import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.logging.LogOrigin
 import com.garfiec.librechat.core.model.response.RefreshResponse
 import com.garfiec.librechat.core.network.client.CookieHelper
-import com.garfiec.librechat.core.network.client.ImageCookieCredentials
 import com.garfiec.librechat.core.network.client.PinnedServerBaseUrlKey
+import com.garfiec.librechat.core.network.client.RefreshCookieCredentials
 import com.garfiec.librechat.core.network.client.RefreshResult
 import com.garfiec.librechat.core.network.client.SessionEndReason
 import com.garfiec.librechat.core.network.client.SessionHealth
@@ -78,7 +78,7 @@ import kotlin.time.Clock
 abstract class CommonTokenDataStore(
     private val refreshClient: Lazy<HttpClient>,
     private val ioDispatcher: CoroutineDispatcher,
-) : TokenManager, ImageCookieCredentials {
+) : TokenManager, RefreshCookieCredentials {
 
     @Volatile
     private var cachedAccessToken: String? = null
@@ -1242,7 +1242,7 @@ abstract class CommonTokenDataStore(
         sessionExpiryReported = false
     }
 
-    // --- ImageCookieCredentials ---
+    // --- RefreshCookieCredentials ---
 
     /**
      * Read directly off the account's own slot, unlocked.
@@ -1250,7 +1250,7 @@ abstract class CommonTokenDataStore(
      * No [stateMutex]: this reads a keyed slot rather than the active-account binding the mutex
      * guards, and taking it would put a per-image keystore decrypt behind the same lock an account
      * switch flips under. The value can therefore be read either side of a concurrent rotation — which
-     * is the race [ImageCookieCredentials] documents and its caller's one-shot 403 retry resolves.
+     * is the race [RefreshCookieCredentials] documents and its caller's one-shot 403 retry resolves.
      *
      * A null [accountId] returns null rather than falling back to the bare key: that slot holds a
      * *staged* sign-in's token mid add-account flow, and the caller's gate is the only other thing

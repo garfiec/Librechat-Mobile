@@ -39,8 +39,8 @@ import com.garfiec.librechat.core.network.api.UserApi
 import com.garfiec.librechat.core.network.client.AuthInterceptorPlugin
 import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
 import com.garfiec.librechat.core.network.client.GatewayDetectionPlugin
-import com.garfiec.librechat.core.network.client.ImageCookieCredentials
 import com.garfiec.librechat.core.network.client.LibreChatHttpClient
+import com.garfiec.librechat.core.network.client.RefreshCookieCredentials
 import com.garfiec.librechat.core.network.client.ServerHeadersPlugin
 import com.garfiec.librechat.core.network.client.ServerHeadersProvider
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
@@ -104,7 +104,7 @@ val networkModule = module {
             tokenManager = get(),
             serverUrlProvider = get(),
             redactor = get(),
-            imageCookieCredentials = get<ImageCookieCredentials>(),
+            refreshCookieCredentials = get<RefreshCookieCredentials>(),
             accountReadyGate = getOrNull(),
             switchGate = get(),
             serverHeadersProvider = get(),

@@ -57,17 +57,21 @@ class AuthApi constructor(
             )
         }.body()
 
-    suspend fun logout() {
+    /**
+     * The server deletes the session [refreshToken] names. It reads the token from the cookie only, and
+     * without one it deletes whichever of the user's sessions it finds first — possibly another device's.
+     */
+    suspend fun logout(refreshToken: String) {
         client.post {
             url { path("api/auth/logout") }
+            header("Cookie", "refreshToken=$refreshToken")
         }
     }
 
     suspend fun refresh(refreshToken: String): RefreshResult {
         val httpResponse = client.post {
             url { path("api/auth/refresh") }
-            // Send refresh token via both Cookie header and request body.
-            // The backend reads from cookies first, falling back to body.
+            // The backend reads the cookie only; the body copy is redundant.
             header("Cookie", "refreshToken=$refreshToken")
             setBody(mapOf("refreshToken" to refreshToken))
         }

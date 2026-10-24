@@ -28,7 +28,7 @@ import com.garfiec.librechat.core.data.update.AppInstallSource
 import com.garfiec.librechat.core.data.update.AppUpdateRepository
 import com.garfiec.librechat.core.data.update.AppUpdateRepositoryImpl
 import com.garfiec.librechat.core.data.update.NoopAppInstallSource
-import com.garfiec.librechat.core.network.client.ImageCookieCredentials
+import com.garfiec.librechat.core.network.client.RefreshCookieCredentials
 import com.garfiec.librechat.core.network.client.TokenManager
 import io.ktor.client.HttpClient
 import org.koin.android.ext.koin.androidContext
@@ -87,9 +87,9 @@ actual val dataPlatformModule: Module = module {
         // deliberately not part of the TokenManager contract.
     } binds arrayOf(
         TokenManager::class,
-        // The image-cookie seam (see ImageCookiePlugin): per-account refresh-token reads, kept off
+        // The refresh-cookie seam (ImageCookiePlugin, logout): per-account refresh-token reads, kept off
         // TokenManager so the six fakes that implement it don't gain a second credential.
-        ImageCookieCredentials::class,
+        RefreshCookieCredentials::class,
         CommonTokenDataStore::class,
     )
 

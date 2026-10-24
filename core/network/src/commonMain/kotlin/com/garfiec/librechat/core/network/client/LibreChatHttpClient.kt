@@ -41,7 +41,7 @@ object LibreChatHttpClient {
         tokenManager: TokenManager,
         serverUrlProvider: ServerUrlProvider,
         redactor: LogRedactor,
-        imageCookieCredentials: ImageCookieCredentials,
+        refreshCookieCredentials: RefreshCookieCredentials,
         accountReadyGate: AccountReadyGate? = null,
         switchGate: SwitchGate? = null,
         serverHeadersProvider: ServerHeadersProvider = EmptyServerHeadersProvider,
@@ -108,7 +108,7 @@ object LibreChatHttpClient {
         // before applyCustomHeaders folds the user's gateway cookie into the same line — which is what
         // keeps it to one Cookie header and lets the app's segment win a name collision.
         install(ImageCookiePlugin) {
-            this.credentials = imageCookieCredentials
+            this.credentials = refreshCookieCredentials
             this.serverUrlProvider = serverUrlProvider
         }
 

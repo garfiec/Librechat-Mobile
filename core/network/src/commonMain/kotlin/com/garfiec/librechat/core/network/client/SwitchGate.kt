@@ -125,9 +125,9 @@ class SwitchGate(
      *
      * [renewIfStale] opts this snapshot into proactive token renewal
      * ([TokenManager.ensureFreshAccessToken]) — only the transports pass it. It is **not** the default
-     * because `captureSnapshot` has non-transport callers for which a renewal is wrong rather than
-     * merely wasteful: logout pins an identity before revoking the session, and refreshing a session
-     * we are about to destroy adds a round trip to it and rotates a token nobody will use.
+     * because `captureSnapshot` has non-transport callers that decide for themselves whether a renewal
+     * is worth it: logout pins an identity here and renews only once it knows the account holds a
+     * refresh token to revoke with.
      */
     suspend fun captureSnapshot(renewIfStale: Boolean = false): RequestIdentity {
         coroutineContext[PendingRequestIdentity]?.let { return it.identity() }

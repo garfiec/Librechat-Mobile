@@ -180,8 +180,8 @@ class SwitchGateTest {
 
     /**
      * Proactive renewal is opt-in per capture. The default must stay off: logout and the post-login
-     * profile fetch snapshot through here too, and renewing for either is wrong rather than merely
-     * wasteful — logout would rotate a token it is about to revoke.
+     * profile fetch snapshot through here too, and each decides for itself whether to renew — logout
+     * renews only once it knows the account holds a refresh token to revoke with.
      */
     @Test
     fun `the default capture never renews`() = runTest {

@@ -38,7 +38,7 @@ class ImageCookiePluginTest {
         const val ROTATED = "refresh-token-2"
     }
 
-    private class FakeCredentials(private vararg val tokens: String?) : ImageCookieCredentials {
+    private class FakeCredentials(private vararg val tokens: String?) : RefreshCookieCredentials {
         var calls = 0
         val accountsAsked = mutableListOf<String?>()
 
@@ -101,7 +101,7 @@ class ImageCookiePluginTest {
      */
     private fun createClient(
         engine: MockEngine,
-        credentials: ImageCookieCredentials,
+        credentials: RefreshCookieCredentials,
         serverUrl: String = SERVER,
         headersProvider: ServerHeadersProvider = EmptyServerHeadersProvider,
     ): HttpClient = HttpClient(engine) {
@@ -358,7 +358,7 @@ class ImageCookiePluginTest {
             tokenManager = InertTokenManager(),
             serverUrlProvider = FakeServerUrlProvider(SERVER),
             redactor = LogRedactor(),
-            imageCookieCredentials = FakeCredentials(TOKEN),
+            refreshCookieCredentials = FakeCredentials(TOKEN),
             serverHeadersProvider = FakeHeadersProvider(gatewayCookie),
         )
 

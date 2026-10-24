@@ -100,6 +100,7 @@ class AuthRepositoryImplVerifyTest {
             sessionManager = sessionManager,
             accountSwitcher = accountSwitcher,
             switchGate = switchGate,
+            serverSessionRevoker = mockk(relaxed = true),
         )
     }
 

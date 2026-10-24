@@ -80,11 +80,11 @@ private val ImageCookieRetriedKey = AttributeKey<String>("ImageCookieRetriedFor"
  * is 5xx/IO-only, so nothing else re-sends underneath this and there is no retry storm.
  */
 class ImageCookiePlugin private constructor(
-    private val credentials: ImageCookieCredentials,
+    private val credentials: RefreshCookieCredentials,
     private val serverUrlProvider: ServerUrlProvider?,
 ) {
     class Config {
-        lateinit var credentials: ImageCookieCredentials
+        lateinit var credentials: RefreshCookieCredentials
 
         /**
          * Fallback source of the server base URL for requests carrying no [RequestIdentity] snapshot.

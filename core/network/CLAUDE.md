@@ -243,7 +243,7 @@ Four rules that are load-bearing and easy to undo by accident:
   every refresh overwrites, so a value snapshotted before a rotation is already rejected — with a
   **403**, not a 401. Read it at attach time, keyed to the snapshot's `accountId`, and let the
   one-shot 403 retry (re-read, resend only if it *changed*) absorb the race. It is deliberately not
-  on `RequestIdentity` and not on `TokenManager`: `ImageCookieCredentials` is a one-method seam bound
+  on `RequestIdentity` and not on `TokenManager`: `RefreshCookieCredentials` is a one-method seam bound
   to the token store, so the six `TokenManager` fakes never gain a second credential.
 
 Gating is `isSameServerAuthority` (scheme + host + port, fail-closed) plus a **base-path-aware** path

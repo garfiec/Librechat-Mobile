@@ -111,7 +111,7 @@ class BanClassificationTest {
             tokenManager = tokens,
             serverUrlProvider = FixedUrlProvider(),
             redactor = LogRedactor(),
-            imageCookieCredentials = { null },
+            refreshCookieCredentials = { null },
             requestActivityTracker = RequestActivityTracker(),
         )
 

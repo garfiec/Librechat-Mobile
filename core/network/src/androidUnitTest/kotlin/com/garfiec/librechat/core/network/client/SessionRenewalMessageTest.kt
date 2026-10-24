@@ -86,7 +86,7 @@ class SessionRenewalMessageTest {
             tokenManager = tokenManager,
             serverUrlProvider = FakeServerUrlProvider(),
             redactor = LogRedactor(),
-            imageCookieCredentials = { null },
+            refreshCookieCredentials = { null },
             requestActivityTracker = RequestActivityTracker(),
         )
 

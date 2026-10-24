@@ -455,10 +455,10 @@ class NavHostViewModel(
     private fun activeAccountId(): String? =
         (activeAccountProvider.state.value as? AccountState.Resolved)?.id?.value
 
-    /** Remove an account and all its local data. Removing the active one switches to the
-     *  most-recently-active survivor, or routes to auth when it was the last. */
+    /** Sign an account out on its server and remove it with all its local data. Removing the active
+     *  one switches to the most-recently-active survivor, or routes to auth when it was the last. */
     fun removeAccount(accountId: String) {
-        viewModelScope.launch { accountSwitcher.remove(accountId) }
+        viewModelScope.launch { authRepository.removeAccount(accountId) }
     }
 
     /** Abandon any in-progress add-account flow; no-op when none is pending. Driven by the NavHost

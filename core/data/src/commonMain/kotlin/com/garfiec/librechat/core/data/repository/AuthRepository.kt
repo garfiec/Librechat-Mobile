@@ -20,6 +20,12 @@ interface AuthRepository {
     suspend fun verifyTwoFactor(tempToken: String, code: String, isBackupCode: Boolean = false): VerifyTwoFactorOutcome
     suspend fun register(name: String, email: String, username: String, password: String): Result<Unit>
     suspend fun logout(): Result<Unit>
+
+    /**
+     * Revokes [accountId]'s server session, best-effort, then removes the account and its local data.
+     * The active account goes through [logout].
+     */
+    suspend fun removeAccount(accountId: String)
     suspend fun isLoggedIn(): Boolean
 
     /**

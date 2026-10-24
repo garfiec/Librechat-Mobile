@@ -102,7 +102,7 @@ class MemoryRepositoryNotFoundThroughClientTest {
             tokenManager = RecordingTokenManager(),
             serverUrlProvider = FixedUrlProvider(),
             redactor = LogRedactor(),
-            imageCookieCredentials = { null },
+            refreshCookieCredentials = { null },
         )
         val configRepository = mockk<ConfigRepository>()
         every { configRepository.detectedBackend } returns
