@@ -52,7 +52,7 @@ coil3 = "3.6.3"
 zoomimage = "1.7.0"
 
 # Color theming (seed -> Material 3 ColorScheme, KMP)
-material-kolor = "4.1.1"
+material-kolor = "5.0.1"
 
 # QR rendering (KMP: Android + iOS) -- 2FA enrollment on a second device
 qrose = "1.1.2"
