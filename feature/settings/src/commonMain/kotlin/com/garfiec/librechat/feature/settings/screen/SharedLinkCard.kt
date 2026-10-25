@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -34,7 +35,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.datetime.listLabel
@@ -105,19 +109,19 @@ internal fun SharedLinkCard(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
+                    // Every slot keeps its height when short or empty, so cards in a grid row line up.
+                    minLines = 2,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (shared != null) {
-                    Text(
-                        text = stringResource(Res.string.shared_chats_shared_on, shared.resolve()),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                }
+                Text(
+                    text = shared?.let { stringResource(Res.string.shared_chats_shared_on, it.resolve()) }.orEmpty(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
             }
             SharedLinkMenuButton(
                 title = title,
@@ -227,10 +231,11 @@ private fun SharedLinkMenuItem(
     )
 }
 
-/** First-load stand-in, sized like a card, so the grid doesn't jump when the links arrive. */
+/** First-load stand-in that mirrors the card's slots, so the grid doesn't jump when the links arrive. */
 @Composable
 internal fun SharedLinkCardPlaceholder(modifier: Modifier = Modifier) {
     val block = MaterialTheme.colorScheme.surfaceContainerHighest
+    val typography = MaterialTheme.typography
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -241,9 +246,20 @@ internal fun SharedLinkCardPlaceholder(modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(block))
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(Modifier.fillMaxWidth(0.6f).height(16.dp).clip(RoundedCornerShape(4.dp)).background(block))
-            Box(Modifier.fillMaxWidth(0.3f).height(12.dp).clip(RoundedCornerShape(4.dp)).background(block))
+        Column(modifier = Modifier.weight(1f)) {
+            PlaceholderLine(block, typography.titleMedium, barHeight = 16.dp, widthFraction = 0.8f)
+            PlaceholderLine(block, typography.titleMedium, barHeight = 16.dp, widthFraction = 0.5f)
+            Spacer(Modifier.height(4.dp))
+            PlaceholderLine(block, typography.labelMedium, barHeight = 12.dp, widthFraction = 0.3f)
         }
+    }
+}
+
+/** One text line's slot at [style]'s line height, with a bar centred in it. */
+@Composable
+private fun PlaceholderLine(color: Color, style: TextStyle, barHeight: Dp, widthFraction: Float) {
+    val lineHeight = with(LocalDensity.current) { style.lineHeight.toDp() }
+    Box(Modifier.fillMaxWidth().height(lineHeight), contentAlignment = Alignment.CenterStart) {
+        Box(Modifier.fillMaxWidth(widthFraction).height(barHeight).clip(RoundedCornerShape(4.dp)).background(color))
     }
 }

@@ -49,8 +49,11 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -458,17 +461,16 @@ internal fun ProjectCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                val description = project.description?.trim().orEmpty()
-                if (description.isNotEmpty()) {
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                }
+                // Every slot keeps its height when empty, so cards in a grid row line up.
+                Text(
+                    text = project.description?.trim().orEmpty(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    minLines = 2,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
                 Row(
                     modifier = Modifier.padding(top = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -481,6 +483,8 @@ internal fun ProjectCard(
                         ),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                     if (activity != null) {
                         Text(
@@ -489,6 +493,7 @@ internal fun ProjectCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
                         )
                     }
                 }
@@ -498,10 +503,11 @@ internal fun ProjectCard(
     }
 }
 
-/** First-load stand-in, sized like a card with a description, so the grid doesn't jump on arrival. */
+/** First-load stand-in that mirrors the card's slots, so the grid doesn't jump on arrival. */
 @Composable
 private fun ProjectCardPlaceholder() {
     val block = MaterialTheme.colorScheme.surfaceContainerHighest
+    val typography = MaterialTheme.typography
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -511,10 +517,22 @@ private fun ProjectCardPlaceholder() {
     ) {
         Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(block))
         Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(Modifier.fillMaxWidth(0.5f).height(16.dp).clip(RoundedCornerShape(4.dp)).background(block))
-            Box(Modifier.fillMaxWidth(0.9f).height(12.dp).clip(RoundedCornerShape(4.dp)).background(block))
-            Box(Modifier.fillMaxWidth(0.3f).height(12.dp).clip(RoundedCornerShape(4.dp)).background(block))
+        Column(modifier = Modifier.weight(1f)) {
+            PlaceholderLine(block, typography.titleMedium, barHeight = 16.dp, widthFraction = 0.5f)
+            Spacer(Modifier.height(4.dp))
+            PlaceholderLine(block, typography.bodyMedium, barHeight = 12.dp, widthFraction = 0.9f)
+            PlaceholderLine(block, typography.bodyMedium, barHeight = 12.dp, widthFraction = 0.6f)
+            Spacer(Modifier.height(8.dp))
+            PlaceholderLine(block, typography.labelMedium, barHeight = 12.dp, widthFraction = 0.3f)
         }
+    }
+}
+
+/** One text line's slot at [style]'s line height, with a bar centred in it. */
+@Composable
+private fun PlaceholderLine(color: Color, style: TextStyle, barHeight: Dp, widthFraction: Float) {
+    val lineHeight = with(LocalDensity.current) { style.lineHeight.toDp() }
+    Box(Modifier.fillMaxWidth().height(lineHeight), contentAlignment = Alignment.CenterStart) {
+        Box(Modifier.fillMaxWidth(widthFraction).height(barHeight).clip(RoundedCornerShape(4.dp)).background(color))
     }
 }

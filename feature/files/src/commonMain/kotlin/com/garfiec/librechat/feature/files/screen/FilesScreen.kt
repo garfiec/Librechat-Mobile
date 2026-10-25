@@ -735,6 +735,8 @@ internal fun FileGridItem(
                     Text(
                         text = file.filename,
                         style = MaterialTheme.typography.bodySmall,
+                        // Two lines even for a short name, so tiles in a grid row line up.
+                        minLines = 2,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.Start,
