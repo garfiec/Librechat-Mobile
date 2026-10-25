@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.plus
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridItemScope
@@ -29,7 +30,6 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -54,6 +54,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.ErrorBanner
+import com.garfiec.librechat.core.ui.components.UnderBarsPullToRefreshBox
 import com.garfiec.librechat.core.ui.components.UpToTwoColumns
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
@@ -63,6 +64,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarMenuItem
 import com.garfiec.librechat.core.ui.components.topbar.BarMenuSection
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
 import com.garfiec.librechat.feature.skills.SkillErrorKind
 import com.garfiec.librechat.feature.skills.components.SkillCard
 import com.garfiec.librechat.feature.skills.components.SkillCardPlaceholder
@@ -187,6 +189,7 @@ fun SkillsListScreen(
                         emptyList()
                     },
                 ),
+                materialStyle = MaterialBarStyle(translucent = true),
             )
         },
         floatingActionButton = {
@@ -201,10 +204,11 @@ fun SkillsListScreen(
             }
         },
     ) { padding ->
-        PullToRefreshBox(
+        UnderBarsPullToRefreshBox(
             isRefreshing = uiState.isRefreshing,
             onRefresh = viewModel::refresh,
-            modifier = Modifier.fillMaxSize().padding(padding),
+            barPadding = padding,
+            modifier = Modifier.fillMaxSize(),
         ) {
             val minCardWidth = SkillCardMinWidth * LocalDensity.current.fontScale
             // Every state is a grid item, so pull-to-refresh always has something to pull and the
@@ -213,7 +217,7 @@ fun SkillsListScreen(
                 state = gridState,
                 columns = remember(minCardWidth) { UpToTwoColumns(minCardWidth) },
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = FabClearance),
+                contentPadding = padding + PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = FabClearance),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {

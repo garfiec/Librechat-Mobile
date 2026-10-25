@@ -179,6 +179,14 @@ the controls bullet below.
   `UINavigationBar` on iOS 26+, and a simulated glass bar elsewhere. Every bar icon is a `BarIcon`
   from `BarIcons` (Material vector + SF Symbol); `BarIconsSymbolTest` in `:shared` iosTest fails on a
   symbol UIKit does not know. Use `AdaptiveScaffold` for screens with an adaptive bar or FAB.
+- **Scrolling under the bars.** A list screen that should show its content through the status bar
+  and top bar passes `MaterialBarStyle(translucent = true)` (Material draws a fading surface scrim,
+  like the chat top bar, instead of a solid container; glass bars are translucent already), wraps
+  the list in `UnderBarsPullToRefreshBox(barPadding = innerPadding)` rather than padding it, and
+  adds `innerPadding` to the list's `contentPadding`. States that don't scroll (empty, error,
+  loading) still pad themselves. In Material, `belowBar` sits inside the scrim, so give it a
+  transparent container (`AdaptiveTabRow(containerColor = …)`); in glass it floats below the
+  bar's scrim, as before.
 - **Native bars sit above the whole Compose canvas**, so a Compose surface meant to cover them (the
   drawer, a sheet or dialog scrim) draws *under* them. Such surfaces call `CoversNativeBars(active)`;
   the bar hides while any are up. `AdaptiveModalBottomSheet`, `AdaptiveAlertDialog` and

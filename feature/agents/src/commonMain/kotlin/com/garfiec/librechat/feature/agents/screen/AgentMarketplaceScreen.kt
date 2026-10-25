@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.plus
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
@@ -41,7 +42,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -73,12 +73,14 @@ import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.InitialTile
+import com.garfiec.librechat.core.ui.components.UnderBarsPullToRefreshBox
 import com.garfiec.librechat.core.ui.components.UpToTwoColumns
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
 import com.garfiec.librechat.feature.agents.AgentCardDisplayData
 import com.garfiec.librechat.feature.agents.components.agentCategoryLabel
 import com.garfiec.librechat.feature.agents.components.categoryValueLabel
@@ -208,6 +210,7 @@ internal fun AgentMarketplaceContent(
                     navigation = onBack?.let { BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), it) },
                     title = BarTitle(stringResource(Res.string.agents)),
                 ),
+                materialStyle = MaterialBarStyle(translucent = true),
             )
         },
         floatingActionButton = {
@@ -233,12 +236,13 @@ internal fun AgentMarketplaceContent(
             )
             return@AdaptiveScaffold
         }
-        PullToRefreshBox(
+        UnderBarsPullToRefreshBox(
             isRefreshing = uiState.isRefreshing,
             onRefresh = actions.onRefresh,
-            modifier = Modifier.fillMaxSize().padding(innerPadding),
+            barPadding = innerPadding,
+            modifier = Modifier.fillMaxSize(),
         ) {
-            AgentGrid(uiState = uiState, actions = actions, gridState = gridState)
+            AgentGrid(uiState = uiState, actions = actions, gridState = gridState, barPadding = innerPadding)
         }
     }
 }
@@ -248,6 +252,7 @@ internal fun AgentGrid(
     uiState: AgentMarketplaceUiState,
     actions: AgentMarketplaceActions,
     gridState: LazyGridState,
+    barPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
     val categoriesByValue = remember(uiState.categories) { uiState.categories.associateBy { it.value } }
@@ -257,7 +262,7 @@ internal fun AgentGrid(
     LazyVerticalGrid(
         columns = remember(minCardWidth) { UpToTwoColumns(minCardWidth) },
         state = gridState,
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = FAB_CLEARANCE),
+        contentPadding = barPadding + PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = FAB_CLEARANCE),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier.fillMaxSize(),

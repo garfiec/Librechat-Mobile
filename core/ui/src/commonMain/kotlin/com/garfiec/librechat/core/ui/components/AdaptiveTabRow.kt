@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -63,6 +64,8 @@ fun PagerState.selectedTabIndex(): Int {
  * [fullWidthIndicator] (Material only) runs the selected tab's underline across the whole tab
  * rather than M3's default of the label's width. Primary rows only; a secondary row's indicator
  * already spans the tab.
+ *
+ * [containerColor] (Material only) replaces the row's surface; unspecified keeps M3's.
  */
 @Composable
 fun AdaptiveTabRow(
@@ -76,6 +79,7 @@ fun AdaptiveTabRow(
     fitTitles: List<String> = titles,
     dotColors: List<Color>? = null,
     fullWidthIndicator: Boolean = false,
+    containerColor: Color = Color.Unspecified,
 ) {
     if (isLiquidGlass) {
         LiquidSegmentedControl(
@@ -107,6 +111,7 @@ fun AdaptiveTabRow(
             scrollable = !share.fits && half.fits,
             titleOverflow = titleOverflow,
             fullWidthIndicator = fullWidthIndicator,
+            containerColor = containerColor,
         )
     }
 }
@@ -121,6 +126,7 @@ private fun MaterialTabRow(
     scrollable: Boolean,
     titleOverflow: TextOverflow,
     fullWidthIndicator: Boolean,
+    containerColor: Color,
 ) {
     val tabs: @Composable () -> Unit = {
         titles.forEachIndexed { index, title ->
@@ -142,21 +148,36 @@ private fun MaterialTabRow(
             width = Dp.Unspecified,
         )
     }
+    val primaryContainer = containerColor.takeOrElse { TabRowDefaults.primaryContainerColor }
+    val secondaryContainer = containerColor.takeOrElse { TabRowDefaults.secondaryContainerColor }
     when {
         // No edge inset: the first tab starts where the fixed row's does.
         scrollable && kind == AdaptiveTabRowKind.PRIMARY ->
             PrimaryScrollableTabRow(
                 selectedTabIndex = selectedIndex,
                 modifier = modifier,
+                containerColor = primaryContainer,
                 edgePadding = 0.dp,
                 indicator = primaryIndicator,
                 tabs = tabs,
             )
         scrollable ->
-            SecondaryScrollableTabRow(selectedTabIndex = selectedIndex, modifier = modifier, edgePadding = 0.dp, tabs = tabs)
+            SecondaryScrollableTabRow(
+                selectedTabIndex = selectedIndex,
+                modifier = modifier,
+                containerColor = secondaryContainer,
+                edgePadding = 0.dp,
+                tabs = tabs,
+            )
         kind == AdaptiveTabRowKind.PRIMARY ->
-            PrimaryTabRow(selectedTabIndex = selectedIndex, modifier = modifier, indicator = primaryIndicator, tabs = tabs)
-        else -> SecondaryTabRow(selectedTabIndex = selectedIndex, modifier = modifier, tabs = tabs)
+            PrimaryTabRow(
+                selectedTabIndex = selectedIndex,
+                modifier = modifier,
+                containerColor = primaryContainer,
+                indicator = primaryIndicator,
+                tabs = tabs,
+            )
+        else -> SecondaryTabRow(selectedTabIndex = selectedIndex, modifier = modifier, containerColor = secondaryContainer, tabs = tabs)
     }
 }
 

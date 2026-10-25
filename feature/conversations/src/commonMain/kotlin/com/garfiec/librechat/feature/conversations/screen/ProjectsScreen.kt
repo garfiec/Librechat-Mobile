@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.plus
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -36,7 +37,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -71,12 +71,14 @@ import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.EmptyState
+import com.garfiec.librechat.core.ui.components.UnderBarsPullToRefreshBox
 import com.garfiec.librechat.core.ui.components.UpToTwoColumns
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.core.ui.datetime.LocalRelativeTimeReference
 import com.garfiec.librechat.core.ui.datetime.resolve
@@ -175,6 +177,7 @@ fun ProjectsScreen(
                     navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.back), onNavigateBack),
                     title = BarTitle(stringResource(Res.string.projects_title)),
                 ),
+                materialStyle = MaterialBarStyle(translucent = true),
             )
         },
         floatingActionButton = {
@@ -193,10 +196,11 @@ fun ProjectsScreen(
             }
         },
     ) { innerPadding ->
-        PullToRefreshBox(
+        UnderBarsPullToRefreshBox(
             isRefreshing = uiState.isRefreshing,
             onRefresh = { viewModel.refresh() },
-            modifier = Modifier.fillMaxSize().padding(innerPadding),
+            barPadding = innerPadding,
+            modifier = Modifier.fillMaxSize(),
         ) {
             val minCardWidth = ProjectCardMinWidth * LocalDensity.current.fontScale
             LazyVerticalGrid(
@@ -204,7 +208,7 @@ fun ProjectsScreen(
                 columns = remember(minCardWidth) { UpToTwoColumns(minCardWidth) },
                 modifier = Modifier.fillMaxSize(),
                 // Bottom room so the last card scrolls clear of the FAB.
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 96.dp),
+                contentPadding = innerPadding + PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 96.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {

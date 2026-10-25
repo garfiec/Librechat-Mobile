@@ -1,13 +1,21 @@
 package com.garfiec.librechat.core.ui.components.topbar
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.ui.UiStyle
+import com.garfiec.librechat.core.ui.components.AdaptiveTabRow
+import com.garfiec.librechat.core.ui.components.AdaptiveTabRowKind
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 
@@ -37,6 +45,30 @@ private fun FixedTitleBarsMaterialPreview() = PreviewSurface(UiStyle.MATERIAL) {
 @PreviewNarrowScreens
 @Composable
 private fun FixedTitleBarsGlassPreview() = PreviewSurface(UiStyle.LIQUID_GLASS) { BarStack(fixedTitleBars) }
+
+// The translucent bar over content scrolled under it, with a tab row in belowBar as on Files.
+@PreviewNarrowScreens
+@Composable
+private fun TranslucentBarMaterialPreview() = PreviewSurface(UiStyle.MATERIAL) {
+    Box(Modifier.background(MaterialTheme.colorScheme.background)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            repeat(8) { Text("Card text that has scrolled up under the bar", style = MaterialTheme.typography.bodyLarge) }
+        }
+        AdaptiveTopBar(
+            spec = AdaptiveTopBarSpec(navigation = back, title = BarTitle("Files")),
+            materialStyle = MaterialBarStyle(translucent = true),
+            belowBar = {
+                AdaptiveTabRow(
+                    titles = listOf("All", "Images", "Documents"),
+                    selectedIndex = 0,
+                    onSelect = {},
+                    kind = AdaptiveTabRowKind.SECONDARY,
+                    containerColor = Color.Transparent,
+                )
+            },
+        )
+    }
+}
 
 @Composable
 private fun PreviewSurface(style: UiStyle, content: @Composable () -> Unit) {

@@ -37,7 +37,9 @@
 - File preview on tap (non-image files)
 
 ### File Type Filtering
-- `FilesScreen` renders an inline `AdaptiveTabRow` (All, Images, Documents, Audio, Video)
+- `FilesScreen` renders an `AdaptiveTabRow` (All, Images, Documents, Audio, Video) in the top bar's
+  `belowBar` slot, transparent, so the list scrolls under it and the bar (see "Scrolling under the
+  bars" in `core/ui/CLAUDE.md`)
 - Filters by MIME type prefix in `FilesViewModel` (`FileTypeFilter`)
 
 ### Upload Progress

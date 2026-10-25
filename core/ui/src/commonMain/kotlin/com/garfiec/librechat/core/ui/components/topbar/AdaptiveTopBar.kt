@@ -42,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -93,7 +94,9 @@ fun AdaptiveTopBar(
 ) {
     val level = LocalGlassLevel.current
     if (level == null) {
-        if (belowBar == null) {
+        if (materialStyle.translucent) {
+            TranslucentMaterialTopBar(spec, materialStyle, modifier, belowBar)
+        } else if (belowBar == null) {
             MaterialTopBar(spec, materialStyle, modifier)
         } else {
             Column(modifier = modifier) {
@@ -117,6 +120,35 @@ fun AdaptiveTopBar(
             }
         }
         belowBar?.invoke()
+    }
+}
+
+@Composable
+private fun TranslucentMaterialTopBar(
+    spec: AdaptiveTopBarSpec,
+    style: MaterialBarStyle,
+    modifier: Modifier = Modifier,
+    belowBar: (@Composable () -> Unit)? = null,
+) {
+    Box(modifier = modifier) {
+        val surface = MaterialTheme.colorScheme.surface
+        Box(
+            Modifier.matchParentSize().drawWithCache {
+                // Hold the scrim near-opaque behind the title and belowBar so their text stays readable over
+                // the list; only a fixed band at the bottom edge fades, however tall belowBar makes the bar.
+                val fadeStart = ((size.height - TranslucentFade.toPx()) / size.height).coerceIn(0f, 1f)
+                val brush = Brush.verticalGradient(
+                    0f to surface.copy(alpha = 0.92f),
+                    fadeStart to surface.copy(alpha = 0.82f),
+                    1f to Color.Transparent,
+                )
+                onDrawBehind { drawRect(brush) }
+            },
+        )
+        Column {
+            MaterialTopBar(spec, style.copy(containerColor = Color.Transparent))
+            belowBar?.invoke()
+        }
     }
 }
 
@@ -345,6 +377,9 @@ private val BarMenuOffset = DpOffset(x = 0.dp, y = 8.dp)
 /** The UIKit bar on iOS; never reached on Android, whose actual forwards to the simulated bar. */
 @Composable
 internal expect fun NativeGlassTopBar(spec: AdaptiveTopBarSpec, modifier: Modifier = Modifier)
+
+// Within the space M3 leaves under a bar title or a tab label, so the fade never reaches text.
+private val TranslucentFade = 12.dp
 
 @Composable
 private fun glassEdgeScrim(): Brush {

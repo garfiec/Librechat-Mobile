@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.plus
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,7 +38,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -70,6 +71,7 @@ import com.garfiec.librechat.core.ui.components.ErrorBanner
 import com.garfiec.librechat.core.ui.components.FileTypeTile
 import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
+import com.garfiec.librechat.core.ui.components.UnderBarsPullToRefreshBox
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarAction
@@ -79,7 +81,10 @@ import com.garfiec.librechat.core.ui.components.topbar.BarMenuSection
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTint
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
 import com.garfiec.librechat.core.ui.datetime.rememberAbsoluteTimestamp
+import com.garfiec.librechat.core.ui.glass.GlassBackdrop
+import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.media.MediaActionBar
 import com.garfiec.librechat.core.ui.media.MediaViewerHost
 import com.garfiec.librechat.core.ui.media.mediaThumbnail
@@ -189,26 +194,97 @@ fun FilesScreen(
             modifier = modifier,
             snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
             topBar = {
-                if (pickerMode) {
-                    AdaptiveTopBar(
-                        spec = AdaptiveTopBarSpec(
-                            navigation = onBack?.let {
-                                BarNavigation(BarIcons.Close, stringResource(Res.string.cd_close_picker), it)
+                val spec = if (pickerMode) {
+                    AdaptiveTopBarSpec(
+                        navigation = onBack?.let {
+                            BarNavigation(BarIcons.Close, stringResource(Res.string.cd_close_picker), it)
+                        },
+                        title = BarTitle(
+                            if (uiState.selectedFileIds.isEmpty()) {
+                                stringResource(Res.string.select_files)
+                            } else {
+                                stringResource(Res.string.selected_count, uiState.selectedFileIds.size)
                             },
-                            title = BarTitle(
-                                if (uiState.selectedFileIds.isEmpty()) {
-                                    stringResource(Res.string.select_files)
-                                } else {
-                                    stringResource(Res.string.selected_count, uiState.selectedFileIds.size)
-                                },
+                        ),
+                        actions = listOf(
+                            BarAction.Icon(
+                                id = "select_all",
+                                icon = BarIcons.SelectAll,
+                                label = stringResource(Res.string.cd_select_all),
+                                onClick = { viewModel.selectAll() },
                             ),
-                            actions = listOf(
-                                BarAction.Icon(
-                                    id = "select_all",
-                                    icon = BarIcons.SelectAll,
-                                    label = stringResource(Res.string.cd_select_all),
-                                    onClick = { viewModel.selectAll() },
-                                ),
+                            BarAction.Icon(
+                                id = "view_mode",
+                                icon = if (uiState.viewMode == FileViewMode.LIST) BarIcons.GridView else BarIcons.ListView,
+                                label = if (uiState.viewMode == FileViewMode.LIST) {
+                                    stringResource(Res.string.cd_switch_to_grid)
+                                } else {
+                                    stringResource(Res.string.cd_switch_to_list)
+                                },
+                                onClick = { viewModel.toggleViewMode() },
+                            ),
+                            BarAction.Text(
+                                id = "attach",
+                                label = stringResource(Res.string.attach_count, uiState.selectedFileIds.size),
+                                compactIcon = BarIcons.Attach,
+                                enabled = uiState.selectedFileIds.isNotEmpty(),
+                                onClick = { onConfirmSelection?.invoke(viewModel.confirmSelection()) },
+                            ),
+                        ),
+                    )
+                } else if (uiState.isSelectionMode) {
+                    AdaptiveTopBarSpec(
+                        navigation = BarNavigation(
+                            BarIcons.Close,
+                            stringResource(Res.string.cd_exit_edit_mode),
+                            requestExitSelection,
+                        ),
+                        title = BarTitle(
+                            if (uiState.selectedFileIds.isEmpty()) {
+                                stringResource(Res.string.select_files)
+                            } else {
+                                stringResource(Res.string.selected_count, uiState.selectedFileIds.size)
+                            },
+                        ),
+                        actions = listOf(
+                            BarAction.Icon(
+                                id = "select_all",
+                                icon = BarIcons.SelectAll,
+                                label = stringResource(Res.string.cd_select_all),
+                                onClick = { viewModel.selectAll() },
+                            ),
+                            BarAction.Icon(
+                                id = "delete",
+                                icon = BarIcons.DeleteFilled,
+                                label = stringResource(Res.string.cd_delete_selected),
+                                tint = BarTint.DESTRUCTIVE,
+                                enabled = uiState.selectedFileIds.isNotEmpty(),
+                                onClick = { showDeleteConfirmation = true },
+                            ),
+                            BarAction.Text(
+                                id = "done",
+                                label = stringResource(Res.string.done),
+                                compactIcon = BarIcons.Confirm,
+                                onClick = { viewModel.exitSelectionMode() },
+                            ),
+                        ),
+                    )
+                } else {
+                    AdaptiveTopBarSpec(
+                        navigation = onBack?.let { BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), it) },
+                        title = BarTitle(stringResource(Res.string.files)),
+                        actions = buildList {
+                            if (uiState.hasFiles) {
+                                add(
+                                    BarAction.Icon(
+                                        id = "edit",
+                                        icon = BarIcons.EditFilled,
+                                        label = stringResource(Res.string.cd_edit_files),
+                                        onClick = { viewModel.enterEditMode() },
+                                    ),
+                                )
+                            }
+                            add(
                                 BarAction.Icon(
                                     id = "view_mode",
                                     icon = if (uiState.viewMode == FileViewMode.LIST) BarIcons.GridView else BarIcons.ListView,
@@ -219,123 +295,58 @@ fun FilesScreen(
                                     },
                                     onClick = { viewModel.toggleViewMode() },
                                 ),
-                                BarAction.Text(
-                                    id = "attach",
-                                    label = stringResource(Res.string.attach_count, uiState.selectedFileIds.size),
-                                    compactIcon = BarIcons.Attach,
-                                    enabled = uiState.selectedFileIds.isNotEmpty(),
-                                    onClick = { onConfirmSelection?.invoke(viewModel.confirmSelection()) },
-                                ),
-                            ),
-                        ),
-                    )
-                } else if (uiState.isSelectionMode) {
-                    AdaptiveTopBar(
-                        spec = AdaptiveTopBarSpec(
-                            navigation = BarNavigation(
-                                BarIcons.Close,
-                                stringResource(Res.string.cd_exit_edit_mode),
-                                requestExitSelection,
-                            ),
-                            title = BarTitle(
-                                if (uiState.selectedFileIds.isEmpty()) {
-                                    stringResource(Res.string.select_files)
-                                } else {
-                                    stringResource(Res.string.selected_count, uiState.selectedFileIds.size)
-                                },
-                            ),
-                            actions = listOf(
-                                BarAction.Icon(
-                                    id = "select_all",
-                                    icon = BarIcons.SelectAll,
-                                    label = stringResource(Res.string.cd_select_all),
-                                    onClick = { viewModel.selectAll() },
-                                ),
-                                BarAction.Icon(
-                                    id = "delete",
-                                    icon = BarIcons.DeleteFilled,
-                                    label = stringResource(Res.string.cd_delete_selected),
-                                    tint = BarTint.DESTRUCTIVE,
-                                    enabled = uiState.selectedFileIds.isNotEmpty(),
-                                    onClick = { showDeleteConfirmation = true },
-                                ),
-                                BarAction.Text(
-                                    id = "done",
-                                    label = stringResource(Res.string.done),
-                                    compactIcon = BarIcons.Confirm,
-                                    onClick = { viewModel.exitSelectionMode() },
-                                ),
-                            ),
-                        ),
-                    )
-                } else {
-                    AdaptiveTopBar(
-                        spec = AdaptiveTopBarSpec(
-                            navigation = onBack?.let { BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), it) },
-                            title = BarTitle(stringResource(Res.string.files)),
-                            actions = buildList {
-                                if (uiState.hasFiles) {
-                                    add(
-                                        BarAction.Icon(
-                                            id = "edit",
-                                            icon = BarIcons.EditFilled,
-                                            label = stringResource(Res.string.cd_edit_files),
-                                            onClick = { viewModel.enterEditMode() },
-                                        ),
-                                    )
-                                }
-                                add(
-                                    BarAction.Icon(
-                                        id = "view_mode",
-                                        icon = if (uiState.viewMode == FileViewMode.LIST) BarIcons.GridView else BarIcons.ListView,
-                                        label = if (uiState.viewMode == FileViewMode.LIST) {
-                                            stringResource(Res.string.cd_switch_to_grid)
-                                        } else {
-                                            stringResource(Res.string.cd_switch_to_list)
-                                        },
-                                        onClick = { viewModel.toggleViewMode() },
-                                    ),
-                                )
-                                add(
-                                    BarAction.Menu(
-                                        id = "sort",
-                                        icon = BarIcons.Sort,
-                                        label = stringResource(Res.string.cd_sort_files),
-                                        sections = listOf(
-                                            BarMenuSection(
-                                                FileSortField.entries.map { field ->
-                                                    val isSelected = field == uiState.sortField
-                                                    BarMenuItem(
-                                                        id = field.name,
-                                                        label = stringResource(field.label),
-                                                        icon = null,
-                                                        checked = isSelected,
-                                                        subtitle = if (!isSelected) {
-                                                            null
-                                                        } else if (uiState.sortOrder == FileSortOrder.ASCENDING) {
-                                                            stringResource(Res.string.cd_ascending)
-                                                        } else {
-                                                            stringResource(Res.string.cd_descending)
-                                                        },
-                                                        // Re-selecting the active field flips the order; a new field starts descending.
-                                                        onClick = {
-                                                            val order = when {
-                                                                !isSelected -> FileSortOrder.DESCENDING
-                                                                uiState.sortOrder == FileSortOrder.ASCENDING -> FileSortOrder.DESCENDING
-                                                                else -> FileSortOrder.ASCENDING
-                                                            }
-                                                            viewModel.setSort(field, order)
-                                                        },
-                                                    )
-                                                },
-                                            ),
+                            )
+                            add(
+                                BarAction.Menu(
+                                    id = "sort",
+                                    icon = BarIcons.Sort,
+                                    label = stringResource(Res.string.cd_sort_files),
+                                    sections = listOf(
+                                        BarMenuSection(
+                                            FileSortField.entries.map { field ->
+                                                val isSelected = field == uiState.sortField
+                                                BarMenuItem(
+                                                    id = field.name,
+                                                    label = stringResource(field.label),
+                                                    icon = null,
+                                                    checked = isSelected,
+                                                    subtitle = if (!isSelected) {
+                                                        null
+                                                    } else if (uiState.sortOrder == FileSortOrder.ASCENDING) {
+                                                        stringResource(Res.string.cd_ascending)
+                                                    } else {
+                                                        stringResource(Res.string.cd_descending)
+                                                    },
+                                                    // Re-selecting the active field flips the order; a new field starts descending.
+                                                    onClick = {
+                                                        val order = when {
+                                                            !isSelected -> FileSortOrder.DESCENDING
+                                                            uiState.sortOrder == FileSortOrder.ASCENDING -> FileSortOrder.DESCENDING
+                                                            else -> FileSortOrder.ASCENDING
+                                                        }
+                                                        viewModel.setSort(field, order)
+                                                    },
+                                                )
+                                            },
                                         ),
                                     ),
-                                )
-                            },
-                        ),
+                                ),
+                            )
+                        },
                     )
                 }
+                AdaptiveTopBar(
+                    spec = spec,
+                    materialStyle = MaterialBarStyle(translucent = true),
+                    belowBar = {
+                        FileTypeFilterTabs(
+                            selected = uiState.selectedFilter,
+                            onSelect = viewModel::setFilter,
+                            backdrop = LocalGlassBackdrop.current,
+                            containerColor = Color.Transparent,
+                        )
+                    },
+                )
             },
             floatingActionButton = {
                 if (!uiState.isSelectionMode && !pickerMode) {
@@ -350,21 +361,17 @@ fun FilesScreen(
                 }
             },
         ) { padding ->
-            PullToRefreshBox(
+            UnderBarsPullToRefreshBox(
                 isRefreshing = uiState.isRefreshing,
                 onRefresh = viewModel::refresh,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
+                barPadding = padding,
+                modifier = Modifier.fillMaxSize(),
             ) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    // File type filter tabs
-                    FileTypeFilterTabs(selected = uiState.selectedFilter, onSelect = viewModel::setFilter)
-
+                Box(modifier = Modifier.fillMaxSize()) {
                     when {
                         uiState.isLoading -> {
                             Box(
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier.fillMaxSize().padding(padding),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 AdaptiveCircularProgressIndicator()
@@ -373,6 +380,7 @@ fun FilesScreen(
                         uiState.error != null && !uiState.hasFiles -> {
                             ErrorBanner(
                                 message = uiState.error ?: stringResource(Res.string.could_not_load_files),
+                                modifier = Modifier.padding(padding),
                                 onRetry = {
                                     viewModel.dismissError()
                                     viewModel.loadFiles()
@@ -380,12 +388,17 @@ fun FilesScreen(
                             )
                         }
                         uiState.displayFiles.isEmpty() && !uiState.isRefreshing -> {
-                            FilesEmptyState(uiState.selectedFilter)
+                            FilesEmptyState(uiState.selectedFilter, modifier = Modifier.padding(padding))
                         }
                         else -> {
+                            // Room for the last row to scroll clear of the upload FAB.
+                            val fabClearance = if (!uiState.isSelectionMode && !pickerMode) FabClearance else 0.dp
                             when (uiState.viewMode) {
                                 FileViewMode.LIST -> {
-                                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                    LazyColumn(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentPadding = padding + PaddingValues(bottom = fabClearance),
+                                    ) {
                                         items(
                                             items = uiState.displayFiles,
                                             key = { it.fileId },
@@ -420,7 +433,8 @@ fun FilesScreen(
                                     LazyVerticalGrid(
                                         columns = GridCells.Adaptive(minSize = FileGridCellMinSize),
                                         modifier = Modifier.fillMaxSize(),
-                                        contentPadding = PaddingValues(8.dp),
+                                        contentPadding = padding +
+                                            PaddingValues(start = 8.dp, top = 8.dp, end = 8.dp, bottom = 8.dp + fabClearance),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                                         verticalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
@@ -462,7 +476,7 @@ fun FilesScreen(
                     filename = uiState.uploadFilename,
                     progress = uiState.uploadProgress,
                     onCancel = viewModel::cancelUpload,
-                    modifier = Modifier.align(Alignment.TopCenter),
+                    modifier = Modifier.align(Alignment.TopCenter).padding(top = padding.calculateTopPadding()),
                 )
             }
         }
@@ -578,6 +592,8 @@ internal fun FileTypeFilterTabs(
     selected: FileTypeFilter,
     onSelect: (FileTypeFilter) -> Unit,
     modifier: Modifier = Modifier,
+    backdrop: GlassBackdrop? = null,
+    containerColor: Color = Color.Unspecified,
 ) {
     val filters = FileTypeFilter.entries
     AdaptiveTabRow(
@@ -586,6 +602,8 @@ internal fun FileTypeFilterTabs(
         onSelect = { onSelect(filters[it]) },
         modifier = modifier,
         kind = AdaptiveTabRowKind.SECONDARY,
+        backdrop = backdrop,
+        containerColor = containerColor,
     )
 }
 
@@ -669,6 +687,8 @@ private fun FileItem(
         AdaptiveDivider()
     }
 }
+
+private val FabClearance = 96.dp
 
 /** The narrowest a grid tile gets: two columns fit a 320dp phone. */
 internal val FileGridCellMinSize = 144.dp

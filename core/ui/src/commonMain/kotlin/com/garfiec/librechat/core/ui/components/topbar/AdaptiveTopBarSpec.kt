@@ -143,4 +143,10 @@ data class AdaptiveTopBarSpec(
 data class MaterialBarStyle(
     /** Unspecified leaves M3's default colours untouched rather than restating them. */
     val containerColor: Color = Color.Unspecified,
+    /**
+     * Draws the bar, its status-bar band and `belowBar` over a fading surface scrim instead of a solid
+     * container, so the list scrolls up under them as the chat thread does. Only worth it when the
+     * body passes the Scaffold's padding to its list as `contentPadding`. Wins over [containerColor].
+     */
+    val translucent: Boolean = false,
 )
