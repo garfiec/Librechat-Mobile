@@ -877,7 +877,6 @@
     <string name="mcp_empty_title">امنح محادثاتك أدوات</string>
     <string name="mcp_empty_body">يتيح خادم MCP للنماذج البحث والقراءة والتصرف في تطبيق آخر، مثل GitHub أو تقويمك. أضف خادمًا باستخدام عنوان URL الخاص به.</string>
     <string name="mcp_empty_body_no_create">يتيح خادم MCP للنماذج البحث والقراءة والتصرف في تطبيق آخر، مثل GitHub أو تقويمك. اطلب من المسؤول إضافة خادم.</string>
-    <string name="cd_server_options">خيارات %1$s</string>
     <string name="mcp_tools_title">الأدوات</string>
     <string name="mcp_tools_filter_hint">تصفية الأدوات</string>
     <string name="mcp_tools_no_match">لا توجد أدوات مطابقة</string>

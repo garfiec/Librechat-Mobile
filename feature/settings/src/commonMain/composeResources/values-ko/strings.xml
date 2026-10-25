@@ -812,7 +812,6 @@
     <string name="mcp_empty_title">채팅에 도구를 추가하세요</string>
     <string name="mcp_empty_body">MCP 서버를 사용하면 모델이 GitHub나 캘린더 같은 다른 앱에서 검색하고 읽고 작업할 수 있습니다. URL로 추가하세요.</string>
     <string name="mcp_empty_body_no_create">MCP 서버를 사용하면 모델이 GitHub나 캘린더 같은 다른 앱에서 검색하고 읽고 작업할 수 있습니다. 관리자에게 추가를 요청하세요.</string>
-    <string name="cd_server_options">%1$s 옵션</string>
     <string name="mcp_tools_title">도구</string>
     <string name="mcp_tools_filter_hint">도구 필터</string>
     <string name="mcp_tools_no_match">일치하는 도구 없음</string>

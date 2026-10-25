@@ -812,7 +812,6 @@
     <string name="mcp_empty_title">为你的聊天添加工具</string>
     <string name="mcp_empty_body">MCP 服务器让模型可以在其他应用（如 GitHub 或你的日历）中搜索、读取和执行操作。使用其 URL 添加。</string>
     <string name="mcp_empty_body_no_create">MCP 服务器让模型可以在其他应用（如 GitHub 或你的日历）中搜索、读取和执行操作。请让管理员添加。</string>
-    <string name="cd_server_options">%1$s 的选项</string>
     <string name="mcp_tools_title">工具</string>
     <string name="mcp_tools_filter_hint">筛选工具</string>
     <string name="mcp_tools_no_match">没有匹配的工具</string>

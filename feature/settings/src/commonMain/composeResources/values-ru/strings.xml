@@ -851,7 +851,6 @@
     <string name="mcp_empty_title">Дайте чатам инструменты</string>
     <string name="mcp_empty_body">MCP-сервер позволяет моделям искать, читать и действовать в другом приложении, например в GitHub или календаре. Добавьте его по URL.</string>
     <string name="mcp_empty_body_no_create">MCP-сервер позволяет моделям искать, читать и действовать в другом приложении, например в GitHub или календаре. Попросите администратора добавить его.</string>
-    <string name="cd_server_options">Действия для %1$s</string>
     <string name="mcp_tools_title">Инструменты</string>
     <string name="mcp_tools_filter_hint">Фильтр инструментов</string>
     <string name="mcp_tools_no_match">Нет подходящих инструментов</string>

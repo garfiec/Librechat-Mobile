@@ -98,7 +98,7 @@ private fun McpCardsHost(dark: Boolean, style: UiStyle) {
         Surface(color = MaterialTheme.colorScheme.background) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(16.dp)) {
                 everyStatus.forEach { row ->
-                    McpServerCard(row = row, onOpen = {}, onReconnect = {}, onEdit = {}, onDelete = {})
+                    McpServerCard(row = row, onOpen = {}, onReconnect = {})
                 }
             }
         }

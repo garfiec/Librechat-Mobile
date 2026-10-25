@@ -825,7 +825,6 @@
     <string name="mcp_empty_title">Gib deinen Chats Tools</string>
     <string name="mcp_empty_body">Ein MCP-Server lässt Modelle in einer anderen App suchen, lesen und handeln, etwa in GitHub oder deinem Kalender. Füge einen mit seiner URL hinzu.</string>
     <string name="mcp_empty_body_no_create">Ein MCP-Server lässt Modelle in einer anderen App suchen, lesen und handeln, etwa in GitHub oder deinem Kalender. Bitte einen Admin, einen hinzuzufügen.</string>
-    <string name="cd_server_options">Optionen für %1$s</string>
     <string name="mcp_tools_title">Tools</string>
     <string name="mcp_tools_filter_hint">Tools filtern</string>
     <string name="mcp_tools_no_match">Keine passenden Tools</string>

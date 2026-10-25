@@ -34,8 +34,6 @@ private fun SettingsLabelsHost(style: UiStyle) {
                         row = sampleMcpRow(title = "GitHub", status = McpDisplayStatus.CONNECTED, toolCount = count),
                         onOpen = {},
                         onReconnect = {},
-                        onEdit = {},
-                        onDelete = {},
                     )
                 }
                 listOf("application/vnd.mermaid", "application/vnd.react").forEach { type ->

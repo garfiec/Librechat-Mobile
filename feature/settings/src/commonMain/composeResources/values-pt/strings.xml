@@ -825,7 +825,6 @@
     <string name="mcp_empty_title">Dê ferramentas aos seus chats</string>
     <string name="mcp_empty_body">Um servidor MCP permite que os modelos pesquisem, leiam e ajam em outro app, como o GitHub ou sua agenda. Adicione um pela URL.</string>
     <string name="mcp_empty_body_no_create">Um servidor MCP permite que os modelos pesquisem, leiam e ajam em outro app, como o GitHub ou sua agenda. Peça a um administrador para adicionar um.</string>
-    <string name="cd_server_options">Opções de %1$s</string>
     <string name="mcp_tools_title">Ferramentas</string>
     <string name="mcp_tools_filter_hint">Filtrar ferramentas</string>
     <string name="mcp_tools_no_match">Nenhuma ferramenta corresponde</string>

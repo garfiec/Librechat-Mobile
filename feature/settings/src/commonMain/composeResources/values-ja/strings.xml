@@ -812,7 +812,6 @@
     <string name="mcp_empty_title">チャットにツールを追加</string>
     <string name="mcp_empty_body">MCPサーバーを使うと、モデルがGitHubやカレンダーなど別のアプリで検索・閲覧・操作できます。URLを指定して追加してください。</string>
     <string name="mcp_empty_body_no_create">MCPサーバーを使うと、モデルがGitHubやカレンダーなど別のアプリで検索・閲覧・操作できます。追加は管理者に依頼してください。</string>
-    <string name="cd_server_options">%1$sのオプション</string>
     <string name="mcp_tools_title">ツール</string>
     <string name="mcp_tools_filter_hint">ツールを絞り込む</string>
     <string name="mcp_tools_no_match">一致するツールはありません</string>

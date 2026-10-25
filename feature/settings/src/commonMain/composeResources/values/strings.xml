@@ -831,7 +831,6 @@
     <string name="mcp_empty_title">Give your chats tools</string>
     <string name="mcp_empty_body">An MCP server lets models search, read and act in another app, such as GitHub or your calendar. Add one with its URL.</string>
     <string name="mcp_empty_body_no_create">An MCP server lets models search, read and act in another app, such as GitHub or your calendar. Ask an admin to add one.</string>
-    <string name="cd_server_options">Options for %1$s</string>
     <string name="mcp_tools_title">Tools</string>
     <string name="mcp_tools_filter_hint">Filter tools</string>
     <string name="mcp_tools_no_match">No tools match</string>

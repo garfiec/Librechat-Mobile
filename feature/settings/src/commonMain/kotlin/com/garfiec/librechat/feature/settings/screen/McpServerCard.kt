@@ -5,34 +5,24 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Power
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -43,7 +33,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
 import com.garfiec.librechat.core.ui.components.AdaptiveCard
-import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.components.AdaptiveFilledTonalButton
 import com.garfiec.librechat.core.ui.components.InitialTile
 import com.garfiec.librechat.core.ui.components.TileStatusDot
@@ -57,7 +46,7 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
-/** The one action that fixes a server's state, if there is one; everything else lives in the menu. */
+/** The one action that fixes a server's state, if there is one; everything else lives in the server's sheet. */
 internal enum class McpCardAction(val label: StringResource) {
     SIGN_IN(Res.string.mcp_action_sign_in),
     RETRY(Res.string.action_retry),
@@ -87,16 +76,13 @@ internal fun McpDisplayStatus.presentation(colors: StatusColors): McpStatusPrese
 
 /**
  * One server in the list: its tile with a status dot, title, description, and a meta line saying
- * the status in words. The trailing slot holds the action that fixes the server when there is one,
- * then the overflow menu.
+ * the status in words. The trailing slot holds the action that fixes the server when there is one.
  */
 @Composable
 internal fun McpServerCard(
     row: McpServerRow,
     onOpen: () -> Unit,
     onReconnect: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val presentation = row.status.presentation(statusColors())
@@ -112,7 +98,7 @@ internal fun McpServerCard(
         colors = CardDefaults.cardColors(containerColor = container),
     ) {
         Row(
-            modifier = Modifier.padding(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
+            modifier = Modifier.padding(12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             InitialTile(seed = row.tileSeed, label = row.title, imageUrl = row.iconUrl) {
@@ -162,21 +148,6 @@ internal fun McpServerCard(
                     Text(stringResource(action.label), maxLines = 2, textAlign = TextAlign.Center)
                 }
             }
-            // A broken server is the one most likely to need Edit (a mistyped URL), so the menu stays
-            // beside the action. Reconnect is the action itself there, so the menu drops it; with
-            // nothing left to offer, the menu goes too.
-            if (action == null || row.access.canEdit || row.access.canDelete) {
-                McpServerMenu(
-                    title = row.title,
-                    canEdit = row.access.canEdit,
-                    canDelete = row.access.canDelete,
-                    onReconnect = onReconnect.takeIf { action == null },
-                    onEdit = onEdit,
-                    onDelete = onDelete,
-                )
-            } else {
-                Spacer(Modifier.width(8.dp))
-            }
         }
     }
 }
@@ -217,55 +188,6 @@ internal fun McpMetaItem(text: String, icon: ImageVector? = null, tint: Color = 
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-    }
-}
-
-/** Reconnect (null when the card already shows it), plus Edit and Delete where the user may. */
-@Composable
-internal fun McpServerMenu(
-    title: String,
-    canEdit: Boolean,
-    canDelete: Boolean,
-    onReconnect: (() -> Unit)?,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Box(modifier) {
-        IconButton(onClick = { expanded = true }) {
-            Icon(Icons.Default.MoreVert, contentDescription = stringResource(Res.string.cd_server_options, title))
-        }
-        AdaptiveDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            if (onReconnect != null) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(Res.string.mcp_action_reconnect)) },
-                    leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
-                    onClick = {
-                        expanded = false
-                        onReconnect()
-                    },
-                )
-            }
-            if (canEdit) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(Res.string.mcp_action_edit)) },
-                    onClick = {
-                        expanded = false
-                        onEdit()
-                    },
-                )
-            }
-            if (canDelete) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(Res.string.action_delete), color = MaterialTheme.colorScheme.error) },
-                    onClick = {
-                        expanded = false
-                        onDelete()
-                    },
-                )
-            }
-        }
     }
 }
 

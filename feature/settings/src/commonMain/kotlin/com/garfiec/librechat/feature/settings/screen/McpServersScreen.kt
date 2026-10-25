@@ -192,8 +192,6 @@ fun McpServersScreen(
                                 row = row,
                                 onOpen = { viewModel.openServer(row.name) },
                                 onReconnect = { viewModel.reinitializeServer(row.name) },
-                                onEdit = { onEditServer(row.name) },
-                                onDelete = { pendingDelete = row },
                                 modifier = Modifier.animateItem(),
                             )
                         }
