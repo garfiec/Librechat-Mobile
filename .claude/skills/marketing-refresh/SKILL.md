@@ -22,7 +22,7 @@ Produces, from one demo account and one capture session:
 | Store screenshots (plain framed, half size) | `fastlane/metadata/android/en-US/images/{phone,tenInch}Screenshots/` | F-Droid, IzzyOnDroid, the README |
 | Feature graphic | `fastlane/metadata/android/en-US/images/featureGraphic.png` | F-Droid banner, uploaded to Play by hand |
 | README recordings and README-only stills | `docs/screenshots/` | the README |
-| README Screenshots section, Why and Features copy | `README.md` | GitHub |
+| README Screenshots section, Why and More features copy | `README.md` | GitHub |
 | Play screenshots (captioned canvases) | built by `scripts/screenshots/play.py set <dir>`, never committed | Play Console, by hand |
 | Play listing text | handed to the user | Play Console, by hand |
 
@@ -84,7 +84,7 @@ say which outputs are in scope, ask once, with the stale list as the reason.
 
 You can't rank features you haven't listed. Enumerate them from sources, not from memory:
 
-- `README.md` Why and Features.
+- `README.md` Why and More features.
 - Every PR merged since the last refresh:
   `gh pr list --state merged --base develop --search "merged:>=<date>" --limit 300 --json number,title`.
   Read the bodies of the `feat` ones; a title is a claim, the body says what a user sees.
@@ -233,9 +233,12 @@ though half-size frames upscaled to a Play canvas were indistinguishable in test
 
 ## Phase 8: Copy
 
-- **README Why and Features:** lead with what a user feels (looks, speed, finding things, offline),
-  not with implementation detail. A feature new to the lineup gets a Why bullet if it's a reason to
-  install, and a Features bullet either way.
+- **README Why and More features:** lead with what a user feels (looks, speed, finding things,
+  offline), not with implementation detail. Why sells the reasons to install, in two groups: what
+  a native app gives you, and what it does that the web app doesn't (each claim checked against
+  the web client at the pinned tag). More features lists only what Why doesn't: never the same
+  item in both. Borrow the captions' benefit names for Why titles so the sections read as one
+  story. Leave out what the web app does just as well, however showy (image generation, steering).
 - **Play listing:** app name (30 characters), short description (80), full description (4000).
   Write it for the Play build: check every claim about defaults against `ChannelPolicy`.
 - **F-Droid text** (`fastlane/…/*.txt`) is a separate copy. If it changes, run
