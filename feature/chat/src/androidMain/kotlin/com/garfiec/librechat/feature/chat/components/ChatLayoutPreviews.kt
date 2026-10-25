@@ -34,6 +34,10 @@ private fun LandingPreview() = PreviewSurface(UiStyle.MATERIAL) { LandingHost() 
 
 @PreviewNarrowScreens
 @Composable
+private fun TemporaryLandingPreview() = PreviewSurface(UiStyle.MATERIAL) { LandingHost(isTemporaryChat = true) }
+
+@PreviewNarrowScreens
+@Composable
 private fun MessagesUnavailablePreview() = PreviewSurface(UiStyle.MATERIAL) { MessagesUnavailableHost() }
 
 @PreviewNarrowScreens
@@ -73,8 +77,13 @@ private fun ChatBodyHost(body: @Composable ColumnScope.(Modifier) -> Unit) {
 }
 
 @Composable
-private fun LandingHost() = ChatBodyHost { modifier ->
-    LandingContent(selectedModel = "gpt-5", selectedAgentName = "Travel Planner", modifier = modifier)
+private fun LandingHost(isTemporaryChat: Boolean = false) = ChatBodyHost { modifier ->
+    LandingContent(
+        selectedModel = "gpt-5",
+        selectedAgentName = "Travel Planner",
+        isTemporaryChat = isTemporaryChat,
+        modifier = modifier,
+    )
 }
 
 @Composable

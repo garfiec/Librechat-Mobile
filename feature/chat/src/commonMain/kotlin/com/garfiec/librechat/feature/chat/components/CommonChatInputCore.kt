@@ -12,6 +12,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -219,7 +220,7 @@ fun CommonChatInputCore(
     /** The pause holds a message the server refused: explain that the queue waits for the user,
      *  even mid-run, where the "Send queued" button itself is hidden. */
     queueHeldForRefusal: Boolean = false,
-    /** Temporary chat is on: a notice above the input says the conversation won't be saved. */
+    /** Temporary chat is on: the composer is tinted violet, as on web. */
     isTemporaryChat: Boolean = false,
     onSendQueuedMessages: () -> Unit = {},
     /** Commit / cancel the in-progress queued edit (see [ChatInputState.isEditingQueued]). */
@@ -301,8 +302,6 @@ fun CommonChatInputCore(
                 onReorder = onReorderQueuedMessages,
                 fontSizeMultiplier = fontSizeMultiplier,
             )
-
-            TemporaryChatBanner(visible = isTemporaryChat)
 
             // Edit-mode banner takes priority over the paused-queue banner.
             if (state.isEditingQueued) {
@@ -396,7 +395,22 @@ fun CommonChatInputCore(
                         .fillMaxWidth()
                         .then(
                             if (glass != null) {
-                                Modifier.glassSurface(glass, GlassComposerShape, glassBackdrop).padding(4.dp)
+                                Modifier
+                                    .glassSurface(glass, GlassComposerShape, glassBackdrop)
+                                    .then(
+                                        if (isTemporaryChat) {
+                                            Modifier
+                                                .background(ChatInputDefaults.temporaryWash, GlassComposerShape)
+                                                .border(
+                                                    1.dp,
+                                                    ChatInputDefaults.temporaryBorderColor,
+                                                    GlassComposerShape,
+                                                )
+                                        } else {
+                                            Modifier
+                                        },
+                                    )
+                                    .padding(4.dp)
                             } else {
                                 Modifier
                             },

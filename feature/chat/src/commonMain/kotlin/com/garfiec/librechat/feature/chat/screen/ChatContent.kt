@@ -148,6 +148,7 @@ internal fun ColumnScope.ChatContent(
                     projectName = projectName?.takeIf { !uiState.isTemporaryChat },
                     heroIcon = uiState.landingHeroIcon(),
                     showSubtitle = !uiState.hasLandingStarters,
+                    isTemporaryChat = uiState.isTemporaryChat,
                     bottomPadding = maxOf(120.dp, paneBottomInset),
                     modifier = topInsetModifier.then(pullUpModifier),
                 )

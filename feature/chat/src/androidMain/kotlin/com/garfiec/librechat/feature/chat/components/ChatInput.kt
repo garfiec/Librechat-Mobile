@@ -323,7 +323,7 @@ fun ChatInput(
                     prefix = compactComparison?.let { { ComposerComparisonReserve { comparisonCollapse } } },
                     textStyle = MaterialTheme.typography.bodyLarge,
                     shape = ChatInputDefaults.shape,
-                    colors = ChatInputDefaults.textFieldColors(),
+                    colors = ChatInputDefaults.textFieldColors(isTemporaryChat),
                     keyboardOptions = ChatInputDefaults.keyboardOptions,
                     keyboardActions = KeyboardActions.Default,
                     maxLines = 6,

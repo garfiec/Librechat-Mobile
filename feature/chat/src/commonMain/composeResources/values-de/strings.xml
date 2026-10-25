@@ -689,7 +689,8 @@
     <string name="compact_confirm_not_now">Nicht jetzt</string>
     <string name="compact_confirm_action">Komprimieren</string>
     <string name="cd_temporary_chat">Temporärer Chat</string>
-    <string name="temporary_chat_banner">Temporärer Chat: Diese Unterhaltung wird nicht in deinem Verlauf gespeichert</string>
+    <string name="temporary_chat_title">Temporärer Chat</string>
+    <string name="temporary_chat_subtitle">Diese Unterhaltung wird nicht in deinem Verlauf gespeichert</string>
     <string name="notice_rename_failed">Unterhaltung konnte nicht umbenannt werden</string>
     <string name="notice_delete_failed">Unterhaltung konnte nicht gelöscht werden</string>
     <string name="notice_archive_failed">Unterhaltung konnte nicht archiviert werden</string>

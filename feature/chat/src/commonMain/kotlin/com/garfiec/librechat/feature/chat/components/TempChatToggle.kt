@@ -46,7 +46,7 @@ fun TempChatToggle(
             },
             contentDescription = null,
             tint = if (isTemporary) {
-                MaterialTheme.colorScheme.primary
+                ChatInputDefaults.temporaryAccent
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
             },

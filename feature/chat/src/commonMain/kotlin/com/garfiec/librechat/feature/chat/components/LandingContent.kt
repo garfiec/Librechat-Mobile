@@ -61,10 +61,13 @@ fun LandingContent(
     heroIcon: LandingHeroIcon? = null,
     /** Off while starters are on screen: they already say what the subtitle asks. */
     showSubtitle: Boolean = true,
+    /** Temporary chat is on: the greeting says so, and the subtitle says it won't be saved. */
+    isTemporaryChat: Boolean = false,
     /** Room for whatever is docked above the composer, so the hero centres in what is left. */
     bottomPadding: Dp = 120.dp,
 ) {
-    val greeting = stringResource(remember { getTimeBasedGreeting() })
+    val timeGreeting = remember { getTimeBasedGreeting() }
+    val greeting = stringResource(if (isTemporaryChat) Res.string.temporary_chat_title else timeGreeting)
     val selectModelLabel = stringResource(Res.string.cd_select_model)
     val selectableModifier = Modifier
         .clip(RoundedCornerShape(8.dp))
@@ -128,10 +131,13 @@ fun LandingContent(
                 modifier = Modifier.semantics { heading() },
             )
 
-            if (showSubtitle) {
+            // Starters don't say the chat won't be saved, so the temporary subtitle stays with them.
+            if (showSubtitle || isTemporaryChat) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = stringResource(Res.string.how_can_i_help),
+                    text = stringResource(
+                        if (isTemporaryChat) Res.string.temporary_chat_subtitle else Res.string.how_can_i_help,
+                    ),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
