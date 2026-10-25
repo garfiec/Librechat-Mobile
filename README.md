@@ -18,6 +18,8 @@ A third-party native mobile client for [LibreChat](https://www.librechat.ai/) (A
 
 **It's easier to use**
 
+Same LibreChat, laid out for how you actually use it.
+
 - **Everything where you'd look for it** — your model, its settings, tools, and attachments sit together right where you type, not in a sidebar of icons that change from chat to chat. Agents are in the same list as your models, and the agent editor only shows up when you ask for it.
 - **One attach button for everything** — camera, photos, files on your phone, or files already on your server, without uploading them again.
 - **A real side-by-side compare** — pick any two models, change either one at any time, and every message goes to both. Swipe between them on a phone, or read them next to each other with synced scrolling on a tablet or foldable.
