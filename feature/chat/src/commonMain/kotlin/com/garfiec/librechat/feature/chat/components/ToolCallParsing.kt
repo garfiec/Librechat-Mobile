@@ -9,6 +9,8 @@ import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.model.AskUserQuestionOption
 import com.garfiec.librechat.core.model.AskUserQuestionRequest
 import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.WebSearchAnswerBox
+import com.garfiec.librechat.core.model.WebSearchData
 import com.garfiec.librechat.core.model.content.AgentToolCall
 import com.garfiec.librechat.core.model.media.resolveAttachmentUrl
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
@@ -103,40 +105,98 @@ internal fun isMemoryToolCall(toolName: String?): Boolean =
  * duplicate its sources here. When this tool call itself has no id we can't disambiguate, so we
  * fall back to every web-search attachment (there is normally only one). During streaming the
  * server re-emits the attachment once per source processed, each a superset of the last, so we
- * dedup by link — that naturally yields the final full set. Mirrors upstream `collectSources`
- * in `WebSearch.tsx`.
+ * dedup by link. Mirrors upstream `collectSources` (`sources.ts`): the last copy of a link wins,
+ * in the position its first copy took.
  */
 internal fun collectWebSearchSources(
     attachments: List<Attachment>,
     toolCallId: String?,
 ): List<WebSearchResult> {
-    val webAttachments = attachments.filter {
-        it.type == ToolConstants.WEB_SEARCH && it.webSearch != null
-    }
-    if (webAttachments.isEmpty()) return emptyList()
-    val scoped = if (toolCallId == null) {
-        webAttachments
-    } else {
-        webAttachments.filter { it.toolCallId == toolCallId || it.toolCallId == null }
-    }
-
-    val seen = LinkedHashSet<String>()
-    val results = mutableListOf<WebSearchResult>()
-    scoped.forEach { att ->
-        val data = att.webSearch ?: return@forEach
+    val byLink = LinkedHashMap<String, WebSearchResult>()
+    webSearchData(attachments, toolCallId).forEach { data ->
         (data.organic.orEmpty() + data.topStories.orEmpty()).forEach { s ->
-            val url = s.link ?: return@forEach
-            if (seen.add(url)) {
-                results += WebSearchResult(
-                    title = s.title?.takeIf { it.isNotBlank() } ?: hostOf(url) ?: url,
-                    url = url,
-                    snippet = s.snippet.orEmpty(),
-                    favicon = null,
-                )
+            val url = s.link?.takeIf { it.isNotBlank() } ?: return@forEach
+            byLink[url] = WebSearchResult(
+                title = s.title?.takeIf { it.isNotBlank() } ?: hostOf(url) ?: url,
+                url = url,
+                snippet = s.snippet.orEmpty(),
+                favicon = null,
+                date = s.date?.takeIf { it.isNotBlank() },
+            )
+        }
+    }
+    return byLink.values.toList()
+}
+
+/** The `web_search` payloads that belong to [toolCallId], scoped as [collectWebSearchSources] says. */
+internal fun webSearchData(attachments: List<Attachment>, toolCallId: String?): List<WebSearchData> {
+    val web = attachments.filter { it.type == ToolConstants.WEB_SEARCH && it.webSearch != null }
+    val scoped = if (toolCallId == null) web else web.filter { it.toolCallId == toolCallId || it.toolCallId == null }
+    return scoped.mapNotNull { it.webSearch }
+}
+
+/** The search turn this call's results belong to (upstream `ownTurn`): 0 until one says otherwise. */
+internal fun webSearchTurn(data: List<WebSearchData>): Int = data.firstNotNullOfOrNull { it.turn } ?: 0
+
+/** The provider's direct answer, from the first payload that has one. Never streams. */
+internal fun webSearchAnswerBox(data: List<WebSearchData>): WebSearchAnswerBox? =
+    data.firstNotNullOfOrNull { box -> box.answerBox?.takeIf { it.title != null || it.text != null } }
+
+private val SEARCH_SOURCE_HEADER = Regex("""^# (?:Search|News) \d+: (?:"(.*)"|\(no title\))\s*$""")
+private val SEARCH_FIELD = Regex("""^(URL|Summary|Date|Source): ?(.*)$""")
+
+/**
+ * Sources from the text the search tool hands the model (`formatResultsForLLM` in
+ * `@librechat/agents` `tools/search/format`): a `# Search N: "title"` block per source with `URL:`,
+ * `Summary:`, `Date:` and `Source:` lines. A Stop after the search persists this output but not
+ * the `web_search` attachment, which is otherwise where the sources come from.
+ */
+internal fun parseFormattedSearchOutput(output: String): List<WebSearchResult> {
+    val results = LinkedHashMap<String, WebSearchResult>()
+    var title: String? = null
+    val fields = mutableMapOf<String, String>()
+    var field: String? = null
+    fun flush() {
+        val url = fields["URL"]?.trim()?.let(::safeWebUrl)
+        if (title != null && url != null && url !in results) {
+            results[url] = WebSearchResult(
+                title = title?.takeIf { it.isNotBlank() } ?: fields["Source"]?.trim()?.takeIf { it.isNotBlank() }
+                    ?: hostOf(url) ?: url,
+                url = url,
+                snippet = fields["Summary"]?.trim().orEmpty(),
+                date = fields["Date"]?.trim()?.takeIf { it.isNotBlank() },
+            )
+        }
+        title = null
+        fields.clear()
+        field = null
+    }
+    for (line in output.lines()) {
+        val header = SEARCH_SOURCE_HEADER.matchEntire(line)
+        when {
+            header != null -> {
+                flush()
+                title = header.groupValues[1]
+            }
+            title == null -> Unit
+            // Highlights follow the fields; nothing after them belongs to the source's own lines.
+            line.startsWith("## ") || line.startsWith("=== ") -> field = null
+            else -> {
+                val match = SEARCH_FIELD.matchEntire(line)
+                if (match != null && match.groupValues[1] !in fields) {
+                    field = match.groupValues[1]
+                    fields[match.groupValues[1]] = match.groupValues[2]
+                } else if (field == "Summary" && line.isNotBlank()) {
+                    // A snippet may run over several lines.
+                    fields["Summary"] = fields["Summary"] + " " + line
+                } else if (line.isBlank()) {
+                    field = null
+                }
             }
         }
     }
-    return results
+    flush()
+    return results.values.toList()
 }
 
 /** Bare host of a URL (no scheme, no port, no path), or null if it can't be extracted. */
@@ -150,6 +210,7 @@ internal fun hostOf(url: String): String? =
 @Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
 internal fun parseWebSearchResults(output: String?): List<WebSearchResult> {
     if (output.isNullOrBlank()) return emptyList()
+    if (output.trimStart().startsWith("===")) return parseFormattedSearchOutput(output)
     return try {
         val element = toolCallJson.parseToJsonElement(output)
         val resultsArray = when (element) {
@@ -680,6 +741,29 @@ internal fun parseSkillName(raw: String?): String? {
 
 private const val SKILL_NAME_KEY = "skillName"
 
+/** The `query` a web search ran (upstream `parseJsonField(args, 'query')`), or null. */
+internal fun parseSearchQuery(raw: JsonElement?): String? = when (raw) {
+    is JsonObject -> raw.stringField(QUERY_KEY)?.trim()?.takeIf { it.isNotEmpty() }
+    is JsonPrimitive -> if (raw.isString) parseSearchQuery(raw.content) else null
+    else -> null
+}
+
+/** [parseSearchQuery] for args held as raw text — the persisted shape, and the streaming `input`. */
+@Suppress("TooGenericExceptionCaught") // untrusted tool args; a malformed shape degrades to null
+internal fun parseSearchQuery(raw: String?): String? {
+    val text = raw?.trim().orEmpty()
+    if (text.isEmpty()) return null
+    val parsed = try {
+        toolCallJson.parseToJsonElement(text)
+    } catch (e: Exception) {
+        log.d(e) { "Failed to parse search args" }
+        return null
+    }
+    return (parsed as? JsonObject)?.stringField(QUERY_KEY)?.trim()?.takeIf { it.isNotEmpty() }
+}
+
+private const val QUERY_KEY = "query"
+
 /** [parseToolIntent] for args held as raw text — the persisted shape, and the streaming `input`. */
 @Suppress("TooGenericExceptionCaught") // untrusted tool output; a malformed shape degrades to null, empty or the raw output
 internal fun parseToolIntent(raw: String?): String? {
@@ -814,3 +898,71 @@ internal fun askAnswerDisplay(
         declined = false,
     )
 }
+
+private val TOOL_CALL_ERROR_PREFIX =
+    Regex("""^Error:\s*(?:\[[^\]]*]\s*)*tool call failed:\s*""", RegexOption.IGNORE_CASE)
+private val VALIDATION_FEEDBACK = Regex("""^Error:[\s\S]*\n Please fix your mistakes\.$""", RegexOption.IGNORE_CASE)
+
+/**
+ * A tool's output that reports a failure, as upstream `OutputRenderer.isError` reads it: the
+ * agents error prefix, a failed tool invocation, or schema-validation feedback.
+ */
+internal fun isToolErrorOutput(output: String?): Boolean {
+    val text = output ?: return false
+    return TOOL_CALL_ERROR_PREFIX.containsMatchIn(text) ||
+        text.startsWith("Error processing tool") ||
+        VALIDATION_FEEDBACK.matches(text)
+}
+
+/** How a search card settles, from the run's verdict and the call's output (upstream `WebSearch.tsx`). */
+internal enum class SearchOutcome {
+    /** Draw the search card. */
+    SHOWN,
+
+    /** The generic tool card, with its failed state and the error behind it. */
+    FAILED,
+
+    /** Nothing: upstream draws no card for a cancelled search. */
+    HIDDEN,
+}
+
+/**
+ * [finished] is false for a settled call that left no trace of finishing: no closing status, no
+ * output and no sources. A Stop mid-search leaves one; upstream draws nothing for it
+ * (`!isSubmitting && progress < 1`).
+ */
+internal fun searchOutcome(verdict: ToolCallVerdict, output: String?, finished: Boolean = true): SearchOutcome {
+    val error = verdict == ToolCallVerdict.FAILED || isToolErrorOutput(output)
+    // Upstream WebSearch.tsx hides a search whose output merely contains "error processing";
+    // only a recognised error falls back to the card.
+    val legacyError = !error && output?.lowercase()?.contains("error processing") == true
+    return when {
+        error && verdict != ToolCallVerdict.CANCELLED -> SearchOutcome.FAILED
+        verdict == ToolCallVerdict.CANCELLED || legacyError || !finished -> SearchOutcome.HIDDEN
+        else -> SearchOutcome.SHOWN
+    }
+}
+
+/**
+ * The phase of a web search still in the live reply. A finished call reads "Reading results" only
+ * while it is the reply's latest step and no reply text has followed it ([replyMovedOn]); after
+ * that it is settled, as upstream's `finalizing` ends once the search is no longer the last part.
+ */
+internal fun liveWebSearchPhase(
+    isComplete: Boolean,
+    hasSources: Boolean,
+    isLatestStep: Boolean,
+    replyMovedOn: Boolean,
+): WebSearchPhase = when {
+    !isComplete -> if (hasSources) WebSearchPhase.PROCESSING else WebSearchPhase.SEARCHING
+    isLatestStep && !replyMovedOn -> WebSearchPhase.READING
+    else -> WebSearchPhase.COMPLETE
+}
+
+/**
+ * Whether a search-named call gets the web search card. The built-in tool always does, sources or
+ * not; another tool whose name merely mentions search (an MCP `search_docs`) only once it produced
+ * web sources, and otherwise keeps the generic card whatever its output says.
+ */
+internal fun claimsWebSearchCard(toolNameLower: String, hasSources: Boolean): Boolean =
+    toolNameLower == ToolConstants.WEB_SEARCH || hasSources

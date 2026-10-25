@@ -10,15 +10,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -49,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
+import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.content.CITATION_ANCHOR
 import com.garfiec.librechat.core.model.content.CitationIndex
 import com.garfiec.librechat.core.model.content.CitationPiece
@@ -57,11 +55,11 @@ import com.garfiec.librechat.core.model.content.citationGroupsIn
 import com.garfiec.librechat.core.model.content.citationPieces
 import com.garfiec.librechat.core.model.content.normalizeCitations
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
-import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.action_open
 import com.garfiec.librechat.feature.chat.resources.cd_citation
 import com.garfiec.librechat.feature.chat.resources.cd_citation_more
+import com.garfiec.librechat.feature.chat.resources.cd_open_cited_file
 import com.garfiec.librechat.feature.chat.resources.citation_sources_title
 import com.garfiec.librechat.feature.chat.resources.file_search_pages
 import com.garfiec.librechat.feature.chat.resources.file_search_relevance
@@ -270,29 +268,16 @@ internal class CitationSheetState {
 internal val LocalCitationSheet = staticCompositionLocalOf { CitationSheetState() }
 
 /** The sources a tapped pill cites, as the web's hover card shows them, with each link openable. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun CitationSourcesSheet(state: CitationSheetState) {
     val sources = state.sources
     if (sources.isEmpty()) return
-    AdaptiveModalBottomSheet(onDismissRequest = state::close) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 24.dp),
-        ) {
-            Text(
-                text = stringResource(Res.string.citation_sources_title),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-            )
-            sources.forEachIndexed { i, source ->
-                if (i > 0) AdaptiveDivider(modifier = Modifier.padding(horizontal = 24.dp))
-                when (source) {
-                    is CitationSource.Web -> WebSourceRow(source)
-                    is CitationSource.File -> FileSourceRow(source)
-                }
+    SourcesListSheet(title = stringResource(Res.string.citation_sources_title), onDismiss = state::close) {
+        sources.forEachIndexed { i, source ->
+            if (i > 0) AdaptiveDivider(modifier = Modifier.padding(horizontal = 24.dp))
+            when (source) {
+                is CitationSource.Web -> WebSourceRow(source)
+                is CitationSource.File -> FileSourceRow(source, onOpen = { state.close() })
             }
         }
     }
@@ -326,7 +311,7 @@ private fun WebSourceRow(source: CitationSource.Web) {
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            source.snippet?.takeIf { it.isNotBlank() }?.let { snippet ->
+            plainSnippet(source.snippet)?.let { snippet ->
                 Text(
                     text = snippet,
                     style = MaterialTheme.typography.bodyMedium,
@@ -346,10 +331,26 @@ private fun WebSourceRow(source: CitationSource.Web) {
 }
 
 @Composable
-private fun FileSourceRow(source: CitationSource.File) {
+private fun FileSourceRow(source: CitationSource.File, onOpen: () -> Unit) {
+    // The file itself, through the same opener as a tool's files: a PDF in the viewer, text in the
+    // artifact panel, anything else in the Open in / Save / Share sheet (upstream's preview dialog).
+    val fileActions = rememberToolFileActions(LocalMarkdownMedia.current.baseUrl)
+    val attachment = remember(source) {
+        source.fileId?.let { Attachment(fileId = it, filename = source.fileName, type = source.fileType) }
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .then(
+                if (attachment != null) {
+                    Modifier.clickable(onClickLabel = stringResource(Res.string.cd_open_cited_file, source.fileName)) {
+                        onOpen()
+                        fileActions.openToolFile(attachment)
+                    }
+                } else {
+                    Modifier
+                },
+            )
             .padding(horizontal = 24.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Top,
@@ -374,7 +375,7 @@ private fun FileSourceRow(source: CitationSource.File) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            source.snippet?.takeIf { it.isNotBlank() }?.let { snippet ->
+            plainSnippet(source.snippet)?.let { snippet ->
                 Text(
                     text = snippet,
                     style = MaterialTheme.typography.bodyMedium,

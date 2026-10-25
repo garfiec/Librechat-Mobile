@@ -519,6 +519,17 @@ internal fun MessageContentAndActions(
                             }
                         }
 
+                        // A multi-agent reply gathers its sources in one panel ahead of the lanes, as
+                        // upstream's ParallelContent does; each Compare pane has its own lane's.
+                        if (hasParallelGroupIds(contentParts)) {
+                            DisableSelection {
+                                SourcesPanel(
+                                    attachments = inlineAttachments,
+                                    stateKey = message.messageId,
+                                    modifier = Modifier.padding(bottom = 8.dp),
+                                )
+                            }
+                        }
                         segments.forEach { segment ->
                             key(segment.key) {
                                 // A traversal group so the attribution header is read immediately before
@@ -556,6 +567,17 @@ internal fun MessageContentAndActions(
                                                     // on a collapsed group and show just a footer.
                                                     val holdsEditedPart = editingParts &&
                                                         group.entries.any { it.index in editSession.partDrafts }
+                                                    val searchHeader = remember(group, inlineAttachments) {
+                                                        searchGroupHeader(group, inlineAttachments)
+                                                    }
+                                                    // The searches' image, shopping and place results,
+                                                    // which their cards leave out inside a group.
+                                                    val groupVerticals = remember(group, inlineAttachments) {
+                                                        val ids = group.groupedToolCallIds().toSet()
+                                                        collectAttachmentSearchVerticals(
+                                                            inlineAttachments.filter { it.toolCallId in ids },
+                                                        )
+                                                    }
                                                     ActivityGroup(
                                                         group = group,
                                                         failed = groupFailed,
@@ -573,8 +595,14 @@ internal fun MessageContentAndActions(
                                                                     baseUrl = baseUrl,
                                                                     modifier = Modifier.padding(top = 4.dp),
                                                                 )
+                                                                SearchVerticalsSection(
+                                                                    verticals = groupVerticals,
+                                                                    stateKey = "${message.messageId}:${group.key}",
+                                                                    modifier = Modifier.padding(top = 8.dp),
+                                                                )
                                                             }
                                                         },
+                                                        searchHeader = searchHeader,
                                                     ) {
                                                         group.entries.forEach { entry ->
                                                             key(entry.index) {

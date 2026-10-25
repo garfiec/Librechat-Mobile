@@ -836,4 +836,39 @@
     <string name="shared_chat_load_failed">Dieser geteilte Chat konnte nicht geladen werden</string>
     <string name="shared_chat_user">Nutzer</string>
     <string name="shared_chat_file_failed">Diese Datei konnte nicht geöffnet werden</string>
+
+    <!-- Web and file search sources -->
+    <string name="web_searching">Internetsuche läuft</string>
+    <string name="web_searching_again">Sucht erneut im Internet</string>
+    <string name="web_search_processing">Ergebnisse verarbeiten</string>
+    <string name="web_search_reading">Lesen der Suchergebnisse</string>
+    <string name="web_search_details">Suchdetails</string>
+    <string name="web_search_query">Suchanfrage</string>
+    <string name="web_search_images">Bildergebnisse</string>
+    <string name="web_search_shopping">Shopping-Ergebnisse</string>
+    <string name="web_search_places">Orte</string>
+    <string name="files_searching">Durchsuche deine Dateien...</string>
+    <string name="searching_web_and_files">Durchsucht Web und Dateien</string>
+    <string name="searched_web_and_files">Web und Dateien durchsucht</string>
+    <string name="search_cancelled">Abgebrochen</string>
+    <string name="sources_tab_all">Alles</string>
+    <string name="sources_tab_news">Nachrichten</string>
+    <string name="sources_tab_images">Bilder</string>
+    <string name="sources_tab_files">Dateien</string>
+    <string name="sources_agent_files">Agenten-Dateien</string>
+    <string name="sources_agent_file">Quelldokument</string>
+    <string name="web_search_load_images">Bilder laden</string>
+    <string name="cd_open_cited_file">%1$s öffnen</string>
+    <plurals name="web_search_sources">
+        <item quantity="one">%1$d Quelle</item>
+        <item quantity="other">%1$d Quellen</item>
+    </plurals>
+    <plurals name="sources_more">
+        <item quantity="one">+%1$d Quelle</item>
+        <item quantity="other">+%1$d Quellen</item>
+    </plurals>
+    <plurals name="files_more">
+        <item quantity="one">+%1$d Datei</item>
+        <item quantity="other">+%1$d Dateien</item>
+    </plurals>
 </resources>

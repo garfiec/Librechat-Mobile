@@ -3191,6 +3191,98 @@
       },
       "why": "How a copied message writes its citations: [n] numbered by link, highlights in bold, a Citations: footer.",
       "failure_mode": "A copied reply diverges from what the web copies for the same message."
+    },
+    {
+      "id": "web-search-card-phases",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/WebSearch.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/ToolCallParsing.kt",
+        "symbol": "searchOutcome / liveWebSearchPhase; WebSearchResultCard.kt WebSearchCard"
+      },
+      "why": "When a web search reads as searching, processing, reading or settled, and when it falls back to the failed tool card or draws nothing.",
+      "failure_mode": "The card shows a phase or a settled state the web does not, e.g. a failed search drawn as a sources card."
+    },
+    {
+      "id": "tool-error-output",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/ToolOutput/OutputRenderer.tsx",
+        "symbol": "isError",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/ToolCallParsing.kt",
+        "symbol": "isToolErrorOutput"
+      },
+      "why": "Which tool outputs count as a failure (error prefix, 'Error processing tool', validation feedback).",
+      "failure_mode": "A failed search renders as a successful one, or a successful one as failed."
+    },
+    {
+      "id": "search-verticals",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/verticals.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/WebSearchVerticals.kt",
+        "symbol": "collectSearchVerticals / mapLink"
+      },
+      "why": "Which image, shopping and place results are drawn (the URL allowlist, required fields, the 8/8/5 caps) and the map link format.",
+      "failure_mode": "A result upstream drops shows as a dead tile, or one it shows is missing."
+    },
+    {
+      "id": "retrieval-output-parse",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/RetrievalCall.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/AttachmentPayloadParsing.kt",
+        "symbol": "parseRetrievalOutput / fileSearchResults"
+      },
+      "why": "How a file search's text output is split into sections and matched to its files by normalized name.",
+      "failure_mode": "File search results list in a different order, or open the wrong file, or none."
+    },
+    {
+      "id": "search-group-label",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/ToolCallGroup.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/WebSearchVerticals.kt",
+        "symbol": "searchGroupHeader"
+      },
+      "why": "The header of a tool group made only of web and file searches: its label and favicons.",
+      "failure_mode": "A group of searches reads as 'Used N tools', or a mixed group reads as searches."
+    },
+    {
+      "id": "sources-panel-merge",
+      "upstream": {
+        "file": "client/src/components/Web/Sources.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/SourcesPanel.kt",
+        "symbol": "collectSourcesPanel / SourcesPanel"
+      },
+      "why": "How a multi-agent reply's search results split into the All / News / Images / Files tabs, and how many cards show before '+N'.",
+      "failure_mode": "The Compare sources panel lists results under the wrong tab or misses some."
+    },
+    {
+      "id": "web-search-llm-output-format",
+      "upstream": {
+        "file": "packages/api/package.json",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/ToolCallParsing.kt",
+        "symbol": "parseFormattedSearchOutput"
+      },
+      "why": "The web_search tool's text output is built by formatResultsForLLM in the @librechat/agents npm package (src/tools/search/format.ts), not in this repo, so the closest watch is the package pin. A Stop after the search persists that output but not the web_search attachment, and the card lists the sources by parsing its '# Search N: \"title\"' blocks and their URL / Summary / Date / Source lines. Checked identical at 3.2.01 and 3.4.7. When this reports DRIFT, look only at the @librechat/agents version; if it moved, diff dist/esm/tools/search/format.mjs between the two versions (unpkg) and dismiss if formatSource is unchanged.",
+      "failure_mode": "A stopped search's card shows 'Searched the web' with no sources, as upstream's web does. Nothing errors."
     }
   ]
 }

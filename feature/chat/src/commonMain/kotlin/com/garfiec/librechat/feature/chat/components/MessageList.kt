@@ -689,6 +689,8 @@ fun MessageList(
                                 streamingAttachments = streamingWorkspace.inline,
                                 showImageDescriptions = showImageDescriptions,
                                 sandboxStarting = toolCall.id in sandboxStartingToolCallIds,
+                                isLatestStep = toolCall.id == renderedToolCalls.lastOrNull()?.id,
+                                replyLength = streamingContent.length,
                             )
                         }
                     }

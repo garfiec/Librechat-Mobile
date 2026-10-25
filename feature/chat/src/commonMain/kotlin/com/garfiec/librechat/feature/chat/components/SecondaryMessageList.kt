@@ -216,6 +216,8 @@ fun SecondaryMessageList(
                                     baseUrl = baseUrl,
                                     streamingAttachments = streamingWorkspace.inline,
                                     sandboxStarting = toolCall.id in sandboxStartingToolCallIds,
+                                    isLatestStep = toolCall.id == renderedToolCalls.lastOrNull()?.id,
+                                    replyLength = streamingContent.length,
                                 )
                             }
                         }

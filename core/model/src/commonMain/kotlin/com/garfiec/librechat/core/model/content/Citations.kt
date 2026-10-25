@@ -48,11 +48,15 @@ sealed interface CitationSource {
     ) : CitationSource {
         val domain: String get() = cleanDomain(link)
 
-        // Upstream Citation.tsx: attribution, then title, then the domain.
+        /**
+         * The site's own name when the provider gives one, else the domain. Deliberately not
+         * upstream's attribution-then-title order (`Citation.tsx`): a pill is a small, truncated
+         * chip, and a page title there ("Apple convoca al eve…") says less than "fayerwayer.com".
+         * Some providers (Keenable) fill attribution with the title itself, so that counts as none.
+         */
         override val label: String
-            get() = attribution?.takeIf { it.isNotBlank() }
-                ?: title?.takeIf { it.isNotBlank() }
-                ?: domain.ifBlank { link }
+            get() = attribution?.takeIf { it.isNotBlank() && it != title }
+                ?: domain.ifBlank { title?.takeIf { it.isNotBlank() } ?: link }
     }
 
     data class File(
@@ -61,6 +65,7 @@ sealed interface CitationSource {
         val snippet: String?,
         val pages: List<Int>,
         val relevance: Double?,
+        val fileType: String? = null,
     ) : CitationSource {
         override val label: String get() = fileName
     }
@@ -98,6 +103,7 @@ class CitationIndex private constructor(
                 snippet = source.content,
                 pages = source.pages.orEmpty(),
                 relevance = source.relevance,
+                fileType = source.metadata?.fileType,
             )
         }
         val data = web[ref.turn] ?: return null
@@ -213,7 +219,7 @@ private fun normalizeProse(prose: String, index: CitationIndex, tail: Boolean): 
     var last = 0
     for (match in CITATION_TOKEN_REGEX.findAll(text)) {
         out.append(cleanup(text.substring(last, match.range.first)))
-        val refs = ANCHOR_REGEX.findAll(match.value).map { it.toRef() }.toList()
+        val refs = ANCHOR_REGEX.findAll(match.value).mapNotNull { it.toRef() }.toList()
         val kept = refs.filter { index.resolve(it) != null }
         if (kept.isEmpty()) {
             trimTrailingSpaces(out)
@@ -226,16 +232,20 @@ private fun normalizeProse(prose: String, index: CitationIndex, tail: Boolean): 
     return out.toString()
 }
 
-/** An [ANCHOR_REGEX] match as a ref. */
-private fun MatchResult.toRef(): CitationRef =
-    CitationRef(turn = groupValues[1].toInt(), type = groupValues[2], index = groupValues[3].toInt())
+/** An [ANCHOR_REGEX] match as a ref, or null when a number overflows (model output is untrusted). */
+private fun MatchResult.toRef(): CitationRef? {
+    val turn = groupValues[1].toIntOrNull() ?: return null
+    val index = groupValues[3].toIntOrNull() ?: return null
+    return CitationRef(turn = turn, type = groupValues[2], index = index)
+}
 
 /** Holds back an escape prefix, an unclosed group or an anchor that the next delta may complete. */
 private fun trimPartialTail(text: String): String {
     var t = text
     LITERAL_MARKER_PREFIX_REGEX.find(t)?.let { t = t.substring(0, it.range.first) }
     val open = t.lastIndexOf(CITATION_COMPOSITE_START)
-    if (open >= 0 && t.indexOf(CITATION_COMPOSITE_END, open) < 0) t = t.substring(0, open)
+    // A group never spans a line, so an open one followed by a newline is stray, not pending.
+    if (open >= 0 && t.indexOf(CITATION_COMPOSITE_END, open) < 0 && t.indexOf('\n', open) < 0) t = t.substring(0, open)
     TRAILING_PARTIAL_ANCHOR_REGEX.find(t)?.let { t = t.substring(0, it.range.first) }
     return t
 }
@@ -261,8 +271,9 @@ fun citationPieces(text: String): List<CitationPiece> {
     val pieces = mutableListOf<CitationPiece>()
     var last = 0
     for (match in CANONICAL_GROUP_REGEX.findAll(text)) {
+        val refs = ANCHOR_REGEX.findAll(match.value).mapNotNull { it.toRef() }.toList()
+        if (refs.isEmpty()) continue
         if (match.range.first > last) pieces += CitationPiece.Text(text.substring(last, match.range.first))
-        val refs = ANCHOR_REGEX.findAll(match.value).map { it.toRef() }.toList()
         pieces += CitationPiece.Group(CitationGroup(refs))
         last = match.range.last + 1
     }
@@ -316,9 +327,10 @@ class CitationClipboard(private val index: CitationIndex) {
 }
 
 /**
- * Where the backtick run at [i] stops hiding text: past the code span whose closing run matches it,
- * at the end of [text] for a line-leading run of three or more (an open fence), or just past the run
- * itself when nothing closes it, since an unmatched run is plain text and hides nothing.
+ * Where the backtick run at [i] stops hiding text: past the code span whose closing run matches it;
+ * for a line-leading run of three or more (a fence), past the line-leading run at least as long that
+ * closes it, else at the end of [text] (an open fence); or just past the run itself when nothing
+ * closes it, since an unmatched run is plain text and hides nothing.
  */
 fun codeSpanEnd(text: String, i: Int): Int {
     fun runEnd(from: Int): Int {
@@ -328,7 +340,7 @@ fun codeSpanEnd(text: String, i: Int): Int {
     }
     val openEnd = runEnd(i)
     val run = openEnd - i
-    if (run >= CODE_FENCE_RUN && (i == 0 || text[i - 1] == '\n')) return text.length
+    if (run >= CODE_FENCE_RUN && (i == 0 || text[i - 1] == '\n')) return fenceEnd(text, openEnd, run)
     var k = openEnd
     while (k < text.length) {
         k = text.indexOf('`', k)
@@ -338,6 +350,20 @@ fun codeSpanEnd(text: String, i: Int): Int {
         k = end
     }
     return openEnd
+}
+
+/** Past the closing fence (a line of at least [run] backticks) after [from], else the end of [text]. */
+private fun fenceEnd(text: String, from: Int, run: Int): Int {
+    var line = text.indexOf('\n', from)
+    while (line >= 0) {
+        val start = line + 1
+        var k = start
+        while (k < text.length && text[k] == '`') k++
+        val lineEnd = text.indexOf('\n', k).let { if (it < 0) text.length else it }
+        if (k - start >= run && text.substring(k, lineEnd).isBlank()) return k
+        line = text.indexOf('\n', k)
+    }
+    return text.length
 }
 
 private const val CODE_FENCE_RUN = 3

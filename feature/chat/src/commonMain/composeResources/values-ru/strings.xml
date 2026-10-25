@@ -860,4 +860,45 @@
     <string name="shared_chat_load_failed">Не удалось загрузить этот общий чат</string>
     <string name="shared_chat_user">Пользователь</string>
     <string name="shared_chat_file_failed">Не удалось открыть этот файл</string>
+
+    <!-- Web and file search sources -->
+    <string name="web_searching">Поиск в сети</string>
+    <string name="web_searching_again">Повторный поиск в Интернете</string>
+    <string name="web_search_processing">Результаты обработки</string>
+    <string name="web_search_reading">Результаты чтения</string>
+    <string name="web_search_details">Подробности поиска</string>
+    <string name="web_search_query">Запрос</string>
+    <string name="web_search_images">Результаты изображений</string>
+    <string name="web_search_shopping">Результаты покупок</string>
+    <string name="web_search_places">Места</string>
+    <string name="files_searching">Поиск в ваших файлах</string>
+    <string name="searching_web_and_files">Поиск в интернете и файлах</string>
+    <string name="searched_web_and_files">Поиск в интернете и файлах выполнен</string>
+    <string name="search_cancelled">Отменен</string>
+    <string name="sources_tab_all">Все</string>
+    <string name="sources_tab_news">Новости</string>
+    <string name="sources_tab_images">Изображения</string>
+    <string name="sources_tab_files">Файлы</string>
+    <string name="sources_agent_files">Файлы агента</string>
+    <string name="sources_agent_file">Исходный документ</string>
+    <string name="web_search_load_images">Загрузить изображения</string>
+    <string name="cd_open_cited_file">Открыть %1$s</string>
+    <plurals name="web_search_sources">
+        <item quantity="one">%1$d источник</item>
+        <item quantity="few">%1$d источников</item>
+        <item quantity="many">%1$d источников</item>
+        <item quantity="other">%1$d источников</item>
+    </plurals>
+    <plurals name="sources_more">
+        <item quantity="one">+%1$d источник</item>
+        <item quantity="few">+%1$d источников</item>
+        <item quantity="many">+%1$d источников</item>
+        <item quantity="other">+%1$d источников</item>
+    </plurals>
+    <plurals name="files_more">
+        <item quantity="one">+%1$d файл</item>
+        <item quantity="few">+%1$d файлов</item>
+        <item quantity="many">+%1$d файлов</item>
+        <item quantity="other">+%1$d файлов</item>
+    </plurals>
 </resources>

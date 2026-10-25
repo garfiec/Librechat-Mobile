@@ -17,8 +17,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -41,6 +44,9 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.files_searched
+import com.garfiec.librechat.feature.chat.resources.searched_web_and_files
+import com.garfiec.librechat.feature.chat.resources.web_searched
 import com.garfiec.librechat.feature.chat.util.ContentGroup
 import org.jetbrains.compose.resources.stringResource
 
@@ -89,6 +95,8 @@ internal fun ActivityGroup(
      * message's own level. The slot supplies its own top padding so an empty one costs nothing.
      */
     hoistedAttachments: @Composable () -> Unit = {},
+    /** A group of searches only reads as one, with the sites it read, unless the server labelled it. */
+    searchHeader: SearchGroupHeader? = null,
     body: @Composable () -> Unit,
 ) {
     // Saveable and keyed on the group: this is a LazyColumn item, so scrolling the message out of
@@ -116,7 +124,12 @@ internal fun ActivityGroup(
     }
 
     val headerLabel = group.labelText.ifEmpty {
-        stringResource(Res.string.activity_used_n_tools, group.toolCount)
+        when (searchHeader?.kind) {
+            SearchGroupKind.WEB -> stringResource(Res.string.web_searched)
+            SearchGroupKind.FILES -> stringResource(Res.string.files_searched)
+            SearchGroupKind.WEB_AND_FILES -> stringResource(Res.string.searched_web_and_files)
+            null -> stringResource(Res.string.activity_used_n_tools, group.toolCount)
+        }
     }
     // A state description, not a content description: `clickable` makes this Row a merging
     // semantics node, so a contentDescription on top of the merged label announces the label and
@@ -141,12 +154,22 @@ internal fun ActivityGroup(
                 },
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                Icons.Default.Build,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            val hosts = searchHeader?.hosts.orEmpty()
+            if (hosts.isNotEmpty()) {
+                SourceFaviconStack(hosts)
+            } else {
+                Icon(
+                    when (searchHeader?.kind) {
+                        SearchGroupKind.WEB -> Icons.Default.Language
+                        SearchGroupKind.FILES -> Icons.Default.Description
+                        SearchGroupKind.WEB_AND_FILES -> Icons.Default.Search
+                        null -> Icons.Default.Build
+                    },
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Spacer(modifier = Modifier.width(8.dp))
             val labelColor = if (failed) {
                 MaterialTheme.colorScheme.error

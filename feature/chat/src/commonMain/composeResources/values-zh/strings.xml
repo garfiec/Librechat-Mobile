@@ -824,4 +824,36 @@
     <string name="shared_chat_load_failed">无法加载此共享聊天</string>
     <string name="shared_chat_user">用户</string>
     <string name="shared_chat_file_failed">无法打开此文件</string>
+
+    <!-- Web and file search sources -->
+    <string name="web_searching">正在搜索网络</string>
+    <string name="web_searching_again">正在重新搜索网络</string>
+    <string name="web_search_processing">正在处理结果</string>
+    <string name="web_search_reading">正在读取结果</string>
+    <string name="web_search_details">搜索详情</string>
+    <string name="web_search_query">查询</string>
+    <string name="web_search_images">图片结果</string>
+    <string name="web_search_shopping">购物结果</string>
+    <string name="web_search_places">地点</string>
+    <string name="files_searching">正在搜索你的文件</string>
+    <string name="searching_web_and_files">正在搜索网络和文件</string>
+    <string name="searched_web_and_files">已搜索网络和文件</string>
+    <string name="search_cancelled">已取消</string>
+    <string name="sources_tab_all">全部</string>
+    <string name="sources_tab_news">新闻</string>
+    <string name="sources_tab_images">图片</string>
+    <string name="sources_tab_files">文件</string>
+    <string name="sources_agent_files">智能体文件</string>
+    <string name="sources_agent_file">源文件</string>
+    <string name="web_search_load_images">加载图片</string>
+    <string name="cd_open_cited_file">打开 %1$s</string>
+    <plurals name="web_search_sources">
+        <item quantity="other">%1$d 个来源</item>
+    </plurals>
+    <plurals name="sources_more">
+        <item quantity="other">+%1$d 个来源</item>
+    </plurals>
+    <plurals name="files_more">
+        <item quantity="other">+%1$d 个文件</item>
+    </plurals>
 </resources>

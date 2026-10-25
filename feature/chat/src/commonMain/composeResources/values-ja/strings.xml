@@ -824,4 +824,36 @@
     <string name="shared_chat_load_failed">この共有チャットを読み込めませんでした</string>
     <string name="shared_chat_user">ユーザー</string>
     <string name="shared_chat_file_failed">このファイルを開けませんでした</string>
+
+    <!-- Web and file search sources -->
+    <string name="web_searching">ウェブ検索</string>
+    <string name="web_searching_again">もう一度ウェブを検索します</string>
+    <string name="web_search_processing">処理結果</string>
+    <string name="web_search_reading">読み取り結果</string>
+    <string name="web_search_details">検索の詳細</string>
+    <string name="web_search_query">クエリ</string>
+    <string name="web_search_images">画像の結果</string>
+    <string name="web_search_shopping">ショッピングの結果</string>
+    <string name="web_search_places">場所</string>
+    <string name="files_searching">ファイルの検索</string>
+    <string name="searching_web_and_files">ウェブとファイルを検索中</string>
+    <string name="searched_web_and_files">ウェブとファイルを検索しました</string>
+    <string name="search_cancelled">キャンセル</string>
+    <string name="sources_tab_all">全て</string>
+    <string name="sources_tab_news">ニュース</string>
+    <string name="sources_tab_images">画像</string>
+    <string name="sources_tab_files">ファイル</string>
+    <string name="sources_agent_files">エージェント・ファイル</string>
+    <string name="sources_agent_file">ソース・ドキュメント</string>
+    <string name="web_search_load_images">画像を読み込む</string>
+    <string name="cd_open_cited_file">%1$s を開く</string>
+    <plurals name="web_search_sources">
+        <item quantity="other">%1$d ソース</item>
+    </plurals>
+    <plurals name="sources_more">
+        <item quantity="other">+%1$d ソース</item>
+    </plurals>
+    <plurals name="files_more">
+        <item quantity="other">+%1$d ファイル</item>
+    </plurals>
 </resources>

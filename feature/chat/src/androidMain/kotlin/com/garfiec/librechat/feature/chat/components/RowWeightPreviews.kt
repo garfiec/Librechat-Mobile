@@ -177,8 +177,9 @@ private fun DisclosureLabelsHost() = RowWeightThreadContent {
         MemoryArtifactsSection(
             artifacts = listOf(MemoryArtifact(title = "travel_preferences", content = "Prefers window seats.")),
         )
-        WebSearchSourcesCard(
-            results = listOf(
+        WebSearchCard(
+            phase = WebSearchPhase.COMPLETE,
+            sources = listOf(
                 WebSearchResult(
                     title = "Walt Disney World Resort: park hours and rope drop times",
                     url = "https://disneyworld.disney.go.com/calendars",

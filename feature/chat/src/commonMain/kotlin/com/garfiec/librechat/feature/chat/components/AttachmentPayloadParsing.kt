@@ -54,6 +54,9 @@ internal fun collectFileSearchSources(
                     content = source.content.orEmpty(),
                     pages = pages,
                     fileType = source.metadata?.fileType,
+                    openable = source.fileId != null,
+                    bytes = source.metadata?.fileBytes,
+                    storageType = source.metadata?.storageType,
                 )
             } else {
                 existing.copy(
@@ -63,12 +66,75 @@ internal fun collectFileSearchSources(
                         .joinToString("\n\n"),
                     pages = (existing.pages + pages).distinct(),
                     fileType = existing.fileType ?: source.metadata?.fileType,
+                    bytes = existing.bytes ?: source.metadata?.fileBytes,
+                    storageType = existing.storageType ?: source.metadata?.storageType,
                 )
             }
         }
     }
     return merged.values.sortedByDescending { it.relevance }
 }
+
+/** One section of a retrieval tool's text output: `File:`, `Relevance:`, then `Content:` to the end. */
+internal data class RetrievalOutputSection(val fileName: String, val relevance: Double, val content: String)
+
+/** Upstream `parseRetrievalOutput` (`RetrievalCall.tsx`): sections split on a `---` line. */
+internal fun parseRetrievalOutput(raw: String?): List<RetrievalOutputSection> {
+    if (raw.isNullOrBlank()) return emptyList()
+    return raw.split("\n---\n").mapNotNull { section ->
+        var fileName = ""
+        var relevance = 0.0
+        val content = mutableListOf<String>()
+        var inContent = false
+        for (line in section.trim().lines()) {
+            when {
+                inContent -> content += line
+                line.startsWith("File: ") -> fileName = line.removePrefix("File: ").trim()
+                line.startsWith("Relevance: ") -> relevance = line.removePrefix("Relevance: ").trim().toDoubleOrNull() ?: 0.0
+                line.startsWith("Content: ") -> {
+                    inContent = true
+                    content += line.removePrefix("Content: ")
+                }
+            }
+        }
+        fileName.takeIf { it.isNotEmpty() }?.let { RetrievalOutputSection(it, relevance, content.joinToString("\n").trim()) }
+    }
+}
+
+/**
+ * What a file search card lists (upstream `mergeRetrievalResults`). When the tool's text output
+ * parses, its sections in their own order, each matched to its attachment by normalized file name
+ * for the id that opens it; a name two different files share matches neither. Otherwise the
+ * attachment sources alone, merged per file.
+ */
+internal fun fileSearchResults(
+    attachments: List<Attachment>,
+    toolCallId: String?,
+    output: String?,
+): List<FileSearchCitation> {
+    val sources = collectFileSearchSources(attachments, toolCallId)
+    val sections = parseRetrievalOutput(output)
+    if (sections.isEmpty()) return sources
+    val byName = HashMap<String, FileSearchCitation?>()
+    sources.filter { it.openable }.forEach { source ->
+        val key = normalizeFileName(source.fileName)
+        if (key.isEmpty()) return@forEach
+        val existing = byName[key]
+        byName[key] = if (key !in byName) source else existing?.takeIf { it.fileId == source.fileId }
+    }
+    return sections.mapIndexed { index, section ->
+        val match = byName[normalizeFileName(section.fileName)]
+        match?.copy(relevance = section.relevance, content = section.content)
+            ?: FileSearchCitation(
+                fileId = "${section.fileName}#$index",
+                fileName = section.fileName,
+                relevance = section.relevance,
+                content = section.content,
+            )
+    }
+}
+
+private fun normalizeFileName(name: String): String = name.lowercase().filter { it in 'a'..'z' || it in '0'..'9' || it == '.' }
 
 /** A source's pages, most relevant first when the payload says which those are. */
 private fun orderedPages(source: FileSearchSource): List<Int> {

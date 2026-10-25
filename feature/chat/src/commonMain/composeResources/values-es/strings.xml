@@ -844,4 +844,42 @@
     <string name="shared_chat_load_failed">No se pudo cargar este chat compartido</string>
     <string name="shared_chat_user">Usuario</string>
     <string name="shared_chat_file_failed">No se pudo abrir este archivo</string>
+
+    <!-- Web and file search sources -->
+    <string name="web_searching">Buscando en la web</string>
+    <string name="web_searching_again">Buscando en la web nuevamente</string>
+    <string name="web_search_processing">Procesando resultados</string>
+    <string name="web_search_reading">Leyendo resultados</string>
+    <string name="web_search_details">Detalles de la búsqueda</string>
+    <string name="web_search_query">Consulta</string>
+    <string name="web_search_images">Resultados de imágenes</string>
+    <string name="web_search_shopping">Resultados de compras</string>
+    <string name="web_search_places">Lugares</string>
+    <string name="files_searching">Buscando en sus archivos</string>
+    <string name="searching_web_and_files">Buscando en la web y en archivos</string>
+    <string name="searched_web_and_files">Se buscó en la web y en archivos</string>
+    <string name="search_cancelled">Cancelado</string>
+    <string name="sources_tab_all">Todo</string>
+    <string name="sources_tab_news">Noticias</string>
+    <string name="sources_tab_images">Imágenes</string>
+    <string name="sources_tab_files">Archivos</string>
+    <string name="sources_agent_files">Archivos del agente</string>
+    <string name="sources_agent_file">Documento fuente</string>
+    <string name="web_search_load_images">Cargar imágenes</string>
+    <string name="cd_open_cited_file">Abrir %1$s</string>
+    <plurals name="web_search_sources">
+        <item quantity="one">%1$d fuente</item>
+        <item quantity="many">%1$d fuentes</item>
+        <item quantity="other">%1$d fuentes</item>
+    </plurals>
+    <plurals name="sources_more">
+        <item quantity="one">+%1$d fuente</item>
+        <item quantity="many">+%1$d fuentes</item>
+        <item quantity="other">+%1$d fuentes</item>
+    </plurals>
+    <plurals name="files_more">
+        <item quantity="one">+%1$d archivo</item>
+        <item quantity="many">+%1$d archivos</item>
+        <item quantity="other">+%1$d archivos</item>
+    </plurals>
 </resources>

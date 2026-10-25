@@ -191,30 +191,68 @@ internal fun ToolCallDispatcher(
             isWebSearchToolCall(toolNameLower) -> {
                 // The real sources arrive as `web_search` attachments (organic + topStories),
                 // not in the tool-call output — prefer them, falling back to output parsing.
+                val searchData = remember(attachments, toolCall?.id) { webSearchData(attachments, toolCall?.id) }
                 val results = remember(attachments, toolCall?.id, output) {
                     collectWebSearchSources(attachments, toolCall?.id)
                         .ifEmpty { parseWebSearchResults(output) }
                 }
-                if (results.isNotEmpty()) {
-                    WebSearchSourcesCard(results = results, modifier = cardModifier)
-                } else {
-                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
+                val closedStatus = toolCall?.effectiveRunStepStatus
+                val outcome = searchOutcome(
+                    toolCallVerdict(closedStatus, isComplete = true),
+                    output,
+                    finished = closedStatus != null || !output.isNullOrBlank() || results.isNotEmpty(),
+                )
+                val searchCard = claimsWebSearchCard(toolNameLower, hasSources = results.isNotEmpty())
+                when {
+                    !searchCard || outcome == SearchOutcome.FAILED ->
+                        GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
+                    outcome == SearchOutcome.HIDDEN -> Unit
+                    else -> {
+                        val query = remember(toolCall) {
+                            parseSearchQuery(toolCall?.args) ?: parseSearchQuery(toolCall?.function?.arguments)
+                        }
+                        WebSearchCard(
+                            sources = results,
+                            phase = WebSearchPhase.COMPLETE,
+                            modifier = cardModifier,
+                            turn = webSearchTurn(searchData),
+                            intent = intent,
+                            query = query,
+                            answerBox = remember(searchData) { webSearchAnswerBox(searchData) },
+                            // Inside a group the image, shopping and place results sit below the group.
+                            verticals = if (hideAttachments) {
+                                SearchVerticals.Empty
+                            } else {
+                                remember(searchData) { collectSearchVerticals(searchData) }
+                            },
+                            stateKey = cardKey,
+                            inGroup = hideAttachments,
+                        )
+                    }
                 }
             }
             isFileSearchToolCall(toolNameLower) -> {
                 // Same split as web search: the citations live in the `file_search` attachment,
                 // while the tool output is only a flat digest of them.
-                val citations = remember(attachments, toolCall?.id) {
-                    collectFileSearchSources(attachments, toolCall?.id)
+                val citations = remember(attachments, toolCall?.id, output) {
+                    fileSearchResults(attachments, toolCall?.id, output)
                 }
-                if (citations.isNotEmpty()) {
+                val verdict = toolCallVerdict(toolCall?.effectiveRunStepStatus, isComplete = true)
+                // A settled search with nothing to list keeps the generic card, so its output stays readable.
+                val nothingToList = citations.isEmpty() && verdict == ToolCallVerdict.COMPLETED
+                if (nothingToList || searchOutcome(verdict, output) == SearchOutcome.FAILED) {
+                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
+                } else {
+                    val fileActions = rememberToolFileActions(baseUrl)
                     FileSearchSourcesCard(
                         citations = citations,
                         modifier = cardModifier,
                         stateKey = cardKey,
+                        verdict = verdict,
+                        intent = intent,
+                        durationMs = toolCall?.runStepDurationMs,
+                        onOpen = { citation -> citation.asAttachment()?.let(fileActions::openToolFile) },
                     )
-                } else {
-                    GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
                 }
             }
             isCodeExecutionToolCall(toolNameLower) -> {

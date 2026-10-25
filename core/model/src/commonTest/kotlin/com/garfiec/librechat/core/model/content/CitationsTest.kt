@@ -77,9 +77,11 @@ class CitationsTest {
     }
 
     @Test
-    fun `the label is the attribution then the title then the domain`() {
+    fun `the label is the site name else the domain`() {
         assertEquals("Reuters", CitationSource.Web("https://www.reuters.com/x", "Title", null, "Reuters").label)
-        assertEquals("Title", CitationSource.Web("https://www.reuters.com/x", "Title", null, " ").label)
+        assertEquals("reuters.com", CitationSource.Web("https://www.reuters.com/x", "Title", null, " ").label)
+        // A provider that fills attribution with the page title gives no site name.
+        assertEquals("reuters.com", CitationSource.Web("https://www.reuters.com/x", "Title", null, "Title").label)
         assertEquals("reuters.com", CitationSource.Web("https://www.reuters.com/x", null, null, null).label)
     }
 
@@ -187,5 +189,24 @@ class CitationsTest {
     fun `cleanDomain drops scheme www and path`() {
         assertEquals("example.com", cleanDomain("https://www.example.com/a?b#c"))
         assertEquals("news.example.org", cleanDomain("http://news.example.org"))
+    }
+
+    @Test
+    fun `text after a closed fence is still normalized`() {
+        val text = "```\ncode ${a}turn0search0\n```\nClaim.${a}turn0search0"
+        assertEquals("```\ncode ${a}turn0search0\n```\nClaim.\uE202turn0search0", normalizeCitations(text, index))
+        assertEquals("```\ncode ${a}turn0search0\n```\nClaim.", stripCitations(text))
+    }
+
+    @Test
+    fun `an anchor whose number overflows is dropped rather than thrown on`() {
+        assertEquals("Claim.", normalizeCitations("Claim.${a}turn99999999999search0", index))
+        assertEquals(listOf(CitationPiece.Text("a\uE202turn99999999999search0")), citationPieces("a\uE202turn99999999999search0"))
+    }
+
+    @Test
+    fun `an unclosed group followed by a newline does not hold back the rest of the stream`() {
+        val text = "Claim $c0${a}turn0search0\nNext paragraph"
+        assertEquals("Claim \uE202turn0search0\nNext paragraph", normalizeCitations(text, index, streamingTail = true))
     }
 }

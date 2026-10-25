@@ -824,4 +824,36 @@
     <string name="shared_chat_load_failed">이 공유된 채팅을 불러올 수 없습니다</string>
     <string name="shared_chat_user">사용자</string>
     <string name="shared_chat_file_failed">이 파일을 열 수 없습니다</string>
+
+    <!-- Web and file search sources -->
+    <string name="web_searching">웹 검색 진행 중</string>
+    <string name="web_searching_again">웹 검색 다시 진행</string>
+    <string name="web_search_processing">결과 처리 중</string>
+    <string name="web_search_reading">결과 읽기 중</string>
+    <string name="web_search_details">검색 세부 정보</string>
+    <string name="web_search_query">검색어</string>
+    <string name="web_search_images">이미지 결과</string>
+    <string name="web_search_shopping">쇼핑 결과</string>
+    <string name="web_search_places">장소</string>
+    <string name="files_searching">파일 검색 중</string>
+    <string name="searching_web_and_files">웹과 파일 검색 중</string>
+    <string name="searched_web_and_files">웹과 파일 검색 완료</string>
+    <string name="search_cancelled">취소됨</string>
+    <string name="sources_tab_all">전체</string>
+    <string name="sources_tab_news">뉴스</string>
+    <string name="sources_tab_images">이미지</string>
+    <string name="sources_tab_files">파일</string>
+    <string name="sources_agent_files">에이전트 파일</string>
+    <string name="sources_agent_file">소스 문서</string>
+    <string name="web_search_load_images">이미지 불러오기</string>
+    <string name="cd_open_cited_file">%1$s 열기</string>
+    <plurals name="web_search_sources">
+        <item quantity="other">출처 %1$d개</item>
+    </plurals>
+    <plurals name="sources_more">
+        <item quantity="other">+%1$d개 소스</item>
+    </plurals>
+    <plurals name="files_more">
+        <item quantity="other">파일 +%1$d개</item>
+    </plurals>
 </resources>

@@ -367,12 +367,45 @@ haiku wrote only escapes), so everything converts the escape first.
   inline-content pill (`CitationPill.kt`), sized by measuring its label. A group never splits across
   leaves. Code spans and fences are never touched. Table cells draw a clickable label instead (no
   inline content there). The pill opens `CitationSourcesSheet`, hosted by `ProvideMarkdownMedia`.
+- **Deliberate divergence:** the pill names the site (`attribution`) only when it differs from the
+  page title, else the domain. Upstream's `attribution || title` puts whole foreign page titles in
+  the pill, because some providers (Keenable) send the title as the attribution.
 - **While streaming** the tail of the reply holds back a partial anchor, group or escape, so
   `turn0sea` never flashes.
 - **Find-in-page renders without citations**, and `countMarkdownOccurrences` counts the same stripped
   text. Keep the two in step.
 - **Plain-text surfaces strip them**: read-aloud, the accessibility description, the search index
   (format 4) and its previews. Copy numbers them `[1][2]` with a `Citations:` footer, as web's copy does.
+
+## Search cards and sources (web parity, v0.8.8)
+- **Web search** (`WebSearchCard`, `WebSearchResultCard.kt`) ports upstream `WebSearch.tsx`. While the
+  reply streams it reads "Searching the web" (or "…again" past turn 0), then "Processing results"
+  once sources arrive, then "Reading results" while it is the latest step and no reply text has
+  followed (`liveWebSearchPhase`; the streaming card gets `isLatestStep` and `replyLength`). Settled:
+  three favicons, the model's `intent` or "Searched the web", a chevron to every source (snippet,
+  domain, date), and an info button for the query, count and the provider's answer box. Inside an
+  activity group a card without an `intent` shows its query rather than repeating the group's
+  "Searched the web" (a divergence: upstream repeats it).
+  `searchOutcome`: a failed search falls back to the generic tool card; a cancelled one, or a
+  settled one with no status, output or sources, draws nothing, as upstream. A Stop after the search
+  saves its output but not the attachment, so the sources then come from the tool's text output
+  (`parseFormattedSearchOutput`; upstream's web shows none). Snippets are shown as plain text
+  (`plainSnippet`), and ISO dates as a short local date (upstream prints them raw). Only the built-in `web_search` always gets this card; another tool whose
+  name merely contains "search" keeps the generic card unless it produced web sources.
+- **Images, shopping, places** (`WebSearchVerticals.kt`, upstream `verticals.tsx`) sit under the card,
+  or below the activity group when the call is inside one (`hideAttachments`). Every URL must be
+  http(s). **Deliberate divergence:** pictures load only after a tap ("Load images"), like a reply's
+  third-party images. Places open Apple Maps on iOS and Google Maps elsewhere (`prefersAppleMaps`).
+- **File search** (`FileSearchSourcesCard`, upstream `RetrievalCall.tsx`): "Searching your files" live,
+  "Cancelled", the run's duration, and a file name that opens the file through `ToolFileActions`
+  (PDF viewer, artifact panel, or Open in / Save / Share). When the tool's text output parses, its
+  sections list in their own order, matched to files by normalized name (`fileSearchResults`).
+- **Activity groups** of searches only read "Searched the web / your files / web and files" with
+  favicons (`searchGroupHeader`), unless the server labelled the group.
+- **Sources panel** (`SourcesPanel.kt`, upstream `Sources.tsx`) only on parallel content
+  (`hasParallelGroupIds`), as upstream: All / News / Images / Files, three cards and a "+N" sheet.
+  Upstream draws one panel above both lanes; mobile draws one per Compare pane, from that lane's
+  attachments.
 
 ## Streaming
 - `ChatViewModel.sendMessage()` calls `ChatRepository.startChat()` which returns `Flow<StreamEvent>`

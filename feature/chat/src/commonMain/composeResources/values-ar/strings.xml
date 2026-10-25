@@ -884,4 +884,51 @@
     <string name="shared_chat_load_failed">تعذّر تحميل هذه المحادثة المشتركة</string>
     <string name="shared_chat_user">المستخدم</string>
     <string name="shared_chat_file_failed">تعذّر فتح هذا الملف</string>
+
+    <!-- Web and file search sources -->
+    <string name="web_searching">جارٍ البحث في الويب</string>
+    <string name="web_searching_again">جارٍ البحث في الويب مرة أخرى</string>
+    <string name="web_search_processing">جارٍ معالجة النتائج</string>
+    <string name="web_search_reading">جارٍ قراءة النتائج</string>
+    <string name="web_search_details">تفاصيل البحث</string>
+    <string name="web_search_query">الاستعلام</string>
+    <string name="web_search_images">نتائج الصور</string>
+    <string name="web_search_shopping">نتائج التسوق</string>
+    <string name="web_search_places">الأماكن</string>
+    <string name="files_searching">جارٍ البحث في ملفاتك</string>
+    <string name="searching_web_and_files">جارٍ البحث في الويب والملفات</string>
+    <string name="searched_web_and_files">تم البحث في الويب والملفات</string>
+    <string name="search_cancelled">أُلغي</string>
+    <string name="sources_tab_all">الكل</string>
+    <string name="sources_tab_news">الأخبار</string>
+    <string name="sources_tab_images">الصور</string>
+    <string name="sources_tab_files">الملفات</string>
+    <string name="sources_agent_files">ملفات الوكيل</string>
+    <string name="sources_agent_file">مستند المصدر</string>
+    <string name="web_search_load_images">تحميل الصور</string>
+    <string name="cd_open_cited_file">فتح %1$s</string>
+    <plurals name="web_search_sources">
+        <item quantity="zero">%1$d مصادر</item>
+        <item quantity="one">%1$d مصدر</item>
+        <item quantity="two">%1$d مصادر</item>
+        <item quantity="few">%1$d مصادر</item>
+        <item quantity="many">%1$d مصادر</item>
+        <item quantity="other">%1$d مصادر</item>
+    </plurals>
+    <plurals name="sources_more">
+        <item quantity="zero">+%1$d مصادر</item>
+        <item quantity="one">+%1$d مصدر</item>
+        <item quantity="two">+%1$d مصادر</item>
+        <item quantity="few">+%1$d مصادر</item>
+        <item quantity="many">+%1$d مصادر</item>
+        <item quantity="other">+%1$d مصادر</item>
+    </plurals>
+    <plurals name="files_more">
+        <item quantity="zero">+%1$d ملفات</item>
+        <item quantity="one">+%1$d ملف</item>
+        <item quantity="two">+%1$d ملفات</item>
+        <item quantity="few">+%1$d ملفات</item>
+        <item quantity="many">+%1$d ملفات</item>
+        <item quantity="other">+%1$d ملفات</item>
+    </plurals>
 </resources>

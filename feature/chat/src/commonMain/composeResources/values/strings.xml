@@ -880,4 +880,39 @@
     <string name="shared_chat_load_failed">Couldn’t load this shared chat</string>
     <string name="shared_chat_user">User</string>
     <string name="shared_chat_file_failed">Couldn’t open this file</string>
+
+    <!-- Web and file search sources -->
+    <string name="web_searching">Searching the web</string>
+    <string name="web_searching_again">Searching the web again</string>
+    <string name="web_search_processing">Processing results</string>
+    <string name="web_search_reading">Reading results</string>
+    <string name="web_search_details">Search details</string>
+    <string name="web_search_query">Query</string>
+    <string name="web_search_images">Image results</string>
+    <string name="web_search_shopping">Shopping results</string>
+    <string name="web_search_places">Places</string>
+    <string name="files_searching">Searching your files</string>
+    <string name="searching_web_and_files">Searching web and files</string>
+    <string name="searched_web_and_files">Searched web and files</string>
+    <string name="search_cancelled">Cancelled</string>
+    <string name="sources_tab_all">All</string>
+    <string name="sources_tab_news">News</string>
+    <string name="sources_tab_images">Images</string>
+    <string name="sources_tab_files">Files</string>
+    <string name="sources_agent_files">Agent Files</string>
+    <string name="sources_agent_file">Source Document</string>
+    <string name="web_search_load_images">Load images</string>
+    <string name="cd_open_cited_file">Open %1$s</string>
+    <plurals name="web_search_sources">
+        <item quantity="one">%1$d source</item>
+        <item quantity="other">%1$d sources</item>
+    </plurals>
+    <plurals name="sources_more">
+        <item quantity="one">+%1$d source</item>
+        <item quantity="other">+%1$d sources</item>
+    </plurals>
+    <plurals name="files_more">
+        <item quantity="one">+%1$d file</item>
+        <item quantity="other">+%1$d files</item>
+    </plurals>
 </resources>
