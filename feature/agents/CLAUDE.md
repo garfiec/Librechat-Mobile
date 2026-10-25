@@ -57,6 +57,9 @@
 ## Agent cards
 - `AdaptiveCard(onClick)` + `InitialTile(seed = id)`; name (1 line), plain-text description (2 lines) and a meta
   row: Top pick mark (`is_promoted`), category label (not "general"), contact.
+- Every card is the same height: the description always takes 2 lines and the meta row always takes one (empty
+  or not, ellipsizing instead of wrapping), so two-column grid rows line up. `AgentCardPlaceholder` mirrors these
+  slots; change both together.
 - `AgentCardDisplayData.name` is null for an unnamed agent; the card shows `agent_unnamed`. No English in the VM.
 - Descriptions go through `agentDescriptionPreview()`: HTML (see "HTML descriptions" below) is reduced to one
   run of text by `htmlToPlainText()` (`:core:common`; block tags become spaces); plain text is kept as written,

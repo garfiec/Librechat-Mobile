@@ -6,9 +6,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.FlowRowScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,10 +28,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.datetime.listLabel
 import com.garfiec.librechat.core.common.datetime.parseIsoInstantOrNull
@@ -59,7 +65,6 @@ internal val SkillRowUi.title: String
  * the viewer — Off (inactive for them), Always on, Public — then its files, owner, category and
  * when it last changed.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun SkillCard(
     row: SkillRowUi,
@@ -100,23 +105,17 @@ internal fun SkillCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                val description = skill.description?.trim().orEmpty()
-                if (description.isNotEmpty()) {
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
-                }
-                FlowRow(
-                    modifier = Modifier.padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    itemVerticalAlignment = Alignment.CenterVertically,
-                ) {
+                // Every slot keeps its height when empty, so cards in a grid row line up.
+                Text(
+                    text = skill.description?.trim().orEmpty(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    minLines = 2,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+                SkillMetaLine {
                     // Only a known "off": while the states map is loading the badge stays away.
                     if (row.isActive == false) {
                         SkillMetaItem(stringResource(Res.string.skills_badge_off), Icons.Outlined.Block, statusColors().neutral)
@@ -147,6 +146,25 @@ internal fun SkillCard(
     }
 }
 
+/**
+ * The meta row: one line, there even when empty. Items that don't fit are dropped from the end
+ * rather than wrapped, so the badges stay and owner, category and date give way first.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SkillMetaLine(content: @Composable FlowRowScope.() -> Unit) {
+    Box(Modifier.padding(top = 8.dp).heightIn(min = MetaIconSize), contentAlignment = Alignment.CenterStart) {
+        // Holds a text line's height when no item is shown.
+        Text(" ", style = MaterialTheme.typography.labelMedium, maxLines = 1, modifier = Modifier.alpha(0f))
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            itemVerticalAlignment = Alignment.CenterVertically,
+            maxLines = 1,
+            content = content,
+        )
+    }
+}
+
 @Composable
 private fun SkillMetaItem(
     text: String,
@@ -154,7 +172,7 @@ private fun SkillMetaItem(
     tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        if (icon != null) Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(16.dp))
+        if (icon != null) Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(MetaIconSize))
         Text(
             text = text,
             style = MaterialTheme.typography.labelMedium,
@@ -165,10 +183,15 @@ private fun SkillMetaItem(
     }
 }
 
-/** First-load stand-in, sized like a card with a description, so the grid doesn't jump on arrival. */
+/** First-load stand-in that mirrors the card's slots, so the grid doesn't jump on arrival. */
 @Composable
 internal fun SkillCardPlaceholder(modifier: Modifier = Modifier) {
     val block = MaterialTheme.colorScheme.surfaceContainerHighest
+    val typography = MaterialTheme.typography
+    val density = LocalDensity.current
+    val titleLine = with(density) { typography.titleMedium.lineHeight.toDp() }
+    val descriptionLine = with(density) { typography.bodyMedium.lineHeight.toDp() }
+    val metaLine = maxOf(with(density) { typography.labelMedium.lineHeight.toDp() }, MetaIconSize)
     AdaptiveCard(
         modifier = modifier.fillMaxWidth(),
         shape = SkillCardShape,
@@ -176,13 +199,26 @@ internal fun SkillCardPlaceholder(modifier: Modifier = Modifier) {
     ) {
         Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(block))
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.fillMaxWidth(0.5f).height(16.dp).clip(RoundedCornerShape(4.dp)).background(block))
-                Box(Modifier.fillMaxWidth(0.9f).height(12.dp).clip(RoundedCornerShape(4.dp)).background(block))
-                Box(Modifier.fillMaxWidth(0.3f).height(12.dp).clip(RoundedCornerShape(4.dp)).background(block))
+            Column(modifier = Modifier.weight(1f)) {
+                PlaceholderLine(block, lineHeight = titleLine, barHeight = 16.dp, widthFraction = 0.5f)
+                Spacer(Modifier.height(4.dp))
+                PlaceholderLine(block, lineHeight = descriptionLine, barHeight = 12.dp, widthFraction = 0.9f)
+                PlaceholderLine(block, lineHeight = descriptionLine, barHeight = 12.dp, widthFraction = 0.6f)
+                Spacer(Modifier.height(8.dp))
+                PlaceholderLine(block, lineHeight = metaLine, barHeight = 12.dp, widthFraction = 0.3f)
             }
         }
     }
 }
 
+@Composable
+private fun PlaceholderLine(color: Color, lineHeight: Dp, barHeight: Dp, widthFraction: Float) {
+    Box(Modifier.fillMaxWidth().height(lineHeight), contentAlignment = Alignment.CenterStart) {
+        Box(Modifier.fillMaxWidth(widthFraction).height(barHeight).clip(RoundedCornerShape(4.dp)).background(color))
+    }
+}
+
 private val SkillCardShape = RoundedCornerShape(16.dp)
+
+/** The meta row's icons; the row is never shorter than them. */
+private val MetaIconSize = 16.dp
