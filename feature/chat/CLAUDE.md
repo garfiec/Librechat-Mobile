@@ -116,8 +116,10 @@ Which spec applies, and whether it is prioritized, is `util/SpecSeed.kt`, a port
   agents at all, agents denied) falls through to the ordinary tiers.
 - **Last spec**: a spec the user picked is stored with the last-used pair (`lastUsedSpec`; a raw
   pick clears it). Unless a spec is marked `default`, new chats reopen on it, under `prioritize` too
-  and ahead of a soft default, as web reopens on `LAST_CONVO_SETUP.spec`. On restore the name is kept
-  only while the server still offers that spec on the same endpoint and model. Known divergence: web
+  and ahead of a soft default, as web reopens on `LAST_CONVO_SETUP.spec`. On restore it reopens on the
+  spec's current endpoint and model (`reopenedPick`), as the resolver does, so a spec an admin moved
+  to another model still opens, in both "Start new chats on" modes; only a spec the server no longer
+  lists falls back to the stored raw pair. Known divergence: web
   also rewrites that setup when a conversation is opened, so opening a spec-B chat makes B the next
   new chat's spec; mobile writes last-used only on a pick.
 - **Soft default**: applies only when last-used can't, so a user's own selection wins.
@@ -137,7 +139,7 @@ Which spec applies, and whether it is prioritized, is `util/SpecSeed.kt`, a port
 | …and the user's last pick was a spec | That spec, unless a spec is marked `default` (web: `LAST_CONVO_SETUP.spec`) | That spec | Last spec reopens |
 | `prioritize: false` + `softDefault` spec | Last-used if usable, otherwise the soft spec | Same | Wins over the soft spec |
 | `prioritize: false`, no soft default | Same as no specs | Same | Same as no specs |
-| `interface.modelSelect: false` | The `default`/soft/first spec, always (a stored last spec still reopens when none is marked `default`), even from a start-chat link | Same: the setting is ignored | Used only when no spec applies |
+| `interface.modelSelect: false` | The `default`/soft/first spec, always (a stored last spec still reopens when none is marked `default`); an agent card or a spec's shortcut still wins, as a start-chat link does on web | Same: the setting is ignored | Used only when no spec applies |
 | `enforce: true` | As above; a raw pick can't be sent | Last-used only if it's a spec; a raw one falls back to the server's spec | Raw last-used ignored |
 
 In both modes: a spec that can't apply (missing agent, no agent access, a model the endpoint doesn't
@@ -164,9 +166,10 @@ Then:
 - With no specs either there is no picker (`ChatUiState.modelPickerShown`, web's `ModelSelector`
   returning null): the model chip and the new-chat label are plain text, the tools-sheet row and
   Compare are hidden, and the send preflight shows its reason without opening a sheet.
-- A start-chat link (agent card, model shortcut, iOS quick action) opens on the spec, as web's
-  `useNewConvo` applies the spec over the link's template. A link applied before the config loaded
-  hands the landing back to the spec once it has.
+- A start-chat link (agent card, model shortcut, iOS quick action) wins over the spec, as on web:
+  `useNewConvo` applies the spec only `if (!preset && …)`, and every link entry point
+  (`AgentDetail`, `useQueryParams`) passes a preset. An agent card opens its agent. A model shortcut
+  follows the rules under "Model shortcuts" below, which keep it off raw models the picker hides.
 
 **The selection is one value, `ModelChoice`: `Raw(endpoint, model)` or `Spec(name, endpoint,
 model)`.** Write it whole, through `ModelSelectionDelegate.applySelection`; the preset load, the
@@ -190,6 +193,23 @@ it changes what the server does even without `enforce`: it fills the spec's unse
 fields (`promptPrefix`, `instructions`, `system`, …) into the request (`mergeModelSpecPreset`), so a
 chat opened on a spec gets the admin's prompt as on web.
 
+**A spec's pair comes from `preset.endpoint` alone** (`toSeed`, as upstream's
+`resolveModelSpecEndpoint`): an agents spec runs its `agent_id`, any other its `model`. The server
+writes an endpoint it infers from `agent_id` into the served config (`materializeModelSpecEndpoints`),
+so the client infers nothing, and a stray `agent_id` on another endpoint is ignored, as the server
+ignores it. A spec served with no endpoint (an explicit `endpoint: null`) opens nothing.
+
+**Model shortcuts** (launcher shortcuts, iOS quick actions; mobile-only). Usage is counted per pair
+and spec (`SettingsDataStore.incrementModelUsage`): a spec's sends count apart from the raw model and
+keep its label for the shortcut's title, and the spec rides the link
+(`librechat://model?…&spec=`, `NewChat.spec`). At Tier 0 a shortcut reopens its spec on the spec's
+current pair (`reopenedPick`). One with no spec (a raw pick, or recorded before shortcuts kept
+specs) opens its raw pair only where the picker lists that endpoint (`showsRawEndpoint` with the
+live `modelSelect`); elsewhere the one spec on the pair opens, or nothing and the landing seeds as
+usual. Under `enforce` it takes the one spec on its pair, as before, and otherwise opens the raw pair
+for the send preflight to ask. A shortcut applied before the config loaded is resolved once it
+arrives, the same way.
+
 **`enforce` has no exception for `addedEndpoints`.** With `modelSpecs.enforce` and a non-empty list
 the server rejects any send without a `spec` (`buildEndpointOption.js`). So `requiresSpec` blocks
 such a send in the preflight, and the picker greys the raw rows it still lists (those in
@@ -199,12 +219,27 @@ all, where web lists everything and every pick fails. A cached conversation with
 config rather than the selection (unseeded when the conversation loads); a failed refresh is
 retried on the next open.
 
+Under `enforce` a follow-up queued during an agents run stays on the local drain instead of the
+server's queue (`QueueOrchestrationDelegate.serverOwnedSpec`). The server's queued turn carries no
+spec (its enqueue schema has no such field, and the worker re-posts the turn to the chat route
+without one), so `buildEndpointOption` refuses it, even when the composer held a spec. Web's
+enqueue payload has no `spec` either.
+
+**A send to a user-key endpoint with no key is refused before it goes out**
+(`SendBlockReason.ApiKeyRequired`), as web's `useRequiresKey` disables the composer, instead of
+failing on the server with `no_user_key`. It reads `endpointKeyStates` for the selected endpoint and,
+like the picker, lets the send through while the key state is loading or unknown. The picker shows
+the Set API Key chip on that endpoint; with no picker (`modelSelect` off and no specs) the reason is
+text only.
+
 **A stored spec is kept only while the server still offers it on the same endpoint and model**
 (`offeredOn`): on a conversation load, a preset load (which adopts the spec's own pair when the
-preset names none), the last-used restore, and again whenever the spec config changes. This is
-stricter than the server, whose mismatch check compares the endpoint only, so a spec whose model
-an admin changed is dropped too. Under `enforce` the send is then blocked with "Select a model"
-rather than refused by the server.
+preset names none), and again whenever the spec config changes. This is stricter than the server,
+whose mismatch check compares the endpoint only, so a spec whose model an admin changed is dropped
+too: the spec and pair were sent together, so a moved spec is a different selection. Under
+`enforce` the send is then blocked with "Select a model" rather than refused by the server. A stored
+*pick* — the last-used restore and a model shortcut — is the exception (`reopenedPick`): it follows
+the spec to its current pair.
 
 **Spec rows** (`visibleSpecs`) sort by `order`, ascending with unordered specs after in list order
 (librechatios parity; web ignores `order`), and leave out an agent spec once the agents list has

@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.model.queuedturn.AgentQueuedTurnReceipt
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnFileRef
 import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.util.isImageType
+import com.garfiec.librechat.feature.chat.util.requiresSpec
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.ComposerSnapshot
@@ -101,10 +102,18 @@ class QueueOrchestrationDelegate(
      *
      * `clientRequestId` is minted here and not taken from [QueuedMessage.localId]: localId
      * survives an edit, and reusing an id for different text is a 409.
+     *
+     * Never under `enforce` ([requiresSpec]). The server's queued turn carries no spec: the enqueue
+     * schema has no such field (upstream v0.8.8 `packages/data-provider/src/types/queuedTurns.ts`),
+     * and the worker re-posts the turn to the chat route without one
+     * (`packages/api/src/agents/triggers/host.ts`), where `buildEndpointOption` refuses it with
+     * "No model spec selected", whatever spec the composer held. The local drain sends the spec and
+     * runs the send preflight.
      */
     private fun serverOwnedSpec(spec: QueuedMessage): QueuedMessage {
         val state = handle.state
         if (!state.gates.serverQueueSupported) return spec
+        if (state.modelSpecs.requiresSpec) return spec
         if (state.selectedEndpoint != EndpointConstants.AGENTS) return spec
         if (!state.isStreaming) return spec
         val parentMessageId = state.displayMessages.lastOrNull()?.message?.messageId ?: return spec

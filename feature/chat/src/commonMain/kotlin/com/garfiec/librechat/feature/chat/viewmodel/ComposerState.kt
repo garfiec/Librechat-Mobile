@@ -114,6 +114,12 @@ sealed interface SendBlockReason {
     data object AgentNotAvailable : SendBlockReason
     data object ModelNotAvailable : SendBlockReason
     data object ModelLoadFailed : SendBlockReason
+
+    /**
+     * The selected endpoint takes the user's own API key, and none is set (or it expired).
+     * [endpointLabel] is the name the picker shows for it.
+     */
+    data class ApiKeyRequired(val endpointLabel: String) : SendBlockReason
 }
 
 /**

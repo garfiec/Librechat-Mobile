@@ -87,6 +87,8 @@ fun ChatScreen(
      *  home-screen model shortcut / quick action. Mutually exclusive with [initialAgentId]. */
     initialEndpoint: String? = null,
     initialModel: String? = null,
+    /** The spec that model shortcut was recorded from, if any. */
+    initialSpec: String? = null,
     /** Opens the chat at this message, highlighting [highlightQuery] (a search hit). */
     targetMessageId: String? = null,
     highlightQuery: String? = null,
@@ -121,6 +123,7 @@ fun ChatScreen(
                 highlightQuery,
                 targetInReasoning,
                 chatProjectId,
+                initialSpec,
             )
         }
     // Chrome-rate state; ChatContent collects at full rate. Never read a neutralized field here.
@@ -695,7 +698,8 @@ fun ChatScreen(
  * [ChatScreen] with no conversation id. When a conversation starts streaming, [onConversationStart]
  * gets its id so the caller can navigate to the full chat route. [initialAgentId], when non-null,
  * pre-selects that agent (set when starting from an agent detail/card); [initialEndpoint] and
- * [initialModel] pre-select a concrete model (home-screen shortcut).
+ * [initialModel] pre-select a concrete model (home-screen shortcut), and [initialSpec] the spec it
+ * was recorded from.
  */
 @Composable
 fun NewChatScreen(
@@ -705,6 +709,7 @@ fun NewChatScreen(
     initialAgentId: String? = null,
     initialEndpoint: String? = null,
     initialModel: String? = null,
+    initialSpec: String? = null,
     chatProjectId: String? = null,
     chatProjectName: String? = null,
     onOpenDrawer: (() -> Unit)? = null,
@@ -718,6 +723,7 @@ fun NewChatScreen(
         initialAgentId = initialAgentId,
         initialEndpoint = initialEndpoint,
         initialModel = initialModel,
+        initialSpec = initialSpec,
         chatProjectId = chatProjectId,
         chatProjectName = chatProjectName,
         onConversationStart = onConversationStart,

@@ -408,6 +408,61 @@ class DataStoreRoundTripTest {
     }
 
     @Test
+    fun settingsDataStore_modelUsage_specSendsCountApartFromTheRawModel() = runTest(testDispatcher) {
+        val ds = createDataStore("settings-usage-spec")
+        val store = settingsStore(ds)
+
+        store.incrementModelUsage("openAI", "gpt-4o", spec = "fast", label = "Fast")
+        // A send whose spec config wasn't loaded carries no label; the stored one stays.
+        store.incrementModelUsage("openAI", "gpt-4o", spec = "fast", label = null)
+        store.incrementModelUsage("openAI", "gpt-4o")
+        // A label without a spec is dropped: a raw shortcut is titled by its model.
+        store.incrementModelUsage("anthropic", "claude", spec = null, label = "Ignored")
+
+        assertThat(store.topUsedModels(5).first())
+            .containsExactly(
+                ModelRef("openAI", "gpt-4o", spec = "fast", label = "Fast"),
+                ModelRef("anthropic", "claude"),
+                ModelRef("openAI", "gpt-4o"),
+            )
+            .inOrder()
+    }
+
+    @Test
+    fun settingsDataStore_modelUsage_aSpecCountedOnTwoPairsIsOneShortcut() = runTest(testDispatcher) {
+        val ds = createDataStore("settings-usage-spec-moved")
+        val store = settingsStore(ds)
+
+        // An admin moved `fast` from gpt-4o to gpt-4.1 between sends: both entries reopen `fast`.
+        repeat(2) { store.incrementModelUsage("openAI", "gpt-4o", spec = "fast", label = "Fast") }
+        store.incrementModelUsage("anthropic", "claude")
+        // The most recent single send, so without the merge it would take the second slot.
+        store.incrementModelUsage("openAI", "gpt-4.1", spec = "fast", label = "Fast")
+
+        assertThat(store.topUsedModels(2).first())
+            .containsExactly(
+                ModelRef("openAI", "gpt-4o", spec = "fast", label = "Fast"),
+                ModelRef("anthropic", "claude"),
+            )
+            .inOrder()
+    }
+
+    @Test
+    fun settingsDataStore_modelUsage_entriesWrittenBeforeSpecsReadAsRaw() = runTest(testDispatcher) {
+        val ds = createDataStore("settings-usage-legacy")
+        val store = settingsStore(ds)
+        // The shape stored before spec sends were counted: a two-part key and no label.
+        ds.edit {
+            it[accountScopedKey("srv:test-account", "model_usage")] =
+                """{"openAI\u0000gpt-4o":{"count":3,"seq":1}}"""
+        }
+
+        store.incrementModelUsage("openAI", "gpt-4o")
+
+        assertThat(store.topUsedModels(5).first()).containsExactly(ModelRef("openAI", "gpt-4o"))
+    }
+
+    @Test
     fun settingsDataStore_modelUsage_blankInputsIgnored() = runTest(testDispatcher) {
         val ds = createDataStore("settings-usage-blank")
         val store = settingsStore(ds)

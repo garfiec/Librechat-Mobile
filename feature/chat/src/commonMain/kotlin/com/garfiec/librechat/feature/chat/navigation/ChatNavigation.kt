@@ -46,12 +46,14 @@ import org.koin.core.parameter.parametersOf
  *  starting a chat from an agent's detail/marketplace card so the new chat opens on
  *  that agent rather than falling back to last-used/first-agent/first-model.
  *  [endpoint]/[model] pre-select a concrete model instead (home-screen model shortcut /
- *  quick action); they ride on the route so a payload-carrying NewChat replaces a bare
- *  landing NewChat (dedup-by-value) and re-seeds even when already on the landing. */
+ *  quick action), with [spec] the spec it was recorded from; they ride on the route so a
+ *  payload-carrying NewChat replaces a bare landing NewChat (dedup-by-value) and re-seeds even
+ *  when already on the landing. */
 @Serializable data class NewChat(
     val agentId: String? = null,
     val endpoint: String? = null,
     val model: String? = null,
+    val spec: String? = null,
     /**
      * The account this landing belongs to — set when an account flip resets the back stack, and
      * otherwise unread. Load-bearing for identity alone: Nav3 keeps an entry's ViewModelStore until
@@ -159,6 +161,7 @@ fun EntryProviderScope<NavKey>.chatEntries(
             initialAgentId = key.agentId,
             initialEndpoint = key.endpoint,
             initialModel = key.model,
+            initialSpec = key.spec,
             chatProjectId = key.chatProjectId,
             chatProjectName = projectName,
             onConversationStart = { conversationId, isTemporary ->

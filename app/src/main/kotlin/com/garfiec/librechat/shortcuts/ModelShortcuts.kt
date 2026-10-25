@@ -12,8 +12,8 @@ import com.garfiec.librechat.core.model.ModelRef
 
 /**
  * Publishes the user's most-used models as dynamic home-screen app shortcuts (long-press the app
- * icon). Each shortcut deep-links to `librechat://model?endpoint=…&model=…`, which opens a new chat
- * pre-selected on that model. Driven by [com.garfiec.librechat.core.data.datastore.SettingsDataStore.topUsedModels];
+ * icon). Each shortcut deep-links to `librechat://model?endpoint=…&model=…`, plus `&spec=…` when the
+ * sends went through a model spec, which opens a new chat pre-selected on that model or spec. Driven by [com.garfiec.librechat.core.data.datastore.SettingsDataStore.topUsedModels];
  * [publish] fully replaces the set, so an empty list (logged out) clears them.
  */
 object ModelShortcuts {
@@ -25,13 +25,15 @@ object ModelShortcuts {
     fun publish(context: Context, models: List<ModelRef>) {
         val capped = models.take(ShortcutManagerCompat.getMaxShortcutCountPerActivity(context).coerceAtMost(MAX_SHORTCUTS))
         val shortcuts = capped.mapIndexed { index, ref ->
+            val specParam = ref.spec?.let { "&spec=${Uri.encode(it)}" }.orEmpty()
             val uri = Uri.parse(
-                "librechat://model?endpoint=${Uri.encode(ref.endpoint)}&model=${Uri.encode(ref.model)}",
+                "librechat://model?endpoint=${Uri.encode(ref.endpoint)}&model=${Uri.encode(ref.model)}$specParam",
             )
             val intent = Intent(Intent.ACTION_VIEW, uri, context, MainActivity::class.java)
+            val label = ref.label ?: ref.spec ?: ref.model
             ShortcutInfoCompat.Builder(context, shortcutId(ref))
-                .setShortLabel(ref.model)
-                .setLongLabel(ref.model)
+                .setShortLabel(label)
+                .setLongLabel(label)
                 .setRank(index)
                 .setIcon(IconCompat.createWithResource(context, R.mipmap.ic_launcher))
                 .setIntent(intent)
@@ -42,7 +44,7 @@ object ModelShortcuts {
     }
 
     // Stable per-model id so the same model keeps its shortcut identity across republishes.
-    private fun shortcutId(ref: ModelRef) = "model:${ref.endpoint}:${ref.model}"
+    private fun shortcutId(ref: ModelRef) = "model:${ref.endpoint}:${ref.model}" + ref.spec?.let { ":spec:$it" }.orEmpty()
 
     private const val MAX_SHORTCUTS = 4
 }

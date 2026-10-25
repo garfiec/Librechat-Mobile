@@ -224,7 +224,7 @@ fun LibreChatNavHost(
     LaunchedEffect(pendingModelShortcut, isLoggedIn) {
         val ref = pendingModelShortcut ?: return@LaunchedEffect
         if (!isLoggedIn) return@LaunchedEffect
-        navigator.navigateToTopLevel(NewChat(endpoint = ref.endpoint, model = ref.model))
+        navigator.navigateToTopLevel(NewChat(endpoint = ref.endpoint, model = ref.model, spec = ref.spec))
         modelShortcutBus.consume()
     }
 

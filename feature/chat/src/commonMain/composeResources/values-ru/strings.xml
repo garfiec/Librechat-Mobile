@@ -501,6 +501,7 @@
     <string name="send_block_select_agent">Выберите агента перед отправкой сообщения.</string>
     <string name="send_block_select_model">Выберите модель перед отправкой сообщения.</string>
     <string name="send_block_agents_unavailable">Агенты недоступны на этом сервере. Выберите другую модель.</string>
+    <string name="send_block_api_key_required">Добавьте свой API-ключ для %1$s, чтобы отправлять сообщения.</string>
     <string name="send_block_agent_not_available">Выбранный агент недоступен на этом сервере. Выберите другого агента.</string>
     <string name="send_block_model_not_available">Выбранная модель недоступна на этом сервере. Выберите другую модель.</string>
     <string name="send_block_model_load_failed">Пока не удалось загрузить выбранную модель. Попробуйте снова или выберите другую модель.</string>

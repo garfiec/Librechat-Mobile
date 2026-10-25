@@ -23,12 +23,12 @@ import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.util.SpecSeed
+import com.garfiec.librechat.feature.chat.util.StartChatPick
 import com.garfiec.librechat.feature.chat.util.demotedForLastUsed
-import com.garfiec.librechat.feature.chat.util.inferredFor
-import com.garfiec.librechat.feature.chat.util.offeredOn
 import com.garfiec.librechat.feature.chat.util.offeredOrUnchecked
+import com.garfiec.librechat.feature.chat.util.reopenedPick
 import com.garfiec.librechat.feature.chat.util.resolveDefaultModelSpec
-import com.garfiec.librechat.feature.chat.util.restore
+import com.garfiec.librechat.feature.chat.util.resolvedAgainst
 import com.garfiec.librechat.feature.chat.util.showsRawEndpoint
 import com.garfiec.librechat.feature.chat.util.toChoice
 import com.garfiec.librechat.feature.chat.util.toSeed
@@ -70,6 +70,8 @@ class ModelSelectionDelegate(
     initialAgentId: String? = null,
     initialEndpoint: String? = null,
     initialModel: String? = null,
+    /** The spec a model shortcut was recorded from; see [pendingModelOverride]. */
+    initialSpec: String? = null,
 ) {
 
     /**
@@ -84,14 +86,15 @@ class ModelSelectionDelegate(
 
     /**
      * Tier-0 explicit (endpoint, model) passed from the start-chat navigation — set when a chat is
-     * launched from a home-screen model shortcut / quick action. Same one-shot, authoritative
-     * semantics as [pendingAgentOverride] (they're mutually exclusive: a route carries an agent id
-     * OR a concrete model). Trusted directly rather than validated, mirroring the agent override —
-     * a shortcut points at a recently-used model, so it's applied even if the config hasn't loaded.
+     * launched from a home-screen model shortcut / quick action, with the spec it was recorded from.
+     * Same one-shot, authoritative semantics as [pendingAgentOverride] (they're mutually exclusive:
+     * a route carries an agent id OR a concrete model). Not checked against the model list,
+     * mirroring the agent override — a shortcut points at a recently-used model, so it's applied
+     * even if the config hasn't loaded — but resolved against the spec config ([resolvedAgainst]).
      */
-    private var pendingModelOverride: Pair<String, String>? =
+    private var pendingModelOverride: StartChatPick? =
         if (!initialEndpoint.isNullOrBlank() && !initialModel.isNullOrBlank()) {
-            initialEndpoint to initialModel
+            StartChatPick(initialEndpoint, initialModel, initialSpec?.takeIf { it.isNotBlank() }, shortcut = true)
         } else {
             null
         }
@@ -128,7 +131,7 @@ class ModelSelectionDelegate(
      * A Tier-0 pair applied before the spec config loaded, so nothing could be inferred for it yet
      * (see [applyPendingOverride]). Inferred once the config arrives, unless the user picked since.
      */
-    private var tier0AwaitingSpecs: Pair<String, String>? = null
+    private var tier0AwaitingSpecs: StartChatPick? = null
 
     /**
      * Applies an authoritative conversation (endpoint, model) as the active selection and
@@ -456,10 +459,14 @@ class ModelSelectionDelegate(
         // last-used model (an agents last-used must be in the loaded agents list —
         // a stale lastUsedModel that isn't an agent_id must not be restored as
         // the agents-endpoint selection), then fall back to the first model.
-        val lastUsed = cachedLastUsed
-        val lastEndpoint = lastUsed?.endpoint
-        val lastModel = lastUsed?.model
-        if (lastEndpoint != null && lastModel != null) {
+        val stored = cachedLastUsed
+        val storedEndpoint = stored?.endpoint
+        val storedModel = stored?.model
+        if (storedEndpoint != null && storedModel != null) {
+            // Checked on the pair it reopens on: a last spec follows the spec to its current pair.
+            val lastUsed = handle.state.selection.modelSpecs.reopenedPick(storedEndpoint, storedModel, stored.spec)
+            val lastEndpoint = lastUsed.endpoint
+            val lastModel = lastUsed.model
             val lastUsedRestorable = if (lastEndpoint == EndpointConstants.AGENTS) {
                 // Agents never appear in `filtered`, so validate the agent id against the
                 // authoritative agents list instead (mirroring selectability()). Hold — don't
@@ -483,8 +490,7 @@ class ModelSelectionDelegate(
                         "endpoint" to lastEndpoint,
                     ),
                 ) { "refilterModels corrective fallback → last-used" }
-                val spec = lastUsed?.spec.offeredOn(lastEndpoint, lastModel, handle.state.selection.modelSpecs)
-                applySelection(ModelChoice.restore(lastEndpoint, lastModel, spec), reason = "refilter-lastUsed")
+                applySelection(lastUsed, reason = "refilter-lastUsed")
                 return
             }
         }
@@ -524,8 +530,8 @@ class ModelSelectionDelegate(
      *       off), or the spec the user last picked, until something on this landing displaces it —
      *       see [applyModelSpecDefault]. With "Start new chats on: My last-used model" it drops to
      *       1b instead, unless the server leaves no choice ([demotedForLastUsed])
-     *   1. last-used (endpoint + model, and its spec name while the server still offers it), if
-     *      present and valid
+     *   1. last-used (endpoint + model; a last spec on its current pair while the server still
+     *      lists it, see [reopenedPick]), if present and valid
      *   1b. the server's soft-default model spec
      *   2. first agent, when the active endpoint is agents
      *   3. first available config model
@@ -568,13 +574,21 @@ class ModelSelectionDelegate(
                         tier0AwaitingSpecs = null
                         tier0SpecsArrived = true
                     }
+                    val current = handle.state.selection.choice.withoutStale(input.modelSpecs)
+                    // Still the raw pair the entry point applied before the config: resolve it now.
+                    val resolved = awaiting
+                        ?.takeIf { current == ModelChoice.Raw(it.endpoint, it.model) }
+                        ?.let { pick ->
+                            pick.resolvedAgainst(input.modelSpecs, input.modelSelect) ?: current.also {
+                                // Ruled out by the config: back through the tiers on this emission,
+                                // as if the entry point had not fired.
+                                specYielded = false
+                                reseedCarried = true
+                            }
+                        }
                     // One emission: the new specs never sit next to a spec they no longer offer.
                     handle.update {
-                        selection = selection.copy(
-                            modelSpecs = input.modelSpecs,
-                            choice = selection.choice.withoutStale(input.modelSpecs)
-                                .inferredFor(awaiting, input.modelSpecs),
-                        )
+                        selection = selection.copy(modelSpecs = input.modelSpecs, choice = resolved ?: current)
                     }
                 }
                 // Keep the cached last-used fresh for refilterModels' existing-
@@ -625,17 +639,18 @@ class ModelSelectionDelegate(
      * Also yields the prioritized model spec ([specYielded]); otherwise the next emission would
      * apply the spec over the agent or model the user just chose.
      */
-    private fun applyPendingOverride(lastUsed: ModelChoice?, modelSpecs: ModelSpecs?): Boolean {
-        // An enforced server refuses a send without a spec, and these entry points name only the
-        // raw pair. Adopt the spec when exactly one opens on it; otherwise the send preflight asks.
-        fun inferred(endpoint: String, model: String): ModelChoice {
-            // A cold launch can get here before the config: infer once it arrives instead.
-            if (modelSpecs == null) tier0AwaitingSpecs = endpoint to model
-            return ModelChoice.Raw(endpoint, model).inferredFor(endpoint to model, modelSpecs)
+    private fun applyPendingOverride(lastUsed: ModelChoice?, modelSpecs: ModelSpecs?, modelSelect: Boolean): Boolean {
+        // A cold launch can get here before the config: resolve the pick once it arrives instead.
+        fun resolved(pick: StartChatPick): ModelChoice? {
+            if (modelSpecs != null) return pick.resolvedAgainst(modelSpecs, modelSelect)
+            tier0AwaitingSpecs = pick
+            return ModelChoice.Raw(pick.endpoint, pick.model)
         }
-        if (pendingAgentOverride != null || pendingModelOverride != null) specYielded = true
         pendingAgentOverride?.let { agentId ->
             pendingAgentOverride = null
+            val choice = resolved(StartChatPick(EndpointConstants.AGENTS, agentId, spec = null, shortcut = false))
+                ?: return false
+            specYielded = true
             lastAppliedLastUsed = lastUsed
             // Hold this explicit agent across the transient empty-agents window until the populated
             // list arrives (see [holdAgentForPopulate]); without it the next (agentsLoaded=true,
@@ -643,13 +658,16 @@ class ModelSelectionDelegate(
             // Unconfirmed gap: the populated list is getAgents()'s first 100, so an agent beyond them
             // (started from the agent page) may never be confirmed and may fall back to another model.
             holdAgentForPopulate = true
-            applySelection(inferred(EndpointConstants.AGENTS, agentId), reason = "tier0-agentOverride")
+            applySelection(choice, reason = "tier0-agentOverride")
             return true
         }
-        pendingModelOverride?.let { (endpoint, model) ->
+        pendingModelOverride?.let { pick ->
             pendingModelOverride = null
+            // A shortcut the picker could not offer opens nothing: the landing seeds as usual.
+            val choice = resolved(pick) ?: return false
+            specYielded = true
             lastAppliedLastUsed = lastUsed
-            applySelection(inferred(endpoint, model), reason = "tier0-modelOverride")
+            applySelection(choice, reason = "tier0-modelOverride")
             return true
         }
         return false
@@ -664,14 +682,13 @@ class ModelSelectionDelegate(
 
         val lastEndpoint = input.lastUsed.endpoint
         val lastModel = input.lastUsed.model
-        // A raw pair on an endpoint `addedEndpoints` no longer lists can't be picked again, so it
-        // never seeds and never outranks the server's spec. With `interface.modelSelect` off the
-        // spec already wins (Tier 0b); where none applies, web falls back to the last setup, so
-        // last-used still does here.
+        // A last spec reopens on its current pair, as the resolver reopens it. A raw pair on an
+        // endpoint `addedEndpoints` no longer lists can't be picked again, so it never seeds and
+        // never outranks the server's spec. With `interface.modelSelect` off the spec already wins
+        // (Tier 0b); where none applies, web falls back to the last setup, so last-used still does here.
         val lastUsed = if (lastEndpoint != null && lastModel != null) {
-            val spec = input.lastUsed.spec.offeredOn(lastEndpoint, lastModel, input.modelSpecs)
-            ModelChoice.restore(lastEndpoint, lastModel, spec)
-                .takeIf { spec != null || input.modelSpecs.showsRawEndpoint(lastEndpoint, modelSelect = true) }
+            input.modelSpecs.reopenedPick(lastEndpoint, lastModel, input.lastUsed.spec)
+                .takeIf { it is ModelChoice.Spec || input.modelSpecs.showsRawEndpoint(lastEndpoint, modelSelect = true) }
         } else {
             null
         }
@@ -695,18 +712,9 @@ class ModelSelectionDelegate(
             appliedPreferLastUsed = input.preferLastUsed
         }
 
-        // With `interface.modelSelect` off the server's spec beats a start-chat link too, as web's
-        // `useNewConvo` applies it over the link's template. A link applied before the config
-        // loaded ([repinLastUsed]) hands the landing back to the spec once it has.
-        if (!input.modelSelect && input.serverSpecSeed != null) {
-            pendingAgentOverride = null
-            pendingModelOverride = null
-            if (repinLastUsed) specYielded = false
-        }
-
         // Tier 0: an explicit agent or concrete model passed from the start-chat navigation wins
         // over everything (last-used / first-agent / first-model). One-shot — see [applyPendingOverride].
-        if (applyPendingOverride(lastUsed, input.modelSpecs)) return
+        if (applyPendingOverride(lastUsed, input.modelSpecs, input.modelSelect)) return
 
         // Tier 0b: the server's prioritized model spec, ahead of last-used.
         if (applyModelSpecDefault(specSeed, input, filtered, lastUsed)) return
@@ -921,8 +929,9 @@ class ModelSelectionDelegate(
      * `applySeed` falls straight through to Tier 2/3 and re-arms. The sibling bug — a `?spec=`
      * cold load rendering a chimera of spec chip and agent entity — needs a persisted selection
      * that is a bare SPEC NAME carrying no endpoint or model. This client persists a spec name
-     * only alongside its `lastUsedEndpoint` / `lastUsedModel` pair, and drops it on restore unless
-     * the server still offers that spec on the same pair, so there is no bare-spec-name selection.
+     * only alongside its `lastUsedEndpoint` / `lastUsedModel` pair, and restores it only as the
+     * spec's own current pair (or that raw pair once the spec is gone), so there is no
+     * bare-spec-name selection.
      *
      * Do not "port" either fix on a later sync without first re-checking those two premises.
      */

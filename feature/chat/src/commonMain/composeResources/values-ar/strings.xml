@@ -507,6 +507,7 @@
     <string name="send_block_select_agent">اختر وكيلًا قبل إرسال رسالتك.</string>
     <string name="send_block_select_model">اختر نموذجًا قبل إرسال رسالتك.</string>
     <string name="send_block_agents_unavailable">الوكلاء غير متاحين على هذا الخادم. يرجى اختيار نموذج مختلف.</string>
+    <string name="send_block_api_key_required">أضف مفتاح API الخاص بك لـ %1$s لإرسال الرسائل.</string>
     <string name="send_block_agent_not_available">الوكيل المحدد غير متاح على هذا الخادم. يرجى اختيار وكيل مختلف.</string>
     <string name="send_block_model_not_available">النموذج المحدد غير متاح على هذا الخادم. يرجى اختيار نموذج مختلف.</string>
     <string name="send_block_model_load_failed">تعذّر تحميل النموذج المحدد بعد. يرجى المحاولة مرة أخرى أو اختيار نموذج مختلف.</string>

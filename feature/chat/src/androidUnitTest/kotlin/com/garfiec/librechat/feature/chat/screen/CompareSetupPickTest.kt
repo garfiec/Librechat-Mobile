@@ -112,7 +112,7 @@ class CompareSetupPickTest {
     }
 
     private val fast = ModelSpec(name = "fast", preset = Preset(endpoint = "openAI", model = "gpt-4.1"))
-    private val writer = ModelSpec(name = "writer", preset = Preset(agentId = "agent_w"))
+    private val writer = ModelSpec(name = "writer", preset = Preset(endpoint = "agents", agentId = "agent_w"))
 
     @Test
     fun `a spec row stages its pair and name for either lane`() {

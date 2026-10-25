@@ -495,6 +495,7 @@
     <string name="send_block_select_agent">Wähle einen Agenten aus, bevor du deine Nachricht sendest.</string>
     <string name="send_block_select_model">Wähle ein Modell aus, bevor du deine Nachricht sendest.</string>
     <string name="send_block_agents_unavailable">Agenten sind auf diesem Server nicht verfügbar. Bitte wähle ein anderes Modell.</string>
+    <string name="send_block_api_key_required">Füge deinen API-Schlüssel für %1$s hinzu, um Nachrichten zu senden.</string>
     <string name="send_block_agent_not_available">Der ausgewählte Agent ist auf diesem Server nicht verfügbar. Bitte wähle einen anderen Agenten.</string>
     <string name="send_block_model_not_available">Das ausgewählte Modell ist auf diesem Server nicht verfügbar. Bitte wähle ein anderes Modell.</string>
     <string name="send_block_model_load_failed">Das ausgewählte Modell konnte noch nicht geladen werden. Bitte versuche es erneut oder wähle ein anderes Modell.</string>

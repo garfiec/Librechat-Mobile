@@ -511,6 +511,7 @@
     <string name="send_block_select_agent">Select an agent before sending your message.</string>
     <string name="send_block_select_model">Select a model before sending your message.</string>
     <string name="send_block_agents_unavailable">Agents aren't available on this server. Please pick a different model.</string>
+    <string name="send_block_api_key_required">Add your API key for %1$s to send messages.</string>
     <string name="send_block_agent_not_available">The selected agent isn't available on this server. Please pick a different agent.</string>
     <string name="send_block_model_not_available">The selected model isn't available on this server. Please pick a different model.</string>
     <string name="send_block_model_load_failed">Couldn't load the selected model yet. Please try again or pick a different model.</string>

@@ -60,10 +60,13 @@ object IosKoinAccessor {
     suspend fun currentTopModels(limit: Int): List<ModelRef> =
         koin.get<SettingsDataStore>().topUsedModels(limit).first()
 
-    /** Routes a tapped quick action into the shared navigation host — opens a new chat on the model. */
+    /**
+     * Routes a tapped quick action into the shared navigation host — opens a new chat on the model,
+     * or on [spec] when the quick action was recorded from one.
+     */
     @Throws(Exception::class)
-    fun requestModelShortcut(endpoint: String, model: String) {
-        koin.get<ModelShortcutBus>().request(endpoint, model)
+    fun requestModelShortcut(endpoint: String, model: String, spec: String?) {
+        koin.get<ModelShortcutBus>().request(endpoint, model, spec)
     }
 
     /**

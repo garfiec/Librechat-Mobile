@@ -12,7 +12,7 @@ class StarredSpecsTest {
     private fun model(name: String, order: Double? = null, showInMenu: Boolean? = null) =
         ModelSpec(name = name, preset = Preset(endpoint = "openAI", model = "gpt-5"), order = order, showInMenu = showInMenu)
 
-    private fun agent(name: String, agentId: String) = ModelSpec(name = name, preset = Preset(agentId = agentId))
+    private fun agent(name: String, agentId: String) = ModelSpec(name = name, preset = Preset(endpoint = "agents", agentId = agentId))
 
     private fun starred(favorites: Set<String>, specs: ModelSpecs, agents: List<Agent> = emptyList(), agentsLoaded: Boolean = false) =
         starredSpecs(favorites, specs.visibleSpecs(agents, agentsLoaded)).map { it.name }

@@ -492,6 +492,7 @@
     <string name="send_block_select_agent">メッセージを送信する前にエージェントを選択してください。</string>
     <string name="send_block_select_model">メッセージを送信する前にモデルを選択してください。</string>
     <string name="send_block_agents_unavailable">このサーバーではエージェントを利用できません。別のモデルを選択してください。</string>
+    <string name="send_block_api_key_required">メッセージを送信するには、%1$s の API キーを追加してください。</string>
     <string name="send_block_agent_not_available">選択したエージェントはこのサーバーで利用できません。別のエージェントを選択してください。</string>
     <string name="send_block_model_not_available">選択したモデルはこのサーバーで利用できません。別のモデルを選択してください。</string>
     <string name="send_block_model_load_failed">選択したモデルをまだ読み込めませんでした。もう一度お試しいただくか、別のモデルを選択してください。</string>

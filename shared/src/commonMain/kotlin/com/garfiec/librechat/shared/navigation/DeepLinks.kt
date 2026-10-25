@@ -80,14 +80,15 @@ object DeepLinks {
             ?.let { DeepLinkResolution.Route(ArtifactShortcutViewer(it), requiresAuth = false) }
             ?: DeepLinkResolution.None
 
-        // Home-screen model shortcut (librechat://model?endpoint=<endpoint>&model=<model>): the payload
+        // Home-screen model shortcut (librechat://model?endpoint=<endpoint>&model=<model>[&spec=<spec>]): the payload
         // rides on the NewChat route so it replaces a bare landing NewChat (dedup-by-value) and re-seeds
         // even when already on the landing. Auth-required — a model preselect is useless without a session.
         "model" -> {
             val endpoint = uri.query["endpoint"]
             val model = uri.query["model"]
             if (!endpoint.isNullOrBlank() && !model.isNullOrBlank()) {
-                DeepLinkResolution.Route(NewChat(endpoint = endpoint, model = model), requiresAuth = true)
+                val spec = uri.query["spec"]?.takeIf { it.isNotBlank() }
+                DeepLinkResolution.Route(NewChat(endpoint = endpoint, model = model, spec = spec), requiresAuth = true)
             } else {
                 DeepLinkResolution.None
             }

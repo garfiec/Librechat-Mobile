@@ -335,11 +335,14 @@ class SendDispatchDelegate(
 
         // Count one "used" tick for the picked model — the real usage signal for the most-used
         // ranking behind home-screen shortcuts. Fires on every dispatched send (live or a drained
-        // queue item, since both land here). Agents are excluded: their selection is an opaque
-        // agentId, which would surface as an unreadable shortcut label.
+        // queue item, since both land here). A spec's sends count as the spec, so its shortcut
+        // reopens it. Bare agents are excluded: their selection is an opaque agentId, which would
+        // surface as an unreadable shortcut label; an agent spec has the spec's.
         val usedModel = spec.model
-        if (spec.endpoint != EndpointConstants.AGENTS && !usedModel.isNullOrBlank()) {
-            handle.scope.launch { settingsDataStore.incrementModelUsage(spec.endpoint, usedModel) }
+        val usedSpec = spec.modelSpec
+        if ((usedSpec != null || spec.endpoint != EndpointConstants.AGENTS) && !usedModel.isNullOrBlank()) {
+            val label = usedSpec?.let { name -> handle.state.modelSpecs?.list?.firstOrNull { it.name == name }?.label }
+            handle.scope.launch { settingsDataStore.incrementModelUsage(spec.endpoint, usedModel, usedSpec, label) }
         }
 
         val conversationId = handle.state.conversationId

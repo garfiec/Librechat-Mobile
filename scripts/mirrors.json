@@ -1373,6 +1373,20 @@
       "failure_mode": "Upstream loosens or tightens when a spec overrides the user's selection, and mobile keeps applying the old rule -- forcing a spec web no longer forces, or leaving a raw model where web now opens the spec."
     },
     {
+      "id": "model-spec-endpoint-resolution",
+      "upstream": {
+        "file": "packages/data-provider/src/models.ts",
+        "symbol": "resolveModelSpecEndpoint",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpecSeed.kt",
+        "symbol": "toSeed"
+      },
+      "why": "Which endpoint a spec opens on: a non-null `preset.endpoint` wins, an explicit `endpoint: null` opens nothing, and only an absent key infers `agents` from `agent_id`. The server writes that inference into the served config (`materializeModelSpecEndpoints`), so `toSeed` reads the endpoint alone and runs `agent_id` only on the agents endpoint.",
+      "failure_mode": "Upstream changes the order or stops materializing the inferred endpoint, and mobile opens a spec on a different endpoint than the server checks it against -- every turn then fails with \"Model spec mismatch\" -- or drops agent specs web still lists."
+    },
+    {
       "id": "model-spec-added-endpoints",
       "upstream": {
         "file": "client/src/hooks/Endpoint/useEndpoints.ts",

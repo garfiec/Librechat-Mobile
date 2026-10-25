@@ -133,6 +133,8 @@ class ChatViewModel(
      *  model shortcut / quick action. Null for normal new chats. Mutually exclusive with an agent. */
     initialEndpoint: String? = null,
     initialModel: String? = null,
+    /** The spec that model shortcut was recorded from, if any. */
+    initialSpec: String? = null,
     /** True when this Chat(id) entry is a temporary chat. Rides on the Chat route so it
      *  survives process death: a restored entry re-initializes temp-aware and never persists the
      *  server-hidden conversation to Room. SECURITY: temp-chat data-at-rest guard — see init. */
@@ -261,6 +263,7 @@ class ChatViewModel(
         initialAgentId = initialAgentId,
         initialEndpoint = initialEndpoint,
         initialModel = initialModel,
+        initialSpec = initialSpec,
     )
     private val skillsToggleDelegate = SkillsToggleDelegate(SkillsToggleHandle(stateHandle), settingsDataStore)
     private val keyStatusDelegate = EndpointKeyStatusDelegate(

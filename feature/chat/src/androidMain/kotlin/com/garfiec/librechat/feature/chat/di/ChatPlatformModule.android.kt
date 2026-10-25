@@ -38,6 +38,8 @@ actual val chatPlatformModule: Module = module {
             initialTargetInReasoning = params.values.getOrNull(7) as? Boolean ?: false,
             // [8] project a new chat is filed into; absent otherwise.
             initialChatProjectId = params.values.getOrNull(8) as String?,
+            // [9] the spec a model shortcut was recorded from; absent otherwise.
+            initialSpec = params.values.getOrNull(9) as String?,
             agentRepository = get(),
             chatRepository = get(),
             messageRepository = get(),

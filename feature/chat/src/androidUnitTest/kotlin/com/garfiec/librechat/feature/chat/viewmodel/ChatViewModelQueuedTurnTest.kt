@@ -10,11 +10,16 @@ import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
+import com.garfiec.librechat.core.data.datastore.LastUsedSelection
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.PendingSteer
+import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.StreamEvent
+import com.garfiec.librechat.core.model.config.ModelSpec
+import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.queuedturn.AgentQueuedTurnReceipt
 import com.garfiec.librechat.core.model.queuedturn.EnqueueQueuedTurnRequest
 import com.garfiec.librechat.core.model.queuedturn.QUEUED_TURN_RECONCILIATION_MS
@@ -260,6 +265,37 @@ class ChatViewModelQueuedTurnTest {
         assertThat(queued.server).isNull()
         assertThat(queued.clientRequestId).isNull()
         assertThat(queued.parentMessageId).isNull()
+    }
+
+    /**
+     * The server's queued turn carries no spec, so `enforce` refuses it and the follow-up stays
+     * local (`QueueOrchestrationDelegate.serverOwnedSpec`).
+     */
+    @Test
+    fun `under enforce the follow-up stays local`() = queuedTurnTest(
+        arrange = {
+            // The spec config reaches the selection through the seeder's combine, which waits on this.
+            every { settingsDataStore.lastUsedSelection } returns flowOf(LastUsedSelection.NONE)
+            every { configRepository.startupConfig } returns MutableStateFlow(
+                StartupConfig(
+                    modelSpecs = ModelSpecs(
+                        list = listOf(ModelSpec(name = "helper", preset = Preset(endpoint = ENDPOINT, agentId = AGENT_ID))),
+                        enforce = true,
+                    ),
+                ),
+            )
+        },
+    ) { vm ->
+        assertThat(vm.uiState.value.isStreaming).isTrue()
+
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+
+        coVerify(exactly = 0) { queuedTurnRepository.enqueue(any()) }
+        val queued = vm.uiState.value.messageQueue.single()
+        assertThat(queued.server).isNull()
+        assertThat(queued.text).isEqualTo(TEXT)
     }
 
     /**

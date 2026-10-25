@@ -2,6 +2,7 @@ package com.garfiec.librechat.shared.navigation
 
 import com.garfiec.librechat.feature.chat.navigation.ArtifactShortcutViewer
 import com.garfiec.librechat.feature.chat.navigation.Chat
+import com.garfiec.librechat.feature.chat.navigation.NewChat
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -41,6 +42,20 @@ class DeepLinksTest {
             DeepLinks.resolve(uri("conversation", id, mapOf("message" to "x"))),
         )
         assertEquals(null, assertIs<Chat>(route.target).targetMessageId)
+    }
+
+    @Test
+    fun modelShortcut_carriesItsSpecWhenItHasOne() {
+        val withSpec = assertIs<DeepLinkResolution.Route>(
+            DeepLinks.resolve(uri("model", query = mapOf("endpoint" to "openAI", "model" to "gpt-4o", "spec" to "fast"))),
+        )
+        assertTrue(withSpec.requiresAuth)
+        assertEquals(NewChat(endpoint = "openAI", model = "gpt-4o", spec = "fast"), withSpec.target)
+
+        val raw = assertIs<DeepLinkResolution.Route>(
+            DeepLinks.resolve(uri("model", query = mapOf("endpoint" to "openAI", "model" to "gpt-4o", "spec" to ""))),
+        )
+        assertEquals(NewChat(endpoint = "openAI", model = "gpt-4o"), raw.target)
     }
 
     @Test

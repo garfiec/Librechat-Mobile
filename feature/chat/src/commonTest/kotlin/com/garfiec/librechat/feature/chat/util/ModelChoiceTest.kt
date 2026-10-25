@@ -11,7 +11,7 @@ import kotlin.test.assertEquals
 class ModelChoiceTest {
 
     private val fast = ModelSpec(name = "fast", preset = Preset(endpoint = "openAI", model = "gpt-4.1"))
-    private val helper = ModelSpec(name = "helper", preset = Preset(agentId = "agent_1"))
+    private val helper = ModelSpec(name = "helper", preset = Preset(endpoint = "agents", agentId = "agent_1"))
     private val specs = ModelSpecs(list = listOf(fast, helper))
 
     @Test

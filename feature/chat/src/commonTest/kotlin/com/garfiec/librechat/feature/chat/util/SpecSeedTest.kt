@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.config.InterfaceConfig
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -29,7 +30,7 @@ class SpecSeedTest {
         resolveDefaultModelSpec(config?.modelSpecs, config?.interfaceConfig?.modelSelect ?: true, lastSpec)
 
     private fun agent(id: String, isDefault: Boolean = false, softDefault: Boolean = false) =
-        ModelSpec(name = id, preset = Preset(agentId = id), isDefault = isDefault, softDefault = softDefault)
+        ModelSpec(name = id, preset = Preset(endpoint = "agents", agentId = id), isDefault = isDefault, softDefault = softDefault)
 
     private fun model(name: String, endpoint: String?, model: String?) =
         ModelSpec(name = name, preset = Preset(endpoint = endpoint, model = model))
@@ -182,6 +183,34 @@ class SpecSeedTest {
         val soft = resolve(config(*specs, prioritize = false), lastSpec = "soft")
         assertEquals("soft", soft?.spec)
         assertEquals(false, soft?.prioritized)
+    }
+
+    @Test
+    fun the_preset_endpoint_decides_the_pair_as_on_the_server() {
+        // A stray agent_id on another endpoint is ignored: the server resolves `preset.endpoint` first.
+        assertEquals(
+            SpecSeed("openAI", "gpt-4.1", prioritized = false, spec = "stray"),
+            ModelSpec(name = "stray", preset = Preset(endpoint = "openAI", model = "gpt-4.1", agentId = "agent_x")).toSeed(),
+        )
+        assertEquals(
+            SpecSeed(EndpointConstants.AGENTS, "agent_x", prioritized = false, spec = "writer"),
+            ModelSpec(name = "writer", preset = Preset(endpoint = "agents", model = "gpt-4o", agentId = "agent_x")).toSeed(),
+        )
+        // The server writes an inferred endpoint into the served config, so one that arrives
+        // without an endpoint was an explicit `endpoint: null`, which opens nothing.
+        assertNull(ModelSpec(name = "no_endpoint", preset = Preset(agentId = "agent_x")).toSeed())
+        assertNull(ModelSpec(name = "blank_agent", preset = Preset(endpoint = "agents", agentId = "")).toSeed())
+    }
+
+    @Test
+    fun a_reopened_pick_follows_its_spec_to_the_current_pair() {
+        val specs = ModelSpecs(list = listOf(model("fast", "openAI", "gpt-4.1"), model("bare", "openAI", null)))
+        assertEquals(ModelChoice.Spec("fast", "openAI", "gpt-4.1"), specs.reopenedPick("openAI", "gpt-4o", "fast"))
+        assertEquals(ModelChoice.Spec("fast", "openAI", "gpt-4.1"), specs.reopenedPick("openAI", "gpt-4.1", "fast"))
+        assertEquals(ModelChoice.Raw("openAI", "gpt-4o"), specs.reopenedPick("openAI", "gpt-4o", "gone"))
+        assertEquals(ModelChoice.Raw("openAI", "gpt-4o"), specs.reopenedPick("openAI", "gpt-4o", "bare"))
+        assertEquals(ModelChoice.Raw("openAI", "gpt-4o"), specs.reopenedPick("openAI", "gpt-4o", null))
+        assertEquals(ModelChoice.Raw("openAI", "gpt-4o"), (null as ModelSpecs?).reopenedPick("openAI", "gpt-4o", "fast"))
     }
 
     @Test

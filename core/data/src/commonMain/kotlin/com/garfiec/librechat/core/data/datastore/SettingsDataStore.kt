@@ -680,8 +680,11 @@ class SettingsDataStore(
      * usage signal (a passively auto-restored model that's never chatted with must not climb the
      * ranking). Read-modify-write of the account-scoped counts map; a monotonically increasing
      * [UsageEntry.seq] provides the recency tie-break and bounds map growth via [MAX_USAGE_ENTRIES].
+     *
+     * A send through a model spec counts apart from the raw model, under [spec], so its shortcut
+     * reopens the spec; [label] is kept for the shortcut's title, the latest one a send carried.
      */
-    suspend fun incrementModelUsage(endpoint: String, model: String) {
+    suspend fun incrementModelUsage(endpoint: String, model: String, spec: String? = null, label: String? = null) {
         if (endpoint.isBlank() || model.isBlank()) return
         // Await account resolution instead of snapshotting it: the first send right after a fresh
         // login can fire before the active account has re-homed (the bearer is already staged, so the
@@ -695,9 +698,11 @@ class SettingsDataStore(
             dataStore.edit { prefs ->
                 val current = decodeUsage(prefs[key])
                 val nextSeq = (current.values.maxOfOrNull { it.seq } ?: 0L) + 1
-                val composite = usageCompositeKey(endpoint, model)
-                val incremented = current[composite]?.let { it.copy(count = it.count + 1, seq = nextSeq) }
-                    ?: UsageEntry(count = 1, seq = nextSeq)
+                val specName = spec?.takeIf { it.isNotBlank() }
+                val composite = usageCompositeKey(endpoint, model, specName)
+                val specLabel = label?.takeIf { it.isNotBlank() && specName != null }
+                val incremented = current[composite]?.let { it.copy(count = it.count + 1, seq = nextSeq, label = specLabel ?: it.label) }
+                    ?: UsageEntry(count = 1, seq = nextSeq, label = specLabel)
                 val merged = current + (composite to incremented)
                 // Keep the map bounded: retain the strongest entries by the same (count, recency) order
                 // the ranking uses, so a long tail of one-off models can't grow the pref without limit.
@@ -714,31 +719,6 @@ class SettingsDataStore(
             }
         }
     }
-
-    private fun usageCompositeKey(endpoint: String, model: String) =
-        "$endpoint$USAGE_KEY_SEPARATOR$model"
-
-    /** Tolerant decode — a malformed/absent blob yields an empty map, never a crash. */
-    private fun decodeUsage(raw: String?): Map<String, UsageEntry> =
-        raw?.let { runCatching { usageJson.decodeFromString<Map<String, UsageEntry>>(it) }.getOrNull() }
-            ?: emptyMap()
-
-    /** Decode + rank by (count desc, recency desc), take [limit], split composite keys to [ModelRef]. */
-    private fun rankUsage(raw: String?, limit: Int): List<ModelRef> =
-        decodeUsage(raw).entries
-            .sortedWith(
-                compareByDescending<Map.Entry<String, UsageEntry>> { it.value.count }
-                    .thenByDescending { it.value.seq },
-            )
-            .take(limit)
-            .mapNotNull { (composite, _) ->
-                val sep = composite.indexOf(USAGE_KEY_SEPARATOR)
-                if (sep <= 0 || sep >= composite.lastIndex) {
-                    null
-                } else {
-                    ModelRef(composite.substring(0, sep), composite.substring(sep + 1))
-                }
-            }
 
     suspend fun setTtsSource(source: String) {
         dataStore.edit { prefs ->
@@ -963,7 +943,6 @@ class SettingsDataStore(
         private const val PREFETCH_LIST_REFRESHED_AT = "prefetch_list_refreshed_at"
         private const val PREFETCH_LAST_SCHEDULED_RUN = "prefetch_last_scheduled_run"
         private const val MAX_USAGE_ENTRIES = 50
-        private const val USAGE_KEY_SEPARATOR = '\u0000'
         private val KEY_DISMISS_KEYBOARD_ON_SEND = booleanPreferencesKey("dismiss_keyboard_on_send")
         private val KEY_TTS_SOURCE = stringPreferencesKey("tts_source")
         private val KEY_TTS_SPEECH_RATE = floatPreferencesKey("tts_speech_rate")
@@ -998,9 +977,47 @@ class SettingsDataStore(
     }
 }
 
-/** Per-model usage record: total send [count], plus a monotonic [seq] for the recency tie-break. */
+private const val USAGE_KEY_SEPARATOR = '\u0000'
+
+/** `endpoint␀model`, plus `␀spec` for a spec's sends; a raw pair keeps the two-part key it always had. */
+private fun usageCompositeKey(endpoint: String, model: String, spec: String?) =
+    "$endpoint$USAGE_KEY_SEPARATOR$model" + (spec?.let { "$USAGE_KEY_SEPARATOR$it" } ?: "")
+
+/** Tolerant decode — a malformed/absent blob yields an empty map, never a crash. */
+private fun decodeUsage(raw: String?): Map<String, UsageEntry> =
+    raw?.let { runCatching { usageJson.decodeFromString<Map<String, UsageEntry>>(it) }.getOrNull() }
+        ?: emptyMap()
+
+/** Decode + rank by (count desc, recency desc), take [limit], split composite keys to [ModelRef]. */
+private fun rankUsage(raw: String?, limit: Int): List<ModelRef> =
+    decodeUsage(raw).entries
+        .sortedWith(
+            compareByDescending<Map.Entry<String, UsageEntry>> { it.value.count }
+                .thenByDescending { it.value.seq },
+        )
+        .asSequence()
+        .mapNotNull { (composite, entry) ->
+            val parts = composite.split(USAGE_KEY_SEPARATOR)
+            val endpoint = parts.getOrNull(0)?.takeIf { it.isNotEmpty() }
+            val model = parts.getOrNull(1)?.takeIf { it.isNotEmpty() }
+            val spec = parts.getOrNull(2)?.takeIf { it.isNotEmpty() }
+            if (endpoint == null || model == null || parts.size > 3) {
+                null
+            } else {
+                ModelRef(endpoint, model, spec, entry.label.takeIf { spec != null })
+            }
+        }
+        // A spec counted on two pairs (an admin moved it) reopens the same spec either way: one shortcut.
+        .distinctBy { ref -> ref.spec ?: "${ref.endpoint}$USAGE_KEY_SEPARATOR${ref.model}" }
+        .take(limit)
+        .toList()
+
+/**
+ * Per-model usage record: total send [count], plus a monotonic [seq] for the recency tie-break.
+ * [label] is a spec entry's display label, absent from entries written before specs were counted.
+ */
 @Serializable
-private data class UsageEntry(val count: Int, val seq: Long)
+private data class UsageEntry(val count: Int, val seq: Long, val label: String? = null)
 
 /** One slot's Skills toggle; [seq] orders entries for the size cap. */
 @Serializable
