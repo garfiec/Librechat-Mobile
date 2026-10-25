@@ -225,7 +225,7 @@ must exist in BOTH `androidMain` and `iosMain`. Forgetting iosMain compiles loca
 
 ## Build System
 
-- Gradle 9.5.1, AGP 9.2.1, Kotlin 2.4.10, compileSdk 36, minSdk 26
+- Gradle 9.8.2, AGP 9.4.1, Kotlin 2.4.10, compileSdk 37, minSdk 26
 - Compose Multiplatform 1.11.0-beta03, Compose BOM 2026.06.00
 - 13 convention plugins under `build-logic/convention/src/main/kotlin/`
 - Version catalog: `gradle/libs.versions.toml`
