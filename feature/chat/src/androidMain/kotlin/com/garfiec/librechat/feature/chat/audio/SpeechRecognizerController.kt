@@ -44,7 +44,10 @@ class SpeechRecognizerController(private val appContext: Context) {
     /** Cumulative partial transcript for the current listening session (replaces prior partial). */
     var onPartial: (String) -> Unit = {}
 
-    /** A finalized segment at a silence boundary; commit it and keep listening (continuous). */
+    /**
+     * A finalized segment at a silence boundary; commit it and keep listening (continuous). Blank when
+     * the recognizer finalized nothing, or before an error restart: commit the partial already shown.
+     */
     var onSegment: (String) -> Unit = {}
 
     /** Unrecoverable error; the session is over (recognizer already destroyed). */
@@ -205,8 +208,10 @@ class SpeechRecognizerController(private val appContext: Context) {
             if (text.isNotBlank()) {
                 consecutiveEmptyRestarts = 0
                 recoveryAttempts = 0
-                onSegment(text)
             }
+            // A blank final still ends the segment: the delegate commits the partial on screen, which
+            // the restarted recognizer's first partial would otherwise replace.
+            onSegment(text)
             when {
                 stopped -> finish()
                 // End-of-speech mode: the recognizer detected the user finished a phrase — stop here
@@ -227,6 +232,9 @@ class SpeechRecognizerController(private val appContext: Context) {
             if (finished) return
             disarmStartWatchdog()
             log.d { "onError code=$error stopped=$stopped onDevice=$usingOnDevice" }
+            // Every path below either ends the session or starts a fresh recognizer whose first
+            // partial would replace the words on screen, so commit them as a segment first.
+            if (!stopped) onSegment("")
             when {
                 // A stop() races the final; treat a post-stop error as "no more results".
                 stopped -> finish()
@@ -308,6 +316,7 @@ class SpeechRecognizerController(private val appContext: Context) {
             startWatchdog = null
             if (stopped || finished) return@Runnable
             log.d { "start watchdog fired; recognizer never called back (onDevice=$usingOnDevice)" }
+            onSegment("")
             when {
                 usingOnDevice && !triedNetworkFallback -> fallBackToNetwork(::createAndListen)
                 else -> fail("Speech recognition didn't start. Tap the mic to try again.")

@@ -5,8 +5,10 @@ import com.garfiec.librechat.core.common.speech.mapSttLanguageToLocale
 import com.garfiec.librechat.feature.chat.audio.CLOUD_STOP_WATCHDOG_MS
 import com.garfiec.librechat.feature.chat.audio.DictationBuffer
 import com.garfiec.librechat.feature.chat.audio.MAX_EMPTY_SEGMENTS
+import com.garfiec.librechat.feature.chat.audio.RecognitionErrorKind
 import com.garfiec.librechat.feature.chat.audio.STOP_WATCHDOG_MS
 import com.garfiec.librechat.feature.chat.audio.appendToBase
+import com.garfiec.librechat.feature.chat.audio.classifyRecognitionError
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.VoiceHandle
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -20,6 +22,7 @@ import platform.AVFAudio.AVAudioSessionCategoryPlayAndRecord
 import platform.AVFAudio.AVAudioSessionModeDefault
 import platform.AVFAudio.AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation
 import platform.AVFAudio.setActive
+import platform.Foundation.NSError
 import platform.Foundation.NSLocale
 import platform.Foundation.currentLocale
 import platform.Foundation.languageCode
@@ -28,6 +31,7 @@ import platform.Speech.SFSpeechAudioBufferRecognitionRequest
 import platform.Speech.SFSpeechRecognitionTask
 import platform.Speech.SFSpeechRecognizer
 import platform.Speech.SFSpeechRecognizerAuthorizationStatus
+import platform.Speech.SFTranscriptionSegment
 
 /**
  * iOS implementation of [PlatformVoiceInput] using AVAudioEngine + SFSpeechRecognizer
@@ -319,16 +323,23 @@ class IosVoiceInput(
                 if (token != sessionToken || finished) return@launch
                 if (result != null) {
                     val transcript = result.bestTranscription.formattedString
-                    log.d { "Recognition result: '$transcript', isFinal=${result.isFinal()}" }
+                    // Set on the result that ends an utterance. iOS (18 and iPadOS 26 at least) then
+                    // restarts the cumulative transcript without an isFinal, which the buffer must
+                    // commit across.
+                    val utteranceEnded = result.speechRecognitionMetadata != null
+                    log.d {
+                        val segments = result.bestTranscription.segments.filterIsInstance<SFTranscriptionSegment>()
+                        val last = segments.lastOrNull()
+                        "Recognition result: '$transcript', isFinal=${result.isFinal()}, " +
+                            "utteranceEnded=$utteranceEnded, start=${segments.firstOrNull()?.timestamp}, " +
+                            "end=${last?.let { it.timestamp + it.duration }}"
+                    }
                     if (result.isFinal() && !stopRequested) {
                         if (sttEndOfSpeech.value) {
                             // End-of-speech mode: the recognizer finished a phrase — commit and end the
                             // session (hands-free) instead of restarting. Auto-send fires here when
                             // enabled (gated inside finalizeSession → maybeAutoSend).
-                            val merged = buffer.merge(handle.state.inputText, transcript)
-                            if (merged != handle.state.inputText) {
-                                handle.update { composer = composer.copy(inputText = merged) }
-                            }
+                            applyComposer(buffer.merge(handle.state.inputText, transcript))
                             finalizeSession(autoSend = true)
                             return@launch
                         }
@@ -336,22 +347,15 @@ class IosVoiceInput(
                         // cap) with no user stop — commit this segment and restart the recognition task
                         // on the live engine so dictation stays continuous. Bound consecutive empty
                         // finals so silence can't spin forever.
-                        val committed = buffer.commit(handle.state.inputText, transcript)
-                        if (committed != handle.state.inputText) {
-                            handle.update { composer = composer.copy(inputText = committed) }
-                        }
-                        if (transcript.isBlank() && ++consecutiveEmptyFinals >= MAX_EMPTY_SEGMENTS) {
-                            log.d { "empty-final cap reached; ending session" }
-                            finalizeSession(autoSend = false)
-                        } else {
-                            if (transcript.isNotBlank()) consecutiveEmptyFinals = 0
-                            restartRecognition(useOnDevice = shouldUseOnDevice())
-                        }
+                        // A blank final still commits the last partial, so that segment wasn't empty.
+                        val heardSpeech = transcript.isNotBlank() || buffer.hasLiveTranscript
+                        applyComposer(buffer.commit(handle.state.inputText, transcript))
+                        endSegmentAndRestart(heardSpeech)
                         return@launch
                     }
                     // Live partials (~10×/s, often unchanged during a pause) and the user-stop final:
                     // merge and only re-emit the state when the text changed.
-                    val merged = buffer.merge(handle.state.inputText, transcript)
+                    val merged = buffer.merge(handle.state.inputText, transcript, utteranceEnded)
                     if (merged != handle.state.inputText) {
                         handle.update { composer = composer.copy(inputText = merged) }
                         // In end-of-speech mode, (re)start the silence debounce on each new word so a
@@ -363,33 +367,74 @@ class IosVoiceInput(
                         finalizeSession(autoSend = true)
                     }
                 }
-                if (recognitionError != null && !finished) {
-                    val wasStop = stopRequested
-                    if (!wasStop && requestedOnDevice) {
-                        // On-device recognition failed at runtime (e.g. the language model isn't
-                        // installed for this locale). Retry on Apple's cloud recognizer before
-                        // surfacing an error — mirrors the Android controller's network fallback. The
-                        // latch keeps subsequent continuous restarts on the cloud too.
-                        triedCloudFallback = true
-                        log.w { "on-device recognition failed; retrying on cloud: ${recognitionError.localizedDescription}" }
-                        restartRecognition(useOnDevice = false)
-                        return@launch
-                    }
-                    log.e { "Recognition error: ${recognitionError.localizedDescription}" }
-                    // Route through the single teardown path so the watchdog/cleanup/state logic can't
-                    // drift. A cancelled/expected error after a user stop+endAudio isn't worth surfacing
-                    // (and still auto-sends what was captured); a mid-session error surfaces.
-                    finalizeSession(
-                        autoSend = wasStop,
-                        errorMessage = if (wasStop) {
-                            null
-                        } else {
-                            "Speech recognition error: ${recognitionError.localizedDescription}"
-                        },
-                    )
-                }
+                if (recognitionError != null && !finished) onRecognitionError(recognitionError)
             }
         }
+    }
+
+    /**
+     * Continuous mode, after a segment was committed: restart recognition, unless [MAX_EMPTY_SEGMENTS]
+     * segments in a row heard nothing, so a recognizer that ends on silence can't keep the mic open.
+     */
+    private fun endSegmentAndRestart(heardSpeech: Boolean) {
+        if (heardSpeech) {
+            consecutiveEmptyFinals = 0
+        } else if (++consecutiveEmptyFinals >= MAX_EMPTY_SEGMENTS) {
+            log.d { "empty-segment cap reached; ending session" }
+            finalizeSession(autoSend = false)
+            return
+        }
+        restartRecognition(useOnDevice = shouldUseOnDevice())
+    }
+
+    private fun onRecognitionError(error: NSError) {
+        val wasStop = stopRequested
+        val kind = classifyRecognitionError(error.domain.orEmpty(), error.code)
+        log.w {
+            "Recognition error ${error.domain}/${error.code} ($kind): " +
+                error.localizedDescription
+        }
+        if (!wasStop && kind == RecognitionErrorKind.NO_SPEECH) {
+            // Silence is not an on-device failure: it must not demote the session to the
+            // cloud. Continuous mode treats it like an empty final; end-of-speech mode
+            // ends the session the way its silence timer would.
+            if (sttEndOfSpeech.value) {
+                finalizeSession(autoSend = true)
+                return
+            }
+            val heardSpeech = buffer.hasLiveTranscript
+            applyComposer(buffer.commitCurrent(handle.state.inputText))
+            endSegmentAndRestart(heardSpeech)
+            return
+        }
+        if (!wasStop && kind == RecognitionErrorKind.CANCELLED) {
+            // Not one of our own restarts (the callback's token check drops those): the system
+            // cancelled the task. End quietly, keeping what was dictated.
+            finalizeSession(autoSend = false)
+            return
+        }
+        if (!wasStop && requestedOnDevice) {
+            // On-device recognition failed at runtime (e.g. the language model isn't
+            // installed for this locale). Retry on Apple's cloud recognizer before
+            // surfacing an error — mirrors the Android controller's network fallback. The
+            // latch keeps subsequent continuous restarts on the cloud too. Commit first:
+            // the new task's transcript starts empty and would replace the shown words.
+            triedCloudFallback = true
+            applyComposer(buffer.commitCurrent(handle.state.inputText))
+            restartRecognition(useOnDevice = false)
+            return
+        }
+        // Route through the single teardown path so the watchdog/cleanup/state logic can't
+        // drift. A cancelled/expected error after a user stop+endAudio isn't worth surfacing
+        // (and still auto-sends what was captured); a mid-session error surfaces.
+        finalizeSession(
+            autoSend = wasStop,
+            errorMessage = if (wasStop) {
+                null
+            } else {
+                "Speech recognition error: ${error.localizedDescription}"
+            },
+        )
     }
 
     /**
@@ -408,6 +453,10 @@ class IosVoiceInput(
         recognitionTask = null
         recognitionRequest = null
         startRecognitionTask(useOnDevice)
+    }
+
+    private fun applyComposer(text: String) {
+        if (text != handle.state.inputText) handle.update { composer = composer.copy(inputText = text) }
     }
 
     override fun stopRecording() {

@@ -42,9 +42,21 @@ internal class DictationBuffer {
      */
     private var lastTranscript: String = ""
 
+    /**
+     * A transcript the recognizer marked as the end of an utterance without finalizing it. iOS (18 and
+     * iPadOS 26 at least) restarts the cumulative transcript after a pause with no `isFinal`, so the
+     * next partial would replace the words already shown. Held until the next partial says whether it continues
+     * this one (a revision) or starts over (commit this first). See [isTranscriptContinuation].
+     */
+    private var armedSegment: String? = null
+
     /** Whether this session produced any (non-blank) transcript. Gates auto-send. */
     var producedText: Boolean = false
         private set
+
+    /** Whether the current segment is showing uncommitted words. */
+    val hasLiveTranscript: Boolean
+        get() = lastTranscript.isNotBlank()
 
     /** Snapshot the composer as the base future transcripts append onto. */
     fun begin(currentText: String) {
@@ -52,6 +64,7 @@ internal class DictationBuffer {
         baseText = currentText
         lastApplied = currentText
         lastTranscript = ""
+        armedSegment = null
         producedText = false
     }
 
@@ -60,25 +73,63 @@ internal class DictationBuffer {
      * If the user typed/deleted since our last write, their edit survives: the base is re-derived by
      * stripping the previously-applied cumulative [transcript] suffix (so it isn't duplicated), falling
      * back to their text verbatim when they edited inside the live-transcript region itself.
+     *
+     * A blank [transcript] keeps the words already shown: recognizers emit empty results mid-session,
+     * and reading one as "the transcript so far" wipes the segment. [utteranceEnded] arms [transcript]
+     * as a possible segment boundary (see [armedSegment]).
      */
-    fun merge(currentText: String, transcript: String): String {
+    fun merge(currentText: String, transcript: String, utteranceEnded: Boolean = false): String {
         if (currentText != lastApplied) baseText = stripTranscriptSuffix(currentText, lastTranscript)
-        if (transcript.isNotBlank()) producedText = true
+        if (transcript.isBlank()) {
+            lastApplied = currentText
+            return currentText
+        }
+        // A repeat of the armed transcript (partials re-deliver during a pause) or a revision that adds
+        // no words is still the boundary: stay armed for the restart that may follow it.
+        var stillArmed = false
+        armedSegment?.let { armed ->
+            armedSegment = null
+            if (!isTranscriptContinuation(armed, transcript)) {
+                baseText = appendToBase(baseText, armed)
+                lastTranscript = ""
+            } else {
+                stillArmed = normalizedWords(transcript).size <= normalizedWords(armed).size
+            }
+        }
+        producedText = true
         val merged = appendToBase(baseText, transcript)
         lastApplied = merged
         lastTranscript = transcript
+        if (utteranceEnded || stillArmed) armedSegment = transcript
         return merged
     }
 
     /**
      * Commit a finalized [transcript] segment as the new base (continuous dictation, where each
-     * segment is independent), returning the composer text to show.
+     * segment is independent), returning the composer text to show. A blank [transcript] commits the
+     * text on screen instead (see [commitCurrent]), so an empty final can't drop the segment.
      */
     fun commit(currentText: String, transcript: String): String {
+        if (transcript.isBlank()) return commitCurrent(currentText)
         val merged = merge(currentText, transcript)
         baseText = merged
         lastTranscript = ""
+        armedSegment = null
         return merged
+    }
+
+    /**
+     * Commit the text on screen, live partial and any user edit included, as the new base, before the
+     * caller restarts recognition on a fresh task whose transcript starts empty. Takes the composer
+     * as-is rather than re-appending the partial, which would duplicate it after an edit that moved
+     * it off the end, or restore it after the user deleted it.
+     */
+    fun commitCurrent(currentText: String): String {
+        baseText = currentText
+        lastApplied = currentText
+        lastTranscript = ""
+        armedSegment = null
+        return currentText
     }
 
     /** The composer text to show after a cancel: the original unless the user edited since our last write. */
@@ -116,3 +167,43 @@ internal fun stripTranscriptSuffix(text: String, transcript: String): String {
     val base = text.dropLast(transcript.length)
     return if (base.endsWith(" ")) base.dropLast(1) else base
 }
+
+/**
+ * Whether [next] continues the transcript [previous] rather than starting a new one. Compared on
+ * normalized words (case and punctuation dropped), ignoring [previous]'s last word, which the
+ * recognizer may still revise. Only meaningful at an utterance boundary: mid-utterance revisions can
+ * rewrite earlier words too, so a prefix test there would misread them as restarts.
+ *
+ * A single-word [previous] has nothing stable to compare, so its word must open [next] unchanged
+ * (`So` → `Sometimes` is a new utterance). Text in a script written without spaces (`你好世界`) arrives
+ * as one "word" that keeps growing, so it needs only a shared leading half: `你好世界今天` continues it.
+ */
+internal fun isTranscriptContinuation(previous: String, next: String): Boolean {
+    val prev = normalizedWords(previous)
+    if (prev.isEmpty()) return true
+    val following = normalizedWords(next)
+    if (prev.size == 1) {
+        val first = following.firstOrNull() ?: return false
+        val word = prev[0]
+        if (!word.any(::isUnspacedScript)) return first == word
+        return first.commonPrefixWith(word).length >= maxOf(1, word.length / 2)
+    }
+    val stable = prev.dropLast(1)
+    return following.size >= stable.size && following.subList(0, stable.size) == stable
+}
+
+private fun normalizedWords(text: String): List<String> =
+    text.lowercase()
+        .map { if (it.isLetterOrDigit() || it == '\'') it else ' ' }
+        .joinToString("")
+        .split(' ')
+        .filter { it.isNotEmpty() }
+
+/** Scripts written without spaces between words: CJK, kana, Thai, Lao, Myanmar, Khmer. */
+private fun isUnspacedScript(c: Char): Boolean =
+    c in '\u0E00'..'\u0EFF' ||
+        c in '\u1000'..'\u109F' ||
+        c in '\u1780'..'\u17FF' ||
+        c in '\u3040'..'\u30FF' ||
+        c in '\u3400'..'\u9FFF' ||
+        c in '\uF900'..'\uFAFF'
