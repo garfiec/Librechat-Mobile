@@ -628,7 +628,7 @@ class ChatViewModelSkillsTest {
 
             vm.startEditing("u1")
             vm.onEditTextChanged("summarize briefly")
-            vm.submitEdit()
+            vm.rerunEdit()
             runCurrent()
 
             assertThat(sent.single { it.isEdited }.manualSkills).containsExactly("pdf-tools")

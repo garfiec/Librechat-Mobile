@@ -302,6 +302,13 @@ class PrefetchEngineTest {
         override suspend fun updateMessageText(conversationId: String, messageId: String, text: String) =
             throw UnsupportedOperationException()
 
+        override suspend fun updateMessageContentPart(
+            conversationId: String,
+            messageId: String,
+            index: Int,
+            text: String,
+        ) = throw UnsupportedOperationException()
+
         override suspend fun branchMessage(conversationId: String, messageId: String, agentId: String?) =
             throw UnsupportedOperationException()
     }

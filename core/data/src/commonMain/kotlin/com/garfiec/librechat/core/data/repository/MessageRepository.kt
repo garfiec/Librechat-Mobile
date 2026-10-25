@@ -35,6 +35,26 @@ interface MessageRepository {
      */
     suspend fun refreshMessages(conversationId: String, originAccount: AccountId?): Result<List<Message>>
     suspend fun updateFeedback(conversationId: String, messageId: String, feedback: MinimalFeedback?): Result<Unit>
+
+    /**
+     * Edits the message's flat `text`. For a reply rendered from content parts this writes a field
+     * nothing displays — use [updateMessageContentPart] instead.
+     */
     suspend fun updateMessageText(conversationId: String, messageId: String, text: String): Result<Unit>
+
+    /**
+     * Edits one content part in place, by its raw index into `Message.content`.
+     *
+     * The server refuses an index that is out of range, or one naming a part that is neither TEXT
+     * nor THINK, so a wrong index surfaces as [Result.Error] rather than writing the wrong part.
+     * Each call rewrites the whole stored content array, so concurrent calls for two parts of the
+     * same message race — callers save sequentially.
+     */
+    suspend fun updateMessageContentPart(
+        conversationId: String,
+        messageId: String,
+        index: Int,
+        text: String,
+    ): Result<Unit>
     suspend fun branchMessage(conversationId: String, messageId: String, agentId: String? = null): Result<Message>
 }

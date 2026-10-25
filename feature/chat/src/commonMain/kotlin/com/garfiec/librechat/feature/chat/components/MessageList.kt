@@ -46,9 +46,11 @@ import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.util.MessageNode
+import com.garfiec.librechat.feature.chat.util.hasEditablePart
 import com.garfiec.librechat.feature.chat.util.withPreviews
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import com.garfiec.librechat.feature.chat.viewmodel.JumpFlash
+import com.garfiec.librechat.feature.chat.viewmodel.MessageEditingState
 import com.garfiec.librechat.feature.chat.viewmodel.SearchFocusRequest
 import com.garfiec.librechat.feature.chat.viewmodel.SearchMatch
 import kotlinx.coroutines.delay
@@ -97,11 +99,15 @@ fun MessageList(
     onReadAloud: (messageId: String) -> Unit = {},
     onFork: (messageId: String) -> Unit = {},
     currentlyReadingMessageId: String? = null,
-    editingMessageId: String? = null,
-    editingText: String = "",
+    /**
+     * Which message is being edited, with its drafts and their baselines. One value rather than an
+     * id beside them, so the two cannot disagree about which row the drafts belong to.
+     */
+    editing: MessageEditingState = MessageEditingState(),
     onEditTextChange: (String) -> Unit = {},
-    onEditSaveAndSubmit: () -> Unit = {},
-    onEditSaveOnly: () -> Unit = {},
+    onEditPartTextChange: (Int, String) -> Unit = { _, _ -> },
+    onEditSave: () -> Unit = {},
+    onEditRerun: () -> Unit = {},
     onEditCancel: () -> Unit = {},
     baseUrl: String = "",
     fontSizeMultiplier: Float = 1.0f,
@@ -484,7 +490,7 @@ fun MessageList(
                     // slot reuse from handing it a user bubble's composition, or the reverse.
                     val role = when {
                         !node.message.isCreatedByUser -> "assistant"
-                        wakeups.wakeupOf(node, isEditing = editingMessageId == node.message.messageId) != null -> "system"
+                        wakeups.wakeupOf(node, isEditing = editing.editingMessageId == node.message.messageId) != null -> "system"
                         else -> "user"
                     }
                     "${chatLayoutStyle}_$role"
@@ -514,10 +520,36 @@ fun MessageList(
                     LocalSearchFocusNonce provides if (isCurrent) searchFocusRequest?.requestId ?: 0L else 0L,
                     LocalSuppressGroupAutoCollapse provides (node.message.messageId == justSettledMessageId),
                     LocalFeedbackEnabled provides (!isStreaming && !readOnly),
-                    LocalResubmitEnabled provides resubmit,
                     LocalExpansionScope provides expansionScope(ExpansionPane.PRIMARY, node.message.parentMessageId),
                 ) {
-                val systemEvent = wakeups.wakeupOf(node, isEditing = editingMessageId == node.message.messageId)
+                // Built here, where the message is in hand: whether a rerun is possible, and
+                // whether the changes can ride it, are both questions about THIS message's parts
+                // and parent. Null on every other row (see MessageEditSession).
+                // Memoized: the artifact check parses markdown, and this subtree recomposes on
+                // every streaming flush. Everything else in this file that scans content parts is
+                // wrapped the same way.
+                val editable = remember(node.message.content, node.message.text) {
+                    hasEditablePart(node.message)
+                }
+                val editSession = if (editing.editingMessageId == node.message.messageId) {
+                    rememberMessageEditSession(
+                        message = node.message,
+                        // The edited message is on the active path, so its parent is too — no need
+                        // for the whole tree to resolve the turn a rerun would replay.
+                        displayed = displayMessages,
+                        editing = editing,
+                        saveAllowed = !isStreaming && !readOnly,
+                        canStartRun = resubmit,
+                        onTextChange = onEditTextChange,
+                        onPartTextChange = onEditPartTextChange,
+                        onSave = onEditSave,
+                        onRerun = onEditRerun,
+                        onCancel = onEditCancel,
+                    )
+                } else {
+                    null
+                }
+                val systemEvent = wakeups.wakeupOf(node, isEditing = editing.editingMessageId == node.message.messageId)
                 if (systemEvent != null) {
                     SystemEventRow(
                         display = systemEvent,
@@ -531,7 +563,7 @@ fun MessageList(
                             onSiblingNavigation(node.treeParentKey, newIndex)
                         },
                         onCopy = { onCopyMessage(node.message.messageId) },
-                        onEdit = if (resubmit) {
+                        onEdit = if (resubmit && editable) {
                             { onEditMessage(node.message.messageId) }
                         } else {
                             null
@@ -551,7 +583,7 @@ fun MessageList(
                         onSiblingNavigation(node.treeParentKey, newIndex)
                     },
                     showActionsInitially = lastNavigatedParentKey == node.treeParentKey,
-                    onEdit = if (resubmit) {
+                    onEdit = if (resubmit && editable) {
                         { onEditMessage(node.message.messageId) }
                     } else {
                         null
@@ -578,12 +610,7 @@ fun MessageList(
                     fontSizeMultiplier = fontSizeMultiplier,
                     isReading = currentlyReadingMessageId == node.message.messageId,
                     currentFeedback = node.message.feedback?.rating,
-                    isEditing = editingMessageId == node.message.messageId,
-                    editText = if (editingMessageId == node.message.messageId) editingText else "",
-                    onEditTextChange = onEditTextChange,
-                    onEditSaveAndSubmit = onEditSaveAndSubmit,
-                    onEditSaveOnly = onEditSaveOnly,
-                    onEditCancel = onEditCancel,
+                    editSession = editSession,
                     userAvatarUrl = userAvatarUrl,
                     userName = userName,
                     selectedEndpoint = selectedEndpoint,

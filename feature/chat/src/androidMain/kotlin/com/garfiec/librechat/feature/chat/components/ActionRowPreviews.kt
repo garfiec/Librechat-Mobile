@@ -59,14 +59,6 @@ private fun SetApiKeyHeaderGlassPreview() = PreviewSurface(UiStyle.LIQUID_GLASS)
 @Composable
 private fun PromptVersionsPreview() = PreviewSurface(UiStyle.MATERIAL) { PromptVersionsHost() }
 
-@PreviewNarrowScreens
-@Composable
-private fun InlineEditMaterialPreview() = PreviewSurface(UiStyle.MATERIAL) { InlineEditHost() }
-
-@PreviewNarrowScreens
-@Composable
-private fun InlineEditGlassPreview() = PreviewSurface(UiStyle.LIQUID_GLASS) { InlineEditHost() }
-
 @Composable
 private fun PreviewSurface(style: UiStyle, content: @Composable () -> Unit) {
     LibreChatTheme(darkTheme = true, uiStyle = style, content = content)
@@ -159,17 +151,4 @@ private fun PromptVersionsHost() {
         PromptVersionItem(prompt = prompt, versionNumber = 3, isProduction = true, onSetProduction = {})
         PromptVersionItem(prompt = prompt.copy(id = "p1"), versionNumber = 2, isProduction = false, onSetProduction = {})
     }
-}
-
-@Composable
-private fun InlineEditHost() {
-    var text by remember { mutableStateOf("Can you rewrite this so it reads more formally?") }
-    InlineEditInput(
-        text = text,
-        onTextChange = { text = it },
-        onSaveAndSubmit = {},
-        onSaveOnly = {},
-        onCancel = {},
-        modifier = Modifier.padding(horizontal = 16.dp),
-    )
 }

@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.data.repository
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.request.ChatRequest
+import com.garfiec.librechat.core.model.request.EditedContent
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.core.model.request.NO_PARENT
 import com.garfiec.librechat.core.model.request.manualSkillsSupportedOn
@@ -45,6 +46,7 @@ object ChatPayloadBuilder {
         spec: String? = null,
         chatProjectId: String? = null,
         manualSkills: List<String>? = null,
+        editedContent: EditedContent? = null,
     ): ChatRequest {
         val resolvedParentMessageId = parentMessageId ?: NO_PARENT
         // Assistants take none (upstream createPayload strips them there). Otherwise deduped and
@@ -74,12 +76,11 @@ object ChatPayloadBuilder {
             // `getCompactionRejection` 400s `INVALID_COMPACTION_REQUEST` on ANY of `isRegenerate`,
             // `isContinued`, `editedContent` or `responseMessageId` arriving alongside `compact`.
             //
-            // Only `isRegenerate` is dropped here, because it is the only one a compaction sets:
-            // `compactConversationNow` is the sole `compact = true` caller and passes nothing
-            // else, so the other three sit at their defaults and never reach the wire. A future
-            // caller that does set one has to drop it here too — this line is not a guard for
-            // them. Upstream drops its own the same way, `isRegenerate: compact === true ?
-            // undefined : isRegenerate` in packages/data-provider/src/createPayload.ts.
+            // `isRegenerate` and `editedContent` are dropped here structurally. `isContinued` and
+            // `responseMessageId` are not: they rely on `compactConversationNow`, the sole
+            // `compact = true` caller, never setting them. Upstream drops its own the same way,
+            // `isRegenerate: compact === true ? undefined : isRegenerate` in
+            // packages/data-provider/src/createPayload.ts.
             isRegenerate = if (compact == true) false else isRegenerate,
             compact = compact,
             isContinued = isContinued,
@@ -100,6 +101,7 @@ object ChatPayloadBuilder {
             // across any transport-level retry of the same POST. Additive; ignored if unclaimed.
             clientRequestId = Uuid.random().toString(),
             chatProjectId = chatProjectId,
+            editedContent = if (compact == true) null else editedContent,
         )
     }
 

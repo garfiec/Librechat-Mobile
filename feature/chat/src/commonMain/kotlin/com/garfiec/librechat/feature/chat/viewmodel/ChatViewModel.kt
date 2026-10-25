@@ -660,7 +660,6 @@ class ChatViewModel(
         treeDelegate = treeDelegate,
         streamingManager = streamingManager,
         requestBuilder = requestBuilder,
-        getMessageText = ::getMessageText,
         runWhenSendReady = sendReadinessDelegate::runWhenSendReady,
     )
 
@@ -1182,11 +1181,6 @@ class ChatViewModel(
         viewModelScope.launch { settingsDataStore.setDuringRunAction(action) }
     }
 
-    fun editMessage(messageId: String, newText: String) {
-        if (_uiState.value.isEditingQueued) return
-        editingDelegate.editMessage(messageId, newText)
-    }
-
     fun regenerateMessage(messageId: String) {
         if (_uiState.value.isEditingQueued) return
         editingDelegate.regenerateMessage(messageId)
@@ -1331,7 +1325,7 @@ class ChatViewModel(
     /**
      * Submits [feedback] for a message, or clears it when null.
      *
-     * Gated on `!isStreaming` like `switchBranch` / `editMessage` / `regenerateMessage`, and for
+     * Gated on `!isStreaming` like `switchBranch` / `rerunEdit` / `regenerateMessage`, and for
      * the same reason: the repository caches the result in Room, and the `loadConversation`
      * observer would re-emit and rebuild `displayMessages` with no `streamingLeafId` — un-truncating
      * the path so the in-flight reply renders after a stale branch instead of in its place. The
@@ -1365,11 +1359,14 @@ class ChatViewModel(
 
     fun onEditTextChanged(text: String) = editingDelegate.onEditTextChanged(text)
 
+    fun onEditPartTextChanged(index: Int, text: String) =
+        editingDelegate.onEditPartTextChanged(index, text)
+
     fun cancelEditing() = editingDelegate.cancelEditing()
 
-    fun submitEdit() = editingDelegate.submitEdit()
+    fun rerunEdit() = editingDelegate.rerunEdit()
 
-    fun saveEditOnly() = editingDelegate.saveEditOnly()
+    fun saveEdit() = editingDelegate.saveEdit()
 
     fun onPendingNavigationHandled() {
         streamingManager.reset()

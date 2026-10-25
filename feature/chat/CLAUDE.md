@@ -222,13 +222,52 @@ Compare setup stages specs like models, so a spec can be either lane before the 
 ### Streaming anchor (in-place edit/regenerate)
 - The streamed reply is rendered by `MessageList` as a trailing `StreamingMessageBubble` *outside* the tree — the mobile divergence from web, which streams into an in-tree `initialResponse` placeholder node.
 - So during edit/regenerate the bubble must land where the new branch belongs, not after the stale one. At stream start each send path rebuilds `displayMessages` via `buildActiveMessagePath(messages, activeBranches, streamingLeafId)`, where `streamingLeafId` is the message the in-flight reply attaches to: the path is truncated there (and that branch is forced over any `activeBranches` override), so the trailing bubble renders as its pending child.
-- The leaf is the optimistic user message for `doSendMessage` / `editUserMessage` (passed inline alongside the message insert), and the existing parent user message for `regenerateMessageNow` / `editAiMessage` (via `anchorStreamTo`).
+- The leaf is the optimistic user message for `doSendMessage` / `editUserMessage` (passed inline alongside the message insert), and the existing parent user message for `regenerateMessageNow` / `rerunReply` (via `anchorStreamTo`).
 - This is a one-shot rebuild — there is no stored anchor field. The truncated `displayMessages` just persists in state for the stream's duration. On Final the untruncated path is rebuilt **in memory** by `finalizeChatDisplay` (normal + temp chats); only comparison chats still rebuild via a background `loadConversation`/Room reconcile. The full tree stays in `messages`/DB, so the old branch remains reachable via sibling navigation.
-- **Invariant (load-bearing):** while streaming, nothing may write to Room or mutate `activeBranches` — otherwise the `loadConversation` observer re-emits and rebuilds `displayMessages` with no `streamingLeafId`, un-truncating the path and clobbering the in-place view. The send paths uphold this (no mid-stream Room write); `switchBranch`, `editMessage`, and `regenerateMessage` are all gated on `!isStreaming` so user taps can't break it either.
+- **Invariant (load-bearing):** while streaming, nothing may write to Room or mutate `activeBranches` — otherwise the `loadConversation` observer re-emits and rebuilds `displayMessages` with no `streamingLeafId`, un-truncating the path and clobbering the in-place view. The send paths uphold this (no mid-stream Room write); `switchBranch`, `rerunEdit`/`saveEdit`, and `regenerateMessage` are all gated on `!isStreaming` so user taps can't break it either.
 - **Handed-off new chat (load-bearing):** when a chat is created from the landing page, the landing VM is reset and a fresh `Chat(id)` VM resumes the stream — so the optimistic user message lives only in the discarded landing VM, and the server persists the *request* message only when the reply completes (`agents/request.js` saves it right before the Final event). Without intervention the resumed screen would show only the streaming bubble (no user message) for the whole stream. Fix: `NewChatSelectionHandoff` carries the optimistic `Message`; `ChatViewModel.init` seeds it into `messages`/`displayMessages` and into `pendingResumeUserMessage`. `loadConversation` keeps that seed appended — inside its off-Main `combine` map, guarded so it only appends while no server row is its copy — until the server's copy arrives, then drops it (so a later server-side delete still removes the row). "Its copy" is matched by id **or** by content (`isServerCopyOf`: user-authored, same parent, same text), because rc3+ servers do not adopt the client-minted id (see *Optimistic id reconciliation*). An id-only match never fired there, so a run that ended without a Final — a resume that 404s because the job already finished — left the seed as a second root sibling, and the path's newest-sibling default showed it alone over the persisted turn and its reply. `finalizeChatDisplay` *also* clears `pendingResumeUserMessage` in its atomic Final update. This is what feeds `finalizeChatDisplay`'s in-memory backfill in the handoff case — do **not** replace it with a network `reloadConversation` on Final (that was the #169 regression being avoided).
 - **Optimistic id reconciliation:** `doSendMessage` / `editUserMessage` mint the optimistic user message's id and send it as `ChatRequest.messageId` (the `userMessageId` arg on `startChat`), which servers before v0.8.8-rc3 adopt and echo in the Final `requestMessage`. **rc3+ does not:** the agents controller persists the user message under `resolvePreallocatedUserMessageId` (`overrideUserMessageId ?? overrideParentMessageId ?? randomUUID()`, `api/server/controllers/agents/request.js`) and overwrites the request's `messageId` with it. The web client sends `overrideUserMessageId` only for steer recovery and queue drain, never for a plain send. So on those servers the reconciliation below does not happen by id: the Final's `requestMessage` merges in (via `mergeFinalMessagesInMemory`, keyed by id) as a sibling of the optimistic message rather than over it, and the newest-sibling default is what shows the server's copy. For a normal chat the optimistic row was never persisted, so the next Room emission drops it. Whether a **temporary** chat keeps both as a visible sibling pair is not verified. On older servers the optimistic message does reconcile by id, for normal and temp chats alike, via `mergeFinalMessagesInMemory` (`finalizeChatDisplay`, in-memory). Normal chats additionally persist the finalized turn to Room via `cacheMessages` (no network reload); the response's `parentMessageId` matching the adopted id is also what lets `finalizeChatDisplay` backfill the user message into the returned turn when a loose Final payload omits `requestMessage`, so the cached turn never drops it. Mirrors the web client's top-level `messageId`; without it the optimistic message would linger as a phantom sibling. Regenerate/continue/edit-AI send no `messageId` (they create no new user message).
-- `editAiMessage` resubmits the parent user turn (regenerate + `isEdited`); it does **not** persist the typed assistant edit (that's `saveEditOnly` → `updateMessageText`, the web `updateMessage` analog). Web additionally seeds the placeholder with the edited content for a transient preview — not ported.
 - **Completion render (load-bearing):** `MessageList` keys its `LazyColumn` items by the conversation **slot** (`MessageNode.treeParentKey`), and the trailing streaming bubble is keyed to the slot its finalized message will occupy (the last visible message's id == the reply's parent). This makes the streaming→final swap an in-place update of one item rather than a remove+add, so the list never loses its scroll anchor at completion. The finalize update is also atomic (it clears the streaming fields in the *same* `stateHandle.update` that swaps in the message — see `finalizeChatDisplay`), and the last message renders markdown synchronously via `LocalImmediateMarkdown` so it doesn't mount through a zero-height async-parse frame. Reverting any of these (per-id keys, a separate streaming-clear update, async parse for the last message) reintroduces the completion flicker.
+
+## Editing a message (#579)
+`editShapeOf` (`util/MessageEditing.kt`) picks one of two editors when the editor opens, and the
+SAME call gates the Edit affordance in `MessageList` — a button is never offered for a shape
+`MessageEditingDelegate` would refuse (the both-ends rule the feedback thumbs follow).
+- **`PLAIN_TEXT`** — any turn with no `content[]` (almost every user turn). One field over `message.text`.
+  Save sends `{ text }` with no `index`. A rerun resubmits a user turn's draft as a new sibling; on a
+  **reply** it can only be a plain regenerate, because `editedContent` is index-addressed over a
+  content array this message does not have — so the draft is not carried and the footer says so
+  (`edit_status_rerun_discards_changes`) rather than discarding it silently, which is what the
+  removed `editAiMessage` did.
+- **`CONTENT_PARTS`** — any turn with at least one editable part. One field per part, labelled
+  Response / Thoughts, with the non-editable parts still rendered read-only beside them (a
+  divergence from upstream, which hides them in edit mode) and ONE shared footer. An editable part
+  is TEXT or THINK, excluding a TEXT part carrying `tool_call_ids` and excluding artifact-bearing
+  text, which keeps its artifact card.
+- **`NONE`** — a turn of tool calls or images alone: no Edit button at all.
+
+Four rules are load-bearing:
+- **A save closes the editor only after the server has taken it.** Every sink reads its `Result`;
+  a failure keeps the draft on screen and reports through the shared `error` channel
+  (`ChatNotice.MESSAGE_SAVE_FAILED`, or the server's own sentence when it gave one, such as a
+  400's "Content part not found"). Per-part saves run **sequentially**: each `PUT` rewrites the whole stored content
+  array, so two in flight would race, and the editor advances only the baselines that actually
+  landed (`partOriginals`), leaving just the refused parts marked unsaved.
+- **A save is gated on `!isStreaming`**, affordance and sink, like `submitFeedback`: it writes Room,
+  which re-emits through the `loadConversation` observer and un-truncates the streaming anchor.
+- **`editedContent` and the wire `responseMessageId` are a pair.** The server reads the latter as
+  the history `head`; without it `setMessageOptions` loads an unrelated branch and the prefix is
+  silently dropped. Both are set only by the one-changed-TEXT-part rerun.
+- **A changed THINK part is never resubmitted.** v0.8.4 and v0.8.7 destructure `text` out of
+  `editedContent` whatever its `type` says, so a think payload writes `undefined` over the reasoning
+  prefix (only 0.8.8 reads `editedContent[type]`). It is saveable — the indexed `PUT` derives the
+  type from the stored part on every version — so a think change counts like a second changed part
+  and the footer asks for a Save first. This narrowing is why there is no version gate here.
+
+Known divergence: the reply streams as a trailing bubble outside the tree, so a rerun looks like a
+restart until Final delivers the server-merged content. Web seeds its placeholder with the edited
+prefix and offsets streamed part indices by its length (`useStepHandler`, `editPrefixLength`) — not
+ported.
 
 ## Compare Models (parallel responses)
 - A comparison send carries an `addedConvo` (secondary agent/model) alongside the primary; the server runs both agents in parallel and persists ONE assistant message whose content parts each carry an `agentId`. The added/secondary agent's parts are suffixed `____N` (real `agent_…____1`, or ephemeral `endpoint__model___sender____1`); the primary's are unsuffixed.
@@ -737,7 +776,7 @@ instrumented tests. Those tests skip anywhere else.
   reads it. The write used to store a bare rating string into a column that file round-trips as
   `Feedback` JSON, so every read threw into a catch that returned null and the thumb emptied
   itself on the next emission.
-- `submitFeedback` is gated on `!isStreaming` like `switchBranch`/`editMessage`/`regenerateMessage`
+- `submitFeedback` is gated on `!isStreaming` like `switchBranch`/`rerunEdit`/`regenerateMessage`
   — it caches to Room, which would re-emit through the `loadConversation` observer and un-truncate
   the streaming anchor. **The affordance is gated too** (`LocalFeedbackEnabled`, provided by
   `MessageList`): the thumbs are *disabled* — not hidden, which would reflow the action row —
@@ -747,7 +786,7 @@ instrumented tests. Those tests skip anywhere else.
   local and disables Submit if a run starts while the sheet is already open (`onResume` adopting
   another client's run, a queued message draining) — the sheet stays up and keeps the draft rather
   than dismissing, so Submit re-enables when the run ends. Note the sibling mutations
-  (`switchBranch`, `editMessage`, `regenerateMessage`) do NOT gate their affordances — their
+  (`switchBranch`, `regenerateMessage`, `continueGeneration`) do NOT gate their affordances — their
   arrows and buttons stay live mid-stream and silently no-op.
 - The sheet is a `ModalBottomSheet` of radio rows, not chips or an `AlertDialog`: `FilterChip`/
   `InputChip` hardcode `Role.Checkbox` over any caller-supplied role, and `AlertDialog`'s text slot

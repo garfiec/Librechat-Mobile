@@ -27,6 +27,7 @@ import com.garfiec.librechat.core.model.PendingActionTypes
 import com.garfiec.librechat.core.model.ToolApprovalRequest
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
+import com.garfiec.librechat.feature.chat.viewmodel.MessageEditingState
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -163,11 +164,13 @@ class MessageListScrollInstrumentedTest {
                             onRegenerateMessage = {},
                             onCopyMessage = {},
                             pendingAction = if (paused) TOOL_PAUSE else null,
-                            editingMessageId = editingMessageId,
-                            editingText = editingMessageId?.let { id -> "Edited text for $id" }.orEmpty(),
+                            editing = MessageEditingState(
+                                editingMessageId = editingMessageId,
+                                editingText = editingMessageId?.let { id -> "Edited text for $id" }.orEmpty(),
+                            ),
                             onEditTextChange = {},
-                            onEditSaveAndSubmit = {},
-                            onEditSaveOnly = {},
+                            onEditSave = {},
+                            onEditRerun = {},
                             onEditCancel = {},
                         )
                     }

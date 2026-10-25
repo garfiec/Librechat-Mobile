@@ -84,6 +84,7 @@ private fun localizedNotice(parsed: ChatNotice.Parsed): String {
         ChatNotice.PRESET_DELETE_FAILED -> Res.string.notice_preset_delete_failed
         ChatNotice.PRESET_UPDATE_FAILED -> Res.string.notice_preset_update_failed
         ChatNotice.CONTINUE_RESPONSE_FAILED -> Res.string.notice_continue_response_failed
+        ChatNotice.MESSAGE_SAVE_FAILED -> Res.string.notice_message_save_failed
         ChatNotice.FAVORITES_LIMIT -> Res.string.notice_favorites_limit
         ChatNotice.FAVORITES_UPDATE_FAILED -> Res.string.notice_favorites_update_failed
         ChatNotice.UPLOAD_FAILED -> Res.string.notice_upload_failed

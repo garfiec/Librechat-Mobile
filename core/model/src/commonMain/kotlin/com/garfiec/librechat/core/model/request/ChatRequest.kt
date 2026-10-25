@@ -35,11 +35,11 @@ data class ChatRequest(
      * any of them arriving beside this flag.
      *
      * Today that holds for two different reasons, and only one of them is a guard.
-     * `ChatPayloadBuilder` drops `isRegenerate` when this is set, the way upstream does
-     * (`isRegenerate: compact === true ? undefined : isRegenerate`). The other three are simply
-     * never set on the one path that compacts, so they stay at their defaults and are omitted. A
-     * caller that sets one must drop it in the builder too — do not read that line as covering
-     * them.
+     * `ChatPayloadBuilder` drops `isRegenerate` and [editedContent] when this is set, the way
+     * upstream drops `isRegenerate` (`isRegenerate: compact === true ? undefined : isRegenerate`).
+     * `isContinued` and [responseMessageId] are simply never set on the one path that compacts
+     * (`compactConversationNow`), so they stay at their defaults and are omitted. A caller that
+     * sets one must drop it in the builder too — do not read those lines as covering them.
      *
      * Omitted rather than sent as `false`: a server that does not know the flag would answer an
      * ordinary empty-text turn.
@@ -47,6 +47,13 @@ data class ChatRequest(
     val compact: Boolean? = null,
     val overrideParentMessageId: String? = null,
     val responseMessageId: String? = null,
+    /**
+     * An edited assistant content part the new reply continues from (see [EditedContent]). Set
+     * only by the assistant-edit rerun, which also sets [responseMessageId] to the edited
+     * message's id — the two are a pair and the server drops the prefix without both. Never set
+     * beside [compact], which the server refuses.
+     */
+    val editedContent: EditedContent? = null,
     val temperature: Double? = null,
     @SerialName("top_p") val topP: Double? = null,
     val maxOutputTokens: Int? = null,

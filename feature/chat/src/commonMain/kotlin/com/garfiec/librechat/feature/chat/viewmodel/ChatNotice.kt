@@ -24,6 +24,9 @@ enum class ChatNotice(val wire: String) {
     PRESET_UPDATE_FAILED("preset_update_failed"),
     CONTINUE_RESPONSE_FAILED("continue_response_failed"),
 
+    /** A message edit the server refused, when it gave no reason of its own. */
+    MESSAGE_SAVE_FAILED("message_save_failed"),
+
     /** Arg: the favorites limit. */
     FAVORITES_LIMIT("favorites_limit"),
     FAVORITES_UPDATE_FAILED("favorites_update_failed"),

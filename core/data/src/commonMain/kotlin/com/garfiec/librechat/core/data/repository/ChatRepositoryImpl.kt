@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.error.ServerErrorCode
 import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.request.ChatResumeRequest
+import com.garfiec.librechat.core.model.request.EditedContent
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.core.model.request.SteerCancelRequest
 import com.garfiec.librechat.core.model.request.SteerRequest
@@ -81,6 +82,7 @@ class ChatRepositoryImpl(
         spec: String?,
         chatProjectId: String?,
         manualSkills: List<String>?,
+        editedContent: EditedContent?,
     ): Flow<StreamEvent> = flow {
         // Phase 1: POST to start the chat - get back a streamId (= conversationId)
         val request = ChatPayloadBuilder.build(
@@ -109,6 +111,7 @@ class ChatRepositoryImpl(
             quotes = quotes,
             chatProjectId = chatProjectId,
             manualSkills = manualSkills,
+            editedContent = editedContent,
         )
         // A send whose parent response is still being written now 409s ("Cannot submit a
         // follow-up while the selected parent response is still being saved"), which an

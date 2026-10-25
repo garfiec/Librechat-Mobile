@@ -299,9 +299,15 @@ drivers have; no FTS5 on Android's framework SQLite), external-content over a na
   (`searchTextOf`: content parts flattened like the server's Meilisearch plugin, TEXT + THINK +
   STEER, capped at 128k chars).
 - **Write messages only through `MessageDao.upsertAllIndexed`** (or `replaceAllForConversation` /
-  `updateText`, which use it). It indexes in the same transaction and skips side rows whose
-  `updatedAt` hasn't moved, since any update re-tokenizes the row. `MessageWritePairingTest` fails a
-  raw `upsert`/`upsertAll` outside the DAO package.
+  `updateText` / `upsertReindexed`, which use it or index themselves). It indexes in the same
+  transaction and skips side rows whose `updatedAt` hasn't moved, since any update re-tokenizes the
+  row. `MessageWritePairingTest` fails a raw `upsert`/`upsertAll` outside the DAO package.
+- **That `updatedAt` dedupe is only valid for writes that carry the server's value.** It reads an
+  unchanged `updatedAt` as unchanged text, which holds for a fetch (the server bumps it on every
+  write) and fails for an edit applied locally: a read-modify-write keeps the old value, so the
+  dedupe hits and the index keeps matching the text the user just replaced. Local edits therefore go
+  through `updateText` (flat text) or `upsertReindexed` (one content part), both of which write the
+  side row unconditionally. A future local mutation of message text needs the same treatment.
 - **Deletes need nothing**: the side table's FK (the DB's first) cascades, and the cascade fires the
   FTS delete trigger. Room turns `foreign_keys` on in its generated `onOpen`.
 - **Unclaimed rows (`accountId IS NULL`) are never indexed.** Side rows copy the parent's stamped

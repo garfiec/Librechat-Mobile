@@ -30,7 +30,7 @@ class MessageTreeDelegate(
         // its parent (see anchorStreamTo / buildActiveMessagePath's streamingLeafId), and
         // mutating activeBranches re-triggers loadConversation's combine, which rebuilds
         // displayMessages WITHOUT the leaf — un-truncating the path and dropping the
-        // streaming reply back to the end. editMessage/regenerateMessage are likewise
+        // streaming reply back to the end. rerunEdit/regenerateMessage are likewise
         // gated on isStreaming; this closes the same gap for sibling navigation.
         if (handle.state.isStreaming) return
         // Only mutate the branch selection; the observeMessages/activeBranches combine in

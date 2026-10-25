@@ -11,9 +11,12 @@ import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.db.dao.MessageDao
 import com.garfiec.librechat.core.data.mapper.feedbackColumnValue
 import com.garfiec.librechat.core.data.mapper.toEntity
+import com.garfiec.librechat.core.data.mapper.toModel
 import com.garfiec.librechat.core.data.mapper.toModels
+import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
+import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.request.BranchMessageRequest
 import com.garfiec.librechat.core.model.request.UpdateMessageRequest
 import com.garfiec.librechat.core.network.api.MessagesApi
@@ -142,6 +145,36 @@ class MessageRepositoryImpl(
         }
     }
 
+    override suspend fun updateMessageContentPart(
+        conversationId: String,
+        messageId: String,
+        index: Int,
+        text: String,
+    ): Result<Unit> {
+        return safeApiCall {
+            val accountId = activeAccountProvider.currentAccountId()?.value
+            messagesApi.updateMessage(
+                conversationId,
+                messageId,
+                UpdateMessageRequest(text = text, index = index),
+            )
+            // The PUT answers a sanitized subset of the message that omits `content` entirely, so
+            // the cached row has to be rewritten here rather than from the response. Read-modify-
+            // write through the mapper (not a SQL column update) because the column is the encoded
+            // part list, and `upsertReindexed` rather than `upsertAllIndexed` because this write
+            // leaves `updatedAt` alone — see that method for what the dedupe would cost.
+            if (accountId != null) {
+                val cached = messageDao.getByIdForAccount(messageId, accountId)?.toModel()
+                val parts = cached?.content
+                if (cached != null && parts != null && index in parts.indices) {
+                    messageDao.upsertReindexed(
+                        cached.copy(content = parts.withEditedPart(index, text)).toEntity().copy(accountId = accountId),
+                    )
+                }
+            }
+        }
+    }
+
     override suspend fun branchMessage(
         conversationId: String,
         messageId: String,
@@ -161,4 +194,24 @@ class MessageRepositoryImpl(
     // Maps server messages to entities stamped with the account captured at request time.
     private fun List<Message>.entitiesFor(accountId: String) =
         map { it.toEntity().copy(accountId = accountId) }
+
+    /**
+     * The edited part list, mirroring what the server stored: it SPREADS the new text over the
+     * existing part (`{...currentPart, [type]: text}`) rather than replacing it, so the part keeps
+     * its other fields. Writing the text into the field the part's own type names is what makes a
+     * THINK edit land in `think` and not in `text`.
+     *
+     * Known local-only loss: a text part persisted in the `{ value, annotations }` form (the
+     * Assistants thread sync) is normalized to a plain string by `FlexibleTextSerializer`, which
+     * drops the annotations on re-encode. The server preserves them; the cache does not, until the
+     * next fetch re-reads the row.
+     */
+    private fun List<MessageContentPart>.withEditedPart(index: Int, text: String) =
+        mapIndexed { i, part ->
+            when {
+                i != index -> part
+                part.type == ContentType.THINK -> part.copy(think = text)
+                else -> part.copy(text = text)
+            }
+        }
 }

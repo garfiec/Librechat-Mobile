@@ -89,6 +89,25 @@ interface MessageDao {
         if (changed.isNotEmpty()) upsertSearchRows(changed.mapNotNull { it.toSearchEntity() })
     }
 
+    /**
+     * A local edit of one message: the row and its search row, written together and
+     * unconditionally.
+     *
+     * Deliberately NOT [upsertAllIndexed]. That one rewrites a side row only when `updatedAt`
+     * differs from the indexed value, which is right for a server fetch — the server bumps it on
+     * every write, so an unchanged value means unchanged text — and wrong for an edit applied
+     * locally, which keeps `updatedAt` as it was. The dedupe would always hit and leave the index
+     * matching the text the user just replaced: the new words would not be findable and the old
+     * ones would still jump to this message. The flat-text edit ([updateText]) reindexes
+     * explicitly for the same reason.
+     */
+    @CrossAccount
+    @Transaction
+    suspend fun upsertReindexed(message: MessageEntity) {
+        upsert(message)
+        message.toSearchEntity()?.let { upsertSearchRows(listOf(it)) }
+    }
+
     @Query("DELETE FROM messages WHERE conversationId = :conversationId AND accountId = :accountId")
     suspend fun deleteAllForConversation(conversationId: String, accountId: String)
 

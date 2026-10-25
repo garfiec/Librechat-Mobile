@@ -45,6 +45,7 @@ import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.PendingUsage
 import com.garfiec.librechat.feature.chat.util.SkillPickRules
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
+import com.garfiec.librechat.feature.chat.util.changedPartIndices
 import com.garfiec.librechat.feature.chat.util.pickableSkills
 import com.garfiec.librechat.feature.chat.util.resolveLandingStarters
 import com.garfiec.librechat.feature.chat.util.skillPickRules
@@ -118,6 +119,13 @@ data class ChatUiState(
     val isFirstTurnStreaming: Boolean get() = content.isStreaming && content.messages.size <= 1
     val editingMessageId: String? get() = editing.editingMessageId
     val editingText: String get() = editing.editingText
+    val editingPartDrafts: Map<Int, String> get() = editing.partDrafts
+    val isSavingEdit: Boolean get() = editing.isSavingEdit
+
+    /** Content-part indices the user has actually changed, in content order. */
+    val editChangedPartIndices: List<Int>
+        get() = changedPartIndices(editing.partDrafts, editing.partOriginals)
+
     val selectedSpec: String? get() = selection.selectedSpec
     val modelSpecs: ModelSpecs? get() = selection.modelSpecs
     val selectedModel: String? get() = selection.selectedModel
