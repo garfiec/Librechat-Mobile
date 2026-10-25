@@ -3110,6 +3110,19 @@
       },
       "why": "Which starters the new-chat screen offers: the agent's own, else the selected model spec's. Web computes it in this component, and the server never says which applies.",
       "failure_mode": "If upstream changes the order, adds a source or drops one, mobile offers different starters than web for the same agent or spec, or none at all. Nothing errors."
+    },
+    {
+      "id": "skill-frontmatter",
+      "upstream": {
+        "file": "client/src/components/Skills/utils/frontmatter.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/skills/src/commonMain/kotlin/com/garfiec/librechat/feature/skills/util/SkillFrontmatter.kt",
+        "symbol": "parseFrontmatter"
+      },
+      "why": "How the skill detail page splits a SKILL.md body's YAML frontmatter from the markdown it renders, and which keys it lists above it. The server sends the body with the block still in it.",
+      "failure_mode": "If upstream changes the parse rules, mobile lists different metadata than web, or renders part of the block as markdown text. Nothing errors."
     }
   ]
 }

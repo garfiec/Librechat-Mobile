@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
@@ -38,7 +39,10 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -101,6 +105,9 @@ import com.garfiec.librechat.feature.skills.resources.skills_retry
 import com.garfiec.librechat.feature.skills.resources.skills_title
 import com.garfiec.librechat.feature.skills.shareSummary
 import com.garfiec.librechat.feature.skills.text
+import com.garfiec.librechat.feature.skills.util.FrontmatterField
+import com.garfiec.librechat.feature.skills.util.HEADER_FRONTMATTER_KEYS
+import com.garfiec.librechat.feature.skills.util.parseFrontmatter
 import com.garfiec.librechat.feature.skills.viewmodel.SkillAclUiState
 import com.garfiec.librechat.feature.skills.viewmodel.SkillAclViewModel
 import com.garfiec.librechat.feature.skills.viewmodel.SkillDetailAction
@@ -110,9 +117,14 @@ import com.garfiec.librechat.feature.skills.viewmodel.SkillDetailViewModel
 import com.garfiec.librechat.feature.skills.viewmodel.SkillFilesEvent
 import com.garfiec.librechat.feature.skills.viewmodel.SkillFilesUiState
 import com.garfiec.librechat.feature.skills.viewmodel.SkillFilesViewModel
+import com.mikepenz.markdown.compose.components.MarkdownComponentModel
+import com.mikepenz.markdown.compose.components.MarkdownComponents
+import com.mikepenz.markdown.compose.components.markdownComponents
+import com.mikepenz.markdown.compose.elements.MarkdownHeader
 import com.mikepenz.markdown.m3.Markdown
 import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.m3.markdownTypography
+import com.mikepenz.markdown.model.MarkdownTypography
 import kotlinx.coroutines.flow.collectLatest
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -632,13 +644,79 @@ private fun SkillBody(skill: Skill, showSource: Boolean) {
             style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
             modifier = modifier,
         )
-        else -> Markdown(
-            content = skill.body,
-            colors = markdownColor(),
-            typography = markdownTypography(),
-            modifier = modifier,
-        )
+        else -> {
+            val parsed = remember(skill.body) { parseFrontmatter(skill.body, HEADER_FRONTMATTER_KEYS) }
+            Column(modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                if (parsed.fields.isNotEmpty()) FrontmatterFields(parsed.fields)
+                Markdown(
+                    content = parsed.body,
+                    colors = markdownColor(
+                        inlineCodeBackground = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        codeBackground = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        dividerColor = MaterialTheme.colorScheme.outlineVariant,
+                    ),
+                    typography = skillMarkdownTypography(),
+                    components = SkillMarkdownComponents,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
     }
+}
+
+@Composable
+private fun FrontmatterFields(fields: List<FrontmatterField>) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        fields.forEach { field ->
+            Row(verticalAlignment = Alignment.Top) {
+                Text(
+                    text = field.key,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.widthIn(min = 72.dp, max = 128.dp).padding(top = 2.dp, end = 12.dp),
+                )
+                Text(text = field.value, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+private val SkillMarkdownComponents: MarkdownComponents = markdownComponents(
+    heading1 = { SpacedHeading(it, it.typography.h1, top = 12.dp) },
+    heading2 = { SpacedHeading(it, it.typography.h2, top = 12.dp) },
+    heading3 = { SpacedHeading(it, it.typography.h3, top = 8.dp) },
+    heading4 = { SpacedHeading(it, it.typography.h4, top = 8.dp) },
+    heading5 = { SpacedHeading(it, it.typography.h5, top = 4.dp) },
+    heading6 = { SpacedHeading(it, it.typography.h6, top = 4.dp) },
+)
+
+@Composable
+private fun SpacedHeading(model: MarkdownComponentModel, style: TextStyle, top: Dp) {
+    Box(Modifier.padding(top = top)) { MarkdownHeader(model.content, model.node, style) }
+}
+
+@Composable
+private fun skillMarkdownTypography(): MarkdownTypography {
+    val type = MaterialTheme.typography
+    val body = type.bodyMedium
+    val mono = type.bodySmall.copy(fontFamily = FontFamily.Monospace)
+    return markdownTypography(
+        h1 = type.titleLarge,
+        h2 = type.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+        h3 = type.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+        h4 = type.titleSmall,
+        h5 = type.labelLarge,
+        h6 = type.labelLarge.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+        text = body,
+        paragraph = body,
+        quote = body.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+        code = mono,
+        inlineCode = mono,
+        ordered = body,
+        bullet = body,
+        list = body,
+        table = body,
+    )
 }
 
 @Composable
