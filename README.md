@@ -8,14 +8,22 @@ A third-party native mobile client for [LibreChat](https://www.librechat.ai/) (A
 
 ## Why use this instead of the web app?
 
+**It's a real app**
+
 - **Smoother and faster** — a real native app instead of a website in a wrapper, so scrolling, typing, and watching responses stream in all feel snappier.
-- **Feels like a mobile app, not a shrunk-down website** — familiar gestures like swipe to switch accounts and swipe back, menus you can press, drag and release in one motion, comfortable tap targets, and a layout that adapts to tablets and foldables.
+- **Feels like a mobile app, not a shrunk-down website** — swipe back, swipe to switch accounts, comfortable tap targets, and a layout that spreads out on tablets and foldables.
 - **Make it yours** — switch between Material and Liquid Glass styles on Android or iPhone, pick any accent color and watch the whole app recolor around it, or let it match your wallpaper.
-- **Plays nicely with your phone** — share text, images, and files into the app from anywhere *(Android)*, pin your favorite models or generated content to your home screen, open chat links straight into the right screen, and save or share images through your phone's normal menus.
+- **Plays nicely with your phone** — share text, images, and files in from any app *(Android)*, pin your favorite models or generated content to your home screen, save or share images through your phone's normal menus, and dictate with your phone's own speech recognizer.
 - **Works without a connection** — your chat list and any conversations you've opened are saved on your phone, so you can keep reading with spotty or no signal. Turn on background prefetch and recent chats are ready offline before you even open them.
-- **Find anything you've ever asked** — search every message in every chat, even offline, and jump straight to the one you meant.
+
+**It's easier to use**
+
+- **Everything where you'd look for it** — your model, its settings, tools, and attachments sit together right where you type, not in a sidebar of icons that change from chat to chat. Agents are in the same list as your models, and the agent editor only shows up when you ask for it.
+- **One attach button for everything** — camera, photos, files on your phone, or files already on your server, without uploading them again.
+- **A real side-by-side compare** — pick any two models, change either one at any time, and every message goes to both. Swipe between them on a phone, or read them next to each other with synced scrolling on a tablet or foldable.
+- **Find anything** — search every message in every chat, even offline, and land right on the one you meant. Or find text inside the chat you're reading.
+- **Every image, file, and link from a chat on one page** — browse them in a gallery instead of scrolling back through the conversation.
 - **Multiple accounts, one app** — sign in to different accounts on different LibreChat servers and switch between them instantly, no re-entering passwords.
-- **Dictation without a round trip** — voice typing uses your phone's own speech recognizer, on-device where the phone supports it, instead of uploading audio to your server.
 
 ## Features
 
@@ -23,13 +31,14 @@ A third-party native mobile client for [LibreChat](https://www.librechat.ai/) (A
 - **Multi-Account & Multi-Server** — Sign in to multiple accounts across different LibreChat servers and switch between them instantly, no re-login. Swipe the account chip to switch; storage is fully scoped per account.
 - **Pin Artifacts to Home Screen** — Turn any generated artifact (HTML, React, SVG, Mermaid, Markdown) into a home-screen launcher icon that opens straight into a full-screen viewer — works on cold start, while logged out, and even after the source chat is deleted. *(Android)*
 - **Quick Actions** — Your most-used models become home-screen shortcuts (Android) and long-press quick actions (iOS) that deep-link into a new chat with that model preselected.
-- **Rich Media Viewer** — Full-screen, Google-Photos-style viewer with pinch-to-zoom and swipe between images across a branch or grid, shared by chat and files.
+- **Rich Media Viewer** — Full-screen, Google-Photos-style viewer with pinch-to-zoom and swipe between images across a branch or grid, shared by chat and files. Every chat also has a gallery of its media, files, links, and artifacts.
 - **Native Upload, Share & Save** — Attach from the device or reuse existing server files without re-uploading, save images to your gallery, and share out through the system share sheet with original format preserved.
 - **Chat** — Real-time streaming (SSE), message branching & sibling navigation, stop/regenerate/continue, markdown with syntax highlighting, LaTeX math rendering, code blocks with copy, image display, file attachments, tool call progress cards
 - **Search** — Find any message across all your chats, even offline, right from the sidebar. Tap a result and the chat opens on that exact message.
 - **Answer Your Agents** — When an agent stops to ask you something or wants your OK before running a tool, answer right from the composer, one question at a time.
 - **Inline Artifacts** — Render Mermaid, SVG, HTML, React, and Markdown artifacts directly in chat messages at full message width with content-fit height. Per-type toggle in Settings → Chat → Artifacts.
-- **Model Selection** — Searchable bottom sheet grouped by endpoint, star your favorites to keep them on top, and compare two models side by side
+- **Model Selection** — Searchable bottom sheet grouped by endpoint, with agents alongside models; star your favorites to keep them on top
+- **Compare Models** — Send every message to two models at once and change either at any time: swipeable tabs on phones, side-by-side panes with synced scrolling on tablets and foldables
 - **Agents** — Marketplace with search and categories, MCP server configuration
 - **Projects & Scheduled Chats** — Group related chats into projects, and have an agent run a prompt on a schedule, filing each conversation into a project for you.
 - **Skills** — Create, import, and edit skills: reusable instructions and files your agents can draw on.
