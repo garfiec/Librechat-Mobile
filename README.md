@@ -11,9 +11,10 @@ A third-party native mobile client for [LibreChat](https://www.librechat.ai/) (A
 **It's a real app**
 
 - **Smoother and faster** — a real native app instead of a website in a wrapper, so scrolling, typing, and watching responses stream in all feel snappier.
-- **Feels like a mobile app, not a shrunk-down website** — swipe back, swipe to switch accounts, comfortable tap targets, and a layout that spreads out on tablets and foldables.
-- **Make it yours** — switch between Material and Liquid Glass styles on Android or iPhone, pick any accent color and watch the whole app recolor around it, or let it match your wallpaper.
-- **Plays nicely with your phone** — share text, images, and files in from any app *(Android)*, pin your favorite models or generated content to your home screen, save or share images through your phone's normal menus, and dictate with your phone's own speech recognizer.
+- **Feels like a mobile app, not a shrunk-down website** — swipe back and peek at where you're going before you let go, swipe to switch accounts, and a layout that spreads out on tablets and foldables.
+- **Two looks, one app** — Material or Liquid Glass on Android or iPhone, any accent color with the whole app recoloring around it, or colors from your wallpaper. Light or dark, threads or two-sided bubbles.
+- **From chat to home screen** — the apps and charts it builds run right in the chat. Pin one to your home screen and open it in a tap, even after the chat is gone. *(Android)*
+- **Plays nicely with your phone** — share text, images, and files in from any app *(Android)*, launch your favorite models from the home screen, save or share images through your phone's normal menus, and dictate with your phone's own speech recognizer.
 - **Works without a connection** — your chat list and any conversations you've opened are saved on your phone, so you can keep reading with spotty or no signal. Turn on background prefetch and recent chats are ready offline before you even open them.
 
 **It's easier to use**
@@ -22,31 +23,23 @@ Same LibreChat, laid out for how you actually use it.
 
 - **Everything where you'd look for it** — your model, its settings, tools, and attachments sit together right where you type, not in a sidebar of icons that change from chat to chat. Agents are in the same list as your models, and the agent editor only shows up when you ask for it.
 - **One attach button for everything** — camera, photos, files on your phone, or files already on your server, without uploading them again.
-- **A real side-by-side compare** — pick any two models, change either one at any time, and every message goes to both. Swipe between them on a phone, or read them next to each other with synced scrolling on a tablet or foldable.
-- **Find anything** — search every message in every chat, even offline, and land right on the one you meant. Or find text inside the chat you're reading.
-- **Every image, file, and link from a chat on one page** — browse them in a gallery instead of scrolling back through the conversation.
+- **Compare models** — pick any two, change either one at any time, and every message goes to both. Swipe between them on a phone, or read them side by side with synced scrolling on a tablet or foldable.
+- **Find anything you've asked** — search every message in every chat, even offline, and land right on the one you meant. Or find text inside the chat you're reading.
+- **All your media** — every image, file, and link from a chat in one place. Swipe through photos and drag one down to send it back.
 - **Multiple accounts, one app** — sign in to different accounts on different LibreChat servers and switch between them instantly, no re-entering passwords.
 
-## Features
+## More features
 
-- **Make It Yours** — Two complete looks: Google's Material design or Apple-style Liquid Glass, on Android and iOS alike. Pick any accent color and the whole app recolors to match — choose a preset or dial in your own — or let Material You pull colors from your wallpaper on Android 12+. Light, dark, or follow the system, and choose how chats look (thread or two-sided, bubbles, avatars) with a live preview.
-- **Multi-Account & Multi-Server** — Sign in to multiple accounts across different LibreChat servers and switch between them instantly, no re-login. Swipe the account chip to switch; storage is fully scoped per account.
-- **Pin Artifacts to Home Screen** — Turn any generated artifact (HTML, React, SVG, Mermaid, Markdown) into a home-screen launcher icon that opens straight into a full-screen viewer — works on cold start, while logged out, and even after the source chat is deleted. *(Android)*
 - **Quick Actions** — Your most-used models become home-screen shortcuts (Android) and long-press quick actions (iOS) that deep-link into a new chat with that model preselected.
-- **Rich Media Viewer** — Full-screen, Google-Photos-style viewer with pinch-to-zoom and swipe between images across a branch or grid, shared by chat and files. Every chat also has a gallery of its media, files, links, and artifacts.
-- **Native Upload, Share & Save** — Attach from the device or reuse existing server files without re-uploading, save images to your gallery, and share out through the system share sheet with original format preserved.
 - **Chat** — Real-time streaming (SSE), message branching & sibling navigation, stop/regenerate/continue, markdown with syntax highlighting, LaTeX math rendering, code blocks with copy, image display, file attachments, tool call progress cards
-- **Search** — Find any message across all your chats, even offline, right from the sidebar. Tap a result and the chat opens on that exact message.
 - **Answer Your Agents** — When an agent stops to ask you something or wants your OK before running a tool, answer right from the composer, one question at a time.
 - **Inline Artifacts** — Render Mermaid, SVG, HTML, React, and Markdown artifacts directly in chat messages at full message width with content-fit height. Per-type toggle in Settings → Chat → Artifacts.
-- **Model Selection** — Searchable bottom sheet grouped by endpoint, with agents alongside models; star your favorites to keep them on top
-- **Compare Models** — Send every message to two models at once and change either at any time: swipeable tabs on phones, side-by-side panes with synced scrolling on tablets and foldables
+- **Model Selection** — Searchable bottom sheet grouped by endpoint; star your favorites to keep them on top
 - **Agents** — Marketplace with search and categories, MCP server configuration
 - **Projects & Scheduled Chats** — Group related chats into projects, and have an agent run a prompt on a schedule, filing each conversation into a project for you.
 - **Skills** — Create, import, and edit skills: reusable instructions and files your agents can draw on.
 - **Conversations** — Paginated list with date grouping, tags, search, rename, archive, delete, share, fork, duplicate, export/import
 - **Voice** — On-device live dictation (Android & iOS) with cloud fallback, plus text-to-speech playback
-- **Mobile & Tablet** — Single adaptive UI: single-pane on phones, dual-pane layout with a persistent sidebar on tablets and foldables, with native predictive-back gestures
 - **Settings** — In-app language switching across 10 languages, account management, data controls
 - **Accessibility** — Semantic headings, content descriptions, 48dp touch targets, live regions
 
