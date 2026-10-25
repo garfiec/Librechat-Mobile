@@ -68,117 +68,126 @@ fun ConversationActions(
 ) {
     var showRenameDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
+    // Rename and delete hand off to a dialog this composable hosts, so only the sheet goes away:
+    // dismissing here would make the caller drop the conversation and take the dialog with it.
+    var sheetVisible by remember { mutableStateOf(true) }
 
     val sheetState = rememberModalBottomSheetState()
 
-    AdaptiveModalBottomSheet(
-        onDismissRequest = onDismiss,
-        dragHandle = { LowProfileDragHandle() },
-        modifier = modifier,
-        sheetState = sheetState,
-    ) {
-        Column(
-            modifier = Modifier
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 32.dp),
+    if (sheetVisible) {
+        AdaptiveModalBottomSheet(
+            onDismissRequest = onDismiss,
+            dragHandle = { LowProfileDragHandle() },
+            modifier = modifier,
+            sheetState = sheetState,
         ) {
-            Text(
-                text = conversation.title ?: stringResource(Res.string.new_chat),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = 32.dp),
+            ) {
+                Text(
+                    text = conversation.title ?: stringResource(Res.string.new_chat),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
 
-            ActionRow(
-                icon = Icons.Default.Edit,
-                label = stringResource(Res.string.rename),
-                onClick = {
-                    onDismiss()
-                    showRenameDialog = true
-                },
-            )
-
-            if (bookmarksEnabled) {
                 ActionRow(
-                    icon = if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                    label = if (isBookmarked) stringResource(Res.string.remove_bookmark) else stringResource(Res.string.bookmark),
-                    iconTint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    icon = Icons.Default.Edit,
+                    label = stringResource(Res.string.rename),
                     onClick = {
+                        sheetVisible = false
+                        showRenameDialog = true
+                    },
+                )
+
+                if (bookmarksEnabled) {
+                    ActionRow(
+                        icon = if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                        label = if (isBookmarked) stringResource(Res.string.remove_bookmark) else stringResource(Res.string.bookmark),
+                        iconTint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        onClick = {
+                            onBookmarkToggle()
+                            onDismiss()
+                        },
+                    )
+                }
+
+                ActionRow(
+                    icon = Icons.AutoMirrored.Filled.Label,
+                    label = stringResource(Res.string.tags),
+                    onClick = {
+                        onTags()
                         onDismiss()
-                        onBookmarkToggle()
+                    },
+                )
+
+                if (showShareAction) {
+                    ActionRow(
+                        icon = Icons.Default.Share,
+                        label = stringResource(Res.string.share),
+                        onClick = {
+                            onShare()
+                            onDismiss()
+                        },
+                    )
+                }
+
+                ActionRow(
+                    icon = Icons.Default.ContentCopy,
+                    label = stringResource(Res.string.duplicate),
+                    onClick = {
+                        onDuplicate()
+                        onDismiss()
+                    },
+                )
+
+                ActionRow(
+                    icon = Icons.Default.FileDownload,
+                    label = stringResource(Res.string.export),
+                    onClick = {
+                        onExport()
+                        onDismiss()
+                    },
+                )
+
+                ActionRow(
+                    icon = Icons.Default.Archive,
+                    label = stringResource(Res.string.archive),
+                    onClick = {
+                        onArchive()
+                        onDismiss()
+                    },
+                )
+
+                ActionRow(
+                    icon = Icons.Default.Delete,
+                    label = stringResource(Res.string.delete),
+                    iconTint = MaterialTheme.colorScheme.error,
+                    labelColor = MaterialTheme.colorScheme.error,
+                    onClick = {
+                        sheetVisible = false
+                        showDeleteConfirmation = true
                     },
                 )
             }
-
-            ActionRow(
-                icon = Icons.AutoMirrored.Filled.Label,
-                label = stringResource(Res.string.tags),
-                onClick = {
-                    onDismiss()
-                    onTags()
-                },
-            )
-
-            if (showShareAction) {
-                ActionRow(
-                    icon = Icons.Default.Share,
-                    label = stringResource(Res.string.share),
-                    onClick = {
-                        onDismiss()
-                        onShare()
-                    },
-                )
-            }
-
-            ActionRow(
-                icon = Icons.Default.ContentCopy,
-                label = stringResource(Res.string.duplicate),
-                onClick = {
-                    onDismiss()
-                    onDuplicate()
-                },
-            )
-
-            ActionRow(
-                icon = Icons.Default.FileDownload,
-                label = stringResource(Res.string.export),
-                onClick = {
-                    onDismiss()
-                    onExport()
-                },
-            )
-
-            ActionRow(
-                icon = Icons.Default.Archive,
-                label = stringResource(Res.string.archive),
-                onClick = {
-                    onDismiss()
-                    onArchive()
-                },
-            )
-
-            ActionRow(
-                icon = Icons.Default.Delete,
-                label = stringResource(Res.string.delete),
-                iconTint = MaterialTheme.colorScheme.error,
-                labelColor = MaterialTheme.colorScheme.error,
-                onClick = {
-                    onDismiss()
-                    showDeleteConfirmation = true
-                },
-            )
         }
     }
 
     if (showRenameDialog) {
         RenameDialog(
             currentTitle = conversation.title ?: "",
-            onDismiss = { showRenameDialog = false },
+            onDismiss = {
+                showRenameDialog = false
+                onDismiss()
+            },
             onConfirm = { newTitle ->
                 showRenameDialog = false
                 onRename(newTitle)
+                onDismiss()
             },
         )
     }
@@ -186,10 +195,14 @@ fun ConversationActions(
     if (showDeleteConfirmation) {
         DeleteConfirmationDialog(
             conversationTitle = conversation.title ?: stringResource(Res.string.this_conversation),
-            onDismiss = { showDeleteConfirmation = false },
+            onDismiss = {
+                showDeleteConfirmation = false
+                onDismiss()
+            },
             onConfirm = {
                 showDeleteConfirmation = false
                 onDelete()
+                onDismiss()
             },
         )
     }
