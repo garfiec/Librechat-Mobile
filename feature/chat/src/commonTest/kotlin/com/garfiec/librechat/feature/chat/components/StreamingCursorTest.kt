@@ -54,9 +54,9 @@ class StreamingCursorTest {
     }
 
     @Test
-    fun `citation-bearing text block falls back to the block cursor`() {
-        // androidMain routes these to CitationText, which never sees the annotator.
-        assertFalse(canHostInlineCursor(MarkdownSegment.TextBlock("As reported [1] earlier")))
+    fun `citation-bearing text block hosts the cursor inline`() {
+        // Citations are drawn by an annotator that also emits the cursor (CursorAndCitationAnnotator).
+        assertTrue(canHostInlineCursor(MarkdownSegment.TextBlock("As reported [1] earlier\uE202turn0search0")))
     }
 
     @Test

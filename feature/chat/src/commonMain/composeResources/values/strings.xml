@@ -287,8 +287,12 @@
     <string name="audio_decode_failed">Failed to decode audio</string>
 
     <!-- Citation -->
-    <string name="citation_number">Citation %1$d</string>
-    <string name="cd_open_citation_url">Open citation URL</string>
+    <string name="citation_sources_title">Sources</string>
+    <string name="cd_citation">Source: %1$s</string>
+    <plurals name="cd_citation_more">
+        <item quantity="one">Source: %1$s and %2$d more</item>
+        <item quantity="other">Source: %1$s and %2$d more</item>
+    </plurals>
 
     <!-- Fork options -->
     <string name="fork_conversation">Fork Conversation</string>

@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.components
 import com.garfiec.librechat.core.data.mapper.LegacyThinking
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.content.CitationIndex
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.feature.chat.components.artifact.Artifact
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactSegment
@@ -61,7 +62,9 @@ internal fun tableCellTexts(segment: MarkdownSegment.Table): List<String> =
 /** Occurrences in one markdown text run (a whole part, or one artifact Text segment). */
 internal fun countMarkdownOccurrences(text: String, query: String): Int {
     if (cannotMatch(text, query)) return 0
-    return parseMarkdownSegments(text).sumOf { countSegmentOccurrences(it, query) }
+    // Without citations, as MarkdownContent draws a message while a query is active.
+    return parseMarkdownSegments(text).withCitations(CitationIndex.Empty, streaming = false)
+        .sumOf { countSegmentOccurrences(it, query) }
 }
 
 /**

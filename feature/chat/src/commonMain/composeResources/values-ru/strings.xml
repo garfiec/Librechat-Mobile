@@ -282,8 +282,14 @@
     <string name="audio_decode_failed">Не удалось декодировать аудио</string>
 
     <!-- Citation -->
-    <string name="citation_number">Источник %1$d</string>
-    <string name="cd_open_citation_url">Открыть URL источника</string>
+    <string name="citation_sources_title">Источники</string>
+    <string name="cd_citation">Источник: %1$s</string>
+    <plurals name="cd_citation_more">
+        <item quantity="one">Источник: %1$s и ещё %2$d</item>
+        <item quantity="few">Источник: %1$s и ещё %2$d</item>
+        <item quantity="many">Источник: %1$s и ещё %2$d</item>
+        <item quantity="other">Источник: %1$s и ещё %2$d</item>
+    </plurals>
 
     <!-- Fork options -->
     <string name="fork_conversation">Ответвить беседу</string>

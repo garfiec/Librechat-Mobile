@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.data.db.entity.MessageSearchEntity
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.content.flattenSearchableText
+import com.garfiec.librechat.core.model.content.stripCitations
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 
@@ -42,8 +43,10 @@ fun searchTextOf(text: String?, contentJson: String?): IndexedText =
 
 /** [searchTextOf] for already-decoded parts (a server hit carries them decoded). */
 fun indexedTextOf(text: String?, parts: List<MessageContentPart>?): IndexedText {
-    val visible = parts?.flattenSearchableText(includeSteer = true, skipReasoning = true).orEmpty()
-    val reasoning = parts?.filter { it.type == ContentType.THINK }?.flattenSearchableText().orEmpty()
+    // Without citation markers, which the reply never shows: a search for a word must not have to
+    // step over `\ue202turn0search0`, and a snippet must not print it.
+    val visible = stripCitations(parts?.flattenSearchableText(includeSteer = true, skipReasoning = true).orEmpty())
+    val reasoning = stripCitations(parts?.filter { it.type == ContentType.THINK }?.flattenSearchableText().orEmpty())
     if (visible.isBlank() && reasoning.isBlank()) return legacyIndexedText(text)
     if (reasoning.isBlank()) return IndexedText(visible.capForIndex(), visibleLength = null)
     val combined = (if (visible.isBlank()) reasoning else visible + REASONING_SEPARATOR + reasoning).capForIndex()
@@ -52,8 +55,8 @@ fun indexedTextOf(text: String?, parts: List<MessageContentPart>?): IndexedText 
 }
 
 /** A message with no parts, whose reasoning may still sit in its text as a legacy block. */
-private fun legacyIndexedText(text: String?): IndexedText {
-    if (text == null) return IndexedText(null, visibleLength = null)
+private fun legacyIndexedText(raw: String?): IndexedText {
+    val text = raw?.let(::stripCitations) ?: return IndexedText(null, visibleLength = null)
     val split = LegacyThinking.split(text) ?: return IndexedText(text.capForIndex(), visibleLength = null)
     val combined = (if (split.answer.isBlank()) split.reasoning else split.answer + REASONING_SEPARATOR + split.reasoning).capForIndex()
     val visibleLength = if (split.answer.isBlank()) 0 else minOf(split.answer.length, combined.length)

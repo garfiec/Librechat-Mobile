@@ -282,8 +282,11 @@
     <string name="audio_decode_failed">오디오를 디코딩하지 못했습니다</string>
 
     <!-- Citation -->
-    <string name="citation_number">인용 %1$d</string>
-    <string name="cd_open_citation_url">인용 URL 열기</string>
+    <string name="citation_sources_title">출처</string>
+    <string name="cd_citation">출처: %1$s</string>
+    <plurals name="cd_citation_more">
+        <item quantity="other">출처: %1$s 외 %2$d개</item>
+    </plurals>
 
     <!-- Fork options -->
     <string name="fork_conversation">대화 분기</string>

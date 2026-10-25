@@ -65,7 +65,7 @@ data class WebSearchResult(
 private const val MAX_STACKED_FAVICONS = 3
 
 /** Google's favicon service. Sends [host] to Google, so only [Favicon] calls it, and only when icons are on. */
-private fun faviconUrl(host: String): String =
+internal fun faviconUrl(host: String): String =
     "https://www.google.com/s2/favicons?domain=$host&sz=48"
 
 /** Globe placeholder shown while a favicon loads or when it fails to load. */
@@ -85,7 +85,7 @@ private fun GlobeIcon(size: Dp) {
  * host-derived [faviconUrl].
  */
 @Composable
-private fun Favicon(model: String, size: Dp, modifier: Modifier = Modifier) {
+internal fun Favicon(model: String, size: Dp, modifier: Modifier = Modifier) {
     // The one place an external icon is requested, so the opt-in gate lives here: any caller is
     // off until the user turns site icons on.
     if (!LocalSiteIcons.current.state.showIcons) {

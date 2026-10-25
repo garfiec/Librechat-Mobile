@@ -1,7 +1,10 @@
 package com.garfiec.librechat.core.data.mapper
 
+import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.WebSearchData
+import com.garfiec.librechat.core.model.WebSearchSource
 import com.garfiec.librechat.core.model.content.AgentToolCall
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import kotlin.test.Test
@@ -76,5 +79,26 @@ class MessageMapperTest {
         val restored = message.toEntity().toModel()
 
         assertEquals(true, restored.content?.single()?.toolCall?.inputValidationError)
+    }
+
+    @Test
+    fun webSearchAttachment_roundTripsTheResultsCitationsIndexInto() {
+        // A cache-first open renders from this row: a field dropped here leaves its citations
+        // unresolvable until the network refresh lands.
+        val search = WebSearchData(
+            turn = 1,
+            organic = listOf(WebSearchSource(link = "https://a.example", attribution = "A")),
+            images = listOf(WebSearchSource(imageUrl = "https://img.example/1.png")),
+            videos = listOf(WebSearchSource(link = "https://v.example")),
+            references = listOf(WebSearchSource(link = "https://r.example", title = "R")),
+        )
+        val message = baseMessage(null).copy(attachments = listOf(Attachment(type = "web_search", webSearch = search)))
+        assertEquals(search, message.toEntity().toModel().attachments?.single()?.webSearch)
+    }
+
+    @Test
+    fun searchText_leavesCitationMarkersOut() {
+        val indexed = searchTextOf("Claim.\\ue202turn0search0 More \uE200\uE202turn0news1\uE201.", contentJson = null)
+        assertEquals("Claim. More.", indexed.text)
     }
 }

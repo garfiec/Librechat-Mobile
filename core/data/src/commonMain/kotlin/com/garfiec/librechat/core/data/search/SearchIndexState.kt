@@ -76,9 +76,10 @@ class SearchIndexState(private val dataStore: DataStore<Preferences>) {
         /**
          * 2: reasoning moved after the visible text, with `visibleLength` marking the split.
          * 3: a legacy `:::thinking` block in a message's text counts as reasoning.
+         * 4: inline citation markers (`\ue202turn0search0`) are stripped, as the reply shows none.
          * Bumping this rebuilds every user's index once; do it whenever [com.garfiec.librechat.core.data.mapper.searchTextOf] changes.
          */
-        const val CURRENT_FORMAT: Int = 3
+        const val CURRENT_FORMAT: Int = 4
 
         private val BACKFILL_DONE = booleanPreferencesKey("search_index_backfill_done_v$CURRENT_FORMAT")
         private val BACKFILL_CURSOR = longPreferencesKey("search_index_backfill_cursor_v$CURRENT_FORMAT")

@@ -282,8 +282,16 @@
     <string name="audio_decode_failed">فشل فك ترميز الصوت</string>
 
     <!-- Citation -->
-    <string name="citation_number">الاستشهاد %1$d</string>
-    <string name="cd_open_citation_url">فتح رابط الاستشهاد</string>
+    <string name="citation_sources_title">المصادر</string>
+    <string name="cd_citation">المصدر: %1$s</string>
+    <plurals name="cd_citation_more">
+        <item quantity="zero">المصدر: %1$s و%2$d غيره</item>
+        <item quantity="one">المصدر: %1$s و%2$d غيره</item>
+        <item quantity="two">المصدر: %1$s و%2$d غيره</item>
+        <item quantity="few">المصدر: %1$s و%2$d غيره</item>
+        <item quantity="many">المصدر: %1$s و%2$d غيره</item>
+        <item quantity="other">المصدر: %1$s و%2$d غيره</item>
+    </plurals>
 
     <!-- Fork options -->
     <string name="fork_conversation">تفريع المحادثة</string>

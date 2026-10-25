@@ -47,6 +47,7 @@ import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.isTraceViewerEnabled
+import com.garfiec.librechat.core.model.content.stripCitations
 import com.garfiec.librechat.core.model.error.UserKeyError
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.model.permissions.Permission
@@ -205,7 +206,9 @@ class ChatViewModel(
 
     // --- Platform delegates (created via factory so they get a narrowed handle over stateHandle) ---
     private val fileDelegate = platformDelegateFactory.createFileHandler(ErrorOnlyHandle(stateHandle))
-    private val ttsDelegate = platformDelegateFactory.createTts(TtsHandle(stateHandle), ::getMessageText)
+
+    // Spoken without citation markers: "turn zero search zero" is not part of the reply.
+    private val ttsDelegate = platformDelegateFactory.createTts(TtsHandle(stateHandle)) { stripCitations(getMessageText(it)) }
     private val voiceDelegate = platformDelegateFactory.createVoiceInput(VoiceHandle(stateHandle), ::sendMessage)
     private val shareConsumer = platformDelegateFactory.createShareConsumer()
 

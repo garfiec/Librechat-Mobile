@@ -53,6 +53,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import com.garfiec.librechat.core.model.content.stripCitations
 import com.garfiec.librechat.core.ui.components.AdaptiveDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
@@ -100,8 +101,9 @@ actual fun MarkdownContent(
     streaming: Boolean,
     trailingCursor: Boolean,
 ) {
-    val segments = rememberMarkdownSegments(text, streaming)
     val isSearchActive = !searchQuery.isNullOrBlank()
+    val segments = rememberCitedMarkdownSegments(text, streaming, withoutCitations = isSearchActive)
+    val spokenText = remember(text) { stripCitations(text) }
 
     // Search draws text segments with its own components (SearchableMarkdown), which don't run the
     // cursor's annotator — so an active query forces the block-level cursor too.
@@ -112,7 +114,7 @@ actual fun MarkdownContent(
         modifier = modifier
             .fillMaxWidth()
             .semantics {
-                contentDescription = text
+                contentDescription = spokenText
             },
     ) {
         // Per-segment occurrence base offsets, advanced via countSegmentOccurrences so they stay
@@ -226,7 +228,7 @@ actual fun MarkdownContent(
                 is MarkdownSegment.TextBlock -> {
                     if (isSearchActive) {
                         // Markdown stays rendered with find open; matches are marked in what it
-                        // displays. Citation chips are left out while finding.
+                        // displays. Citation pills are left out while finding.
                         MarkdownTextSegment(
                             content = segment.text,
                             fontSizeMultiplier = fontSizeMultiplier,
@@ -234,23 +236,13 @@ actual fun MarkdownContent(
                             search = rememberMarkdownSearch(segment.text, searchQuery, focusedInSegment, onFocusedOccurrencePosition),
                         )
                     } else {
-                        val hasCitations = remember(segment.text) {
-                            segment.text.contains(CITATION_DETECT_REGEX)
-                        }
-                        if (hasCitations) {
-                            CitationText(
-                                text = segment.text,
-                                fontSizeMultiplier = fontSizeMultiplier,
-                            )
-                        } else {
-                            MarkdownTextSegment(
-                                content = segment.text,
-                                fontSizeMultiplier = fontSizeMultiplier,
-                                immediate = immediate,
-                                streaming = streaming,
-                                trailingCursor = inlineCursor && index == segments.lastIndex,
-                            )
-                        }
+                        MarkdownTextSegment(
+                            content = segment.text,
+                            fontSizeMultiplier = fontSizeMultiplier,
+                            immediate = immediate,
+                            streaming = streaming,
+                            trailingCursor = inlineCursor && index == segments.lastIndex,
+                        )
                     }
                 }
             }

@@ -282,8 +282,13 @@
     <string name="audio_decode_failed">Échec du décodage de l'audio</string>
 
     <!-- Citation -->
-    <string name="citation_number">Citation %1$d</string>
-    <string name="cd_open_citation_url">Ouvrir l'URL de la citation</string>
+    <string name="citation_sources_title">Sources</string>
+    <string name="cd_citation">Source : %1$s</string>
+    <plurals name="cd_citation_more">
+        <item quantity="one">Source : %1$s et %2$d autre</item>
+        <item quantity="many">Source : %1$s et %2$d autres</item>
+        <item quantity="other">Source : %1$s et %2$d autres</item>
+    </plurals>
 
     <!-- Fork options -->
     <string name="fork_conversation">Bifurquer la conversation</string>

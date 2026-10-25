@@ -32,6 +32,7 @@ import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.content.flattenSearchableText
+import com.garfiec.librechat.core.model.content.stripCitations
 import com.garfiec.librechat.feature.conversations.drawer.DrawerSearchSources
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -570,18 +571,20 @@ class SearchViewModel(
                 )
 
         /** What the reader sees in the reply: the text without the reasoning. */
-        fun Message.answerText(): String =
+        fun Message.answerText(): String = stripCitations(
             content?.flattenSearchableText(includeSteer = true, skipReasoning = true)?.ifBlank { null }
                 ?: LegacyThinking.split(text)?.answer
-                ?: text
+                ?: text,
+        )
 
-        fun Message.reasoningText(): String =
+        fun Message.reasoningText(): String = stripCitations(
             content?.filter { it.type == ContentType.THINK }?.flattenSearchableText()?.ifBlank { null }
-                ?: LegacyThinking.split(text)?.reasoning.orEmpty()
+                ?: LegacyThinking.split(text)?.reasoning.orEmpty(),
+        )
 
         /** The text the index matched against, so the preview marks the same words. */
         fun Message.searchableText(): String =
-            content?.flattenSearchableText(includeSteer = true)?.ifBlank { text } ?: text
+            stripCitations(content?.flattenSearchableText(includeSteer = true)?.ifBlank { text } ?: text)
 
         /**
          * Conversations with the most matching messages first, local and server groups each ranked

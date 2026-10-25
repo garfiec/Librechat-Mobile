@@ -350,6 +350,30 @@ ported.
     a closer at the very end of the buffer is deferred so `US$5 to US$` + `10` never flashes as math
   - Falls back to monospace text if AndroidMath can't parse the expression
 
+## Inline citations (web_search / file_search)
+The tools make the model write anchors after the claims they cite: `turn0search0`, a group
+`…`, a highlight `…`. The grammar is upstream `client/src/utils/citations.ts`,
+ported to `:core:model` (`content/Citations.kt`) so search indexing can strip it too. Models write
+**both** forms: the private-use character and the literal six-character escape (the v0.8.8 rig's
+haiku wrote only escapes), so everything converts the escape first.
+- **Resolution** (`CitationIndex`): `turn{T}{type}{I}` is the I-th result of `type` in the reply's
+  `web_search` attachment whose `turn` is T (search→organic, news→topStories, ref→references,
+  image/video→images/videos), or of the T-th `file_search` attachment for `file`. Files keep their own
+  turn map: upstream shares one, so a reply that ran both loses one at turn 0.
+- **Rendering is two steps.** `rememberCitedMarkdownSegments` normalizes each prose segment against
+  the turn's index (`LocalMarkdownMedia.citations`, built in `ProvideMarkdownMedia`): unresolvable
+  anchors go with the space before them, highlights lose their markers, and only resolvable groups
+  stay, in canonical form. Then `citationAnnotate` claims the text leaf holding a group and emits an
+  inline-content pill (`CitationPill.kt`), sized by measuring its label. A group never splits across
+  leaves. Code spans and fences are never touched. Table cells draw a clickable label instead (no
+  inline content there). The pill opens `CitationSourcesSheet`, hosted by `ProvideMarkdownMedia`.
+- **While streaming** the tail of the reply holds back a partial anchor, group or escape, so
+  `turn0sea` never flashes.
+- **Find-in-page renders without citations**, and `countMarkdownOccurrences` counts the same stripped
+  text. Keep the two in step.
+- **Plain-text surfaces strip them**: read-aloud, the accessibility description, the search index
+  (format 4) and its previews. Copy numbers them `[1][2]` with a `Citations:` footer, as web's copy does.
+
 ## Streaming
 - `ChatViewModel.sendMessage()` calls `ChatRepository.startChat()` which returns `Flow<StreamEvent>`
 - Two-phase: POST /api/agents/chat -> streamId, then GET SSE stream
@@ -400,8 +424,7 @@ ported.
   don't run the cursor's annotator — defensive today, since no `trailingCursor` caller passes a
   query), and
   `canHostInlineCursor` on the trailing segment's kind — code blocks, tables, LaTeX blocks,
-  citation-bearing text (androidMain only; iosMain has no `CitationText`, so there the exclusion
-  costs a cursor for no rendering reason), and text still inside an **unclosed** code fence, because
+  and text still inside an **unclosed** code fence, because
   `parseMarkdownSegments` only lifts *closed* fences out — without that last case a long code reply
   would stream with no cursor at all. The segment-kind half is unit-tested.
 - Before the first delta there is no insertion point, so the bubble shows `StreamingWaitIndicator`

@@ -1,5 +1,7 @@
 package com.garfiec.librechat.feature.chat.components
 
+import com.garfiec.librechat.core.model.content.codeSpanEnd
+
 // Shared markdown + LaTeX parsing logic used by both Android and iOS MarkdownContent.
 
 internal sealed interface MarkdownSegment {
@@ -26,7 +28,6 @@ internal sealed interface InlineSegment {
 // Pre-compiled regex patterns
 private val CODE_BLOCK_REGEX = Regex("```(\\w*)[^\\S\\n]*\\n([\\s\\S]*?)```")
 private val BLOCK_LATEX_REGEX = Regex("\\$\\$([\\s\\S]+?)\\$\\$|\\\\\\[([\\s\\S]+?)\\\\\\]")
-internal val CITATION_DETECT_REGEX = Regex("""\[\d+]|\u3010\d+\u2020""")
 private val TABLE_SEPARATOR_REGEX = Regex("^\\|?\\s*:?-{1,}:?\\s*(\\|\\s*:?-{1,}:?\\s*)*\\|?$")
 
 private val HTML_BLOCK_TAG_NAMES = setOf(
@@ -43,7 +44,6 @@ private val HTML_OPENING_TAG_REGEX = Regex(
 
 private const val INLINE_PAREN_OPEN = "\\("
 private const val INLINE_PAREN_CLOSE = "\\)"
-private const val FENCE_RUN = 3
 
 /**
  * Splits [text] into prose and inline math, or returns null when it holds no inline math so the
@@ -117,30 +117,7 @@ private class InlineLatexScanner(private val text: String, private val streaming
         return close + INLINE_PAREN_CLOSE.length
     }
 
-    /**
-     * Skips a code span whose closing run matches [i]'s run; a line-leading run of three or more is
-     * an open fence and ends the scan.
-     */
-    private fun atBacktick(i: Int): Int {
-        val runEnd = backtickRunEnd(i)
-        val run = runEnd - i
-        if (run >= FENCE_RUN && (i == 0 || text[i - 1] == '\n')) return text.length
-        var k = runEnd
-        while (k < text.length) {
-            k = text.indexOf('`', k)
-            if (k < 0) return runEnd
-            val end = backtickRunEnd(k)
-            if (end - k == run) return end
-            k = end
-        }
-        return runEnd
-    }
-
-    private fun backtickRunEnd(i: Int): Int {
-        var k = i
-        while (k < text.length && text[k] == '`') k++
-        return k
-    }
+    private fun atBacktick(i: Int): Int = codeSpanEnd(text, i)
 
     private fun atDollar(i: Int): Int {
         if (!isDollarOpener(i)) return i + 1

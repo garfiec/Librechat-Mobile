@@ -102,19 +102,15 @@ internal fun withStreamingCursor(text: String): String =
  * Whether the markdown library renders [segment]'s tail as annotated text, and can therefore host
  * the inline cursor.
  *
- * Two text blocks are excluded even though the library does render them:
- * - a citation-bearing one, because androidMain routes it to `CitationText`, which builds its own
- *   [androidx.compose.ui.text.AnnotatedString] and never sees the annotator;
- * - one holding an unclosed code fence, because `parseMarkdownSegments` only lifts *closed* fences
- *   out into [MarkdownSegment.CodeBlock] — so mid-write code is still a text block, and the library
- *   renders it through its own code-fence component rather than as annotated text. Without this the
- *   whole of a long code reply would stream with no cursor at all.
+ * One text block is excluded even though the library does render it: one holding an unclosed code
+ * fence, because `parseMarkdownSegments` only lifts *closed* fences out into
+ * [MarkdownSegment.CodeBlock] — so mid-write code is still a text block, and the library renders it
+ * through its own code-fence component rather than as annotated text. Without this the whole of a
+ * long code reply would stream with no cursor at all.
  */
 internal fun canHostInlineCursor(segment: MarkdownSegment): Boolean = when (segment) {
     is MarkdownSegment.TextBlock ->
-        segment.text.isNotBlank() &&
-            !segment.text.contains(CITATION_DETECT_REGEX) &&
-            !hasUnclosedCodeFence(segment.text)
+        segment.text.isNotBlank() && !hasUnclosedCodeFence(segment.text)
     is MarkdownSegment.InlineLatexText ->
         (segment.segments.lastOrNull() as? InlineSegment.Text)?.text?.isNotBlank() == true
     is MarkdownSegment.CodeBlock,
@@ -177,7 +173,7 @@ internal val StreamingCursorAnnotator: MarkdownAnnotator =
  * One process-wide instance: the renderer keys an internal `remember` on this map, so a fresh one per
  * composition would rebuild it on every delta of every streaming reply.
  */
-private val StreamingCursorInlineContent: Map<String, InlineTextContent> = mapOf(
+internal val StreamingCursorInlineContent: Map<String, InlineTextContent> = mapOf(
     STREAMING_CURSOR_INLINE_ID to InlineTextContent(
         Placeholder(
             width = 0.42.em,

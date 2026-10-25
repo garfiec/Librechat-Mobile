@@ -515,7 +515,7 @@ actual fun MarkdownContent(
     streaming: Boolean,
     trailingCursor: Boolean,
 ) {
-    val segments = rememberMarkdownSegments(text, streaming)
+    val segments = rememberCitedMarkdownSegments(text, streaming, withoutCitations = !searchQuery.isNullOrBlank())
 
     val colors = markdownColor(
         text = MaterialTheme.colorScheme.onSurface,

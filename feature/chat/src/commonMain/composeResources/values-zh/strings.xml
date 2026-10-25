@@ -282,8 +282,11 @@
     <string name="audio_decode_failed">音频解码失败</string>
 
     <!-- Citation -->
-    <string name="citation_number">引用 %1$d</string>
-    <string name="cd_open_citation_url">打开引用 URL</string>
+    <string name="citation_sources_title">来源</string>
+    <string name="cd_citation">来源：%1$s</string>
+    <plurals name="cd_citation_more">
+        <item quantity="other">来源：%1$s 等 %2$d 个</item>
+    </plurals>
 
     <!-- Fork options -->
     <string name="fork_conversation">分叉对话</string>

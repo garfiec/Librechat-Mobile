@@ -3137,6 +3137,60 @@
       },
       "why": "How the skill detail page splits a SKILL.md body's YAML frontmatter from the markdown it renders, and which keys it lists above it. The server sends the body with the block still in it.",
       "failure_mode": "If upstream changes the parse rules, mobile lists different metadata than web, or renders part of the block as markdown text. Nothing errors."
+    },
+    {
+      "id": "citation-marker-grammar",
+      "upstream": {
+        "file": "client/src/utils/citations.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/Citations.kt",
+        "symbol": "normalizeCitations (regexes at the top of the file)"
+      },
+      "why": "The private-use citation markers (\\ue200-\\ue206) and the turn{N}{type}{index} anchor grammar, in both literal and character form.",
+      "failure_mode": "A marker or ref type upstream adds renders as raw text after the cited sentence, or is stripped where the web shows a source chip."
+    },
+    {
+      "id": "citation-ref-type-map",
+      "upstream": {
+        "file": "client/src/components/Web/Context.tsx",
+        "symbol": "refTypeMap",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/Citations.kt",
+        "symbol": "CitationIndex.resolve"
+      },
+      "why": "Which search-result list each anchor type indexes (search -> organic, news -> topStories, ref/file -> references).",
+      "failure_mode": "An anchor resolves to the wrong result list, so the pill names and opens a different source than the one the model cited."
+    },
+    {
+      "id": "citation-search-results-by-turn",
+      "upstream": {
+        "file": "client/src/hooks/Messages/useSearchResultsByTurn.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/Citations.kt",
+        "symbol": "CitationIndex.from"
+      },
+      "why": "How a reply's web_search and file_search attachments become the per-turn results its anchors index into.",
+      "failure_mode": "Citations stop resolving (and are stripped), or resolve against the wrong search turn."
+    },
+    {
+      "id": "citation-clipboard-numbering",
+      "upstream": {
+        "file": "client/src/hooks/Messages/useCopyToClipboard.ts",
+        "symbol": "createCitationProcessor",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/Citations.kt",
+        "symbol": "CitationClipboard"
+      },
+      "why": "How a copied message writes its citations: [n] numbered by link, highlights in bold, a Citations: footer.",
+      "failure_mode": "A copied reply diverges from what the web copies for the same message."
     }
   ]
 }

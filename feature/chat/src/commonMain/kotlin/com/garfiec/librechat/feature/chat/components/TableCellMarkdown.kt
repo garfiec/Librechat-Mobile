@@ -11,13 +11,21 @@ import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withLink
+import androidx.compose.ui.unit.em
+import com.garfiec.librechat.core.model.content.CITATION_ANCHOR
+import com.garfiec.librechat.core.model.content.CitationIndex
+import com.garfiec.librechat.core.model.content.CitationPiece
+import com.garfiec.librechat.core.model.content.citationPieces
 import com.mikepenz.markdown.annotator.AnnotatorSettings
 import com.mikepenz.markdown.annotator.DefaultAnnotatorSettings
 import com.mikepenz.markdown.annotator.buildMarkdownAnnotatedString
 import com.mikepenz.markdown.model.MarkdownAnnotator
 import com.mikepenz.markdown.model.markdownAnnotator
+import com.mikepenz.markdown.utils.getUnescapedTextInNode
 import org.intellij.markdown.MarkdownElementTypes
 import org.intellij.markdown.MarkdownTokenTypes
+import org.intellij.markdown.ast.ASTNode
 import org.intellij.markdown.ast.getTextInNode
 import org.intellij.markdown.flavours.gfm.GFMElementTypes
 import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
@@ -53,7 +61,10 @@ private val TableCellFlavour = GFMFlavourDescriptor()
  * Shared by the themed and the plain settings: both must produce the same text, or search numbering
  * drifts off the characters the table draws.
  */
-private val TableCellAnnotator: MarkdownAnnotator = markdownAnnotator { content, child ->
+private val TableCellAnnotator: MarkdownAnnotator =
+    markdownAnnotator { content, child -> tableCellAnnotate(content, child) }
+
+private fun AnnotatedString.Builder.tableCellAnnotate(content: String, child: ASTNode): Boolean =
     when (child.type) {
         GFMElementTypes.INLINE_MATH, GFMElementTypes.BLOCK_MATH, MarkdownElementTypes.IMAGE -> {
             append(child.getTextInNode(content))
@@ -65,6 +76,38 @@ private val TableCellAnnotator: MarkdownAnnotator = markdownAnnotator { content,
             lineBreak
         }
         else -> false
+    }
+
+/**
+ * [TableCellAnnotator] plus citations. A cell is a plain annotated string with no inline content, so
+ * a group draws as its pill label in a tinted span that opens the same sources sheet as a pill.
+ * Themed rendering only: while finding, cells arrive with their citations already stripped, which is
+ * the text [tableCellPlainText] numbers.
+ */
+private fun tableCellCitationAnnotator(
+    index: CitationIndex,
+    sheet: CitationSheetState,
+    style: TextLinkStyles,
+): MarkdownAnnotator = markdownAnnotator { content, child ->
+    val text = if (child.type == MarkdownTokenTypes.TEXT) child.getUnescapedTextInNode(content) else null
+    if (text == null || CITATION_ANCHOR !in text) {
+        tableCellAnnotate(content, child)
+    } else {
+        for (piece in citationPieces(text)) {
+            when (piece) {
+                is CitationPiece.Text -> append(piece.text)
+                is CitationPiece.Group -> {
+                    val sources = index.resolve(piece.group)
+                    if (sources.isNotEmpty()) {
+                        append(' ')
+                        withLink(LinkAnnotation.Clickable(piece.group.inlineId, style) { sheet.open(sources) }) {
+                            append(citationPillLabel(sources))
+                        }
+                    }
+                }
+            }
+        }
+        true
     }
 }
 
@@ -86,13 +129,22 @@ internal fun rememberTableCellAnnotatorSettings(): AnnotatorSettings {
     val codeBackground = MaterialTheme.colorScheme.surfaceContainerHighest
     val highlightText = MaterialTheme.colorScheme.onSecondaryContainer
     val highlightBackground = MaterialTheme.colorScheme.secondaryContainer
+    val citationText = MaterialTheme.colorScheme.onSurfaceVariant
     val uriHandler = LocalUriHandler.current
-    return remember(linkColor, codeBackground, highlightText, highlightBackground, uriHandler) {
+    val citations = LocalMarkdownMedia.current.citations
+    val sheet = LocalCitationSheet.current
+    return remember(linkColor, codeBackground, highlightText, highlightBackground, citationText, uriHandler, citations, sheet) {
+        val annotator = if (citations.isEmpty) {
+            TableCellAnnotator
+        } else {
+            val citationStyle = SpanStyle(color = citationText, background = codeBackground, fontSize = 0.85.em)
+            tableCellCitationAnnotator(citations, sheet, TextLinkStyles(citationStyle))
+        }
         DefaultAnnotatorSettings(
             linkTextSpanStyle = TextLinkStyles(SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)),
             codeSpanStyle = SpanStyle(fontFamily = FontFamily.Monospace, background = codeBackground),
             highlightSpanStyle = SpanStyle(color = highlightText, background = highlightBackground),
-            annotator = TableCellAnnotator,
+            annotator = annotator,
             linkInteractionListener = { link ->
                 (link as? LinkAnnotation.Url)?.url?.let { url -> runCatching { uriHandler.openUri(url) } }
             },

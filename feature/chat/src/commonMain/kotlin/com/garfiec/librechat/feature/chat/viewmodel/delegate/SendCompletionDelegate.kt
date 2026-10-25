@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.StreamEvent
+import com.garfiec.librechat.core.model.content.stripCitations
 import com.garfiec.librechat.feature.chat.util.NEW_CHAT_DRAFT_KEY
 import com.garfiec.librechat.feature.chat.util.resolvedResponseMessage
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
@@ -238,7 +239,7 @@ class SendCompletionDelegate(
             }
         }
         if (shouldAutoRead && completedResponseText.isNotBlank()) {
-            tts.maybeAutoReadResponse(completedResponseText)
+            tts.maybeAutoReadResponse(stripCitations(completedResponseText))
         }
     }
 

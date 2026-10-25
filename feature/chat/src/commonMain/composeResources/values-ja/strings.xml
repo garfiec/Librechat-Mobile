@@ -282,8 +282,11 @@
     <string name="audio_decode_failed">音声のデコードに失敗しました</string>
 
     <!-- Citation -->
-    <string name="citation_number">引用 %1$d</string>
-    <string name="cd_open_citation_url">引用URLを開く</string>
+    <string name="citation_sources_title">出典</string>
+    <string name="cd_citation">出典: %1$s</string>
+    <plurals name="cd_citation_more">
+        <item quantity="other">出典: %1$s ほか%2$d件</item>
+    </plurals>
 
     <!-- Fork options -->
     <string name="fork_conversation">会話をフォーク</string>

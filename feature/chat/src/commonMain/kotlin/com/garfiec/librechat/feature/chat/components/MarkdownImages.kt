@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImagePainter
 import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.content.CitationIndex
 import com.garfiec.librechat.core.model.files.isExpired
 import com.garfiec.librechat.core.model.media.InlineMediaTarget
 import com.garfiec.librechat.core.model.media.buildAttachmentsByName
@@ -114,14 +115,15 @@ internal class RemoteImageApprovals {
 private val ProcessRemoteImageApprovals = RemoteImageApprovals()
 
 /**
- * What a reply's markdown images resolve against: the turn's image attachments by name, the server,
- * and which third-party images the user agreed to load.
+ * What a reply's markdown resolves against: the turn's image attachments by name, the server, which
+ * third-party images the user agreed to load, and the search results its citations index into.
  */
 @Stable
 internal class MarkdownMedia(
     val byName: Map<String, Attachment>,
     val baseUrl: String,
     private val approvals: RemoteImageApprovals,
+    val citations: CitationIndex = CitationIndex.Empty,
 ) {
     /**
      * The gate every image in a reply loads through: [MarkdownImageSource.Ready] is the only result
@@ -174,15 +176,24 @@ internal val LocalMarkdownMedia = compositionLocalOf { MarkdownMedia(emptyMap(),
  */
 internal val LocalMarkdownSource = compositionLocalOf<String?> { null }
 
+/**
+ * Every place a turn's markdown is drawn goes through here, so this is also where its citations get
+ * their index and their sources sheet: no call site can draw a pill that resolves nothing or opens
+ * nothing.
+ */
 @Composable
 internal fun ProvideMarkdownMedia(attachments: List<Attachment>?, baseUrl: String, content: @Composable () -> Unit) {
     val media = remember(attachments, baseUrl) {
         // An expired sandbox file would only 404: its name falls through to the alt text instead.
         val nowMs = currentTimeMs()
         val live = attachments?.filterNot { it.isExpired(nowMs) }
-        MarkdownMedia(buildAttachmentsByName(live), baseUrl, ProcessRemoteImageApprovals)
+        MarkdownMedia(buildAttachmentsByName(live), baseUrl, ProcessRemoteImageApprovals, CitationIndex.from(attachments))
     }
-    CompositionLocalProvider(LocalMarkdownMedia provides media, content = content)
+    val citationSheet = remember { CitationSheetState() }
+    CompositionLocalProvider(LocalMarkdownMedia provides media, LocalCitationSheet provides citationSheet) {
+        content()
+        CitationSourcesSheet(citationSheet)
+    }
 }
 
 /** Loads through Coil (the app's authenticated Ktor client) after resolving the source by name. */

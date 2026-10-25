@@ -59,6 +59,10 @@ import com.mikepenz.markdown.model.rememberMarkdownState
  * see StreamingCursor.kt. It rewrites the content being parsed, so it also opts out
  * of the AST cache on both sides: a sentinel-bearing AST must never be served to a
  * settled render, and a per-delta write would evict other messages' ASTs.
+ *
+ * Citation pills need no cache rule of their own: [content] is already normalized against the
+ * turn's search results, so a reply whose results land later is different content with its own
+ * cache key.
  */
 @Composable
 fun CachedMarkdown(
@@ -77,12 +81,27 @@ fun CachedMarkdown(
     val key = parsedMarkdownCacheKey(rendered)
     // The last message opts into synchronous first-parse; see [LocalImmediateMarkdown].
     val immediate = immediate || LocalImmediateMarkdown.current
-    val annotator = if (trailingCursor) StreamingCursorAnnotator else NoOpMarkdownAnnotator
-    val inlineContent =
-        if (trailingCursor) rememberStreamingCursorInlineContent() else markdownInlineContent()
     val cacheable = !streaming && !trailingCursor
     // Remembered per media holder: the renderer keys its inline-image layout on the transformer.
     val media = LocalMarkdownMedia.current
+    // Citations arrive normalized (see `normalizeCitations`): only resolvable groups are left, in
+    // the canonical form the annotator claims and these pills resolve.
+    val citations = rememberCitationInlineContent(rendered, media.citations, typography.paragraph)
+    val annotator = when {
+        citations.isEmpty() -> if (trailingCursor) StreamingCursorAnnotator else NoOpMarkdownAnnotator
+        trailingCursor -> CursorAndCitationAnnotator
+        else -> CitationAnnotator
+    }
+    val inlineContent = when {
+        citations.isEmpty() ->
+            if (trailingCursor) rememberStreamingCursorInlineContent() else markdownInlineContent()
+        else -> {
+            val merged = remember(citations, trailingCursor) {
+                if (trailingCursor) StreamingCursorInlineContent + citations else citations
+            }
+            markdownInlineContent(merged)
+        }
+    }
     val imageTransformer = remember(media) { ChatImageTransformer(media) }
 
     if (cacheable) {
