@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -167,6 +168,8 @@ internal fun MemoryCard(
                     style = MaterialTheme.typography.bodyMedium,
                     fontStyle = if (memory.hidesValue) FontStyle.Italic else null,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    // Every slot keeps its height when short or empty, so cards in a grid row line up.
+                    minLines = 2,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 4.dp),
@@ -185,6 +188,10 @@ internal fun MemoryCard(
     }
 }
 
+/**
+ * The agent, tokens and date on one line that is there even when empty. Items that don't fit are
+ * dropped from the end rather than wrapped, so the agent stays and the date gives way first.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MemoryMetaRow(memory: Memory, agentOrdinal: Int?, updated: String?) {
@@ -192,37 +199,39 @@ private fun MemoryMetaRow(memory: Memory, agentOrdinal: Int?, updated: String?) 
     // Agent-partitioned entries can share a key with a personal one, so the owner is always named,
     // the same way its filter chip is.
     val agentLabel = if (memory.agentId != null) memoryAgentLabel(memory.agentName, agentOrdinal) else null
-    if (agentLabel == null && tokens == null && updated == null) return
     val localeTag = LocalDateTimeFormat.current.localeTag
-    FlowRow(
-        modifier = Modifier.padding(top = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-        itemVerticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (agentLabel != null) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Icon(
-                    Icons.Default.SmartToy,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp),
-                )
-                Text(
-                    text = agentLabel,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.widthIn(max = MEMORY_AGENT_LABEL_MAX_WIDTH),
-                )
+    Box(Modifier.padding(top = 8.dp).heightIn(min = MetaIconSize), contentAlignment = Alignment.CenterStart) {
+        // Holds a text line's height when no item is shown.
+        Text(" ", style = MaterialTheme.typography.labelMedium, maxLines = 1, modifier = Modifier.alpha(0f))
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            itemVerticalAlignment = Alignment.CenterVertically,
+            maxLines = 1,
+        ) {
+            if (agentLabel != null) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Icon(
+                        Icons.Default.SmartToy,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(MetaIconSize),
+                    )
+                    Text(
+                        text = agentLabel,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = MEMORY_AGENT_LABEL_MAX_WIDTH),
+                    )
+                }
             }
+            if (tokens != null) {
+                val formatted = remember(tokens, localeTag) { formatLocalizedNumber(tokens.toDouble(), localeTag) }
+                MemoryMetaText(pluralStringResource(Res.plurals.memory_token_count, tokens, formatted))
+            }
+            if (updated != null) MemoryMetaText(updated)
         }
-        if (tokens != null) {
-            val formatted = remember(tokens, localeTag) { formatLocalizedNumber(tokens.toDouble(), localeTag) }
-            MemoryMetaText(pluralStringResource(Res.plurals.memory_token_count, tokens, formatted))
-        }
-        if (updated != null) MemoryMetaText(updated)
     }
 }
 
@@ -236,6 +245,9 @@ private fun MemoryMetaText(text: String) {
         overflow = TextOverflow.Ellipsis,
     )
 }
+
+/** The agent mark; the meta row is never shorter than it. */
+private val MetaIconSize = 16.dp
 
 private val MenuIconSize = 24.dp
 private val MenuGapBelowIcon = 12.dp
@@ -338,7 +350,7 @@ internal fun MemoryCardPlaceholder(modifier: Modifier = Modifier) {
         PlaceholderLine(typography.bodyMedium, widthFraction = VALUE_FRACTION)
         PlaceholderLine(typography.bodyMedium, widthFraction = VALUE_END_FRACTION)
         Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(Modifier.heightIn(min = MetaIconSize), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             PlaceholderLine(typography.labelMedium, width = 64.dp)
             PlaceholderLine(typography.labelMedium, width = 48.dp)
         }

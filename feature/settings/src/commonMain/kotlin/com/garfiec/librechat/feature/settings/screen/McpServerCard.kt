@@ -3,11 +3,11 @@ package com.garfiec.librechat.feature.settings.screen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
@@ -89,7 +90,6 @@ internal fun McpDisplayStatus.presentation(colors: StatusColors): McpStatusPrese
  * the status in words. The trailing slot holds the action that fixes the server when there is one,
  * then the overflow menu.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun McpServerCard(
     row: McpServerRow,
@@ -129,21 +129,18 @@ internal fun McpServerCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (row.description != null) {
-                    Text(
-                        text = row.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 2.dp),
-                    )
-                }
-                FlowRow(
-                    modifier = Modifier.padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    itemVerticalAlignment = Alignment.CenterVertically,
+                // Every slot keeps its height when empty, so cards in a grid row line up.
+                Text(
+                    text = row.description.orEmpty(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    minLines = 2,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+                McpMetaLine(
+                    error = row.error.takeIf { row.status == McpDisplayStatus.FAILED },
                 ) {
                     if (statusLabel != null) McpMetaItem(statusLabel, presentation.icon, presentation.tint)
                     if (row.status == McpDisplayStatus.CONNECTED && row.toolCount > 0) {
@@ -152,16 +149,6 @@ internal fun McpServerCard(
                     if (!row.access.canEdit) {
                         McpMetaItem(stringResource(Res.string.mcp_view_only), Icons.Default.Lock)
                     }
-                }
-                if (row.status == McpDisplayStatus.FAILED && row.error != null) {
-                    Text(
-                        text = row.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
                 }
             }
             val action = row.status.cardAction()
@@ -194,14 +181,41 @@ internal fun McpServerCard(
     }
 }
 
+/**
+ * Status, tools and View only on one line that is there even when empty. A failed server's error
+ * follows on the same line and ellipsizes, instead of adding a line only failed cards have.
+ */
+@Composable
+private fun McpMetaLine(error: String?, items: @Composable RowScope.() -> Unit) {
+    Box(Modifier.padding(top = 8.dp).heightIn(min = MetaIconSize), contentAlignment = Alignment.CenterStart) {
+        // Holds a text line's height when no item is shown.
+        Text(" ", style = MaterialTheme.typography.labelMedium, maxLines = 1, modifier = Modifier.alpha(0f))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            items()
+            if (error != null) {
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+            }
+        }
+    }
+}
+
 @Composable
 internal fun McpMetaItem(text: String, icon: ImageVector? = null, tint: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        if (icon != null) Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(14.dp))
+        if (icon != null) Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(MetaIconSize))
         Text(
             text = text,
             style = MaterialTheme.typography.labelMedium,
             color = if (icon != null) tint else MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -256,3 +270,6 @@ internal fun McpServerMenu(
 }
 
 private val ACTION_MAX_WIDTH = 120.dp
+
+/** The meta row's icons; the row is never shorter than them. */
+private val MetaIconSize = 14.dp
