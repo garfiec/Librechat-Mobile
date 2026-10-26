@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
+import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
@@ -13,6 +14,7 @@ import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.ui.components.ModelParameters
+import com.garfiec.librechat.feature.chat.util.SpecTools
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -212,6 +214,45 @@ class ChatViewModelConversationParametersTest {
 
         assertEquals(0.3f, vm.uiState.value.modelParameters.temperature)
         coVerify(exactly = 0) { conversationRepository.refreshConversation("cp-handoff", any()) }
+    }
+
+    @Test
+    fun aHandedOffSpecChatKeepsTheToolsAddedOnTheLanding() = runTest(testDispatcher) {
+        startupConfig.value = StartupConfig(
+            modelSpecs = ModelSpecs(
+                list = listOf(ModelSpec(name = "search", preset = Preset(endpoint = "openAI", model = "gpt-4.1"), webSearch = true)),
+            ),
+        )
+        fixture.selectionHandoff.put(
+            "cp-spec-handoff",
+            ModelChoice.Spec("search", "openAI", "gpt-4.1"),
+            specTools = SpecTools("search", added = setOf(ToolConstants.FILE_SEARCH)),
+        )
+        coEvery { conversationRepository.getConversation("cp-spec-handoff", any()) } returns
+            Result.Success(listed("cp-spec-handoff").copy(spec = "search"))
+
+        val vm = open("cp-spec-handoff")
+        advanceUntilIdle()
+
+        assertEquals(setOf(ToolConstants.WEB_SEARCH, ToolConstants.FILE_SEARCH), vm.uiState.value.effectiveEnabledTools)
+    }
+
+    @Test
+    fun aReopenedSpecChatStartsFromTheSpecsToolsAndKeepsTheUsersToggles() = runTest(testDispatcher) {
+        startupConfig.value = StartupConfig(
+            modelSpecs = ModelSpecs(list = listOf(ModelSpec(name = "plain", preset = Preset(endpoint = "openAI", model = "gpt-4.1")))),
+        )
+        // The stored web_search was what the spec chat sent, not the user's own toggle.
+        coEvery { conversationRepository.getConversation("cp-spec-reopen", any()) } returns
+            Result.Success(listed("cp-spec-reopen").copy(spec = "plain", webSearch = true, temperature = 0.2))
+
+        val vm = open("cp-spec-reopen")
+        advanceUntilIdle()
+
+        assertEquals("plain", vm.uiState.value.selectedSpec)
+        assertEquals(0.2f, vm.uiState.value.modelParameters.temperature)
+        assertEquals(false, vm.uiState.value.modelParameters.webSearch)
+        assertEquals(emptySet<String>(), vm.uiState.value.effectiveEnabledTools)
     }
 
     @Test

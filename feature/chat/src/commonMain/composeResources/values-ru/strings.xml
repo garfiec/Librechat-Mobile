@@ -229,6 +229,7 @@
     <string name="tool_model_parameters">Параметры модели</string>
     <string name="tool_model_parameters_desc">Настройте температуру, токены и другое</string>
     <string name="param_set_by_spec">Настройки этой модели задаёт сервер, здесь их изменить нельзя.</string>
+    <string name="tool_set_by_spec">Включено сервером для этой модели</string>
     <string name="tool_web_search">Веб-поиск</string>
     <string name="tool_web_search_desc">Искать информацию в интернете</string>
     <string name="web_searched">Выполнен поиск в интернете</string>

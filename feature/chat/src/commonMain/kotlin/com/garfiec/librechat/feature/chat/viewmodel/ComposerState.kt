@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.components.AttachedFile
+import com.garfiec.librechat.feature.chat.util.SpecTools
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PickedFile
 
 /**
@@ -138,6 +139,8 @@ data class ComposerSnapshot(
     val choice: ModelChoice,
     val enabledTools: Set<String> = emptySet(),
     val mcpServerNames: Set<String> = emptySet(),
+    /** The tools added on top of a spec, which ride the swap like the user's own toggles. */
+    val specTools: SpecTools? = null,
     val modelParameters: ModelParameters = ModelParameters.DEFAULT,
     /** The pending skill chips: the draft's while stashed, the queued item's picks while editing. */
     val manualSkills: List<String> = emptyList(),

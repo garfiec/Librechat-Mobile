@@ -150,13 +150,18 @@ data class FeatureGatesState(
  * bundled so they thread as one value across Android and iOS. Each defaults to true
  * (shown) so a default-constructed bundle is fully permissive. Built by
  * [ChatUiState.chatInputGates]; see [ChatUiState.modelPickerShown] /
- * [ChatUiState.parametersEnabled] / [ChatUiState.showEphemeralTools] /
+ * [ChatUiState.parametersEnabled] / [ChatUiState.toolbarShown] /
  * [ChatUiState.fileUploadEnabled] for the individual gating rules.
  */
 @Immutable
 data class ChatInputGates(
     val modelPickerShown: Boolean = true,
     val parametersEnabled: Boolean = true,
+    /** Whether the tool controls show ([ChatUiState.toolbarShown]). */
     val showEphemeralTools: Boolean = true,
     val fileUploadEnabled: Boolean = true,
+    /** Tools the active model spec turns on: shown on, and not switchable ([ChatUiState.lockedTools]). */
+    val lockedTools: Set<String> = emptySet(),
+    /** MCP servers the active model spec adds, likewise ([ChatUiState.lockedMcpServers]). */
+    val lockedMcpServers: Set<String> = emptySet(),
 )

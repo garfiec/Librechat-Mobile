@@ -54,6 +54,20 @@ data class ModelSpec(
      * as a [JsonElement] because the key is a union; read it through [artifactsMode].
      */
     val artifacts: JsonElement? = null,
+    /** Hides the composer's tool controls (web's badge row) while this spec is selected. */
+    val hideBadgeRow: Boolean? = null,
+    /**
+     * Tools this spec turns on. The server ORs each with the request's `ephemeralAgent` flag, so the
+     * client can add tools to a spec chat but can't turn these off.
+     */
+    val webSearch: Boolean? = null,
+    val fileSearch: Boolean? = null,
+    val executeCode: Boolean? = null,
+    val memory: Boolean? = null,
+    /** Applied by the server alone: the composer has no ask-user control, and web sends none. */
+    val askUserQuestion: Boolean? = null,
+    /** MCP servers the server adds to the request's own, even ones hidden from the chat picker. */
+    val mcpServers: List<String>? = null,
 ) {
     /**
      * The `ephemeralAgent.artifacts` this spec turns on, or null for none. As web's

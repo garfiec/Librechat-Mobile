@@ -340,6 +340,7 @@ fun CommonChatInputCore(
                 PinnedToolsRow(
                     pinnedToolKeys = state.pinnedToolKeys,
                     enabledTools = state.enabledTools,
+                    lockedTools = state.gates.lockedTools,
                     onToggleTool = onToggleTool,
                     modifier = Modifier.padding(bottom = 4.dp),
                 )

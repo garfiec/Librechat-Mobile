@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.usage.ContextUsageTotals
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.CatalogSkill
+import com.garfiec.librechat.feature.chat.util.SpecTools
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
@@ -485,6 +486,7 @@ class QueueOrchestrationWrites internal constructor(state: ChatUiState) {
     var choice: ModelChoice = state.selection.choice
     var enabledTools: Set<String> = state.selection.enabledTools
     var selectedMcpServerNames: Set<String> = state.selection.selectedMcpServerNames
+    var specTools: SpecTools? = state.selection.specTools
     var modelParameters: ModelParameters = state.selection.modelParameters
     var skillsToggle: Boolean = state.selection.skillsToggle
     var error: String? = state.error
@@ -499,6 +501,7 @@ class QueueOrchestrationWrites internal constructor(state: ChatUiState) {
             choice = choice,
             enabledTools = enabledTools,
             selectedMcpServerNames = selectedMcpServerNames,
+            specTools = specTools,
             modelParameters = modelParameters,
             skillsToggle = skillsToggle,
         ),

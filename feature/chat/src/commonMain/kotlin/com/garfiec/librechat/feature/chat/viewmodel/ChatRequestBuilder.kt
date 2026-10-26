@@ -35,8 +35,10 @@ class ChatRequestBuilder(
     }
 
     /**
-     * Builds an [EphemeralAgent] from the current UI state (selected MCP servers and
-     * enabled tools). Returns null when there is nothing to send.
+     * Builds an [EphemeralAgent] from the tools in use ([ModelSelectionState.effectiveTools] and
+     * [ModelSelectionState.effectiveMcpServerNames]). Under a spec that is the spec's own tools,
+     * sent explicitly as web does (the server ORs them in anyway), plus the chat's additions;
+     * under `hideBadgeRow`, the spec's alone. Returns null when there is nothing to send.
      */
     fun buildEphemeralAgent(): EphemeralAgent? {
         val state = stateProvider()
@@ -44,17 +46,16 @@ class ChatRequestBuilder(
         // ephemeral tools for agent runs. Mirror web's `showEphemeralBadges` (ChatForm.tsx)
         // and never serialize leftover UI selections on the agents endpoint.
         if (!state.showEphemeralTools) return null
-        val mcpServers = state.selectedMcpServerNames.toList().ifEmpty { null }
-        val enabledTools = state.enabledTools
-        val webSearchEnabled = state.modelParameters.webSearch
+        val mcpServers = state.effectiveMcpServerNames.toList().ifEmpty { null }
+        val enabledTools = state.selection.effectiveTools - ToolConstants.URL_CONTEXT
+        val webSearchEnabled = ToolConstants.WEB_SEARCH in enabledTools
         // The conversation's own toggle, sent only where it is offered: a model spec that
         // configures skills overrides it server-side, and without the capability or role the
         // server ignores it.
         val skillsOn = state.skillsToggle && state.isSkillsToolAvailable
         val artifacts = state.activeSpec?.artifactsMode
 
-        val hasAnything = mcpServers != null || enabledTools.isNotEmpty() || webSearchEnabled || skillsOn ||
-            artifacts != null
+        val hasAnything = mcpServers != null || enabledTools.isNotEmpty() || skillsOn || artifacts != null
         if (!hasAnything) return null
 
         return EphemeralAgent(
@@ -64,8 +65,16 @@ class ChatRequestBuilder(
             executeCode = if (ToolConstants.CODE_INTERPRETER in enabledTools || ToolConstants.EXECUTE_CODE in enabledTools) true else null,
             // Re-check availability rather than trusting the toggle alone: the flag can survive a
             // config/permission change that has since withdrawn memory, and the server would then
-            // silently drop the tools from a run the user believes is remembering.
-            memory = if (ToolConstants.MEMORY in enabledTools && state.isMemoryToolAvailable) true else null,
+            // silently drop the tools from a run the user believes is remembering. A spec's own
+            // memory is sent as it is: the server applies it either way.
+            memory = if (
+                ToolConstants.MEMORY in enabledTools &&
+                (state.isMemoryToolAvailable || ToolConstants.MEMORY in state.lockedTools)
+            ) {
+                true
+            } else {
+                null
+            },
             skills = if (skillsOn) true else null,
             artifacts = artifacts,
         )
@@ -92,7 +101,7 @@ class ChatRequestBuilder(
             // here renders a control and then drops the value it produced.
             model = agent?.model ?: state.selectedModel,
             extendedEffortSupported = state.extendedEffortSupported,
-            params = state.modelParameters,
+            params = state.selection.sendParameters,
             dropParamsMap = state.gates.dropParamsMap,
         ).takeIf { it.isNotEmpty() }
     }

@@ -201,8 +201,8 @@ client has to send them. Only a change of spec touches the parameters (`acrossSp
 on top of a spec survives config refreshes and is sent:
 - Onto a spec (a pick, a seeded tier, a retargeted spec re-applied): that spec's preset over the defaults.
 - Off a spec onto a raw model (a pick, or the config dropping it as stale): the defaults.
-- Web search and URL context carry across either way. Here they are also the toolbar's toggles,
-  which don't follow the spec yet (#640).
+- The user's web search and URL context carry across either way. Under a spec the toolbar shows
+  the spec's tools instead (see "Chat Tools"), so these wait for the user to leave it.
 - A user preset replaces the spec's values. Only a preset naming a spec and nothing else layers its
   values over that spec's preset. A saved preset (endpoint, model and spec) builds on the defaults:
   `savePreset` leaves out values equal to the defaults, so a value the user reset would otherwise
@@ -747,9 +747,37 @@ Steering is text-only on mobile: a during-run send carrying attachments is route
 existing upload/usage path already handles them.
 
 ## Chat Tools
-- Tool state tracked as `Set<String>` in `ChatUiState.enabledTools`
-- Tool toggles (web search, code interpreter, file search) and MCP servers live in the paged
-  "+" options sheet (`ChatToolsSheetContent`), reached from `ChatInput`'s `onOpenTools`
+- The user's own toggles are global: `enabledTools` and `selectedMcpServerNames` (stored in
+  `SettingsDataStore`, carried into every chat), plus web search and URL context, which are
+  `ModelParameters.webSearch` / `urlContext`. The Skills toggle is per conversation
+  (`SkillsToggleDelegate`).
+- Tool toggles and MCP servers live in the paged "+" options sheet (`ChatToolsSheetContent`),
+  reached from `ChatInput`'s `onOpenTools`, plus the server's pinned chips (`PinnedToolsRow`).
+- **Everything reads the tools in use, not the toggles**: `ModelSelectionState.effectiveTools`,
+  `effectiveMcpServerNames` and `sendParameters` (the parameters with web search and URL context
+  from the tools in use). The toolbar, the sheet, the request's `ephemeralAgent`, the top-level
+  `web_search` and the parameters payload all go through them.
+- **A model spec drives the tools** (`util/SpecTools.kt`, registered in `scripts/mirrors.json` as
+  `model-spec-tools` and `model-spec-tools-web`). The server ORs the spec's `webSearch`,
+  `fileSearch`, `executeCode` and `memory` with the request's flags and adds its `mcpServers`, so
+  under a spec:
+  - The chat starts from exactly the spec's tools, as web's `applyModelSpecEphemeralAgent` does; the
+    user's toggles are neither shown nor sent. The spec's own are on and locked (`lockedTools`,
+    `lockedMcpServers`, carried in `ChatInputGates`). Its preset's `web_search` and `url_context`
+    (`presetTools`, the provider's grounding parameters) start on too, as web copies the preset in;
+    the user can turn those off, except under `enforce`, where the server sends the preset anyway.
+  - The user can add tools. Additions are `SpecTools`, kept for the session only (never stored),
+    named by their spec: they count only while that spec is selected, so any change of spec starts
+    the next one clean whoever writes `choice`. `withChoice` and the preset load also drop them on a
+    change of spec. They ride the queued-edit swap and the new-chat handoff; a reopened spec chat
+    starts from the spec's tools. Web keeps them per conversation (a deliberate divergence).
+  - Nothing a spec chat does writes the user's toggles, so leaving the spec brings them back. That
+    includes the parameters sheet's web search and URL context controls (`updateModelParameters`
+    routes them into the additions) and a reopened chat's stored `web_search` (`reopenedParameters`
+    keeps the current values on a spec).
+  - `hideBadgeRow` hides the tool controls (`ChatUiState.toolbarShown`) and drops the additions;
+    the request still carries the spec's own tools and artifacts, as web sends them.
+  - `ephemeralAgent` is read from the body even under `enforce`, so nothing more is locked there.
 
 ## Content Cards
 - `ImageGenCard` renders DALL-E / image generation results (spinner while generating, AsyncImage when done)

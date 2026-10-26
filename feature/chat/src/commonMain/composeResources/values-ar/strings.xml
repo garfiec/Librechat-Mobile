@@ -229,6 +229,7 @@
     <string name="tool_model_parameters">معاملات النموذج</string>
     <string name="tool_model_parameters_desc">ضبط درجة الحرارة والرموز والمزيد</string>
     <string name="param_set_by_spec">يحدد الخادم إعدادات هذا النموذج، ولا يمكن تغييرها هنا.</string>
+    <string name="tool_set_by_spec">فعّله الخادم لهذا النموذج</string>
     <string name="tool_web_search">البحث على الويب</string>
     <string name="tool_web_search_desc">البحث على الويب عن المعلومات</string>
     <string name="web_searched">تم البحث على الويب</string>

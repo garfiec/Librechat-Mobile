@@ -486,7 +486,7 @@ internal fun BoxScope.ChatPullUpSheetOverlay(
                 enabledTools = uiState.effectiveEnabledTools,
                 onToggleTool = viewModel::toggleTool,
                 mcpServers = uiState.mcpServers,
-                selectedMcpServerNames = uiState.selectedMcpServerNames,
+                selectedMcpServerNames = uiState.effectiveMcpServerNames,
                 onToggleMcpServer = viewModel::toggleMcpServer,
                 onAttachFiles = onAttachFiles,
                 onTakePhoto = onTakePhoto,

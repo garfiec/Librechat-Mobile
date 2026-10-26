@@ -160,6 +160,9 @@ data class ChatUiState(
     val enabledTools: Set<String> get() = selection.enabledTools
     val mcpServers: List<McpServerDisplayData> get() = selection.mcpServers
     val selectedMcpServerNames: Set<String> get() = selection.selectedMcpServerNames
+    val effectiveMcpServerNames: Set<String> get() = selection.effectiveMcpServerNames
+    val lockedTools: Set<String> get() = selection.lockedTools
+    val lockedMcpServers: Set<String> get() = selection.lockedMcpServers
     val extendedEffortSupported: Boolean get() = selection.extendedEffortSupported
     val thinkingDisplayUpdatesSupported: Boolean get() = selection.thinkingDisplayUpdatesSupported
     val inputText: String get() = composer.inputText
@@ -189,8 +192,7 @@ data class ChatUiState(
         get() = activeSpec?.skillsSetting
 
     /** The served spec the selection runs on, or null for a raw pick or a spec the config doesn't list. */
-    val activeSpec: ModelSpec?
-        get() = selectedSpec?.let { name -> selection.modelSpecs?.list?.firstOrNull { it.name == name } }
+    val activeSpec: ModelSpec? get() = selection.activeSpec
 
     /**
      * Whether the server, not the parameters sheet, sets this chat's parameters: under `enforce` it
@@ -272,7 +274,7 @@ data class ChatUiState(
      * `skills_enabled` governs — and no active model spec configures skills.
      */
     val isSkillsToolAvailable: Boolean
-        get() = skillsCapable && showEphemeralTools && activeSpecSkills == null
+        get() = skillsCapable && toolbarShown && activeSpecSkills == null
 
     /**
      * Whether the "Add to chat" quote affordance is offered (v0.8.7, upstream #13868).
@@ -503,22 +505,14 @@ data class ChatUiState(
         }
 
     /**
-     * Effective tool set that merges [enabledTools] with the web search state from
-     * [modelParameters]. This ensures the toolbar, bottom sheet, and dropdown all
-     * reflect the same web search toggle as the Model Parameters sheet.
+     * The tools in use, as the toolbar, tools sheet and pinned chips show them: the selection's
+     * [ModelSelectionState.effectiveTools] (web search and URL context from the parameters, or the
+     * spec's tools under one), plus the per-conversation Skills toggle where it would be sent.
      */
     val effectiveEnabledTools: Set<String>
         get() {
-            // web_search and url_context are model parameters, not entries in [enabledTools];
-            // synthesize them in so the toolbar, bottom sheet, and pinned chips all reflect
-            // the same toggle state as the Model Parameters sheet.
-            var tools = enabledTools
-            tools = if (modelParameters.webSearch) tools + ToolConstants.WEB_SEARCH else tools - ToolConstants.WEB_SEARCH
-            tools = if (modelParameters.urlContext) tools + ToolConstants.URL_CONTEXT else tools - ToolConstants.URL_CONTEXT
-            // The Skills toggle is per conversation and lives apart from [enabledTools]; it is
-            // synthesized in only where it would be sent.
-            tools = if (skillsToggle && isSkillsToolAvailable) tools + ToolConstants.SKILLS else tools - ToolConstants.SKILLS
-            return tools
+            val tools = selection.effectiveTools - ToolConstants.SKILLS
+            return if (skillsToggle && isSkillsToolAvailable) tools + ToolConstants.SKILLS else tools
         }
 
     /**
@@ -544,7 +538,7 @@ data class ChatUiState(
      */
     val pinnedToolChips: List<String>
         get() {
-            if (!showEphemeralTools || pinnedTools.isEmpty()) return emptyList()
+            if (!toolbarShown || pinnedTools.isEmpty()) return emptyList()
             return pinnedTools.mapNotNull { key ->
                 when (key) {
                     ToolConstants.WEB_SEARCH -> ToolConstants.WEB_SEARCH.takeIf { webSearchEnabled }
@@ -568,6 +562,14 @@ data class ChatUiState(
      */
     val showEphemeralTools: Boolean
         get() = selectedEndpoint != EndpointConstants.AGENTS
+
+    /**
+     * Whether the composer shows its tool controls (tools-sheet rows, MCP picker, pinned and active
+     * tool chips): [showEphemeralTools], unless the active spec sets `hideBadgeRow`, as web's
+     * `ChatForm` hides its badges. The request still carries the spec's own tools then.
+     */
+    val toolbarShown: Boolean
+        get() = showEphemeralTools && !selection.toolsHiddenBySpec
 
     /**
      * Whether a follow-up may be queued mid-stream: only on an existing single-stream
@@ -680,8 +682,10 @@ data class ChatUiState(
         get() = ChatInputGates(
             modelPickerShown = modelPickerShown,
             parametersEnabled = parametersEnabled,
-            showEphemeralTools = showEphemeralTools,
+            showEphemeralTools = toolbarShown,
             fileUploadEnabled = fileUploadEnabled,
+            lockedTools = lockedTools,
+            lockedMcpServers = lockedMcpServers,
         )
 
     /**

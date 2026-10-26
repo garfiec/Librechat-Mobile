@@ -197,6 +197,32 @@ class ChatViewModelQueuedSkillsTest {
         }
 
     @Test
+    fun `editing a message queued on a spec keeps the tools added there`() {
+        val curated = ModelSpec(name = "curated", preset = Preset(endpoint = ENDPOINT, model = MODEL))
+        serveSpecs(curated)
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            vm.onSpecSelected(curated)
+            runCurrent()
+            vm.toggleTool(ToolConstants.FILE_SEARCH)
+            vm.onInputChanged(TEXT)
+            vm.queueMessage()
+            runCurrent()
+            vm.toggleTool(ToolConstants.FILE_SEARCH)
+            assertThat(vm.uiState.value.effectiveEnabledTools).doesNotContain(ToolConstants.FILE_SEARCH)
+
+            vm.editQueued(vm.uiState.value.messageQueue.single().localId)
+            runCurrent()
+            assertThat(vm.uiState.value.effectiveEnabledTools).contains(ToolConstants.FILE_SEARCH)
+            vm.onInputChanged("$TEXT Briefly.")
+            vm.commitQueuedEdit()
+            runCurrent()
+
+            assertThat(vm.uiState.value.messageQueue.single().ephemeralAgent?.fileSearch).isTrue()
+            assertThat(vm.uiState.value.effectiveEnabledTools).doesNotContain(ToolConstants.FILE_SEARCH)
+        }
+    }
+
+    @Test
     fun `editing a message queued on a spec with Skills on keeps it on after a raw model pick`() {
         val curated = ModelSpec(name = "curated", preset = Preset(endpoint = ENDPOINT, model = MODEL))
         serveSpecs(curated)

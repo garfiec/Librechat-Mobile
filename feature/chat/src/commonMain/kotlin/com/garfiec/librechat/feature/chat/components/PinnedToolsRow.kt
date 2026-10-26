@@ -30,6 +30,8 @@ internal fun PinnedToolsRow(
     enabledTools: Set<String>,
     onToggleTool: (String) -> Unit,
     modifier: Modifier = Modifier,
+    /** Tools the active model spec turns on: shown selected and disabled. */
+    lockedTools: Set<String> = emptySet(),
 ) {
     FlowRow(
         modifier = modifier.fillMaxWidth(),
@@ -48,6 +50,7 @@ internal fun PinnedToolsRow(
             AdaptiveFilterChip(
                 selected = key in enabledTools,
                 onClick = { onToggleTool(key) },
+                enabled = key !in lockedTools,
                 label = { Text(stringResource(meta.titleRes)) },
                 colors = chipColors,
                 leadingIcon = {

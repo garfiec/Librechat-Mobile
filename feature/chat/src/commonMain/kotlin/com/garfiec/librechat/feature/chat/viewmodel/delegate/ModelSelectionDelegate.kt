@@ -1172,14 +1172,29 @@ class ModelSelectionDelegate(
         }
     }
 
+    /**
+     * Switches an MCP server for this chat. Under a spec only the chat's additions change, and
+     * nothing is stored ([ModelSelectionState.toggledSpecMcpServer]); otherwise the user's own
+     * selection, which is kept across chats.
+     */
     fun toggleMcpServer(serverName: String) {
+        handle.state.selection.toggledSpecMcpServer(serverName)?.let { tools ->
+            handle.update { selection = selection.copy(specTools = tools) }
+            return
+        }
         val current = handle.state.selectedMcpServerNames
         val updated = if (serverName in current) current - serverName else current + serverName
         handle.update { selection = selection.copy(selectedMcpServerNames = updated) }
         handle.scope.launch { settingsDataStore.setSelectedMcpServers(updated) }
     }
 
+    /** Switches a tool for this chat, by the same rule as [toggleMcpServer]. */
     fun toggleTool(toolName: String) {
+        if (toolName == ToolConstants.CODE_INTERPRETER && !handle.state.isCodeInterpreterAvailable) return
+        handle.state.selection.toggledSpecTool(toolName)?.let { tools ->
+            handle.update { selection = selection.copy(specTools = tools) }
+            return
+        }
         if (toolName == ToolConstants.WEB_SEARCH) {
             // Web search is backed by modelParameters.webSearch (single source of truth).
             val current = handle.state.modelParameters.webSearch
@@ -1192,9 +1207,6 @@ class ModelSelectionDelegate(
             handle.update {
                 selection = selection.copy(modelParameters = selection.modelParameters.copy(urlContext = !current))
             }
-        } else if (toolName == ToolConstants.CODE_INTERPRETER && !handle.state.isCodeInterpreterAvailable) {
-            // Code interpreter is not available on this server; ignore toggle attempt.
-            return
         } else {
             val current = handle.state.enabledTools
             val updated = if (toolName in current) current - toolName else current + toolName
@@ -1210,7 +1222,9 @@ class ModelSelectionDelegate(
      */
     fun updateModelParameters(parameters: ModelParameters, restoring: Boolean = false) {
         if (!restoring && handle.state.parametersSetBySpec) return
-        handle.update { selection = selection.copy(modelParameters = parameters) }
+        handle.update {
+            selection = if (restoring) selection.copy(modelParameters = parameters) else selection.withSheetParameters(parameters)
+        }
     }
 }
 

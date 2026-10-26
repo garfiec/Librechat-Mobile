@@ -154,8 +154,9 @@ class SpecPresetParametersTest {
         val delegate = newDelegate(handle)
         delegate.seedInitialSelection(isNewConversation = true)
         advanceUntilIdle()
-        delegate.onSpecSelected(deep)
+        // The user's own toggle, set before the spec: the spec's tools stand in for it meanwhile.
         delegate.updateModelParameters(handle.state.modelParameters.copy(webSearch = true))
+        delegate.onSpecSelected(deep)
 
         delegate.onChoiceSelected(ModelChoice.Raw("openAI", "gpt-4o"))
 

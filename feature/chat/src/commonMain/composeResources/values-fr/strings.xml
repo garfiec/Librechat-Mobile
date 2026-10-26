@@ -229,6 +229,7 @@
     <string name="tool_model_parameters">Paramètres du modèle</string>
     <string name="tool_model_parameters_desc">Ajuster la température, les jetons et plus encore</string>
     <string name="param_set_by_spec">Les réglages de ce modèle sont définis par le serveur et ne peuvent pas être modifiés ici.</string>
+    <string name="tool_set_by_spec">Activé par le serveur pour ce modèle</string>
     <string name="tool_web_search">Recherche web</string>
     <string name="tool_web_search_desc">Rechercher des informations sur le web</string>
     <string name="web_searched">Recherche sur le web effectuée</string>

@@ -105,6 +105,7 @@ class SendCompletionDelegate(
                 stagedManualSkills = staged,
                 skillsNotSentNotice = staged.isNotEmpty() && sent.error == ChatNotice.SKILLS_NOT_SENT.marker(),
                 modelParameters = sent.modelParameters,
+                specTools = sent.selection.specTools,
             )
             carrySkillsToggle(conversationId, isTemporary)
             if (navigatesNow) {

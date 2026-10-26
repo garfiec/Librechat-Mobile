@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData
+import com.garfiec.librechat.feature.chat.util.SpecTools
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
@@ -97,6 +98,36 @@ class PresetSpecLoadTest {
         )
 
         assertThat(selection.choice).isEqualTo(ModelChoice.Raw(EndpointConstants.AGENTS, null))
+    }
+
+    @Test
+    fun `a preset opening another spec drops the tools added on the first`() = runTest {
+        val other = ModelSpec(name = "other", preset = Preset(endpoint = "openAI", model = "gpt-4o"))
+
+        val selection = loadPreset(
+            Preset(presetId = "p1", spec = "other"),
+            ModelSpecs(list = listOf(fast, other)),
+            state = ModelSelectionState(
+                choice = ModelChoice.Spec("fast", "openAI", "gpt-4.1"),
+                specTools = SpecTools("fast", added = setOf("file_search")),
+            ),
+        )
+
+        assertThat(selection.selectedSpec).isEqualTo("other")
+        assertThat(selection.specTools).isNull()
+    }
+
+    @Test
+    fun `a preset keeping the spec keeps the tools added on it`() = runTest {
+        val added = SpecTools("fast", added = setOf("file_search"))
+
+        val selection = loadPreset(
+            Preset(presetId = "p1", temperature = 0.4),
+            ModelSpecs(list = listOf(fast)),
+            state = ModelSelectionState(choice = ModelChoice.Spec("fast", "openAI", "gpt-4.1"), specTools = added),
+        )
+
+        assertThat(selection.specTools).isEqualTo(added)
     }
 
     @Test

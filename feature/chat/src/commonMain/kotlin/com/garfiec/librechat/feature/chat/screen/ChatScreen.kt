@@ -553,7 +553,7 @@ fun ChatScreen(
                                 pinnedToolKeys = uiState.pinnedToolChips,
                                 onToggleTool = viewModel::toggleTool,
                                 mcpServers = uiState.mcpServers,
-                                selectedMcpServerNames = uiState.selectedMcpServerNames,
+                                selectedMcpServerNames = uiState.effectiveMcpServerNames,
                                 selectedModelDisplay = effectiveSelectedModelDisplay,
                                 isCodeInterpreterAvailable = uiState.isCodeInterpreterAvailable,
                                 gates = uiState.chatInputGates,

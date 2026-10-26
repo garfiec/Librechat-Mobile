@@ -468,6 +468,7 @@ class QueueOrchestrationDelegate(
             choice = state.selection.choice,
             enabledTools = state.enabledTools,
             mcpServerNames = state.selectedMcpServerNames,
+            specTools = state.selection.specTools,
             modelParameters = state.modelParameters,
             manualSkills = state.pendingManualSkills,
             skillsToggle = state.skillsToggle,
@@ -493,6 +494,7 @@ class QueueOrchestrationDelegate(
             choice = snapshot.choice
             enabledTools = snapshot.enabledTools
             selectedMcpServerNames = snapshot.mcpServerNames
+            specTools = snapshot.specTools
             modelParameters = snapshot.modelParameters
             pendingManualSkills = snapshot.manualSkills
             skillsToggle = snapshot.skillsToggle

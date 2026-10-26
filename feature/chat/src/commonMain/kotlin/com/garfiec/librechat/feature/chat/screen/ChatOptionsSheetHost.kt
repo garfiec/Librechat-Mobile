@@ -78,7 +78,7 @@ internal fun ChatOptionsSheetHost(
             enabledTools = uiState.effectiveEnabledTools,
             onToggleTool = viewModel::toggleTool,
             mcpServers = uiState.mcpServers,
-            selectedMcpServerNames = uiState.selectedMcpServerNames,
+            selectedMcpServerNames = uiState.effectiveMcpServerNames,
             onToggleMcpServer = viewModel::toggleMcpServer,
             onAttachFiles = onAttachFiles,
             onTakePhoto = onTakePhoto,
@@ -139,7 +139,7 @@ internal fun ChatOptionsSheetHost(
         // parameters, so there is nothing else to point this at (pre-existing; porting web's
         // per-addedConvo parameters would be the real fix).
         parameters = ModelParametersPageParams(
-            parameters = uiState.modelParameters,
+            parameters = uiState.selection.sendParameters,
             onParametersChange = viewModel::updateModelParameters,
             selectedEndpoint = uiState.selectedEndpoint,
             extendedEffortSupported = uiState.extendedEffortSupported,

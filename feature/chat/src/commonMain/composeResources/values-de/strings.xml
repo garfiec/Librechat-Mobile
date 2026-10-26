@@ -229,6 +229,7 @@
     <string name="tool_model_parameters">Modellparameter</string>
     <string name="tool_model_parameters_desc">Temperatur, Tokens und mehr anpassen</string>
     <string name="param_set_by_spec">Die Einstellungen dieses Modells legt der Server fest. Sie lassen sich hier nicht ändern.</string>
+    <string name="tool_set_by_spec">Für dieses Modell vom Server aktiviert</string>
     <string name="tool_web_search">Websuche</string>
     <string name="tool_web_search_desc">Im Web nach Informationen suchen</string>
     <string name="web_searched">Im Web gesucht</string>

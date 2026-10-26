@@ -726,6 +726,11 @@ class ChatViewModel(
                 ) { "handoff applied for $conversationId" }
                 modelDelegate.applyResolvedConversationModel(handoff.choice.endpoint, handoff.choice.model, handoff.choice.spec)
                 handoff.modelParameters?.let { modelDelegate.updateModelParameters(it, restoring = true) }
+                handoff.specTools?.let { tools ->
+                    _uiState.update {
+                        if (it.selectedSpec != tools.spec) it else it.copy(selection = it.selection.copy(specTools = tools))
+                    }
+                }
                 handoff.skillsToggle?.let { skillsToggleDelegate.seed(conversationId, it) }
                 // Chips the first send held back stay staged here, still saying why.
                 if (handoff.stagedManualSkills.isNotEmpty()) {
@@ -826,12 +831,20 @@ class ChatViewModel(
                 _uiState.update { it.copy(selection = it.selection.copy(endpointConfigs = configs)) }
                 modelDelegate.refilterModels(isNewConversation)
                 keyStatusDelegate.recomputeFor(configs)
-                // If code interpreter is no longer available, remove it from enabled tools
+                // If code interpreter is no longer available, remove it from enabled tools and
+                // from what was added on top of a spec
                 val agentsCapabilities = configs[EndpointConstants.AGENTS]?.capabilities ?: emptyList()
                 if (agentsCapabilities.isNotEmpty() && ToolConstants.EXECUTE_CODE !in agentsCapabilities) {
                     _uiState.update {
-                        if (ToolConstants.CODE_INTERPRETER in it.enabledTools) {
-                            it.copy(selection = it.selection.copy(enabledTools = it.enabledTools - ToolConstants.CODE_INTERPRETER))
+                        val specTools = it.selection.specTools
+                        val code = ToolConstants.CODE_INTERPRETER
+                        if (code in it.enabledTools || (specTools != null && code in specTools.added)) {
+                            it.copy(
+                                selection = it.selection.copy(
+                                    enabledTools = it.enabledTools - code,
+                                    specTools = specTools?.copy(added = specTools.added - code),
+                                ),
+                            )
                         } else {
                             it
                         }

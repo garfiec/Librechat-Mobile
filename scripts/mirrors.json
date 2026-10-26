@@ -2991,6 +2991,34 @@
       "failure_mode": "If upstream changes how a spec's `skills` applies, the toggle is hidden while it would matter (or shown while ignored), and the picker offers skills the run drops."
     },
     {
+      "id": "model-spec-tools",
+      "upstream": {
+        "file": "packages/api/src/agents/load.ts",
+        "symbol": "loadEphemeralAgent",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpecTools.kt",
+        "symbol": "ModelSpec.forcedTools"
+      },
+      "why": "A model spec's `webSearch`, `fileSearch`, `executeCode` and `memory` are ORed with the request's `ephemeralAgent` flags, and its `mcpServers` are added to the request's own, so the client can add tools to a spec chat but can't turn the spec's off. The toolbar therefore shows the spec's tools on and locked (`forcedTools`, `forcedMcpServers`), and the request sends them with the chat's additions.",
+      "failure_mode": "If upstream lets the client turn a spec's tool off, or stops applying one, the toolbar shows a lock that isn't there, or a tool on that the run no longer has."
+    },
+    {
+      "id": "model-spec-tools-web",
+      "upstream": {
+        "file": "client/src/utils/endpoints.ts",
+        "symbol": "applyModelSpecEphemeralAgent",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/ModelSelectionState.kt",
+        "symbol": "ModelSelectionState.effectiveTools"
+      },
+      "why": "Web starts a spec chat from exactly the spec's tools and artifacts, not the user's stored toggles, and writes nothing to its non-spec store while a spec is active, so leaving the spec brings the user's toggles back. Mobile mirrors that with `SpecTools`: additions count only while their spec is selected, and the user's own toggles stay untouched underneath. Web keeps a spec chat's additions per conversation; mobile keeps them for the session only (a deliberate divergence).",
+      "failure_mode": "If web changes what a spec chat starts from (say, layering the user's toggles over the spec's), mobile sends a different tool set than web for the same spec."
+    },
+    {
       "id": "model-spec-skills-sanitized",
       "upstream": {
         "file": "packages/api/src/modelSpecs/index.ts",

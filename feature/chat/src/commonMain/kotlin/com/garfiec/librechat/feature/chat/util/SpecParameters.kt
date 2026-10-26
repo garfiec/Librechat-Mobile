@@ -16,7 +16,8 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.mergedFromPreset
  * private fields (`promptPrefix`, `instructions`, …) are never served and the server fills them in.
  *
  * Web search and URL context stay at their defaults: here they are also the tools toolbar's
- * toggles, which follow the composer, not the preset. Null when the spec isn't listed.
+ * toggles, which under a spec come from its tools and the preset's own ([presetTools]) instead.
+ * Null when the spec isn't listed.
  */
 internal fun ModelSpecs?.parametersFor(spec: String?): ModelParameters? {
     val preset = this?.list?.firstOrNull { it.name == spec }?.preset ?: return null
@@ -36,7 +37,8 @@ internal fun ModelSpecs?.parametersFor(spec: String?): ModelParameters? {
  * Under `enforce` a spec's preset applies on the same spec too: the server sends it in place of
  * whatever the chat holds, and nothing can be tweaked on top of it.
  *
- * The toolbar's web search and URL context toggles carry across either way.
+ * The user's web search and URL context toggles carry across either way; under a spec the toolbar
+ * shows the spec's tools instead ([SpecTools]) and leaves these for when the user moves off it.
  */
 internal fun ModelParameters.acrossSpecChange(from: ModelChoice, to: ModelChoice, specs: ModelSpecs?): ModelParameters {
     val enforced = specs.requiresSpec && to.spec != null
@@ -45,9 +47,17 @@ internal fun ModelParameters.acrossSpecChange(from: ModelChoice, to: ModelChoice
     return next.copy(webSearch = webSearch, urlContext = urlContext)
 }
 
-/** This selection on [choice], with its parameters moved across the change of spec ([acrossSpecChange]). */
+/**
+ * This selection on [choice], with its parameters moved across the change of spec ([acrossSpecChange])
+ * and the tools added on top of the previous spec dropped when the spec changes.
+ */
 internal fun ModelSelectionState.withChoice(choice: ModelChoice, specs: ModelSpecs? = modelSpecs): ModelSelectionState =
-    copy(choice = choice, modelSpecs = specs, modelParameters = modelParameters.acrossSpecChange(this.choice, choice, specs))
+    copy(
+        choice = choice,
+        modelSpecs = specs,
+        modelParameters = modelParameters.acrossSpecChange(this.choice, choice, specs),
+        specTools = specTools.takeIf { choice.spec != null && choice.spec == this.choice.spec },
+    )
 
 /**
  * The parameters [this] conversation was last sent with, as web restores them when it opens one. They
@@ -58,10 +68,13 @@ internal fun Conversation.storedParameters(): ModelParameters = ModelParameters.
 /**
  * What a reopened [conversation] runs on: its [storedParameters], except under `enforce`, where the
  * server sends its spec's preset in their place, so that is what the read-only sheet shows.
+ *
+ * On a spec, web search and URL context stay as they are: what the chat stored there was the spec's
+ * tools ([SpecTools]), not the user's own toggles, which these keep for when the user leaves it.
  */
 internal fun ModelSelectionState.reopenedParameters(conversation: Conversation): ModelParameters {
     val stored = conversation.storedParameters()
-    if (!modelSpecs.requiresSpec) return stored
-    val preset = modelSpecs.parametersFor(choice.spec) ?: return stored
-    return preset.copy(webSearch = stored.webSearch, urlContext = stored.urlContext)
+    val toggles = if (choice.spec != null) modelParameters else stored
+    val base = modelSpecs.parametersFor(choice.spec)?.takeIf { modelSpecs.requiresSpec } ?: stored
+    return base.copy(webSearch = toggles.webSearch, urlContext = toggles.urlContext)
 }

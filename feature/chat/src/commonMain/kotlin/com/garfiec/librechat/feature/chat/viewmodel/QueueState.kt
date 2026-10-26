@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.components.AttachedFile
+import com.garfiec.librechat.feature.chat.util.SpecTools
 import kotlinx.serialization.json.JsonObject
 
 /**
@@ -79,8 +80,15 @@ data class QueuedMessage(
     val enabledTools: Set<String> = emptySet(),
     /** Selected ephemeral MCP servers — snapshotted so editing the item restores its tool state. */
     val mcpServerNames: Set<String> = emptySet(),
+    /** Tools added on top of a spec ([ModelSelectionState.specTools]) — restored to the composer on edit. */
+    val specTools: SpecTools? = null,
     /** Full composer parameters (web search, reasoning effort, etc.) — restored to the composer on edit. */
     val modelParameters: ModelParameters = ModelParameters.DEFAULT,
+    /**
+     * The top-level `web_search` sent: [modelParameters]' own, except under a spec, where it is the
+     * spec's or the chat's addition ([ModelSelectionState.sendParameters]).
+     */
+    val webSearch: Boolean = modelParameters.webSearch,
     /**
      * Non-default model params (provider-keyed) serialized for the wire, snapshotted at enqueue time
      * so a queued send carries the params it was composed with. Null when nothing was customized.
@@ -195,6 +203,7 @@ fun QueuedMessage.toComposerSnapshot(): ComposerSnapshot = ComposerSnapshot(
     choice = choice,
     enabledTools = enabledTools,
     mcpServerNames = mcpServerNames,
+    specTools = specTools,
     modelParameters = modelParameters,
     manualSkills = manualSkills,
     skillsToggle = ephemeralAgent?.skills == true,

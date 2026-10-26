@@ -113,7 +113,9 @@ class SendDispatchDelegate(
             choice = state.selection.choice,
             enabledTools = state.enabledTools,
             mcpServerNames = state.selectedMcpServerNames,
+            specTools = state.selection.specTools,
             modelParameters = state.modelParameters,
+            webSearch = state.selection.sendParameters.webSearch,
             modelParamsPayload = requestBuilder.buildModelParams(),
             ephemeralAgent = requestBuilder.buildEphemeralAgent(),
             dispatch = requestBuilder.currentDispatch(),
@@ -385,7 +387,7 @@ class SendDispatchDelegate(
         beginStreaming(optimisticMessage.messageId, spec)
 
         Logger.d {
-            "sendMessage: webSearch=${spec.modelParameters.webSearch}, " +
+            "sendMessage: webSearch=${spec.webSearch}, " +
                 "endpoint=${spec.endpoint}, " +
                 "model=${spec.model}, spec=${spec.modelSpec}, " +
                 "files=${fileRefs.size}, " +
@@ -413,7 +415,7 @@ class SendDispatchDelegate(
             userMessageId = optimisticMessage.messageId,
             parentMessageId = lastMessageId,
             agentId = effectiveAgentId,
-            webSearch = spec.modelParameters.webSearch,
+            webSearch = spec.webSearch,
             files = fileRefs.takeIf { it.isNotEmpty() },
             addedConvo = effectiveAddedConvo,
             ephemeralAgent = spec.ephemeralAgent,
