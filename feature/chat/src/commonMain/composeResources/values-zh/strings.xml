@@ -228,6 +228,7 @@
     <string name="tool_model">模型</string>
     <string name="tool_model_parameters">模型参数</string>
     <string name="tool_model_parameters_desc">调整温度、token 等参数</string>
+    <string name="param_set_by_spec">此模型的设置由服务器决定，无法在此更改。</string>
     <string name="tool_web_search">网络搜索</string>
     <string name="tool_web_search_desc">在网络上搜索信息</string>
     <string name="web_searched">已搜索网络</string>

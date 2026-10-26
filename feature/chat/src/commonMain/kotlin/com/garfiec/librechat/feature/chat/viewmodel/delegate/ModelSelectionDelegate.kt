@@ -32,6 +32,7 @@ import com.garfiec.librechat.feature.chat.util.resolvedAgainst
 import com.garfiec.librechat.feature.chat.util.showsRawEndpoint
 import com.garfiec.librechat.feature.chat.util.toChoice
 import com.garfiec.librechat.feature.chat.util.toSeed
+import com.garfiec.librechat.feature.chat.util.withChoice
 import com.garfiec.librechat.feature.chat.util.withoutStale
 import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionHandle
@@ -142,7 +143,7 @@ class ModelSelectionDelegate(
     fun applyResolvedConversationModel(endpoint: String, model: String?, spec: String? = null) {
         val config = configRepository.startupConfig.value
         val choice = spec.offeredOrUnchecked(endpoint, model, config?.modelSpecs, checkable = config != null)
-        applySelection(choice, reason = "conversationResolved")
+        applySelection(choice, reason = "conversationResolved", specPreset = false)
         conversationModelLoaded = true
         conversationModelResolved = true
     }
@@ -586,10 +587,9 @@ class ModelSelectionDelegate(
                                 reseedCarried = true
                             }
                         }
-                    // One emission: the new specs never sit next to a spec they no longer offer.
-                    handle.update {
-                        selection = selection.copy(modelSpecs = input.modelSpecs, choice = resolved ?: current)
-                    }
+                    // One emission: the new specs never sit next to a spec they no longer offer, nor
+                    // next to the parameters of a spec they dropped.
+                    handle.update { selection = selection.withChoice(resolved ?: current, input.modelSpecs) }
                 }
                 // Keep the cached last-used fresh for refilterModels' existing-
                 // conversation corrective fallback. This runs for every conversation
@@ -894,12 +894,17 @@ class ModelSelectionDelegate(
         return selectability(seed.endpoint, seed.model, filtered, input)
     }
 
-    /** The one writer of [ModelSelectionState.choice] here, bar the seeder's spec-config update. */
-    private fun applySelection(choice: ModelChoice, reason: String) {
+    /**
+     * The one writer of [ModelSelectionState.choice] here, bar the seeder's spec-config update.
+     * Moving onto or off a spec resets the parameters to that spec's preset or the defaults
+     * ([withChoice]), except for a conversation's own model ([specPreset] false), whose
+     * stored parameters are the conversation load's to restore.
+     */
+    private fun applySelection(choice: ModelChoice, reason: String, specPreset: Boolean = true) {
         val previous = handle.state
         val changed = previous.selectedEndpoint != choice.endpoint || previous.selectedModel != choice.model
         reseedCarried = false
-        handle.update { selection = selection.copy(choice = choice) }
+        handle.update { selection = if (specPreset) selection.withChoice(choice) else selection.copy(choice = choice) }
         if (changed) {
             Diag.d(
                 tag = "ModelSel",
@@ -1198,7 +1203,13 @@ class ModelSelectionDelegate(
         }
     }
 
-    fun updateModelParameters(parameters: ModelParameters) {
+    /**
+     * Sets the chat's parameters. A change from the sheet is ignored while the server sets them
+     * ([ChatUiState.parametersSetBySpec]); [restoring] puts back ones the chat already had (its
+     * stored ones, or the new-chat handoff's), which no lock applies to.
+     */
+    fun updateModelParameters(parameters: ModelParameters, restoring: Boolean = false) {
+        if (!restoring && handle.state.parametersSetBySpec) return
         handle.update { selection = selection.copy(modelParameters = parameters) }
     }
 }

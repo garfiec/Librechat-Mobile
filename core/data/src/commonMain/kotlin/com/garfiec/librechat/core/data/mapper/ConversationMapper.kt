@@ -2,6 +2,10 @@ package com.garfiec.librechat.core.data.mapper
 
 import com.garfiec.librechat.core.data.db.entity.ConversationEntity
 import com.garfiec.librechat.core.model.Conversation
+import com.garfiec.librechat.core.model.Preset
+import com.garfiec.librechat.core.model.parameterPreset
+import com.garfiec.librechat.core.model.withParameters
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
@@ -30,11 +34,18 @@ fun Conversation.toEntity(): ConversationEntity {
         tags = json.encodeToString(ListSerializer(serializer<String>()), tags),
         iconURL = iconURL,
         greeting = greeting,
-        modelParams = null,
+        modelParams = parameterPreset().takeIf { it != Preset() }?.let { params ->
+            val asOf = (parametersAsOf ?: updatedAt)?.toEpochMilliseconds() ?: now
+            json.encodeToString(CachedParameters.serializer(), CachedParameters(asOf, params))
+        },
         createdAt = createdAt?.toEpochMilliseconds() ?: now,
         updatedAt = updatedAt?.toEpochMilliseconds() ?: now,
     )
 }
+
+/** The `modelParams` blob: the parameters, and the conversation's `updatedAt` when they were read. */
+@Serializable
+private data class CachedParameters(val asOf: Long, val params: Preset)
 
 fun ConversationEntity.toModel(): Conversation = Conversation(
     conversationId = conversationId,
@@ -57,6 +68,19 @@ fun ConversationEntity.toModel(): Conversation = Conversation(
     greeting = greeting,
     createdAt = Instant.fromEpochMilliseconds(createdAt),
     updatedAt = Instant.fromEpochMilliseconds(updatedAt),
-)
+).let { conversation ->
+    decodeParams(modelParams)?.let {
+        conversation.withParameters(it.params).copy(parametersAsOf = Instant.fromEpochMilliseconds(it.asOf))
+    } ?: conversation
+}
+
+/** The stored parameters, or null when none were cached or the blob doesn't decode. */
+private fun decodeParams(blob: String?): CachedParameters? = blob?.let {
+    try {
+        json.decodeFromString(CachedParameters.serializer(), it)
+    } catch (_: Exception) {
+        null
+    }
+}
 
 fun List<ConversationEntity>.toModels(): List<Conversation> = map { it.toModel() }

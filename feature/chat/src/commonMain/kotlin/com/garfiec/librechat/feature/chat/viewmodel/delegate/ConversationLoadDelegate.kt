@@ -11,6 +11,8 @@ import com.garfiec.librechat.core.logging.LogOrigin
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.core.model.hasParameters
+import com.garfiec.librechat.core.model.parametersStale
 import com.garfiec.librechat.core.model.request.MAX_MANUAL_SKILLS
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.NEW_CHAT_DRAFT_KEY
@@ -47,6 +49,9 @@ class ConversationLoadDelegate(
     private val defaultDispatcher: CoroutineDispatcher,
     /** ModelSelectionDelegate.applyConversationModel: seeds the selection from a fetched conversation. */
     private val applyConversationModel: (Conversation) -> Boolean,
+    /** Whether this screen takes the conversation's stored parameters (not a handed-off new chat). */
+    private val wantsStoredParameters: () -> Boolean = { false },
+    private val restoreParameters: (Conversation) -> Unit = {},
     /**
      * Marks the conversation-model load attempted (never "resolved") and refilters the model list;
      * see ModelSelectionDelegate.conversationModelLoaded. Runs on every path out of
@@ -346,22 +351,39 @@ class ConversationLoadDelegate(
         handle.scope.launch {
             val result = conversationRepository.getConversation(conversationId, originAccount = null)
             var conversation = result.getOrNull()
+            val wantsParameters = wantsStoredParameters()
+            fun apply(loaded: Conversation, restore: Boolean): Boolean {
+                handle.update { conversationTitle = loaded.title }
+                val applied = applyConversationModel(loaded)
+                // After the model, so the conversation's own parameters are what stays.
+                if (applied && restore) restoreParameters(loaded)
+                return applied
+            }
+            // The cached row applies at once, so an open never waits on the network for its model.
+            var applied = conversation?.let { apply(it, restore = wantsParameters) } ?: false
+            val shown = handle.state.selection.let { it.choice to it.modelParameters }
             // Rows cached before the spec column have none, and an enforced server rejects a send
-            // without it. Ask the server once per process: a conversation that has no spec there
-            // either would otherwise cost a request on every open.
-            val backfillKey = currentAccountId()?.let { "$it:$conversationId" }
-            if (conversation != null && conversation.spec == null && backfillKey != null &&
-                currentModelSpecs()?.enforce == true && backfillKey !in specBackfillDone
-            ) {
+            // without it. The list route sends no parameters, so a row it synced has none, or older
+            // ones once the chat changed elsewhere. Ask the server once per process and version of
+            // the chat: one that has neither there either would otherwise cost a request every open.
+            val cached = conversation
+            val backfillKey = currentAccountId()?.let { "$it:$conversationId:${cached?.updatedAt}" }
+            val incomplete = cached != null && (
+                (cached.spec == null && currentModelSpecs()?.enforce == true) ||
+                    (wantsParameters && (!cached.hasParameters || cached.parametersStale))
+                )
+            if (incomplete && backfillKey != null && backfillKey !in conversationBackfillDone) {
                 conversationRepository.refreshConversation(conversationId, originAccount = null).getOrNull()?.let {
                     // Only a successful fetch settles it: a failed one is retried on the next open.
-                    specBackfillDone.add(backfillKey)
+                    conversationBackfillDone.add(backfillKey)
                     conversation = it
+                    // A model or parameter set while the fetch was out is the user's and stays.
+                    if (handle.state.selection.let { s -> s.choice to s.modelParameters } == shown) {
+                        applied = apply(it, restore = wantsParameters && it.hasParameters)
+                    }
                 }
             }
             if (conversation != null) {
-                handle.update { conversationTitle = conversation.title }
-                val applied = applyConversationModel(conversation)
                 Diag.d(
                     tag = "ModelSel",
                     attrs = mapOf(
@@ -406,10 +428,10 @@ class ConversationLoadDelegate(
 }
 
 /**
- * Conversations whose spec the server has answered for this process, keyed `accountId:conversationId`.
- * Touched only on the main thread.
+ * Conversations the server has been asked for their spec and parameters this process, keyed
+ * `accountId:conversationId:updatedAt`. Touched only on the main thread.
  */
-private val specBackfillDone = HashSet<String>()
+private val conversationBackfillDone = HashSet<String>()
 
 private data class MessagePathEmission(
     val messages: List<Message>,

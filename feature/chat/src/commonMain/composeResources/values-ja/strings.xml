@@ -228,6 +228,7 @@
     <string name="tool_model">モデル</string>
     <string name="tool_model_parameters">モデルパラメータ</string>
     <string name="tool_model_parameters_desc">温度やトークンなどを調整</string>
+    <string name="param_set_by_spec">このモデルの設定はサーバーが決めているため、ここでは変更できません。</string>
     <string name="tool_web_search">ウェブ検索</string>
     <string name="tool_web_search_desc">ウェブで情報を検索</string>
     <string name="web_searched">ウェブを検索しました</string>

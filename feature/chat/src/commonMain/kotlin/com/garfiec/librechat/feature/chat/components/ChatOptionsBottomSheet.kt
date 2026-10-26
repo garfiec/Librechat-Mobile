@@ -50,6 +50,7 @@ import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_back
+import com.garfiec.librechat.feature.chat.resources.param_set_by_spec
 import com.garfiec.librechat.feature.chat.resources.tool_model_parameters
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
@@ -149,6 +150,8 @@ data class ModelParametersPageParams(
     /** Resolved `/api/config.endpointsDropParamsMap` entry; see [ModelParameterContent]. */
     val dropParams: List<String> = emptyList(),
     val onSaveAsPreset: () -> Unit = {},
+    /** The server sets the parameters (an enforced spec): the page shows them read-only. */
+    val setBySpec: Boolean = false,
 )
 
 /**
@@ -326,6 +329,11 @@ fun ChatOptionsBottomSheet(
                             selectedModel = parameters.selectedModel,
                             dropParams = parameters.dropParams,
                             onSaveAsPreset = parameters.onSaveAsPreset,
+                            readOnlyNote = if (parameters.setBySpec) {
+                                stringResource(Res.string.param_set_by_spec)
+                            } else {
+                                null
+                            },
                             // The back row above replaces the content's own title.
                             showHeader = false,
                             modifier = Modifier

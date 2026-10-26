@@ -167,6 +167,7 @@ internal fun ChatOptionsSheetHost(
                 controller.close()
                 onShowSavePresetDialog()
             },
+            setBySpec = uiState.parametersSetBySpec,
         ),
     )
 }

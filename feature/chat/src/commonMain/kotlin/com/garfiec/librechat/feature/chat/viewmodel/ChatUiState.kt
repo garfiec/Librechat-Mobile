@@ -15,6 +15,7 @@ import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.PendingAction
+import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecSkills
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.content.Compaction
@@ -47,6 +48,7 @@ import com.garfiec.librechat.feature.chat.util.SkillPickRules
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.util.changedPartIndices
 import com.garfiec.librechat.feature.chat.util.pickableSkills
+import com.garfiec.librechat.feature.chat.util.requiresSpec
 import com.garfiec.librechat.feature.chat.util.resolveLandingStarters
 import com.garfiec.librechat.feature.chat.util.skillPickRules
 
@@ -184,7 +186,19 @@ data class ChatUiState(
      * stored toggles under any active spec instead.
      */
     val activeSpecSkills: ModelSpecSkills?
-        get() = selectedSpec?.let { name -> selection.modelSpecs?.list?.firstOrNull { it.name == name } }?.skillsSetting
+        get() = activeSpec?.skillsSetting
+
+    /** The served spec the selection runs on, or null for a raw pick or a spec the config doesn't list. */
+    val activeSpec: ModelSpec?
+        get() = selectedSpec?.let { name -> selection.modelSpecs?.list?.firstOrNull { it.name == name } }
+
+    /**
+     * Whether the server, not the parameters sheet, sets this chat's parameters: under `enforce` it
+     * replaces the request body with the spec's preset (`mergeModelSpecPreset`, keeping only
+     * `chatProjectId`), so anything edited here would be shown and then discarded.
+     */
+    val parametersSetBySpec: Boolean
+        get() = selection.modelSpecs.requiresSpec && selectedSpec != null
 
     /**
      * Whether skills can be used in this chat at all: role SKILLS.USE (permissive until the role

@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.model.config
 
+import com.garfiec.librechat.core.model.ArtifactsMode
 import com.garfiec.librechat.core.model.Preset
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -48,7 +49,25 @@ data class ModelSpec(
     val skills: JsonElement? = null,
     /** Shown on the new-chat screen when the spec's agent, if it has one, has none of its own. */
     @SerialName("conversation_starters") val conversationStarters: List<String> = emptyList(),
+    /**
+     * Raw `artifacts` key: `true` or an artifacts mode (`"default"`, `"shadcnui"`, `"custom"`). Kept
+     * as a [JsonElement] because the key is a union; read it through [artifactsMode].
+     */
+    val artifacts: JsonElement? = null,
 ) {
+    /**
+     * The `ephemeralAgent.artifacts` this spec turns on, or null for none. As web's
+     * `applyModelSpecEphemeralAgent` (`client/src/utils/endpoints.ts`): `true` is the default mode
+     * and a string is sent as is. The server reads artifacts from the ephemeral agent only, never
+     * from the spec, so a client that doesn't send it gets no artifacts.
+     */
+    val artifactsMode: String?
+        get() {
+            val value = artifacts as? JsonPrimitive ?: return null
+            if (value.booleanOrNull == true) return ArtifactsMode.DEFAULT.wire
+            return value.takeIf { it.isString }?.contentOrNull?.takeIf { it.isNotEmpty() }
+        }
+
     /**
      * What this spec says about skills, or null when it configures none.
      *

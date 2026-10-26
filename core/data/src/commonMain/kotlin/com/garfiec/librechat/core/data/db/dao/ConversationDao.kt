@@ -107,8 +107,9 @@ interface ConversationDao {
     suspend fun upsertAll(conversations: List<ConversationEntity>)
 
     // Atomic read-merge-write that preserves locally-stored tags when a row already exists for this
-    // account. Used by paths that receive server responses without the `tags` field (list endpoint +
-    // streaming save). Must run inside a single transaction so it can't be interleaved by a concurrent
+    // account, and its cached model parameters when the incoming row has none. Used by paths that
+    // receive server responses without the `tags` field (list endpoint + streaming save). Must run
+    // inside a single transaction so it can't be interleaved by a concurrent
     // updateTags write from `syncFavoritesFromServer` (which would otherwise get clobbered). The body
     // threads `accountId` (reads via `getByIdForAccount`), so it is account-safe despite @CrossAccount
     // suppressing the concrete-body lint.
@@ -121,7 +122,12 @@ interface ConversationDao {
                 continue
             }
             val existing = getByIdForAccount(entity.conversationId, accountId)
-            val toUpsert = if (existing != null) entity.copy(tags = existing.tags) else entity
+            // The list route sends no parameters either: keep the ones a full read cached.
+            val toUpsert = if (existing != null) {
+                entity.copy(tags = existing.tags, modelParams = entity.modelParams ?: existing.modelParams)
+            } else {
+                entity
+            }
             upsert(toUpsert)
         }
     }

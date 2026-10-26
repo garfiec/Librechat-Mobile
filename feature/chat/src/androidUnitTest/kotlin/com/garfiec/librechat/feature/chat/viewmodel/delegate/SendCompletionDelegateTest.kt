@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.StreamEvent
+import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.util.AbortFrameFixtures
 import com.garfiec.librechat.feature.chat.util.applyAbortContract
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
@@ -46,6 +47,7 @@ class SendCompletionDelegateTest {
     private val modelDelegate = mockk<ModelSelectionDelegate>(relaxed = true)
     private val tts = mockk<PlatformTts>(relaxed = true)
     private val reloadConversation = mockk<(String) -> Unit>(relaxed = true)
+    private val selectionHandoff = NewChatSelectionHandoff()
 
     private fun optimisticUserMessage() = Message(
         messageId = AbortFrameFixtures.USER_MESSAGE_ID,
@@ -77,7 +79,7 @@ class SendCompletionDelegateTest {
             modelDelegate = modelDelegate,
             treeDelegate = MessageTreeDelegate(MessageTreeHandle(root)), // real: the finalize matters here
             tts = tts,
-            selectionHandoff = NewChatSelectionHandoff(),
+            selectionHandoff = selectionHandoff,
             reloadConversation = reloadConversation,
         )
         return delegate to flow
@@ -95,6 +97,19 @@ class SendCompletionDelegateTest {
             originAccount = null,
             aborted = event.aborted,
         )
+    }
+
+    @Test
+    fun `a new chat hands its parameters to the chat it opens`() = runTest(StandardTestDispatcher()) {
+        val sent = ModelParameters.DEFAULT.copy(temperature = 0.3f)
+        val (delegate, _) = delegateWith(
+            this,
+            baseState().let { it.copy(selection = it.selection.copy(modelParameters = sent)) },
+        )
+
+        delegate.onConversationCreated("c-new", isNewConversation = true, originAccount = null)
+
+        assertThat(selectionHandoff.take("c-new")?.modelParameters).isEqualTo(sent)
     }
 
     @Test

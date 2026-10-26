@@ -51,8 +51,10 @@ class ChatRequestBuilder(
         // configures skills overrides it server-side, and without the capability or role the
         // server ignores it.
         val skillsOn = state.skillsToggle && state.isSkillsToolAvailable
+        val artifacts = state.activeSpec?.artifactsMode
 
-        val hasAnything = mcpServers != null || enabledTools.isNotEmpty() || webSearchEnabled || skillsOn
+        val hasAnything = mcpServers != null || enabledTools.isNotEmpty() || webSearchEnabled || skillsOn ||
+            artifacts != null
         if (!hasAnything) return null
 
         return EphemeralAgent(
@@ -65,6 +67,7 @@ class ChatRequestBuilder(
             // silently drop the tools from a run the user believes is remembering.
             memory = if (ToolConstants.MEMORY in enabledTools && state.isMemoryToolAvailable) true else null,
             skills = if (skillsOn) true else null,
+            artifacts = artifacts,
         )
     }
 

@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.data.repository.PromptRepository
 import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
@@ -109,5 +110,43 @@ class PresetSpecLoadTest {
         )
 
         assertThat(selection.choice).isEqualTo(spec)
+    }
+
+    @Test
+    fun `a preset over an active spec replaces the spec's parameters`() = runTest {
+        val deep = ModelSpec(
+            name = "deep",
+            preset = Preset(endpoint = "openAI", model = "gpt-4.1", temperature = 0.9, topP = 0.5),
+        )
+        val spec = ModelChoice.Spec("deep", "openAI", "gpt-4.1")
+
+        val selection = loadPreset(
+            Preset(presetId = "p1", endpoint = "openAI", model = "gpt-4o", temperature = 0.2),
+            ModelSpecs(list = listOf(deep)),
+            state = ModelSelectionState(choice = spec, modelParameters = ModelParameters.DEFAULT.copy(temperature = 0.9f, topP = 0.5f)),
+        )
+
+        assertThat(selection.modelParameters).isEqualTo(ModelParameters.DEFAULT.copy(temperature = 0.2f))
+    }
+
+    @Test
+    fun `a preset opening a spec layers its own values over the spec's preset`() = runTest {
+        val deep = ModelSpec(
+            name = "deep",
+            preset = Preset(endpoint = "openAI", model = "gpt-4.1", temperature = 0.9, reasoningEffort = "high"),
+        )
+
+        val selection = loadPreset(
+            Preset(presetId = "p1", spec = "deep", temperature = 0.2, verbosity = "low"),
+            ModelSpecs(list = listOf(deep)),
+        )
+
+        assertThat(selection.selectedSpec).isEqualTo("deep")
+        assertThat(selection.modelParameters).isEqualTo(
+            ModelParameters.DEFAULT.copy(
+                temperature = 0.2f,
+                dynamicValues = mapOf("reasoning_effort" to "high", "verbosity" to "low"),
+            ),
+        )
     }
 }

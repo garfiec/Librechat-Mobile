@@ -68,6 +68,8 @@ import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.extractBranchMedia
 import com.garfiec.librechat.feature.chat.util.newChatDraftKey
+import com.garfiec.librechat.feature.chat.util.parametersFor
+import com.garfiec.librechat.feature.chat.util.reopenedParameters
 import com.garfiec.librechat.feature.chat.util.restore
 import com.garfiec.librechat.feature.chat.util.serializeMessageForClipboard
 import com.garfiec.librechat.feature.chat.util.withAttachmentSources
@@ -506,6 +508,11 @@ class ChatViewModel(
         draftRepository = draftRepository,
         defaultDispatcher = defaultDispatcher,
         applyConversationModel = modelDelegate::applyConversationModel,
+        // A handed-off new chat already holds what its first turn was sent with.
+        wantsStoredParameters = { !isHandedOffNewChat },
+        restoreParameters = {
+            modelDelegate.updateModelParameters(_uiState.value.selection.reopenedParameters(it), restoring = true)
+        },
         onModelLoadSettled = {
             modelDelegate.conversationModelLoaded = true
             modelDelegate.refilterModels(isNewConversation)
@@ -715,6 +722,7 @@ class ChatViewModel(
                     attrs = mapOf("endpoint" to handoff.choice.endpoint, "model" to (handoff.choice.model ?: "null")),
                 ) { "handoff applied for $conversationId" }
                 modelDelegate.applyResolvedConversationModel(handoff.choice.endpoint, handoff.choice.model, handoff.choice.spec)
+                handoff.modelParameters?.let { modelDelegate.updateModelParameters(it, restoring = true) }
                 handoff.skillsToggle?.let { skillsToggleDelegate.seed(conversationId, it) }
                 // Chips the first send held back stay staged here, still saying why.
                 if (handoff.stagedManualSkills.isNotEmpty()) {
@@ -1389,6 +1397,9 @@ class ChatViewModel(
             ChatUiState(
                 selection = ModelSelectionState(
                     choice = current.selection.choice,
+                    // The next new chat starts from the carried spec's preset, not the last chat's tweaks.
+                    modelParameters = current.selection.modelSpecs.parametersFor(current.selection.choice.spec)
+                        ?: ModelParameters.DEFAULT,
                     // They describe the agent in `choice`, and the observer that resolves them only
                     // fires when the agent id changes, so dropping them here would leave the next
                     // new chat with no provider and its starters unresolved until another agent is

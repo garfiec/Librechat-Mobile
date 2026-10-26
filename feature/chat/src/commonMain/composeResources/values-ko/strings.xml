@@ -228,6 +228,7 @@
     <string name="tool_model">모델</string>
     <string name="tool_model_parameters">모델 매개변수</string>
     <string name="tool_model_parameters_desc">온도, 토큰 등 조정</string>
+    <string name="param_set_by_spec">이 모델의 설정은 서버에서 정하므로 여기서 변경할 수 없습니다.</string>
     <string name="tool_web_search">웹 검색</string>
     <string name="tool_web_search_desc">웹에서 정보 검색</string>
     <string name="web_searched">웹을 검색함</string>

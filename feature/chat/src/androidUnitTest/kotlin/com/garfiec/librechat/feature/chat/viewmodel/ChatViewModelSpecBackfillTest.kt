@@ -57,7 +57,9 @@ class ChatViewModelSpecBackfillTest {
         Dispatchers.resetMain()
     }
 
-    private fun cached(id: String) = Conversation(conversationId = id, endpoint = "openAI", model = "gpt-4.1")
+    // With a stored parameter, so only the missing spec can trigger the ask.
+    private fun cached(id: String) =
+        Conversation(conversationId = id, endpoint = "openAI", model = "gpt-4.1", temperature = 0.5)
 
     private fun open(id: String, account: String = "srv:user-1") = fixture.build(
         defaultDispatcher = testDispatcher,

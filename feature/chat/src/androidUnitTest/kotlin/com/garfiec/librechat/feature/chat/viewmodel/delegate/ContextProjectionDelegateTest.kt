@@ -4,6 +4,9 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.EndpointTokenRepository
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.Preset
+import com.garfiec.librechat.core.model.config.ModelSpec
+import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.ModelTokenomics
 import com.garfiec.librechat.core.model.usage.TokenBudgetBreakdown
@@ -188,6 +191,28 @@ class ContextProjectionDelegateTest {
 
             assertThat(flow.value.contextUsageSource).isEqualTo(ContextUsageSource.ESTIMATE)
             assertThat(flow.value.contextUsage?.windowTokens).isEqualTo(4_000)
+        }
+
+    @Test
+    fun `without an override the active spec's preset sets the window ahead of token-config`() =
+        runTest(UnconfinedTestDispatcher()) {
+            coEvery { endpointTokenRepository.getTokenConfig() } returns
+                Result.Success(mapOf("openai" to mapOf("gpt-4o" to ModelTokenomics(context = 4_000))))
+            val base = state(listOf(msg("u1"), msg("a1", "u1")), windowOverride = null)
+            val onSpec = base.copy(
+                selection = base.selection.copy(
+                    choice = ModelChoice.Spec("deep", "openai", "gpt-4o"),
+                    modelSpecs = ModelSpecs(
+                        list = listOf(
+                            ModelSpec(name = "deep", preset = Preset(endpoint = "openai", model = "gpt-4o", maxContextTokens = 6_000)),
+                        ),
+                    ),
+                ),
+            )
+
+            val flow = started(onSpec)
+
+            assertThat(flow.value.contextUsage?.windowTokens).isEqualTo(6_000)
         }
 
     @Test

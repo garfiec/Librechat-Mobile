@@ -193,6 +193,37 @@ it changes what the server does even without `enforce`: it fills the spec's unse
 fields (`promptPrefix`, `instructions`, `system`, …) into the request (`mergeModelSpecPreset`), so a
 chat opened on a spec gets the admin's prompt as on web.
 
+**A spec's preset becomes the chat's parameters** (`util/SpecParameters.kt`), as web copies
+`{...spec.preset, spec}` into the conversation. Without `enforce` the server applies none of the
+preset's public fields (temperature, `reasoning_effort`, `max_tokens`, `maxContextTokens`, …), so the
+client has to send them. Only a change of spec touches the parameters (`acrossSpecChange`, from
+`applySelection` and the seeder's spec-config write), never a re-emission of the same one, so a tweak
+on top of a spec survives config refreshes and is sent:
+- Onto a spec (a pick, a seeded tier, a retargeted spec re-applied): that spec's preset over the defaults.
+- Off a spec onto a raw model (a pick, or the config dropping it as stale): the defaults.
+- Web search and URL context carry across either way. Here they are also the toolbar's toggles,
+  which don't follow the spec yet (#640).
+- A user preset replaces the spec's values. Only a preset naming a spec and nothing else layers its
+  values over that spec's preset. A saved preset (endpoint, model and spec) builds on the defaults:
+  `savePreset` leaves out values equal to the defaults, so a value the user reset would otherwise
+  come back as the spec's.
+- A conversation's own spec never applies the preset (`applySelection(specPreset = false)`). A
+  reopened chat restores the parameters it stored: the conversation load maps them back through the
+  same `mergedFromPreset`. The list route sends none, so list upserts keep the `modelParams` blob a
+  full read cached, stamped with the `updatedAt` it was read at (`parametersAsOf`). A row with no
+  blob, or whose `updatedAt` has since moved (the chat changed elsewhere), is fetched once per process
+  and version, with the `enforce` spec backfill. The cache applies at once and the fetch replaces it
+  only if the user changed nothing meanwhile; offline the cache stays.
+  A handed-off new chat takes the landing's parameters from `NewChatSelectionHandoff` instead.
+- The next new chat starts from the carried spec's preset (`onPendingNavigationHandled`).
+- Under `enforce` the server replaces the body with the preset, so while a spec is active the sheet
+  is read-only (`parametersSetBySpec`) and `updateModelParameters` ignores it. The parameters are
+  that preset there even on the same spec and on a reopened chat (`reopenedParameters`), so the
+  locked sheet shows what the server runs, not what the chat stored before `enforce` was on.
+- The spec's `artifacts` go out as `ephemeralAgent.artifacts` (`true` → `"default"`), the only place
+  the server reads them. The context gauge takes the spec's `preset.maxContextTokens` after the
+  agent's and before token-config, as web's `useTokenLimits` does.
+
 **A spec's pair comes from `preset.endpoint` alone** (`toSeed`, as upstream's
 `resolveModelSpecEndpoint`): an agents spec runs its `agent_id`, any other its `model`. The server
 writes an endpoint it infers from `agent_id` into the served config (`materializeModelSpecEndpoints`),
