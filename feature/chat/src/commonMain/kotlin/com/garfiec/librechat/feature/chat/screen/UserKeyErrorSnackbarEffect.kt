@@ -6,20 +6,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
-import com.garfiec.librechat.core.model.error.UserKeyError
+import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.feature.chat.resources.Res
-import com.garfiec.librechat.feature.chat.resources.provider_keys_chat_error_cta
-import com.garfiec.librechat.feature.chat.resources.provider_keys_chat_error_expired
-import com.garfiec.librechat.feature.chat.resources.provider_keys_chat_error_invalid
-import com.garfiec.librechat.feature.chat.resources.provider_keys_chat_error_no_key
+import com.garfiec.librechat.feature.chat.resources.set_api_key_action
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
-import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Collects [ChatViewModel.userKeyErrors] and surfaces a snackbar with a deep-link CTA
- * to Settings → Provider API Keys. The expired-key template is resolved via the
- * suspend `getString` overload because String.format isn't available in Kotlin/Native.
+ * Collects [ChatViewModel.userKeyErrors] and surfaces a snackbar naming the endpoint, with an
+ * "Add key" action to Settings → Provider API Keys. Messages resolve through the suspend
+ * `getString` overload because String.format isn't available in Kotlin/Native.
  *
  * The endpoint name from the typed error is forwarded so the destination can auto-open
  * the Set Key dialog for that endpoint; null endpoint falls through to the list view.
@@ -30,24 +26,17 @@ fun UserKeyErrorSnackbarEffect(
     snackbarHostState: SnackbarHostState,
     onNavigateToProviderKeys: (endpointName: String?) -> Unit,
 ) {
-    val providerKeyErrorNoKey = stringResource(Res.string.provider_keys_chat_error_no_key)
-    val providerKeyErrorInvalid = stringResource(Res.string.provider_keys_chat_error_invalid)
-    val providerKeyErrorCta = stringResource(Res.string.provider_keys_chat_error_cta)
+    val addKeyAction = stringResource(Res.string.set_api_key_action)
+    val currentAddKeyAction by rememberUpdatedState(addKeyAction)
     val currentOnNavigateToProviderKeys by rememberUpdatedState(onNavigateToProviderKeys)
+    val currentDateTimeFormat by rememberUpdatedState(LocalDateTimeFormat.current)
     LaunchedEffect(viewModel) {
         viewModel.userKeyErrors.collect { error ->
-            val message = when (error) {
-                is UserKeyError.NoUserKey -> providerKeyErrorNoKey
-                is UserKeyError.ExpiredUserKey -> getString(
-                    Res.string.provider_keys_chat_error_expired,
-                    error.endpoint.orEmpty(),
-                    error.expiredAt,
-                )
-                is UserKeyError.InvalidUserKey -> providerKeyErrorInvalid
-            }
+            val label = error.endpointLabel(viewModel.uiState.value.selection.endpointConfigs)
+            val message = userKeyErrorMessage(error, label, currentDateTimeFormat)
             val result = snackbarHostState.showSnackbar(
-                message = message,
-                actionLabel = providerKeyErrorCta,
+                message = message.resolve(),
+                actionLabel = currentAddKeyAction,
             )
             if (result == SnackbarResult.ActionPerformed) {
                 currentOnNavigateToProviderKeys(error.endpoint)

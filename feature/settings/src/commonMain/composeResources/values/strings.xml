@@ -618,11 +618,8 @@
     <!-- Provider API Keys -->
     <string name="provider_keys_title">Provider API Keys</string>
     <string name="provider_keys_subtitle">Set your own keys for endpoints that require them</string>
-    <string name="provider_keys_dialog_title">Set API Key for %1$s</string>
-    <string name="provider_keys_status_set_expires">Expires in %1$s</string>
-    <string name="provider_keys_status_set_never">Your key will never expire</string>
     <string name="provider_keys_status_unset">Not set</string>
-    <string name="provider_keys_status_expired">Expired</string>
+    <string name="provider_keys_status_unknown">Couldn't check</string>
     <string name="provider_keys_status_loading">Checking key status…</string>
     <string name="provider_keys_field_api_key_label">Key</string>
     <string name="provider_keys_field_base_url_label">Base URL</string>
@@ -643,35 +640,63 @@
     <string name="provider_keys_field_google_imported">Successfully Imported Service Account JSON Key</string>
     <string name="provider_keys_field_google_paste_label">Or paste service account JSON</string>
     <string name="provider_keys_field_google_paste_only_hint">Paste the service-account JSON below.</string>
-    <string name="provider_keys_field_google_service_key_or_gemini">Google Service Key or Gemini API Key</string>
 
     <string name="provider_keys_field_bedrock_access_key_id">Access Key ID</string>
     <string name="provider_keys_field_bedrock_secret_access_key">Secret Access Key</string>
     <string name="provider_keys_field_bedrock_session_token">Session Token</string>
     <string name="provider_keys_field_bedrock_session_token_optional_suffix">(Optional)</string>
+    <string name="provider_keys_field_bedrock_bearer_token">Bearer Token</string>
+    <string name="provider_keys_field_bedrock_bearer_token_placeholder">Bedrock API key</string>
+    <string name="provider_keys_field_required">Required</string>
+    <string name="provider_keys_bedrock_or_access_keys">Or use access keys instead</string>
+    <string name="provider_keys_field_google_either_required">Add a service key or a Gemini API key</string>
 
-    <string name="provider_keys_required_fields">The following fields are required: %1$s</string>
     <string name="provider_keys_revoke">Revoke</string>
     <string name="provider_keys_revoke_failed">Failed to revoke API key. Please try again.</string>
     <string name="provider_keys_revoke_success">API key revoked successfully</string>
-    <string name="provider_keys_revoke_all">Revoke Keys</string>
     <string name="provider_keys_revoke_all_confirm">Are you sure you want to revoke all keys?</string>
     <string name="provider_keys_revoke_all_failed">Failed to revoke all keys</string>
     <string name="provider_keys_save_failed">Failed to save API key. Please try again.</string>
     <string name="provider_keys_save_success">API key saved successfully</string>
 
-    <string name="provider_keys_expiry_label">Expires</string>
-    <string name="provider_keys_expiry_30m">in 30 minutes</string>
-    <string name="provider_keys_expiry_2h">in 2 hours</string>
-    <string name="provider_keys_expiry_12h">in 12 hours</string>
-    <string name="provider_keys_expiry_1d">in 1 day</string>
-    <string name="provider_keys_expiry_7d">in 7 days</string>
-    <string name="provider_keys_expiry_30d">in 30 days</string>
-    <string name="provider_keys_expiry_never">never</string>
+    <string name="provider_keys_expiry_label">New key expires</string>
+    <string name="provider_keys_expiry_30m">30 min</string>
+    <string name="provider_keys_expiry_2h">2 h</string>
+    <string name="provider_keys_expiry_12h">12 h</string>
+    <string name="provider_keys_expiry_1d">1 day</string>
+    <string name="provider_keys_expiry_7d">7 days</string>
+    <string name="provider_keys_expiry_30d">30 days</string>
+    <string name="provider_keys_expiry_never">Never</string>
 
     <string name="provider_keys_empty_title">No endpoints require user-provided keys</string>
     <string name="provider_keys_empty_desc">Endpoints that need your own API key will appear here.</string>
-    <string name="provider_keys_revoke_all_action">Revoke All</string>
+    <string name="provider_keys_load_failed_title">Couldn't load your providers</string>
+    <string name="provider_keys_load_failed_desc">Check your connection and try again.</string>
+    <string name="provider_keys_status_never_expires">Never expires</string>
+    <string name="provider_keys_status_expires_at">Expires %1$s</string>
+    <string name="provider_keys_status_expires_at_time">Expires at %1$s</string>
+    <string name="provider_keys_retry_check_cd">Check %1$s again</string>
+    <string name="provider_keys_status_unset_needs">Not set · %1$s</string>
+    <string name="provider_keys_needs_azure">key, instance, deployment, version</string>
+    <string name="provider_keys_needs_key_and_url">key, base URL</string>
+    <string name="provider_keys_needs_base_url">base URL</string>
+    <string name="provider_keys_needs_google">service key or Gemini key</string>
+    <string name="provider_keys_needs_access_keys">access keys</string>
+    <string name="provider_keys_needs_bearer_or_access_keys">bearer token or access keys</string>
+    <string name="provider_keys_summary_note">Keys are stored on your server and deleted when they expire.</string>
+    <string name="provider_keys_revoke_all_button">Revoke all keys</string>
+    <plurals name="provider_keys_status_expires_in_minutes">
+        <item quantity="one">Expires in %1$d min</item>
+        <item quantity="other">Expires in %1$d min</item>
+    </plurals>
+    <plurals name="provider_keys_summary">
+        <item quantity="one">%1$d of %2$d key set.</item>
+        <item quantity="other">%1$d of %2$d keys set.</item>
+    </plurals>
+    <plurals name="provider_keys_row_summary">
+        <item quantity="one">%1$d of %2$d set</item>
+        <item quantity="other">%1$d of %2$d set</item>
+    </plurals>
 
     <!-- Admin: role skill access -->
     <string name="role_skills_settings_row">Skill permissions</string>

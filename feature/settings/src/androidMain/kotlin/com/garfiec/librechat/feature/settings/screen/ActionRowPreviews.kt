@@ -4,16 +4,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.update.UpdateCheckState
 import com.garfiec.librechat.core.model.AppRelease
 import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
-import com.garfiec.librechat.feature.settings.resources.Res
-import com.garfiec.librechat.feature.settings.resources.action_save
 import com.garfiec.librechat.feature.settings.screen.providerkeys.ProviderKeyActions
-import org.jetbrains.compose.resources.stringResource
 
 // Rows whose actions share a line with a message, at the widths and scales where they run out of
 // room. The provider-key sheet renders its actions only: a sheet is a window of its own, which a
@@ -43,6 +42,18 @@ private fun ProviderKeyActionsMaterialPreview() = PreviewSurface(UiStyle.MATERIA
 @Composable
 private fun ProviderKeyActionsGlassPreview() = PreviewSurface(UiStyle.LIQUID_GLASS) { ProviderKeyActionsHost() }
 
+// The sheet's content width on a 320dp phone (24dp each side) at 2x in German: Save must drop to a
+// line of its own rather than be squeezed.
+@Preview(name = "320dp · 2.0x · de", widthDp = 320, fontScale = 2f, locale = "de", showBackground = true)
+@Composable
+private fun ProviderKeyActionsNarrowGermanMaterialPreview() =
+    PreviewSurface(UiStyle.MATERIAL) { ProviderKeyActionsHost(horizontalPadding = 24.dp) }
+
+@Preview(name = "320dp · 2.0x · de", widthDp = 320, fontScale = 2f, locale = "de", showBackground = true)
+@Composable
+private fun ProviderKeyActionsNarrowGermanGlassPreview() =
+    PreviewSurface(UiStyle.LIQUID_GLASS) { ProviderKeyActionsHost(horizontalPadding = 24.dp) }
+
 @Composable
 private fun PreviewSurface(style: UiStyle, content: @Composable () -> Unit) {
     LibreChatTheme(darkTheme = true, uiStyle = style, content = content)
@@ -55,18 +66,17 @@ private fun UpdateResultHost(state: UpdateCheckState) {
     }
 }
 
-/** A key that is set, so Revoke is enabled beside Cancel and Save. */
+/** A key that is set, so Revoke shows beside Cancel and Save. */
 @Composable
-private fun ProviderKeyActionsHost() {
+private fun ProviderKeyActionsHost(horizontalPadding: Dp = 16.dp) {
     ProviderKeyActions(
-        canRevoke = true,
+        showRevoke = true,
         isRevoking = false,
         isSaving = false,
-        saveLabel = stringResource(Res.string.action_save),
         onRevoke = {},
         onCancel = {},
         onSave = {},
-        modifier = Modifier.padding(16.dp),
+        modifier = Modifier.padding(horizontal = horizontalPadding, vertical = 16.dp),
     )
 }
 

@@ -12,8 +12,10 @@ import kotlin.time.Instant
  *   (null when [Set.neverExpires] is true). [Set.wire] preserves the original
  *   wire string so chat-send dispatch can round-trip it losslessly into the
  *   request body without re-fetching from the server.
- * - [Expired] — key on file but past its expiry; treated as a separate UI state so
- *   the row can render an "Expired" badge.
+ * - [Expired] — key on file but past its expiry. The server's key collection has a TTL index,
+ *   so this only lasts until the server deletes the key (about a minute), after which it reads
+ *   as [Unset]. [Expired.expiresAt] and [Expired.wire] keep the past date so chat-send can
+ *   send it back, and the server answers with a typed `expired_user_key`.
  */
 sealed class KeyState {
     data object Loading : KeyState()
@@ -23,7 +25,10 @@ sealed class KeyState {
         val neverExpires: Boolean,
         val wire: String,
     ) : KeyState()
-    data object Expired : KeyState()
+    data class Expired(
+        val expiresAt: Instant,
+        val wire: String,
+    ) : KeyState()
     companion object
 }
 
@@ -44,7 +49,8 @@ data class WireParseResult(val state: KeyState, val malformedSource: String? = n
  * - null or empty raw -> [KeyState.Unset]
  * - `"never"` literal -> [KeyState.Set] with `expiresAt = null`, `neverExpires = true`,
  *   `wire = "never"`
- * - parseable ISO instant strictly before [now] -> [KeyState.Expired]
+ * - parseable ISO instant strictly before [now] -> [KeyState.Expired] with that instant and
+ *   `wire = raw`
  * - parseable ISO instant equal to or after [now] -> [KeyState.Set] (still live at the
  *   threshold instant) with that instant and `wire = raw`
  * - any other (malformed) string -> [KeyState.Unset] (fail-closed) plus the raw
@@ -58,7 +64,7 @@ fun KeyState.Companion.fromWire(raw: String?, now: Instant): WireParseResult {
     val parsed = runCatching { Instant.parse(raw) }.getOrNull()
         ?: return WireParseResult(KeyState.Unset, malformedSource = raw)
     val state = if (parsed < now) {
-        KeyState.Expired
+        KeyState.Expired(expiresAt = parsed, wire = raw)
     } else {
         KeyState.Set(expiresAt = parsed, neverExpires = false, wire = raw)
     }

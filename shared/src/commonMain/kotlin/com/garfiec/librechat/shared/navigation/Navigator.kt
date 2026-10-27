@@ -173,16 +173,20 @@ class Navigator(
 
     /**
      * Navigate to Provider API Keys with optional auto-open dialog. Dedupes when the
-     * top of the stack is already [ProviderKeys]: no-op when the pending endpoint is
-     * identical, otherwise replace so the dialog refreshes for a different endpoint.
+     * top of the stack is already [ProviderKeys]: no-op when the route is identical,
+     * otherwise replace so the dialog refreshes for a different endpoint.
+     *
+     * [returnAfterSave] is set by chat's "set a key" paths, so a successful save or revoke pops
+     * back to the chat instead of leaving the user on the list.
      */
-    fun navigateToProviderKeys(endpointName: String?) = changing {
+    fun navigateToProviderKeys(endpointName: String?, returnAfterSave: Boolean = false) = changing {
+        val route = ProviderKeys(pendingDialogEndpoint = endpointName, returnAfterSave = returnAfterSave)
         val top = backStack.lastOrNull()
         if (top is ProviderKeys) {
-            if (top.pendingDialogEndpoint == endpointName) return@changing
+            if (top == route) return@changing
             backStack.removeLastOrNull()
         }
-        backStack.add(ProviderKeys(pendingDialogEndpoint = endpointName))
+        backStack.add(route)
     }
 
     /** Navigate to a top-level destination, popping to root first. Dedupes by VALUE

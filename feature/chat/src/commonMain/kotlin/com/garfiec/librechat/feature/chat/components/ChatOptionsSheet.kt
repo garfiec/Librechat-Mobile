@@ -31,7 +31,7 @@ enum class ChatOptionsPage {
 class ChatOptionsSheetController {
     /**
      * Non-null while open; the page *currently* showing. In-sheet swaps write back through [open],
-     * so the [Saver] persists the visible page — what makes the "Set API Key" round trip return to
+     * so the [Saver] persists the visible page — what makes the "Add key" round trip return to
      * the open selector rather than the Options menu.
      */
     var openPage: ChatOptionsPage? by mutableStateOf(null)

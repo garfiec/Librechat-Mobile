@@ -56,8 +56,9 @@ class KeyStateFromWireTest {
     @Test
     fun pastIsoTimestampMapsToExpired() {
         val past = Instant.parse("2026-04-01T00:00:00Z")
-        val result = KeyState.fromWire(raw = past.toString(), now = now)
-        assertEquals(KeyState.Expired, result.state)
+        val rawWire = past.toString()
+        val result = KeyState.fromWire(raw = rawWire, now = now)
+        assertEquals(KeyState.Expired(expiresAt = past, wire = rawWire), result.state)
         assertNull(result.malformedSource)
     }
 

@@ -37,6 +37,11 @@ Material 3 theme and shared Compose components used across all feature modules. 
   A sheet editor (the memory sheet) uses the `AdaptiveModalBottomSheet(interceptDismiss = dirty)`
   overload instead: while it is true, swipe, scrim, handle tap and back leave the sheet up and call
   `onDismissRequest`, which raises the dialog; the sheet closes when the caller drops it.
+  Both overloads take `secure`: while true the sheet stays out of screenshots and the recents
+  snapshot (Android `FLAG_SECURE`: the M3 sheet's own window, or the activity window for the glass
+  sheet, ref-counted so a flag set elsewhere survives). Set it while a `SecretTextField` is revealed.
+  iOS has no equivalent; re-mask on ON_PAUSE there. Not ON_STOP: iOS stops drawing when the scene
+  enters the background, so a re-mask at ON_STOP never reaches the app-switcher snapshot.
 - `ModelIcon` - Endpoint-specific model icons.
 - `EndpointBadge` - Colored badge showing the AI provider.
 - `SearchBar` - Reusable search input field.
@@ -48,6 +53,10 @@ Material 3 theme and shared Compose components used across all feature modules. 
 ### Autofill helpers
 - `Modifier.excludeFromAutofill()` (`components/ExcludeFromAutofill.kt`): for masked fields holding a
   secret that isn't the login (API keys, tokens, PDF passwords). Android only.
+- `SecretTextField` (`components/SecretTextField.kt`): the field for such a secret. Masked, trailing
+  show/hide button, `excludeFromAutofill`, password keyboard. Reveal is hoisted (`revealed` +
+  `onRevealedChange`) so the caller can re-mask on ON_PAUSE and knows when a secret is on screen. Use
+  it rather than a new reveal toggle; the PDF password and gateway-header value fields do.
 - `KeyboardOptions.withIosTextContentType()` (`components/IosTextContentType.kt`): iOS
   `textContentType` roles (`.username`, `.newPassword`, `.oneTimeCode`); a no-op on Android.
 
@@ -218,7 +227,9 @@ the controls bullet below.
 - **Controls look like iOS in glass mode**, drawn in Compose: `AdaptiveSwitch` (with `AdaptiveSwitchPlaceholder`, the bare off track in each style, for a value not known yet), `AdaptiveRadioButton`
   (a checkmark), `AdaptiveCheckbox`, `AdaptiveDivider` (inset hairline), `AdaptiveButton` (flat
   capsule) and `AdaptiveOutlinedButton`/`AdaptiveFilledTonalButton` (borderless capsule on
-  `GlassControlColors.fill`, accent label unless the caller picked a colour),
+  `GlassControlColors.fill`, accent label unless the caller picked a colour), `AdaptiveTextButton`
+  (the iOS plain button: no fill, capsule press shape; raw `TextButton` is not banned yet, it has
+  ~100 call sites and renders the same in Material),
   `AdaptiveOutlinedTextField` (iOS rounded filled field; the chat composer keeps its own field),
   `AdaptiveSegmentedChoice` and `AdaptiveTabRow` (the liquid segmented control in glass; the tab
   row takes a `backdrop` only in a bar slot), `AdaptivePillChoice` (a full-width sliding-pill

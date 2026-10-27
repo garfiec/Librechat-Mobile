@@ -92,6 +92,7 @@ import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.chat.navigation.chatEntries
 import com.garfiec.librechat.feature.chat.navigation.handoffKey
 import com.garfiec.librechat.feature.chat.navigation.isPlainLanding
+import com.garfiec.librechat.feature.chat.viewmodel.ChatNoticeHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.PromptInsertionHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.ServerFileSelectionHandoff
 import com.garfiec.librechat.feature.conversations.drawer.DrawerViewModel
@@ -753,6 +754,7 @@ fun MainNavDisplay(
     drawerViewModel: DrawerViewModel = koinViewModel(),
     serverFileSelectionHandoff: ServerFileSelectionHandoff = koinInject(),
     promptInsertionHandoff: PromptInsertionHandoff = koinInject(),
+    chatNoticeHandoff: ChatNoticeHandoff = koinInject(),
 ) {
     NavDisplay(
         backStack = navigator.backStack,
@@ -796,7 +798,8 @@ fun MainNavDisplay(
                 },
                 onOpenDrawer = onMenuClick,
                 onNavigateToProviderKeys = { endpointName ->
-                    navigator.navigateToProviderKeys(endpointName)
+                    // From chat: a save there returns to the chat.
+                    navigator.navigateToProviderKeys(endpointName, returnAfterSave = true)
                 },
                 onAttachFromServer = {
                     // Tag the picker with the launching conversation (null on the new-chat
@@ -876,6 +879,10 @@ fun MainNavDisplay(
                 onLogout = { navHostViewModel.logout() },
                 onNavigateToArchive = { navigator.navigate(ArchivedConversations) },
                 onOpenConversation = { navigator.navigateToChat(it) },
+                onProviderKeyReturn = { message ->
+                    chatNoticeHandoff.put(message)
+                    navigator.goBack()
+                },
             )
             memoriesEntry(
                 onBack = { navigator.goBack() },

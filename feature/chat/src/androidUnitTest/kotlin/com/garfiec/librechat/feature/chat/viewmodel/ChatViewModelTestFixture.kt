@@ -53,6 +53,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
+import kotlin.time.Clock
 
 /**
  * The collaborators of a [ChatViewModel] under test, and the stubs it cannot be constructed
@@ -199,6 +200,7 @@ internal class ChatViewModelTestFixture {
         initialChatProjectId: String? = null,
         activeAccountProvider: ActiveAccountProvider =
             InMemoryActiveAccountProvider(AccountState.Resolved(AccountId("srv:user-1"))),
+        clock: Clock = Clock.System,
     ): ChatViewModel = ChatViewModel(
         initialConversationId = initialConversationId,
         initialAgentId = initialAgentId,
@@ -239,5 +241,6 @@ internal class ChatViewModelTestFixture {
         siteIconPromptSession = siteIconPromptSession,
         preferenceStore = preferenceStore,
         activeAccountProvider = activeAccountProvider,
+        clock = clock,
     )
 }

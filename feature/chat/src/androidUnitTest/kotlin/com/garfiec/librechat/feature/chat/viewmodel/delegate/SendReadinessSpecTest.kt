@@ -16,6 +16,7 @@ import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.TestScope
 import org.junit.Test
+import kotlin.time.Instant
 
 /**
  * The pre-flight refuses a send the server would reject outright: one naming no spec under
@@ -104,7 +105,8 @@ class SendReadinessSpecTest {
     @Test
     fun aUserKeyEndpointWithNoKeyIsRefused() {
         assertThat(keyRefusal(KeyState.Unset)).isEqualTo(SendBlockReason.ApiKeyRequired("byok"))
-        assertThat(keyRefusal(KeyState.Expired)).isEqualTo(SendBlockReason.ApiKeyRequired("byok"))
+        val expired = KeyState.Expired(expiresAt = Instant.parse("2026-01-01T00:00:00Z"), wire = "2026-01-01T00:00:00Z")
+        assertThat(keyRefusal(expired)).isEqualTo(SendBlockReason.ApiKeyRequired("byok"))
     }
 
     @Test

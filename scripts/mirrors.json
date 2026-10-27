@@ -3420,6 +3420,130 @@
       },
       "why": "Which reply offers Continue: the latest, with a finish_reason other than `stop` and `tool_call_limit` (Constants.TOOL_CALL_LIMIT_FINISH_REASON), never one with no user turn behind it or a compaction. Mobile also counts a reply saved `unfinished`, which is what a v0.8.8 agents stop leaves.",
       "failure_mode": "If web starts offering Continue on other replies, or the server starts saving a finish_reason for stopped replies, mobile's chip shows on different replies than web's button."
+    },
+    {
+      "id": "user-key-error-codes",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "ErrorTypes",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/UserKeyError.kt",
+        "symbol": "parseUserKeyError"
+      },
+      "why": "The user-key members of ErrorTypes (no_user_key, expired_user_key, invalid_user_key, no_base_url, invalid_base_url): the codes a failed send carries when the fix is on the Provider Keys sheet. parseUserKeyError maps each to a UserKeyError, which routes the failure to a snackbar with a Provider Keys action instead of the generic error. The block is the whole enum, so most DRIFT reports are other members' churn: check the five user-key members, not the enum.",
+      "failure_mode": "A renamed or new user-key code is not recognised, so the send fails with the raw payload or generic text and no way to the sheet that fixes it. Nothing errors."
+    },
+    {
+      "id": "user-key-ttl-index",
+      "upstream": {
+        "file": "packages/data-schemas/src/schema/key.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/EndpointKeyStatusDelegate.kt",
+        "symbol": "ExpiredKeyTtlGrace / nextKeyDeadline"
+      },
+      "why": "The key collection's TTL index (expireAfterSeconds: 0 on expiresAt) deletes a user key once it expires, on MongoDB's 60-second TTL pass. Chat schedules a key-state recompute at each key's expiry and one more a TTL pass later, so the model picker locks an endpoint when its key runs out, says 'Key expired' only while the server still holds the key, and 'Needs your key' once it is gone.",
+      "failure_mode": "If upstream drops the TTL index or keeps keys past expiry, the picker reads an expired key as gone a minute early, or keeps saying 'Key expired' after the server has deleted it. Nothing errors."
+    },
+    {
+      "id": "provider-keys-reachable-endpoints",
+      "upstream": {
+        "file": "client/src/components/Nav/SettingsTabs/ProviderKeys/utils.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/endpoint/UserKeyEndpoints.kt",
+        "symbol": "userKeyEndpoints / takesUserProvidedValue"
+      },
+      "why": "Which endpoints the Provider Keys page lists and the Settings row counts: the reachable ones (all without model specs; else the specs' endpoints plus addedEndpoints, plus the agents' allowedProviders, or every non-agents, non-assistants endpoint when unrestricted, if the user has AGENTS USE) that take a user-provided credential (userProvide or any Bedrock per-field flag). Deliberate divergences: base-URL-only (userProvideURL) endpoints are kept, because mobile chat still needs the URL set; AGENTS USE is permissive while the role is unknown, as the app's other USE gates are; and the list is sorted by order, then label.",
+      "failure_mode": "The page lists an endpoint the user cannot reach, or misses one whose key their chats need. Nothing errors."
+    },
+    {
+      "id": "set-key-dialog-form-kinds",
+      "upstream": {
+        "file": "client/src/components/Input/SetKeyDialog/SetKeyDialog.tsx",
+        "symbol": "endpointComponents",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/providerkeys/SetProviderKeyViewModel.kt",
+        "symbol": "resolveFormKind"
+      },
+      "why": "Which form each endpoint gets on the key sheet (Google, OpenAI-style, Custom, Bedrock, or the one-field default), and so which wire shape its key is saved in. Mobile mirrors web's mapping, including treating azureAssistants as plain OpenAI. Its sibling formSet (same file) decides which endpoints go through the structured-form submit path; a change to either is a change here.",
+      "failure_mode": "An endpoint gets the wrong form and saves its key in a shape the server does not read: the save succeeds and every chat on that endpoint then fails as if no key were set."
+    },
+    {
+      "id": "set-key-dialog-form-set",
+      "upstream": {
+        "file": "client/src/components/Input/SetKeyDialog/SetKeyDialog.tsx",
+        "symbol": "formSet",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/providerkeys/SetProviderKeyViewModel.kt",
+        "symbol": "resolveFormKind / buildPayload"
+      },
+      "why": "Which endpoints submit through the structured form (an {apiKey, baseURL} JSON value) rather than as a raw string. It differs from endpointComponents: google has its own component but is not in this set. Mobile's form kinds encode the same split (OPENAI/CUSTOM/AZURE/BEDROCK send JSON; GOOGLE its own object; OTHER the raw key).",
+      "failure_mode": "An endpoint moved between the two paths upstream is saved by mobile in the other shape; the save succeeds and chats on it fail as if no key were set."
+    },
+    {
+      "id": "set-key-dialog-expiry-presets",
+      "upstream": {
+        "file": "client/src/components/Input/SetKeyDialog/SetKeyDialog.tsx",
+        "symbol": "EXPIRY",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/state/providerkeys/ProviderKeysUiState.kt",
+        "symbol": "ProviderKeyExpiry"
+      },
+      "why": "The expiry choices offered for a new key, their durations, the 12-hour default and 'never' sent as no expiry.",
+      "failure_mode": "Mobile offers different expiry windows than web, or a duration that no longer matches its label. Nothing errors."
+    },
+    {
+      "id": "set-key-dialog-submit",
+      "upstream": {
+        "file": "client/src/components/Input/SetKeyDialog/SetKeyDialog.tsx",
+        "symbol": "SetKeyDialog",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/providerkeys/SetProviderKeyViewModel.kt",
+        "symbol": "buildPayload (apiKeyAndOptionalBaseUrl / buildAzurePayload / buildBedrockPayload)"
+      },
+      "why": "submit()'s required-field rules and wire shapes: baseURL optional for OpenAI-base endpoints and required for a custom endpoint with userProvideURL, Azure's quad stringified into apiKey, and Bedrock's rules (only flagged fields count, trimmed; a bearer token alone is complete and sent on its own; otherwise every flagged access-key field is required, the bearer token too when it is the only credential offered) with the credentials stringified into apiKey beside an empty baseURL. Deliberate divergences: a Bedrock endpoint whose config carries none of the per-field flags (a server older than them) keeps the flat {accessKeyId, secretAccessKey, sessionToken?} with the session token optional; and an OpenAI-base endpoint with userProvideURL but not userProvide (base URL only) asks for and requires the base URL alone, sending apiKey as \"\", because packages/api's openai initialize reads the key from the server's environment then and only baseURL from the stored value (web demands a key the server ignores). A custom endpoint still requires the key there: its initialize reads the user's apiKey whenever it reads any user value.",
+      "failure_mode": "A rule or shape change upstream makes mobile refuse a key the server would take, or save one in a shape the server no longer reads, which surfaces later as a chat failing with no_user_key or a credentials error."
+    },
+    {
+      "id": "google-service-key-schema",
+      "upstream": {
+        "file": "client/src/components/Input/SetKeyDialog/GoogleConfig.tsx",
+        "symbol": "CredentialsSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/providerkeys/SetProviderKeyViewModel.kt",
+        "symbol": "validateGoogleServiceKey / EMAIL_PATTERN"
+      },
+      "why": "What counts as a Google service-account key: client_email a valid email (zod 3's email pattern, copied) of at least 3 characters, project_id at least 3, private_key at least 601. Mobile applies it to a pasted key as well as an imported file, and refuses to save a key that fails it.",
+      "failure_mode": "A schema change upstream makes mobile refuse a key web accepts, or save one web would reject and the server then fails to use."
+    },
+    {
+      "id": "bedrock-credential-fields",
+      "upstream": {
+        "file": "client/src/components/Input/SetKeyDialog/BedrockConfig.tsx",
+        "symbol": "BedrockConfig",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/screen/providerkeys/ProviderKeyForm.kt",
+        "symbol": "BedrockFields (with SetProviderKeyViewModel.bedrockForm)"
+      },
+      "why": "One Bedrock field per credential the endpoint config flags as user-provided (userProvideAccessKeyId, userProvideSecretAccessKey, userProvideSessionToken, userProvideBearerToken). Web lists the bearer token last; the app puts it first, since on its own it is the whole credential.",
+      "failure_mode": "A credential upstream adds or renames is never asked for, so a Bedrock key saved from mobile is missing it and Bedrock chats fail with a credentials error."
     }
   ]
 }

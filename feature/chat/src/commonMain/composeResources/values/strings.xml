@@ -384,8 +384,12 @@
     <string name="cd_unpin_favorite">Unpin favorite</string>
     <string name="cd_collapse_section">Collapse %1$s</string>
     <string name="cd_expand_section">Expand %1$s</string>
-    <string name="set_api_key_action">Set API Key</string>
-    <string name="cd_set_api_key">Configure API key for %1$s</string>
+    <string name="set_api_key_action">Add key</string>
+    <string name="cd_set_api_key">Add a key for %1$s</string>
+    <!-- Under an endpoint or spec name in the model picker when its key is missing. -->
+    <string name="model_selector_needs_key">Needs your key</string>
+    <!-- Same place, in the minute before the server deletes an expired key. -->
+    <string name="model_selector_key_expired">Key expired</string>
 
     <!-- Preset picker -->
     <string name="select_preset">Select Preset</string>
@@ -507,11 +511,17 @@
 
     <!-- Provider Keys chat-time errors. -->
     <string name="provider_keys_chat_error_no_key">No key found. Please provide a key and try again.</string>
-    <!-- {0} = endpoint name, {1} = expiredAt (server-locale string, NOT ISO) -->
+    <!-- {0} = endpoint name, {1} = expiry date and time, already formatted in the user's locale -->
     <string name="provider_keys_chat_error_expired">Provided key for %1$s expired at %2$s. Please provide a new key and try again.</string>
     <string name="provider_keys_chat_error_invalid">Invalid key provided. Please provide a valid key and try again.</string>
-    <!-- Snackbar action label that deep-links to Settings → Provider Keys -->
-    <string name="provider_keys_chat_error_cta">Open key settings</string>
+    <string name="provider_keys_chat_error_no_key_for">No key found for %1$s. Please provide a key and try again.</string>
+    <string name="provider_keys_chat_error_invalid_for">Invalid key provided for %1$s. Please provide a valid key and try again.</string>
+    <!-- {0} = expiry date and time, already formatted in the user's locale; the server sent no endpoint -->
+    <string name="provider_keys_chat_error_expired_no_label">Provided key expired at %1$s. Please provide a new key and try again.</string>
+    <string name="provider_keys_chat_error_no_base_url">No base URL found. Please provide one and try again.</string>
+    <string name="provider_keys_chat_error_no_base_url_for">No base URL found for %1$s. Please provide one and try again.</string>
+    <string name="provider_keys_chat_error_invalid_base_url">The base URL you provided targets a restricted address. Please use a valid external URL and try again.</string>
+    <string name="provider_keys_chat_error_invalid_base_url_for">The base URL you provided for %1$s targets a restricted address. Please use a valid external URL and try again.</string>
 
     <!-- Snackbar shown when queued follow-up messages are discarded because the user switched accounts -->
     <string name="queued_messages_dropped_account_switch">Queued messages discarded after switching accounts</string>

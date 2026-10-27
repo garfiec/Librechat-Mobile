@@ -35,7 +35,7 @@ data class ModelSelectionState(
     /**
      * Per-endpoint user-provided-key state for endpoints with `userProvide=true`
      * (or `userProvideURL=true`). Drives the model selector's greyed-out group +
-     * "Set API Key" CTA. Endpoints absent from this map are implicitly "doesn't
+     * "Add key" action. Endpoints absent from this map are implicitly "doesn't
      * need a key" (built-ins) — [ModelSelectorSheet] fail-opens on `null` and
      * on [KeyState.Loading] so the cold-start window doesn't flash to greyed.
      */

@@ -28,6 +28,8 @@
     <string name="pdf_password_incorrect">Mot de passe incorrect. Réessayez.</string>
     <string name="pdf_password_show">Afficher le mot de passe</string>
     <string name="pdf_password_hide">Masquer le mot de passe</string>
+    <string name="cd_show_secret">Afficher</string>
+    <string name="cd_hide_secret">Masquer</string>
     <string name="pdf_password_confirm">Déchiffrer et envoyer</string>
     <string name="pdf_password_cancel">Annuler</string>
     <string name="param_thinking_between_tools_description">Active la réflexion adaptative contrôlée par le paramètre Effort. Ce modèle ne peut pas désactiver entièrement la réflexion : la désactiver utilise son niveau le plus bas, qui ignore la réflexion étendue et ne conserve que de brèves notes entre les appels d’outils. L’effort est plafonné à Élevé lorsque l’option est désactivée.</string>

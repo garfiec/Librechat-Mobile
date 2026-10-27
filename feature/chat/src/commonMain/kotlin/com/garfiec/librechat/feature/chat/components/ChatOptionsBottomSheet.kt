@@ -173,7 +173,7 @@ fun ChatOptionsBottomSheet(
 ) {
     // Held here, not in ChatToolsSheetContent: AnimatedContent drops the Options page from
     // composition on a sub-page, so state remembered there would reset. Saveable to survive the
-    // host teardown the page survives (the "Set API Key" round trip, config change).
+    // host teardown the page survives (the "Add key" round trip, config change).
     var mcpExpanded by rememberSaveable { mutableStateOf(false) }
     val optionsScrollState = rememberScrollState()
     // Or the Options page — the common path — would open at half height.

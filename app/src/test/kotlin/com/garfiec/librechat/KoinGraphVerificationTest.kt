@@ -2,6 +2,7 @@ package com.garfiec.librechat
 
 import android.app.Application
 import android.content.Context
+import androidx.lifecycle.SavedStateHandle
 import com.garfiec.librechat.core.common.AppInfo
 import com.garfiec.librechat.core.common.ChannelPolicy
 import com.garfiec.librechat.core.common.DistributionChannel
@@ -144,6 +145,8 @@ class KoinGraphVerificationTest {
             // Android framework
             Context::class,
             Application::class,
+            // Supplied by a ViewModel's CreationExtras at resolution time, never declared.
+            SavedStateHandle::class,
             // core:common provides
             CoroutineDispatcher::class,
             CoroutineScope::class,

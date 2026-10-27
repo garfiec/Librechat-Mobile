@@ -373,8 +373,12 @@
     <string name="cd_unpin_favorite">Favorit lösen</string>
     <string name="cd_collapse_section">%1$s einklappen</string>
     <string name="cd_expand_section">%1$s ausklappen</string>
-    <string name="set_api_key_action">API-Schlüssel festlegen</string>
-    <string name="cd_set_api_key">API-Schlüssel für %1$s konfigurieren</string>
+    <string name="set_api_key_action">Schlüssel hinzufügen</string>
+    <string name="cd_set_api_key">Schlüssel für %1$s hinzufügen</string>
+    <!-- Under an endpoint or spec name in the model picker when its key is missing. -->
+    <string name="model_selector_needs_key">Braucht deinen Schlüssel</string>
+    <!-- Same place, in the minute before the server deletes an expired key. -->
+    <string name="model_selector_key_expired">Schlüssel abgelaufen</string>
 
     <!-- Preset picker -->
     <string name="select_preset">Vorlage auswählen</string>
@@ -493,11 +497,16 @@
 
     <!-- Provider Keys chat-time errors. -->
     <string name="provider_keys_chat_error_no_key">Kein Schlüssel gefunden. Bitte gib einen Schlüssel an und versuche es erneut.</string>
-    <!-- {0} = endpoint name, {1} = expiredAt (server-locale string, NOT ISO) -->
+    <!-- {0} = endpoint name, {1} = expiry date and time, already formatted in the user's locale -->
     <string name="provider_keys_chat_error_expired">Der angegebene Schlüssel für %1$s ist am %2$s abgelaufen. Bitte gib einen neuen Schlüssel an und versuche es erneut.</string>
     <string name="provider_keys_chat_error_invalid">Ungültiger Schlüssel angegeben. Bitte gib einen gültigen Schlüssel an und versuche es erneut.</string>
-    <!-- Snackbar action label that deep-links to Settings → Provider Keys -->
-    <string name="provider_keys_chat_error_cta">Schlüsseleinstellungen öffnen</string>
+    <string name="provider_keys_chat_error_no_key_for">Kein Schlüssel für %1$s gefunden. Bitte gib einen Schlüssel an und versuche es erneut.</string>
+    <string name="provider_keys_chat_error_invalid_for">Ungültiger Schlüssel für %1$s angegeben. Bitte gib einen gültigen Schlüssel an und versuche es erneut.</string>
+    <string name="provider_keys_chat_error_expired_no_label">Der angegebene Schlüssel ist am %1$s abgelaufen. Bitte gib einen neuen Schlüssel an und versuche es erneut.</string>
+    <string name="provider_keys_chat_error_no_base_url">Keine Basis-URL gefunden. Bitte gib eine an und versuche es erneut.</string>
+    <string name="provider_keys_chat_error_no_base_url_for">Keine Basis-URL für %1$s gefunden. Bitte gib eine an und versuche es erneut.</string>
+    <string name="provider_keys_chat_error_invalid_base_url">Die angegebene Basis-URL verweist auf eine eingeschränkte Adresse. Bitte verwende eine gültige externe URL und versuche es erneut.</string>
+    <string name="provider_keys_chat_error_invalid_base_url_for">Die angegebene Basis-URL für %1$s verweist auf eine eingeschränkte Adresse. Bitte verwende eine gültige externe URL und versuche es erneut.</string>
     <string name="queued_messages_dropped_account_switch">Nachrichten in der Warteschlange wurden nach dem Kontowechsel verworfen</string>
 
     <!-- Send block reasons (shown in error snackbar when send can't proceed) -->

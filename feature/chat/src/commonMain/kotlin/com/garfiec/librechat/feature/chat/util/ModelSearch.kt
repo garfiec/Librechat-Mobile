@@ -49,7 +49,23 @@ fun starredSpecs(favoriteSpecNames: Set<String>, visibleSpecs: List<ModelSpec>):
 }
 
 /**
- * A user-provided-key endpoint with no usable key: the selector greys it out behind "Set API Key".
+ * A user-provided-key endpoint with no usable key: the selector greys it out behind "Add key".
  * Loading and absent (built-in) states fail open.
  */
-fun KeyState?.blocksSelection(): Boolean = this is KeyState.Unset || this is KeyState.Expired
+fun KeyState?.blocksSelection(): Boolean = keyHint() != null
+
+/** What the model picker says under an endpoint or spec whose key [blocksSelection]. */
+enum class KeyHint {
+    /** No key on file: "Needs your key". */
+    NEEDS_KEY,
+
+    /** Past its expiry, in the minute before the server deletes it: "Key expired". */
+    EXPIRED,
+}
+
+/** The [KeyHint] for this key state, or null when the endpoint is selectable. */
+fun KeyState?.keyHint(): KeyHint? = when (this) {
+    KeyState.Unset -> KeyHint.NEEDS_KEY
+    is KeyState.Expired -> KeyHint.EXPIRED
+    is KeyState.Set, KeyState.Loading, null -> null
+}

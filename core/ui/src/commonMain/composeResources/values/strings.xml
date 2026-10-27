@@ -38,6 +38,8 @@
     <string name="pdf_password_incorrect">Incorrect password. Try again.</string>
     <string name="pdf_password_show">Show password</string>
     <string name="pdf_password_hide">Hide password</string>
+    <string name="cd_show_secret">Show</string>
+    <string name="cd_hide_secret">Hide</string>
     <string name="pdf_password_confirm">Decrypt and upload</string>
     <string name="pdf_password_cancel">Cancel</string>
     <!-- Description under the thinking toggle for Claude models whose thinking cannot be fully disabled (Sonnet 5.5+) -->

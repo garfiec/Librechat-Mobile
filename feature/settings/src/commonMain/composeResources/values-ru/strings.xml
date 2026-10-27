@@ -629,11 +629,8 @@
     <!-- Provider API Keys -->
     <string name="provider_keys_title">API-ключи провайдеров</string>
     <string name="provider_keys_subtitle">Задайте собственные ключи для конечных точек, которым они требуются</string>
-    <string name="provider_keys_dialog_title">Задать API-ключ для %1$s</string>
-    <string name="provider_keys_status_set_expires">Истекает через %1$s</string>
-    <string name="provider_keys_status_set_never">Ваш ключ никогда не истечёт</string>
     <string name="provider_keys_status_unset">Не задан</string>
-    <string name="provider_keys_status_expired">Истёк</string>
+    <string name="provider_keys_status_unknown">Не удалось проверить</string>
     <string name="provider_keys_status_loading">Проверка состояния ключа…</string>
     <string name="provider_keys_field_api_key_label">Ключ</string>
     <string name="provider_keys_field_base_url_label">Базовый URL</string>
@@ -654,35 +651,69 @@
     <string name="provider_keys_field_google_imported">JSON-ключ сервисного аккаунта успешно импортирован</string>
     <string name="provider_keys_field_google_paste_label">Или вставьте JSON сервисного аккаунта</string>
     <string name="provider_keys_field_google_paste_only_hint">Вставьте JSON сервисного аккаунта ниже.</string>
-    <string name="provider_keys_field_google_service_key_or_gemini">Ключ сервисного аккаунта Google или API-ключ Gemini</string>
 
     <string name="provider_keys_field_bedrock_access_key_id">ID ключа доступа</string>
     <string name="provider_keys_field_bedrock_secret_access_key">Секретный ключ доступа</string>
     <string name="provider_keys_field_bedrock_session_token">Токен сеанса</string>
     <string name="provider_keys_field_bedrock_session_token_optional_suffix">(Необязательно)</string>
+    <string name="provider_keys_field_bedrock_bearer_token">Токен Bearer</string>
+    <string name="provider_keys_field_bedrock_bearer_token_placeholder">API-ключ Bedrock</string>
+    <string name="provider_keys_field_required">Обязательно</string>
+    <string name="provider_keys_bedrock_or_access_keys">Или используйте ключи доступа</string>
+    <string name="provider_keys_field_google_either_required">Добавьте ключ сервисного аккаунта или API-ключ Gemini</string>
 
-    <string name="provider_keys_required_fields">Необходимо заполнить следующие поля: %1$s</string>
     <string name="provider_keys_revoke">Отозвать</string>
     <string name="provider_keys_revoke_failed">Не удалось отозвать API-ключ. Попробуйте ещё раз.</string>
     <string name="provider_keys_revoke_success">API-ключ успешно отозван</string>
-    <string name="provider_keys_revoke_all">Отозвать ключи</string>
     <string name="provider_keys_revoke_all_confirm">Вы уверены, что хотите отозвать все ключи?</string>
     <string name="provider_keys_revoke_all_failed">Не удалось отозвать все ключи</string>
     <string name="provider_keys_save_failed">Не удалось сохранить API-ключ. Попробуйте ещё раз.</string>
     <string name="provider_keys_save_success">API-ключ успешно сохранён</string>
 
-    <string name="provider_keys_expiry_label">Истекает</string>
-    <string name="provider_keys_expiry_30m">через 30 минут</string>
-    <string name="provider_keys_expiry_2h">через 2 часа</string>
-    <string name="provider_keys_expiry_12h">через 12 часов</string>
-    <string name="provider_keys_expiry_1d">через 1 день</string>
-    <string name="provider_keys_expiry_7d">через 7 дней</string>
-    <string name="provider_keys_expiry_30d">через 30 дней</string>
-    <string name="provider_keys_expiry_never">никогда</string>
+    <string name="provider_keys_expiry_label">Срок действия нового ключа</string>
+    <string name="provider_keys_expiry_30m">30 мин</string>
+    <string name="provider_keys_expiry_2h">2 ч</string>
+    <string name="provider_keys_expiry_12h">12 ч</string>
+    <string name="provider_keys_expiry_1d">1 день</string>
+    <string name="provider_keys_expiry_7d">7 дней</string>
+    <string name="provider_keys_expiry_30d">30 дней</string>
+    <string name="provider_keys_expiry_never">Бессрочно</string>
 
     <string name="provider_keys_empty_title">Ни одна конечная точка не требует ключей от пользователя</string>
     <string name="provider_keys_empty_desc">Конечные точки, которым нужен ваш собственный API-ключ, появятся здесь.</string>
-    <string name="provider_keys_revoke_all_action">Отозвать все</string>
+    <string name="provider_keys_load_failed_title">Не удалось загрузить провайдеров</string>
+    <string name="provider_keys_load_failed_desc">Проверьте подключение и повторите попытку.</string>
+    <string name="provider_keys_status_never_expires">Без срока действия</string>
+    <string name="provider_keys_status_expires_at">Истекает %1$s</string>
+    <string name="provider_keys_status_expires_at_time">Истекает в %1$s</string>
+    <string name="provider_keys_retry_check_cd">Проверить %1$s снова</string>
+    <string name="provider_keys_status_unset_needs">Не задан · %1$s</string>
+    <string name="provider_keys_needs_azure">ключ, экземпляр, развёртывание, версия</string>
+    <string name="provider_keys_needs_key_and_url">ключ, базовый URL</string>
+    <string name="provider_keys_needs_base_url">базовый URL</string>
+    <string name="provider_keys_needs_google">сервисный ключ или ключ Gemini</string>
+    <string name="provider_keys_needs_access_keys">ключи доступа</string>
+    <string name="provider_keys_needs_bearer_or_access_keys">bearer-токен или ключи доступа</string>
+    <string name="provider_keys_summary_note">Ключи хранятся на вашем сервере и удаляются по истечении срока.</string>
+    <string name="provider_keys_revoke_all_button">Отозвать все ключи</string>
+    <plurals name="provider_keys_status_expires_in_minutes">
+        <item quantity="one">Истекает через %1$d мин</item>
+        <item quantity="few">Истекает через %1$d мин</item>
+        <item quantity="many">Истекает через %1$d мин</item>
+        <item quantity="other">Истекает через %1$d мин</item>
+    </plurals>
+    <plurals name="provider_keys_summary">
+        <item quantity="one">Задано ключей: %1$d из %2$d.</item>
+        <item quantity="few">Задано ключей: %1$d из %2$d.</item>
+        <item quantity="many">Задано ключей: %1$d из %2$d.</item>
+        <item quantity="other">Задано ключей: %1$d из %2$d.</item>
+    </plurals>
+    <plurals name="provider_keys_row_summary">
+        <item quantity="one">Задано: %1$d из %2$d</item>
+        <item quantity="few">Задано: %1$d из %2$d</item>
+        <item quantity="many">Задано: %1$d из %2$d</item>
+        <item quantity="other">Задано: %1$d из %2$d</item>
+    </plurals>
 
     <!-- Admin: role skill access -->
     <string name="role_skills_settings_row">Права на навыки</string>

@@ -6,15 +6,21 @@ import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
+import com.garfiec.librechat.core.data.repository.KeyRepository
+import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.model.Balance
+import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.config.BalanceConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.model.endpoint.KeyState
+import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.response.BackupCodesResponse
 import com.garfiec.librechat.core.ui.media.PreparedImage
 import com.garfiec.librechat.feature.settings.model.AutoRefillInfo
 import com.garfiec.librechat.feature.settings.util.ContentReader
+import com.garfiec.librechat.feature.settings.viewmodel.delegate.ProviderKeysSummary
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -33,6 +39,10 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AccountSettingsViewModelTest {
@@ -44,6 +54,11 @@ class AccountSettingsViewModelTest {
     private val balanceRepository = mockk<BalanceRepository>(relaxed = true)
     private val configRepository = mockk<ConfigRepository>(relaxed = true)
     private val startupConfig = MutableStateFlow<StartupConfig?>(null)
+    private val endpointConfigs = MutableStateFlow<Map<String, EndpointConfig>>(emptyMap())
+    private val keyRepository = mockk<KeyRepository>(relaxed = true)
+    private val roleRepository = mockk<RoleRepository> {
+        every { userPermissions } returns MutableStateFlow<UserRolePermissions?>(null)
+    }
     private val serverDataStore = mockk<ServerDataStore> {
         every { currentUrlFlow } returns MutableStateFlow("https://chat.example.com")
     }
@@ -63,6 +78,8 @@ class AccountSettingsViewModelTest {
         coEvery { userRepository.getUser() } returns Result.Success(testUser)
         coEvery { balanceRepository.getBalance() } returns Result.Error(message = "Not available")
         every { configRepository.startupConfig } returns startupConfig
+        every { configRepository.endpointConfigs } returns endpointConfigs
+        coEvery { keyRepository.fetchKeyState(any()) } returns Result.Success(KeyState.Unset)
     }
 
     @After
@@ -70,7 +87,7 @@ class AccountSettingsViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun createViewModel() = AccountSettingsViewModel(
+    private fun createViewModel(clock: Clock = Clock.System) = AccountSettingsViewModel(
         userRepository = userRepository,
         authRepository = authRepository,
         balanceRepository = balanceRepository,
@@ -78,8 +95,130 @@ class AccountSettingsViewModelTest {
         avatarImagePreparer = { preparedImage },
         configRepository = configRepository,
         serverDataStore = serverDataStore,
+        keyRepository = keyRepository,
+        roleRepository = roleRepository,
         ioDispatcher = testDispatcher,
+        clock = clock,
     )
+
+    @Test
+    fun `provider keys row is hidden when no endpoint takes a user value`() = runTest {
+        endpointConfigs.value = mapOf("openAI" to EndpointConfig(userProvide = false))
+        val viewModel = createViewModel()
+        viewModel.refreshProviderKeysSummary()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.providerKeysSummary).isEqualTo(ProviderKeysSummary.Hidden)
+    }
+
+    @Test
+    fun `provider keys summary counts live keys over listed endpoints`() = runTest {
+        endpointConfigs.value = mapOf(
+            "openAI" to EndpointConfig(userProvide = true),
+            "anthropic" to EndpointConfig(userProvide = true),
+            "selfhosted" to EndpointConfig(userProvideURL = true),
+            "google" to EndpointConfig(userProvide = false),
+        )
+        coEvery { keyRepository.fetchKeyState("openAI") } returns
+            Result.Success(KeyState.Set(expiresAt = null, neverExpires = true, wire = "never"))
+        coEvery { keyRepository.fetchKeyState("anthropic") } returns Result.Success(EXPIRED_KEY)
+        val viewModel = createViewModel()
+        // Listed before any key state is known: the row shows the general line until refreshed.
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.providerKeysSummary).isEqualTo(ProviderKeysSummary.General)
+
+        viewModel.refreshProviderKeysSummary()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.providerKeysSummary)
+            .isEqualTo(ProviderKeysSummary.Count(setCount = 1, totalCount = 3))
+    }
+
+    @Test
+    fun `provider keys summary does not count a key past its expiry`() = runTest {
+        val now = Instant.parse("2026-10-26T12:00:00Z")
+        val fixedClock = object : Clock {
+            override fun now(): Instant = now
+        }
+        endpointConfigs.value = mapOf(
+            "openAI" to EndpointConfig(userProvide = true),
+            "anthropic" to EndpointConfig(userProvide = true),
+        )
+        // Both read as Set on the wire; the server deletes an expired key only about a minute later.
+        val lapsed = now - 1.minutes
+        val live = now + 1.hours
+        coEvery { keyRepository.fetchKeyState("openAI") } returns
+            Result.Success(KeyState.Set(expiresAt = lapsed, neverExpires = false, wire = lapsed.toString()))
+        coEvery { keyRepository.fetchKeyState("anthropic") } returns
+            Result.Success(KeyState.Set(expiresAt = live, neverExpires = false, wire = live.toString()))
+        val viewModel = createViewModel(fixedClock)
+        viewModel.refreshProviderKeysSummary()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.providerKeysSummary)
+            .isEqualTo(ProviderKeysSummary.Count(setCount = 1, totalCount = 2))
+    }
+
+    @Test
+    fun `provider keys summary loads once on first need and re-reads on a resume`() = runTest {
+        endpointConfigs.value = mapOf("openAI" to EndpointConfig(userProvide = true))
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        // The pager composing the tab, then composing it again after a swipe away and back.
+        viewModel.loadProviderKeysSummary()
+        advanceUntilIdle()
+        viewModel.loadProviderKeysSummary()
+        advanceUntilIdle()
+        coVerify(exactly = 1) { keyRepository.fetchKeyState("openAI") }
+
+        viewModel.refreshProviderKeysSummary()
+        advanceUntilIdle()
+        coVerify(exactly = 2) { keyRepository.fetchKeyState("openAI") }
+    }
+
+    @Test
+    fun `provider keys summary keeps the last answer when a refresh fails`() = runTest {
+        endpointConfigs.value = mapOf("openAI" to EndpointConfig(userProvide = true))
+        coEvery { keyRepository.fetchKeyState("openAI") } returns
+            Result.Success(KeyState.Set(expiresAt = null, neverExpires = true, wire = "never"))
+        val viewModel = createViewModel()
+        viewModel.refreshProviderKeysSummary()
+        advanceUntilIdle()
+
+        coEvery { keyRepository.fetchKeyState("openAI") } returns Result.Error(message = "offline")
+        viewModel.refreshProviderKeysSummary()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.providerKeysSummary).isEqualTo(ProviderKeysSummary.Count(setCount = 1, totalCount = 1))
+    }
+
+    @Test
+    fun `provider keys row shows and retries the configs while none has loaded`() = runTest {
+        // Offline at launch: no endpoint config, which is not the same as none taking a key.
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.providerKeysSummary).isEqualTo(ProviderKeysSummary.General)
+
+        viewModel.refreshProviderKeysSummary()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { configRepository.fetchEndpoints() }
+        coVerify(exactly = 0) { keyRepository.fetchKeyState(any()) }
+    }
+
+    @Test
+    fun `provider keys summary follows an endpoint config change`() = runTest {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.providerKeysSummary).isEqualTo(ProviderKeysSummary.General)
+
+        endpointConfigs.value = mapOf("openAI" to EndpointConfig(userProvide = true))
+        advanceUntilIdle()
+
+        // The change itself re-reads key states, without waiting for a resume.
+        assertThat(viewModel.uiState.value.providerKeysSummary).isEqualTo(ProviderKeysSummary.Count(setCount = 0, totalCount = 1))
+    }
 
     @Test
     fun `initial state loads user profile`() = runTest {
@@ -457,3 +596,8 @@ class AccountSettingsViewModelTest {
         coVerify(exactly = 0) { userRepository.uploadAvatar(any(), any(), any()) }
     }
 }
+
+private val EXPIRED_KEY = KeyState.Expired(
+    expiresAt = Instant.parse("2026-01-01T00:00:00Z"),
+    wire = "2026-01-01T00:00:00Z",
+)

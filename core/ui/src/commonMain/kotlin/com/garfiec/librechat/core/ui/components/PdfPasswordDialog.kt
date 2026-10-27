@@ -9,14 +9,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -34,9 +30,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.resources.Res
 import com.garfiec.librechat.core.ui.resources.pdf_password_cancel
@@ -115,34 +108,24 @@ fun PdfPasswordDialog(
                         )
                     }
                 }
-                AdaptiveOutlinedTextField(
+                SecretTextField(
                     value = password,
                     onValueChange = { password = it },
+                    revealed = revealed,
+                    onRevealedChange = { revealed = it },
                     label = { Text(stringResource(Res.string.pdf_password_field)) },
-                    singleLine = true,
                     isError = incorrectPassword,
                     supportingText = if (incorrectPassword) {
                         { Text(stringResource(Res.string.pdf_password_incorrect)) }
                     } else {
                         null
                     },
-                    visualTransformation = if (revealed) VisualTransformation.None else PasswordVisualTransformation(),
-                    // Keeps the IME from learning, suggesting or autocorrecting the password.
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                    imeAction = ImeAction.Done,
                     keyboardActions = KeyboardActions(onDone = { submit() }),
-                    trailingIcon = {
-                        IconButton(onClick = { revealed = !revealed }) {
-                            Icon(
-                                imageVector = if (revealed) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = stringResource(
-                                    if (revealed) Res.string.pdf_password_hide else Res.string.pdf_password_show,
-                                ),
-                            )
-                        }
-                    },
+                    showDescription = Res.string.pdf_password_show,
+                    hideDescription = Res.string.pdf_password_hide,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .excludeFromAutofill()
                         .focusRequester(focusRequester)
                         .testTag("pdf_password_field"),
                 )

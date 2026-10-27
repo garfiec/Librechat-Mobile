@@ -21,16 +21,26 @@ class UserKeyErrorTest {
 
     @Test
     fun parses_expired_user_key_preserves_locale_string_verbatim() {
-        // Verified at upstream/packages/api/src/utils/key.ts:134 — server uses
-        // expiresAtDate.toLocaleString() which is locale-formatted, NOT ISO.
+        // Servers before the pin sent expiresAtDate.toLocaleString(), which no ISO parser reads.
         val raw = """{"type":"expired_user_key","expiredAt":"5/1/2026, 12:00:00 AM","endpoint":"openAI"}"""
         val result = parseUserKeyError(raw)
         val expired = assertIs<UserKeyError.ExpiredUserKey>(result)
         assertEquals("openAI", expired.endpoint)
-        // Byte-identical preservation: NOT parsed to Instant. Test guards against future
-        // refactors that might mistakenly try to parse this server-locale string.
+        // Byte-identical preservation: the parser keeps the raw string, and display code shows
+        // it unchanged when it isn't an instant.
         assertEquals("5/1/2026, 12:00:00 AM", expired.expiredAt)
         assertEquals("kotlin.String", expired.expiredAt::class.qualifiedName)
+    }
+
+    @Test
+    fun parses_expired_user_key_with_the_pins_iso_instant() {
+        // At the pin (v0.8.8), packages/api/src/utils/key.ts checkUserKeyExpiry sends
+        // expiresAtDate.toISOString() for the client to format.
+        val raw = """{"type":"expired_user_key","expiredAt":"2026-10-26T14:03:00.000Z","endpoint":"openAI"}"""
+        assertEquals(
+            UserKeyError.ExpiredUserKey(endpoint = "openAI", expiredAt = "2026-10-26T14:03:00.000Z"),
+            parseUserKeyError(raw),
+        )
     }
 
     @Test
@@ -51,6 +61,25 @@ class UserKeyErrorTest {
     fun parses_invalid_user_key() {
         val result = parseUserKeyError("""{"type":"invalid_user_key"}""")
         assertEquals(UserKeyError.InvalidUserKey(null), result)
+    }
+
+    @Test
+    fun parses_no_base_url() {
+        // custom/initialize.ts throws `{type: ErrorTypes.NO_BASE_URL}` with no endpoint field.
+        assertEquals(UserKeyError.NoBaseUrl(null), parseUserKeyError("""{"type":"no_base_url"}"""))
+        assertEquals(
+            UserKeyError.NoBaseUrl("openrouter"),
+            parseUserKeyError("""{"type":"no_base_url","endpoint":"openrouter"}"""),
+        )
+    }
+
+    @Test
+    fun parses_invalid_base_url() {
+        assertEquals(UserKeyError.InvalidBaseUrl(null), parseUserKeyError("""{"type":"invalid_base_url"}"""))
+        assertEquals(
+            UserKeyError.InvalidBaseUrl("openrouter"),
+            parseUserKeyError("""{"type":"invalid_base_url","endpoint":"openrouter"}"""),
+        )
     }
 
     @Test

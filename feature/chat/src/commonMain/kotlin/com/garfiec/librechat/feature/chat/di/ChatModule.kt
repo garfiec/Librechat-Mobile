@@ -6,6 +6,7 @@ import com.garfiec.librechat.feature.chat.navigation.ModelShortcutBus
 import com.garfiec.librechat.feature.chat.prompts.PromptEditorViewModel
 import com.garfiec.librechat.feature.chat.prompts.PromptsViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.BackgroundTasksViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.ChatNoticeHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMediaViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.NewChatSelectionHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.ProjectLandingViewModel
@@ -25,6 +26,7 @@ val chatModule = module {
     includes(chatPlatformModule)
     single { NewChatSelectionHandoff() }
     single { PromptInsertionHandoff() }
+    single { ChatNoticeHandoff() }
     single { ServerFileSelectionHandoff() }
     single { ArtifactViewerHandoff() }
     single { ModelShortcutBus() }

@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.settings.di
 
 import android.app.Application
 import android.content.Context
+import androidx.lifecycle.SavedStateHandle
 import com.garfiec.librechat.core.common.AppInfo
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
@@ -48,6 +49,8 @@ class SettingsModuleVerificationTest {
             extraTypes = listOf(
                 Context::class,
                 Application::class,
+                // Supplied by a ViewModel's CreationExtras at resolution time, never declared.
+                SavedStateHandle::class,
                 AppInfo::class,
                 UserRepository::class,
                 AuthRepository::class,

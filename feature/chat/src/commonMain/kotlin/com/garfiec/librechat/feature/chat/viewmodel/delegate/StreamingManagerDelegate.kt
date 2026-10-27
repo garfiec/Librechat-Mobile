@@ -18,6 +18,7 @@ import com.garfiec.librechat.core.model.error.parseUserKeyError
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
 import com.garfiec.librechat.core.network.api.chatRefusalText
 import com.garfiec.librechat.feature.chat.util.applyAbortContract
+import com.garfiec.librechat.feature.chat.util.keyEndpointOf
 import com.garfiec.librechat.feature.chat.util.resolvedResponseMessage
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
@@ -241,6 +242,13 @@ class StreamingManagerDelegate(
     private var currentTurnManualSkills: List<String>? = null
 
     /**
+     * The endpoint whose key this turn was sent with (the agent's provider on the agents endpoint),
+     * captured at [beginStreaming]. Names the endpoint of a user-key error the server sent without
+     * one. Null for a run this client only reconnected to.
+     */
+    private var currentTurnKeyEndpoint: String? = null
+
+    /**
      * Resets the streaming-internal session state (buffer, edit flag, traces) and starts the
      * throttled updater. Does NOT touch UI state — callers that already mutate UI state
      * for their send (e.g. the optimistic-insert path) use this; [prepareForStreaming] wraps
@@ -266,6 +274,10 @@ class StreamingManagerDelegate(
         startStreamSession()
         currentTurnSpec = turnSpec
         currentTurnManualSkills = turnManualSkills
+        currentTurnKeyEndpoint = handle.state.let { state ->
+            val choice = turnSpec?.choice
+            keyEndpointOf(choice?.endpoint ?: state.selectedEndpoint, choice?.model ?: state.selectedModel, state.agents)
+        }
         // After startStreamSession: its pendingActionDelegate.clear() drops the pin.
         pendingActionDelegate.onTurnStarted(turnSpec, turnManualSkills)
         currentTurnOptimisticUserMessageId = optimisticUserMessageId
@@ -353,6 +365,7 @@ class StreamingManagerDelegate(
         // turn's optimistic id leak into it (the un-send would remove the wrong message).
         currentTurnOptimisticUserMessageId = null
         currentTurnCreated = false
+        currentTurnKeyEndpoint = null
         retryCeiling = null
     }
 
@@ -725,7 +738,8 @@ class StreamingManagerDelegate(
                 if (reason.isNetwork) networkRecovery.arm() else networkRecovery.disarm()
                 // A typed user-provided-key error surfaces as a snackbar with a Settings CTA
                 // instead of the generic error banner (no double-surfacing).
-                val keyError = parseUserKeyError(reason.message)
+                // Most key errors arrive without an endpoint; the turn's own names it.
+                val keyError = parseUserKeyError(reason.message, fallbackEndpoint = currentTurnKeyEndpoint)
                 val probablySaved = isTurnProbablySaved(reason)
                 // A turn that may be saved (see isTurnProbablySaved) may or may not have its user
                 // message on the server, and the reload below drops the optimistic bubble either

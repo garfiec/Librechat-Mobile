@@ -126,6 +126,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlin.time.Clock
 
 // debt — LargeClass: 1484-line file
 @Suppress("TooManyFunctions", "LongParameterList", "LargeClass")
@@ -184,6 +185,8 @@ class ChatViewModel(
     private val promptInsertionHandoff: PromptInsertionHandoff,
     private val siteIconPromptSession: SiteIconPromptSession,
     private val preferenceStore: PreferenceStore,
+    /** The wall clock key expiries are held against; a test moves it to stand in for a sleep. */
+    clock: Clock = Clock.System,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -275,6 +278,7 @@ class ChatViewModel(
     private val keyStatusDelegate = EndpointKeyStatusDelegate(
         handle = EndpointKeyHandle(stateHandle),
         keyRepository = keyRepository,
+        clock = clock,
     )
     private val subagentTraceDelegate = SubagentTraceDelegate(SubagentHandle(stateHandle), json)
     private val attachmentPreviewDelegate =
@@ -1345,6 +1349,8 @@ class ChatViewModel(
         // admitted, dropped or added a queued turn while the app was away, and there is nothing
         // to hear it from.
         queueOrchestrationDelegate.refreshQueuedTurns()
+        // A key may have run out while the app was away, where the expiry timer doesn't count.
+        keyStatusDelegate.resettle()
         // Skills may have changed on the Skills screen while this chat was behind it.
         val state = _uiState.value
         skillPickerDelegate.refreshOnReturn(pickerOpen = parsePickerQuery(state.inputText, state.canPickSkills) != null)
@@ -1520,6 +1526,8 @@ class ChatViewModel(
     fun prepareModelSelector() {
         modelDelegate.retryAgentsIfFailed(isNewConversation)
         favoritesDelegate.refresh()
+        // So the selector never offers an endpoint whose key ran out on a timer that slept.
+        keyStatusDelegate.resettle()
     }
 
     /**

@@ -369,8 +369,12 @@
     <string name="cd_unpin_favorite">즐겨찾기 고정 해제</string>
     <string name="cd_collapse_section">%1$s 접기</string>
     <string name="cd_expand_section">%1$s 펼치기</string>
-    <string name="set_api_key_action">API 키 설정</string>
-    <string name="cd_set_api_key">%1$s의 API 키 구성</string>
+    <string name="set_api_key_action">키 추가</string>
+    <string name="cd_set_api_key">%1$s 키 추가</string>
+    <!-- Under an endpoint or spec name in the model picker when its key is missing. -->
+    <string name="model_selector_needs_key">키가 필요합니다</string>
+    <!-- Same place, in the minute before the server deletes an expired key. -->
+    <string name="model_selector_key_expired">키 만료됨</string>
 
     <!-- Preset picker -->
     <string name="select_preset">프리셋 선택</string>
@@ -489,11 +493,16 @@
 
     <!-- Provider Keys chat-time errors. -->
     <string name="provider_keys_chat_error_no_key">키를 찾을 수 없습니다. 키를 입력한 후 다시 시도하세요.</string>
-    <!-- {0} = endpoint name, {1} = expiredAt (server-locale string, NOT ISO) -->
+    <!-- {0} = endpoint name, {1} = expiry date and time, already formatted in the user's locale -->
     <string name="provider_keys_chat_error_expired">%1$s에 제공된 키가 %2$s에 만료되었습니다. 새 키를 입력한 후 다시 시도하세요.</string>
     <string name="provider_keys_chat_error_invalid">유효하지 않은 키입니다. 유효한 키를 입력한 후 다시 시도하세요.</string>
-    <!-- Snackbar action label that deep-links to Settings → Provider Keys -->
-    <string name="provider_keys_chat_error_cta">키 설정 열기</string>
+    <string name="provider_keys_chat_error_no_key_for">%1$s의 키를 찾을 수 없습니다. 키를 입력한 후 다시 시도하세요.</string>
+    <string name="provider_keys_chat_error_invalid_for">%1$s의 키가 유효하지 않습니다. 유효한 키를 입력한 후 다시 시도하세요.</string>
+    <string name="provider_keys_chat_error_expired_no_label">제공된 키가 %1$s에 만료되었습니다. 새 키를 입력한 후 다시 시도하세요.</string>
+    <string name="provider_keys_chat_error_no_base_url">기본 URL을 찾을 수 없습니다. URL을 입력한 후 다시 시도하세요.</string>
+    <string name="provider_keys_chat_error_no_base_url_for">%1$s의 기본 URL을 찾을 수 없습니다. URL을 입력한 후 다시 시도하세요.</string>
+    <string name="provider_keys_chat_error_invalid_base_url">입력한 기본 URL이 제한된 주소를 가리킵니다. 유효한 외부 URL을 사용하여 다시 시도하세요.</string>
+    <string name="provider_keys_chat_error_invalid_base_url_for">%1$s에 입력한 기본 URL이 제한된 주소를 가리킵니다. 유효한 외부 URL을 사용하여 다시 시도하세요.</string>
     <string name="queued_messages_dropped_account_switch">계정 전환으로 대기 중인 메시지가 삭제되었습니다</string>
 
     <!-- Send block reasons (shown in error snackbar when send can't proceed) -->

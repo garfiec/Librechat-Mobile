@@ -15,16 +15,20 @@ import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.compare_pick_to_send
 import com.garfiec.librechat.feature.chat.resources.jump_branch_switched
 import com.garfiec.librechat.feature.chat.resources.jump_message_not_found
+import com.garfiec.librechat.feature.chat.viewmodel.ChatNoticeHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
+import kotlinx.coroutines.flow.filterNotNull
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
 import com.garfiec.librechat.core.ui.resources.Res as CoreUiRes
 
 /**
  * Hosts the chat screen's one-shot side effects so [ChatScreen] reads as layout.
  * Covers: new-conversation navigation handoff, error snackbars, the provider-key error
- * snackbar, and back-navigation after a delete/archive clears the conversation. Share, fork,
+ * snackbar, a notice handed back by a screen that closed itself ([ChatNoticeHandoff]), and
+ * back-navigation after a delete/archive clears the conversation. Share, fork,
  * duplicate and lifecycle live in [ChatScreenOutcomes].
  */
 // debt — ViewModelForwarding: screen split across files; state not hoisted yet
@@ -66,6 +70,18 @@ internal fun ChatScreenEffects(
                 duration = SnackbarDuration.Long,
             )
             viewModel.dismissError()
+        }
+    }
+
+    // A key saved or revoked on Provider Keys (opened from here) pops straight back; its
+    // confirmation lands here instead of on the closed screen.
+    // Cleared before it shows, so a re-entry can't repeat it; the collector, not a keyed effect,
+    // so clearing it doesn't cancel the snackbar it is showing.
+    val noticeHandoff = koinInject<ChatNoticeHandoff>()
+    LaunchedEffect(noticeHandoff) {
+        noticeHandoff.pending.filterNotNull().collect { message ->
+            noticeHandoff.consume(message)
+            snackbarHostState.showSnackbar(message = getString(message))
         }
     }
 

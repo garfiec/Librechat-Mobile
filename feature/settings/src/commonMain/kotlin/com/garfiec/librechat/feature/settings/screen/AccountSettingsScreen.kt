@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -29,6 +30,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,6 +42,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.data.repository.HeaderWriteFailure
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
@@ -66,6 +71,8 @@ import com.garfiec.librechat.feature.settings.screen.sections.BackupCodesDialog
 import com.garfiec.librechat.feature.settings.screen.sections.TwoFactorSetupDialog
 import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ServerHeadersViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.delegate.ProviderKeysSummary
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import com.garfiec.librechat.core.ui.resources.Res as UiRes
@@ -144,6 +151,22 @@ fun AccountSettingsContent(
     // would strand them — and reopening deliberately won't re-read while they are unsaved, so the
     // next open would present a truncated credential as the configured one.
     var showServerHeadersDialog by rememberSaveable { mutableStateOf(false) }
+
+    // The Provider Keys row's summary loads once, the first time this tab is composed resumed (the
+    // pager also lays it out beside the visible tab, and again on scrolling back, each replaying
+    // ON_RESUME to the new observer), and re-reads on each resume the entry itself goes through:
+    // back from Provider Keys (NavDisplay holds an animating scene at STARTED) or from another app.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, viewModel) {
+        var replaying = true
+        val observer = LifecycleEventObserver { _, event ->
+            if (event != Lifecycle.Event.ON_RESUME) return@LifecycleEventObserver
+            if (replaying) viewModel.loadProviderKeysSummary() else viewModel.refreshProviderKeysSummary()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        replaying = false
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     LaunchedEffect(uiState.error) {
         val error = uiState.error ?: return@LaunchedEffect
@@ -261,13 +284,28 @@ fun AccountSettingsContent(
                         onClick = onNavigateToApiKeys,
                     )
                 }
-                row(key = "provider_keys_row") {
-                    AccountSettingsRow(
-                        icon = Icons.Default.Key,
-                        title = stringResource(Res.string.provider_keys_title),
-                        subtitle = stringResource(Res.string.provider_keys_subtitle),
-                        onClick = onNavigateToProviderKeys,
-                    )
+                // Hidden when no reachable endpoint takes a user-provided value: the page would be empty.
+                // Shown while the endpoint configs haven't loaded, so the page's load error and Retry stay reachable.
+                val providerKeys = uiState.providerKeysSummary
+                if (providerKeys != ProviderKeysSummary.Hidden) {
+                    row(key = "provider_keys_row") {
+                        AccountSettingsRow(
+                            icon = Icons.Default.VpnKey,
+                            title = stringResource(Res.string.provider_keys_title),
+                            // The general line until every endpoint has answered, then the count.
+                            subtitle = if (providerKeys is ProviderKeysSummary.Count) {
+                                pluralStringResource(
+                                    Res.plurals.provider_keys_row_summary,
+                                    providerKeys.totalCount,
+                                    providerKeys.setCount,
+                                    providerKeys.totalCount,
+                                )
+                            } else {
+                                stringResource(Res.string.provider_keys_subtitle)
+                            },
+                            onClick = onNavigateToProviderKeys,
+                        )
+                    }
                 }
                 row(key = "favorites_row") {
                     AccountSettingsRow(

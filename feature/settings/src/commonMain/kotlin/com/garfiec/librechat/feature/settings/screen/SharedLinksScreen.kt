@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.plus
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridItemScope
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -293,11 +292,6 @@ internal fun LazyGridScope.sharedLinksItems(
         uiState.loadMoreFailed -> fullWidthItem(key = "load_more_failed") { LoadMoreFailedRow(onRetry = onLoadMore) }
     }
 }
-
-private fun LazyGridScope.fullWidthItem(
-    key: String,
-    content: @Composable LazyGridItemScope.() -> Unit,
-) = item(key = key, span = { GridItemSpan(maxLineSpan) }, contentType = key, content = content)
 
 @Composable
 private fun SharedLinksSearchField(query: String, onQueryChange: (String) -> Unit, onClear: () -> Unit) {

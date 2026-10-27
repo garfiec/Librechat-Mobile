@@ -3,11 +3,13 @@ package com.garfiec.librechat.feature.chat.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -24,16 +26,15 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material.icons.outlined.Create
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Public
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -48,6 +49,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -64,6 +67,7 @@ import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.model.media.resolveIconSource
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveFilledTonalButton
 import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.EndpointIcon
@@ -78,9 +82,11 @@ import com.garfiec.librechat.core.ui.components.listDragSelection
 import com.garfiec.librechat.core.ui.components.rememberListDragSelection
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.util.KeyHint
 import com.garfiec.librechat.feature.chat.util.SpecSection
 import com.garfiec.librechat.feature.chat.util.SpecSections
 import com.garfiec.librechat.feature.chat.util.blocksSelection
+import com.garfiec.librechat.feature.chat.util.keyHint
 import com.garfiec.librechat.feature.chat.util.menuIconSource
 import com.garfiec.librechat.feature.chat.util.requiresSpec
 import com.garfiec.librechat.feature.chat.util.searchByName
@@ -143,16 +149,16 @@ fun ModelSelectorSheet(
     starredDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
     /**
      * Per-endpoint user-provided-key state. Endpoints whose key is [KeyState.Unset]
-     * or [KeyState.Expired] render a greyed group with a "Set API Key" CTA. Absent
-     * keys (built-in endpoints) and [KeyState.Loading] / [KeyState.Set] all
-     * fail-open to the normal selectable rendering.
+     * or [KeyState.Expired] render a greyed group with an "Add key" action, and spec
+     * rows on them say so. Absent keys (built-in endpoints) and [KeyState.Loading] /
+     * [KeyState.Set] all fail-open to the normal selectable rendering.
      */
     endpointKeyStates: Map<String, KeyState> = emptyMap(),
     /** Above the list; the comparison A/B pair while comparing. */
     header: (@Composable () -> Unit)? = null,
     /**
-     * Invoked with the endpoint name when the user taps the "Set API Key" CTA on
-     * a greyed group. Implementations should navigate to Settings → Provider API Keys.
+     * Invoked with the endpoint name when the user taps "Add key" on a greyed group, or a
+     * spec row that needs a key. Implementations should navigate to Settings → Provider API Keys.
      */
     onSetApiKey: (endpointName: String) -> Unit,
 ) {
@@ -210,8 +216,8 @@ fun ModelSelectorSheetContent(
     /** `interface.modelSelect`; off lists only the server's specs, as web does. */
     modelSelect: Boolean,
     /**
-     * Invoked with the endpoint name when the user taps the "Set API Key" CTA on
-     * a greyed group. Implementations should navigate to Settings → Provider API Keys.
+     * Invoked with the endpoint name when the user taps "Add key" on a greyed group, or a
+     * spec row that needs a key. Implementations should navigate to Settings → Provider API Keys.
      */
     onSetApiKey: (endpointName: String) -> Unit,
     modifier: Modifier = Modifier,
@@ -237,9 +243,9 @@ fun ModelSelectorSheetContent(
     starredDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
     /**
      * Per-endpoint user-provided-key state. Endpoints whose key is [KeyState.Unset]
-     * or [KeyState.Expired] render a greyed group with a "Set API Key" CTA. Absent
-     * keys (built-in endpoints) and [KeyState.Loading] / [KeyState.Set] all
-     * fail-open to the normal selectable rendering.
+     * or [KeyState.Expired] render a greyed group with an "Add key" action, and spec
+     * rows on them say so. Absent keys (built-in endpoints) and [KeyState.Loading] /
+     * [KeyState.Set] all fail-open to the normal selectable rendering.
      */
     endpointKeyStates: Map<String, KeyState> = emptyMap(),
     /** Rendered above the error banner and title; the paged host passes a back-arrow row. */
@@ -355,10 +361,9 @@ fun ModelSelectorSheetContent(
     // Under enforce the note heads the first raw row: the starred agents and models when they show.
     val specOnlyNoteInStarred = !rawSelectable && starredItemsVisible && hasStarredRaw
 
+    // A spec on an endpoint without a usable key opens its key instead; its row says so first.
     val onSpecClick: (ModelSpec, String?) -> Unit = { spec, endpoint ->
-        val keyState = endpointKeyStates[endpoint]
-        val keyRequired = keyState == KeyState.Unset || keyState == KeyState.Expired
-        if (keyRequired && endpoint != null) onSetApiKey(endpoint) else onSpecSelect(spec)
+        if (endpoint != null && endpointKeyStates[endpoint].blocksSelection()) onSetApiKey(endpoint) else onSpecSelect(spec)
     }
 
     Column(
@@ -408,12 +413,14 @@ fun ModelSelectorSheetContent(
         // Drag-select reaches only the rows on screen: the list doesn't auto-scroll under it.
         val dragSelection = rememberListDragSelection()
         val specRow: @Composable LazyItemScope.(ModelSpec, Dp) -> Unit = { spec, verticalPadding ->
+            val endpoint = spec.toSeed()?.endpoint
             SpecListItem(
                 spec = spec,
                 icon = specIcons[spec.name],
                 isSelected = selectedSpec == spec.name,
-                onClick = { onSpecClick(spec, spec.toSeed()?.endpoint) },
+                onClick = { onSpecClick(spec, endpoint) },
                 dragSelection = dragSelection,
+                keyHint = endpoint?.let { endpointKeyStates[it].keyHint() },
                 isFavorite = spec.name in favoriteSpecNames,
                 onToggleFavorite = onToggleSpecFavorite?.let { toggle -> { toggle(spec.name) } },
                 verticalPadding = verticalPadding,
@@ -558,9 +565,9 @@ fun ModelSelectorSheetContent(
                     // otherwise use manual toggle state.
                     val isExpanded = isSearching || isOpen(endpointExpandKey(endpointName))
                     // Endpoints with userProvide=true and Unset/Expired key render disabled
-                    // with a "Set API Key" CTA. Loading and absent states fail-open.
-                    val needsKey = endpointKeyStates[endpointName].blocksSelection()
-                    val effectiveExpanded = isExpanded && !needsKey
+                    // with an "Add key" action. Loading and absent states fail-open.
+                    val keyHint = endpointKeyStates[endpointName].keyHint()
+                    val effectiveExpanded = isExpanded && keyHint == null
                     val headerIcon = resolveIconSource(config?.iconURL, endpointName, serverUrl)
                     item(key = "hdr:ep:$endpointName") {
                         EndpointGroupHeader(
@@ -570,7 +577,7 @@ fun ModelSelectorSheetContent(
                             isExpanded = effectiveExpanded,
                             iconUrl = headerIcon.imageUrl,
                             onToggle = { if (!isSearching) expandedGroups[endpointExpandKey(endpointName)] = !isExpanded },
-                            needsKey = needsKey,
+                            keyHint = keyHint,
                             onSetApiKey = { onSetApiKey(endpointName) },
                             dragSelection = dragSelection,
                         )
@@ -632,19 +639,21 @@ internal fun EndpointGroupHeader(
     iconUrl: String?,
     onToggle: () -> Unit,
     dragSelection: ListDragSelection,
-    needsKey: Boolean = false,
+    /** Non-null when the endpoint has no usable key: the group is greyed behind "Add key". */
+    keyHint: KeyHint? = null,
     onSetApiKey: () -> Unit = {},
     /** When set, renders this vector instead of an [EndpointIcon] (used by the Starred group). */
     leadingIcon: ImageVector? = null,
 ) {
-    // Set API Key drops under the label rather than squeeze it narrower than MinGroupLabelWidth.
+    val needsKey = keyHint != null
+    // Add key drops under the label rather than squeeze it narrower than MinGroupLabelWidth.
     FlowRow(
         modifier = Modifier
             .fillMaxWidth()
             // Drop the clickable modifier entirely when needsKey — Compose's
             // `clickable(enabled = false)` still consumes touch events and
             // announces "disabled" to TalkBack/VoiceOver. Only the inner
-            // SetApiKeyChip remains interactive in that branch.
+            // AddKeyButton remains interactive in that branch.
             .then(
                 if (needsKey) {
                     Modifier.padding(horizontal = 4.dp)
@@ -686,15 +695,19 @@ internal fun EndpointGroupHeader(
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "$displayLabel ($modelCount)",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.alpha(labelAlpha),
-            )
+            Column {
+                Text(
+                    text = "$displayLabel ($modelCount)",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.alpha(labelAlpha),
+                )
+                // Full opacity: the reason the group is greyed is not itself disabled.
+                if (keyHint != null) KeyHintLine(keyHint)
+            }
         }
         if (needsKey) {
-            SetApiKeyChip(
+            AddKeyButton(
                 endpointLabel = displayLabel,
                 onClick = onSetApiKey,
             )
@@ -714,30 +727,55 @@ internal fun EndpointGroupHeader(
 private val MinGroupLabelWidth = 120.dp
 
 /**
- * Mirrors LibreChat web's "Set API Key" pill on greyed endpoint rows. Tapping
- * navigates to Settings → Provider API Keys with the endpoint pre-targeted.
+ * The "Add key" action on a greyed endpoint group, web's "Set API Key" pill. Tapping navigates to
+ * Settings → Provider API Keys with the endpoint pre-targeted. The key icon is the one the
+ * Provider Keys row in Settings uses.
  */
 @Composable
-private fun SetApiKeyChip(
+private fun AddKeyButton(
     endpointLabel: String,
     onClick: () -> Unit,
 ) {
-    val label = stringResource(Res.string.set_api_key_action)
     val cd = stringResource(Res.string.cd_set_api_key, endpointLabel)
-    TextButton(onClick = onClick) {
+    AdaptiveFilledTonalButton(
+        onClick = onClick,
+        // Small: a 32dp button in a 20dp-icon header row. The touch target stays 48dp.
+        modifier = Modifier.heightIn(min = AddKeyButtonHeight),
+        contentPadding = PaddingValues(start = 12.dp, top = 4.dp, end = 16.dp, bottom = 4.dp),
+    ) {
         Icon(
-            imageVector = Icons.Outlined.Settings,
-            contentDescription = cd,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(IconSize),
+            imageVector = Icons.Default.VpnKey,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
         )
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(8.dp))
+        // Read as "Add a key for <endpoint>": the visible label alone doesn't say which.
         Text(
-            text = label,
+            text = stringResource(Res.string.set_api_key_action),
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+            modifier = Modifier.semantics { contentDescription = cd },
         )
     }
+}
+
+private val AddKeyButtonHeight = 32.dp
+
+/** "Needs your key" or "Key expired", under an endpoint group's or a spec row's name. */
+@Composable
+private fun KeyHintLine(hint: KeyHint) {
+    Text(
+        text = stringResource(
+            when (hint) {
+                KeyHint.NEEDS_KEY -> Res.string.model_selector_needs_key
+                KeyHint.EXPIRED -> Res.string.model_selector_key_expired
+            },
+        ),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 
 @Composable
@@ -859,15 +897,19 @@ private fun LazyItemScope.AgentListItem(
     }
 }
 
-/** A named model spec: its own icon, label and description, apart from the raw model it runs on. */
+/**
+ * A named model spec: its own icon, label and description, apart from the raw model it runs on.
+ * [keyHint] is set when the spec's endpoint has no usable key, so the row says a tap opens its key.
+ */
 @Composable
-private fun LazyItemScope.SpecListItem(
+internal fun LazyItemScope.SpecListItem(
     spec: ModelSpec,
     /** Null when the spec hides its icon (`showIconInMenu: false`); the label keeps its column. */
     icon: IconSource?,
     isSelected: Boolean,
     onClick: () -> Unit,
     dragSelection: ListDragSelection,
+    keyHint: KeyHint? = null,
     isFavorite: Boolean = false,
     onToggleFavorite: (() -> Unit)? = null,
     verticalPadding: Dp = ListItemVerticalPadding,
@@ -898,6 +940,7 @@ private fun LazyItemScope.SpecListItem(
                 text = spec.displayLabel,
                 style = MaterialTheme.typography.bodyMedium,
             )
+            if (keyHint != null) KeyHintLine(keyHint)
             spec.description?.takeIf { it.isNotBlank() }?.let { description ->
                 Text(
                     text = description,

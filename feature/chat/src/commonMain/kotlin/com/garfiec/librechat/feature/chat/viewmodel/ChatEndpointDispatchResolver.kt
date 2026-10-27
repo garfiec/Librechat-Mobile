@@ -16,8 +16,11 @@ import com.garfiec.librechat.core.model.endpoint.KeyState
  * - [KeyState.Set] with `neverExpires=true` -> `"never"`
  * - [KeyState.Set] with `neverExpires=false` -> the original ISO wire string
  *   ([KeyState.Set.wire]) so we round-trip exactly what the server emitted.
- * - [KeyState.Unset], [KeyState.Expired], [KeyState.Loading], or absent -> null
- *   (the classifier substitutes `"never"` when the endpoint is user-provided).
+ * - [KeyState.Expired] -> its past ISO wire string ([KeyState.Expired.wire]), so the server's
+ *   expiry check answers with a typed `expired_user_key` instead of trying the key as if it
+ *   never expired.
+ * - [KeyState.Unset], [KeyState.Loading], or absent -> null (the classifier substitutes
+ *   `"never"` when the endpoint is user-provided).
  */
 internal fun resolveEndpointDispatch(
     endpointName: String,
@@ -26,6 +29,7 @@ internal fun resolveEndpointDispatch(
 ): EndpointDispatch {
     val expiry: String? = when (val state = endpointKeyStates[endpointName]) {
         is KeyState.Set -> if (state.neverExpires) "never" else state.wire
+        is KeyState.Expired -> state.wire
         else -> null
     }
     return EndpointClassifier.classify(endpointName, endpointConfigs, keyExpiry = expiry)

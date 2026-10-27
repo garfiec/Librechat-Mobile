@@ -609,11 +609,8 @@
     <!-- Provider API Keys -->
     <string name="provider_keys_title">Clés API des fournisseurs</string>
     <string name="provider_keys_subtitle">Définissez vos propres clés pour les points de terminaison qui les nécessitent</string>
-    <string name="provider_keys_dialog_title">Définir la clé API pour %1$s</string>
-    <string name="provider_keys_status_set_expires">Expire dans %1$s</string>
-    <string name="provider_keys_status_set_never">Votre clé n'expirera jamais</string>
     <string name="provider_keys_status_unset">Non définie</string>
-    <string name="provider_keys_status_expired">Expirée</string>
+    <string name="provider_keys_status_unknown">Vérification impossible</string>
     <string name="provider_keys_status_loading">Vérification du statut de la clé…</string>
     <string name="provider_keys_field_api_key_label">Clé</string>
     <string name="provider_keys_field_base_url_label">URL de base</string>
@@ -634,35 +631,63 @@
     <string name="provider_keys_field_google_imported">Clé JSON de compte de service importée avec succès</string>
     <string name="provider_keys_field_google_paste_label">Ou collez le JSON du compte de service</string>
     <string name="provider_keys_field_google_paste_only_hint">Collez le JSON du compte de service ci-dessous.</string>
-    <string name="provider_keys_field_google_service_key_or_gemini">Clé de service Google ou clé API Gemini</string>
 
     <string name="provider_keys_field_bedrock_access_key_id">ID de clé d'accès</string>
     <string name="provider_keys_field_bedrock_secret_access_key">Clé d'accès secrète</string>
     <string name="provider_keys_field_bedrock_session_token">Jeton de session</string>
     <string name="provider_keys_field_bedrock_session_token_optional_suffix">(Facultatif)</string>
+    <string name="provider_keys_field_bedrock_bearer_token">Jeton Bearer</string>
+    <string name="provider_keys_field_bedrock_bearer_token_placeholder">Clé API Bedrock</string>
+    <string name="provider_keys_field_required">Obligatoire</string>
+    <string name="provider_keys_bedrock_or_access_keys">Ou utilisez plutôt des clés d’accès</string>
+    <string name="provider_keys_field_google_either_required">Ajoutez une clé de service ou une clé API Gemini</string>
 
-    <string name="provider_keys_required_fields">Les champs suivants sont requis : %1$s</string>
     <string name="provider_keys_revoke">Révoquer</string>
     <string name="provider_keys_revoke_failed">Échec de la révocation de la clé API. Veuillez réessayer.</string>
     <string name="provider_keys_revoke_success">Clé API révoquée avec succès</string>
-    <string name="provider_keys_revoke_all">Révoquer les clés</string>
     <string name="provider_keys_revoke_all_confirm">Voulez-vous vraiment révoquer toutes les clés ?</string>
     <string name="provider_keys_revoke_all_failed">Échec de la révocation de toutes les clés</string>
     <string name="provider_keys_save_failed">Échec de l'enregistrement de la clé API. Veuillez réessayer.</string>
     <string name="provider_keys_save_success">Clé API enregistrée avec succès</string>
 
-    <string name="provider_keys_expiry_label">Expire</string>
-    <string name="provider_keys_expiry_30m">dans 30 minutes</string>
-    <string name="provider_keys_expiry_2h">dans 2 heures</string>
-    <string name="provider_keys_expiry_12h">dans 12 heures</string>
-    <string name="provider_keys_expiry_1d">dans 1 jour</string>
-    <string name="provider_keys_expiry_7d">dans 7 jours</string>
-    <string name="provider_keys_expiry_30d">dans 30 jours</string>
-    <string name="provider_keys_expiry_never">jamais</string>
+    <string name="provider_keys_expiry_label">La nouvelle clé expire</string>
+    <string name="provider_keys_expiry_30m">30 min</string>
+    <string name="provider_keys_expiry_2h">2 h</string>
+    <string name="provider_keys_expiry_12h">12 h</string>
+    <string name="provider_keys_expiry_1d">1 jour</string>
+    <string name="provider_keys_expiry_7d">7 jours</string>
+    <string name="provider_keys_expiry_30d">30 jours</string>
+    <string name="provider_keys_expiry_never">Jamais</string>
 
     <string name="provider_keys_empty_title">Aucun point de terminaison ne nécessite de clés fournies par l'utilisateur</string>
     <string name="provider_keys_empty_desc">Les points de terminaison qui nécessitent votre propre clé API apparaîtront ici.</string>
-    <string name="provider_keys_revoke_all_action">Tout révoquer</string>
+    <string name="provider_keys_load_failed_title">Impossible de charger vos fournisseurs</string>
+    <string name="provider_keys_load_failed_desc">Vérifiez votre connexion et réessayez.</string>
+    <string name="provider_keys_status_never_expires">N’expire jamais</string>
+    <string name="provider_keys_status_expires_at">Expire le %1$s</string>
+    <string name="provider_keys_status_expires_at_time">Expire à %1$s</string>
+    <string name="provider_keys_retry_check_cd">Vérifier %1$s à nouveau</string>
+    <string name="provider_keys_status_unset_needs">Non définie · %1$s</string>
+    <string name="provider_keys_needs_azure">clé, instance, déploiement, version</string>
+    <string name="provider_keys_needs_key_and_url">clé, URL de base</string>
+    <string name="provider_keys_needs_base_url">URL de base</string>
+    <string name="provider_keys_needs_google">clé de service ou clé Gemini</string>
+    <string name="provider_keys_needs_access_keys">clés d’accès</string>
+    <string name="provider_keys_needs_bearer_or_access_keys">jeton bearer ou clés d’accès</string>
+    <string name="provider_keys_summary_note">Les clés sont stockées sur votre serveur et supprimées à leur expiration.</string>
+    <string name="provider_keys_revoke_all_button">Révoquer toutes les clés</string>
+    <plurals name="provider_keys_status_expires_in_minutes">
+        <item quantity="one">Expire dans %1$d min</item>
+        <item quantity="other">Expire dans %1$d min</item>
+    </plurals>
+    <plurals name="provider_keys_summary">
+        <item quantity="one">%1$d sur %2$d clé définie.</item>
+        <item quantity="other">%1$d sur %2$d clés définies.</item>
+    </plurals>
+    <plurals name="provider_keys_row_summary">
+        <item quantity="one">%1$d sur %2$d définie</item>
+        <item quantity="other">%1$d sur %2$d définies</item>
+    </plurals>
 
     <!-- Admin: role skill access -->
     <string name="role_skills_settings_row">Autorisations des compétences</string>

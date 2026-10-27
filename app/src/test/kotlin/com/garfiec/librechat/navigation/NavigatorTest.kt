@@ -345,6 +345,27 @@ class NavigatorTest {
     }
 
     @Test
+    fun `navigateToProviderKeys from chat carries returnAfterSave and still dedupes`() {
+        val navigator = createNavigator(NewChat())
+        navigator.navigateToProviderKeys("openAI", returnAfterSave = true)
+        navigator.navigateToProviderKeys("openAI", returnAfterSave = true)
+        assertEquals(
+            listOf(NewChat(), ProviderKeys(pendingDialogEndpoint = "openAI", returnAfterSave = true)),
+            navigator.backStack.toList(),
+        )
+    }
+
+    @Test
+    fun `navigateToProviderKeys replaces a settings-opened top with the chat route`() {
+        val navigator = createNavigator(NewChat(), ProviderKeys(pendingDialogEndpoint = "openAI"))
+        navigator.navigateToProviderKeys("openAI", returnAfterSave = true)
+        assertEquals(
+            listOf(NewChat(), ProviderKeys(pendingDialogEndpoint = "openAI", returnAfterSave = true)),
+            navigator.backStack.toList(),
+        )
+    }
+
+    @Test
     fun `navigateToProviderKeys with null endpoint dedupes against null-top`() {
         val navigator = createNavigator(NewChat(), ProviderKeys(pendingDialogEndpoint = null))
         navigator.navigateToProviderKeys(null)

@@ -53,4 +53,43 @@ class EndpointConfigSerializationTest {
         assertEquals(listOf("image_input", "tools"), decoded.capabilities)
         assertEquals(true, decoded.disableBuilder)
     }
+
+    @Test
+    fun bedrockCredentialFlagsDecode() {
+        // Shape of the `bedrock` entry `packages/api/src/endpoints/config/endpoints.ts` builds.
+        val serverJson = """
+            {
+                "userProvide": true,
+                "order": 7,
+                "userProvideAccessKeyId": true,
+                "userProvideSecretAccessKey": true,
+                "userProvideSessionToken": false,
+                "userProvideBearerToken": true
+            }
+        """.trimIndent()
+        val decoded = json.decodeFromString(EndpointConfig.serializer(), serverJson)
+        assertEquals(true, decoded.userProvideAccessKeyId)
+        assertEquals(true, decoded.userProvideSecretAccessKey)
+        assertEquals(false, decoded.userProvideSessionToken)
+        assertEquals(true, decoded.userProvideBearerToken)
+    }
+
+    @Test
+    fun bedrockCredentialFlagsDefaultToNullWhenAbsent() {
+        val decoded = json.decodeFromString(EndpointConfig.serializer(), """{"userProvide": true}""")
+        assertEquals(null, decoded.userProvideAccessKeyId)
+        assertEquals(null, decoded.userProvideSecretAccessKey)
+        assertEquals(null, decoded.userProvideSessionToken)
+        assertEquals(null, decoded.userProvideBearerToken)
+    }
+
+    @Test
+    fun agentsAllowedProvidersDecode() {
+        val decoded = json.decodeFromString(
+            EndpointConfig.serializer(),
+            """{"allowedProviders": ["anthropic", "openAI"], "capabilities": ["tools"]}""",
+        )
+        assertEquals(listOf("anthropic", "openAI"), decoded.allowedProviders)
+        assertEquals(emptyList(), json.decodeFromString(EndpointConfig.serializer(), "{}").allowedProviders)
+    }
 }

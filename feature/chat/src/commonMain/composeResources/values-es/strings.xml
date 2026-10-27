@@ -374,8 +374,12 @@
     <string name="cd_unpin_favorite">Quitar de favoritos</string>
     <string name="cd_collapse_section">Contraer %1$s</string>
     <string name="cd_expand_section">Expandir %1$s</string>
-    <string name="set_api_key_action">Establecer clave de API</string>
-    <string name="cd_set_api_key">Configurar la clave de API de %1$s</string>
+    <string name="set_api_key_action">Añadir clave</string>
+    <string name="cd_set_api_key">Añadir una clave para %1$s</string>
+    <!-- Under an endpoint or spec name in the model picker when its key is missing. -->
+    <string name="model_selector_needs_key">Necesita tu clave</string>
+    <!-- Same place, in the minute before the server deletes an expired key. -->
+    <string name="model_selector_key_expired">Clave caducada</string>
 
     <!-- Preset picker -->
     <string name="select_preset">Seleccionar preajuste</string>
@@ -494,11 +498,16 @@
 
     <!-- Provider Keys chat-time errors. -->
     <string name="provider_keys_chat_error_no_key">No se encontró ninguna clave. Proporciona una clave e inténtalo de nuevo.</string>
-    <!-- {0} = endpoint name, {1} = expiredAt (server-locale string, NOT ISO) -->
+    <!-- {0} = endpoint name, {1} = expiry date and time, already formatted in the user's locale -->
     <string name="provider_keys_chat_error_expired">La clave proporcionada para %1$s caducó el %2$s. Proporciona una nueva clave e inténtalo de nuevo.</string>
     <string name="provider_keys_chat_error_invalid">Clave proporcionada no válida. Proporciona una clave válida e inténtalo de nuevo.</string>
-    <!-- Snackbar action label that deep-links to Settings → Provider Keys -->
-    <string name="provider_keys_chat_error_cta">Abrir ajustes de claves</string>
+    <string name="provider_keys_chat_error_no_key_for">No se encontró ninguna clave para %1$s. Proporciona una clave e inténtalo de nuevo.</string>
+    <string name="provider_keys_chat_error_invalid_for">La clave proporcionada para %1$s no es válida. Proporciona una clave válida e inténtalo de nuevo.</string>
+    <string name="provider_keys_chat_error_expired_no_label">La clave proporcionada caducó el %1$s. Proporciona una nueva clave e inténtalo de nuevo.</string>
+    <string name="provider_keys_chat_error_no_base_url">No se encontró ninguna URL base. Proporciona una e inténtalo de nuevo.</string>
+    <string name="provider_keys_chat_error_no_base_url_for">No se encontró ninguna URL base para %1$s. Proporciona una e inténtalo de nuevo.</string>
+    <string name="provider_keys_chat_error_invalid_base_url">La URL base que proporcionaste apunta a una dirección restringida. Usa una URL externa válida e inténtalo de nuevo.</string>
+    <string name="provider_keys_chat_error_invalid_base_url_for">La URL base que proporcionaste para %1$s apunta a una dirección restringida. Usa una URL externa válida e inténtalo de nuevo.</string>
     <string name="queued_messages_dropped_account_switch">Mensajes en cola descartados al cambiar de cuenta</string>
 
     <!-- Send block reasons (shown in error snackbar when send can't proceed) -->

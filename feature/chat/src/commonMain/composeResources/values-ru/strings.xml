@@ -381,8 +381,12 @@
     <string name="cd_unpin_favorite">Открепить из избранного</string>
     <string name="cd_collapse_section">Свернуть %1$s</string>
     <string name="cd_expand_section">Развернуть %1$s</string>
-    <string name="set_api_key_action">Задать API-ключ</string>
-    <string name="cd_set_api_key">Настроить API-ключ для %1$s</string>
+    <string name="set_api_key_action">Добавить ключ</string>
+    <string name="cd_set_api_key">Добавить ключ для %1$s</string>
+    <!-- Under an endpoint or spec name in the model picker when its key is missing. -->
+    <string name="model_selector_needs_key">Нужен ваш ключ</string>
+    <!-- Same place, in the minute before the server deletes an expired key. -->
+    <string name="model_selector_key_expired">Срок действия ключа истёк</string>
 
     <!-- Preset picker -->
     <string name="select_preset">Выбрать пресет</string>
@@ -501,11 +505,16 @@
 
     <!-- Provider Keys chat-time errors. -->
     <string name="provider_keys_chat_error_no_key">Ключ не найден. Укажите ключ и попробуйте снова.</string>
-    <!-- {0} = endpoint name, {1} = expiredAt (server-locale string, NOT ISO) -->
+    <!-- {0} = endpoint name, {1} = expiry date and time, already formatted in the user's locale -->
     <string name="provider_keys_chat_error_expired">Указанный ключ для %1$s истёк %2$s. Укажите новый ключ и попробуйте снова.</string>
     <string name="provider_keys_chat_error_invalid">Указан недействительный ключ. Укажите действительный ключ и попробуйте снова.</string>
-    <!-- Snackbar action label that deep-links to Settings → Provider Keys -->
-    <string name="provider_keys_chat_error_cta">Открыть настройки ключей</string>
+    <string name="provider_keys_chat_error_no_key_for">Ключ для %1$s не найден. Укажите ключ и попробуйте снова.</string>
+    <string name="provider_keys_chat_error_invalid_for">Указан недействительный ключ для %1$s. Укажите действительный ключ и попробуйте снова.</string>
+    <string name="provider_keys_chat_error_expired_no_label">Срок действия указанного ключа истёк %1$s. Укажите новый ключ и попробуйте снова.</string>
+    <string name="provider_keys_chat_error_no_base_url">Базовый URL не найден. Укажите его и попробуйте снова.</string>
+    <string name="provider_keys_chat_error_no_base_url_for">Базовый URL для %1$s не найден. Укажите его и попробуйте снова.</string>
+    <string name="provider_keys_chat_error_invalid_base_url">Указанный базовый URL ведёт на запрещённый адрес. Используйте действительный внешний URL и попробуйте снова.</string>
+    <string name="provider_keys_chat_error_invalid_base_url_for">Указанный базовый URL для %1$s ведёт на запрещённый адрес. Используйте действительный внешний URL и попробуйте снова.</string>
     <string name="queued_messages_dropped_account_switch">Сообщения в очереди удалены после смены учётной записи</string>
 
     <!-- Send block reasons (shown in error snackbar when send can't proceed) -->

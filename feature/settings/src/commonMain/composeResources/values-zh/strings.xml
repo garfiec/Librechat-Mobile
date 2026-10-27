@@ -599,11 +599,8 @@
     <!-- Provider API Keys -->
     <string name="provider_keys_title">提供商 API 密钥</string>
     <string name="provider_keys_subtitle">为需要密钥的端点设置你自己的密钥</string>
-    <string name="provider_keys_dialog_title">为 %1$s 设置 API 密钥</string>
-    <string name="provider_keys_status_set_expires">%1$s 后过期</string>
-    <string name="provider_keys_status_set_never">你的密钥永不过期</string>
     <string name="provider_keys_status_unset">未设置</string>
-    <string name="provider_keys_status_expired">已过期</string>
+    <string name="provider_keys_status_unknown">无法检查</string>
     <string name="provider_keys_status_loading">正在检查密钥状态…</string>
     <string name="provider_keys_field_api_key_label">密钥</string>
     <string name="provider_keys_field_base_url_label">基础 URL</string>
@@ -624,35 +621,60 @@
     <string name="provider_keys_field_google_imported">已成功导入服务账号 JSON 密钥</string>
     <string name="provider_keys_field_google_paste_label">或粘贴服务账号 JSON</string>
     <string name="provider_keys_field_google_paste_only_hint">请在下方粘贴服务账号 JSON。</string>
-    <string name="provider_keys_field_google_service_key_or_gemini">Google 服务密钥或 Gemini API 密钥</string>
 
     <string name="provider_keys_field_bedrock_access_key_id">访问密钥 ID</string>
     <string name="provider_keys_field_bedrock_secret_access_key">秘密访问密钥</string>
     <string name="provider_keys_field_bedrock_session_token">会话令牌</string>
     <string name="provider_keys_field_bedrock_session_token_optional_suffix">（可选）</string>
+    <string name="provider_keys_field_bedrock_bearer_token">Bearer 令牌</string>
+    <string name="provider_keys_field_bedrock_bearer_token_placeholder">Bedrock API 密钥</string>
+    <string name="provider_keys_field_required">必填</string>
+    <string name="provider_keys_bedrock_or_access_keys">或改用访问密钥</string>
+    <string name="provider_keys_field_google_either_required">请添加服务密钥或 Gemini API 密钥</string>
 
-    <string name="provider_keys_required_fields">以下字段为必填项：%1$s</string>
     <string name="provider_keys_revoke">吊销</string>
     <string name="provider_keys_revoke_failed">吊销 API 密钥失败。请重试。</string>
     <string name="provider_keys_revoke_success">API 密钥已成功吊销</string>
-    <string name="provider_keys_revoke_all">吊销密钥</string>
     <string name="provider_keys_revoke_all_confirm">确定要吊销所有密钥吗？</string>
     <string name="provider_keys_revoke_all_failed">吊销所有密钥失败</string>
     <string name="provider_keys_save_failed">保存 API 密钥失败。请重试。</string>
     <string name="provider_keys_save_success">API 密钥已成功保存</string>
 
-    <string name="provider_keys_expiry_label">过期时间</string>
-    <string name="provider_keys_expiry_30m">30 分钟后</string>
-    <string name="provider_keys_expiry_2h">2 小时后</string>
-    <string name="provider_keys_expiry_12h">12 小时后</string>
-    <string name="provider_keys_expiry_1d">1 天后</string>
-    <string name="provider_keys_expiry_7d">7 天后</string>
-    <string name="provider_keys_expiry_30d">30 天后</string>
-    <string name="provider_keys_expiry_never">永不</string>
+    <string name="provider_keys_expiry_label">新密钥有效期</string>
+    <string name="provider_keys_expiry_30m">30 分钟</string>
+    <string name="provider_keys_expiry_2h">2 小时</string>
+    <string name="provider_keys_expiry_12h">12 小时</string>
+    <string name="provider_keys_expiry_1d">1 天</string>
+    <string name="provider_keys_expiry_7d">7 天</string>
+    <string name="provider_keys_expiry_30d">30 天</string>
+    <string name="provider_keys_expiry_never">永不过期</string>
 
     <string name="provider_keys_empty_title">没有端点需要用户提供密钥</string>
     <string name="provider_keys_empty_desc">需要你自己 API 密钥的端点将显示在此处。</string>
-    <string name="provider_keys_revoke_all_action">全部吊销</string>
+    <string name="provider_keys_load_failed_title">无法加载你的提供商</string>
+    <string name="provider_keys_load_failed_desc">请检查你的网络连接，然后重试。</string>
+    <string name="provider_keys_status_never_expires">永不过期</string>
+    <string name="provider_keys_status_expires_at">过期时间：%1$s</string>
+    <string name="provider_keys_status_expires_at_time">%1$s过期</string>
+    <string name="provider_keys_retry_check_cd">重新检查 %1$s</string>
+    <string name="provider_keys_status_unset_needs">未设置 · %1$s</string>
+    <string name="provider_keys_needs_azure">密钥、实例、部署、版本</string>
+    <string name="provider_keys_needs_key_and_url">密钥、基础 URL</string>
+    <string name="provider_keys_needs_base_url">基础 URL</string>
+    <string name="provider_keys_needs_google">服务密钥或 Gemini 密钥</string>
+    <string name="provider_keys_needs_access_keys">访问密钥</string>
+    <string name="provider_keys_needs_bearer_or_access_keys">Bearer 令牌或访问密钥</string>
+    <string name="provider_keys_summary_note">密钥存储在你的服务器上，过期后会被删除。</string>
+    <string name="provider_keys_revoke_all_button">吊销所有密钥</string>
+    <plurals name="provider_keys_status_expires_in_minutes">
+        <item quantity="other">%1$d 分钟后过期</item>
+    </plurals>
+    <plurals name="provider_keys_summary">
+        <item quantity="other">已设置 %1$d / %2$d 个密钥。</item>
+    </plurals>
+    <plurals name="provider_keys_row_summary">
+        <item quantity="other">已设置 %1$d / %2$d</item>
+    </plurals>
 
     <!-- Admin: role skill access -->
     <string name="role_skills_settings_row">技能权限</string>

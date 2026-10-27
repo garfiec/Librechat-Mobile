@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.plus
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyGridItemScope
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -491,8 +489,3 @@ private fun PartitionChips(
         }
     }
 }
-
-private fun LazyGridScope.fullWidthItem(
-    key: String,
-    content: @Composable LazyGridItemScope.() -> Unit,
-) = item(key = key, span = { GridItemSpan(maxLineSpan) }, contentType = key, content = content)

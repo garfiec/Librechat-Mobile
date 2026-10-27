@@ -599,11 +599,8 @@
     <!-- Provider API Keys -->
     <string name="provider_keys_title">プロバイダーAPIキー</string>
     <string name="provider_keys_subtitle">キーが必要なエンドポイント向けに独自のキーを設定</string>
-    <string name="provider_keys_dialog_title">%1$s のAPIキーを設定</string>
-    <string name="provider_keys_status_set_expires">%1$s 後に期限切れ</string>
-    <string name="provider_keys_status_set_never">キーは期限切れになりません</string>
     <string name="provider_keys_status_unset">未設定</string>
-    <string name="provider_keys_status_expired">期限切れ</string>
+    <string name="provider_keys_status_unknown">確認できませんでした</string>
     <string name="provider_keys_status_loading">キーの状態を確認中…</string>
     <string name="provider_keys_field_api_key_label">キー</string>
     <string name="provider_keys_field_base_url_label">ベースURL</string>
@@ -624,35 +621,60 @@
     <string name="provider_keys_field_google_imported">サービスアカウントのJSONキーを正常にインポートしました</string>
     <string name="provider_keys_field_google_paste_label">またはサービスアカウントのJSONを貼り付け</string>
     <string name="provider_keys_field_google_paste_only_hint">サービスアカウントのJSONを下に貼り付けてください。</string>
-    <string name="provider_keys_field_google_service_key_or_gemini">GoogleサービスキーまたはGemini APIキー</string>
 
     <string name="provider_keys_field_bedrock_access_key_id">アクセスキーID</string>
     <string name="provider_keys_field_bedrock_secret_access_key">シークレットアクセスキー</string>
     <string name="provider_keys_field_bedrock_session_token">セッショントークン</string>
     <string name="provider_keys_field_bedrock_session_token_optional_suffix">（任意）</string>
+    <string name="provider_keys_field_bedrock_bearer_token">ベアラートークン</string>
+    <string name="provider_keys_field_bedrock_bearer_token_placeholder">Bedrock API キー</string>
+    <string name="provider_keys_field_required">必須</string>
+    <string name="provider_keys_bedrock_or_access_keys">またはアクセスキーを使用</string>
+    <string name="provider_keys_field_google_either_required">サービスキーまたは Gemini API キーを追加してください</string>
 
-    <string name="provider_keys_required_fields">次のフィールドは必須です: %1$s</string>
     <string name="provider_keys_revoke">取り消す</string>
     <string name="provider_keys_revoke_failed">APIキーの取り消しに失敗しました。もう一度お試しください。</string>
     <string name="provider_keys_revoke_success">APIキーを取り消しました</string>
-    <string name="provider_keys_revoke_all">キーを取り消す</string>
     <string name="provider_keys_revoke_all_confirm">すべてのキーを取り消してもよろしいですか？</string>
     <string name="provider_keys_revoke_all_failed">すべてのキーの取り消しに失敗しました</string>
     <string name="provider_keys_save_failed">APIキーの保存に失敗しました。もう一度お試しください。</string>
     <string name="provider_keys_save_success">APIキーを保存しました</string>
 
-    <string name="provider_keys_expiry_label">有効期限</string>
-    <string name="provider_keys_expiry_30m">30分後</string>
-    <string name="provider_keys_expiry_2h">2時間後</string>
-    <string name="provider_keys_expiry_12h">12時間後</string>
-    <string name="provider_keys_expiry_1d">1日後</string>
-    <string name="provider_keys_expiry_7d">7日後</string>
-    <string name="provider_keys_expiry_30d">30日後</string>
-    <string name="provider_keys_expiry_never">なし</string>
+    <string name="provider_keys_expiry_label">新しいキーの有効期限</string>
+    <string name="provider_keys_expiry_30m">30分</string>
+    <string name="provider_keys_expiry_2h">2時間</string>
+    <string name="provider_keys_expiry_12h">12時間</string>
+    <string name="provider_keys_expiry_1d">1日</string>
+    <string name="provider_keys_expiry_7d">7日</string>
+    <string name="provider_keys_expiry_30d">30日</string>
+    <string name="provider_keys_expiry_never">無期限</string>
 
     <string name="provider_keys_empty_title">ユーザー提供のキーが必要なエンドポイントはありません</string>
     <string name="provider_keys_empty_desc">独自のAPIキーが必要なエンドポイントがここに表示されます。</string>
-    <string name="provider_keys_revoke_all_action">すべて取り消す</string>
+    <string name="provider_keys_load_failed_title">プロバイダーを読み込めませんでした</string>
+    <string name="provider_keys_load_failed_desc">接続を確認して、もう一度お試しください。</string>
+    <string name="provider_keys_status_never_expires">有効期限なし</string>
+    <string name="provider_keys_status_expires_at">有効期限: %1$s</string>
+    <string name="provider_keys_status_expires_at_time">%1$sに期限切れ</string>
+    <string name="provider_keys_retry_check_cd">%1$sを再確認</string>
+    <string name="provider_keys_status_unset_needs">未設定 · %1$s</string>
+    <string name="provider_keys_needs_azure">キー、インスタンス、デプロイ、バージョン</string>
+    <string name="provider_keys_needs_key_and_url">キー、ベース URL</string>
+    <string name="provider_keys_needs_base_url">ベース URL</string>
+    <string name="provider_keys_needs_google">サービスキーまたは Gemini キー</string>
+    <string name="provider_keys_needs_access_keys">アクセスキー</string>
+    <string name="provider_keys_needs_bearer_or_access_keys">ベアラートークンまたはアクセスキー</string>
+    <string name="provider_keys_summary_note">キーはサーバーに保存され、有効期限が切れると削除されます。</string>
+    <string name="provider_keys_revoke_all_button">すべてのキーを取り消す</string>
+    <plurals name="provider_keys_status_expires_in_minutes">
+        <item quantity="other">残り %1$d 分</item>
+    </plurals>
+    <plurals name="provider_keys_summary">
+        <item quantity="other">%2$d 件中 %1$d 件のキーを設定済み。</item>
+    </plurals>
+    <plurals name="provider_keys_row_summary">
+        <item quantity="other">%2$d 件中 %1$d 件設定済み</item>
+    </plurals>
 
     <!-- Admin: role skill access -->
     <string name="role_skills_settings_row">スキルの権限</string>

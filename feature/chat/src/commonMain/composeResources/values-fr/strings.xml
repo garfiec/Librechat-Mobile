@@ -374,8 +374,12 @@
     <string name="cd_unpin_favorite">Désépingler le favori</string>
     <string name="cd_collapse_section">Réduire %1$s</string>
     <string name="cd_expand_section">Développer %1$s</string>
-    <string name="set_api_key_action">Définir la clé API</string>
-    <string name="cd_set_api_key">Configurer la clé API pour %1$s</string>
+    <string name="set_api_key_action">Ajouter une clé</string>
+    <string name="cd_set_api_key">Ajouter une clé pour %1$s</string>
+    <!-- Under an endpoint or spec name in the model picker when its key is missing. -->
+    <string name="model_selector_needs_key">Nécessite votre clé</string>
+    <!-- Same place, in the minute before the server deletes an expired key. -->
+    <string name="model_selector_key_expired">Clé expirée</string>
 
     <!-- Preset picker -->
     <string name="select_preset">Sélectionner un préréglage</string>
@@ -494,11 +498,16 @@
 
     <!-- Provider Keys chat-time errors. -->
     <string name="provider_keys_chat_error_no_key">Aucune clé trouvée. Veuillez fournir une clé et réessayer.</string>
-    <!-- {0} = endpoint name, {1} = expiredAt (server-locale string, NOT ISO) -->
+    <!-- {0} = endpoint name, {1} = expiry date and time, already formatted in the user's locale -->
     <string name="provider_keys_chat_error_expired">La clé fournie pour %1$s a expiré le %2$s. Veuillez fournir une nouvelle clé et réessayer.</string>
     <string name="provider_keys_chat_error_invalid">Clé fournie invalide. Veuillez fournir une clé valide et réessayer.</string>
-    <!-- Snackbar action label that deep-links to Settings → Provider Keys -->
-    <string name="provider_keys_chat_error_cta">Ouvrir les paramètres des clés</string>
+    <string name="provider_keys_chat_error_no_key_for">Aucune clé trouvée pour %1$s. Veuillez fournir une clé et réessayer.</string>
+    <string name="provider_keys_chat_error_invalid_for">Clé fournie pour %1$s invalide. Veuillez fournir une clé valide et réessayer.</string>
+    <string name="provider_keys_chat_error_expired_no_label">La clé fournie a expiré le %1$s. Veuillez fournir une nouvelle clé et réessayer.</string>
+    <string name="provider_keys_chat_error_no_base_url">Aucune URL de base trouvée. Veuillez en fournir une et réessayer.</string>
+    <string name="provider_keys_chat_error_no_base_url_for">Aucune URL de base trouvée pour %1$s. Veuillez en fournir une et réessayer.</string>
+    <string name="provider_keys_chat_error_invalid_base_url">L'URL de base fournie cible une adresse restreinte. Veuillez utiliser une URL externe valide et réessayer.</string>
+    <string name="provider_keys_chat_error_invalid_base_url_for">L'URL de base fournie pour %1$s cible une adresse restreinte. Veuillez utiliser une URL externe valide et réessayer.</string>
     <string name="queued_messages_dropped_account_switch">Messages en attente supprimés après le changement de compte</string>
 
     <!-- Send block reasons (shown in error snackbar when send can't proceed) -->

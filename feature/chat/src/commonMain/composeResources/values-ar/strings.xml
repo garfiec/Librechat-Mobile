@@ -389,8 +389,12 @@
     <string name="cd_unpin_favorite">إلغاء تثبيت المفضلة</string>
     <string name="cd_collapse_section">طي %1$s</string>
     <string name="cd_expand_section">توسيع %1$s</string>
-    <string name="set_api_key_action">تعيين مفتاح API</string>
-    <string name="cd_set_api_key">إعداد مفتاح API لـ %1$s</string>
+    <string name="set_api_key_action">إضافة مفتاح</string>
+    <string name="cd_set_api_key">إضافة مفتاح لـ %1$s</string>
+    <!-- Under an endpoint or spec name in the model picker when its key is missing. -->
+    <string name="model_selector_needs_key">يحتاج إلى مفتاحك</string>
+    <!-- Same place, in the minute before the server deletes an expired key. -->
+    <string name="model_selector_key_expired">انتهت صلاحية المفتاح</string>
 
     <!-- Preset picker -->
     <string name="select_preset">اختيار إعداد مسبق</string>
@@ -509,11 +513,16 @@
 
     <!-- Provider Keys chat-time errors. -->
     <string name="provider_keys_chat_error_no_key">لم يتم العثور على مفتاح. يرجى تقديم مفتاح والمحاولة مرة أخرى.</string>
-    <!-- {0} = endpoint name, {1} = expiredAt (server-locale string, NOT ISO) -->
+    <!-- {0} = endpoint name, {1} = expiry date and time, already formatted in the user's locale -->
     <string name="provider_keys_chat_error_expired">انتهت صلاحية المفتاح المقدّم لـ %1$s في %2$s. يرجى تقديم مفتاح جديد والمحاولة مرة أخرى.</string>
     <string name="provider_keys_chat_error_invalid">المفتاح المقدّم غير صالح. يرجى تقديم مفتاح صالح والمحاولة مرة أخرى.</string>
-    <!-- Snackbar action label that deep-links to Settings → Provider Keys -->
-    <string name="provider_keys_chat_error_cta">فتح إعدادات المفاتيح</string>
+    <string name="provider_keys_chat_error_no_key_for">لم يتم العثور على مفتاح لـ %1$s. يرجى تقديم مفتاح والمحاولة مرة أخرى.</string>
+    <string name="provider_keys_chat_error_invalid_for">المفتاح المقدّم لـ %1$s غير صالح. يرجى تقديم مفتاح صالح والمحاولة مرة أخرى.</string>
+    <string name="provider_keys_chat_error_expired_no_label">انتهت صلاحية المفتاح المقدّم في %1$s. يرجى تقديم مفتاح جديد والمحاولة مرة أخرى.</string>
+    <string name="provider_keys_chat_error_no_base_url">لم يتم العثور على عنوان URL أساسي. يرجى تقديم عنوان والمحاولة مرة أخرى.</string>
+    <string name="provider_keys_chat_error_no_base_url_for">لم يتم العثور على عنوان URL أساسي لـ %1$s. يرجى تقديم عنوان والمحاولة مرة أخرى.</string>
+    <string name="provider_keys_chat_error_invalid_base_url">يشير عنوان URL الأساسي الذي قدّمته إلى عنوان مقيّد. يرجى استخدام عنوان URL خارجي صالح والمحاولة مرة أخرى.</string>
+    <string name="provider_keys_chat_error_invalid_base_url_for">يشير عنوان URL الأساسي الذي قدّمته لـ %1$s إلى عنوان مقيّد. يرجى استخدام عنوان URL خارجي صالح والمحاولة مرة أخرى.</string>
     <string name="queued_messages_dropped_account_switch">حُذفت الرسائل في قائمة الانتظار بعد تبديل الحساب</string>
 
     <!-- Send block reasons (shown in error snackbar when send can't proceed) -->

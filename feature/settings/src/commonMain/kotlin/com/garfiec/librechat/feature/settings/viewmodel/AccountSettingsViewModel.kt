@@ -7,6 +7,8 @@ import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
+import com.garfiec.librechat.core.data.repository.KeyRepository
+import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
@@ -15,6 +17,8 @@ import com.garfiec.librechat.feature.settings.model.AutoRefillInfo
 import com.garfiec.librechat.feature.settings.model.UserDisplayData
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.AccountDelegate
+import com.garfiec.librechat.feature.settings.viewmodel.delegate.ProviderKeysSummary
+import com.garfiec.librechat.feature.settings.viewmodel.delegate.ProviderKeysSummaryDelegate
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.TwoFactorSecurityDelegate
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +30,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
 
 @Immutable
 data class AccountSettingsUiState(
@@ -81,6 +86,8 @@ data class AccountSettingsUiState(
     val showEnableTwoFactorOtpDialog: Boolean = false,
     val showBackupCodesOtpDialog: Boolean = false,
     val showRegenerateBackupCodesConfirm: Boolean = false,
+    /** The Provider Keys row's summary; null hides the row (no endpoint takes a user-provided value). */
+    val providerKeysSummary: ProviderKeysSummary = ProviderKeysSummary.Hidden,
 )
 
 /** The Balance section. Shown only while [AccountSettingsUiState.balanceEnabled]. */
@@ -104,7 +111,10 @@ class AccountSettingsViewModel(
     avatarImagePreparer: AvatarImagePreparer,
     configRepository: ConfigRepository,
     serverDataStore: ServerDataStore,
+    keyRepository: KeyRepository,
+    roleRepository: RoleRepository,
     ioDispatcher: CoroutineDispatcher,
+    clock: Clock = Clock.System,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AccountSettingsUiState())
@@ -119,6 +129,8 @@ class AccountSettingsViewModel(
         ioDispatcher,
     )
     private val twoFactorDelegate = TwoFactorSecurityDelegate(stateHandle, authRepository)
+    private val providerKeysSummaryDelegate =
+        ProviderKeysSummaryDelegate(configRepository, roleRepository, keyRepository, viewModelScope, clock)
 
     /**
      * `allowAccountDeletion` defaults to `true` (older-server behaviour) when the field is absent
@@ -128,11 +140,17 @@ class AccountSettingsViewModel(
      * which Coil cannot load; `_uiState` keeps what the server sent.
      */
     val uiState: StateFlow<AccountSettingsUiState> =
-        combine(_uiState, configRepository.startupConfig, serverDataStore.currentUrlFlow) { state, config, baseUrl ->
+        combine(
+            _uiState,
+            configRepository.startupConfig,
+            serverDataStore.currentUrlFlow,
+            providerKeysSummaryDelegate.summary,
+        ) { state, config, baseUrl, providerKeysSummary ->
             state.copy(
                 user = state.user?.let { it.copy(avatar = resolveAvatarUrl(it.avatar, baseUrl)) },
                 allowAccountDeletion = config?.allowAccountDeletion ?: true,
                 balanceEnabled = config?.balance?.enabled == true,
+                providerKeysSummary = providerKeysSummary,
             )
         }.stateIn(viewModelScope, SharingStarted.Eagerly, AccountSettingsUiState())
 
@@ -146,6 +164,19 @@ class AccountSettingsViewModel(
                 .filter { it }
                 .collect { accountDelegate.loadBalance() }
         }
+    }
+
+    private var providerKeysSummaryRequested = false
+
+    /** The tab is showing: loads the Provider Keys row's summary the first time only. */
+    fun loadProviderKeysSummary() {
+        if (!providerKeysSummaryRequested) refreshProviderKeysSummary()
+    }
+
+    /** A resume of the screen (back from the Provider Keys page or another app): re-reads the summary. */
+    fun refreshProviderKeysSummary() {
+        providerKeysSummaryRequested = true
+        providerKeysSummaryDelegate.refresh()
     }
 
     // Profile & avatar

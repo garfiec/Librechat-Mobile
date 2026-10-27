@@ -49,6 +49,8 @@ val settingsModule = module {
             avatarImagePreparer = get(),
             configRepository = get(),
             serverDataStore = get(),
+            keyRepository = get(),
+            roleRepository = get(),
             ioDispatcher = get(KoinQualifiers.IO),
         )
     }
@@ -104,12 +106,14 @@ val settingsModule = module {
     viewModelOf(::ReleaseNotesViewModel)
 
     // viewModelOf has no overload that accepts ParametersHolder, so the runtime
-    // endpointName parameter forces the lambda DSL.
+    // endpointName parameter forces the lambda DSL. The SavedStateHandle comes from the
+    // CreationExtras of the Nav3 entry's ViewModelStoreOwner (Koin intercepts the lookup).
     viewModel { params ->
         SetProviderKeyViewModel(
             endpointName = params.get(),
             keyRepository = get(),
             configRepository = get(),
+            savedStateHandle = get(),
         )
     }
 }

@@ -31,7 +31,7 @@ data class CompareQuickPick(
  * user starred (pin order kept), or, with nothing starred, the first models (then agents) the
  * server offers, so the pane is never an empty box. With a query it is the full selector's
  * matching over every agent and model, ranked as one list. Endpoints still waiting on the user's
- * API key are left out: the full list greys them out behind "Set API Key", one tap away behind
+ * API key are left out: the full list greys them out behind "Add key", one tap away behind
  * "Browse all models".
  *
  * [specs] (the picker's visible spec rows) lead the list, as in the full selector. Raw models and

@@ -13,6 +13,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ProvideTextStyle
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
@@ -108,6 +109,42 @@ fun AdaptiveFilledTonalButton(
     }
     val accentLabel = colors == ButtonDefaults.filledTonalButtonColors()
     GlassBorderedButton(onClick, enabled, colors, accentLabel, contentPadding, interactionSource, modifier, content)
+}
+
+/**
+ * An M3 [TextButton] in Material. In Liquid Glass it is the iOS plain button: no fill and a capsule
+ * press shape, labelled in the accent or in the caller's content colour (red for a destructive
+ * action). [shape] only applies in Material.
+ *
+ * Raw `TextButton` is not in the detekt `ForbiddenImport` list yet: it has close to a hundred call
+ * sites, and in Material it renders the same as this wrapper.
+ */
+@Composable
+fun AdaptiveTextButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    shape: Shape = ButtonDefaults.textShape,
+    colors: ButtonColors = ButtonDefaults.textButtonColors(),
+    elevation: ButtonElevation? = null,
+    border: BorderStroke? = null,
+    contentPadding: PaddingValues = ButtonDefaults.TextButtonContentPadding,
+    interactionSource: MutableInteractionSource? = null,
+    content: @Composable RowScope.() -> Unit,
+) {
+    TextButton(
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        // The label colours already match iOS: M3's text button is labelled in the accent.
+        shape = if (isLiquidGlass) CircleShape else shape,
+        colors = colors,
+        elevation = elevation,
+        border = border,
+        contentPadding = contentPadding,
+        interactionSource = interactionSource,
+        content = content,
+    )
 }
 
 @Composable

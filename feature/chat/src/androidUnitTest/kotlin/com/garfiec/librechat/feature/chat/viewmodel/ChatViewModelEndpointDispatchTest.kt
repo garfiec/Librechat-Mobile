@@ -117,17 +117,32 @@ class ChatViewModelEndpointDispatchTest {
     }
 
     @Test
-    fun expiredKeyStateOmitsExpiryAndDegradesToNever() {
-        // KeyState.Expired returns null at the resolver -> the classifier
-        // substitutes `"never"`. The server will reject the chat-send in
-        // either shape; the user-facing UX is identical to Unset.
+    fun expiredKeyStateSendsItsPastExpiryOnTheWire() {
+        // An expired key sends its real past date, as web does, so the server's
+        // expiry check raises a typed expired_user_key. Sending "never" would
+        // skip that check and try the stale key instead.
+        val past = "2026-01-01T00:00:00Z"
         val dispatch = resolveEndpointDispatch(
             endpointName = "openAI",
             endpointConfigs = mapOf("openAI" to EndpointConfig(userProvide = true)),
-            endpointKeyStates = mapOf("openAI" to KeyState.Expired),
+            endpointKeyStates = mapOf("openAI" to KeyState.Expired(expiresAt = Instant.parse(past), wire = past)),
         )
 
-        assertThat(dispatch.key).isEqualTo("never")
+        assertThat(dispatch.key).isEqualTo(past)
+    }
+
+    @Test
+    fun expiredKeyStateOnAServerKeyedEndpointSendsNoKeyField() {
+        // The expiry only travels for user-provided endpoints; a stale map entry for a
+        // server-keyed endpoint still omits the field.
+        val past = "2026-01-01T00:00:00Z"
+        val dispatch = resolveEndpointDispatch(
+            endpointName = "openAI",
+            endpointConfigs = mapOf("openAI" to EndpointConfig(userProvide = false)),
+            endpointKeyStates = mapOf("openAI" to KeyState.Expired(expiresAt = Instant.parse(past), wire = past)),
+        )
+
+        assertThat(dispatch.key).isNull()
     }
 
     @Test
@@ -177,6 +192,7 @@ class ChatViewModelEndpointDispatchTest {
 
     @Test
     fun streamErrorMessageWithExpiredUserKeyParsesEndpointAndExpiredAt() {
+        // A pre-pin server's toLocaleString() expiry; the pin sends ISO. Either is kept raw here.
         val parsed = parseUserKeyError(
             """{"type":"expired_user_key","endpoint":"openAI","expiredAt":"4/30/2026, 8:30:00 PM"}""",
         )

@@ -14,4 +14,17 @@ data class EndpointConfig(
     val capabilities: List<String> = emptyList(),
     val disableBuilder: Boolean? = null,
     val azure: Boolean? = null,
+    /**
+     * The providers an agent may run on, sent on the `agents` entry only. Empty means
+     * unrestricted, which is also what a server that omits the field means.
+     */
+    val allowedProviders: List<String> = emptyList(),
+    /**
+     * Bedrock's per-credential flags: which of the AWS credentials the user supplies. The server
+     * sets each from its `BEDROCK_AWS_*` env var being `user_provided`; older servers omit them.
+     */
+    val userProvideAccessKeyId: Boolean? = null,
+    val userProvideSecretAccessKey: Boolean? = null,
+    val userProvideSessionToken: Boolean? = null,
+    val userProvideBearerToken: Boolean? = null,
 )

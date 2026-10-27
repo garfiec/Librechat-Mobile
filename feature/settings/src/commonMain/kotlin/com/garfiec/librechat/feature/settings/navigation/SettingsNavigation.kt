@@ -15,6 +15,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
+import org.jetbrains.compose.resources.StringResource
 
 @Serializable sealed interface SettingsRoute : NavKey
 
@@ -43,8 +44,13 @@ import kotlinx.serialization.modules.subclass
  *   land the user directly on the right form instead of forcing a second tap.
  *   Null on the regular Settings → Provider API Keys path (TabbedSettings,
  *   AccountSettings) — list view is shown without auto-opening any dialog.
+ * @property returnAfterSave the screen was opened from chat: a successful save or revoke goes back
+ *   to the chat. False on the Settings path, which stays on the list.
  */
-@Serializable data class ProviderKeys(val pendingDialogEndpoint: String? = null) : SettingsRoute
+@Serializable data class ProviderKeys(
+    val pendingDialogEndpoint: String? = null,
+    val returnAfterSave: Boolean = false,
+) : SettingsRoute
 
 fun EntryProviderScope<NavKey>.settingsEntries(
     onNavigate: (NavKey) -> Unit,
@@ -53,6 +59,8 @@ fun EntryProviderScope<NavKey>.settingsEntries(
     onNavigateToArchive: () -> Unit = {},
     /** Opens a conversation in the chat: a Shared chats card's "Open chat". */
     onOpenConversation: (conversationId: String) -> Unit = {},
+    /** Back to the chat that opened Provider Keys, with the save's or revoke's confirmation. */
+    onProviderKeyReturn: (message: StringResource) -> Unit = { onBack() },
 ) {
     // Hoisted: navigation to ProviderKeys() (no pending endpoint) is identical in Tabbed
     // and Account — share the resolver so callers don't construct it twice.
@@ -135,6 +143,8 @@ fun EntryProviderScope<NavKey>.settingsEntries(
         ProviderKeysScreen(
             onNavigateBack = onBack,
             pendingDialogEndpoint = route.pendingDialogEndpoint,
+            returnAfterSave = route.returnAfterSave,
+            onReturnAfterSave = onProviderKeyReturn,
         )
     }
     favoritesEntry(onBack = onBack)

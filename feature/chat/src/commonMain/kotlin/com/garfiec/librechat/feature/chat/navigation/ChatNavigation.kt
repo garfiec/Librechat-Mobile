@@ -129,7 +129,7 @@ fun EntryProviderScope<NavKey>.chatEntries(
     onOpenDrawer: (() -> Unit)? = null,
     /**
      * Deep-link target for the user-provided-key error CTA snackbar and
-     * the model-selector "Set API Key" CTA on greyed endpoint groups. The host navigates
+     * the model-selector "Add key" action on greyed endpoint groups. The host navigates
      * to Settings → Provider API Keys. When [endpointName] is non-null, the destination
      * screen auto-opens the Set Key bottom-sheet for that endpoint.
      */

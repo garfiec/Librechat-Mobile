@@ -9,9 +9,9 @@ import androidx.compose.runtime.Composable
  * `null` where it is not (iOS). The Google form's always-visible paste-textarea is the
  * fallback whenever this returns `null`, so the picker is purely additive on Android.
  *
- * The [onFileRead] callback receives the raw file contents as a UTF-8 string (or `null`
- * if the user cancelled / read failed). The form-side validator decides whether it
- * parses to a valid Google service-account JSON.
+ * The [onFileRead] callback receives the raw file contents as a UTF-8 string, or `null` when
+ * the file couldn't be read. A cancelled pick doesn't call it. The form-side validator decides
+ * whether the contents parse to a valid Google service-account JSON.
  */
 @Composable
 expect fun rememberProviderKeyFilePicker(
