@@ -1,5 +1,7 @@
 package com.garfiec.librechat.core.model
 
+import com.garfiec.librechat.core.model.media.isImageUrl
+import com.garfiec.librechat.core.model.media.resolveIconSource
 import com.garfiec.librechat.core.model.serializer.LenientInstantSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -103,11 +105,25 @@ data class Conversation(
 )
 
 /**
- * Resolves the icon URL to display for this conversation, preferring the per-conversation
- * [iconURL] (set by agents/assistants threads) over the per-endpoint URL from
- * [EndpointConfig.iconURL]. Returns null when no URL is available — callers fall through
- * to the bundled brand glyph or Material fallback.
+ * Resolves the icon URL to display for this conversation, as web's `EndpointIcon`: an image
+ * [iconURL] (a spec's or an agent thread's) wins; otherwise the [EndpointConfig.iconURL] of the
+ * endpoint [iconEndpoint] names. Either is joined to [serverUrl] when it is a rooted, bare or
+ * protocol-relative path, as the picker's icons are ([resolveIconSource]). Returns null when no URL
+ * is available — callers fall through to the bundled brand glyph or Material fallback.
  */
 fun Conversation.resolveEndpointIconUrl(
     endpointConfigs: Map<String, EndpointConfig>,
-): String? = iconURL ?: endpoint?.let { endpointConfigs[it]?.iconURL }
+    serverUrl: String,
+): String? {
+    val icon = iconURL?.takeIf(::isImageUrl)
+        ?: (iconURL?.takeIf { it in endpointConfigs } ?: endpoint)?.let { endpointConfigs[it]?.iconURL }
+    return icon?.takeIf(::isImageUrl)?.let { resolveIconSource(it, endpoint, serverUrl).imageUrl } ?: icon
+}
+
+/**
+ * The endpoint whose glyph stands for this conversation: a spec stores an endpoint or provider
+ * name in [iconURL] (`"groq"` on an OpenAI-compatible endpoint), which wins over [endpoint]. A blank
+ * or image [iconURL] leaves [endpoint].
+ */
+val Conversation.iconEndpoint: String?
+    get() = iconURL?.takeIf { it.isNotBlank() && !isImageUrl(it) } ?: endpoint

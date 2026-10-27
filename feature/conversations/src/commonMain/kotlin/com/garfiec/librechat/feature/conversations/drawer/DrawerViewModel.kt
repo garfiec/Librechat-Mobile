@@ -154,13 +154,18 @@ class DrawerViewModel(
     private class DrawerModelConfig(
         val endpoints: Map<String, EndpointConfig>,
         val specs: ModelSpecs?,
-    )
+        val serverUrl: String,
+    ) {
+        fun display(convo: Conversation, activeId: String?) =
+            convo.toDrawerDisplayData(activeId, endpoints, serverUrl, specs)
+    }
 
     private val drawerModelConfig = combine(
         configRepository.endpointConfigs,
         // Only the specs matter here: any other startup-config change would re-map the whole list.
         configRepository.startupConfig.map { it?.modelSpecs }.distinctUntilChanged(),
-    ) { endpoints, specs -> DrawerModelConfig(endpoints, specs) }
+        configRepository.serverUrl,
+    ) { endpoints, specs, serverUrl -> DrawerModelConfig(endpoints, specs, serverUrl) }
 
     val inlineProjectChats: StateFlow<InlineProjectChatsState> = combine(
         _expandedProjectId,
@@ -171,7 +176,7 @@ class DrawerViewModel(
     ) { expandedId, convos, loading, activeId, modelConfig ->
         InlineProjectChatsState(
             expandedProjectId = expandedId,
-            conversations = convos.map { it.toDrawerDisplayData(activeId, modelConfig.endpoints, modelConfig.specs) },
+            conversations = convos.map { modelConfig.display(it, activeId) },
             isLoading = loading,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), InlineProjectChatsState())
@@ -249,10 +254,10 @@ class DrawerViewModel(
     ) { grouped, favConvos, pinnedConvos, activeId, modelConfig ->
         DrawerDisplaySnapshot(
             grouped = grouped.map { (group, convos) ->
-                group to convos.map { it.toDrawerDisplayData(activeId, modelConfig.endpoints, modelConfig.specs) }
+                group to convos.map { modelConfig.display(it, activeId) }
             },
-            favorites = favConvos.map { it.toDrawerDisplayData(activeId, modelConfig.endpoints, modelConfig.specs) },
-            pinned = pinnedConvos.map { it.toDrawerDisplayData(activeId, modelConfig.endpoints, modelConfig.specs) },
+            favorites = favConvos.map { modelConfig.display(it, activeId) },
+            pinned = pinnedConvos.map { modelConfig.display(it, activeId) },
         )
     }
 

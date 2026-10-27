@@ -19,7 +19,7 @@ class ConversationDisplayDataTest {
             "OpenRouter" to EndpointConfig(iconURL = "https://config-icon.example.com/icon.png"),
         )
 
-        val data = convo.toDisplayData(configs)
+        val data = convo.toDisplayData(configs, serverUrl = "")
 
         assertEquals("https://convo-icon.example.com/icon.png", data.endpointIconUrl)
     }
@@ -35,7 +35,7 @@ class ConversationDisplayDataTest {
             "OpenRouter" to EndpointConfig(iconURL = "https://config-icon.example.com/icon.png"),
         )
 
-        val data = convo.toDisplayData(configs)
+        val data = convo.toDisplayData(configs, serverUrl = "")
 
         assertEquals("https://config-icon.example.com/icon.png", data.endpointIconUrl)
     }
@@ -51,7 +51,7 @@ class ConversationDisplayDataTest {
             "OpenRouter" to EndpointConfig(iconURL = null),
         )
 
-        val data = convo.toDisplayData(configs)
+        val data = convo.toDisplayData(configs, serverUrl = "")
 
         assertNull(data.endpointIconUrl)
     }
@@ -65,7 +65,7 @@ class ConversationDisplayDataTest {
             iconURL = null,
         )
 
-        val data = convo.toDisplayData(endpointConfigs = emptyMap())
+        val data = convo.toDisplayData(endpointConfigs = emptyMap(), serverUrl = "")
 
         assertNull(data.endpointIconUrl)
     }

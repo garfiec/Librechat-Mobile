@@ -78,10 +78,11 @@ class ArchivedConversationsViewModel(
                 configRepository.endpointConfigs,
                 configRepository.startupConfig.map { it?.modelSpecs }.distinctUntilChanged(),
                 agentNames,
-            ) { result, configs, modelSpecs, names ->
+                configRepository.serverUrl,
+            ) { result, configs, modelSpecs, names, serverUrl ->
                 if (result is Result.Success) {
                     result.data.forEach { resolveAgentName(it.model) }
-                    result to result.data.map { it.toArchivedDisplayData(configs, modelSpecs, names) }
+                    result to result.data.map { it.toArchivedDisplayData(configs, serverUrl, modelSpecs, names) }
                 } else {
                     result to null
                 }

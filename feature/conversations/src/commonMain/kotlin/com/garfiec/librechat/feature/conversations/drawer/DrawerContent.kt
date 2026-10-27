@@ -1725,7 +1725,7 @@ private fun DrawerConversationItem(
                 )
             } else {
                 EndpointIcon(
-                    endpointName = data.endpoint,
+                    endpointName = data.iconEndpoint,
                     iconUrl = data.endpointIconUrl,
                     size = 18.dp,
                     glyphTint = if (data.isActive) {

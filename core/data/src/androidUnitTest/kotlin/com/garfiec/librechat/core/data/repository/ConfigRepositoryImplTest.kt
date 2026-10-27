@@ -47,6 +47,7 @@ class ConfigRepositoryImplTest {
         configApi = configApi,
         configCache = configCache,
         dispatcher = UnconfinedTestDispatcher(),
+        serverDataStore = mockk(relaxed = true),
     )
 
     private val validConfig = StartupConfig(serverDomain = "https://b.example.com")

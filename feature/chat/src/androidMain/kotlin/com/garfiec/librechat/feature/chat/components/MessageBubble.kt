@@ -31,6 +31,7 @@ import com.garfiec.librechat.core.common.ChatLayoutConstants
 import com.garfiec.librechat.core.model.FeedbackRating
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
+import com.garfiec.librechat.core.model.media.resolveIconSource
 import com.garfiec.librechat.core.ui.components.AvatarImage
 import com.garfiec.librechat.core.ui.components.BubbleShape
 import com.garfiec.librechat.core.ui.components.endpointIconPainter
@@ -227,17 +228,19 @@ private fun ThreadMessageBubble(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (showAvatars) {
-                val resolvedEndpoint = message.endpoint ?: selectedEndpoint
+                // A spec's `iconURL` names an endpoint's glyph or a server-relative image.
+                val assistantIcon = resolveIconSource(message.iconURL, message.endpoint ?: selectedEndpoint, baseUrl)
+                val resolvedEndpoint = assistantIcon.endpointName
                 AvatarImage(
-                    imageUrl = if (isUser) userAvatarUrl else message.iconURL,
+                    imageUrl = if (isUser) userAvatarUrl else assistantIcon.imageUrl,
                     fallbackText = if (isUser) {
                         userName ?: stringResource(Res.string.sender_you)
                     } else {
                         message.sender ?: stringResource(Res.string.sender_assistant)
                     },
-                    fallbackIconPainter = if (!isUser && message.iconURL == null) endpointIconPainter(resolvedEndpoint) else null,
+                    fallbackIconPainter = if (!isUser && assistantIcon.imageUrl == null) endpointIconPainter(resolvedEndpoint) else null,
                     showPersonIcon = isUser && userAvatarUrl == null,
-                    tintIcon = if (!isUser && message.iconURL == null) isMonochromeEndpointIcon(resolvedEndpoint) else false,
+                    tintIcon = if (!isUser && assistantIcon.imageUrl == null) isMonochromeEndpointIcon(resolvedEndpoint) else false,
                     size = 28.dp,
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -432,12 +435,13 @@ private fun TwoSidedMessageBubble(
     ) {
         // Agent avatar on left
         if (!isUser && showAvatars) {
-            val resolvedEndpoint = message.endpoint ?: selectedEndpoint
+            val assistantIcon = resolveIconSource(message.iconURL, message.endpoint ?: selectedEndpoint, baseUrl)
+            val resolvedEndpoint = assistantIcon.endpointName
             AvatarImage(
-                imageUrl = message.iconURL,
+                imageUrl = assistantIcon.imageUrl,
                 fallbackText = message.sender ?: stringResource(Res.string.sender_assistant),
-                fallbackIconPainter = if (message.iconURL == null) endpointIconPainter(resolvedEndpoint) else null,
-                tintIcon = if (message.iconURL == null) isMonochromeEndpointIcon(resolvedEndpoint) else false,
+                fallbackIconPainter = if (assistantIcon.imageUrl == null) endpointIconPainter(resolvedEndpoint) else null,
+                tintIcon = if (assistantIcon.imageUrl == null) isMonochromeEndpointIcon(resolvedEndpoint) else false,
                 size = 28.dp,
             )
             Spacer(modifier = Modifier.width(6.dp))

@@ -6,8 +6,12 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.garfiec.librechat.core.common.EndpointConstants
+import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.EndpointConfig
+import com.garfiec.librechat.core.model.Preset
+import com.garfiec.librechat.core.model.config.ModelSpec
+import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -31,6 +35,9 @@ class ModelSelectorSheetKeysInstrumentedTest {
         endpointConfigs: Map<String, EndpointConfig>,
         agents: List<Agent> = emptyList(),
         favoriteModelKeys: Set<String> = emptySet(),
+        modelSpecs: ModelSpecs? = null,
+        selectedSpec: String? = null,
+        favoriteSpecNames: Set<String> = emptySet(),
     ) {
         composeRule.setContent {
             LibreChatTheme {
@@ -44,6 +51,11 @@ class ModelSelectorSheetKeysInstrumentedTest {
                     modelSelect = true,
                     onSetApiKey = {},
                     favoriteModelKeys = favoriteModelKeys,
+                    modelSpecs = modelSpecs,
+                    selectedSpec = selectedSpec,
+                    favoriteSpecNames = favoriteSpecNames,
+                    onToggleSpecFavorite = {},
+                    starredDisplay = StarredModelsDisplay.TOP,
                 )
             }
         }
@@ -104,5 +116,24 @@ class ModelSelectorSheetKeysInstrumentedTest {
         search("gpt")
         assertShown("gpt-4o")
         assertShown("gpt helper")
+    }
+
+    @Test
+    fun aGroupedSpecAlsoStarredAndAGroupNamedLikeASectionDoNotCollide() {
+        fun spec(name: String, label: String, group: String) =
+            ModelSpec(name = name, label = label, preset = Preset(endpoint = "openAI", model = "gpt-4o"), group = group)
+        setSheet(
+            availableModels = mapOf("openAI" to listOf("gpt-4o")),
+            endpointConfigs = mapOf("openAI" to EndpointConfig()),
+            modelSpecs = ModelSpecs(
+                list = listOf(spec("coder", "Coder", group = "openAI"), spec("pinned", "Pinned", group = "starred")),
+            ),
+            // The selected spec's section opens by itself, so its row composes beside the starred copy.
+            selectedSpec = "coder",
+            favoriteSpecNames = setOf("coder", "pinned"),
+        )
+        val coderRows = composeRule.onAllNodes(hasText("Coder"), useUnmergedTree = true).fetchSemanticsNodes()
+        assertTrue("expected the starred row and the opened section's row", coderRows.size == 2)
+        assertShown("starred (1)")
     }
 }

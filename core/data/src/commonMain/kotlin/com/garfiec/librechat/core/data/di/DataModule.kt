@@ -539,6 +539,7 @@ val dataModule = module {
             configApi = get(),
             configCache = get(),
             dispatcher = get(KoinQualifiers.Default),
+            serverDataStore = get(),
         )
     } bind ConfigRepository::class
     singleOf(::FileRepositoryImpl) bind FileRepository::class

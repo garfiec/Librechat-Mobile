@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.outlined.Create
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -59,7 +60,9 @@ import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.config.displayLabel
 import com.garfiec.librechat.core.model.endpoint.KeyState
+import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
+import com.garfiec.librechat.core.model.media.resolveIconSource
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
@@ -75,10 +78,14 @@ import com.garfiec.librechat.core.ui.components.listDragSelection
 import com.garfiec.librechat.core.ui.components.rememberListDragSelection
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.util.SpecSection
+import com.garfiec.librechat.feature.chat.util.SpecSections
 import com.garfiec.librechat.feature.chat.util.blocksSelection
+import com.garfiec.librechat.feature.chat.util.menuIconSource
 import com.garfiec.librechat.feature.chat.util.requiresSpec
 import com.garfiec.librechat.feature.chat.util.searchByName
 import com.garfiec.librechat.feature.chat.util.showsRawEndpoint
+import com.garfiec.librechat.feature.chat.util.specSections
 import com.garfiec.librechat.feature.chat.util.starredModels
 import com.garfiec.librechat.feature.chat.util.starredSpecs
 import com.garfiec.librechat.feature.chat.util.toSeed
@@ -96,6 +103,7 @@ private const val STARRED_GROUP_KEY = "__starred__"
 private const val MY_AGENTS_EXPAND_KEY = "agents:mine"
 private const val STARRED_EXPAND_KEY = "starred"
 private fun endpointExpandKey(endpoint: String) = "ep:$endpoint"
+private fun specGroupExpandKey(group: String) = "specgroup:$group"
 
 /** Row vertical padding for grouped list items vs. the denser starred-at-top section. */
 private val ListItemVerticalPadding = 12.dp
@@ -240,8 +248,9 @@ fun ModelSelectorSheetContent(
     showTitle: Boolean = true,
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    // Only user toggles land here; absent keys default collapsed via `== true` reads below. Not
-    // seeded — the sheet can mount before models/agents load, and a seed would miss late arrivals.
+    // Only user toggles land here; an absent key is collapsed unless it holds the selected spec
+    // (`isOpen`). Not seeded — the sheet can mount before models/agents load, and a seed would miss
+    // late arrivals.
     val expandedGroups = remember { mutableStateMapOf<String, Boolean>() }
     val isSearching = searchQuery.isNotBlank()
 
@@ -256,12 +265,47 @@ fun ModelSelectorSheetContent(
     // A spec selection checks only its own row, not the raw model it runs on.
     val rawSelectedModel = selectedModel.takeIf { selectedSpec == null }
     val visibleSpecs = remember(modelSpecs, agents, agentsLoaded) { modelSpecs.visibleSpecs(agents, agentsLoaded) }
-    val shownSpecs = remember(visibleSpecs, searchQuery, starredDisplay, favoriteSpecNames) {
-        when {
-            isSearching -> searchByName(visibleSpecs, searchQuery) { it.displayLabel }
-            starredDisplay == StarredModelsDisplay.OFF -> visibleSpecs.sortedByDescending { it.name in favoriteSpecNames }
-            else -> visibleSpecs
+    // Grouped specs sit in sections named after their group, so the section keys come from the
+    // unsearched lists: a search shows every spec flat, without headers, as web's search does.
+    val hasAgentsSection = remember(agents, modelSpecs, modelSelect) {
+        agents.isNotEmpty() && modelSpecs.showsRawEndpoint(EndpointConstants.AGENTS, modelSelect)
+    }
+    // With the starred section off, starred specs lead each section instead.
+    val sections = remember(
+        visibleSpecs,
+        filteredByEndpoint.keys,
+        hasAgentsSection,
+        starredDisplay,
+        favoriteSpecNames,
+    ) {
+        val shown = filteredByEndpoint.keys + listOfNotNull(EndpointConstants.AGENTS.takeIf { hasAgentsSection })
+        val split = specSections(visibleSpecs, shown)
+        if (starredDisplay != StarredModelsDisplay.OFF) return@remember split
+        val starSorted = { specs: List<ModelSpec> -> specs.sortedByDescending { it.name in favoriteSpecNames } }
+        SpecSections(
+            ungrouped = starSorted(split.ungrouped),
+            byEndpoint = split.byEndpoint.mapValues { (_, specs) -> starSorted(specs) },
+            custom = split.custom.map { it.copy(specs = starSorted(it.specs)) },
+        )
+    }
+    val shownSpecs = remember(visibleSpecs, sections, searchQuery) {
+        if (isSearching) searchByName(visibleSpecs, searchQuery) { it.displayLabel } else sections.ungrouped
+    }
+    val groupedSpecs: (String) -> List<ModelSpec> = { endpoint ->
+        if (isSearching) emptyList() else sections.byEndpoint[endpoint].orEmpty()
+    }
+    // The section holding the selected spec opens until the user toggles it.
+    val selectedSectionKey = remember(sections, selectedSpec) {
+        when (val section = sections.sectionOf(selectedSpec)) {
+            is SpecSection.Endpoint ->
+                if (section.key == EndpointConstants.AGENTS) MY_AGENTS_EXPAND_KEY else endpointExpandKey(section.key)
+            is SpecSection.Custom -> specGroupExpandKey(section.name)
+            null -> null
         }
+    }
+    val isOpen: (String) -> Boolean = { key -> expandedGroups[key] ?: (key == selectedSectionKey) }
+    val specIcons = remember(visibleSpecs, agents, serverUrl) {
+        visibleSpecs.associate { it.name to it.menuIconSource(agents, serverUrl) }
     }
 
     // Filter agents by search query (fuzzy matching), sorted by score when searching.
@@ -363,6 +407,18 @@ fun ModelSelectorSheetContent(
 
         // Drag-select reaches only the rows on screen: the list doesn't auto-scroll under it.
         val dragSelection = rememberListDragSelection()
+        val specRow: @Composable LazyItemScope.(ModelSpec, Dp) -> Unit = { spec, verticalPadding ->
+            SpecListItem(
+                spec = spec,
+                icon = specIcons[spec.name],
+                isSelected = selectedSpec == spec.name,
+                onClick = { onSpecClick(spec, spec.toSeed()?.endpoint) },
+                dragSelection = dragSelection,
+                isFavorite = spec.name in favoriteSpecNames,
+                onToggleFavorite = onToggleSpecFavorite?.let { toggle -> { toggle(spec.name) } },
+                verticalPadding = verticalPadding,
+            )
+        }
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
@@ -396,18 +452,7 @@ fun ModelSelectorSheetContent(
                         ListItemVerticalPadding
                     }
                     items(starredSpecs, key = { "starred:spec:${it.name}" }, contentType = { "spec" }) { spec ->
-                        val endpoint = spec.toSeed()?.endpoint
-                        SpecListItem(
-                            spec = spec,
-                            endpoint = endpoint,
-                            isSelected = selectedSpec == spec.name,
-                            serverUrl = serverUrl,
-                            onClick = { onSpecClick(spec, endpoint) },
-                            dragSelection = dragSelection,
-                            isFavorite = true,
-                            onToggleFavorite = onToggleSpecFavorite?.let { toggle -> { toggle(spec.name) } },
-                            verticalPadding = starredPadding,
-                        )
+                        specRow(spec, starredPadding)
                     }
                     if (specOnlyNoteInStarred) {
                         item(key = "note:spec-only", contentType = "note") { SpecOnlyNote() }
@@ -454,17 +499,7 @@ fun ModelSelectorSheetContent(
                 key = { "spec:${it.name}" },
                 contentType = { "spec" },
             ) { spec ->
-                val endpoint = spec.toSeed()?.endpoint
-                SpecListItem(
-                    spec = spec,
-                    endpoint = endpoint,
-                    isSelected = selectedSpec == spec.name,
-                    serverUrl = serverUrl,
-                    onClick = { onSpecClick(spec, endpoint) },
-                    dragSelection = dragSelection,
-                    isFavorite = spec.name in favoriteSpecNames,
-                    onToggleFavorite = onToggleSpecFavorite?.let { toggle -> { toggle(spec.name) } },
-                )
+                specRow(spec, ListItemVerticalPadding)
             }
             // Shown once: the Starred-section placement uses the same "note:spec-only" key, and a
             // duplicate LazyColumn key crashes.
@@ -474,12 +509,13 @@ fun ModelSelectorSheetContent(
 
             // "My Agents" group (shown first, like the web frontend)
             if (filteredAgents.isNotEmpty()) {
-                val agentsExpanded = isSearching || expandedGroups[MY_AGENTS_EXPAND_KEY] == true
+                val agentsExpanded = isSearching || isOpen(MY_AGENTS_EXPAND_KEY)
+                val agentSpecs = groupedSpecs(EndpointConstants.AGENTS)
                 item(key = "hdr:agents") {
                     EndpointGroupHeader(
                         endpointName = EndpointConstants.AGENTS,
                         displayLabel = stringResource(Res.string.model_selector_my_agents),
-                        modelCount = filteredAgents.size,
+                        modelCount = agentSpecs.size + filteredAgents.size,
                         isExpanded = agentsExpanded,
                         iconUrl = null,
                         onToggle = { if (!isSearching) expandedGroups[MY_AGENTS_EXPAND_KEY] = !agentsExpanded },
@@ -487,6 +523,9 @@ fun ModelSelectorSheetContent(
                     )
                 }
                 if (agentsExpanded) {
+                    items(agentSpecs, key = { "ep:${EndpointConstants.AGENTS}:spec:${it.name}" }, contentType = { "spec" }) { spec ->
+                        specRow(spec, ListItemVerticalPadding)
+                    }
                     items(filteredAgents, key = { "agent:${it.id}" }, contentType = { "agent" }) { agent ->
                         AgentListItem(
                             agent = agent,
@@ -511,23 +550,25 @@ fun ModelSelectorSheetContent(
                 } else {
                     baseFiltered.sortedByDescending { "$endpointName::$it" in favoriteModelKeys }
                 }
-                if (filteredModels.isNotEmpty()) {
+                val endpointSpecs = groupedSpecs(endpointName)
+                if (filteredModels.isNotEmpty() || endpointSpecs.isNotEmpty()) {
                     val config = endpointConfigs[endpointName]
                     val displayLabel = config?.modelDisplayLabel ?: endpointName
                     // Auto-expand while searching so matches in collapsed groups are visible;
                     // otherwise use manual toggle state.
-                    val isExpanded = isSearching || expandedGroups[endpointExpandKey(endpointName)] == true
+                    val isExpanded = isSearching || isOpen(endpointExpandKey(endpointName))
                     // Endpoints with userProvide=true and Unset/Expired key render disabled
                     // with a "Set API Key" CTA. Loading and absent states fail-open.
                     val needsKey = endpointKeyStates[endpointName].blocksSelection()
                     val effectiveExpanded = isExpanded && !needsKey
+                    val headerIcon = resolveIconSource(config?.iconURL, endpointName, serverUrl)
                     item(key = "hdr:ep:$endpointName") {
                         EndpointGroupHeader(
-                            endpointName = endpointName,
+                            endpointName = headerIcon.endpointName ?: endpointName,
                             displayLabel = displayLabel,
-                            modelCount = filteredModels.size,
+                            modelCount = endpointSpecs.size + filteredModels.size,
                             isExpanded = effectiveExpanded,
-                            iconUrl = config?.iconURL,
+                            iconUrl = headerIcon.imageUrl,
                             onToggle = { if (!isSearching) expandedGroups[endpointExpandKey(endpointName)] = !isExpanded },
                             needsKey = needsKey,
                             onSetApiKey = { onSetApiKey(endpointName) },
@@ -535,6 +576,9 @@ fun ModelSelectorSheetContent(
                         )
                     }
                     if (effectiveExpanded) {
+                        items(endpointSpecs, key = { "ep:$endpointName:spec:${it.name}" }, contentType = { "spec" }) { spec ->
+                            specRow(spec, ListItemVerticalPadding)
+                        }
                         items(filteredModels, key = { "model:$endpointName::$it" }, contentType = { "model" }) { model ->
                             ModelListItem(
                                 model = model,
@@ -545,6 +589,32 @@ fun ModelSelectorSheetContent(
                                 onToggleFavorite = onToggleModelFavorite?.let { toggle -> { toggle(endpointName, model) } },
                                 dragSelection = dragSelection,
                             )
+                        }
+                    }
+                }
+            }
+
+            // Spec groups naming no shown endpoint come last, as on web.
+            if (!isSearching) {
+                sections.custom.forEach { group ->
+                    val expandKey = specGroupExpandKey(group.name)
+                    val isExpanded = isOpen(expandKey)
+                    val groupIcon = group.icon?.let { resolveIconSource(it, null, serverUrl) }
+                    item(key = "hdr:$expandKey") {
+                        EndpointGroupHeader(
+                            endpointName = groupIcon?.endpointName ?: group.name,
+                            displayLabel = group.name,
+                            modelCount = group.specs.size,
+                            isExpanded = isExpanded,
+                            iconUrl = groupIcon?.imageUrl,
+                            onToggle = { expandedGroups[expandKey] = !isExpanded },
+                            dragSelection = dragSelection,
+                            leadingIcon = Icons.Outlined.Folder.takeIf { groupIcon == null },
+                        )
+                    }
+                    if (isExpanded) {
+                        items(group.specs, key = { "$expandKey:spec:${it.name}" }, contentType = { "spec" }) { spec ->
+                            specRow(spec, ListItemVerticalPadding)
                         }
                     }
                 }
@@ -793,17 +863,15 @@ private fun LazyItemScope.AgentListItem(
 @Composable
 private fun LazyItemScope.SpecListItem(
     spec: ModelSpec,
-    endpoint: String?,
+    /** Null when the spec hides its icon (`showIconInMenu: false`); the label keeps its column. */
+    icon: IconSource?,
     isSelected: Boolean,
-    serverUrl: String,
     onClick: () -> Unit,
     dragSelection: ListDragSelection,
     isFavorite: Boolean = false,
     onToggleFavorite: (() -> Unit)? = null,
     verticalPadding: Dp = ListItemVerticalPadding,
 ) {
-    // `iconURL` is either an image or an endpoint name whose glyph to borrow.
-    val iconUrl = spec.iconURL?.takeIf { it.startsWith("http") || it.startsWith("/") }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -812,14 +880,18 @@ private fun LazyItemScope.SpecListItem(
             .animateItem(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        EndpointIcon(
-            endpointName = if (iconUrl == null) spec.iconURL ?: endpoint else endpoint,
-            iconUrl = iconUrl?.let { resolveAvatarUrl(it, serverUrl) },
-            size = IconSize,
-            contentDescription = null,
-            glyphTint = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.dragSelectRowIcon(),
-        )
+        if (icon != null) {
+            EndpointIcon(
+                endpointName = icon.endpointName,
+                iconUrl = icon.imageUrl,
+                size = IconSize,
+                contentDescription = null,
+                glyphTint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.dragSelectRowIcon(),
+            )
+        } else {
+            Spacer(modifier = Modifier.width(IconSize))
+        }
         Spacer(modifier = Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(

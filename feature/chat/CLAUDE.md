@@ -60,8 +60,12 @@ feature added to only one composer does not.
   - They render as `LandingStarters` in `ChatScreen`'s measured bottom box, docked on the composer, not
     inside `LandingContent`: that way they ride the keyboard and never sit under the composer. The hero
     centres in the space they leave (`bottomPadding`) and drops its icon when that is too short.
-  - The hero shows the selected spec's `iconURL` or the agent's avatar, as web's landing does
-    (`landingHeroIcon`), and falls back to the app tile.
+  - The hero shows the selected spec's icon (see "Spec presentation") or the agent's avatar, as
+    web's landing does (`landingHeroIcon`), and falls back to the app tile.
+  - The words are `landingText` (web's `Landing.tsx`): the selected agent's name, else a
+    `showOnLanding` spec's label, replaces the time-of-day greeting; the agent's description, else
+    that spec's, else the spec preset's `greeting` (applied without `showOnLanding`) replaces "How can
+    I help", as plain text held to 4 lines. A temporary chat keeps its own title and subtitle.
 - **Loading**: full-screen spinner — *nothing is cached* and the message fetch has not settled
 - **Active**: message list + streaming content + input area
 
@@ -277,6 +281,24 @@ the spec to its current pair.
 loaded without its agent (web parity; until then, and after a failed fetch, every spec shows).
 The list is one page of up to 100 agents where web loads them all, so a full page hides nothing.
 Compare setup stages specs like models, so a spec can be either lane before the comparison starts.
+
+**Spec presentation** (#641):
+- **Groups** (`util/SpecGroups.kt`, web's `ModelSelector` / `EndpointItem` / `CustomGroup`): a spec
+  with no `group` sits at the top; one whose `group` is exactly a shown endpoint's key (`agents` is
+  My Agents) heads that endpoint's section; any other group is a headed, collapsible section after
+  the endpoints, iconed by its first `groupIcon` (a folder when none). Under `modelSelect: false`
+  every group is its own section, as on web. Sections start closed except the one holding the
+  selected spec. A search lists specs flat, without groups, as web's does; Starred is unchanged.
+  Divergence: a spec grouped under an endpoint with no models gets a group of its own (web hides it).
+- **Icons** (`isImageUrl`, `iconValue` and `resolveIconSource` in `:core:model` `media/IconUrls.kt`,
+  `util/SpecIcons.kt`): a spec's `iconURL`, its preset's, its agent's avatar, then its endpoint; a
+  value is an image by web's `isImageURL` rule, else an endpoint or provider whose glyph to borrow,
+  and `""` is unset. The picker rows, landing hero, Compare's spec lane and quick picks use it, and
+  reply avatars resolve a message's `iconURL` through `resolveIconSource` too;
+  `showIconInMenu: false` hides it in the picker and quick picks. The conversation rows apply web's
+  `EndpointIcon` rule (`Conversation.iconEndpoint`), joining a relative icon path to the server
+  (`ConfigRepository.serverUrl`). `showIconInHeader` is decoded only: the header
+  chip is text-only by design.
 
 ## Message Tree
 - Messages stored flat, linked by `parentMessageId` (root = `NO_PARENT` UUID)
@@ -518,9 +540,9 @@ haiku wrote only escapes), so everything converts the escape first.
 | `ChatInput` | Auto-growing text field, send/stop button, file attach, voice |
 | `MessageBubble` | Icon + content column + action bar + sibling nav |
 | `MessageList` | LazyColumn of MessageBubbles with scroll-to-bottom FAB |
-| `ModelSelectorSheet` | Bottom sheet: search + endpoint-grouped model list |
+| `ModelSelectorSheet` | Bottom sheet: search + specs, spec groups and endpoint-grouped models |
 | `SiblingNavigator` | "1/3" with chevrons for branch switching |
-| `LandingContent` | Greeting, entity icon, conversation starters |
+| `LandingContent` | Greeting or agent/spec title, description, entity icon (starters dock apart, `LandingStarters`) |
 | `StreamingCursor` | Live insertion point during generation; `StreamingWaitIndicator` before the first delta |
 | `PresetPicker` | Preset selection menu |
 | `SavePresetDialog` | Dialog to name and save current config as preset |

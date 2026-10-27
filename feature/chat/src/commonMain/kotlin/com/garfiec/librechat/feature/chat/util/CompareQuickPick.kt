@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.config.displayLabel
 import com.garfiec.librechat.core.model.endpoint.KeyState
+import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.FavoritesDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.filterModelsByEndpoint
 
@@ -21,6 +22,8 @@ data class CompareQuickPick(
     val starred: Boolean,
     /** The spec this row picks; null for a raw model or agent. */
     val spec: String? = null,
+    /** A spec row's icon, unless the spec hides it in menus. */
+    val icon: IconSource? = null,
 )
 
 /**
@@ -49,6 +52,7 @@ fun compareQuickPicks(
     endpointKeyStates: Map<String, KeyState> = emptyMap(),
     specs: List<ModelSpec> = emptyList(),
     modelSpecs: ModelSpecs? = null,
+    serverUrl: String = "",
     limit: Int = QUICK_PICK_LIMIT,
 ): List<CompareQuickPick> {
     val rawSendable = !modelSpecs.requiresSpec
@@ -88,6 +92,7 @@ fun compareQuickPicks(
             source = if (seed.endpoint == EndpointConstants.AGENTS) agentCaption else sourceOf(seed.endpoint),
             starred = spec.name in favoriteSpecNames,
             spec = spec.name,
+            icon = spec.menuIconSource(agents, serverUrl),
         )
     }
 

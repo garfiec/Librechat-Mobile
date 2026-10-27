@@ -36,6 +36,25 @@ private fun LandingPreview() = PreviewSurface(UiStyle.MATERIAL) { LandingHost() 
 @Composable
 private fun TemporaryLandingPreview() = PreviewSurface(UiStyle.MATERIAL) { LandingHost(isTemporaryChat = true) }
 
+/** A spec with `showOnLanding`: its label titles the chat and its description replaces the subtitle. */
+@PreviewNarrowScreens
+@Composable
+private fun SpecLandingPreview() = PreviewSurface(UiStyle.MATERIAL) {
+    LandingHost(
+        title = "Research Assistant",
+        description = "Finds and summarises sources, with citations. Ask it about a paper, a person or a field.",
+        agentName = null,
+        caption = null,
+    )
+}
+
+/** An agent spec: the agent names the chat, the spec's label stays as the model caption. */
+@PreviewNarrowScreens
+@Composable
+private fun AgentSpecLandingGlassPreview() = PreviewSurface(UiStyle.LIQUID_GLASS) {
+    LandingHost(title = "Travel Planner", description = "Plans trips end to end.", agentName = null, caption = "Helper Spec")
+}
+
 @PreviewNarrowScreens
 @Composable
 private fun MessagesUnavailablePreview() = PreviewSurface(UiStyle.MATERIAL) { MessagesUnavailableHost() }
@@ -77,11 +96,19 @@ private fun ChatBodyHost(body: @Composable ColumnScope.(Modifier) -> Unit) {
 }
 
 @Composable
-private fun LandingHost(isTemporaryChat: Boolean = false) = ChatBodyHost { modifier ->
+private fun LandingHost(
+    isTemporaryChat: Boolean = false,
+    title: String? = null,
+    description: String? = null,
+    agentName: String? = "Travel Planner",
+    caption: String? = "gpt-5",
+) = ChatBodyHost { modifier ->
     LandingContent(
-        selectedModel = "gpt-5",
-        selectedAgentName = "Travel Planner",
+        selectedModel = caption,
+        selectedAgentName = agentName,
         isTemporaryChat = isTemporaryChat,
+        title = title,
+        description = description,
         modifier = modifier,
     )
 }

@@ -17,6 +17,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.EndpointConstants
+import com.garfiec.librechat.core.model.media.IconSource
+import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.feature.chat.components.ComparisonDualPane
 import com.garfiec.librechat.feature.chat.components.ComparisonLane
 import com.garfiec.librechat.feature.chat.components.ComparisonPane
@@ -29,6 +31,7 @@ import com.garfiec.librechat.feature.chat.components.SecondaryMessageList
 import com.garfiec.librechat.feature.chat.components.comparisonSyncLead
 import com.garfiec.librechat.feature.chat.components.rememberComparisonScrollSync
 import com.garfiec.librechat.feature.chat.util.buildComparisonDisplayMessages
+import com.garfiec.librechat.feature.chat.util.iconSource
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
 
@@ -105,30 +108,36 @@ internal fun ComparisonPanes(
         uiState.modelSpecs,
     )
     val secondaryEndpoint = comparisonState.secondaryEndpoint ?: EndpointConstants.AGENTS
-    // Re-point the secondary bubble avatar at its own agent: the persisted parallel
-    // message only carries the primary's endpoint/iconURL. For an agents-endpoint
-    // secondary, resolve the agent's avatar; otherwise fall back to the endpoint icon.
-    val secondaryIconUrl = remember(
+    // Re-point the secondary bubble avatar at its own lane: the persisted parallel message only
+    // carries the primary's endpoint/iconURL. A spec lane shows the spec's icon, an agents lane its
+    // agent's avatar; otherwise the endpoint's icon.
+    val secondaryIcon = remember(
         secondaryEndpoint,
         comparisonState.secondaryModel,
+        comparisonState.secondarySpec,
+        uiState.modelSpecs,
         uiState.agents,
         uiState.serverUrl,
     ) {
         val model = comparisonState.secondaryModel
-        if (secondaryEndpoint == EndpointConstants.AGENTS && model != null) {
-            uiState.agents.find { it.id == model }?.avatarUrl?.let { url ->
-                if (url.startsWith("http")) url else "${uiState.serverUrl}$url"
-            }
-        } else {
-            null
+        val spec = uiState.modelSpecs?.list?.find { it.name == comparisonState.secondarySpec }
+        when {
+            spec != null -> spec.iconSource(uiState.agents, uiState.serverUrl)
+            secondaryEndpoint == EndpointConstants.AGENTS && model != null -> IconSource(
+                secondaryEndpoint,
+                resolveAvatarUrl(uiState.agents.find { it.id == model }?.avatarUrl, uiState.serverUrl),
+            )
+            else -> IconSource(secondaryEndpoint, null)
         }
     }
+    val secondaryIconEndpoint = secondaryIcon.endpointName ?: secondaryEndpoint
+    val secondaryIconUrl = secondaryIcon.imageUrl
     val secondaryDisplayMessages = remember(
         uiState.displayMessages,
         comparisonState.parallelMessageId,
         comparisonState.secondaryFinalContent,
         secondaryModelName,
-        secondaryEndpoint,
+        secondaryIconEndpoint,
         secondaryIconUrl,
     ) {
         buildComparisonDisplayMessages(
@@ -137,7 +146,7 @@ internal fun ComparisonPanes(
             comparisonState.parallelMessageId,
             comparisonState.secondaryFinalContent,
             secondaryModelName,
-            secondaryEndpoint = secondaryEndpoint,
+            secondaryEndpoint = secondaryIconEndpoint,
             secondaryIconUrl = secondaryIconUrl,
         )
     }

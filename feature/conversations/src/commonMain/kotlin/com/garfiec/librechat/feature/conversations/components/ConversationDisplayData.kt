@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.SAVED_TAG
+import com.garfiec.librechat.core.model.iconEndpoint
 import com.garfiec.librechat.core.model.resolveEndpointIconUrl
 import kotlin.time.Instant
 
@@ -17,10 +18,12 @@ data class ConversationDisplayData(
     val updatedAt: Instant?,
     val isBookmarked: Boolean,
     val endpointIconUrl: String? = null,
+    val iconEndpoint: String? = endpoint,
 )
 
 fun Conversation.toDisplayData(
     endpointConfigs: Map<String, EndpointConfig>,
+    serverUrl: String,
 ): ConversationDisplayData = ConversationDisplayData(
     conversationId = conversationId ?: "",
     title = title ?: "New Chat",
@@ -28,5 +31,6 @@ fun Conversation.toDisplayData(
     model = model,
     updatedAt = updatedAt,
     isBookmarked = SAVED_TAG in tags,
-    endpointIconUrl = resolveEndpointIconUrl(endpointConfigs),
+    endpointIconUrl = resolveEndpointIconUrl(endpointConfigs, serverUrl),
+    iconEndpoint = iconEndpoint,
 )

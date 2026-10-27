@@ -38,6 +38,7 @@ class ArchivedConversationsViewModelTest {
     private val configRepository = mockk<ConfigRepository> {
         every { endpointConfigs } returns MutableStateFlow(emptyMap())
         every { startupConfig } returns MutableStateFlow(null)
+        every { serverUrl } returns flowOf("https://srv")
     }
     private val agentRepository = mockk<AgentRepository>()
 
@@ -188,8 +189,8 @@ class ArchivedConversationsViewModelTest {
         val specs = ModelSpecs(list = listOf(ModelSpec(name = "fast", label = "Fast")))
         val conversation = Conversation(conversationId = "c1", model = "gpt-4o", spec = "fast")
 
-        assertThat(conversation.toArchivedDisplayData(modelSpecs = specs).modelLabel).isEqualTo("Fast")
-        assertThat(conversation.copy(spec = null).toArchivedDisplayData(modelSpecs = specs).modelLabel)
+        assertThat(conversation.toArchivedDisplayData(serverUrl = "", modelSpecs = specs).modelLabel).isEqualTo("Fast")
+        assertThat(conversation.copy(spec = null).toArchivedDisplayData(serverUrl = "", modelSpecs = specs).modelLabel)
             .isEqualTo("gpt-4o")
     }
 

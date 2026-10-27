@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.EndpointIcon
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.chat.components.CompareSetupPaneEmpty
 import com.garfiec.librechat.feature.chat.components.ComparisonLane
@@ -185,6 +186,7 @@ private fun QuickPicker(
         specs,
         uiState.modelSpecs,
         uiState.modelSelectEnabled,
+        uiState.serverUrl,
         agentCaption,
     ) {
         value = withContext(Dispatchers.Default) {
@@ -198,6 +200,7 @@ private fun QuickPicker(
                 favoriteSpecNames = uiState.favoriteSpecNames,
                 agentCaption = agentCaption,
                 modelSelect = uiState.modelSelectEnabled,
+                serverUrl = uiState.serverUrl,
                 endpointKeyStates = uiState.endpointKeyStates,
                 specs = specs,
                 modelSpecs = uiState.modelSpecs,
@@ -274,12 +277,20 @@ private fun QuickPickRow(quick: CompareQuickPick, selected: Boolean, onClick: ()
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        val icon = quick.icon
         if (quick.starred) {
             Icon(
                 imageVector = Icons.Default.Star,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp),
+            )
+        } else if (icon != null) {
+            EndpointIcon(
+                endpointName = icon.endpointName,
+                iconUrl = icon.imageUrl,
+                size = 20.dp,
+                glyphTint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
             Spacer(Modifier.size(20.dp))

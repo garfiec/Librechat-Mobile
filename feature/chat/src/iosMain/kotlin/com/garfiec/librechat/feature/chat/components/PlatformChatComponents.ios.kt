@@ -64,6 +64,7 @@ import com.garfiec.librechat.core.model.FeedbackRating
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.core.model.media.resolveIconSource
 import com.garfiec.librechat.core.ui.components.AdaptiveDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AvatarImage
@@ -125,7 +126,10 @@ actual fun MessageBubble(
     showAvatars: Boolean,
     showBubbles: Boolean,
 ) {
-    val resolvedEndpoint = message.endpoint ?: selectedEndpoint
+    // A spec's `iconURL` names an endpoint's glyph or a server-relative image: resolve it as the picker does.
+    val assistantIcon = resolveIconSource(message.iconURL, message.endpoint ?: selectedEndpoint, baseUrl)
+    val resolvedEndpoint = assistantIcon.endpointName
+    val assistantIconUrl = assistantIcon.imageUrl
     val tintEndpointIcon = isMonochromeEndpointIcon(resolvedEndpoint)
 
     if (chatLayoutStyle == ChatLayoutConstants.TWO_SIDED) {
@@ -151,6 +155,7 @@ actual fun MessageBubble(
             userAvatarUrl = userAvatarUrl,
             userName = userName,
             resolvedEndpoint = resolvedEndpoint,
+            assistantIconUrl = assistantIconUrl,
             tintEndpointIcon = tintEndpointIcon,
             showImageDescriptions = showImageDescriptions,
             showActionsInitially = showActionsInitially,
@@ -185,6 +190,7 @@ actual fun MessageBubble(
             userAvatarUrl = userAvatarUrl,
             userName = userName,
             resolvedEndpoint = resolvedEndpoint,
+            assistantIconUrl = assistantIconUrl,
             tintEndpointIcon = tintEndpointIcon,
             showImageDescriptions = showImageDescriptions,
             showActionsInitially = showActionsInitially,
@@ -222,6 +228,7 @@ private fun ThreadBubble(
     userAvatarUrl: String?,
     userName: String?,
     resolvedEndpoint: String?,
+    assistantIconUrl: String?,
     tintEndpointIcon: Boolean,
     showImageDescriptions: Boolean,
     showActionsInitially: Boolean,
@@ -253,15 +260,15 @@ private fun ThreadBubble(
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (showAvatars) {
                 AvatarImage(
-                    imageUrl = if (isUser) userAvatarUrl else message.iconURL,
+                    imageUrl = if (isUser) userAvatarUrl else assistantIconUrl,
                     fallbackText = if (isUser) {
                         userName ?: stringResource(Res.string.sender_you)
                     } else {
                         message.sender ?: stringResource(Res.string.sender_assistant)
                     },
-                    fallbackIconPainter = if (!isUser && message.iconURL == null) endpointIconPainter(resolvedEndpoint) else null,
+                    fallbackIconPainter = if (!isUser && assistantIconUrl == null) endpointIconPainter(resolvedEndpoint) else null,
                     showPersonIcon = isUser && userAvatarUrl == null,
-                    tintIcon = if (!isUser && message.iconURL == null) tintEndpointIcon else false,
+                    tintIcon = if (!isUser && assistantIconUrl == null) tintEndpointIcon else false,
                     size = 28.dp,
                 )
                 Spacer(Modifier.width(8.dp))
@@ -352,6 +359,7 @@ private fun TwoSidedBubble(
     userAvatarUrl: String?,
     userName: String?,
     resolvedEndpoint: String?,
+    assistantIconUrl: String?,
     tintEndpointIcon: Boolean,
     showImageDescriptions: Boolean,
     showActionsInitially: Boolean,
@@ -393,10 +401,10 @@ private fun TwoSidedBubble(
     ) {
         if (!isUser && showAvatars) {
             AvatarImage(
-                imageUrl = message.iconURL,
+                imageUrl = assistantIconUrl,
                 fallbackText = message.sender ?: stringResource(Res.string.sender_assistant),
-                fallbackIconPainter = if (message.iconURL == null) endpointIconPainter(resolvedEndpoint) else null,
-                tintIcon = if (message.iconURL == null) tintEndpointIcon else false,
+                fallbackIconPainter = if (assistantIconUrl == null) endpointIconPainter(resolvedEndpoint) else null,
+                tintIcon = if (assistantIconUrl == null) tintEndpointIcon else false,
                 size = 28.dp,
             )
             Spacer(Modifier.width(6.dp))

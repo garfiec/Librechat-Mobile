@@ -28,6 +28,7 @@ data class DrawerConversationDisplayData(
     val tags: List<String>,
     val endpointIconUrl: String? = null,
     val modelLabel: String? = model,
+    val iconEndpoint: String? = endpoint,
 )
 
 /**

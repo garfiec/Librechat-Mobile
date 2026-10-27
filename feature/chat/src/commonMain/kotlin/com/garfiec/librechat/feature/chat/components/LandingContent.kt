@@ -65,9 +65,20 @@ fun LandingContent(
     isTemporaryChat: Boolean = false,
     /** Room for whatever is docked above the composer, so the hero centres in what is left. */
     bottomPadding: Dp = 120.dp,
+    /** The agent's or spec's name in place of the time-of-day greeting. A temporary chat keeps its own. */
+    title: String? = null,
+    /** The agent's or spec's description in place of the subtitle, shown with starters too. */
+    description: String? = null,
 ) {
     val timeGreeting = remember { getTimeBasedGreeting() }
-    val greeting = stringResource(if (isTemporaryChat) Res.string.temporary_chat_title else timeGreeting)
+    val greeting = when {
+        isTemporaryChat -> stringResource(Res.string.temporary_chat_title)
+        title != null -> title
+        else -> stringResource(timeGreeting)
+    }
+    val shownDescription = description?.takeIf { !isTemporaryChat }
+    // With no label under it, a title naming the model opens the picker itself.
+    val titleOpensPicker = title != null && !isTemporaryChat && selectedModel == null && selectedAgentName.isNullOrBlank()
     val selectModelLabel = stringResource(Res.string.cd_select_model)
     val selectableModifier = Modifier
         .clip(RoundedCornerShape(8.dp))
@@ -128,11 +139,23 @@ fun LandingContent(
                 style = if (compact) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.semantics { heading() },
+                modifier = Modifier
+                    .semantics { heading() }
+                    .then(if (titleOpensPicker) selectableModifier else Modifier),
             )
 
-            // Starters don't say the chat won't be saved, so the temporary subtitle stays with them.
-            if (showSubtitle || isTemporaryChat) {
+            if (shownDescription != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = shownDescription,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    maxLines = DescriptionMaxLines,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            } else if (showSubtitle || isTemporaryChat) {
+                // Starters don't say the chat won't be saved, so the temporary subtitle stays with them.
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = stringResource(
@@ -196,6 +219,9 @@ fun LandingContent(
 
 /** The full hero's height with the subtitle hidden: icon, gap, greeting and the model label. */
 private val CompactHeroBelow = 200.dp
+
+/** Web renders the description in full; here it is plain text, held to a few lines. */
+private const val DescriptionMaxLines = 4
 
 /**
  * The landing's hero icon: [iconUrl] when it loads, else [endpointName]'s glyph. A spec's `iconURL`

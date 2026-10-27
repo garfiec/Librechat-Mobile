@@ -68,6 +68,19 @@ data class ModelSpec(
     val askUserQuestion: Boolean? = null,
     /** MCP servers the server adds to the request's own, even ones hidden from the chat picker. */
     val mcpServers: List<String>? = null,
+    /**
+     * The picker section this spec sits in: an endpoint's key nests it in that endpoint's section,
+     * any other name heads a group of its own, as web's `CustomGroup`. Exact and case-sensitive.
+     */
+    val group: String? = null,
+    /** The custom group's icon: the first spec in the group that has one sets it. */
+    val groupIcon: String? = null,
+    /** False hides the spec's icon in the picker. */
+    val showIconInMenu: Boolean? = null,
+    /** False hides the spec's icon in web's header. Decoded only: the header chip here has no icon. */
+    val showIconInHeader: Boolean? = null,
+    /** The new chat's title and description become the spec's label and description. */
+    val showOnLanding: Boolean? = null,
 ) {
     /**
      * The `ephemeralAgent.artifacts` this spec turns on, or null for none. As web's

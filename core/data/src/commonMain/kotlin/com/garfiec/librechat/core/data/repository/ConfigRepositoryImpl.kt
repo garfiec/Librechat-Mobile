@@ -13,6 +13,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.failureKind
 import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
+import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.logging.LogOrigin
 import com.garfiec.librechat.core.model.EndpointConfig
@@ -23,6 +24,7 @@ import com.garfiec.librechat.core.network.client.PendingRequestIdentity
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,7 +35,10 @@ class ConfigRepositoryImpl(
     private val configApi: ConfigApi,
     private val configCache: ConfigCacheDataStore,
     private val dispatcher: CoroutineDispatcher,
+    serverDataStore: ServerDataStore,
 ) : ConfigRepository {
+
+    override val serverUrl: Flow<String> = serverDataStore.currentUrlFlow
 
     private val _startupConfig = MutableStateFlow<StartupConfig?>(null)
     override val startupConfig: StateFlow<StartupConfig?> = _startupConfig.asStateFlow()

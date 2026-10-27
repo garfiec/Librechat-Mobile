@@ -265,6 +265,7 @@ class GateProbeDeviceTest {
         override val startupConfig = MutableStateFlow<StartupConfig?>(null)
         override val endpointConfigs = MutableStateFlow<Map<String, EndpointConfig>>(emptyMap())
         override val availableModels = MutableStateFlow<Map<String, List<String>>>(emptyMap())
+        override val serverUrl = MutableStateFlow("")
         override val detectedBackendVersion: StateFlow<String?> = MutableStateFlow(detected?.version)
         override val detectedBackend: StateFlow<DetectedBackend?> = MutableStateFlow(detected)
         override suspend fun resolveServer(candidates: List<String>, headers: Map<String, String>) = error("unused")

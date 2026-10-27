@@ -193,9 +193,10 @@ class ProjectChatsViewModel(
             combine(
                 pager.items,
                 configRepository.endpointConfigs,
+                configRepository.serverUrl,
                 dayBoundaries,
-            ) { convos, configs, reference ->
-                groupConversationsByDate(convos, configs, reference) to convos.size
+            ) { convos, configs, serverUrl, reference ->
+                groupConversationsByDate(convos, configs, serverUrl, reference) to convos.size
             }.collect { (grouped, count) ->
                 _uiState.value = _uiState.value.copy(groupedConversations = grouped, conversationCount = count)
             }

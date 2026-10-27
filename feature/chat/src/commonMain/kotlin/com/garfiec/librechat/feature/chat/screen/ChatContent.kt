@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.common.EndpointConstants
+import com.garfiec.librechat.core.model.config.displayLabel
 import com.garfiec.librechat.core.model.config.labelFor
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
@@ -20,10 +21,12 @@ import com.garfiec.librechat.feature.chat.components.LandingHeroIcon
 import com.garfiec.librechat.feature.chat.components.MessageList
 import com.garfiec.librechat.feature.chat.components.MessagesUnavailable
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.chat_agent_fallback_label
 import com.garfiec.librechat.feature.chat.resources.sender_assistant
 import com.garfiec.librechat.feature.chat.util.ClipboardWriter
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.collapseParallelToPrimary
+import com.garfiec.librechat.feature.chat.util.ownIconSource
 import com.garfiec.librechat.feature.chat.util.rememberClipboardWriter
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
@@ -138,11 +141,12 @@ internal fun ColumnScope.ChatContent(
     } else {
         when (uiState.screenState) {
             ChatScreenState.LANDING -> {
-                // A selected spec is named by its label, as the top bar names it.
-                val specLabel = uiState.modelSpecs?.labelFor(uiState.selectedSpec)
+                val text = uiState.landingText(agentName, stringResource(Res.string.chat_agent_fallback_label))
                 LandingContent(
-                    selectedModel = specLabel ?: uiState.selectedModel,
-                    selectedAgentName = agentName?.let { specLabel ?: it },
+                    selectedModel = text.caption,
+                    selectedAgentName = text.agentName,
+                    title = text.title,
+                    description = text.description,
                     onSelectModel = viewModel::openModelSheet.takeIf { uiState.modelPickerShown },
                     // A temporary chat is never filed (SendDispatchDelegate), so it claims no project.
                     projectName = projectName?.takeIf { !uiState.isTemporaryChat },
@@ -310,23 +314,59 @@ private fun ChatMessageListPane(
 }
 
 /**
- * The new chat's own icon, as web's landing shows it: the selected spec's `iconURL` (an image, or
- * an endpoint whose glyph to borrow), else the selected agent's avatar. Null keeps the app tile.
+ * The new chat's own icon, as web's landing shows it: the selected spec's own icon ([ownIconSource]:
+ * its `iconURL`, its preset's, its agent's avatar), else the selected agent's avatar. Null keeps the
+ * app tile, so a spec with no icon of its own looks like the raw model it runs on.
  */
 internal fun ChatUiState.landingHeroIcon(): LandingHeroIcon? {
-    val specIcon = modelSpecs?.list?.find { it.name == selectedSpec }?.iconURL?.takeIf(String::isNotBlank)
-    if (specIcon != null) {
-        val isImage = specIcon.startsWith("http") || specIcon.startsWith("/")
-        return if (isImage) {
-            LandingHeroIcon(endpointName = selectedEndpoint, iconUrl = resolveAvatarUrl(specIcon, serverUrl))
-        } else {
-            LandingHeroIcon(endpointName = specIcon, iconUrl = null)
-        }
+    val spec = modelSpecs?.list?.find { it.name == selectedSpec }
+    if (spec != null) {
+        val icon = spec.ownIconSource(agents, serverUrl) ?: return null
+        return LandingHeroIcon(endpointName = icon.endpointName, iconUrl = icon.imageUrl)
     }
-    val agentAvatar = agents.takeIf { selectedEndpoint == EndpointConstants.AGENTS }
-        ?.find { it.id == selectedModel }
+    val agentAvatar = selectedAgent()
         ?.avatarUrl
         ?.let { resolveAvatarUrl(it, serverUrl) }
         ?: return null
     return LandingHeroIcon(endpointName = null, iconUrl = agentAvatar)
+}
+
+private fun ChatUiState.selectedAgent() =
+    agents.takeIf { selectedEndpoint == EndpointConstants.AGENTS }?.find { it.id == selectedModel }
+
+/** What the new-chat screen says. Null fields keep [LandingContent]'s defaults. */
+internal data class LandingText(
+    /** Replaces the time-of-day greeting. */
+    val title: String? = null,
+    /** Replaces "How can I help". */
+    val description: String? = null,
+    /** The prominent agent line under the greeting; only a temporary chat, whose title is fixed, uses it. */
+    val agentName: String? = null,
+    /** The small model label that opens the picker. */
+    val caption: String? = null,
+)
+
+/**
+ * The landing's words, as web's `Landing.tsx`: the selected agent's name, else the spec's label when
+ * it has `showOnLanding`, is the title; the description is the agent's, then that spec's, then the
+ * spec preset's `greeting` (which applies without `showOnLanding`, as a new chat carries the preset's
+ * greeting). A temporary chat keeps its own title and subtitle. [agentName] is the selected agent's,
+ * resolved by the caller; for an agent spec it wins over the spec's label, as on web. An agent not
+ * (yet) in the list is captioned [agentFallbackLabel], so the landing still opens the picker.
+ */
+internal fun ChatUiState.landingText(agentName: String?, agentFallbackLabel: String? = null): LandingText {
+    val spec = modelSpecs?.list?.find { it.name == selectedSpec }
+    val specLabel = modelSpecs?.labelFor(selectedSpec)
+    // An agent's raw "model" is its id, which says nothing.
+    val modelLabel = specLabel ?: when {
+        selectedEndpoint != EndpointConstants.AGENTS -> selectedModel
+        agentName == null && selectedModel != null -> agentFallbackLabel
+        else -> null
+    }
+    if (isTemporaryChat) return LandingText(agentName = agentName, caption = modelLabel)
+    val branded = spec?.takeIf { it.showOnLanding == true }
+    val title = agentName ?: branded?.displayLabel
+    val description = listOf(selectedAgent()?.description, branded?.description, spec?.preset?.greeting)
+        .firstOrNull { !it.isNullOrBlank() }
+    return LandingText(title = title, description = description, caption = modelLabel.takeUnless { it == title })
 }

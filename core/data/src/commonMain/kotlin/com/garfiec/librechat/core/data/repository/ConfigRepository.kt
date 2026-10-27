@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.response.Category
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -35,6 +36,12 @@ interface ConfigRepository {
     val startupConfig: StateFlow<StartupConfig?>
     val endpointConfigs: StateFlow<Map<String, EndpointConfig>>
     val availableModels: StateFlow<Map<String, List<String>>>
+
+    /**
+     * The active server's base URL, which the config's relative icon paths (an endpoint's or a
+     * spec's `iconURL`, `/images/…`) are joined to.
+     */
+    val serverUrl: Flow<String>
 
     /**
      * The backend version detected from `/api/config` (via the `version` field

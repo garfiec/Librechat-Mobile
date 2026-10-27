@@ -3311,6 +3311,74 @@
       },
       "why": "The web_search tool's text output is built by formatResultsForLLM in the @librechat/agents npm package (src/tools/search/format.ts), not in this repo, so the closest watch is the package pin. A Stop after the search persists that output but not the web_search attachment, and the card lists the sources by parsing its '# Search N: \"title\"' blocks and their URL / Summary / Date / Source lines. Checked identical at 3.2.01 and 3.4.7. When this reports DRIFT, look only at the @librechat/agents version; if it moved, diff dist/esm/tools/search/format.mjs between the two versions (unpkg) and dismiss if formatSource is unchanged.",
       "failure_mode": "A stopped search's card shows 'Searched the web' with no sources, as upstream's web does. Nothing errors."
+    },
+    {
+      "id": "icon-url-image-rule",
+      "upstream": {
+        "file": "client/src/utils/icons.ts",
+        "symbol": "isImageURL",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/IconUrls.kt",
+        "symbol": "isImageUrl"
+      },
+      "why": "An `iconURL` (a spec's, a preset's, a conversation's, an endpoint's) is either an image or the name of an endpoint or provider whose glyph to borrow. Web decides which with `isImageURL`: an absolute or protocol-relative URL, a `data:image/` URI, a rooted path, or a bare file name with an image extension. The picker, landing, Compare and the conversation rows decide the same way.",
+      "failure_mode": "If web accepts another image form, mobile draws a generic glyph where web draws the admin's image; if it narrows, mobile tries to load a name as a URL and falls back to the glyph. Nothing fails to decode."
+    },
+    {
+      "id": "model-spec-icon-chain",
+      "upstream": {
+        "file": "client/src/utils/endpoints.ts",
+        "symbol": "getModelSpecIconURL",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/IconUrls.kt",
+        "symbol": "ModelSpec.iconValue"
+      },
+      "why": "A spec's icon is its own `iconURL`, then its preset's, then its agent's avatar (agent specs only), then its endpoint's name, skipping empty strings. The picker rows, the landing hero and Compare's spec lane all take it from here.",
+      "failure_mode": "If web reorders the chain or adds a source, the same spec shows a different icon on mobile than on web."
+    },
+    {
+      "id": "model-spec-groups",
+      "upstream": {
+        "file": "client/src/components/Chat/Menus/Endpoints/components/CustomGroup.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpecGroups.kt",
+        "symbol": "specSections"
+      },
+      "why": "How the picker places a spec by its `group`: none at the top, a group exactly equal to a shown endpoint's key at the top of that endpoint's section (EndpointItem.tsx), any other group a headed group after the endpoints with the first `groupIcon` found (this file). With `modelSelect: false` no endpoint is shown, so every group is a custom one. Mobile keeps its own `order` sort within each group, and puts a spec grouped under a model-less endpoint in a group of its own where web hides it.",
+      "failure_mode": "If web changes the matching (case, labels instead of keys) or the icon pick, mobile groups the same specs differently from web."
+    },
+    {
+      "id": "model-spec-groups-endpoint",
+      "upstream": {
+        "file": "client/src/components/Chat/Menus/Endpoints/components/EndpointItem.tsx",
+        "symbol": "endpointSpecs",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpecGroups.kt",
+        "symbol": "specSections"
+      },
+      "why": "A spec nests in an endpoint's section when its `group` is exactly that endpoint's key (`spec.group === endpoint.value`): not its label, and case-sensitive. `model-spec-groups` watches the custom-group half of the same rule.",
+      "failure_mode": "If web starts matching labels or ignoring case, a spec web nests under an endpoint shows as a group of its own on mobile."
+    },
+    {
+      "id": "model-spec-landing",
+      "upstream": {
+        "file": "client/src/components/Chat/Landing.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/screen/ChatContent.kt",
+        "symbol": "ChatUiState.landingText"
+      },
+      "why": "The new chat's title is the selected agent's name, else the spec's label when it has `showOnLanding`; its description is the agent's, then that spec's description, then the conversation's `greeting` (a spec's preset greeting). A temporary chat blanks both. Mobile renders the description as plain text where web renders sanitized markdown.",
+      "failure_mode": "If web changes the precedence or what `showOnLanding` controls, mobile's landing names or describes the chat differently from web's."
     }
   ]
 }

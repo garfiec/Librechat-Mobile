@@ -240,7 +240,7 @@ private fun ArchivedConversationItem(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         EndpointIcon(
-            endpointName = data.endpoint,
+            endpointName = data.iconEndpoint,
             iconUrl = data.endpointIconUrl,
             size = 24.dp,
             contentDescription = endpointLabel,

@@ -60,6 +60,7 @@ class ConversationListViewModelTest {
         every { endpointConfigs } returns endpointConfigsFlow
         every { startupConfig } returns startupConfigFlow
         every { detectedBackendVersion } returns MutableStateFlow("0.8.8")
+        every { serverUrl } returns flowOf("https://srv")
     }
 
     // The real share sheet controller over a mocked repository, so Share is checked at the sheet's
