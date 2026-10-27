@@ -111,6 +111,9 @@ data class UploadRoutingContext(
 sealed interface SendBlockReason {
     data object SelectAgent : SendBlockReason
     data object SelectModel : SendBlockReason
+
+    /** Compare's second model needs a spec on this server; the selector opens on lane B. */
+    data object SelectSecondaryModel : SendBlockReason
     data object AgentsUnavailable : SendBlockReason
     data object AgentNotAvailable : SendBlockReason
     data object ModelNotAvailable : SendBlockReason

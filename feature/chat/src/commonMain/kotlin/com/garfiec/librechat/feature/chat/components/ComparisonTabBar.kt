@@ -115,7 +115,7 @@ fun ComparisonTabBar(
                         contentAlignment = Alignment.CenterStart,
                     ) {
                         TextButton(onClick = continueCallback) {
-                            Text(stringResource(Res.string.continue_with_response))
+                            Text(stringResource(Res.string.keep_this_answer))
                         }
                     }
                 }

@@ -3379,6 +3379,47 @@
       },
       "why": "The new chat's title is the selected agent's name, else the spec's label when it has `showOnLanding`; its description is the agent's, then that spec's description, then the conversation's `greeting` (a spec's preset greeting). A temporary chat blanks both. Mobile renders the description as plain text where web renders sanitized markdown.",
       "failure_mode": "If web changes the precedence or what `showOnLanding` controls, mobile's landing names or describes the chat differently from web's."
+    },
+    {
+      "id": "compare-added-convo-params",
+      "upstream": {
+        "file": "packages/api/src/agents/added.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/ComparisonModeDelegate.kt",
+        "symbol": "buildAddedConvo"
+      },
+      "why": "Compare's second model takes its spec preset's settings only as flat `addedConvo` fields the server copies by name (`temperature`, `top_p`/`topP`, `topK`, the penalties, `maxOutputTokens`, `maxTokens`/`max_tokens`), and only when the primary is a saved agent. `AddedConversation` sends the preset's own names for them: `top_p` and `max_tokens`, not the camelCase aliases.",
+      "failure_mode": "If the server reads more fields or applies them for an ephemeral primary too, lane B silently runs without settings its spec sets."
+    },
+    {
+      "id": "ephemeral-agent-sender",
+      "upstream": {
+        "file": "packages/data-provider/src/parsers.ts",
+        "symbol": "getEphemeralSender",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpecSeed.kt",
+        "symbol": "laneBSpecFor"
+      },
+      "why": "A reopened comparison's second lane gets its spec back from the sender in its saved agent id, which is `modelLabel ?? spec.label ?? modelDisplayLabel`. The server saves nothing else about that lane's spec.",
+      "failure_mode": "If the sender stops carrying the spec's label, a reopened comparison's second lane runs without its spec's tools and settings (or, under `enforce`, asks for a pick)."
+    },
+    {
+      "id": "continue-supported",
+      "upstream": {
+        "file": "client/src/hooks/useGenerationsByLatest.ts",
+        "symbol": "continueSupported",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/StoppedReply.kt",
+        "symbol": "stoppedReplyId"
+      },
+      "why": "Which reply offers Continue: the latest, with a finish_reason other than `stop` and `tool_call_limit` (Constants.TOOL_CALL_LIMIT_FINISH_REASON), never one with no user turn behind it or a compaction. Mobile also counts a reply saved `unfinished`, which is what a v0.8.8 agents stop leaves.",
+      "failure_mode": "If web starts offering Continue on other replies, or the server starts saving a finish_reason for stopped replies, mobile's chip shows on different replies than web's button."
     }
   ]
 }

@@ -487,7 +487,10 @@
     <string name="dialog_title_fill_variables">Completar variables</string>
 
     <!-- Comparison mode -->
-    <string name="continue_with_response">Continuar con esta respuesta</string>
+    <string name="keep_this_answer">Conservar esta respuesta</string>
+    <string name="reply_stopped">Detenida</string>
+    <string name="action_continue_reply">Continuar</string>
+    <string name="action_keep_and_continue">Conservar y continuar</string>
 
     <!-- Provider Keys chat-time errors. -->
     <string name="provider_keys_chat_error_no_key">No se encontró ninguna clave. Proporciona una clave e inténtalo de nuevo.</string>
@@ -501,6 +504,7 @@
     <!-- Send block reasons (shown in error snackbar when send can't proceed) -->
     <string name="send_block_select_agent">Selecciona un agente antes de enviar tu mensaje.</string>
     <string name="send_block_select_model">Selecciona un modelo antes de enviar tu mensaje.</string>
+    <string name="send_block_select_second_model">Elige el modelo B de la lista antes de enviar.</string>
     <string name="send_block_agents_unavailable">Los agentes no están disponibles en este servidor. Elige un modelo diferente.</string>
     <string name="send_block_api_key_required">Añade tu clave de API para %1$s para enviar mensajes.</string>
     <string name="send_block_agent_not_available">El agente seleccionado no está disponible en este servidor. Elige un agente diferente.</string>

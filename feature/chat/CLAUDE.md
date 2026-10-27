@@ -254,6 +254,12 @@ all, where web lists everything and every pick fails. A cached conversation with
 config rather than the selection (unseeded when the conversation loads); a failed refresh is
 retried on the next open.
 
+Compare's second model is held to the same rule, though the server checks only the primary's
+`spec` and takes a raw `addedConvo` under `enforce`: its picker and quick picks list no raw rows
+there, and the preflight refuses a comparison whose second lane has no spec with
+`SendBlockReason.SelectSecondaryModel`, which opens the selector on lane B. That case arises only
+from a reopened comparison whose spec can't be read back (see "Compare Models", Reopen).
+
 Under `enforce` a follow-up queued during an agents run stays on the local drain instead of the
 server's queue (`QueueOrchestrationDelegate.serverOwnedSpec`). The server's queued turn carries no
 spec (its enqueue schema has no such field, and the worker re-posts the turn to the chat route
@@ -375,7 +381,14 @@ ported.
   scopes the same way. **Ownership is the recursive `outputToolCallIds` walk, never
   `renderedToolCallIds`** — the latter stops at one level because that is where the dispatcher stops
   drawing cards, which is a different question.
-- **Reopen (`ComparisonModeDelegate.rehydrateFromMessage`):** nothing but the persisted attribution records that a conversation was a comparison, so `loadConversation` rehydrates comparison state from the assistant tail's parts on the first non-empty emission (latched once per load; respects a session toggle-off). Continue-with-response = `POST /api/messages/branch` filtered to one agent's parts; the branched sibling becomes a single-agent tail, so the next reopen is the normal view.
+- **Reopen (`ComparisonModeDelegate.rehydrateFromMessage`):** nothing but the persisted attribution records that a conversation was a comparison, so `loadConversation` rehydrates comparison state from the assistant tail's parts on the first non-empty emission (latched once per load; respects a session toggle-off). Keep this answer = `POST /api/messages/branch` filtered to one agent's parts; the branched sibling becomes a single-agent tail, so the next reopen is the normal view.
+- **Lane B's spec on reopen.** The server saves nothing about the added convo's spec: not on the message, not on the conversation. The only trace is the sender in an ephemeral lane's id, `modelLabel ?? spec.label ?? modelDisplayLabel` (left out when empty). `ComparisonState.reopenedSecondaryId` keeps that id and `laneBSpec` reads it against the spec config through `laneBSpecFor`: the one spec on the lane's pair with that label, else, under `enforce` only, the one spec on the pair. It is re-read on every use, so a reopen that lands before the spec config still finds its spec; the screens read `ChatUiState.laneBSpec`, never `secondarySpec` directly. **This depends on `buildAddedConvo` sending no `modelLabel`**: the server would save that as the sender in place of the spec's label. A saved-agent lane has no spec, and the server ignores one there.
+- **Lane B's settings.** `buildAddedConvo` copies its spec preset's sampling fields flat onto `AddedConversation`, the names `packages/api/src/agents/added.ts` copies. v0.8.8 applies them only when the primary is a saved agent. They are not `ModelParamPayload` output: that is keyed per provider, and the server reads this list by name whatever the provider. A spec's prompt never reaches lane B, on web either: the served config strips `promptPrefix` and the other private preset fields (`PRIVATE_MODEL_SPEC_PRESET_FIELDS`), and the server merges them into the primary only.
+- **Edit and regenerate carry lane B; continue and compaction don't.** `MessageEditingDelegate.launchSend` calls `onSendStart` and sends `buildAddedConvo`, so an edit or regenerate in a comparison re-runs both panes, as web does. **A comparison can't be continued as one** (v0.8.8, checked on the rig): a continue carrying `addedConvo` makes the server rewrite both lanes from scratch in place, partial text lost, and one without it saves the primary's answer alone, dropping lane B's. A single-model continue extends the reply correctly. So `ChatViewModel.continueGeneration` refuses while comparing, and each pane offers **Keep and continue** instead (`ComparisonModeDelegate.keepAndContinue`): branch to that lane (as "Keep this answer" does), wait for the kept reply to be the one shown, then continue it as a single-model chat. The server records cut-short only per message (`unfinished`), never per lane, so both panes offer it.
+
+## Continuing a cut-short reply
+- The chip ("Stopped" + Continue, `StoppedReplyFooter`) sits under the latest reply, always visible rather than in the tap-to-reveal action row: it also says why the reply ends mid-sentence. `MessageList` and `SecondaryMessageList` draw it under the reply whose id `stoppedReply` names.
+- Which reply: `ChatUiState.continuableReplyId` (`util/StoppedReply.kt`). **Not web's rule**: web's `continueSupported` needs a `finish_reason` other than `stop`, and a v0.8.8 agents reply only ever carries `tool_call_limit`, which it excludes, so web's Continue almost never shows. A stopped or dropped reply is saved `unfinished` instead, so that counts too. `unfinished` is also what a reply paused on a tool approval or question carries, so a pending action hides the chip. Continue replays the user turn above the reply, so a reply with none, an error and a compaction summary get nothing; so does a comparison reply outside a comparison (a single-model continue would drop lane B).
 
 ## Content Rendering
 - `ContentPartRenderer` dispatches by `ContentPart.type`:

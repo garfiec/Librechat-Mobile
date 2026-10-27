@@ -75,6 +75,8 @@ class MessageEditingDelegateTest {
             // The readiness gate normally lets the send through; `refuseSend` exercises the path
             // where it does not (no model selected, a readiness timeout, Compare setup opening).
             runWhenSendReady = { onRefused, action -> if (refuseSend) onRefused() else action() },
+            onComparisonSendStart = {},
+            buildAddedConvo = { null },
         )
         val state get() = flow.value
     }

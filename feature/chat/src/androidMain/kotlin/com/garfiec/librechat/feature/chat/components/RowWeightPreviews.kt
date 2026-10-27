@@ -104,7 +104,6 @@ private fun SenderBubble(message: Message, layout: String) {
         onRegenerate = {},
         onCopy = {},
         onFeedback = {},
-        onContinue = null,
         onReadAloud = {},
         onFork = {},
         baseUrl = "",

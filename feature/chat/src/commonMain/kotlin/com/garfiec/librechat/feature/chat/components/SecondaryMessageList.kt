@@ -65,6 +65,8 @@ fun SecondaryMessageList(
     syncHold: () -> Boolean = { false },
     /** Reading room past the last line, as in [MessageList]. */
     extraEndSpace: Dp = 0.dp,
+    /** The cut-short reply's chip, as in [MessageList]. */
+    stoppedReply: StoppedReplyAction? = null,
 ) {
     val extraEndPx = with(LocalDensity.current) { extraEndSpace.toPx() }
     val follower = rememberTailFollowerState()
@@ -171,6 +173,12 @@ fun SecondaryMessageList(
                         showBubbles = showBubbles,
                         useKatex = useKatex,
                     )
+                    if (stoppedReply?.messageId == node.message.messageId) {
+                        StoppedReplyFooter(
+                            action = stoppedReply,
+                            modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
+                        )
+                    }
                     }
                     }
                 }

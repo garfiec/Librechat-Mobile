@@ -51,6 +51,7 @@ import com.garfiec.librechat.feature.chat.util.pickableSkills
 import com.garfiec.librechat.feature.chat.util.requiresSpec
 import com.garfiec.librechat.feature.chat.util.resolveLandingStarters
 import com.garfiec.librechat.feature.chat.util.skillPickRules
+import com.garfiec.librechat.feature.chat.util.stoppedReplyId
 
 /**
  * The agents endpoint capability that enables server-side text extraction (`tool_resource=context`).
@@ -130,6 +131,13 @@ data class ChatUiState(
 
     val selectedSpec: String? get() = selection.selectedSpec
     val modelSpecs: ModelSpecs? get() = selection.modelSpecs
+
+    /** The latest reply cut short, which the chat offers to continue ([stoppedReplyId]). */
+    val continuableReplyId: String?
+        get() = stoppedReplyId(displayMessages, isStreaming, pendingAction != null, comparisonState.isEnabled)
+
+    /** Compare's second lane's spec, including one a reopened comparison was sent with ([ComparisonState.laneBSpec]). */
+    val laneBSpec: String? get() = comparisonState.laneBSpec(modelSpecs)
     val selectedModel: String? get() = selection.selectedModel
     val selectedEndpoint: String get() = selection.selectedEndpoint
     val endpointConfigs: Map<String, EndpointConfig> get() = selection.endpointConfigs

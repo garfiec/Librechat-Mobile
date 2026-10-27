@@ -86,12 +86,13 @@ fun MessageList(
      * then its activity groups have already chosen to collapse and nothing re-opens them.
      */
     justSettledMessageId: String? = null,
-    onContinue: (messageId: String) -> Unit = {},
     /**
      * False hides the actions that start a run (edit, regenerate, continue): Compare setup sends
      * nothing until it ends, so they would do nothing.
      */
     canResubmit: Boolean = true,
+    /** The cut-short reply's chip ([StoppedReplyFooter]), under that reply; null shows none. */
+    stoppedReply: StoppedReplyAction? = null,
     /**
      * Hides every message action except Copy and branch switching, whatever callbacks are passed.
      */
@@ -599,11 +600,6 @@ fun MessageList(
                     } else {
                         null
                     },
-                    onContinue = if (resubmit && !node.message.isCreatedByUser) {
-                        { onContinue(node.message.messageId) }
-                    } else {
-                        null
-                    },
                     onReadAloud = if (readOnly) null else ({ onReadAloud(node.message.messageId) }),
                     onFork = if (readOnly) null else ({ onFork(node.message.messageId) }),
                     baseUrl = baseUrl,
@@ -639,6 +635,12 @@ fun MessageList(
                         null
                     },
                 )
+                if (resubmit && stoppedReply?.messageId == node.message.messageId) {
+                    StoppedReplyFooter(
+                        action = stoppedReply,
+                        modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
+                    )
+                }
                 }
                 }
             }

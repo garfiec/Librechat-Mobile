@@ -8,6 +8,7 @@ import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.request.EditedContent
 import com.garfiec.librechat.feature.chat.util.MessageEditShape
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
@@ -57,6 +58,10 @@ class MessageEditingDelegate(
     private val streamingManager: StreamingManagerDelegate,
     private val requestBuilder: ChatRequestBuilder,
     private val runWhenSendReady: (onRefused: () -> Unit, action: () -> Unit) -> Unit,
+    /** `ComparisonModeDelegate.onSendStart`: resets both panes before a comparison resubmit. */
+    private val onComparisonSendStart: () -> Unit,
+    /** `ComparisonModeDelegate.buildAddedConvo`: Compare's second model, null when not comparing. */
+    private val buildAddedConvo: (parentMessageId: String?) -> AddedConversation?,
 ) {
 
     /**
@@ -200,6 +205,8 @@ class MessageEditingDelegate(
             optimisticUserMessageId = null,
             isRegenerate = true,
             compact = true,
+            // A summary of the branch, not a reply: there is no second answer to compare.
+            withComparison = false,
             logLabel = "compactConversation",
         )
     }
@@ -227,6 +234,8 @@ class MessageEditingDelegate(
             isEdited = true,
             isRegenerate = true,
             isContinued = true,
+            // Never offered in a comparison (its panes keep a lane first): see launchSend.
+            withComparison = false,
             logLabel = "continueGeneration",
         )
     }
@@ -244,10 +253,13 @@ class MessageEditingDelegate(
      * them silently drops the quoted context while the chips stay visible. Continue sends
      * none, matching web. Regenerate and both edits likewise replay the user turn's persisted
      * [manualSkills] (web's `overrideManualSkills`), so the new reply is primed with the skills
-     * its pills show; continue and compaction send none. The new-message send path
-     * (`SendDispatchDelegate.doSendWithSpec`) is separate: it additionally carries an
-     * added-conversation for comparison mode and a bespoke stream-terminated callback this helper
-     * deliberately omits.
+     * its pills show; continue and compaction send none.
+     *
+     * In a comparison an edit or regenerate carries the second model too ([buildAddedConvo]), so
+     * both panes answer again, as on web. Compaction and continue don't; a comparison's panes keep
+     * one lane before continuing it (`ComparisonModeDelegate.keepAndContinue`). The new-message send
+     * path (`SendDispatchDelegate.doSendWithSpec`) is separate: it adds a bespoke stream-terminated
+     * callback this helper deliberately omits.
      */
     @Suppress("LongParameterList")
     private fun launchSend(
@@ -271,6 +283,7 @@ class MessageEditingDelegate(
         isContinued: Boolean = false,
         compact: Boolean? = null,
         editedContent: EditedContent? = null,
+        withComparison: Boolean = true,
     ) {
         // optimisticUserMessageId is non-null only for the edit-user path, whose optimistic sibling
         // this turn minted; regenerate/continue/rerun/compact resubmit a persisted message the
@@ -288,6 +301,12 @@ class MessageEditingDelegate(
         val ephemeralAgent = requestBuilder.buildEphemeralAgent()
         Logger.d { "$logLabel: webSearch=$webSearchEnabled, ephemeralAgent=$ephemeralAgent" }
         val dispatch = requestBuilder.currentDispatch()
+        val addedConvo = if (withComparison) {
+            onComparisonSendStart()
+            buildAddedConvo(parentMessageId)
+        } else {
+            null
+        }
         streamingManager.launchStream(
             chatRepository.startChat(
                 text = text,
@@ -315,6 +334,7 @@ class MessageEditingDelegate(
                 isTemporary = state.isTemporaryChat,
                 modelParams = requestBuilder.buildModelParams(),
                 editedContent = editedContent,
+                addedConvo = addedConvo,
             ),
         )
     }

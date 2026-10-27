@@ -38,6 +38,7 @@ class RepositoryFailureReportingTest {
             handle = ComparisonHandle(ChatStateHandle(flow, CoroutineScope(Dispatchers.Unconfined))),
             messageRepository = messageRepository,
             reloadConversation = { reloaded = true },
+            currentModelSpecs = { null },
         )
 
         delegate.branchFromComparison("agent_secondary____1")

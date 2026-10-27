@@ -1,7 +1,12 @@
 package com.garfiec.librechat.core.data.repository
 
+import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.request.ChatRequest
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.double
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -42,6 +47,30 @@ class ChatPayloadBuilderTest {
         // Absent, not null: on a later turn a present field would move the chat.
         val plain = ChatPayloadBuilder.build(text = "hi", conversationId = "c-1", endpoint = "openAI", model = "gpt-4o")
         assertFalse("chatProjectId" in Json { explicitNulls = false }.encodeToString(ChatRequest.serializer(), plain))
+    }
+
+    @Test
+    fun secondModelSettingsRideFlatAndOnlyWhenSet() {
+        val wire = Json { encodeDefaults = false; explicitNulls = false }
+        val withSpec = ChatPayloadBuilder.build(
+            text = "hi", conversationId = "c-1", endpoint = "openAI", model = "gpt-4o",
+            addedConvo = AddedConversation(
+                endpoint = "anthropic", model = "claude", spec = "research",
+                temperature = 0.2, topP = 0.9, maxTokens = 512,
+            ),
+        )
+        val added = wire.encodeToJsonElement(ChatRequest.serializer(), withSpec).jsonObject["addedConvo"]!!.jsonObject
+        // The names `added.ts` copies, at the top level of the added convo.
+        assertEquals(0.2, added["temperature"]?.jsonPrimitive?.double)
+        assertEquals(0.9, added["top_p"]?.jsonPrimitive?.double)
+        assertEquals(512, added["max_tokens"]?.jsonPrimitive?.int)
+
+        val raw = ChatPayloadBuilder.build(
+            text = "hi", conversationId = "c-1", endpoint = "openAI", model = "gpt-4o",
+            addedConvo = AddedConversation(endpoint = "anthropic", model = "claude"),
+        )
+        val rawAdded = wire.encodeToJsonElement(ChatRequest.serializer(), raw).jsonObject["addedConvo"]!!.jsonObject
+        assertEquals(setOf("endpoint", "model"), rawAdded.keys)
     }
 
     @Test

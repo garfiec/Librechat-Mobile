@@ -20,7 +20,9 @@ import com.garfiec.librechat.feature.chat.components.LandingContent
 import com.garfiec.librechat.feature.chat.components.LandingHeroIcon
 import com.garfiec.librechat.feature.chat.components.MessageList
 import com.garfiec.librechat.feature.chat.components.MessagesUnavailable
+import com.garfiec.librechat.feature.chat.components.StoppedReplyAction
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.action_continue_reply
 import com.garfiec.librechat.feature.chat.resources.chat_agent_fallback_label
 import com.garfiec.librechat.feature.chat.resources.sender_assistant
 import com.garfiec.librechat.feature.chat.util.ClipboardWriter
@@ -258,9 +260,13 @@ private fun ChatMessageListPane(
     listState: LazyListState,
     modifier: Modifier = Modifier,
 ) {
+    val continueLabel = stringResource(Res.string.action_continue_reply)
     MessageList(
         listState = listState,
         canResubmit = uiState.canStartRun,
+        stoppedReply = uiState.continuableReplyId?.let { id ->
+            StoppedReplyAction(id, continueLabel, viewModel::continueGeneration)
+        },
         displayMessages = displayMessages,
         isStreaming = isStreaming,
         justSettledMessageId = uiState.justSettledMessageId,
@@ -276,7 +282,6 @@ private fun ChatMessageListPane(
         onCopyMessage = { messageId -> copyMessageToClipboard(viewModel, clipboard, messageId) },
         onFeedback = viewModel::submitFeedback,
         feedbackEnabled = uiState.gates.feedbackEnabled,
-        onContinue = { viewModel.continueGeneration() },
         onReadAloud = viewModel::readAloud,
         onFork = viewModel::showForkOptions,
         currentlyReadingMessageId = uiState.currentlyReadingMessageId,

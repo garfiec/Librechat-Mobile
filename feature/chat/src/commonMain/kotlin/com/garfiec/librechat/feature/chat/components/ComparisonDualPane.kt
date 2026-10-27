@@ -45,7 +45,7 @@ val ComparisonPaneGap = 16.dp
 
 /**
  * Tablet-layout comparison view: two side-by-side panes as rounded cards, each with its model
- * selector (and "Continue with this response" once a turn can branch) above its own message list.
+ * selector (and "Keep this answer" once a turn can branch) above its own message list.
  * Cards rather than divider lines, matching Compare setup, so starting the comparison changes only
  * what pane B holds.
  *
@@ -155,7 +155,7 @@ internal fun ComparisonPaneCard(
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) { selector() }
             if (onContinue != null) {
                 TextButton(onClick = onContinue) {
-                    Text(stringResource(Res.string.continue_with_response))
+                    Text(stringResource(Res.string.keep_this_answer))
                 }
             }
         }

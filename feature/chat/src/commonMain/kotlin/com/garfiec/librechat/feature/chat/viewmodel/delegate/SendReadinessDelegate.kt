@@ -84,6 +84,14 @@ class SendReadinessDelegate(
         if (state.modelSpecs.requiresSpec && state.selectedSpec.isNullOrBlank()) {
             return SendBlockReason.SelectModel
         }
+        // The server checks only the primary, but Compare offers lane B no raw models under
+        // `enforce` either; a reopened lane whose spec can't be read back asks here instead.
+        val comparison = state.comparisonState
+        if (state.modelSpecs.requiresSpec && comparison.isEnabled &&
+            comparison.secondaryEndpoint != EndpointConstants.AGENTS && state.laneBSpec.isNullOrBlank()
+        ) {
+            return SendBlockReason.SelectSecondaryModel
+        }
         if (state.selectedModel == null) {
             return if (state.selectedEndpoint == EndpointConstants.AGENTS) {
                 SendBlockReason.SelectAgent

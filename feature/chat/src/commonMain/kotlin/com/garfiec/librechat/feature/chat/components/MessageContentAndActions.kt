@@ -281,7 +281,6 @@ internal fun MessageContentAndActions(
     onRegenerate: (() -> Unit)?,
     onCopy: (() -> Unit)?,
     onFeedback: ((MinimalFeedback?) -> Unit)?,
-    onContinue: (() -> Unit)?,
     onReadAloud: (() -> Unit)?,
     onFork: (() -> Unit)?,
     isReading: Boolean,
@@ -720,7 +719,7 @@ internal fun MessageContentAndActions(
 
     // Action row: sibling nav + message actions (tap-to-reveal)
     val hasActions = siblingCount > 1 || onEdit != null || onRegenerate != null ||
-        onCopy != null || onFeedback != null || onContinue != null ||
+        onCopy != null || onFeedback != null ||
         onReadAloud != null || onFork != null
     if (hasActions) {
         AnimatedVisibility(

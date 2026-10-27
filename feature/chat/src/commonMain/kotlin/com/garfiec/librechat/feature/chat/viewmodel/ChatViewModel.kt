@@ -223,6 +223,7 @@ class ChatViewModel(
         handle = ComparisonHandle(stateHandle),
         messageRepository = messageRepository,
         reloadConversation = { id -> conversationLoadDelegate.loadConversation(id) },
+        currentModelSpecs = { configRepository.startupConfig.value?.modelSpecs },
     )
     private val contextProjectionDelegate = ContextProjectionDelegate(
         ContextProjectionHandle(stateHandle),
@@ -674,6 +675,8 @@ class ChatViewModel(
         streamingManager = streamingManager,
         requestBuilder = requestBuilder,
         runWhenSendReady = sendReadinessDelegate::runWhenSendReady,
+        onComparisonSendStart = comparisonDelegate::onSendStart,
+        buildAddedConvo = comparisonDelegate::buildAddedConvo,
     )
 
     /** True when this ViewModel was opened for a brand-new chat (no conversationId from navigation). */
@@ -1283,8 +1286,9 @@ class ChatViewModel(
 
     fun cancelPausePanelAutoAdvance() = pendingActionDelegate.cancelAutoAdvance()
 
+    /** Continues the latest reply. Not in a comparison, whose panes use [keepAndContinue]. */
     fun continueGeneration() {
-        if (_uiState.value.isEditingQueued) return
+        if (_uiState.value.isEditingQueued || _uiState.value.comparisonState.isEnabled) return
         editingDelegate.continueGeneration()
     }
 
@@ -1758,6 +1762,8 @@ class ChatViewModel(
     fun updateModelParameters(parameters: ModelParameters) = modelDelegate.updateModelParameters(parameters)
 
     fun branchFromComparison(agentId: String) = comparisonDelegate.branchFromComparison(agentId)
+
+    fun keepAndContinue(agentId: String) = comparisonDelegate.keepAndContinue(agentId, ::continueGeneration)
 
     fun setContextGaugeExpanded(expanded: Boolean) {
         contextGaugeExpandedOverride.value = expanded

@@ -92,7 +92,6 @@ private fun AiTurnHost(siblingCount: Int) {
         onRegenerate = {},
         onCopy = {},
         onFeedback = {},
-        onContinue = null,
         onReadAloud = {},
         onFork = {},
         baseUrl = "",

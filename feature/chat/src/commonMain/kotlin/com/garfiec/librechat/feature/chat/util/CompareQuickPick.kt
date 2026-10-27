@@ -35,7 +35,9 @@ data class CompareQuickPick(
  * "Browse all models".
  *
  * [specs] (the picker's visible spec rows) lead the list, as in the full selector. Raw models and
- * agents follow only where [modelSpecs] lists them and a send to them would be accepted.
+ * agents follow only where [modelSpecs] lists them, and never under `enforce`. The server refuses
+ * a primary with no spec there; it checks only the primary, but Compare holds the second model to
+ * the same rule, as the send preflight does.
  */
 @Suppress("LongParameterList")
 fun compareQuickPicks(

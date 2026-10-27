@@ -23,7 +23,6 @@ expect fun MessageBubble(
     onRegenerate: (() -> Unit)? = null,
     onCopy: (() -> Unit)? = null,
     onFeedback: ((MinimalFeedback?) -> Unit)? = null,
-    onContinue: (() -> Unit)? = null,
     onReadAloud: (() -> Unit)? = null,
     onFork: (() -> Unit)? = null,
     baseUrl: String = "",

@@ -46,7 +46,7 @@ internal fun comparisonModelLabels(uiState: ChatUiState): ComparisonModelLabels?
             comparison.secondaryEndpoint,
             secondaryModel,
             uiState.agents,
-            comparison.secondarySpec,
+            uiState.laneBSpec,
             uiState.modelSpecs,
         ),
     )
@@ -107,7 +107,7 @@ internal fun rememberComparisonSelectorRouting(
             aSpec = uiState.selectedSpec,
             bEndpoint = comparison.secondaryEndpoint,
             bModel = comparison.secondaryModel,
-            bSpec = comparison.secondarySpec,
+            bSpec = uiState.laneBSpec,
             selectA = onSelectPrimary,
             selectB = onSelectSecondary,
             selectSpecA = onSelectPrimarySpec,

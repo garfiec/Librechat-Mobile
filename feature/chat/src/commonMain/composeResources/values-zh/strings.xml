@@ -482,7 +482,10 @@
     <string name="dialog_title_fill_variables">填写变量</string>
 
     <!-- Comparison mode -->
-    <string name="continue_with_response">使用此回复继续</string>
+    <string name="keep_this_answer">保留此回答</string>
+    <string name="reply_stopped">已停止</string>
+    <string name="action_continue_reply">继续</string>
+    <string name="action_keep_and_continue">保留并继续</string>
 
     <!-- Provider Keys chat-time errors. -->
     <string name="provider_keys_chat_error_no_key">未找到密钥。请提供密钥后重试。</string>
@@ -496,6 +499,7 @@
     <!-- Send block reasons (shown in error snackbar when send can't proceed) -->
     <string name="send_block_select_agent">发送消息前请先选择一个智能体。</string>
     <string name="send_block_select_model">发送消息前请先选择一个模型。</string>
+    <string name="send_block_select_second_model">发送前请从列表中选择模型 B。</string>
     <string name="send_block_agents_unavailable">此服务器不支持智能体。请选择其他模型。</string>
     <string name="send_block_api_key_required">请先添加 %1$s 的 API 密钥再发送消息。</string>
     <string name="send_block_agent_not_available">所选智能体在此服务器上不可用。请选择其他智能体。</string>

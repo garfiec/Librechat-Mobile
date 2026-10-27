@@ -494,7 +494,10 @@
     <string name="dialog_title_fill_variables">Заполнить переменные</string>
 
     <!-- Comparison mode -->
-    <string name="continue_with_response">Продолжить с этим ответом</string>
+    <string name="keep_this_answer">Оставить этот ответ</string>
+    <string name="reply_stopped">Остановлено</string>
+    <string name="action_continue_reply">Продолжить</string>
+    <string name="action_keep_and_continue">Оставить и продолжить</string>
 
     <!-- Provider Keys chat-time errors. -->
     <string name="provider_keys_chat_error_no_key">Ключ не найден. Укажите ключ и попробуйте снова.</string>
@@ -508,6 +511,7 @@
     <!-- Send block reasons (shown in error snackbar when send can't proceed) -->
     <string name="send_block_select_agent">Выберите агента перед отправкой сообщения.</string>
     <string name="send_block_select_model">Выберите модель перед отправкой сообщения.</string>
+    <string name="send_block_select_second_model">Перед отправкой выберите модель B из списка.</string>
     <string name="send_block_agents_unavailable">Агенты недоступны на этом сервере. Выберите другую модель.</string>
     <string name="send_block_api_key_required">Добавьте свой API-ключ для %1$s, чтобы отправлять сообщения.</string>
     <string name="send_block_agent_not_available">Выбранный агент недоступен на этом сервере. Выберите другого агента.</string>

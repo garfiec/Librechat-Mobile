@@ -37,6 +37,9 @@ class RecordingChatRepository : com.garfiec.librechat.core.data.repository.ChatR
         val editedContent: EditedContent?,
         val quotes: List<String>?,
         val manualSkills: List<String>?,
+        val isContinued: Boolean = false,
+        val compact: Boolean? = null,
+        val addedConvo: AddedConversation? = null,
     )
 
     val sent = mutableListOf<Sent>()
@@ -82,6 +85,9 @@ class RecordingChatRepository : com.garfiec.librechat.core.data.repository.ChatR
             editedContent = editedContent,
             quotes = quotes,
             manualSkills = manualSkills,
+            isContinued = isContinued,
+            compact = compact,
+            addedConvo = addedConvo,
         )
         return emptyFlow()
     }

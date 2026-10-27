@@ -502,7 +502,10 @@
     <string name="dialog_title_fill_variables">تعبئة المتغيرات</string>
 
     <!-- Comparison mode -->
-    <string name="continue_with_response">المتابعة بهذا الرد</string>
+    <string name="keep_this_answer">الاحتفاظ بهذه الإجابة</string>
+    <string name="reply_stopped">تم الإيقاف</string>
+    <string name="action_continue_reply">متابعة</string>
+    <string name="action_keep_and_continue">الاحتفاظ والمتابعة</string>
 
     <!-- Provider Keys chat-time errors. -->
     <string name="provider_keys_chat_error_no_key">لم يتم العثور على مفتاح. يرجى تقديم مفتاح والمحاولة مرة أخرى.</string>
@@ -516,6 +519,7 @@
     <!-- Send block reasons (shown in error snackbar when send can't proceed) -->
     <string name="send_block_select_agent">اختر وكيلًا قبل إرسال رسالتك.</string>
     <string name="send_block_select_model">اختر نموذجًا قبل إرسال رسالتك.</string>
+    <string name="send_block_select_second_model">اختر النموذج B من القائمة قبل الإرسال.</string>
     <string name="send_block_agents_unavailable">الوكلاء غير متاحين على هذا الخادم. يرجى اختيار نموذج مختلف.</string>
     <string name="send_block_api_key_required">أضف مفتاح API الخاص بك لـ %1$s لإرسال الرسائل.</string>
     <string name="send_block_agent_not_available">الوكيل المحدد غير متاح على هذا الخادم. يرجى اختيار وكيل مختلف.</string>

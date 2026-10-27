@@ -500,7 +500,10 @@
     <string name="dialog_title_fill_variables">Fill in Variables</string>
 
     <!-- Comparison mode -->
-    <string name="continue_with_response">Continue with this response</string>
+    <string name="keep_this_answer">Keep this answer</string>
+    <string name="reply_stopped">Stopped</string>
+    <string name="action_continue_reply">Continue</string>
+    <string name="action_keep_and_continue">Keep and continue</string>
 
     <!-- Provider Keys chat-time errors. -->
     <string name="provider_keys_chat_error_no_key">No key found. Please provide a key and try again.</string>
@@ -516,6 +519,7 @@
     <!-- Send block reasons (shown in error snackbar when send can't proceed) -->
     <string name="send_block_select_agent">Select an agent before sending your message.</string>
     <string name="send_block_select_model">Select a model before sending your message.</string>
+    <string name="send_block_select_second_model">Pick model B from the list before sending.</string>
     <string name="send_block_agents_unavailable">Agents aren't available on this server. Please pick a different model.</string>
     <string name="send_block_api_key_required">Add your API key for %1$s to send messages.</string>
     <string name="send_block_agent_not_available">The selected agent isn't available on this server. Please pick a different agent.</string>

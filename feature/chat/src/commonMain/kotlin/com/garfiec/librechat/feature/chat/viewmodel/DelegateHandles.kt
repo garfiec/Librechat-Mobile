@@ -111,6 +111,7 @@ class ComparisonWrites internal constructor(state: ChatUiState) {
 }
 
 class ComparisonHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    val stateFlow: StateFlow<ChatUiState> get() = root.stateFlow
     fun update(block: ComparisonWrites.() -> Unit) =
         root.update { ComparisonWrites(this).apply(block).applyTo(this) }
 }

@@ -28,12 +28,16 @@ import com.garfiec.librechat.feature.chat.components.ComparisonTabBar
 import com.garfiec.librechat.feature.chat.components.MESSAGE_LIST_BOTTOM_GAP
 import com.garfiec.librechat.feature.chat.components.MessageList
 import com.garfiec.librechat.feature.chat.components.SecondaryMessageList
+import com.garfiec.librechat.feature.chat.components.StoppedReplyAction
 import com.garfiec.librechat.feature.chat.components.comparisonSyncLead
 import com.garfiec.librechat.feature.chat.components.rememberComparisonScrollSync
+import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.action_keep_and_continue
 import com.garfiec.librechat.feature.chat.util.buildComparisonDisplayMessages
 import com.garfiec.librechat.feature.chat.util.iconSource
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Shared Compare Models layout for both platforms. Lays out the primary/secondary
@@ -85,6 +89,14 @@ internal fun ComparisonPanes(
         !comparisonState.primaryIsStreaming &&
         !comparisonState.secondaryIsStreaming
 
+    // A cut-short comparison reply is picked up one lane at a time: each pane keeps its own answer
+    // and continues it (ComparisonModeDelegate.keepAndContinue).
+    val keepAndContinueLabel = stringResource(Res.string.action_keep_and_continue)
+    val stoppedId = uiState.continuableReplyId?.takeIf { canBranch && uiState.canStartRun }
+    fun stoppedFor(agentId: String?) = stoppedId?.let { id ->
+        agentId?.let { agent -> StoppedReplyAction(id, keepAndContinueLabel) { viewModel.keepAndContinue(agent) } }
+    }
+
     val primaryDisplayMessages = remember(
         uiState.displayMessages,
         comparisonState.parallelMessageId,
@@ -104,7 +116,7 @@ internal fun ComparisonPanes(
         comparisonState.secondaryEndpoint,
         comparisonState.secondaryModel,
         uiState.agents,
-        comparisonState.secondarySpec,
+        uiState.laneBSpec,
         uiState.modelSpecs,
     )
     val secondaryEndpoint = comparisonState.secondaryEndpoint ?: EndpointConstants.AGENTS
@@ -114,13 +126,13 @@ internal fun ComparisonPanes(
     val secondaryIcon = remember(
         secondaryEndpoint,
         comparisonState.secondaryModel,
-        comparisonState.secondarySpec,
+        uiState.laneBSpec,
         uiState.modelSpecs,
         uiState.agents,
         uiState.serverUrl,
     ) {
         val model = comparisonState.secondaryModel
-        val spec = uiState.modelSpecs?.list?.find { it.name == comparisonState.secondarySpec }
+        val spec = uiState.modelSpecs?.list?.find { it.name == uiState.laneBSpec }
         when {
             spec != null -> spec.iconSource(uiState.agents, uiState.serverUrl)
             secondaryEndpoint == EndpointConstants.AGENTS && model != null -> IconSource(
@@ -211,8 +223,8 @@ internal fun ComparisonPanes(
                 onCopyMessage = onCopyMessage,
                 onFeedback = viewModel::submitFeedback,
                 feedbackEnabled = uiState.gates.feedbackEnabled,
-                onContinue = { viewModel.continueGeneration() },
                 canResubmit = uiState.canStartRun,
+                stoppedReply = stoppedFor(comparisonState.primaryAgentId),
                 onReadAloud = viewModel::readAloud,
                 onFork = viewModel::showForkOptions,
                 currentlyReadingMessageId = uiState.currentlyReadingMessageId,
@@ -289,6 +301,7 @@ internal fun ComparisonPanes(
                 listState = secondaryListState,
                 syncHold = syncHold,
                 extraEndSpace = extraEndSpace,
+                stoppedReply = stoppedFor(comparisonState.secondaryAgentId),
                 modifier = Modifier.fillMaxSize(),
             )
         }

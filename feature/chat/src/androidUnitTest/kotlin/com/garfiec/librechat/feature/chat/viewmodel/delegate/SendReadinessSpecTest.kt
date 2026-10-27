@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.feature.chat.util.restore
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
+import com.garfiec.librechat.feature.chat.viewmodel.ComparisonState
 import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import com.garfiec.librechat.feature.chat.viewmodel.SendBlockReason
@@ -51,6 +52,46 @@ class SendReadinessSpecTest {
             ),
         )
         assertThat(reason).isNotEqualTo(SendBlockReason.SelectModel)
+    }
+
+    private fun comparisonRefusal(lane: ComparisonState, enforce: Boolean = true): SendBlockReason? {
+        val state = ChatUiState(
+            selection = ModelSelectionState(
+                choice = ModelChoice.restore("openAI", "gpt-4.1", "fast"),
+                modelSpecs = ModelSpecs(list = listOf(spec), enforce = enforce),
+            ),
+            comparisonState = lane,
+        )
+        val handle = ChatStateHandle(MutableStateFlow(state), TestScope())
+        var reason: SendBlockReason? = null
+        SendReadinessDelegate(SendReadinessHandle(handle)) { reason = it }.runWhenSendReady {}
+        return reason
+    }
+
+    private fun laneB(spec: String? = null, reopenedId: String? = null, endpoint: String = "openAI", model: String = "gpt-4o") =
+        ComparisonState(
+            isEnabled = true,
+            secondaryEndpoint = endpoint,
+            secondaryModel = model,
+            secondarySpec = spec,
+            reopenedSecondaryId = reopenedId,
+        )
+
+    @Test
+    fun enforcedServerRefusesALaneBWithNoSpec() {
+        // A reopened lane whose id names no spec on this server.
+        val reason = comparisonRefusal(laneB(reopenedId = "openAI__gpt-4o___GPT-4o____1"))
+        assertThat(reason).isEqualTo(SendBlockReason.SelectSecondaryModel)
+    }
+
+    @Test
+    fun laneBWithASpecASavedAgentOrNoEnforcePasses() {
+        assertThat(comparisonRefusal(laneB(spec = "fast", model = "gpt-4.1"))).isNotEqualTo(SendBlockReason.SelectSecondaryModel)
+        // A reopened lane on a pair with one spec takes that spec.
+        val reopened = laneB(reopenedId = "openAI__gpt-4.1____1", model = "gpt-4.1")
+        assertThat(comparisonRefusal(reopened)).isNotEqualTo(SendBlockReason.SelectSecondaryModel)
+        assertThat(comparisonRefusal(laneB(endpoint = "agents", model = "agent_1"))).isNotEqualTo(SendBlockReason.SelectSecondaryModel)
+        assertThat(comparisonRefusal(laneB(), enforce = false)).isNull()
     }
 
     private fun keyRefusal(keyState: KeyState?): SendBlockReason? = refusal(

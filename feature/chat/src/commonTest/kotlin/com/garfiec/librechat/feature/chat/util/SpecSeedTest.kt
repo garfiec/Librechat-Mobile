@@ -242,6 +242,41 @@ class SpecSeedTest {
     }
 
     @Test
+    fun a_reopened_lane_b_finds_its_spec_by_label_on_its_pair() {
+        val fast = model("fast", "openAI", "gpt-4.1").copy(label = "Fast")
+        val careful = model("careful", "openAI", "gpt-4.1").copy(label = "Careful")
+        val elsewhere = model("careful-4o", "openAI", "gpt-4o").copy(label = "Careful")
+        val specs = ModelSpecs(list = listOf(fast, careful, elsewhere))
+
+        assertEquals("careful", specs.laneBSpecFor("openAI", "gpt-4.1", "Careful"))
+        assertEquals("careful-4o", specs.laneBSpecFor("openAI", "gpt-4o", "Careful"))
+        // No label match (a display label, or none) reopens raw where a raw lane was possible.
+        assertNull(specs.laneBSpecFor("openAI", "gpt-4o", "OpenAI"))
+        assertNull(specs.laneBSpecFor("openAI", "gpt-4o", null))
+        assertNull((null as ModelSpecs?).laneBSpecFor("openAI", "gpt-4.1", "Careful"))
+    }
+
+    @Test
+    fun under_enforce_an_unmatched_lane_b_takes_the_one_spec_on_its_pair() {
+        val careful = model("careful-4o", "openAI", "gpt-4o").copy(label = "Careful")
+        val enforced = ModelSpecs(
+            list = listOf(careful, model("a", "openAI", "gpt-4.1"), model("b", "openAI", "gpt-4.1")),
+            enforce = true,
+        )
+
+        assertEquals("careful-4o", enforced.laneBSpecFor("openAI", "gpt-4o", null))
+        assertEquals("careful-4o", enforced.laneBSpecFor("openAI", "gpt-4o", "OpenAI"))
+        // Two specs on the pair and no label to tell them apart: the user picks.
+        assertNull(enforced.laneBSpecFor("openAI", "gpt-4.1", null))
+        // A label two specs on the pair share is no better.
+        val twins = ModelSpecs(
+            list = listOf(model("a", "openAI", "gpt-4.1").copy(label = "Same"), model("b", "openAI", "gpt-4.1").copy(label = "Same")),
+            enforce = true,
+        )
+        assertNull(twins.laneBSpecFor("openAI", "gpt-4.1", "Same"))
+    }
+
+    @Test
     fun visible_specs_sort_by_order_with_unordered_ones_after_in_list_order() {
         val specs = ModelSpecs(
             list = listOf(

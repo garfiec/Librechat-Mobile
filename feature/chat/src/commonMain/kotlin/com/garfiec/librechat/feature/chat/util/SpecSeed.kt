@@ -189,6 +189,24 @@ internal fun ModelSpecs?.uniqueSpecFor(endpoint: String, model: String): String?
         ?.spec
 
 /**
+ * The spec a reopened comparison's second lane was sent with, read back from its ephemeral agent
+ * id. The server saves no spec for the added convo; the id's sender segment is
+ * `modelLabel ?? spec.label ?? modelDisplayLabel` (`getEphemeralSender`, left out when empty), and
+ * the client never sends a `modelLabel` for lane B, so a spec lane's sender is its label. The one
+ * spec on [endpoint] and [model] with that label wins. Failing that, an enforced server, which
+ * only a spec lane can have come from, takes the one spec on the pair ([uniqueSpecFor]); any other
+ * server reopens the raw pair, since a raw lane with that pair is just as likely.
+ */
+internal fun ModelSpecs?.laneBSpecFor(endpoint: String, model: String, sender: String?): String? {
+    val byLabel = sender?.let { label ->
+        this?.list.orEmpty().singleOrNull { spec ->
+            spec.label == label && spec.toSeed()?.let { it.endpoint == endpoint && it.model == model } == true
+        }
+    }
+    return byLabel?.name ?: uniqueSpecFor(endpoint, model).takeIf { requiresSpec }
+}
+
+/**
  * The spec rows the picker lists, ascending by `order` with unordered specs after them in list
  * order. An agent spec is left out once [agentsLoaded] shows its agent is not among [agents], as
  * web's `ModelSelectorContext` does; until then every spec shows. So does every spec while

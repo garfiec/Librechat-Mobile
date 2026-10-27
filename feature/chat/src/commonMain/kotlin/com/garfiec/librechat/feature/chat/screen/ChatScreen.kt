@@ -206,7 +206,7 @@ fun ChatScreen(
             uiState.comparisonState.secondaryEndpoint,
             uiState.comparisonState.secondaryModel,
             uiState.agents,
-            uiState.comparisonState.secondarySpec,
+            uiState.laneBSpec,
             uiState.modelSpecs,
         )
     } else {

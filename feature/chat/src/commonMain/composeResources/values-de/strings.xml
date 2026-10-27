@@ -486,7 +486,10 @@
     <string name="dialog_title_fill_variables">Variablen ausfüllen</string>
 
     <!-- Comparison mode -->
-    <string name="continue_with_response">Mit dieser Antwort fortfahren</string>
+    <string name="keep_this_answer">Diese Antwort behalten</string>
+    <string name="reply_stopped">Angehalten</string>
+    <string name="action_continue_reply">Fortsetzen</string>
+    <string name="action_keep_and_continue">Behalten und fortsetzen</string>
 
     <!-- Provider Keys chat-time errors. -->
     <string name="provider_keys_chat_error_no_key">Kein Schlüssel gefunden. Bitte gib einen Schlüssel an und versuche es erneut.</string>
@@ -500,6 +503,7 @@
     <!-- Send block reasons (shown in error snackbar when send can't proceed) -->
     <string name="send_block_select_agent">Wähle einen Agenten aus, bevor du deine Nachricht sendest.</string>
     <string name="send_block_select_model">Wähle ein Modell aus, bevor du deine Nachricht sendest.</string>
+    <string name="send_block_select_second_model">Wähle Modell B aus der Liste, bevor du sendest.</string>
     <string name="send_block_agents_unavailable">Agenten sind auf diesem Server nicht verfügbar. Bitte wähle ein anderes Modell.</string>
     <string name="send_block_api_key_required">Füge deinen API-Schlüssel für %1$s hinzu, um Nachrichten zu senden.</string>
     <string name="send_block_agent_not_available">Der ausgewählte Agent ist auf diesem Server nicht verfügbar. Bitte wähle einen anderen Agenten.</string>

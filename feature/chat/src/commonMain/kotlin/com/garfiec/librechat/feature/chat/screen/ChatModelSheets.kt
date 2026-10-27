@@ -2,11 +2,13 @@ package com.garfiec.librechat.feature.chat.screen
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import com.garfiec.librechat.feature.chat.components.ComparisonLane
 import com.garfiec.librechat.feature.chat.components.ModelSelectorSheet
 import com.garfiec.librechat.feature.chat.components.localizedStreamError
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.SendBlockReason
 
 /*
  * The standalone model-selector sheets, shared by the Android and iOS chat screens. Unlike the
@@ -30,9 +32,14 @@ internal fun PrimaryModelSelectorSheet(
     setupPick: CompareSetupPick? = null,
 ) {
     val error = uiState.error?.let { localizedStreamError(it) }
+    // A send refused for lane B opens on lane B. Read once: dismissing the reason inline must not
+    // move the sheet back to lane A.
+    val initialTarget = remember {
+        if (uiState.sendBlockReason == SendBlockReason.SelectSecondaryModel) ComparisonLane.B else ComparisonLane.A
+    }
     val comparison = rememberComparisonSelectorRouting(
         uiState = uiState,
-        initialTarget = ComparisonLane.A,
+        initialTarget = initialTarget,
         onSelectPrimary = viewModel::onModelSelected,
         onSelectSecondary = viewModel::setSecondaryModel,
         setupPick = setupPick,
