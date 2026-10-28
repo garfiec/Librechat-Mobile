@@ -36,6 +36,7 @@ import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
+import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveRadioButton
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
@@ -50,6 +51,7 @@ internal enum class ChatSettingDialog {
     UPLOAD_ROUTING,
     STARRED_MODELS,
     NEW_CHAT_START,
+    WEB_SEARCH_FIRST,
     CHAT_HEADER,
     ARTIFACT_VIEWER,
     RENDER_INLINE,
@@ -95,6 +97,18 @@ internal fun duringRunActionLabel(action: DuringRunAction): String = when (actio
 internal fun uploadRoutingModeLabel(mode: UploadRoutingMode): String = when (mode) {
     UploadRoutingMode.AUTO -> stringResource(Res.string.upload_routing_auto)
     UploadRoutingMode.MANUAL -> stringResource(Res.string.upload_routing_manual)
+}
+
+@Composable
+internal fun webSearchFirstLabel(first: WebSearchPreference): String = when (first) {
+    WebSearchPreference.LIBRECHAT_FIRST -> stringResource(Res.string.web_search_first_librechat)
+    WebSearchPreference.BUILT_IN_FIRST -> stringResource(Res.string.web_search_first_built_in)
+}
+
+@Composable
+internal fun webSearchFirstDescription(first: WebSearchPreference): String = when (first) {
+    WebSearchPreference.LIBRECHAT_FIRST -> stringResource(Res.string.web_search_first_librechat_desc)
+    WebSearchPreference.BUILT_IN_FIRST -> stringResource(Res.string.web_search_first_built_in_desc)
 }
 
 @Composable

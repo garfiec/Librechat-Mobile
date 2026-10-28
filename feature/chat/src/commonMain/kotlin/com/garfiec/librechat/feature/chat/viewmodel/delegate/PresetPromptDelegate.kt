@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
@@ -12,6 +13,7 @@ import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.prompts.PromptInsertion
 import com.garfiec.librechat.feature.chat.prompts.resolvePromptInsertion
 import com.garfiec.librechat.feature.chat.prompts.resolvePromptText
+import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.util.offeredOrUnchecked
 import com.garfiec.librechat.feature.chat.util.parametersFor
 import com.garfiec.librechat.feature.chat.util.toSeed
@@ -104,7 +106,8 @@ class PresetPromptDelegate(
 
     fun savePreset(name: String) {
         val state = handle.state
-        val params = state.modelParameters
+        // What the chat shows: under a spec its tools, not the user's hidden toggles.
+        val params = state.selection.sendParameters
         val dyn = params.dynamicValues
         val preset = Preset(
             title = name,
@@ -150,7 +153,14 @@ class PresetPromptDelegate(
             thinkingLevel = dyn["thinkingLevel"],
             promptCache = dyn["promptCache"]?.toBooleanStrictOrNull(),
             promptCacheTtl = dyn["promptCacheTtl"]?.takeIf { it == "5m" || it == "1h" },
-            webSearch = params.webSearch,
+            // A preset is conversation fields, as on web, so it holds the built-in search: there is no
+            // field for LibreChat's. Off is saved as off; LibreChat search on is left out, so loading
+            // the preset neither turns search off nor swaps it for the built-in one.
+            webSearch = when {
+                state.webSearchRoute == WebSearchRoute.BUILT_IN -> true
+                ToolConstants.WEB_SEARCH !in state.selection.effectiveTools -> false
+                else -> null
+            },
             urlContext = params.urlContext,
             imageDetail = dyn["imageDetail"],
             fileTokenLimit = params.fileTokenLimit,
@@ -189,21 +199,37 @@ class PresetPromptDelegate(
             } else {
                 preset.spec.offeredOrUnchecked(endpoint, model, specs, checkable = specs != null)
             }
-            selection = selection.copy(
+            // Authoritative load: a preset represents a complete saved
+            // configuration. Merging from current parameters would let
+            // unrelated fields (e.g. a temperature from the previous
+            // endpoint) leak through unchanged, producing a hybrid the
+            // user never saved. A preset that opens a spec opens on that spec's
+            // preset first, as a pick of the spec would, with its own values over it.
+            val loaded = (specSeed?.let { specs.parametersFor(preset.spec) } ?: ModelParameters.DEFAULT)
+                .let { base ->
+                    base.mergedFromPreset(preset).let { it.copy(dynamicValues = base.dynamicValues + it.dynamicValues) }
+                }
+            val next = selection.copy(
                 choice = choice,
                 // Tools added on top of a spec belong to it, as a pick of another spec drops them.
                 specTools = selection.specTools.takeIf { choice.spec != null && choice.spec == selection.choice.spec },
-                // Authoritative load: a preset represents a complete saved
-                // configuration. Merging from current parameters would let
-                // unrelated fields (e.g. a temperature from the previous
-                // endpoint) leak through unchanged, producing a hybrid the
-                // user never saved. A preset that opens a spec opens on that spec's
-                // preset first, as a pick of the spec would, with its own values over it.
-                modelParameters = (specSeed?.let { specs.parametersFor(preset.spec) } ?: ModelParameters.DEFAULT)
-                    .let { base ->
-                        base.mergedFromPreset(preset).let { it.copy(dynamicValues = base.dynamicValues + it.dynamicValues) }
-                    },
+                modelParameters = loaded,
             )
+            selection = if (choice.spec == null) {
+                // A preset saved with LibreChat search on has no `web_search` (`savePreset`), so one
+                // without it leaves the chat's web-search control as it is.
+                next.copy(modelParameters = loaded.copy(webSearch = preset.webSearch ?: selection.modelParameters.webSearch))
+            } else {
+                // Under a spec web search and URL context are the chat's tools, and the parameters keep
+                // the user's own toggles for when they leave it, so the preset's go to the tools.
+                next.copy(
+                    modelParameters = loaded.copy(
+                        webSearch = selection.modelParameters.webSearch,
+                        urlContext = selection.modelParameters.urlContext,
+                    ),
+                ).withSpecTool(ToolConstants.WEB_SEARCH, preset.webSearch)
+                    .withSpecTool(ToolConstants.URL_CONTEXT, preset.urlContext)
+            }
         }
     }
 

@@ -232,6 +232,11 @@
     <string name="tool_set_by_spec">Activado por el servidor para este modelo</string>
     <string name="tool_web_search">Búsqueda web</string>
     <string name="tool_web_search_desc">Busca información en la web</string>
+    <string name="web_search_librechat">Búsqueda de LibreChat</string>
+    <string name="web_search_checking">Comprobando la búsqueda de LibreChat…</string>
+    <string name="web_search_built_in">Búsqueda integrada de %1$s</string>
+    <string name="web_search_built_in_plain">Búsqueda integrada</string>
+    <string name="web_search_set_by_spec">%1$s, activada por el servidor para este modelo</string>
     <string name="web_searched">Buscó en la web</string>
     <string name="tool_url_context">Contexto de URL</string>
     <string name="tool_url_context_desc">Permite que el modelo lea las URL y los vídeos de YouTube que menciones</string>

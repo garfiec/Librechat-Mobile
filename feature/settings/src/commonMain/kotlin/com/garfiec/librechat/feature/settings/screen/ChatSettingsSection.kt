@@ -27,6 +27,7 @@ import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
+import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.feature.settings.resources.*
@@ -48,6 +49,7 @@ internal fun ChatSettingsSection(
     latexRenderer: LatexRenderer,
     starredModelsDisplay: StarredModelsDisplay,
     preferLastUsedModel: Boolean,
+    webSearchFirst: WebSearchPreference,
     chatHeaderContent: ChatHeaderContent,
     chatHeaderAlignment: ChatHeaderAlignment,
     onAutoScrollChange: (Boolean) -> Unit,
@@ -157,6 +159,12 @@ internal fun ChatSettingsSection(
                     title = stringResource(Res.string.upload_routing_title),
                     value = uploadRoutingModeLabel(uploadRoutingMode),
                     onClick = { onOpenDialog(ChatSettingDialog.UPLOAD_ROUTING) },
+                )
+
+                SelectorRow(
+                    title = stringResource(Res.string.web_search_first_title),
+                    value = webSearchFirstLabel(webSearchFirst),
+                    onClick = { onOpenDialog(ChatSettingDialog.WEB_SEARCH_FIRST) },
                 )
 
                 SelectorRow(

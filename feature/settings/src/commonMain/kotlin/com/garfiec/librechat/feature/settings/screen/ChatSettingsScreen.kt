@@ -41,6 +41,7 @@ import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
+import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
@@ -157,6 +158,7 @@ fun ChatSettingsContent(
                         latexRenderer = uiState.latexRenderer,
                         starredModelsDisplay = uiState.starredModelsDisplay,
                         preferLastUsedModel = uiState.preferLastUsedModel,
+                        webSearchFirst = uiState.webSearchFirst,
                         chatHeaderContent = uiState.chatHeaderContent,
                         chatHeaderAlignment = uiState.chatHeaderAlignment,
                         onAutoScrollChange = viewModel::setAutoScrollEnabled,
@@ -334,6 +336,19 @@ fun ChatSettingsContent(
                 onSave = saveAndClose(viewModel::setPreferLastUsedModel),
                 onDismiss = dismissDialog,
                 optionLabel = { newChatStartLabel(it) },
+            )
+        }
+
+        if (openDialog == ChatSettingDialog.WEB_SEARCH_FIRST) {
+            RadioSelectionDialog(
+                title = stringResource(Res.string.web_search_first_title),
+                description = stringResource(Res.string.web_search_first_desc),
+                options = WebSearchPreference.entries,
+                selected = uiState.webSearchFirst,
+                onSave = saveAndClose(viewModel::setWebSearchFirst),
+                onDismiss = dismissDialog,
+                optionLabel = { webSearchFirstLabel(it) },
+                optionDescription = { webSearchFirstDescription(it) },
             )
         }
 

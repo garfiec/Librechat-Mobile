@@ -53,6 +53,7 @@ class AppPreferencesTest {
             "advanced_search" to everyChannel(false),
             "compare_sync_scroll" to everyChannel(true),
             "prefer_last_used_model" to everyChannel(false),
+            "web_search_first" to everyChannel(WebSearchPreference.LIBRECHAT_FIRST),
         )
         assertEquals(expected, actual)
     }

@@ -311,6 +311,12 @@
     <string name="new_chat_start_desc">عندما يحدد الخادم نموذجًا للمحادثات الجديدة، اختر استخدامه أو استخدام آخر نموذج استخدمته. يتم تجاهل ذلك إذا أخفى الخادم أداة اختيار النموذج. إذا اشترط الخادم استخدام أحد نماذجه، فلا يُحتسب آخر نموذج استخدمته إلا إذا كان واحدًا منها.</string>
     <string name="new_chat_start_server">اختيار الخادم</string>
     <string name="new_chat_start_last_used">آخر نموذج استخدمته</string>
+    <string name="web_search_first_title">البحث على الويب</string>
+    <string name="web_search_first_desc">أي بحث يشغّله مفتاح البحث على الويب في المحادثة عندما يكون كلاهما ممكنًا. إذا تعذّر اختيارك في محادثة، يُستخدم الآخر. يتقدّم بحث مواصفة النموذج نفسها، وتستخدم المقارنة بحث LibreChat متى أمكن ليبحث النموذجان كلاهما.</string>
+    <string name="web_search_first_librechat">بحث LibreChat أولًا</string>
+    <string name="web_search_first_librechat_desc">بحث خادمك، مع المصادر. يستخدم البحث المدمج في النموذج عندما لا يكون على الخادم بحث مُعدّ.</string>
+    <string name="web_search_first_built_in">البحث المدمج أولًا</string>
+    <string name="web_search_first_built_in_desc">بحث مزوّد النموذج نفسه (OpenAI وClaude وGemini وOpenRouter). يستخدم بحث LibreChat للنماذج الأخرى.</string>
     <string name="chat_header_title">ترويسة المحادثة</string>
     <string name="chat_header_summary_format">%1$s · %2$s</string>
     <string name="chat_header_content_label">المحتوى</string>

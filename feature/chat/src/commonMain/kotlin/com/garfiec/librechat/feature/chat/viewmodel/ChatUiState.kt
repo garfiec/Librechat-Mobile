@@ -15,6 +15,7 @@ import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.PendingAction
+import com.garfiec.librechat.core.model.config.EndpointDropParams
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecSkills
 import com.garfiec.librechat.core.model.config.ModelSpecs
@@ -41,17 +42,22 @@ import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
+import com.garfiec.librechat.feature.chat.util.BuiltInSearchProvider
 import com.garfiec.librechat.feature.chat.util.CatalogSkill
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.PendingUsage
 import com.garfiec.librechat.feature.chat.util.SkillPickRules
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
+import com.garfiec.librechat.feature.chat.util.WebSearchKind
+import com.garfiec.librechat.feature.chat.util.WebSearchRoute
+import com.garfiec.librechat.feature.chat.util.builtInSearchProvider
 import com.garfiec.librechat.feature.chat.util.changedPartIndices
 import com.garfiec.librechat.feature.chat.util.pickableSkills
 import com.garfiec.librechat.feature.chat.util.requiresSpec
 import com.garfiec.librechat.feature.chat.util.resolveLandingStarters
 import com.garfiec.librechat.feature.chat.util.skillPickRules
 import com.garfiec.librechat.feature.chat.util.stoppedReplyId
+import com.garfiec.librechat.feature.chat.util.webSearchRoute
 
 /**
  * The agents endpoint capability that enables server-side text extraction (`tool_resource=context`).
@@ -517,13 +523,62 @@ data class ChatUiState(
     /**
      * The tools in use, as the toolbar, tools sheet and pinned chips show them: the selection's
      * [ModelSelectionState.effectiveTools] (web search and URL context from the parameters, or the
-     * spec's tools under one), plus the per-conversation Skills toggle where it would be sent.
+     * spec's tools under one), plus the per-conversation Skills toggle where it would be sent. Web
+     * search only while a search can run ([webSearchAvailable]), so its chip never shows on what
+     * sends nothing.
      */
     val effectiveEnabledTools: Set<String>
         get() {
-            val tools = selection.effectiveTools - ToolConstants.SKILLS
+            var tools = selection.effectiveTools - ToolConstants.SKILLS
+            if (!webSearchAvailable) tools = tools - ToolConstants.WEB_SEARCH
             return if (skillsToggle && isSkillsToolAvailable) tools + ToolConstants.SKILLS else tools
         }
+
+    /**
+     * The provider whose built-in web search a send would run, or null when the selection has none
+     * (`builtInSearchProvider`). A saved agent sends no ephemeral tools, so it has none here either.
+     */
+    val builtInSearchProvider: BuiltInSearchProvider?
+        get() {
+            if (!showEphemeralTools) return null
+            val dropParams = EndpointDropParams.resolve(gates.dropParamsMap, selectedEndpoint, null, selectedModel)
+            return builtInSearchProvider(selectedEndpoint, dropParams)
+        }
+
+    /**
+     * Which web search a send runs: [webSearchTarget] while the control is on. Read by every send
+     * path, so a request carries `ephemeralAgent.web_search` or the provider's `web_search`, never
+     * both, and neither while it is [WebSearchRoute.CHECKING].
+     */
+    val webSearchRoute: WebSearchRoute
+        get() = if (ToolConstants.WEB_SEARCH in selection.effectiveTools) webSearchTarget else WebSearchRoute.NONE
+
+    /**
+     * Whether the web-search control is offered: the spec locks it on, or the control would run a
+     * search ([webSearchTarget], which applies the role and interface gates).
+     */
+    val webSearchAvailable: Boolean
+        get() = ToolConstants.WEB_SEARCH in lockedTools || webSearchTarget != WebSearchRoute.NONE
+
+    /**
+     * The search the control runs when on ([webSearchRoute]'s rules), which its caption names.
+     * NONE when neither search can run. LibreChat search needs `interface.webSearch` and the role,
+     * the built-in one only the role ([FeatureGatesState.webSearchPermitted]).
+     */
+    val webSearchTarget: WebSearchRoute
+        get() = webSearchRoute(
+            on = true,
+            sendsEphemeralTools = showEphemeralTools,
+            spec = selection.activeSpec,
+            comparing = comparisonState.isEnabled,
+            preference = prefs.webSearchFirst,
+            librechatUsable = webSearchEnabled && gates.librechatSearchReady,
+            builtInAvailable = gates.webSearchPermitted && builtInSearchProvider != null,
+            librechatChecking = webSearchEnabled && gates.librechatSearchChecking,
+        )
+
+    /** [webSearchTarget] with the provider it would run on, for the control's caption. */
+    val webSearchKind: WebSearchKind get() = WebSearchKind(webSearchTarget, builtInSearchProvider)
 
     /**
      * Whether the active provider is Google/Gemini, the only provider that supports the
@@ -551,7 +606,7 @@ data class ChatUiState(
             if (!toolbarShown || pinnedTools.isEmpty()) return emptyList()
             return pinnedTools.mapNotNull { key ->
                 when (key) {
-                    ToolConstants.WEB_SEARCH -> ToolConstants.WEB_SEARCH.takeIf { webSearchEnabled }
+                    ToolConstants.WEB_SEARCH -> ToolConstants.WEB_SEARCH.takeIf { webSearchAvailable }
                     ToolConstants.URL_CONTEXT -> ToolConstants.URL_CONTEXT.takeIf { urlContextProviderGate }
                     ToolConstants.FILE_SEARCH -> ToolConstants.FILE_SEARCH.takeIf { fileSearchEnabled }
                     ToolConstants.EXECUTE_CODE, ToolConstants.CODE_INTERPRETER ->

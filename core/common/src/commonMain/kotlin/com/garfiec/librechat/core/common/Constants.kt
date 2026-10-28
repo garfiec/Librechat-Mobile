@@ -5,6 +5,8 @@ object EndpointConstants {
 }
 
 object ToolConstants {
+    /** The chat's one web-search control, which runs LibreChat's search tool or the provider's
+     *  built-in search, never both (`feature/chat`'s `WebSearchRoute`); also the tool's own name. */
     const val WEB_SEARCH = "web_search"
 
     /** Google Gemini "URL Context" grounding (v0.8.7). A Google-only model parameter,

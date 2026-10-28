@@ -232,6 +232,11 @@
     <string name="tool_set_by_spec">服务器已为此模型开启</string>
     <string name="tool_web_search">网络搜索</string>
     <string name="tool_web_search_desc">在网络上搜索信息</string>
+    <string name="web_search_librechat">LibreChat 搜索</string>
+    <string name="web_search_checking">正在检查 LibreChat 搜索…</string>
+    <string name="web_search_built_in">%1$s 内置搜索</string>
+    <string name="web_search_built_in_plain">内置搜索</string>
+    <string name="web_search_set_by_spec">%1$s,服务器已为此模型开启</string>
     <string name="web_searched">已搜索网络</string>
     <string name="tool_url_context">URL 上下文</string>
     <string name="tool_url_context_desc">让模型读取你引用的 URL 和 YouTube 视频</string>

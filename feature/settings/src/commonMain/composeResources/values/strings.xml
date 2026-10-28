@@ -296,6 +296,12 @@
     <string name="new_chat_start_desc">When your server picks a model for new chats, choose whether to use it or the model you used last. Ignored when the server hides the model picker. If the server requires one of its own models, your last model counts only if it was one of those.</string>
     <string name="new_chat_start_server">Server's choice</string>
     <string name="new_chat_start_last_used">My last-used model</string>
+    <string name="web_search_first_title">Web search</string>
+    <string name="web_search_first_desc">Which search a chat's web search switch runs when both could. If your choice can't run in a chat, the other one is used. A model spec's own search wins, and Compare uses LibreChat search when it can, so both models search.</string>
+    <string name="web_search_first_librechat">LibreChat search first</string>
+    <string name="web_search_first_librechat_desc">Your server's search, with sources. Uses the model's built-in search when the server has none set up.</string>
+    <string name="web_search_first_built_in">Built-in search first</string>
+    <string name="web_search_first_built_in_desc">The model provider's own search (OpenAI, Claude, Gemini, OpenRouter). Uses LibreChat search for other models.</string>
     <string name="chat_header_title">Chat header</string>
     <string name="chat_header_summary_format">%1$s · %2$s</string>
     <string name="chat_header_content_label">Content</string>

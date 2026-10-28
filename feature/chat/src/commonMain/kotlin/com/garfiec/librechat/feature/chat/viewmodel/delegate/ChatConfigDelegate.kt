@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.MemoryRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.data.repository.WebSearchReadinessRepository
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.config.InterfaceConfig
 import com.garfiec.librechat.core.model.permissions.Permission
@@ -19,6 +20,8 @@ import com.garfiec.librechat.core.model.permissions.canOpenMemories
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.feature.chat.viewmodel.ChatConfigHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
@@ -40,6 +43,7 @@ class ChatConfigDelegate(
     private val fileRepository: FileRepository,
     private val userRepository: UserRepository,
     private val memoryRepository: MemoryRepository,
+    private val webSearchReadiness: WebSearchReadinessRepository,
 ) {
 
     // Cached so tapping several generated-file chips doesn't re-fetch the user each time.
@@ -149,7 +153,8 @@ class ChatConfigDelegate(
                         mcpServersEnabled = role.hasAccessOrPermissive(PermissionType.MCP_SERVERS, Permission.USE),
                         multiConvoEnabled = gate(PermissionType.MULTI_CONVO, Permission.USE) { it.multiConvo },
                         temporaryChatEnabled = gate(PermissionType.TEMPORARY_CHAT, Permission.USE) { it.temporaryChat },
-                        webSearchEnabled = gate(PermissionType.WEB_SEARCH, Permission.USE) { it.webSearch },
+                        webSearchEnabled = librechatSearchAllowed(role, iface),
+                        webSearchPermitted = role.hasAccessOrPermissive(PermissionType.WEB_SEARCH, Permission.USE),
                         runCodeEnabled = gate(PermissionType.RUN_CODE, Permission.USE) { it.runCode },
                         fileSearchEnabled = gate(PermissionType.FILE_SEARCH, Permission.USE) { it.fileSearch },
                         bookmarksEnabled = gate(PermissionType.BOOKMARKS, Permission.USE) { it.bookmarks },
@@ -181,6 +186,54 @@ class ChatConfigDelegate(
                         dropParamsMap = inputs.dropParamsMap,
                         compactionEnabled = inputs.compactionEnabled == true,
                     )
+                }
+            }
+        }
+    }
+
+    /**
+     * Keeps `gates.librechatSearchReady` in step with the server, the account and the role: true
+     * only when the config names a search provider and the server's key check passes. An answer is
+     * remembered per account and config ([WebSearchReadinessRepository]), so a chat opened after
+     * the first one has it at once. Until there is one it reads false with
+     * `librechatSearchChecking` set, so a send that would run LibreChat search runs none; a check
+     * that failed rather than answered is retried, and once the retries run out the hold lifts
+     * while it keeps asking once a minute.
+     */
+    fun loadWebSearchReadiness() {
+        handle.scope.launch {
+            // Every config, not just a change of "configured": another server with search set up
+            // too must be asked for its own keys. The StateFlow already skips identical configs.
+            combine(
+                configRepository.startupConfig,
+                roleRepository.userPermissions,
+                webSearchReadiness.account,
+            ) { config, role, account ->
+                config?.webSearch?.takeIf { librechatSearchAllowed(role, config.interfaceConfig) } to account
+            }.distinctUntilChanged().collectLatest { (searchConfig, _) ->
+                val cached = searchConfig?.let { webSearchReadiness.cached(it) }
+                handle.update {
+                    gates = gates.copy(
+                        librechatSearchReady = cached == true,
+                        librechatSearchChecking = searchConfig != null && cached == null,
+                    )
+                }
+                if (searchConfig == null || cached != null) return@collectLatest
+                var attempt = 0
+                while (true) {
+                    val ready = webSearchReadiness.check(searchConfig)
+                    if (ready != null) {
+                        if (!ready) Logger.d { "LibreChat web search is configured but not authenticated" }
+                        handle.update { gates = gates.copy(librechatSearchReady = ready, librechatSearchChecking = false) }
+                        return@collectLatest
+                    }
+                    if (attempt == WEB_SEARCH_CHECK_RETRY_MS.size) {
+                        // Past the ladder: stop holding sends and let the other search run, but keep
+                        // asking at its slowest pace, so a connection that comes back is noticed.
+                        handle.update { gates = gates.copy(librechatSearchChecking = false) }
+                    }
+                    delay(WEB_SEARCH_CHECK_RETRY_MS[attempt.coerceAtMost(WEB_SEARCH_CHECK_RETRY_MS.lastIndex)])
+                    attempt++
                 }
             }
         }
@@ -229,3 +282,10 @@ private data class GateInputs(
     val dropParamsMap: Map<String, JsonElement>?,
     val compactionEnabled: Boolean?,
 )
+
+/** One gate for both the control (`gates.webSearchEnabled`) and whether `loadWebSearchReadiness` asks. */
+private fun librechatSearchAllowed(role: UserRolePermissions?, iface: InterfaceConfig?): Boolean =
+    role.hasAccessOrPermissive(PermissionType.WEB_SEARCH, Permission.USE) && iface?.webSearch != false
+
+/** Waits between retries of a web-search key check that failed (offline, a timeout, a 5xx), not one that answered. */
+private val WEB_SEARCH_CHECK_RETRY_MS = listOf(2_000L, 5_000L, 15_000L, 30_000L, 60_000L)

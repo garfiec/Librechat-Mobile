@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.model.request.EphemeralAgent
+import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import kotlinx.serialization.json.JsonObject
 
 /**
@@ -47,8 +48,10 @@ class ChatRequestBuilder(
         // and never serialize leftover UI selections on the agents endpoint.
         if (!state.showEphemeralTools) return null
         val mcpServers = state.effectiveMcpServerNames.toList().ifEmpty { null }
-        val enabledTools = state.selection.effectiveTools - ToolConstants.URL_CONTEXT
-        val webSearchEnabled = ToolConstants.WEB_SEARCH in enabledTools
+        // Web search rides here only as LibreChat's search; the built-in one is a parameter.
+        val webSearchEnabled = state.webSearchRoute == WebSearchRoute.LIBRECHAT
+        val tools = state.selection.effectiveTools - ToolConstants.URL_CONTEXT
+        val enabledTools = if (webSearchEnabled) tools else tools - ToolConstants.WEB_SEARCH
         // The conversation's own toggle, sent only where it is offered: a model spec that
         // configures skills overrides it server-side, and without the capability or role the
         // server ignores it.
@@ -101,8 +104,14 @@ class ChatRequestBuilder(
             // here renders a control and then drops the value it produced.
             model = agent?.model ?: state.selectedModel,
             extendedEffortSupported = state.extendedEffortSupported,
-            params = state.selection.sendParameters,
+            params = state.selection.sendParameters.copy(webSearch = state.webSearchRoute == WebSearchRoute.BUILT_IN),
             dropParamsMap = state.gates.dropParamsMap,
         ).takeIf { it.isNotEmpty() }
     }
+
+    /**
+     * The top-level `web_search` a send carries: the provider's built-in search, only when that is
+     * the search the control runs ([ChatUiState.webSearchRoute]).
+     */
+    fun builtInWebSearch(): Boolean = stateProvider().webSearchRoute == WebSearchRoute.BUILT_IN
 }

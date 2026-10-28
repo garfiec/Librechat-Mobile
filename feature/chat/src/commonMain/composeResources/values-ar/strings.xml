@@ -232,6 +232,11 @@
     <string name="tool_set_by_spec">فعّله الخادم لهذا النموذج</string>
     <string name="tool_web_search">البحث على الويب</string>
     <string name="tool_web_search_desc">البحث على الويب عن المعلومات</string>
+    <string name="web_search_librechat">بحث LibreChat</string>
+    <string name="web_search_checking">جارٍ التحقق من بحث LibreChat…</string>
+    <string name="web_search_built_in">البحث المدمج في %1$s</string>
+    <string name="web_search_built_in_plain">البحث المدمج</string>
+    <string name="web_search_set_by_spec">%1$s، فعّله الخادم لهذا النموذج</string>
     <string name="web_searched">تم البحث على الويب</string>
     <string name="tool_url_context">سياق URL</string>
     <string name="tool_url_context_desc">السماح للنموذج بقراءة عناوين URL ومقاطع YouTube التي تشير إليها</string>

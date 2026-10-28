@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
+import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.model.usage.ContextDetailPreset
 import com.garfiec.librechat.core.model.usage.ContextDetailSections
 import com.garfiec.librechat.core.model.usage.DEFAULT_COMPACT_NUDGE_THRESHOLD
@@ -57,6 +58,11 @@ data class ChatPrefsState(
      * reply". Anything added here that a non-UI code path branches on needs the same treatment.
      */
     val duringRunAction: DuringRunAction = DuringRunAction.STEER,
+    /**
+     * Which web search the control tries first (Settings → Chat). Drives behaviour like
+     * [duringRunAction], so `ChatViewModel` mirrors it into the backing state the same way.
+     */
+    val webSearchFirst: WebSearchPreference = WebSearchPreference.LIBRECHAT_FIRST,
 )
 
 /**

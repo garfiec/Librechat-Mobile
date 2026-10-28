@@ -232,6 +232,11 @@
     <string name="tool_set_by_spec">이 모델에 대해 서버에서 켜 두었습니다</string>
     <string name="tool_web_search">웹 검색</string>
     <string name="tool_web_search_desc">웹에서 정보 검색</string>
+    <string name="web_search_librechat">LibreChat 검색</string>
+    <string name="web_search_checking">LibreChat 검색 확인 중…</string>
+    <string name="web_search_built_in">%1$s 기본 제공 검색</string>
+    <string name="web_search_built_in_plain">기본 제공 검색</string>
+    <string name="web_search_set_by_spec">%1$s, 이 모델에 대해 서버에서 켜 두었습니다</string>
     <string name="web_searched">웹을 검색함</string>
     <string name="tool_url_context">URL 컨텍스트</string>
     <string name="tool_url_context_desc">참조한 URL과 YouTube를 모델이 읽도록 허용</string>
