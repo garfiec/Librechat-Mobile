@@ -2,6 +2,7 @@ package com.garfiec.librechat.core.data.repository
 
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.data.datastore.AccountRoster
+import com.garfiec.librechat.core.model.auth.RequestAuth
 import com.garfiec.librechat.core.network.api.AuthApi
 import com.garfiec.librechat.core.network.client.PendingRequestIdentity
 import com.garfiec.librechat.core.network.client.RefreshCookieCredentials
@@ -38,14 +39,16 @@ class ServerSessionRevoker(
             baseUrl = identity.baseUrl,
             currentAccessToken = identity.bearer,
         )
-        val refreshToken = refreshCookieCredentials.refreshTokenFor(accountId) ?: return
+        val session = refreshCookieCredentials.sessionFor(accountId)
+        val cookies = session?.cookies ?: refreshCookieCredentials.authCookiesFor(accountId) ?: return
+        val currentBearer = session?.accessToken ?: bearer
         withContext(
             PendingRequestIdentity(
                 baseUrl = identity.baseUrl,
                 headers = { identity.customHeaders },
-                bearer = { bearer },
+                auth = { RequestAuth(currentBearer, cookies.openId) },
             ),
-        ) { authApi.logout(refreshToken) }
+        ) { authApi.logout(cookies) }
     }
 
     /**

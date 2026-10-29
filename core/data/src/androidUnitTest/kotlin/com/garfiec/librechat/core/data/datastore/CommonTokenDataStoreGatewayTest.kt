@@ -79,8 +79,8 @@ class CommonTokenDataStoreGatewayTest {
 
         assertThat(result).isEqualTo(RefreshResult.Transient)
         // The tokens must survive for the retry that follows the header fix.
-        assertThat(store.store[refreshKeyOf("acctA")]).isEqualTo("A-refresh")
-        assertThat(store.store[accessKeyOf("acctA")]).isEqualTo("A-access")
+        assertThat(store.persistedRefresh("acctA")).isEqualTo("A-refresh")
+        assertThat(store.persistedAccess("acctA")).isEqualTo("A-access")
     }
 
     /** Deterministic until the user edits the credential, and the budget is spent under the flight lock. */
@@ -121,6 +121,6 @@ class CommonTokenDataStoreGatewayTest {
         val result = store.refreshAccessToken()
 
         assertThat(result).isEqualTo(RefreshResult.Transient)
-        assertThat(store.store[refreshKeyOf("acctA")]).isEqualTo("A-refresh")
+        assertThat(store.persistedRefresh("acctA")).isEqualTo("A-refresh")
     }
 }

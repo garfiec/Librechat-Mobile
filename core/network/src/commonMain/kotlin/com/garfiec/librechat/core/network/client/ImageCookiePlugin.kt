@@ -12,8 +12,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.util.AttributeKey
 
 /** RFC 6265 cookie names are case-sensitive, and the server reads exactly this one. */
-private const val REFRESH_COOKIE_NAME = "refreshToken"
-
 /** The account an attached cookie belongs to. Survives a strip, so the re-attach knows what to re-read. */
 private val ImageCookieAccountKey = AttributeKey<String>("ImageCookieAccount")
 
@@ -126,14 +124,14 @@ class ImageCookiePlugin private constructor(
                 val accountId = request.attributes.getOrNull(ImageCookieAccountKey) ?: return@intercept call
                 if (request.attributes.getOrNull(ImageCookieRetriedKey) == sent) return@intercept call
 
-                val rotated = plugin.credentials.refreshTokenFor(accountId)
+                val rotated = plugin.credentials.authCookiesFor(accountId)
                 // An unchanged token means the server rejected this exact value on its merits; resending
                 // it would only turn one broken image into two round trips.
-                if (rotated == null || rotated == sent) return@intercept call
+                if (rotated == null || rotated.refreshToken == sent) return@intercept call
 
                 request.attributes.put(ImageCookieRetriedKey, sent)
-                request.headers.putRefreshCookie(rotated)
-                request.attributes.put(ImageCookieAttachedKey, rotated)
+                request.attachAuthCookies(rotated)
+                request.attributes.put(ImageCookieAttachedKey, rotated.refreshToken)
                 execute(request)
             }
         }
@@ -143,8 +141,9 @@ class ImageCookiePlugin private constructor(
         snapshot?.baseUrl?.takeIf { it.isNotEmpty() } ?: serverUrlProvider?.getBaseUrl()
 
     private suspend fun attach(request: HttpRequestBuilder, accountId: String) {
-        val token = credentials.refreshTokenFor(accountId) ?: return
-        request.headers.putRefreshCookie(token)
+        val cookies = credentials.authCookiesFor(accountId) ?: return
+        request.attachAuthCookies(cookies)
+        val token = cookies.refreshToken
         // Recorded only once a cookie is really on the request, so the redirect pass below can use its
         // presence as "this call is an image call that has a credential to manage".
         request.attributes.put(ImageCookieAccountKey, accountId)
@@ -174,21 +173,6 @@ class ImageCookiePlugin private constructor(
     }
 }
 
-/**
- * Write `refreshToken=[token]` into the request's single `Cookie` line, replacing any earlier value.
- *
- * RFC 6265 allows exactly one `Cookie` header and servers and proxies disagree about two, so this
- * folds into the existing line rather than appending a second — the same rule [applyCustomHeaders]
- * follows. Ours goes **last**, so a gateway in front of the origin reads its own segments without
- * parsing past the app's.
- */
-@Suppress("NoGetOutsideModuleDefinition") // Ktor's StringValuesBuilder.getAll, not Koin's.
-private fun HeadersBuilder.putRefreshCookie(token: String) {
-    val kept = otherCookieSegments()
-    remove(HttpHeaders.Cookie)
-    append(HttpHeaders.Cookie, (kept + "$REFRESH_COOKIE_NAME=$token").joinToString("; "))
-}
-
 /** Unpick only the app's own segment, so a user's gateway cookie survives the strip. */
 @Suppress("NoGetOutsideModuleDefinition") // Ktor's StringValuesBuilder.getAll, not Koin's.
 private fun HeadersBuilder.removeRefreshCookie() {
@@ -201,4 +185,4 @@ private fun HeadersBuilder.removeRefreshCookie() {
 private fun HeadersBuilder.otherCookieSegments(): List<String> =
     getAll(HttpHeaders.Cookie).orEmpty()
         .flatMap(::cookieSegments)
-        .filterNot { it.cookieName() == REFRESH_COOKIE_NAME }
+        .filterNot { it.cookieName() in CookieHelper.authCookieNames }

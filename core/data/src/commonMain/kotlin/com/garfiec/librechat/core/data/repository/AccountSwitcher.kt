@@ -220,7 +220,7 @@ class AccountSwitcher(
                     serverHeadersProvider.awaitWarm()
                     serverHeadersProvider.headersFor(normalizedUrl)
                 },
-                bearer = { tokenManager.getStagedAccessToken() },
+                auth = { tokenManager.getStagedRequestAuth() },
             ),
         )
         pendingAdd = session

@@ -1,5 +1,7 @@
 package com.garfiec.librechat.core.network.client
 
+import com.garfiec.librechat.core.model.auth.RequestAuth
+import com.garfiec.librechat.core.model.auth.SessionCredentials
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -19,6 +21,16 @@ interface TokenManager {
     val isAuthenticated: Boolean
     suspend fun getAccessToken(): String?
     suspend fun setTokens(accessToken: String, refreshToken: String)
+
+    /** Interactive sign-in stages the entire session, including server-issued OpenID markers. */
+    suspend fun setSession(session: SessionCredentials) = setTokens(session.accessToken, session.cookies.refreshToken)
+
+    /** One coherent read, keyed to the request's account; null addresses the legacy/bare slot. */
+    suspend fun getRequestAuthFor(accountId: String?): RequestAuth = RequestAuth(
+        if (accountId == null) getAccessToken() else getAccessTokenFor(accountId),
+    )
+
+    suspend fun getStagedRequestAuth(): RequestAuth = RequestAuth(getStagedAccessToken())
 
     /**
      * Refresh the live active account against the live base URL.

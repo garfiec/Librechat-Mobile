@@ -6,6 +6,9 @@ import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.common.result.AccessGatewayException
 import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.logging.LogOrigin
+import com.garfiec.librechat.core.model.auth.AuthCookies
+import com.garfiec.librechat.core.model.auth.RequestAuth
+import com.garfiec.librechat.core.model.auth.SessionCredentials
 import com.garfiec.librechat.core.model.response.RefreshResponse
 import com.garfiec.librechat.core.network.client.CookieHelper
 import com.garfiec.librechat.core.network.client.PinnedServerBaseUrlKey
@@ -14,10 +17,10 @@ import com.garfiec.librechat.core.network.client.RefreshResult
 import com.garfiec.librechat.core.network.client.SessionEndReason
 import com.garfiec.librechat.core.network.client.SessionHealth
 import com.garfiec.librechat.core.network.client.TokenManager
+import com.garfiec.librechat.core.network.client.attachAuthCookies
 import com.garfiec.librechat.core.network.client.expiresAtEpochMillisOrNull
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
@@ -80,8 +83,9 @@ abstract class CommonTokenDataStore(
     private val ioDispatcher: CoroutineDispatcher,
 ) : TokenManager, RefreshCookieCredentials {
 
+    /** The active slot's bearer and OpenID markers, one value so a reader never pairs two generations. */
     @Volatile
-    private var cachedAccessToken: String? = null
+    private var cachedAuth = RequestAuth(null)
 
     /**
      * The account whose tokens are currently active, or `null` when logged out or on a legacy install
@@ -102,7 +106,7 @@ abstract class CommonTokenDataStore(
 
     private fun loadCacheFromStorage() {
         activeAccountKey = readValue(KEY_ACTIVE_ACCOUNT)
-        cachedAccessToken = readValue(accessKey(activeAccountKey))
+        cachedAuth = storedAuth(activeAccountKey)
         tokenInitialized = true
     }
 
@@ -136,20 +140,16 @@ abstract class CommonTokenDataStore(
      * stale bearer until process death. Reading through costs a repeated decrypt instead.
      */
     private fun ensureTokenLoaded(): String? {
-        if (tokenInitialized) return cachedAccessToken.nonBlankOrNull()
-        return readValue(accessKey(readValue(KEY_ACTIVE_ACCOUNT))).nonBlankOrNull()
+        if (tokenInitialized) return cachedAuth.bearer.nonBlankOrNull()
+        return sessions.readAccess(readValue(KEY_ACTIVE_ACCOUNT)).nonBlankOrNull()
     }
 
     private fun String?.nonBlankOrNull(): String? = this?.takeUnless { it.isBlank() }
 
-    // The bare key (null account) is the logged-out / legacy / mid-auth-staging fallback; a resolved
-    // account namespaces to `acct:<id>:<base>`. One helper so both token bases scope identically.
-    private fun scopedKey(account: String?, base: String): String =
-        if (account == null) base else accountScopedName(account, base)
+    private fun storedAuth(account: String?): RequestAuth =
+        sessions.readSession(account)?.let { RequestAuth(it.accessToken, it.cookies.openId) } ?: RequestAuth(sessions.readAccess(account))
 
-    private fun accessKey(account: String?): String = scopedKey(account, KEY_ACCESS_TOKEN)
-
-    private fun refreshKey(account: String?): String = scopedKey(account, KEY_REFRESH_TOKEN)
+    private val sessions = SecureSessionRecords(::readValue, ::writeValues, ::removeValue)
 
     /** Guards the in-memory identity/cache + short storage reads/writes of it. Never held across a POST. */
     private val stateMutex = Mutex()
@@ -258,7 +258,11 @@ abstract class CommonTokenDataStore(
 
     override suspend fun getAccessToken(): String? = ensureTokenLoaded()
 
-    override suspend fun setTokens(accessToken: String, refreshToken: String) = stateMutex.withLock {
+    override suspend fun setTokens(accessToken: String, refreshToken: String) =
+        setSession(SessionCredentials(accessToken, AuthCookies(refreshToken)))
+
+    override suspend fun setSession(session: SessionCredentials) = stateMutex.withLock {
+        val accessToken = session.accessToken
         // Authentication path only (login / OAuth / 2FA). Stage the freshly-issued pair under the bare
         // keys and drop the active binding, so a re-login while another account is active never writes
         // into that account's keyed slot. onAccountResolved re-homes the staged pair once identity is
@@ -271,15 +275,15 @@ abstract class CommonTokenDataStore(
         // while a flight can still be recording, so this is the write that can't be lost.)
         clearRejectedRefresh(slotKey(null))
         resetSessionExpiryLatch()
-        cachedAccessToken = accessToken
-        activeAccountKey = null
         // Drop the persisted mirror BEFORE staging, so a crash in the staging window (before
         // onAccountResolved re-homes) can never cold-start back into the previously-active account —
         // the mirror must never outlive the in-memory identity. A crash after this remove but before
         // the stage write just cold-starts logged-out (safe), never as the wrong account.
         removeValue(KEY_ACTIVE_ACCOUNT)
         // One commit so a crash never persists a new access token with a stale/absent refresh token.
-        writeValues(mapOf(KEY_ACCESS_TOKEN to accessToken, KEY_REFRESH_TOKEN to refreshToken))
+        sessions.writeSession(null, session)
+        cachedAuth = RequestAuth(accessToken, session.cookies.openId)
+        activeAccountKey = null
     }
 
     override suspend fun onAccountResolved(accountId: String) = stateMutex.withLock {
@@ -289,9 +293,8 @@ abstract class CommonTokenDataStore(
         // restore of already-keyed tokens whose mirror diverged), leave the keyed slot intact.
         // Crash-safe ordering: write the keyed slot, THEN the mirror, and only then drop the staging
         // keys — an interruption before the mirror write re-stages on the next resolve.
-        val stagedAccess = readValue(KEY_ACCESS_TOKEN).nonBlankOrNull()
-        val stagedRefresh = readValue(KEY_REFRESH_TOKEN)
-        val rehomed = stagedAccess != null && stagedRefresh != null
+        val staged = sessions.readSession(null)?.takeIf { it.accessToken.isNotBlank() }
+        val rehomed = staged != null
         if (rehomed) {
             // Both the keyed slot (overwritten with the new truth) and the bare slot (staging
             // consumed) change; a no-staging mirror re-home changes neither, so nothing is bumped.
@@ -299,18 +302,17 @@ abstract class CommonTokenDataStore(
             bumpEpoch(null)
             // Same as [setTokens]: the keyed slot is being overwritten with a freshly-issued pair.
             clearRejectedRefresh(slotKey(accountId))
-            writeValues(mapOf(accessKey(accountId) to stagedAccess, refreshKey(accountId) to stagedRefresh))
+            sessions.writeSession(accountId, checkNotNull(staged))
         }
         writeValue(KEY_ACTIVE_ACCOUNT, accountId)
         activeAccountKey = accountId
         // De-fanged: remove ONLY the bare staging keys, never another account's keyed slot — a
         // previously-active account's tokens are retained for a later switch back.
-        removeValue(KEY_ACCESS_TOKEN)
-        removeValue(KEY_REFRESH_TOKEN)
+        sessions.removeSession(null)
         // Trust the staged access in-memory only when we actually persisted it (rehomed); otherwise
         // (torn/absent staging, e.g. a partial keychain write) read the keyed slot so the cached
         // bearer can never diverge from storage across a cold start.
-        cachedAccessToken = if (rehomed) stagedAccess else readValue(accessKey(accountId))
+        cachedAuth = if (rehomed) RequestAuth(staged?.accessToken, staged?.cookies?.openId) else storedAuth(accountId)
     }
 
     /**
@@ -329,29 +331,27 @@ abstract class CommonTokenDataStore(
         // describes a deleted credential; don't retain it.
         clearRejectedRefresh(slotKey(activeAccountKey))
         clearRejectedRefresh(slotKey(null))
-        removeValue(accessKey(activeAccountKey))
-        removeValue(refreshKey(activeAccountKey))
+        sessions.removeSession(activeAccountKey)
         if (activeAccountKey != null) {
             // The active slot is keyed, so the bare keys can only hold a stale staged pair — purge it
             // so a killed login can't be cold-started back into an apparently-authenticated state.
-            removeValue(KEY_ACCESS_TOKEN)
-            removeValue(KEY_REFRESH_TOKEN)
+            sessions.removeSession(null)
         }
         removeValue(KEY_ACTIVE_ACCOUNT)
         activeAccountKey = null
-        cachedAccessToken = null
+        cachedAuth = RequestAuth(null)
     }
 
     override suspend fun getAccessTokenFor(accountId: String): String? = stateMutex.withLock {
         // Serve the active account from the in-memory cache (the per-request hot path via the switch
         // barrier's keyed bearer read); fall to storage only for a non-active account's slot. Under
         // stateMutex so the account check and the cache read can't interleave with a select/teardown.
-        val token = if (accountId == activeAccountKey) cachedAccessToken else readValue(accessKey(accountId))
+        val token = if (accountId == activeAccountKey) cachedAuth.bearer else sessions.readAccess(accountId)
         token.nonBlankOrNull()
     }
 
     override suspend fun getStagedAccessToken(): String? = stateMutex.withLock {
-        readValue(KEY_ACCESS_TOKEN).nonBlankOrNull()
+        sessions.readAccess(null).nonBlankOrNull()
     }
 
     override suspend fun clearStagedTokens() = stateMutex.withLock {
@@ -359,8 +359,9 @@ abstract class CommonTokenDataStore(
         // deliberate: an in-flight refresh of a *keyed* account (the active one, mid-add) is
         // legitimate and must not discard its result; nothing refreshes the bare slot while an
         // account binding exists (pending add-flow 401s never trigger a refresh).
-        removeValue(KEY_ACCESS_TOKEN)
-        removeValue(KEY_REFRESH_TOKEN)
+        sessions.removeSession(null)
+        // With no account bound the cache mirrors the bare slot, so it goes with it.
+        if (activeAccountKey == null) cachedAuth = RequestAuth(null)
     }
 
     override suspend fun selectAccount(accountId: String) = stateMutex.withLock {
@@ -371,15 +372,14 @@ abstract class CommonTokenDataStore(
         // switch barrier).
         writeValue(KEY_ACTIVE_ACCOUNT, accountId)
         activeAccountKey = accountId
-        cachedAccessToken = readValue(accessKey(accountId))
+        cachedAuth = storedAuth(activeAccountKey)
         resetSessionExpiryLatch()
     }
 
     override suspend fun removeAccount(accountId: String) = stateMutex.withLock {
         resetSessionExpiryLatch()
         bumpEpoch(accountId)
-        removeValue(accessKey(accountId))
-        removeValue(refreshKey(accountId))
+        sessions.removeSession(accountId)
         // Evict the account's single-flight lock so [flights] doesn't retain a Mutex per removed
         // account. Safe: removeAccount bumps the epoch, so any in-flight refresh of this account
         // discards its result on commit regardless.
@@ -389,7 +389,7 @@ abstract class CommonTokenDataStore(
         if (activeAccountKey == accountId) {
             removeValue(KEY_ACTIVE_ACCOUNT)
             activeAccountKey = null
-            cachedAccessToken = null
+            cachedAuth = RequestAuth(null)
         }
     }
 
@@ -710,7 +710,7 @@ abstract class CommonTokenDataStore(
             // failure mode is one-directional. A stale read can only miss a rotation, which costs a
             // redundant POST — never the reverse.
             if (usedAccessToken != null) {
-                val current = readValue(accessKey(accountKey)).nonBlankOrNull()
+                val current = sessions.readAccess(accountKey).nonBlankOrNull()
                 if (current != null && current != usedAccessToken) {
                     Diag.d(
                         "Auth",
@@ -725,7 +725,7 @@ abstract class CommonTokenDataStore(
             // The exact bytes this flight would POST, read before the attempt so a rejection is
             // recorded against the token that was actually rejected. Only the proactive path needs
             // it, so the reactive path keeps its original single storage read.
-            val tokenToSend = if (bestEffort) readValue(refreshKey(accountKey)).nonBlankOrNull() else null
+            val tokenToSend = if (bestEffort) sessions.readCookies(accountKey)?.refreshToken.nonBlankOrNull() else null
             // Evaluated for reactive callers too (they pass a null token), because an endpoint-wide
             // block damps everyone — see [recordIntermediaryBlock].
             if (isRecentlyRejected(slot, tokenToSend)) {
@@ -792,9 +792,9 @@ abstract class CommonTokenDataStore(
             // that races the POST below is detected (and its result discarded) with no lock held
             // across the network call. Re-read each attempt: a teardown or a sibling that landed
             // between retries must be seen.
-            val epochAtStart = stateMutex.withLock { epochOf(accountKey) }
+            val (epochAtStart, storedCookies) = stateMutex.withLock { epochOf(accountKey) to sessions.readCookies(accountKey) }
             lastEpoch = epochAtStart
-            val storedRefreshToken = readValue(refreshKey(accountKey))
+            val storedRefreshToken = storedCookies?.refreshToken
             if (storedRefreshToken.isNullOrBlank()) {
                 // Attempt 0 with no token = no session at all → hard. A LATER attempt losing the
                 // token means a teardown (logout/removal) landed mid-loop and already owns the
@@ -828,7 +828,7 @@ abstract class CommonTokenDataStore(
             val delayMillis: Long =
                 when (
                     val outcome =
-                        attemptRefresh(accountKey, epochAtStart, storedRefreshToken, absoluteRefreshUrl, pinnedBaseUrl)
+                        attemptRefresh(accountKey, epochAtStart, checkNotNull(storedCookies), absoluteRefreshUrl, pinnedBaseUrl)
                 ) {
                     RefreshAttempt.Success -> return RefreshResult.Refreshed
                     // A teardown/re-authentication owns the routing for this slot; never double-emit
@@ -886,7 +886,7 @@ abstract class CommonTokenDataStore(
     private suspend fun attemptRefresh(
         accountKey: String?,
         epochAtStart: Int,
-        storedRefreshToken: String,
+        storedCookies: AuthCookies,
         absoluteRefreshUrl: String?,
         pinnedBaseUrl: String?,
     ): RefreshAttempt =
@@ -897,14 +897,14 @@ abstract class CommonTokenDataStore(
                     // Without it the plugin would fall back to the *live* base URL and pair server B's
                     // headers with server A's pinned refresh URL.
                     pinnedBaseUrl?.let { attributes.put(PinnedServerBaseUrlKey, it) }
-                    header("Cookie", "refreshToken=$storedRefreshToken")
-                    setBody(mapOf("refreshToken" to storedRefreshToken))
+                    attachAuthCookies(storedCookies, pinnedBaseUrl)
+                    setBody(mapOf("refreshToken" to storedCookies.refreshToken))
                 }
             // The refresh client has no response validator, so a non-2xx returns here instead of
             // throwing — inspect the status directly rather than relying on a deserialization failure.
             val status = httpResponse.status.value
             when {
-                status in 200..299 -> handleSuccess(accountKey, epochAtStart, httpResponse, storedRefreshToken)
+                status in 200..299 -> handleSuccess(accountKey, epochAtStart, httpResponse, storedCookies)
                 // 401 is the ambiguous one the ladder exists for: the backend answers it identically
                 // for a dead session and a transiently-missed session lookup. Retried.
                 status == 401 -> {
@@ -1087,7 +1087,7 @@ abstract class CommonTokenDataStore(
         accountKey: String?,
         epochAtStart: Int,
         httpResponse: HttpResponse,
-        storedRefreshToken: String,
+        storedCookies: AuthCookies,
     ): RefreshAttempt {
         val body: RefreshResponse = try {
             httpResponse.body()
@@ -1107,11 +1107,13 @@ abstract class CommonTokenDataStore(
         // The backend rotates the refresh token on every successful refresh and returns the new one
         // via Set-Cookie; persist it. A 2xx without a rotated cookie means the server didn't rotate
         // (reuse path) — the stored token stays valid, so retain it rather than dropping the slot.
-        val rotated = CookieHelper.extractRefreshToken(httpResponse.headers)
-        if (rotated == null) {
-            Diag.d("Auth", origin = LogOrigin.SERVER) { "Refresh 2xx without rotated cookie; retaining stored token" }
+        val cookies = try {
+            CookieHelper.update(storedCookies, httpResponse.headers)
+        } catch (_: IllegalStateException) {
+            Logger.w { "Refresh response had incomplete session cookies" }
+            return RefreshAttempt.Retryable
         }
-        return if (commitRefresh(accountKey, epochAtStart, body.token, rotated ?: storedRefreshToken)) {
+        return if (commitRefresh(accountKey, epochAtStart, SessionCredentials(body.token, cookies))) {
             RefreshAttempt.Success
         } else {
             RefreshAttempt.Discarded
@@ -1128,8 +1130,7 @@ abstract class CommonTokenDataStore(
     private suspend fun commitRefresh(
         accountKey: String?,
         epochAtStart: Int,
-        access: String,
-        refresh: String,
+        session: SessionCredentials,
     ): Boolean = stateMutex.withLock {
         if (epochOf(accountKey) != epochAtStart) {
             // A logout / clear / removal / re-authentication of THIS slot landed mid-POST — discard so
@@ -1138,8 +1139,8 @@ abstract class CommonTokenDataStore(
             Logger.d { "Token refresh discarded: session changed during refresh" }
             return@withLock false
         }
-        writeValues(mapOf(accessKey(accountKey) to access, refreshKey(accountKey) to refresh))
-        if (accountKey == activeAccountKey) cachedAccessToken = access
+        sessions.writeSession(accountKey, session)
+        if (accountKey == activeAccountKey) cachedAuth = RequestAuth(session.accessToken, session.cookies.openId)
         // A commit retires this slot's rejected-token marker on EVERY path, not just the proactive
         // one that records them. A reactive refresh's success is the same proof of life, and the
         // server's reuse path answers 2xx *without* rotating the refresh token — so a marker recorded
@@ -1166,9 +1167,8 @@ abstract class CommonTokenDataStore(
     /** Empty [accountKey]'s token slot and bump its epoch. Caller holds [stateMutex]. */
     private fun dropSlotLocked(accountKey: String?) {
         bumpEpoch(accountKey)
-        removeValue(accessKey(accountKey))
-        removeValue(refreshKey(accountKey))
-        if (accountKey == activeAccountKey) cachedAccessToken = null
+        sessions.removeSession(accountKey)
+        if (accountKey == activeAccountKey) cachedAuth = RequestAuth(null)
     }
 
     override suspend fun endSessionForReauth(accountId: String?) {
@@ -1256,8 +1256,22 @@ abstract class CommonTokenDataStore(
      * *staged* sign-in's token mid add-account flow, and the caller's gate is the only other thing
      * standing between it and a server the user has not finished authenticating to.
      */
-    override suspend fun refreshTokenFor(accountId: String?): String? =
-        accountId?.let { readValue(refreshKey(it)).nonBlankOrNull() }
+    override suspend fun refreshTokenFor(accountId: String?): String? = authCookiesFor(accountId)?.refreshToken
+
+    override suspend fun authCookiesFor(accountId: String?): AuthCookies? = stateMutex.withLock {
+        accountId?.let { sessions.readCookies(it)?.takeIf { cookies -> cookies.refreshToken.isNotBlank() } }
+    }
+
+    override suspend fun getRequestAuthFor(accountId: String?): RequestAuth = stateMutex.withLock {
+        // The per-request hot path (twice per request through the switch barrier): serve the active
+        // slot from memory, like [getAccessTokenFor]. On iOS a storage read is a Keychain IPC.
+        val auth = if (tokenInitialized && accountId == activeAccountKey) cachedAuth else storedAuth(accountId)
+        auth.copy(bearer = auth.bearer.nonBlankOrNull())
+    }
+
+    override suspend fun getStagedRequestAuth(): RequestAuth = getRequestAuthFor(null)
+
+    override suspend fun sessionFor(accountId: String): SessionCredentials? = stateMutex.withLock { sessions.readSession(accountId) }
 
     protected open fun isKeystoreException(e: Exception): Boolean = false
 
@@ -1313,6 +1327,7 @@ abstract class CommonTokenDataStore(
     }
 
     companion object {
+        const val KEY_SESSION = SecureSessionRecords.KEY_SESSION
         const val KEY_ACCESS_TOKEN = "access_token"
         const val KEY_REFRESH_TOKEN = "refresh_token"
         private const val KEY_ACTIVE_ACCOUNT = "active_account_id"

@@ -84,7 +84,7 @@ class CommonTokenDataStoreRefreshCoalescingTest {
 
             assertThat(posts).isEqualTo(1)
             assertThat(results).containsExactlyElementsIn(List(WAITERS + 1) { RefreshResult.Refreshed })
-            assertThat(store.store[accessKeyOf(ACCOUNT)]).isEqualTo("T1")
+            assertThat(store.persistedAccess(ACCOUNT)).isEqualTo("T1")
         }
 
     @Test
@@ -148,7 +148,7 @@ class CommonTokenDataStoreRefreshCoalescingTest {
 
             assertThat(result).isEqualTo(RefreshResult.HardExpired)
             assertThat(posts).isAtLeast(1)
-            assertThat(store.store[refreshKeyOf(ACCOUNT)]).isNull()
+            assertThat(store.persistedRefresh(ACCOUNT)).isNull()
         }
 
     /**
@@ -170,8 +170,8 @@ class CommonTokenDataStoreRefreshCoalescingTest {
 
         store.onAccountResolved("acctA")
 
-        assertThat(store.store[accessKeyOf("acctA")]).isEqualTo("staged-access")
-        assertThat(store.store[accessKeyOf("acctB")]).isEqualTo("B-access")
-        assertThat(store.store[refreshKeyOf("acctB")]).isEqualTo("B-refresh")
+        assertThat(store.persistedAccess("acctA")).isEqualTo("staged-access")
+        assertThat(store.persistedAccess("acctB")).isEqualTo("B-access")
+        assertThat(store.persistedRefresh("acctB")).isEqualTo("B-refresh")
     }
 }

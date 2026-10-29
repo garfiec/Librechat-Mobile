@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.network.api
 
+import com.garfiec.librechat.core.model.auth.AuthCookies
 import com.garfiec.librechat.core.model.request.LoginRequest
 import com.garfiec.librechat.core.model.request.OtpVerificationRequest
 import com.garfiec.librechat.core.model.request.PasswordResetRequest
@@ -17,9 +18,9 @@ import com.garfiec.librechat.core.network.api.dto.LoginResult
 import com.garfiec.librechat.core.network.api.dto.RefreshResult
 import com.garfiec.librechat.core.network.api.dto.TwoFactorConfirmRequest
 import com.garfiec.librechat.core.network.client.CookieHelper
+import com.garfiec.librechat.core.network.client.attachAuthCookies
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.path
@@ -61,23 +62,27 @@ class AuthApi constructor(
      * The server deletes the session [refreshToken] names. It reads the token from the cookie only, and
      * without one it deletes whichever of the user's sessions it finds first — possibly another device's.
      */
-    suspend fun logout(refreshToken: String) {
+    suspend fun logout(refreshToken: String) = logout(AuthCookies(refreshToken))
+
+    suspend fun logout(cookies: AuthCookies) {
         client.post {
             url { path("api/auth/logout") }
-            header("Cookie", "refreshToken=$refreshToken")
+            attachAuthCookies(cookies)
         }
     }
 
-    suspend fun refresh(refreshToken: String): RefreshResult {
+    suspend fun refresh(refreshToken: String): RefreshResult = refresh(AuthCookies(refreshToken))
+
+    suspend fun refresh(cookies: AuthCookies): RefreshResult {
         val httpResponse = client.post {
             url { path("api/auth/refresh") }
             // The backend reads the cookie only; the body copy is redundant.
-            header("Cookie", "refreshToken=$refreshToken")
-            setBody(mapOf("refreshToken" to refreshToken))
+            attachAuthCookies(cookies)
+            setBody(mapOf("refreshToken" to cookies.refreshToken))
         }
         val body = httpResponse.body<RefreshResponse>()
         val newRefreshToken = CookieHelper.extractRefreshToken(httpResponse.headers)
-        return RefreshResult(body, newRefreshToken)
+        return RefreshResult(body, newRefreshToken, CookieHelper.update(cookies, httpResponse.headers))
     }
 
     suspend fun requestPasswordReset(email: String) {

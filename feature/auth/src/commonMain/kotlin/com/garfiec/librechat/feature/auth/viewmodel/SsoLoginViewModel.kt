@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.core.model.auth.AuthCookies
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -51,14 +52,14 @@ class SsoLoginViewModel(
 
     private var tokenConsumed = false
 
-    fun onTokenCapture(refreshToken: String) {
+    fun onTokenCapture(cookies: AuthCookies) {
         if (tokenConsumed) return
         tokenConsumed = true
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            when (val result = authRepository.loginWithOAuthToken(refreshToken)) {
+            when (val result = authRepository.loginWithOAuthToken(cookies)) {
                 is Result.Success ->
                     _uiState.update { it.copy(isLoading = false, isLoggedIn = true) }
                 is Result.Error ->

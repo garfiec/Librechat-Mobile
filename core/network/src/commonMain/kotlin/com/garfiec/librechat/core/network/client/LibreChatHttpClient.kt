@@ -107,6 +107,9 @@ object LibreChatHttpClient {
         // interceptors run in install order, so the app's `Cookie: refreshToken=` is on the request
         // before applyCustomHeaders folds the user's gateway cookie into the same line — which is what
         // keeps it to one Cookie header and lets the app's segment win a name collision.
+        install(OpenIdCookiePlugin) {
+            this.serverUrlProvider = serverUrlProvider
+        }
         install(ImageCookiePlugin) {
             this.credentials = refreshCookieCredentials
             this.serverUrlProvider = serverUrlProvider

@@ -147,6 +147,9 @@ class AuthInterceptorPlugin private constructor(
                 Logger.d("Auth") { "401 received, attempting token refresh" }
                 when (val refresh = plugin.tokenManager.refreshBearerFor(snapshot)) {
                     is BearerResult.Refreshed -> {
+                        snapshot?.let {
+                            request.attributes.put(RequestIdentityKey, it.copy(bearer = refresh.token, openId = refresh.openId))
+                        }
                         request.headers {
                             remove(HttpHeaders.Authorization)
                             append(HttpHeaders.Authorization, "Bearer ${refresh.token}")

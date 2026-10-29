@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.network.client
 
+import com.garfiec.librechat.core.model.auth.OpenIdMarkers
 /**
  * Result of a shared 401-recovery attempt. [Refreshed] carries the new bearer to retry the request
  * with; [Expired] is a hard failure that must route the account to re-auth; [Transient] means the
@@ -8,7 +9,9 @@ package com.garfiec.librechat.core.network.client
  * relaunch can still recover.
  */
 sealed interface BearerResult {
-    data class Refreshed(val token: String) : BearerResult
+    data class Refreshed(val token: String, val openId: OpenIdMarkers? = null) : BearerResult {
+        override fun toString(): String = "Refreshed(<redacted>)"
+    }
     data object Expired : BearerResult
     data object Transient : BearerResult
 }
@@ -38,11 +41,11 @@ suspend fun TokenManager.refreshBearerFor(identity: RequestIdentity?): BearerRes
     }
     return when (result) {
         RefreshResult.Refreshed -> {
-            val token = if (account != null) getAccessTokenFor(account) else getAccessToken()
+            val auth = getRequestAuthFor(account)
             // The refresh succeeded but the slot read back empty — a teardown (logout/removal) raced
             // between the commit and this read. That teardown owns the routing, so treat it as
             // Transient here rather than emitting a second session-expired over it.
-            if (token != null) BearerResult.Refreshed(token) else BearerResult.Transient
+            auth.bearer?.let { BearerResult.Refreshed(it, auth.openId) } ?: BearerResult.Transient
         }
         RefreshResult.HardExpired -> BearerResult.Expired
         RefreshResult.Transient -> BearerResult.Transient

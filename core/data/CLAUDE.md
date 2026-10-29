@@ -35,6 +35,20 @@ All impls take constructor parameters (api, dao, mapper, dispatcher) wired via K
 
 ### Account-keyed token store (`CommonTokenDataStore`)
 
+Sessions now persist as one versioned encrypted/Keychain value per slot
+(`acct:<accountId>:session_credentials`, bare `session_credentials` while staging). It contains the
+access token, refresh token and optional opaque OpenID marker. `SecureSessionRecords` reads legacy
+access/refresh keys only when the record is absent; a successful write verifies the replacement before
+removing legacy keys. A present invalid record never falls back to older credentials.
+
+OpenID refresh snapshots its complete cookie bundle and epoch under `stateMutex`, releases the lock
+for the POST, and commits the full replacement only while that slot's epoch is unchanged. Request
+snapshots read bearer and marker together, from memory for the active slot (`cachedAuth`, updated
+wherever the slot is written): on iOS a storage read is a Keychain IPC. Normal login/2FA replaces
+the session without OpenID markers. All staging, account resolution and teardown paths handle the
+whole record.
+
+
 Tokens are namespaced by account (`acct:<accountId>:access_token`) and several accounts' tokens are
 retained at rest at once (multi-account, issue #179). Concurrency uses four cooperating pieces, not a
 single refresh mutex:

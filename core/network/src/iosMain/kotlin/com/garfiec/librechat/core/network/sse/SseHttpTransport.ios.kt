@@ -3,13 +3,14 @@ package com.garfiec.librechat.core.network.sse
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.common.result.AccessGatewayException
+import com.garfiec.librechat.core.model.auth.OpenIdMarkers
 import com.garfiec.librechat.core.network.client.AccessGatewaySignal
 import com.garfiec.librechat.core.network.client.BearerResult
 import com.garfiec.librechat.core.network.client.LibreChatHttpClient
 import com.garfiec.librechat.core.network.client.SwitchGate
 import com.garfiec.librechat.core.network.client.TokenManager
-import com.garfiec.librechat.core.network.client.customHeaderLines
 import com.garfiec.librechat.core.network.client.refreshBearerFor
+import com.garfiec.librechat.core.network.client.sseCustomHeaderLines
 import com.garfiec.librechat.core.network.sse.nwparams.librechat_make_default_tls_tcp_parameters
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -108,10 +109,11 @@ actual class SseHttpTransport(
         // against the account and server it started on, whose tokens are retained.
         val snapshot = switchGate.captureSnapshot(renewIfStale = true)
         var token = snapshot.bearer
+        var markers = snapshot.openId
         var triedRefresh = false
         while (true) {
             try {
-                emitAll(openConnection(streamPath, resume, snapshot.baseUrl, token, snapshot.customHeaders))
+                emitAll(openConnection(streamPath, resume, snapshot.baseUrl, token, snapshot.customHeaders, markers))
                 return@flow
             } catch (e: SseHttpStatusException) {
                 if (e.statusCode == 401 && !triedRefresh) {
@@ -123,6 +125,7 @@ actual class SseHttpTransport(
                     when (val refresh = tokenManager.refreshBearerFor(snapshot)) {
                         is BearerResult.Refreshed -> {
                             token = refresh.token
+                            markers = refresh.openId
                             // loop to retry with new token
                         }
                         BearerResult.Expired -> {
@@ -153,6 +156,7 @@ actual class SseHttpTransport(
         snapshotBaseUrl: String,
         bearerToken: String?,
         customHeaders: Map<String, String>,
+        markers: OpenIdMarkers?,
     ): Flow<ByteArray> = callbackFlow {
         // This URL is built by hand, so it joins onto the cleaned base like every other hand-built
         // join (Android's Ktor merge resolves the same GET itself). The base URL comes from the
@@ -324,6 +328,7 @@ actual class SseHttpTransport(
                         host = host,
                         bearerToken = bearerToken,
                         customHeaders = customHeaders,
+                                    markers = markers,
                     )
                     val requestBytes = request.encodeToByteArray()
                     val dispatchData = byteArrayToDispatchData(requestBytes, queue)
@@ -392,6 +397,7 @@ actual class SseHttpTransport(
         host: String,
         bearerToken: String?,
         customHeaders: Map<String, String>,
+        markers: OpenIdMarkers?,
     ): String = buildString {
         append("GET ").append(path).append(" HTTP/1.1\r\n")
         append("Host: ").append(host).append("\r\n")
@@ -407,7 +413,7 @@ actual class SseHttpTransport(
         // follows a redirect, so it cannot arrive anywhere but the server the headers belong to.
         // Sanitised again inside customHeaderLines — the names reserved there are exactly the ones
         // hand-written above, so a user value can never emit a second, ambiguous copy of one.
-        append(customHeaderLines(customHeaders))
+        append(sseCustomHeaderLines(customHeaders, markers))
         append("\r\n")
     }
 

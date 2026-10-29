@@ -3,6 +3,8 @@ package com.garfiec.librechat.core.network.client
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.identity.deriveServerId
+import com.garfiec.librechat.core.model.auth.OpenIdMarkers
+import com.garfiec.librechat.core.model.auth.RequestAuth
 import io.ktor.util.AttributeKey
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -29,6 +31,7 @@ data class RequestIdentity(
     val bearer: String?,
     val isPending: Boolean = false,
     val customHeaders: Map<String, String> = emptyMap(),
+    val openId: OpenIdMarkers? = null,
 ) {
     /**
      * Explicit, not the generated one: both [bearer] and [customHeaders] are credentials, and the
@@ -65,18 +68,22 @@ data class RequestIdentity(
 class PendingRequestIdentity(
     private val baseUrl: String,
     private val headers: suspend () -> Map<String, String> = { emptyMap() },
-    private val bearer: suspend () -> String?,
+    private val auth: (suspend () -> RequestAuth)? = null,
+    private val bearer: suspend () -> String? = { null },
 ) : AbstractCoroutineContextElement(PendingRequestIdentity) {
     companion object Key : CoroutineContext.Key<PendingRequestIdentity>
 
-    suspend fun identity(): RequestIdentity =
-        RequestIdentity(
+    suspend fun identity(): RequestIdentity {
+        val credentials = auth?.invoke() ?: RequestAuth(bearer())
+        return RequestIdentity(
             baseUrl = baseUrl,
             accountId = null,
-            bearer = bearer(),
+            bearer = credentials.bearer,
             isPending = true,
             customHeaders = headers(),
+            openId = credentials.openId,
         )
+    }
 }
 
 /** Attribute carrying the per-request [RequestIdentity] snapshot from the barrier to the URL/auth phases. */
@@ -155,17 +162,15 @@ class SwitchGate(
             ) {
                 "Active account does not belong to the configured server"
             }
+            val auth = tokenManager.getRequestAuthFor(accountId)
             RequestIdentity(
                 baseUrl = baseUrl,
                 accountId = accountId,
                 // Explicit branch (not `?: fallback`): a resolved account with an empty keyed slot
                 // must yield a null bearer, never fall through to the live cache — during sign-in
                 // staging the cache holds the *staged* account's token.
-                bearer = if (accountId != null) {
-                    tokenManager.getAccessTokenFor(accountId)
-                } else {
-                    tokenManager.getAccessToken()
-                },
+                bearer = auth.bearer,
+                openId = auth.openId,
                 // Read against the snapshot's own base URL, under the same lock, so the headers can't
                 // pair with a different server than the URL and bearer did.
                 customHeaders = serverHeadersProvider.headersFor(baseUrl),
@@ -185,12 +190,14 @@ class SwitchGate(
         // A switch landing between the snapshot and the renewal is harmless: this request is already
         // pinned to that account, refreshAccessTokenFor writes only that account's keyed slot, and a
         // switched-away account's tokens are retained.
-        val renewed = tokenManager.ensureFreshAccessToken(
+        tokenManager.ensureFreshAccessToken(
             accountId = snapshot.accountId,
             baseUrl = snapshot.baseUrl,
             currentAccessToken = snapshot.bearer,
         )
-        return if (renewed == snapshot.bearer) snapshot else snapshot.copy(bearer = renewed)
+        val auth = tokenManager.getRequestAuthFor(snapshot.accountId)
+        // Read both fields again even when reuse returned the same bearer with a new marker.
+        return snapshot.copy(bearer = auth.bearer, openId = auth.openId)
     }
 
     /**

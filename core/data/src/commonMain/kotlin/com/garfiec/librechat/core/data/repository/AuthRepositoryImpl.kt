@@ -15,6 +15,8 @@ import com.garfiec.librechat.core.data.util.SessionTaskRunner
 import com.garfiec.librechat.core.model.LoginOutcome
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.VerifyTwoFactorOutcome
+import com.garfiec.librechat.core.model.auth.AuthCookies
+import com.garfiec.librechat.core.model.auth.SessionCredentials
 import com.garfiec.librechat.core.model.response.BackupCodesResponse
 import com.garfiec.librechat.core.model.response.TwoFactorSetupResponse
 import com.garfiec.librechat.core.network.api.AuthApi
@@ -116,7 +118,7 @@ class AuthRepositoryImpl(
                 // a request to the *same* server, so dropping the gateway headers here would make the
                 // post-login profile fetch the one call that can't get through the gateway.
                 headers = { snapshot.customHeaders },
-                bearer = { tokenManager.getStagedAccessToken() },
+                auth = { tokenManager.getStagedRequestAuth() },
             ),
         ) { userApi.getUser() }
     }
@@ -163,19 +165,15 @@ class AuthRepositoryImpl(
         }
     }
 
-    override suspend fun loginWithOAuthToken(refreshToken: String): Result<User> {
+    override suspend fun loginWithOAuthToken(cookies: AuthCookies): Result<User> {
         val pending = accountSwitcher.pendingAdd
         val previousAccountId = activeAccountProvider.currentAccountId()
         return safeApiCall {
             withAuthIdentity(pending) {
-                val result = authApi.refresh(refreshToken)
+                val result = authApi.refresh(cookies)
                 // If the backend rotated the refresh token, use the new one;
                 // otherwise keep the original OAuth-provided token.
-                val effectiveRefreshToken = result.newRefreshToken ?: refreshToken
-                tokenManager.setTokens(
-                    accessToken = result.response.token,
-                    refreshToken = effectiveRefreshToken,
-                )
+                tokenManager.setSession(SessionCredentials(result.response.token, result.cookies))
                 // Fetch the user profile, then establish identity before session tasks fire.
                 val user = fetchAuthenticatedUser(pending)
                 establishSession(pending, user)

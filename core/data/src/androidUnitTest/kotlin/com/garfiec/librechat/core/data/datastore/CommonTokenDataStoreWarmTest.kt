@@ -58,8 +58,8 @@ class CommonTokenDataStoreWarmTest {
 
         List(16) { async { store.warmTokenCache() } }.awaitAll()
 
-        // loadCacheFromStorage performs exactly two reads: the mirror, then that account's access key.
-        assertThat(store.readCount).isEqualTo(2)
+        // One load checks the mirror, session record, and the legacy access and refresh keys.
+        assertThat(store.readCount).isEqualTo(4)
     }
 
     @Test
@@ -85,7 +85,7 @@ class CommonTokenDataStoreWarmTest {
         store.warmTokenCache()
 
         assertThat(store.getAccessToken()).isEqualTo("fresh-login")
-        assertThat(store.store[accessKeyOf("acct-9")]).isEqualTo("fresh-login")
+        assertThat(store.persistedAccess("acct-9")).isEqualTo("fresh-login")
     }
 
     @Test
@@ -116,9 +116,9 @@ class CommonTokenDataStoreWarmTest {
     fun synchronousFallback_readsThrough_untilTheWarmLands() = runTest {
         val store = store(seed = bareSeed())
 
-        // Read-through: two decrypts per call, publishing nothing.
+        // Legacy read-through checks the record and old key, publishing nothing.
         repeat(3) { store.isAuthenticated }
-        assertThat(store.readCount).isEqualTo(6)
+        assertThat(store.readCount).isEqualTo(9)
 
         store.warmTokenCache()
         val afterWarm = store.readCount

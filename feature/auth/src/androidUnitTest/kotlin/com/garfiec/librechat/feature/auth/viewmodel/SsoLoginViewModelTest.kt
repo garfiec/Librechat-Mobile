@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.PendingAddSession
 import com.garfiec.librechat.core.model.User
+import com.garfiec.librechat.core.model.auth.AuthCookies
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -73,13 +74,13 @@ class SsoLoginViewModelTest {
 
     @Test
     fun `a captured token signs in`() = runTest {
-        coEvery { authRepository.loginWithOAuthToken(TOKEN) } returns Result.Success(user)
+        coEvery { authRepository.loginWithOAuthToken(AuthCookies(TOKEN)) } returns Result.Success(user)
         val viewModel = createViewModel()
 
-        viewModel.onTokenCapture(TOKEN)
+        viewModel.onTokenCapture(AuthCookies(TOKEN))
         advanceUntilIdle()
 
-        coVerify(exactly = 1) { authRepository.loginWithOAuthToken(TOKEN) }
+        coVerify(exactly = 1) { authRepository.loginWithOAuthToken(AuthCookies(TOKEN)) }
         with(viewModel.uiState.value) {
             assertThat(isLoggedIn).isTrue()
             assertThat(isLoading).isFalse()
@@ -92,8 +93,8 @@ class SsoLoginViewModelTest {
         coEvery { authRepository.loginWithOAuthToken(any()) } returns Result.Success(user)
         val viewModel = createViewModel()
 
-        viewModel.onTokenCapture(TOKEN)
-        viewModel.onTokenCapture("a-different-token")
+        viewModel.onTokenCapture(AuthCookies(TOKEN))
+        viewModel.onTokenCapture(AuthCookies("a-different-token"))
         advanceUntilIdle()
 
         coVerify(exactly = 1) { authRepository.loginWithOAuthToken(any()) }
@@ -101,11 +102,11 @@ class SsoLoginViewModelTest {
 
     @Test
     fun `a rejected token surfaces the server's message`() = runTest {
-        coEvery { authRepository.loginWithOAuthToken(TOKEN) } returns
+        coEvery { authRepository.loginWithOAuthToken(AuthCookies(TOKEN)) } returns
             Result.Error(message = "Refresh token expired")
         val viewModel = createViewModel()
 
-        viewModel.onTokenCapture(TOKEN)
+        viewModel.onTokenCapture(AuthCookies(TOKEN))
         advanceUntilIdle()
 
         with(viewModel.uiState.value) {
@@ -117,10 +118,10 @@ class SsoLoginViewModelTest {
 
     @Test
     fun `a rejected token with no message leaves the wording to the screen`() = runTest {
-        coEvery { authRepository.loginWithOAuthToken(TOKEN) } returns Result.Error(message = null)
+        coEvery { authRepository.loginWithOAuthToken(AuthCookies(TOKEN)) } returns Result.Error(message = null)
         val viewModel = createViewModel()
 
-        viewModel.onTokenCapture(TOKEN)
+        viewModel.onTokenCapture(AuthCookies(TOKEN))
         advanceUntilIdle()
 
         assertThat(viewModel.uiState.value.error).isEqualTo(SsoLoginError.Exchange(null))
@@ -160,10 +161,10 @@ class SsoLoginViewModelTest {
 
     @Test
     fun `a late error does not clobber a completed sign-in`() = runTest {
-        coEvery { authRepository.loginWithOAuthToken(TOKEN) } returns Result.Success(user)
+        coEvery { authRepository.loginWithOAuthToken(AuthCookies(TOKEN)) } returns Result.Success(user)
         val viewModel = createViewModel()
 
-        viewModel.onTokenCapture(TOKEN)
+        viewModel.onTokenCapture(AuthCookies(TOKEN))
         advanceUntilIdle()
         viewModel.onOAuthError("LATE")
         viewModel.onCaptureFailed()

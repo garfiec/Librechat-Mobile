@@ -147,3 +147,15 @@
     client for arbitrary servers can't declare. Picking a login from the keyboard's key icon works.
 - Credential Manager's `createCredential()` is deliberately not used on sign-in: it reaches only
   Credential Manager providers, so it would send a LastPass user's login to Google.
+
+## OpenID reuse capture
+
+Both SSO WebViews hand off `AuthCookies`, not a refresh-token string. Capture the refresh token,
+`token_provider`, and `openid_user_id` from one cookie snapshot. A reuse capture missing its user
+marker fails capture rather than falling through to LibreChat JWT authentication. Bounded second
+reads allow the native cookie store to catch up; preserve the single-completion latch and composition
+scope cancellation. iOS also filters domain, path, Secure and expiry before choosing cookies.
+
+The ViewModel passes the bundle directly to the repository; credentials never enter navigation or
+saved UI state. Normal sessions carry no OpenID marker. Existing reuse sessions whose marker was
+never captured need a new sign-in; the refresh token cannot recreate that server-issued marker.

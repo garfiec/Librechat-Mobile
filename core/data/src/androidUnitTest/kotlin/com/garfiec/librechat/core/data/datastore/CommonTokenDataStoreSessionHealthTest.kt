@@ -129,8 +129,8 @@ class CommonTokenDataStoreSessionHealthTest {
             store.endSessionForReauth(ACCOUNT)
 
             // The slot is gone, so `isLoggedIn()` reads false and the next cold start goes to sign-in…
-            assertThat(store.store[accessKeyOf(ACCOUNT)]).isNull()
-            assertThat(store.store[refreshKeyOf(ACCOUNT)]).isNull()
+            assertThat(store.persistedAccess(ACCOUNT)).isNull()
+            assertThat(store.persistedRefresh(ACCOUNT)).isNull()
             assertThat(store.getAccessTokenFor(ACCOUNT)).isNull()
             // …the roster pointer stays, so the account is still listed and re-loginable…
             assertThat(store.store[ACTIVE_ACCOUNT_KEY]).isEqualTo(ACCOUNT)

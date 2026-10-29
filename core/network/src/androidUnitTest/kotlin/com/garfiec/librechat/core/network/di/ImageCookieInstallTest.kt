@@ -2,6 +2,7 @@ package com.garfiec.librechat.core.network.di
 
 import com.garfiec.librechat.core.common.di.KoinQualifiers
 import com.garfiec.librechat.core.network.client.ImageCookiePlugin
+import com.garfiec.librechat.core.network.client.OpenIdCookiePlugin
 import com.google.common.truth.Truth.assertThat
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.pluginOrNull
@@ -26,6 +27,13 @@ class ImageCookieInstallTest {
     private fun client(qualifier: Qualifier?): HttpClient {
         val koin = app ?: NetworkGraphTestFakes.koinApp().also { app = it }
         return NetworkGraphTestFakes.client(koin, qualifier)
+    }
+
+    @Test
+    fun `all LibreChat clients carry the OpenId cookie plugin`() {
+        listOf(null, KoinQualifiers.Streaming, KoinQualifiers.Refresh).forEach { qualifier ->
+            assertThat(client(qualifier).pluginOrNull(OpenIdCookiePlugin)).isNotNull()
+        }
     }
 
     /** Coil resolves this client and only this one, so its absence here is every image failing. */

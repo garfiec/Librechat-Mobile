@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.data.datastore
 
+import com.garfiec.librechat.core.model.auth.SessionCredentials
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
 import com.garfiec.librechat.core.network.client.ServerUrlReadyPlugin
 import io.ktor.client.HttpClient
@@ -14,6 +15,7 @@ import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 
 /**
  * The one in-memory [CommonTokenDataStore] the datastore tests share: read-through/write-through
@@ -56,9 +58,15 @@ internal class FakeTokenStore(
     }
 
     /** The bare (no-account-resolved) slots, which is what a store with no active account uses. */
-    fun persistedAccess(): String? = store[KEY_ACCESS_TOKEN]
+    fun persistedAccess(account: String? = null): String? = persistedSession(account)?.accessToken
+        ?: if (sessionKeyOf(account) !in store) store[account?.let(::accessKeyOf) ?: KEY_ACCESS_TOKEN] else null
 
-    fun persistedRefresh(): String? = store[KEY_REFRESH_TOKEN]
+    fun persistedRefresh(account: String? = null): String? = persistedSession(account)?.cookies?.refreshToken
+        ?: if (sessionKeyOf(account) !in store) store[account?.let(::refreshKeyOf) ?: KEY_REFRESH_TOKEN] else null
+
+    fun persistedSession(account: String? = null): SessionCredentials? = store[sessionKeyOf(account)]?.let {
+        runCatching { Json.decodeFromString<SessionCredentials>(it) }.getOrNull()
+    }
 
     override fun readValue(key: String): String? {
         readCount++
@@ -68,6 +76,10 @@ internal class FakeTokenStore(
     override fun writeValue(key: String, value: String) {
         store[key] = value
         if (key == KEY_ACCESS_TOKEN) writeLog += value to (store[KEY_REFRESH_TOKEN] ?: "")
+        if (key == KEY_SESSION) {
+            val session = Json.decodeFromString<SessionCredentials>(value)
+            writeLog += session.accessToken to session.cookies.refreshToken
+        }
     }
 
     override fun writeValues(values: Map<String, String>) {
@@ -76,7 +88,7 @@ internal class FakeTokenStore(
 
     override fun removeValue(key: String) {
         store.remove(key)
-        if (key == KEY_ACCESS_TOKEN) removeCount++
+        if (key == KEY_ACCESS_TOKEN && KEY_SESSION !in store) removeCount++
     }
 
     override fun onKeystoreCorruption() = Unit
@@ -132,3 +144,6 @@ internal const val TEST_SERVER = "https://chat.example.com"
 internal val jsonResponseHeaders = headersOf("Content-Type", ContentType.Application.Json.toString())
 
 internal fun refreshResponseBody(token: String): String = """{"token":"$token"}"""
+
+internal fun sessionKeyOf(account: String? = null): String =
+    if (account == null) CommonTokenDataStore.KEY_SESSION else "acct:$account:${CommonTokenDataStore.KEY_SESSION}"

@@ -162,7 +162,7 @@ class CommonTokenDataStoreProactiveRenewalTest {
         store.ensureFreshAccessToken(null, TEST_SERVER, stale)
 
         assertThat(posts[0]).isEqualTo(1)
-        assertThat(store.store[accessKeyOf(ACCOUNT)]).isNotEqualTo(stale)
+        assertThat(store.persistedAccess(ACCOUNT)).isNotEqualTo(stale)
     }
 
     /**
@@ -239,8 +239,8 @@ class CommonTokenDataStoreProactiveRenewalTest {
             val bearer = store.ensureFreshAccessToken(ACCOUNT, TEST_SERVER, stale)
 
             assertThat(reported).isEqualTo(0)
-            assertThat(store.store[accessKeyOf(ACCOUNT)]).isEqualTo(stale)
-            assertThat(store.store[refreshKeyOf(ACCOUNT)]).isEqualTo("R0")
+            assertThat(store.persistedAccess(ACCOUNT)).isEqualTo(stale)
+            assertThat(store.persistedRefresh(ACCOUNT)).isEqualTo("R0")
             assertThat(bearer).isEqualTo(stale)
             // One attempt, not the reactive ladder's three: retrying cannot change the answer for a
             // caller that is going to ignore it either way.
@@ -292,7 +292,7 @@ class CommonTokenDataStoreProactiveRenewalTest {
 
             assertThat(posts).isEqualTo(0)
             assertThat(bearer).isEqualTo(stale)
-            assertThat(store.store[accessKeyOf(ACCOUNT)]).isEqualTo(stale)
+            assertThat(store.persistedAccess(ACCOUNT)).isEqualTo(stale)
         }
 
     /**
@@ -334,6 +334,6 @@ class CommonTokenDataStoreProactiveRenewalTest {
 
         assertThat(posts).isEqualTo(2)
         assertThat(bearerB).isNotEqualTo(staleB)
-        assertThat(store.store[accessKeyOf("acctB")]).isEqualTo(bearerB)
+        assertThat(store.persistedAccess("acctB")).isEqualTo(bearerB)
     }
 }

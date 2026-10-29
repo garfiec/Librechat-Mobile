@@ -3610,6 +3610,48 @@
       },
       "why": "Bookmark reordering copies three behaviours of this file. `adjustPositions` shifts the tags between a moved tag's old and new stored position by one (`shiftPositions`, and `spreadPositions` which un-ties positions with it), so `reorderTag` sends the stored position of the tag in the target slot, not an index. `updateTagsForConversation` files a name it hasn't seen at position 0, so `writeChatTag` posts every name it attaches through `POST /api/tags` first, without checking the cached list (which can be stale). That relies on `createConversationTag` returning an existing name early, unchanged and without error; it also skips the attach for it, so `createTag` attaches through the chat PUT.",
       "failure_mode": "If the shift or the position semantics change (e.g. to the index web sends), a drag lands in the wrong slot after the refresh. If the chat PUT or the create changes, new bookmarks land first in the order, or one isn't added to the chat; if the create starts refusing an existing name, every tick fails. Nothing else errors."
+    },
+    {
+      "id": "openid-session-marker-cookies",
+      "upstream": {
+        "file": "packages/api/src/oauth/csrf.ts",
+        "symbol": "setOpenIDMarkerCookies",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/client/CookieHelper.kt",
+        "symbol": "CookieHelper"
+      },
+      "why": "The native client captures and carries the OpenID provider and signed user marker; the user marker binds to the refresh-token hash and must rotate with it.",
+      "failure_mode": "A changed cookie name, marker lifetime or binding rule silently breaks OpenID reuse while normal logins still work."
+    },
+    {
+      "id": "openid-refresh-cookie-routing",
+      "upstream": {
+        "file": "api/server/controllers/AuthController.js",
+        "symbol": "refreshController",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/client/CookieHelper.kt",
+        "symbol": "update"
+      },
+      "why": "Native refresh carries the server-issued cookie bundle and retains omitted response cookies. OpenID reuse is selected by token_provider, not the sign-in provider label.",
+      "failure_mode": "A changed refresh-routing or cookie-rotation contract rejects native sessions after login or refresh."
+    },
+    {
+      "id": "openid-bearer-cookie-routing",
+      "upstream": {
+        "file": "api/server/middleware/requireJwtAuth.js",
+        "symbol": "getAuthStrategies",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/client/OpenIdCookiePlugin.kt",
+        "symbol": "OpenIdCookiePlugin"
+      },
+      "why": "An IdP bearer requires both OpenID marker cookies on authenticated API and SSE requests; iOS raw SSE mirrors the same contract.",
+      "failure_mode": "Login succeeds but subsequent native bearer requests fail authentication because a new strategy-selection rule was not mirrored."
     }
   ]
 }

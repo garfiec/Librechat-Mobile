@@ -62,8 +62,8 @@ class CommonTokenDataStoreSessionExpiryTest {
         val result = store.refreshAccessTokenFor("acctA", SERVER)
 
         assertThat(result).isEqualTo(RefreshResult.HardExpired)
-        assertThat(store.store[accessKeyOf("acctA")]).isNull()
-        assertThat(store.store[refreshKeyOf("acctA")]).isNull()
+        assertThat(store.persistedAccess("acctA")).isNull()
+        assertThat(store.persistedRefresh("acctA")).isNull()
         // The cold-start check reads through these, so this is what stops the replay.
         assertThat(store.isAuthenticated).isFalse()
         assertThat(store.getAccessToken()).isNull()
@@ -88,8 +88,8 @@ class CommonTokenDataStoreSessionExpiryTest {
         // A 5xx is a server-side blip, not evidence the session is dead — tearing down here would
         // log the user out over a transient failure a later request would have recovered from.
         assertThat(result).isEqualTo(RefreshResult.Transient)
-        assertThat(store.store[accessKeyOf("acctA")]).isEqualTo("A-access")
-        assertThat(store.store[refreshKeyOf("acctA")]).isEqualTo("A-refresh")
+        assertThat(store.persistedAccess("acctA")).isEqualTo("A-access")
+        assertThat(store.persistedRefresh("acctA")).isEqualTo("A-refresh")
         assertThat(store.isAuthenticated).isTrue()
     }
 
@@ -116,7 +116,7 @@ class CommonTokenDataStoreSessionExpiryTest {
         val result = store.refreshAccessTokenFor("acctA", SERVER)
 
         assertThat(result).isEqualTo(RefreshResult.Refreshed)
-        assertThat(store.store[accessKeyOf("acctA")]).isEqualTo("A-access-2")
+        assertThat(store.persistedAccess("acctA")).isEqualTo("A-access-2")
     }
 
     @Test

@@ -1,5 +1,7 @@
 package com.garfiec.librechat.core.network.client
 
+import com.garfiec.librechat.core.model.auth.AuthCookies
+import com.garfiec.librechat.core.model.auth.SessionCredentials
 /**
  * Reads one account's **refresh token**, for the requests that send it as the `refreshToken` cookie
  * besides the refresh POST: the server's local image mount ([ImageCookiePlugin]) and logout, which
@@ -20,4 +22,10 @@ package com.garfiec.librechat.core.network.client
 fun interface RefreshCookieCredentials {
     /** The stored refresh token for [accountId], or null when there is none (or no resolved account). */
     suspend fun refreshTokenFor(accountId: String?): String?
+
+    /** Read token and markers together, never as separate secure-store reads. */
+    suspend fun authCookiesFor(accountId: String?): AuthCookies? = refreshTokenFor(accountId)?.let(::AuthCookies)
+
+    /** Logout needs the bearer and cookies from one generation after proactive renewal. */
+    suspend fun sessionFor(accountId: String): SessionCredentials? = null
 }

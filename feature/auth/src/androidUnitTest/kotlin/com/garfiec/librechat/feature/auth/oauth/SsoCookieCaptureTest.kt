@@ -1,9 +1,26 @@
 package com.garfiec.librechat.feature.auth.oauth
 
+import com.garfiec.librechat.core.model.auth.AuthCookies
+import com.garfiec.librechat.core.model.auth.OpenIdMarkers
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 class SsoCookieCaptureTest {
+
+    @Test
+    fun `captures reuse session as one bundle`() {
+        assertThat(extractAuthCookies("refreshToken=idp; token_provider=openid; openid_user_id=marker"))
+            .isEqualTo(AuthCookies("idp", OpenIdMarkers("marker")))
+        assertThat(extractAuthCookies("refreshToken=idp; token_provider=openid")).isNull()
+    }
+
+    @Test
+    fun `cookie paths respect deployment segment boundaries`() {
+        assertThat(cookiePathAppliesTo("/librechat", "/librechat/api/auth/refresh")).isTrue()
+        assertThat(cookiePathAppliesTo("/librechat/", "/librechat/api/auth/refresh")).isTrue()
+        assertThat(cookiePathAppliesTo("/librechat", "/librechat-other/api/auth/refresh")).isFalse()
+        assertThat(cookiePathAppliesTo("/other", "/librechat/api/auth/refresh")).isFalse()
+    }
 
     @Test
     fun `extracts refresh token from header`() {

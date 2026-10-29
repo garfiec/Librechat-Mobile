@@ -207,7 +207,7 @@ internal fun HeadersBuilder.applyCustomHeaders(custom: Map<String, String>) {
             val existing = getAll(HttpHeaders.Cookie).orEmpty().flatMap(::cookieSegments)
             // Case-SENSITIVE: RFC 6265 cookie names are case-sensitive, so `refreshToken` and
             // `refreshtoken` are genuinely different cookies and folding them would over-drop.
-            val ownNames = existing.map { it.cookieName() }.toSet()
+            val ownNames = existing.map { it.cookieName() }.toSet() + setOf("token_provider", "openid_user_id")
             val merged = (cookieSegments(value).filterNot { it.cookieName() in ownNames } + existing)
                 .distinct()
             remove(HttpHeaders.Cookie)

@@ -1,5 +1,8 @@
 package com.garfiec.librechat.feature.auth.oauth
 
+import com.garfiec.librechat.core.model.auth.AuthCookies
+import com.garfiec.librechat.core.network.client.CookieHelper
+
 const val REFRESH_TOKEN_COOKIE = "refreshToken"
 
 fun extractRefreshTokenFromCookies(cookieHeader: String?): String? =
@@ -31,3 +34,10 @@ fun cookieAppliesTo(cookieDomain: String, host: String): Boolean {
     val target = host.lowercase()
     return target == domain || target.endsWith(".$domain")
 }
+
+/** Complete cookie handoff; partial OpenID markers must never select the LibreChat JWT path. */
+fun extractAuthCookies(cookieHeader: String?): AuthCookies? = CookieHelper.capture(cookieHeader)
+
+fun cookiePathAppliesTo(cookiePath: String, requestPath: String): Boolean =
+    requestPath == cookiePath || (requestPath.startsWith(cookiePath) &&
+        (cookiePath.endsWith('/') || requestPath.getOrNull(cookiePath.length) == '/'))

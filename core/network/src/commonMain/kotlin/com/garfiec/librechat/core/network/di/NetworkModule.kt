@@ -40,6 +40,7 @@ import com.garfiec.librechat.core.network.client.AuthInterceptorPlugin
 import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
 import com.garfiec.librechat.core.network.client.GatewayDetectionPlugin
 import com.garfiec.librechat.core.network.client.LibreChatHttpClient
+import com.garfiec.librechat.core.network.client.OpenIdCookiePlugin
 import com.garfiec.librechat.core.network.client.RefreshCookieCredentials
 import com.garfiec.librechat.core.network.client.ServerHeadersPlugin
 import com.garfiec.librechat.core.network.client.ServerHeadersProvider
@@ -123,6 +124,9 @@ val networkModule = module {
                 this.tokenManager = tokenManager
                 this.serverUrlProvider = serverUrlProvider
             }
+            install(OpenIdCookiePlugin) {
+                this.serverUrlProvider = serverUrlProvider
+            }
             install(ServerHeadersPlugin) {
                 this.serverHeadersProvider = serverHeadersProvider
                 this.serverUrlProvider = serverUrlProvider
@@ -163,6 +167,9 @@ val networkModule = module {
             //
             // Not folded into ServerUrlReadyPlugin, which now does set the host: the host-scoped,
             // per-server header lookup belongs to ServerHeadersPlugin on all three clients.
+            install(OpenIdCookiePlugin) {
+                this.serverUrlProvider = serverUrlProvider
+            }
             install(ServerHeadersPlugin) {
                 this.serverHeadersProvider = serverHeadersProvider
                 this.serverUrlProvider = serverUrlProvider

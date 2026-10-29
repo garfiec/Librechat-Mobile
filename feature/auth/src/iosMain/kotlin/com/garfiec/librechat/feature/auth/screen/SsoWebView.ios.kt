@@ -8,10 +8,12 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.UIKitView
 import com.garfiec.librechat.core.common.identity.cleanServerUrl
-import com.garfiec.librechat.feature.auth.oauth.REFRESH_TOKEN_COOKIE
+import com.garfiec.librechat.core.model.auth.AuthCookies
 import com.garfiec.librechat.feature.auth.oauth.SsoNavigationDecision
 import com.garfiec.librechat.feature.auth.oauth.SsoNavigationGate
 import com.garfiec.librechat.feature.auth.oauth.cookieAppliesTo
+import com.garfiec.librechat.feature.auth.oauth.cookiePathAppliesTo
+import com.garfiec.librechat.feature.auth.oauth.extractAuthCookies
 import com.garfiec.librechat.feature.auth.oauth.extractQueryParameter
 import com.garfiec.librechat.feature.auth.oauth.safariApplicationName
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -28,6 +30,7 @@ import platform.Foundation.NSError
 import platform.Foundation.NSHTTPCookie
 import platform.Foundation.NSURL
 import platform.Foundation.NSURLRequest
+import platform.Foundation.timeIntervalSinceNow
 import platform.UIKit.UIDevice
 import platform.WebKit.WKNavigation
 import platform.WebKit.WKNavigationAction
@@ -57,7 +60,7 @@ private const val COOKIE_READ_TIMEOUT_MS = 2_000L
 private const val NSURL_ERROR_CANCELLED = -999L
 
 private class SsoCallbacks(
-    val onTokenCapture: (String) -> Unit,
+    val onTokenCapture: (AuthCookies) -> Unit,
     val onOAuthError: (String?) -> Unit,
     val onCaptureFail: () -> Unit,
 )
@@ -79,7 +82,10 @@ private class SsoNavigationDelegate(
 ) : NSObject(), WKNavigationDelegateProtocol {
 
     private val gate = SsoNavigationGate(serverUrl, provider)
+    private val provider = provider
     private val serverHost: String = NSURL.URLWithString(serverUrl)?.host.orEmpty()
+    private val cookiePath = NSURL.URLWithString("${cleanServerUrl(serverUrl)}/api/auth/refresh")?.path ?: "/"
+    private val secureServer = serverUrl.startsWith("https://", ignoreCase = true)
     private var finished = false
 
     override fun webView(
@@ -148,7 +154,7 @@ private class SsoNavigationDelegate(
     private fun captureIfTokenPresent(webView: WKWebView) {
         if (finished) return
         scope.launch {
-            val token = readRefreshToken(webView, attempts = 1) ?: return@launch
+            val token = readAuthCookies(webView, attempts = COOKIE_READ_ATTEMPTS) ?: return@launch
             if (finished) return@launch
             finished = true
             webView.stopLoading()
@@ -161,7 +167,7 @@ private class SsoNavigationDelegate(
         finished = true
         webView.stopLoading()
         scope.launch {
-            val token = readRefreshToken(webView, attempts = COOKIE_READ_ATTEMPTS)
+            val token = readAuthCookies(webView, attempts = COOKIE_READ_ATTEMPTS)
             when {
                 token != null -> callbacks.value.onTokenCapture(token)
                 errorCode != null -> callbacks.value.onOAuthError(errorCode)
@@ -170,7 +176,7 @@ private class SsoNavigationDelegate(
         }
     }
 
-    private suspend fun readRefreshToken(webView: WKWebView, attempts: Int): String? =
+    private suspend fun readAuthCookies(webView: WKWebView, attempts: Int): AuthCookies? =
         withContext(Dispatchers.Main) {
             repeat(attempts) { attempt ->
                 if (attempt > 0) delay(COOKIE_RETRY_DELAY_MS)
@@ -178,17 +184,24 @@ private class SsoNavigationDelegate(
                 webView.configuration.websiteDataStore.httpCookieStore
                     .getAllCookies { cookies.complete(it) }
                 val fetched = withTimeoutOrNull(COOKIE_READ_TIMEOUT_MS) { cookies.await() }
-                refreshTokenFrom(fetched)?.let { return@withContext it }
+                val captured = authCookiesFrom(fetched)
+                if (captured != null && (provider != "openid" || captured.openId != null || attempt == attempts - 1)) {
+                    return@withContext captured
+                }
             }
             null
         }
 
-    private fun refreshTokenFrom(cookies: List<*>?): String? =
-        cookies
-            ?.filterIsInstance<NSHTTPCookie>()
-            ?.firstOrNull { it.name == REFRESH_TOKEN_COOKIE && cookieAppliesTo(it.domain, serverHost) }
-            ?.value
-            ?.takeIf { it.isNotEmpty() }
+    private fun authCookiesFrom(cookies: List<*>?): AuthCookies? {
+        val selected = cookies.orEmpty().filterIsInstance<NSHTTPCookie>()
+            .filter {
+                cookieAppliesTo(it.domain, serverHost) && cookiePathAppliesTo(it.path, cookiePath) &&
+                    (!it.secure || secureServer) && (it.expiresDate?.timeIntervalSinceNow?.let { age -> age > 0 } != false)
+            }
+            .sortedByDescending { it.path.length }
+            .distinctBy { it.name }
+        return extractAuthCookies(selected.joinToString("; ") { "${it.name}=${it.value}" })
+    }
 }
 
 @OptIn(ExperimentalForeignApi::class)
@@ -196,7 +209,7 @@ private class SsoNavigationDelegate(
 actual fun SsoWebView(
     serverUrl: String,
     provider: String,
-    onTokenCapture: (String) -> Unit,
+    onTokenCapture: (AuthCookies) -> Unit,
     onOAuthError: (String?) -> Unit,
     onCaptureFail: () -> Unit,
     modifier: Modifier,

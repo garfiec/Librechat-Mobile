@@ -4,12 +4,13 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.LoginOutcome
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.VerifyTwoFactorOutcome
+import com.garfiec.librechat.core.model.auth.AuthCookies
 import com.garfiec.librechat.core.model.response.BackupCodesResponse
 import com.garfiec.librechat.core.model.response.TwoFactorSetupResponse
 
 interface AuthRepository {
     suspend fun login(email: String, password: String): Result<LoginOutcome>
-    suspend fun loginWithOAuthToken(refreshToken: String): Result<User>
+    suspend fun loginWithOAuthToken(cookies: AuthCookies): Result<User>
 
     /**
      * Verifies a 2FA temp-token session. Returns a closed [VerifyTwoFactorOutcome] (not a

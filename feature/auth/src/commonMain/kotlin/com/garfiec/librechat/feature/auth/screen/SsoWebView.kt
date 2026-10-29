@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.auth.screen
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.garfiec.librechat.core.model.auth.AuthCookies
 
 /** Embedded WebView that runs the full OAuth round-trip for [provider] against [serverUrl].
  *
@@ -29,7 +30,7 @@ import androidx.compose.ui.Modifier
 expect fun SsoWebView(
     serverUrl: String,
     provider: String,
-    onTokenCapture: (String) -> Unit,
+    onTokenCapture: (AuthCookies) -> Unit,
     onOAuthError: (String?) -> Unit,
     onCaptureFail: () -> Unit,
     modifier: Modifier = Modifier,

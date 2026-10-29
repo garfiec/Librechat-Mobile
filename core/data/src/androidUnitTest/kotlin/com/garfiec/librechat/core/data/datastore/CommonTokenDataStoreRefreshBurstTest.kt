@@ -257,7 +257,7 @@ class CommonTokenDataStoreRefreshBurstTest {
 
         assertThat(result).isEqualTo(RefreshResult.Transient)
         // The slot survives: this is what lets the session recover when the block lifts.
-        assertThat(store.store[refreshKeyOf(ACCOUNT)]).isEqualTo("R0")
+        assertThat(store.persistedRefresh(ACCOUNT)).isEqualTo("R0")
         // And it is not retried — every attempt in the budget would meet the same bouncer.
         assertThat(posts[0]).isEqualTo(1)
     }
@@ -292,21 +292,21 @@ class CommonTokenDataStoreRefreshBurstTest {
 
             // The block lands, and the session is kept.
             assertThat(store.refreshAccessToken()).isEqualTo(RefreshResult.Transient)
-            assertThat(store.store[refreshKeyOf(ACCOUNT)]).isEqualTo("R0")
+            assertThat(store.persistedRefresh(ACCOUNT)).isEqualTo("R0")
 
             // Inside the cooldown a reactive caller stands down too: Transient, and NO second POST —
             // this is the delay, and the assertion that it is a delay and not a POST storm.
             assertThat(store.refreshAccessToken()).isEqualTo(RefreshResult.Transient)
             assertThat(posts[0]).isEqualTo(1)
             // Still signed in: the session outlives the block rather than being torn down by it.
-            assertThat(store.store[refreshKeyOf(ACCOUNT)]).isEqualTo("R0")
+            assertThat(store.persistedRefresh(ACCOUNT)).isEqualTo("R0")
 
             // Past the cooldown the gate opens: one more POST, LibreChat's own terminal 403, and the
             // dead credential is finally recognised — delayed, not prevented.
             store.clockOffsetMillis = BLOCK_COOLDOWN_MS + 1
             assertThat(store.refreshAccessToken()).isEqualTo(RefreshResult.HardExpired)
             assertThat(posts[0]).isEqualTo(2)
-            assertThat(store.store[refreshKeyOf(ACCOUNT)]).isNull()
+            assertThat(store.persistedRefresh(ACCOUNT)).isNull()
         }
 
     /**
@@ -327,7 +327,7 @@ class CommonTokenDataStoreRefreshBurstTest {
 
             assertThat(store.refreshAccessToken()).isEqualTo(RefreshResult.HardExpired)
             assertThat(posts[0]).isEqualTo(1)
-            assertThat(store.store[refreshKeyOf(ACCOUNT)]).isNull()
+            assertThat(store.persistedRefresh(ACCOUNT)).isNull()
         }
 
     /**
@@ -349,6 +349,6 @@ class CommonTokenDataStoreRefreshBurstTest {
             val store = seeded(engine, access = jwt(900))
 
             assertThat(store.refreshAccessToken()).isEqualTo(RefreshResult.Transient)
-            assertThat(store.store[refreshKeyOf(ACCOUNT)]).isEqualTo("R0")
+            assertThat(store.persistedRefresh(ACCOUNT)).isEqualTo("R0")
         }
 }
