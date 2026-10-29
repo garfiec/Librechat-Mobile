@@ -149,9 +149,10 @@ internal fun ColumnScope.ChatContent(
                     selectedAgentName = text.agentName,
                     title = text.title,
                     description = text.description,
+                    temporaryAgentName = text.temporaryAgentName,
+                    temporaryModel = text.temporaryCaption,
                     onSelectModel = viewModel::openModelSheet.takeIf { uiState.modelPickerShown },
-                    // A temporary chat is never filed (SendDispatchDelegate), so it claims no project.
-                    projectName = projectName?.takeIf { !uiState.isTemporaryChat },
+                    projectName = projectName,
                     heroIcon = uiState.landingHeroIcon(),
                     showSubtitle = !uiState.hasLandingStarters,
                     isTemporaryChat = uiState.isTemporaryChat,
@@ -349,13 +350,18 @@ internal data class LandingText(
     val agentName: String? = null,
     /** The small model label that opens the picker. */
     val caption: String? = null,
+    /** [agentName] once temporary chat's fixed title has replaced [title]. */
+    val temporaryAgentName: String? = null,
+    /** [caption] once temporary chat's fixed title has replaced [title]: never folded into it. */
+    val temporaryCaption: String? = null,
 )
 
 /**
  * The landing's words, as web's `Landing.tsx`: the selected agent's name, else the spec's label when
  * it has `showOnLanding`, is the title; the description is the agent's, then that spec's, then the
  * spec preset's `greeting` (which applies without `showOnLanding`, as a new chat carries the preset's
- * greeting). A temporary chat keeps its own title and subtitle. [agentName] is the selected agent's,
+ * greeting). A temporary chat keeps its own title and subtitle: both sets are returned whatever the
+ * flag, because the landing switches each line as temporary chat's band reaches it. [agentName] is the selected agent's,
  * resolved by the caller; for an agent spec it wins over the spec's label, as on web. An agent not
  * (yet) in the list is captioned [agentFallbackLabel], so the landing still opens the picker.
  */
@@ -368,10 +374,15 @@ internal fun ChatUiState.landingText(agentName: String?, agentFallbackLabel: Str
         agentName == null && selectedModel != null -> agentFallbackLabel
         else -> null
     }
-    if (isTemporaryChat) return LandingText(agentName = agentName, caption = modelLabel)
     val branded = spec?.takeIf { it.showOnLanding == true }
     val title = agentName ?: branded?.displayLabel
     val description = listOf(selectedAgent()?.description, branded?.description, spec?.preset?.greeting)
         .firstOrNull { !it.isNullOrBlank() }
-    return LandingText(title = title, description = description, caption = modelLabel.takeUnless { it == title })
+    return LandingText(
+        title = title,
+        description = description,
+        caption = modelLabel.takeUnless { it == title },
+        temporaryAgentName = agentName,
+        temporaryCaption = modelLabel,
+    )
 }

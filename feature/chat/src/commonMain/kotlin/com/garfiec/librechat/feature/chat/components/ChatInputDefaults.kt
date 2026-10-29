@@ -1,5 +1,7 @@
 package com.garfiec.librechat.feature.chat.components
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.IconButtonColors
@@ -8,9 +10,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
@@ -50,31 +55,37 @@ object ChatInputDefaults {
         capitalization = KeyboardCapitalization.Sentences,
     )
 
-    /** In Liquid Glass the composer's capsule is the frame, so the field draws no fill or border. */
+    /**
+     * In Liquid Glass the composer's capsule is the frame, so the field draws no fill or border.
+     * In Material, the violet fades in and out over [TEMPORARY_TINT_MS] rather than snapping.
+     */
     @Composable
-    fun textFieldColors(isTemporaryChat: Boolean = false): TextFieldColors = if (isLiquidGlass) {
-        OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = Color.Transparent,
-            unfocusedContainerColor = Color.Transparent,
-            focusedBorderColor = Color.Transparent,
-            unfocusedBorderColor = Color.Transparent,
-        )
-    } else if (isTemporaryChat) {
-        val fill = temporaryWash.compositeOver(containerColor)
-        OutlinedTextFieldDefaults.colors(
+    fun textFieldColors(isTemporaryChat: Boolean = false): TextFieldColors {
+        val amount by animateTemporaryAmount(isTemporaryChat)
+        if (isLiquidGlass) {
+            return OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+            )
+        }
+        val fill = lerp(containerColor, temporaryWash.compositeOver(containerColor), amount)
+        return OutlinedTextFieldDefaults.colors(
             focusedContainerColor = fill,
             unfocusedContainerColor = fill,
-            focusedBorderColor = temporaryAccent,
-            unfocusedBorderColor = temporaryBorderColor,
-        )
-    } else {
-        OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = containerColor,
-            unfocusedContainerColor = containerColor,
-            focusedBorderColor = MaterialTheme.colorScheme.outline,
-            unfocusedBorderColor = borderColor,
+            focusedBorderColor = lerp(MaterialTheme.colorScheme.outline, temporaryAccent, amount),
+            unfocusedBorderColor = lerp(borderColor, temporaryBorderColor.compositeOver(containerColor), amount),
         )
     }
+
+    /** 0 → 1 as temporary chat's violet comes in; read it at draw time where possible. */
+    @Composable
+    fun animateTemporaryAmount(isTemporaryChat: Boolean): State<Float> = animateFloatAsState(
+        targetValue = if (isTemporaryChat) 1f else 0f,
+        animationSpec = tween(TEMPORARY_TINT_MS),
+        label = "temporaryTint",
+    )
 
     @Composable
     fun toolsButtonColors(): IconButtonColors = if (isLiquidGlass) {
@@ -104,6 +115,7 @@ object ChatInputDefaults {
     }
 
     private const val DISABLED_ALPHA = 0.38f
+    private const val TEMPORARY_TINT_MS = 200
     private const val TEMPORARY_BORDER_ALPHA = 0.6f
     private const val TEMPORARY_WASH_ALPHA_LIGHT = 0.08f
     private const val TEMPORARY_WASH_ALPHA_DARK = 0.14f

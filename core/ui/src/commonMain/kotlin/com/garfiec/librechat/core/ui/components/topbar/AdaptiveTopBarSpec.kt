@@ -1,8 +1,10 @@
 package com.garfiec.librechat.core.ui.components.topbar
 
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.garfiec.librechat.core.ui.glass.GlassFlare
 
 /**
  * An icon a top bar can draw on either renderer: the Compose [vector], and the SF Symbol the native
@@ -62,6 +64,13 @@ sealed interface BarAction {
         override val label: String,
         val checked: Boolean,
         val onCheckedChange: (Boolean) -> Unit,
+        /** The icon's colour while checked, in place of the bar's accent (glass and the native bar). */
+        val checkedTint: Color? = null,
+        /**
+         * Reports the button's bounds in root coordinates, for an effect that starts at it. The
+         * Compose bars only: the native iOS bar's buttons have no Compose layout.
+         */
+        val onAnchor: ((Rect) -> Unit)? = null,
     ) : BarAction
 
     /**
@@ -133,6 +142,8 @@ data class AdaptiveTopBarSpec(
     val navigation: BarNavigation?,
     val title: BarTitle,
     val actions: List<BarAction> = emptyList(),
+    /** Lights the edge of the simulated glass bar's actions capsule. Ignored by the other renderers. */
+    val actionsFlare: GlassFlare? = null,
 )
 
 /**

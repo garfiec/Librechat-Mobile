@@ -12,7 +12,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -57,8 +56,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -70,9 +72,12 @@ import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicato
 import com.garfiec.librechat.core.ui.components.pressBounce
 import com.garfiec.librechat.core.ui.components.rememberPressBounce
 import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
+import com.garfiec.librechat.core.ui.glass.drawInsetOutlineStroke
 import com.garfiec.librechat.core.ui.glass.glassSurface
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
+import com.garfiec.librechat.feature.chat.components.veil.LocalComposerFlare
+import com.garfiec.librechat.feature.chat.components.veil.retonedSurface
 import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.model.PickerSkill
@@ -244,6 +249,9 @@ fun CommonChatInputCore(
     textFieldContent: @Composable RowScope.() -> Unit,
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface
+    // The fade keeps temporary chat's retone (see ModeVeil) rather than painting plain surface over it.
+    val retonedSurfaceColor = retonedSurface(surfaceColor)
+    val temporaryAmount = ChatInputDefaults.animateTemporaryAmount(isTemporaryChat)
     // Liquid Glass drops Material's fade: the glass capsule already separates the composer.
     val glass = rememberGlassStyle()
     val glassBackdrop = LocalGlassBackdrop.current
@@ -254,15 +262,18 @@ fun CommonChatInputCore(
                 if (glass != null) {
                     Modifier
                 } else {
-                    Modifier.background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                surfaceColor.copy(alpha = 0.7f),
-                                surfaceColor.copy(alpha = 0.95f),
+                    Modifier.drawBehind {
+                        val surface = lerp(surfaceColor, retonedSurfaceColor, temporaryAmount.value)
+                        drawRect(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    surface.copy(alpha = 0.7f),
+                                    surface.copy(alpha = 0.95f),
+                                ),
                             ),
-                        ),
-                    )
+                        )
+                    }
                 },
             ),
     ) {
@@ -387,6 +398,9 @@ fun CommonChatInputCore(
                 onRetrySkills = onRetrySkills,
             )
 
+            // Temporary chat's wash on the glass capsule, faded rather than snapped (Material's is in the field).
+            val temporaryWash = ChatInputDefaults.temporaryWash
+            val temporaryBorder = ChatInputDefaults.temporaryBorderColor
             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                 // Below a 360dp screen the gaps beside the field go, and the during-run caret folds
                 // into the send button, so the field keeps room for more than a word a line.
@@ -397,20 +411,19 @@ fun CommonChatInputCore(
                         .then(
                             if (glass != null) {
                                 Modifier
-                                    .glassSurface(glass, GlassComposerShape, glassBackdrop)
-                                    .then(
-                                        if (isTemporaryChat) {
-                                            Modifier
-                                                .background(ChatInputDefaults.temporaryWash, GlassComposerShape)
-                                                .border(
-                                                    1.dp,
-                                                    ChatInputDefaults.temporaryBorderColor,
-                                                    GlassComposerShape,
-                                                )
-                                        } else {
-                                            Modifier
-                                        },
-                                    )
+                                    .glassSurface(glass, GlassComposerShape, glassBackdrop, flare = LocalComposerFlare.current)
+                                    .drawBehind {
+                                        val amount = temporaryAmount.value
+                                        if (amount > 0f) {
+                                            val outline = GlassComposerShape.createOutline(size, layoutDirection, this)
+                                            drawOutline(outline, temporaryWash.copy(alpha = temporaryWash.alpha * amount))
+                                            drawInsetOutlineStroke(
+                                                GlassComposerShape,
+                                                temporaryBorder.copy(alpha = temporaryBorder.alpha * amount),
+                                                1.dp.toPx(),
+                                            )
+                                        }
+                                    }
                                     .padding(4.dp)
                             } else {
                                 Modifier

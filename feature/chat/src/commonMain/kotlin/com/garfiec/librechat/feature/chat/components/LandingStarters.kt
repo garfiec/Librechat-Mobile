@@ -34,6 +34,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.platform.rememberReduceMotion
+import com.garfiec.librechat.feature.chat.components.veil.VeilReaction
+import com.garfiec.librechat.feature.chat.components.veil.rememberVeilTarget
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import kotlinx.coroutines.delay
@@ -85,10 +87,11 @@ internal fun LandingStarters(
             if (index > 0) {
                 AdaptiveDivider(modifier = Modifier.cascade(visible, fromComposer).padding(start = 42.dp, end = 12.dp))
             }
+            val rowVeil = rememberVeilTarget(isTemporary = false, reaction = VeilReaction.NUDGE)
             StarterRow(
                 text = starter,
                 enabled = visible,
-                modifier = Modifier.cascade(visible, fromComposer),
+                modifier = Modifier.cascade(visible, fromComposer).then(rowVeil.modifier),
                 onSend = { onSend(starter) },
                 onEdit = { onEdit(starter) },
             )

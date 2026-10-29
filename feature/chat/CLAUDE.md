@@ -65,7 +65,9 @@ feature added to only one composer does not.
   - The words are `landingText` (web's `Landing.tsx`): the selected agent's name, else a
     `showOnLanding` spec's label, replaces the time-of-day greeting; the agent's description, else
     that spec's, else the spec preset's `greeting` (applied without `showOnLanding`) replaces "How can
-    I help", as plain text held to 4 lines. A temporary chat keeps its own title and subtitle.
+    I help", as plain text held to 4 lines. A temporary chat shows its own title and subtitle
+    instead: `landingText` returns both sets whatever the flag, and `LandingContent` switches each
+    line as temporary chat's band reaches it (`components/veil/ModeVeil.kt`).
 - **Loading**: full-screen spinner — *nothing is cached* and the message fetch has not settled
 - **Active**: message list + streaming content + input area
 

@@ -1,6 +1,8 @@
 package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.geometry.Rect
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.model.usage.percentOf
@@ -16,6 +18,9 @@ import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.components.topbar.BarTitleAlignment
 import com.garfiec.librechat.core.ui.components.topbar.BarTitleStyle
 import com.garfiec.librechat.core.ui.resources.bookmarks
+import com.garfiec.librechat.feature.chat.components.veil.LocalModeVeil
+import com.garfiec.librechat.feature.chat.components.veil.VeilReaction
+import com.garfiec.librechat.feature.chat.components.veil.rememberVeilTarget
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.action_archive
 import com.garfiec.librechat.feature.chat.resources.action_duplicate
@@ -55,6 +60,15 @@ internal fun rememberChatTopBarSpec(
     onOpenDrawer: (() -> Unit)?,
     showTempChatToggle: Boolean,
 ): AdaptiveTopBarSpec {
+    // The actions capsule holds the toggle, so the band crosses it where it starts.
+    val veil = LocalModeVeil.current
+    val reportToggle = remember(veil) { veil?.let { v -> { bounds: Rect -> v.reportOrigin(bounds.center) } } }
+    val toggleAnchor = remember(veil) { veil?.let { v -> { v.resolvedOrigin } } }
+    val capsuleVeil = rememberVeilTarget(
+        isTemporary = uiState.isTemporaryChat,
+        reaction = VeilReaction.NUDGE,
+        anchor = toggleAnchor,
+    )
     val navigation = onOpenDrawer?.let {
         BarNavigation(BarIcons.Menu, stringResource(Res.string.cd_open_drawer), it)
     }
@@ -117,6 +131,8 @@ internal fun rememberChatTopBarSpec(
                     label = stringResource(Res.string.cd_temporary_chat),
                     checked = uiState.isTemporaryChat,
                     onCheckedChange = { actions.onToggleTemporaryChat() },
+                    checkedTint = ChatInputDefaults.temporaryAccent,
+                    onAnchor = reportToggle,
                 ),
             )
         }
@@ -130,7 +146,7 @@ internal fun rememberChatTopBarSpec(
         )
     }
 
-    return AdaptiveTopBarSpec(navigation = navigation, title = title, actions = actions)
+    return AdaptiveTopBarSpec(navigation = navigation, title = title, actions = actions, actionsFlare = capsuleVeil.flare)
 }
 
 @Composable

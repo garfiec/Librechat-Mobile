@@ -5,7 +5,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -42,12 +42,14 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.TextRange
@@ -66,6 +68,9 @@ import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
 import com.garfiec.librechat.core.ui.components.rememberPressBounce
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
+import com.garfiec.librechat.feature.chat.components.veil.LocalModeVeil
+import com.garfiec.librechat.feature.chat.components.veil.modeVeilOrigin
+import com.garfiec.librechat.feature.chat.components.veil.rememberVeilTarget
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_edit_title
 import com.garfiec.librechat.feature.chat.resources.cd_more_options
@@ -163,11 +168,23 @@ internal fun ChatFloatingTopBar(
         }
     }
 
-    val barActions = remember(viewModel) {
+    // A tap on the toggle is the one change of the flag that sweeps the veil (see ModeVeilState);
+    // the ViewModel ignores it once the conversation exists, so neither sweeps nor buzzes then.
+    val veil = LocalModeVeil.current
+    val haptics = LocalHapticFeedback.current
+    val toggleContext = rememberUpdatedState(uiState.isTemporaryChat to (conversationId == null))
+    val barActions = remember(viewModel, veil, haptics) {
         ChatTopBarActions(
             onRename = viewModel::renameConversation,
             onOpenModelSheet = viewModel::openModelSheet,
-            onToggleTemporaryChat = viewModel::toggleTemporaryChat,
+            onToggleTemporaryChat = {
+                val (isOn, togglable) = toggleContext.value
+                if (togglable) {
+                    veil?.requestUserToggle(to = !isOn)
+                    haptics.performHapticFeedback(if (isOn) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)
+                }
+                viewModel.toggleTemporaryChat()
+            },
             onSearchQueryChange = viewModel::onSearchQueryChanged,
             onPreviousMatch = viewModel::previousSearchMatch,
             onNextMatch = viewModel::nextSearchMatch,
@@ -307,11 +324,13 @@ private fun MaterialChatTopBar(
         ChatHeaderAlignment.CENTER -> Alignment.Center
     }
 
+    val barVeil = rememberVeilTarget(uiState.isTemporaryChat)
     Column(modifier = modifier) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(brush = chatTopBarScrim())
+                .then(barVeil.modifier)
+                .then(rememberChatTopBarScrim(barVeil.crossed))
                 .consumeUnhandledTouches()
                 .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 6.dp),
@@ -373,14 +392,19 @@ private fun MaterialChatTopBar(
 
             if (showTempChatToggle) {
                 val tempChatBounce = rememberPressBounce()
+                // The toggle is where the band starts, so on it turns violet first and off last.
+                val toggleVeil = rememberVeilTarget(uiState.isTemporaryChat)
                 FloatingBarChip(
                     modifier = Modifier
                         .size(FloatingBarChipSize)
-                        .pressBounce(tempChatBounce, enabled = !isLiquidGlass),
+                        .pressBounce(tempChatBounce, enabled = !isLiquidGlass)
+                        .modeVeilOrigin(LocalModeVeil.current)
+                        .then(toggleVeil.modifier),
                 ) {
                     TempChatToggle(
                         isTemporary = uiState.isTemporaryChat,
                         onToggle = actions.onToggleTemporaryChat,
+                        showsTemporary = toggleVeil.crossed,
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
