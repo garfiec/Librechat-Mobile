@@ -26,6 +26,12 @@ interface TagRepository {
     /** Re-reads the tag list (names, counts, order) into the cache. Does not bump [revision]. */
     suspend fun refreshTags(): Result<Unit>
 
+    /**
+     * The tags the cached row of [conversationId] carries, as they change; empty while it has no row.
+     * A hint only (see the class doc), but every write here and every full read of the chat lands in it.
+     */
+    fun observeConversationTags(conversationId: String): Flow<List<String>>
+
     /** The tags [conversationId] carries on the server, written to the cache. */
     suspend fun getConversationTags(conversationId: String): Result<List<String>>
 

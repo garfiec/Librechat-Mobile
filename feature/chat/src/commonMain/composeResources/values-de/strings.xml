@@ -721,6 +721,9 @@
     <string name="notice_continue_response_failed">Mit der ausgewählten Antwort konnte nicht fortgefahren werden</string>
     <string name="notice_favorites_limit">Du kannst bis zu %1$d Favoriten anheften.</string>
     <string name="notice_favorites_update_failed">Favoriten konnten nicht aktualisiert werden.</string>
+    <string name="notice_bookmark_update_failed">Lesezeichen konnten nicht aktualisiert werden. Versuche es erneut.</string>
+    <string name="notice_bookmark_create_failed">Lesezeichen konnte nicht erstellt werden. Versuche es erneut.</string>
+    <string name="notice_bookmarks_load_failed">Lesezeichen dieses Chats konnten nicht geladen werden</string>
     <string name="notice_upload_failed">%1$s konnte nicht hochgeladen werden: %2$s</string>
     <string name="notice_upload_failed_unknown">%1$s konnte nicht hochgeladen werden: Unbekannter Fehler</string>
     <string name="notice_upload_unreadable">%1$s konnte nicht hochgeladen werden: Datei konnte nicht gelesen werden</string>

@@ -717,6 +717,9 @@
     <string name="notice_continue_response_failed">선택한 응답으로 계속하지 못했습니다</string>
     <string name="notice_favorites_limit">즐겨찾기는 최대 %1$d개까지 고정할 수 있습니다.</string>
     <string name="notice_favorites_update_failed">즐겨찾기를 업데이트하지 못했습니다.</string>
+    <string name="notice_bookmark_update_failed">북마크를 업데이트하지 못했습니다. 다시 시도하세요.</string>
+    <string name="notice_bookmark_create_failed">북마크를 만들지 못했습니다. 다시 시도하세요.</string>
+    <string name="notice_bookmarks_load_failed">이 채팅의 북마크를 불러오지 못했습니다</string>
     <string name="notice_upload_failed">%1$s을(를) 업로드하지 못했습니다: %2$s</string>
     <string name="notice_upload_failed_unknown">%1$s을(를) 업로드하지 못했습니다: 알 수 없는 오류</string>
     <string name="notice_upload_unreadable">%1$s을(를) 업로드하지 못했습니다: 파일을 읽을 수 없습니다</string>

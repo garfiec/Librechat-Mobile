@@ -747,6 +747,9 @@
     <string name="notice_continue_response_failed">Failed to continue with selected response</string>
     <string name="notice_favorites_limit">You can pin up to %1$d favorites.</string>
     <string name="notice_favorites_update_failed">Could not update favorites.</string>
+    <string name="notice_bookmark_update_failed">Couldn't update bookmarks. Try again.</string>
+    <string name="notice_bookmark_create_failed">Couldn't create the bookmark. Try again.</string>
+    <string name="notice_bookmarks_load_failed">Couldn't load this chat's bookmarks</string>
     <string name="notice_upload_failed">Failed to upload %1$s: %2$s</string>
     <string name="notice_upload_failed_unknown">Failed to upload %1$s: Unknown error</string>
     <string name="notice_upload_unreadable">Failed to upload %1$s: Could not read file</string>

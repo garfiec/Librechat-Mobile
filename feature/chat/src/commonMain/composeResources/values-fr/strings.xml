@@ -722,6 +722,9 @@
     <string name="notice_continue_response_failed">Impossible de continuer avec la réponse sélectionnée</string>
     <string name="notice_favorites_limit">Vous pouvez épingler jusqu'à %1$d favoris.</string>
     <string name="notice_favorites_update_failed">Impossible de mettre à jour les favoris.</string>
+    <string name="notice_bookmark_update_failed">Impossible de mettre à jour les signets. Réessayez.</string>
+    <string name="notice_bookmark_create_failed">Impossible de créer le signet. Réessayez.</string>
+    <string name="notice_bookmarks_load_failed">Impossible de charger les signets de cette discussion</string>
     <string name="notice_upload_failed">Impossible d'envoyer %1$s : %2$s</string>
     <string name="notice_upload_failed_unknown">Impossible d'envoyer %1$s : erreur inconnue</string>
     <string name="notice_upload_unreadable">Impossible d'envoyer %1$s : impossible de lire le fichier</string>

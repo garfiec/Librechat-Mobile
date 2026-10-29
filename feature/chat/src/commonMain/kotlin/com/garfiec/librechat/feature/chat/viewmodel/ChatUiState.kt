@@ -69,6 +69,7 @@ data class ChatUiState(
     val favorites: FavoritesState = FavoritesState(),
     val subagents: SubagentState = SubagentState(),
     val actions: ConversationActionsState = ConversationActionsState(),
+    val bookmarks: ChatBookmarksState = ChatBookmarksState(),
     val editing: MessageEditingState = MessageEditingState(),
     val composer: ComposerState = ComposerState(),
     val presetPrompts: PresetPromptState = PresetPromptState(),
@@ -114,6 +115,7 @@ data class ChatUiState(
     val isForkInProgress: Boolean get() = actions.isForkInProgress
     val forkedConversationId: String? get() = actions.forkedConversationId
     val shareLinkActive: Boolean get() = actions.shareLinkActive
+    val hasBookmark: Boolean get() = bookmarks.hasBookmark
 
     /**
      * The chat's first turn is still streaming (at most the opening message is in the tree): its

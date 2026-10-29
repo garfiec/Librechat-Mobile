@@ -6,14 +6,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import com.garfiec.librechat.feature.chat.components.BookmarkPickerSheetHost
 import com.garfiec.librechat.feature.chat.components.ForkOptionsBottomSheet
 import com.garfiec.librechat.feature.chat.components.ShareLinkSheetHost
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
 
 /**
- * The ViewModel outcomes the chat screen acts on: lifecycle pause/resume, the share sheet, Fork and
- * Duplicate. Each is easy to drop silently (the ViewModel never hears a resume, a fork is made the
+ * The ViewModel outcomes the chat screen acts on: lifecycle pause/resume, the share sheet, the
+ * bookmark checklist, Fork and Duplicate. Each is easy to drop silently (the ViewModel never hears a resume, a fork is made the
  * user never lands in), which is why they sit together here rather than in the screen.
  */
 @Composable
@@ -45,6 +46,8 @@ internal fun ChatScreenOutcomes(
 
     // Copy feedback and errors render inside the sheet: a snackbar would sit behind its scrim.
     ShareLinkSheetHost(controller = viewModel.shareLink, onDismiss = viewModel::closeShareSheet)
+
+    BookmarkPickerSheetHost(controller = viewModel.bookmarkPicker)
 
     val forkMessageId = uiState.showForkOptionsForMessageId
     if (forkMessageId != null) {

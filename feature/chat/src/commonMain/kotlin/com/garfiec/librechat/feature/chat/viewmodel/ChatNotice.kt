@@ -31,6 +31,13 @@ enum class ChatNotice(val wire: String) {
     FAVORITES_LIMIT("favorites_limit"),
     FAVORITES_UPDATE_FAILED("favorites_update_failed"),
 
+    /** The chat's bookmarks couldn't be read, so the checklist closed. */
+    BOOKMARKS_LOAD_FAILED("bookmarks_load_failed"),
+
+    /** A checklist tick didn't save and was put back. */
+    BOOKMARK_UPDATE_FAILED("bookmark_update_failed"),
+    BOOKMARK_CREATE_FAILED("bookmark_create_failed"),
+
     /** Args: the filename, then the reason (server or exception text, shown as is). */
     UPLOAD_FAILED("upload_failed"),
 

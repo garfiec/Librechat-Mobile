@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.TokenBudgetBreakdown
 import com.garfiec.librechat.feature.chat.components.ChatOverflowItem.ARCHIVE
+import com.garfiec.librechat.feature.chat.components.ChatOverflowItem.BOOKMARKS
 import com.garfiec.librechat.feature.chat.components.ChatOverflowItem.COMPARE
 import com.garfiec.librechat.feature.chat.components.ChatOverflowItem.CONTEXT_USAGE
 import com.garfiec.librechat.feature.chat.components.ChatOverflowItem.DELETE
@@ -42,11 +43,13 @@ class ChatOverflowSectionsTest {
         sharedLinksEnabled: Boolean = true,
         compactNudgeVisible: Boolean = false,
         firstTurnStreaming: Boolean = false,
+        bookmarksEnabled: Boolean = true,
+        isTemporaryChat: Boolean = false,
     ) = chatOverflowSections(
         ChatOverflowGates(
             conversationId, hasShowAllMedia, presetsEnabled, hasPromptsLibrary, promptsEnabled, multiConvoEnabled,
             traceViewerAvailable, contextUsage, contextUsageEnabled, contextBarPlacement, sharedLinksEnabled,
-            compactNudgeVisible, firstTurnStreaming,
+            compactNudgeVisible, firstTurnStreaming, bookmarksEnabled, isTemporaryChat,
         ),
     )
 
@@ -66,7 +69,7 @@ class ChatOverflowSectionsTest {
         assertEquals(
             listOf(
                 listOf(SEARCH, SHOW_ALL_MEDIA, LOAD_PRESET, SAVE_PRESET, PROMPTS_LIBRARY, COMPARE, TRACE, CONTEXT_USAGE),
-                listOf(SHARE, RENAME, DUPLICATE, ARCHIVE),
+                listOf(SHARE, BOOKMARKS, RENAME, DUPLICATE, ARCHIVE),
                 listOf(DELETE),
             ),
             sections(),
@@ -97,16 +100,44 @@ class ChatOverflowSectionsTest {
 
     @Test
     fun serverGatesRemoveTheirItems() {
-        val result =
-            sections(presetsEnabled = false, promptsEnabled = false, sharedLinksEnabled = false, multiConvoEnabled = false)
+        val result = sections(
+            presetsEnabled = false,
+            promptsEnabled = false,
+            sharedLinksEnabled = false,
+            multiConvoEnabled = false,
+            bookmarksEnabled = false,
+        )
         assertEquals(listOf(SEARCH, SHOW_ALL_MEDIA, TRACE, CONTEXT_USAGE), result[0])
         assertEquals(listOf(RENAME, DUPLICATE, ARCHIVE), result[1])
     }
 
     @Test
-    fun shareHidesWhileTheFirstTurnIsStreaming() {
+    fun shareAndBookmarksHideWhileTheFirstTurnIsStreaming() {
         assertEquals(listOf(RENAME, DUPLICATE, ARCHIVE), sections(firstTurnStreaming = true)[1])
-        assertEquals(listOf(SHARE, RENAME, DUPLICATE, ARCHIVE), sections(firstTurnStreaming = false)[1])
+        assertEquals(listOf(SHARE, BOOKMARKS, RENAME, DUPLICATE, ARCHIVE), sections(firstTurnStreaming = false)[1])
+    }
+
+    @Test
+    fun bookmarksSitAfterShareOnASavedChat() {
+        assertEquals(listOf(SHARE, BOOKMARKS, RENAME, DUPLICATE, ARCHIVE), sections()[1])
+        assertEquals(listOf(BOOKMARKS, RENAME, DUPLICATE, ARCHIVE), sections(sharedLinksEnabled = false)[1])
+    }
+
+    @Test
+    fun bookmarksHideOnATemporaryChat() {
+        assertFalse(BOOKMARKS in sections(isTemporaryChat = true).flatten())
+        assertEquals(listOf(SHARE, RENAME, DUPLICATE, ARCHIVE), sections(isTemporaryChat = true)[1])
+    }
+
+    @Test
+    fun bookmarksHideOnANewChat() {
+        assertFalse(BOOKMARKS in sections(conversationId = null).flatten())
+    }
+
+    @Test
+    fun bookmarksHideWhenTheRoleOrServerTurnsThemOff() {
+        assertFalse(BOOKMARKS in sections(bookmarksEnabled = false).flatten())
+        assertEquals(listOf(SHARE, RENAME, DUPLICATE, ARCHIVE), sections(bookmarksEnabled = false)[1])
     }
 
     @Test

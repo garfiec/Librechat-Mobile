@@ -17,6 +17,9 @@ internal enum class ChatOverflowItem {
     /** "Compact conversation…": only while a compact suggestion is due, and only in this placement. */
     COMPACT,
     SHARE,
+
+    /** The chat's bookmark checklist. */
+    BOOKMARKS,
     RENAME,
     DUPLICATE,
     ARCHIVE,
@@ -44,6 +47,9 @@ internal data class ChatOverflowGates(
     /** A compact suggestion is due. A Boolean, not the percent, so the sections aren't rebuilt per tick. */
     val compactNudgeVisible: Boolean = false,
     val firstTurnStreaming: Boolean = false,
+    /** BOOKMARKS USE and `interface.bookmarks`. */
+    val bookmarksEnabled: Boolean = false,
+    val isTemporaryChat: Boolean = false,
 )
 
 internal fun chatOverflowSections(gates: ChatOverflowGates): List<List<ChatOverflowItem>> = with(gates) {
@@ -76,6 +82,9 @@ internal fun chatOverflowSections(gates: ChatOverflowGates): List<List<ChatOverf
     } else {
         buildList {
             if (sharedLinksEnabled && !firstTurnStreaming) add(ChatOverflowItem.SHARE)
+            // A temporary chat is never listed or kept, and a first turn's chat isn't saved yet:
+            // the server has nothing to put a bookmark on in either.
+            if (bookmarksEnabled && !isTemporaryChat && !firstTurnStreaming) add(ChatOverflowItem.BOOKMARKS)
             add(ChatOverflowItem.RENAME)
             add(ChatOverflowItem.DUPLICATE)
             add(ChatOverflowItem.ARCHIVE)

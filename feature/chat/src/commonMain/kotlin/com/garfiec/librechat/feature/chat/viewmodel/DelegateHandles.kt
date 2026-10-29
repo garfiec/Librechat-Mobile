@@ -214,6 +214,20 @@ class ConversationActionsHandle(root: ChatStateHandle) : DelegateHandle(root) {
         root.update { ConversationActionsWrites(this).apply(block).applyTo(this) }
 }
 
+// ── ChatBookmarksDelegate ─────────────────────────────────────────────────
+class BookmarksWrites internal constructor(state: ChatUiState) {
+    var bookmarks: ChatBookmarksState = state.bookmarks
+    var error: String? = state.error
+    internal fun applyTo(s: ChatUiState) = s.copy(bookmarks = bookmarks, error = error)
+}
+
+class BookmarksHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    /** Read-only observation of the full state (the checklist follows the open chat and its gate). */
+    val stateFlow: StateFlow<ChatUiState> get() = root.stateFlow
+    fun update(block: BookmarksWrites.() -> Unit) =
+        root.update { BookmarksWrites(this).apply(block).applyTo(this) }
+}
+
 // ── SendCompletionDelegate ────────────────────────────────────────────────
 class SendCompletionWrites internal constructor(state: ChatUiState) {
     var conversation: ConversationMetaState = state.conversation

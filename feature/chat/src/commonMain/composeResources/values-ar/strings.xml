@@ -737,6 +737,9 @@
     <string name="notice_continue_response_failed">تعذّرت المتابعة بالرد المحدد</string>
     <string name="notice_favorites_limit">يمكنك تثبيت ما يصل إلى %1$d من المفضلة.</string>
     <string name="notice_favorites_update_failed">تعذّر تحديث المفضلة.</string>
+    <string name="notice_bookmark_update_failed">تعذّر تحديث الإشارات المرجعية. حاول مرة أخرى.</string>
+    <string name="notice_bookmark_create_failed">تعذّر إنشاء الإشارة المرجعية. حاول مرة أخرى.</string>
+    <string name="notice_bookmarks_load_failed">تعذّر تحميل الإشارات المرجعية لهذه المحادثة</string>
     <string name="notice_upload_failed">تعذّر رفع %1$s: %2$s</string>
     <string name="notice_upload_failed_unknown">تعذّر رفع %1$s: خطأ غير معروف</string>
     <string name="notice_upload_unreadable">تعذّر رفع %1$s: تعذّرت قراءة الملف</string>

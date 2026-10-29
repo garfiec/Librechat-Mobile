@@ -7,6 +7,8 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -94,6 +96,10 @@ object BarIcons {
     val Star = BarIcon(Icons.Default.StarBorder, "star")
     val StarFilled = BarIcon(Icons.Default.Star, "star.fill")
 
+    // Bookmarks: the outline while the chat has none, filled once it carries one.
+    val Bookmark = BarIcon(Icons.Default.BookmarkBorder, "bookmark")
+    val BookmarkFilled = BarIcon(Icons.Default.Bookmark, "bookmark.fill")
+
     // Compact forms of text actions (see BarAction.Text.compactIcon).
     val Confirm = BarIcon(Icons.Default.Check, "checkmark")
     val Attach = BarIcon(Icons.Default.AttachFile, "paperclip")
@@ -104,6 +110,6 @@ object BarIcons {
         Compare, Trace, ContextUsage, Compact, Share, Edit, Duplicate, Archive, Delete,
         EditFilled, DuplicateFilled, DeleteFilled, ShareFilled, History, Sort, NewFolder, Tools, Import,
         SelectAll, GridView, ListView, Filter, Source, Rendered, Link, Star, StarFilled, OpenInBrowser,
-        Confirm, Attach, ClearAll,
+        Bookmark, BookmarkFilled, Confirm, Attach, ClearAll,
     )
 }

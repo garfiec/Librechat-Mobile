@@ -717,6 +717,9 @@
     <string name="notice_continue_response_failed">无法使用所选回复继续</string>
     <string name="notice_favorites_limit">最多可固定 %1$d 个收藏。</string>
     <string name="notice_favorites_update_failed">无法更新收藏。</string>
+    <string name="notice_bookmark_update_failed">无法更新书签，请重试。</string>
+    <string name="notice_bookmark_create_failed">无法创建书签，请重试。</string>
+    <string name="notice_bookmarks_load_failed">无法加载此对话的书签</string>
     <string name="notice_upload_failed">无法上传 %1$s：%2$s</string>
     <string name="notice_upload_failed_unknown">无法上传 %1$s：未知错误</string>
     <string name="notice_upload_unreadable">无法上传 %1$s：无法读取文件</string>

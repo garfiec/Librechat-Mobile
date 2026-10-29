@@ -135,6 +135,8 @@ internal fun ChatFloatingTopBar(
         compactNudgeVisible = uiState.compactNudge != null,
         sharedLinksEnabled = uiState.sharedLinksEnabled,
         firstTurnStreaming = uiState.isFirstTurnStreaming,
+        bookmarksEnabled = uiState.bookmarksEnabled,
+        isTemporaryChat = uiState.isTemporaryChat,
     )
     val overflowSections = remember(overflowGates) { chatOverflowSections(overflowGates) }
     val onOverflowItem: (ChatOverflowItem) -> Unit = { item ->
@@ -153,6 +155,7 @@ internal fun ChatFloatingTopBar(
             ChatOverflowItem.CONTEXT_USAGE -> showContextSheet = true
             ChatOverflowItem.COMPACT -> showCompactConfirm = true
             ChatOverflowItem.SHARE -> viewModel.shareConversation()
+            ChatOverflowItem.BOOKMARKS -> viewModel.openBookmarks()
             ChatOverflowItem.RENAME -> onRename()
             ChatOverflowItem.DUPLICATE -> viewModel.duplicateConversation()
             ChatOverflowItem.ARCHIVE -> viewModel.archiveConversation()
@@ -413,6 +416,7 @@ private fun MaterialChatTopBar(
                     canToggleComparison = uiState.canToggleComparison,
                     contextGauge = uiState.contextGaugeDetails,
                     shareLinkActive = uiState.shareLinkActive,
+                    hasBookmark = uiState.hasBookmark,
                     onItem = onItem,
                     dragSelection = overflowDrag.takeIf { !isLiquidGlass },
                 )

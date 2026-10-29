@@ -103,6 +103,23 @@ class TagRepositoryImplTest {
             Conversation(conversationId = conversationId, tags = tags.toList())
     }
 
+    // --- observeConversationTags ---
+
+    @Test
+    fun `a chat's cached tags are read from this account's row, blank names dropped`() = runTest {
+        every { conversationDao.observeByIdForAccount("c1", account.value) } returns
+            flowOf(chatRow("c1", """["work"," ","Saved","work"]"""))
+
+        assertThat(repository.observeConversationTags("c1").first()).containsExactly("work", SAVED_TAG).inOrder()
+    }
+
+    @Test
+    fun `a chat with no cached row has no tags`() = runTest {
+        every { conversationDao.observeByIdForAccount("c1", account.value) } returns flowOf(null)
+
+        assertThat(repository.observeConversationTags("c1").first()).isEmpty()
+    }
+
     // --- refreshTags / observeTags ---
 
     @Test

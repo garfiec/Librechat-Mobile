@@ -722,6 +722,9 @@
     <string name="notice_continue_response_failed">No se pudo continuar con la respuesta seleccionada</string>
     <string name="notice_favorites_limit">Puedes fijar hasta %1$d favoritos.</string>
     <string name="notice_favorites_update_failed">No se pudieron actualizar los favoritos.</string>
+    <string name="notice_bookmark_update_failed">No se pudieron actualizar los marcadores. Inténtalo de nuevo.</string>
+    <string name="notice_bookmark_create_failed">No se pudo crear el marcador. Inténtalo de nuevo.</string>
+    <string name="notice_bookmarks_load_failed">No se pudieron cargar los marcadores de este chat</string>
     <string name="notice_upload_failed">No se pudo subir %1$s: %2$s</string>
     <string name="notice_upload_failed_unknown">No se pudo subir %1$s: error desconocido</string>
     <string name="notice_upload_unreadable">No se pudo subir %1$s: no se pudo leer el archivo</string>

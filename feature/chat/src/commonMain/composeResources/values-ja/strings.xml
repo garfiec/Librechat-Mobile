@@ -717,6 +717,9 @@
     <string name="notice_continue_response_failed">選択した応答で続行できませんでした</string>
     <string name="notice_favorites_limit">お気に入りは最大%1$d件までピン留めできます。</string>
     <string name="notice_favorites_update_failed">お気に入りを更新できませんでした。</string>
+    <string name="notice_bookmark_update_failed">ブックマークを更新できませんでした。もう一度お試しください。</string>
+    <string name="notice_bookmark_create_failed">ブックマークを作成できませんでした。もう一度お試しください。</string>
+    <string name="notice_bookmarks_load_failed">このチャットのブックマークを読み込めませんでした</string>
     <string name="notice_upload_failed">%1$s をアップロードできませんでした: %2$s</string>
     <string name="notice_upload_failed_unknown">%1$s をアップロードできませんでした: 不明なエラー</string>
     <string name="notice_upload_unreadable">%1$s をアップロードできませんでした: ファイルを読み取れませんでした</string>

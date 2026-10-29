@@ -35,6 +35,7 @@ import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.SkillsRepository
+import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
@@ -51,6 +52,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 import kotlin.time.Clock
@@ -92,6 +94,12 @@ internal class ChatViewModelTestFixture {
         every { it.revision } returns MutableStateFlow(0L)
     }
     val shareLinkControllerFactory = mockk<ShareLinkControllerFactory>(relaxed = true)
+
+    // Real flows: the bookmark icon collects the cached tags and the checklist's tag list.
+    val tagRepository = mockk<TagRepository>(relaxed = true).also {
+        every { it.observeConversationTags(any()) } returns flowOf(emptyList())
+        every { it.observeTags() } returns flowOf(emptyList())
+    }
     val traceRepository = mockk<TraceRepository>(relaxed = true)
     val mcpRepository = mockk<McpRepository>(relaxed = true)
     val skillsRepository = mockk<SkillsRepository>(relaxed = true)
@@ -222,6 +230,7 @@ internal class ChatViewModelTestFixture {
         queuedTurnRepository = queuedTurnRepository,
         shareRepository = shareRepository,
         shareLinkControllerFactory = shareLinkControllerFactory,
+        tagRepository = tagRepository,
         traceRepository = traceRepository,
         mcpRepository = mcpRepository,
         skillsRepository = skillsRepository,

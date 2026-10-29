@@ -19,6 +19,7 @@ import com.garfiec.librechat.core.network.api.TagsApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -56,6 +57,13 @@ class TagRepositoryImpl(
                 rows.toModels().filterNot { it.tag.isNullOrBlank() }
             }
         }
+
+    override fun observeConversationTags(conversationId: String): Flow<List<String>> =
+        activeAccountProvider.flatMapAccountOrEmpty(emptyList()) { account ->
+            conversationDao.observeByIdForAccount(conversationId, account.value).map { row ->
+                row?.toModel()?.tags.orEmpty().cleaned()
+            }
+        }.distinctUntilChanged()
 
     override suspend fun refreshTags(): Result<Unit> = safeApiCall {
         val account = activeAccountProvider.currentAccountId() ?: return@safeApiCall

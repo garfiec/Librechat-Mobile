@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.bookmarks.BookmarkPickerController
 import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
@@ -35,6 +36,7 @@ import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.SkillsRepository
+import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.share.ShareLinkController
@@ -76,6 +78,7 @@ import com.garfiec.librechat.feature.chat.util.serializeMessageForClipboard
 import com.garfiec.librechat.feature.chat.util.withAttachmentSources
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.AttachmentPreviewDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.BranchSwitch
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.ChatBookmarksDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ChatConfigDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ComparisonModeDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ContextProjectionDelegate
@@ -166,6 +169,7 @@ class ChatViewModel(
     queuedTurnRepository: QueuedTurnRepository,
     shareRepository: ShareRepository,
     shareLinkControllerFactory: ShareLinkControllerFactory,
+    tagRepository: TagRepository,
     private val traceRepository: TraceRepository,
     mcpRepository: McpRepository,
     skillsRepository: SkillsRepository,
@@ -251,6 +255,7 @@ class ChatViewModel(
             shareRepository = shareRepository,
             shareLink = shareLinkControllerFactory.create(viewModelScope),
         )
+    private val bookmarksDelegate = ChatBookmarksDelegate(BookmarksHandle(stateHandle), tagRepository)
     private val presetPromptDelegate =
         PresetPromptDelegate(PresetPromptHandle(stateHandle), presetRepository, promptRepository)
     private val skillPickerDelegate = SkillPickerDelegate(
@@ -353,6 +358,9 @@ class ChatViewModel(
     val pdfPasswordPrompts: StateFlow<List<PdfPasswordPrompt>> get() = fileDelegate.pdfPasswordPrompts
 
     val shareLink: ShareLinkController get() = conversationActionsDelegate.shareLink
+
+    /** The ⋮ menu's bookmark checklist on the open chat. */
+    val bookmarkPicker: BookmarkPickerController get() = bookmarksDelegate.picker
 
     private data class TraceGateInputs(
         val conversationId: String?,
@@ -1412,6 +1420,7 @@ class ChatViewModel(
         attachmentPreviewDelegate.reset()
         // A share sheet belongs to the conversation that just left this landing.
         conversationActionsDelegate.shareLink.close()
+        bookmarksDelegate.close()
         // The landing now stands for the next new chat, which opens on the server's spec again.
         modelDelegate.rearmModelSpecDefault()
         // …and with Skills as the new-chat slot has them, not as a pick on the last one left them.
@@ -1620,6 +1629,8 @@ class ChatViewModel(
     fun duplicateConversation() = conversationActionsDelegate.duplicateConversation()
     fun onDuplicatedConversationHandled() = conversationActionsDelegate.onDuplicatedConversationHandled()
     fun shareConversation() = conversationActionsDelegate.shareConversation()
+
+    fun openBookmarks() = bookmarksDelegate.open()
     fun closeShareSheet() = conversationActionsDelegate.closeShareSheet()
     fun showForkOptions(messageId: String) = conversationActionsDelegate.showForkOptions(messageId)
     fun dismissForkOptions() = conversationActionsDelegate.dismissForkOptions()

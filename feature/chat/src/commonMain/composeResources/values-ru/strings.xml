@@ -729,6 +729,9 @@
     <string name="notice_continue_response_failed">Не удалось продолжить с выбранным ответом</string>
     <string name="notice_favorites_limit">Можно закрепить не более %1$d избранных.</string>
     <string name="notice_favorites_update_failed">Не удалось обновить избранное.</string>
+    <string name="notice_bookmark_update_failed">Не удалось обновить закладки. Попробуйте ещё раз.</string>
+    <string name="notice_bookmark_create_failed">Не удалось создать закладку. Попробуйте ещё раз.</string>
+    <string name="notice_bookmarks_load_failed">Не удалось загрузить закладки этого чата</string>
     <string name="notice_upload_failed">Не удалось загрузить %1$s: %2$s</string>
     <string name="notice_upload_failed_unknown">Не удалось загрузить %1$s: неизвестная ошибка</string>
     <string name="notice_upload_unreadable">Не удалось загрузить %1$s: не удалось прочитать файл</string>
