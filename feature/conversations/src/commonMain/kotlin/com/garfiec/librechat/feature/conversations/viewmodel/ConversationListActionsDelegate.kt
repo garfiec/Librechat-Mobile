@@ -6,7 +6,6 @@ import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.data.share.ShareLinkController
 import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.model.Conversation
-import com.garfiec.librechat.core.model.SAVED_TAG
 import com.garfiec.librechat.feature.conversations.export.ConversationExporter
 import com.garfiec.librechat.feature.conversations.export.ExportFormat
 import kotlinx.coroutines.CoroutineScope
@@ -105,19 +104,18 @@ class ConversationListActionsDelegate(
         }
     }
 
+    /**
+     * Applies the tag picker's result. [userTags] is diffed against the tags the picker showed
+     * (`conversation.tags`), and each change goes through the server-read write, so tags set on the
+     * web survive and the favorite star is untouched.
+     */
     fun updateConversationTags(conversation: Conversation, userTags: List<String>) {
         val id = conversation.conversationId ?: return
-        val wasFavorited = SAVED_TAG in conversation.tags
-        val cleaned = userTags.filterNot { it == SAVED_TAG }
-        val finalTags = if (wasFavorited) cleaned + SAVED_TAG else cleaned
         scope.launch {
-            when (tagRepository.setConversationTags(id, finalTags)) {
-                is Result.Success -> {
-                    tagRepository.refreshTags()
-                    // Refresh the host list too: the network-direct project view won't otherwise
-                    // re-fetch the edited row's tags (no-op for the Room-backed list).
-                    onMutated()
-                }
+            when (tagRepository.applyPickedTags(id, shown = conversation.tags, picked = userTags)) {
+                // Refresh the host list too: the network-direct project view won't otherwise
+                // re-fetch the edited row's tags (no-op for the Room-backed list).
+                is Result.Success -> onMutated()
                 is Result.Error -> events.emit(ConversationListEvent.ShowError("Failed to update tags"))
                 is Result.Loading -> Unit
             }

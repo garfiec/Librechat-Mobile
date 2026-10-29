@@ -167,6 +167,14 @@ interface ConversationDao {
     @Query("UPDATE conversations SET tags = :tagsJson, updatedAt = :updatedAt WHERE conversationId = :id AND accountId = :accountId")
     suspend fun updateTags(id: String, tagsJson: String, updatedAt: Long, accountId: String)
 
+    /** Rewrites a row's tags without touching `updatedAt`, for a bookmark renamed or deleted account-wide. */
+    @Query("UPDATE conversations SET tags = :tagsJson WHERE conversationId = :id AND accountId = :accountId")
+    suspend fun replaceTags(id: String, tagsJson: String, accountId: String)
+
+    /** Rows that carry at least one tag (archived included). */
+    @Query("SELECT * FROM conversations WHERE accountId = :accountId AND tags != '[]'")
+    suspend fun taggedForAccount(accountId: String): List<ConversationEntity>
+
     @Query("UPDATE conversations SET chatProjectId = :chatProjectId WHERE conversationId = :id AND accountId = :accountId")
     suspend fun updateChatProjectId(id: String, chatProjectId: String?, accountId: String)
 

@@ -17,6 +17,7 @@ import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
+import com.garfiec.librechat.core.data.repository.bookmarks
 import com.garfiec.librechat.core.data.share.ShareLinkController
 import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.model.ChatProject
@@ -36,6 +37,7 @@ import com.garfiec.librechat.feature.conversations.export.ExportFormat
 import com.garfiec.librechat.feature.conversations.viewmodel.ConversationListActionsDelegate
 import com.garfiec.librechat.feature.conversations.viewmodel.ConversationListEvent
 import com.garfiec.librechat.feature.conversations.viewmodel.ProjectActionsDelegate
+import com.garfiec.librechat.feature.conversations.viewmodel.applyPickedTags
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -111,7 +113,7 @@ class DrawerViewModel(
     private val drawerActionMenuState: StateFlow<DrawerActionMenuState> =
         combine(
             tagRepository.observeTags()
-                .map { tags -> tags.filter { it.count > 0 && it.tag != SAVED_TAG } },
+                .map { tags -> tags.bookmarks().filter { it.count > 0 } },
             configRepository.startupConfig,
             configRepository.detectedBackendVersion,
             roleRepository.userPermissions,
@@ -659,22 +661,15 @@ class DrawerViewModel(
         conversationActions.exportConversation(conversationId, title, format)
 
     /**
-     * Persists the user-chosen tags for [conversationId], preserving favorite status.
-     * [currentTags] is the conversation's existing tag list (to detect the SAVED_TAG).
+     * Applies the tag picker's result for [conversationId]. [currentTags] is what the picker showed;
+     * each change goes through the server-read write, so tags set on the web survive and the
+     * favorite star is untouched.
      */
     fun updateConversationTags(conversationId: String, currentTags: List<String>, userTags: List<String>) {
-        val wasFavorited = SAVED_TAG in currentTags
-        val cleaned = userTags.filterNot { it == SAVED_TAG }
-        val finalTags = if (wasFavorited) cleaned + SAVED_TAG else cleaned
         viewModelScope.launch {
-            when (tagRepository.setConversationTags(conversationId, finalTags)) {
-                is Result.Success -> {
-                    tagRepository.refreshTags()
-                }
-                is Result.Error -> {
-                    _events.emit(ConversationListEvent.ShowError("Failed to update tags"))
-                }
-                is Result.Loading -> { /* no-op */ }
+            val result = tagRepository.applyPickedTags(conversationId, shown = currentTags, picked = userTags)
+            if (result is Result.Error) {
+                _events.emit(ConversationListEvent.ShowError("Failed to update tags"))
             }
         }
     }

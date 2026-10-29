@@ -41,11 +41,14 @@ class ConversationRepositoryImplTest {
     private val account = AccountId("srv:user-1")
     private val activeAccountProvider = InMemoryActiveAccountProvider(AccountState.Resolved(account))
     private val shareChanges = ShareChangeSignal()
+    private val tagRepository = mockk<TagRepository>(relaxed = true)
+    private val tagChanges = TagChangeSignal()
 
     private lateinit var repository: ConversationRepositoryImpl
 
     @Before
     fun setup() {
+        coEvery { tagRepository.refreshTags() } returns Result.Success(Unit)
         repository = ConversationRepositoryImpl(
             conversationsApi = conversationsApi,
             conversationDao = conversationDao,
@@ -56,6 +59,8 @@ class ConversationRepositoryImplTest {
             json = json,
             dispatcher = UnconfinedTestDispatcher(),
             shareChanges = shareChanges,
+            tagRepository = tagRepository,
+            tagChanges = tagChanges,
         )
     }
 
@@ -92,6 +97,56 @@ class ConversationRepositoryImplTest {
         val entity = captured.captured.single()
         assertThat(entity.conversationId).isEqualTo("convo-1")
         assertThat(entity.title).isEqualTo("Server Title")
+    }
+
+    @Test
+    fun `refreshConversation lets the server's tags replace the cached ones`() = runTest {
+        // The single-conversation GET is the full document: a tag set on the web must land, and one
+        // removed there must go, so the write must not be the tag-preserving upsert.
+        coEvery { conversationsApi.getConversation("convo-1") } returns
+            Conversation(conversationId = "convo-1", tags = listOf("web-only", SAVED_TAG, ""))
+        val captured = slot<ConversationEntity>()
+        coEvery { conversationDao.upsert(capture(captured)) } just Runs
+
+        val result = repository.refreshConversation("convo-1", originAccount = null)
+
+        assertThat(result).isInstanceOf(Result.Success::class.java)
+        assertThat(captured.captured.tags).isEqualTo("""["web-only","Saved"]""")
+        assertThat(captured.captured.accountId).isEqualTo(account.value)
+        coVerify(exactly = 0) { conversationDao.upsertPreservingTags(any(), any<ConversationEntity>()) }
+        coVerify(exactly = 0) { conversationDao.upsertPreservingTags(any(), any<List<ConversationEntity>>()) }
+    }
+
+    @Test
+    fun `a delete the server took refreshes tag counts and bumps the tag revision`() = runTest {
+        coEvery { conversationsApi.deleteConversation("convo-1") } just Runs
+        coEvery { conversationsApi.deleteAllConversations() } just Runs
+
+        repository.delete("convo-1")
+        coVerify(exactly = 1) { tagRepository.refreshTags() }
+        assertThat(tagChanges.revision.value).isEqualTo(1L)
+
+        repository.deleteAll()
+        coVerify(exactly = 2) { tagRepository.refreshTags() }
+        assertThat(tagChanges.revision.value).isEqualTo(2L)
+    }
+
+    @Test
+    fun `a failed tag refresh after a delete doesn't fail the delete`() = runTest {
+        coEvery { conversationsApi.deleteConversation("convo-1") } just Runs
+        coEvery { tagRepository.refreshTags() } returns Result.Error(message = "Access denied")
+
+        assertThat(repository.delete("convo-1")).isInstanceOf(Result.Success::class.java)
+    }
+
+    @Test
+    fun `a delete the server refused leaves tag counts alone`() = runTest {
+        coEvery { conversationsApi.deleteConversation("convo-1") } throws RuntimeException("offline")
+
+        repository.delete("convo-1")
+
+        coVerify(exactly = 0) { tagRepository.refreshTags() }
+        assertThat(tagChanges.revision.value).isEqualTo(0L)
     }
 
     @Test
@@ -182,6 +237,8 @@ class ConversationRepositoryImplTest {
             dispatcher = UnconfinedTestDispatcher(),
             searchIndexMaintenance = maintenance,
             shareChanges = shareChanges,
+            tagRepository = tagRepository,
+            tagChanges = tagChanges,
         )
 
         indexed.deleteAll()

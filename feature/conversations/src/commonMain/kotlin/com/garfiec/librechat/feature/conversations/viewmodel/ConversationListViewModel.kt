@@ -11,11 +11,11 @@ import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.SearchRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
+import com.garfiec.librechat.core.data.repository.bookmarks
 import com.garfiec.librechat.core.data.share.ShareLinkController
 import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationTag
-import com.garfiec.librechat.core.model.SAVED_TAG
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
@@ -194,7 +194,7 @@ class ConversationListViewModel(
         viewModelScope.launch {
             tagRepository.observeTags().collect { tags ->
                 _uiState.value = _uiState.value.copy(
-                    tags = tags.filter { it.count > 0 && it.tag != SAVED_TAG },
+                    tags = tags.bookmarks().filter { it.count > 0 },
                 )
             }
         }

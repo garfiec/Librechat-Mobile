@@ -523,9 +523,8 @@ class ConversationListViewModelTest {
     }
 
     @Test
-    fun `updateConversationTags persists new tag list when conversation was not favorited`() = runTest {
-        coEvery { tagRepository.setConversationTags("convo-1", listOf("work")) } returns
-            Result.Success(Unit)
+    fun `updateConversationTags sends one change per tag the picker added or removed`() = runTest {
+        coEvery { tagRepository.setConversationTag(any(), any(), any()) } returns Result.Success(emptyList())
 
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -534,12 +533,14 @@ class ConversationListViewModelTest {
         viewModel.updateConversationTags(convo, listOf("work"))
         advanceUntilIdle()
 
-        coVerify { tagRepository.setConversationTags("convo-1", listOf("work")) }
+        coVerify(exactly = 1) { tagRepository.setConversationTag("convo-1", "work", true) }
+        coVerify(exactly = 1) { tagRepository.setConversationTag("convo-1", "old", false) }
+        coVerify(exactly = 2) { tagRepository.setConversationTag(any(), any(), any()) }
     }
 
     @Test
-    fun `updateConversationTags preserves SAVED_TAG when conversation was favorited`() = runTest {
-        coEvery { tagRepository.setConversationTags(any(), any()) } returns Result.Success(Unit)
+    fun `updateConversationTags never touches SAVED_TAG when conversation was favorited`() = runTest {
+        coEvery { tagRepository.setConversationTag(any(), any(), any()) } returns Result.Success(emptyList())
 
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -549,29 +550,61 @@ class ConversationListViewModelTest {
         viewModel.updateConversationTags(convo, listOf("projects"))
         advanceUntilIdle()
 
-        coVerify { tagRepository.setConversationTags("convo-1", listOf("projects", SAVED_TAG)) }
+        coVerify(exactly = 1) { tagRepository.setConversationTag("convo-1", "projects", true) }
+        coVerify(exactly = 1) { tagRepository.setConversationTag("convo-1", "work", false) }
+        coVerify(exactly = 0) { tagRepository.setConversationTag(any(), SAVED_TAG, any()) }
     }
 
     @Test
-    fun `updateConversationTags strips SAVED_TAG from picker submission when not favorited`() = runTest {
-        coEvery { tagRepository.setConversationTags(any(), any()) } returns Result.Success(Unit)
+    fun `updateConversationTags ignores SAVED_TAG in the picker submission when not favorited`() = runTest {
+        coEvery { tagRepository.setConversationTag(any(), any(), any()) } returns Result.Success(emptyList())
 
         viewModel = createViewModel()
         advanceUntilIdle()
 
         val convo = Conversation(conversationId = "convo-1", tags = listOf("work"))
         // Defensive: if the picker ever submits SAVED_TAG on an unfavorited convo, drop it.
-        viewModel.updateConversationTags(convo, listOf("projects", SAVED_TAG))
+        viewModel.updateConversationTags(convo, listOf("work", "projects", SAVED_TAG))
         advanceUntilIdle()
 
-        coVerify { tagRepository.setConversationTags("convo-1", listOf("projects")) }
+        coVerify(exactly = 1) { tagRepository.setConversationTag("convo-1", "projects", true) }
+        coVerify(exactly = 0) { tagRepository.setConversationTag(any(), SAVED_TAG, any()) }
+        coVerify(exactly = 0) { tagRepository.setConversationTag(any(), "work", any()) }
+    }
+
+    @Test
+    fun `updateConversationTags with an unchanged picker writes nothing`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val convo = Conversation(conversationId = "convo-1", tags = listOf("work", SAVED_TAG))
+        viewModel.updateConversationTags(convo, listOf("work"))
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { tagRepository.setConversationTag(any(), any(), any()) }
+    }
+
+    @Test
+    fun `updateConversationTags reports a failed change`() = runTest {
+        coEvery { tagRepository.setConversationTag(any(), any(), any()) } returns Result.Error(message = "boom")
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        val events = mutableListOf<ConversationListEvent>()
+        val job = launch { viewModel.events.collect { events.add(it) } }
+
+        viewModel.updateConversationTags(Conversation(conversationId = "convo-1"), listOf("work"))
+        advanceUntilIdle()
+
+        assertThat(events.single()).isInstanceOf(ConversationListEvent.ShowError::class.java)
+        job.cancel()
     }
 
     @Test
     fun `toggleFavorite on unfavorited convo delegates to repo`() = runTest {
         coEvery {
             tagRepository.toggleFavorite(any(), any())
-        } returns Result.Success(Unit)
+        } returns Result.Success(emptyList())
 
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -592,7 +625,7 @@ class ConversationListViewModelTest {
     fun `toggleFavorite on favorited convo delegates to repo`() = runTest {
         coEvery {
             tagRepository.toggleFavorite(any(), any())
-        } returns Result.Success(Unit)
+        } returns Result.Success(emptyList())
 
         viewModel = createViewModel()
         advanceUntilIdle()

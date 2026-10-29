@@ -44,6 +44,7 @@ import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.BalanceRepositoryImpl
 import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.BannerRepositoryImpl
+import com.garfiec.librechat.core.data.repository.BookmarksGate
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.ChatRepositoryImpl
 import com.garfiec.librechat.core.data.repository.ConfigRepository
@@ -99,6 +100,7 @@ import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.data.repository.SpeechRepositoryImpl
 import com.garfiec.librechat.core.data.repository.SubagentRepository
 import com.garfiec.librechat.core.data.repository.SubagentRepositoryImpl
+import com.garfiec.librechat.core.data.repository.TagChangeSignal
 import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.data.repository.TagRepositoryImpl
 import com.garfiec.librechat.core.data.repository.ToolFavoritesRepository
@@ -503,6 +505,8 @@ val dataModule = module {
             dispatcher = get(KoinQualifiers.Default),
             searchIndexMaintenance = get(),
             shareChanges = get(),
+            tagRepository = get(),
+            tagChanges = get(),
         )
     }
 
@@ -545,7 +549,9 @@ val dataModule = module {
     singleOf(::FileRepositoryImpl) bind FileRepository::class
     singleOf(::AgentRepositoryImpl) bind AgentRepository::class
     singleOf(::AgentToolsRepositoryImpl) bind AgentToolsRepository::class
+    singleOf(::TagChangeSignal)
     singleOf(::TagRepositoryImpl) bind TagRepository::class
+    singleOf(::BookmarksGate)
     singleOf(::SearchRepositoryImpl) bind SearchRepository::class
     singleOf(::KeyRepositoryImpl) bind KeyRepository::class
     singleOf(::ApiKeyRepositoryImpl) bind ApiKeyRepository::class

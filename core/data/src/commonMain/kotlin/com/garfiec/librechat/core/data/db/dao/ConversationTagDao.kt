@@ -16,6 +16,9 @@ interface ConversationTagDao {
     @Query("SELECT * FROM conversation_tags WHERE accountId = :accountId ORDER BY position ASC")
     fun observeTagsForAccount(accountId: String): Flow<List<ConversationTagEntity>>
 
+    @Query("SELECT * FROM conversation_tags WHERE accountId = :accountId ORDER BY position ASC")
+    suspend fun getTagsForAccount(accountId: String): List<ConversationTagEntity>
+
     @Upsert
     suspend fun upsertAll(tags: List<ConversationTagEntity>)
 

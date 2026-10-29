@@ -3544,6 +3544,59 @@
       },
       "why": "One Bedrock field per credential the endpoint config flags as user-provided (userProvideAccessKeyId, userProvideSecretAccessKey, userProvideSessionToken, userProvideBearerToken). Web lists the bearer token last; the app puts it first, since on its own it is the whole credential.",
       "failure_mode": "A credential upstream adds or renames is never asked for, so a Bedrock key saved from mobile is missing it and Bedrock chats fail with a credentials error."
+    },
+    {
+      "id": "saved-tag",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "Constants",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/Constants.kt",
+        "symbol": "SAVED_TAG"
+      },
+      "why": "The reserved tag name behind the favorite star and the drawer's Favorites section, hidden from every bookmark list and refused as a bookmark name. `SAVED_TAG` is one member of the large `Constants` enum, so most changes to this block are unrelated; check only that member.",
+      "failure_mode": "If upstream renames it, favorites written on mobile stop matching the tag web treats as Saved, and a bookmark of the old name turns into the star. Nothing errors."
+    },
+    {
+      "id": "bookmark-name-max-length",
+      "upstream": {
+        "file": "client/src/components/Bookmarks/BookmarkForm.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/BookmarkNameRules.kt",
+        "symbol": "BookmarkNameRules.MAX_NAME"
+      },
+      "why": "The longest bookmark title the editor accepts (web's title `maxLength`, 128). Client-side only: the server stores any length.",
+      "failure_mode": "Mobile accepts titles web would refuse, or refuses ones web accepts. Nothing errors."
+    },
+    {
+      "id": "bookmark-description-max-length",
+      "upstream": {
+        "file": "client/src/components/Bookmarks/BookmarkForm.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/BookmarkNameRules.kt",
+        "symbol": "BookmarkNameRules.MAX_DESCRIPTION"
+      },
+      "why": "The longest bookmark description the editor accepts (web's description `maxLength`, 1048). Client-side only: the server stores any length.",
+      "failure_mode": "Mobile accepts descriptions web would refuse, or refuses ones web accepts. Nothing errors."
+    },
+    {
+      "id": "tag-route-double-decode",
+      "upstream": {
+        "file": "api/server/routes/tags.js",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/api/TagsApi.kt",
+        "symbol": "tagPath"
+      },
+      "why": "The edit and delete routes run `decodeURIComponent` on a tag param Express has already decoded, so the client escapes the name twice. Check that the extra decode is still there.",
+      "failure_mode": "If upstream drops the extra decode, a name with `%` or an escaped character is edited or deleted under the wrong spelling: a 404, or the wrong bookmark. Plain names keep working, so it goes unnoticed."
     }
   ]
 }
