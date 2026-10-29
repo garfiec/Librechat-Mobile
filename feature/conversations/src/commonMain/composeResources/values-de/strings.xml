@@ -240,4 +240,22 @@
     <string name="bookmark_create_failed">Lesezeichen konnte nicht erstellt werden. Versuche es erneut.</string>
     <string name="bookmarks_load_failed">Lesezeichen dieses Chats konnten nicht geladen werden</string>
     <string name="favorite_update_failed">Favoriten konnten nicht aktualisiert werden. Versuche es erneut.</string>
+    <plurals name="bookmarks_count">
+        <item quantity="one">%1$d Lesezeichen</item>
+        <item quantity="other">%1$d Lesezeichen</item>
+    </plurals>
+    <string name="bookmarks_reorder_hint">Karte gedrückt halten, um sie zu verschieben</string>
+    <string name="bookmark_no_chats">Noch keine Chats</string>
+    <string name="bookmarks_empty_description">Setze Lesezeichen auf Chats, um sie wiederzufinden. Erstelle hier eins oder füge einen Chat über sein Menü hinzu.</string>
+    <string name="bookmark_options">Lesezeichen-Optionen</string>
+    <string name="bookmark_delete">Lesezeichen löschen</string>
+    <string name="bookmark_delete_title">„%1$s“ löschen?</string>
+    <plurals name="bookmark_delete_body">
+        <item quantity="one">Es wird von %1$d Chat entfernt. Der Chat selbst bleibt erhalten.</item>
+        <item quantity="other">Es wird von %1$d Chats entfernt. Die Chats selbst bleiben erhalten.</item>
+    </plurals>
+    <string name="bookmarks_load_error">Lesezeichen konnten nicht geladen werden</string>
+    <string name="bookmark_save_failed">Lesezeichen konnte nicht gespeichert werden. Versuche es erneut.</string>
+    <string name="bookmark_delete_failed">Lesezeichen konnte nicht gelöscht werden. Versuche es erneut.</string>
+    <string name="bookmark_move_failed">Lesezeichen konnte nicht verschoben werden. Versuche es erneut.</string>
 </resources>

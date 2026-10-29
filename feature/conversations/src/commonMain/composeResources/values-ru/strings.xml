@@ -246,4 +246,26 @@
     <string name="bookmark_create_failed">Не удалось создать закладку. Попробуйте ещё раз.</string>
     <string name="bookmarks_load_failed">Не удалось загрузить закладки этого чата</string>
     <string name="favorite_update_failed">Не удалось обновить избранное. Попробуйте ещё раз.</string>
+    <plurals name="bookmarks_count">
+        <item quantity="one">%1$d закладка</item>
+        <item quantity="few">%1$d закладки</item>
+        <item quantity="many">%1$d закладок</item>
+        <item quantity="other">%1$d закладки</item>
+    </plurals>
+    <string name="bookmarks_reorder_hint">Удерживайте карточку, чтобы переместить её</string>
+    <string name="bookmark_no_chats">Чатов пока нет</string>
+    <string name="bookmarks_empty_description">Добавляйте чаты в закладки, чтобы быстро находить их снова. Создайте закладку здесь или добавьте чат через его меню.</string>
+    <string name="bookmark_options">Параметры закладки</string>
+    <string name="bookmark_delete">Удалить закладку</string>
+    <string name="bookmark_delete_title">Удалить «%1$s»?</string>
+    <plurals name="bookmark_delete_body">
+        <item quantity="one">Она будет снята с %1$d чата. Сам чат останется.</item>
+        <item quantity="few">Она будет снята с %1$d чатов. Сами чаты останутся.</item>
+        <item quantity="many">Она будет снята с %1$d чатов. Сами чаты останутся.</item>
+        <item quantity="other">Она будет снята с %1$d чата. Сами чаты останутся.</item>
+    </plurals>
+    <string name="bookmarks_load_error">Не удалось загрузить закладки</string>
+    <string name="bookmark_save_failed">Не удалось сохранить закладку. Попробуйте ещё раз.</string>
+    <string name="bookmark_delete_failed">Не удалось удалить закладку. Попробуйте ещё раз.</string>
+    <string name="bookmark_move_failed">Не удалось переместить закладку. Попробуйте ещё раз.</string>
 </resources>

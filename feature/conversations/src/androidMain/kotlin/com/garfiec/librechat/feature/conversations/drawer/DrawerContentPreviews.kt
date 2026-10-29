@@ -54,6 +54,7 @@ private fun DrawerHost(state: DrawerUiState) = ProvideDateTimeFormat(DateTimeFor
         onFilesClick = {},
         onSkillsClick = {},
         onSchedulesClick = {},
+        onBookmarksClick = {},
         footerContent = { dragSelection ->
             Spacer(modifier = Modifier.height(8.dp))
             DrawerFooterItem(

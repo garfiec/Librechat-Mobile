@@ -44,6 +44,7 @@ import com.garfiec.librechat.feature.agents.navigation.AgentMarketplace
 import com.garfiec.librechat.feature.auth.navigation.AddAccountServerUrl
 import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.chat.navigation.isPlainLanding
+import com.garfiec.librechat.feature.conversations.navigation.Bookmarks
 import com.garfiec.librechat.feature.conversations.navigation.Projects
 import com.garfiec.librechat.feature.conversations.navigation.Search
 import com.garfiec.librechat.feature.files.navigation.Files
@@ -240,6 +241,9 @@ fun TabletLayout(
                             },
                             onSchedulesClick = {
                                 navigator.navigate(SchedulesList)
+                            },
+                            onBookmarksClick = {
+                                navigator.navigate(Bookmarks)
                             },
                             onOpenProjectsIndex = {
                                 navigator.navigate(Projects)

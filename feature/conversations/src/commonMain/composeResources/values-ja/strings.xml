@@ -237,4 +237,20 @@
     <string name="bookmark_create_failed">ブックマークを作成できませんでした。もう一度お試しください。</string>
     <string name="bookmarks_load_failed">このチャットのブックマークを読み込めませんでした</string>
     <string name="favorite_update_failed">お気に入りを更新できませんでした。もう一度お試しください。</string>
+    <plurals name="bookmarks_count">
+        <item quantity="other">%1$d 件のブックマーク</item>
+    </plurals>
+    <string name="bookmarks_reorder_hint">カードを長押しして並べ替え</string>
+    <string name="bookmark_no_chats">チャットはまだありません</string>
+    <string name="bookmarks_empty_description">チャットをブックマークすると、あとで見つけやすくなります。ここで作成するか、チャットのメニューから追加してください。</string>
+    <string name="bookmark_options">ブックマークのオプション</string>
+    <string name="bookmark_delete">ブックマークを削除</string>
+    <string name="bookmark_delete_title">「%1$s」を削除しますか？</string>
+    <plurals name="bookmark_delete_body">
+        <item quantity="other">%1$d 件のチャットから外れます。チャット自体は残ります。</item>
+    </plurals>
+    <string name="bookmarks_load_error">ブックマークを読み込めませんでした</string>
+    <string name="bookmark_save_failed">ブックマークを保存できませんでした。もう一度お試しください。</string>
+    <string name="bookmark_delete_failed">ブックマークを削除できませんでした。もう一度お試しください。</string>
+    <string name="bookmark_move_failed">ブックマークを移動できませんでした。もう一度お試しください。</string>
 </resources>

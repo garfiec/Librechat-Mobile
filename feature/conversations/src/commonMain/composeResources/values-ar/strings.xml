@@ -252,4 +252,30 @@
     <string name="bookmark_create_failed">تعذّر إنشاء الإشارة المرجعية. حاول مرة أخرى.</string>
     <string name="bookmarks_load_failed">تعذّر تحميل الإشارات المرجعية لهذه المحادثة</string>
     <string name="favorite_update_failed">تعذّر تحديث المفضلة. حاول مرة أخرى.</string>
+    <plurals name="bookmarks_count">
+        <item quantity="zero">%1$d إشارة مرجعية</item>
+        <item quantity="one">إشارة مرجعية واحدة</item>
+        <item quantity="two">إشارتان مرجعيتان</item>
+        <item quantity="few">%1$d إشارات مرجعية</item>
+        <item quantity="many">%1$d إشارة مرجعية</item>
+        <item quantity="other">%1$d إشارة مرجعية</item>
+    </plurals>
+    <string name="bookmarks_reorder_hint">اضغط مطولاً على بطاقة لإعادة ترتيبها</string>
+    <string name="bookmark_no_chats">لا توجد محادثات بعد</string>
+    <string name="bookmarks_empty_description">أضف المحادثات إلى الإشارات المرجعية لتجدها مرة أخرى. أنشئ إشارة هنا، أو أضف محادثة إليها من قائمتها.</string>
+    <string name="bookmark_options">خيارات الإشارة المرجعية</string>
+    <string name="bookmark_delete">حذف الإشارة المرجعية</string>
+    <string name="bookmark_delete_title">حذف «%1$s»؟</string>
+    <plurals name="bookmark_delete_body">
+        <item quantity="zero">ستُزال من %1$d محادثة. تبقى المحادثات نفسها.</item>
+        <item quantity="one">ستُزال من محادثة واحدة. تبقى المحادثة نفسها.</item>
+        <item quantity="two">ستُزال من محادثتين. تبقى المحادثتان نفسهما.</item>
+        <item quantity="few">ستُزال من %1$d محادثات. تبقى المحادثات نفسها.</item>
+        <item quantity="many">ستُزال من %1$d محادثة. تبقى المحادثات نفسها.</item>
+        <item quantity="other">ستُزال من %1$d محادثة. تبقى المحادثات نفسها.</item>
+    </plurals>
+    <string name="bookmarks_load_error">تعذّر تحميل الإشارات المرجعية</string>
+    <string name="bookmark_save_failed">تعذّر حفظ الإشارة المرجعية. حاول مرة أخرى.</string>
+    <string name="bookmark_delete_failed">تعذّر حذف الإشارة المرجعية. حاول مرة أخرى.</string>
+    <string name="bookmark_move_failed">تعذّر نقل الإشارة المرجعية. حاول مرة أخرى.</string>
 </resources>

@@ -65,6 +65,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddComment
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Folder
@@ -159,6 +160,7 @@ import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.core.ui.datetime.LocalRelativeTimeReference
 import com.garfiec.librechat.core.ui.datetime.resolve
 import com.garfiec.librechat.core.ui.glass.GlassControlColors
+import com.garfiec.librechat.core.ui.resources.bookmarks
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.core.ui.theme.searchMatchColor
@@ -172,6 +174,9 @@ import com.garfiec.librechat.feature.conversations.components.ProjectMenuButton
 import com.garfiec.librechat.feature.conversations.components.ProjectPicker
 import com.garfiec.librechat.feature.conversations.components.ProjectTile
 import com.garfiec.librechat.feature.conversations.components.ShareLinkSheetHost
+import com.garfiec.librechat.feature.conversations.components.lazyReorder
+import com.garfiec.librechat.feature.conversations.components.rememberLazyReorderState
+import com.garfiec.librechat.feature.conversations.components.rememberPickUpHaptic
 import com.garfiec.librechat.feature.conversations.export.ExportFormat
 import com.garfiec.librechat.feature.conversations.export.ExportFormatPicker
 import com.garfiec.librechat.feature.conversations.resources.Res
@@ -209,6 +214,7 @@ import com.garfiec.librechat.feature.conversations.resources.show_more
 import com.garfiec.librechat.feature.conversations.resources.skills
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import com.garfiec.librechat.core.ui.resources.Res as CoreRes
 
 // Pre-computed shapes to avoid creating new ones per item per frame
 private val ItemShape = RoundedCornerShape(8.dp)
@@ -254,6 +260,7 @@ fun DrawerContent(
     onFilesClick: () -> Unit,
     onSkillsClick: () -> Unit,
     onSchedulesClick: () -> Unit,
+    onBookmarksClick: () -> Unit,
     accounts: List<AccountUiModel>,
     modifier: Modifier = Modifier,
     onOpenProjectsIndex: () -> Unit = {},
@@ -384,6 +391,7 @@ fun DrawerContent(
         onFilesClick = onFilesClick,
         onSkillsClick = onSkillsClick,
         onSchedulesClick = onSchedulesClick,
+        onBookmarksClick = onBookmarksClick,
         onToggleFavorite = { data -> viewModel.toggleFavorite(data.conversationId, data.tags) },
         onRefresh = viewModel::refreshConversations,
         onLoadMore = viewModel::loadMoreConversations,
@@ -460,6 +468,7 @@ fun DrawerContent(
     onFilesClick: () -> Unit,
     onSkillsClick: () -> Unit,
     onSchedulesClick: () -> Unit,
+    onBookmarksClick: () -> Unit,
     modifier: Modifier = Modifier,
     // Slot below the footer links (Files, Agents, …) — the stateful wrapper puts the Settings row
     // and the account avatar here, at the bottom of the drawer. Its rows join the footer links'
@@ -1124,6 +1133,14 @@ fun DrawerContent(
                         dragSelection = dragSelection,
                     )
                 }
+                if (uiState.bookmarksEnabled) {
+                    DrawerFooterItem(
+                        icon = Icons.Default.Bookmark,
+                        label = stringResource(CoreRes.string.bookmarks),
+                        onClick = onBookmarksClick,
+                        dragSelection = dragSelection,
+                    )
+                }
                 DrawerFooterItem(
                     icon = Icons.Default.Folder,
                     label = stringResource(Res.string.files),
@@ -1384,10 +1401,10 @@ private fun DrawerProjectsList(
     }
 
     val listState = rememberLazyListState()
-    val reorder = rememberProjectFolderReorderState(listState)
+    val reorder = rememberLazyReorderState(listState)
     val projectIds = remember(projects) { projects.map { it.id } }
     val currentProjectIds by rememberUpdatedState(projectIds)
-    LaunchedEffect(projects) { reorder.onProjectsChanged() }
+    LaunchedEffect(projects) { reorder.onItemsChanged() }
     val byId = remember(projects) { projects.associateBy { it.id } }
     val indexOf = remember(projectIds) { projectIds.withIndex().associate { it.value to it.index } }
     val shownIds = reorder.shownIds(projectIds)
@@ -1408,9 +1425,9 @@ private fun DrawerProjectsList(
         state = listState,
         modifier = modifier
             .fillMaxWidth()
-            .projectFolderReorder(
+            .lazyReorder(
                 state = reorder,
-                projectIds = { currentProjectIds },
+                ids = { currentProjectIds },
                 onPickUp = pickUp,
                 onDrop = { currentOnReorder(it) },
             ),

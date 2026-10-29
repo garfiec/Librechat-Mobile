@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.conversations.navigation
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.garfiec.librechat.feature.conversations.screen.ArchivedConversationsScreen
+import com.garfiec.librechat.feature.conversations.screen.BookmarksScreen
 import com.garfiec.librechat.feature.conversations.screen.ConversationListScreen
 import com.garfiec.librechat.feature.conversations.screen.ProjectChatsScreen
 import com.garfiec.librechat.feature.conversations.screen.ProjectsScreen
@@ -21,6 +22,9 @@ import kotlinx.serialization.modules.subclass
 /** Browse-all-folders index (v0.8.7). */
 @Serializable data object Projects : ConversationsRoute
 
+/** The Bookmarks index (conversation tags), opened from the drawer's footer. */
+@Serializable data object Bookmarks : ConversationsRoute
+
 /** Full message search, opened from the drawer with its query (or empty). */
 @Serializable data class Search(
     val query: String = "",
@@ -37,6 +41,8 @@ fun EntryProviderScope<NavKey>.conversationsEntries(
     onNavigateToArchive: () -> Unit = {},
     onNavigateToProject: (projectId: String, projectName: String) -> Unit = { _, _ -> },
     onNewChatInProject: (projectId: String, projectName: String) -> Unit = { _, _ -> },
+    /** A bookmark card was tapped: open that bookmark's chats. */
+    onNavigateToBookmark: (tag: String) -> Unit = {},
     onBack: () -> Unit = {},
     /** Removes the given entry wherever it sits; for a screen closing itself, which may not be on top. */
     onRemove: (NavKey) -> Unit = {},
@@ -60,6 +66,13 @@ fun EntryProviderScope<NavKey>.conversationsEntries(
             onProjectClick = onNavigateToProject,
             onNavigateBack = onBack,
             onNewChatInProject = onNewChatInProject,
+        )
+    }
+    entry<Bookmarks> { route ->
+        BookmarksScreen(
+            onBookmarkClick = onNavigateToBookmark,
+            onNavigateBack = onBack,
+            onCloseSelf = { onRemove(route) },
         )
     }
     entry<Search> { route ->
@@ -87,6 +100,7 @@ val conversationsSerializersModule = SerializersModule {
         subclass(Conversations::class, Conversations.serializer())
         subclass(ArchivedConversations::class, ArchivedConversations.serializer())
         subclass(Projects::class, Projects.serializer())
+        subclass(Bookmarks::class, Bookmarks.serializer())
         subclass(ProjectChats::class, ProjectChats.serializer())
         subclass(Search::class, Search.serializer())
     }

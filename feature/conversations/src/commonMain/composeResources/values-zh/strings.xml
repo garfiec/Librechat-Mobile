@@ -237,4 +237,20 @@
     <string name="bookmark_create_failed">无法创建书签，请重试。</string>
     <string name="bookmarks_load_failed">无法加载此对话的书签</string>
     <string name="favorite_update_failed">无法更新收藏，请重试。</string>
+    <plurals name="bookmarks_count">
+        <item quantity="other">%1$d 个书签</item>
+    </plurals>
+    <string name="bookmarks_reorder_hint">长按卡片可调整顺序</string>
+    <string name="bookmark_no_chats">还没有对话</string>
+    <string name="bookmarks_empty_description">为对话添加书签，方便以后再找到。可以在这里创建，也可以从对话的菜单中添加。</string>
+    <string name="bookmark_options">书签选项</string>
+    <string name="bookmark_delete">删除书签</string>
+    <string name="bookmark_delete_title">删除“%1$s”？</string>
+    <plurals name="bookmark_delete_body">
+        <item quantity="other">它将从 %1$d 个对话中移除。对话本身会保留。</item>
+    </plurals>
+    <string name="bookmarks_load_error">无法加载书签</string>
+    <string name="bookmark_save_failed">无法保存书签，请重试。</string>
+    <string name="bookmark_delete_failed">无法删除书签，请重试。</string>
+    <string name="bookmark_move_failed">无法移动书签，请重试。</string>
 </resources>

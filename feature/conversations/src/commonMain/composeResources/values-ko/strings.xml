@@ -237,4 +237,20 @@
     <string name="bookmark_create_failed">북마크를 만들지 못했습니다. 다시 시도하세요.</string>
     <string name="bookmarks_load_failed">이 채팅의 북마크를 불러오지 못했습니다</string>
     <string name="favorite_update_failed">즐겨찾기를 업데이트하지 못했습니다. 다시 시도하세요.</string>
+    <plurals name="bookmarks_count">
+        <item quantity="other">북마크 %1$d개</item>
+    </plurals>
+    <string name="bookmarks_reorder_hint">카드를 길게 눌러 순서 변경</string>
+    <string name="bookmark_no_chats">아직 채팅이 없습니다</string>
+    <string name="bookmarks_empty_description">채팅을 북마크하면 나중에 다시 찾을 수 있습니다. 여기에서 만들거나 채팅 메뉴에서 추가하세요.</string>
+    <string name="bookmark_options">북마크 옵션</string>
+    <string name="bookmark_delete">북마크 삭제</string>
+    <string name="bookmark_delete_title">“%1$s”을(를) 삭제할까요?</string>
+    <plurals name="bookmark_delete_body">
+        <item quantity="other">채팅 %1$d개에서 제거됩니다. 채팅 자체는 그대로 남습니다.</item>
+    </plurals>
+    <string name="bookmarks_load_error">북마크를 불러오지 못했습니다</string>
+    <string name="bookmark_save_failed">북마크를 저장하지 못했습니다. 다시 시도하세요.</string>
+    <string name="bookmark_delete_failed">북마크를 삭제하지 못했습니다. 다시 시도하세요.</string>
+    <string name="bookmark_move_failed">북마크를 이동하지 못했습니다. 다시 시도하세요.</string>
 </resources>

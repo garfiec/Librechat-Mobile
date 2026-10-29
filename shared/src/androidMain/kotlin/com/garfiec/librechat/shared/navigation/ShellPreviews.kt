@@ -102,6 +102,7 @@ private fun PreviewDrawer(modifier: Modifier = Modifier) = ProvideDateTimeFormat
         onFilesClick = {},
         onSkillsClick = {},
         onSchedulesClick = {},
+        onBookmarksClick = {},
         modifier = modifier,
     )
 }

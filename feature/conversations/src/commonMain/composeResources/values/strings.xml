@@ -241,4 +241,22 @@
     <string name="bookmark_create_failed">Couldn't create the bookmark. Try again.</string>
     <string name="bookmarks_load_failed">Couldn't load this chat's bookmarks</string>
     <string name="favorite_update_failed">Couldn't update favorites. Try again.</string>
+    <plurals name="bookmarks_count">
+        <item quantity="one">%1$d bookmark</item>
+        <item quantity="other">%1$d bookmarks</item>
+    </plurals>
+    <string name="bookmarks_reorder_hint">Hold a card to reorder</string>
+    <string name="bookmark_no_chats">No chats yet</string>
+    <string name="bookmarks_empty_description">Bookmark chats to find them again. Create one here, or add a chat to one from its menu.</string>
+    <string name="bookmark_options">Bookmark options</string>
+    <string name="bookmark_delete">Delete bookmark</string>
+    <string name="bookmark_delete_title">Delete “%1$s”?</string>
+    <plurals name="bookmark_delete_body">
+        <item quantity="one">It comes off %1$d chat. The chat itself stays.</item>
+        <item quantity="other">It comes off %1$d chats. The chats themselves stay.</item>
+    </plurals>
+    <string name="bookmarks_load_error">Couldn't load bookmarks</string>
+    <string name="bookmark_save_failed">Couldn't save the bookmark. Try again.</string>
+    <string name="bookmark_delete_failed">Couldn't delete the bookmark. Try again.</string>
+    <string name="bookmark_move_failed">Couldn't move the bookmark. Try again.</string>
 </resources>

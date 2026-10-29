@@ -242,4 +242,24 @@
     <string name="bookmark_create_failed">No se pudo crear el marcador. Inténtalo de nuevo.</string>
     <string name="bookmarks_load_failed">No se pudieron cargar los marcadores de este chat</string>
     <string name="favorite_update_failed">No se pudieron actualizar los favoritos. Inténtalo de nuevo.</string>
+    <plurals name="bookmarks_count">
+        <item quantity="one">%1$d marcador</item>
+        <item quantity="many">%1$d marcadores</item>
+        <item quantity="other">%1$d marcadores</item>
+    </plurals>
+    <string name="bookmarks_reorder_hint">Mantén pulsada una tarjeta para reordenar</string>
+    <string name="bookmark_no_chats">Aún no hay chats</string>
+    <string name="bookmarks_empty_description">Marca chats para volver a encontrarlos. Crea un marcador aquí o añade un chat desde su menú.</string>
+    <string name="bookmark_options">Opciones del marcador</string>
+    <string name="bookmark_delete">Eliminar marcador</string>
+    <string name="bookmark_delete_title">¿Eliminar «%1$s»?</string>
+    <plurals name="bookmark_delete_body">
+        <item quantity="one">Se quitará de %1$d chat. El chat en sí se conserva.</item>
+        <item quantity="many">Se quitará de %1$d chats. Los chats en sí se conservan.</item>
+        <item quantity="other">Se quitará de %1$d chats. Los chats en sí se conservan.</item>
+    </plurals>
+    <string name="bookmarks_load_error">No se pudieron cargar los marcadores</string>
+    <string name="bookmark_save_failed">No se pudo guardar el marcador. Inténtalo de nuevo.</string>
+    <string name="bookmark_delete_failed">No se pudo eliminar el marcador. Inténtalo de nuevo.</string>
+    <string name="bookmark_move_failed">No se pudo mover el marcador. Inténtalo de nuevo.</string>
 </resources>

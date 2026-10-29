@@ -9,6 +9,7 @@ import com.garfiec.librechat.feature.conversations.export.ConversationExporter
 import com.garfiec.librechat.feature.conversations.export.ConversationImporter
 import com.garfiec.librechat.feature.conversations.search.SearchViewModel
 import com.garfiec.librechat.feature.conversations.viewmodel.ArchivedConversationsViewModel
+import com.garfiec.librechat.feature.conversations.viewmodel.BookmarksViewModel
 import com.garfiec.librechat.feature.conversations.viewmodel.ConversationListViewModel
 import com.garfiec.librechat.feature.conversations.viewmodel.ProjectChatsViewModel
 import com.garfiec.librechat.feature.conversations.viewmodel.ProjectsViewModel
@@ -40,6 +41,7 @@ val conversationsModule = module {
     viewModelOf(::ConversationListViewModel)
     viewModelOf(::ArchivedConversationsViewModel)
     viewModelOf(::ProjectsViewModel)
+    viewModelOf(::BookmarksViewModel)
     // Drawer-data half of the nav shell's NavHostViewModel.
     factoryOf(::DrawerSearchSources)
     viewModelOf(::DrawerViewModel)

@@ -242,4 +242,24 @@
     <string name="bookmark_create_failed">Impossible de créer le signet. Réessayez.</string>
     <string name="bookmarks_load_failed">Impossible de charger les signets de cette discussion</string>
     <string name="favorite_update_failed">Impossible de mettre à jour les favoris. Réessayez.</string>
+    <plurals name="bookmarks_count">
+        <item quantity="one">%1$d signet</item>
+        <item quantity="many">%1$d signets</item>
+        <item quantity="other">%1$d signets</item>
+    </plurals>
+    <string name="bookmarks_reorder_hint">Maintenez une carte appuyée pour la déplacer</string>
+    <string name="bookmark_no_chats">Aucune discussion pour l'instant</string>
+    <string name="bookmarks_empty_description">Ajoutez des signets à vos discussions pour les retrouver. Créez-en un ici, ou ajoutez une discussion depuis son menu.</string>
+    <string name="bookmark_options">Options du signet</string>
+    <string name="bookmark_delete">Supprimer le signet</string>
+    <string name="bookmark_delete_title">Supprimer « %1$s » ?</string>
+    <plurals name="bookmark_delete_body">
+        <item quantity="one">Il sera retiré de %1$d discussion. La discussion elle-même est conservée.</item>
+        <item quantity="many">Il sera retiré de %1$d discussions. Les discussions elles-mêmes sont conservées.</item>
+        <item quantity="other">Il sera retiré de %1$d discussions. Les discussions elles-mêmes sont conservées.</item>
+    </plurals>
+    <string name="bookmarks_load_error">Impossible de charger les signets</string>
+    <string name="bookmark_save_failed">Impossible d'enregistrer le signet. Réessayez.</string>
+    <string name="bookmark_delete_failed">Impossible de supprimer le signet. Réessayez.</string>
+    <string name="bookmark_move_failed">Impossible de déplacer le signet. Réessayez.</string>
 </resources>
