@@ -2,10 +2,8 @@ package com.garfiec.librechat.feature.conversations.components
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DriveFileMove
@@ -13,6 +11,8 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -41,7 +41,7 @@ private val MenuShape = RoundedCornerShape(16.dp)
  * Anchored dropdown variant of [ConversationActions]. Same action set, but presented as a
  * [AdaptiveDropdownMenu] (web-style) instead of a bottom sheet — used by the navigation drawer's
  * long-press menu. Must be placed inside the anchor's layout (e.g. the conversation row's Box)
- * so the menu positions itself at the row. Tags/Export are delegated to the caller (which hosts
+ * so the menu positions itself at the row. Bookmarks/Export are delegated to the caller (which hosts
  * the pickers), mirroring [ConversationActions].
  *
  * Rename/Delete only *request* their confirmation dialogs via [onRenameRequest]/[onDeleteRequest];
@@ -57,12 +57,13 @@ fun ConversationActionsMenu(
     onArchive: () -> Unit,
     onDeleteRequest: () -> Unit,
     modifier: Modifier = Modifier,
-    onTags: () -> Unit = {},
+    /** Opens the chat's bookmark checklist; null leaves "Bookmarks…" out. */
+    onBookmarks: (() -> Unit)? = null,
     onShare: () -> Unit = {},
     onDuplicate: (String) -> Unit = {},
     onExport: () -> Unit = {},
-    onBookmarkToggle: () -> Unit = {},
-    isBookmarked: Boolean = false,
+    onFavoriteToggle: () -> Unit = {},
+    isFavorite: Boolean = false,
     onPinToggle: () -> Unit = {},
     isPinned: Boolean = false,
     showPinAction: Boolean = false,
@@ -109,28 +110,30 @@ fun ConversationActionsMenu(
             )
         }
 
+        // The favorite star is the reserved Saved tag, so it is gated with bookmarks.
         if (bookmarksEnabled) {
             MenuActionItem(
                 dragSelection = dragSelection,
-                icon = if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                label = if (isBookmarked) stringResource(Res.string.remove_bookmark) else stringResource(Res.string.bookmark),
-                iconTint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                icon = if (isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
+                label = if (isFavorite) stringResource(Res.string.remove_favorite) else stringResource(Res.string.favorite),
+                iconTint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 onClick = {
                     onDismiss()
-                    onBookmarkToggle()
+                    onFavoriteToggle()
                 },
             )
+            if (onBookmarks != null) {
+                MenuActionItem(
+                    dragSelection = dragSelection,
+                    icon = Icons.Default.Bookmark,
+                    label = stringResource(Res.string.bookmarks_ellipsis),
+                    onClick = {
+                        onDismiss()
+                        onBookmarks()
+                    },
+                )
+            }
         }
-
-        MenuActionItem(
-            dragSelection = dragSelection,
-            icon = Icons.AutoMirrored.Filled.Label,
-            label = stringResource(Res.string.tags),
-            onClick = {
-                onDismiss()
-                onTags()
-            },
-        )
 
         if (showMoveToProject) {
             MenuActionItem(

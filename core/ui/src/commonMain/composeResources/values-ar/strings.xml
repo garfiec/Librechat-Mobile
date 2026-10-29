@@ -307,4 +307,39 @@
     <string name="acl_error_owner_protected">لا يمكن تغيير وصول المالك.</string>
     <string name="acl_error_generic">تعذّر تحديث الوصول. حاول مرة أخرى.</string>
     <string name="acl_error_load">تعذّر تحميل قائمة من لديهم حق الوصول.</string>
+    <string name="bookmarks">الإشارات المرجعية</string>
+    <string name="bookmark_new">إشارة مرجعية جديدة</string>
+    <string name="bookmark_edit">تعديل الإشارة المرجعية</string>
+    <string name="bookmark_name">الاسم</string>
+    <string name="bookmark_description">الوصف</string>
+    <string name="bookmark_description_hint">اختياري</string>
+    <string name="bookmark_add_to_chat">إضافة إلى هذه المحادثة</string>
+    <string name="bookmark_create">إنشاء</string>
+    <string name="bookmark_save">حفظ</string>
+    <string name="bookmark_cancel">إلغاء</string>
+    <string name="bookmark_error_blank">أدخل اسمًا</string>
+    <string name="bookmark_error_duplicate">لديك إشارة مرجعية بهذا الاسم بالفعل</string>
+    <string name="bookmark_error_reserved">الاسم “Saved” محجوز للمفضلة. اختر اسمًا آخر.</string>
+    <string name="bookmark_char_counter">%1$d/%2$d</string>
+    <string name="bookmarks_none_yet">لا توجد إشارات مرجعية بعد</string>
+    <string name="bookmarks_no_match">لا توجد إشارات مرجعية تطابق “%1$s”</string>
+    <string name="search_bookmarks">البحث في الإشارات المرجعية</string>
+    <string name="cd_bookmarked">مُضافة</string>
+    <string name="cd_not_bookmarked">غير مُضافة</string>
+    <plurals name="bookmark_chat_count">
+        <item quantity="zero">%1$d محادثة</item>
+        <item quantity="one">محادثة واحدة</item>
+        <item quantity="two">محادثتان</item>
+        <item quantity="few">%1$d محادثات</item>
+        <item quantity="many">%1$d محادثة</item>
+        <item quantity="other">%1$d محادثة</item>
+    </plurals>
+    <plurals name="bookmark_error_too_long">
+        <item quantity="zero">الحد الأقصى %1$d حرف</item>
+        <item quantity="one">الحد الأقصى حرف واحد</item>
+        <item quantity="two">الحد الأقصى حرفان</item>
+        <item quantity="few">الحد الأقصى %1$d أحرف</item>
+        <item quantity="many">الحد الأقصى %1$d حرفًا</item>
+        <item quantity="other">الحد الأقصى %1$d حرف</item>
+    </plurals>
 </resources>

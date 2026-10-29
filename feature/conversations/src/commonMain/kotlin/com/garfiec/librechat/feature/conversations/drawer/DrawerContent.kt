@@ -141,7 +141,6 @@ import com.garfiec.librechat.core.data.search.FtsQueryPlan
 import com.garfiec.librechat.core.data.search.MessageSearchHit
 import com.garfiec.librechat.core.data.search.TitleMatch
 import com.garfiec.librechat.core.model.ChatProject
-import com.garfiec.librechat.core.model.SAVED_TAG
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.EndpointIcon
@@ -163,6 +162,7 @@ import com.garfiec.librechat.core.ui.glass.GlassControlColors
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.core.ui.theme.searchMatchColor
+import com.garfiec.librechat.feature.conversations.components.BookmarkPickerHost
 import com.garfiec.librechat.feature.conversations.components.ConversationActionDialogs
 import com.garfiec.librechat.feature.conversations.components.ConversationActionEffects
 import com.garfiec.librechat.feature.conversations.components.ConversationActionsMenu
@@ -172,12 +172,10 @@ import com.garfiec.librechat.feature.conversations.components.ProjectMenuButton
 import com.garfiec.librechat.feature.conversations.components.ProjectPicker
 import com.garfiec.librechat.feature.conversations.components.ProjectTile
 import com.garfiec.librechat.feature.conversations.components.ShareLinkSheetHost
-import com.garfiec.librechat.feature.conversations.components.TagPicker
 import com.garfiec.librechat.feature.conversations.export.ExportFormat
 import com.garfiec.librechat.feature.conversations.export.ExportFormatPicker
 import com.garfiec.librechat.feature.conversations.resources.Res
 import com.garfiec.librechat.feature.conversations.resources.agents
-import com.garfiec.librechat.feature.conversations.resources.bookmark
 import com.garfiec.librechat.feature.conversations.resources.cd_close_search
 import com.garfiec.librechat.feature.conversations.resources.cd_collapse_section
 import com.garfiec.librechat.feature.conversations.resources.cd_conversation_actions
@@ -185,6 +183,7 @@ import com.garfiec.librechat.feature.conversations.resources.cd_expand_section
 import com.garfiec.librechat.feature.conversations.resources.cd_open_search
 import com.garfiec.librechat.feature.conversations.resources.cd_search
 import com.garfiec.librechat.feature.conversations.resources.drawer_running_chats
+import com.garfiec.librechat.feature.conversations.resources.favorite
 import com.garfiec.librechat.feature.conversations.resources.favorites
 import com.garfiec.librechat.feature.conversations.resources.files
 import com.garfiec.librechat.feature.conversations.resources.new_chat
@@ -199,7 +198,7 @@ import com.garfiec.librechat.feature.conversations.resources.project_new_chat_in
 import com.garfiec.librechat.feature.conversations.resources.project_unassigned
 import com.garfiec.librechat.feature.conversations.resources.projects
 import com.garfiec.librechat.feature.conversations.resources.projects_all
-import com.garfiec.librechat.feature.conversations.resources.remove_bookmark
+import com.garfiec.librechat.feature.conversations.resources.remove_favorite
 import com.garfiec.librechat.feature.conversations.resources.save
 import com.garfiec.librechat.feature.conversations.resources.schedules
 import com.garfiec.librechat.feature.conversations.resources.search_open_all
@@ -306,6 +305,7 @@ fun DrawerContent(
             showAccountSheet = false
             removeAccountTarget = null
             viewModel.closeShareSheet()
+            viewModel.bookmarkPicker.close()
         }
     }
     LaunchedEffect(isOpen, libraryTab) {
@@ -408,13 +408,14 @@ fun DrawerContent(
         onDeleteProject = viewModel::deleteProject,
         onShare = viewModel::shareConversation,
         onDuplicate = { id, title -> viewModel.duplicateConversation(id, title) },
-        onUpdateTags = { data, tags -> viewModel.updateConversationTags(data.conversationId, data.tags, tags) },
+        onOpenBookmarks = { data -> viewModel.openBookmarks(data.conversationId) },
         onExportFormat = { data, format -> viewModel.exportConversation(data.conversationId, data.title, format) },
         modifier = modifier,
         isOpen = isOpen,
     )
 
     ShareLinkSheetHost(controller = viewModel.shareLink, onDismiss = viewModel::closeShareSheet)
+    BookmarkPickerHost(controller = viewModel.bookmarkPicker)
 
     if (showAccountSheet) {
         AccountSwitcherSheet(
@@ -494,7 +495,8 @@ fun DrawerContent(
     onNewChatInProject: (projectId: String, projectName: String) -> Unit = { _, _ -> },
     onShare: (String) -> Unit = {},
     onDuplicate: (String, String) -> Unit = { _, _ -> },
-    onUpdateTags: (DrawerConversationDisplayData, List<String>) -> Unit = { _, _ -> },
+    /** Opens the row's bookmark checklist (the stateful drawer hosts it). */
+    onOpenBookmarks: (DrawerConversationDisplayData) -> Unit = {},
     onExportFormat: (DrawerConversationDisplayData, ExportFormat) -> Unit = { _, _ -> },
     /** What the search field shows: the query as typed, ahead of [uiState]'s copy of it. */
     searchFieldText: String = uiState.searchQuery,
@@ -511,7 +513,6 @@ fun DrawerContent(
     // so they survive the per-row menu — which is composed only for the open row — leaving the tree.
     var renameTarget by remember { mutableStateOf<DrawerConversationDisplayData?>(null) }
     var deleteTarget by remember { mutableStateOf<DrawerConversationDisplayData?>(null) }
-    var tagPickerTarget by remember { mutableStateOf<DrawerConversationDisplayData?>(null) }
     var exportPickerTarget by remember { mutableStateOf<DrawerConversationDisplayData?>(null) }
     var projectPickerTarget by remember { mutableStateOf<DrawerConversationDisplayData?>(null) }
 
@@ -834,7 +835,7 @@ fun DrawerContent(
                             onDismiss = { menuRowKey = null },
                             title = data.title,
                             offset = menuOffset,
-                            isBookmarked = data.isFavorite,
+                            isFavorite = data.isFavorite,
                             bookmarksEnabled = uiState.bookmarksEnabled,
                             isPinned = data.isPinned,
                             showPinAction = uiState.pinEnabled,
@@ -845,13 +846,13 @@ fun DrawerContent(
                                 projectPickerTarget = data
                             },
                             showShareAction = uiState.sharedLinksEnabled,
-                            onBookmarkToggle = { onToggleFavorite(data) },
+                            onFavoriteToggle = { onToggleFavorite(data) },
                             onRenameRequest = { renameTarget = data },
                             onArchive = { onArchive(data.conversationId) },
                             onDeleteRequest = { deleteTarget = data },
                             onShare = { onShare(data.conversationId) },
                             onDuplicate = { newTitle -> onDuplicate(data.conversationId, newTitle) },
-                            onTags = { tagPickerTarget = data },
+                            onBookmarks = { onOpenBookmarks(data) },
                             onExport = { exportPickerTarget = data },
                             dragSelection = menuDrag,
                         )
@@ -1156,15 +1157,6 @@ fun DrawerContent(
 
     // Secondary pickers opened from the long-press action menu. Rendered as overlay bottom
     // sheets, so their position in the tree doesn't matter.
-    tagPickerTarget?.let { target ->
-        TagPicker(
-            availableTags = uiState.availableTags,
-            currentTags = target.tags.filterNot { it == SAVED_TAG },
-            onTagsChange = { newTags -> onUpdateTags(target, newTags) },
-            onDismiss = { tagPickerTarget = null },
-        )
-    }
-
     exportPickerTarget?.let { target ->
         ExportFormatPicker(
             onFormatSelect = { format ->
@@ -1651,6 +1643,7 @@ private fun DrawerConversationItem(
     onToggleFavorite: () -> Unit = {},
     onLongPress: () -> Unit = {},
     onMenuCancel: () -> Unit = {},
+    /** Bookmarks are on: the favorite star shows, leading (when favorited) and as the toggle. */
     showBookmarkToggle: Boolean = true,
     // While searching: the query, so the title's matching words are marked.
     searchQuery: String? = null,
@@ -1716,7 +1709,7 @@ private fun DrawerConversationItem(
                 Spacer(modifier = Modifier.width(8.dp))
             }
 
-            if (data.isFavorite) {
+            if (showBookmarkToggle && data.isFavorite) {
                 Icon(
                     imageVector = Icons.Default.Star,
                     contentDescription = null,
@@ -1796,9 +1789,9 @@ private fun DrawerConversationItem(
                 Icon(
                     imageVector = if (data.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
                     contentDescription = if (data.isFavorite) {
-                        stringResource(Res.string.remove_bookmark)
+                        stringResource(Res.string.remove_favorite)
                     } else {
-                        stringResource(Res.string.bookmark)
+                        stringResource(Res.string.favorite)
                     },
                     modifier = Modifier
                         .size(32.dp)

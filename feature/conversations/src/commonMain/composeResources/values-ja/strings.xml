@@ -19,9 +19,7 @@
     <string name="cd_search">検索</string>
     <string name="cd_clear_search">検索をクリア</string>
     <string name="cd_close_search">検索を閉じる</string>
-    <string name="cd_bookmarked">ブックマーク済み</string>
     <string name="cd_conversation_actions">会話の操作</string>
-    <string name="cd_add_tag">タグを追加</string>
     <string name="cd_hide_tags">タグを非表示</string>
     <string name="cd_show_tags">タグを表示</string>
     <string name="cd_clear_filter">フィルターをクリア</string>
@@ -41,8 +39,6 @@
     <string name="copy_of">%1$s のコピー</string>
 
     <!-- Conversation actions -->
-    <string name="remove_bookmark">ブックマークを解除</string>
-    <string name="bookmark">ブックマーク</string>
     <string name="pin">ピン留め</string>
     <string name="unpin">ピン留めを解除</string>
     <string name="move_to_project">プロジェクトに移動</string>
@@ -77,17 +73,12 @@
     <string name="project_move_down">下へ移動</string>
     <string name="projects_empty_description">プロジェクトは 1 つのテーマのチャットをまとめます。チャットはそのメニューからプロジェクトに移動できます。</string>
     <string name="projects_no_match">「%1$s」に一致するプロジェクトはありません</string>
-    <string name="tags">タグ</string>
     <string name="rename_conversation">会話の名前を変更</string>
     <string name="rename_dialog_message">この会話の新しいタイトルを入力してください。</string>
     <string name="title_label">タイトル</string>
     <string name="delete_conversation">会話を削除</string>
     <string name="delete_confirmation_message">「%1$s」を削除してもよろしいですか？この操作は取り消せません。</string>
     <string name="this_conversation">この会話</string>
-
-    <!-- Tag picker -->
-    <string name="no_tags_yet">タグはまだありません。下から追加してください。</string>
-    <string name="add_new_tag">新しいタグを追加</string>
 
     <!-- Tag filter bar -->
 
@@ -238,4 +229,12 @@
     <plurals name="projects_count">
         <item quantity="other">%1$d 件のプロジェクト</item>
     </plurals>
+    <string name="favorite">お気に入りに追加</string>
+    <string name="remove_favorite">お気に入りから削除</string>
+    <string name="cd_favorited">お気に入り</string>
+    <string name="bookmarks_ellipsis">ブックマーク…</string>
+    <string name="bookmark_update_failed">ブックマークを更新できませんでした。もう一度お試しください。</string>
+    <string name="bookmark_create_failed">ブックマークを作成できませんでした。もう一度お試しください。</string>
+    <string name="bookmarks_load_failed">このチャットのブックマークを読み込めませんでした</string>
+    <string name="favorite_update_failed">お気に入りを更新できませんでした。もう一度お試しください。</string>
 </resources>

@@ -9,8 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -132,10 +132,10 @@ fun ConversationItem(
             }
         }
 
-        if (bookmarksEnabled && data.isBookmarked) {
+        if (bookmarksEnabled && data.isFavorite) {
             Icon(
-                imageVector = Icons.Default.Bookmark,
-                contentDescription = stringResource(Res.string.cd_bookmarked),
+                imageVector = Icons.Default.Star,
+                contentDescription = stringResource(Res.string.cd_favorited),
                 modifier = Modifier.size(16.dp),
                 tint = MaterialTheme.colorScheme.primary,
             )

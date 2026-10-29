@@ -19,9 +19,7 @@
     <string name="cd_search">Suchen</string>
     <string name="cd_clear_search">Suche löschen</string>
     <string name="cd_close_search">Suche schließen</string>
-    <string name="cd_bookmarked">Mit Lesezeichen versehen</string>
     <string name="cd_conversation_actions">Unterhaltungsaktionen</string>
-    <string name="cd_add_tag">Tag hinzufügen</string>
     <string name="cd_hide_tags">Tags ausblenden</string>
     <string name="cd_show_tags">Tags anzeigen</string>
     <string name="cd_clear_filter">Filter löschen</string>
@@ -41,8 +39,6 @@
     <string name="copy_of">Kopie von %1$s</string>
 
     <!-- Conversation actions -->
-    <string name="remove_bookmark">Lesezeichen entfernen</string>
-    <string name="bookmark">Lesezeichen</string>
     <string name="pin">Anheften</string>
     <string name="unpin">Lösen</string>
     <string name="move_to_project">In Projekt verschieben</string>
@@ -77,17 +73,12 @@
     <string name="project_move_down">Nach unten</string>
     <string name="projects_empty_description">Ein Projekt fasst Chats zu einem Thema zusammen. Verschiebe einen Chat über sein Menü in ein Projekt.</string>
     <string name="projects_no_match">Keine Projekte passend zu "%1$s"</string>
-    <string name="tags">Tags</string>
     <string name="rename_conversation">Unterhaltung umbenennen</string>
     <string name="rename_dialog_message">Gib einen neuen Titel für diese Unterhaltung ein.</string>
     <string name="title_label">Titel</string>
     <string name="delete_conversation">Unterhaltung löschen</string>
     <string name="delete_confirmation_message">Möchtest du "%1$s" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.</string>
     <string name="this_conversation">diese Unterhaltung</string>
-
-    <!-- Tag picker -->
-    <string name="no_tags_yet">Noch keine Tags. Füge unten eines hinzu.</string>
-    <string name="add_new_tag">Neues Tag hinzufügen</string>
 
     <!-- Tag filter bar -->
 
@@ -241,4 +232,12 @@
         <item quantity="one">%1$d Projekt</item>
         <item quantity="other">%1$d Projekte</item>
     </plurals>
+    <string name="favorite">Zu Favoriten hinzufügen</string>
+    <string name="remove_favorite">Aus Favoriten entfernen</string>
+    <string name="cd_favorited">Favorit</string>
+    <string name="bookmarks_ellipsis">Lesezeichen…</string>
+    <string name="bookmark_update_failed">Lesezeichen konnten nicht aktualisiert werden. Versuche es erneut.</string>
+    <string name="bookmark_create_failed">Lesezeichen konnte nicht erstellt werden. Versuche es erneut.</string>
+    <string name="bookmarks_load_failed">Lesezeichen dieses Chats konnten nicht geladen werden</string>
+    <string name="favorite_update_failed">Favoriten konnten nicht aktualisiert werden. Versuche es erneut.</string>
 </resources>

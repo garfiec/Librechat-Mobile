@@ -19,9 +19,7 @@
     <string name="cd_search">Search</string>
     <string name="cd_clear_search">Clear search</string>
     <string name="cd_close_search">Close search</string>
-    <string name="cd_bookmarked">Bookmarked</string>
     <string name="cd_conversation_actions">Conversation actions</string>
-    <string name="cd_add_tag">Add tag</string>
     <string name="cd_hide_tags">Hide tags</string>
     <string name="cd_show_tags">Show tags</string>
     <string name="cd_clear_filter">Clear filter</string>
@@ -41,8 +39,6 @@
     <string name="copy_of">Copy of %1$s</string>
 
     <!-- Conversation actions -->
-    <string name="remove_bookmark">Remove Bookmark</string>
-    <string name="bookmark">Bookmark</string>
     <string name="pin">Pin</string>
     <string name="unpin">Unpin</string>
     <string name="move_to_project">Move to project</string>
@@ -77,17 +73,12 @@
     <string name="project_move_down">Move down</string>
     <string name="projects_empty_description">A project groups chats on one topic. Move any chat into a project from its menu.</string>
     <string name="projects_no_match">No projects match "%1$s"</string>
-    <string name="tags">Tags</string>
     <string name="rename_conversation">Rename conversation</string>
     <string name="rename_dialog_message">Enter a new title for this conversation.</string>
     <string name="title_label">Title</string>
     <string name="delete_conversation">Delete conversation</string>
     <string name="delete_confirmation_message">Are you sure you want to delete "%1$s"? This action cannot be undone.</string>
     <string name="this_conversation">this conversation</string>
-
-    <!-- Tag picker -->
-    <string name="no_tags_yet">No tags yet. Add one below.</string>
-    <string name="add_new_tag">Add new tag</string>
 
     <!-- Tag filter bar -->
 
@@ -242,4 +233,12 @@
         <item quantity="one">%1$d project</item>
         <item quantity="other">%1$d projects</item>
     </plurals>
+    <string name="favorite">Favorite</string>
+    <string name="remove_favorite">Remove from favorites</string>
+    <string name="cd_favorited">Favorite</string>
+    <string name="bookmarks_ellipsis">Bookmarks…</string>
+    <string name="bookmark_update_failed">Couldn't update bookmarks. Try again.</string>
+    <string name="bookmark_create_failed">Couldn't create the bookmark. Try again.</string>
+    <string name="bookmarks_load_failed">Couldn't load this chat's bookmarks</string>
+    <string name="favorite_update_failed">Couldn't update favorites. Try again.</string>
 </resources>

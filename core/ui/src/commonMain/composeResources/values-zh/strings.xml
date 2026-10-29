@@ -287,4 +287,29 @@
     <string name="acl_error_owner_protected">无法更改所有者的访问权限。</string>
     <string name="acl_error_generic">无法更新访问权限，请重试。</string>
     <string name="acl_error_load">无法加载有访问权限的人。</string>
+    <string name="bookmarks">书签</string>
+    <string name="bookmark_new">新建书签</string>
+    <string name="bookmark_edit">编辑书签</string>
+    <string name="bookmark_name">名称</string>
+    <string name="bookmark_description">描述</string>
+    <string name="bookmark_description_hint">可选</string>
+    <string name="bookmark_add_to_chat">添加到此对话</string>
+    <string name="bookmark_create">创建</string>
+    <string name="bookmark_save">保存</string>
+    <string name="bookmark_cancel">取消</string>
+    <string name="bookmark_error_blank">请输入名称</string>
+    <string name="bookmark_error_duplicate">已有同名书签</string>
+    <string name="bookmark_error_reserved">“Saved”已保留给收藏，请换一个名称。</string>
+    <string name="bookmark_char_counter">%1$d/%2$d</string>
+    <string name="bookmarks_none_yet">还没有书签</string>
+    <string name="bookmarks_no_match">没有与“%1$s”匹配的书签</string>
+    <string name="search_bookmarks">搜索书签</string>
+    <string name="cd_bookmarked">已添加</string>
+    <string name="cd_not_bookmarked">未添加</string>
+    <plurals name="bookmark_chat_count">
+        <item quantity="other">%1$d 个对话</item>
+    </plurals>
+    <plurals name="bookmark_error_too_long">
+        <item quantity="other">最多 %1$d 个字符</item>
+    </plurals>
 </resources>

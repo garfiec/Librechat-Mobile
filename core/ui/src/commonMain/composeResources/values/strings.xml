@@ -309,4 +309,31 @@
     <string name="acl_error_owner_protected">The owner's access can't be changed.</string>
     <string name="acl_error_generic">Couldn't update access. Try again.</string>
     <string name="acl_error_load">Couldn't load who has access.</string>
+    <string name="bookmarks">Bookmarks</string>
+    <string name="bookmark_new">New bookmark</string>
+    <string name="bookmark_edit">Edit bookmark</string>
+    <string name="bookmark_name">Name</string>
+    <string name="bookmark_description">Description</string>
+    <string name="bookmark_description_hint">Optional</string>
+    <string name="bookmark_add_to_chat">Add to this chat</string>
+    <string name="bookmark_create">Create</string>
+    <string name="bookmark_save">Save</string>
+    <string name="bookmark_cancel">Cancel</string>
+    <string name="bookmark_error_blank">Enter a name</string>
+    <string name="bookmark_error_duplicate">You already have a bookmark with this name</string>
+    <string name="bookmark_error_reserved">“Saved” is kept for favorites. Pick another name.</string>
+    <string name="bookmark_char_counter">%1$d/%2$d</string>
+    <string name="bookmarks_none_yet">No bookmarks yet</string>
+    <string name="bookmarks_no_match">No bookmarks match “%1$s”</string>
+    <string name="search_bookmarks">Search bookmarks</string>
+    <string name="cd_bookmarked">Bookmarked</string>
+    <string name="cd_not_bookmarked">Not bookmarked</string>
+    <plurals name="bookmark_chat_count">
+        <item quantity="one">%1$d chat</item>
+        <item quantity="other">%1$d chats</item>
+    </plurals>
+    <plurals name="bookmark_error_too_long">
+        <item quantity="one">Use %1$d character or fewer</item>
+        <item quantity="other">Use %1$d characters or fewer</item>
+    </plurals>
 </resources>

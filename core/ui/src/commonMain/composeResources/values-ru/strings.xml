@@ -299,4 +299,35 @@
     <string name="acl_error_owner_protected">Доступ владельца нельзя изменить.</string>
     <string name="acl_error_generic">Не удалось изменить доступ. Повторите попытку.</string>
     <string name="acl_error_load">Не удалось загрузить список пользователей с доступом.</string>
+    <string name="bookmarks">Закладки</string>
+    <string name="bookmark_new">Новая закладка</string>
+    <string name="bookmark_edit">Изменить закладку</string>
+    <string name="bookmark_name">Название</string>
+    <string name="bookmark_description">Описание</string>
+    <string name="bookmark_description_hint">Необязательно</string>
+    <string name="bookmark_add_to_chat">Добавить в этот чат</string>
+    <string name="bookmark_create">Создать</string>
+    <string name="bookmark_save">Сохранить</string>
+    <string name="bookmark_cancel">Отмена</string>
+    <string name="bookmark_error_blank">Введите название</string>
+    <string name="bookmark_error_duplicate">Закладка с таким названием уже есть</string>
+    <string name="bookmark_error_reserved">«Saved» зарезервировано для избранного. Выберите другое название.</string>
+    <string name="bookmark_char_counter">%1$d/%2$d</string>
+    <string name="bookmarks_none_yet">Закладок пока нет</string>
+    <string name="bookmarks_no_match">Нет закладок, совпадающих с «%1$s»</string>
+    <string name="search_bookmarks">Поиск закладок</string>
+    <string name="cd_bookmarked">Добавлена</string>
+    <string name="cd_not_bookmarked">Не добавлена</string>
+    <plurals name="bookmark_chat_count">
+        <item quantity="one">%1$d чат</item>
+        <item quantity="few">%1$d чата</item>
+        <item quantity="many">%1$d чатов</item>
+        <item quantity="other">%1$d чата</item>
+    </plurals>
+    <plurals name="bookmark_error_too_long">
+        <item quantity="one">Не больше %1$d символа</item>
+        <item quantity="few">Не больше %1$d символов</item>
+        <item quantity="many">Не больше %1$d символов</item>
+        <item quantity="other">Не больше %1$d символа</item>
+    </plurals>
 </resources>

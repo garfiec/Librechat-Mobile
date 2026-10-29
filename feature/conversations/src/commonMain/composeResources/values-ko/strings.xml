@@ -19,9 +19,7 @@
     <string name="cd_search">검색</string>
     <string name="cd_clear_search">검색 지우기</string>
     <string name="cd_close_search">검색 닫기</string>
-    <string name="cd_bookmarked">북마크됨</string>
     <string name="cd_conversation_actions">대화 작업</string>
-    <string name="cd_add_tag">태그 추가</string>
     <string name="cd_hide_tags">태그 숨기기</string>
     <string name="cd_show_tags">태그 표시</string>
     <string name="cd_clear_filter">필터 지우기</string>
@@ -41,8 +39,6 @@
     <string name="copy_of">%1$s의 사본</string>
 
     <!-- Conversation actions -->
-    <string name="remove_bookmark">북마크 제거</string>
-    <string name="bookmark">북마크</string>
     <string name="pin">고정</string>
     <string name="unpin">고정 해제</string>
     <string name="move_to_project">프로젝트로 이동</string>
@@ -77,17 +73,12 @@
     <string name="project_move_down">아래로 이동</string>
     <string name="projects_empty_description">프로젝트는 한 주제의 채팅을 모아 둡니다. 채팅 메뉴에서 프로젝트로 옮길 수 있습니다.</string>
     <string name="projects_no_match">"%1$s"와(과) 일치하는 프로젝트가 없습니다</string>
-    <string name="tags">태그</string>
     <string name="rename_conversation">대화 이름 변경</string>
     <string name="rename_dialog_message">이 대화의 새 제목을 입력하세요.</string>
     <string name="title_label">제목</string>
     <string name="delete_conversation">대화 삭제</string>
     <string name="delete_confirmation_message">"%1$s"을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</string>
     <string name="this_conversation">이 대화</string>
-
-    <!-- Tag picker -->
-    <string name="no_tags_yet">아직 태그가 없습니다. 아래에서 추가하세요.</string>
-    <string name="add_new_tag">새 태그 추가</string>
 
     <!-- Tag filter bar -->
 
@@ -238,4 +229,12 @@
     <plurals name="projects_count">
         <item quantity="other">프로젝트 %1$d개</item>
     </plurals>
+    <string name="favorite">즐겨찾기에 추가</string>
+    <string name="remove_favorite">즐겨찾기에서 삭제</string>
+    <string name="cd_favorited">즐겨찾기</string>
+    <string name="bookmarks_ellipsis">북마크…</string>
+    <string name="bookmark_update_failed">북마크를 업데이트하지 못했습니다. 다시 시도하세요.</string>
+    <string name="bookmark_create_failed">북마크를 만들지 못했습니다. 다시 시도하세요.</string>
+    <string name="bookmarks_load_failed">이 채팅의 북마크를 불러오지 못했습니다</string>
+    <string name="favorite_update_failed">즐겨찾기를 업데이트하지 못했습니다. 다시 시도하세요.</string>
 </resources>

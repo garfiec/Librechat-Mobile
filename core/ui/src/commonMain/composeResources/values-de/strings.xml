@@ -291,4 +291,31 @@
     <string name="acl_error_owner_protected">Der Zugriff des Eigentümers kann nicht geändert werden.</string>
     <string name="acl_error_generic">Zugriff konnte nicht aktualisiert werden. Versuche es erneut.</string>
     <string name="acl_error_load">Die Zugriffsliste konnte nicht geladen werden.</string>
+    <string name="bookmarks">Lesezeichen</string>
+    <string name="bookmark_new">Neues Lesezeichen</string>
+    <string name="bookmark_edit">Lesezeichen bearbeiten</string>
+    <string name="bookmark_name">Name</string>
+    <string name="bookmark_description">Beschreibung</string>
+    <string name="bookmark_description_hint">Optional</string>
+    <string name="bookmark_add_to_chat">Zu diesem Chat hinzufügen</string>
+    <string name="bookmark_create">Erstellen</string>
+    <string name="bookmark_save">Speichern</string>
+    <string name="bookmark_cancel">Abbrechen</string>
+    <string name="bookmark_error_blank">Gib einen Namen ein</string>
+    <string name="bookmark_error_duplicate">Du hast bereits ein Lesezeichen mit diesem Namen</string>
+    <string name="bookmark_error_reserved">„Saved“ ist für Favoriten reserviert. Wähle einen anderen Namen.</string>
+    <string name="bookmark_char_counter">%1$d/%2$d</string>
+    <string name="bookmarks_none_yet">Noch keine Lesezeichen</string>
+    <string name="bookmarks_no_match">Keine Lesezeichen passen zu „%1$s“</string>
+    <string name="search_bookmarks">Lesezeichen durchsuchen</string>
+    <string name="cd_bookmarked">Hinzugefügt</string>
+    <string name="cd_not_bookmarked">Nicht hinzugefügt</string>
+    <plurals name="bookmark_chat_count">
+        <item quantity="one">%1$d Chat</item>
+        <item quantity="other">%1$d Chats</item>
+    </plurals>
+    <plurals name="bookmark_error_too_long">
+        <item quantity="one">Höchstens %1$d Zeichen</item>
+        <item quantity="other">Höchstens %1$d Zeichen</item>
+    </plurals>
 </resources>

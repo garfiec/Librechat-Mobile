@@ -19,9 +19,7 @@
     <string name="cd_search">Поиск</string>
     <string name="cd_clear_search">Очистить поиск</string>
     <string name="cd_close_search">Закрыть поиск</string>
-    <string name="cd_bookmarked">В закладках</string>
     <string name="cd_conversation_actions">Действия с беседой</string>
-    <string name="cd_add_tag">Добавить тег</string>
     <string name="cd_hide_tags">Скрыть теги</string>
     <string name="cd_show_tags">Показать теги</string>
     <string name="cd_clear_filter">Сбросить фильтр</string>
@@ -41,8 +39,6 @@
     <string name="copy_of">Копия %1$s</string>
 
     <!-- Conversation actions -->
-    <string name="remove_bookmark">Убрать закладку</string>
-    <string name="bookmark">В закладки</string>
     <string name="pin">Закрепить</string>
     <string name="unpin">Открепить</string>
     <string name="move_to_project">Переместить в проект</string>
@@ -77,17 +73,12 @@
     <string name="project_move_down">Переместить вниз</string>
     <string name="projects_empty_description">Проект объединяет чаты на одну тему. Переместите любой чат в проект через его меню.</string>
     <string name="projects_no_match">Нет проектов по запросу «%1$s»</string>
-    <string name="tags">Теги</string>
     <string name="rename_conversation">Переименовать беседу</string>
     <string name="rename_dialog_message">Введите новое название для этой беседы.</string>
     <string name="title_label">Название</string>
     <string name="delete_conversation">Удалить беседу</string>
     <string name="delete_confirmation_message">Вы уверены, что хотите удалить "%1$s"? Это действие нельзя отменить.</string>
     <string name="this_conversation">эту беседу</string>
-
-    <!-- Tag picker -->
-    <string name="no_tags_yet">Пока нет тегов. Добавьте один ниже.</string>
-    <string name="add_new_tag">Добавить новый тег</string>
 
     <!-- Tag filter bar -->
 
@@ -247,4 +238,12 @@
         <item quantity="many">%1$d проектов</item>
         <item quantity="other">%1$d проекта</item>
     </plurals>
+    <string name="favorite">В избранное</string>
+    <string name="remove_favorite">Убрать из избранного</string>
+    <string name="cd_favorited">В избранном</string>
+    <string name="bookmarks_ellipsis">Закладки…</string>
+    <string name="bookmark_update_failed">Не удалось обновить закладки. Попробуйте ещё раз.</string>
+    <string name="bookmark_create_failed">Не удалось создать закладку. Попробуйте ещё раз.</string>
+    <string name="bookmarks_load_failed">Не удалось загрузить закладки этого чата</string>
+    <string name="favorite_update_failed">Не удалось обновить избранное. Попробуйте ещё раз.</string>
 </resources>

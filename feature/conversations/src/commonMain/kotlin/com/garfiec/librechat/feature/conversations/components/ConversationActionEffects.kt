@@ -14,6 +14,7 @@ import com.garfiec.librechat.feature.conversations.resources.*
 import com.garfiec.librechat.feature.conversations.resources.Res
 import com.garfiec.librechat.feature.conversations.viewmodel.ConversationListEvent
 import kotlinx.coroutines.flow.Flow
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 
 // Hoisted: compiled once instead of per export event.
@@ -67,6 +68,9 @@ fun ConversationActionEffects(
                 }
                 is ConversationListEvent.ShowError -> {
                     showToast(event.message)
+                }
+                is ConversationListEvent.ShowErrorRes -> {
+                    showToast(getString(event.message))
                 }
                 is ConversationListEvent.ExportReady -> {
                     pendingExportContent = event.content

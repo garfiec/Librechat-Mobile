@@ -295,4 +295,33 @@
     <string name="acl_error_owner_protected">El acceso del propietario no se puede cambiar.</string>
     <string name="acl_error_generic">No se pudo actualizar el acceso. Inténtalo de nuevo.</string>
     <string name="acl_error_load">No se pudo cargar quién tiene acceso.</string>
+    <string name="bookmarks">Marcadores</string>
+    <string name="bookmark_new">Nuevo marcador</string>
+    <string name="bookmark_edit">Editar marcador</string>
+    <string name="bookmark_name">Nombre</string>
+    <string name="bookmark_description">Descripción</string>
+    <string name="bookmark_description_hint">Opcional</string>
+    <string name="bookmark_add_to_chat">Añadir a este chat</string>
+    <string name="bookmark_create">Crear</string>
+    <string name="bookmark_save">Guardar</string>
+    <string name="bookmark_cancel">Cancelar</string>
+    <string name="bookmark_error_blank">Escribe un nombre</string>
+    <string name="bookmark_error_duplicate">Ya tienes un marcador con este nombre</string>
+    <string name="bookmark_error_reserved">“Saved” está reservado para favoritos. Elige otro nombre.</string>
+    <string name="bookmark_char_counter">%1$d/%2$d</string>
+    <string name="bookmarks_none_yet">Aún no hay marcadores</string>
+    <string name="bookmarks_no_match">Ningún marcador coincide con “%1$s”</string>
+    <string name="search_bookmarks">Buscar marcadores</string>
+    <string name="cd_bookmarked">Añadido</string>
+    <string name="cd_not_bookmarked">No añadido</string>
+    <plurals name="bookmark_chat_count">
+        <item quantity="one">%1$d chat</item>
+        <item quantity="many">%1$d chats</item>
+        <item quantity="other">%1$d chats</item>
+    </plurals>
+    <plurals name="bookmark_error_too_long">
+        <item quantity="one">Máximo %1$d carácter</item>
+        <item quantity="many">Máximo %1$d caracteres</item>
+        <item quantity="other">Máximo %1$d caracteres</item>
+    </plurals>
 </resources>

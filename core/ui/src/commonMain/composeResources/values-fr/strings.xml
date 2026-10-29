@@ -295,4 +295,33 @@
     <string name="acl_error_owner_protected">L'accès du propriétaire ne peut pas être modifié.</string>
     <string name="acl_error_generic">Impossible de mettre à jour l'accès. Réessayez.</string>
     <string name="acl_error_load">Impossible de charger la liste des personnes ayant accès.</string>
+    <string name="bookmarks">Signets</string>
+    <string name="bookmark_new">Nouveau signet</string>
+    <string name="bookmark_edit">Modifier le signet</string>
+    <string name="bookmark_name">Nom</string>
+    <string name="bookmark_description">Description</string>
+    <string name="bookmark_description_hint">Facultatif</string>
+    <string name="bookmark_add_to_chat">Ajouter à cette discussion</string>
+    <string name="bookmark_create">Créer</string>
+    <string name="bookmark_save">Enregistrer</string>
+    <string name="bookmark_cancel">Annuler</string>
+    <string name="bookmark_error_blank">Saisissez un nom</string>
+    <string name="bookmark_error_duplicate">Vous avez déjà un signet portant ce nom</string>
+    <string name="bookmark_error_reserved">« Saved » est réservé aux favoris. Choisissez un autre nom.</string>
+    <string name="bookmark_char_counter">%1$d/%2$d</string>
+    <string name="bookmarks_none_yet">Aucun signet pour l'instant</string>
+    <string name="bookmarks_no_match">Aucun signet ne correspond à « %1$s »</string>
+    <string name="search_bookmarks">Rechercher des signets</string>
+    <string name="cd_bookmarked">Ajouté</string>
+    <string name="cd_not_bookmarked">Non ajouté</string>
+    <plurals name="bookmark_chat_count">
+        <item quantity="one">%1$d discussion</item>
+        <item quantity="many">%1$d discussions</item>
+        <item quantity="other">%1$d discussions</item>
+    </plurals>
+    <plurals name="bookmark_error_too_long">
+        <item quantity="one">%1$d caractère maximum</item>
+        <item quantity="many">%1$d caractères maximum</item>
+        <item quantity="other">%1$d caractères maximum</item>
+    </plurals>
 </resources>

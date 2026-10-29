@@ -176,13 +176,13 @@ private fun ConversationRowsHost() {
                 "anthropic",
                 "claude-sonnet-4-5",
                 now - 2.hours,
-                isBookmarked = true,
+                isFavorite = true,
             ),
             onClick = {},
             onActionsClick = {},
         )
         ConversationItem(
-            data = ConversationDisplayData("b", "Refactor the sync worker", "azureOpenAI", null, now - 3.days, isBookmarked = false),
+            data = ConversationDisplayData("b", "Refactor the sync worker", "azureOpenAI", null, now - 3.days, isFavorite = false),
             onClick = {},
             onActionsClick = {},
         )

@@ -27,6 +27,10 @@ Material 3 theme and shared Compose components used across all feature modules. 
   owner locked, people search. Stateless over `AclState` (`:core:model` `acl/`), driven by
   `:core:data` `AclController(AclPolicy)`. Shared links use it; the agent and skill editors still
   carry their own copies until they migrate.
+- `BookmarkPickerSheet` / `BookmarkEditorSheet` (`components/bookmarks/`) - The per-chat bookmark
+  checklist and the bookmark create/edit sheet, used by the drawer, project chats and the chat
+  screen. The checklist renders a `BookmarkPickerUiState`; `:core:data` `BookmarkPickerController`
+  drives it (each tap saves at once). The editor validates with `:core:model` `BookmarkNameRules`.
 - `AvatarImage` - User/agent/model avatar with Coil image loading and fallback.
 - `ConfirmationDialog` - Reusable confirm/cancel dialog.
 - `DiscardChangesDialog` - "Discard changes?" for leaving an editor with unsaved edits. Every

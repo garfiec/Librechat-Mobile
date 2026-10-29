@@ -4,11 +4,16 @@ import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
+import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationPage
+import com.garfiec.librechat.core.model.ConversationTag
+import com.garfiec.librechat.core.model.config.InterfaceConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
+import com.garfiec.librechat.feature.conversations.resources.Res
+import com.garfiec.librechat.feature.conversations.resources.bookmark_update_failed
 import com.google.common.truth.Truth.assertThat
 import io.mockk.MockKMatcherScope
 import io.mockk.coEvery
@@ -21,6 +26,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -38,6 +44,9 @@ class ProjectChatsViewModelTest {
     private val conversationRepository = mockk<ConversationRepository>(relaxed = true)
     private val projectRepository = mockk<ProjectRepository>(relaxed = true)
     private val revision = MutableStateFlow(0L)
+    private val tagRepository = mockk<TagRepository>(relaxed = true) {
+        every { observeTags() } returns MutableStateFlow(listOf(ConversationTag(tag = "work")))
+    }
     private val userPermissions = MutableStateFlow<UserRolePermissions?>(null)
     private val startupConfig = MutableStateFlow<StartupConfig?>(StartupConfig(sharedLinksEnabled = true))
 
@@ -50,7 +59,7 @@ class ProjectChatsViewModelTest {
     private fun viewModel() = ProjectChatsViewModel(
         projectId = "p1",
         conversationRepository = conversationRepository,
-        tagRepository = mockk(relaxed = true),
+        tagRepository = tagRepository,
         shareLinkControllerFactory = mockk(relaxed = true),
         conversationExporter = mockk(relaxed = true),
         roleRepository = mockk(relaxed = true) {
@@ -217,5 +226,83 @@ class ProjectChatsViewModelTest {
         startupConfig.value = StartupConfig(sharedLinksEnabled = false)
         advanceUntilIdle()
         assertThat(vm.uiState.value.sharedLinksEnabled).isFalse()
+    }
+
+    private fun role(bookmarksUse: Boolean) =
+        UserRolePermissions(name = "USER", permissions = mapOf("BOOKMARKS" to mapOf("USE" to bookmarksUse)))
+
+    @Test
+    fun `bookmarks need both the role's BOOKMARKS USE and interface bookmarks`() = runTest(testDispatcher) {
+        val vm = viewModel()
+        advanceUntilIdle()
+        assertThat(vm.uiState.value.bookmarksEnabled).isTrue()
+
+        startupConfig.value = StartupConfig(interfaceConfig = InterfaceConfig(bookmarks = false))
+        advanceUntilIdle()
+        assertThat(vm.uiState.value.bookmarksEnabled).isFalse()
+
+        startupConfig.value = StartupConfig()
+        userPermissions.value = role(bookmarksUse = false)
+        advanceUntilIdle()
+        assertThat(vm.uiState.value.bookmarksEnabled).isFalse()
+    }
+
+    @Test
+    fun `Bookmarks opens the checklist on the chat's server tags`() = runTest(testDispatcher) {
+        coEvery { tagRepository.getConversationTags("a") } returns Result.Success(listOf("work"))
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.openBookmarks("a")
+        advanceUntilIdle()
+
+        assertThat(vm.bookmarkPicker.state.value.conversationId).isEqualTo("a")
+        assertThat(vm.bookmarkPicker.state.value.attached).containsExactly("work")
+    }
+
+    @Test
+    fun `the checklist doesn't open while bookmarks are off`() = runTest(testDispatcher) {
+        startupConfig.value = StartupConfig(interfaceConfig = InterfaceConfig(bookmarks = false))
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.openBookmarks("a")
+        advanceUntilIdle()
+
+        assertThat(vm.bookmarkPicker.state.value.isOpen).isFalse()
+        coVerify(exactly = 0) { tagRepository.getConversationTags(any()) }
+    }
+
+    @Test
+    fun `bookmarks turning off takes an open checklist down`() = runTest(testDispatcher) {
+        coEvery { tagRepository.getConversationTags("a") } returns Result.Success(emptyList())
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.openBookmarks("a")
+        advanceUntilIdle()
+
+        userPermissions.value = role(bookmarksUse = false)
+        advanceUntilIdle()
+
+        assertThat(vm.bookmarkPicker.state.value.isOpen).isFalse()
+    }
+
+    @Test
+    fun `a failed tick is reported with the bookmark error`() = runTest(testDispatcher) {
+        coEvery { tagRepository.getConversationTags("a") } returns Result.Success(emptyList())
+        coEvery { tagRepository.setConversationTag("a", "work", true) } returns Result.Error(message = "boom")
+        val vm = viewModel()
+        val events = mutableListOf<ConversationListEvent>()
+        val job = launch { vm.events.collect { events += it } }
+        advanceUntilIdle()
+        vm.openBookmarks("a")
+        advanceUntilIdle()
+
+        vm.bookmarkPicker.toggle("work")
+        advanceUntilIdle()
+
+        assertThat(events).containsExactly(ConversationListEvent.ShowErrorRes(Res.string.bookmark_update_failed))
+        assertThat(vm.bookmarkPicker.state.value.attached).isEmpty()
+        job.cancel()
     }
 }

@@ -19,9 +19,7 @@
     <string name="cd_search">Rechercher</string>
     <string name="cd_clear_search">Effacer la recherche</string>
     <string name="cd_close_search">Fermer la recherche</string>
-    <string name="cd_bookmarked">Marqué d'un signet</string>
     <string name="cd_conversation_actions">Actions de conversation</string>
-    <string name="cd_add_tag">Ajouter une étiquette</string>
     <string name="cd_hide_tags">Masquer les étiquettes</string>
     <string name="cd_show_tags">Afficher les étiquettes</string>
     <string name="cd_clear_filter">Effacer le filtre</string>
@@ -41,8 +39,6 @@
     <string name="copy_of">Copie de %1$s</string>
 
     <!-- Conversation actions -->
-    <string name="remove_bookmark">Supprimer le signet</string>
-    <string name="bookmark">Signet</string>
     <string name="pin">Épingler</string>
     <string name="unpin">Désépingler</string>
     <string name="move_to_project">Déplacer vers un projet</string>
@@ -77,17 +73,12 @@
     <string name="project_move_down">Descendre</string>
     <string name="projects_empty_description">Un projet rassemble les discussions sur un même sujet. Déplacez une discussion dans un projet depuis son menu.</string>
     <string name="projects_no_match">Aucun projet ne correspond à « %1$s »</string>
-    <string name="tags">Étiquettes</string>
     <string name="rename_conversation">Renommer la conversation</string>
     <string name="rename_dialog_message">Saisissez un nouveau titre pour cette conversation.</string>
     <string name="title_label">Titre</string>
     <string name="delete_conversation">Supprimer la conversation</string>
     <string name="delete_confirmation_message">Voulez-vous vraiment supprimer "%1$s" ? Cette action est irréversible.</string>
     <string name="this_conversation">cette conversation</string>
-
-    <!-- Tag picker -->
-    <string name="no_tags_yet">Aucune étiquette pour l'instant. Ajoutez-en une ci-dessous.</string>
-    <string name="add_new_tag">Ajouter une nouvelle étiquette</string>
 
     <!-- Tag filter bar -->
 
@@ -243,4 +234,12 @@
         <item quantity="many">%1$d projets</item>
         <item quantity="other">%1$d projets</item>
     </plurals>
+    <string name="favorite">Ajouter aux favoris</string>
+    <string name="remove_favorite">Retirer des favoris</string>
+    <string name="cd_favorited">Favori</string>
+    <string name="bookmarks_ellipsis">Signets…</string>
+    <string name="bookmark_update_failed">Impossible de mettre à jour les signets. Réessayez.</string>
+    <string name="bookmark_create_failed">Impossible de créer le signet. Réessayez.</string>
+    <string name="bookmarks_load_failed">Impossible de charger les signets de cette discussion</string>
+    <string name="favorite_update_failed">Impossible de mettre à jour les favoris. Réessayez.</string>
 </resources>

@@ -9,22 +9,20 @@ import com.garfiec.librechat.core.common.extensions.RelativeTimeReference
 import com.garfiec.librechat.core.common.extensions.dayBoundaryReferences
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.bookmarks.BookmarkPickerController
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
-import com.garfiec.librechat.core.data.repository.bookmarks
+import com.garfiec.librechat.core.data.repository.bookmarksEnabled
 import com.garfiec.librechat.core.data.share.ShareLinkController
 import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.model.Conversation
-import com.garfiec.librechat.core.model.ConversationTag
-import com.garfiec.librechat.core.model.permissions.Permission
-import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
-import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.feature.conversations.components.ConversationDisplayData
+import com.garfiec.librechat.feature.conversations.components.message
 import com.garfiec.librechat.feature.conversations.export.ConversationExporter
 import com.garfiec.librechat.feature.conversations.export.ExportFormat
 import kotlinx.coroutines.Job
@@ -36,7 +34,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -56,7 +56,7 @@ data class ProjectChatsUiState(
     val nextCursor: String? = null,
     val hasMore: Boolean = true,
     val sort: ProjectChatsSort = ProjectChatsSort.UPDATED,
-    val tags: List<ConversationTag> = emptyList(),
+    /** Bookmarks and the favorite star: BOOKMARKS USE and `interface.bookmarks`. */
     val bookmarksEnabled: Boolean = true,
     /** Share shows on rows: the server has shared links on and the role may create them. */
     val sharedLinksEnabled: Boolean = false,
@@ -127,6 +127,9 @@ class ProjectChatsViewModel(
         onMutated = { pager.reloadQuietly() },
     )
 
+    /** A row's "Bookmarks…" checklist. Its failures surface as the screen's snackbar. */
+    val bookmarkPicker = BookmarkPickerController(tagRepository, viewModelScope)
+
     private val projectActions = ProjectActionsDelegate(
         scope = viewModelScope,
         projectRepository = projectRepository,
@@ -142,8 +145,16 @@ class ProjectChatsViewModel(
         load()
         loadProject()
         observeGrouped()
-        observeTags()
         observePermissions()
+        viewModelScope.launch {
+            bookmarkPicker.failures.collect { _events.emit(ConversationListEvent.ShowErrorRes(it.message)) }
+        }
+        // Bookmarks turned off (role or server config) while the checklist was up: take it down.
+        viewModelScope.launch {
+            uiState.map { it.bookmarksEnabled }.distinctUntilChanged().collect { enabled ->
+                if (!enabled) bookmarkPicker.close()
+            }
+        }
         viewModelScope.launch {
             projectRepository.revision.drop(1).collect {
                 loadProject()
@@ -203,14 +214,6 @@ class ProjectChatsViewModel(
         }
     }
 
-    private fun observeTags() {
-        viewModelScope.launch {
-            tagRepository.observeTags().collect { tags ->
-                _uiState.value = _uiState.value.copy(tags = tags.bookmarks().filter { it.count > 0 })
-            }
-        }
-    }
-
     private fun observePermissions() {
         viewModelScope.launch {
             combine(roleRepository.userPermissions, configRepository.startupConfig) { role, config ->
@@ -218,7 +221,7 @@ class ProjectChatsViewModel(
             }.collect { (role, config) ->
                 _uiState.update {
                     it.copy(
-                        bookmarksEnabled = role.hasAccessOrPermissive(PermissionType.BOOKMARKS, Permission.USE),
+                        bookmarksEnabled = bookmarksEnabled(role, config?.interfaceConfig),
                         sharedLinksEnabled = role.canCreateSharedLinks(config?.sharedLinksEnabled ?: false),
                     )
                 }
@@ -275,8 +278,11 @@ class ProjectChatsViewModel(
     fun duplicateConversation(conversationId: String, title: String?) =
         actions.duplicateConversation(conversationId, title)
 
-    fun updateConversationTags(conversation: Conversation, userTags: List<String>) =
-        actions.updateConversationTags(conversation, userTags)
+    /** Opens the bookmark checklist on [conversationId]: its bookmarks are read from the server first. */
+    fun openBookmarks(conversationId: String) {
+        if (!_uiState.value.bookmarksEnabled) return
+        bookmarkPicker.open(conversationId)
+    }
 
     fun exportConversation(conversationId: String, title: String?, format: ExportFormat) =
         actions.exportConversation(conversationId, title, format)

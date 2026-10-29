@@ -287,4 +287,29 @@
     <string name="acl_error_owner_protected">소유자의 액세스 권한은 변경할 수 없습니다.</string>
     <string name="acl_error_generic">액세스 권한을 업데이트하지 못했습니다. 다시 시도하세요.</string>
     <string name="acl_error_load">액세스 권한이 있는 사람을 불러오지 못했습니다.</string>
+    <string name="bookmarks">북마크</string>
+    <string name="bookmark_new">새 북마크</string>
+    <string name="bookmark_edit">북마크 편집</string>
+    <string name="bookmark_name">이름</string>
+    <string name="bookmark_description">설명</string>
+    <string name="bookmark_description_hint">선택 사항</string>
+    <string name="bookmark_add_to_chat">이 채팅에 추가</string>
+    <string name="bookmark_create">만들기</string>
+    <string name="bookmark_save">저장</string>
+    <string name="bookmark_cancel">취소</string>
+    <string name="bookmark_error_blank">이름을 입력하세요</string>
+    <string name="bookmark_error_duplicate">같은 이름의 북마크가 이미 있습니다</string>
+    <string name="bookmark_error_reserved">'Saved'는 즐겨찾기용으로 예약되어 있습니다. 다른 이름을 선택하세요.</string>
+    <string name="bookmark_char_counter">%1$d/%2$d</string>
+    <string name="bookmarks_none_yet">아직 북마크가 없습니다</string>
+    <string name="bookmarks_no_match">'%1$s'와(과) 일치하는 북마크가 없습니다</string>
+    <string name="search_bookmarks">북마크 검색</string>
+    <string name="cd_bookmarked">추가됨</string>
+    <string name="cd_not_bookmarked">추가 안 됨</string>
+    <plurals name="bookmark_chat_count">
+        <item quantity="other">채팅 %1$d개</item>
+    </plurals>
+    <plurals name="bookmark_error_too_long">
+        <item quantity="other">%1$d자 이하로 입력하세요</item>
+    </plurals>
 </resources>

@@ -64,13 +64,13 @@ import com.garfiec.librechat.core.ui.components.topbar.BarMenuSection
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.datetime.resolve
+import com.garfiec.librechat.feature.conversations.components.BookmarkPickerHost
 import com.garfiec.librechat.feature.conversations.components.ConversationActions
 import com.garfiec.librechat.feature.conversations.components.ConversationItem
 import com.garfiec.librechat.feature.conversations.components.DateGroupHeader
 import com.garfiec.librechat.feature.conversations.components.ProjectEditorSheet
 import com.garfiec.librechat.feature.conversations.components.ProjectTile
 import com.garfiec.librechat.feature.conversations.components.ShareLinkSheetHost
-import com.garfiec.librechat.feature.conversations.components.TagPicker
 import com.garfiec.librechat.feature.conversations.export.ExportFormat
 import com.garfiec.librechat.feature.conversations.export.ExportFormatPicker
 import com.garfiec.librechat.feature.conversations.platform.FileSaver
@@ -90,6 +90,7 @@ import com.garfiec.librechat.feature.conversations.resources.save
 import com.garfiec.librechat.feature.conversations.viewmodel.ConversationListEvent
 import com.garfiec.librechat.feature.conversations.viewmodel.ProjectChatsSort
 import com.garfiec.librechat.feature.conversations.viewmodel.ProjectChatsViewModel
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -113,8 +114,6 @@ fun ProjectChatsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     var selectedConversation by remember { mutableStateOf<Conversation?>(null) }
-    var showTagPicker by remember { mutableStateOf(false) }
-    var tagPickerConversation by remember { mutableStateOf<Conversation?>(null) }
     var showExportFormatPicker by remember { mutableStateOf(false) }
     var exportConversation by remember { mutableStateOf<Conversation?>(null) }
 
@@ -158,6 +157,7 @@ fun ProjectChatsScreen(
                 // Only the drawer deletes with active-conversation awareness, so this never fires here.
                 is ConversationListEvent.NavigateToNewChat -> Unit
                 is ConversationListEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
+                is ConversationListEvent.ShowErrorRes -> snackbarHostState.showSnackbar(getString(event.message))
                 is ConversationListEvent.ExportReady -> {
                     pendingExportContent = event.content
                     val ext = when (event.format) {
@@ -323,10 +323,10 @@ fun ProjectChatsScreen(
         ConversationActions(
             conversation = selectedConversation!!,
             onDismiss = { selectedConversation = null },
-            isBookmarked = SAVED_TAG in (selectedConversation?.tags ?: emptyList()),
+            isFavorite = SAVED_TAG in (selectedConversation?.tags ?: emptyList()),
             bookmarksEnabled = uiState.bookmarksEnabled,
             showShareAction = uiState.sharedLinksEnabled,
-            onBookmarkToggle = {
+            onFavoriteToggle = {
                 selectedConversation?.let { viewModel.toggleFavorite(it) }
                 selectedConversation = null
             },
@@ -342,9 +342,8 @@ fun ProjectChatsScreen(
                 selectedConversation?.conversationId?.let { viewModel.deleteConversation(it) }
                 selectedConversation = null
             },
-            onTags = {
-                tagPickerConversation = selectedConversation
-                showTagPicker = true
+            onBookmarks = {
+                selectedConversation?.conversationId?.let { viewModel.openBookmarks(it) }
                 selectedConversation = null
             },
             onShare = {
@@ -366,19 +365,8 @@ fun ProjectChatsScreen(
         )
     }
 
-    if (showTagPicker && tagPickerConversation != null) {
-        TagPicker(
-            availableTags = uiState.tags,
-            currentTags = tagPickerConversation?.tags?.filterNot { it == SAVED_TAG } ?: emptyList(),
-            onTagsChange = { newTags -> tagPickerConversation?.let { viewModel.updateConversationTags(it, newTags) } },
-            onDismiss = {
-                showTagPicker = false
-                tagPickerConversation = null
-            },
-        )
-    }
-
     ShareLinkSheetHost(controller = viewModel.shareLink, onDismiss = viewModel::closeShareSheet)
+    BookmarkPickerHost(controller = viewModel.bookmarkPicker)
 
     if (showExportFormatPicker && exportConversation != null) {
         ExportFormatPicker(

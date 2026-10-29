@@ -287,4 +287,29 @@
     <string name="acl_error_owner_protected">オーナーのアクセス権は変更できません。</string>
     <string name="acl_error_generic">アクセス権を更新できませんでした。もう一度お試しください。</string>
     <string name="acl_error_load">アクセスできるユーザーを読み込めませんでした。</string>
+    <string name="bookmarks">ブックマーク</string>
+    <string name="bookmark_new">新しいブックマーク</string>
+    <string name="bookmark_edit">ブックマークを編集</string>
+    <string name="bookmark_name">名前</string>
+    <string name="bookmark_description">説明</string>
+    <string name="bookmark_description_hint">任意</string>
+    <string name="bookmark_add_to_chat">このチャットに追加</string>
+    <string name="bookmark_create">作成</string>
+    <string name="bookmark_save">保存</string>
+    <string name="bookmark_cancel">キャンセル</string>
+    <string name="bookmark_error_blank">名前を入力してください</string>
+    <string name="bookmark_error_duplicate">同じ名前のブックマークがすでにあります</string>
+    <string name="bookmark_error_reserved">「Saved」はお気に入り用に予約されています。別の名前を選んでください。</string>
+    <string name="bookmark_char_counter">%1$d/%2$d</string>
+    <string name="bookmarks_none_yet">ブックマークはまだありません</string>
+    <string name="bookmarks_no_match">「%1$s」に一致するブックマークはありません</string>
+    <string name="search_bookmarks">ブックマークを検索</string>
+    <string name="cd_bookmarked">追加済み</string>
+    <string name="cd_not_bookmarked">未追加</string>
+    <plurals name="bookmark_chat_count">
+        <item quantity="other">%1$d 件のチャット</item>
+    </plurals>
+    <plurals name="bookmark_error_too_long">
+        <item quantity="other">%1$d 文字以内で入力してください</item>
+    </plurals>
 </resources>

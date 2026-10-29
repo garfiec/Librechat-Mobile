@@ -12,15 +12,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -57,12 +57,13 @@ fun ConversationActions(
     onArchive: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
-    onTags: () -> Unit = {},
+    /** Opens the chat's bookmark checklist; null leaves "Bookmarks…" out. */
+    onBookmarks: (() -> Unit)? = null,
     onShare: () -> Unit = {},
     onDuplicate: () -> Unit = {},
     onExport: () -> Unit = {},
-    onBookmarkToggle: () -> Unit = {},
-    isBookmarked: Boolean = false,
+    onFavoriteToggle: () -> Unit = {},
+    isFavorite: Boolean = false,
     showShareAction: Boolean = false,
     bookmarksEnabled: Boolean = true,
 ) {
@@ -104,26 +105,28 @@ fun ConversationActions(
                     },
                 )
 
+                // The favorite star is the reserved Saved tag, so it is gated with bookmarks.
                 if (bookmarksEnabled) {
                     ActionRow(
-                        icon = if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                        label = if (isBookmarked) stringResource(Res.string.remove_bookmark) else stringResource(Res.string.bookmark),
-                        iconTint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        icon = if (isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
+                        label = if (isFavorite) stringResource(Res.string.remove_favorite) else stringResource(Res.string.favorite),
+                        iconTint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                         onClick = {
-                            onBookmarkToggle()
+                            onFavoriteToggle()
                             onDismiss()
                         },
                     )
+                    if (onBookmarks != null) {
+                        ActionRow(
+                            icon = Icons.Default.Bookmark,
+                            label = stringResource(Res.string.bookmarks_ellipsis),
+                            onClick = {
+                                onBookmarks()
+                                onDismiss()
+                            },
+                        )
+                    }
                 }
-
-                ActionRow(
-                    icon = Icons.AutoMirrored.Filled.Label,
-                    label = stringResource(Res.string.tags),
-                    onClick = {
-                        onTags()
-                        onDismiss()
-                    },
-                )
 
                 if (showShareAction) {
                     ActionRow(

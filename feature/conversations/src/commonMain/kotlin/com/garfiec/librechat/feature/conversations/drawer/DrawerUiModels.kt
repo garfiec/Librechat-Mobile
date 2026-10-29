@@ -2,7 +2,6 @@ package com.garfiec.librechat.feature.conversations.drawer
 
 import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.data.search.MessageSearchHit
-import com.garfiec.librechat.core.model.ConversationTag
 import com.garfiec.librechat.feature.conversations.search.SearchNote
 import kotlin.time.Instant
 
@@ -74,14 +73,16 @@ data class DrawerUiState(
     val agentsEnabled: Boolean = true,
     /** MARKETPLACE.USE: browsing agents. Upstream's USER role is denied it by default. */
     val marketplaceEnabled: Boolean = true,
+    /**
+     * Bookmarks and the favorite star (BOOKMARKS USE and `interface.bookmarks`): the stars,
+     * Favorites, the menu's Favorite and "Bookmarks…".
+     */
     val bookmarksEnabled: Boolean = true,
     /** Role SKILLS.USE (permissive) AND the agents `skills` capability (fail-closed). */
     val skillsEnabled: Boolean = false,
     /** Scheduled chats: the SCHEDULES permission AND the server's `interface.schedules` flag,
      *  which is absent-means-OFF. Default false — the feature is opt-in. */
     val schedulesEnabled: Boolean = false,
-    // User-defined tags (excluding the favorites tag) for the action menu's tag picker.
-    val availableTags: List<ConversationTag> = emptyList(),
     // Config-driven: whether server-side shared links are enabled (gates the menu's Share action).
     val sharedLinksEnabled: Boolean = false,
     // Version-gated (v0.8.7+): whether the pin/unpin action is offered. Older servers lack

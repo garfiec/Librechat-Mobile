@@ -49,7 +49,6 @@ class DrawerPermissionFlagsTest {
 
         assertThat(flags.agentsEnabled).isTrue()
         assertThat(flags.skillsEnabled).isTrue()
-        assertThat(flags.bookmarksEnabled).isTrue()
         assertThat(flags.schedulesPermitted).isTrue()
     }
 }

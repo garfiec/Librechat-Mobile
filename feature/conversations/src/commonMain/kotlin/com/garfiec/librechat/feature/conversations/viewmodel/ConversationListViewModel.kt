@@ -12,14 +12,12 @@ import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.SearchRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.data.repository.bookmarks
+import com.garfiec.librechat.core.data.repository.bookmarksEnabled
 import com.garfiec.librechat.core.data.share.ShareLinkController
 import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationTag
-import com.garfiec.librechat.core.model.permissions.Permission
-import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
-import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.feature.conversations.components.ConversationDisplayData
 import com.garfiec.librechat.feature.conversations.export.ConversationExporter
 import com.garfiec.librechat.feature.conversations.export.ConversationImporter
@@ -37,6 +35,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
 
 @Immutable
 data class ConversationListUiState(
@@ -63,6 +62,9 @@ sealed interface ConversationListEvent {
     /** The currently-open conversation was deleted: move off it to a fresh new chat. */
     data object NavigateToNewChat : ConversationListEvent
     data class ShowError(val message: String) : ConversationListEvent
+
+    /** An error whose text is this module's own string, resolved where it's shown. */
+    data class ShowErrorRes(val message: StringResource) : ConversationListEvent
     data class ExportReady(val content: String, val format: ExportFormat, val title: String) : ConversationListEvent
     data class ImportSuccess(val title: String) : ConversationListEvent
 }
@@ -123,10 +125,7 @@ class ConversationListViewModel(
             }.collect { (role, config) ->
                 _uiState.update {
                     it.copy(
-                        bookmarksEnabled = role.hasAccessOrPermissive(
-                            PermissionType.BOOKMARKS,
-                            Permission.USE,
-                        ),
+                        bookmarksEnabled = bookmarksEnabled(role, config?.interfaceConfig),
                         sharedLinksEnabled = role.canCreateSharedLinks(config?.sharedLinksEnabled ?: false),
                     )
                 }
@@ -340,9 +339,6 @@ class ConversationListViewModel(
             }
         }
     }
-
-    fun updateConversationTags(conversation: Conversation, userTags: List<String>) =
-        actions.updateConversationTags(conversation, userTags)
 
     fun renameConversation(id: String, newTitle: String) = actions.renameConversation(id, newTitle)
 

@@ -19,9 +19,7 @@
     <string name="cd_search">بحث</string>
     <string name="cd_clear_search">مسح البحث</string>
     <string name="cd_close_search">إغلاق البحث</string>
-    <string name="cd_bookmarked">مُعلّم بإشارة مرجعية</string>
     <string name="cd_conversation_actions">إجراءات المحادثة</string>
-    <string name="cd_add_tag">إضافة وسم</string>
     <string name="cd_hide_tags">إخفاء الوسوم</string>
     <string name="cd_show_tags">إظهار الوسوم</string>
     <string name="cd_clear_filter">مسح التصفية</string>
@@ -41,8 +39,6 @@
     <string name="copy_of">نسخة من %1$s</string>
 
     <!-- Conversation actions -->
-    <string name="remove_bookmark">إزالة الإشارة المرجعية</string>
-    <string name="bookmark">إشارة مرجعية</string>
     <string name="pin">تثبيت</string>
     <string name="unpin">إلغاء التثبيت</string>
     <string name="move_to_project">نقل إلى مشروع</string>
@@ -77,17 +73,12 @@
     <string name="project_move_down">نقل لأسفل</string>
     <string name="projects_empty_description">يجمع المشروع المحادثات حول موضوع واحد. انقل أي محادثة إلى مشروع من قائمتها.</string>
     <string name="projects_no_match">لا توجد مشاريع تطابق "%1$s"</string>
-    <string name="tags">الوسوم</string>
     <string name="rename_conversation">إعادة تسمية المحادثة</string>
     <string name="rename_dialog_message">أدخل عنوانًا جديدًا لهذه المحادثة.</string>
     <string name="title_label">العنوان</string>
     <string name="delete_conversation">حذف المحادثة</string>
     <string name="delete_confirmation_message">هل أنت متأكد أنك تريد حذف "%1$s"؟ لا يمكن التراجع عن هذا الإجراء.</string>
     <string name="this_conversation">هذه المحادثة</string>
-
-    <!-- Tag picker -->
-    <string name="no_tags_yet">لا توجد وسوم بعد. أضف وسمًا أدناه.</string>
-    <string name="add_new_tag">إضافة وسم جديد</string>
 
     <!-- Tag filter bar -->
 
@@ -253,4 +244,12 @@
         <item quantity="many">%1$d مشروعًا</item>
         <item quantity="other">%1$d مشروع</item>
     </plurals>
+    <string name="favorite">إضافة إلى المفضلة</string>
+    <string name="remove_favorite">إزالة من المفضلة</string>
+    <string name="cd_favorited">مفضلة</string>
+    <string name="bookmarks_ellipsis">الإشارات المرجعية…</string>
+    <string name="bookmark_update_failed">تعذّر تحديث الإشارات المرجعية. حاول مرة أخرى.</string>
+    <string name="bookmark_create_failed">تعذّر إنشاء الإشارة المرجعية. حاول مرة أخرى.</string>
+    <string name="bookmarks_load_failed">تعذّر تحميل الإشارات المرجعية لهذه المحادثة</string>
+    <string name="favorite_update_failed">تعذّر تحديث المفضلة. حاول مرة أخرى.</string>
 </resources>

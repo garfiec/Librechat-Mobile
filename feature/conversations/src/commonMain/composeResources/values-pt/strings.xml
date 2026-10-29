@@ -19,9 +19,7 @@
     <string name="cd_search">Buscar</string>
     <string name="cd_clear_search">Limpar busca</string>
     <string name="cd_close_search">Fechar busca</string>
-    <string name="cd_bookmarked">Marcada</string>
     <string name="cd_conversation_actions">Ações da conversa</string>
-    <string name="cd_add_tag">Adicionar etiqueta</string>
     <string name="cd_hide_tags">Ocultar etiquetas</string>
     <string name="cd_show_tags">Mostrar etiquetas</string>
     <string name="cd_clear_filter">Limpar filtro</string>
@@ -41,8 +39,6 @@
     <string name="copy_of">Cópia de %1$s</string>
 
     <!-- Conversation actions -->
-    <string name="remove_bookmark">Remover marcador</string>
-    <string name="bookmark">Marcar</string>
     <string name="pin">Fixar</string>
     <string name="unpin">Desafixar</string>
     <string name="move_to_project">Mover para projeto</string>
@@ -77,17 +73,12 @@
     <string name="project_move_down">Mover para baixo</string>
     <string name="projects_empty_description">Um projeto agrupa chats sobre um mesmo tema. Mova qualquer chat para um projeto pelo menu dele.</string>
     <string name="projects_no_match">Nenhum projeto corresponde a "%1$s"</string>
-    <string name="tags">Etiquetas</string>
     <string name="rename_conversation">Renomear conversa</string>
     <string name="rename_dialog_message">Digite um novo título para esta conversa.</string>
     <string name="title_label">Título</string>
     <string name="delete_conversation">Excluir conversa</string>
     <string name="delete_confirmation_message">Tem certeza de que deseja excluir "%1$s"? Esta ação não pode ser desfeita.</string>
     <string name="this_conversation">esta conversa</string>
-
-    <!-- Tag picker -->
-    <string name="no_tags_yet">Nenhuma etiqueta ainda. Adicione uma abaixo.</string>
-    <string name="add_new_tag">Adicionar nova etiqueta</string>
 
     <!-- Tag filter bar -->
 
@@ -243,4 +234,12 @@
         <item quantity="many">%1$d projetos</item>
         <item quantity="other">%1$d projetos</item>
     </plurals>
+    <string name="favorite">Adicionar aos favoritos</string>
+    <string name="remove_favorite">Remover dos favoritos</string>
+    <string name="cd_favorited">Favorito</string>
+    <string name="bookmarks_ellipsis">Marcadores…</string>
+    <string name="bookmark_update_failed">Não foi possível atualizar os marcadores. Tente novamente.</string>
+    <string name="bookmark_create_failed">Não foi possível criar o marcador. Tente novamente.</string>
+    <string name="bookmarks_load_failed">Não foi possível carregar os marcadores deste chat</string>
+    <string name="favorite_update_failed">Não foi possível atualizar os favoritos. Tente novamente.</string>
 </resources>

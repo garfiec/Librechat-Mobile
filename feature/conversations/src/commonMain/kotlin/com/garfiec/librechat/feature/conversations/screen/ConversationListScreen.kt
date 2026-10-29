@@ -51,7 +51,6 @@ import com.garfiec.librechat.feature.conversations.components.ConversationSearch
 import com.garfiec.librechat.feature.conversations.components.DateGroupHeader
 import com.garfiec.librechat.feature.conversations.components.ShareLinkSheetHost
 import com.garfiec.librechat.feature.conversations.components.TagFilterBar
-import com.garfiec.librechat.feature.conversations.components.TagPicker
 import com.garfiec.librechat.feature.conversations.export.ExportFormat
 import com.garfiec.librechat.feature.conversations.export.ExportFormatPicker
 import com.garfiec.librechat.feature.conversations.platform.FileSaver
@@ -60,6 +59,7 @@ import com.garfiec.librechat.feature.conversations.resources.*
 import com.garfiec.librechat.feature.conversations.resources.Res
 import com.garfiec.librechat.feature.conversations.viewmodel.ConversationListEvent
 import com.garfiec.librechat.feature.conversations.viewmodel.ConversationListViewModel
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -78,8 +78,6 @@ fun ConversationListScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     var selectedConversation by remember { mutableStateOf<Conversation?>(null) }
-    var showTagPicker by remember { mutableStateOf(false) }
-    var tagPickerConversation by remember { mutableStateOf<Conversation?>(null) }
     var showExportFormatPicker by remember { mutableStateOf(false) }
     var exportConversation by remember { mutableStateOf<Conversation?>(null) }
 
@@ -123,6 +121,9 @@ fun ConversationListScreen(
                 is ConversationListEvent.NavigateToNewChat -> Unit
                 is ConversationListEvent.ShowError -> {
                     snackbarHostState.showSnackbar(event.message)
+                }
+                is ConversationListEvent.ShowErrorRes -> {
+                    snackbarHostState.showSnackbar(getString(event.message))
                 }
                 is ConversationListEvent.ExportReady -> {
                     pendingExportContent = event.content
@@ -329,10 +330,10 @@ fun ConversationListScreen(
         ConversationActions(
             conversation = selectedConversation!!,
             onDismiss = { selectedConversation = null },
-            isBookmarked = SAVED_TAG in (selectedConversation?.tags ?: emptyList()),
+            isFavorite = SAVED_TAG in (selectedConversation?.tags ?: emptyList()),
             bookmarksEnabled = uiState.bookmarksEnabled,
             showShareAction = uiState.sharedLinksEnabled,
-            onBookmarkToggle = {
+            onFavoriteToggle = {
                 selectedConversation?.let { convo ->
                     viewModel.toggleFavorite(convo)
                 }
@@ -354,11 +355,6 @@ fun ConversationListScreen(
                 selectedConversation?.conversationId?.let { id ->
                     viewModel.deleteConversation(id)
                 }
-                selectedConversation = null
-            },
-            onTags = {
-                tagPickerConversation = selectedConversation
-                showTagPicker = true
                 selectedConversation = null
             },
             onShare = {
@@ -383,23 +379,6 @@ fun ConversationListScreen(
     }
 
     ShareLinkSheetHost(controller = viewModel.shareLink, onDismiss = viewModel::closeShareSheet)
-
-    // Tag picker bottom sheet
-    if (showTagPicker && tagPickerConversation != null) {
-        TagPicker(
-            availableTags = uiState.tags,
-            currentTags = tagPickerConversation?.tags?.filterNot { it == SAVED_TAG } ?: emptyList(),
-            onTagsChange = { newTags ->
-                tagPickerConversation?.let { convo ->
-                    viewModel.updateConversationTags(convo, newTags)
-                }
-            },
-            onDismiss = {
-                showTagPicker = false
-                tagPickerConversation = null
-            },
-        )
-    }
 
     // Export format picker
     if (showExportFormatPicker && exportConversation != null) {

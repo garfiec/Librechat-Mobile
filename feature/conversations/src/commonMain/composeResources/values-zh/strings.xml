@@ -19,9 +19,7 @@
     <string name="cd_search">搜索</string>
     <string name="cd_clear_search">清除搜索</string>
     <string name="cd_close_search">关闭搜索</string>
-    <string name="cd_bookmarked">已收藏</string>
     <string name="cd_conversation_actions">对话操作</string>
-    <string name="cd_add_tag">添加标签</string>
     <string name="cd_hide_tags">隐藏标签</string>
     <string name="cd_show_tags">显示标签</string>
     <string name="cd_clear_filter">清除筛选</string>
@@ -41,8 +39,6 @@
     <string name="copy_of">%1$s 的副本</string>
 
     <!-- Conversation actions -->
-    <string name="remove_bookmark">取消收藏</string>
-    <string name="bookmark">收藏</string>
     <string name="pin">固定</string>
     <string name="unpin">取消固定</string>
     <string name="move_to_project">移至项目</string>
@@ -77,17 +73,12 @@
     <string name="project_move_down">下移</string>
     <string name="projects_empty_description">项目将同一主题的对话归为一组。可通过对话菜单将其移入项目。</string>
     <string name="projects_no_match">没有与"%1$s"匹配的项目</string>
-    <string name="tags">标签</string>
     <string name="rename_conversation">重命名对话</string>
     <string name="rename_dialog_message">为此对话输入新标题。</string>
     <string name="title_label">标题</string>
     <string name="delete_conversation">删除对话</string>
     <string name="delete_confirmation_message">确定要删除 "%1$s" 吗？此操作无法撤销。</string>
     <string name="this_conversation">此对话</string>
-
-    <!-- Tag picker -->
-    <string name="no_tags_yet">暂无标签。在下方添加一个。</string>
-    <string name="add_new_tag">添加新标签</string>
 
     <!-- Tag filter bar -->
 
@@ -238,4 +229,12 @@
     <plurals name="projects_count">
         <item quantity="other">%1$d 个项目</item>
     </plurals>
+    <string name="favorite">收藏</string>
+    <string name="remove_favorite">取消收藏</string>
+    <string name="cd_favorited">已收藏</string>
+    <string name="bookmarks_ellipsis">书签…</string>
+    <string name="bookmark_update_failed">无法更新书签，请重试。</string>
+    <string name="bookmark_create_failed">无法创建书签，请重试。</string>
+    <string name="bookmarks_load_failed">无法加载此对话的书签</string>
+    <string name="favorite_update_failed">无法更新收藏，请重试。</string>
 </resources>
