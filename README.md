@@ -8,12 +8,16 @@ A third-party native mobile client for [LibreChat](https://www.librechat.ai/) (A
 
 ## Get it
 
-[![Add to Obtainium](https://img.shields.io/badge/Add%20to-Obtainium-1e88e5?logo=android&logoColor=white)](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/garfiec/Librechat-Mobile)
-[![Get it on F-Droid](https://img.shields.io/badge/Get%20it%20on-F--Droid-1976d2?logo=fdroid&logoColor=white)](https://f-droid.org/packages/com.garfiec.librechat/)
-![Google Play: coming soon](https://img.shields.io/badge/Google%20Play-coming%20soon-9e9e9e?logo=googleplay&logoColor=white)
-[![TestFlight public beta](https://img.shields.io/badge/TestFlight-public%20beta-0d96f6?logo=appstore&logoColor=white)](https://testflight.apple.com/join/pVhFr3a5)
+<p align="center">
+  <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/garfiec/Librechat-Mobile"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="80"></a>
+  <!-- Uncomment each badge once its listing is live.
+  <a href="https://f-droid.org/packages/com.garfiec.librechat/"><img src="https://f-droid.org/badge/get-it-on.png" alt="Get it on F-Droid" height="80"></a>
+  <a href="https://play.google.com/store/apps/details?id=com.garfiec.librechat.play"><img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="80"></a>
+  -->
+  <a href="https://testflight.apple.com/join/pVhFr3a5"><img src="docs/badges/testflight.png" alt="Join the beta on TestFlight" height="80"></a>
+</p>
 
-See [Install (Android)](#install-android) and [Install (iOS)](#install-ios) for details.
+<p align="center"><sub>F-Droid and Google Play are coming soon. iOS is in public beta on TestFlight. See <a href="#install-android">Install (Android)</a> and <a href="#install-ios">Install (iOS)</a> for details.</sub></p>
 
 ## Why use this instead of the web app?
 

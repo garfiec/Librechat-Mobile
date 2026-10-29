@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="646" height="250" viewBox="0 0 646 250">
+  <defs>
+    <linearGradient id="blue" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3fb6ff"/>
+      <stop offset="1" stop-color="#0a6cf0"/>
+    </linearGradient>
+  </defs>
+  <rect x="43.5" y="43.5" width="559" height="163" rx="15" fill="#000" stroke="#a6a6a6" stroke-width="3"/>
+  <g transform="translate(130 125)">
+    <circle r="46" fill="url(#blue)"/>
+    <g fill="#fff">
+      <path id="blade" d="M -5 -4 C -9 -18 -7 -33 0 -38 C 7 -33 9 -18 5 -4 Z"/>
+      <use href="#blade" transform="rotate(120)"/>
+      <use href="#blade" transform="rotate(240)"/>
+    </g>
+    <circle r="8" fill="#fff"/>
+    <circle r="3.5" fill="#0a6cf0"/>
+  </g>
+  <text x="210" y="96" fill="#fff" font-family="Helvetica Neue" font-weight="500" font-size="31" letter-spacing="0.5">JOIN THE BETA ON</text>
+  <text x="206" y="178" fill="#fff" font-family="Helvetica Neue" font-weight="400" font-size="82" letter-spacing="-1">TestFlight</text>
+</svg>
