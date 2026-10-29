@@ -2,7 +2,6 @@ package com.garfiec.librechat.feature.chat.screen
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,6 +15,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
@@ -28,10 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -48,6 +46,7 @@ import com.garfiec.librechat.core.ui.components.ChoiceFallback
 import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.LibreChatTopBar
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
+import com.garfiec.librechat.core.ui.components.selectedTabIndex
 import com.garfiec.librechat.core.ui.media.MediaActionBar
 import com.garfiec.librechat.core.ui.media.MediaItem
 import com.garfiec.librechat.core.ui.media.MediaViewerHost
@@ -96,7 +95,8 @@ fun ConversationMediaScreen(
     viewModel: ConversationMediaViewModel = koinViewModel { parametersOf(conversationId) },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var selectedTab by rememberSaveable { mutableIntStateOf(MediaTab.MEDIA.ordinal) }
+    val pagerState = rememberPagerState { MediaTab.entries.size }
+    val scope = rememberCoroutineScope()
 
     val saveImage = rememberSaveImageToGallery()
     val shareImage = rememberShareImage()
@@ -134,8 +134,8 @@ fun ConversationMediaScreen(
                         stringResource(Res.string.media_tab_links),
                         stringResource(Res.string.media_tab_artifacts),
                     ),
-                    selectedIndex = selectedTab,
-                    onSelect = { selectedTab = it },
+                    selectedIndex = pagerState.selectedTabIndex(),
+                    onSelect = { scope.launch { pagerState.animateScrollToPage(it) } },
                     modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
                     // Tabs over the page: a radio list here would push the gallery down.
                     fallback = ChoiceFallback.TWO_LINES,
@@ -149,15 +149,19 @@ fun ConversationMediaScreen(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 )
 
-                Box(modifier = Modifier.fillMaxSize()) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize(),
+                    beyondViewportPageCount = 1,
+                ) { page ->
                     when {
                         uiState.isLoading -> LoadingIndicator(modifier = Modifier.fillMaxSize())
-                        selectedTab == MediaTab.MEDIA.ordinal ->
-                            MediaGrid(uiState.media, onOpen = viewModel::openMedia)
-                        selectedTab == MediaTab.FILES.ordinal ->
-                            FilesList(uiState.files, downloadBytes = viewModel::downloadFileBytes)
-                        selectedTab == MediaTab.LINKS.ordinal -> LinksList(uiState.links)
-                        else -> ArtifactsList(uiState.artifacts)
+                        else -> when (MediaTab.entries[page]) {
+                            MediaTab.MEDIA -> MediaGrid(uiState.media, onOpen = viewModel::openMedia)
+                            MediaTab.FILES -> FilesList(uiState.files, downloadBytes = viewModel::downloadFileBytes)
+                            MediaTab.LINKS -> LinksList(uiState.links)
+                            MediaTab.ARTIFACTS -> ArtifactsList(uiState.artifacts)
+                        }
                     }
                 }
             }

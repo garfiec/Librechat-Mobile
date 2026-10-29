@@ -59,6 +59,15 @@ enum class FileTypeFilter(val label: StringResource, val emptyTitle: StringResou
     DOCUMENTS(Res.string.filter_documents, Res.string.no_filter_documents),
     AUDIO(Res.string.filter_audio, Res.string.no_filter_audio),
     VIDEO(Res.string.filter_video, Res.string.no_filter_video),
+    ;
+
+    fun matches(type: String): Boolean = when (this) {
+        ALL -> true
+        IMAGES -> type.startsWith("image/")
+        DOCUMENTS -> type.startsWith("application/") || type.startsWith("text/")
+        AUDIO -> type.startsWith("audio/")
+        VIDEO -> type.startsWith("video/")
+    }
 }
 
 // Stored strings are decoupled from the constant names so renaming a constant can't orphan a saved
@@ -120,7 +129,10 @@ enum class FileViewMode {
 
 @Immutable
 data class FilesUiState(
+    /** The selected filter's page: `filesByFilter[selectedFilter]`. */
     val displayFiles: List<FileDisplayData> = emptyList(),
+    /** Every filter's page, so the pager can show the one being swiped in before it's selected. */
+    val filesByFilter: Map<FileTypeFilter, List<FileDisplayData>> = emptyMap(),
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val isUploading: Boolean = false,
@@ -190,24 +202,31 @@ class FilesViewModel(
     private val displayDataCache = mutableMapOf<String, FileDisplayData>()
 
     /**
-     * The filtered + sorted display list, derived only from the inputs that affect it. Kept
+     * Every filter's sorted display list, derived only from the inputs that affect it. Kept
      * separate from [_transientState] so that purely-overlay changes (opening/closing the image
-     * viewer, upload progress, selection) don't re-run filter+sort over the whole file list.
+     * viewer, upload progress, selection) don't re-run filter+sort over the whole file list, and
+     * from [_selectedFilter] so that swiping between filters doesn't either.
      */
-    private val displayList: Flow<DisplayList> = combine(
-        _files,
-        _selectedFilter,
-        _sort,
-    ) { files, filter, sortOrNull ->
+    private val pages: Flow<Pages> = combine(_files, _sort) { files, sortOrNull ->
         val sort = sortOrNull ?: DefaultSort
-        val filtered = filterFiles(files, filter)
-        val sorted = sortFiles(filtered, sort.field, sort.order)
-        DisplayList(
-            files = sorted.map { file -> displayDataCache.getOrPut(file.fileId) { file.toDisplayData() } },
+        val sorted = sortFiles(files, sort.field, sort.order)
+            .map { file -> displayDataCache.getOrPut(file.fileId) { file.toDisplayData() } }
+        Pages(
+            files = FileTypeFilter.entries.associateWith { filter -> sorted.filter { filter.matches(it.type) } },
             hasFiles = files.isNotEmpty(),
-            filter = filter,
             sortField = sort.field,
             sortOrder = sort.order,
+        )
+    }
+
+    private val displayList: Flow<DisplayList> = combine(pages, _selectedFilter) { pages, filter ->
+        DisplayList(
+            files = pages.files[filter].orEmpty(),
+            byFilter = pages.files,
+            hasFiles = pages.hasFiles,
+            filter = filter,
+            sortField = pages.sortField,
+            sortOrder = pages.sortOrder,
         )
     }
 
@@ -219,6 +238,7 @@ class FilesViewModel(
     ) { list, transient, mode, pickerMimeTypes ->
         FilesUiState(
             displayFiles = list.files,
+            filesByFilter = list.byFilter,
             isLoading = transient.isLoading,
             isRefreshing = transient.isRefreshing,
             isUploading = transient.isUploading,
@@ -489,8 +509,10 @@ class FilesViewModel(
      */
     fun openImagePreview(fileId: String) {
         // Reuse the already filtered + sorted display list (URLs resolved once in `previewUrl`)
-        // instead of re-running filter+sort and re-resolving every URL on the tap.
-        val images = uiState.value.displayFiles.filter { it.previewUrl != null }
+        // instead of re-running filter+sort and re-resolving every URL on the tap. Every page that
+        // shows images shows all of them in the same order, so the Images page serves whichever page
+        // was tapped, even one swiped to before the selected filter caught up.
+        val images = uiState.value.filesByFilter[FileTypeFilter.IMAGES].orEmpty().filter { it.previewUrl != null }
         if (images.isEmpty()) return
         // Dedup by URL: the pager keys pages on url, so duplicate URLs would crash it.
         val items = images
@@ -662,15 +684,7 @@ class FilesViewModel(
     // Private helpers
 
     private fun filterFiles(files: List<FileObject>, filter: FileTypeFilter): List<FileObject> =
-        when (filter) {
-            FileTypeFilter.ALL -> files
-            FileTypeFilter.IMAGES -> files.filter { it.type.startsWith("image/") }
-            FileTypeFilter.DOCUMENTS -> files.filter {
-                it.type.startsWith("application/") || it.type.startsWith("text/")
-            }
-            FileTypeFilter.AUDIO -> files.filter { it.type.startsWith("audio/") }
-            FileTypeFilter.VIDEO -> files.filter { it.type.startsWith("video/") }
-        }
+        if (filter == FileTypeFilter.ALL) files else files.filter { filter.matches(it.type) }
 
     private fun sortFiles(
         files: List<FileObject>,
@@ -732,6 +746,13 @@ class FilesViewModel(
     }
 }
 
+private data class Pages(
+    val files: Map<FileTypeFilter, List<FileDisplayData>>,
+    val hasFiles: Boolean,
+    val sortField: FileSortField,
+    val sortOrder: FileSortOrder,
+)
+
 /**
  * Precomputed filtered + sorted display list, recomputed only when files/filter/sort change.
  * Carries the filter/sort inputs it was built from so the UI-state combine doesn't have to
@@ -739,6 +760,7 @@ class FilesViewModel(
  */
 private data class DisplayList(
     val files: List<FileDisplayData>,
+    val byFilter: Map<FileTypeFilter, List<FileDisplayData>>,
     val hasFiles: Boolean,
     val filter: FileTypeFilter,
     val sortField: FileSortField,

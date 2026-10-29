@@ -40,7 +40,10 @@
 - `FilesScreen` renders an `AdaptiveTabRow` (All, Images, Documents, Audio, Video) in the top bar's
   `belowBar` slot, transparent, so the list scrolls under it and the bar (see "Scrolling under the
   bars" in `core/ui/CLAUDE.md`)
-- Filters by MIME type prefix in `FilesViewModel` (`FileTypeFilter`)
+- Filters by MIME type prefix (`FileTypeFilter.matches`). One `HorizontalPager` page per filter, so
+  the user can swipe between them as in Settings; the pager owns the filter and `setFilter` follows
+  its settled page. `FilesUiState.filesByFilter` carries every page's list, since a page is drawn
+  while it is swiped in, before it's selected; `displayFiles` is the selected page's list.
 
 ### Upload Progress
 - `UploadProgressCard` — animated card with filename, LinearProgressIndicator, cancel button
