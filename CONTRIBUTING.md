@@ -134,5 +134,7 @@ Source sets: `commonMain` = shared code, `androidMain` / `iosMain` = platform-sp
 - Unidirectional data flow: UI -> ViewModel -> Repository -> API/Room
 - Room is a read-through cache; server is source of truth
 - Custom SSE parser over raw `ByteReadChannel` (not Ktor SSE plugin)
+- Changes must keep the guarantees in [SECURITY.md](SECURITY.md): where requests go, where
+  credentials go, what is logged
 
 See `CLAUDE.md` for the full architecture overview and backend quirks.
