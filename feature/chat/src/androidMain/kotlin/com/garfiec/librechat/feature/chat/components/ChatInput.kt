@@ -321,6 +321,7 @@ fun ChatInput(
                         { ComposerComparisonBadges(comparison) }
                     },
                     prefix = compactComparison?.let { { ComposerComparisonReserve { comparisonCollapse } } },
+                    suffix = { ComposerAffixAnchor() },
                     textStyle = MaterialTheme.typography.bodyLarge,
                     shape = ChatInputDefaults.shape,
                     colors = ChatInputDefaults.textFieldColors(isTemporaryChat),

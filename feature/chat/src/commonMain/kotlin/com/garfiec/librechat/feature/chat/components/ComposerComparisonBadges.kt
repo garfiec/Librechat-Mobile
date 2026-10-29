@@ -153,6 +153,18 @@ internal fun ComposerComparisonReserve(collapse: () -> Float) {
 }
 
 /**
+ * An empty `suffix` the composer's field always carries, so a [ComposerComparisonReserve] prefix added
+ * later is shown. androidx material3 1.5.0-alpha22's `TextFieldImpl` reads the affix opacity through an
+ * unkeyed `remember { derivedStateOf { affixAlpha?.value … } }`, and `affixAlpha` is null for a field
+ * first composed with neither a prefix nor a suffix, so it would never show one and the placeholder
+ * would run under the badges. Drop this once that `remember` is keyed.
+ */
+@Composable
+internal fun ComposerAffixAnchor() {
+    Spacer(Modifier.size(0.dp))
+}
+
+/**
  * The A·B pair on a phone, drawn over the field's start. With the field empty it is the badge pill,
  * whose tap opens the same two-row menu as [ComposerComparisonBadges]. As a draft is typed each badge
  * slides into the field's start padding and shrinks to a dot while the letters and pill fade; clearing
