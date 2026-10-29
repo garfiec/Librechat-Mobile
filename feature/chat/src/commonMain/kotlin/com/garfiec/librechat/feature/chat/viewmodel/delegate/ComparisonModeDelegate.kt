@@ -102,12 +102,24 @@ class ComparisonModeDelegate(
      * Turns comparison mode off. Refused while a reply streams, for [startComparison]'s reason in
      * reverse: the rest of both agents' deltas would fall through [routeEvent] into the single
      * stream and finalize as one interleaved reply.
+     *
+     * A new chat with nothing sent goes back to LANDING, undoing [startComparison]'s switch: ACTIVE
+     * with no messages is a blank list. An opened conversation stays ACTIVE even when empty (its
+     * load failed, or it has no messages): LANDING would greet it as a new chat and hide the retry.
      */
     fun stopComparison() {
         if (handle.state.isStreaming) return
         primaryBuffer.clear()
         secondaryBuffer.clear()
-        handle.update { comparisonState = ComparisonState() }
+        handle.update {
+            comparisonState = ComparisonState()
+            if (conversation.conversationId == null &&
+                content.screenState == ChatScreenState.ACTIVE &&
+                content.messages.isEmpty()
+            ) {
+                content = content.copy(screenState = ChatScreenState.LANDING)
+            }
+        }
     }
 
     /** Sets the secondary selection to a named spec, carrying its name with the comparison's sends. */

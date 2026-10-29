@@ -335,6 +335,49 @@ class ComparisonModeDelegateTest {
     }
 
     @Test
+    fun `stop before anything was sent returns to landing`() {
+        val (delegate, flow) = delegateWith(landingWithPrimary())
+        delegate.beginComparisonSetup()
+        delegate.startComparison("anthropic", "claude-opus-4-5")
+
+        delegate.stopComparison()
+
+        assertThat(flow.value.screenState).isEqualTo(ChatScreenState.LANDING)
+    }
+
+    @Test
+    fun `stop with messages stays active`() {
+        val enabled = ComparisonState(isEnabled = true, secondaryEndpoint = "anthropic", secondaryModel = "claude")
+        val state = ChatUiState(
+            comparisonState = enabled,
+            content = MessagesState(
+                screenState = ChatScreenState.ACTIVE,
+                messages = listOf(Message(messageId = "m1", conversationId = "c1")),
+            ),
+        )
+        val (delegate, flow) = delegateWith(state)
+
+        delegate.stopComparison()
+
+        assertThat(flow.value.screenState).isEqualTo(ChatScreenState.ACTIVE)
+    }
+
+    @Test
+    fun `stop on an opened conversation with no messages stays active`() {
+        val enabled = ComparisonState(isEnabled = true, secondaryEndpoint = "anthropic", secondaryModel = "claude")
+        val state = ChatUiState(
+            comparisonState = enabled,
+            conversation = ConversationMetaState(conversationId = "c1"),
+            content = MessagesState(screenState = ChatScreenState.ACTIVE, messagesLoadFailed = true),
+        )
+        val (delegate, flow) = delegateWith(state)
+
+        delegate.stopComparison()
+
+        assertThat(flow.value.screenState).isEqualTo(ChatScreenState.ACTIVE)
+    }
+
+    @Test
     fun `cancelling a branch mid-request writes no error`() = runTest {
         val messageRepository = mockk<MessageRepository>()
         coEvery { messageRepository.branchMessage(any(), any(), any()) } coAnswers { awaitCancellation() }
