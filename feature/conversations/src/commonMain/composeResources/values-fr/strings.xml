@@ -262,4 +262,7 @@
     <string name="bookmark_save_failed">Impossible d'enregistrer le signet. Réessayez.</string>
     <string name="bookmark_delete_failed">Impossible de supprimer le signet. Réessayez.</string>
     <string name="bookmark_move_failed">Impossible de déplacer le signet. Réessayez.</string>
+    <string name="bookmark_chats_empty">Aucune discussion n\'a ce signet</string>
+    <string name="bookmark_chats_empty_description">Ajoutez-y une discussion depuis son menu, dans Signets…</string>
+    <string name="bookmark_chats_load_error">Impossible de charger ces discussions</string>
 </resources>

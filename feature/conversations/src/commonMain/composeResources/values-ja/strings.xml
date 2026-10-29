@@ -253,4 +253,7 @@
     <string name="bookmark_save_failed">ブックマークを保存できませんでした。もう一度お試しください。</string>
     <string name="bookmark_delete_failed">ブックマークを削除できませんでした。もう一度お試しください。</string>
     <string name="bookmark_move_failed">ブックマークを移動できませんでした。もう一度お試しください。</string>
+    <string name="bookmark_chats_empty">このブックマークが付いたチャットはありません</string>
+    <string name="bookmark_chats_empty_description">チャットのメニューの「ブックマーク…」から追加できます</string>
+    <string name="bookmark_chats_load_error">これらのチャットを読み込めませんでした</string>
 </resources>

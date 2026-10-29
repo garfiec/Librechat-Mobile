@@ -253,4 +253,7 @@
     <string name="bookmark_save_failed">无法保存书签，请重试。</string>
     <string name="bookmark_delete_failed">无法删除书签，请重试。</string>
     <string name="bookmark_move_failed">无法移动书签，请重试。</string>
+    <string name="bookmark_chats_empty">没有对话带有此书签</string>
+    <string name="bookmark_chats_empty_description">可在对话菜单的“书签…”中添加</string>
+    <string name="bookmark_chats_load_error">无法加载这些对话</string>
 </resources>

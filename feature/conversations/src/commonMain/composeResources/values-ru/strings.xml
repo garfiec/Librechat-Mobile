@@ -268,4 +268,7 @@
     <string name="bookmark_save_failed">Не удалось сохранить закладку. Попробуйте ещё раз.</string>
     <string name="bookmark_delete_failed">Не удалось удалить закладку. Попробуйте ещё раз.</string>
     <string name="bookmark_move_failed">Не удалось переместить закладку. Попробуйте ещё раз.</string>
+    <string name="bookmark_chats_empty">Нет чатов с этой закладкой</string>
+    <string name="bookmark_chats_empty_description">Добавьте чат через его меню, в разделе «Закладки…»</string>
+    <string name="bookmark_chats_load_error">Не удалось загрузить эти чаты</string>
 </resources>

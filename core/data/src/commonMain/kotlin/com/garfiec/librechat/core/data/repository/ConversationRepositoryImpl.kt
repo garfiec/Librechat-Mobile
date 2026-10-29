@@ -125,6 +125,33 @@ class ConversationRepositoryImpl(
         }
     }
 
+    override suspend fun getConversationsForTag(
+        tag: String,
+        cursor: String?,
+        limit: Int,
+    ): Result<ConversationPage> {
+        return safeApiCall {
+            // Captured before the network suspend, as in getConversationsForProject.
+            val accountId = activeAccountProvider.currentAccountId()?.value
+            val response = conversationsApi.getConversations(
+                cursor = cursor,
+                limit = limit,
+                tags = listOf(tag),
+            )
+            // The list omits tags: the preserving upsert keeps what the cache knows of them.
+            if (accountId != null) {
+                conversationDao.upsertPreservingTags(
+                    accountId,
+                    response.conversations.map { it.toEntity().copy(accountId = accountId) },
+                )
+            }
+            ConversationPage(
+                conversations = response.conversations,
+                nextCursor = response.nextCursor,
+            )
+        }
+    }
+
     override suspend fun getConversation(id: String, originAccount: AccountId?): Result<Conversation> {
         val account = resolveWriteAccountId(originAccount, activeAccountProvider, roster)
         val cached = account?.let { conversationDao.getByIdForAccount(id, it) }

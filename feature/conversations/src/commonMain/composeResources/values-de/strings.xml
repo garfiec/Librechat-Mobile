@@ -258,4 +258,7 @@
     <string name="bookmark_save_failed">Lesezeichen konnte nicht gespeichert werden. Versuche es erneut.</string>
     <string name="bookmark_delete_failed">Lesezeichen konnte nicht gelöscht werden. Versuche es erneut.</string>
     <string name="bookmark_move_failed">Lesezeichen konnte nicht verschoben werden. Versuche es erneut.</string>
+    <string name="bookmark_chats_empty">Keine Chats haben dieses Lesezeichen</string>
+    <string name="bookmark_chats_empty_description">Füge einen Chat über sein Menü unter „Lesezeichen…“ hinzu.</string>
+    <string name="bookmark_chats_load_error">Diese Chats konnten nicht geladen werden</string>
 </resources>

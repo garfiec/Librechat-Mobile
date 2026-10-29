@@ -259,4 +259,7 @@
     <string name="bookmark_save_failed">Couldn't save the bookmark. Try again.</string>
     <string name="bookmark_delete_failed">Couldn't delete the bookmark. Try again.</string>
     <string name="bookmark_move_failed">Couldn't move the bookmark. Try again.</string>
+    <string name="bookmark_chats_empty">No chats have this bookmark</string>
+    <string name="bookmark_chats_empty_description">Add a chat to it from the chat\'s menu, under Bookmarks…</string>
+    <string name="bookmark_chats_load_error">Couldn\'t load these chats</string>
 </resources>

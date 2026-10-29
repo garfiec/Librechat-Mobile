@@ -278,4 +278,7 @@
     <string name="bookmark_save_failed">تعذّر حفظ الإشارة المرجعية. حاول مرة أخرى.</string>
     <string name="bookmark_delete_failed">تعذّر حذف الإشارة المرجعية. حاول مرة أخرى.</string>
     <string name="bookmark_move_failed">تعذّر نقل الإشارة المرجعية. حاول مرة أخرى.</string>
+    <string name="bookmark_chats_empty">لا توجد محادثات تحمل هذه الإشارة المرجعية</string>
+    <string name="bookmark_chats_empty_description">أضف محادثة إليها من قائمة المحادثة، ضمن الإشارات المرجعية…</string>
+    <string name="bookmark_chats_load_error">تعذّر تحميل هذه المحادثات</string>
 </resources>

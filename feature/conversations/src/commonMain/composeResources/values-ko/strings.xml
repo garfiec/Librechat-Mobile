@@ -253,4 +253,7 @@
     <string name="bookmark_save_failed">북마크를 저장하지 못했습니다. 다시 시도하세요.</string>
     <string name="bookmark_delete_failed">북마크를 삭제하지 못했습니다. 다시 시도하세요.</string>
     <string name="bookmark_move_failed">북마크를 이동하지 못했습니다. 다시 시도하세요.</string>
+    <string name="bookmark_chats_empty">이 북마크가 있는 채팅이 없습니다</string>
+    <string name="bookmark_chats_empty_description">채팅 메뉴의 북마크…에서 채팅을 추가하세요</string>
+    <string name="bookmark_chats_load_error">이 채팅을 불러오지 못했습니다</string>
 </resources>

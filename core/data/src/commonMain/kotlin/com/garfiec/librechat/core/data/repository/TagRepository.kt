@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.data.repository
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.ConversationTag
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -15,6 +16,9 @@ import kotlinx.coroutines.flow.StateFlow
 interface TagRepository {
     /** Bumps after every tag change the server accepted; see [TagChangeSignal]. */
     val revision: StateFlow<Long>
+
+    /** Bookmarks renamed or deleted here, each ahead of its [revision] bump; see [TagEvent]. */
+    val events: SharedFlow<TagEvent>
 
     /** The account's tags in `position` order, blank names dropped. Saved included: filter with `bookmarks()`. */
     fun observeTags(): Flow<List<ConversationTag>>

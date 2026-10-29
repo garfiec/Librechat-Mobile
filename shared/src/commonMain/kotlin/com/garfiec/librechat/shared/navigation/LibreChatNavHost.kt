@@ -97,6 +97,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.PromptInsertionHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.ServerFileSelectionHandoff
 import com.garfiec.librechat.feature.conversations.drawer.DrawerViewModel
 import com.garfiec.librechat.feature.conversations.navigation.ArchivedConversations
+import com.garfiec.librechat.feature.conversations.navigation.BookmarkChats
 import com.garfiec.librechat.feature.conversations.navigation.Bookmarks
 import com.garfiec.librechat.feature.conversations.navigation.ProjectChats
 import com.garfiec.librechat.feature.conversations.navigation.Projects
@@ -828,8 +829,7 @@ fun MainNavDisplay(
                 onNewChatInProject = { projectId, projectName ->
                     navigator.navigateToNewChatInProject(projectId, projectName)
                 },
-                // A bookmark card's tap opens nothing until the bookmark's chats screen exists.
-                onNavigateToBookmark = {},
+                onNavigateToBookmark = { tag -> navigator.navigate(BookmarkChats(tag)) },
                 onBack = { navigator.goBack() },
                 onRemove = { navigator.remove(it) },
                 onOpenMessage = { conversationId, messageId, query, inReasoning ->

@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.conversations.navigation
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.garfiec.librechat.feature.conversations.screen.ArchivedConversationsScreen
+import com.garfiec.librechat.feature.conversations.screen.BookmarkChatsScreen
 import com.garfiec.librechat.feature.conversations.screen.BookmarksScreen
 import com.garfiec.librechat.feature.conversations.screen.ConversationListScreen
 import com.garfiec.librechat.feature.conversations.screen.ProjectChatsScreen
@@ -24,6 +25,14 @@ import kotlinx.serialization.modules.subclass
 
 /** The Bookmarks index (conversation tags), opened from the drawer's footer. */
 @Serializable data object Bookmarks : ConversationsRoute
+
+/**
+ * One bookmark's chats, opened from its card on the index. [tag] is the name it had then: the
+ * screen follows a rename itself, so the key stays the one to remove it by.
+ */
+@Serializable data class BookmarkChats(
+    val tag: String,
+) : ConversationsRoute
 
 /** Full message search, opened from the drawer with its query (or empty). */
 @Serializable data class Search(
@@ -75,6 +84,14 @@ fun EntryProviderScope<NavKey>.conversationsEntries(
             onCloseSelf = { onRemove(route) },
         )
     }
+    entry<BookmarkChats> { route ->
+        BookmarkChatsScreen(
+            tag = route.tag,
+            onConversationClick = onConversationClick,
+            onNavigateBack = onBack,
+            onCloseSelf = { onRemove(route) },
+        )
+    }
     entry<Search> { route ->
         SearchScreen(
             initialQuery = route.query,
@@ -101,6 +118,7 @@ val conversationsSerializersModule = SerializersModule {
         subclass(ArchivedConversations::class, ArchivedConversations.serializer())
         subclass(Projects::class, Projects.serializer())
         subclass(Bookmarks::class, Bookmarks.serializer())
+        subclass(BookmarkChats::class, BookmarkChats.serializer())
         subclass(ProjectChats::class, ProjectChats.serializer())
         subclass(Search::class, Search.serializer())
     }

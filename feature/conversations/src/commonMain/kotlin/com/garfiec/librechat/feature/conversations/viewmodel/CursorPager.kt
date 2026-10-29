@@ -66,6 +66,11 @@ internal class CursorPager<T>(
     /** A reload nobody asked for (a change elsewhere, a return to the screen): no spinner. */
     fun reloadQuietly() = loadFirstPage(Kind.QUIET)
 
+    /** Takes rows out at once, ahead of the reload that will confirm they're gone. */
+    fun removeWhere(predicate: (T) -> Boolean) {
+        _items.update { items -> if (items.any(predicate)) items.filterNot(predicate) else items }
+    }
+
     fun loadMore() {
         val cursor = _state.value.nextCursor ?: return
         // Guard against BOTH flags: a first page running concurrently with this append would

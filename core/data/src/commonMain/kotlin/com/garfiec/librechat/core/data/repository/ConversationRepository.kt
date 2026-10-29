@@ -47,6 +47,17 @@ interface ConversationRepository {
     ): Result<ConversationPage>
 
     /**
+     * Fetches a cursor page of the chats carrying the bookmark [tag] (exact name), newest first.
+     * Returned directly, like [getConversationsForProject]: the list endpoint omits each chat's tags,
+     * so Room can't filter by them. The page warms the cache with the tag-preserving upsert.
+     */
+    suspend fun getConversationsForTag(
+        tag: String,
+        cursor: String? = null,
+        limit: Int = 25,
+    ): Result<ConversationPage>
+
+    /**
      * Fetches [id] from the server and upserts it into the cache, bypassing
      * [getConversation]'s cache-first read. Use when the local row is known to be
      * stale (e.g. picking up a server-generated title). This is the full document, so its

@@ -88,4 +88,20 @@ class CursorPagerTest {
         assertThat(pager.items.value).hasSize(25)
         assertThat(server.calls.filter { it.cursor != null }).isEmpty()
     }
+
+    @Test
+    fun `removeWhere takes matching rows out at once and keeps the cursor`() = runTest {
+        val server = FakeServer(total = 30)
+        val pager = pager(server)
+        pager.load()
+        advanceUntilIdle()
+        server.calls.clear()
+
+        pager.removeWhere { it == "r1" || it == "r3" }
+
+        assertThat(pager.items.value).hasSize(23)
+        assertThat(pager.items.value).containsNoneOf("r1", "r3")
+        assertThat(pager.state.value.nextCursor).isEqualTo("25")
+        assertThat(server.calls).isEmpty()
+    }
 }

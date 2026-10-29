@@ -17,6 +17,7 @@ import com.garfiec.librechat.core.model.SAVED_TAG
 import com.garfiec.librechat.core.network.api.ConversationsApi
 import com.garfiec.librechat.core.network.api.TagsApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
@@ -46,6 +47,8 @@ class TagRepositoryImpl(
     private val chatTagWrites = Mutex()
 
     override val revision: StateFlow<Long> = changes.revision
+
+    override val events: SharedFlow<TagEvent> = changes.events
 
     override fun observeTags(): Flow<List<ConversationTag>> =
         activeAccountProvider.flatMapAccountOrEmpty(emptyList()) { account ->
@@ -140,9 +143,12 @@ class TagRepositoryImpl(
                 description = description,
                 position = position,
             )
-            if (renamed != null && renamed != name && accountId != null) {
-                // The server renamed it on every chat; follow in the cached rows.
-                rewriteCachedChatTags(accountId) { tags -> tags.map { if (it == name) renamed else it }.distinct() }
+            if (renamed != null && renamed != name) {
+                if (accountId != null) {
+                    // The server renamed it on every chat; follow in the cached rows.
+                    rewriteCachedChatTags(accountId) { tags -> tags.map { if (it == name) renamed else it }.distinct() }
+                }
+                changes.emit(TagEvent.Renamed(from = name, to = renamed))
             }
             afterChange()
             updated
@@ -155,6 +161,7 @@ class TagRepositoryImpl(
         if (accountId != null) {
             rewriteCachedChatTags(accountId) { tags -> tags - name }
         }
+        changes.emit(TagEvent.Deleted(name))
         afterChange()
     }
 

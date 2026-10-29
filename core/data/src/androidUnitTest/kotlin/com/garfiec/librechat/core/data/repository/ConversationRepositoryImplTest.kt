@@ -100,6 +100,26 @@ class ConversationRepositoryImplTest {
     }
 
     @Test
+    fun `getConversationsForTag asks for that tag and returns the page as the server sent it`() = runTest {
+        val serverConvo = Conversation(conversationId = "convo-1", title = "Server Title")
+        coEvery {
+            conversationsApi.getConversations(cursor = "c1", limit = 40, tags = listOf("Work / Q3"))
+        } returns ConversationListResponse(conversations = listOf(serverConvo), nextCursor = "c2")
+        val captured = slot<List<ConversationEntity>>()
+        coEvery { conversationDao.upsertPreservingTags(account.value, capture(captured)) } answers {}
+
+        val result = repository.getConversationsForTag("Work / Q3", cursor = "c1", limit = 40)
+
+        assertThat(result).isInstanceOf(Result.Success::class.java)
+        val page = (result as Result.Success).data
+        assertThat(page.conversations.map { it.conversationId }).containsExactly("convo-1")
+        assertThat(page.nextCursor).isEqualTo("c2")
+        // The list omits tags, so the cache write must be the one that keeps them.
+        assertThat(captured.captured.single().conversationId).isEqualTo("convo-1")
+        coVerify(exactly = 0) { conversationDao.upsert(any()) }
+    }
+
+    @Test
     fun `refreshConversation lets the server's tags replace the cached ones`() = runTest {
         // The single-conversation GET is the full document: a tag set on the web must land, and one
         // removed there must go, so the write must not be the tag-preserving upsert.

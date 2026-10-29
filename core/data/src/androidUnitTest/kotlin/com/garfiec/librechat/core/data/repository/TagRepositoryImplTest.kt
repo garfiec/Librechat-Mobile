@@ -27,6 +27,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
@@ -490,6 +492,21 @@ class TagRepositoryImplTest {
     }
 
     @Test
+    fun `a rename is announced before its revision bump, an edit that keeps the name is not`() = runTest {
+        coEvery { tagsApi.updateTag(any(), any(), any(), any()) } returns ConversationTag(tag = "job")
+        val seen = mutableListOf<Pair<TagEvent, Long>>()
+        val collector = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            repository.events.collect { seen += it to repository.revision.value }
+        }
+
+        repository.updateTag("work", description = "notes")
+        repository.updateTag("work", newName = " job ")
+
+        assertThat(seen).containsExactly(TagEvent.Renamed(from = "work", to = "job") to 1L)
+        collector.cancel()
+    }
+
+    @Test
     fun `updateTag refuses a blank new name`() = runTest {
         assertThat(repository.updateTag("work", newName = "  ")).isInstanceOf(Result.Error::class.java)
         coVerify(exactly = 0) { tagsApi.updateTag(any(), any(), any(), any()) }
@@ -510,6 +527,21 @@ class TagRepositoryImplTest {
         coVerify(exactly = 0) { conversationDao.replaceTags("b", any(), any()) }
         coVerify(exactly = 1) { tagsApi.getTags() }
         assertThat(repository.revision.value).isEqualTo(1L)
+    }
+
+    @Test
+    fun `a delete is announced, a failed one is not`() = runTest {
+        val seen = mutableListOf<TagEvent>()
+        val collector = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            repository.events.collect { seen += it }
+        }
+
+        repository.deleteTag("work")
+        coEvery { tagsApi.deleteTag("personal") } throws RuntimeException("404")
+        repository.deleteTag("personal")
+
+        assertThat(seen).containsExactly(TagEvent.Deleted("work"))
+        collector.cancel()
     }
 
     @Test

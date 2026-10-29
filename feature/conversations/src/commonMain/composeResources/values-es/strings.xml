@@ -262,4 +262,7 @@
     <string name="bookmark_save_failed">No se pudo guardar el marcador. Inténtalo de nuevo.</string>
     <string name="bookmark_delete_failed">No se pudo eliminar el marcador. Inténtalo de nuevo.</string>
     <string name="bookmark_move_failed">No se pudo mover el marcador. Inténtalo de nuevo.</string>
+    <string name="bookmark_chats_empty">Ningún chat tiene este marcador</string>
+    <string name="bookmark_chats_empty_description">Añade un chat desde su menú, en Marcadores…</string>
+    <string name="bookmark_chats_load_error">No se pudieron cargar estos chats</string>
 </resources>
