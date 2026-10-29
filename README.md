@@ -6,6 +6,15 @@ A third-party native mobile client for [LibreChat](https://www.librechat.ai/) (A
 
 > **Backend compatibility:** Tested against LibreChat **v0.8.4 – v0.8.8**. Older releases may work but are not guaranteed; newer releases are supported on a best-effort basis until the next sync.
 
+## Get it
+
+[![Add to Obtainium](https://img.shields.io/badge/Add%20to-Obtainium-1e88e5?logo=android&logoColor=white)](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/garfiec/Librechat-Mobile)
+[![Get it on F-Droid](https://img.shields.io/badge/Get%20it%20on-F--Droid-1976d2?logo=fdroid&logoColor=white)](https://f-droid.org/packages/com.garfiec.librechat/)
+![Google Play: coming soon](https://img.shields.io/badge/Google%20Play-coming%20soon-9e9e9e?logo=googleplay&logoColor=white)
+[![TestFlight public beta](https://img.shields.io/badge/TestFlight-public%20beta-0d96f6?logo=appstore&logoColor=white)](https://testflight.apple.com/join/pVhFr3a5)
+
+See [Install (Android)](#install-android) and [Install (iOS)](#install-ios) for details.
+
 ## Why use this instead of the web app?
 
 **It's a real app**
@@ -73,7 +82,7 @@ Pre-built, signed APKs are published on the [Releases](https://github.com/garfie
 
 [Obtainium](https://github.com/ImranR98/Obtainium) installs the app straight from GitHub Releases and keeps it updated automatically.
 
-[![Add to Obtainium](https://img.shields.io/badge/Add%20to-Obtainium-1e88e5?logo=android&logoColor=white)](https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/garfiec/Librechat-Mobile)
+[![Add to Obtainium](https://img.shields.io/badge/Add%20to-Obtainium-1e88e5?logo=android&logoColor=white)](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/garfiec/Librechat-Mobile)
 
 1. Install Obtainium from its [releases](https://github.com/ImranR98/Obtainium/releases).
 2. Tap the **Add to Obtainium** badge above (or, in Obtainium, *Add App* → paste `https://github.com/garfiec/Librechat-Mobile`).
