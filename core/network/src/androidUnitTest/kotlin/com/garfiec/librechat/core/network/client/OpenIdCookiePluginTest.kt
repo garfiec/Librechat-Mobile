@@ -52,14 +52,18 @@ class OpenIdCookiePluginTest {
         }
     }
 
-    private fun client(engine: MockEngine, tokens: Tokens = Tokens()): HttpClient {
+    private fun client(
+        engine: MockEngine,
+        tokens: Tokens = Tokens(),
+        credentials: RefreshCookieCredentials = RefreshCookieCredentials { "current-refresh" },
+    ): HttpClient {
         val factory = object : HttpClientEngineFactory<MockEngineConfig> {
             override fun create(block: MockEngineConfig.() -> Unit): HttpClientEngine = engine
         }
         return LibreChatHttpClient.create(
             factory, Json { ignoreUnknownKeys = true }, tokens,
             object : ServerUrlProvider { override fun getBaseUrl(): String = SERVER },
-            LogRedactor(), RefreshCookieCredentials { "current-refresh" },
+            LogRedactor(), credentials,
         )
     }
 
@@ -163,5 +167,32 @@ class OpenIdCookiePluginTest {
         }
         assertThat(seen.first().cookies().single()).contains("refreshToken=explicit-refresh")
         assertThat(seen.last().cookies()).isEmpty()
+    }
+
+    @Test
+    fun `an image redirected onto API paths keeps the markers and loses the refresh token`() = runTest {
+        val seen = mutableListOf<HttpRequestData>()
+        val engine = MockEngine { request ->
+            seen += request
+            when (seen.size) {
+                1 -> respond("", HttpStatusCode.Found, headersOf(HttpHeaders.Location, "$SERVER/api/files/a"))
+                2 -> respond("", HttpStatusCode.Found, headersOf(HttpHeaders.Location, "$SERVER/api/files/b"))
+                else -> respond("{}")
+            }
+        }
+        val credentials = object : RefreshCookieCredentials {
+            override suspend fun refreshTokenFor(accountId: String?): String = "current-refresh"
+            override suspend fun authCookiesFor(accountId: String?) = AuthCookies("current-refresh", OLD)
+        }
+        client(engine, credentials = credentials).use {
+            it.get("$SERVER/images/u/x.png") { attributes.put(RequestIdentityKey, identity()) }
+        }
+        assertThat(seen).hasSize(3)
+        assertThat(seen[0].cookies().single()).contains("refreshToken=current-refresh")
+        // No later hop may pick the image's refresh token back up from its explicit bundle.
+        seen.drop(1).forEach { hop ->
+            assertThat(hop.cookies().single()).doesNotContain("refreshToken")
+            assertThat(hop.cookies().single()).contains("token_provider=openid; openid_user_id=old-marker")
+        }
     }
 }

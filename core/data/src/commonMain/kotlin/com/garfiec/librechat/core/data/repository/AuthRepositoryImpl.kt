@@ -171,8 +171,6 @@ class AuthRepositoryImpl(
         return safeApiCall {
             withAuthIdentity(pending) {
                 val result = authApi.refresh(cookies)
-                // If the backend rotated the refresh token, use the new one;
-                // otherwise keep the original OAuth-provided token.
                 tokenManager.setSession(SessionCredentials(result.response.token, result.cookies))
                 // Fetch the user profile, then establish identity before session tasks fire.
                 val user = fetchAuthenticatedUser(pending)

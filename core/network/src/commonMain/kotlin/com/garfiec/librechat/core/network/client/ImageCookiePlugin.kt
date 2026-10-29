@@ -6,12 +6,9 @@ import io.ktor.client.plugins.HttpSend
 import io.ktor.client.plugins.plugin
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.HttpRequestPipeline
-import io.ktor.http.HeadersBuilder
-import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.util.AttributeKey
 
-/** RFC 6265 cookie names are case-sensitive, and the server reads exactly this one. */
 /** The account an attached cookie belongs to. Survives a strip, so the re-attach knows what to re-read. */
 private val ImageCookieAccountKey = AttributeKey<String>("ImageCookieAccount")
 
@@ -163,7 +160,9 @@ class ImageCookiePlugin private constructor(
         val eligible = isSameServerAuthority(request.url, baseUrl) && isSecuredImagePath(request.url, baseUrl)
         when {
             attached != null && !eligible -> {
-                request.headers.removeRefreshCookie()
+                // The refresh token only: [OpenIdCookiePlugin] already decided this hop's markers, and a
+                // same-server API hop needs them for an OpenID bearer.
+                CookieHelper.merge(request.headers, mapOf("refreshToken" to null))
                 request.attributes.remove(ImageCookieAttachedKey)
             }
             // Re-read rather than replay [attached]: by the time a redirect chain comes back the token
@@ -172,17 +171,3 @@ class ImageCookiePlugin private constructor(
         }
     }
 }
-
-/** Unpick only the app's own segment, so a user's gateway cookie survives the strip. */
-@Suppress("NoGetOutsideModuleDefinition") // Ktor's StringValuesBuilder.getAll, not Koin's.
-private fun HeadersBuilder.removeRefreshCookie() {
-    val kept = otherCookieSegments()
-    remove(HttpHeaders.Cookie)
-    if (kept.isNotEmpty()) append(HttpHeaders.Cookie, kept.joinToString("; "))
-}
-
-@Suppress("NoGetOutsideModuleDefinition") // Ktor's StringValuesBuilder.getAll, not Koin's.
-private fun HeadersBuilder.otherCookieSegments(): List<String> =
-    getAll(HttpHeaders.Cookie).orEmpty()
-        .flatMap(::cookieSegments)
-        .filterNot { it.cookieName() in CookieHelper.authCookieNames }

@@ -7,10 +7,7 @@ import io.ktor.http.HeadersBuilder
 internal fun sseCustomHeaderLines(custom: Map<String, String>, markers: OpenIdMarkers?): String {
     val headers = HeadersBuilder()
     headers.applyCustomHeaders(custom)
-    CookieHelper.merge(headers, mapOf(
-        "token_provider" to markers?.let { "openid" },
-        "openid_user_id" to markers?.userIdCookie,
-    ))
+    CookieHelper.merge(headers, markerValues(markers))
     return headers.entries().joinToString("") { (name, values) ->
         values.joinToString("") { value -> "$name: $value\r\n" }
     }

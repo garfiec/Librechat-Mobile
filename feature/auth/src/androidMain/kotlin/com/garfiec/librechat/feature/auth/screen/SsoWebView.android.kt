@@ -18,7 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.model.auth.AuthCookies
-import com.garfiec.librechat.feature.auth.oauth.REFRESH_TOKEN_COOKIE
+import com.garfiec.librechat.core.network.client.CookieHelper
 import com.garfiec.librechat.feature.auth.oauth.SSO_ANDROID_USER_AGENT
 import com.garfiec.librechat.feature.auth.oauth.SsoNavigationDecision
 import com.garfiec.librechat.feature.auth.oauth.SsoNavigationGate
@@ -29,13 +29,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * `HttpOnly` is load-bearing, not decoration: the server sets `refreshToken` with it, and Chromium
- * refuses to overwrite an HttpOnly cookie from a value that lacks the attribute. Without it this
- * expiry never lands and a previous identity's token survives into the next sign-in.
+ * `HttpOnly` is load-bearing, not decoration: the server sets every auth cookie with it, and
+ * Chromium refuses to overwrite an HttpOnly cookie from a value that lacks the attribute. Without it
+ * this expiry never lands and a previous identity's cookie survives into the next sign-in.
  */
-private fun expiredRefreshTokenCookie(serverUrl: String): String {
+private fun expiredCookie(serverUrl: String, name: String): String {
     val secure = if (serverUrl.startsWith("https://", ignoreCase = true)) "; Secure" else ""
-    return "$REFRESH_TOKEN_COOKIE=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly$secure"
+    return "$name=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly$secure"
 }
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -92,10 +92,8 @@ actual fun SsoWebView(
                         view.loadUrl("about:blank")
                         when {
                             captured != null -> {
-                                listOf(REFRESH_TOKEN_COOKIE, "token_provider", "openid_user_id").forEach { name ->
-                                    cookies.setCookie(serverUrl, expiredRefreshTokenCookie(serverUrl).replaceFirst(
-                                        "$REFRESH_TOKEN_COOKIE=", "$name=",
-                                    ))
+                                CookieHelper.authCookieNames.forEach { name ->
+                                    cookies.setCookie(serverUrl, expiredCookie(serverUrl, name))
                                 }
                                 currentOnTokenCapture(checkNotNull(captured))
                             }

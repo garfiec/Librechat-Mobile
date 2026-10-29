@@ -81,8 +81,7 @@ class AuthApi constructor(
             setBody(mapOf("refreshToken" to cookies.refreshToken))
         }
         val body = httpResponse.body<RefreshResponse>()
-        val newRefreshToken = CookieHelper.extractRefreshToken(httpResponse.headers)
-        return RefreshResult(body, newRefreshToken, CookieHelper.update(cookies, httpResponse.headers))
+        return RefreshResult(body, CookieHelper.update(cookies, httpResponse.headers))
     }
 
     suspend fun requestPasswordReset(email: String) {

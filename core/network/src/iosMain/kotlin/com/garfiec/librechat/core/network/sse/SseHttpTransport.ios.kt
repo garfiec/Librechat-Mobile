@@ -328,7 +328,7 @@ actual class SseHttpTransport(
                         host = host,
                         bearerToken = bearerToken,
                         customHeaders = customHeaders,
-                                    markers = markers,
+                        markers = markers,
                     )
                     val requestBytes = request.encodeToByteArray()
                     val dispatchData = byteArrayToDispatchData(requestBytes, queue)
@@ -411,7 +411,7 @@ actual class SseHttpTransport(
         // The user's gateway headers (issue #287). No host-scoping check is needed here the way the
         // Ktor plugin needs one: this connection is dialled at the snapshot's own base URL and never
         // follows a redirect, so it cannot arrive anywhere but the server the headers belong to.
-        // Sanitised again inside customHeaderLines — the names reserved there are exactly the ones
+        // Sanitised again inside sseCustomHeaderLines — the names reserved there are exactly the ones
         // hand-written above, so a user value can never emit a second, ambiguous copy of one.
         append(sseCustomHeaderLines(customHeaders, markers))
         append("\r\n")

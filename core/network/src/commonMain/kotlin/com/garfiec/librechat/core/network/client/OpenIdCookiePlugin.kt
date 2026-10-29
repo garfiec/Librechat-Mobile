@@ -20,7 +20,7 @@ fun HttpRequestBuilder.attachAuthCookies(cookies: AuthCookies, baseUrl: String? 
     CookieHelper.merge(headers, cookies.values())
 }
 
-private fun markerValues(markers: OpenIdMarkers?): Map<String, String?> = mapOf(
+internal fun markerValues(markers: OpenIdMarkers?): Map<String, String?> = mapOf(
     "token_provider" to markers?.let { "openid" },
     "openid_user_id" to markers?.userIdCookie,
 )
