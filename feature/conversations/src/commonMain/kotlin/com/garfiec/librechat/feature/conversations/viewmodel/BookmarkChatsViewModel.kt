@@ -28,12 +28,12 @@ import com.garfiec.librechat.feature.conversations.export.ExportFormat
 import com.garfiec.librechat.feature.conversations.resources.Res
 import com.garfiec.librechat.feature.conversations.resources.bookmark_chats_load_error
 import com.garfiec.librechat.feature.conversations.resources.bookmark_delete_failed
-import com.garfiec.librechat.feature.conversations.resources.bookmark_save_failed
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,6 +42,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -150,8 +151,15 @@ class BookmarkChatsViewModel(
         onMutated = { pager.reloadQuietly() },
     )
 
-    /** A row's "Bookmarks…" checklist. Its failures surface as the screen's snackbar. */
+    /**
+     * A row's "Bookmarks…" checklist. A tick or create that fails says so in the sheet; a load that
+     * closes it, or a save that fails after it closed, surfaces as the screen's snackbar.
+     */
     val bookmarkPicker = BookmarkPickerController(tagRepository, viewModelScope)
+
+    /** The loaded chats, each with its cached tags (the list endpoint sends none), for the star and its sheet. */
+    private val conversations: StateFlow<List<Conversation>> =
+        pager.items.withCachedTags(tagRepository).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     /** The gate has answered once. Before that nothing loads: a turned-off account would get a 403. */
     private var gateSettled = false
@@ -238,7 +246,7 @@ class BookmarkChatsViewModel(
         viewModelScope.launch {
             // dayBoundaryReferences() re-groups at local midnight, as on a project's chats.
             combine(
-                pager.items,
+                conversations,
                 configRepository.endpointConfigs,
                 configRepository.serverUrl,
                 dayBoundaries,
@@ -341,10 +349,12 @@ class BookmarkChatsViewModel(
         val editor = _uiState.value.editor ?: return
         val editing = editor.editing ?: return
         if (editor.saving) return
-        _uiState.update { it.copy(editor = editor.copy(saving = true)) }
+        _uiState.update { it.copy(editor = editor.copy(saving = true, error = null)) }
         viewModelScope.launch {
             val oldName = editing.tag.orEmpty()
-            val rename = newName.takeIf { it != oldName }
+            // Against the trimmed name, as the sheet's own dirty check: a web name "Work " shows
+            // as "Work", and sending that back would rename it.
+            val rename = newName.takeIf { it != oldName.trim() }
             val newDescription = description.takeIf { it != editing.description.orEmpty().trim() }
             val result = if (rename == null && newDescription == null) {
                 Result.Success(editing)
@@ -360,9 +370,9 @@ class BookmarkChatsViewModel(
                         state.copy(editor = null, name = if (rename != null && stored != null) stored else state.name)
                     }
                 }
-                is Result.Error -> {
-                    _uiState.update { state -> state.copy(editor = state.editor?.copy(saving = false)) }
-                    _events.emit(ConversationListEvent.ShowErrorRes(Res.string.bookmark_save_failed))
+                // In the sheet, which stays up with what was typed: a snackbar would sit behind it.
+                is Result.Error -> _uiState.update { state ->
+                    state.copy(editor = state.editor?.copy(saving = false, error = BookmarksFailure.SAVE))
                 }
                 Result.Loading -> Unit
             }
@@ -382,7 +392,7 @@ class BookmarkChatsViewModel(
     }
 
     fun getConversation(conversationId: String): Conversation? =
-        pager.items.value.firstOrNull { it.conversationId == conversationId }
+        conversations.value.firstOrNull { it.conversationId == conversationId }
 
     fun toggleFavorite(conversation: Conversation) = actions.toggleFavorite(conversation)
 

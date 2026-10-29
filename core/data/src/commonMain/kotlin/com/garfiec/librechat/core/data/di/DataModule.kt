@@ -550,7 +550,17 @@ val dataModule = module {
     singleOf(::AgentRepositoryImpl) bind AgentRepository::class
     singleOf(::AgentToolsRepositoryImpl) bind AgentToolsRepository::class
     singleOf(::TagChangeSignal)
-    singleOf(::TagRepositoryImpl) bind TagRepository::class
+    single<TagRepository> {
+        TagRepositoryImpl(
+            tagsApi = get(),
+            tagDao = get(),
+            conversationsApi = get(),
+            conversationDao = get(),
+            activeAccountProvider = get(),
+            changes = get(),
+            applicationScope = get<CoroutineScope>(KoinQualifiers.ApplicationScope),
+        )
+    }
     singleOf(::BookmarksGate)
     singleOf(::SearchRepositoryImpl) bind SearchRepository::class
     singleOf(::KeyRepositoryImpl) bind KeyRepository::class

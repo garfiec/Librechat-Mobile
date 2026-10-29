@@ -8,6 +8,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.BookmarksHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -20,8 +21,9 @@ import kotlinx.coroutines.launch
  * bookmark surface shares) and whether the chat carries one, for the menu icon.
  *
  * The icon reads the checklist's ticks while it is open on this chat and has read the server, and
- * the cached row's tags otherwise. Every checklist write lands in that row, so it agrees once the
- * checklist closes.
+ * the cached row's tags otherwise. The row came from the conversation list, which carries no tags,
+ * so opening the chat reads its tags from the server once, into the row. Every checklist write
+ * lands in that row too, so it agrees once the checklist closes.
  *
  * Only a saved chat has bookmarks: never a new or a temporary one, and nothing while the role or
  * `interface.bookmarks` turns them off.
@@ -68,13 +70,17 @@ class ChatBookmarksDelegate(
                     if (chat == null) {
                         flowOf(false)
                     } else {
-                        combine(tagRepository.observeConversationTags(chat), picker.state) { cached, checklist ->
-                            val ticks = if (checklist.conversationId == chat && !checklist.loading) {
-                                checklist.attached
-                            } else {
-                                cached
-                            }
-                            ticks.any { it.isNotBlank() && it != SAVED_TAG }
+                        channelFlow {
+                            // Into the cached row, which the icon reads; a failure leaves the row as it was.
+                            launch { tagRepository.getConversationTags(chat) }
+                            combine(tagRepository.observeConversationTags(chat), picker.state) { cached, checklist ->
+                                val ticks = if (checklist.conversationId == chat && !checklist.loading) {
+                                    checklist.attached
+                                } else {
+                                    cached
+                                }
+                                ticks.any { it.isNotBlank() && it != SAVED_TAG }
+                            }.collect { send(it) }
                         }
                     }
                 }

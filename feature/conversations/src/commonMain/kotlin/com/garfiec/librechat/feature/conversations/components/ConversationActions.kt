@@ -56,6 +56,8 @@ fun ConversationActions(
     onRename: (String) -> Unit,
     onArchive: () -> Unit,
     onDelete: () -> Unit,
+    // Required: a call site that leaves it out would offer Favorite and Bookmarks… to a gated user.
+    bookmarksEnabled: Boolean,
     modifier: Modifier = Modifier,
     /** Opens the chat's bookmark checklist; null leaves "Bookmarks…" out. */
     onBookmarks: (() -> Unit)? = null,
@@ -65,7 +67,6 @@ fun ConversationActions(
     onFavoriteToggle: () -> Unit = {},
     isFavorite: Boolean = false,
     showShareAction: Boolean = false,
-    bookmarksEnabled: Boolean = true,
 ) {
     var showRenameDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }

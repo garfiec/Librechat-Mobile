@@ -36,8 +36,9 @@ fun ConversationItem(
     data: ConversationDisplayData,
     onClick: () -> Unit,
     onActionsClick: () -> Unit,
+    // Required: a call site that leaves it out would show the ★ to a gated user.
+    bookmarksEnabled: Boolean,
     modifier: Modifier = Modifier,
-    bookmarksEnabled: Boolean = true,
 ) {
     // Keyed on the reference as well as the row: the reference is what advances with the wall clock,
     // so without it in the key this memo would outlive the label's correctness (see

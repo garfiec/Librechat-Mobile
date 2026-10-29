@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,6 +38,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -127,8 +129,15 @@ class ProjectChatsViewModel(
         onMutated = { pager.reloadQuietly() },
     )
 
-    /** A row's "Bookmarks…" checklist. Its failures surface as the screen's snackbar. */
+    /**
+     * A row's "Bookmarks…" checklist. A tick or create that fails says so in the sheet; a load that
+     * closes it, or a save that fails after it closed, surfaces as the screen's snackbar.
+     */
     val bookmarkPicker = BookmarkPickerController(tagRepository, viewModelScope)
+
+    /** The loaded chats, each with its cached tags (the list endpoint sends none), for the star and its sheet. */
+    private val conversations: StateFlow<List<Conversation>> =
+        pager.items.withCachedTags(tagRepository).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val projectActions = ProjectActionsDelegate(
         scope = viewModelScope,
@@ -202,7 +211,7 @@ class ProjectChatsViewModel(
             // dayBoundaryReferences() re-groups at local midnight: date sections are clock-dependent
             // and membership (not just the label) changes when the date rolls over.
             combine(
-                pager.items,
+                conversations,
                 configRepository.endpointConfigs,
                 configRepository.serverUrl,
                 dayBoundaries,
@@ -230,7 +239,7 @@ class ProjectChatsViewModel(
     }
 
     fun getConversation(conversationId: String): Conversation? =
-        pager.items.value.firstOrNull { it.conversationId == conversationId }
+        conversations.value.firstOrNull { it.conversationId == conversationId }
 
     private fun observePaging() {
         viewModelScope.launch {

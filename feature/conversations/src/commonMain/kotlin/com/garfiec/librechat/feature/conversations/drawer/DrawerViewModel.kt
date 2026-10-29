@@ -42,6 +42,8 @@ import com.garfiec.librechat.feature.conversations.viewmodel.ConversationListEve
 import com.garfiec.librechat.feature.conversations.viewmodel.ProjectActionsDelegate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -148,6 +150,9 @@ class DrawerViewModel(
     private var projectsLoadJob: Job? = null
     private var projectOrderSaveJob: Job? = null
     private var expandedChatsJob: Job? = null
+
+    /** Parent of the star's writes still queued or out, which an account switch drops. */
+    private val favoriteWrites = SupervisorJob(viewModelScope.coroutineContext[Job])
     private var lastProjectsReload: TimeSource.Monotonic.ValueTimeMark? = null
 
     // Inline project-chat accordion for the drawer Projects tab. Network-direct per project (Room
@@ -198,8 +203,9 @@ class DrawerViewModel(
     val events: SharedFlow<ConversationListEvent> = _events.asSharedFlow()
 
     /**
-     * The long-press menu's "Bookmarks…" checklist, one chat at a time. Its failures surface as the
-     * drawer's error toasts.
+     * The long-press menu's "Bookmarks…" checklist, one chat at a time. A tick or create that fails
+     * says so in the sheet; a load that closes it, or a save that fails after it closed, surfaces as
+     * the drawer's error toasts.
      */
     val bookmarkPicker = BookmarkPickerController(tagRepository, viewModelScope)
 
@@ -416,7 +422,10 @@ class DrawerViewModel(
                 _activeJobIds.value = emptySet()
                 // A share sheet open on the outgoing account's chat must not act on the new one.
                 conversationActions.closeShareSheet()
-                bookmarkPicker.close()
+                // Ticks still queued for the outgoing account's chat too: their legs would reach the
+                // new account's server.
+                bookmarkPicker.closeForAccountSwitch()
+                favoriteWrites.cancelChildren()
                 // A load started for the outgoing account would otherwise land after this reset.
                 projectsLoadJob?.cancel()
                 // An order not yet written for an account being signed out would outlive its purge.
@@ -448,11 +457,15 @@ class DrawerViewModel(
 
     /**
      * Pull-to-refresh: refreshes the drawer conversation list + favorites + tags. The explicit tag
-     * refresh is wanted here because a manual refresh has no session-task machinery behind it.
+     * refresh is wanted here because a manual refresh has no session-task machinery behind it. Not
+     * while bookmarks are off: the tags route answers 403 to a role without BOOKMARKS USE.
      */
     fun refreshConversations() {
         conversationListStateHolder.refreshConversations()
-        viewModelScope.launch { tagRepository.refreshTags() }
+        // Read at the source, not from the drawer's WhileSubscribed state, which is permissive until collected.
+        val enabled =
+            bookmarksEnabled(roleRepository.userPermissions.value, configRepository.startupConfig.value?.interfaceConfig)
+        if (enabled) viewModelScope.launch { tagRepository.refreshTags() }
     }
 
     /**
@@ -473,9 +486,13 @@ class DrawerViewModel(
         conversationListStateHolder.onSearchQueryChanged(query)
     }
 
-    fun toggleFavorite(conversationId: String, currentTags: List<String>) {
-        viewModelScope.launch {
-            val result = tagRepository.toggleFavorite(conversationId, currentTags)
+    /**
+     * The star or the menu's Favorite on [conversationId]. [favorite] is what the user asked for (the
+     * opposite of what the row showed), so a stale row or a repeat tap changes nothing.
+     */
+    fun setFavorite(conversationId: String, favorite: Boolean) {
+        viewModelScope.launch(favoriteWrites) {
+            val result = tagRepository.setConversationTag(conversationId, SAVED_TAG, attached = favorite)
             if (result is Result.Error) {
                 Logger.w(result.exception) { "Failed to toggle favorite for $conversationId" }
                 // Surface the failure like the row-action delegate does, instead of only logging —

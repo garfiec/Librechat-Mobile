@@ -16,6 +16,7 @@ import com.garfiec.librechat.feature.conversations.resources.bookmark_create_fai
 import com.garfiec.librechat.feature.conversations.resources.bookmark_update_failed
 import com.garfiec.librechat.feature.conversations.resources.bookmarks_load_failed
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * The per-chat bookmark checklist and its "New bookmark" editor, while [controller] is open. One
@@ -25,16 +26,20 @@ import org.jetbrains.compose.resources.StringResource
 fun BookmarkPickerHost(controller: BookmarkPickerController) {
     val state by controller.state.collectAsStateWithLifecycle()
     if (!state.isOpen) return
+    // Shown in the sheet: a snackbar would sit behind it.
+    val error = state.error?.let { stringResource(it.message) }
     if (state.editorOpen) {
         BookmarkEditorSheet(
             existingNames = state.names,
             onConfirm = controller::create,
             onDismiss = controller::closeEditor,
             offerAddToChat = true,
+            conversationId = state.conversationId,
             saving = state.creating,
+            error = error,
         )
     } else {
-        val uiState = remember(state) { state.toUiState() }
+        val uiState = remember(state, error) { state.toUiState(error) }
         BookmarkPickerSheet(
             state = uiState,
             onToggle = controller::toggle,
@@ -44,13 +49,15 @@ fun BookmarkPickerHost(controller: BookmarkPickerController) {
     }
 }
 
-private fun BookmarkPickerState.toUiState() = BookmarkPickerUiState(
+private fun BookmarkPickerState.toUiState(error: String?) = BookmarkPickerUiState(
+    conversationId = conversationId,
     items = bookmarks.mapNotNull { tag ->
         tag.tag?.let { name -> BookmarkItem(name = name, description = tag.description, count = tag.count) }
     },
     attached = attached,
     pending = pending,
     loading = loading,
+    error = error,
 )
 
 /** What a checklist failure tells the user. */

@@ -523,9 +523,9 @@ class ConversationListViewModelTest {
     }
 
     @Test
-    fun `toggleFavorite on unfavorited convo delegates to repo`() = runTest {
+    fun `toggleFavorite on unfavorited convo asks the repo to add Saved`() = runTest {
         coEvery {
-            tagRepository.toggleFavorite(any(), any())
+            tagRepository.setConversationTag(any(), any(), any())
         } returns Result.Success(emptyList())
 
         viewModel = createViewModel()
@@ -535,18 +535,15 @@ class ConversationListViewModelTest {
         viewModel.toggleFavorite(convo)
         advanceUntilIdle()
 
-        coVerify {
-            tagRepository.toggleFavorite(
-                conversationId = "convo-1",
-                currentTags = listOf("work"),
-            )
+        coVerify(exactly = 1) {
+            tagRepository.setConversationTag("convo-1", SAVED_TAG, attached = true)
         }
     }
 
     @Test
-    fun `toggleFavorite on favorited convo delegates to repo`() = runTest {
+    fun `toggleFavorite on favorited convo asks the repo to remove Saved`() = runTest {
         coEvery {
-            tagRepository.toggleFavorite(any(), any())
+            tagRepository.setConversationTag(any(), any(), any())
         } returns Result.Success(emptyList())
 
         viewModel = createViewModel()
@@ -559,11 +556,8 @@ class ConversationListViewModelTest {
         viewModel.toggleFavorite(convo)
         advanceUntilIdle()
 
-        coVerify {
-            tagRepository.toggleFavorite(
-                conversationId = "convo-1",
-                currentTags = listOf("work", SAVED_TAG),
-            )
+        coVerify(exactly = 1) {
+            tagRepository.setConversationTag("convo-1", SAVED_TAG, attached = false)
         }
     }
 
@@ -577,7 +571,7 @@ class ConversationListViewModelTest {
         advanceUntilIdle()
 
         coVerify(exactly = 0) {
-            tagRepository.toggleFavorite(any(), any())
+            tagRepository.setConversationTag(any(), any(), any())
         }
     }
 

@@ -19,14 +19,14 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 /** The bookmark editor sheet: a new bookmark when [editing] is null. */
 @Immutable
 data class BookmarkEditorState(
     val editing: ConversationTag? = null,
     val saving: Boolean = false,
+    /** The last save failed ([BookmarksFailure.CREATE] or [BookmarksFailure.SAVE]): the sheet says so itself. */
+    val error: BookmarksFailure? = null,
 )
 
 @Immutable
@@ -41,7 +41,7 @@ data class BookmarksUiState(
     val loadFailed: Boolean = false,
     /**
      * Local, case-insensitive, over names and descriptions. Session-only: it lives as long as this
-     * ViewModel (persisting it is deferred).
+     * ViewModel.
      */
     val searchQuery: String = "",
     val editor: BookmarkEditorState? = null,
@@ -110,9 +110,6 @@ class BookmarksViewModel(
     /** The order of moves not yet confirmed or refused, shown over the cache until they all settle. */
     private val pendingOrder = MutableStateFlow<List<String>?>(null)
     private var movesInFlight = 0
-
-    /** One move at a time: each is computed against the order the one before it left. */
-    private val moves = Mutex()
 
     private var refreshJob: Job? = null
 
@@ -187,14 +184,16 @@ class BookmarksViewModel(
     fun save(name: String, description: String) {
         val editor = _uiState.value.editor ?: return
         if (editor.saving) return
-        _uiState.update { it.copy(editor = editor.copy(saving = true)) }
+        _uiState.update { it.copy(editor = editor.copy(saving = true, error = null)) }
         viewModelScope.launch {
             val editing = editor.editing
             val result = if (editing == null) {
                 tagRepository.createTag(name, description.ifBlank { null })
             } else {
                 val oldName = editing.tag.orEmpty()
-                val newName = name.takeIf { it != oldName }
+                // Against the trimmed name, as the sheet's own dirty check: a web name "Work " shows
+                // as "Work", and sending that back would rename it.
+                val newName = name.takeIf { it != oldName.trim() }
                 val newDescription = description.takeIf { it != editing.description.orEmpty().trim() }
                 if (newName == null && newDescription == null) {
                     Result.Success(editing)
@@ -204,11 +203,10 @@ class BookmarksViewModel(
             }
             when (result) {
                 is Result.Success -> _uiState.update { it.copy(editor = null) }
-                is Result.Error -> {
-                    _uiState.update { state -> state.copy(editor = state.editor?.copy(saving = false)) }
-                    _events.emit(
-                        BookmarksEvent.Failed(if (editing == null) BookmarksFailure.CREATE else BookmarksFailure.SAVE),
-                    )
+                // In the sheet, which stays up with what was typed: a snackbar would sit behind it.
+                is Result.Error -> _uiState.update { state ->
+                    val failure = if (editing == null) BookmarksFailure.CREATE else BookmarksFailure.SAVE
+                    state.copy(editor = state.editor?.copy(saving = false, error = failure))
                 }
                 Result.Loading -> Unit
             }
@@ -241,11 +239,16 @@ class BookmarksViewModel(
         val current = names()
         val from = current.indexOf(name)
         if (from < 0 || from == toIndex) return
-        pendingOrder.value = current.toMutableList().apply { add(toIndex, removeAt(from)) }
+        val intended = current.toMutableList().apply { add(toIndex, removeAt(from)) }
+        pendingOrder.value = intended
+        // What the user did is "put it below this card": the index is only good for the order on
+        // screen, and an earlier move still saving may be refused and put the cache back.
+        val after = intended.getOrNull(toIndex - 1)
         movesInFlight++
         viewModelScope.launch {
-            // The repository reorders its cache at once and puts it back if the server refuses.
-            val result = moves.withLock { tagRepository.reorderTag(name, toIndex) }
+            // The repository re-reads the server's order, queues the move behind any still out and
+            // runs it past this screen's end: leaving the index right after a drop keeps the move.
+            val result = tagRepository.reorderAfter(name, after)
             movesInFlight--
             if (movesInFlight == 0) pendingOrder.value = null
             if (result is Result.Error) _events.emit(BookmarksEvent.Failed(BookmarksFailure.MOVE))

@@ -14,8 +14,9 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
 
 /**
  * The ViewModel outcomes the chat screen acts on: lifecycle pause/resume, the share sheet, the
- * bookmark checklist, Fork and Duplicate. Each is easy to drop silently (the ViewModel never hears a resume, a fork is made the
- * user never lands in), which is why they sit together here rather than in the screen.
+ * bookmark checklist, Fork and Duplicate. Each is easy to drop silently (the ViewModel never hears
+ * a resume, a fork is made the user never lands in), which is why they sit together here rather
+ * than in the screen.
  */
 @Composable
 internal fun ChatScreenOutcomes(

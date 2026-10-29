@@ -17,8 +17,6 @@ internal enum class ChatOverflowItem {
     /** "Compact conversation…": only while a compact suggestion is due, and only in this placement. */
     COMPACT,
     SHARE,
-
-    /** The chat's bookmark checklist. */
     BOOKMARKS,
     RENAME,
     DUPLICATE,

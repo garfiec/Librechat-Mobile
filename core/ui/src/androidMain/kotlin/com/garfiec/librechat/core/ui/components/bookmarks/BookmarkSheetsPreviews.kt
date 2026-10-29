@@ -11,8 +11,8 @@ import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.preview.DialogPreviewHost
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 
-// The bookmark checklist (loading, a list with a long name and a save in flight, a list long enough
-// for search, none yet) and the bookmark editor (a new name that's taken, an edit).
+// The bookmark checklist: loading, a list with a long name and a save in flight, a list long enough
+// for search, none yet, a tick that failed. The editor's previews are in BookmarkEditorPreviews.kt.
 
 private val someBookmarks = listOf(
     BookmarkItem("Work", "Client threads and status notes", count = 12),
@@ -47,6 +47,20 @@ private fun BookmarkPickerListMaterialPreview() = PickerPreviewHost(UiStyle.MATE
 @Composable
 private fun BookmarkPickerListGlassPreview() = PickerPreviewHost(UiStyle.LIQUID_GLASS, listState)
 
+private val failedState = BookmarkPickerUiState(
+    items = someBookmarks,
+    attached = setOf("Work"),
+    error = "Couldn't update bookmarks. Try again.",
+)
+
+@PreviewNarrowScreens
+@Composable
+private fun BookmarkPickerFailedMaterialPreview() = PickerPreviewHost(UiStyle.MATERIAL, failedState)
+
+@PreviewNarrowScreens
+@Composable
+private fun BookmarkPickerFailedGlassPreview() = PickerPreviewHost(UiStyle.LIQUID_GLASS, failedState)
+
 @PreviewNarrowScreens
 @Composable
 private fun BookmarkPickerLoadingMaterialPreview() =
@@ -75,30 +89,6 @@ private fun BookmarkPickerEmptyMaterialPreview() = PickerPreviewHost(UiStyle.MAT
 @Composable
 private fun BookmarkPickerEmptyGlassPreview() = PickerPreviewHost(UiStyle.LIQUID_GLASS, BookmarkPickerUiState())
 
-@PreviewNarrowScreens
-@Composable
-private fun BookmarkEditorTakenMaterialPreview() =
-    EditorPreviewHost(UiStyle.MATERIAL, name = "work", offerAddToChat = true)
-
-@PreviewNarrowScreens
-@Composable
-private fun BookmarkEditorTakenGlassPreview() =
-    EditorPreviewHost(UiStyle.LIQUID_GLASS, name = "work", offerAddToChat = true)
-
-@PreviewNarrowScreens
-@Composable
-private fun BookmarkEditorReservedMaterialPreview() = EditorPreviewHost(UiStyle.MATERIAL, name = "saved")
-
-@PreviewNarrowScreens
-@Composable
-private fun BookmarkEditorEditMaterialPreview() =
-    EditorPreviewHost(UiStyle.MATERIAL, editing = "Reading list", description = "Papers and long reads to come back to")
-
-@PreviewNarrowScreens
-@Composable
-private fun BookmarkEditorEditGlassPreview() =
-    EditorPreviewHost(UiStyle.LIQUID_GLASS, editing = "Reading list", description = "Papers and long reads to come back to")
-
 /**
  * Glass renders the real sheet, portalled into the host. Material's sheet is its own window, which
  * a preview doesn't draw, so its body sits on the same surface at the bottom instead.
@@ -112,44 +102,6 @@ private fun PickerPreviewHost(style: UiStyle, state: BookmarkPickerUiState) = Di
             AdaptiveSheetSurface {
                 LowProfileDragHandle()
                 BookmarkPickerSheetContent(state = state, onToggle = {}, onNewBookmark = {})
-            }
-        }
-    }
-}
-
-@Composable
-private fun EditorPreviewHost(
-    style: UiStyle,
-    name: String? = null,
-    editing: String? = null,
-    description: String = "",
-    offerAddToChat: Boolean = false,
-) = DialogPreviewHost(style) {
-    val existing = someBookmarks.map { it.name } + "Saved"
-    if (style == UiStyle.LIQUID_GLASS && name == null) {
-        BookmarkEditorSheet(
-            existingNames = existing,
-            onConfirm = { _, _, _ -> },
-            onDismiss = {},
-            editing = editing,
-            initialDescription = description,
-            offerAddToChat = offerAddToChat,
-        )
-    } else {
-        // A typed name needs the draft seeded past the sheet's own empty start.
-        val draft = rememberBookmarkDraft(name ?: editing.orEmpty(), description)
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
-            AdaptiveSheetSurface {
-                LowProfileDragHandle()
-                BookmarkEditorSheetContent(
-                    draft = draft,
-                    existingNames = existing,
-                    onCancel = {},
-                    onConfirm = { _, _, _ -> },
-                    editing = editing,
-                    initialDescription = description,
-                    offerAddToChat = offerAddToChat,
-                )
             }
         }
     }

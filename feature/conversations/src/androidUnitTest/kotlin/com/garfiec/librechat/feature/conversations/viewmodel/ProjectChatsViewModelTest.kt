@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.conversations.viewmodel
 
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.bookmarks.BookmarkPickerFailure
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
@@ -9,11 +10,12 @@ import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationPage
 import com.garfiec.librechat.core.model.ConversationTag
+import com.garfiec.librechat.core.model.SAVED_TAG
 import com.garfiec.librechat.core.model.config.InterfaceConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.feature.conversations.resources.Res
-import com.garfiec.librechat.feature.conversations.resources.bookmark_update_failed
+import com.garfiec.librechat.feature.conversations.resources.bookmarks_load_failed
 import com.google.common.truth.Truth.assertThat
 import io.mockk.MockKMatcherScope
 import io.mockk.coEvery
@@ -44,8 +46,10 @@ class ProjectChatsViewModelTest {
     private val conversationRepository = mockk<ConversationRepository>(relaxed = true)
     private val projectRepository = mockk<ProjectRepository>(relaxed = true)
     private val revision = MutableStateFlow(0L)
+    private val cachedTags = MutableStateFlow<Map<String, List<String>>>(emptyMap())
     private val tagRepository = mockk<TagRepository>(relaxed = true) {
         every { observeTags() } returns MutableStateFlow(listOf(ConversationTag(tag = "work")))
+        every { observeCachedTags(any()) } returns cachedTags
     }
     private val userPermissions = MutableStateFlow<UserRolePermissions?>(null)
     private val startupConfig = MutableStateFlow<StartupConfig?>(StartupConfig(sharedLinksEnabled = true))
@@ -86,6 +90,21 @@ class ProjectChatsViewModelTest {
     fun tearDown() {
         Dispatchers.resetMain()
     }
+
+    @Test
+    fun `a row's favorite state comes from its cached row, which the paged list never carries`() =
+        runTest(testDispatcher) {
+            cachedTags.value = mapOf("a" to listOf(SAVED_TAG))
+            val vm = viewModel()
+            advanceUntilIdle()
+
+            assertThat(vm.getConversation("a")?.tags).containsExactly(SAVED_TAG)
+            assertThat(vm.getConversation("b")?.tags).isEmpty()
+
+            cachedTags.value = mapOf("a" to emptyList())
+            advanceUntilIdle()
+            assertThat(vm.getConversation("a")?.tags).isEmpty()
+        }
 
     @Test
     fun `an append in flight when the project changes does not land on the reloaded list`() =
@@ -288,7 +307,7 @@ class ProjectChatsViewModelTest {
     }
 
     @Test
-    fun `a failed tick is reported with the bookmark error`() = runTest(testDispatcher) {
+    fun `a failed tick is reported inside the checklist, not behind it`() = runTest(testDispatcher) {
         coEvery { tagRepository.getConversationTags("a") } returns Result.Success(emptyList())
         coEvery { tagRepository.setConversationTag("a", "work", true) } returns Result.Error(message = "boom")
         val vm = viewModel()
@@ -301,8 +320,25 @@ class ProjectChatsViewModelTest {
         vm.bookmarkPicker.toggle("work")
         advanceUntilIdle()
 
-        assertThat(events).containsExactly(ConversationListEvent.ShowErrorRes(Res.string.bookmark_update_failed))
+        assertThat(vm.bookmarkPicker.state.value.error).isEqualTo(BookmarkPickerFailure.ToggleFailed("work"))
+        assertThat(events).isEmpty()
         assertThat(vm.bookmarkPicker.state.value.attached).isEmpty()
+        job.cancel()
+    }
+
+    @Test
+    fun `a checklist that can't load closes with the screen's snackbar`() = runTest(testDispatcher) {
+        coEvery { tagRepository.getConversationTags("a") } returns Result.Error(message = "offline")
+        val vm = viewModel()
+        val events = mutableListOf<ConversationListEvent>()
+        val job = launch { vm.events.collect { events += it } }
+        advanceUntilIdle()
+
+        vm.openBookmarks("a")
+        advanceUntilIdle()
+
+        assertThat(vm.bookmarkPicker.state.value.isOpen).isFalse()
+        assertThat(events).containsExactly(ConversationListEvent.ShowErrorRes(Res.string.bookmarks_load_failed))
         job.cancel()
     }
 }

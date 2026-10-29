@@ -308,6 +308,7 @@
     <string name="bookmark_add_to_chat">Добавить в этот чат</string>
     <string name="bookmark_create">Создать</string>
     <string name="bookmark_save">Сохранить</string>
+    <string name="bookmark_saving">Сохранение…</string>
     <string name="bookmark_cancel">Отмена</string>
     <string name="bookmark_error_blank">Введите название</string>
     <string name="bookmark_error_duplicate">Закладка с таким названием уже есть</string>

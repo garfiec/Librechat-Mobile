@@ -43,8 +43,10 @@ class BookmarkChatsViewModelTest {
     private val tags = MutableStateFlow(listOf(tag(SAVED_TAG), tag("Work", count = 2), tag("Taxes")))
     private val revision = MutableStateFlow(0L)
     private val tagEvents = MutableSharedFlow<TagEvent>(extraBufferCapacity = 8)
+    private val cachedTags = MutableStateFlow<Map<String, List<String>>>(emptyMap())
     private val tagRepository = mockk<TagRepository>(relaxed = true) {
         every { observeTags() } returns tags
+        every { observeCachedTags(any()) } returns cachedTags
         every { revision } returns this@BookmarkChatsViewModelTest.revision
         every { events } returns tagEvents
     }
@@ -60,8 +62,8 @@ class BookmarkChatsViewModelTest {
     private suspend fun MockKMatcherScope.chats(tag: String = "Work", cursor: String? = null) =
         conversationRepository.getConversationsForTag(tag, cursor, any())
 
-    private fun viewModel() = BookmarkChatsViewModel(
-        tag = "Work",
+    private fun viewModel(tag: String = "Work") = BookmarkChatsViewModel(
+        tag = tag,
         conversationRepository = conversationRepository,
         tagRepository = tagRepository,
         shareLinkControllerFactory = mockk(relaxed = true),
@@ -109,6 +111,44 @@ class BookmarkChatsViewModelTest {
         assertThat(ids(viewModel)).containsExactly("a", "b", "c")
         assertThat(viewModel.uiState.value.hasMore).isFalse()
         coVerify(exactly = 1) { chats(cursor = "c1") }
+    }
+
+    @Test
+    fun `a row's favorite state comes from its cached row, which the paged list never carries`() =
+        runTest(testDispatcher) {
+            cachedTags.value = mapOf("a" to listOf(SAVED_TAG, "Work"))
+            val viewModel = viewModel()
+            advanceUntilIdle()
+
+            assertThat(viewModel.getConversation("a")?.tags).contains(SAVED_TAG)
+            assertThat(viewModel.getConversation("b")?.tags).isEmpty()
+            val rows = viewModel.uiState.value.groupedConversations.flatMap { (_, rows) -> rows }
+            assertThat(rows.first { it.conversationId == "a" }.isFavorite).isTrue()
+            assertThat(rows.first { it.conversationId == "b" }.isFavorite).isFalse()
+
+            // Un-favorited: the write lands in the cached row, and the row follows.
+            cachedTags.value = mapOf("a" to listOf("Work"))
+            advanceUntilIdle()
+            assertThat(viewModel.getConversation("a")?.tags).doesNotContain(SAVED_TAG)
+        }
+
+    @Test
+    fun `the star asks for the opposite of what the row showed, twice the same`() = runTest(testDispatcher) {
+        coEvery { tagRepository.setConversationTag(any(), any(), any()) } returns Result.Success(emptyList())
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        // No star shown: both taps (the second before the first lands) ask to add it.
+        viewModel.toggleFavorite(viewModel.getConversation("a")!!)
+        viewModel.toggleFavorite(viewModel.getConversation("a")!!)
+        advanceUntilIdle()
+        coVerify(exactly = 2) { tagRepository.setConversationTag("a", SAVED_TAG, true) }
+
+        cachedTags.value = mapOf("a" to listOf(SAVED_TAG))
+        advanceUntilIdle()
+        viewModel.toggleFavorite(viewModel.getConversation("a")!!)
+        advanceUntilIdle()
+        coVerify(exactly = 1) { tagRepository.setConversationTag("a", SAVED_TAG, false) }
     }
 
     @Test
@@ -270,6 +310,43 @@ class BookmarkChatsViewModelTest {
 
         assertThat(viewModel.uiState.value.editor).isNull()
         assertThat(viewModel.uiState.value.name).isEqualTo("Jobs")
+    }
+
+    @Test
+    fun `editing only the description of a name with surrounding spaces doesn't rename it`() = runTest(testDispatcher) {
+        // Web stores names as typed; the sheet sends its fields trimmed.
+        tags.value = listOf(tag("Work ", count = 1))
+        coEvery { chats(tag = "Work ") } returns page("a")
+        coEvery { tagRepository.updateTag(any(), any(), any(), any()) } returns Result.Success(tag("Work "))
+        val viewModel = viewModel(tag = "Work ")
+        advanceUntilIdle()
+
+        viewModel.openEdit()
+        viewModel.save("Work", "Client threads")
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { tagRepository.updateTag("Work ", null, "Client threads", null) }
+        assertThat(viewModel.uiState.value.name).isEqualTo("Work ")
+    }
+
+    @Test
+    fun `a failed save keeps the Edit sheet up and says so in it`() = runTest(testDispatcher) {
+        coEvery { tagRepository.updateTag("Work", "Jobs", null, null) } returns Result.Error(message = "500")
+        val viewModel = viewModel()
+        val events = mutableListOf<ConversationListEvent>()
+        val job = launch { viewModel.events.collect { events += it } }
+        advanceUntilIdle()
+
+        viewModel.openEdit()
+        viewModel.save("Jobs", "")
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.editor?.saving).isFalse()
+        assertThat(viewModel.uiState.value.editor?.error).isEqualTo(BookmarksFailure.SAVE)
+        // A snackbar would sit behind the sheet.
+        assertThat(events).isEmpty()
+        assertThat(viewModel.uiState.value.name).isEqualTo("Work")
+        job.cancel()
     }
 
     @Test

@@ -296,6 +296,7 @@
     <string name="bookmark_add_to_chat">このチャットに追加</string>
     <string name="bookmark_create">作成</string>
     <string name="bookmark_save">保存</string>
+    <string name="bookmark_saving">保存中…</string>
     <string name="bookmark_cancel">キャンセル</string>
     <string name="bookmark_error_blank">名前を入力してください</string>
     <string name="bookmark_error_duplicate">同じ名前のブックマークがすでにあります</string>

@@ -300,6 +300,7 @@
     <string name="bookmark_add_to_chat">Zu diesem Chat hinzufügen</string>
     <string name="bookmark_create">Erstellen</string>
     <string name="bookmark_save">Speichern</string>
+    <string name="bookmark_saving">Wird gespeichert…</string>
     <string name="bookmark_cancel">Abbrechen</string>
     <string name="bookmark_error_blank">Gib einen Namen ein</string>
     <string name="bookmark_error_duplicate">Du hast bereits ein Lesezeichen mit diesem Namen</string>

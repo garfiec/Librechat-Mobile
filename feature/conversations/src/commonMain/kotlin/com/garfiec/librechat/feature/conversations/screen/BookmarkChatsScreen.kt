@@ -239,6 +239,7 @@ fun BookmarkChatsScreen(
             editing = editor.editing?.tag,
             initialDescription = editor.editing?.description.orEmpty(),
             saving = editor.saving,
+            error = editor.error?.let { stringResource(it.message) },
         )
     }
 

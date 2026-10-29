@@ -56,6 +56,8 @@ fun ConversationActionsMenu(
     onRenameRequest: () -> Unit,
     onArchive: () -> Unit,
     onDeleteRequest: () -> Unit,
+    // Required: a call site that leaves it out would offer Favorite and Bookmarks… to a gated user.
+    bookmarksEnabled: Boolean,
     modifier: Modifier = Modifier,
     /** Opens the chat's bookmark checklist; null leaves "Bookmarks…" out. */
     onBookmarks: (() -> Unit)? = null,
@@ -70,7 +72,6 @@ fun ConversationActionsMenu(
     onMoveToProject: () -> Unit = {},
     showMoveToProject: Boolean = false,
     showShareAction: Boolean = false,
-    bookmarksEnabled: Boolean = true,
     // Position offset relative to the anchor; callers feed the long-press point so the menu
     // opens with its left edge under the finger.
     offset: DpOffset = DpOffset.Zero,

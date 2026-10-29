@@ -60,6 +60,25 @@ class BookmarkNameRulesTest {
         assertEquals(BookmarkNameCheck.Reserved, check("saved", editing = "Work"))
     }
 
+    @Test
+    fun `a name the edit leaves unchanged passes even where a new one wouldn't`() {
+        assertEquals(BookmarkNameCheck.Ok, BookmarkNameRules.validateName("SAVED", listOf("SAVED"), editing = "SAVED"))
+        assertEquals(BookmarkNameCheck.Ok, BookmarkNameRules.validateName("work", listOf("Work", "work"), editing = "work"))
+        val long = "a".repeat(BookmarkNameRules.MAX_NAME + 1)
+        assertEquals(BookmarkNameCheck.Ok, BookmarkNameRules.validateName(long, listOf(long), editing = long))
+        assertEquals(BookmarkNameCheck.Blank, BookmarkNameRules.validateName("  ", listOf("Work"), editing = "Work"))
+    }
+
+    @Test
+    fun `a rename away from a name the rules refuse is still checked`() {
+        assertEquals(BookmarkNameCheck.Reserved, BookmarkNameRules.validateName("Saved", listOf("work"), editing = "work"))
+        assertEquals(BookmarkNameCheck.Reserved, BookmarkNameRules.validateName("Saved", listOf("SAVED"), editing = "SAVED"))
+        assertEquals(
+            BookmarkNameCheck.Duplicate,
+            BookmarkNameRules.validateName("WORK", listOf("Work", "work"), editing = "work"),
+        )
+    }
+
     private val wireJson = Json { encodeDefaults = false }
 
     @Test

@@ -32,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -39,9 +40,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
@@ -75,14 +78,18 @@ data class BookmarkItem(
 /**
  * The per-chat bookmark checklist. [items] in the order the user keeps them (Saved never among
  * them); [attached] the ones this chat carries; [pending] the ones whose save is still out, shown
- * disabled; [loading] while the chat's own bookmarks are being read, when no tick can be trusted.
+ * disabled; [loading] while the chat's own bookmarks are being read, when no tick can be trusted;
+ * [error] why the last tick didn't save, shown under the title (a snackbar would sit behind the sheet).
+ * [conversationId] is the chat the checklist is for: its search belongs to that chat alone.
  */
 @Immutable
 data class BookmarkPickerUiState(
+    val conversationId: String? = null,
     val items: List<BookmarkItem> = emptyList(),
     val attached: Set<String> = emptySet(),
     val pending: Set<String> = emptySet(),
     val loading: Boolean = false,
+    val error: String? = null,
 )
 
 /** At this many bookmarks the checklist gets a search field. */
@@ -119,7 +126,9 @@ fun ColumnScope.BookmarkPickerSheetContent(
     modifier: Modifier = Modifier,
 ) {
     // Session-only, like every local search here: a reopened sheet starts with the whole list.
-    var query by rememberSaveable { mutableStateOf("") }
+    // Keyed on the chat, as restoring doesn't check inputs: after process death another chat's
+    // checklist would otherwise open with this one's filter.
+    var query by key(state.conversationId) { rememberSaveable { mutableStateOf("") } }
     val searchable = state.items.size >= BOOKMARK_SEARCH_THRESHOLD
     val trimmed = query.trim()
     val shown = remember(state.items, trimmed, searchable) {
@@ -137,6 +146,17 @@ fun ColumnScope.BookmarkPickerSheetContent(
             .padding(horizontal = 24.dp, vertical = 8.dp)
             .semantics { heading() },
     )
+    state.error?.let { error ->
+        Text(
+            text = error,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 4.dp)
+                .semantics { liveRegion = LiveRegionMode.Polite },
+        )
+    }
     if (searchable && !state.loading) {
         AdaptiveOutlinedTextField(
             value = query,

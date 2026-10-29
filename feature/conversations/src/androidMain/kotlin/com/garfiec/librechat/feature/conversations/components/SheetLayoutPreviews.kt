@@ -58,6 +58,7 @@ private fun ConversationActionsHost() {
         onRename = {},
         onArchive = {},
         onDelete = {},
+        bookmarksEnabled = true,
         showShareAction = true,
     )
 }

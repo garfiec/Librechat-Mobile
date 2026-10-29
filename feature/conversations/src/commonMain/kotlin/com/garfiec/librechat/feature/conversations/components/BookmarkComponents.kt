@@ -15,6 +15,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -62,6 +64,8 @@ import com.garfiec.librechat.feature.conversations.resources.bookmark_no_chats
 import com.garfiec.librechat.feature.conversations.resources.bookmark_options
 import com.garfiec.librechat.feature.conversations.resources.cancel
 import com.garfiec.librechat.feature.conversations.resources.delete
+import com.garfiec.librechat.feature.conversations.resources.project_move_down
+import com.garfiec.librechat.feature.conversations.resources.project_move_up
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import com.garfiec.librechat.core.ui.resources.Res as CoreRes
@@ -72,7 +76,8 @@ private val TileSize = 40.dp
 /**
  * A bookmark on the Bookmarks index: its tile, name, description and how many chats carry it, with
  * Edit and Delete under ⋮. [lifted] while a drag holds it: raised, and opaque so the cards it passes
- * over don't show through it.
+ * over don't show through it. [onMoveUp] / [onMoveDown], when given, add Move up / Move down to the ⋮:
+ * the way to reorder where a hold can't pick the card up (two columns).
  */
 @Composable
 internal fun BookmarkCard(
@@ -81,7 +86,11 @@ internal fun BookmarkCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    /** On the ⋮: [excludedFromReorder], so holding it opens the menu and doesn't pick the card up. */
+    menuModifier: Modifier = Modifier,
     lifted: Boolean = false,
+    onMoveUp: (() -> Unit)? = null,
+    onMoveDown: (() -> Unit)? = null,
 ) {
     val name = bookmark.tag.orEmpty()
     val liftElevation by animateDpAsState(if (lifted) 6.dp else 0.dp, label = "BookmarkLiftElevation")
@@ -131,7 +140,13 @@ internal fun BookmarkCard(
                     modifier = Modifier.padding(top = 8.dp),
                 )
             }
-            BookmarkMenuButton(onEdit = onEdit, onDelete = onDelete)
+            BookmarkMenuButton(
+                onEdit = onEdit,
+                onDelete = onDelete,
+                onMoveUp = onMoveUp,
+                onMoveDown = onMoveDown,
+                modifier = menuModifier,
+            )
         }
     }
 }
@@ -141,11 +156,17 @@ internal fun BookmarkCard(
  * finger on release, as on the project cards.
  */
 @Composable
-private fun BookmarkMenuButton(onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun BookmarkMenuButton(
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onMoveUp: (() -> Unit)?,
+    onMoveDown: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
     var expanded by remember { mutableStateOf(false) }
     val drag = rememberMenuDragSelection()
     Box(
-        modifier = Modifier.menuDragAnchor(
+        modifier = modifier.menuDragAnchor(
             drag,
             opensOnDrag = false,
             onOpen = { expanded = true },
@@ -166,6 +187,18 @@ private fun BookmarkMenuButton(onEdit: () -> Unit, onDelete: () -> Unit) {
             BookmarkMenuItem(drag, Icons.Default.Edit, stringResource(CoreRes.string.bookmark_edit)) {
                 expanded = false
                 onEdit()
+            }
+            if (onMoveUp != null) {
+                BookmarkMenuItem(drag, Icons.Default.KeyboardArrowUp, stringResource(Res.string.project_move_up)) {
+                    expanded = false
+                    onMoveUp()
+                }
+            }
+            if (onMoveDown != null) {
+                BookmarkMenuItem(drag, Icons.Default.KeyboardArrowDown, stringResource(Res.string.project_move_down)) {
+                    expanded = false
+                    onMoveDown()
+                }
             }
             BookmarkMenuItem(
                 drag,

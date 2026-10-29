@@ -296,6 +296,7 @@
     <string name="bookmark_add_to_chat">添加到此对话</string>
     <string name="bookmark_create">创建</string>
     <string name="bookmark_save">保存</string>
+    <string name="bookmark_saving">正在保存…</string>
     <string name="bookmark_cancel">取消</string>
     <string name="bookmark_error_blank">请输入名称</string>
     <string name="bookmark_error_duplicate">已有同名书签</string>

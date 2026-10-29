@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.db.dao.ConversationDao
 import com.garfiec.librechat.core.data.db.dao.ConversationTagDao
+import com.garfiec.librechat.core.data.db.dao.ConversationTagsRow
 import com.garfiec.librechat.core.data.db.entity.ConversationEntity
 import com.garfiec.librechat.core.data.db.entity.ConversationTagEntity
 import com.garfiec.librechat.core.model.Conversation
@@ -22,16 +23,25 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.junit.Before
 import org.junit.Test
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TagRepositoryImplTest {
@@ -61,6 +71,7 @@ class TagRepositoryImplTest {
             conversationDao = conversationDao,
             activeAccountProvider = activeAccountProvider,
             changes = changes,
+            applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
         )
         // Every name these tests attach already exists, unless a test says otherwise.
         coEvery { tagDao.getTagsForAccount(account.value) } returns
@@ -316,12 +327,42 @@ class TagRepositoryImplTest {
     }
 
     @Test
-    fun `an existing name is not re-created`() = runTest {
+    fun `an existing name is posted as it is before the chat PUT, which the server returns unchanged`() = runTest {
         serverHas("convo-1")
         coEvery { tagsApi.updateConversationTags(any(), any()) } returns listOf("work")
 
         repository.setConversationTag("convo-1", "work", attached = true)
 
+        coVerifyOrder {
+            tagsApi.createTag("work", null, false, null)
+            tagsApi.updateConversationTags("convo-1", listOf("work"))
+        }
+        coVerify(exactly = 1) { tagsApi.createTag(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `a name the cache has but the server lost is posted before the chat PUT, never made by it`() = runTest {
+        // Deleted on the web since the last refresh: the cached list (setup) still has "work".
+        coEvery { tagsApi.getTags() } returns listOf(ConversationTag(tag = "personal", count = 1, position = 1))
+        serverHas("convo-1")
+        coEvery { tagsApi.updateConversationTags(any(), any()) } returns listOf("work")
+
+        repository.setConversationTag("convo-1", "work", attached = true)
+
+        coVerifyOrder {
+            tagsApi.createTag("work", null, false, null)
+            tagsApi.updateConversationTags("convo-1", listOf("work"))
+        }
+    }
+
+    @Test
+    fun `an untick posts nothing`() = runTest {
+        serverHas("convo-1", "work")
+        coEvery { tagsApi.updateConversationTags(any(), any()) } returns emptyList()
+
+        repository.setConversationTag("convo-1", "work", attached = false)
+
+        coVerify(exactly = 1) { tagsApi.updateConversationTags("convo-1", emptyList()) }
         coVerify(exactly = 0) { tagsApi.createTag(any(), any(), any(), any()) }
     }
 
@@ -330,81 +371,133 @@ class TagRepositoryImplTest {
         assertThat(repository.setConversationTag("convo-1", "  ", attached = true)).isInstanceOf(Result.Error::class.java)
         coVerify(exactly = 0) { conversationsApi.getConversation(any()) }
 
-        serverHas("convo-1", "", "web-only")
+        serverHas("convo-1", "", " ", "web-only")
         coEvery { tagsApi.updateConversationTags(any(), any()) } returns listOf("web-only", "work", "")
-        val result = repository.setConversationTag("convo-1", " work ", attached = true)
+        val result = repository.setConversationTag("convo-1", "work", attached = true)
 
         coVerify { tagsApi.updateConversationTags("convo-1", listOf("web-only", "work")) }
         assertThat((result as Result.Success).data).containsExactly("web-only", "work").inOrder()
     }
 
     @Test
+    fun `a server name with surrounding spaces is sent back as it is, and no near-duplicate is created`() = runTest {
+        // Web stores bookmark names as typed, so "Work " is its own bookmark.
+        coEvery { tagDao.getTagsForAccount(account.value) } returns
+            listOf(tagRow(1L, "Work ", 0), tagRow(2L, "personal", 1))
+        serverHas("convo-1", "Work ")
+        coEvery { tagsApi.updateConversationTags(any(), any()) } returns listOf("Work ", "personal")
+
+        val result = repository.setConversationTag("convo-1", "personal", attached = true)
+
+        coVerify(exactly = 1) { tagsApi.updateConversationTags("convo-1", listOf("Work ", "personal")) }
+        // Only the name being added is posted, and never a trimmed copy of the one already there.
+        coVerify(exactly = 1) { tagsApi.createTag(any(), any(), any(), any()) }
+        coVerify(exactly = 1) { tagsApi.createTag("personal", null, false, null) }
+        assertThat((result as Result.Success).data).containsExactly("Work ", "personal").inOrder()
+    }
+
+    @Test
+    fun `ticking a server name with surrounding spaces attaches that bookmark, not a new one`() = runTest {
+        coEvery { tagDao.getTagsForAccount(account.value) } returns listOf(tagRow(1L, "Work ", 0))
+        serverHas("convo-1")
+        coEvery { tagsApi.updateConversationTags(any(), any()) } returns listOf("Work ")
+
+        repository.setConversationTag("convo-1", "Work ", attached = true)
+
+        coVerify(exactly = 1) { tagsApi.updateConversationTags("convo-1", listOf("Work ")) }
+        // Posted as it is, which the server answers with the existing bookmark: no trimmed "Work".
+        coVerify(exactly = 1) { tagsApi.createTag(any(), any(), any(), any()) }
+        coVerify(exactly = 1) { tagsApi.createTag("Work ", null, false, null) }
+    }
+
+    @Test
+    fun `a chat's cached tags keep their spaces`() = runTest {
+        every { conversationDao.observeByIdForAccount("c1", account.value) } returns
+            flowOf(chatRow("c1", """["Work ","work"]"""))
+
+        assertThat(repository.observeConversationTags("c1").first()).containsExactly("Work ", "work").inOrder()
+    }
+
+    @Test
     fun `concurrent writes to one chat read and write one after the other`() = runTest {
         // The server holds whatever the last PUT stored; each read must see the previous write.
-        var stored = listOf<String>()
-        coEvery { conversationsApi.getConversation("convo-1") } answers {
-            Conversation(conversationId = "convo-1", tags = stored)
+        val stored = AtomicReference(listOf<String>())
+        val reads = AtomicInteger(0)
+        val firstRead = CompletableDeferred<Unit>()
+        coEvery { conversationsApi.getConversation("convo-1") } coAnswers {
+            // The first read is held, so a second write that didn't wait would read now.
+            if (reads.getAndIncrement() == 0) firstRead.await()
+            Conversation(conversationId = "convo-1", tags = stored.get())
         }
         coEvery { tagsApi.updateConversationTags("convo-1", any()) } answers {
-            stored = secondArg()
-            stored
+            stored.set(secondArg())
+            stored.get()
         }
 
-        listOf(
+        val writes = listOf(
             async { repository.setConversationTag("convo-1", "work", attached = true) },
             async { repository.setConversationTag("convo-1", "personal", attached = true) },
-        ).awaitAll()
+        )
+        waitUntil { reads.get() >= 1 }
+        realDelay()
 
-        assertThat(stored).containsExactly("work", "personal")
+        assertThat(reads.get()).isEqualTo(1)
+        firstRead.complete(Unit)
+        writes.awaitAll()
+        assertThat(stored.get()).containsExactly("work", "personal")
     }
 
-    // --- toggleFavorite ---
-
     @Test
-    fun `toggleFavorite adds SAVED_TAG to the server's set when the row showed it off`() = runTest {
-        serverHas("convo-1", "work", "web-only")
-        coEvery { tagsApi.updateConversationTags(any(), any()) } returns listOf("work", "web-only", SAVED_TAG)
-
-        val result = repository.toggleFavorite("convo-1", currentTags = listOf("work"))
-
-        assertThat(result).isInstanceOf(Result.Success::class.java)
-        coVerify(exactly = 1) {
-            tagsApi.updateConversationTags("convo-1", listOf("work", "web-only", SAVED_TAG))
+    fun `reading a chat's tags waits for a write still out`() = runTest {
+        // A checklist reopened while a tick is saving: the write has read, its PUT hasn't answered.
+        val stored = AtomicReference(listOf<String>())
+        val reads = AtomicInteger(0)
+        val put = CompletableDeferred<Unit>()
+        coEvery { conversationsApi.getConversation("convo-1") } answers {
+            reads.incrementAndGet()
+            Conversation(conversationId = "convo-1", tags = stored.get())
         }
-        coVerify(exactly = 1) {
-            conversationDao.updateTags("convo-1", """["work","web-only","Saved"]""", any(), account.value)
+        coEvery { tagsApi.updateConversationTags("convo-1", any()) } coAnswers {
+            put.await()
+            stored.set(secondArg())
+            stored.get()
         }
+
+        val write = async { repository.setConversationTag("convo-1", "work", attached = true) }
+        waitUntil { reads.get() >= 1 }
+        val read = async { repository.getConversationTags("convo-1") }
+        realDelay()
+
+        assertThat(reads.get()).isEqualTo(1)
+        put.complete(Unit)
+        write.await()
+        assertThat((read.await() as Result.Success).data).containsExactly("work")
+    }
+
+    /** Real time: the repository's calls run on Dispatchers.IO, past the test's virtual clock. */
+    private suspend fun waitUntil(condition: () -> Boolean) = withContext(Dispatchers.Default) {
+        withTimeout(REAL_WAIT_MS * 50) { while (!condition()) delay(REAL_POLL_MS) }
+    }
+
+    private suspend fun realDelay() = withContext(Dispatchers.Default) { delay(REAL_WAIT_MS) }
+
+    // --- observeCachedTags ---
+
+    @Test
+    fun `cached tags are read for the ids asked, from this account's rows`() = runTest {
+        every { conversationDao.observeTagsFor(account.value, listOf("a", "b")) } returns flowOf(
+            listOf(ConversationTagsRow("a", """["Saved"," ","work"]"""), ConversationTagsRow("b", "[]")),
+        )
+
+        val cached = repository.observeCachedTags(listOf("a", "b", "a", "")).first()
+
+        assertThat(cached).containsExactly("a", listOf(SAVED_TAG, "work"), "b", emptyList<String>())
     }
 
     @Test
-    fun `toggleFavorite removes SAVED_TAG and keeps the rest of the server's set`() = runTest {
-        serverHas("convo-1", "web-only", SAVED_TAG)
-        coEvery { tagsApi.updateConversationTags(any(), any()) } returns listOf("web-only")
-
-        repository.toggleFavorite("convo-1", currentTags = listOf(SAVED_TAG))
-
-        coVerify(exactly = 1) { tagsApi.updateConversationTags("convo-1", listOf("web-only")) }
-    }
-
-    @Test
-    fun `toggleFavorite removes SAVED_TAG when it is the only tag`() = runTest {
-        serverHas("convo-1", SAVED_TAG)
-        coEvery { tagsApi.updateConversationTags(any(), any()) } returns emptyList()
-
-        repository.toggleFavorite("convo-1", currentTags = listOf(SAVED_TAG))
-
-        coVerify(exactly = 1) { tagsApi.updateConversationTags("convo-1", emptyList()) }
-    }
-
-    @Test
-    fun `toggleFavorite returns Error when api throws and skips local update`() = runTest {
-        serverHas("convo-1")
-        coEvery { tagsApi.updateConversationTags(any(), any()) } throws RuntimeException("boom")
-
-        val result = repository.toggleFavorite("convo-1", currentTags = emptyList())
-
-        assertThat(result).isInstanceOf(Result.Error::class.java)
-        coVerify(exactly = 0) { conversationDao.updateTags(any(), any(), any(), any()) }
+    fun `no ids ask nothing of the cache`() = runTest {
+        assertThat(repository.observeCachedTags(emptyList()).first()).isEmpty()
+        coVerify(exactly = 0) { conversationDao.observeTagsFor(any(), any()) }
     }
 
     // --- getConversationTags ---
@@ -421,54 +514,7 @@ class TagRepositoryImplTest {
         assertThat(upserted.captured.tags).isEqualTo("""["web-only","Saved"]""")
     }
 
-    // --- create / update / delete ---
-
-    @Test
-    fun `createTag posts the trimmed name, refreshes and bumps`() = runTest {
-        coEvery { tagsApi.createTag(any(), any(), any(), any()) } returns ConversationTag(tag = "Recipes")
-
-        val result = repository.createTag("  Recipes ", description = "  ")
-
-        coVerify(exactly = 1) { tagsApi.createTag("Recipes", null, false, null) }
-        coVerify(exactly = 1) { tagsApi.getTags() }
-        assertThat((result as Result.Success).data.tag).isEqualTo("Recipes")
-        assertThat(repository.revision.value).isEqualTo(1L)
-    }
-
-    @Test
-    fun `createTag refuses a blank name without a request`() = runTest {
-        assertThat(repository.createTag(" ")).isInstanceOf(Result.Error::class.java)
-        coVerify(exactly = 0) { tagsApi.createTag(any(), any(), any(), any()) }
-    }
-
-    @Test
-    fun `createTag for a chat asks the server to attach it, then caches the chat's tags`() = runTest {
-        coEvery { tagsApi.createTag(any(), any(), any(), any()) } returns ConversationTag(tag = "Recipes")
-        // A new name: the server attached it during the POST, so the read already shows it.
-        serverHas("convo-1", "web-only", "Recipes")
-
-        repository.createTag("Recipes", description = "Food", addToConversationId = "convo-1")
-
-        coVerify(exactly = 1) { tagsApi.createTag("Recipes", "Food", true, "convo-1") }
-        coVerify(exactly = 0) { tagsApi.updateConversationTags(any(), any()) }
-        coVerify(exactly = 1) { conversationDao.upsert(match<ConversationEntity> { it.tags == """["web-only","Recipes"]""" }) }
-    }
-
-    @Test
-    fun `createTag of a name that already existed still attaches it to the chat`() = runTest {
-        // The server returns an existing tag early and skips the attach.
-        coEvery { tagsApi.createTag(any(), any(), any(), any()) } returns ConversationTag(tag = "work")
-        serverHas("convo-1", "web-only")
-        coEvery { tagsApi.updateConversationTags(any(), any()) } returns listOf("web-only", "work")
-
-        coEvery { tagDao.getTagsForAccount(account.value) } returns emptyList() // cache hasn't caught up
-
-        repository.createTag("work", addToConversationId = "convo-1")
-
-        coVerify(exactly = 1) { tagsApi.updateConversationTags("convo-1", listOf("web-only", "work")) }
-        // The POST already made sure the name exists; the attach doesn't post it again.
-        coVerify(exactly = 1) { tagsApi.createTag(any(), any(), any(), any()) }
-    }
+    // --- update / delete ---
 
     @Test
     fun `updateTag sends the fields given, refreshes and bumps`() = runTest {
@@ -631,6 +677,97 @@ class TagRepositoryImplTest {
         coVerify(exactly = 0) { tagDao.upsertAll(any()) }
     }
 
+    /**
+     * A server holding [rows] that answers `PUT /api/tags/:tag {position}` the way upstream's
+     * `updateConversationTag` does: `adjustPositions` on the others, then the new position. Returns
+     * the server's tag names in `position` order after the PUTs.
+     */
+    private fun serverWithPositions(rows: List<ConversationTagEntity>): () -> List<String> {
+        val positions = rows.associate { it.tag to it.position }.toMutableMap()
+        coEvery { tagsApi.updateTag(any(), any(), any(), any()) } answers {
+            val tag = firstArg<String>()
+            val new = arg<Int?>(3)
+            val old = positions.getValue(tag)
+            if (new != null && new != old) {
+                for ((other, position) in positions.toMap()) {
+                    when {
+                        old < new && position > old && position <= new -> positions[other] = position - 1
+                        old > new && position >= new && position < old -> positions[other] = position + 1
+                    }
+                }
+                positions[tag] = new
+            }
+            ConversationTag(tag = tag, position = positions.getValue(tag))
+        }
+        return {
+            // Ties would sort in no fixed order: fail on one rather than pick.
+            assertThat(positions.values.filter { it >= 0 }.toSet().size).isEqualTo(positions.size)
+            positions.entries.sortedBy { it.value }.map { it.key }
+        }
+    }
+
+    @Test
+    fun `reorder over tied positions spreads them first, so the move lands`() = runTest {
+        // What the old mobile picker left behind: names the chat PUT created, all at position 0.
+        val tied = listOf(
+            tagRow(1, "Work", 0),
+            tagRow(2, "Recipes", 0),
+            tagRow(3, SAVED_TAG, 0),
+            tagRow(4, "Trips", 1),
+        )
+        coEvery { tagDao.getTagsForAccount(account.value) } returns tied
+        val serverOrder = serverWithPositions(tied)
+        val written = slot<List<ConversationTagEntity>>()
+        coEvery { tagDao.upsertAll(capture(written)) } just Runs
+
+        val result = repository.reorderTag("Recipes", toIndex = 0)
+
+        assertThat(result).isInstanceOf(Result.Success::class.java)
+        assertThat(serverOrder().filter { it != SAVED_TAG }).containsExactly("Recipes", "Work", "Trips").inOrder()
+        // The cache shows the order the server now holds, without waiting for the refresh.
+        assertThat(written.captured.filter { it.tag != SAVED_TAG }.sortedBy { it.position }.map { it.tag })
+            .containsExactly("Recipes", "Work", "Trips").inOrder()
+        assertThat(repository.revision.value).isEqualTo(1L)
+    }
+
+    @Test
+    fun `tied positions moved to the end land there too`() = runTest {
+        val tied = listOf(tagRow(1, "A", 0), tagRow(2, "B", 0), tagRow(3, "C", 0))
+        coEvery { tagDao.getTagsForAccount(account.value) } returns tied
+        val serverOrder = serverWithPositions(tied)
+
+        repository.reorderTag("A", toIndex = 2)
+
+        assertThat(serverOrder()).containsExactly("B", "C", "A").inOrder()
+    }
+
+    @Test
+    fun `distinct positions are moved with a single PUT`() = runTest {
+        coEvery { tagDao.getTagsForAccount(account.value) } returns ordered
+        val serverOrder = serverWithPositions(ordered)
+
+        repository.reorderTag("C", toIndex = 0)
+
+        coVerify(exactly = 1) { tagsApi.updateTag(any(), any(), any(), any()) }
+        assertThat(serverOrder()).containsExactly("C", "A", SAVED_TAG, "B").inOrder()
+    }
+
+    @Test
+    fun `a spread that fails partway re-reads the server's order`() = runTest {
+        val tied = listOf(tagRow(1, "A", 0), tagRow(2, "B", 0))
+        coEvery { tagDao.getTagsForAccount(account.value) } returns tied
+        coEvery { tagsApi.updateTag("B", any(), any(), any()) } throws RuntimeException("500")
+
+        val result = repository.reorderTag("B", toIndex = 0)
+
+        assertThat(result).isInstanceOf(Result.Error::class.java)
+        coVerifyOrder {
+            tagDao.replaceAllForAccount(account.value, tied)
+            tagsApi.getTags()
+        }
+        assertThat(repository.revision.value).isEqualTo(0L)
+    }
+
     @Test
     fun `clearCache deletes only the active account's tags`() = runTest {
         coEvery { tagDao.deleteAllForAccount(any()) } just Runs
@@ -638,5 +775,10 @@ class TagRepositoryImplTest {
         repository.clearCache()
 
         coVerify(exactly = 1) { tagDao.deleteAllForAccount(account.value) }
+    }
+
+    private companion object {
+        const val REAL_WAIT_MS = 100L
+        const val REAL_POLL_MS = 5L
     }
 }

@@ -74,6 +74,7 @@ import com.garfiec.librechat.core.ui.resources.search_bookmarks
 import com.garfiec.librechat.feature.conversations.components.BookmarkCard
 import com.garfiec.librechat.feature.conversations.components.BookmarkCardPlaceholder
 import com.garfiec.librechat.feature.conversations.components.BookmarkDeleteDialog
+import com.garfiec.librechat.feature.conversations.components.excludedFromReorder
 import com.garfiec.librechat.feature.conversations.components.lazyReorder
 import com.garfiec.librechat.feature.conversations.components.rememberLazyReorderState
 import com.garfiec.librechat.feature.conversations.components.rememberPickUpHaptic
@@ -212,6 +213,7 @@ fun BookmarksScreen(
             editing = editor.editing?.tag,
             initialDescription = editor.editing?.description.orEmpty(),
             saving = editor.saving,
+            error = editor.error?.let { stringResource(it.message) },
         )
     }
 
@@ -228,7 +230,8 @@ fun BookmarksScreen(
     }
 }
 
-private val BookmarksFailure.message: StringResource
+/** What a failure on the Bookmarks screens tells the user. */
+internal val BookmarksFailure.message: StringResource
     get() = when (this) {
         BookmarksFailure.LOAD -> Res.string.bookmarks_load_error
         BookmarksFailure.CREATE -> Res.string.bookmark_create_failed
@@ -339,12 +342,17 @@ internal fun BookmarksGrid(
                 val key = cardKey(name)
                 val held = reorder.heldId == key
                 val index = allNames.indexOf(name)
+                // Two columns: a hold doesn't pick a card up, so the ⋮ offers the moves instead.
+                val menuMoves = state.canReorder && !singleColumn
                 BookmarkCard(
                     bookmark = bookmark,
                     onClick = { actions.onClick(name) },
                     onEdit = { actions.onEdit(name) },
                     onDelete = { actions.onDelete(bookmark) },
                     lifted = held,
+                    menuModifier = Modifier.excludedFromReorder(reorder),
+                    onMoveUp = if (menuMoves && index > 0) ({ actions.onMoveBy(name, -1) }) else null,
+                    onMoveDown = if (menuMoves && index in 0 until allNames.lastIndex) ({ actions.onMoveBy(name, 1) }) else null,
                     modifier = Modifier
                         // The held card follows the finger; the rest slide aside to open its new slot.
                         .then(if (held) Modifier else Modifier.animateItem())

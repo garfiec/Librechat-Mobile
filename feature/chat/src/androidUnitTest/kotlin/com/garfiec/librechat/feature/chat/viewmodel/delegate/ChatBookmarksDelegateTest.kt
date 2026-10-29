@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.bookmarks.BookmarkPickerFailure
 import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.model.ConversationTag
 import com.garfiec.librechat.core.model.Message
@@ -69,6 +70,42 @@ class ChatBookmarksDelegateTest {
         runCurrent()
 
         assertThat(h.root.state.hasBookmark).isTrue()
+    }
+
+    @Test
+    fun `opening a chat reads its bookmarks from the server once, and the icon follows`() = runTest {
+        // A chat bookmarked on the web: its cached row came from the list, without tags.
+        coEvery { tagRepository.getConversationTags("c1") } coAnswers {
+            cachedTags("c1").value = listOf("work")
+            Result.Success(listOf("work"))
+        }
+        val h = harness(chat())
+        runCurrent()
+
+        assertThat(h.root.state.hasBookmark).isTrue()
+        h.root.stateFlow.update { it.copy(content = it.content.copy(messages = listOf(Message(messageId = "m1", conversationId = "c1")))) }
+        runCurrent()
+        coVerify(exactly = 1) { tagRepository.getConversationTags("c1") }
+    }
+
+    @Test
+    fun `a failed read on open leaves the cached icon`() = runTest {
+        cachedTags("c1").value = listOf("work")
+        coEvery { tagRepository.getConversationTags("c1") } returns Result.Error(message = "offline")
+        val h = harness(chat())
+        runCurrent()
+
+        assertThat(h.root.state.hasBookmark).isTrue()
+    }
+
+    @Test
+    fun `no read for a new or temporary chat, or with bookmarks off`() = runTest {
+        harness(chat(conversationId = null))
+        harness(chat(temporary = true))
+        harness(chat(bookmarksEnabled = false))
+        runCurrent()
+
+        coVerify(exactly = 0) { tagRepository.getConversationTags(any()) }
     }
 
     @Test
@@ -234,7 +271,7 @@ class ChatBookmarksDelegateTest {
     }
 
     @Test
-    fun `a failed tick is put back and says so`() = runTest {
+    fun `a failed tick is put back and says so in the sheet, not behind it`() = runTest {
         coEvery { tagRepository.getConversationTags("c1") } returns Result.Success(emptyList())
         coEvery { tagRepository.setConversationTag("c1", "work", true) } returns Result.Error(message = "offline")
         val h = harness(chat())
@@ -247,11 +284,31 @@ class ChatBookmarksDelegateTest {
 
         assertThat(h.delegate.picker.state.value.attached).isEmpty()
         assertThat(h.root.state.hasBookmark).isFalse()
+        assertThat(h.delegate.picker.state.value.error).isEqualTo(BookmarkPickerFailure.ToggleFailed("work"))
+        assertThat(h.root.state.error).isNull()
+    }
+
+    @Test
+    fun `a tick that fails after the checklist closed reaches the chat's error line`() = runTest {
+        val answer = CompletableDeferred<Result<List<String>>>()
+        coEvery { tagRepository.getConversationTags("c1") } returns Result.Success(emptyList())
+        coEvery { tagRepository.setConversationTag("c1", "work", true) } coAnswers { answer.await() }
+        val h = harness(chat())
+        runCurrent()
+        h.delegate.open()
+        runCurrent()
+        h.delegate.picker.toggle("work")
+        runCurrent()
+
+        h.delegate.close()
+        answer.complete(Result.Error(message = "offline"))
+        runCurrent()
+
         assertThat(h.root.state.error).isEqualTo(ChatNotice.BOOKMARK_UPDATE_FAILED.marker())
     }
 
     @Test
-    fun `a failed create says so`() = runTest {
+    fun `a failed create says so in the editor`() = runTest {
         coEvery { tagRepository.getConversationTags("c1") } returns Result.Success(emptyList())
         coEvery { tagRepository.createTag("trips", null, "c1") } returns Result.Error(message = "offline")
         val h = harness(chat())
@@ -263,6 +320,7 @@ class ChatBookmarksDelegateTest {
         h.delegate.picker.create("trips", "", addToChat = true)
         runCurrent()
 
-        assertThat(h.root.state.error).isEqualTo(ChatNotice.BOOKMARK_CREATE_FAILED.marker())
+        assertThat(h.delegate.picker.state.value.error).isEqualTo(BookmarkPickerFailure.CreateFailed("trips"))
+        assertThat(h.root.state.error).isNull()
     }
 }

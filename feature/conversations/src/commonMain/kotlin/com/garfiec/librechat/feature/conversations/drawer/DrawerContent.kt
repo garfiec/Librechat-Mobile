@@ -174,6 +174,7 @@ import com.garfiec.librechat.feature.conversations.components.ProjectMenuButton
 import com.garfiec.librechat.feature.conversations.components.ProjectPicker
 import com.garfiec.librechat.feature.conversations.components.ProjectTile
 import com.garfiec.librechat.feature.conversations.components.ShareLinkSheetHost
+import com.garfiec.librechat.feature.conversations.components.excludedFromReorder
 import com.garfiec.librechat.feature.conversations.components.lazyReorder
 import com.garfiec.librechat.feature.conversations.components.rememberLazyReorderState
 import com.garfiec.librechat.feature.conversations.components.rememberPickUpHaptic
@@ -392,7 +393,7 @@ fun DrawerContent(
         onSkillsClick = onSkillsClick,
         onSchedulesClick = onSchedulesClick,
         onBookmarksClick = onBookmarksClick,
-        onToggleFavorite = { data -> viewModel.toggleFavorite(data.conversationId, data.tags) },
+        onToggleFavorite = { data -> viewModel.setFavorite(data.conversationId, favorite = !data.isFavorite) },
         onRefresh = viewModel::refreshConversations,
         onLoadMore = viewModel::loadMoreConversations,
         onRename = { id, newTitle -> viewModel.renameConversation(id, newTitle) },
@@ -1512,6 +1513,8 @@ private fun DrawerProjectsList(
                 menuContent = {
                     // Laid out at the slot's size; M3 still gives it a full-size touch target.
                     ProjectMenuButton(
+                        // Holding the ⋮ opens its menu; without this the folder would lift too.
+                        modifier = Modifier.excludedFromReorder(reorder),
                         buttonSize = ProjectMenuSlot,
                         onNewChat = { onNewChatInProject(folder.id, folder.name) },
                         onEdit = { editTarget = folder },
@@ -1656,12 +1659,12 @@ private fun ProjectFolderAccordion(
 private fun DrawerConversationItem(
     data: DrawerConversationDisplayData,
     onClick: () -> Unit,
+    /** Bookmarks are on: the favorite star shows, leading (when favorited) and as the toggle. */
+    showBookmarkToggle: Boolean,
     modifier: Modifier = Modifier,
     onToggleFavorite: () -> Unit = {},
     onLongPress: () -> Unit = {},
     onMenuCancel: () -> Unit = {},
-    /** Bookmarks are on: the favorite star shows, leading (when favorited) and as the toggle. */
-    showBookmarkToggle: Boolean = true,
     // While searching: the query, so the title's matching words are marked.
     searchQuery: String? = null,
     menuContent: @Composable (DpOffset, MenuDragSelection) -> Unit = { _, _ -> },

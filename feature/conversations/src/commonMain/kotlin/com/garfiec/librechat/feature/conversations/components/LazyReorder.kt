@@ -127,6 +127,18 @@ internal class LazyReorderState(
 
     private val headerHeights = mutableMapOf<String, Int>()
 
+    /** Fingers down on an [excludedFromReorder] control. */
+    private var excludedPresses = 0
+
+    /** A press began on an [excludedFromReorder] control: a hold now belongs to it, not to a pick-up. */
+    fun onExcludedPress() {
+        excludedPresses++
+    }
+
+    fun onExcludedRelease() {
+        if (excludedPresses > 0) excludedPresses--
+    }
+
     /**
      * The height of the part of item [id] a hold picks it up from, when that is less than the whole
      * item: a drawer folder's own row, without the chats an open folder shows under it.
@@ -135,10 +147,15 @@ internal class LazyReorderState(
         headerHeights[id] = height
     }
 
-    /** Picks up the item under [position], if it is one of [ids] and the layout allows it now. */
+    /**
+     * Picks up the item under [position] (in the layout's own coordinates), if it is one of [ids] and
+     * the layout allows it now.
+     */
     fun start(position: Offset, ids: List<String>): Boolean {
-        if (!layout.canReorder) return false
-        val y = position.y.toInt()
+        if (!layout.canReorder || excludedPresses > 0) return false
+        // Item offsets leave out the top content padding (the viewport starts at minus that padding),
+        // so the press is moved into the same space before it is matched to an item.
+        val y = position.y.toInt() + layout.viewportStartOffset
         val item = layout.visibleItems.firstOrNull {
             y in it.offset until it.offset + it.size
         } ?: return false
@@ -324,6 +341,29 @@ internal fun Modifier.lazyReorder(
         }
     }
 }
+
+/**
+ * A control inside an item (its ⋮) whose own hold must win over [lazyReorder]'s pick-up. Both
+ * time the same long press, so the control can't take it by consuming the press: a still finger
+ * sends no event to consume before both timeouts fire. Instead the press is marked from its down,
+ * which reaches this control before the layout's long press can, and the pick-up is refused while
+ * it lasts. The Initial pass sees every change, whatever the control itself then consumes.
+ */
+internal fun Modifier.excludedFromReorder(state: LazyReorderState): Modifier =
+    pointerInput(state) {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            state.onExcludedPress()
+            try {
+                do {
+                    val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id }
+                } while (change != null && change.pressed)
+            } finally {
+                // Also when the control leaves the composition mid-press.
+                state.onExcludedRelease()
+            }
+        }
+    }
 
 @Composable
 internal fun rememberPickUpHaptic(onPickUp: () -> Unit): () -> Unit {

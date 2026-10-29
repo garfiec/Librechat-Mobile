@@ -3597,6 +3597,19 @@
       },
       "why": "The edit and delete routes run `decodeURIComponent` on a tag param Express has already decoded, so the client escapes the name twice. Check that the extra decode is still there.",
       "failure_mode": "If upstream drops the extra decode, a name with `%` or an escaped character is edited or deleted under the wrong spelling: a 404, or the wrong bookmark. Plain names keep working, so it goes unnoticed."
+    },
+    {
+      "id": "tag-position-shift",
+      "upstream": {
+        "file": "packages/data-schemas/src/methods/conversationTag.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/TagRepositoryImpl.kt",
+        "symbol": "shiftPositions"
+      },
+      "why": "Bookmark reordering copies three behaviours of this file. `adjustPositions` shifts the tags between a moved tag's old and new stored position by one (`shiftPositions`, and `spreadPositions` which un-ties positions with it), so `reorderTag` sends the stored position of the tag in the target slot, not an index. `updateTagsForConversation` files a name it hasn't seen at position 0, so `writeChatTag` posts every name it attaches through `POST /api/tags` first, without checking the cached list (which can be stale). That relies on `createConversationTag` returning an existing name early, unchanged and without error; it also skips the attach for it, so `createTag` attaches through the chat PUT.",
+      "failure_mode": "If the shift or the position semantics change (e.g. to the index web sends), a drag lands in the wrong slot after the refresh. If the chat PUT or the create changes, new bookmarks land first in the order, or one isn't added to the chat; if the create starts refusing an existing name, every tick fails. Nothing else errors."
     }
   ]
 }

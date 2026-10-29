@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.conversations.viewmodel
 
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.BookmarksGate
+import com.garfiec.librechat.core.data.repository.CreatedTag
 import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.model.ConversationTag
 import com.garfiec.librechat.core.model.SAVED_TAG
@@ -50,6 +51,8 @@ class BookmarksViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         coEvery { tagRepository.refreshTags() } returns Result.Success(Unit)
+        // A relaxed mock answers with a mocked Result, which reads as neither success nor failure.
+        coEvery { tagRepository.reorderAfter(any(), any()) } returns Result.Success(Unit)
     }
 
     @After
@@ -161,30 +164,46 @@ class BookmarksViewModelTest {
     }
 
     @Test
-    fun `a drop shows the new order at once and sends the moved bookmark's new index`() = runTest(testDispatcher) {
-        tags.value = listOf(tag("A", 0), tag("B", 1), tag("C", 2))
-        val saved = CompletableDeferred<Result<Unit>>()
-        coEvery { tagRepository.reorderTag(any(), any()) } coAnswers { saved.await() }
+    fun `a drop shows the new order at once and hands the repository the card it now sits below`() =
+        runTest(testDispatcher) {
+            tags.value = listOf(tag("A", 0), tag("B", 1), tag("C", 2))
+            val saved = CompletableDeferred<Result<Unit>>()
+            coEvery { tagRepository.reorderAfter(any(), any()) } coAnswers { saved.await() }
+            val viewModel = viewModel()
+            advanceUntilIdle()
+
+            viewModel.onDrop(listOf("C", "A", "B"))
+            runCurrent()
+
+            assertThat(names(viewModel)).containsExactly("C", "A", "B").inOrder()
+            coVerify(exactly = 1) { tagRepository.reorderAfter("C", null) }
+
+            // The repository applies the move to the cache before it answers.
+            tags.value = listOf(tag("C", 0), tag("A", 1), tag("B", 2))
+            saved.complete(Result.Success(Unit))
+            advanceUntilIdle()
+            assertThat(names(viewModel)).containsExactly("C", "A", "B").inOrder()
+        }
+
+    @Test
+    fun `a drop names the card above where it landed`() = runTest(testDispatcher) {
+        tags.value = listOf(tag("A", 0), tag("B", 1), tag("C", 2), tag("D", 3))
         val viewModel = viewModel()
         advanceUntilIdle()
 
-        viewModel.onDrop(listOf("C", "A", "B"))
-        runCurrent()
-
-        assertThat(names(viewModel)).containsExactly("C", "A", "B").inOrder()
-        coVerify(exactly = 1) { tagRepository.reorderTag("C", 0) }
-
-        // The repository applies the move to the cache before it answers.
-        tags.value = listOf(tag("C", 0), tag("A", 1), tag("B", 2))
-        saved.complete(Result.Success(Unit))
+        // D just below B.
+        viewModel.onDrop(listOf("A", "B", "D", "C"))
         advanceUntilIdle()
-        assertThat(names(viewModel)).containsExactly("C", "A", "B").inOrder()
+
+        coVerify(exactly = 1) { tagRepository.reorderAfter("D", "B") }
+        // The repository works out the slot from the server's order; the screen never sends an index.
+        coVerify(exactly = 0) { tagRepository.reorderTag(any(), any()) }
     }
 
     @Test
     fun `a refused move falls back to the cache's order and reports it`() = runTest(testDispatcher) {
         tags.value = listOf(tag("A", 0), tag("B", 1), tag("C", 2))
-        coEvery { tagRepository.reorderTag(any(), any()) } returns Result.Error(RuntimeException("500"), "500")
+        coEvery { tagRepository.reorderAfter(any(), any()) } returns Result.Error(RuntimeException("500"), "500")
         val viewModel = viewModel()
         val events = mutableListOf<BookmarksEvent>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.events.collect { events += it } }
@@ -193,26 +212,93 @@ class BookmarksViewModelTest {
         viewModel.onDrop(listOf("B", "C", "A"))
         advanceUntilIdle()
 
-        coVerify(exactly = 1) { tagRepository.reorderTag("A", 2) }
+        coVerify(exactly = 1) { tagRepository.reorderAfter("A", "C") }
         assertThat(names(viewModel)).containsExactly("A", "B", "C").inOrder()
         assertThat(events).containsExactly(BookmarksEvent.Failed(BookmarksFailure.MOVE))
     }
 
     @Test
-    fun `move up and down use the full list's index, also while searching`() = runTest(testDispatcher) {
+    fun `a second drop while the first is saving holds its own order until both settle`() =
+        runTest(testDispatcher) {
+            tags.value = listOf(tag("A", 0), tag("B", 1), tag("C", 2), tag("D", 3))
+            val first = CompletableDeferred<Result<Unit>>()
+            val second = CompletableDeferred<Result<Unit>>()
+            coEvery { tagRepository.reorderAfter("B", any()) } coAnswers { first.await() }
+            coEvery { tagRepository.reorderAfter("D", any()) } coAnswers { second.await() }
+            val viewModel = viewModel()
+            advanceUntilIdle()
+
+            viewModel.onDrop(listOf("B", "A", "C", "D"))
+            runCurrent()
+            // Read against the order the first drop left on screen, not the cache's.
+            viewModel.onDrop(listOf("B", "D", "A", "C"))
+            runCurrent()
+
+            assertThat(names(viewModel)).containsExactly("B", "D", "A", "C").inOrder()
+            coVerify(exactly = 1) { tagRepository.reorderAfter("B", null) }
+            coVerify(exactly = 1) { tagRepository.reorderAfter("D", "B") }
+
+            // The first lands: the screen keeps the second's order while it runs.
+            tags.value = listOf(tag("B", 0), tag("A", 1), tag("C", 2), tag("D", 3))
+            first.complete(Result.Success(Unit))
+            runCurrent()
+            assertThat(names(viewModel)).containsExactly("B", "D", "A", "C").inOrder()
+
+            tags.value = listOf(tag("B", 0), tag("D", 1), tag("A", 2), tag("C", 3))
+            second.complete(Result.Success(Unit))
+            advanceUntilIdle()
+            assertThat(names(viewModel)).containsExactly("B", "D", "A", "C").inOrder()
+
+            // Both settled: the list follows the cache again.
+            tags.value = listOf(tag("A", 0), tag("B", 1), tag("C", 2), tag("D", 3))
+            advanceUntilIdle()
+            assertThat(names(viewModel)).containsExactly("A", "B", "C", "D").inOrder()
+        }
+
+    @Test
+    fun `when the first of two drops is refused, the second's order stays up and the list then follows the cache`() =
+        runTest(testDispatcher) {
+            tags.value = listOf(tag("A", 0), tag("B", 1), tag("C", 2), tag("D", 3))
+            val first = CompletableDeferred<Result<Unit>>()
+            val second = CompletableDeferred<Result<Unit>>()
+            coEvery { tagRepository.reorderAfter("B", any()) } coAnswers { first.await() }
+            coEvery { tagRepository.reorderAfter("D", any()) } coAnswers { second.await() }
+            val viewModel = viewModel()
+            val events = mutableListOf<BookmarksEvent>()
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.events.collect { events += it } }
+            advanceUntilIdle()
+
+            viewModel.onDrop(listOf("B", "A", "C", "D"))
+            runCurrent()
+            viewModel.onDrop(listOf("D", "B", "A", "C"))
+            runCurrent()
+
+            first.complete(Result.Error(RuntimeException("500"), "500"))
+            runCurrent()
+            assertThat(events).containsExactly(BookmarksEvent.Failed(BookmarksFailure.MOVE))
+            assertThat(names(viewModel)).containsExactly("D", "B", "A", "C").inOrder()
+
+            // The repository moved D to the top of the restored order.
+            tags.value = listOf(tag("D", 0), tag("A", 1), tag("B", 2), tag("C", 3))
+            second.complete(Result.Success(Unit))
+            advanceUntilIdle()
+            assertThat(names(viewModel)).containsExactly("D", "A", "B", "C").inOrder()
+        }
+
+    @Test
+    fun `move up and down use the full list's order, also while searching`() = runTest(testDispatcher) {
         tags.value = listOf(tag("Alpha", 0), tag("Beta", 1), tag("Gamma", 2))
-        coEvery { tagRepository.reorderTag(any(), any()) } returns Result.Success(Unit)
         val viewModel = viewModel()
         advanceUntilIdle()
 
         viewModel.onSearchQueryChange("gamma")
         viewModel.moveBy("Gamma", -1)
         advanceUntilIdle()
-        coVerify(exactly = 1) { tagRepository.reorderTag("Gamma", 1) }
+        coVerify(exactly = 1) { tagRepository.reorderAfter("Gamma", "Alpha") }
 
         viewModel.moveBy("Alpha", -1)
         advanceUntilIdle()
-        coVerify(exactly = 0) { tagRepository.reorderTag("Alpha", any()) }
+        coVerify(exactly = 0) { tagRepository.reorderAfter("Alpha", any()) }
     }
 
     @Test
@@ -225,12 +311,12 @@ class BookmarksViewModelTest {
         viewModel.onDrop(listOf("C", "B", "A", "D"))
         advanceUntilIdle()
 
-        coVerify(exactly = 0) { tagRepository.reorderTag(any(), any()) }
+        coVerify(exactly = 0) { tagRepository.reorderAfter(any(), any()) }
     }
 
     @Test
     fun `creating sends the name and a blank description as none, and closes on success`() = runTest(testDispatcher) {
-        coEvery { tagRepository.createTag(any(), any(), any()) } returns Result.Success(tag("Work"))
+        coEvery { tagRepository.createTag(any(), any(), any()) } returns Result.Success(CreatedTag(tag("Work")))
         val viewModel = viewModel()
         advanceUntilIdle()
 
@@ -244,7 +330,7 @@ class BookmarksViewModelTest {
     }
 
     @Test
-    fun `a failed create keeps the sheet open and reports it`() = runTest(testDispatcher) {
+    fun `a failed create keeps the sheet open and says so in it`() = runTest(testDispatcher) {
         coEvery { tagRepository.createTag(any(), any(), any()) } returns Result.Error(RuntimeException("500"), "500")
         val viewModel = viewModel()
         val events = mutableListOf<BookmarksEvent>()
@@ -255,8 +341,19 @@ class BookmarksViewModelTest {
         viewModel.save("Work", "Client threads")
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.editor).isEqualTo(BookmarkEditorState())
-        assertThat(events).containsExactly(BookmarksEvent.Failed(BookmarksFailure.CREATE))
+        assertThat(viewModel.uiState.value.editor).isEqualTo(BookmarkEditorState(error = BookmarksFailure.CREATE))
+        // A snackbar would sit behind the sheet.
+        assertThat(events).isEmpty()
+
+        // The next try clears it while it runs.
+        val retry = CompletableDeferred<Result<CreatedTag>>()
+        coEvery { tagRepository.createTag(any(), any(), any()) } coAnswers { retry.await() }
+        viewModel.save("Work", "Client threads")
+        runCurrent()
+        assertThat(viewModel.uiState.value.editor).isEqualTo(BookmarkEditorState(saving = true))
+        retry.complete(Result.Success(CreatedTag(tag("Work"))))
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.editor).isNull()
     }
 
     @Test
@@ -279,6 +376,21 @@ class BookmarksViewModelTest {
     }
 
     @Test
+    fun `editing only the description of a name with surrounding spaces doesn't rename it`() = runTest(testDispatcher) {
+        // Web stores names as typed; the sheet sends its fields trimmed.
+        tags.value = listOf(tag("Work ", description = "Client threads"))
+        coEvery { tagRepository.updateTag(any(), any(), any(), any()) } returns Result.Success(tag("Work "))
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        viewModel.openEdit("Work ")
+        viewModel.save("Work", "Client threads, 2026")
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { tagRepository.updateTag("Work ", null, "Client threads, 2026", null) }
+    }
+
+    @Test
     fun `an edit that changed nothing closes without a request`() = runTest(testDispatcher) {
         tags.value = listOf(tag("Work", description = "Client threads"))
         val viewModel = viewModel()
@@ -293,7 +405,7 @@ class BookmarksViewModelTest {
     }
 
     @Test
-    fun `a failed edit or delete is reported`() = runTest(testDispatcher) {
+    fun `a failed edit says so in its sheet, a failed delete in a snackbar`() = runTest(testDispatcher) {
         tags.value = listOf(tag("Work"))
         coEvery { tagRepository.updateTag(any(), any(), any(), any()) } returns Result.Error(RuntimeException("404"), "404")
         coEvery { tagRepository.deleteTag(any()) } returns Result.Error(RuntimeException("500"), "500")
@@ -308,15 +420,13 @@ class BookmarksViewModelTest {
         advanceUntilIdle()
 
         assertThat(viewModel.uiState.value.editor?.saving).isFalse()
-        assertThat(events).containsExactly(
-            BookmarksEvent.Failed(BookmarksFailure.SAVE),
-            BookmarksEvent.Failed(BookmarksFailure.DELETE),
-        )
+        assertThat(viewModel.uiState.value.editor?.error).isEqualTo(BookmarksFailure.SAVE)
+        assertThat(events).containsExactly(BookmarksEvent.Failed(BookmarksFailure.DELETE))
     }
 
     @Test
     fun `the sheet can't be closed while a save is running`() = runTest(testDispatcher) {
-        val created = CompletableDeferred<Result<ConversationTag>>()
+        val created = CompletableDeferred<Result<CreatedTag>>()
         coEvery { tagRepository.createTag(any(), any(), any()) } coAnswers { created.await() }
         val viewModel = viewModel()
         advanceUntilIdle()
@@ -330,7 +440,7 @@ class BookmarksViewModelTest {
 
         assertThat(viewModel.uiState.value.editor?.saving).isTrue()
         coVerify(exactly = 1) { tagRepository.createTag(any(), any(), any()) }
-        created.complete(Result.Success(tag("Work")))
+        created.complete(Result.Success(CreatedTag(tag("Work"))))
         advanceUntilIdle()
         assertThat(viewModel.uiState.value.editor).isNull()
     }

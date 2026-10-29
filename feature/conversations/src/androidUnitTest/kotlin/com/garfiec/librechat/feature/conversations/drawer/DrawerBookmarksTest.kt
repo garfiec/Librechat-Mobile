@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.bookmarks.BookmarkPickerFailure
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
@@ -12,11 +13,12 @@ import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.model.ConversationTag
+import com.garfiec.librechat.core.model.SAVED_TAG
 import com.garfiec.librechat.core.model.config.InterfaceConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.feature.conversations.resources.Res
-import com.garfiec.librechat.feature.conversations.resources.bookmark_update_failed
+import com.garfiec.librechat.feature.conversations.resources.bookmarks_load_failed
 import com.garfiec.librechat.feature.conversations.resources.favorite_update_failed
 import com.garfiec.librechat.feature.conversations.viewmodel.ConversationListEvent
 import com.google.common.truth.Truth.assertThat
@@ -24,6 +26,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
@@ -54,6 +57,7 @@ class DrawerBookmarksTest {
     private val projectRepository = mockk<ProjectRepository>(relaxed = true) {
         every { revision } returns MutableStateFlow(0L)
     }
+    private val accounts = InMemoryActiveAccountProvider(AccountState.Resolved(AccountId("srv:user")))
 
     private fun viewModel() = DrawerViewModel(
         // The drawer's state only flows once every input has emitted.
@@ -73,7 +77,7 @@ class DrawerBookmarksTest {
         },
         shareLinkControllerFactory = mockk(relaxed = true),
         conversationExporter = mockk(relaxed = true),
-        activeAccountProvider = InMemoryActiveAccountProvider(AccountState.Resolved(AccountId("srv:user"))),
+        activeAccountProvider = accounts,
         settingsDataStore = mockk<SettingsDataStore>(relaxed = true) {
             every { drawerLibraryTab } returns flowOf(null)
         },
@@ -173,10 +177,11 @@ class DrawerBookmarksTest {
     }
 
     @Test
-    fun `failures are told in the user's language`() = drawerTest { vm ->
+    fun `failures are told in the user's language, a tick's inside the open sheet`() = drawerTest { vm ->
         coEvery { tagRepository.getConversationTags("c1") } returns Result.Success(emptyList())
+        coEvery { tagRepository.getConversationTags("c2") } returns Result.Error(message = "offline")
         coEvery { tagRepository.setConversationTag("c1", "work", true) } returns Result.Error(message = "boom")
-        coEvery { tagRepository.toggleFavorite("c1", any()) } returns Result.Error(message = "boom")
+        coEvery { tagRepository.setConversationTag("c1", SAVED_TAG, true) } returns Result.Error(message = "boom")
         val events = mutableListOf<ConversationListEvent>()
         backgroundScope.launch { vm.events.collect { events += it } }
         settle()
@@ -185,12 +190,80 @@ class DrawerBookmarksTest {
         settle()
         vm.bookmarkPicker.toggle("work")
         settle()
-        vm.toggleFavorite("c1", emptyList())
+        // A toast or snackbar would sit behind the sheet: the sheet says it.
+        assertThat(vm.bookmarkPicker.state.value.error).isEqualTo(BookmarkPickerFailure.ToggleFailed("work"))
+        vm.bookmarkPicker.close()
+        vm.setFavorite("c1", favorite = true)
+        settle()
+        vm.openBookmarks("c2")
         settle()
 
         assertThat(events).containsExactly(
-            ConversationListEvent.ShowErrorRes(Res.string.bookmark_update_failed),
             ConversationListEvent.ShowErrorRes(Res.string.favorite_update_failed),
+            ConversationListEvent.ShowErrorRes(Res.string.bookmarks_load_failed),
         ).inOrder()
+    }
+
+    @Test
+    fun `an account switch closes the checklist, so a late tick can't write to the new account`() = drawerTest { vm ->
+        coEvery { tagRepository.getConversationTags("c1") } returns Result.Success(emptyList())
+        settle()
+        vm.openBookmarks("c1")
+        settle()
+        assertThat(vm.bookmarkPicker.state.value.isOpen).isTrue()
+
+        accounts.set(AccountId("srv:other"))
+        settle()
+
+        assertThat(vm.bookmarkPicker.state.value.isOpen).isFalse()
+        vm.bookmarkPicker.toggle("work")
+        settle()
+        coVerify(exactly = 0) { tagRepository.setConversationTag(any(), any(), any()) }
+    }
+
+    @Test
+    fun `an account switch drops ticks and stars still out for the old account, unreported`() = drawerTest { vm ->
+        val tick = CompletableDeferred<Result<List<String>>>()
+        val star = CompletableDeferred<Result<List<String>>>()
+        coEvery { tagRepository.getConversationTags("c1") } returns Result.Success(emptyList())
+        coEvery { tagRepository.setConversationTag("c1", "work", true) } coAnswers { tick.await() }
+        coEvery { tagRepository.setConversationTag("c2", SAVED_TAG, true) } coAnswers { star.await() }
+        val events = mutableListOf<ConversationListEvent>()
+        backgroundScope.launch { vm.events.collect { events += it } }
+        settle()
+        vm.openBookmarks("c1")
+        settle()
+        vm.bookmarkPicker.toggle("work")
+        vm.bookmarkPicker.close()
+        vm.setFavorite("c2", favorite = true)
+        settle()
+
+        accounts.set(AccountId("srv:other"))
+        settle()
+        tick.complete(Result.Error(message = "boom"))
+        star.complete(Result.Error(message = "boom"))
+        settle()
+
+        assertThat(events).isEmpty()
+    }
+
+    @Test
+    fun `pull to refresh refreshes the tags only while bookmarks are on`() = drawerTest { vm ->
+        settle()
+        vm.refreshConversations()
+        settle()
+        coVerify(exactly = 1) { tagRepository.refreshTags() }
+
+        startupConfig.value = StartupConfig(interfaceConfig = InterfaceConfig(bookmarks = false))
+        settle()
+        vm.refreshConversations()
+        settle()
+        userPermissions.value = role(bookmarksUse = false)
+        startupConfig.value = StartupConfig()
+        settle()
+        vm.refreshConversations()
+        settle()
+
+        coVerify(exactly = 1) { tagRepository.refreshTags() }
     }
 }

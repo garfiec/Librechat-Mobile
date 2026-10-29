@@ -304,6 +304,7 @@
     <string name="bookmark_add_to_chat">Añadir a este chat</string>
     <string name="bookmark_create">Crear</string>
     <string name="bookmark_save">Guardar</string>
+    <string name="bookmark_saving">Guardando…</string>
     <string name="bookmark_cancel">Cancelar</string>
     <string name="bookmark_error_blank">Escribe un nombre</string>
     <string name="bookmark_error_duplicate">Ya tienes un marcador con este nombre</string>

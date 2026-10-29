@@ -296,6 +296,7 @@
     <string name="bookmark_add_to_chat">이 채팅에 추가</string>
     <string name="bookmark_create">만들기</string>
     <string name="bookmark_save">저장</string>
+    <string name="bookmark_saving">저장 중…</string>
     <string name="bookmark_cancel">취소</string>
     <string name="bookmark_error_blank">이름을 입력하세요</string>
     <string name="bookmark_error_duplicate">같은 이름의 북마크가 이미 있습니다</string>

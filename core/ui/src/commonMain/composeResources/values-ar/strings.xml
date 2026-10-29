@@ -316,6 +316,7 @@
     <string name="bookmark_add_to_chat">إضافة إلى هذه المحادثة</string>
     <string name="bookmark_create">إنشاء</string>
     <string name="bookmark_save">حفظ</string>
+    <string name="bookmark_saving">جارٍ الحفظ…</string>
     <string name="bookmark_cancel">إلغاء</string>
     <string name="bookmark_error_blank">أدخل اسمًا</string>
     <string name="bookmark_error_duplicate">لديك إشارة مرجعية بهذا الاسم بالفعل</string>

@@ -304,6 +304,7 @@
     <string name="bookmark_add_to_chat">Ajouter à cette discussion</string>
     <string name="bookmark_create">Créer</string>
     <string name="bookmark_save">Enregistrer</string>
+    <string name="bookmark_saving">Enregistrement…</string>
     <string name="bookmark_cancel">Annuler</string>
     <string name="bookmark_error_blank">Saisissez un nom</string>
     <string name="bookmark_error_duplicate">Vous avez déjà un signet portant ce nom</string>

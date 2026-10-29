@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.data.share.ShareLinkController
 import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.model.Conversation
+import com.garfiec.librechat.core.model.SAVED_TAG
 import com.garfiec.librechat.feature.conversations.export.ConversationExporter
 import com.garfiec.librechat.feature.conversations.export.ExportFormat
 import com.garfiec.librechat.feature.conversations.resources.Res
@@ -38,10 +39,15 @@ class ConversationListActionsDelegate(
      */
     val shareLink: ShareLinkController = shareLinkControllerFactory.create(scope)
 
+    /**
+     * Favorites [conversation], or un-favorites it if it showed the star. Worked out from what was
+     * shown, not flipped against the server, so a stale row or a repeat tap changes nothing.
+     */
     fun toggleFavorite(conversation: Conversation) {
         val id = conversation.conversationId ?: return
+        val favorite = SAVED_TAG !in conversation.tags
         scope.launch {
-            when (tagRepository.toggleFavorite(id, conversation.tags)) {
+            when (tagRepository.setConversationTag(id, SAVED_TAG, attached = favorite)) {
                 is Result.Error -> events.emit(ConversationListEvent.ShowErrorRes(Res.string.favorite_update_failed))
                 else -> onMutated()
             }

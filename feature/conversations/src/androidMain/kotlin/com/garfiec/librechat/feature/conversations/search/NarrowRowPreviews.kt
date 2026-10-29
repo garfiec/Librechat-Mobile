@@ -181,11 +181,13 @@ private fun ConversationRowsHost() {
             ),
             onClick = {},
             onActionsClick = {},
+            bookmarksEnabled = true,
         )
         ConversationItem(
             data = ConversationDisplayData("b", "Refactor the sync worker", "azureOpenAI", null, now - 3.days, isFavorite = false),
             onClick = {},
             onActionsClick = {},
+            bookmarksEnabled = true,
         )
     }
 }
