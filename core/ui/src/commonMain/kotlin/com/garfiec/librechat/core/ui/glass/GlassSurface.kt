@@ -6,9 +6,16 @@ import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.inset
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
@@ -84,8 +91,16 @@ fun rememberGlassStyle(): GlassStyle? {
 }
 
 /**
+ * A brief light along a glass surface's edge, as if something bright passed over it. [amount] is
+ * read at draw time (0 draws nothing, 1 is full strength), so animating it only redraws.
+ */
+@Stable
+class GlassFlare(val color: Color, val amount: () -> Float)
+
+/**
  * Glass behind this node's content, degrading by tier; with no [backdrop], a translucent surface.
- * [highlightTilt] (degrees) is read at draw time, for a sheen that moves with a gesture.
+ * [highlightTilt] (degrees) is read at draw time, for a sheen that moves with a gesture. [flare]
+ * lights the edge on every tier, the flat one included.
  *
  * [shape] is a [CornerBasedShape] because the refraction shader throws on any other shape.
  */
@@ -93,7 +108,46 @@ fun Modifier.glassSurface(
     style: GlassStyle,
     shape: CornerBasedShape,
     backdrop: GlassBackdrop?,
+    flare: GlassFlare? = null,
     highlightTilt: (() -> Float)? = null,
+): Modifier = glassSurfaceBase(style, shape, backdrop, highlightTilt).then(
+    if (flare != null) Modifier.glassFlare(flare, shape) else Modifier,
+)
+
+private fun Modifier.glassFlare(flare: GlassFlare, shape: CornerBasedShape): Modifier = drawWithContent {
+    val amount = flare.amount().coerceIn(0f, 1f)
+    if (amount <= 0f) {
+        drawContent()
+        return@drawWithContent
+    }
+    // The wash goes under the content so it never tints the icons or text; the edge goes over it.
+    drawOutline(
+        shape.createOutline(size, layoutDirection, this),
+        flare.color.copy(alpha = flare.color.alpha * amount * FLARE_FILL_ALPHA),
+    )
+    drawContent()
+    drawInsetOutlineStroke(shape, flare.color.copy(alpha = flare.color.alpha * amount), FlareStroke.toPx())
+}
+
+/**
+ * Strokes [shape]'s outline inset by half the stroke, as [border] does, so the whole line sits
+ * inside the bounds instead of straddling (and, under a clip, losing half of) the edge.
+ */
+fun DrawScope.drawInsetOutlineStroke(shape: Shape, color: Color, strokePx: Float) {
+    val half = strokePx / 2f
+    inset(half) {
+        drawOutline(shape.createOutline(size, layoutDirection, this), color, style = Stroke(width = strokePx))
+    }
+}
+
+private val FlareStroke = 1.5.dp
+private const val FLARE_FILL_ALPHA = 0.12f
+
+private fun Modifier.glassSurfaceBase(
+    style: GlassStyle,
+    shape: CornerBasedShape,
+    backdrop: GlassBackdrop?,
+    highlightTilt: (() -> Float)?,
 ): Modifier {
     if (style.level == GlassCapability.FLAT || backdrop == null) {
         return background(style.flatColor, shape).border(GlassDefaults.Hairline, style.hairline, shape)

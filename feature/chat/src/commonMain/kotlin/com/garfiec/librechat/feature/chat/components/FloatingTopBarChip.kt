@@ -31,9 +31,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -47,6 +49,9 @@ import com.garfiec.librechat.core.ui.components.rememberPressBounce
 import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.glassSurface
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
+import com.garfiec.librechat.feature.chat.components.veil.VeilReaction
+import com.garfiec.librechat.feature.chat.components.veil.rememberVeilTarget
+import com.garfiec.librechat.feature.chat.components.veil.retonedSurface
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -73,7 +78,13 @@ internal fun FloatingBarChip(
     val color = if (glass != null) Color.Transparent else ChatInputDefaults.containerColor
     val border = if (glass != null) null else BorderStroke(1.dp, ChatInputDefaults.borderColor)
     val contentColor = MaterialTheme.colorScheme.onSurface
-    val modifier = if (glass != null) modifier.glassSurface(glass, shape, LocalGlassBackdrop.current) else modifier
+    // Every bar chip answers the temporary-chat band as it passes (a no-op off the chat screen).
+    val veil = rememberVeilTarget(isTemporary = false, reaction = VeilReaction.NUDGE)
+    val modifier = if (glass != null) {
+        modifier.then(veil.modifier).glassSurface(glass, shape, LocalGlassBackdrop.current, flare = veil.flare)
+    } else {
+        modifier.then(veil.modifier)
+    }
     if (onClick != null) {
         Surface(
             onClick = onClick,
@@ -256,13 +267,26 @@ internal fun FloatingBarIconButton(
 @Composable
 internal fun chatTopBarScrim(): Brush {
     val surface = MaterialTheme.colorScheme.surface
-    return remember(surface) {
-        Brush.verticalGradient(
-            colors = listOf(
-                surface.copy(alpha = 0.92f),
-                surface.copy(alpha = 0.55f),
-                Color.Transparent,
-            ),
-        )
-    }
+    return remember(surface) { topBarScrimBrush(surface) }
 }
+
+/**
+ * [chatTopBarScrim] over temporary chat's retone (see ModeVeil): the fade blends to the tinted
+ * surface when the band reaches the bar instead of switching in one frame. Drawn, so the blend
+ * only redraws the bar.
+ */
+@Composable
+internal fun rememberChatTopBarScrim(isTemporaryChat: Boolean): Modifier {
+    val surface = MaterialTheme.colorScheme.surface
+    val retoned = retonedSurface(surface)
+    val amount = ChatInputDefaults.animateTemporaryAmount(isTemporaryChat)
+    return Modifier.drawBehind { drawRect(topBarScrimBrush(lerp(surface, retoned, amount.value))) }
+}
+
+private fun topBarScrimBrush(surface: Color): Brush = Brush.verticalGradient(
+    colors = listOf(
+        surface.copy(alpha = 0.92f),
+        surface.copy(alpha = 0.55f),
+        Color.Transparent,
+    ),
+)

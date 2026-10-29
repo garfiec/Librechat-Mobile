@@ -47,6 +47,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
@@ -262,11 +264,19 @@ private fun BarActionButton(action: BarAction, colors: BarActionColors) {
             )
         }
 
-        is BarAction.Toggle -> IconButton(onClick = { action.onCheckedChange(!action.checked) }) {
+        is BarAction.Toggle -> IconButton(
+            onClick = { action.onCheckedChange(!action.checked) },
+            modifier = action.onAnchor?.let { report -> Modifier.onGloballyPositioned { report(it.boundsInRoot()) } }
+                ?: Modifier,
+        ) {
             Icon(
                 imageVector = if (action.checked) action.iconOn.vector else action.iconOff.vector,
                 contentDescription = action.label,
-                tint = if (colors.glass && action.checked) colors.accent else colors.default.takeOrElse { LocalContentColor.current },
+                tint = when {
+                    action.checked && action.checkedTint != null -> action.checkedTint
+                    colors.glass && action.checked -> colors.accent
+                    else -> colors.default.takeOrElse { LocalContentColor.current }
+                },
             )
         }
 
@@ -481,7 +491,7 @@ private fun SimulatedGlassTopBarContent(spec: AdaptiveTopBarSpec) {
         if (spec.actions.isNotEmpty()) {
             Spacer(Modifier.width(8.dp))
             Row(
-                modifier = Modifier.glassSurface(style, CircleShape, backdrop),
+                modifier = Modifier.glassSurface(style, CircleShape, backdrop, flare = spec.actionsFlare),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 val colors = BarActionColors(

@@ -136,6 +136,7 @@ internal data class ActionSnapshot(
     val tint: BarTint,
     val enabled: Boolean,
     val busy: Boolean = false,
+    val checkedTint: Color? = null,
 )
 
 internal fun AdaptiveTopBarSpec.snapshot() = BarSnapshot(
@@ -156,6 +157,7 @@ internal fun AdaptiveTopBarSpec.snapshot() = BarSnapshot(
                 action.id, "toggle",
                 if (action.checked) action.iconOn.sfSymbol else action.iconOff.sfSymbol,
                 action.label, action.checked, BarTint.DEFAULT, true,
+                checkedTint = action.checkedTint,
             )
             is BarAction.Menu -> ActionSnapshot(action.id, "menu", action.icon.sfSymbol, action.label, false, BarTint.DEFAULT, true)
         }
@@ -351,7 +353,7 @@ private class NativeBarContainer(
                 selected = action.checked
                 when {
                     action.tint == BarTint.DESTRUCTIVE -> tintColor = UIColor.systemRedColor
-                    action.checked -> tintColor = bar.tintColor
+                    action.checked -> tintColor = action.checkedTint?.toUIColor() ?: bar.tintColor
                 }
             }
         }

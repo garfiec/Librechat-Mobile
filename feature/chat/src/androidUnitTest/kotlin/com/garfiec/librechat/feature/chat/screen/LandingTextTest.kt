@@ -76,17 +76,21 @@ class LandingTextTest {
     }
 
     @Test
-    fun aTemporaryChatKeepsItsOwnTitleAndSubtitle() {
-        val text = state(modelSpec.copy(showOnLanding = true), temporary = true).landingText(agentName = null)
-        assertThat(text.title).isNull()
-        assertThat(text.description).isNull()
-        assertThat(text.caption).isEqualTo("Coder")
+    fun aTemporaryChatGetsTheBrandedTextToo_soTheLandingSwitchesLineByLine() {
+        val normal = state(modelSpec.copy(showOnLanding = true)).landingText(agentName = null)
+        val temporary = state(modelSpec.copy(showOnLanding = true), temporary = true).landingText(agentName = null)
+        // The flag doesn't blank the title: mid-sweep the landing still shows it, not the greeting.
+        assertThat(temporary).isEqualTo(normal)
+        assertThat(temporary.title).isEqualTo("Coder")
+        // Once temporary chat's own title takes over, the label it replaced comes back as the caption.
+        assertThat(temporary.temporaryCaption).isEqualTo("Coder")
+        assertThat(temporary.temporaryAgentName).isNull()
     }
 
     @Test
     fun aRawModelSaysNothingNew() {
         val text = state(null).landingText(agentName = null)
-        assertThat(text).isEqualTo(LandingText(caption = "gpt-5"))
+        assertThat(text).isEqualTo(LandingText(caption = "gpt-5", temporaryCaption = "gpt-5"))
     }
 
     @Test
@@ -95,7 +99,7 @@ class LandingTextTest {
             selection = ModelSelectionState(choice = ModelChoice.Raw(EndpointConstants.AGENTS, "gone")),
         )
         assertThat(unknown.landingText(agentName = null, agentFallbackLabel = "Agent"))
-            .isEqualTo(LandingText(caption = "Agent"))
+            .isEqualTo(LandingText(caption = "Agent", temporaryCaption = "Agent"))
     }
 
     @Test
