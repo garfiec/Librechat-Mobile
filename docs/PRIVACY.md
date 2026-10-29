@@ -1,6 +1,6 @@
 # Switchboard Privacy Policy
 
-**Effective date:** October 13, 2026
+**Effective date:** October 29, 2026
 **Applies to:** Switchboard for Android and iOS, in every distribution channel listed in section 3.
 **Developer:** Garfiec Apps ("we", "us"). Contact: appsupport@garfiec.com.
 
@@ -176,11 +176,13 @@ as a URL, an avatar from a social-login provider, or an `<img>` tag inside an AI
 host in the URL when the message or artifact is displayed, which reveals your IP address to that
 host. Your server's sign-in token is only ever attached to requests to your server's own host.
 
-Artifact previews run entirely from code bundled in the app (no scripts are downloaded), and the
-preview page itself may load only images (`https:`), never remote scripts, styles or frames. An
-artifact can, however, navigate the preview to another website, which then behaves like an
-ordinary browser page under that site's policy. The app does not currently ask before loading a
-remote image inside an artifact, and does not block such navigation.
+Artifact previews use only libraries bundled in the app (no scripts are downloaded), and the
+preview page itself may load only images (`https:`), never remote scripts, styles or frames. The
+HTML, React and document previews can't navigate to another website. Some other web views still
+can: a link in a math block opens its website inside the math view, and on Android a form that
+posts can send a Markdown or SVG preview to another website, which then behaves like an ordinary
+browser page under that site's policy. The app does not currently ask before loading a remote
+image inside an artifact.
 
 ### 6.4 Device speech services (Google on Android, Apple on iOS)
 
@@ -329,11 +331,13 @@ Every optional data flow has a switch:
 ## 13. Security
 
 Tokens are stored in the platform's encrypted credential store (section 5). Tokens and gateway
-headers are attached only to requests whose destination matches your configured server. Requests
-to third parties use a separate client with no credentials. Connections use TLS whenever your
-server address is `https://`; the app warns before accepting an `http://` address. All code that
-runs inside the artifact web views is bundled with the app and pinned by checksum; no scripts are
-downloaded. The app is open source, and you can inspect or build it yourself.
+headers are attached only to requests whose destination matches your configured server, so
+requests to third parties carry no credentials. Connections use TLS whenever your
+server address is `https://`; the app warns before accepting an `http://` address. All the
+libraries the artifact web views use are bundled with the app and pinned by checksum; no scripts
+are downloaded. The app is open source, and you can inspect or build it yourself. The full list of
+security guarantees, and how to report a vulnerability, is in
+[SECURITY.md](https://github.com/garfiec/Librechat-Mobile/blob/develop/SECURITY.md).
 
 No app can guarantee security. Keep your device locked, keep your server up to date, and prefer
 `https://` server addresses.
