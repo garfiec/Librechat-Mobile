@@ -21,6 +21,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
@@ -44,7 +46,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -72,6 +76,7 @@ import com.garfiec.librechat.core.ui.components.FileTypeTile
 import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.components.UnderBarsPullToRefreshBox
+import com.garfiec.librechat.core.ui.components.selectedTabIndex
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarAction
@@ -100,6 +105,7 @@ import com.garfiec.librechat.feature.files.viewmodel.FileSortOrder
 import com.garfiec.librechat.feature.files.viewmodel.FileTypeFilter
 import com.garfiec.librechat.feature.files.viewmodel.FileViewMode
 import com.garfiec.librechat.feature.files.viewmodel.FilesViewModel
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -143,6 +149,15 @@ fun FilesScreen(
     // Gated so it never arms in picker mode (back should close the picker) or outside selection mode.
     PlatformBackHandler(enabled = uiState.isSelectionMode && !pickerMode) {
         requestExitSelection()
+    }
+
+    // The pager owns the filter: a swipe or a tab tap moves it, and the view model follows once it
+    // settles, so Select all and the image viewer act on the page in view.
+    val filters = FileTypeFilter.entries
+    val pagerState = rememberPagerState(initialPage = filters.indexOf(uiState.selectedFilter)) { filters.size }
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.settledPage }.collect { viewModel.setFilter(filters[it]) }
     }
 
     val filePickerLauncher = rememberFilePickerLauncher(
@@ -340,8 +355,8 @@ fun FilesScreen(
                     materialStyle = MaterialBarStyle(translucent = true),
                     belowBar = {
                         FileTypeFilterTabs(
-                            selected = uiState.selectedFilter,
-                            onSelect = viewModel::setFilter,
+                            selected = filters[pagerState.selectedTabIndex()],
+                            onSelect = { scope.launch { pagerState.animateScrollToPage(filters.indexOf(it)) } },
                             backdrop = LocalGlassBackdrop.current,
                             containerColor = Color.Transparent,
                         )
@@ -367,7 +382,13 @@ fun FilesScreen(
                 barPadding = padding,
                 modifier = Modifier.fillMaxSize(),
             ) {
-                Box(modifier = Modifier.fillMaxSize()) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize(),
+                    beyondViewportPageCount = 1,
+                ) { page ->
+                    val filter = filters[page]
+                    val pageFiles = uiState.filesByFilter[filter].orEmpty()
                     when {
                         uiState.isLoading -> {
                             Box(
@@ -387,8 +408,8 @@ fun FilesScreen(
                                 },
                             )
                         }
-                        uiState.displayFiles.isEmpty() && !uiState.isRefreshing -> {
-                            FilesEmptyState(uiState.selectedFilter, modifier = Modifier.padding(padding))
+                        pageFiles.isEmpty() && !uiState.isRefreshing -> {
+                            FilesEmptyState(filter, modifier = Modifier.padding(padding))
                         }
                         else -> {
                             // Room for the last row to scroll clear of the upload FAB.
@@ -400,7 +421,7 @@ fun FilesScreen(
                                         contentPadding = padding + PaddingValues(bottom = fabClearance),
                                     ) {
                                         items(
-                                            items = uiState.displayFiles,
+                                            items = pageFiles,
                                             key = { it.fileId },
                                             contentType = { "file" },
                                         ) { file ->
@@ -439,7 +460,7 @@ fun FilesScreen(
                                         verticalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
                                         items(
-                                            items = uiState.displayFiles,
+                                            items = pageFiles,
                                             key = { it.fileId },
                                             contentType = { "file_grid" },
                                         ) { file ->
@@ -546,7 +567,7 @@ fun FilesScreen(
     // Single-file delete confirmation
     val pendingDeleteId = singleDeleteFileId
     if (pendingDeleteId != null) {
-        val fileName = uiState.displayFiles
+        val fileName = uiState.filesByFilter[FileTypeFilter.ALL].orEmpty()
             .find { it.fileId == pendingDeleteId }?.filename ?: stringResource(Res.string.this_file)
         AdaptiveAlertDialog(
             onDismissRequest = { singleDeleteFileId = null },

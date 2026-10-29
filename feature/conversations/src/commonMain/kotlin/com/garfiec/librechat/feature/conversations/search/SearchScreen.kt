@@ -25,6 +25,8 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -45,8 +47,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -83,6 +87,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveTabRow
 import com.garfiec.librechat.core.ui.components.AdaptiveTabRowKind
 import com.garfiec.librechat.core.ui.components.ErrorBanner
+import com.garfiec.librechat.core.ui.components.selectedTabIndex
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
@@ -123,6 +128,7 @@ import com.garfiec.librechat.feature.conversations.resources.search_showing_firs
 import com.garfiec.librechat.feature.conversations.resources.search_time_server
 import com.garfiec.librechat.feature.conversations.resources.search_title_match
 import com.garfiec.librechat.feature.conversations.resources.search_untitled_conversation
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -162,8 +168,18 @@ fun SearchScreen(
             onResetFilters = viewModel::resetFilters,
         )
     }
-    // Above the one- and two-pane branches, so the scroll survives a fold or unfold switching them.
-    val listState = rememberLazyListState()
+    // The pager owns the scope: a swipe or a tab tap moves it, and the view model follows once it
+    // settles, so the preview pane and the arrow keys stay on the page in view.
+    val scopes = SearchScope.entries
+    val pagerState = rememberPagerState(initialPage = scopes.indexOf(state.scope)) { scopes.size }
+    val coroutineScope = rememberCoroutineScope()
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.settledPage }.collect { viewModel.onScopeChange(scopes[it]) }
+    }
+    val onSelectScope: (Int) -> Unit = { coroutineScope.launch { pagerState.animateScrollToPage(it) } }
+    // One per page, above the one- and two-pane branches, so the scroll survives a fold or unfold
+    // switching them.
+    val listStates = List(scopes.size) { rememberLazyListState() }
     BoxWithConstraints(modifier = modifier) {
         // Wide: the text toggles sit beside the field and the filters beside the tabs. Narrow: one
         // row of toggles, Filters and chips under the tabs, with the rest in a sheet. It goes wide at the
@@ -187,11 +203,21 @@ fun SearchScreen(
                     }
                     if (advanced && wide) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            ScopeTabs(state = state, onScopeChange = viewModel::onScopeChange, modifier = Modifier.width(listWidth))
+                            ScopeTabs(
+                                state = state,
+                                selectedIndex = pagerState.selectedTabIndex(),
+                                onSelect = onSelectScope,
+                                modifier = Modifier.width(listWidth),
+                            )
                             WideFilterRow(state, actions, modifier = Modifier.weight(1f).padding(horizontal = 12.dp))
                         }
                     } else {
-                        ScopeTabs(state = state, onScopeChange = viewModel::onScopeChange, modifier = Modifier.fillMaxWidth())
+                        ScopeTabs(
+                            state = state,
+                            selectedIndex = pagerState.selectedTabIndex(),
+                            onSelect = onSelectScope,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
                 }
             },
@@ -206,29 +232,31 @@ fun SearchScreen(
                 }
                 SearchPanes(
                     list = { twoPane, listModifier ->
-                        SearchResultsList(
-                            state = state,
-                            twoPane = twoPane,
-                            // A phone opens what's tapped, but still selects it: unfolding to two panes
-                            // previews the chat the user last went into.
-                            onHitClick = { hit ->
-                                viewModel.select(hit.messageId)
-                                if (!twoPane) open(hit)
-                            },
-                            onOpenSelection = {
-                                state.preview?.hit?.let(open) ?: state.selectedConversationId?.let(openConversation)
-                            },
-                            onMoveSelection = viewModel::moveSelection,
-                            // Two-pane previews a conversation like a hit; a phone has no pane, so it opens.
-                            onConversationClick = { id ->
-                                viewModel.selectConversation(id)
-                                if (!twoPane) openConversation(id)
-                            },
-                            onToggleGroup = viewModel::toggleCollapsed,
-                            onScanMore = viewModel::scanMore,
-                            listState = listState,
-                            modifier = listModifier,
-                        )
+                        HorizontalPager(state = pagerState, modifier = listModifier, beyondViewportPageCount = 1) { page ->
+                            SearchResultsList(
+                                state = state.copy(scope = scopes[page]),
+                                twoPane = twoPane,
+                                // A phone opens what's tapped, but still selects it: unfolding to two panes
+                                // previews the chat the user last went into.
+                                onHitClick = { hit ->
+                                    viewModel.select(hit.messageId)
+                                    if (!twoPane) open(hit)
+                                },
+                                onOpenSelection = {
+                                    state.preview?.hit?.let(open) ?: state.selectedConversationId?.let(openConversation)
+                                },
+                                onMoveSelection = viewModel::moveSelection,
+                                // Two-pane previews a conversation like a hit; a phone has no pane, so it opens.
+                                onConversationClick = { id ->
+                                    viewModel.selectConversation(id)
+                                    if (!twoPane) openConversation(id)
+                                },
+                                onToggleGroup = viewModel::toggleCollapsed,
+                                onScanMore = viewModel::scanMore,
+                                listState = listStates[page],
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
                     },
                     preview = { previewModifier ->
                         LaunchedEffect(state.groups, state.scope, state.grouping) { viewModel.ensureSelection() }
@@ -394,16 +422,15 @@ internal fun filledPillColors(): TextFieldColors {
 
 /** All / Messages / Chats with their counts, shown from the first keystroke so the layout holds. */
 @Composable
-private fun ScopeTabs(state: SearchUiState, onScopeChange: (SearchScope) -> Unit, modifier: Modifier = Modifier) {
-    val scopes = SearchScope.entries
+private fun ScopeTabs(state: SearchUiState, selectedIndex: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
     AdaptiveTabRow(
         titles = listOf(
             stringResource(Res.string.search_scope_all, state.messageTabCount + state.chatCount),
             stringResource(Res.string.search_scope_messages, state.messageTabCount),
             stringResource(Res.string.search_scope_chats, state.chatCount),
         ),
-        selectedIndex = scopes.indexOf(state.scope),
-        onSelect = { onScopeChange(scopes[it]) },
+        selectedIndex = selectedIndex,
+        onSelect = onSelect,
         modifier = modifier,
         kind = AdaptiveTabRowKind.SECONDARY,
         // Drawn in the bar slot, so the glass strip may sample the backdrop.

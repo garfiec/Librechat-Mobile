@@ -154,6 +154,33 @@ class FilesViewModelTest {
     }
 
     @Test
+    fun `every filter's page is ready before it is selected`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val pages = viewModel.uiState.value.filesByFilter
+        assertThat(viewModel.uiState.value.selectedFilter).isEqualTo(FileTypeFilter.ALL)
+        assertThat(pages[FileTypeFilter.ALL]!!.map { it.fileId }).containsExactlyElementsIn(
+            viewModel.uiState.value.displayFiles.map { it.fileId },
+        ).inOrder()
+        assertThat(pages[FileTypeFilter.IMAGES]!!.map { it.fileId }).containsExactly("file-2")
+        assertThat(pages[FileTypeFilter.DOCUMENTS]!!.map { it.fileId }).containsExactly("file-1")
+    }
+
+    @Test
+    fun `image preview opens from a page swiped to before the filter follows`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.setFilter(FileTypeFilter.DOCUMENTS)
+        advanceUntilIdle()
+
+        viewModel.openImagePreview("file-2")
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.mediaPreview).isNotNull()
+    }
+
+    @Test
     fun `setFilter with DOCUMENTS shows only document files`() = runTest {
         viewModel = createViewModel()
         advanceUntilIdle()
