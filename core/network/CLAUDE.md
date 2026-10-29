@@ -295,9 +295,12 @@ paths send a refresh token. Redirect sends strip app cookies outside the capture
 deployment root. Gateway cookies merge into one header; app-owned cookie values win.
 
 `CookieHelper.update` preserves omitted cookies, handles explicit expiry/provider changes, and
-rejects an OpenID refresh rotation without its replacement user marker. The marker is hash-bound to
-the refresh token; do not reconstruct, decode or independently persist it. Parse response cookies
-through Ktor's `HttpMessage.setCookie()`: Foundation combines repeated fields, and `Expires` contains
-commas that cannot be split blindly. `refreshBearerFor` updates
-both bearer and marker on retry. The raw iOS SSE path bypasses these plugins and uses the shared
-`sseCustomHeaderLines` renderer, including after renewal. Never add a process-wide cookie jar.
+rejects an OpenID refresh rotation without its replacement user marker. The marker is a
+server-signed user-id JWT, not derived from the refresh token. The server reissues it whenever it
+rotates the refresh token (`setOpenIDAuthTokens`); its session-reuse branch answers 200 with no
+auth cookies, so a refresh that rotates nothing keeps the previous marker. Treat it as opaque: do
+not reconstruct, decode or independently persist it. Parse response cookies through Ktor's
+`HttpMessage.setCookie()`: Foundation combines repeated fields, and `Expires` contains commas that
+cannot be split blindly. `refreshBearerFor` updates both bearer and marker on retry. The raw iOS
+SSE path bypasses these plugins and uses the shared `sseCustomHeaderLines` renderer, including
+after renewal. Never add a process-wide cookie jar.

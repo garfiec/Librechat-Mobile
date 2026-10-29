@@ -11,7 +11,8 @@ import kotlin.time.Clock
 
 object CookieHelper {
 
-    val authCookieNames: Set<String> = setOf("refreshToken", "token_provider", "openid_user_id")
+    val openIdCookieNames: Set<String> = setOf("token_provider", "openid_user_id")
+    val authCookieNames: Set<String> = setOf("refreshToken") + openIdCookieNames
 
     /** Cookie values stay opaque: in particular '+' and percent escapes must survive the handoff. */
     fun capture(cookieHeader: String?): AuthCookies? {
@@ -48,7 +49,9 @@ object CookieHelper {
             if (previous.openId != null) "openid" else null
         }
         val marker = if (provider == "openid") {
-            // A marker is bound to the refresh token's hash, so an old marker cannot follow rotation.
+            // The server reissues the marker whenever it rotates the refresh token (setOpenIDAuthTokens),
+            // so a rotation without one is an incomplete response. Its session-reuse branch rotates
+            // nothing and sets no auth cookies, which keeps the previous marker.
             check(refresh == previous.refreshToken || "openid_user_id" in updates) {
                 "The server rotated an OpenID token without its session marker"
             }
