@@ -16,6 +16,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 /**
  * Reveal is hoisted: the button only asks, and the field shows the secret only when the caller
@@ -30,7 +31,7 @@ class SecretTextFieldIosTest {
         val requests = mutableListOf<Boolean>()
         setContent {
             SecretTextField(
-                value = "secret",
+                value = SECRET,
                 onValueChange = {},
                 revealed = revealed,
                 onRevealedChange = { requests += it },
@@ -38,32 +39,46 @@ class SecretTextFieldIosTest {
             )
         }
 
-        assertEquals(true, isMasked())
+        assertEquals(MASKED, shownText())
+        // Only the first value is trustworthy (see shownText), but the field must start as a password.
+        assertTrue(SemanticsProperties.Password in onNode(hasSetTextAction()).fetchSemanticsNode().config)
         val maskedLabel = revealLabel()
 
         onNodeWithTag(REVEAL).performClick()
         waitForIdle()
         assertEquals(listOf(true), requests)
         // Not revealed until the caller flips its state.
-        assertEquals(true, isMasked())
+        assertEquals(MASKED, shownText())
 
         revealed = true
         waitForIdle()
-        assertEquals(false, isMasked())
+        assertEquals(SECRET, shownText())
         assertNotEquals(maskedLabel, revealLabel())
 
         onNodeWithTag(REVEAL).performClick()
         waitForIdle()
         assertEquals(listOf(true, false), requests)
+        // Not masked until the caller flips its state back.
+        assertEquals(SECRET, shownText())
+
+        revealed = false
+        waitForIdle()
+        assertEquals(MASKED, shownText())
     }
 
-    private fun ComposeUiTest.isMasked(): Boolean =
-        SemanticsProperties.Password in onNode(hasSetTextAction()).fetchSemanticsNode().config
+    // The shown text, not SemanticsProperties.Password: Compose Foundation's
+    // CoreTextFieldSemanticsModifierNode.updateNodeSemantics never stores a changed isPassword, so the
+    // flag keeps its first value however the transformation changes (CMP 1.12.2; unfixed on androidx
+    // main as of 2026-10).
+    private fun ComposeUiTest.shownText(): String? =
+        onNode(hasSetTextAction()).fetchSemanticsNode().config.getOrNull(SemanticsProperties.EditableText)?.text
 
     private fun ComposeUiTest.revealLabel(): List<String>? =
         onNodeWithTag(REVEAL).fetchSemanticsNode().config.getOrNull(SemanticsProperties.ContentDescription)
 
     private companion object {
         const val REVEAL = "reveal"
+        const val SECRET = "secret"
+        val MASKED = "\u2022".repeat(SECRET.length)
     }
 }
