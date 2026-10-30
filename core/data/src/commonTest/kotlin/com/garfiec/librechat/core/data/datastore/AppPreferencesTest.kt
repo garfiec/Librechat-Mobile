@@ -53,6 +53,7 @@ class AppPreferencesTest {
             "advanced_search" to everyChannel(false),
             "compare_sync_scroll" to everyChannel(true),
             "prefer_last_used_model" to everyChannel(false),
+            "drawer_pinned_destinations" to everyChannel(emptyList<String>()),
         )
         assertEquals(expected, actual)
     }

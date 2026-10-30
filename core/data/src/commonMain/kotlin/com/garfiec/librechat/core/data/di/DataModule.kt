@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.AccountScopedPrefsPurger
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
+import com.garfiec.librechat.core.data.datastore.DrawerPinsStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.RoleCacheDataStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
@@ -323,6 +324,10 @@ val dataModule = module {
         )
     }
     single { PreferenceStore(dataStore = get(), channelPolicy = get()) }
+    // Eager: the drawer's pins should be read before the tablet sidebar's first frame.
+    single(createdAtStart = true) {
+        DrawerPinsStore(preferences = get(), appScope = get<CoroutineScope>(KoinQualifiers.ApplicationScope))
+    }
 
     // --- Repositories (special wiring) ---
 

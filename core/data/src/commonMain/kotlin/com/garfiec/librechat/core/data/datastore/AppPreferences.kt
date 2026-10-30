@@ -60,6 +60,13 @@ object AppPreferences {
      */
     val PreferLastUsedModel = boolPreference("prefer_last_used_model", default = always(false))
 
+    /**
+     * Drawer destinations pinned as rows under Workspace, in the user's order: their stable ids,
+     * comma-separated. Device-wide, not per account. The key and the ids are persisted: never rename.
+     * Ids this build doesn't know are kept here and skipped by the reader.
+     */
+    val DrawerPinned = stringListPreference("drawer_pinned_destinations")
+
     val all: List<PreferenceSpec<*, *>> =
         listOf(
             SiteIcons,
@@ -70,5 +77,6 @@ object AppPreferences {
             AdvancedSearch,
             CompareSyncScroll,
             PreferLastUsedModel,
+            DrawerPinned,
         )
 }
