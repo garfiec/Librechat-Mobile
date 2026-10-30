@@ -512,4 +512,4 @@ internal val FooterRowShape = RoundedCornerShape(12.dp)
 
 private val TrayMaxHeight = 480.dp
 private val TrayInset = 12.dp
-private val TrayGap = 8.dp
+private val TrayGap = 16.dp
