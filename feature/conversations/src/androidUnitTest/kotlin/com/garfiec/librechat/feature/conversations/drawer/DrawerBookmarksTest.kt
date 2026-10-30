@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.bookmarks.BookmarkPickerFailure
+import com.garfiec.librechat.core.data.datastore.DrawerPinsStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
@@ -78,9 +79,12 @@ class DrawerBookmarksTest {
         shareLinkControllerFactory = mockk(relaxed = true),
         conversationExporter = mockk(relaxed = true),
         activeAccountProvider = accounts,
-        settingsDataStore = mockk<SettingsDataStore>(relaxed = true) {
-            every { drawerLibraryTab } returns flowOf(null)
-        },
+        preferences = DrawerPreferences(
+            settings = mockk<SettingsDataStore>(relaxed = true) {
+                every { drawerLibraryTab } returns flowOf(null)
+            },
+            pins = mockk<DrawerPinsStore> { every { pinned } returns MutableStateFlow(emptyList()) },
+        ),
         chatRepository = mockk(relaxed = true),
         search = mockk<DrawerSearchSources>(relaxed = true) {
             every { messageSearch(any(), any()) } returns flowOf(DrawerMessageSearch.Idle)

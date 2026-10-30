@@ -280,11 +280,7 @@ fun DrawerContent(
     val projects by viewModel.projects.collectAsStateWithLifecycle()
     val inlineProjectChats by viewModel.inlineProjectChats.collectAsStateWithLifecycle()
     val libraryTab by viewModel.drawerLibraryTab.collectAsStateWithLifecycle()
-    val storedPins by pinsViewModel.pinned.collectAsStateWithLifecycle()
-    val visibleWorkspace = uiState.visibleWorkspace
-    val pinnedWorkspace = remember(storedPins, visibleWorkspace) {
-        storedPins?.let { pinnedDestinations(it, visibleWorkspace) }
-    }
+    val workspace by viewModel.workspace.collectAsStateWithLifecycle()
 
     // Drives the Running group's active-jobs poll: on only while this surface is open and started.
     LifecycleStartEffect(viewModel, isOpen) {
@@ -379,7 +375,7 @@ fun DrawerContent(
         },
         onOpenSearch = onOpenSearch,
         onWorkspaceClick = onWorkspaceClick,
-        pinnedWorkspace = pinnedWorkspace,
+        workspace = workspace,
         currentWorkspace = currentWorkspace,
         onPinWorkspace = pinsViewModel::pin,
         onUnpinWorkspace = pinsViewModel::unpin,
@@ -461,8 +457,8 @@ fun DrawerContent(
     // Slot below the Workspace row and the pinned rows — the stateful wrapper puts the Settings row
     // and the account avatar here, at the bottom of the drawer.
     footerContent: (@Composable () -> Unit)? = null,
-    /** Destinations pinned under the Workspace row, in the user's order; null until read. */
-    pinnedWorkspace: List<WorkspaceDestination>? = emptyList(),
+    /** The Workspace row's destinations and the ones pinned under it, in the user's order. */
+    workspace: WorkspaceUiState = workspaceUiState(WorkspaceDestination.entries, storedIds = emptyList()),
     currentWorkspace: WorkspaceDestination? = null,
     onPinWorkspace: (WorkspaceDestination) -> Unit = {},
     onUnpinWorkspace: (WorkspaceDestination) -> Unit = {},
@@ -1098,8 +1094,7 @@ fun DrawerContent(
                     .verticalScroll(rememberScrollState()),
             ) {
                 WorkspaceFooterRows(
-                    visible = uiState.visibleWorkspace,
-                    pinned = pinnedWorkspace,
+                    workspace = workspace,
                     current = currentWorkspace,
                     onOpen = onWorkspaceClick,
                     onPin = onPinWorkspace,

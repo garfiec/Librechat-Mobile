@@ -47,6 +47,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -59,14 +60,15 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
@@ -175,17 +177,16 @@ private val WorkspaceDestination.hintRes: StringResource
 internal fun WorkspaceDestination.label(): String = stringResource(labelRes)
 
 /**
- * The top of the drawer footer: the Workspace row, which opens the tray of [visible] destinations,
- * then the [pinned] ones as one-tap rows in the user's order. The pinned rows wait for the stored
- * list ([pinned] null until read), so pins already there don't grow in as if just added.
+ * The top of the drawer footer: the Workspace row, which opens the tray of the [workspace]'s
+ * destinations, then its pinned ones as one-tap rows in the user's order. The pinned rows wait for
+ * the stored list (null until read), so pins already there don't grow in as if just added.
  *
  * [current] is the destination open in the tablet's content pane (null on a phone, or for a chat):
  * its pinned row is highlighted if pinned, else the Workspace row, showing its icon and name.
  */
 @Composable
 internal fun WorkspaceFooterRows(
-    visible: List<WorkspaceDestination>,
-    pinned: List<WorkspaceDestination>?,
+    workspace: WorkspaceUiState,
     current: WorkspaceDestination?,
     onOpen: (WorkspaceDestination) -> Unit,
     onPin: (WorkspaceDestination) -> Unit,
@@ -193,9 +194,10 @@ internal fun WorkspaceFooterRows(
     onReorderPins: (List<WorkspaceDestination>) -> Unit,
     isOpen: Boolean = true,
 ) {
+    val pinned = workspace.pinned
     val pins = pinned.orEmpty()
     WorkspaceRow(
-        visible = visible,
+        sections = workspace.sections,
         pinned = pins,
         current = current?.takeIf { it !in pins },
         onOpen = onOpen,
@@ -217,7 +219,7 @@ internal fun WorkspaceFooterRows(
 
 @Composable
 private fun WorkspaceRow(
-    visible: List<WorkspaceDestination>,
+    sections: List<List<WorkspaceDestination>>,
     pinned: List<WorkspaceDestination>,
     current: WorkspaceDestination?,
     onOpen: (WorkspaceDestination) -> Unit,
@@ -227,12 +229,13 @@ private fun WorkspaceRow(
     isOpen: Boolean,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    // The tray panel, the frame its scrolling rows are seen through; the reorder's edge scroll reads it.
+    val trayFrame = remember { mutableStateOf<LayoutCoordinates?>(null) }
     // The tray is an overlay, so it would outlive the drawer closing under it.
     LaunchedEffect(isOpen) { if (!isOpen) expanded = false }
     val drag = rememberMenuDragSelection()
     val workspace = stringResource(Res.string.workspace)
     val label = current?.let { stringResource(Res.string.workspace_current, it.label()) } ?: workspace
-    // The chevron points to where the tray goes: up to open it, down to put it away.
     val chevronTurn by animateFloatAsState(if (expanded) 180f else 0f, label = "workspaceChevron")
     val stateText = stringResource(if (expanded) Res.string.workspace_expanded else Res.string.workspace_collapsed)
     // A hold or an upward drag opens the tray, toward where it opens; a sideways drag is left to the
@@ -245,7 +248,6 @@ private fun WorkspaceRow(
             onCancel = { expanded = false },
         ),
     ) {
-        // Selected while its tray is open, and while the tablet shows one of its destinations.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -304,7 +306,10 @@ private fun WorkspaceRow(
             AdaptiveDropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
-                modifier = Modifier.width(maxWidth).heightIn(max = TrayMaxHeight),
+                modifier = Modifier
+                    .width(maxWidth)
+                    .heightIn(max = TrayMaxHeight)
+                    .onPlaced { trayFrame.value = it },
                 offset = DpOffset(x = 0.dp, y = if (isLiquidGlass) TrayGap else -TrayGap),
                 scrollState = scroll,
                 shape = RoundedCornerShape(16.dp),
@@ -317,7 +322,6 @@ private fun WorkspaceRow(
                 }
                 // Every section stays composed, empty or not, so rows moving between them animate even
                 // into a section that was empty; only its header and divider come and go.
-                val sections = WorkspaceGroup.entries.map { group -> visible.filter { it.group == group && it !in pinned } }
                 val firstShown = sections.indexOfFirst { it.isNotEmpty() }.let { if (it < 0) sections.size else it }
                 WorkspaceGroup.entries.forEachIndexed { at, group ->
                     val rows = sections[at]
@@ -351,6 +355,7 @@ private fun WorkspaceRow(
                     current = current,
                     dragSelection = drag,
                     scroll = scroll,
+                    trayFrame = trayFrame,
                     onOpen = open,
                     onUnpin = onUnpin,
                     onReorder = onReorderPins,
@@ -373,6 +378,7 @@ private fun PinnedTrayRows(
     current: WorkspaceDestination?,
     dragSelection: MenuDragSelection,
     scroll: ScrollState,
+    trayFrame: State<LayoutCoordinates?>,
     onOpen: (WorkspaceDestination) -> Unit,
     onUnpin: (WorkspaceDestination) -> Unit,
     onReorder: (List<WorkspaceDestination>) -> Unit,
@@ -397,8 +403,8 @@ private fun PinnedTrayRows(
     }
     var dragOffset by remember { mutableFloatStateOf(0f) }
     var rowHeight by remember { mutableIntStateOf(0) }
-    // Each row's resting top in the tray's content, before any drag offset.
-    val rowTops = remember { mutableMapOf<WorkspaceDestination, Float>() }
+    // Each row's place in the tray, before any drag offset.
+    val rowPlaces = remember { mutableMapOf<WorkspaceDestination, LayoutCoordinates>() }
     val maxSpeed = with(LocalDensity.current) { AutoScrollMaxSpeed.toPx() }
     val moveUp = stringResource(Res.string.project_move_up)
     val moveDown = stringResource(Res.string.project_move_down)
@@ -431,15 +437,7 @@ private fun PinnedTrayRows(
             val frame = withFrameNanos { it }
             val seconds = (frame - lastFrame) / NANOS_PER_SECOND
             lastFrame = frame
-            val viewport = scroll.viewportSize
-            if (viewport == 0 || rowHeight == 0) continue
-            val top = (rowTops[destination] ?: continue) + dragOffset - scroll.value
-            val zone = rowHeight * AUTO_SCROLL_ZONE
-            val past = when {
-                top < zone -> top - zone
-                top + rowHeight > viewport - zone -> top + rowHeight - (viewport - zone)
-                else -> 0f
-            }
+            val past = pastTrayEdge(trayFrame.value, rowPlaces[destination], dragOffset, rowHeight)
             if (past == 0f) continue
             val consumed = scroll.scrollBy((past / rowHeight).coerceIn(-1f, 1f) * maxSpeed * seconds)
             // The content moved under the finger; move the row back under it.
@@ -454,7 +452,7 @@ private fun PinnedTrayRows(
         itemModifier = { destination ->
             val isMoving = dragging == destination || landing == destination
             Modifier
-                .onPlaced { rowTops[destination] = it.positionInParent().y }
+                .onPlaced { rowPlaces[destination] = it }
                 .zIndex(if (isMoving) 1f else 0f)
                 .graphicsLayer { if (isMoving) translationY = dragOffset }
         },
@@ -463,7 +461,6 @@ private fun PinnedTrayRows(
             // -1 for a row shrinking out after its unpin: it takes no more moves.
             val index = order.indexOf(destination)
             val isDragging = dragging == destination
-            // The tinted fill fades in on pick-up and out as the row lands.
             val lift by animateFloatAsState(
                 if (isDragging) 1f else 0f,
                 tween(LIFT_FADE_MILLIS),
@@ -486,13 +483,12 @@ private fun PinnedTrayRows(
                 onClick = { onOpen(destination) },
                 modifier = Modifier
                     .onSizeChanged { rowHeight = it.height }
-                    // No shadow: the held row is a rounded, tinted fill in the press shape, opaque so the
-                    // rows it passes don't show through it.
-                    .clip(DragSelectRowShape)
+                    // Base under the tint keeps the held row opaque, so rows it passes don't show through.
                     .drawBehind {
                         if (lift > 0f) {
-                            drawRect(liftBase, alpha = lift)
-                            drawRect(liftTint, alpha = lift)
+                            val outline = DragSelectRowShape.createOutline(size, layoutDirection, this)
+                            drawOutline(outline, liftBase, alpha = lift)
+                            drawOutline(outline, liftTint, alpha = lift)
                         }
                     }
                     .semantics { customActions = actions },
@@ -590,6 +586,23 @@ private fun TrayRow(
             .then(if (selected) Modifier.background(adaptiveSelectedRowColor, DragSelectRowShape) else Modifier)
             .menuDragTarget(dragSelection, onClick),
     )
+}
+
+/**
+ * How far the held row, [dragOffset] off its [place], reaches into the [panel]'s edge zone (a quarter
+ * row in from its top or bottom): negative at the top, positive at the bottom, 0 when clear or not
+ * laid out. Measured against the panel itself, so its scroll and padding are already counted.
+ */
+private fun pastTrayEdge(panel: LayoutCoordinates?, place: LayoutCoordinates?, dragOffset: Float, rowHeight: Int): Float {
+    if (panel == null || place == null || !panel.isAttached || !place.isAttached || rowHeight == 0) return 0f
+    val viewport = panel.size.height
+    val top = panel.localPositionOf(place, Offset.Zero).y + dragOffset
+    val zone = rowHeight * AUTO_SCROLL_ZONE
+    return when {
+        top < zone -> top - zone
+        top + rowHeight > viewport - zone -> top + rowHeight - (viewport - zone)
+        else -> 0f
+    }
 }
 
 /** A tray section's header, with a divider above it unless it's the first, growing in and out with it. */

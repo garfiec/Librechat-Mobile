@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.conversations.di
 
 import com.garfiec.librechat.core.common.di.KoinQualifiers
+import com.garfiec.librechat.feature.conversations.drawer.DrawerPreferences
 import com.garfiec.librechat.feature.conversations.drawer.DrawerSearchSources
 import com.garfiec.librechat.feature.conversations.drawer.DrawerViewModel
 import com.garfiec.librechat.feature.conversations.drawer.WorkspacePinsViewModel
@@ -36,6 +37,7 @@ val conversationsModule = module {
     viewModelOf(::BookmarksViewModel)
     // Drawer-data half of the nav shell's NavHostViewModel.
     factoryOf(::DrawerSearchSources)
+    factoryOf(::DrawerPreferences)
     viewModelOf(::DrawerViewModel)
     viewModelOf(::WorkspacePinsViewModel)
     // The Search screen's initial query arrives from the navigation layer via parametersOf.

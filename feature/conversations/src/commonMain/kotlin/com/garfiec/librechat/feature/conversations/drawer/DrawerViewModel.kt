@@ -11,7 +11,6 @@ import com.garfiec.librechat.core.common.identity.accountTransitions
 import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.bookmarks.BookmarkPickerController
-import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
@@ -84,7 +83,7 @@ class DrawerViewModel(
     shareLinkControllerFactory: ShareLinkControllerFactory,
     private val conversationExporter: ConversationExporter,
     private val activeAccountProvider: ActiveAccountProvider,
-    private val settingsDataStore: SettingsDataStore,
+    private val preferences: DrawerPreferences,
     private val chatRepository: ChatRepository,
     private val search: DrawerSearchSources,
 ) : ViewModel() {
@@ -241,7 +240,7 @@ class DrawerViewModel(
 
     fun setDrawerLibraryTab(tab: DrawerTab) {
         _drawerLibraryTab.value = tab
-        viewModelScope.launch { settingsDataStore.setDrawerLibraryTab(tab.toStorageString()) }
+        viewModelScope.launch { preferences.settings.setDrawerLibraryTab(tab.toStorageString()) }
     }
 
     /**
@@ -331,6 +330,11 @@ class DrawerViewModel(
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, DrawerUiState())
 
+    /** The footer's Workspace row and tray: what the gates allow, split into pinned and the rest. */
+    val workspace: StateFlow<WorkspaceUiState> =
+        combine(drawerUiState.map { it.visibleWorkspace }.distinctUntilChanged(), preferences.pins.pinned, ::workspaceUiState)
+            .stateIn(viewModelScope, SharingStarted.Eagerly, WorkspaceUiState())
+
     /** Whether [accountId] is still the active account: a hit drawn before a switch is not opened. */
     fun isActiveAccount(accountId: String): Boolean = activeAccountProvider.currentAccountId()?.value == accountId
 
@@ -391,7 +395,7 @@ class DrawerViewModel(
             activeJobsPoll.collect { _activeJobIds.value = it }
         }
         viewModelScope.launch {
-            val persisted = DrawerTab.fromString(settingsDataStore.drawerLibraryTab.first())
+            val persisted = DrawerTab.fromString(preferences.settings.drawerLibraryTab.first())
             _drawerLibraryTab.update { it ?: persisted }
         }
         // Load the Chat Projects folders once the backend is known to support them (v0.8.7-rc1+).

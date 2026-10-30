@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.datastore.DrawerPinsStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.AllProjects
 import com.garfiec.librechat.core.data.repository.ConfigRepository
@@ -55,9 +56,12 @@ class DrawerProjectReorderTest {
         shareLinkControllerFactory = mockk(relaxed = true),
         conversationExporter = mockk(relaxed = true),
         activeAccountProvider = accountProvider,
-        settingsDataStore = mockk<SettingsDataStore>(relaxed = true) {
-            every { drawerLibraryTab } returns flowOf(null)
-        },
+        preferences = DrawerPreferences(
+            settings = mockk<SettingsDataStore>(relaxed = true) {
+                every { drawerLibraryTab } returns flowOf(null)
+            },
+            pins = mockk<DrawerPinsStore> { every { pinned } returns MutableStateFlow(emptyList()) },
+        ),
         chatRepository = mockk(relaxed = true),
         search = mockk(relaxed = true),
     )
