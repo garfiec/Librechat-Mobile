@@ -67,6 +67,7 @@ import com.garfiec.librechat.core.ui.components.adaptiveSelectedRowColor
 import com.garfiec.librechat.core.ui.components.dragSelectRow
 import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
 import com.garfiec.librechat.core.ui.components.menuDragAnchor
+import com.garfiec.librechat.core.ui.components.menuDragPressEffect
 import com.garfiec.librechat.core.ui.components.menuDragTarget
 import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
 import com.garfiec.librechat.core.ui.resources.bookmarks
@@ -242,6 +243,7 @@ private fun WorkspaceRow(
                 )
                 .dragSelectRow(state = null, role = Role.Button) { expanded = !expanded }
                 .semantics { stateDescription = stateText }
+                .menuDragPressEffect(drag, swellDepth = ROW_SWELL)
                 .padding(horizontal = 16.dp, vertical = 11.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -511,3 +513,6 @@ internal val FooterRowShape = RoundedCornerShape(12.dp)
 private val TrayMaxHeight = 480.dp
 private val TrayInset = 12.dp
 private val TrayGap = 16.dp
+
+// About 3dp a side on a drawer-wide row: inside the press highlight's 4dp inset, so it stays in bounds.
+private const val ROW_SWELL = 0.02f

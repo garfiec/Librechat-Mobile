@@ -243,9 +243,12 @@ private val AnyDrag: (Offset) -> Boolean = { true }
 /** For [menuDragAnchor]'s `opensOnDragIf`: a mostly-upward drag, leaving sideways swipes alone. */
 val UpwardDrag: (Offset) -> Boolean = { it.y < 0f && -it.y > abs(it.x) }
 
-/** On the opener's visible chip: swells while held and leans toward the finger. */
-fun Modifier.menuDragPressEffect(state: MenuDragSelection): Modifier = graphicsLayer {
-    val scale = 1f + SWELL_DEPTH * state.press.value
+/**
+ * On the opener's visible chip: swells while held and leans toward the finger. A wide opener passes a
+ * smaller [swellDepth] (the fraction it grows by) so it stays inside its bounds.
+ */
+fun Modifier.menuDragPressEffect(state: MenuDragSelection, swellDepth: Float = SWELL_DEPTH): Modifier = graphicsLayer {
+    val scale = 1f + swellDepth * state.press.value
     scaleX = scale
     scaleY = scale
     val pull = state.pull.value
