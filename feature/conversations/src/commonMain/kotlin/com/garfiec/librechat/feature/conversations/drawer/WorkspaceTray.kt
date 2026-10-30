@@ -49,6 +49,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.runtime.withFrameNanos
@@ -380,12 +381,24 @@ private fun PinnedTrayRows(
     onUnpin: (WorkspaceDestination) -> Unit,
     onReorder: (List<WorkspaceDestination>) -> Unit,
 ) {
-    val order = remember(pinned) { pinned.toMutableStateList() }
+    // One list for the tray's lifetime: each row's drag gesture is set up once and keeps the list it
+    // first saw, so replacing the list when the store answers would leave later drags moving a copy
+    // nobody draws.
+    val order = remember { pinned.toMutableStateList() }
+    val latestPinned by rememberUpdatedState(pinned)
+    val latestOnReorder by rememberUpdatedState(onReorder)
     var dragging by remember { mutableStateOf<WorkspaceDestination?>(null) }
     // A released row easing from where it was dropped into its slot.
     var landing by remember { mutableStateOf<WorkspaceDestination?>(null) }
     var landingJob by remember { mutableStateOf<Job?>(null) }
     val scope = rememberCoroutineScope()
+    // Takes the stored order when it changes, but never under a row that is moving.
+    LaunchedEffect(pinned, dragging, landing) {
+        if (dragging == null && landing == null && order.toList() != pinned) {
+            order.clear()
+            order.addAll(pinned)
+        }
+    }
     var dragOffset by remember { mutableFloatStateOf(0f) }
     var rowHeight by remember { mutableIntStateOf(0) }
     // Each row's resting top in the tray's content, before any drag offset.
@@ -454,10 +467,10 @@ private fun PinnedTrayRows(
             val liftTint = adaptiveSelectedRowColor
             val actions = buildList {
                 if (index > 0) {
-                    add(CustomAccessibilityAction(moveUp) { move(index, index - 1); onReorder(order.toList()); true })
+                    add(CustomAccessibilityAction(moveUp) { move(index, index - 1); latestOnReorder(order.toList()); true })
                 }
                 if (index < order.lastIndex) {
-                    add(CustomAccessibilityAction(moveDown) { move(index, index + 1); onReorder(order.toList()); true })
+                    add(CustomAccessibilityAction(moveDown) { move(index, index + 1); latestOnReorder(order.toList()); true })
                 }
             }
             TrayRow(
@@ -496,7 +509,7 @@ private fun PinnedTrayRows(
                                         dragOffset = 0f
                                     },
                                     onDragEnd = {
-                                        if (order.toList() != pinned) onReorder(order.toList())
+                                        if (order.toList() != latestPinned) latestOnReorder(order.toList())
                                         dragging = null
                                         landing = destination
                                         landingJob = scope.launch {
