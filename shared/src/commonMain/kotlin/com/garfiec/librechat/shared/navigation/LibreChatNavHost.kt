@@ -822,7 +822,6 @@ fun MainNavDisplay(
             )
             conversationsEntries(
                 onConversationClick = { navigator.navigateToChat(it) },
-                onNavigateToArchive = { navigator.navigate(ArchivedConversations) },
                 onNavigateToProject = { projectId, projectName ->
                     navigator.navigate(ProjectChats(projectId, projectName))
                 },

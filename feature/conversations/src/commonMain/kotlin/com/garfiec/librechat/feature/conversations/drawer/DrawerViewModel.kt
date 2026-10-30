@@ -210,7 +210,7 @@ class DrawerViewModel(
     val bookmarkPicker = BookmarkPickerController(tagRepository, viewModelScope)
 
     // Shared row-action logic (rename/archive/delete/share/duplicate/export) — the same delegate
-    // ConversationListViewModel and ProjectChatsViewModel use, so the drawer long-press menu surfaces
+    // ProjectChatsViewModel uses, so the drawer long-press menu surfaces
     // Result.Error failures (toast) instead of swallowing them in a dead try/catch around a
     // Result-returning repo call. Room-backed here, so onMutated is a no-op: the conversation
     // observe-Flow already re-emits after a mutation.

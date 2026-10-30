@@ -5,7 +5,6 @@ import androidx.navigation3.runtime.NavKey
 import com.garfiec.librechat.feature.conversations.screen.ArchivedConversationsScreen
 import com.garfiec.librechat.feature.conversations.screen.BookmarkChatsScreen
 import com.garfiec.librechat.feature.conversations.screen.BookmarksScreen
-import com.garfiec.librechat.feature.conversations.screen.ConversationListScreen
 import com.garfiec.librechat.feature.conversations.screen.ProjectChatsScreen
 import com.garfiec.librechat.feature.conversations.screen.ProjectsScreen
 import com.garfiec.librechat.feature.conversations.search.SearchScreen
@@ -15,8 +14,6 @@ import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
 
 @Serializable sealed interface ConversationsRoute : NavKey
-
-@Serializable data object Conversations : ConversationsRoute
 
 @Serializable data object ArchivedConversations : ConversationsRoute
 
@@ -47,7 +44,6 @@ import kotlinx.serialization.modules.subclass
 
 fun EntryProviderScope<NavKey>.conversationsEntries(
     onConversationClick: (String) -> Unit,
-    onNavigateToArchive: () -> Unit = {},
     onNavigateToProject: (projectId: String, projectName: String) -> Unit = { _, _ -> },
     onNewChatInProject: (projectId: String, projectName: String) -> Unit = { _, _ -> },
     /** A bookmark card was tapped: open that bookmark's chats. */
@@ -58,12 +54,6 @@ fun EntryProviderScope<NavKey>.conversationsEntries(
     onOpenMessage: (conversationId: String, messageId: String, query: String, inReasoning: Boolean) -> Unit =
         { conversationId, _, _, _ -> onConversationClick(conversationId) },
 ) {
-    entry<Conversations> {
-        ConversationListScreen(
-            onConversationClick = onConversationClick,
-            onNavigateToArchive = onNavigateToArchive,
-        )
-    }
     entry<ArchivedConversations> {
         ArchivedConversationsScreen(
             onNavigateBack = onBack,
@@ -114,7 +104,6 @@ fun EntryProviderScope<NavKey>.conversationsEntries(
 
 val conversationsSerializersModule = SerializersModule {
     polymorphic(NavKey::class) {
-        subclass(Conversations::class, Conversations.serializer())
         subclass(ArchivedConversations::class, ArchivedConversations.serializer())
         subclass(Projects::class, Projects.serializer())
         subclass(Bookmarks::class, Bookmarks.serializer())
