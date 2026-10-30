@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
+import com.garfiec.librechat.core.ui.components.DragSelectRowShape
 import com.garfiec.librechat.core.ui.components.MenuDragSelection
 import com.garfiec.librechat.core.ui.components.UpwardDrag
 import com.garfiec.librechat.core.ui.components.adaptiveSelectedRowColor
@@ -240,7 +241,7 @@ private fun WorkspaceRow(
                 .fillMaxWidth()
                 .then(
                     if (expanded || current != null) {
-                        Modifier.background(adaptiveSelectedRowColor, FooterRowShape)
+                        Modifier.background(adaptiveSelectedRowColor, DragSelectRowShape)
                     } else {
                         Modifier
                     },
@@ -511,8 +512,6 @@ private fun TrayDivider() {
         color = MaterialTheme.colorScheme.outlineVariant,
     )
 }
-
-internal val FooterRowShape = RoundedCornerShape(12.dp)
 
 private val TrayMaxHeight = 480.dp
 private val TrayInset = 12.dp

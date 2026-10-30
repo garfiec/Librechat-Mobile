@@ -139,6 +139,7 @@ import com.garfiec.librechat.core.data.search.TitleMatch
 import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.DragSelectRowShape
 import com.garfiec.librechat.core.ui.components.EndpointIcon
 import com.garfiec.librechat.core.ui.components.MenuDragSelection
 import com.garfiec.librechat.core.ui.components.adaptiveSelectedRowColor
@@ -1907,7 +1908,7 @@ internal fun DrawerFooterItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (selected) Modifier.background(adaptiveSelectedRowColor, FooterRowShape) else Modifier)
+            .then(if (selected) Modifier.background(adaptiveSelectedRowColor, DragSelectRowShape) else Modifier)
             .dragSelectRow(state = null, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
