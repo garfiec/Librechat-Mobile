@@ -225,4 +225,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style, and PR
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for attribution, including the LibreChat code this app adapts under the MIT License.
