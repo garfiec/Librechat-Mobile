@@ -140,15 +140,11 @@ import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.EndpointIcon
-import com.garfiec.librechat.core.ui.components.ListDragSelection
 import com.garfiec.librechat.core.ui.components.MenuDragSelection
 import com.garfiec.librechat.core.ui.components.adaptiveSelectedRowColor
 import com.garfiec.librechat.core.ui.components.dragSelectRow
-import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
-import com.garfiec.librechat.core.ui.components.listDragSelection
 import com.garfiec.librechat.core.ui.components.menuDragAnchor
 import com.garfiec.librechat.core.ui.components.pressBounce
-import com.garfiec.librechat.core.ui.components.rememberListDragSelection
 import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
 import com.garfiec.librechat.core.ui.components.rememberPressBounce
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
@@ -327,7 +323,7 @@ fun DrawerContent(
         uiState = uiState,
         searchFieldText = searchFieldText,
         viewMemory = viewModel.viewMemory,
-        footerContent = { dragSelection ->
+        footerContent = {
             val active = accounts.firstOrNull { it.isActive }
             Spacer(modifier = Modifier.height(8.dp))
             // Footer row: Settings (icon + label) on the left takes the width; the account avatar
@@ -349,7 +345,6 @@ fun DrawerContent(
                     icon = Icons.Default.Settings,
                     label = stringResource(Res.string.settings),
                     onClick = onSettingsClick,
-                    dragSelection = dragSelection,
                     modifier = Modifier.weight(1f),
                 )
                 if (active != null) {
@@ -463,9 +458,8 @@ fun DrawerContent(
     onWorkspaceClick: (WorkspaceDestination) -> Unit,
     modifier: Modifier = Modifier,
     // Slot below the Workspace row and the pinned rows — the stateful wrapper puts the Settings row
-    // and the account avatar here, at the bottom of the drawer. Its rows join the footer rows'
-    // drag-to-select through the [ListDragSelection] it's given.
-    footerContent: (@Composable (ListDragSelection?) -> Unit)? = null,
+    // and the account avatar here, at the bottom of the drawer.
+    footerContent: (@Composable () -> Unit)? = null,
     /** Destinations pinned under the Workspace row, in the user's order; null until read. */
     pinnedWorkspace: List<WorkspaceDestination>? = emptyList(),
     currentWorkspace: WorkspaceDestination? = null,
@@ -1097,21 +1091,15 @@ fun DrawerContent(
                 color = MaterialTheme.colorScheme.outlineVariant,
             )
 
-            val dragSelection = rememberListDragSelection()
-            val footerScroll = rememberScrollState()
-            // Only once the links overflow do they scroll; until then a vertical drag is drag-select.
-            val footerScrolls = footerScroll.maxValue > 0
             Column(
                 modifier = Modifier
                     .atMostHalfTheRoomLeft()
-                    .verticalScroll(footerScroll, enabled = footerScrolls)
-                    .listDragSelection(dragSelection, holdOnly = footerScrolls),
+                    .verticalScroll(rememberScrollState()),
             ) {
                 WorkspaceFooterRows(
                     visible = uiState.visibleWorkspace,
                     pinned = pinnedWorkspace,
                     current = currentWorkspace,
-                    dragSelection = dragSelection,
                     onOpen = onWorkspaceClick,
                     onPin = onPinWorkspace,
                     onUnpin = onUnpinWorkspace,
@@ -1119,7 +1107,7 @@ fun DrawerContent(
                     isOpen = isOpen,
                 )
 
-                footerContent?.invoke(dragSelection)
+                footerContent?.invoke()
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -1913,7 +1901,6 @@ internal fun DrawerFooterItem(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    dragSelection: ListDragSelection? = null,
     /** The tablet's content pane shows this row's screen. */
     selected: Boolean = false,
 ) {
@@ -1921,14 +1908,14 @@ internal fun DrawerFooterItem(
         modifier = modifier
             .fillMaxWidth()
             .then(if (selected) Modifier.background(adaptiveSelectedRowColor, FooterRowShape) else Modifier)
-            .dragSelectRow(dragSelection, onClick = onClick)
+            .dragSelectRow(state = null, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = label,
-            modifier = Modifier.size(20.dp).dragSelectRowIcon(),
+            modifier = Modifier.size(20.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.width(12.dp))

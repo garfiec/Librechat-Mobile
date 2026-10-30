@@ -61,7 +61,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
-import com.garfiec.librechat.core.ui.components.ListDragSelection
 import com.garfiec.librechat.core.ui.components.MenuDragSelection
 import com.garfiec.librechat.core.ui.components.adaptiveSelectedRowColor
 import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
@@ -164,7 +163,6 @@ internal fun WorkspaceFooterRows(
     visible: List<WorkspaceDestination>,
     pinned: List<WorkspaceDestination>?,
     current: WorkspaceDestination?,
-    dragSelection: ListDragSelection?,
     onOpen: (WorkspaceDestination) -> Unit,
     onPin: (WorkspaceDestination) -> Unit,
     onUnpin: (WorkspaceDestination) -> Unit,
@@ -177,7 +175,6 @@ internal fun WorkspaceFooterRows(
             icon = only.icon,
             label = only.label(),
             onClick = { onOpen(only) },
-            dragSelection = dragSelection,
             selected = current == only,
         )
         return
@@ -198,7 +195,6 @@ internal fun WorkspaceFooterRows(
             icon = destination.icon,
             label = destination.label(),
             onClick = { onOpen(destination) },
-            dragSelection = dragSelection,
             selected = current == destination,
         )
     }
@@ -222,7 +218,7 @@ private fun WorkspaceRow(
     val workspace = stringResource(Res.string.workspace)
     val label = current?.let { stringResource(Res.string.workspace_current, it.label()) } ?: workspace
     val stateText = stringResource(if (expanded) Res.string.workspace_expanded else Res.string.workspace_collapsed)
-    // Only a hold opens the tray from a press: a drag is left to the drawer swipe and the footer.
+    // Only a hold opens the tray from a press: a drag is left to the drawer swipe and the footer scroll.
     Box(
         modifier = Modifier.menuDragAnchor(
             drag,

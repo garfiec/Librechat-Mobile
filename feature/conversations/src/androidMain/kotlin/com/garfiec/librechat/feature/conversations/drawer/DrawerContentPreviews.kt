@@ -51,13 +51,12 @@ private fun DrawerHost(state: DrawerUiState) = ProvideDateTimeFormat(DateTimeFor
         onNewChat = {},
         onConversationClick = {},
         onWorkspaceClick = {},
-        footerContent = { dragSelection ->
+        footerContent = {
             Spacer(modifier = Modifier.height(8.dp))
             DrawerFooterItem(
                 icon = Icons.Default.Settings,
                 label = stringResource(Res.string.settings),
                 onClick = {},
-                dragSelection = dragSelection,
             )
         },
     )
