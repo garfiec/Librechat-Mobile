@@ -193,6 +193,9 @@ val generateBackendCommitMap = tasks.register("generateBackendCommitMap") {
             appendLine("object BackendCommitMap {")
             appendLine("    private const val PREFIX_LEN = $hashPrefixLen")
             appendLine()
+            appendLine("    /** The upstream commit this table was generated at (UPSTREAM_VERSION commit=), always an entry in it. */")
+            appendLine("    const val PINNED_COMMIT = \"${revList.first()}\"")
+            appendLine()
             appendLine("    // One entry per line: \"<$hashPrefixLen-char-prefix> <version> <yyyy-MM-dd> [T]\"; 'T' = exact release/rc tag commit.")
             appendLine("    private val ENTRIES: String = \"\"\"")
             sortedPrefixes.forEach { prefix ->

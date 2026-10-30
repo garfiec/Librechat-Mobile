@@ -17,6 +17,9 @@ package com.garfiec.librechat.core.common.generated
 object BackendCommitMap {
     private const val PREFIX_LEN = 12
 
+    /** The upstream commit this table was generated at (UPSTREAM_VERSION commit=), always an entry in it. */
+    const val PINNED_COMMIT = "e8f3be08623663d4ad7f7241e693c94469b63bb0"
+
     // One entry per line: "<12-char-prefix> <version> <yyyy-MM-dd> [T]"; 'T' = exact release/rc tag commit.
     private val ENTRIES: String = """
 000349681e4d 0.8.8-rc2 2026-09-05

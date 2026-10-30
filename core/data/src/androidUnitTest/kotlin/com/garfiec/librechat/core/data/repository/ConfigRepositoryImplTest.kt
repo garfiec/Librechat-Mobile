@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.data.repository
 import co.touchlab.kermit.LogWriter
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
+import com.garfiec.librechat.core.common.BackendBuildClass
 import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.common.result.AccessGatewayException
 import com.garfiec.librechat.core.common.result.ApiException
@@ -11,6 +12,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.logging.LogEnvelope
 import com.garfiec.librechat.core.model.EndpointConfig
+import com.garfiec.librechat.core.model.config.BuildInfo
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.network.api.ConfigApi
 import com.garfiec.librechat.core.network.client.PendingRequestIdentity
@@ -26,6 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import org.junit.Test
 import java.io.IOException
 import java.net.ConnectException
@@ -463,5 +466,57 @@ class ConfigRepositoryImplTest {
 
         assertThat(repo.startupConfig.value).isNull()
         coVerify(exactly = 0) { configCache.saveStartupConfig(any()) }
+    }
+
+    @Test
+    fun `checkBackendVersion keys off a mapped build commit over every version string`() = runTest {
+        coEvery { configApi.getStartupConfig() } returns StartupConfig(
+            serverDomain = "https://b.example.com",
+            version = "9.9.9",
+            buildInfo = BuildInfo(
+                commit = "9e74cc0e57b395926122bd4062c1fcedc48ed465", // v0.8.7 tag commit
+                branch = "v9.9.9",
+                buildDate = "2099-01-01T00:00:00Z",
+            ),
+        )
+        val repo = repository()
+
+        repo.checkBackendVersion()
+
+        val detected = repo.detectedBackend.value
+        assertThat(detected?.version).isEqualTo("0.8.7")
+        assertThat(detected?.classification).isEqualTo(BackendBuildClass.OFFICIAL)
+    }
+
+    @Test
+    fun `checkBackendVersion places a server upgraded past the commit map by its build branch`() = runTest {
+        // Fields of a live /api/config (2026-10-30) from a v0.8.9-rc1 server, whose build commit the map
+        // (generated at v0.8.8) has never seen.
+        val liveConfig = Json { ignoreUnknownKeys = true }.decodeFromString<StartupConfig>(
+            """
+            {
+                "appTitle": "LibreChat",
+                "serverDomain": "http://localhost:3080",
+                "emailLoginEnabled": true,
+                "registrationEnabled": false,
+                "buildInfo": {
+                    "commit": "8d3da9bbb220a0a96be9330a2e1cbd385fb786d5",
+                    "commitShort": "8d3da9b",
+                    "branch": "v0.8.9-rc1",
+                    "buildDate": "2026-10-26T21:56:08Z"
+                }
+            }
+            """.trimIndent(),
+        )
+        coEvery { configApi.getStartupConfig() } returns liveConfig
+        val repo = repository()
+
+        repo.checkBackendVersion()
+
+        val detected = repo.detectedBackend.value
+        assertThat(detected?.version).isEqualTo("0.8.9-rc1")
+        assertThat(detected?.classification).isEqualTo(BackendBuildClass.RC)
+        assertThat(BackendVersion.supportsFeature(detected, "0.8.7-rc1")).isTrue()
+        assertThat(BackendVersion.supportsFeature(detected, "0.8.7")).isTrue()
     }
 }
