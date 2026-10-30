@@ -1,7 +1,6 @@
 package com.garfiec.librechat.feature.conversations.drawer
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -65,6 +64,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.components.MenuDragSelection
 import com.garfiec.librechat.core.ui.components.UpwardDrag
 import com.garfiec.librechat.core.ui.components.adaptiveSelectedRowColor
+import com.garfiec.librechat.core.ui.components.dragSelectRow
 import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
 import com.garfiec.librechat.core.ui.components.menuDragAnchor
 import com.garfiec.librechat.core.ui.components.menuDragPressEffect
@@ -241,7 +241,7 @@ private fun WorkspaceRow(
                         Modifier
                     },
                 )
-                .clickable(role = Role.Button) { expanded = !expanded }
+                .dragSelectRow(state = null, role = Role.Button) { expanded = !expanded }
                 .semantics { stateDescription = stateText }
                 .menuDragPressEffect(drag)
                 .padding(horizontal = 16.dp, vertical = 11.dp),
