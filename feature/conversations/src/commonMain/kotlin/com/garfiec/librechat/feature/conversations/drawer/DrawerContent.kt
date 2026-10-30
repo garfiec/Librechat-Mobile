@@ -65,18 +65,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddComment
-import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Extension
-import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -160,7 +155,6 @@ import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.core.ui.datetime.LocalRelativeTimeReference
 import com.garfiec.librechat.core.ui.datetime.resolve
 import com.garfiec.librechat.core.ui.glass.GlassControlColors
-import com.garfiec.librechat.core.ui.resources.bookmarks
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.core.ui.theme.searchMatchColor
@@ -181,7 +175,6 @@ import com.garfiec.librechat.feature.conversations.components.rememberPickUpHapt
 import com.garfiec.librechat.feature.conversations.export.ExportFormat
 import com.garfiec.librechat.feature.conversations.export.ExportFormatPicker
 import com.garfiec.librechat.feature.conversations.resources.Res
-import com.garfiec.librechat.feature.conversations.resources.agents
 import com.garfiec.librechat.feature.conversations.resources.cd_close_search
 import com.garfiec.librechat.feature.conversations.resources.cd_collapse_section
 import com.garfiec.librechat.feature.conversations.resources.cd_conversation_actions
@@ -191,7 +184,6 @@ import com.garfiec.librechat.feature.conversations.resources.cd_search
 import com.garfiec.librechat.feature.conversations.resources.drawer_running_chats
 import com.garfiec.librechat.feature.conversations.resources.favorite
 import com.garfiec.librechat.feature.conversations.resources.favorites
-import com.garfiec.librechat.feature.conversations.resources.files
 import com.garfiec.librechat.feature.conversations.resources.new_chat
 import com.garfiec.librechat.feature.conversations.resources.no_conversations_found
 import com.garfiec.librechat.feature.conversations.resources.pinned
@@ -206,16 +198,13 @@ import com.garfiec.librechat.feature.conversations.resources.projects
 import com.garfiec.librechat.feature.conversations.resources.projects_all
 import com.garfiec.librechat.feature.conversations.resources.remove_favorite
 import com.garfiec.librechat.feature.conversations.resources.save
-import com.garfiec.librechat.feature.conversations.resources.schedules
 import com.garfiec.librechat.feature.conversations.resources.search_open_all
 import com.garfiec.librechat.feature.conversations.resources.search_title
 import com.garfiec.librechat.feature.conversations.resources.settings
 import com.garfiec.librechat.feature.conversations.resources.show_less
 import com.garfiec.librechat.feature.conversations.resources.show_more
-import com.garfiec.librechat.feature.conversations.resources.skills
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
-import com.garfiec.librechat.core.ui.resources.Res as CoreRes
 
 // Pre-computed shapes to avoid creating new ones per item per frame
 private val ItemShape = RoundedCornerShape(8.dp)
@@ -257,11 +246,7 @@ fun DrawerContent(
     onNewChat: () -> Unit,
     onConversationClick: (String) -> Unit,
     onSettingsClick: () -> Unit,
-    onAgentsClick: () -> Unit,
-    onFilesClick: () -> Unit,
-    onSkillsClick: () -> Unit,
-    onSchedulesClick: () -> Unit,
-    onBookmarksClick: () -> Unit,
+    onWorkspaceClick: (WorkspaceDestination) -> Unit,
     accounts: List<AccountUiModel>,
     modifier: Modifier = Modifier,
     onOpenProjectsIndex: () -> Unit = {},
@@ -285,7 +270,11 @@ fun DrawerContent(
     // Opens the full Search screen with the drawer's query; null hides both ways in (the field's
     // expand button and "See all").
     onOpenSearch: ((String) -> Unit)? = null,
+    // The Workspace destination open in the tablet's content pane, highlighted in the footer. Null on
+    // a phone, and while a chat is open.
+    currentWorkspace: WorkspaceDestination? = null,
     viewModel: DrawerViewModel = koinViewModel(),
+    pinsViewModel: WorkspacePinsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.drawerUiState.collectAsStateWithLifecycle()
     // The field reads the query straight from its own state flow: the combined UI state carries it
@@ -294,6 +283,11 @@ fun DrawerContent(
     val projects by viewModel.projects.collectAsStateWithLifecycle()
     val inlineProjectChats by viewModel.inlineProjectChats.collectAsStateWithLifecycle()
     val libraryTab by viewModel.drawerLibraryTab.collectAsStateWithLifecycle()
+    val storedPins by pinsViewModel.pinned.collectAsStateWithLifecycle()
+    val visibleWorkspace = uiState.visibleWorkspace
+    val pinnedWorkspace = remember(storedPins, visibleWorkspace) {
+        storedPins?.let { pinnedDestinations(it, visibleWorkspace) }
+    }
 
     // Drives the Running group's active-jobs poll: on only while this surface is open and started.
     LifecycleStartEffect(viewModel, isOpen) {
@@ -388,11 +382,12 @@ fun DrawerContent(
             }
         },
         onOpenSearch = onOpenSearch,
-        onAgentsClick = onAgentsClick,
-        onFilesClick = onFilesClick,
-        onSkillsClick = onSkillsClick,
-        onSchedulesClick = onSchedulesClick,
-        onBookmarksClick = onBookmarksClick,
+        onWorkspaceClick = onWorkspaceClick,
+        pinnedWorkspace = pinnedWorkspace,
+        currentWorkspace = currentWorkspace,
+        onPinWorkspace = pinsViewModel::pin,
+        onUnpinWorkspace = pinsViewModel::unpin,
+        onReorderWorkspacePins = pinsViewModel::reorder,
         onToggleFavorite = { data -> viewModel.setFavorite(data.conversationId, favorite = !data.isFavorite) },
         onRefresh = viewModel::refreshConversations,
         onLoadMore = viewModel::loadMoreConversations,
@@ -465,16 +460,18 @@ fun DrawerContent(
     onSearchQueryChange: (String) -> Unit,
     onNewChat: () -> Unit,
     onConversationClick: (String) -> Unit,
-    onAgentsClick: () -> Unit,
-    onFilesClick: () -> Unit,
-    onSkillsClick: () -> Unit,
-    onSchedulesClick: () -> Unit,
-    onBookmarksClick: () -> Unit,
+    onWorkspaceClick: (WorkspaceDestination) -> Unit,
     modifier: Modifier = Modifier,
-    // Slot below the footer links (Files, Agents, …) — the stateful wrapper puts the Settings row
-    // and the account avatar here, at the bottom of the drawer. Its rows join the footer links'
+    // Slot below the Workspace row and the pinned rows — the stateful wrapper puts the Settings row
+    // and the account avatar here, at the bottom of the drawer. Its rows join the footer rows'
     // drag-to-select through the [ListDragSelection] it's given.
     footerContent: (@Composable (ListDragSelection?) -> Unit)? = null,
+    /** Destinations pinned under the Workspace row, in the user's order; null until read. */
+    pinnedWorkspace: List<WorkspaceDestination>? = emptyList(),
+    currentWorkspace: WorkspaceDestination? = null,
+    onPinWorkspace: (WorkspaceDestination) -> Unit = {},
+    onUnpinWorkspace: (WorkspaceDestination) -> Unit = {},
+    onReorderWorkspacePins: (List<WorkspaceDestination>) -> Unit = {},
     onMessageHitClick: (MessageSearchHit) -> Unit = {},
     onOpenSearch: ((String) -> Unit)? = null,
     onToggleFavorite: (DrawerConversationDisplayData) -> Unit = {},
@@ -1110,43 +1107,16 @@ fun DrawerContent(
                     .verticalScroll(footerScroll, enabled = footerScrolls)
                     .listDragSelection(dragSelection, holdOnly = footerScrolls),
             ) {
-                if (uiState.agentsEntryVisible) {
-                    DrawerFooterItem(
-                        icon = Icons.Default.SmartToy,
-                        label = stringResource(Res.string.agents),
-                        onClick = onAgentsClick,
-                        dragSelection = dragSelection,
-                    )
-                }
-                if (uiState.skillsEnabled) {
-                    DrawerFooterItem(
-                        icon = Icons.Default.Extension,
-                        label = stringResource(Res.string.skills),
-                        onClick = onSkillsClick,
-                        dragSelection = dragSelection,
-                    )
-                }
-                if (uiState.schedulesEnabled) {
-                    DrawerFooterItem(
-                        icon = Icons.Default.Schedule,
-                        label = stringResource(Res.string.schedules),
-                        onClick = onSchedulesClick,
-                        dragSelection = dragSelection,
-                    )
-                }
-                if (uiState.bookmarksEnabled) {
-                    DrawerFooterItem(
-                        icon = Icons.Default.Bookmark,
-                        label = stringResource(CoreRes.string.bookmarks),
-                        onClick = onBookmarksClick,
-                        dragSelection = dragSelection,
-                    )
-                }
-                DrawerFooterItem(
-                    icon = Icons.Default.Folder,
-                    label = stringResource(Res.string.files),
-                    onClick = onFilesClick,
+                WorkspaceFooterRows(
+                    visible = uiState.visibleWorkspace,
+                    pinned = pinnedWorkspace,
+                    current = currentWorkspace,
                     dragSelection = dragSelection,
+                    onOpen = onWorkspaceClick,
+                    onPin = onPinWorkspace,
+                    onUnpin = onUnpinWorkspace,
+                    onReorderPins = onReorderWorkspacePins,
+                    isOpen = isOpen,
                 )
 
                 footerContent?.invoke(dragSelection)
@@ -1944,10 +1914,13 @@ internal fun DrawerFooterItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     dragSelection: ListDragSelection? = null,
+    /** The tablet's content pane shows this row's screen. */
+    selected: Boolean = false,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .then(if (selected) Modifier.background(adaptiveSelectedRowColor, FooterRowShape) else Modifier)
             .dragSelectRow(dragSelection, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,

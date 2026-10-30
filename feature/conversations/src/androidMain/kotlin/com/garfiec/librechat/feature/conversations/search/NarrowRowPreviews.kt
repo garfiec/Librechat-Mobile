@@ -100,11 +100,7 @@ private fun DrawerProjectsHost() {
         onSearchQueryChange = {},
         onNewChat = {},
         onConversationClick = {},
-        onAgentsClick = {},
-        onFilesClick = {},
-        onSkillsClick = {},
-        onSchedulesClick = {},
-        onBookmarksClick = {},
+        onWorkspaceClick = {},
         footerContent = { dragSelection ->
             Spacer(modifier = Modifier.height(8.dp))
             DrawerFooterItem(

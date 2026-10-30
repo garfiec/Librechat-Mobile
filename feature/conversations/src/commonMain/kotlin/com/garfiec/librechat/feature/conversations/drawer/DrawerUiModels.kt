@@ -80,6 +80,12 @@ data class DrawerUiState(
     val bookmarksEnabled: Boolean = true,
     /** Role SKILLS.USE (permissive) AND the agents `skills` capability (fail-closed). */
     val skillsEnabled: Boolean = false,
+    /** PROMPTS USE, permissive: the chat menu's Prompts gate. */
+    val promptsEnabled: Boolean = true,
+    /** MCP_SERVERS USE, permissive: Settings › Data's MCP servers row gate. */
+    val mcpServersEnabled: Boolean = true,
+    /** `canReachMemoriesSettings()`: Settings › Data's Memories row gate. */
+    val memoriesEnabled: Boolean = true,
     /** Scheduled chats: the SCHEDULES permission AND the server's `interface.schedules` flag,
      *  which is absent-means-OFF. Default false — the feature is opt-in. */
     val schedulesEnabled: Boolean = false,
@@ -99,6 +105,20 @@ data class DrawerUiState(
      * MARKETPLACE.USE can't create or edit agents here; that was decided, not overlooked.
      */
     val agentsEntryVisible: Boolean get() = agentsEnabled && marketplaceEnabled
+
+    /** The Workspace tray's destinations this role and server allow, in tray order. */
+    val visibleWorkspace: List<WorkspaceDestination> get() = WorkspaceDestination.entries.filter { destination ->
+        when (destination) {
+            WorkspaceDestination.AGENTS -> agentsEntryVisible
+            WorkspaceDestination.SKILLS -> skillsEnabled
+            WorkspaceDestination.PROMPTS -> promptsEnabled
+            WorkspaceDestination.MCP_SERVERS -> mcpServersEnabled
+            WorkspaceDestination.SCHEDULES -> schedulesEnabled
+            WorkspaceDestination.MEMORIES -> memoriesEnabled
+            WorkspaceDestination.BOOKMARKS -> bookmarksEnabled
+            WorkspaceDestination.FILES, WorkspaceDestination.SHARED_LINKS, WorkspaceDestination.ARCHIVED -> true
+        }
+    }
 }
 
 /**

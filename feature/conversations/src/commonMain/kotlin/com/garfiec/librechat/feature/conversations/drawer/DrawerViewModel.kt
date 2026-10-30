@@ -31,6 +31,7 @@ import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
+import com.garfiec.librechat.core.model.permissions.canReachMemoriesSettings
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.feature.conversations.components.message
 import com.garfiec.librechat.feature.conversations.export.ConversationExporter
@@ -319,6 +320,9 @@ class DrawerViewModel(
             marketplaceEnabled = perms.marketplaceEnabled,
             bookmarksEnabled = actionMenu.bookmarksEnabled,
             skillsEnabled = perms.skillsEnabled,
+            promptsEnabled = perms.promptsEnabled,
+            mcpServersEnabled = perms.mcpServersEnabled,
+            memoriesEnabled = perms.memoriesEnabled,
             // BOTH halves, in upstream's order: the permission, then the server flag.
             schedulesEnabled = perms.schedulesPermitted && actionMenu.schedulesEnabled,
             sharedLinksEnabled = actionMenu.sharedLinksEnabled,
@@ -714,6 +718,9 @@ internal data class DrawerPermissionFlags(
     val skillsEnabled: Boolean = false,
     /** The permission half only. Scheduled chats need the server flag too — see the combine. */
     val schedulesPermitted: Boolean = true,
+    val promptsEnabled: Boolean = true,
+    val mcpServersEnabled: Boolean = true,
+    val memoriesEnabled: Boolean = true,
 )
 
 /**
@@ -726,4 +733,7 @@ internal fun drawerPermissionFlags(role: UserRolePermissions?, agentsCapabilitie
         marketplaceEnabled = role.hasAccessOrPermissive(PermissionType.MARKETPLACE, Permission.USE),
         skillsEnabled = isSkillsNavEnabled(role, agentsCapabilities),
         schedulesPermitted = role.hasAccessOrPermissive(PermissionType.SCHEDULES, Permission.USE),
+        promptsEnabled = role.hasAccessOrPermissive(PermissionType.PROMPTS, Permission.USE),
+        mcpServersEnabled = role.hasAccessOrPermissive(PermissionType.MCP_SERVERS, Permission.USE),
+        memoriesEnabled = role.canReachMemoriesSettings(),
     )
