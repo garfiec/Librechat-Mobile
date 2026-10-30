@@ -25,14 +25,17 @@ import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.util.SpecSeed
 import com.garfiec.librechat.feature.chat.util.StartChatPick
 import com.garfiec.librechat.feature.chat.util.demotedForLastUsed
+import com.garfiec.librechat.feature.chat.util.fallbackSpecSeeds
 import com.garfiec.librechat.feature.chat.util.offeredOrUnchecked
 import com.garfiec.librechat.feature.chat.util.reopenedPick
+import com.garfiec.librechat.feature.chat.util.requiresSpec
 import com.garfiec.librechat.feature.chat.util.resolveDefaultModelSpec
 import com.garfiec.librechat.feature.chat.util.resolvedAgainst
-import com.garfiec.librechat.feature.chat.util.showsRawEndpoint
+import com.garfiec.librechat.feature.chat.util.seedableLastUsed
 import com.garfiec.librechat.feature.chat.util.toChoice
 import com.garfiec.librechat.feature.chat.util.toSeed
 import com.garfiec.librechat.feature.chat.util.withChoice
+import com.garfiec.librechat.feature.chat.util.withSpecsRefreshed
 import com.garfiec.librechat.feature.chat.util.withoutStale
 import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionHandle
@@ -127,6 +130,9 @@ class ModelSelectionDelegate(
      * guess on screen.
      */
     var conversationModelResolved = false
+
+    /** ConversationLoadDelegate's backfill guard: a config rewrite here is not the user's change. */
+    internal val selectionWatches = SelectionWatches { handle.state.selection.let { it.choice to it.modelParameters } }
 
     /**
      * A Tier-0 pair applied before the spec config loaded, so nothing could be inferred for it yet
@@ -533,7 +539,8 @@ class ModelSelectionDelegate(
      *       1b instead, unless the server leaves no choice ([demotedForLastUsed])
      *   1. last-used (endpoint + model; a last spec on its current pair while the server still
      *      lists it, see [reopenedPick]), if present and valid
-     *   1b. the server's soft-default model spec
+     *   1b. the server's soft-default model spec, then under `enforce` the first spec that can
+     *       open ([applyFallbackSpec])
      *   2. first agent, when the active endpoint is agents
      *   3. first available config model
      */
@@ -587,9 +594,13 @@ class ModelSelectionDelegate(
                                 reseedCarried = true
                             }
                         }
-                    // One emission: the new specs never sit next to a spec they no longer offer, nor
-                    // next to the parameters of a spec they dropped.
-                    handle.update { selection = selection.withChoice(resolved ?: current, input.modelSpecs) }
+                    // One emission: the new specs never sit next to a spec they no longer offer.
+                    selectionWatches.configRewrite {
+                        handle.update {
+                            selection = resolved?.let { selection.withChoice(it, input.modelSpecs) }
+                                ?: selection.withSpecsRefreshed(input.modelSpecs)
+                        }
+                    }
                 }
                 // Keep the cached last-used fresh for refilterModels' existing-
                 // conversation corrective fallback. This runs for every conversation
@@ -680,18 +691,7 @@ class ModelSelectionDelegate(
         val filtered = filterModelsByEndpoint(input.rawModels, input.endpointConfigs)
         val state = handle.state
 
-        val lastEndpoint = input.lastUsed.endpoint
-        val lastModel = input.lastUsed.model
-        // A last spec reopens on its current pair, as the resolver reopens it. A raw pair on an
-        // endpoint `addedEndpoints` no longer lists can't be picked again, so it never seeds and
-        // never outranks the server's spec. With `interface.modelSelect` off the spec already wins
-        // (Tier 0b); where none applies, web falls back to the last setup, so last-used still does here.
-        val lastUsed = if (lastEndpoint != null && lastModel != null) {
-            input.modelSpecs.reopenedPick(lastEndpoint, lastModel, input.lastUsed.spec)
-                .takeIf { it is ModelChoice.Spec || input.modelSpecs.showsRawEndpoint(lastEndpoint, modelSelect = true) }
-        } else {
-            null
-        }
+        val lastUsed = input.modelSpecs.seedableLastUsed(input.lastUsed)
         // A Tier-0 pick made before the spec config loaded pinned last-used with no spec to check
         // its stored one against. Re-pin it: the spec now resolving is not a new pick, and the
         // re-sync below would otherwise replace the shortcut with last-used.
@@ -749,8 +749,12 @@ class ModelSelectionDelegate(
         val currentSelectability = selectability(state.selectedEndpoint, state.selectedModel, filtered, input)
         when (currentSelectability) {
             // Already usable — leave it (the re-sync above handled last-used changes), unless it is
-            // the previous chat's selection, carried over by the handoff.
-            Selectability.VALID -> if (!reseedCarried) return
+            // the previous chat's selection, carried over by the handoff, or a raw model this seeder
+            // opened before the config showed the server refuses it.
+            Selectability.VALID -> {
+                val refusedRaw = input.modelSpecs.requiresSpec && state.selectedSpec == null && !specYielded
+                if (!reseedCarried && !refusedRaw) return
+            }
             // The input needed to judge the current selection hasn't arrived yet.
             Selectability.PENDING -> {
                 // An explicitly-chosen agent (Tier-0) in the transient empty-agents
@@ -809,8 +813,9 @@ class ModelSelectionDelegate(
             }
         }
 
-        // Tier 1b: the server's soft-default model spec, which yields to a usable last-used.
-        if (applySoftModelSpec(specSeed, input, filtered)) return
+        // Tier 1b: the server's soft-default model spec, which yields to a usable last-used; then,
+        // under `enforce`, any spec that can open, before a raw model the server refuses.
+        if (applyFallbackSpec(specSeed, input, filtered)) return
 
         // Tier 2: first agent, when the active endpoint is agents.
         if (state.selectedEndpoint == EndpointConstants.AGENTS) {
@@ -863,19 +868,25 @@ class ModelSelectionDelegate(
     }
 
     /**
-     * Tier 1b: a soft-default model spec, reached only when last-used can't apply. Returns true
-     * when [applySeed] should stop — the spec applied, or it is waiting on the agent list.
+     * Tier 1b, reached only when last-used can't apply: a soft-default model spec, then, under
+     * `enforce`, the first spec that can open (`default` first, [fallbackSpecSeeds]). Every send
+     * there needs a spec, so one the tiers above couldn't open (no `default` or soft spec without
+     * `prioritize`, an agent the user can't reach, a last spec the server dropped) gives way to the
+     * next rather than to a raw model; web opens the raw model and the server refuses the send.
+     * Returns true when [applySeed] should stop: a spec applied, or the one ahead is still loading.
      */
-    private fun applySoftModelSpec(specSeed: SpecSeed?, input: SeedInputs, filtered: Map<String, List<String>>): Boolean {
-        val seed = specSeed?.takeUnless { it.prioritized } ?: return false
-        return when (specSelectability(seed, filtered, input)) {
-            Selectability.VALID -> {
-                applySelection(seed.toChoice(), reason = "tier1b-softSpec")
-                true
+    private fun applyFallbackSpec(specSeed: SpecSeed?, input: SeedInputs, filtered: Map<String, List<String>>): Boolean {
+        for (seed in input.modelSpecs.fallbackSpecSeeds(specSeed)) {
+            when (specSelectability(seed, filtered, input)) {
+                Selectability.VALID -> {
+                    applySelection(seed.toChoice(), reason = "tier1b-fallbackSpec")
+                    return true
+                }
+                Selectability.PENDING -> return true
+                Selectability.INVALID -> {}
             }
-            Selectability.PENDING -> true
-            Selectability.INVALID -> false
         }
+        return false
     }
 
     /**
@@ -895,9 +906,9 @@ class ModelSelectionDelegate(
     }
 
     /**
-     * The one writer of [ModelSelectionState.choice] here, bar the seeder's spec-config update.
-     * Moving onto or off a spec resets the parameters to that spec's preset or the defaults
-     * ([withChoice]), except for a conversation's own model ([specPreset] false), whose
+     * The one writer of [ModelSelectionState.choice] here, bar the seeder's spec-config update
+     * ([withSpecsRefreshed]). Moving onto or off a spec resets the parameters to that spec's preset or
+     * the defaults ([withChoice]), except for a conversation's own model ([specPreset] false), whose
      * stored parameters are the conversation load's to restore.
      */
     private fun applySelection(choice: ModelChoice, reason: String, specPreset: Boolean = true) {

@@ -31,8 +31,9 @@ internal fun ModelSpecs?.parametersFor(spec: String?): ModelParameters? {
  * The parameters after the selection moves from [from] to [to]. Only a change of spec touches them,
  * so a tweak survives a re-pick of the same spec and every config refresh:
  * - onto a spec: that spec's preset ([parametersFor]);
- * - off a spec, onto a raw model: the defaults, so a spec's values (a `reasoning_effort`, a 32k
- *   `max_tokens`) don't follow the user onto a model that may refuse them.
+ * - off a spec, onto a raw model the user picked: the defaults, so a spec's values (a
+ *   `reasoning_effort`, a 32k `max_tokens`) don't follow the user onto a model that may refuse them.
+ *   A config that stops offering the spec doesn't move the chat this way ([withSpecsRefreshed]).
  *
  * Under `enforce` a spec's preset applies on the same spec too: the server sends it in place of
  * whatever the chat holds, and nothing can be tweaked on top of it.
@@ -58,6 +59,17 @@ internal fun ModelSelectionState.withChoice(choice: ModelChoice, specs: ModelSpe
         modelParameters = modelParameters.acrossSpecChange(this.choice, choice, specs),
         specTools = specTools.takeIf { choice.spec != null && choice.spec == this.choice.spec },
     )
+
+/**
+ * This selection on a refreshed spec config. A spec [specs] no longer offers on the chat's pair is
+ * dropped by name only: the endpoint and model are unchanged and web keeps sending the conversation
+ * as it is, so the parameters stay. Any other change goes through [withChoice], which re-applies an
+ * enforced spec's preset.
+ */
+internal fun ModelSelectionState.withSpecsRefreshed(specs: ModelSpecs?): ModelSelectionState {
+    val current = choice.withoutStale(specs)
+    return if (current != choice) copy(choice = current, modelSpecs = specs, specTools = null) else withChoice(current, specs)
+}
 
 /**
  * The parameters [this] conversation was last sent with, as web restores them when it opens one. They

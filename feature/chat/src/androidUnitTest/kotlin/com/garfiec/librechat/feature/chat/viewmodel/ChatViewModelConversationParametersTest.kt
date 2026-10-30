@@ -192,6 +192,33 @@ class ChatViewModelConversationParametersTest {
     }
 
     @Test
+    fun aSpecDropDuringTheBackfillFetchStillAppliesTheFetchedParameters() = runTest(testDispatcher) {
+        val deep = ModelSpec(name = "deep", preset = Preset(endpoint = "openAI", model = "gpt-4.1", temperature = 0.9))
+        startupConfig.value = StartupConfig(modelSpecs = ModelSpecs(list = listOf(deep)))
+        val gate = CompletableDeferred<Unit>()
+        coEvery { conversationRepository.getConversation("cp-drop", any()) } returns
+            Result.Success(stale("cp-drop").copy(spec = "deep"))
+        coEvery { conversationRepository.refreshConversation("cp-drop", any()) } coAnswers {
+            gate.await()
+            Result.Success(listed("cp-drop").copy(spec = "deep", temperature = 0.7))
+        }
+
+        val vm = open("cp-drop")
+        advanceUntilIdle()
+        assertEquals("deep", vm.uiState.value.selectedSpec)
+        startupConfig.value = StartupConfig(modelSpecs = ModelSpecs(list = emptyList()))
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.selectedSpec)
+        assertEquals(0.2f, vm.uiState.value.modelParameters.temperature)
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.selectedSpec)
+        assertEquals(0.7f, vm.uiState.value.modelParameters.temperature)
+    }
+
+    @Test
     fun anUnchangedChatIsNotAskedAgain() = runTest(testDispatcher) {
         coEvery { conversationRepository.getConversation("cp-fresh", any()) } returns
             Result.Success(stale("cp-fresh").copy(updatedAt = Instant.fromEpochMilliseconds(1_000)))

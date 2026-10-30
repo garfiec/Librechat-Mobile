@@ -180,4 +180,51 @@ class PresetSpecLoadTest {
             ),
         )
     }
+
+    @Test
+    fun `under enforce a parameter-only preset keeps the spec's parameters`() = runTest {
+        val deep = ModelSpec(name = "deep", preset = Preset(endpoint = "openAI", model = "gpt-4.1", temperature = 0.9))
+        val shown = ModelParameters.DEFAULT.copy(temperature = 0.9f, webSearch = true)
+
+        val selection = loadPreset(
+            Preset(presetId = "p1", temperature = 0.2, topP = 0.3),
+            ModelSpecs(list = listOf(deep), enforce = true),
+            state = ModelSelectionState(choice = ModelChoice.Spec("deep", "openAI", "gpt-4.1"), modelParameters = shown),
+        )
+
+        assertThat(selection.selectedSpec).isEqualTo("deep")
+        assertThat(selection.modelParameters).isEqualTo(shown)
+    }
+
+    @Test
+    fun `under enforce a preset naming a spec opens on that spec's parameters alone`() = runTest {
+        val deep = ModelSpec(
+            name = "deep",
+            preset = Preset(endpoint = "openAI", model = "gpt-4.1", temperature = 0.9, reasoningEffort = "high"),
+        )
+        val quick = ModelSpec(name = "quick", preset = Preset(endpoint = "openAI", model = "gpt-4o", temperature = 0.2))
+
+        val selection = loadPreset(
+            Preset(presetId = "p1", spec = "deep", temperature = 0.2, verbosity = "low"),
+            ModelSpecs(list = listOf(deep, quick), enforce = true),
+            state = ModelSelectionState(choice = ModelChoice.Spec("quick", "openAI", "gpt-4o")),
+        )
+
+        assertThat(selection.selectedSpec).isEqualTo("deep")
+        assertThat(selection.modelParameters).isEqualTo(
+            ModelParameters.DEFAULT.copy(temperature = 0.9f, dynamicValues = mapOf("reasoning_effort" to "high")),
+        )
+    }
+
+    @Test
+    fun `under enforce a preset that leaves the spec loads its own values`() = runTest {
+        val selection = loadPreset(
+            Preset(presetId = "p1", endpoint = "openAI", model = "gpt-4o", temperature = 0.2),
+            ModelSpecs(list = listOf(fast), enforce = true),
+            state = ModelSelectionState(choice = ModelChoice.Spec("fast", "openAI", "gpt-4.1")),
+        )
+
+        assertThat(selection.selectedSpec).isNull()
+        assertThat(selection.modelParameters.temperature).isEqualTo(0.2f)
+    }
 }

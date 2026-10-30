@@ -137,6 +137,13 @@ Which spec applies, and whether it is prioritized, is `util/SpecSeed.kt`, a port
   `modelSelect: false`, and `enforce` with a raw last-used pair (a last-used spec still counts).
   Keep the override there, never in `SpecSeed.kt`, which mirrors upstream. Switching it while the
   landing is open re-seeds the landing.
+- **Under `enforce`** (both modes): the server refuses a raw pair, `addedEndpoints` or not, so a raw
+  last-used never seeds (`seedableLastUsed`) and a raw model the seeder opened before the config arrived
+  gives way; a raw pick on the landing stays, for the send preflight to ask. When the spec tiers open
+  no spec (no `default` or soft spec without `prioritize`, a spec agent the user can't reach, a last
+  spec the server dropped), Tier 1b goes on to the first spec that can: the `default` one, then list
+  order (`fallbackSpecSeeds`). Only when none can do the raw tiers run. Web opens the raw model in
+  these cases and the server refuses the send.
 
 | Server config | "Server's choice": new chats open on | "My last-used model": new chats open on | Role of last-used |
 |---|---|---|---|
@@ -146,7 +153,7 @@ Which spec applies, and whether it is prioritized, is `util/SpecSeed.kt`, a port
 | `prioritize: false` + `softDefault` spec | Last-used if usable, otherwise the soft spec | Same | Wins over the soft spec |
 | `prioritize: false`, no soft default | Same as no specs | Same | Same as no specs |
 | `interface.modelSelect: false` | The `default`/soft/first spec, always (a stored last spec still reopens when none is marked `default`); an agent card or a spec's shortcut still wins, as a start-chat link does on web | Same: the setting is ignored | Used only when no spec applies |
-| `enforce: true` | As above; a raw pick can't be sent | Last-used only if it's a spec; a raw one falls back to the server's spec | Raw last-used ignored |
+| `enforce: true` | As above, then any spec that can open (`default` first) before a raw model; a raw pick can't be sent | Last-used only if it's a spec; otherwise as "Server's choice" | Raw last-used ignored |
 
 In both modes: a spec that can't apply (missing agent, no agent access, a model the endpoint doesn't
 offer, config not loaded yet) falls back to the normal order; existing conversations reopen on
@@ -203,10 +210,14 @@ chat opened on a spec gets the admin's prompt as on web.
 `{...spec.preset, spec}` into the conversation. Without `enforce` the server applies none of the
 preset's public fields (temperature, `reasoning_effort`, `max_tokens`, `maxContextTokens`, …), so the
 client has to send them. Only a change of spec touches the parameters (`acrossSpecChange`, from
-`applySelection` and the seeder's spec-config write), never a re-emission of the same one, so a tweak
-on top of a spec survives config refreshes and is sent:
+`applySelection` and the seeder's spec-config write, `withSpecsRefreshed`), never a re-emission of the
+same one, so a tweak on top of a spec survives config refreshes and is sent:
 - Onto a spec (a pick, a seeded tier, a retargeted spec re-applied): that spec's preset over the defaults.
-- Off a spec onto a raw model (a pick, or the config dropping it as stale): the defaults.
+- Off a spec onto a raw model the user picked: the defaults.
+- A config that stops offering the chat's spec on its pair (removed, renamed, retargeted) drops the
+  name and keeps the parameters, in an open chat and on the landing, whichever loads first: the
+  endpoint and model are unchanged, and web keeps sending the conversation as it is. On the landing
+  a retargeted prioritized spec then re-applies through the tiers with its new preset.
 - The user's web search and URL context carry across either way, within the chat (a new chat
   resets both). Under a spec the toolbar shows the spec's tools instead (see "Chat Tools"), so
   these wait for the user to leave it.
@@ -220,13 +231,17 @@ on top of a spec survives config refreshes and is sent:
   full read cached, stamped with the `updatedAt` it was read at (`parametersAsOf`). A row with no
   blob, or whose `updatedAt` has since moved (the chat changed elsewhere), is fetched once per process
   and version, with the `enforce` spec backfill. The cache applies at once and the fetch replaces it
-  only if the user changed nothing meanwhile; offline the cache stays.
+  only if the user changed nothing meanwhile; offline the cache stays. A config refresh meanwhile is
+  not the user's change: `SelectionWatches` follows the seeder's rewrite, so a
+  spec drop while the fetch is out still lets the fetched parameters apply.
   A handed-off new chat takes the landing's parameters from `NewChatSelectionHandoff` instead.
 - The next new chat starts from the carried spec's preset (`onPendingNavigationHandled`).
 - Under `enforce` the server replaces the body with the preset, so while a spec is active the sheet
   is read-only (`parametersSetBySpec`) and `updateModelParameters` ignores it. The parameters are
-  that preset there even on the same spec and on a reopened chat (`reopenedParameters`), so the
-  locked sheet shows what the server runs, not what the chat stored before `enforce` was on.
+  that preset there even on the same spec, on a reopened chat (`reopenedParameters`) and after a
+  loaded preset (`loadPreset`, parameter-only or naming a spec), so the locked sheet shows what the
+  server runs, not what the chat stored before `enforce` was on. A loaded preset's tool flags still
+  apply: the server reads `ephemeralAgent` from the body even under `enforce`.
 - The spec's `artifacts` go out as `ephemeralAgent.artifacts` (`true` → `"default"`), the only place
   the server reads them. The context gauge takes the spec's `preset.maxContextTokens` after the
   agent's and before token-config, as web's `useTokenLimits` does.
