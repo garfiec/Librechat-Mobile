@@ -67,7 +67,6 @@ import com.garfiec.librechat.core.ui.components.adaptiveSelectedRowColor
 import com.garfiec.librechat.core.ui.components.dragSelectRow
 import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
 import com.garfiec.librechat.core.ui.components.menuDragAnchor
-import com.garfiec.librechat.core.ui.components.menuDragPressEffect
 import com.garfiec.librechat.core.ui.components.menuDragTarget
 import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
 import com.garfiec.librechat.core.ui.resources.bookmarks
@@ -243,7 +242,6 @@ private fun WorkspaceRow(
                 )
                 .dragSelectRow(state = null, role = Role.Button) { expanded = !expanded }
                 .semantics { stateDescription = stateText }
-                .menuDragPressEffect(drag)
                 .padding(horizontal = 16.dp, vertical = 11.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
