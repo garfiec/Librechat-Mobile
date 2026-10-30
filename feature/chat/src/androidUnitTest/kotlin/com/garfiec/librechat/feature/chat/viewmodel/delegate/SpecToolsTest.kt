@@ -156,19 +156,30 @@ class SpecToolsTest {
     }
 
     @Test
-    fun theSheetsWebSearchUnderASpecIsTheChatsAddition() = runTest {
+    fun theSheetsUrlContextUnderASpecIsTheChatsAddition() = runTest {
         val (handle, delegate) = onSpec(plain)
-        assertThat(handle.state.effectiveEnabledTools).doesNotContain(ToolConstants.WEB_SEARCH)
+        assertThat(handle.state.effectiveEnabledTools).doesNotContain(ToolConstants.URL_CONTEXT)
 
-        delegate.updateModelParameters(handle.state.selection.sendParameters.copy(webSearch = true, temperature = 0.4f))
+        delegate.updateModelParameters(handle.state.selection.sendParameters.copy(urlContext = true, temperature = 0.4f))
 
-        assertThat(handle.state.effectiveEnabledTools).contains(ToolConstants.WEB_SEARCH)
+        assertThat(handle.state.effectiveEnabledTools).contains(ToolConstants.URL_CONTEXT)
         assertThat(handle.state.modelParameters.temperature).isEqualTo(0.4f)
+        assertThat(handle.state.modelParameters.urlContext).isFalse()
+
+        delegate.updateModelParameters(handle.state.selection.sendParameters.copy(urlContext = false))
+        assertThat(handle.state.effectiveEnabledTools).doesNotContain(ToolConstants.URL_CONTEXT)
+    }
+
+    /** The sheet has no web-search control: the tools' one control drives both searches. */
+    @Test
+    fun theSheetsWebSearchUnderASpecChangesNothing() = runTest {
+        val (handle, delegate) = onSpec(plain)
+
+        delegate.updateModelParameters(handle.state.selection.sendParameters.copy(webSearch = true))
+
+        assertThat(handle.state.effectiveEnabledTools).doesNotContain(ToolConstants.WEB_SEARCH)
         // The user's own value underneath is untouched.
         assertThat(handle.state.modelParameters.webSearch).isTrue()
-
-        delegate.updateModelParameters(handle.state.selection.sendParameters.copy(webSearch = false))
-        assertThat(handle.state.effectiveEnabledTools).doesNotContain(ToolConstants.WEB_SEARCH)
     }
 
     @Test

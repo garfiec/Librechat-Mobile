@@ -14,6 +14,7 @@ import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
+import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -65,6 +66,7 @@ private data class AdditionalPreferences(
     val uploadRoutingMode: UploadRoutingMode = UploadRoutingMode.AUTO,
     val showSiteIcons: Boolean = false,
     val preferLastUsedModel: Boolean = false,
+    val webSearchFirst: WebSearchPreference = WebSearchPreference.LIBRECHAT_FIRST,
 )
 
 /**
@@ -187,6 +189,8 @@ class ChatPreferencesController(
         additional.copy(showSiteIcons = siteIcons ?: false)
     }.combine(preferenceStore.observe(AppPreferences.PreferLastUsedModel)) { additional, preferLastUsed ->
         additional.copy(preferLastUsedModel = preferLastUsed)
+    }.combine(preferenceStore.observe(AppPreferences.WebSearchFirst)) { additional, webSearchFirst ->
+        additional.copy(webSearchFirst = webSearchFirst)
     }.stateIn(
         scope,
         SharingStarted.Eagerly,
@@ -234,6 +238,7 @@ class ChatPreferencesController(
             uploadRoutingMode = additional.uploadRoutingMode,
             showSiteIcons = additional.showSiteIcons,
             preferLastUsedModel = additional.preferLastUsedModel,
+            webSearchFirst = additional.webSearchFirst,
         )
     }.stateIn(scope, SharingStarted.Eagerly, ChatSettingsUiState())
 
@@ -285,6 +290,10 @@ class ChatPreferencesController(
 
     fun setPreferLastUsedModel(prefer: Boolean) {
         scope.launch { preferenceStore.set(AppPreferences.PreferLastUsedModel, prefer) }
+    }
+
+    fun setWebSearchFirst(first: WebSearchPreference) {
+        scope.launch { preferenceStore.set(AppPreferences.WebSearchFirst, first) }
     }
 
     fun setDismissKeyboardOnSend(enabled: Boolean) {

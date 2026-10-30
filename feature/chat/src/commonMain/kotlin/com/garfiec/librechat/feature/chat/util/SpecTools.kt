@@ -38,7 +38,9 @@ internal val ModelSpec.forcedTools: Set<String>
 /**
  * The preset's own `web_search` and `url_context`, the provider's grounding parameters. Web copies
  * the preset into the conversation, so a spec chat starts with these on; without `enforce` the user
- * can turn them off, and under it the server sends the preset whatever the chat holds.
+ * can turn them off, and under it the server sends the preset whatever the chat holds. They share a
+ * toolbar key with [forcedTools]' web search, which is LibreChat's search, not the provider's:
+ * [webSearchRoute] tells the two apart from the spec itself.
  */
 internal val ModelSpec.presetTools: Set<String>
     get() = buildSet {

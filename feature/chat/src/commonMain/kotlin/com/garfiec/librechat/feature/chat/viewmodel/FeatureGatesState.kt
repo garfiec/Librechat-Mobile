@@ -21,7 +21,30 @@ data class FeatureGatesState(
     val mcpServersEnabled: Boolean = true,
     val multiConvoEnabled: Boolean = true,
     val temporaryChatEnabled: Boolean = true,
+    /** LibreChat search allowed: `WEB_SEARCH.USE` AND `interface.webSearch`. */
     val webSearchEnabled: Boolean = true,
+    /**
+     * The provider's built-in search allowed: `WEB_SEARCH.USE` alone. The server strips the built-in
+     * search for a role without it, but `interface.webSearch` is a web interface flag, and web's
+     * parameters panel offers the built-in switch whatever it says.
+     */
+    val webSearchPermitted: Boolean = true,
+    /**
+     * Whether LibreChat's own web search is set up: `/api/config` serves `webSearch` (only when a
+     * search provider is configured) and the server's key check passes
+     * (`GET /api/agents/tools/web_search/auth`). Fails closed: false until there is an answer
+     * (`ChatConfigDelegate.loadWebSearchReadiness`). Keys each user must enter read as not set up
+     * (web asks for them; mobile has no screen for that), so those chats use the provider's built-in
+     * search. Not caught: a key that is present but wrong, or a provider that is down. Read with
+     * [webSearchEnabled] through `ChatUiState.webSearchRoute`.
+     */
+    val librechatSearchReady: Boolean = false,
+    /**
+     * The key check behind [librechatSearchReady] is out (or retrying) for a config that names a
+     * search provider. A send that would run LibreChat search runs none meanwhile
+     * (`WebSearchRoute.CHECKING`) instead of switching to the built-in one.
+     */
+    val librechatSearchChecking: Boolean = false,
     val runCodeEnabled: Boolean = true,
     val fileSearchEnabled: Boolean = true,
     val bookmarksEnabled: Boolean = true,

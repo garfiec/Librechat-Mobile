@@ -60,6 +60,14 @@ object AppPreferences {
      */
     val PreferLastUsedModel = boolPreference("prefer_last_used_model", default = always(false))
 
+    /** Which search the chat's web-search control tries first ([WebSearchPreference]). Mobile-only. */
+    val WebSearchFirst = stringPreference(
+        "web_search_first",
+        default = always(WebSearchPreference.LIBRECHAT_FIRST),
+        decode = WebSearchPreference::fromStorage,
+        encode = { it.storageValue },
+    )
+
     val all: List<PreferenceSpec<*, *>> =
         listOf(
             SiteIcons,
@@ -70,5 +78,6 @@ object AppPreferences {
             AdvancedSearch,
             CompareSyncScroll,
             PreferLastUsedModel,
+            WebSearchFirst,
         )
 }

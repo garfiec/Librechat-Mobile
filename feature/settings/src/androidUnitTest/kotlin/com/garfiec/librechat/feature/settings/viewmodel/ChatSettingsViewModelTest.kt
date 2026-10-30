@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
+import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.model.speech.SpeechConfig
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.SpeechSettingsContract
@@ -39,6 +40,7 @@ class ChatSettingsViewModelTest {
     private val uploadRoutingModeFlow = MutableStateFlow(UploadRoutingMode.AUTO)
     private val siteIconsChoiceFlow = MutableStateFlow<Boolean?>(null)
     private val preferLastUsedFlow = MutableStateFlow(false)
+    private val webSearchFirstFlow = MutableStateFlow(WebSearchPreference.LIBRECHAT_FIRST)
     private val speechRepository = mockk<SpeechRepository>(relaxed = true)
 
     private lateinit var viewModel: ChatSettingsViewModel
@@ -72,6 +74,8 @@ class ChatSettingsViewModelTest {
         every { preferenceStore.observe(AppPreferences.SiteIcons) } returns siteIconsChoiceFlow
         every { preferenceStore.observe(AppPreferences.PreferLastUsedModel) } returns preferLastUsedFlow
         coEvery { preferenceStore.set(AppPreferences.PreferLastUsedModel, any()) } answers { preferLastUsedFlow.value = secondArg() }
+        every { preferenceStore.observe(AppPreferences.WebSearchFirst) } returns webSearchFirstFlow
+        coEvery { preferenceStore.set(AppPreferences.WebSearchFirst, any()) } answers { webSearchFirstFlow.value = secondArg() }
         every { preferenceStore.initial(AppPreferences.SiteIcons) } returns null
         coEvery { preferenceStore.set(AppPreferences.SiteIcons, any()) } answers { siteIconsChoiceFlow.value = secondArg() }
         every { settingsDataStore.latexRenderer } returns MutableStateFlow(LatexRenderer.KATEX)
@@ -118,6 +122,19 @@ class ChatSettingsViewModelTest {
 
         coVerify { preferenceStore.set(AppPreferences.PreferLastUsedModel, true) }
         assertThat(viewModel.uiState.value.preferLastUsedModel).isTrue()
+    }
+
+    @Test
+    fun `web search tries LibreChat search first until the user prefers the built-in one`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.webSearchFirst).isEqualTo(WebSearchPreference.LIBRECHAT_FIRST)
+
+        viewModel.setWebSearchFirst(WebSearchPreference.BUILT_IN_FIRST)
+        advanceUntilIdle()
+
+        coVerify { preferenceStore.set(AppPreferences.WebSearchFirst, WebSearchPreference.BUILT_IN_FIRST) }
+        assertThat(viewModel.uiState.value.webSearchFirst).isEqualTo(WebSearchPreference.BUILT_IN_FIRST)
     }
 
     @Test

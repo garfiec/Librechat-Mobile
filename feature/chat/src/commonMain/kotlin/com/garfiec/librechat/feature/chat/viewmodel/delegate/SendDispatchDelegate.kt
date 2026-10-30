@@ -115,7 +115,7 @@ class SendDispatchDelegate(
             mcpServerNames = state.selectedMcpServerNames,
             specTools = state.selection.specTools,
             modelParameters = state.modelParameters,
-            webSearch = state.selection.sendParameters.webSearch,
+            webSearch = requestBuilder.builtInWebSearch(),
             modelParamsPayload = requestBuilder.buildModelParams(),
             ephemeralAgent = requestBuilder.buildEphemeralAgent(),
             dispatch = requestBuilder.currentDispatch(),

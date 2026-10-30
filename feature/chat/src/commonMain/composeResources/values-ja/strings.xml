@@ -232,6 +232,11 @@
     <string name="tool_set_by_spec">このモデルではサーバーが有効にしています</string>
     <string name="tool_web_search">ウェブ検索</string>
     <string name="tool_web_search_desc">ウェブで情報を検索</string>
+    <string name="web_search_librechat">LibreChat 検索</string>
+    <string name="web_search_checking">LibreChat 検索を確認中…</string>
+    <string name="web_search_built_in">%1$s の組み込み検索</string>
+    <string name="web_search_built_in_plain">組み込み検索</string>
+    <string name="web_search_set_by_spec">%1$s(このモデルではサーバーが有効にしています)</string>
     <string name="web_searched">ウェブを検索しました</string>
     <string name="tool_url_context">URL コンテキスト</string>
     <string name="tool_url_context_desc">参照した URL や YouTube 動画をモデルが読めるようにする</string>

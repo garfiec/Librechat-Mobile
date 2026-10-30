@@ -281,6 +281,12 @@
     <string name="new_chat_start_desc">서버가 새 채팅용 모델을 지정한 경우 그 모델을 쓸지, 마지막으로 사용한 모델을 쓸지 선택합니다. 서버가 모델 선택기를 숨기면 무시됩니다. 서버가 자체 모델 사용을 요구하면 마지막 모델이 그중 하나일 때만 적용됩니다.</string>
     <string name="new_chat_start_server">서버 지정</string>
     <string name="new_chat_start_last_used">마지막으로 사용한 모델</string>
+    <string name="web_search_first_title">웹 검색</string>
+    <string name="web_search_first_desc">두 검색을 모두 쓸 수 있을 때 채팅의 웹 검색 스위치가 어떤 검색을 실행할지 정합니다. 선택한 검색을 채팅에서 쓸 수 없으면 다른 검색을 사용합니다. 모델 사양이 정한 검색이 우선하며, 비교에서는 두 모델이 모두 검색하도록 가능하면 LibreChat 검색을 사용합니다.</string>
+    <string name="web_search_first_librechat">LibreChat 검색 우선</string>
+    <string name="web_search_first_librechat_desc">서버의 검색으로, 출처를 함께 보여 줍니다. 서버에 설정된 검색이 없으면 모델의 기본 제공 검색을 사용합니다.</string>
+    <string name="web_search_first_built_in">기본 제공 검색 우선</string>
+    <string name="web_search_first_built_in_desc">모델 제공업체의 자체 검색(OpenAI, Claude, Gemini, OpenRouter)입니다. 다른 모델에서는 LibreChat 검색을 사용합니다.</string>
     <string name="chat_header_title">채팅 헤더</string>
     <string name="chat_header_summary_format">%1$s · %2$s</string>
     <string name="chat_header_content_label">내용</string>

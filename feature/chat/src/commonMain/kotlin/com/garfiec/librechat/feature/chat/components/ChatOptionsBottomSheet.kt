@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.model.Agent
@@ -52,6 +53,8 @@ import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_back
 import com.garfiec.librechat.feature.chat.resources.param_set_by_spec
 import com.garfiec.librechat.feature.chat.resources.tool_model_parameters
+import com.garfiec.librechat.feature.chat.util.WebSearchKind
+import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import org.jetbrains.compose.resources.stringResource
@@ -79,6 +82,7 @@ data class ChatToolsPageParams(
     val comparisonModels: ComparisonModelLabels? = null,
     val isCodeInterpreterAvailable: Boolean = true,
     val webSearchEnabled: Boolean = true,
+    val webSearchKind: WebSearchKind = WebSearchKind(WebSearchRoute.LIBRECHAT, null),
     val urlContextEnabled: Boolean = false,
     val runCodeEnabled: Boolean = true,
     val fileSearchEnabled: Boolean = true,
@@ -256,6 +260,7 @@ fun ChatOptionsBottomSheet(
                         onDismiss = dismiss,
                         isCodeInterpreterAvailable = tools.isCodeInterpreterAvailable,
                         webSearchEnabled = tools.webSearchEnabled,
+                        webSearchKind = tools.webSearchKind,
                         urlContextEnabled = tools.urlContextEnabled,
                         runCodeEnabled = tools.runCodeEnabled,
                         fileSearchEnabled = tools.fileSearchEnabled,
@@ -336,6 +341,8 @@ fun ChatOptionsBottomSheet(
                             },
                             // The back row above replaces the content's own title.
                             showHeader = false,
+                            // The tools' web-search control is the one switch for both searches.
+                            hiddenKeys = setOf(ToolConstants.WEB_SEARCH),
                             modifier = Modifier
                                 .padding(horizontal = 24.dp)
                                 .navigationBarsPadding()

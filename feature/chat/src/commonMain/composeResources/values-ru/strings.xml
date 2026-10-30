@@ -232,6 +232,11 @@
     <string name="tool_set_by_spec">Включено сервером для этой модели</string>
     <string name="tool_web_search">Веб-поиск</string>
     <string name="tool_web_search_desc">Искать информацию в интернете</string>
+    <string name="web_search_librechat">Поиск LibreChat</string>
+    <string name="web_search_checking">Проверка поиска LibreChat…</string>
+    <string name="web_search_built_in">Встроенный поиск %1$s</string>
+    <string name="web_search_built_in_plain">Встроенный поиск</string>
+    <string name="web_search_set_by_spec">%1$s, включено сервером для этой модели</string>
     <string name="web_searched">Выполнен поиск в интернете</string>
     <string name="tool_url_context">Контекст URL</string>
     <string name="tool_url_context_desc">Разрешить модели читать указанные вами URL и видео YouTube</string>

@@ -287,6 +287,12 @@
     <string name="new_chat_start_desc">Cuando tu servidor elige un modelo para los chats nuevos, decide si usarlo o el último modelo que usaste. Se ignora si el servidor oculta el selector de modelos. Si el servidor exige uno de sus propios modelos, tu último modelo solo cuenta si era uno de ellos.</string>
     <string name="new_chat_start_server">Elección del servidor</string>
     <string name="new_chat_start_last_used">Mi último modelo usado</string>
+    <string name="web_search_first_title">Búsqueda web</string>
+    <string name="web_search_first_desc">Qué búsqueda ejecuta el interruptor de búsqueda web de un chat cuando ambas son posibles. Si tu elección no está disponible en un chat, se usa la otra. La búsqueda propia de una especificación de modelo tiene prioridad, y Comparar usa la búsqueda de LibreChat cuando puede, para que busquen los dos modelos.</string>
+    <string name="web_search_first_librechat">Primero la búsqueda de LibreChat</string>
+    <string name="web_search_first_librechat_desc">La búsqueda de tu servidor, con fuentes. Usa la búsqueda integrada del modelo cuando el servidor no tiene ninguna configurada.</string>
+    <string name="web_search_first_built_in">Primero la búsqueda integrada</string>
+    <string name="web_search_first_built_in_desc">La búsqueda propia del proveedor del modelo (OpenAI, Claude, Gemini, OpenRouter). Usa la búsqueda de LibreChat con otros modelos.</string>
     <string name="chat_header_title">Encabezado del chat</string>
     <string name="chat_header_summary_format">%1$s · %2$s</string>
     <string name="chat_header_content_label">Contenido</string>

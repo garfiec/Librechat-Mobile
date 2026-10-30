@@ -297,7 +297,7 @@ class MessageEditingDelegate(
 
         val state = handle.state
         val isAgent = state.selectedEndpoint == EndpointConstants.AGENTS
-        val webSearchEnabled = state.selection.sendParameters.webSearch
+        val webSearchEnabled = requestBuilder.builtInWebSearch()
         val ephemeralAgent = requestBuilder.buildEphemeralAgent()
         Logger.d { "$logLabel: webSearch=$webSearchEnabled, ephemeralAgent=$ephemeralAgent" }
         val dispatch = requestBuilder.currentDispatch()

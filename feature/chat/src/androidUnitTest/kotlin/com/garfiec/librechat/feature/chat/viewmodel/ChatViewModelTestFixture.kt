@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
+import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
@@ -11,12 +12,15 @@ import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
+import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
+import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.data.repository.AgentRepository
+import com.garfiec.librechat.core.data.repository.AgentToolsRepository
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
@@ -38,8 +42,10 @@ import com.garfiec.librechat.core.data.repository.SkillsRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.data.repository.WebSearchReadinessRepository
 import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.data.util.PermissionGate
+import com.garfiec.librechat.core.model.ToolAuthResult
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
 import com.garfiec.librechat.core.model.usage.ContextDetailPreset
@@ -106,6 +112,19 @@ internal class ChatViewModelTestFixture {
     val userRepository = mockk<UserRepository>(relaxed = true)
     val roleRepository = mockk<RoleRepository>(relaxed = true)
     val memoryRepository = mockk<MemoryRepository>(relaxed = true)
+    val agentToolsRepository = mockk<AgentToolsRepository>(relaxed = true)
+
+    /** The web-search key check's answer (`GET /api/agents/tools/web_search/auth`). */
+    var webSearchAuthenticated = true
+
+    /** Settings → Chat's web-search order. */
+    val webSearchFirst = MutableStateFlow(WebSearchPreference.LIBRECHAT_FIRST)
+
+    /** Each conversation's remembered web-search switch; nothing stored unless a test says so. */
+    val conversationWebSearchStore = mockk<ConversationWebSearchStore>(relaxed = true)
+
+    /** Shared by every ViewModel this fixture builds, like the app's single, so its cache carries over. */
+    private var webSearchReadiness: WebSearchReadinessRepository? = null
 
     /** The shared memory opt-out; null until a test publishes one, as before any fetch. */
     val memoriesEnabled = MutableStateFlow<Boolean?>(null)
@@ -189,6 +208,11 @@ internal class ChatViewModelTestFixture {
         every { preferenceStore.observe(AppPreferences.SiteIcons) } returns MutableStateFlow(null)
         every { preferenceStore.observe(AppPreferences.PreferLastUsedModel) } returns MutableStateFlow(false)
         every { preferenceStore.initial(AppPreferences.SiteIcons) } returns null
+        every { preferenceStore.observe(AppPreferences.WebSearchFirst) } returns webSearchFirst
+        coEvery { conversationWebSearchStore.get(any()) } returns null
+        coEvery { agentToolsRepository.verifyToolAuth(ToolConstants.WEB_SEARCH) } answers {
+            Result.Success(ToolAuthResult(authenticated = webSearchAuthenticated))
+        }
         every { settingsDataStore.duringRunAction } returns MutableStateFlow(DuringRunAction.QUEUE)
         // A real slot map rather than a relaxed Flow, so a toggle written here reads back.
         every { settingsDataStore.skillsToggle(any()) } answers {
@@ -237,6 +261,9 @@ internal class ChatViewModelTestFixture {
         userRepository = userRepository,
         roleRepository = roleRepository,
         memoryRepository = memoryRepository,
+        webSearchReadiness = webSearchReadiness
+            ?: WebSearchReadinessRepository(agentToolsRepository, activeAccountProvider).also { webSearchReadiness = it },
+        conversationWebSearchStore = conversationWebSearchStore,
         permissionGate = permissionGate,
         connectivityObserver = connectivityObserver,
         serverDataStore = serverDataStore,

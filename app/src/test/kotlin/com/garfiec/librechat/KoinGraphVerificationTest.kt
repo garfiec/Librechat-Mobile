@@ -16,6 +16,7 @@ import com.garfiec.librechat.core.common.network.RequestActivityTracker
 import com.garfiec.librechat.core.common.power.PowerStateObserver
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
+import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
@@ -64,6 +65,7 @@ import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.data.repository.ToolFavoritesRepository
 import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.data.repository.WebSearchReadinessRepository
 import com.garfiec.librechat.core.data.search.MessageSearchRepository
 import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.data.update.AppInstallSource
@@ -212,6 +214,7 @@ class KoinGraphVerificationTest {
             PreferenceStore::class,
             SsoRiskDataStore::class,
             ThemeDataStore::class,
+            ConversationWebSearchStore::class,
             AgentRepository::class,
             AgentToolsRepository::class,
             ApiKeyRepository::class,
@@ -249,6 +252,7 @@ class KoinGraphVerificationTest {
             ToolFavoritesRepository::class,
             TraceRepository::class,
             UserRepository::class,
+            WebSearchReadinessRepository::class,
             ShareLinkControllerFactory::class,
             PermissionGate::class,
             BookmarksGate::class,

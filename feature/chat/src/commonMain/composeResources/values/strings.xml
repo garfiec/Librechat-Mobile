@@ -237,6 +237,11 @@
     <string name="tool_set_by_spec">Turned on for this model by the server</string>
     <string name="tool_web_search">Web Search</string>
     <string name="tool_web_search_desc">Search the web for information</string>
+    <string name="web_search_librechat">LibreChat search</string>
+    <string name="web_search_checking">Checking LibreChat search…</string>
+    <string name="web_search_built_in">%1$s's built-in search</string>
+    <string name="web_search_built_in_plain">Built-in search</string>
+    <string name="web_search_set_by_spec">%1$s, turned on for this model by the server</string>
     <string name="web_searched">Searched the web</string>
     <string name="tool_url_context">URL Context</string>
     <string name="tool_url_context_desc">Let the model read URLs and YouTube you reference</string>

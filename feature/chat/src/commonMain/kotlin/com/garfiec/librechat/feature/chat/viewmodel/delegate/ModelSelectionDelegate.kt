@@ -1196,7 +1196,9 @@ class ModelSelectionDelegate(
             return
         }
         if (toolName == ToolConstants.WEB_SEARCH) {
-            // Web search is backed by modelParameters.webSearch (single source of truth).
+            // The one web-search control, backed by modelParameters.webSearch. It is the user's
+            // intent only: which search a send runs is ChatUiState.webSearchRoute (see
+            // feature/chat/CLAUDE.md, "Web search: one control, two searches").
             val current = handle.state.modelParameters.webSearch
             handle.update {
                 selection = selection.copy(modelParameters = selection.modelParameters.copy(webSearch = !current))

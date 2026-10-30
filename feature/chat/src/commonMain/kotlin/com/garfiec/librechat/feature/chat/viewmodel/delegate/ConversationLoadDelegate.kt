@@ -51,7 +51,13 @@ class ConversationLoadDelegate(
     private val applyConversationModel: (Conversation) -> Boolean,
     /** Whether this screen takes the conversation's stored parameters (not a handed-off new chat). */
     private val wantsStoredParameters: () -> Boolean = { false },
-    private val restoreParameters: (Conversation) -> Unit = {},
+    /** Writes the conversation's parameters, with the web-search switch this device remembered (if any). */
+    private val restoreParameters: (Conversation, Boolean?) -> Unit = { _, _ -> },
+    /**
+     * The web-search switch this device remembered for a conversation. Read before the model is
+     * applied, so nothing suspends between that and [restoreParameters] for a user change to land in.
+     */
+    private val rememberedWebSearch: suspend (String) -> Boolean? = { null },
     /**
      * Marks the conversation-model load attempted (never "resolved") and refilters the model list;
      * see ModelSelectionDelegate.conversationModelLoaded. Runs on every path out of
@@ -352,11 +358,12 @@ class ConversationLoadDelegate(
             val result = conversationRepository.getConversation(conversationId, originAccount = null)
             var conversation = result.getOrNull()
             val wantsParameters = wantsStoredParameters()
+            val remembered = if (wantsParameters) rememberedWebSearch(conversationId) else null
             fun apply(loaded: Conversation, restore: Boolean): Boolean {
                 handle.update { conversationTitle = loaded.title }
                 val applied = applyConversationModel(loaded)
                 // After the model, so the conversation's own parameters are what stays.
-                if (applied && restore) restoreParameters(loaded)
+                if (applied && restore) restoreParameters(loaded, remembered)
                 return applied
             }
             // The cached row applies at once, so an open never waits on the network for its model.
