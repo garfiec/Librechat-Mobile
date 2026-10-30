@@ -555,6 +555,7 @@ class ChatViewModel(
         onMessagesSettled = attachmentPreviewDelegate::onMessagesSettled,
         currentModelSpecs = { configRepository.startupConfig.value?.modelSpecs },
         currentAccountId = { activeAccountProvider.currentAccountId()?.value },
+        watchSelection = modelDelegate.selectionWatches::watch,
     )
 
     private val uploadIntakeDelegate = UploadIntakeDelegate(

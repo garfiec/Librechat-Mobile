@@ -192,7 +192,7 @@ class SpecPresetParametersTest {
     }
 
     @Test
-    fun aConfigThatDropsTheSpecOfAnOpenConversationResetsItsParameters() = runTest {
+    fun aConfigThatDropsTheSpecOfAnOpenConversationKeepsItsParameters() = runTest {
         val handle = newHandle(TestScope(StandardTestDispatcher(testScheduler)), conversationId = "c1")
         startupConfig.value = config(deep, modelSelect = true)
         val delegate = newDelegate(handle)
@@ -205,7 +205,79 @@ class SpecPresetParametersTest {
         advanceUntilIdle()
 
         assertThat(handle.state.selectedSpec).isNull()
-        assertThat(handle.state.modelParameters).isEqualTo(ModelParameters.DEFAULT)
+        assertThat(handle.state.selectedModel).isEqualTo("gpt-4.1")
+        assertThat(handle.state.modelParameters).isEqualTo(ModelParameters.DEFAULT.copy(temperature = 0.4f))
+    }
+
+    @Test
+    fun aConversationLoadedAfterTheConfigDroppedItsSpecKeepsItsParameters() = runTest {
+        val handle = newHandle(TestScope(StandardTestDispatcher(testScheduler)), conversationId = "c1")
+        startupConfig.value = config(quick, modelSelect = true)
+        val delegate = newDelegate(handle)
+        delegate.seedInitialSelection(isNewConversation = false)
+        advanceUntilIdle()
+
+        delegate.applyResolvedConversationModel("openAI", "gpt-4.1", "deep")
+        delegate.updateModelParameters(ModelParameters.DEFAULT.copy(temperature = 0.4f), restoring = true)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedSpec).isNull()
+        assertThat(handle.state.modelParameters).isEqualTo(ModelParameters.DEFAULT.copy(temperature = 0.4f))
+    }
+
+    @Test
+    fun aConversationLoadedBeforeAnyConfigKeepsItsParametersWhenTheConfigDropsItsSpec() = runTest {
+        val handle = newHandle(TestScope(StandardTestDispatcher(testScheduler)), conversationId = "c1")
+        val delegate = newDelegate(handle)
+        delegate.seedInitialSelection(isNewConversation = false)
+        advanceUntilIdle()
+        // No config to check the stored spec against yet: it is kept unchecked.
+        delegate.applyResolvedConversationModel("openAI", "gpt-4.1", "deep")
+        delegate.updateModelParameters(ModelParameters.DEFAULT.copy(temperature = 0.4f), restoring = true)
+        assertThat(handle.state.selectedSpec).isEqualTo("deep")
+
+        startupConfig.value = config(quick, modelSelect = true)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedSpec).isNull()
+        assertThat(handle.state.modelParameters).isEqualTo(ModelParameters.DEFAULT.copy(temperature = 0.4f))
+    }
+
+    @Test
+    fun aStaleDropOnTheLandingKeepsTheParameters() = runTest {
+        val handle = newHandle(TestScope(StandardTestDispatcher(testScheduler)))
+        startupConfig.value = config(deep, quick, modelSelect = true)
+        val delegate = newDelegate(handle)
+        delegate.seedInitialSelection(isNewConversation = true)
+        advanceUntilIdle()
+        delegate.onSpecSelected(deep)
+        delegate.updateModelParameters(handle.state.modelParameters.copy(temperature = 0.3f))
+
+        startupConfig.value = config(quick, modelSelect = true)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedSpec).isNull()
+        assertThat(handle.state.selectedModel).isEqualTo("gpt-4.1")
+        assertThat(handle.state.modelParameters).isEqualTo(deepParameters.copy(temperature = 0.3f))
+    }
+
+    @Test
+    fun aSeederRewriteIsNotTheUsersChange() = runTest {
+        val handle = newHandle(TestScope(StandardTestDispatcher(testScheduler)), conversationId = "c1")
+        startupConfig.value = config(deep, modelSelect = true)
+        val delegate = newDelegate(handle)
+        delegate.seedInitialSelection(isNewConversation = false)
+        advanceUntilIdle()
+        delegate.applyResolvedConversationModel("openAI", "gpt-4.1", "deep")
+        val untouched = delegate.selectionWatches.watch()
+        val touched = delegate.selectionWatches.watch()
+
+        startupConfig.value = config(quick, modelSelect = true)
+        advanceUntilIdle()
+        assertThat(untouched()).isTrue()
+
+        delegate.updateModelParameters(ModelParameters.DEFAULT.copy(temperature = 0.1f))
+        assertThat(touched()).isFalse()
     }
 
     @Test

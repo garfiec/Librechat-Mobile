@@ -1974,6 +1974,124 @@ class ModelSelectionDelegateTest {
     private fun enforced(vararg specs: ModelSpec) =
         StartupConfig(modelSpecs = ModelSpecs(list = specs.toList(), enforce = true, prioritize = false))
 
+    /** [enforced], with `openAI` listed in `addedEndpoints`, so a raw openAI last-used is shown. */
+    private fun enforcedWithAddedOpenAi(vararg specs: ModelSpec) = StartupConfig(
+        modelSpecs = ModelSpecs(list = specs.toList(), enforce = true, prioritize = false, addedEndpoints = listOf("openAI")),
+    )
+
+    private fun TestScope.assertSoftSpecBeatsRawLastUsedUnderEnforce(preferLastUsedModel: Boolean) {
+        val handle = newHandle(TestScope(StandardTestDispatcher(testScheduler)))
+        val delegate = newDelegate(handle)
+        preferLastUsed.value = preferLastUsedModel
+        rawLastUsed()
+        startupConfig.value = enforcedWithAddedOpenAi(modelSpec("soft", "gpt-4.1", softDefault = true))
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedSpec).isEqualTo("soft")
+        assertThat(handle.state.selectedModel).isEqualTo("gpt-4.1")
+    }
+
+    @Test
+    fun underEnforceASoftSpecBeatsARawLastUsedOnAnAddedEndpoint() = runTest {
+        assertSoftSpecBeatsRawLastUsedUnderEnforce(preferLastUsedModel = false)
+    }
+
+    @Test
+    fun underEnforceASoftSpecBeatsARawLastUsedOnAnAddedEndpointWithPreferLastUsed() = runTest {
+        assertSoftSpecBeatsRawLastUsedUnderEnforce(preferLastUsedModel = true)
+    }
+
+    @Test
+    fun underEnforceWithNoResolvedSpecTheDefaultSpecOpensBeforeTheFirst() = runTest {
+        val handle = newHandle(TestScope(StandardTestDispatcher(testScheduler)))
+        val delegate = newDelegate(handle)
+        rawLastUsed()
+        startupConfig.value = enforcedWithAddedOpenAi(modelSpec("first", "gpt-4.1"), modelSpec("marked", "gpt-4o", isDefault = true))
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedSpec).isEqualTo("marked")
+    }
+
+    @Test
+    fun underEnforceALastSpecThatCannotOpenFallsBackToASpecThatCan() = runTest {
+        val handle = newHandle(TestScope(StandardTestDispatcher(testScheduler)))
+        val delegate = newDelegate(handle)
+        rawLastUsed()
+        val gone = ModelSpec(name = "gone", preset = Preset(endpoint = "openAI", model = "gpt-retired"))
+        specLastUsed(gone)
+        startupConfig.value = enforcedWithAddedOpenAi(gone, modelSpec("open", "gpt-4.1"))
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedSpec).isEqualTo("open")
+    }
+
+    @Test
+    fun underEnforceASpecWhoseAgentIsMissingGivesWayToTheNextSpec() = runTest {
+        val handle = newHandle(TestScope(StandardTestDispatcher(testScheduler)))
+        val delegate = newDelegate(handle)
+        rawLastUsed()
+        startupConfig.value = enforcedWithAddedOpenAi(agentSpec("agent_hidden"), modelSpec("open", "gpt-4.1"))
+        agentsReturn("agent_other")
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        delegate.loadAgents(isNewConversation = true)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedSpec).isEqualTo("open")
+    }
+
+    @Test
+    fun underEnforceARawModelSeededBeforeTheConfigGivesWayToASpec() = runTest {
+        val handle = newHandle(TestScope(StandardTestDispatcher(testScheduler)))
+        val delegate = newDelegate(handle)
+        rawLastUsed()
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        advanceUntilIdle()
+        assertThat(handle.state.selectedModel).isEqualTo("gpt-4o")
+
+        startupConfig.value = enforcedWithAddedOpenAi(modelSpec("open", "gpt-4.1"))
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedSpec).isEqualTo("open")
+    }
+
+    @Test
+    fun underEnforceARawPickOnTheLandingStays() = runTest {
+        val handle = newHandle(TestScope(StandardTestDispatcher(testScheduler)))
+        startupConfig.value = enforcedWithAddedOpenAi(modelSpec("open", "gpt-4.1"))
+        val delegate = newDelegate(handle)
+        rawLastUsed()
+        delegate.seedInitialSelection(isNewConversation = true)
+        advanceUntilIdle()
+
+        delegate.onChoiceSelected(ModelChoice.Raw("openAI", "gpt-4o"))
+        lastUsedSpec.value = null
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedSpec).isNull()
+        assertThat(handle.state.selectedModel).isEqualTo("gpt-4o")
+    }
+
+    @Test
+    fun underEnforceWithNoResolvedSpecTheFirstSpecOpens() = runTest {
+        val handle = newHandle(TestScope(StandardTestDispatcher(testScheduler)))
+        val delegate = newDelegate(handle)
+        rawLastUsed()
+        startupConfig.value = enforcedWithAddedOpenAi(modelSpec("first", "gpt-4.1"), modelSpec("second", "gpt-4o"))
+
+        delegate.seedInitialSelection(isNewConversation = true)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selectedSpec).isEqualTo("first")
+    }
+
     @Test
     fun tier0AgentCardAdoptsTheSpecForItsAgentUnderEnforce() = runTest {
         val scope = TestScope(StandardTestDispatcher(testScheduler))

@@ -16,6 +16,7 @@ import com.garfiec.librechat.feature.chat.prompts.resolvePromptText
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.util.offeredOrUnchecked
 import com.garfiec.librechat.feature.chat.util.parametersFor
+import com.garfiec.librechat.feature.chat.util.requiresSpec
 import com.garfiec.librechat.feature.chat.util.toSeed
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.PendingVariablePrompt
@@ -205,7 +206,10 @@ class PresetPromptDelegate(
             // endpoint) leak through unchanged, producing a hybrid the
             // user never saved. A preset that opens a spec opens on that spec's
             // preset first, as a pick of the spec would, with its own values over it.
-            val loaded = (specSeed?.let { specs.parametersFor(preset.spec) } ?: ModelParameters.DEFAULT)
+            // Under `enforce` the server sends the spec's preset in place of these, so that is what the
+            // locked sheet keeps showing.
+            val enforced = specs.parametersFor(choice.spec)?.takeIf { specs.requiresSpec }
+            val loaded = enforced ?: (specSeed?.let { specs.parametersFor(preset.spec) } ?: ModelParameters.DEFAULT)
                 .let { base ->
                     base.mergedFromPreset(preset).let { it.copy(dynamicValues = base.dynamicValues + it.dynamicValues) }
                 }
