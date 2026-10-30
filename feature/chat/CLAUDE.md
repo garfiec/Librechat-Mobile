@@ -137,6 +137,13 @@ Which spec applies, and whether it is prioritized, is `util/SpecSeed.kt`, a port
   `modelSelect: false`, and `enforce` with a raw last-used pair (a last-used spec still counts).
   Keep the override there, never in `SpecSeed.kt`, which mirrors upstream. Switching it while the
   landing is open re-seeds the landing.
+- **Under `enforce`** (both modes): the server refuses a raw pair, `addedEndpoints` or not, so a raw
+  last-used never seeds (`seedableLastUsed`) and a raw model the seeder opened before the config arrived
+  gives way; a raw pick on the landing stays, for the send preflight to ask. When the spec tiers open
+  no spec (no `default` or soft spec without `prioritize`, a spec agent the user can't reach, a last
+  spec the server dropped), Tier 1b goes on to the first spec that can: the `default` one, then list
+  order (`fallbackSpecSeeds`). Only when none can do the raw tiers run. Web opens the raw model in
+  these cases and the server refuses the send.
 
 | Server config | "Server's choice": new chats open on | "My last-used model": new chats open on | Role of last-used |
 |---|---|---|---|
@@ -146,7 +153,7 @@ Which spec applies, and whether it is prioritized, is `util/SpecSeed.kt`, a port
 | `prioritize: false` + `softDefault` spec | Last-used if usable, otherwise the soft spec | Same | Wins over the soft spec |
 | `prioritize: false`, no soft default | Same as no specs | Same | Same as no specs |
 | `interface.modelSelect: false` | The `default`/soft/first spec, always (a stored last spec still reopens when none is marked `default`); an agent card or a spec's shortcut still wins, as a start-chat link does on web | Same: the setting is ignored | Used only when no spec applies |
-| `enforce: true` | As above; a raw pick can't be sent | Last-used only if it's a spec; a raw one falls back to the server's spec | Raw last-used ignored |
+| `enforce: true` | As above, then any spec that can open (`default` first) before a raw model; a raw pick can't be sent | Last-used only if it's a spec; otherwise as "Server's choice" | Raw last-used ignored |
 
 In both modes: a spec that can't apply (missing agent, no agent access, a model the endpoint doesn't
 offer, config not loaded yet) falls back to the normal order; existing conversations reopen on
@@ -203,12 +210,17 @@ chat opened on a spec gets the admin's prompt as on web.
 `{...spec.preset, spec}` into the conversation. Without `enforce` the server applies none of the
 preset's public fields (temperature, `reasoning_effort`, `max_tokens`, `maxContextTokens`, …), so the
 client has to send them. Only a change of spec touches the parameters (`acrossSpecChange`, from
-`applySelection` and the seeder's spec-config write), never a re-emission of the same one, so a tweak
-on top of a spec survives config refreshes and is sent:
+`applySelection` and the seeder's spec-config write, `withSpecsRefreshed`), never a re-emission of the
+same one, so a tweak on top of a spec survives config refreshes and is sent:
 - Onto a spec (a pick, a seeded tier, a retargeted spec re-applied): that spec's preset over the defaults.
-- Off a spec onto a raw model (a pick, or the config dropping it as stale): the defaults.
-- The user's web search and URL context carry across either way. Under a spec the toolbar shows
-  the spec's tools instead (see "Chat Tools"), so these wait for the user to leave it.
+- Off a spec onto a raw model the user picked: the defaults.
+- A config that stops offering the chat's spec on its pair (removed, renamed, retargeted) drops the
+  name and keeps the parameters, in an open chat and on the landing, whichever loads first: the
+  endpoint and model are unchanged, and web keeps sending the conversation as it is. On the landing
+  a retargeted prioritized spec then re-applies through the tiers with its new preset.
+- The user's web search and URL context carry across either way, within the chat (a new chat
+  resets both). Under a spec the toolbar shows the spec's tools instead (see "Chat Tools"), so
+  these wait for the user to leave it.
 - A user preset replaces the spec's values. Only a preset naming a spec and nothing else layers its
   values over that spec's preset. A saved preset (endpoint, model and spec) builds on the defaults:
   `savePreset` leaves out values equal to the defaults, so a value the user reset would otherwise
@@ -219,13 +231,17 @@ on top of a spec survives config refreshes and is sent:
   full read cached, stamped with the `updatedAt` it was read at (`parametersAsOf`). A row with no
   blob, or whose `updatedAt` has since moved (the chat changed elsewhere), is fetched once per process
   and version, with the `enforce` spec backfill. The cache applies at once and the fetch replaces it
-  only if the user changed nothing meanwhile; offline the cache stays.
+  only if the user changed nothing meanwhile; offline the cache stays. A config refresh meanwhile is
+  not the user's change: `SelectionWatches` follows the seeder's rewrite, so a
+  spec drop while the fetch is out still lets the fetched parameters apply.
   A handed-off new chat takes the landing's parameters from `NewChatSelectionHandoff` instead.
 - The next new chat starts from the carried spec's preset (`onPendingNavigationHandled`).
 - Under `enforce` the server replaces the body with the preset, so while a spec is active the sheet
   is read-only (`parametersSetBySpec`) and `updateModelParameters` ignores it. The parameters are
-  that preset there even on the same spec and on a reopened chat (`reopenedParameters`), so the
-  locked sheet shows what the server runs, not what the chat stored before `enforce` was on.
+  that preset there even on the same spec, on a reopened chat (`reopenedParameters`) and after a
+  loaded preset (`loadPreset`, parameter-only or naming a spec), so the locked sheet shows what the
+  server runs, not what the chat stored before `enforce` was on. A loaded preset's tool flags still
+  apply: the server reads `ephemeralAgent` from the body even under `enforce`.
 - The spec's `artifacts` go out as `ephemeralAgent.artifacts` (`true` → `"default"`), the only place
   the server reads them. The context gauge takes the spec's `preset.maxContextTokens` after the
   agent's and before token-config, as web's `useTokenLimits` does.
@@ -784,16 +800,79 @@ Steering is text-only on mobile: a during-run send carrying attachments is route
 existing upload/usage path already handles them.
 
 ## Chat Tools
-- The user's own toggles are global: `enabledTools` and `selectedMcpServerNames` (stored in
-  `SettingsDataStore`, carried into every chat), plus web search and URL context, which are
-  `ModelParameters.webSearch` / `urlContext`. The Skills toggle is per conversation
-  (`SkillsToggleDelegate`).
+- The user's own toggles: `enabledTools` and `selectedMcpServerNames` are global (stored in
+  `SettingsDataStore`, carried into every chat). Web search and URL context are
+  `ModelParameters.webSearch` / `urlContext`, so they belong to the chat: they last through model
+  changes within it, every new chat starts with both off, and a reopened chat has web search as
+  this device left it (`ConversationWebSearchStore`, next section). The Skills toggle is per
+  conversation (`SkillsToggleDelegate`).
 - Tool toggles and MCP servers live in the paged "+" options sheet (`ChatToolsSheetContent`),
   reached from `ChatInput`'s `onOpenTools`, plus the server's pinned chips (`PinnedToolsRow`).
 - **Everything reads the tools in use, not the toggles**: `ModelSelectionState.effectiveTools`,
   `effectiveMcpServerNames` and `sendParameters` (the parameters with web search and URL context
-  from the tools in use). The toolbar, the sheet, the request's `ephemeralAgent`, the top-level
-  `web_search` and the parameters payload all go through them.
+  from the tools in use). The toolbar, the sheet and the request's `ephemeralAgent` go through
+  them; web search on the wire goes through `ChatUiState.webSearchRoute` (next section).
+
+### Web search: one control, two searches (#663)
+LibreChat has two web searches: its own `web_search` tool (`ephemeralAgent.web_search`, needs a
+search provider on the server, results in the sources card and citations) and the provider's
+built-in search (the conversation parameter `web_search`: OpenAI's Responses API tool, OpenRouter's
+`web` plugin, Anthropic's and Google's search tools). Web shows two controls. **Mobile shows one, on
+purpose**: two web-search switches confused users. Don't add a second one, and don't "restore
+parity" by sending both: the server runs both on OpenAI and custom
+endpoints (`resolveProviderToolConflicts` drops the built-in one only on Anthropic and Google), and
+moves a custom OpenAI-compatible endpoint to a Responses API it may not serve.
+- **Each send carries exactly one** (`util/WebSearchRoute.kt`, `ChatUiState.webSearchRoute`):
+  `ChatRequestBuilder` puts `ephemeralAgent.web_search` for `LIBRECHAT`, the top-level and payload
+  `web_search` for `BUILT_IN` (`builtInWebSearch()`, read by the live send, the queued snapshot and
+  `MessageEditingDelegate`). In order: off or a saved agent sends nothing (a saved agent runs its
+  own tools and `model_parameters`); a spec's `webSearch` is LibreChat search and its preset's
+  `web_search` the built-in one (the admin's choice, not the preference's; on an endpoint with no
+  built-in search the preset's runs LibreChat search when it can, else nothing); a comparison uses
+  LibreChat search when it can (the second model only gets the first's tools, `added.ts`); otherwise the
+  user's Settings › Chat › Web search choice (`AppPreferences.WebSearchFirst`, LibreChat first by
+  default), falling back to the other, else nothing and the control is hidden.
+- **LibreChat search counts only when it will work** (`FeatureGatesState.librechatSearchReady`):
+  `/api/config` serves `webSearch` and `GET /api/agents/tools/web_search/auth` says `authenticated`,
+  checked by `ChatConfigDelegate` on every config, account or role change (not asked at all when the
+  role or `interface.webSearch` rules LibreChat search out) and false until answered. The answer is
+  cached per account and config in `:core:data`'s `WebSearchReadinessRepository`, so only a process's
+  first chat waits for it; a failed request (offline, 5xx) caches nothing and is retried (2s … 60s).
+  An answer that lands after an account switch is dropped (it went out with the other account's
+  token). Strict on purpose: the server adds its tool's definition without checking the keys
+  (`loadToolDefinitionsWrapper`), so an unconfigured search fails when the model calls it, and on
+  Anthropic and Google it also drops the built-in search. Keys each user enters themselves read as
+  not set up (no key screen here). A wrong key or a provider that's down can't be detected.
+- **While that check is out, a send that would run LibreChat search runs none**
+  (`WebSearchRoute.CHECKING`, `librechatSearchChecking`; the caption reads "Checking LibreChat
+  search…"), so the search a send runs never depends on how fast the check answered. A route that
+  picks the built-in search isn't held. When the retries run out the hold lifts and the other search
+  runs; the check keeps going once a minute, so a connection that comes back is noticed.
+- **`interface.webSearch` rules out LibreChat search only.** The built-in search needs just the
+  role's `WEB_SEARCH.USE` (`webSearchPermitted`; the server strips it without), as web's parameters
+  panel offers its switch whatever the interface flag says.
+- **Built-in search exists** on openAI, azureOpenAI, anthropic, google and a custom endpoint whose
+  name contains `openrouter` (`builtInSearchProvider`; the server also matches the base URL, which
+  the client can't see), unless `dropParams` names `web_search`. The control's second line names the
+  search it runs ("LibreChat search", "Claude's built-in search"; `webSearchName`).
+- The parameters sheet has no Web Search row (`hiddenKeys`); the registry keeps it for the payload,
+  presets and the agent editor, where it is the agent's own built-in search.
+- **Each chat remembers its switch on the device** (`ConversationWebSearchStore`, account-scoped,
+  200 chats), as web keeps `LAST_WEB_SEARCH_TOGGLE_<id>`: a chat that ran LibreChat search sends no
+  `web_search` the server could save, so a reopen would otherwise come back off. Written by one
+  observer whenever it changes within a conversation, whoever wrote it (`rememberWebSearchChanges`),
+  and when a new chat is created. A reopen reads it before applying the model and writes it with the
+  restored parameters in one update, so the load's "user changed nothing meanwhile" check (which
+  decides whether a backfill fetch replaces the cache) sees it. Not under a spec (a reopened spec chat
+  starts from the spec's tools) nor in a temporary chat.
+- **Presets** save what the chat shows (`sendParameters`): `web_search` true when the route is
+  `BUILT_IN`, false when the control is off, and left out while LibreChat search is on (a preset is
+  conversation fields and has no field for it, on web too), so loading that one keeps the control
+  as it is.
+  Under a spec, a loaded preset's `web_search` and `url_context` go into the spec's additions
+  (`withSpecTool`), not the user's hidden toggles.
+- **Known gap:** a spec with both `webSearch` and preset `web_search` under `enforce` shows
+  LibreChat search, but the server sends the preset anyway, so OpenAI runs both.
 - **A model spec drives the tools** (`util/SpecTools.kt`, registered in `scripts/mirrors.json` as
   `model-spec-tools` and `model-spec-tools-web`). The server ORs the spec's `webSearch`,
   `fileSearch`, `executeCode` and `memory` with the request's flags and adds its `mcpServers`, so
@@ -809,9 +888,9 @@ existing upload/usage path already handles them.
     change of spec. They ride the queued-edit swap and the new-chat handoff; a reopened spec chat
     starts from the spec's tools. Web keeps them per conversation (a deliberate divergence).
   - Nothing a spec chat does writes the user's toggles, so leaving the spec brings them back. That
-    includes the parameters sheet's web search and URL context controls (`updateModelParameters`
-    routes them into the additions) and a reopened chat's stored `web_search` (`reopenedParameters`
-    keeps the current values on a spec).
+    includes the parameters sheet's URL context control (`updateModelParameters` routes it into the
+    additions), a loaded preset's web search and URL context (`withSpecTool`) and a reopened chat's
+    stored `web_search` (`reopenedParameters` keeps the current values on a spec).
   - `hideBadgeRow` hides the tool controls (`ChatUiState.toolbarShown`) and drops the additions;
     the request still carries the spec's own tools and artifacts, as web sends them.
   - `ephemeralAgent` is read from the body even under `enforce`, so nothing more is locked there.

@@ -59,6 +59,8 @@ import com.garfiec.librechat.core.ui.components.rememberListDragSelection
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.util.WebSearchKind
+import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import org.jetbrains.compose.resources.stringResource
@@ -90,6 +92,8 @@ fun ChatToolsSheetContent(
     comparisonModels: ComparisonModelLabels? = null,
     isCodeInterpreterAvailable: Boolean = true,
     webSearchEnabled: Boolean = true,
+    /** The search the web-search control runs when on, named on its second line. */
+    webSearchKind: WebSearchKind = WebSearchKind(WebSearchRoute.LIBRECHAT, null),
     /** Whether to offer the Google-only URL Context toggle (active provider is Google/Gemini). */
     urlContextEnabled: Boolean = false,
     runCodeEnabled: Boolean = true,
@@ -277,14 +281,20 @@ fun ChatToolsSheetContent(
                 ToolConstants.MEMORY to memoryEnabled,
                 ToolConstants.SKILLS to skillsEnabled,
             )
+            val searchName = webSearchName(webSearchKind)
             toolRows.forEach { (toolKey, enabled) ->
                 val meta = ephemeralToolMeta(toolKey)
                 if (enabled && meta != null) {
                     val locked = toolKey in gates.lockedTools
+                    val name = searchName.takeIf { toolKey == ToolConstants.WEB_SEARCH }
                     ToolToggleRow(
                         icon = meta.icon,
                         title = stringResource(meta.titleRes),
-                        subtitle = stringResource(if (locked) Res.string.tool_set_by_spec else meta.descriptionRes),
+                        subtitle = when {
+                            name != null && locked -> stringResource(Res.string.web_search_set_by_spec, name)
+                            name != null -> name
+                            else -> stringResource(if (locked) Res.string.tool_set_by_spec else meta.descriptionRes)
+                        },
                         isEnabled = locked || toolKey in enabledTools,
                         onToggle = { onToggleTool(toolKey) },
                         dragSelection = dragSelection,

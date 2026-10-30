@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
+import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.feature.settings.screen.DeviceVoiceInfo
 
@@ -68,6 +69,8 @@ data class ChatSettingsUiState(
     val starredModelsDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
     // Mobile-only: open new chats on the last-used model instead of the server's prioritized spec
     val preferLastUsedModel: Boolean = false,
+    // Mobile-only: which web search the chat's one web-search control tries first
+    val webSearchFirst: WebSearchPreference = WebSearchPreference.LIBRECHAT_FIRST,
     // Mobile-only: what the chat floating top bar shows + how its bubble is aligned
     val chatHeaderContent: ChatHeaderContent = ChatHeaderContent.TITLE,
     val chatHeaderAlignment: ChatHeaderAlignment = ChatHeaderAlignment.LEFT,

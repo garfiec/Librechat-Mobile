@@ -158,8 +158,10 @@ data class ModelSelectionState(
         }
 
     /**
-     * The parameters a send carries: [modelParameters], with web search and URL context taken from
-     * [effectiveTools] under a spec, where the parameters keep the user's own values.
+     * The parameters the chat shows: [modelParameters], with web search and URL context taken from
+     * [effectiveTools] under a spec, where the parameters keep the user's own values. Its
+     * `webSearch` is the control's state, not the request's: a send reads the built-in search from
+     * `ChatUiState.webSearchRoute` instead.
      */
     val sendParameters: ModelParameters
         get() {
@@ -183,19 +185,29 @@ data class ModelSelectionState(
     }
 
     /**
-     * This selection with [parameters] from the sheet. Under a spec the sheet's web search and URL
-     * context are the toolbar's, so a change of either is the chat's addition ([toggledSpecTool]) and
-     * the parameters keep the user's own values for when they leave the spec.
+     * This selection with [parameters] from the sheet. Under a spec the sheet's URL context is the
+     * toolbar's, so a change of it is the chat's addition ([toggledSpecTool]) and the parameters keep
+     * the user's own values for when they leave the spec. The sheet has no web-search control (the
+     * tools' one control drives both searches), so its value passes through unchanged.
      */
     fun withSheetParameters(parameters: ModelParameters): ModelSelectionState {
         if (selectedSpec == null) return copy(modelParameters = parameters)
         var next = this
         val sent = sendParameters
-        if (parameters.webSearch != sent.webSearch) next = next.copy(specTools = next.toggledSpecTool(ToolConstants.WEB_SEARCH))
         if (parameters.urlContext != sent.urlContext) next = next.copy(specTools = next.toggledSpecTool(ToolConstants.URL_CONTEXT))
         return next.copy(
             modelParameters = parameters.copy(webSearch = modelParameters.webSearch, urlContext = modelParameters.urlContext),
         )
+    }
+
+    /**
+     * This selection with [tool] set to [on] for this spec chat (a no-op for null, a tool already
+     * there, or one the spec locks): how a loaded preset's `web_search` and `url_context` reach a
+     * spec chat, whose parameters keep the user's own values.
+     */
+    fun withSpecTool(tool: String, on: Boolean?): ModelSelectionState {
+        if (on == null || (tool in effectiveTools) == on) return this
+        return copy(specTools = toggledSpecTool(tool))
     }
 
     /** [server] switched on or off for this chat, by the same rule as [toggledSpecTool]. */

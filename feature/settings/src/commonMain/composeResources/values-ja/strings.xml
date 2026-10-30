@@ -281,6 +281,12 @@
     <string name="new_chat_start_desc">サーバーが新しいチャット用のモデルを指定している場合に、それを使うか前回使ったモデルを使うかを選びます。サーバーがモデル選択を非表示にしている場合は無視されます。サーバーが独自のモデルの使用を必須にしている場合、前回のモデルはそのいずれかだったときのみ使われます。</string>
     <string name="new_chat_start_server">サーバーの指定</string>
     <string name="new_chat_start_last_used">前回使ったモデル</string>
+    <string name="web_search_first_title">ウェブ検索</string>
+    <string name="web_search_first_desc">両方が使えるとき、チャットのウェブ検索スイッチがどちらの検索を使うか。選んだ検索がそのチャットで使えない場合は、もう一方を使います。モデル仕様が指定する検索が優先され、比較では両方のモデルが検索できるよう、可能なら LibreChat 検索を使います。</string>
+    <string name="web_search_first_librechat">LibreChat 検索を優先</string>
+    <string name="web_search_first_librechat_desc">サーバーの検索(出典付き)。サーバーに検索が設定されていない場合は、モデルの組み込み検索を使います。</string>
+    <string name="web_search_first_built_in">組み込み検索を優先</string>
+    <string name="web_search_first_built_in_desc">モデル提供元の検索(OpenAI、Claude、Gemini、OpenRouter)。その他のモデルでは LibreChat 検索を使います。</string>
     <string name="chat_header_title">チャットヘッダー</string>
     <string name="chat_header_summary_format">%1$s · %2$s</string>
     <string name="chat_header_content_label">内容</string>

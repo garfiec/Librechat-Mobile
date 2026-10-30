@@ -30,7 +30,10 @@ class ChatRequestBuilderSpecToolsTest {
     private val locked = tools.copy(name = "locked", hideBadgeRow = true, artifacts = JsonPrimitive(true))
     private val specs = ModelSpecs(list = listOf(tools, plain, locked))
 
-    /** The user's own toggles: code execution, their MCP server, and web search in the parameters. */
+    /**
+     * The user's own toggles: code execution, their MCP server, and web search in the parameters.
+     * LibreChat search is set up on the server.
+     */
     private fun state(choice: ModelChoice, specTools: SpecTools? = null, webSearch: Boolean = false) = ChatUiState(
         selection = ModelSelectionState(
             choice = choice,
@@ -40,6 +43,7 @@ class ChatRequestBuilderSpecToolsTest {
             modelParameters = ModelParameters.DEFAULT.copy(webSearch = webSearch),
             specTools = specTools,
         ),
+        gates = FeatureGatesState(librechatSearchReady = true),
     )
 
     private val onTools = ModelChoice.Spec("tools", "openAI", "gpt-4.1")
@@ -83,7 +87,12 @@ class ChatRequestBuilderSpecToolsTest {
     }
 
     @Test
-    fun `the spec's web search goes out at the top level too`() {
+    fun `the spec's web search is LibreChat's alone, not the provider's too`() {
+        val builder = ChatRequestBuilder { state(onTools) }
+
+        assertFalse(builder.builtInWebSearch())
+        assertNull(builder.buildModelParams()?.get(ToolConstants.WEB_SEARCH))
+        // The control still shows it on.
         assertTrue(state(onTools).selection.sendParameters.webSearch)
     }
 

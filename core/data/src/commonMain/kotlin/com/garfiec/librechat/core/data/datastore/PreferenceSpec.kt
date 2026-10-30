@@ -49,12 +49,20 @@ fun intPreference(
     decode: (Int) -> Int? = { it },
 ): PreferenceSpec<Int, Int> = PreferenceSpec(key = intPreferencesKey(name), default = default, decode = decode, encode = { it })
 
+/** A string preference. [decode] returning null treats a stored value as unchosen. */
+fun <V : Any> stringPreference(
+    name: String,
+    default: (ChannelPolicy) -> V,
+    decode: (String) -> V?,
+    encode: (V) -> String,
+): PreferenceSpec<String, V> = PreferenceSpec(key = stringPreferencesKey(name), default = default, decode = decode, encode = encode)
+
 /**
  * An ordered list of ids stored as one comma-separated string: no JSON, a split to read. Ids must not
  * contain commas. Empty by default; duplicates are dropped on read.
  */
-fun stringListPreference(name: String): PreferenceSpec<String, List<String>> = PreferenceSpec(
-    key = stringPreferencesKey(name),
+fun stringListPreference(name: String): PreferenceSpec<String, List<String>> = stringPreference(
+    name,
     default = always(emptyList()),
     decode = { stored -> stored.split(',').filter { it.isNotEmpty() }.distinct() },
     encode = { ids -> ids.joinToString(",") },

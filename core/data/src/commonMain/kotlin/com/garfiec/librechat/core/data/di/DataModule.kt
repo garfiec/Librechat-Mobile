@@ -8,6 +8,7 @@ import com.garfiec.librechat.core.data.datastore.AccountRegistry
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.AccountScopedPrefsPurger
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
+import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.DrawerPinsStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
@@ -110,6 +111,7 @@ import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.TraceRepositoryImpl
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.repository.UserRepositoryImpl
+import com.garfiec.librechat.core.data.repository.WebSearchReadinessRepository
 import com.garfiec.librechat.core.data.search.LocalSearchActivity
 import com.garfiec.librechat.core.data.search.MessageScanEngine
 import com.garfiec.librechat.core.data.search.MessageSearchRepository
@@ -308,6 +310,7 @@ val dataModule = module {
     } bind ServerHeadersProvider::class
     singleOf(::ConfigCacheDataStore)
     singleOf(::RoleCacheDataStore)
+    singleOf(::ConversationWebSearchStore)
     single {
         DateTimePrefsStore(
             dataStore = get(),
@@ -554,6 +557,7 @@ val dataModule = module {
     singleOf(::FileRepositoryImpl) bind FileRepository::class
     singleOf(::AgentRepositoryImpl) bind AgentRepository::class
     singleOf(::AgentToolsRepositoryImpl) bind AgentToolsRepository::class
+    singleOf(::WebSearchReadinessRepository)
     singleOf(::TagChangeSignal)
     single<TagRepository> {
         TagRepositoryImpl(

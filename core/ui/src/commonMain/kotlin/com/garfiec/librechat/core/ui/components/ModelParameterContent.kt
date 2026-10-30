@@ -178,6 +178,8 @@ fun ModelParameterContent(
      * buttons are hidden. Null for an editable sheet.
      */
     readOnlyNote: String? = null,
+    /** Parameter keys this host drives elsewhere, so the sheet leaves their controls out. */
+    hiddenKeys: Set<String> = emptySet(),
 ) {
     val readOnly = readOnlyNote != null
     val onChange: (ModelParameters) -> Unit = if (readOnly) ({}) else onParametersChange
@@ -189,6 +191,7 @@ fun ModelParameterContent(
         selectedProvider,
         selectedModel,
         dropParams,
+        hiddenKeys,
     ) {
         if (!dynamicParameterDefinitions.isNullOrEmpty()) {
             dynamicParameterDefinitions
@@ -201,7 +204,7 @@ fun ModelParameterContent(
                 dropParams = dropParams,
                 thinkingDisplayUpdatesSupported = thinkingDisplayUpdatesSupported,
             )
-        }
+        }.filter { it.key !in hiddenKeys }
     }
 
     // Which out-of-list values are not sent, so the slider can say "Unset" for those alone. Unknown

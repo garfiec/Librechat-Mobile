@@ -85,10 +85,11 @@ data class QueuedMessage(
     /** Full composer parameters (web search, reasoning effort, etc.) — restored to the composer on edit. */
     val modelParameters: ModelParameters = ModelParameters.DEFAULT,
     /**
-     * The top-level `web_search` sent: [modelParameters]' own, except under a spec, where it is the
-     * spec's or the chat's addition ([ModelSelectionState.sendParameters]).
+     * The top-level `web_search` sent: whether the provider's built-in search is the one the control
+     * runs ([ChatUiState.webSearchRoute]) when the turn was composed. LibreChat's search rides in
+     * [ephemeralAgent] instead, and the two are never both set.
      */
-    val webSearch: Boolean = modelParameters.webSearch,
+    val webSearch: Boolean = false,
     /**
      * Non-default model params (provider-keyed) serialized for the wire, snapshotted at enqueue time
      * so a queued send carries the params it was composed with. Null when nothing was customized.

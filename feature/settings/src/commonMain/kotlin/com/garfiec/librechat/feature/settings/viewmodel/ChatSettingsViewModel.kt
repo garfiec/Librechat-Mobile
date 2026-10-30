@@ -13,6 +13,7 @@ import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
+import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.SpeechSettingsFactory
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -98,6 +99,10 @@ class ChatSettingsViewModel(
 
     fun setPreferLastUsedModel(prefer: Boolean) {
         prefsController.setPreferLastUsedModel(prefer)
+    }
+
+    fun setWebSearchFirst(first: WebSearchPreference) {
+        prefsController.setWebSearchFirst(first)
     }
 
     fun setShowSiteIcons(show: Boolean) {

@@ -51,7 +51,13 @@ class ConversationLoadDelegate(
     private val applyConversationModel: (Conversation) -> Boolean,
     /** Whether this screen takes the conversation's stored parameters (not a handed-off new chat). */
     private val wantsStoredParameters: () -> Boolean = { false },
-    private val restoreParameters: (Conversation) -> Unit = {},
+    /** Writes the conversation's parameters, with the web-search switch this device remembered (if any). */
+    private val restoreParameters: (Conversation, Boolean?) -> Unit = { _, _ -> },
+    /**
+     * The web-search switch this device remembered for a conversation. Read before the model is
+     * applied, so nothing suspends between that and [restoreParameters] for a user change to land in.
+     */
+    private val rememberedWebSearch: suspend (String) -> Boolean? = { null },
     /**
      * Marks the conversation-model load attempted (never "resolved") and refilters the model list;
      * see ModelSelectionDelegate.conversationModelLoaded. Runs on every path out of
@@ -72,6 +78,13 @@ class ConversationLoadDelegate(
     private val currentModelSpecs: () -> ModelSpecs?,
     /** The active account's id, which keys [specBackfillDone]: conversation ids repeat across servers. */
     private val currentAccountId: () -> String?,
+    /**
+     * ModelSelectionDelegate.selectionWatches ([SelectionWatches]). The default sees no config
+     * rewrites, so it counts a spec drop as the user's change: pass the shared watches.
+     */
+    private val watchSelection: () -> () -> Boolean = {
+        SelectionWatches { handle.state.selection.let { it.choice to it.modelParameters } }.watch()
+    },
     private val newChatDraftKey: String = NEW_CHAT_DRAFT_KEY,
 ) {
     private var roomObserverJob: Job? = null
@@ -352,16 +365,16 @@ class ConversationLoadDelegate(
             val result = conversationRepository.getConversation(conversationId, originAccount = null)
             var conversation = result.getOrNull()
             val wantsParameters = wantsStoredParameters()
+            val remembered = if (wantsParameters) rememberedWebSearch(conversationId) else null
             fun apply(loaded: Conversation, restore: Boolean): Boolean {
                 handle.update { conversationTitle = loaded.title }
                 val applied = applyConversationModel(loaded)
                 // After the model, so the conversation's own parameters are what stays.
-                if (applied && restore) restoreParameters(loaded)
+                if (applied && restore) restoreParameters(loaded, remembered)
                 return applied
             }
             // The cached row applies at once, so an open never waits on the network for its model.
             var applied = conversation?.let { apply(it, restore = wantsParameters) } ?: false
-            val shown = handle.state.selection.let { it.choice to it.modelParameters }
             // Rows cached before the spec column have none, and an enforced server rejects a send
             // without it. The list route sends no parameters, so a row it synced has none, or older
             // ones once the chat changed elsewhere. Ask the server once per process and version of
@@ -373,12 +386,15 @@ class ConversationLoadDelegate(
                     (wantsParameters && (!cached.hasParameters || cached.parametersStale))
                 )
             if (incomplete && backfillKey != null && backfillKey !in conversationBackfillDone) {
-                conversationRepository.refreshConversation(conversationId, originAccount = null).getOrNull()?.let {
+                val unchanged = watchSelection()
+                val fetched = conversationRepository.refreshConversation(conversationId, originAccount = null).getOrNull()
+                // A model or parameter set while the fetch was out is the user's and stays.
+                val userUnchanged = unchanged()
+                fetched?.let {
                     // Only a successful fetch settles it: a failed one is retried on the next open.
                     conversationBackfillDone.add(backfillKey)
                     conversation = it
-                    // A model or parameter set while the fetch was out is the user's and stays.
-                    if (handle.state.selection.let { s -> s.choice to s.modelParameters } == shown) {
+                    if (userUnchanged) {
                         applied = apply(it, restore = wantsParameters && it.hasParameters)
                     }
                 }

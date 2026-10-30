@@ -281,6 +281,12 @@
     <string name="new_chat_start_desc">当服务器为新对话指定模型时，选择使用该模型还是你上次使用的模型。如果服务器隐藏了模型选择器，此设置无效。如果服务器要求使用其自有模型，只有当你上次使用的模型属于其中之一时才会生效。</string>
     <string name="new_chat_start_server">服务器指定</string>
     <string name="new_chat_start_last_used">上次使用的模型</string>
+    <string name="web_search_first_title">网页搜索</string>
+    <string name="web_search_first_desc">当两种搜索都可用时,聊天中的网页搜索开关运行哪一种。如果你的选择在某个聊天中无法使用,则改用另一种。模型规格自带的搜索优先;在“比较”中会尽量使用 LibreChat 搜索,让两个模型都能搜索。</string>
+    <string name="web_search_first_librechat">优先 LibreChat 搜索</string>
+    <string name="web_search_first_librechat_desc">你服务器的搜索,附带来源。服务器未设置搜索时,使用模型的内置搜索。</string>
+    <string name="web_search_first_built_in">优先内置搜索</string>
+    <string name="web_search_first_built_in_desc">模型提供商自己的搜索(OpenAI、Claude、Gemini、OpenRouter)。其他模型使用 LibreChat 搜索。</string>
     <string name="chat_header_title">聊天标题栏</string>
     <string name="chat_header_summary_format">%1$s · %2$s</string>
     <string name="chat_header_content_label">内容</string>

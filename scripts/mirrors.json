@@ -1441,6 +1441,46 @@
       "failure_mode": "Upstream relaxes the rule (say, exempting `addedEndpoints`) and mobile keeps blocking sends web allows, or tightens it and mobile lets through sends the server now rejects."
     },
     {
+      "id": "model-spec-preset-merge",
+      "upstream": {
+        "file": "packages/api/src/modelSpecs/index.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpecParameters.kt",
+        "symbol": "acrossSpecChange"
+      },
+      "why": "Without `enforce` the server applies none of a spec's public preset fields (`mergeModelSpecPreset` fills only the private ones, `PRIVATE_MODEL_SPEC_PRESET_FIELDS`), so the client sends the spec's preset as the chat's parameters (`parametersFor`, `acrossSpecChange`). Under `enforce` it replaces the body with the preset, keeping only `ENFORCED_MODEL_SPEC_REQUEST_FIELDS`, which is why `parametersSetBySpec` locks the sheet and a loaded preset keeps the spec's values. Compare's lane B relies on the same private-field list.",
+      "failure_mode": "Upstream starts applying public preset fields itself, or keeps more of the body under `enforce`, and mobile's parameters or locked sheet no longer match what the server runs."
+    },
+    {
+      "id": "model-spec-preset-web",
+      "upstream": {
+        "file": "client/src/utils/endpoints.ts",
+        "symbol": "getModelSpecPreset",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpecParameters.kt",
+        "symbol": "parametersFor"
+      },
+      "why": "Web builds a spec chat from `{...spec.preset, spec}`; `parametersFor` is that preset over the defaults.",
+      "failure_mode": "Web changes which preset fields a spec chat starts from and mobile opens the same spec with different parameters."
+    },
+    {
+      "id": "model-spec-pick-web",
+      "upstream": {
+        "file": "client/src/hooks/Input/useSelectMention.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpecParameters.kt",
+        "symbol": "acrossSpecChange"
+      },
+      "why": "A spec pick on web replaces the conversation with the spec's preset. Mobile does the same, and deliberately resets to the defaults on a raw pick off a spec, so a spec's values (a `reasoning_effort`, a 32k `max_tokens`) don't follow the user onto a model that may refuse them. A config that stops offering the spec keeps the parameters (`withSpecsRefreshed`), as web keeps the conversation.",
+      "failure_mode": "Web changes what a pick carries across and mobile's pick keeps or drops different parameters."
+    },
+    {
       "id": "context-gauge-estimate",
       "upstream": {
         "file": "client/src/utils/tokens.ts",
@@ -3015,8 +3055,92 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/ModelSelectionState.kt",
         "symbol": "ModelSelectionState.effectiveTools"
       },
-      "why": "Web starts a spec chat from exactly the spec's tools and artifacts, not the user's stored toggles, and writes nothing to its non-spec store while a spec is active, so leaving the spec brings the user's toggles back. Mobile mirrors that with `SpecTools`: additions count only while their spec is selected, and the user's own toggles stay untouched underneath. Web keeps a spec chat's additions per conversation; mobile keeps them for the session only (a deliberate divergence).",
+      "why": "Web starts a spec chat from exactly the spec's tools and artifacts, not the user's stored toggles, and writes nothing to its non-spec store while a spec is active, so leaving the spec brings the user's toggles back. Mobile mirrors that with `SpecTools`: additions count only while their spec is selected, and the user's own toggles stay untouched underneath. Web keeps a spec chat's additions per conversation; mobile keeps them for the session only (a deliberate divergence). The same block turns a spec's `webSearch` into `ephemeralAgent.web_search` (LibreChat's search), which is why a spec's `webSearch` routes to LibreChat search and its preset's `web_search` (the provider's) to the built-in one (`webSearchRoute`).",
       "failure_mode": "If web changes what a spec chat starts from (say, layering the user's toggles over the spec's), mobile sends a different tool set than web for the same spec."
+    },
+    {
+      "id": "web-search-provider-conflicts",
+      "upstream": {
+        "file": "packages/api/src/agents/initialize.ts",
+        "symbol": "resolveProviderToolConflicts",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/WebSearchRoute.kt",
+        "symbol": "webSearchRoute"
+      },
+      "why": "With LibreChat's `web_search` tool loaded, the server drops the provider's built-in search on Anthropic and Google and keeps both on OpenAI and custom endpoints; without `WEB_SEARCH.USE` it strips the built-in one everywhere. The app's one web-search control therefore sends exactly one search per request, and treats LibreChat search as the first choice by default, which is this rule extended to OpenAI.",
+      "failure_mode": "If upstream changes which search wins (or starts dropping the built-in search on OpenAI), the routing's default no longer matches the server's own rule, and the caption under the control can name a search that doesn't run."
+    },
+    {
+      "id": "web-search-openai-native",
+      "upstream": {
+        "file": "packages/api/src/endpoints/openai/llm.ts",
+        "symbol": "getOpenAILLMConfig",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/WebSearchRoute.kt",
+        "symbol": "builtInSearchProvider"
+      },
+      "why": "The conversation parameter `web_search` becomes OpenRouter's `web` plugin on an OpenRouter endpoint and otherwise moves the request to the Responses API with a `web_search` tool. That move is why the app never sends the built-in search to a custom endpoint it can't tell is OpenRouter: a custom OpenAI-compatible server may not serve the Responses API.",
+      "failure_mode": "If upstream adds built-in search for other providers or stops using the Responses API for it, the control hides a search the server could run, or offers one that fails."
+    },
+    {
+      "id": "web-search-openrouter-detect",
+      "upstream": {
+        "file": "packages/api/src/endpoints/openai/config.ts",
+        "symbol": "getOpenAIConfig",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/WebSearchRoute.kt",
+        "symbol": "builtInSearchProvider"
+      },
+      "why": "The server treats an endpoint as OpenRouter when `defaultParamsEndpoint` says so or its name or base URL contains `openrouter`. The client sees only the name, so a custom endpoint counts as having a built-in search only when its name contains `openrouter`.",
+      "failure_mode": "If upstream changes the test, a custom OpenRouter endpoint loses or gains the built-in search here while the server does the opposite."
+    },
+    {
+      "id": "web-search-config-served",
+      "upstream": {
+        "file": "api/server/routes/config.js",
+        "symbol": "buildWebSearchConfig",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/ChatConfigDelegate.kt",
+        "symbol": "ChatConfigDelegate.loadWebSearchReadiness"
+      },
+      "why": "`/api/config` serves `webSearch` only when a search provider, scraper or reranker is configured, so its absence means LibreChat search can't run and the app skips the key check and uses the built-in search.",
+      "failure_mode": "If upstream serves `webSearch` unconditionally, the app asks for the key check on every server (harmless); if it stops serving it, the app never offers LibreChat search."
+    },
+    {
+      "id": "web-search-tool-definition-unchecked",
+      "upstream": {
+        "file": "api/server/services/ToolService.js",
+        "symbol": "loadToolDefinitionsWrapper",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/ChatConfigDelegate.kt",
+        "symbol": "ChatConfigDelegate.loadWebSearchReadiness"
+      },
+      "why": "The tool-definition path adds `web_search` on capability and permission alone; the search keys are checked only when the tool executes (`handleTools`, `loadWebSearchAuth`). So the app must check the keys itself (`GET /api/agents/tools/web_search/auth`) before sending LibreChat search, or the model gets a tool that fails when called and, on Anthropic and Google, loses its built-in search too.",
+      "failure_mode": "If upstream starts checking the keys before adding the definition, the app's own check becomes redundant (harmless). If the auth route changes shape, the app reads every server as not set up and always uses the built-in search."
+    },
+    {
+      "id": "web-search-toggle-per-conversation",
+      "upstream": {
+        "file": "client/src/hooks/Plugins/useToolToggle.ts",
+        "symbol": "useToolToggle",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/datastore/ConversationWebSearchStore.kt",
+        "symbol": "ConversationWebSearchStore"
+      },
+      "why": "Web keeps each conversation's tool toggles in local storage (`LAST_WEB_SEARCH_TOGGLE_<id>`) because `ephemeralAgent.web_search` is never saved on the conversation. Mobile keeps the web-search switch per conversation on the device for the same reason, so a reopened chat that ran LibreChat search comes back on.",
+      "failure_mode": "If upstream starts saving the ephemeral toggles on the conversation, the local store becomes redundant and can disagree with what another device set."
     },
     {
       "id": "model-spec-skills-sanitized",

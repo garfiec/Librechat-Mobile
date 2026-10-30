@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.bookmarks.BookmarkPickerController
 import com.garfiec.librechat.core.data.datastore.AppPreferences
+import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
@@ -39,6 +40,7 @@ import com.garfiec.librechat.core.data.repository.SkillsRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.data.repository.TraceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.data.repository.WebSearchReadinessRepository
 import com.garfiec.librechat.core.data.share.ShareLinkController
 import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.data.util.PermissionGate
@@ -176,6 +178,8 @@ class ChatViewModel(
     userRepository: UserRepository,
     roleRepository: RoleRepository,
     memoryRepository: MemoryRepository,
+    webSearchReadiness: WebSearchReadinessRepository,
+    private val conversationWebSearchStore: ConversationWebSearchStore,
     private val permissionGate: PermissionGate,
     private val connectivityObserver: ConnectivityObserver,
     private val activeAccountProvider: ActiveAccountProvider,
@@ -300,7 +304,10 @@ class ChatViewModel(
         selectionHandoff = selectionHandoff,
         reloadConversation = { id -> conversationLoadDelegate.loadConversation(id) },
         newChatDraftKey = newChatDraftKey,
-        carrySkillsToggle = skillsToggleDelegate::carryToCreatedConversation,
+        carrySkillsToggle = { conversationId, isTemporary ->
+            skillsToggleDelegate.carryToCreatedConversation(conversationId, isTemporary)
+            if (!isTemporary) rememberWebSearch(conversationId)
+        },
     )
 
     // Channel-backed one-shot signal: N queued follow-ups were dropped on drain because they were
@@ -501,6 +508,8 @@ class ChatViewModel(
                 compactNudgeThreshold = displayPrefs.context.compactNudgeThreshold,
                 compactNudgeSnoozes = displayPrefs.context.compactNudgeSnoozes,
                 duringRunAction = displayPrefs.duringRunAction,
+                // Mirrored into the backing state by its own collector, which the send reads.
+                webSearchFirst = state.prefs.webSearchFirst,
             ),
             // The user record carries a RELATIVE `/images/…` avatar, which Coil has no fetcher for.
             // Resolved here rather than in `loadUserProfile` because the base URL arrives on its own
@@ -526,8 +535,17 @@ class ChatViewModel(
         applyConversationModel = modelDelegate::applyConversationModel,
         // A handed-off new chat already holds what its first turn was sent with.
         wantsStoredParameters = { !isHandedOffNewChat },
-        restoreParameters = {
-            modelDelegate.updateModelParameters(_uiState.value.selection.reopenedParameters(it), restoring = true)
+        rememberedWebSearch = conversationWebSearchStore::get,
+        restoreParameters = { conversation, remembered ->
+            // The switch as this device last left it in this chat wins over the server's `web_search`,
+            // which holds only the built-in search. Not under a spec (see rememberWebSearch). Written
+            // with the parameters, so the load's "did the user change it meanwhile" check sees it.
+            val restored = _uiState.value.selection.reopenedParameters(conversation)
+            val switch = remembered.takeIf { _uiState.value.selectedSpec == null }
+            modelDelegate.updateModelParameters(
+                switch?.let { restored.copy(webSearch = it) } ?: restored,
+                restoring = true,
+            )
         },
         onModelLoadSettled = {
             modelDelegate.conversationModelLoaded = true
@@ -537,6 +555,7 @@ class ChatViewModel(
         onMessagesSettled = attachmentPreviewDelegate::onMessagesSettled,
         currentModelSpecs = { configRepository.startupConfig.value?.modelSpecs },
         currentAccountId = { activeAccountProvider.currentAccountId()?.value },
+        watchSelection = modelDelegate.selectionWatches::watch,
     )
 
     private val uploadIntakeDelegate = UploadIntakeDelegate(
@@ -555,6 +574,7 @@ class ChatViewModel(
         fileRepository = fileRepository,
         userRepository = userRepository,
         memoryRepository = memoryRepository,
+        webSearchReadiness = webSearchReadiness,
     )
 
     private val pendingActionDelegate = PendingActionDelegate(
@@ -931,6 +951,12 @@ class ChatViewModel(
                 _uiState.update { it.copy(prefs = it.prefs.copy(duringRunAction = action)) }
             }
         }
+        // Decides which web search a send runs, so it too lives on the backing state.
+        viewModelScope.launch {
+            preferenceStore.observe(AppPreferences.WebSearchFirst).collect { first ->
+                _uiState.update { it.copy(prefs = it.prefs.copy(webSearchFirst = first)) }
+            }
+        }
 
         viewModelScope.launch {
             // refilterModels publishes the filtered availableModels into state; no
@@ -990,6 +1016,8 @@ class ChatViewModel(
         chatConfigDelegate.loadUserProfile()
         chatConfigDelegate.observeMemoriesPreference()
         chatConfigDelegate.loadFlags()
+        chatConfigDelegate.loadWebSearchReadiness()
+        rememberWebSearchChanges()
         observeTraceAvailability()
         chatConfigDelegate.loadFileConfig()
         voiceDelegate.loadSpeechConfig()
@@ -1777,6 +1805,36 @@ class ChatViewModel(
     fun toggleTool(toolName: String) {
         // Per conversation, so it never goes through the global enabled-tools store.
         if (toolName == ToolConstants.SKILLS) skillsToggleDelegate.toggle() else modelDelegate.toggleTool(toolName)
+    }
+
+    /**
+     * Stores the switch whenever it changes within one conversation, whoever wrote it (a toggle, a
+     * loaded preset, a queued edit's composer swap, the reopen's restore). A change of conversation
+     * is not a change of switch: the reopen's restore is what sets the new one, and a new chat is
+     * stored when it is created (`carrySkillsToggle`).
+     */
+    private fun rememberWebSearchChanges() {
+        viewModelScope.launch {
+            var last: Pair<String?, Boolean>? = null
+            _uiState.map { it.conversationId to it.modelParameters.webSearch }.distinctUntilChanged().collect { current ->
+                val previous = last
+                last = current
+                val id = current.first
+                if (id != null && previous?.first == id) rememberWebSearch(id)
+            }
+        }
+    }
+
+    /**
+     * Stores the user's web-search switch for [conversationId] ([ConversationWebSearchStore]), so a
+     * reopened chat has it back: when it runs LibreChat's search the server saves nothing of it.
+     * Not under a spec, whose chat starts from the spec's tools on reopen, nor in a temporary chat.
+     */
+    private fun rememberWebSearch(conversationId: String) {
+        val state = _uiState.value
+        if (state.isTemporaryChat || state.selectedSpec != null) return
+        val on = state.modelParameters.webSearch
+        viewModelScope.launch { conversationWebSearchStore.set(conversationId, on) }
     }
     fun updateModelParameters(parameters: ModelParameters) = modelDelegate.updateModelParameters(parameters)
 

@@ -60,6 +60,14 @@ object AppPreferences {
      */
     val PreferLastUsedModel = boolPreference("prefer_last_used_model", default = always(false))
 
+    /** Which search the chat's web-search control tries first ([WebSearchPreference]). Mobile-only. */
+    val WebSearchFirst = stringPreference(
+        "web_search_first",
+        default = always(WebSearchPreference.LIBRECHAT_FIRST),
+        decode = WebSearchPreference::fromStorage,
+        encode = { it.storageValue },
+    )
+
     /**
      * Drawer destinations pinned as rows under Workspace, in the user's order: their stable ids,
      * comma-separated. Device-wide, not per account. The key and the ids are persisted: never rename.
@@ -77,6 +85,7 @@ object AppPreferences {
             AdvancedSearch,
             CompareSyncScroll,
             PreferLastUsedModel,
+            WebSearchFirst,
             DrawerPinned,
         )
 }
