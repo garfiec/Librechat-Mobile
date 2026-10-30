@@ -1,6 +1,8 @@
 package com.garfiec.librechat.feature.conversations.drawer
 
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -46,12 +48,14 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -114,6 +118,8 @@ import com.garfiec.librechat.feature.conversations.resources.workspace_prompts
 import com.garfiec.librechat.feature.conversations.resources.workspace_reorder
 import com.garfiec.librechat.feature.conversations.resources.workspace_shared_links
 import com.garfiec.librechat.feature.conversations.resources.workspace_unpin
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import com.garfiec.librechat.core.ui.resources.Res as CoreRes
@@ -376,6 +382,10 @@ private fun PinnedTrayRows(
 ) {
     val order = remember(pinned) { pinned.toMutableStateList() }
     var dragging by remember { mutableStateOf<WorkspaceDestination?>(null) }
+    // A released row easing from where it was dropped into its slot.
+    var landing by remember { mutableStateOf<WorkspaceDestination?>(null) }
+    var landingJob by remember { mutableStateOf<Job?>(null) }
+    val scope = rememberCoroutineScope()
     var dragOffset by remember { mutableFloatStateOf(0f) }
     var rowHeight by remember { mutableIntStateOf(0) }
     // Each row's resting top in the tray's content, before any drag offset.
@@ -433,6 +443,15 @@ private fun PinnedTrayRows(
         // Keyed, so a row keeps its drag gesture as the rows reorder under it.
         key(destination) {
             val isDragging = dragging == destination
+            val isMoving = isDragging || landing == destination
+            // The tinted fill fades in on pick-up and out as the row lands.
+            val lift by animateFloatAsState(
+                if (isDragging) 1f else 0f,
+                tween(LIFT_FADE_MILLIS),
+                label = "pinLift",
+            )
+            val liftBase = MaterialTheme.colorScheme.surfaceContainerHigh
+            val liftTint = adaptiveSelectedRowColor
             val actions = buildList {
                 if (index > 0) {
                     add(CustomAccessibilityAction(moveUp) { move(index, index - 1); onReorder(order.toList()); true })
@@ -449,20 +468,17 @@ private fun PinnedTrayRows(
                 modifier = Modifier
                     .onSizeChanged { rowHeight = it.height }
                     .onPlaced { rowTops[destination] = it.positionInParent().y }
-                    .zIndex(if (isDragging) 1f else 0f)
-                    .graphicsLayer { if (isDragging) translationY = dragOffset }
+                    .zIndex(if (isMoving) 1f else 0f)
+                    .graphicsLayer { if (isMoving) translationY = dragOffset }
                     // No shadow: the held row is a rounded, tinted fill in the press shape, opaque so the
                     // rows it passes don't show through it.
                     .clip(DragSelectRowShape)
-                    .then(
-                        if (isDragging) {
-                            Modifier
-                                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                                .background(adaptiveSelectedRowColor)
-                        } else {
-                            Modifier
-                        },
-                    )
+                    .drawBehind {
+                        if (lift > 0f) {
+                            drawRect(liftBase, alpha = lift)
+                            drawRect(liftTint, alpha = lift)
+                        }
+                    }
                     .semantics { customActions = actions },
                 leading = {
                     Icon(
@@ -474,13 +490,21 @@ private fun PinnedTrayRows(
                             .pointerInput(destination) {
                                 detectVerticalDragGestures(
                                     onDragStart = {
+                                        landingJob?.cancel()
+                                        landing = null
                                         dragging = destination
                                         dragOffset = 0f
                                     },
                                     onDragEnd = {
-                                        dragging = null
-                                        dragOffset = 0f
                                         if (order.toList() != pinned) onReorder(order.toList())
+                                        dragging = null
+                                        landing = destination
+                                        landingJob = scope.launch {
+                                            animate(dragOffset, 0f, animationSpec = tween(LAND_MILLIS)) { value, _ ->
+                                                dragOffset = value
+                                            }
+                                            landing = null
+                                        }
                                     },
                                     onDragCancel = {
                                         dragging = null
@@ -577,6 +601,8 @@ private val TrayGap = 16.dp
 // Auto-scroll while reordering: starts a quarter row inside the tray's edge and speeds up to
 // [AutoScrollMaxSpeed] a second (reached a full row past the edge), whatever the refresh rate.
 private const val AUTO_SCROLL_ZONE = 0.25f
+private const val LIFT_FADE_MILLIS = 150
+private const val LAND_MILLIS = 200
 private val AutoScrollMaxSpeed = 400.dp
 private const val NANOS_PER_SECOND = 1_000_000_000f
 
