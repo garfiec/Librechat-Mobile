@@ -1,8 +1,13 @@
 package com.garfiec.librechat.feature.conversations.drawer
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -43,7 +48,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -210,7 +214,7 @@ internal fun WorkspaceFooterRows(
         onReorderPins = onReorderPins,
         isOpen = isOpen,
     )
-    pins.forEach { destination ->
+    AnimatedRows(pins) { destination ->
         DrawerFooterItem(
             icon = destination.icon,
             label = destination.label(),
@@ -320,15 +324,15 @@ private fun WorkspaceRow(
                     expanded = false
                     onOpen(destination)
                 }
-                var first = true
-                WorkspaceGroup.entries.forEach { group ->
-                    val rows = visible.filter { it.group == group && it !in pinned }
-                    if (rows.isEmpty()) return@forEach
-                    if (!first) TrayDivider()
-                    first = false
+                // Every section stays composed, empty or not, so rows moving between them animate even
+                // into a section that was empty; only its header and divider come and go.
+                val sections = WorkspaceGroup.entries.map { group -> visible.filter { it.group == group && it !in pinned } }
+                val firstShown = sections.indexOfFirst { it.isNotEmpty() }.let { if (it < 0) sections.size else it }
+                WorkspaceGroup.entries.forEachIndexed { at, group ->
+                    val rows = sections[at]
                     val header = if (group == WorkspaceGroup.BUILD) Res.string.workspace_group_build else Res.string.workspace_group_data
-                    TrayHeader(stringResource(header))
-                    rows.forEach { destination ->
+                    TraySectionHeader(shown = rows.isNotEmpty(), divider = at > firstShown, title = stringResource(header))
+                    AnimatedRows(rows) { destination ->
                         TrayRow(
                             destination = destination,
                             selected = destination == current,
@@ -346,19 +350,20 @@ private fun WorkspaceRow(
                         )
                     }
                 }
-                if (pinned.isNotEmpty()) {
-                    if (!first) TrayDivider()
-                    TrayHeader(stringResource(Res.string.pinned))
-                    PinnedTrayRows(
-                        pinned = pinned,
-                        current = current,
-                        dragSelection = drag,
-                        scroll = scroll,
-                        onOpen = open,
-                        onUnpin = onUnpin,
-                        onReorder = onReorderPins,
-                    )
-                }
+                TraySectionHeader(
+                    shown = pinned.isNotEmpty(),
+                    divider = firstShown < sections.size,
+                    title = stringResource(Res.string.pinned),
+                )
+                PinnedTrayRows(
+                    pinned = pinned,
+                    current = current,
+                    dragSelection = drag,
+                    scroll = scroll,
+                    onOpen = open,
+                    onUnpin = onUnpin,
+                    onReorder = onReorderPins,
+                )
             }
         }
     }
@@ -452,11 +457,21 @@ private fun PinnedTrayRows(
         }
     }
 
-    order.forEachIndexed { index, destination ->
-        // Keyed, so a row keeps its drag gesture as the rows reorder under it.
-        key(destination) {
+    // Keyed by destination, so a row keeps its drag gesture as the rows reorder under it.
+    AnimatedRows(
+        items = order.toList(),
+        itemModifier = { destination ->
+            val isMoving = dragging == destination || landing == destination
+            Modifier
+                .onPlaced { rowTops[destination] = it.positionInParent().y }
+                .zIndex(if (isMoving) 1f else 0f)
+                .graphicsLayer { if (isMoving) translationY = dragOffset }
+        },
+    ) { destination ->
+        run {
+            // -1 for a row shrinking out after its unpin: it takes no more moves.
+            val index = order.indexOf(destination)
             val isDragging = dragging == destination
-            val isMoving = isDragging || landing == destination
             // The tinted fill fades in on pick-up and out as the row lands.
             val lift by animateFloatAsState(
                 if (isDragging) 1f else 0f,
@@ -469,7 +484,7 @@ private fun PinnedTrayRows(
                 if (index > 0) {
                     add(CustomAccessibilityAction(moveUp) { move(index, index - 1); latestOnReorder(order.toList()); true })
                 }
-                if (index < order.lastIndex) {
+                if (index in 0 until order.lastIndex) {
                     add(CustomAccessibilityAction(moveDown) { move(index, index + 1); latestOnReorder(order.toList()); true })
                 }
             }
@@ -480,9 +495,6 @@ private fun PinnedTrayRows(
                 onClick = { onOpen(destination) },
                 modifier = Modifier
                     .onSizeChanged { rowHeight = it.height }
-                    .onPlaced { rowTops[destination] = it.positionInParent().y }
-                    .zIndex(if (isMoving) 1f else 0f)
-                    .graphicsLayer { if (isMoving) translationY = dragOffset }
                     // No shadow: the held row is a rounded, tinted fill in the press shape, opaque so the
                     // rows it passes don't show through it.
                     .clip(DragSelectRowShape)
@@ -587,6 +599,21 @@ private fun TrayRow(
             .then(if (selected) Modifier.background(adaptiveSelectedRowColor, DragSelectRowShape) else Modifier)
             .menuDragTarget(dragSelection, onClick),
     )
+}
+
+/** A tray section's header, with a divider above it unless it's the first, growing in and out with it. */
+@Composable
+private fun TraySectionHeader(shown: Boolean, divider: Boolean, title: String) {
+    AnimatedVisibility(
+        visible = shown,
+        enter = expandVertically() + fadeIn(),
+        exit = shrinkVertically() + fadeOut(),
+    ) {
+        Column {
+            if (divider) TrayDivider()
+            TrayHeader(title)
+        }
+    }
 }
 
 @Composable
