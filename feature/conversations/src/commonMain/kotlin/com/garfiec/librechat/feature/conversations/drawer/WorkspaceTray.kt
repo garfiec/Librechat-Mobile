@@ -51,6 +51,7 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -447,12 +448,19 @@ private fun PinnedTrayRows(
                     .onSizeChanged { rowHeight = it.height }
                     .onPlaced { rowTops[destination] = it.positionInParent().y }
                     .zIndex(if (isDragging) 1f else 0f)
-                    .graphicsLayer {
+                    .graphicsLayer { if (isDragging) translationY = dragOffset }
+                    // No shadow: the held row is a rounded, tinted fill in the press shape, opaque so the
+                    // rows it passes don't show through it.
+                    .clip(DragSelectRowShape)
+                    .then(
                         if (isDragging) {
-                            translationY = dragOffset
-                            shadowElevation = 8f
-                        }
-                    }
+                            Modifier
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                                .background(adaptiveSelectedRowColor)
+                        } else {
+                            Modifier
+                        },
+                    )
                     .semantics { customActions = actions },
                 leading = {
                     Icon(
@@ -537,7 +545,7 @@ private fun TrayRow(
         trailingIcon = trailing,
         onClick = onClick,
         modifier = modifier
-            .then(if (selected) Modifier.background(adaptiveSelectedRowColor) else Modifier)
+            .then(if (selected) Modifier.background(adaptiveSelectedRowColor, DragSelectRowShape) else Modifier)
             .menuDragTarget(dragSelection, onClick),
     )
 }
