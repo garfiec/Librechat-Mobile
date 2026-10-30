@@ -50,6 +50,7 @@ import com.garfiec.librechat.core.ui.components.DRAG_HIGHLIGHT_ALPHA
 import com.garfiec.librechat.core.ui.components.MenuDragSelection
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.components.drawHighlight
+import com.garfiec.librechat.core.ui.components.menuFadingEdges
 import com.garfiec.librechat.core.ui.components.rememberMenuDragEffects
 import com.garfiec.librechat.core.ui.components.topbar.CoversNativeBars
 import com.garfiec.librechat.core.ui.theme.LocalDarkTheme
@@ -175,6 +176,7 @@ private fun GlassFloatingMenu(
                         .background(fill)
                         .onPlaced { effects.inside = it }
                         .drawBehind { if (drag != null) drawHighlight(drag.highlight, effects.inside, highlightColor) }
+                        .menuFadingEdges(scrollState)
                         .verticalScroll(scrollState)
                         .padding(vertical = 8.dp)
                         // The content behind is still in the tree, unlike behind a popup window.
