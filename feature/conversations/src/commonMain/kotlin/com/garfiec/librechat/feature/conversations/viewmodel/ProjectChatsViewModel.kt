@@ -71,7 +71,7 @@ data class ProjectChatsUiState(
 /**
  * Project-filtered conversation list (v0.8.7 "Show all"). Network-direct: loads pages via
  * [ConversationRepository.getConversationsForProject] and holds them itself, since Room can't
- * filter by project. Mirrors [ConversationListViewModel]'s action surface so the screen can
+ * filter by project. Mirrors the drawer's action surface so the screen can
  * reuse the same row + action-sheet machinery.
  */
 private const val HTTP_NOT_FOUND = 404

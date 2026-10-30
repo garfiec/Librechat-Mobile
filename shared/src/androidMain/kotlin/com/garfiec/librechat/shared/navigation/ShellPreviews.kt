@@ -98,11 +98,7 @@ private fun PreviewDrawer(modifier: Modifier = Modifier) = ProvideDateTimeFormat
         onSearchQueryChange = {},
         onNewChat = {},
         onConversationClick = {},
-        onAgentsClick = {},
-        onFilesClick = {},
-        onSkillsClick = {},
-        onSchedulesClick = {},
-        onBookmarksClick = {},
+        onWorkspaceClick = {},
         modifier = modifier,
     )
 }

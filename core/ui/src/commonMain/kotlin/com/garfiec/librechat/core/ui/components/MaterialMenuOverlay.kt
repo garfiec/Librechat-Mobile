@@ -297,9 +297,11 @@ private fun MorphingMenu(
                             // While closing, rows are on their way out: swallow taps so one can't fire twice.
                             .then(if (open) Modifier else Modifier.pointerInput(Unit) { consumeAll() })
                             .then(modifier)
-                            .padding(vertical = MenuVerticalPadding)
                             .width(IntrinsicSize.Max)
+                            // The padding scrolls with the rows, so they run to the panel's edge and fade.
+                            .menuFadingEdges(scrollState)
                             .verticalScroll(scrollState)
+                            .padding(vertical = MenuVerticalPadding)
                             .semantics { isTraversalGroup = true },
                         measurePolicy = remember(density) {
                             StaggeredColumnPolicy(

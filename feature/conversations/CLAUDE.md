@@ -1,7 +1,7 @@
 # feature:conversations
 
-## Screen
-`ConversationListScreen` -- the drawer content showing all conversations. Sealed interface: `ConversationsRoute : NavKey` with routes `Conversations` and `ArchivedConversations` (both `@Serializable` data objects).
+## Screens
+The conversation list lives in the drawer (`drawer/DrawerContent.kt`, `DrawerViewModel`); there is no full-screen list route. `ConversationsRoute : NavKey` covers the screens the drawer opens: `ArchivedConversations`, `Projects`, `Bookmarks`, `BookmarkChats`, `Search`, `ProjectChats`.
 
 ## Pagination
 - Cursor-based via `ConversationRepository.loadNextPage(cursor, tags)`

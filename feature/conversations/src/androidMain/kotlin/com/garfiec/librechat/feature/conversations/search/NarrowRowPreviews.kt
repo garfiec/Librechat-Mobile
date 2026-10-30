@@ -100,18 +100,13 @@ private fun DrawerProjectsHost() {
         onSearchQueryChange = {},
         onNewChat = {},
         onConversationClick = {},
-        onAgentsClick = {},
-        onFilesClick = {},
-        onSkillsClick = {},
-        onSchedulesClick = {},
-        onBookmarksClick = {},
-        footerContent = { dragSelection ->
+        onWorkspaceClick = {},
+        footerContent = {
             Spacer(modifier = Modifier.height(8.dp))
             DrawerFooterItem(
                 icon = Icons.Default.Settings,
                 label = stringResource(Res.string.settings),
                 onClick = {},
-                dragSelection = dragSelection,
             )
         },
         projects = listOf(

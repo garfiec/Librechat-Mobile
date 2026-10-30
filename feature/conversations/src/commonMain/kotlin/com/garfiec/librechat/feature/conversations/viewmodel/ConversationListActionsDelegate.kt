@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Shared conversation row-action logic (favorite/rename/archive/delete/share/duplicate/export)
- * used by both [ConversationListViewModel] (Room-backed) and [ProjectChatsViewModel] (network-direct).
+ * used by the drawer (Room-backed) and [ProjectChatsViewModel] (network-direct).
  *
  * Actions emit one-shot UI signals through [events] and run on the host VM's [scope]. After a
  * mutation that the host must reflect, [onMutated] is invoked: the Room-backed list passes a no-op

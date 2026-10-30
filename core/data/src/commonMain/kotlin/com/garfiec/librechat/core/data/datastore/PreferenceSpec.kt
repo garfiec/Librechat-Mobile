@@ -56,3 +56,14 @@ fun <V : Any> stringPreference(
     decode: (String) -> V?,
     encode: (V) -> String,
 ): PreferenceSpec<String, V> = PreferenceSpec(key = stringPreferencesKey(name), default = default, decode = decode, encode = encode)
+
+/**
+ * An ordered list of ids stored as one comma-separated string: no JSON, a split to read. Ids must not
+ * contain commas. Empty by default; duplicates are dropped on read.
+ */
+fun stringListPreference(name: String): PreferenceSpec<String, List<String>> = stringPreference(
+    name,
+    default = always(emptyList()),
+    decode = { stored -> stored.split(',').filter { it.isNotEmpty() }.distinct() },
+    encode = { ids -> ids.joinToString(",") },
+)

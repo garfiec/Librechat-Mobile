@@ -80,7 +80,6 @@ import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.core.ui.glass.rememberGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
 import com.garfiec.librechat.core.ui.theme.AppLocale
-import com.garfiec.librechat.feature.agents.navigation.AgentMarketplace
 import com.garfiec.librechat.feature.agents.navigation.agentsEntries
 import com.garfiec.librechat.feature.auth.navigation.AddAccountServerUrl
 import com.garfiec.librechat.feature.auth.navigation.ServerUrl
@@ -98,15 +97,12 @@ import com.garfiec.librechat.feature.chat.viewmodel.ServerFileSelectionHandoff
 import com.garfiec.librechat.feature.conversations.drawer.DrawerViewModel
 import com.garfiec.librechat.feature.conversations.navigation.ArchivedConversations
 import com.garfiec.librechat.feature.conversations.navigation.BookmarkChats
-import com.garfiec.librechat.feature.conversations.navigation.Bookmarks
 import com.garfiec.librechat.feature.conversations.navigation.ProjectChats
 import com.garfiec.librechat.feature.conversations.navigation.Projects
 import com.garfiec.librechat.feature.conversations.navigation.conversationsEntries
-import com.garfiec.librechat.feature.files.navigation.Files
 import com.garfiec.librechat.feature.files.navigation.FilesPicker
 import com.garfiec.librechat.feature.files.navigation.filePickerEntries
 import com.garfiec.librechat.feature.files.navigation.filesEntries
-import com.garfiec.librechat.feature.schedules.navigation.SchedulesList
 import com.garfiec.librechat.feature.schedules.navigation.schedulesEntries
 import com.garfiec.librechat.feature.settings.navigation.Memories
 import com.garfiec.librechat.feature.settings.navigation.SettingsTabbed
@@ -114,7 +110,6 @@ import com.garfiec.librechat.feature.settings.navigation.WhatsNew
 import com.garfiec.librechat.feature.settings.navigation.mcpServersEntry
 import com.garfiec.librechat.feature.settings.navigation.memoriesEntry
 import com.garfiec.librechat.feature.settings.navigation.settingsEntries
-import com.garfiec.librechat.feature.skills.navigation.SkillsList
 import com.garfiec.librechat.feature.skills.navigation.skillsEntries
 import com.garfiec.librechat.shared.resources.Res
 import com.garfiec.librechat.shared.resources.dismiss
@@ -590,25 +585,9 @@ fun PhoneLayout(
                             scope.launch { drawerState.close() }
                             navigator.navigate(SettingsTabbed)
                         },
-                        onAgentsClick = {
+                        onWorkspaceClick = { destination ->
                             scope.launch { drawerState.close() }
-                            navigator.navigate(AgentMarketplace)
-                        },
-                        onFilesClick = {
-                            scope.launch { drawerState.close() }
-                            navigator.navigate(Files)
-                        },
-                        onSkillsClick = {
-                            scope.launch { drawerState.close() }
-                            navigator.navigate(SkillsList)
-                        },
-                        onSchedulesClick = {
-                            scope.launch { drawerState.close() }
-                            navigator.navigate(SchedulesList)
-                        },
-                        onBookmarksClick = {
-                            scope.launch { drawerState.close() }
-                            navigator.navigate(Bookmarks)
+                            navigator.navigate(destination.route())
                         },
                         onOpenProjectsIndex = {
                             scope.launch { drawerState.close() }
@@ -822,7 +801,6 @@ fun MainNavDisplay(
             )
             conversationsEntries(
                 onConversationClick = { navigator.navigateToChat(it) },
-                onNavigateToArchive = { navigator.navigate(ArchivedConversations) },
                 onNavigateToProject = { projectId, projectName ->
                     navigator.navigate(ProjectChats(projectId, projectName))
                 },
