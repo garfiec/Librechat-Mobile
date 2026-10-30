@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -58,6 +57,7 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
@@ -70,6 +70,7 @@ import com.garfiec.librechat.core.ui.components.menuDragPressEffect
 import com.garfiec.librechat.core.ui.components.menuDragTarget
 import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
 import com.garfiec.librechat.core.ui.resources.bookmarks
+import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.feature.conversations.resources.Res
 import com.garfiec.librechat.feature.conversations.resources.agents
 import com.garfiec.librechat.feature.conversations.resources.files
@@ -278,19 +279,16 @@ private fun WorkspaceRow(
                 scrolledForOpen = true
             }
         }
-        // The tray anchors to this box, not the row: inset from the drawer's sides like the content above,
-        // and raised so it floats clear of the row. Moving the anchor holds in both menu styles, which
-        // read a vertical offset in opposite directions when the menu opens upward.
-        BoxWithConstraints(
-            modifier = Modifier
-                .matchParentSize()
-                .offset(y = -TrayGap)
-                .padding(horizontal = TrayInset),
-        ) {
+        // The tray anchors to this box, inset from the drawer's sides like the content above. The gap
+        // above the row can't come from moving the anchor: the footer's scroll clips the anchor's
+        // bounds at the divider. It is the menu's offset instead, whose sign the two styles read
+        // oppositely when the menu opens upward, as it always does here.
+        BoxWithConstraints(modifier = Modifier.matchParentSize().padding(horizontal = TrayInset)) {
             AdaptiveDropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
                 modifier = Modifier.width(maxWidth).heightIn(max = TrayMaxHeight),
+                offset = DpOffset(x = 0.dp, y = if (isLiquidGlass) TrayGap else -TrayGap),
                 scrollState = scroll,
                 shape = RoundedCornerShape(16.dp),
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
