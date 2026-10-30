@@ -25,9 +25,12 @@ The canonical API for version comparisons lives in
   (`TZ=UTC git log -1 --date=format-local:%Y-%m-%d --format=%cd <landing-commit>` — NOT `%cs`,
   which renders per-committer timezones and is non-monotonic on upstream's history). Use for
   features synced ahead of any tag (partial syncs). Fails CLOSED on null `detected` — note the
-  commit map only covers commits up to the app's pinned submodule commit, so a server built
-  from a LATER commit resolves to null and hides date-gated features until the next
-  sync/regeneration.
+  commit map only covers commits up to the app's pinned submodule commit. A server built from a
+  LATER commit is placed by `UnmappedBuildDetection`: at its tag when `buildInfo.branch` names
+  one, else AT the pin (DEV, the pin's version, no commit date) when `buildInfo.buildDate` is
+  after the pin. That is a lower bound, so features landed after the pin stay hidden here (and
+  read UNKNOWN, not ABSENT, in `featureSupport`) until the next sync/regeneration; a server with
+  neither signal still resolves to null.
 
 - `BackendVersion.featureSupport(detected, minVersion, landedDate)` — the THREE-state form:
   `PRESENT` / `ABSENT` / `UNKNOWN`. `supportsFeature` is exactly `featureSupport(…) == PRESENT`, so
@@ -42,7 +45,8 @@ The canonical API for version comparisons lives in
 
   **That null case is the gate's real failure mode, not an edge case.** A self-hosted server
   tracking upstream `dev`/`latest` drifts past the pin within days, so the population most likely
-  to HAVE a just-landed feature is the population that resolves to null. Gate on `supportsFeature`
+  to HAVE a just-landed feature is the population the map cannot classify (null, or placed only AT
+  the pin by `UnmappedBuildDetection`). Gate on `supportsFeature`
   only when the client would otherwise call a route the server may not have *without being asked
   to* — suppressing such a call is a genuine fail-safe. Do NOT gate on it when the server has
   already announced the capability (an SSE frame, a status field, a `/api/config` flag): the

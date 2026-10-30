@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.common.BackendBuildClass
 import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.common.DetectedBackend
 import com.garfiec.librechat.core.common.EndpointConstants
+import com.garfiec.librechat.core.common.UnmappedBuildDetection
 import com.garfiec.librechat.core.common.generated.BackendCommitMap
 import com.garfiec.librechat.core.common.result.AccessGatewayException
 import com.garfiec.librechat.core.common.result.ApiException
@@ -423,19 +424,19 @@ class ConfigRepositoryImpl(
 
     /**
      * Resolves the backend identity from a startup config, in order:
-     * 1. the explicit `version` field (future-proof — not yet emitted by any release; yields
-     *    [BackendBuildClass.UNKNOWN] with no commit date),
-     * 2. the build commit (`buildInfo.commit`) looked up in the baked [BackendCommitMap] — the only
-     *    reliable server-sent signal (LibreChat has no version endpoint), covering tagged
+     * 1. the build commit (`buildInfo.commit`) looked up in the baked [BackendCommitMap] — the
+     *    primary signal, and the only exact one (LibreChat has no version endpoint), covering tagged
      *    official/rc images AND untagged dev builds (classification + commit date let
      *    `BackendVersion.supportsFeature` gate features a dev build carries even though its
-     *    package.json still reports the previous release).
-     * Null when neither resolves.
+     *    package.json still reports the previous release). Every version string below is secondary.
+     * 2. the explicit `version` field (future-proof — not yet emitted by any release; yields
+     *    [BackendBuildClass.UNKNOWN] with no commit date),
+     * 3. for a commit the map has never seen (a server upgraded past the pin),
+     *    [UnmappedBuildDetection]: a version-tag `buildInfo.branch`, else a `buildInfo.buildDate`
+     *    after the pinned commit's date.
+     * Null when none resolves.
      */
     private suspend fun detectVersion(config: StartupConfig?): DetectedBackend? {
-        config?.version?.trimStart('v', 'V')?.takeIf { it.isNotBlank() }?.let {
-            return DetectedBackend(version = it)
-        }
         val buildInfo = config?.buildInfo
         val commit = buildInfo?.commit
         if (commit != null) {
@@ -469,7 +470,26 @@ class ConfigRepositoryImpl(
                 return resolved
             }
         }
-        return null
+        config?.version?.trimStart('v', 'V')?.takeIf { it.isNotBlank() }?.let {
+            return DetectedBackend(version = it)
+        }
+        // The build-date fallback reads BackendCommitMap too, which a config without a commit has
+        // not parsed yet: keep that first parse off the caller thread as well.
+        val unmapped = withContext(dispatcher) {
+            UnmappedBuildDetection.detect(branch = buildInfo?.branch, buildDate = buildInfo?.buildDate)
+        }
+        if (unmapped != null) {
+            Diag.i(
+                "BackendVersion",
+                attrs = mapOf(
+                    "resolvedVia" to if (unmapped.classification == BackendBuildClass.DEV) "buildInfo.buildDate" else "buildInfo.branch",
+                    "commit" to (buildInfo?.commitShort ?: commit ?: "none"),
+                    "classification" to unmapped.classification.name,
+                    "version" to unmapped.version,
+                ),
+            ) { "backend version placed from an unmapped build" }
+        }
+        return unmapped
     }
 
     override suspend fun getCategories(): Result<List<Category>> = safeApiCall {

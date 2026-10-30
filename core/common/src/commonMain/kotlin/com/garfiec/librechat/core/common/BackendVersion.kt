@@ -4,10 +4,10 @@ package com.garfiec.librechat.core.common
  * Backend version compatibility constants and comparison utilities.
  *
  * The LibreChat backend does not currently expose a version endpoint. The version is resolved
- * from `/api/config` — an explicit `version` field if one is ever added, otherwise the build
- * commit (`buildInfo.commit`) looked up in the baked commit→version table. See
- * `ConfigRepositoryImpl.detectVersion`. If the version cannot be determined, the check is
- * silently skipped.
+ * from `/api/config`, primarily by the build commit (`buildInfo.commit`) looked up in the baked
+ * commit→version table; only an unmapped commit falls back to a version string (an explicit
+ * `version` field, then [UnmappedBuildDetection]). See `ConfigRepositoryImpl.detectVersion`.
+ * If the version cannot be determined, the check is silently skipped.
  */
 object BackendVersion {
 
@@ -194,10 +194,12 @@ object BackendVersion {
      * needs neither error is not expressible without a per-commit ordinal in the commit map.
      *
      * Coverage window: the commit map knows tags plus dev commits only UP TO the app's pinned
-     * upstream commit. A server built from a LATER commit resolves to no version at all
-     * (null [detected]), so this helper fails closed — a server tracking upstream `latest`
-     * drifts past the pin within days of a sync, hiding date-gated features again until the
-     * next sync/regeneration. Accepted fail-safe tradeoff; documented in VERSION_GATES.md.
+     * upstream commit. A server built from a LATER commit is placed by [UnmappedBuildDetection]:
+     * at its tag when `buildInfo.branch` names one, else AT the pin (DEV, pin's commit date) when
+     * its `buildInfo.buildDate` is after the pin — a lower bound with no commit date, so features
+     * landed after the pin stay hidden here (and read UNKNOWN in [featureSupport]) until the next
+     * sync/regeneration. Only a server with neither signal
+     * resolves to null [detected], and this helper fails closed. See VERSION_GATES.md.
      *
      * Fail-closed on null [detected]: an unresolved server hides date-gated features, matching
      * the VERSION_GATES.md v0.8.7 precedent (surfacing an action that 404s is worse than

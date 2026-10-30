@@ -29,8 +29,8 @@ enum class BackendBuildClass {
  * UTC committer date of the build commit) disambiguates — see `BackendVersion.supportsFeature`.
  *
  * Commit-map resolution covers upstream commits only up to the app's pinned submodule commit;
- * a server built from a later commit resolves to null (no DetectedBackend at all), so
- * everything downstream fails closed until the next sync regenerates the map.
+ * a server built from a later commit is placed by [UnmappedBuildDetection] from its build branch
+ * or build date, and resolves to null (everything downstream fails closed) only when neither places it.
  */
 data class DetectedBackend(
     val version: String,
