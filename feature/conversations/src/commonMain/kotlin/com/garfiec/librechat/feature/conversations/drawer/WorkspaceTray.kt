@@ -393,6 +393,8 @@ private fun PinnedTrayRows(
     fun settle(destination: WorkspaceDestination) {
         if (rowHeight <= 0) return
         val at = order.indexOf(destination)
+        // The held row stays within the Pinned group: from the first pinned slot to the last.
+        dragOffset = dragOffset.coerceIn(-at * rowHeight.toFloat(), (order.lastIndex - at) * rowHeight.toFloat())
         val half = rowHeight / 2f
         if (dragOffset > half && at < order.lastIndex) {
             move(at, at + 1)
