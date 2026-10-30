@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.sqrt
 
@@ -176,16 +177,19 @@ fun rememberMenuDragSelection(): MenuDragSelection {
  *
  * With [opensOnDrag] false only a hold opens it: a drag before the long-press timeout is left alone,
  * so an opener inside a scrolling list or a swipeable drawer still scrolls and swipes.
+ * [opensOnDragIf] narrows which drags open it, by their first move past slop; the rest are left
+ * alone as with [opensOnDrag] false. Pass a stable function: a new one restarts the gesture.
  */
 fun Modifier.menuDragAnchor(
     state: MenuDragSelection,
     enabled: Boolean = true,
     opensOnDrag: Boolean = true,
+    opensOnDragIf: (delta: Offset) -> Boolean = AnyDrag,
     onOpen: () -> Unit,
     onCancel: () -> Unit,
 ): Modifier {
     if (!enabled) return this
-    return onPlaced { state.anchor = it }.pointerInput(state, opensOnDrag) {
+    return onPlaced { state.anchor = it }.pointerInput(state, opensOnDrag, opensOnDragIf) {
         val slop = viewConfiguration.touchSlop
         val holdMillis = viewConfiguration.longPressTimeoutMillis
         val leanCap = LeanCap.toPx()
@@ -203,7 +207,7 @@ fun Modifier.menuDragAnchor(
                 claimMove = { delta ->
                     when {
                         delta.getDistance() <= slop -> null
-                        opensOnDrag -> HoldOrDrag.Drag
+                        opensOnDrag && opensOnDragIf(delta) -> HoldOrDrag.Drag
                         else -> HoldOrDrag.Yield
                     }
                 },
@@ -233,6 +237,11 @@ fun Modifier.menuDragAnchor(
         }
     }
 }
+
+private val AnyDrag: (Offset) -> Boolean = { true }
+
+/** For [menuDragAnchor]'s `opensOnDragIf`: a mostly-upward drag, leaving sideways swipes alone. */
+val UpwardDrag: (Offset) -> Boolean = { it.y < 0f && -it.y > abs(it.x) }
 
 /** On the opener's visible chip: swells while held and leans toward the finger. */
 fun Modifier.menuDragPressEffect(state: MenuDragSelection): Modifier = graphicsLayer {

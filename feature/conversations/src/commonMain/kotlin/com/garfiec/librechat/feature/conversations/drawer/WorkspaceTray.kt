@@ -63,6 +63,7 @@ import androidx.compose.ui.zIndex
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.components.MenuDragSelection
+import com.garfiec.librechat.core.ui.components.UpwardDrag
 import com.garfiec.librechat.core.ui.components.adaptiveSelectedRowColor
 import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
 import com.garfiec.librechat.core.ui.components.menuDragAnchor
@@ -220,11 +221,12 @@ private fun WorkspaceRow(
     val workspace = stringResource(Res.string.workspace)
     val label = current?.let { stringResource(Res.string.workspace_current, it.label()) } ?: workspace
     val stateText = stringResource(if (expanded) Res.string.workspace_expanded else Res.string.workspace_collapsed)
-    // Only a hold opens the tray from a press: a drag is left to the drawer swipe and the footer scroll.
+    // A hold or an upward drag opens the tray, toward where it opens; a sideways drag is left to the
+    // drawer swipe and a downward one to the footer scroll.
     Box(
         modifier = Modifier.menuDragAnchor(
             drag,
-            opensOnDrag = false,
+            opensOnDragIf = UpwardDrag,
             onOpen = { expanded = true },
             onCancel = { expanded = false },
         ),
