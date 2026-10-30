@@ -4,15 +4,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -277,56 +278,66 @@ private fun WorkspaceRow(
                 scrolledForOpen = true
             }
         }
-        AdaptiveDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.widthIn(min = 280.dp).heightIn(max = TrayMaxHeight),
-            scrollState = scroll,
-            shape = RoundedCornerShape(16.dp),
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            dragSelection = drag,
+        // The tray anchors to this box, not the row: inset from the drawer's sides like the content above,
+        // and raised so it floats clear of the row. Moving the anchor holds in both menu styles, which
+        // read a vertical offset in opposite directions when the menu opens upward.
+        BoxWithConstraints(
+            modifier = Modifier
+                .matchParentSize()
+                .offset(y = -TrayGap)
+                .padding(horizontal = TrayInset),
         ) {
-            val open: (WorkspaceDestination) -> Unit = { destination ->
-                expanded = false
-                onOpen(destination)
-            }
-            var first = true
-            WorkspaceGroup.entries.forEach { group ->
-                val rows = visible.filter { it.group == group && it !in pinned }
-                if (rows.isEmpty()) return@forEach
-                if (!first) TrayDivider()
-                first = false
-                val header = if (group == WorkspaceGroup.BUILD) Res.string.workspace_group_build else Res.string.workspace_group_data
-                TrayHeader(stringResource(header))
-                rows.forEach { destination ->
-                    TrayRow(
-                        destination = destination,
-                        selected = destination == current,
+            AdaptiveDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.width(maxWidth).heightIn(max = TrayMaxHeight),
+                scrollState = scroll,
+                shape = RoundedCornerShape(16.dp),
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                dragSelection = drag,
+            ) {
+                val open: (WorkspaceDestination) -> Unit = { destination ->
+                    expanded = false
+                    onOpen(destination)
+                }
+                var first = true
+                WorkspaceGroup.entries.forEach { group ->
+                    val rows = visible.filter { it.group == group && it !in pinned }
+                    if (rows.isEmpty()) return@forEach
+                    if (!first) TrayDivider()
+                    first = false
+                    val header = if (group == WorkspaceGroup.BUILD) Res.string.workspace_group_build else Res.string.workspace_group_data
+                    TrayHeader(stringResource(header))
+                    rows.forEach { destination ->
+                        TrayRow(
+                            destination = destination,
+                            selected = destination == current,
+                            dragSelection = drag,
+                            onClick = { open(destination) },
+                            trailing = {
+                                IconButton(onClick = { onPin(destination) }) {
+                                    Icon(
+                                        Icons.Outlined.PushPin,
+                                        contentDescription = stringResource(Res.string.workspace_pin, destination.label()),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            },
+                        )
+                    }
+                }
+                if (pinned.isNotEmpty()) {
+                    if (!first) TrayDivider()
+                    TrayHeader(stringResource(Res.string.pinned))
+                    PinnedTrayRows(
+                        pinned = pinned,
+                        current = current,
                         dragSelection = drag,
-                        onClick = { open(destination) },
-                        trailing = {
-                            IconButton(onClick = { onPin(destination) }) {
-                                Icon(
-                                    Icons.Outlined.PushPin,
-                                    contentDescription = stringResource(Res.string.workspace_pin, destination.label()),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        },
+                        onOpen = open,
+                        onUnpin = onUnpin,
+                        onReorder = onReorderPins,
                     )
                 }
-            }
-            if (pinned.isNotEmpty()) {
-                if (!first) TrayDivider()
-                TrayHeader(stringResource(Res.string.pinned))
-                PinnedTrayRows(
-                    pinned = pinned,
-                    current = current,
-                    dragSelection = drag,
-                    onOpen = open,
-                    onUnpin = onUnpin,
-                    onReorder = onReorderPins,
-                )
             }
         }
     }
@@ -500,3 +511,5 @@ private fun TrayDivider() {
 internal val FooterRowShape = RoundedCornerShape(12.dp)
 
 private val TrayMaxHeight = 480.dp
+private val TrayInset = 12.dp
+private val TrayGap = 8.dp
