@@ -1,8 +1,10 @@
 package com.garfiec.librechat.feature.conversations.drawer
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -46,12 +48,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.customActions
@@ -339,6 +345,7 @@ private fun WorkspaceRow(
                         pinned = pinned,
                         current = current,
                         dragSelection = drag,
+                        scroll = scroll,
                         onOpen = open,
                         onUnpin = onUnpin,
                         onReorder = onReorderPins,
@@ -352,12 +359,16 @@ private fun WorkspaceRow(
 /**
  * The tray's Pinned group. Dragging a row's ≡ handle moves it; the order is local until the drop,
  * which reports it once. Screen readers get Move up / Move down instead.
+ *
+ * The tray only scrolls during a drag when the row is pulled to or past its top or bottom edge, faster
+ * the further past, with the row kept under the finger; otherwise the drag never scrolls it.
  */
 @Composable
 private fun PinnedTrayRows(
     pinned: List<WorkspaceDestination>,
     current: WorkspaceDestination?,
     dragSelection: MenuDragSelection,
+    scroll: ScrollState,
     onOpen: (WorkspaceDestination) -> Unit,
     onUnpin: (WorkspaceDestination) -> Unit,
     onReorder: (List<WorkspaceDestination>) -> Unit,
@@ -366,12 +377,50 @@ private fun PinnedTrayRows(
     var dragging by remember { mutableStateOf<WorkspaceDestination?>(null) }
     var dragOffset by remember { mutableFloatStateOf(0f) }
     var rowHeight by remember { mutableIntStateOf(0) }
+    // Each row's resting top in the tray's content, before any drag offset.
+    val rowTops = remember { mutableMapOf<WorkspaceDestination, Float>() }
+    val maxStep = with(LocalDensity.current) { AutoScrollMaxStep.toPx() }
     val moveUp = stringResource(Res.string.project_move_up)
     val moveDown = stringResource(Res.string.project_move_down)
 
     fun move(from: Int, to: Int) {
         if (from == to || to !in order.indices) return
         order.add(to, order.removeAt(from))
+    }
+
+    // Swaps the dragged row past a neighbour once it's over half of it.
+    fun settle(destination: WorkspaceDestination) {
+        if (rowHeight <= 0) return
+        val at = order.indexOf(destination)
+        val half = rowHeight / 2f
+        if (dragOffset > half && at < order.lastIndex) {
+            move(at, at + 1)
+            dragOffset -= rowHeight
+        } else if (dragOffset < -half && at > 0) {
+            move(at, at - 1)
+            dragOffset += rowHeight
+        }
+    }
+
+    LaunchedEffect(dragging) {
+        val destination = dragging ?: return@LaunchedEffect
+        while (true) {
+            withFrameNanos { }
+            val viewport = scroll.viewportSize
+            if (viewport == 0 || rowHeight == 0) continue
+            val top = (rowTops[destination] ?: continue) + dragOffset - scroll.value
+            val zone = rowHeight * AUTO_SCROLL_ZONE
+            val past = when {
+                top < zone -> top - zone
+                top + rowHeight > viewport - zone -> top + rowHeight - (viewport - zone)
+                else -> 0f
+            }
+            if (past == 0f) continue
+            val consumed = scroll.scrollBy((past / rowHeight).coerceIn(-1f, 1f) * maxStep)
+            // The content moved under the finger; move the row back under it.
+            dragOffset += consumed
+            settle(destination)
+        }
     }
 
     order.forEachIndexed { index, destination ->
@@ -393,6 +442,7 @@ private fun PinnedTrayRows(
                 onClick = { onOpen(destination) },
                 modifier = Modifier
                     .onSizeChanged { rowHeight = it.height }
+                    .onPlaced { rowTops[destination] = it.positionInParent().y }
                     .zIndex(if (isDragging) 1f else 0f)
                     .graphicsLayer {
                         if (isDragging) {
@@ -426,17 +476,7 @@ private fun PinnedTrayRows(
                                     onVerticalDrag = { change, amount ->
                                         change.consume()
                                         dragOffset += amount
-                                        val at = order.indexOf(destination)
-                                        if (rowHeight > 0) {
-                                            val half = rowHeight / 2f
-                                            if (dragOffset > half && at < order.lastIndex) {
-                                                move(at, at + 1)
-                                                dragOffset -= rowHeight
-                                            } else if (dragOffset < -half && at > 0) {
-                                                move(at, at - 1)
-                                                dragOffset += rowHeight
-                                            }
-                                        }
+                                        settle(destination)
                                     },
                                 )
                             },
@@ -520,6 +560,10 @@ private fun TrayDivider() {
 private val TrayMaxHeight = 480.dp
 private val TrayInset = 12.dp
 private val TrayGap = 16.dp
+
+// Auto-scroll while reordering: starts a quarter row inside the tray's edge, up to this much a frame.
+private const val AUTO_SCROLL_ZONE = 0.25f
+private val AutoScrollMaxStep = 12.dp
 
 // About 7dp a side on a drawer-wide row, a few dp past the press highlight's 4dp inset.
 private const val ROW_SWELL = 0.05f
