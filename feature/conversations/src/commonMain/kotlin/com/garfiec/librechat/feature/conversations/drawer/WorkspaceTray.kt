@@ -2,7 +2,7 @@ package com.garfiec.librechat.feature.conversations.drawer
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -39,6 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -374,82 +375,85 @@ private fun PinnedTrayRows(
     }
 
     order.forEachIndexed { index, destination ->
-        val isDragging = dragging == destination
-        val actions = buildList {
-            if (index > 0) {
-                add(CustomAccessibilityAction(moveUp) { move(index, index - 1); onReorder(order.toList()); true })
+        // Keyed, so a row keeps its drag gesture as the rows reorder under it.
+        key(destination) {
+            val isDragging = dragging == destination
+            val actions = buildList {
+                if (index > 0) {
+                    add(CustomAccessibilityAction(moveUp) { move(index, index - 1); onReorder(order.toList()); true })
+                }
+                if (index < order.lastIndex) {
+                    add(CustomAccessibilityAction(moveDown) { move(index, index + 1); onReorder(order.toList()); true })
+                }
             }
-            if (index < order.lastIndex) {
-                add(CustomAccessibilityAction(moveDown) { move(index, index + 1); onReorder(order.toList()); true })
-            }
-        }
-        TrayRow(
-            destination = destination,
-            selected = destination == current,
-            dragSelection = dragSelection,
-            onClick = { onOpen(destination) },
-            modifier = Modifier
-                .onSizeChanged { rowHeight = it.height }
-                .zIndex(if (isDragging) 1f else 0f)
-                .graphicsLayer {
-                    if (isDragging) {
-                        translationY = dragOffset
-                        shadowElevation = 8f
+            TrayRow(
+                destination = destination,
+                selected = destination == current,
+                dragSelection = dragSelection,
+                onClick = { onOpen(destination) },
+                modifier = Modifier
+                    .onSizeChanged { rowHeight = it.height }
+                    .zIndex(if (isDragging) 1f else 0f)
+                    .graphicsLayer {
+                        if (isDragging) {
+                            translationY = dragOffset
+                            shadowElevation = 8f
+                        }
                     }
-                }
-                .semantics { customActions = actions },
-            leading = {
-                Icon(
-                    Icons.Default.DragHandle,
-                    contentDescription = stringResource(Res.string.workspace_reorder),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .size(24.dp)
-                        .pointerInput(destination) {
-                            detectDragGestures(
-                                onDragStart = {
-                                    dragging = destination
-                                    dragOffset = 0f
-                                },
-                                onDragEnd = {
-                                    dragging = null
-                                    dragOffset = 0f
-                                    if (order.toList() != pinned) onReorder(order.toList())
-                                },
-                                onDragCancel = {
-                                    dragging = null
-                                    dragOffset = 0f
-                                },
-                                onDrag = { change, amount ->
-                                    change.consume()
-                                    dragOffset += amount.y
-                                    val at = order.indexOf(destination)
-                                    if (rowHeight > 0) {
-                                        val half = rowHeight / 2f
-                                        if (dragOffset > half && at < order.lastIndex) {
-                                            move(at, at + 1)
-                                            dragOffset -= rowHeight
-                                        } else if (dragOffset < -half && at > 0) {
-                                            move(at, at - 1)
-                                            dragOffset += rowHeight
-                                        }
-                                    }
-                                },
-                            )
-                        },
-                )
-                Spacer(Modifier.width(8.dp))
-            },
-            trailing = {
-                IconButton(onClick = { onUnpin(destination) }) {
+                    .semantics { customActions = actions },
+                leading = {
                     Icon(
-                        Icons.Default.PushPin,
-                        contentDescription = stringResource(Res.string.workspace_unpin, destination.label()),
-                        tint = MaterialTheme.colorScheme.primary,
+                        Icons.Default.DragHandle,
+                        contentDescription = stringResource(Res.string.workspace_reorder),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .pointerInput(destination) {
+                                detectVerticalDragGestures(
+                                    onDragStart = {
+                                        dragging = destination
+                                        dragOffset = 0f
+                                    },
+                                    onDragEnd = {
+                                        dragging = null
+                                        dragOffset = 0f
+                                        if (order.toList() != pinned) onReorder(order.toList())
+                                    },
+                                    onDragCancel = {
+                                        dragging = null
+                                        dragOffset = 0f
+                                    },
+                                    onVerticalDrag = { change, amount ->
+                                        change.consume()
+                                        dragOffset += amount
+                                        val at = order.indexOf(destination)
+                                        if (rowHeight > 0) {
+                                            val half = rowHeight / 2f
+                                            if (dragOffset > half && at < order.lastIndex) {
+                                                move(at, at + 1)
+                                                dragOffset -= rowHeight
+                                            } else if (dragOffset < -half && at > 0) {
+                                                move(at, at - 1)
+                                                dragOffset += rowHeight
+                                            }
+                                        }
+                                    },
+                                )
+                            },
                     )
-                }
-            },
-        )
+                    Spacer(Modifier.width(8.dp))
+                },
+                trailing = {
+                    IconButton(onClick = { onUnpin(destination) }) {
+                        Icon(
+                            Icons.Default.PushPin,
+                            contentDescription = stringResource(Res.string.workspace_unpin, destination.label()),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                },
+            )
+        }
     }
 }
 
