@@ -379,7 +379,7 @@ private fun PinnedTrayRows(
     var rowHeight by remember { mutableIntStateOf(0) }
     // Each row's resting top in the tray's content, before any drag offset.
     val rowTops = remember { mutableMapOf<WorkspaceDestination, Float>() }
-    val maxStep = with(LocalDensity.current) { AutoScrollMaxStep.toPx() }
+    val maxSpeed = with(LocalDensity.current) { AutoScrollMaxSpeed.toPx() }
     val moveUp = stringResource(Res.string.project_move_up)
     val moveDown = stringResource(Res.string.project_move_down)
 
@@ -404,8 +404,11 @@ private fun PinnedTrayRows(
 
     LaunchedEffect(dragging) {
         val destination = dragging ?: return@LaunchedEffect
+        var lastFrame = withFrameNanos { it }
         while (true) {
-            withFrameNanos { }
+            val frame = withFrameNanos { it }
+            val seconds = (frame - lastFrame) / NANOS_PER_SECOND
+            lastFrame = frame
             val viewport = scroll.viewportSize
             if (viewport == 0 || rowHeight == 0) continue
             val top = (rowTops[destination] ?: continue) + dragOffset - scroll.value
@@ -416,7 +419,7 @@ private fun PinnedTrayRows(
                 else -> 0f
             }
             if (past == 0f) continue
-            val consumed = scroll.scrollBy((past / rowHeight).coerceIn(-1f, 1f) * maxStep)
+            val consumed = scroll.scrollBy((past / rowHeight).coerceIn(-1f, 1f) * maxSpeed * seconds)
             // The content moved under the finger; move the row back under it.
             dragOffset += consumed
             settle(destination)
@@ -561,9 +564,11 @@ private val TrayMaxHeight = 480.dp
 private val TrayInset = 12.dp
 private val TrayGap = 16.dp
 
-// Auto-scroll while reordering: starts a quarter row inside the tray's edge, up to this much a frame.
+// Auto-scroll while reordering: starts a quarter row inside the tray's edge and speeds up to
+// [AutoScrollMaxSpeed] a second (reached a full row past the edge), whatever the refresh rate.
 private const val AUTO_SCROLL_ZONE = 0.25f
-private val AutoScrollMaxStep = 12.dp
+private val AutoScrollMaxSpeed = 400.dp
+private const val NANOS_PER_SECOND = 1_000_000_000f
 
 // About 7dp a side on a drawer-wide row, a few dp past the press highlight's 4dp inset.
 private const val ROW_SWELL = 0.05f
