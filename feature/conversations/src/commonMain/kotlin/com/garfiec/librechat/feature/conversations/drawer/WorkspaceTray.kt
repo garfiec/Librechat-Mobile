@@ -514,6 +514,5 @@ private val TrayMaxHeight = 480.dp
 private val TrayInset = 12.dp
 private val TrayGap = 16.dp
 
-// About 4dp a side on a drawer-wide row: the press highlight's own inset, so it grows to the drawer's
-// edges and no further.
-private const val ROW_SWELL = 0.03f
+// About 7dp a side on a drawer-wide row, a few dp past the press highlight's 4dp inset.
+private const val ROW_SWELL = 0.05f
