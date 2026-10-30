@@ -44,18 +44,29 @@ internal fun <T> AnimatedRows(
     }
 }
 
-/** The last items drawn, and the removed ones still shrinking out at the index they had. */
+/**
+ * The last items, the last rows drawn (items plus the removed ones still shrinking out), and the
+ * leaving set. A leaving row keeps its slot among the rows drawn last time, so it stays put while
+ * another is removed around it.
+ */
 private class RowsMemory<T>(private var last: List<T>) {
     var opened = false
-    val leaving = mutableMapOf<T, Int>()
+    val leaving = mutableSetOf<T>()
+    private var lastShown: List<T> = last
 
     fun shown(items: List<T>): List<T> {
-        last.forEachIndexed { index, item -> if (item !in items) leaving[item] = index }
-        items.forEach { leaving.remove(it) }
+        last.forEach { item -> if (item !in items) leaving.add(item) }
+        leaving.removeAll(items.toSet())
         last = items
-        if (leaving.isEmpty()) return items
+        if (leaving.isEmpty()) {
+            lastShown = items
+            return items
+        }
+        // Rows that finished shrinking out are gone from both, so they don't shift the slots.
+        val previous = lastShown.filter { it in leaving || it in items }
         val out = items.toMutableList()
-        leaving.entries.sortedBy { it.value }.forEach { (item, index) -> out.add(index.coerceAtMost(out.size), item) }
+        previous.forEachIndexed { index, item -> if (item in leaving) out.add(index.coerceAtMost(out.size), item) }
+        lastShown = out
         return out
     }
 }

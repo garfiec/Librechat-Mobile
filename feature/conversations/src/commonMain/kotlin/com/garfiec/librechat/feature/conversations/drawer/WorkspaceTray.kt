@@ -176,8 +176,8 @@ internal fun WorkspaceDestination.label(): String = stringResource(labelRes)
 
 /**
  * The top of the drawer footer: the Workspace row, which opens the tray of [visible] destinations,
- * then the [pinned] ones as one-tap rows in the user's order. With a single visible destination the
- * row is that destination and there is no tray.
+ * then the [pinned] ones as one-tap rows in the user's order. The pinned rows wait for the stored
+ * list ([pinned] null until read), so pins already there don't grow in as if just added.
  *
  * [current] is the destination open in the tablet's content pane (null on a phone, or for a chat):
  * its pinned row is highlighted if pinned, else the Workspace row, showing its icon and name.
@@ -193,16 +193,6 @@ internal fun WorkspaceFooterRows(
     onReorderPins: (List<WorkspaceDestination>) -> Unit,
     isOpen: Boolean = true,
 ) {
-    val only = visible.singleOrNull()
-    if (only != null) {
-        DrawerFooterItem(
-            icon = only.icon,
-            label = only.label(),
-            onClick = { onOpen(only) },
-            selected = current == only,
-        )
-        return
-    }
     val pins = pinned.orEmpty()
     WorkspaceRow(
         visible = visible,
@@ -214,7 +204,8 @@ internal fun WorkspaceFooterRows(
         onReorderPins = onReorderPins,
         isOpen = isOpen,
     )
-    AnimatedRows(pins) { destination ->
+    if (pinned == null) return
+    AnimatedRows(pinned) { destination ->
         DrawerFooterItem(
             icon = destination.icon,
             label = destination.label(),
