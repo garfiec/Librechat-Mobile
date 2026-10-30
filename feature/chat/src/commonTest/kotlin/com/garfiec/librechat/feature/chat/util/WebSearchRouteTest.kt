@@ -30,7 +30,7 @@ class WebSearchRouteTest {
     ) = webSearchRoute(on, sendsEphemeralTools, spec, comparing, preference, librechatUsable, builtInAvailable, librechatChecking)
 
     @Test
-    fun `while LibreChat search is being checked, a route that would pick it holds`() {
+    fun `while LibreChat search is being checked a route that would pick it holds`() {
         assertEquals(WebSearchRoute.CHECKING, route(librechatUsable = false, librechatChecking = true))
         assertEquals(
             WebSearchRoute.CHECKING,
