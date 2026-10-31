@@ -1,6 +1,7 @@
 package com.garfiec.librechat
 
 import android.annotation.SuppressLint
+import android.content.ContentResolver
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -241,11 +242,19 @@ class MainActivity : ComponentActivity() {
     private fun handleIntent(intent: Intent?) {
         if (intent == null) return
 
-        when (intent.action) {
-            Intent.ACTION_SEND -> handleShareIntent(intent)
-            Intent.ACTION_SEND_MULTIPLE -> handleShareMultipleIntent(intent)
+        when {
+            intent.action == Intent.ACTION_SEND -> handleShareIntent(intent)
+            intent.action == Intent.ACTION_SEND_MULTIPLE -> handleShareMultipleIntent(intent)
+            intent.action == Intent.ACTION_VIEW && intent.data?.scheme == ContentResolver.SCHEME_CONTENT ->
+                handleOpenWithIntent(intent)
             else -> handleDeepLink(intent)
         }
+    }
+
+    private fun handleOpenWithIntent(intent: Intent) {
+        val uri = intent.data ?: return
+        Logger.d { "Open-with intent received" }
+        ShareIntentConsumer.setPendingShare(SharedContent(fileUris = listOf(uri)))
     }
 
     private fun handleDeepLink(intent: Intent) {
