@@ -49,6 +49,34 @@
       "failure_mode": "Same as full-mime-types-list, and easier to miss because the upstream diff touches a different symbol than the one the Kotlin file names."
     },
     {
+      "id": "open-with-mime-types",
+      "upstream": {
+        "file": "packages/data-provider/src/file-config.ts",
+        "symbol": "fullMimeTypesList",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "app/src/main/AndroidManifest.xml",
+        "symbol": "VIEW intent-filter (open_with_add_to_chat)"
+      },
+      "why": "Which files Android offers to open in the app from another app's \"Open with\" list. The filter carries the wildcard families (image/*, text/*, audio/*, video/*) plus every application/* and message/* member of fullMimeTypesList, including its inlined ...excelFileTypes spread (watched by excel-file-types).",
+      "failure_mode": "A type upstream added never offers Switchboard in other apps' \"Open with\" lists, so the user cannot hand that file to a chat that way. No error; the app is just absent from the list."
+    },
+    {
+      "id": "excel-file-types",
+      "upstream": {
+        "file": "packages/data-provider/src/file-config.ts",
+        "symbol": "excelFileTypes",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/response/PickerMimeTypes.kt",
+        "symbol": "UPSTREAM_MIME_TYPES (...excelFileTypes inlined); also the VIEW intent-filter in app/src/main/AndroidManifest.xml"
+      },
+      "why": "fullMimeTypesList spreads this array rather than listing the types, so a change to it never shows up in fullMimeTypesList's block. Both the picker list and the Open-with filter inline its members. Distinct from excel-mime-types, which watches the excelMimeTypes regex.",
+      "failure_mode": "An Excel type upstream added is neither offered by the picker nor accepted from \"Open with\". No error; the file simply isn't offered."
+    },
+    {
       "id": "document-supported-providers",
       "upstream": {
         "file": "packages/data-provider/src/schemas.ts",

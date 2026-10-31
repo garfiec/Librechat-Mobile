@@ -2,6 +2,9 @@
 <resources>
     <string name="app_name">Switchboard</string>
 
+    <!-- Label for the "Open with" entry. Shown in place of the app name, so it carries the name. -->
+    <string name="open_with_add_to_chat">Add to Switchboard chat</string>
+
     <!-- Connectivity -->
     <string name="no_connection">No internet connection</string>
 </resources>
