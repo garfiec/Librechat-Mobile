@@ -1,0 +1,77 @@
+name: F-Droid reproduce
+
+# Rebuild each stable release in F-Droid's build image and verify it against the APK we
+# signed, the same check F-Droid runs before publishing. F-Droid only finds out a day or more
+# after a release, and tells no one; this finds out in under an hour. It cannot block the
+# release (F-Droid compares against the published APK, so it has to run after publishing),
+# but it says at once whether F-Droid will publish it. See scripts/fdroid-reproduce.sh.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Published release tag to rebuild, e.g. v2026.10.8"
+        required: true
+  # Changes to the rebuild itself are tested against the latest release.
+  pull_request:
+    branches: [ develop ]
+    paths:
+      - .github/workflows/fdroid-reproduce.yml
+      - scripts/fdroid-reproduce.sh
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.tag || github.event.release.tag_name }}
+  cancel-in-progress: true
+
+jobs:
+  reproduce:
+    name: Reproduce in F-Droid's image
+    # F-Droid only builds vYYYY.MM.N tags, never release candidates.
+    if: github.event_name != 'release' || !github.event.release.prerelease
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Pick the tag
+        id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: |
+          if [ -z "$TAG" ]; then
+            TAG="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Rebuilding $TAG"
+
+      # The image, Gradle caches and the Android SDK packages it installs need more room than a
+      # stock runner leaves free. None of these are used by this job.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      - name: Rebuild and verify
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          mkdir -p fdroid-out
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE/scripts:/scripts:ro" \
+            -v "$GITHUB_WORKSPACE/fdroid-out:/out" \
+            registry.gitlab.com/fdroid/fdroidserver:buildserver-trixie \
+            bash /scripts/fdroid-reproduce.sh "$TAG"
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fdroid-reproduce-${{ steps.tag.outputs.tag }}
+          path: fdroid-out/
+          if-no-files-found: ignore
