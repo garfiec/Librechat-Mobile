@@ -58,7 +58,7 @@ material-kolor = "5.0.1"
 qrose = "1.1.2"
 
 # Logging
-kermit = "2.1.0"
+kermit = "2.2.0"
 
 # Hashing / IO
 okio = "3.18.2"
