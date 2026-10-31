@@ -1,0 +1,27 @@
+name: F-Droid watch
+
+# F-Droid builds our tags unattended, and a failed build there publishes nothing and notifies
+# nobody. This fails, and GitHub emails whoever last edited the schedule, when F-Droid has
+# not published the latest stable release within the grace period, or its latest build cycle
+# lists that release as failed. See scripts/check-fdroid-published.py.
+on:
+  schedule:
+    - cron: "17 15 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: F-Droid is current
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Check F-Droid's published version
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: scripts/check-fdroid-published.py
