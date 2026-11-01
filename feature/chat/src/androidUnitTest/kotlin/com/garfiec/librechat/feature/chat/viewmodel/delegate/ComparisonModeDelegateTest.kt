@@ -14,6 +14,7 @@ import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.request.NO_PARENT
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
+import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
@@ -666,5 +667,24 @@ class ComparisonModeDelegateTest {
         delegate.routeEvent(StreamEvent.ToolCallClosed(toolCallId = "call_2", status = RunStepStatus.COMPLETED))
 
         assertThat(flow.value.sandboxStartingToolCallIds).isEmpty()
+    }
+
+    @Test
+    fun `an MCP sign-in lands on whichever pane holds the call`() {
+        val (delegate, flow) = delegateWith(
+            ChatUiState(
+                comparisonState = ComparisonState(
+                    isEnabled = true,
+                    secondaryActiveToolCalls = listOf(ActiveToolCall(id = "oauth_1", name = "oauth_mcp_github")),
+                ),
+            ),
+        )
+
+        val consumed = delegate.routeEvent(
+            StreamEvent.ToolCallAuthRequired(toolCallId = "oauth_1", authUrl = "https://idp", serverName = "github"),
+        )
+
+        assertThat(consumed).isTrue()
+        assertThat(flow.value.comparisonState.secondaryActiveToolCalls.single().authUrl).isEqualTo("https://idp")
     }
 }

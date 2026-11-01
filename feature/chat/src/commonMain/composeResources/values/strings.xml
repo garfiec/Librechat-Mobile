@@ -871,6 +871,16 @@
     <string name="sibling_position">Response %1$d of %2$d</string>
     <string name="cd_assistant_responding">Assistant is responding: %1$s</string>
     <string name="tool_call_fallback">Tool Call</string>
+    <!-- Live tool call row while the run waits for the user to sign in to an MCP server. %1$s is the server's name -->
+    <string name="mcp_sign_in_needed">%1$s needs you to sign in</string>
+    <!-- The same row when the server's name is unknown -->
+    <string name="mcp_sign_in_needed_unnamed">A tool needs you to sign in</string>
+    <!-- Second line of that row: what happens after signing in -->
+    <string name="mcp_sign_in_resumes">The reply continues once you're signed in.</string>
+    <!-- Button on that row that opens the sign-in page -->
+    <string name="mcp_sign_in_action">Sign in</string>
+    <!-- Snackbar when an MCP sign-in from the chat could not start or the server refused it -->
+    <string name="mcp_sign_in_failed">Sign-in didn't complete. Try again from the tool call.</string>
     <string name="prompt_filter_title">Filter &amp; Sort</string>
     <string name="prompt_sort_recent">Recent</string>
     <string name="prompt_sort_popular">Popular</string>

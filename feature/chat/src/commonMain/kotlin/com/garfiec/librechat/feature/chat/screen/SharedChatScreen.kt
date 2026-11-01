@@ -227,6 +227,7 @@ fun SharedChatScreen(
         onSiteIconsPromptDismiss = koinInject<SiteIconPromptSession>()::dismiss,
         // The memories shown are the sharer's, not the viewer's: no Manage.
         onOpenMemories = null,
+        mcpSignIn = null,
     ) {
         ProvideSharedFileOpeners(state, viewModel) {
             SharedChatScaffold(

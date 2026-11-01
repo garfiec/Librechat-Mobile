@@ -59,6 +59,14 @@ fun StreamingToolCallCard(
     /** The reply text's length so far, to tell when the model has moved past a finished search. */
     replyLength: Int = 0,
 ) {
+    // The run is holding this call for an MCP sign-in (delta.auth). Upstream shows the action only
+    // while the step runs; the completion that follows the callback flips isComplete and hides it.
+    val authUrl = toolCall.authUrl
+    if (authUrl != null && !toolCall.isComplete) {
+        McpSignInToolCallCard(serverName = toolCall.authServerName, authUrl = authUrl, modifier = modifier)
+        return
+    }
+
     // Image-gen tool calls render as an ImageGenCard placeholder (matching web): a
     // faux-progress spinner while generating, swapping to the real image the moment
     // its attachment SSE event arrives (linked by toolCallId) — before the final reload.

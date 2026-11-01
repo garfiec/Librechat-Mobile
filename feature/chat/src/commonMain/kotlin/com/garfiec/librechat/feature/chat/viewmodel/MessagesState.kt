@@ -216,4 +216,13 @@ data class ActiveToolCall(
     val durationMs: Long? = null,
     /** The server rejected the call's arguments against the tool's schema, so it never ran. */
     val inputValidationError: Boolean = false,
+    /**
+     * The run is waiting on an MCP sign-in (`on_run_step_delta` with `delta.auth`): the provider's
+     * authorization URL. The card offers Sign in while the call is not complete.
+     */
+    val authUrl: String? = null,
+    /** The MCP server [authUrl] signs in to; null when neither the URL nor the call names one. */
+    val authServerName: String? = null,
+    /** Server epoch ms the prompt expires at. Display only; never compared to the device clock. */
+    val authExpiresAt: Long? = null,
 )

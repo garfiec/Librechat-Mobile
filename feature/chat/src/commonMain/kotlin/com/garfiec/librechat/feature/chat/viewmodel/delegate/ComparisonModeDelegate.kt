@@ -330,6 +330,20 @@ class ComparisonModeDelegate(
         }
     }
 
+    /** An MCP sign-in is per user, not per pane, so it goes to whichever pane holds the call. */
+    private fun routeToolCallAuth(event: StreamEvent.ToolCallAuthRequired) {
+        handle.update {
+            comparisonState = comparisonState.copy(
+                primaryActiveToolCalls = comparisonState.primaryActiveToolCalls.map { tc ->
+                    if (tc.id == event.toolCallId) tc.authRequiredBy(event) else tc
+                },
+                secondaryActiveToolCalls = comparisonState.secondaryActiveToolCalls.map { tc ->
+                    if (tc.id == event.toolCallId) tc.authRequiredBy(event) else tc
+                },
+            )
+        }
+    }
+
     /**
      * Routes a streaming event into the comparison panes. Returns `true` if the event
      * was consumed for comparison mode (so the caller skips its normal handling), `false`
@@ -348,6 +362,7 @@ class ComparisonModeDelegate(
             is StreamEvent.ToolCallStart -> { routeToolCallStart(event); true }
             is StreamEvent.ToolCallComplete -> { routeToolCallComplete(event); clearSandboxStarting(event.toolCallId); true }
             is StreamEvent.ToolCallClosed -> { routeToolCallClosed(event); clearSandboxStarting(event.toolCallId); true }
+            is StreamEvent.ToolCallAuthRequired -> { routeToolCallAuth(event); true }
             else -> false
         }
     }

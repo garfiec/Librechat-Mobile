@@ -53,6 +53,7 @@ import com.garfiec.librechat.feature.chat.components.UploadRoutingSheet
 import com.garfiec.librechat.feature.chat.components.addToChatSelectionItem
 import com.garfiec.librechat.feature.chat.components.rememberChatAttachmentActions
 import com.garfiec.librechat.feature.chat.components.rememberChatOptionsSheetController
+import com.garfiec.librechat.feature.chat.components.rememberMcpSignIn
 import com.garfiec.librechat.feature.chat.components.veil.COMPOSER_SWELL
 import com.garfiec.librechat.feature.chat.components.veil.LocalComposerFlare
 import com.garfiec.librechat.feature.chat.components.veil.LocalModeVeil
@@ -62,6 +63,7 @@ import com.garfiec.librechat.feature.chat.components.veil.rememberModeVeilState
 import com.garfiec.librechat.feature.chat.components.veil.rememberVeilTarget
 import com.garfiec.librechat.feature.chat.prompts.components.VariableInputDialog
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.McpSignInViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.UpdateBannerViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.asString
 import com.garfiec.librechat.feature.chat.viewmodel.isEmptyLanding
@@ -314,6 +316,11 @@ fun ChatScreen(
 
     val sendBlockMessage = uiState.sendBlockReason?.asString()
 
+    // MCP sign-in mid-run (delta.auth): the card's action binds and opens the sign-in here. The run
+    // resumes by itself once the server's callback lands, so success needs nothing further.
+    val mcpSignInViewModel: McpSignInViewModel = koinViewModel()
+    val mcpSignIn = rememberMcpSignIn(mcpSignInViewModel, snackbarHostState)
+
     ChatRoot(
         inlineArtifactPrefs = prefs.inlineArtifactPrefs,
         mermaidRenderCache = viewModel.mermaidRenderCache,
@@ -338,6 +345,7 @@ fun ChatScreen(
         onSiteIconsChoice = viewModel::setShowSiteIcons,
         onSiteIconsPromptDismiss = viewModel::dismissSiteIconPrompt,
         onOpenMemories = onOpenMemories?.takeIf { uiState.gates.memoriesPageEnabled },
+        mcpSignIn = mcpSignIn,
         thinkingOpenByDefault = prefs.thinkingOpenByDefault,
     ) {
     Scaffold(

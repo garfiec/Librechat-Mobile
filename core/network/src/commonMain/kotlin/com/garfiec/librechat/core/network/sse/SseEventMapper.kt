@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.model.StreamErrorCodes
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.SubagentPhase
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.core.model.mcp.mcpOAuthServerName
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -423,7 +424,8 @@ class SseEventMapper(private val json: Json) {
             "on_message_delta" -> mapMessageDelta(data, agentId, groupId)
             "on_reasoning_delta" -> mapReasoningDelta(data, agentId, groupId)
             "on_run_step" -> mapRunStep(data, agentId, groupId)
-            "on_run_step_delta" -> null // Tool call argument streaming - not currently tracked
+            // Argument streaming is not tracked; a delta carrying `auth` is an MCP sign-in prompt.
+            "on_run_step_delta" -> mapRunStepAuthDelta(data, agentId, groupId)
             // v0.8.8 timing marks. The durations they produce are stamped onto the persisted
             // tool call (`toolPreparationDurationMs` / `toolExecutionDurationMs`) by the server.
             "on_tool_preparation", "on_tool_calls_dispatched" -> null
@@ -630,6 +632,33 @@ class SseEventMapper(private val json: Json) {
             toolCallId = toolCallId,
             toolName = toolName,
             input = args,
+            agentId = agentId,
+            groupId = groupId,
+        )
+    }
+
+    /**
+     * Maps an `on_run_step_delta` that carries `delta.auth` (upstream `buildMCPAuthRunStepDeltaEvent`)
+     * to [StreamEvent.ToolCallAuthRequired]; every other delta stays dropped. The call is found
+     * through the step that announced it, then the delta's own tool call id.
+     */
+    private fun mapRunStepAuthDelta(
+        data: JsonObject,
+        agentId: String?,
+        groupId: Int?,
+    ): StreamEvent? {
+        val delta = data["delta"] as? JsonObject ?: return null
+        val authUrl = (delta["auth"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+            ?.takeIf { it.isNotBlank() } ?: return null
+        val deltaCall = (delta["tool_calls"] as? JsonArray)?.firstOrNull() as? JsonObject
+        val toolCallId = (data["id"] as? JsonPrimitive)?.contentOrNull?.let { stepToolCallIds[it] }
+            ?: (deltaCall?.get("id") as? JsonPrimitive)?.contentOrNull
+            ?: return null
+        return StreamEvent.ToolCallAuthRequired(
+            toolCallId = toolCallId,
+            authUrl = authUrl,
+            serverName = mcpOAuthServerName((deltaCall?.get("name") as? JsonPrimitive)?.contentOrNull, authUrl),
+            expiresAt = (delta["expires_at"] as? JsonPrimitive)?.longOrNull,
             agentId = agentId,
             groupId = groupId,
         )

@@ -433,6 +433,37 @@ GET    /api/mcp/connection/status         (v0.8.8-rc2) `MCPServerStatus` gained 
                                             between requests is not a fault), `configurationState?:
                                             'configured'|'needs_configuration'`, and `authorizationGeneration?`.
                                             All decode surface; only the generation is read, by the fold above.
+POST   /api/mcp/:serverName/oauth/bind    JWT. No body → `{ success: true }` + two `Set-Cookie`s: `oauth_csrf`
+                                            (HMAC of this user's flow id for the server, HttpOnly, SameSite=Lax,
+                                            10 min, Path `/api/mcp`) and `oauth_session` (HMAC of the user id,
+                                            24 h, Path `/api`; reissued when it no longer matches the user). Old
+                                            route; from **v0.8.9-rc1** (d349120ec #16634) the callback below
+                                            requires one of the two, so it is the only way a client without the
+                                            web app's jar can finish an MCP OAuth. Mobile captures the cookies
+                                            (`CookieHelper.setCookieValues`) and seeds them into the sign-in
+                                            WebView before loading the provider URL. `reinitialize` sets the same
+                                            pair when it answers `oauthRequired`, but mobile binds again at the
+                                            tap: the CSRF cookie may have lapsed while the consent was up. (BUILT)
+GET    /api/mcp/:serverName/oauth/callback (v0.8.9-rc1) no longer falls back to "a PENDING flow exists":
+                                            without a valid `oauth_csrf` or `oauth_session` cookie it redirects
+                                            to `{basePath}/oauth/error?error=csrf_validation_failed`. Success
+                                            redirects to `{basePath}/oauth/success?serverName=`; every failure
+                                            to `{basePath}/oauth/error?error=<code>`. The in-app WebView stops
+                                            on those two paths (`McpOAuthNavigationGate`). (BUILT)
+SSE    on_run_step_delta + delta.auth     MCP sign-in mid-run (upstream `buildMCPAuthRunStepDeltaEvent`):
+                                            `{ id: "step_oauth_login_<server>", delta: { type: "tool_calls",
+                                            tool_calls: [{ id, name: "oauth_mcp_<normalized server>", args: "" }],
+                                            auth: <provider URL>, expires_at: <epoch ms> } }`, after an
+                                            `on_run_step` announcing the same call. Pre-existing at turn start;
+                                            from v0.8.9-rc1 (f7b053789 #17225) a server with
+                                            `oauthPrompt: on_use` sends it on the first tool call instead. The
+                                            run waits for the callback and completes the step itself
+                                            (`on_run_step_completed`, output "OAuth authentication completed").
+                                            Mobile maps it to `StreamEvent.ToolCallAuthRequired` and shows a
+                                            Sign in action on the live tool call, which binds and opens the
+                                            same WebView. The server name comes from the URL's `redirect_uri`
+                                            (`/api/mcp/<name>/oauth/callback`, the stored name) before the
+                                            tool name (normalized). (BUILT)
 PATCH  /api/memories/id/:id               (v0.8.8-rc2) `{ value, key? }` + optional `?agentId=` →
 DELETE /api/memories/id/:id                 `{updated, memory}` / `{deleted}`. Addresses a row by its stable
                                             `_id` instead of by key. **There is no GET by id** — only these

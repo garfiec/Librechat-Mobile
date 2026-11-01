@@ -118,6 +118,9 @@ class LiveReplyDelegate(
                 // where a subagent trace stops accumulating on that path.
                 subagentTraceDelegate.onParentToolCallResolved(event.toolCallId)
             }
+            is StreamEvent.ToolCallAuthRequired -> handle.update {
+                content = content.updateToolCall(event.toolCallId) { it.authRequiredBy(event) }
+            }
             is StreamEvent.SandboxStarting -> handle.update {
                 content = content.copy(sandboxStartingToolCallIds = content.sandboxStartingToolCallIds + event.toolCallId)
             }
@@ -265,6 +268,10 @@ internal fun ActiveToolCall.completedBy(event: StreamEvent.ToolCallComplete) =
         input = event.input ?: input,
         inputValidationError = event.inputValidationError,
     )
+
+/** The run is waiting on the user to sign in to an MCP server. Shared with the comparison panes. */
+internal fun ActiveToolCall.authRequiredBy(event: StreamEvent.ToolCallAuthRequired) =
+    copy(authUrl = event.authUrl, authServerName = event.serverName, authExpiresAt = event.expiresAt)
 
 internal fun ActiveToolCall.closedBy(event: StreamEvent.ToolCallClosed) =
     copy(isComplete = true, closedStatus = event.status, durationMs = event.durationMs ?: durationMs)

@@ -78,6 +78,8 @@ fun ChatRoot(
      * defaulted, so neither platform's `ChatScreen` can quietly drop the wiring.
      */
     onOpenMemories: (() -> Unit)?,
+    /** Backs [LocalMcpSignIn]; null where nothing can sign in (the shared-chat viewer). */
+    mcpSignIn: McpSignIn?,
     /** Required, not defaulted, so a screen cannot quietly leave the setting unread again (#586). */
     thinkingOpenByDefault: Boolean,
     content: @Composable () -> Unit,
@@ -136,6 +138,7 @@ fun ChatRoot(
         LocalSubagentThreadsAvailable provides (conversationId != null && subagentThreadsSupported),
         LocalSiteIcons provides siteIconsLocal,
         LocalOpenMemories provides onOpenMemories,
+        LocalMcpSignIn provides mcpSignIn,
         LocalThinkingOpenByDefault provides thinkingOpenByDefault,
     ) {
         PdfOverlayHost(onDownload = onDownloadAttachment) {

@@ -472,6 +472,7 @@ class StreamingManagerDelegate(
             is StreamEvent.ToolCallStart,
             is StreamEvent.ToolCallComplete,
             is StreamEvent.ToolCallClosed,
+            is StreamEvent.ToolCallAuthRequired,
             is StreamEvent.SandboxStarting,
             is StreamEvent.AttachmentCreated,
             is StreamEvent.SubagentUpdate,
