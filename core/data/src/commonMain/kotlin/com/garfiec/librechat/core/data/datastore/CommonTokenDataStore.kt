@@ -1266,9 +1266,14 @@ abstract class CommonTokenDataStore(
         authGates.clear()
     }
 
-    // Same scoping, and the same read-through-when-unwarmed reasoning, as [emitSessionExpired].
-    override fun reportAuthGate(gate: AuthGate) =
-        authGates.report(gate, if (tokenInitialized) activeAccountKey else readValue(KEY_ACTIVE_ACCOUNT))
+    // Same scoping, and the same read-through-when-unwarmed reasoning, as [emitSessionExpired]. An
+    // enrollment report latches the expiry report at once, not only when the shell ends the session:
+    // a 401 landing in between would otherwise announce an expiry, fail over to another account and
+    // replace the setup route.
+    override fun reportAuthGate(gate: AuthGate) {
+        val recorded = authGates.report(gate, if (tokenInitialized) activeAccountKey else readValue(KEY_ACTIVE_ACCOUNT))
+        if (recorded && gate is AuthGate.TwoFactorSetupRequired) sessionExpiryReported = true
+    }
 
     override fun consumeAuthGate(gate: AuthGate) = authGates.consume(gate)
 

@@ -147,6 +147,20 @@ class CommonTokenDataStoreEnrollmentTest {
         assertThat(store.persistedRefresh(ACCOUNT)).isNull()
     }
 
+    /** The validator's 403 report: an expiry landing before the shell acts must not fail over. */
+    @Test
+    fun `a reported enrollment gate latches the expiry report at once`() = runTest(UnconfinedTestDispatcher()) {
+        val store = seeded(enrollmentEngine())
+        val reported = mutableListOf<SessionEndReason>()
+        val collector = launch { store.sessionExpiredFlow.toList(reported) }
+
+        store.reportAuthGate(AuthGate.TwoFactorSetupRequired(ACCOUNT, "t"))
+        store.emitSessionExpired(ACCOUNT)
+
+        assertThat(reported).isEmpty()
+        collector.cancel()
+    }
+
     @Test
     fun `reports for a switched-away account are ignored and terms never replaces setup`() =
         runTest(UnconfinedTestDispatcher()) {

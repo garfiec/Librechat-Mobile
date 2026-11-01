@@ -16,12 +16,14 @@ internal class AuthGateState {
 
     /**
      * Records [gate] if it belongs to [activeAccount] (a null account is the active session). An
-     * enrollment report outranks a terms one: no terms screen can be reached past it.
+     * enrollment report outranks a terms one: no terms screen can be reached past it. Returns
+     * whether it was recorded.
      */
-    fun report(gate: AuthGate, activeAccount: String?) {
-        if (gate.accountId != null && gate.accountId != activeAccount) return
-        if (gate is AuthGate.TermsNotAccepted && _gate.value is AuthGate.TwoFactorSetupRequired) return
+    fun report(gate: AuthGate, activeAccount: String?): Boolean {
+        if (gate.accountId != null && gate.accountId != activeAccount) return false
+        if (gate is AuthGate.TermsNotAccepted && _gate.value is AuthGate.TwoFactorSetupRequired) return false
         _gate.value = gate
+        return true
     }
 
     /** Clears [gate] once acted on; a newer report is left in place. */

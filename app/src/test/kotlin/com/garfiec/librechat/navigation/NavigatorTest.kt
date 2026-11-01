@@ -311,6 +311,13 @@ class NavigatorTest {
     }
 
     @Test
+    fun `an expiry while the terms are open still goes to sign-in`() {
+        val navigator = createNavigator(NewChat(), Chat("conv-1"), Terms)
+        navigator.navigateToAuth()
+        assertEquals(listOf(ServerUrl), navigator.backStack.toList())
+    }
+
+    @Test
     fun `navigateToAuth still resets out of an add-account flow`() {
         // The add flow belongs to the session that just ended, and the nav host cancels the pending
         // add by watching these routes leave the stack — so the guard must not apply here.

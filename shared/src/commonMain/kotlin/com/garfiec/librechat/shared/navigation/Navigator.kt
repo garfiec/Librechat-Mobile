@@ -40,7 +40,9 @@ class Navigator(
 
     val currentRoute: NavKey? get() = backStack.lastOrNull()
 
-    val isInAuthFlow: Boolean get() = currentRoute is AuthRoute
+    // Terms is an AuthRoute but sits over a signed-in stack, not in the sign-in flow: counted here,
+    // a hard expiry while it is open would leave the user on it over a dead session.
+    val isInAuthFlow: Boolean get() = currentRoute.let { it is AuthRoute && it !is Terms }
 
     private inline fun changing(mutation: () -> Unit) {
         val top = backStack.lastOrNull()
