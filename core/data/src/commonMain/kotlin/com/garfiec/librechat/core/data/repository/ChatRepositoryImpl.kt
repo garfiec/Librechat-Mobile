@@ -160,11 +160,12 @@ class ChatRepositoryImpl(
         when (
             val result = retryWhile(
                 // The run acknowledged the stop but has not reached a point where it can be
-                // stopped. The server explicitly asks to be asked again (`Retry-After: 1`), so
+                // stopped, or it stopped and saving the partial failed (the run is kept for a
+                // retry). The server asks to be asked again (`Retry-After: 1`) for both, so
                 // reporting a stop failure here would be a lie the user has to act on.
                 retryable = {
                     it.statusCode == HTTP_CONFLICT &&
-                        it.generationErrorCode == ServerErrorCode.RUN_STILL_ACTIVE
+                        it.generationErrorCode in RETRYABLE_ABORT_CODES
                 },
             ) { safeApiCall { chatApi.abortChat(streamId, isTemporary) } }
         ) {
@@ -286,6 +287,10 @@ class ChatRepositoryImpl(
     private val ApiException.generationErrorCode: String? get() = ServerErrorCode.generationCodeOf(body)
 
     private companion object {
+        val RETRYABLE_ABORT_CODES = setOf(
+            ServerErrorCode.RUN_STILL_ACTIVE,
+            ServerErrorCode.ABORT_PERSISTENCE_FAILED,
+        )
         const val HTTP_CONFLICT = 409
         const val HTTP_SERVICE_UNAVAILABLE = 503
 

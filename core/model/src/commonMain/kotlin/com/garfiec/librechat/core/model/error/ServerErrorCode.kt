@@ -35,6 +35,41 @@ object ServerErrorCode {
     const val INVALID_ABORT_TARGET = "INVALID_ABORT_TARGET"
 
     /**
+     * 409 from the abort route (generation protocol v1, which is what mobile speaks): the stop
+     * landed but saving the partial reply failed. The server keeps the run instead of settling
+     * it over an incomplete write and asks to be asked again (`Retry-After: 1`).
+     */
+    const val ABORT_PERSISTENCE_FAILED = "ABORT_PERSISTENCE_FAILED"
+
+    /**
+     * Generation protocol v2 only: a 200 `{ success: false, settled: true }` from the abort route
+     * when the run had already ended on its own. Unreachable while mobile advertises no protocol
+     * version (the route then answers v1's `{ success: true, aborted }`).
+     */
+    const val RUN_ALREADY_SETTLED = "RUN_ALREADY_SETTLED"
+
+    /**
+     * 400 from every `/api/agents/chat` route (v0.8.9-rc1, `validateChatMessageIds`): a turn id in
+     * the body (`messageId`, `responseMessageId`, `parentMessageId`, `overrideUserMessageId`,
+     * `overrideParentMessageId`) is present but not 1-256 characters of `[A-Za-z0-9_:.-]`
+     * (257 for `responseMessageId` / `parentMessageId`, and for `messageId` on a compaction).
+     * An empty string counts as present. The client should never provoke it: every id mobile
+     * sends is a UUID, a server-issued id or `NO_PARENT`, and `ChatPayloadBuilder` drops blank ones.
+     */
+    const val INVALID_MESSAGE_ID = "INVALID_MESSAGE_ID"
+
+    /**
+     * 400 from a generation POST whose submission the server's content filter refused
+     * (v0.8.9-rc1, `packages/api/src/middleware/contentFilter.ts`): `{ error: "content_filter_block",
+     * message, source, field }`, lower-case and under `error` rather than `code`. Nothing was saved
+     * or sent to the model; `message` is the server's own sentence saying what to remove.
+     */
+    const val CONTENT_FILTER_BLOCK = "content_filter_block"
+
+    /** True for a [CONTENT_FILTER_BLOCK] body, whichever key carries the code. */
+    fun isContentFilterBlock(body: String?): Boolean = from(body) == CONTENT_FILTER_BLOCK
+
+    /**
      * 503 from `GET /api/agents/chat/status/:conversationId`, with `Retry-After: 1`.
      *
      * A *transient race*, not a dead run: the route re-reads the job up to three times to verify

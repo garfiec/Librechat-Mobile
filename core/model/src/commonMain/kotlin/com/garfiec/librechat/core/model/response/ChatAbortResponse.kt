@@ -19,4 +19,23 @@ data class ChatAbortResponse(
      * the raw wire decode.
      */
     val pendingSteers: List<PendingSteer> = emptyList(),
+    /**
+     * Generation protocol v2 only: the abort lost to the run's own end, so no aborted final will
+     * follow. Arrives with `success: false` and `code: RUN_ALREADY_SETTLED`.
+     *
+     * Mobile advertises no `generationProtocolVersion`, which pins the route to v1, where that
+     * outcome is a plain `{ success: true, aborted }` instead. Decoded so a client that opts into
+     * v2 reads it rather than waiting out the abort watchdog.
+     */
+    val settled: Boolean = false,
+    /** With [settled]: the job's status when the abort found it already over (`completed`, `error`, ...). */
+    val terminalStatus: String? = null,
+    /**
+     * Generation protocol v2 only: the stop landed but saving the partial failed, so the run is
+     * kept for a retry. On v1 the same outcome is a 409 `ABORT_PERSISTENCE_FAILED` with
+     * `Retry-After: 1`, which `ChatRepository.abortChat` retries.
+     */
+    val persistenceFailed: Boolean = false,
+    /** The machine-readable outcome on a non-success body, e.g. `RUN_ALREADY_SETTLED`. */
+    val code: String? = null,
 )
