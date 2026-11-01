@@ -762,6 +762,7 @@
     <string name="notice_speech_permission_denied">Speech recognition permission denied</string>
     <string name="notice_speech_unavailable">Speech recognition not available. Check Settings &gt; Privacy &gt; Speech Recognition.</string>
     <string name="notice_send_refused">The server refused this message.</string>
+    <string name="notice_content_blocked">The server's content filter blocked this message. Nothing was sent.</string>
     <string name="notice_skills_not_sent">Some skills can't be used in this chat and weren't sent.</string>
     <string name="notice_skills_removed_from_queued">Some skills can't be used in this chat and were removed from the queued message.</string>
     <plurals name="notice_message_limit_retry_minutes">

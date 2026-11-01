@@ -24,6 +24,7 @@ import com.garfiec.librechat.feature.chat.util.resolvedResponseMessage
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import com.garfiec.librechat.feature.chat.viewmodel.StreamingHandle
+import com.garfiec.librechat.feature.chat.viewmodel.contentFilterNotice
 import com.garfiec.librechat.feature.chat.viewmodel.refusalErrorMarker
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -394,7 +395,8 @@ class StreamingManagerDelegate(
             val mcpAuthMarker = (e as? ApiException)?.let { StreamErrorType.startFailureMarker(it.body) }
             endStream(
                 StreamEndReason.StreamError(
-                    refusalErrorMarker(e) ?: mcpAuthMarker ?: safe.message ?: "Chat request failed",
+                    refusalErrorMarker(e) ?: contentFilterNotice(e, safe.message) ?: mcpAuthMarker
+                        ?: safe.message ?: "Chat request failed",
                     isNetwork = safe.kind == FailureKind.Network,
                     refusedByServer = (e as? ApiException)?.chatRefusalText != null,
                 ),
