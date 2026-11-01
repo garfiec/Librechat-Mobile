@@ -4356,6 +4356,34 @@
       },
       "why": "What Read Aloud speaks: the TEXT parts of a reply (parseTextParts with skipReasoning), or its plain text minus a legacy :::thinking block. Reasoning is never spoken.",
       "failure_mode": "Upstream widens or narrows what is spoken (a new part type, steer text, a different legacy split) and mobile keeps reading the old selection aloud; nothing fails."
+    },
+    {
+      "id": "tts-max-input-chars",
+      "upstream": {
+        "file": "packages/api/src/files/speech.ts",
+        "symbol": "DEFAULT_TTS_MAX_INPUT_CHARS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpeechSegments.kt",
+        "symbol": "SERVER_TTS_MAX_INPUT_CHARS"
+      },
+      "why": "POST /api/files/speech/tts/manual synthesizes only the first speech.tts.maxInputChars characters (default 20,000) and drops the rest without an error. Server read-aloud sends a reply in segments well under it (SERVER_TTS_SEGMENT_CHARS), so a long reply is read to its end.",
+      "failure_mode": "Upstream lowers the default below the segment size: long replies read aloud through the server stop partway again, with no error."
+    },
+    {
+      "id": "speech-separators",
+      "upstream": {
+        "file": "packages/data-provider/src/parsers.ts",
+        "symbol": "SEPARATORS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpeechSegments.kt",
+        "symbol": "SPEECH_SEPARATORS"
+      },
+      "why": "The sentence boundaries a long reply is cut at for read-aloud (server segments and the device engine's 4,000-char utterances), the same ones upstream's streamed speech splits on.",
+      "failure_mode": "Upstream changes its boundaries and mobile keeps cutting at the old ones; a segment may end mid-sentence where web's would not. Nothing fails."
     }
   ]
 }
