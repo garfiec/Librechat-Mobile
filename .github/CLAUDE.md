@@ -41,6 +41,38 @@ File: `.github/workflows/play.yml`
 - Extra secret: `PLAY_SERVICE_ACCOUNT_JSON`. Setup runbook: `docs/RELEASING.md` "Distribution
   channels".
 
+## Workflow: F-Droid reproduce verification
+
+File: `.github/workflows/fdroid-reproduce.yml`, script `scripts/fdroid-reproduce.sh`
+
+- Triggers: a stable release is **published** (prereleases skipped), `workflow_dispatch` with a
+  `tag` input, and PRs to `develop` that touch the workflow or script (those rebuild the latest
+  release). Not run from release.yml: a draft's assets 404, which would read as a mismatch.
+- Rebuilds the tag in `registry.gitlab.com/fdroid/fdroidserver:buildserver-trixie` with
+  fdroidserver from git master and the **live** fdroiddata recipe, then `fdroid build` compares
+  its unsigned build with our published APK and checks the signer against `AllowedAPKSigningKeys`,
+  as F-Droid does before publishing. A tag the recipe has no `Builds:` entry for yet gets one
+  copied from the last entry. ~15 min; `fdroid-reproduce-<tag>` artifact holds the build log and
+  the recipe used.
+- It cannot gate a release (it needs the published APK); it reports within the hour what F-Droid
+  would otherwise find out, silently, a day or more later. On `release`, checkout is the tag, so
+  only tags containing this workflow run automatically; dispatch it for older ones.
+
+## Workflow: F-Droid watch
+
+File: `.github/workflows/fdroid-watch.yml`, script `scripts/check-fdroid-published.py`
+
+- Daily at 15:17 UTC and `workflow_dispatch`. Builds nothing: fails when F-Droid's latest build
+  cycle lists our latest stable release under `failedBuilds`, or when that release was published
+  more than 4 days ago and F-Droid still suggests an older versionCode. Catches what the reproduce
+  check can't: the update bot not picking up a tag, a stuck cycle or deploy.
+- Fails daily until F-Droid catches up, so it is red whenever a release is newer than F-Droid's
+  listing by more than the grace period.
+
+Both alert **only** through GitHub's failed-workflow email (reproduce: whoever published the
+release; watch: whoever last changed its `cron:` line). Nothing is posted to issues or the
+release page. GitHub disables scheduled workflows after 60 days without repository activity.
+
 ## Workflow: CI
 
 File: `.github/workflows/ci.yml`
