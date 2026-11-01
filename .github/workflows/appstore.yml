@@ -1,4 +1,4 @@
-name: App Store Upload
+name: Apple App Store Upload
 
 # Manual, on-demand upload of an already-tagged release to App Store Connect. TestFlight
 # distribution and App Store review both start from the same uploaded build, chosen later

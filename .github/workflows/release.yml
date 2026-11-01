@@ -1,4 +1,4 @@
-name: Release
+name: Create New Release
 
 # Manual, one-button release. Versions are calver (YYYY.MM.PATCH); year/month come
 # from the current UTC date automatically, so the only choice is stable vs candidate.
