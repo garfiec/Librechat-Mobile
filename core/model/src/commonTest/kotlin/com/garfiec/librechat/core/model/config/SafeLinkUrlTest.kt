@@ -47,7 +47,8 @@ class SafeLinkUrlTest {
     fun configAccessorsDropUnsafeAndBlank() {
         val json = Json { ignoreUnknownKeys = true }
         val config = json.decodeFromString<InterfaceConfig>(
-            """{"privacyPolicy":{"externalUrl":"javascript:alert(1)"},"termsOfService":{"externalUrl":" https://x.example/t ","modalAcceptance":true}}""",
+            """{"privacyPolicy":{"externalUrl":"javascript:alert(1)"},""" +
+                """"termsOfService":{"externalUrl":" https://x.example/t ","modalAcceptance":true}}""",
         )
 
         assertNull(config.privacyPolicy?.safeExternalUrl)

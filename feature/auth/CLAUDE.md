@@ -118,7 +118,21 @@
 - Route: `Terms` data object (part of `AuthRoute` sealed interface) in `AuthNavigation.kt`
 - Loads terms text via `UserRepository`, posts acceptance on confirm
 - `TermsViewModel.consumeAccepted()` resets navigation trigger
-- **Gotcha**: Terms check should happen after login if `startupConfig.requireTerms` is true
+- Pushed over the signed-in stack by the shell (`Navigator.showTerms`): after sign-in, on cold start
+  and on account switch when `interface.termsOfService.modalAcceptance` is on and `GET /api/user/terms`
+  says not accepted, and whenever a write answers `403 terms_not_accepted` (v0.8.9-rc1 enforces it
+  server-side; the validator raises `AuthGate.TermsNotAccepted`). Accept and Back both pop.
+
+### Required 2FA setup (v0.8.9-rc1)
+- `TwoFactorSetup(tempToken)` route + `TwoFactorSetupScreen`/`TwoFactorSetupViewModel`: start →
+  authenticator (open `otpauth://`, setup key, QR) → verify code → backup codes (save to file or
+  confirm) → acknowledge + finalize, which commits a session like a 2FA verify.
+- Reached two ways. Login returns `LoginOutcome.TwoFactorSetupRequired` (the setup token must never
+  go to `TwoFactor`/verify-temp, which 401s it). Mid-session, a refresh or any request reports
+  `AuthGate.TwoFactorSetupRequired`; `NavHostViewModel` ends the session for re-auth (no failover, no
+  expiry dialog) and the navigator stacks `ServerUrl, Login, TwoFactorSetup`.
+- Ack/finalization credentials live only in the ViewModel. 401/403 = start over at sign-in; 400 on
+  ack/finalize = spent; a failed finalize retries with the same finalization token.
 - **Note**: `VerifyEmailScreen` already existed pre-Round 2
 
 ### Localization

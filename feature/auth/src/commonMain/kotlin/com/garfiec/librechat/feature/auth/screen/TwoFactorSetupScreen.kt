@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -131,7 +132,7 @@ fun TwoFactorSetupScreen(
                 )
                 TwoFactorSetupPhase.BackupCodes -> BackupCodesPhase(
                     state = uiState,
-                    onSaved = viewModel::onCodesSaved,
+                    onSave = viewModel::onCodesSaved,
                     onAcknowledge = viewModel::setCodesAcknowledged,
                     onComplete = viewModel::complete,
                 )
@@ -155,6 +156,17 @@ private fun TwoFactorSetupError.message(): StringResource = when (this) {
     TwoFactorSetupError.RateLimited -> Res.string.two_factor_setup_error_rate_limited
     TwoFactorSetupError.FinalizeFailed -> Res.string.two_factor_setup_error_finalize
     TwoFactorSetupError.Connection -> Res.string.two_factor_setup_error_connection
+}
+
+/** One phase's content, as a single emitter. */
+@Composable
+private fun PhaseColumn(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        content = content,
+    )
 }
 
 @Composable
@@ -198,63 +210,65 @@ private fun AuthenticatorPhase(state: TwoFactorSetupUiState, onNext: () -> Unit)
     var noAuthenticator by rememberSaveable { mutableStateOf(false) }
     var showQr by rememberSaveable { mutableStateOf(false) }
 
-    Heading(stringResource(Res.string.two_factor_setup_authenticator_heading))
-    Text(
-        text = stringResource(Res.string.two_factor_setup_authenticator_body),
-        style = MaterialTheme.typography.bodyMedium,
-        textAlign = TextAlign.Center,
-    )
-    // The phone is the second device, so it cannot scan its own screen: handing the otpauth:// URI
-    // to the authenticator is the path that works here. The key and QR code are the fallbacks.
-    AdaptiveFilledTonalButton(
-        onClick = {
-            noAuthenticator = !runCatching { uriHandler.openUri(otpauthUrl) }.isSuccess
-        },
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Text(stringResource(Res.string.two_factor_setup_open_authenticator))
-    }
-    if (noAuthenticator) {
+    PhaseColumn {
+        Heading(stringResource(Res.string.two_factor_setup_authenticator_heading))
         Text(
-            text = stringResource(Res.string.two_factor_setup_no_authenticator),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error,
+            text = stringResource(Res.string.two_factor_setup_authenticator_body),
+            style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
         )
-    }
-    state.setupKey?.let { key ->
-        Surface(
+        // The phone is the second device, so it cannot scan its own screen: handing the otpauth:// URI
+        // to the authenticator is the path that works here. The key and QR code are the fallbacks.
+        AdaptiveFilledTonalButton(
+            onClick = {
+                noAuthenticator = !runCatching { uriHandler.openUri(otpauthUrl) }.isSuccess
+            },
             modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            shape = MaterialTheme.shapes.small,
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                Text(
-                    text = stringResource(Res.string.two_factor_setup_key),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                SelectionContainer {
-                    Text(text = key, style = MaterialTheme.typography.bodyMedium, fontFamily = FontFamily.Monospace)
+            Text(stringResource(Res.string.two_factor_setup_open_authenticator))
+        }
+        if (noAuthenticator) {
+            Text(
+                text = stringResource(Res.string.two_factor_setup_no_authenticator),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center,
+            )
+        }
+        state.setupKey?.let { key ->
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = MaterialTheme.shapes.small,
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = stringResource(Res.string.two_factor_setup_key),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    SelectionContainer {
+                        Text(text = key, style = MaterialTheme.typography.bodyMedium, fontFamily = FontFamily.Monospace)
+                    }
                 }
             }
         }
-    }
-    AdaptiveTextButton(onClick = { showQr = !showQr }) {
-        Text(stringResource(if (showQr) Res.string.two_factor_setup_hide_qr else Res.string.two_factor_setup_show_qr))
-    }
-    if (showQr) {
-        // Black on transparent by default, which no camera reads off a dark surface.
-        Surface(color = Color.White, shape = MaterialTheme.shapes.small) {
-            Image(
-                painter = rememberQrCodePainter(otpauthUrl),
-                contentDescription = stringResource(Res.string.two_factor_setup_qr_description),
-                modifier = Modifier.padding(16.dp).size(QR_SIZE),
-            )
+        AdaptiveTextButton(onClick = { showQr = !showQr }) {
+            Text(stringResource(if (showQr) Res.string.two_factor_setup_hide_qr else Res.string.two_factor_setup_show_qr))
         }
-    }
-    AdaptiveButton(onClick = onNext, modifier = Modifier.fillMaxWidth().testTag("twofa_setup_next")) {
-        Text(stringResource(Res.string.two_factor_setup_next))
+        if (showQr) {
+            // Black on transparent by default, which no camera reads off a dark surface.
+            Surface(color = Color.White, shape = MaterialTheme.shapes.small) {
+                Image(
+                    painter = rememberQrCodePainter(otpauthUrl),
+                    contentDescription = stringResource(Res.string.two_factor_setup_qr_description),
+                    modifier = Modifier.padding(16.dp).size(QR_SIZE),
+                )
+            }
+        }
+        AdaptiveButton(onClick = onNext, modifier = Modifier.fillMaxWidth().testTag("twofa_setup_next")) {
+            Text(stringResource(Res.string.two_factor_setup_next))
+        }
     }
 }
 
@@ -266,30 +280,32 @@ private fun VerifyPhase(
     onBackToAuthenticator: () -> Unit,
 ) {
     val focusRequester = remember { FocusRequester() }
-    Heading(stringResource(Res.string.two_factor_setup_verify_heading))
-    OtpCodeInput(
-        value = state.code,
-        onValueChange = onCodeChange,
-        enabled = !state.isLoading,
-        modifier = Modifier.focusRequester(focusRequester).testTag("twofa_setup_code"),
-    )
-    LaunchedEffect(state.codeAttempt) { focusRequester.requestFocus() }
-    AdaptiveButton(
-        onClick = onVerify,
-        enabled = !state.isLoading && state.code.length == OTP_LENGTH,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        LoadingLabel(state.isLoading, stringResource(Res.string.verify))
-    }
-    AdaptiveTextButton(onClick = onBackToAuthenticator, enabled = !state.isLoading) {
-        Text(stringResource(Res.string.back))
+    PhaseColumn {
+        Heading(stringResource(Res.string.two_factor_setup_verify_heading))
+        OtpCodeInput(
+            value = state.code,
+            onValueChange = onCodeChange,
+            enabled = !state.isLoading,
+            modifier = Modifier.focusRequester(focusRequester).testTag("twofa_setup_code"),
+        )
+        LaunchedEffect(state.codeAttempt) { focusRequester.requestFocus() }
+        AdaptiveButton(
+            onClick = onVerify,
+            enabled = !state.isLoading && state.code.length == OTP_LENGTH,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            LoadingLabel(state.isLoading, stringResource(Res.string.verify))
+        }
+        AdaptiveTextButton(onClick = onBackToAuthenticator, enabled = !state.isLoading) {
+            Text(stringResource(Res.string.back))
+        }
     }
 }
 
 @Composable
 private fun BackupCodesPhase(
     state: TwoFactorSetupUiState,
-    onSaved: () -> Unit,
+    onSave: () -> Unit,
     onAcknowledge: (Boolean) -> Unit,
     onComplete: () -> Unit,
 ) {
@@ -297,93 +313,97 @@ private fun BackupCodesPhase(
     var saveContent by remember { mutableStateOf<String?>(null) }
     var savedToFile by rememberSaveable { mutableStateOf(false) }
 
-    TextFileSaver(
-        triggerFileName = saveFileName,
-        content = saveContent,
-        onComplete = { success, _ ->
-            if (success) {
-                savedToFile = true
-                onSaved()
-            }
-        },
-        onReset = {
-            saveFileName = null
-            saveContent = null
-        },
-    )
+    PhaseColumn {
+        TextFileSaver(
+            triggerFileName = saveFileName,
+            content = saveContent,
+            onComplete = { success, _ ->
+                if (success) {
+                    savedToFile = true
+                    onSave()
+                }
+            },
+            onReset = {
+                saveFileName = null
+                saveContent = null
+            },
+        )
 
-    Heading(stringResource(Res.string.two_factor_setup_backup_heading))
-    Text(
-        text = stringResource(Res.string.two_factor_setup_backup_body),
-        style = MaterialTheme.typography.bodyMedium,
-        textAlign = TextAlign.Center,
-    )
-    // From v0.8.9-rc1 each code is 32 hex characters by default: one per line, numbered, and left
-    // to wrap rather than truncate on a narrow phone.
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = MaterialTheme.shapes.small,
-    ) {
-        SelectionContainer {
-            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                state.backupCodes.forEachIndexed { index, code ->
-                    Row(verticalAlignment = Alignment.Top) {
-                        Text(
-                            text = "${index + 1}.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.width(28.dp),
-                        )
-                        Text(text = code, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+        Heading(stringResource(Res.string.two_factor_setup_backup_heading))
+        Text(
+            text = stringResource(Res.string.two_factor_setup_backup_body),
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+        )
+        // From v0.8.9-rc1 each code is 32 hex characters by default: one per line, numbered, and left
+        // to wrap rather than truncate on a narrow phone.
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = MaterialTheme.shapes.small,
+        ) {
+            SelectionContainer {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    state.backupCodes.forEachIndexed { index, code ->
+                        Row(verticalAlignment = Alignment.Top) {
+                            Text(
+                                text = "${index + 1}.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.width(28.dp),
+                            )
+                            Text(text = code, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+                        }
                     }
                 }
             }
         }
-    }
-    AdaptiveOutlinedButton(
-        onClick = {
-            saveContent = state.backupCodes.joinToString("\n")
-            saveFileName = BACKUP_CODES_FILE_NAME
-        },
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Text(stringResource(Res.string.two_factor_setup_save_codes))
-    }
-    if (savedToFile) {
-        Text(
-            text = stringResource(Res.string.two_factor_setup_codes_saved),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary,
-        )
-    }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = !state.isLoading) { onAcknowledge(!state.codesSaved) },
-    ) {
-        AdaptiveCheckbox(checked = state.codesSaved, onCheckedChange = onAcknowledge, enabled = !state.isLoading)
-        Text(text = stringResource(Res.string.two_factor_setup_codes_acknowledged), style = MaterialTheme.typography.bodyMedium)
-    }
-    AdaptiveButton(
-        onClick = onComplete,
-        enabled = state.codesSaved && !state.isLoading,
-        modifier = Modifier.fillMaxWidth().testTag("twofa_setup_complete"),
-    ) {
-        LoadingLabel(state.isLoading, stringResource(Res.string.two_factor_setup_complete))
+        AdaptiveOutlinedButton(
+            onClick = {
+                saveContent = state.backupCodes.joinToString("\n")
+                saveFileName = BACKUP_CODES_FILE_NAME
+            },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(Res.string.two_factor_setup_save_codes))
+        }
+        if (savedToFile) {
+            Text(
+                text = stringResource(Res.string.two_factor_setup_codes_saved),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = !state.isLoading) { onAcknowledge(!state.codesSaved) },
+        ) {
+            AdaptiveCheckbox(checked = state.codesSaved, onCheckedChange = onAcknowledge, enabled = !state.isLoading)
+            Text(text = stringResource(Res.string.two_factor_setup_codes_acknowledged), style = MaterialTheme.typography.bodyMedium)
+        }
+        AdaptiveButton(
+            onClick = onComplete,
+            enabled = state.codesSaved && !state.isLoading,
+            modifier = Modifier.fillMaxWidth().testTag("twofa_setup_complete"),
+        ) {
+            LoadingLabel(state.isLoading, stringResource(Res.string.two_factor_setup_complete))
+        }
     }
 }
 
 @Composable
 private fun ExpiredSetup(onBack: () -> Unit) {
-    Text(
-        text = stringResource(Res.string.two_factor_setup_expired),
-        style = MaterialTheme.typography.bodyMedium,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.testTag("twofa_setup_expired"),
-    )
-    AdaptiveButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(Res.string.two_factor_setup_back_to_sign_in))
+    PhaseColumn {
+        Text(
+            text = stringResource(Res.string.two_factor_setup_expired),
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.testTag("twofa_setup_expired"),
+        )
+        AdaptiveButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(Res.string.two_factor_setup_back_to_sign_in))
+        }
     }
 }

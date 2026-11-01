@@ -178,10 +178,7 @@ object LibreChatHttpClient {
                         }
                     }
 
-                    if (statusCode == HttpStatusCode.Forbidden.value) {
-                        reportAuthGate(tokenManager, response, bodyText)
-                    }
-
+                    if (statusCode == HttpStatusCode.Forbidden.value) reportAuthGate(tokenManager, response, bodyText)
                     throw ApiException(
                         statusCode = statusCode,
                         message = extracted.message,

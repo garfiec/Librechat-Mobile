@@ -26,5 +26,28 @@ sealed interface AuthGate {
     data class TermsNotAccepted(override val accountId: String?) : AuthGate
 }
 
+/**
+ * Where the [AuthGate] lives: on the token store, beside the session it is about. A part of
+ * [TokenManager], declared apart only to keep that interface readable; every member is defaulted so
+ * a manager that never reports one (fakes, the SDK) says nothing.
+ */
+interface AuthGateHolder {
+    /**
+     * The step the server requires before the active session may continue, or null. A state rather
+     * than an event so a report raised while no navigation host is composed (a background request,
+     * a refresh) is still there when one is; the shell takes it with [consumeAuthGate].
+     */
+    val authGate: StateFlow<AuthGate?> get() = NoAuthGate
+
+    /**
+     * Report [gate]. Ignored unless [AuthGate.accountId] is the active binding (null = the active or
+     * legacy session): a straggler request for a switched-away account must not move the live one.
+     */
+    fun reportAuthGate(gate: AuthGate) = Unit
+
+    /** Clear [gate] once the shell has acted on it; a newer report is left alone. */
+    fun consumeAuthGate(gate: AuthGate) = Unit
+}
+
 /** The constant a [TokenManager] that never reports a gate (fakes, the SDK) exposes. */
 internal val NoAuthGate: StateFlow<AuthGate?> = MutableStateFlow<AuthGate?>(null).asStateFlow()

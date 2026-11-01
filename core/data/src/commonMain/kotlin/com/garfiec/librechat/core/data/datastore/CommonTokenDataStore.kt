@@ -78,7 +78,7 @@ import kotlin.time.Clock
  * if it changed, so a refresh that races a teardown can never resurrect the cleared session even
  * though the POST holds no lock — while another account's changes leave it valid.
  */
-@Suppress("TooManyFunctions") // debt: 51 functions
+@Suppress("TooManyFunctions", "LargeClass") // debt: 51 functions; over 600 lines since the v0.8.9 enrollment arm
 abstract class CommonTokenDataStore(
     private val refreshClient: Lazy<HttpClient>,
     private val ioDispatcher: CoroutineDispatcher,
@@ -193,8 +193,8 @@ abstract class CommonTokenDataStore(
     private val _sessionHealth = MutableStateFlow<SessionHealth>(SessionHealth.Healthy)
     override val sessionHealth: StateFlow<SessionHealth> = _sessionHealth.asStateFlow()
 
-    private val _authGate = MutableStateFlow<AuthGate?>(null)
-    override val authGate: StateFlow<AuthGate?> = _authGate.asStateFlow()
+    private val authGates = AuthGateState()
+    override val authGate: StateFlow<AuthGate?> = authGates.gate
 
     @Volatile
     private var sessionExpiryReported = false
@@ -1118,27 +1118,13 @@ abstract class CommonTokenDataStore(
         // Must be decided before the cookies are read: the enrollment 200 clears the refreshToken
         // cookie, so CookieHelper.update throws, and read as Retryable that re-POSTs a deleted session
         // under the flight lock and keeps the dead slot — the refresh limbo.
+        // An enrollment answer without its setup token still means the session is gone.
         if (body.isTwoFactorSetupRequired) {
-            val tempToken = body.tempToken?.takeIf { it.isNotBlank() }
-            if (tempToken == null) {
-                Diag.w(
-                    "Auth",
-                    origin = LogOrigin.SERVER,
-                    attrs = mapOf("event" to "refresh_enrollment_without_token"),
-                ) { "Refresh required 2FA setup but carried no setup token" }
-                return RefreshAttempt.AuthRejectedTerminal
-            }
-            return RefreshAttempt.TwoFactorSetupRequired(tempToken)
+            return body.tempToken?.takeIf { it.isNotBlank() }?.let(RefreshAttempt::TwoFactorSetupRequired)
+                ?: RefreshAttempt.AuthRejectedTerminal
         }
-        val accessToken = body.token
-        if (accessToken.isNullOrBlank()) {
-            Diag.w(
-                "Auth",
-                origin = LogOrigin.SERVER,
-                attrs = mapOf("event" to "refresh_malformed"),
-            ) { "Refresh response carried no token" }
-            return RefreshAttempt.Retryable
-        }
+        // A 2xx carrying no token at all is malformed: recoverable, like an unparseable body.
+        val accessToken = body.token?.takeIf { it.isNotBlank() } ?: return RefreshAttempt.Retryable
         // The backend rotates the refresh token on every successful refresh and returns the new one
         // via Set-Cookie; persist it. A 2xx without a rotated cookie means the server didn't rotate
         // (reuse path) — the stored token stays valid, so retain it rather than dropping the slot.
@@ -1277,21 +1263,14 @@ abstract class CommonTokenDataStore(
         sessionExpiryReported = false
         // A required step belongs to the session that raised it; every path that re-arms the latch
         // establishes, switches or tears one down, after which it no longer applies.
-        _authGate.value = null
+        authGates.clear()
     }
 
-    override fun reportAuthGate(gate: AuthGate) {
-        // Same scoping, and the same read-through-when-unwarmed reasoning, as [emitSessionExpired].
-        val activeAccount = if (tokenInitialized) activeAccountKey else readValue(KEY_ACTIVE_ACCOUNT)
-        if (gate.accountId != null && gate.accountId != activeAccount) return
-        // An enrollment report outranks a terms one: no terms screen can be reached past it.
-        if (gate is AuthGate.TermsNotAccepted && _authGate.value is AuthGate.TwoFactorSetupRequired) return
-        _authGate.value = gate
-    }
+    // Same scoping, and the same read-through-when-unwarmed reasoning, as [emitSessionExpired].
+    override fun reportAuthGate(gate: AuthGate) =
+        authGates.report(gate, if (tokenInitialized) activeAccountKey else readValue(KEY_ACTIVE_ACCOUNT))
 
-    override fun consumeAuthGate(gate: AuthGate) {
-        _authGate.compareAndSet(gate, null)
-    }
+    override fun consumeAuthGate(gate: AuthGate) = authGates.consume(gate)
 
     /**
      * A refresh answered the enrollment 200: the server enforces 2FA, this account has none, and it
@@ -1312,7 +1291,7 @@ abstract class CommonTokenDataStore(
             clearRenewalBlocked(slotKey(accountKey))
             if (accountKey == activeAccountKey) {
                 sessionExpiryReported = true
-                _authGate.value = AuthGate.TwoFactorSetupRequired(accountKey, tempToken)
+                authGates.report(AuthGate.TwoFactorSetupRequired(accountKey, tempToken), activeAccountKey)
             }
         }
         Diag.w(

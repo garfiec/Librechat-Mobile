@@ -83,6 +83,14 @@ chained status — so a server-rooted `/login` Location is classified terminal i
 absolute portal URL is a gateway's and is not. The 5xx ladder deliberately keeps its older,
 undamped shape.
 
+**A refresh `200` can end the session (v0.8.9-rc1).** A server enforcing 2FA answers an unenrolled
+account's refresh with `{ code: TWO_FACTOR_ENROLLMENT_REQUIRED, tempToken }`, no token, having deleted
+the session and cleared the cookie. `handleSuccess` checks this **before** `CookieHelper.update` (which
+would throw on the cleared cookie and read as Retryable — the old refresh limbo). The slot is dropped,
+the expiry report latched for the active binding (stragglers then settle HardExpired silently), and
+`authGate` set to `AuthGate.TwoFactorSetupRequired`. It returns `Transient`, never `settle()`: an
+expiry fails over to another account. `authGate` is cleared wherever the expiry latch is re-armed.
+
 **A kept session that cannot renew is reported, not just kept.** The unattributed-403 arm also
 publishes `TokenManager.sessionHealth = SessionHealth.RenewalBlocked(accountId)`; the nav shell shows
 a banner for the active account with one action, **Sign in again** → `endSessionForReauth`, which

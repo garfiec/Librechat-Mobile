@@ -129,6 +129,23 @@ POST /api/auth/2fa/verify
 POST /api/auth/2fa/confirm  → { confirmed, backupCodes }
 POST /api/auth/2fa/disable
 POST /api/auth/2fa/verify-temp → { token, user }
+
+# Required 2FA enrollment (v0.8.9-rc1, ENFORCE_TWO_FACTOR_AUTHENTICATION). No bearer: each step is
+# authorised by the body credential the previous one returned. All four are in AUTH_SKIP_PATHS.
+POST /api/auth/2fa/setup             { tempToken }                 → { otpauthUrl, backupCodes }
+POST /api/auth/2fa/setup/confirm     { tempToken, token }          → { backupCodes, acknowledgementToken }
+POST /api/auth/2fa/setup/acknowledge { acknowledgementToken }      → { finalizationToken }
+POST /api/auth/2fa/setup/finalize    { finalizationToken }         → { token, user } + refreshToken cookie
+  401/403 = setup credential dead (restart at sign-in); 400 on confirm = wrong code;
+  400 on acknowledge/finalize = single-use credential already spent.
+# The setup tempToken arrives as:
+#   login 200   { code: TWO_FACTOR_ENROLLMENT_REQUIRED, twoFAPending, twoFASetupRequired, tempToken }
+#   refresh 200 { same, NO token } after deleting the session and clearing the refreshToken cookie
+#   403 on every authenticated route { same }
+# Other new codes: 403 TWO_FACTOR_FEDERATED_LOGIN_BLOCKED (login, verify-temp);
+#   403 terms_not_accepted on writes when interface.termsOfService.modalAcceptance (flat {code} or
+#   nested {error:{code}}); 403 TENANT_CONTEXT_REQUIRED on pre-auth routes under strict tenancy
+#   (OAuth callback: redirect to /login?...&code=TENANT_CONTEXT_REQUIRED).
 ```
 
 ### Configuration
