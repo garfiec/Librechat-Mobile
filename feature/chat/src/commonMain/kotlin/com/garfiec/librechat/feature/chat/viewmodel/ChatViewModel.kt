@@ -69,6 +69,7 @@ import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
+import com.garfiec.librechat.feature.chat.util.ReplyAvatarMemo
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.extractBranchMedia
@@ -488,6 +489,8 @@ class ChatViewModel(
         )
     }
 
+    private val replyAvatarMemo = ReplyAvatarMemo()
+
     val uiState: StateFlow<ChatUiState> = combine(
         _uiState,
         serverDataStore.currentUrlFlow,
@@ -518,6 +521,17 @@ class ChatViewModel(
             account = state.account.copy(
                 userAvatarUrl = resolveAvatarUrl(state.account.userAvatarUrl, url),
             ),
+            // Reply avatars, resolved here for the same reason: the URL and the endpoint configs
+            // (a custom endpoint's served providerId) each arrive on their own flow.
+            content = state.content.copy(
+                displayMessages = replyAvatarMemo.resolve(
+                    state.content.displayMessages,
+                    state.selectedEndpoint,
+                    url,
+                    state.endpointConfigs,
+                ),
+            ),
+            avatars = state.replyAvatars(url),
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, ChatUiState())
 
@@ -1472,6 +1486,8 @@ class ChatViewModel(
                     modelSpecs = current.selection.modelSpecs,
                     availableModels = current.availableModels,
                     endpointConfigs = current.endpointConfigs,
+                    // Fetched when the configs change, which a reset doesn't make them do.
+                    endpointKeyStates = current.endpointKeyStates,
                     agents = current.agents,
                     agentsLoaded = current.agentsLoaded,
                     mcpServers = current.mcpServers,

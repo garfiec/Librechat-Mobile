@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.model.FeedbackRating
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.core.model.media.IconSource
 
 /** Platform-specific message bubble. */
 @Composable
@@ -32,7 +33,6 @@ expect fun MessageBubble(
     editSession: MessageEditSession? = null,
     userAvatarUrl: String? = null,
     userName: String? = null,
-    selectedEndpoint: String? = null,
     showImageDescriptions: Boolean = true,
     showActionsInitially: Boolean = false,
     searchQuery: String? = null,
@@ -44,6 +44,7 @@ expect fun MessageBubble(
     chatLayoutStyle: String = ChatLayoutConstants.THREAD,
     showAvatars: Boolean = true,
     showBubbles: Boolean = false,
+    avatar: IconSource? = null,
 )
 
 /** Platform-specific content part rendering. */

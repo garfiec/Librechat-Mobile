@@ -817,7 +817,7 @@
     <string name="cd_attached_image">Image jointe</string>
     <string name="model_selector_search">Rechercher des modèles…</string>
     <string name="model_selector_my_agents">Mes agents</string>
-    <string name="model_selector_spec_only_note">Ce serveur n’accepte que les options ci-dessus.</string>
+    <string name="model_selector_spec_only_top_note">Seuls les modèles prédéfinis du serveur peuvent être envoyés ; les modèles grisés sont indiqués à titre de référence.</string>
     <string name="agent_handoff_to">Agent %1$s</string>
     <string name="agent_handoff_run">Exécution : %1$s</string>
     <string name="sibling_position">Réponse %1$d sur %2$d</string>

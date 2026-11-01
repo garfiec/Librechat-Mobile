@@ -797,7 +797,7 @@
     <string name="cd_attached_image">附加的图片</string>
     <string name="model_selector_search">搜索模型…</string>
     <string name="model_selector_my_agents">我的智能体</string>
-    <string name="model_selector_spec_only_note">此服务器仅接受上方列出的选项。</string>
+    <string name="model_selector_spec_only_top_note">只能发送服务器的模型规格；灰色的模型仅供参考。</string>
     <string name="agent_handoff_to">智能体 %1$s</string>
     <string name="agent_handoff_run">运行：%1$s</string>
     <string name="sibling_position">第 %1$d 个回复，共 %2$d 个</string>

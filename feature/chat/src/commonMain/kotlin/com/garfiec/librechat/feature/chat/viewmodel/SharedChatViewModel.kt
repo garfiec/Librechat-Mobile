@@ -26,6 +26,7 @@ import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.extractBranchMedia
 import com.garfiec.librechat.feature.chat.util.serializeMessageForClipboard
 import com.garfiec.librechat.feature.chat.util.withAttachmentSources
+import com.garfiec.librechat.feature.chat.util.withReplyAvatars
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -226,7 +227,7 @@ class SharedChatViewModel(
                 snapshot = snapshot,
                 // Ids are re-anonymized per request: a choice keyed on the last load's ids means nothing.
                 activeBranches = emptyMap(),
-                displayMessages = buildActiveMessagePath(snapshot.messages),
+                displayMessages = buildActiveMessagePath(snapshot.messages).withSnapshotAvatars(it.baseUrl),
                 textSourceFileIds = textSourceFileIds(snapshot.messages),
                 isLoading = false,
                 isRefreshing = false,
@@ -267,7 +268,7 @@ class SharedChatViewModel(
             val branches = state.activeBranches + (parentKey to siblingIndex)
             state.copy(
                 activeBranches = branches,
-                displayMessages = buildActiveMessagePath(snapshot.messages, branches),
+                displayMessages = buildActiveMessagePath(snapshot.messages, branches).withSnapshotAvatars(state.baseUrl),
             )
         }
     }
@@ -423,6 +424,10 @@ internal fun textSourceFileIds(messages: List<Message>): Set<String> = buildSet 
         message.attachments?.forEach { a -> if (a.source == FILE_SOURCE_TEXT) a.fileId?.let(::add) }
     }
 }
+
+/** A snapshot carries no endpoint configs, so its replies resolve their brand by name. */
+private fun List<MessageNode>.withSnapshotAvatars(baseUrl: String): List<MessageNode> =
+    withReplyAvatars(fallbackEndpoint = null, serverUrl = baseUrl, endpointConfigs = null)
 
 /**
  * The index in [messages] of the branch tip on screen, which a fork names because a viewer never

@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.settings.state.providerkeys
 import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.endpoint.KeyState
+import com.garfiec.librechat.core.model.endpoint.endpointDisplayName
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.provider_keys_expiry_12h
 import com.garfiec.librechat.feature.settings.resources.provider_keys_expiry_1d
@@ -108,7 +109,7 @@ enum class ProviderKeyExpiry(val label: StringResource, val duration: Duration?)
 
 /** The name the model picker shows for [endpointName]. */
 internal fun providerKeyDisplayLabel(endpointName: String, config: EndpointConfig): String =
-    config.modelDisplayLabel ?: endpointName
+    endpointDisplayName(endpointName, config)
 
 /**
  * Endpoint-form variants — drives both the form layout and the wire payload shape.

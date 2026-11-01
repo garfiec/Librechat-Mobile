@@ -18,6 +18,7 @@ import com.garfiec.librechat.core.model.error.parseUserKeyError
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
 import com.garfiec.librechat.core.network.api.chatRefusalText
 import com.garfiec.librechat.feature.chat.util.applyAbortContract
+import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.keyEndpointOf
 import com.garfiec.librechat.feature.chat.util.resolvedResponseMessage
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
@@ -367,6 +368,10 @@ class StreamingManagerDelegate(
         currentTurnCreated = false
         currentTurnKeyEndpoint = null
         retryCeiling = null
+        // The next resume's sync frame names its own reply.
+        if (handle.state.content.resumedReplyId != null) {
+            handle.update { content = content.copy(resumedReplyId = null) }
+        }
     }
 
     private suspend fun collectStreamSafely(stream: Flow<StreamEvent>) {
@@ -786,8 +791,15 @@ class StreamingManagerDelegate(
                 buffer.stopUpdater()
                 if (handle.state.isStreaming) {
                     handle.update {
-                        content = content.resetLiveReply(false, buffer.currentText, buffer.currentThinking)
+                        val stopped = content.resetLiveReply(false, buffer.currentText, buffer.currentThinking)
                             .copy(retryInfo = null)
+                        // Nothing reloads here, so a resumed reply's saved partial, hidden while it
+                        // streamed, comes back now that the bubble is gone.
+                        content = if (stopped.resumedReplyId == null) {
+                            stopped
+                        } else {
+                            stopped.copy(displayMessages = buildActiveMessagePath(stopped.messages, stopped.activeBranches))
+                        }
                     }
                 }
                 // Keep the partial panes too — same intent as preserving streamingContent above.

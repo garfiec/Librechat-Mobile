@@ -64,13 +64,12 @@ import com.garfiec.librechat.core.model.FeedbackRating
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.content.MessageContentPart
-import com.garfiec.librechat.core.model.media.resolveIconSource
+import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.core.ui.components.AdaptiveDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AvatarImage
 import com.garfiec.librechat.core.ui.components.BubbleShape
-import com.garfiec.librechat.core.ui.components.endpointIconPainter
-import com.garfiec.librechat.core.ui.components.isMonochromeEndpointIcon
+import com.garfiec.librechat.core.ui.components.EndpointAvatar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
@@ -112,7 +111,6 @@ actual fun MessageBubble(
     editSession: MessageEditSession?,
     userAvatarUrl: String?,
     userName: String?,
-    selectedEndpoint: String?,
     showImageDescriptions: Boolean,
     showActionsInitially: Boolean,
     searchQuery: String?,
@@ -124,13 +122,8 @@ actual fun MessageBubble(
     chatLayoutStyle: String,
     showAvatars: Boolean,
     showBubbles: Boolean,
+    avatar: IconSource?,
 ) {
-    // A spec's `iconURL` names an endpoint's glyph or a server-relative image: resolve it as the picker does.
-    val assistantIcon = resolveIconSource(message.iconURL, message.endpoint ?: selectedEndpoint, baseUrl)
-    val resolvedEndpoint = assistantIcon.endpointName
-    val assistantIconUrl = assistantIcon.imageUrl
-    val tintEndpointIcon = isMonochromeEndpointIcon(resolvedEndpoint)
-
     if (chatLayoutStyle == ChatLayoutConstants.TWO_SIDED) {
         TwoSidedBubble(
             message = message,
@@ -152,9 +145,7 @@ actual fun MessageBubble(
             editSession = editSession,
             userAvatarUrl = userAvatarUrl,
             userName = userName,
-            resolvedEndpoint = resolvedEndpoint,
-            assistantIconUrl = assistantIconUrl,
-            tintEndpointIcon = tintEndpointIcon,
+            avatar = avatar,
             showImageDescriptions = showImageDescriptions,
             showActionsInitially = showActionsInitially,
             searchQuery = searchQuery,
@@ -186,9 +177,7 @@ actual fun MessageBubble(
             editSession = editSession,
             userAvatarUrl = userAvatarUrl,
             userName = userName,
-            resolvedEndpoint = resolvedEndpoint,
-            assistantIconUrl = assistantIconUrl,
-            tintEndpointIcon = tintEndpointIcon,
+            avatar = avatar,
             showImageDescriptions = showImageDescriptions,
             showActionsInitially = showActionsInitially,
             searchQuery = searchQuery,
@@ -223,9 +212,7 @@ private fun ThreadBubble(
     editSession: MessageEditSession?,
     userAvatarUrl: String?,
     userName: String?,
-    resolvedEndpoint: String?,
-    assistantIconUrl: String?,
-    tintEndpointIcon: Boolean,
+    avatar: IconSource?,
     showImageDescriptions: Boolean,
     showActionsInitially: Boolean,
     searchQuery: String?,
@@ -255,18 +242,22 @@ private fun ThreadBubble(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (showAvatars) {
-                AvatarImage(
-                    imageUrl = if (isUser) userAvatarUrl else assistantIconUrl,
-                    fallbackText = if (isUser) {
-                        userName ?: stringResource(Res.string.sender_you)
-                    } else {
-                        message.sender ?: stringResource(Res.string.sender_assistant)
-                    },
-                    fallbackIconPainter = if (!isUser && assistantIconUrl == null) endpointIconPainter(resolvedEndpoint) else null,
-                    showPersonIcon = isUser && userAvatarUrl == null,
-                    tintIcon = if (!isUser && assistantIconUrl == null) tintEndpointIcon else false,
-                    size = 28.dp,
-                )
+                if (isUser) {
+                    AvatarImage(
+                        imageUrl = userAvatarUrl,
+                        fallbackText = userName ?: stringResource(Res.string.sender_you),
+                        showPersonIcon = userAvatarUrl == null,
+                        size = 28.dp,
+                    )
+                } else {
+                    EndpointAvatar(
+                        imageUrl = avatar?.imageUrl,
+                        endpointName = avatar?.endpointName,
+                        provider = avatar?.provider,
+                        fallbackText = message.sender ?: stringResource(Res.string.sender_assistant),
+                        size = 28.dp,
+                    )
+                }
                 Spacer(Modifier.width(8.dp))
             }
             Text(
@@ -300,6 +291,7 @@ private fun ThreadBubble(
         ) {
             MessageContentAndActions(
                 message = message,
+                avatar = avatar,
                 isUser = isUser,
                 editSession = editSession,
                 baseUrl = baseUrl,
@@ -352,9 +344,7 @@ private fun TwoSidedBubble(
     editSession: MessageEditSession?,
     userAvatarUrl: String?,
     userName: String?,
-    resolvedEndpoint: String?,
-    assistantIconUrl: String?,
-    tintEndpointIcon: Boolean,
+    avatar: IconSource?,
     showImageDescriptions: Boolean,
     showActionsInitially: Boolean,
     searchQuery: String?,
@@ -394,11 +384,11 @@ private fun TwoSidedBubble(
         verticalAlignment = Alignment.Top,
     ) {
         if (!isUser && showAvatars) {
-            AvatarImage(
-                imageUrl = assistantIconUrl,
+            EndpointAvatar(
+                imageUrl = avatar?.imageUrl,
+                endpointName = avatar?.endpointName,
+                provider = avatar?.provider,
                 fallbackText = message.sender ?: stringResource(Res.string.sender_assistant),
-                fallbackIconPainter = if (assistantIconUrl == null) endpointIconPainter(resolvedEndpoint) else null,
-                tintIcon = if (assistantIconUrl == null) tintEndpointIcon else false,
                 size = 28.dp,
             )
             Spacer(Modifier.width(6.dp))
@@ -437,6 +427,7 @@ private fun TwoSidedBubble(
 
             MessageContentAndActions(
                 message = message,
+                avatar = avatar,
                 isUser = isUser,
                 editSession = editSession,
                 baseUrl = baseUrl,

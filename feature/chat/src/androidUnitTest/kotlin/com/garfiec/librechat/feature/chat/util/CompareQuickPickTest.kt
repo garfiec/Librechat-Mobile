@@ -59,7 +59,7 @@ class CompareQuickPickTest {
         val result = picks(query = "  MINI ")
 
         assertThat(result.map { it.model }).containsExactly("gpt-5-mini")
-        assertThat(result.single().source).isEqualTo("openAI")
+        assertThat(result.single().source).isEqualTo("OpenAI")
     }
 
     @Test
@@ -105,7 +105,7 @@ class CompareQuickPickTest {
         )
 
         assertThat(result.map { it.model }).contains("gpt-5-mini")
-        assertThat(result.first().source).isEqualTo("openAI")
+        assertThat(result.first().source).isEqualTo("OpenAI")
     }
 
     @Test

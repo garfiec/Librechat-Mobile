@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.model.usage.TokenUsage
 import com.garfiec.librechat.core.model.usage.UsageAmount
 import com.garfiec.librechat.feature.chat.util.PendingUsage
 import com.garfiec.librechat.feature.chat.util.fold
+import com.garfiec.librechat.feature.chat.util.withoutLivePartial
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import com.garfiec.librechat.feature.chat.viewmodel.ContextUsageSource
 import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
@@ -205,6 +206,9 @@ class LiveReplyDelegate(
         handle.update {
             content = content.copy(
                 retryInfo = null,
+                resumedReplyId = event.responseMessageId,
+                // The partial may already be on screen: the load can read it before the frame lands.
+                displayMessages = content.displayMessages.withoutLivePartial(event.responseMessageId),
                 activeToolCalls = syncedToolCalls,
                 sandboxStartingToolCallIds = content.sandboxStartingToolCallIds.filterTo(HashSet()) { it in running },
             )

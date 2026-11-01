@@ -59,6 +59,13 @@ data class MessagesState(
      * The one consumer is [ActivityGroup]'s auto-collapse suppression.
      */
     val justSettledMessageId: String? = null,
+    /**
+     * The reply a resumed stream is writing (the sync frame's `responseMessageId`), or null. The
+     * server's saved `unfinished` copy of it (see `StreamEvent.Sync.responseMessageId`) is left out
+     * of [displayMessages] while the stream is live (`withoutLivePartial`): the streaming bubble
+     * already shows that text. Set by the sync frame, cleared when the next stream session starts.
+     */
+    val resumedReplyId: String? = null,
     val isStreaming: Boolean = false,
     /**
      * A manual compaction this client submitted is still running (v0.8.8-rc3). Distinct from

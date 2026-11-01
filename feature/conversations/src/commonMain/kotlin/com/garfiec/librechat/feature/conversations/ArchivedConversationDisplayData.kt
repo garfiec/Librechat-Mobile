@@ -6,6 +6,8 @@ import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.config.labelFor
 import com.garfiec.librechat.core.model.iconEndpoint
+import com.garfiec.librechat.core.model.iconProvider
+import com.garfiec.librechat.core.model.media.ProviderId
 import com.garfiec.librechat.core.model.resolveEndpointIconUrl
 import kotlin.time.Instant
 
@@ -19,6 +21,11 @@ data class ArchivedConversationDisplayData(
     val updatedAt: Instant?,
     val endpointIconUrl: String? = null,
     val iconEndpoint: String? = endpoint,
+    /**
+     * The brand art the row draws when [endpointIconUrl] is null or fails to load; beats [iconEndpoint].
+     * Null when the endpoint's configured icon is an image, as on web.
+     */
+    val iconProvider: ProviderId? = null,
 )
 
 fun Conversation.toArchivedDisplayData(
@@ -33,5 +40,6 @@ fun Conversation.toArchivedDisplayData(
     modelLabel = modelSpecs?.labelFor(spec) ?: model?.let { agentNames[it] ?: it },
     updatedAt = updatedAt,
     endpointIconUrl = resolveEndpointIconUrl(endpointConfigs, serverUrl),
-    iconEndpoint = iconEndpoint,
+    iconEndpoint = iconEndpoint(endpointConfigs),
+    iconProvider = iconProvider(endpointConfigs),
 )

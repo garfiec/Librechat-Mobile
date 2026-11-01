@@ -3493,6 +3493,102 @@
       "failure_mode": "If web reorders the chain or adds a source, the same spec shows a different icon on mobile than on web."
     },
     {
+      "id": "provider-icon-resolution",
+      "upstream": {
+        "file": "client/src/hooks/Endpoint/useProviderIcon.ts",
+        "symbol": "resolveProviderIcon",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "resolveProviderIcon"
+      },
+      "why": "Which brand art an endpoint, spec or conversation row draws: an image `iconURL`, then an `iconURL` naming a provider (`groq`, `grok`), then the endpoint's served `providerId` (the server derives it from the custom endpoint's `baseURL` host, which the client never sees), then the first-class endpoint's brand, then the endpoint's own name.",
+      "failure_mode": "If web reorders the rules or adds one, the same endpoint draws different art on mobile than on web; nothing fails to decode."
+    },
+    {
+      "id": "provider-id-aliases",
+      "upstream": {
+        "file": "packages/data-provider/src/providers.ts",
+        "symbol": "resolveProviderId",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "resolveProviderId"
+      },
+      "why": "The `ProviderId` wire ids the server serves as `EndpointConfig.providerId`, `endpointToProvider`, and the alias table plus normalisation (lowercase, separators stripped) that turn a free-form name or `iconURL` into a provider. `knownEndpointToProvider` isn't ported: normalisation and the aliases cover its keys.",
+      "failure_mode": "A new provider id or alias upstream decodes fine (`providerId` is a String) and just draws the generic glyph on mobile."
+    },
+    {
+      "id": "endpoint-alternate-names",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "alternateName",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/endpoint/EndpointNames.kt",
+        "symbol": "alternateNames"
+      },
+      "why": "The names web gives endpoint keys (`anthropic` reads \"Anthropic\"), used by `endpointDisplayName` after an endpoint's `modelDisplayLabel` for picker headers, Compare's quick-pick source, the missing-key send block and error, and the provider keys list. `agents` and `custom` are left out: those screens have translated strings.",
+      "failure_mode": "A key upstream starts naming shows its raw key on mobile, such as `anthropic` in lowercase."
+    },
+    {
+      "id": "provider-icon-registry",
+      "upstream": {
+        "file": "packages/client/src/icons/provider/registry.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetFiles"
+      },
+      "why": "Which providers have served art and its file name (the registry's `asset('assets/<file>')` entries, loaded from the user's server at `{server}/assets/<file>`), and each provider's `label` (`ProviderId.label`, the monogram letter and content description). No logo art is bundled in the app. Mono component art (Anthropic, Azure, Bedrock, xAI, Moonshot, Vercel) has no served file and draws a monogram. The model-level refinement (`byModel`: OpenAI colour by model, Gemini/Gemma art) isn't ported.",
+      "failure_mode": "A renamed or removed asset 404s and silently falls to the monogram; a new provider or a new served file draws the monogram (or the generic glyph) until mapped."
+    },
+    {
+      "id": "provider-icon-assets",
+      "upstream": {
+        "file": "client/vite.config.ts",
+        "symbol": "copyPublicAssets",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetUrl"
+      },
+      "why": "Production builds copy `client/public/assets/` into the served `dist/assets/`; the client loads provider art from there (`openai.svg` and `google.svg` included, which the registry draws as components) relative to the server's base URL, as web's `base: ''` relative srcs resolve.",
+      "failure_mode": "If the build stops copying public assets, or serves them elsewhere, every provider silently draws its monogram."
+    },
+    {
+      "id": "endpoint-icon-rule",
+      "upstream": {
+        "file": "client/src/components/Endpoints/EndpointIcon.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/Conversation.kt",
+        "symbol": "Conversation.iconEndpoint"
+      },
+      "why": "How a conversation row picks its icon: an image `iconURL` wins; a non-image `iconURL` switches the icon endpoint only when it is an endpoints-config key (`getIconEndpoint`); the provider art is then resolved for that endpoint without the conversation's own `iconURL`.",
+      "failure_mode": "Drawer, list and archive rows draw different icons than web's sidebar."
+    },
+    {
+      "id": "picker-user-key",
+      "upstream": {
+        "file": "client/src/hooks/Endpoint/useEndpoints.ts",
+        "symbol": "endpointRequiresUserKey",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/PickerRows.kt",
+        "symbol": "endpointSection"
+      },
+      "why": "An endpoint that needs the user's key gets a Set API Key button in web's `EndpointItem`, which still lists its nested specs. Mobile greys the header behind Add key, keeps the grouped specs listed (a tap opens the key screen) and hides the raw models. Mobile reads the per-endpoint key state (unset or expired) rather than the bare `userProvide` flag.",
+      "failure_mode": "If web changes what counts as needing a key or what it lists under such an endpoint, mobile hides specs web lists or shows models web gates."
+    },
+    {
       "id": "model-spec-groups",
       "upstream": {
         "file": "client/src/components/Chat/Menus/Endpoints/components/CustomGroup.tsx",
@@ -3529,7 +3625,7 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/screen/ChatContent.kt",
         "symbol": "ChatUiState.landingText"
       },
-      "why": "The new chat's title is the selected agent's name, else the spec's label when it has `showOnLanding`; its description is the agent's, then that spec's description, then the conversation's `greeting` (a spec's preset greeting). A temporary chat blanks both. Mobile renders the description as plain text where web renders sanitized markdown.",
+      "why": "The new chat's title is the selected agent's name, else the spec's label when it has `showOnLanding`; its description is the agent's, then that spec's description, then the conversation's `greeting` (a spec's preset greeting). `landingText` returns these and the temporary chat's own title and subtitle whatever the flag, and `LandingContent` switches each line as temporary chat's band reaches it. A temporary chat also replaces the spec's or agent's icon with a temporary glyph, as web swaps in `HatGlasses`; mobile draws the temporary toggle's `VisibilityOff` in temporary violet instead, on purpose. Mobile renders the description as plain text (at most 4 lines, 2 in compact) where web renders sanitized markdown.",
       "failure_mode": "If web changes the precedence or what `showOnLanding` controls, mobile's landing names or describes the chat differently from web's."
     },
     {

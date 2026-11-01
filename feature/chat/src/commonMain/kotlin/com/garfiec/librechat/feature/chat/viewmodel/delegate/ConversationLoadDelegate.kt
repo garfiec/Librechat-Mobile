@@ -19,6 +19,7 @@ import com.garfiec.librechat.feature.chat.util.NEW_CHAT_DRAFT_KEY
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.hasParallelParts
 import com.garfiec.librechat.feature.chat.util.stabilizeMessageInstances
+import com.garfiec.librechat.feature.chat.util.withoutLivePartial
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationLoadHandle
 import com.garfiec.librechat.feature.chat.viewmodel.isServerCopyOf
@@ -221,8 +222,9 @@ class ConversationLoadDelegate(
                 val baseline = handle.state
                 val stabilized = stabilizeMessageInstances(messages, baseline.messages)
                 // A handed-off new chat seeds the just-sent user message (pendingResumeUserMessage):
-                // the server persists the request only when the reply completes, so the Room read is
-                // empty mid-stream and the user's message would otherwise vanish for the whole stream.
+                // the server persists the request only when the reply completes or a client drops its
+                // stream, so the Room read can be empty mid-stream and the user's message would otherwise
+                // vanish for the whole stream.
                 // Keep that seed appended until the server's own copy arrives, then drop it. The copy
                 // is matched by content as well as id (isServerCopyOf): rc3+ re-mints the id, so an
                 // id-only match never fires, and a run ending with no Final (a resume that 404s) would
@@ -235,9 +237,11 @@ class ConversationLoadDelegate(
                     stabilized.none { it.messageId == seed.messageId || it.isServerCopyOf(seed) }
                 }
                 val merged = retainedPending?.let { stabilized + it } ?: stabilized
+                // A resumed run's saved partial: the streaming bubble shows that text already.
+                val liveReplyId = baseline.content.resumedReplyId.takeIf { baseline.isStreaming }
                 MessagePathEmission(
                     messages = merged,
-                    displayMessages = buildActiveMessagePath(merged, branches),
+                    displayMessages = buildActiveMessagePath(merged, branches).withoutLivePartial(liveReplyId),
                     retainedPending = retainedPending,
                     revalidated = settled,
                 )

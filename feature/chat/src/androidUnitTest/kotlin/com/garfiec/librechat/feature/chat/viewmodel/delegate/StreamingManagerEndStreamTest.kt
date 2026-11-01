@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.error.UserKeyError
 import com.garfiec.librechat.core.model.response.ChatAbortResponse
 import com.garfiec.librechat.feature.chat.util.AbortFrameFixtures
+import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
@@ -141,6 +142,34 @@ class StreamingManagerEndStreamTest {
             verify(exactly = 0) { host.reloadConversation(any()) }
             verify { comparisonDelegate.endStreaming(clearContent = false) }
             verify(atLeast = 1) { queueDelegate.pause() }
+            events.close()
+            advanceUntilIdle()
+        }
+
+    @Test
+    fun `a local stop of a resumed stream brings back the reply's saved partial`() =
+        runTest(StandardTestDispatcher()) {
+            coEvery { chatRepository.abortChat("conv-1", any(), any()) } returns Result.Success(ChatAbortResponse())
+            val partial = message("r1", parentId = "u1").copy(unfinished = true)
+            val messages = listOf(message("u1", isUser = true), partial)
+            val state = streamingState().let {
+                it.copy(content = it.content.copy(messages = messages, displayMessages = buildActiveMessagePath(messages)))
+            }
+            val events = Channel<StreamEvent>(Channel.UNLIMITED)
+            val (delegate, flow) = delegateWith(this, state)
+            delegate.launchStream(events.receiveAsFlow())
+
+            events.send(StreamEvent.Sync(aggregatedContent = emptyList(), responseMessageId = "r1"))
+            runCurrent()
+            assertThat(flow.value.displayMessages.map { it.message.messageId }).containsExactly("u1")
+
+            delegate.stopGeneration()
+            advanceTimeBy(15_001)
+            runCurrent()
+
+            assertThat(flow.value.isStreaming).isFalse()
+            assertThat(flow.value.displayMessages.map { it.message.messageId }).containsExactly("u1", "r1").inOrder()
+            verify(exactly = 0) { host.reloadConversation(any()) }
             events.close()
             advanceUntilIdle()
         }

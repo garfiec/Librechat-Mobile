@@ -35,6 +35,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -46,6 +47,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -54,11 +57,14 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
+import com.garfiec.librechat.core.model.media.ProviderId
 import com.garfiec.librechat.core.ui.components.EndpointIcon
 import com.garfiec.librechat.core.ui.platform.rememberReduceMotion
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
@@ -133,45 +139,66 @@ fun LandingContent(
         )
         .padding(horizontal = 12.dp, vertical = 8.dp)
 
+    val descriptionStyle = MaterialTheme.typography.bodyLarge
+    val density = LocalDensity.current
+    val textMeasurer = rememberTextMeasurer()
+
     val scroll = rememberScrollState()
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        // The description's height in the full hero (at most its line limit) counts toward the hero,
+        // so a spec's landing turns compact before it overflows, and a short one doesn't turn it
+        // compact early. Counted while temporary too, so toggling temporary chat doesn't resize the hero.
+        val descriptionWidthPx = with(density) { (maxWidth - HeroSidePadding * 2).roundToPx() }.coerceAtLeast(0)
+        val descriptionRoom = if (description != null) {
+            val heightPx = remember(description, descriptionStyle, descriptionWidthPx, density) {
+                textMeasurer.measure(
+                    text = description,
+                    style = descriptionStyle,
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = DescriptionMaxLines,
+                    constraints = Constraints(maxWidth = descriptionWidthPx),
+                    density = density,
+                ).size.height
+            }
+            DescriptionGap + with(density) { heightPx.toDp() }
+        } else {
+            0.dp
+        }
         // With the keyboard up and starters docked above the composer, the full hero no longer fits
-        // between the top bar and them: drop the icon and shrink the greeting rather than overlap.
-        val compact = maxHeight - bottomPadding < CompactHeroBelow
+        // between the top bar and them: drop the icon, shrink the greeting and cut the description.
+        val compact = maxHeight - bottomPadding < CompactHeroBelow + descriptionRoom
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 // Scrolls only once it overflows (large text with the keyboard up): a scrollable takes every
                 // vertical drag, and on a landing that fits the drag has to reach the pull-up tools sheet.
                 .verticalScroll(scroll, enabled = scroll.canScrollForward || scroll.canScrollBackward)
-                .padding(start = 24.dp, end = 24.dp, bottom = bottomPadding),
+                .padding(start = HeroSidePadding, end = HeroSidePadding, bottom = bottomPadding),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            if (compact) {
-                // No icon: the greeting leads.
-            } else if (heroIcon != null) {
-                EndpointIcon(
-                    endpointName = heroIcon.endpointName,
-                    iconUrl = heroIcon.iconUrl,
+            when (val hero = landingHero(compact = compact, temporary = showsTemporary, heroIcon = heroIcon)) {
+                LandingHero.None -> Unit
+                LandingHero.Temporary -> LandingTile(
+                    background = ChatInputDefaults.temporaryWash,
+                    icon = Icons.Default.VisibilityOff,
+                    tint = ChatInputDefaults.temporaryAccent,
+                    // The heading already says temporary chat.
+                    contentDescription = null,
+                )
+                is LandingHero.Endpoint -> EndpointIcon(
+                    endpointName = hero.icon.endpointName,
+                    iconUrl = hero.icon.iconUrl,
+                    provider = hero.icon.provider,
                     size = 56.dp,
                     glyphTint = MaterialTheme.colorScheme.onSurface,
                 )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ChatBubbleOutline,
-                        contentDescription = stringResource(Res.string.cd_librechat),
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                }
+                LandingHero.AppTile -> LandingTile(
+                    background = MaterialTheme.colorScheme.primaryContainer,
+                    icon = Icons.Default.ChatBubbleOutline,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    contentDescription = stringResource(Res.string.cd_librechat),
+                )
             }
 
             if (!compact) Spacer(modifier = Modifier.height(24.dp))
@@ -208,12 +235,16 @@ fun LandingContent(
                     val isDescription = !temporary && description != null
                     Text(
                         text = text,
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = descriptionStyle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
-                        maxLines = if (isDescription) DescriptionMaxLines else Int.MAX_VALUE,
+                        maxLines = when {
+                            !isDescription -> Int.MAX_VALUE
+                            compact -> CompactDescriptionMaxLines
+                            else -> DescriptionMaxLines
+                        },
                         overflow = if (isDescription) TextOverflow.Ellipsis else TextOverflow.Clip,
-                        modifier = veilBlur(glass && !reduceMotion).padding(top = 8.dp),
+                        modifier = veilBlur(glass && !reduceMotion).padding(top = DescriptionGap),
                     )
                 }
             }
@@ -266,6 +297,40 @@ fun LandingContent(
             }
         }
     }
+}
+
+@Composable
+private fun LandingTile(background: Color, icon: ImageVector, tint: Color, contentDescription: String?) {
+    Box(
+        modifier = Modifier
+            .size(56.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(background),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(imageVector = icon, contentDescription = contentDescription, modifier = Modifier.size(32.dp), tint = tint)
+    }
+}
+
+/** What leads the landing's hero. */
+internal sealed interface LandingHero {
+    /** Compact: the greeting leads. */
+    data object None : LandingHero
+
+    /** Temporary chat's own glyph, as web swaps in its temporary icon whatever is selected. */
+    data object Temporary : LandingHero
+
+    /** The selected agent's or spec's icon. */
+    data class Endpoint(val icon: LandingHeroIcon) : LandingHero
+
+    data object AppTile : LandingHero
+}
+
+internal fun landingHero(compact: Boolean, temporary: Boolean, heroIcon: LandingHeroIcon?): LandingHero = when {
+    compact -> LandingHero.None
+    temporary -> LandingHero.Temporary
+    heroIcon != null -> LandingHero.Endpoint(heroIcon)
+    else -> LandingHero.AppTile
 }
 
 /**
@@ -351,11 +416,18 @@ private val CompactHeroBelow = 200.dp
 /** Web renders the description in full; here it is plain text, held to a few lines. */
 private const val DescriptionMaxLines = 4
 
+/** A compact hero's description: enough to say what the spec is for. */
+private const val CompactDescriptionMaxLines = 2
+
+private val DescriptionGap = 8.dp
+
+private val HeroSidePadding = 24.dp
+
 /**
- * The landing's hero icon: [iconUrl] when it loads, else [endpointName]'s glyph. A spec's `iconURL`
- * may name an endpoint rather than an image, which is why both exist.
+ * The landing's hero icon: [iconUrl] when it loads, else [provider]'s art or [endpointName]'s glyph.
+ * A spec's `iconURL` may name an endpoint rather than an image, which is why both exist.
  */
-data class LandingHeroIcon(val endpointName: String?, val iconUrl: String?)
+data class LandingHeroIcon(val endpointName: String?, val iconUrl: String?, val provider: ProviderId? = null)
 
 /**
  * Returns a time-based greeting with 6 periods matching the web frontend:

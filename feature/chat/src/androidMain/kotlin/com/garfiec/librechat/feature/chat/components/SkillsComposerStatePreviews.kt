@@ -99,25 +99,25 @@ private fun StreamingHost() {
     ) {
         val picks = listOf("pdf-tools", "pdf-redaction-and-sanitizing-for-legal-review")
         // Thread with avatars, Thread with bubbles, Thread without avatars, two-sided.
-        StreamingMessageBubble(streamingContent = "", senderName = "Claude", senderIconUrl = null, pendingSkills = picks)
+        StreamingMessageBubble(streamingContent = "", senderName = "Claude", avatar = null, pendingSkills = picks)
         StreamingMessageBubble(
             streamingContent = "Reading the PDF",
             senderName = "Claude",
-            senderIconUrl = null,
+            avatar = null,
             showBubbles = true,
             pendingSkills = picks,
         )
         StreamingMessageBubble(
             streamingContent = "",
             senderName = "Claude",
-            senderIconUrl = null,
+            avatar = null,
             showAvatars = false,
             pendingSkills = picks.take(1),
         )
         StreamingMessageBubble(
             streamingContent = "",
             senderName = "Claude",
-            senderIconUrl = null,
+            avatar = null,
             chatLayoutStyle = ChatLayoutConstants.TWO_SIDED,
             pendingSkills = picks.take(1),
         )

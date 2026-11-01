@@ -21,10 +21,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.ChatLayoutConstants
-import com.garfiec.librechat.core.ui.components.AvatarImage
+import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.core.ui.components.BubbleShape
-import com.garfiec.librechat.core.ui.components.endpointIconPainter
-import com.garfiec.librechat.core.ui.components.isMonochromeEndpointIcon
+import com.garfiec.librechat.core.ui.components.EndpointAvatar
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_assistant_responding
 import com.garfiec.librechat.feature.chat.resources.cd_generating_response
@@ -50,10 +49,9 @@ import org.jetbrains.compose.resources.stringResource
 fun StreamingMessageBubble(
     streamingContent: String,
     senderName: String,
-    senderIconUrl: String?,
+    avatar: IconSource?,
     modifier: Modifier = Modifier,
     fontSizeMultiplier: Float = 1.0f,
-    selectedEndpoint: String? = null,
     chatLayoutStyle: String = ChatLayoutConstants.THREAD,
     showAvatars: Boolean = true,
     showBubbles: Boolean = false,
@@ -65,9 +63,8 @@ fun StreamingMessageBubble(
         TwoSidedStreamingBubble(
             streamingContent = streamingContent,
             senderName = senderName,
-            senderIconUrl = senderIconUrl,
+            avatar = avatar,
             fontSizeMultiplier = fontSizeMultiplier,
-            selectedEndpoint = selectedEndpoint,
             showAvatars = showAvatars,
             showBubbles = showBubbles,
             useKatex = useKatex,
@@ -79,9 +76,8 @@ fun StreamingMessageBubble(
         ThreadStreamingBubble(
             streamingContent = streamingContent,
             senderName = senderName,
-            senderIconUrl = senderIconUrl,
+            avatar = avatar,
             fontSizeMultiplier = fontSizeMultiplier,
-            selectedEndpoint = selectedEndpoint,
             showAvatars = showAvatars,
             showBubbles = showBubbles,
             useKatex = useKatex,
@@ -96,9 +92,8 @@ fun StreamingMessageBubble(
 private fun ThreadStreamingBubble(
     streamingContent: String,
     senderName: String,
-    senderIconUrl: String?,
+    avatar: IconSource?,
     fontSizeMultiplier: Float,
-    selectedEndpoint: String?,
     showAvatars: Boolean,
     showBubbles: Boolean,
     useKatex: Boolean,
@@ -120,11 +115,11 @@ private fun ThreadStreamingBubble(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (showAvatars) {
-                AvatarImage(
-                    imageUrl = senderIconUrl,
+                EndpointAvatar(
+                    imageUrl = avatar?.imageUrl,
+                    endpointName = avatar?.endpointName,
+                    provider = avatar?.provider,
                     fallbackText = senderName,
-                    fallbackIconPainter = if (senderIconUrl == null) endpointIconPainter(selectedEndpoint) else null,
-                    tintIcon = if (senderIconUrl == null) isMonochromeEndpointIcon(selectedEndpoint) else false,
                     size = 28.dp,
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -188,9 +183,8 @@ private fun ThreadStreamingBubble(
 private fun TwoSidedStreamingBubble(
     streamingContent: String,
     senderName: String,
-    senderIconUrl: String?,
+    avatar: IconSource?,
     fontSizeMultiplier: Float,
-    selectedEndpoint: String?,
     showAvatars: Boolean,
     showBubbles: Boolean,
     useKatex: Boolean,
@@ -211,11 +205,11 @@ private fun TwoSidedStreamingBubble(
     ) {
         // Agent avatar on left
         if (showAvatars) {
-            AvatarImage(
-                imageUrl = senderIconUrl,
+            EndpointAvatar(
+                imageUrl = avatar?.imageUrl,
+                endpointName = avatar?.endpointName,
+                provider = avatar?.provider,
                 fallbackText = senderName,
-                fallbackIconPainter = if (senderIconUrl == null) endpointIconPainter(selectedEndpoint) else null,
-                tintIcon = if (senderIconUrl == null) isMonochromeEndpointIcon(selectedEndpoint) else false,
                 size = 28.dp,
             )
             Spacer(modifier = Modifier.width(6.dp))

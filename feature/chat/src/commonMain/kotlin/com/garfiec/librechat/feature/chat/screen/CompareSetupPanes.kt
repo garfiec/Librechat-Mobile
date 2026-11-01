@@ -289,6 +289,7 @@ private fun QuickPickRow(quick: CompareQuickPick, selected: Boolean, onClick: ()
             EndpointIcon(
                 endpointName = icon.endpointName,
                 iconUrl = icon.imageUrl,
+                provider = icon.provider,
                 size = 20.dp,
                 glyphTint = MaterialTheme.colorScheme.onSurfaceVariant,
             )

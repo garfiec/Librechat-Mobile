@@ -27,14 +27,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.common.ChatLayoutConstants
-import com.garfiec.librechat.core.model.EModelEndpoint
+import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
 import com.garfiec.librechat.core.ui.components.AdaptivePillChoice
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AvatarImage
 import com.garfiec.librechat.core.ui.components.BubbleShape
+import com.garfiec.librechat.core.ui.components.EndpointAvatar
 import com.garfiec.librechat.core.ui.components.adaptiveSection
-import com.garfiec.librechat.core.ui.components.endpointIconPainter
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
@@ -245,10 +245,11 @@ private fun SampleAvatar(isUser: Boolean) {
     if (isUser) {
         AvatarImage(imageUrl = null, showPersonIcon = true, size = AvatarSize, contentDescription = null)
     } else {
-        AvatarImage(
+        EndpointAvatar(
             imageUrl = null,
-            fallbackIconPainter = endpointIconPainter(EModelEndpoint.AGENTS),
-            tintIcon = true,
+            endpointName = EndpointConstants.AGENTS,
+            provider = null,
+            fallbackText = "",
             size = AvatarSize,
             contentDescription = null,
         )

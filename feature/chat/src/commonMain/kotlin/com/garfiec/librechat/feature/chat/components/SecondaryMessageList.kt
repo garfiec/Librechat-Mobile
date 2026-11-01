@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.ChatLayoutConstants
 import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.withPreviews
@@ -48,7 +49,8 @@ fun SecondaryMessageList(
     error: String? = null,
     baseUrl: String = "",
     fontSizeMultiplier: Float = 1.0f,
-    selectedEndpoint: String? = null,
+    /** The streaming reply's avatar, resolved like each node's [MessageNode.avatar]. */
+    streamingAvatar: IconSource? = null,
     streamingSenderName: String = "Assistant",
     showImageDescriptions: Boolean = true,
     chatLayoutStyle: String = ChatLayoutConstants.THREAD,
@@ -166,11 +168,11 @@ fun SecondaryMessageList(
                         fontSizeMultiplier = fontSizeMultiplier,
                         userAvatarUrl = userAvatarUrl,
                         userName = userName,
-                        selectedEndpoint = selectedEndpoint,
                         showImageDescriptions = showImageDescriptions,
                         chatLayoutStyle = chatLayoutStyle,
                         showAvatars = showAvatars,
                         showBubbles = showBubbles,
+                        avatar = node.avatar,
                         useKatex = useKatex,
                     )
                     if (stoppedReply?.messageId == node.message.messageId) {
@@ -200,9 +202,8 @@ fun SecondaryMessageList(
                             StreamingMessageBubble(
                                 streamingContent = streamingContent,
                                 senderName = streamingSenderName,
-                                senderIconUrl = null,
+                                avatar = streamingAvatar,
                                 fontSizeMultiplier = fontSizeMultiplier,
-                                selectedEndpoint = selectedEndpoint,
                                 chatLayoutStyle = chatLayoutStyle,
                                 showAvatars = showAvatars,
                                 showBubbles = showBubbles,

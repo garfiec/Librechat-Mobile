@@ -186,6 +186,10 @@ class NavHostViewModel(
     // cold transition flow restarted in that gap would silently swallow a flip that landed mid-gap.
     val accountState: StateFlow<AccountState> = activeAccountProvider.state
 
+    /** The active account's server, for UI loading what the server serves (provider art). */
+    val serverUrl: StateFlow<String?> = configRepository.serverUrl
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
     // The signed-in accounts for the drawer chip + switcher sheet: active entry first, the rest by
     // recency (matching "switch to most-recently-active" on remove). Account identity + switching
     // stay in the nav shell; only the drawer *renders* this list ([AccountUiModel] lives with the

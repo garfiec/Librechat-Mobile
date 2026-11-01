@@ -169,4 +169,16 @@ class MessageTreeTest {
         val result = buildActiveMessagePath(messages, streamingLeafId = "does-not-exist")
         assertThat(result.map { it.message.messageId }).containsExactly("a", "b").inOrder()
     }
+
+    @Test
+    fun `a resumed run's saved partial leaves the path while the finished reply stays`() {
+        val user = message("u", isUser = true)
+        val partial = message("r", parentId = "u").copy(unfinished = true)
+        val path = buildActiveMessagePath(listOf(user, partial))
+        assertThat(path.withoutLivePartial("r").map { it.message.messageId }).containsExactly("u")
+
+        val finished = buildActiveMessagePath(listOf(user, message("r", parentId = "u")))
+        assertThat(finished.withoutLivePartial("r")).isSameInstanceAs(finished)
+        assertThat(path.withoutLivePartial(null)).isSameInstanceAs(path)
+    }
 }

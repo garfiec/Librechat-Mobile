@@ -50,7 +50,7 @@ fun userKeyEndpoints(
         .entries
         .sortedWith(
             compareBy<Map.Entry<String, EndpointConfig>, Int?>(nullsLast()) { it.value.order }
-                .thenBy { (it.value.modelDisplayLabel ?: it.key).lowercase() },
+                .thenBy { endpointDisplayName(it.key, it.value).lowercase() },
         )
         .map { it.key }
 }

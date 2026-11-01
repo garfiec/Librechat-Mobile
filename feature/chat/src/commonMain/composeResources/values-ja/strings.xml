@@ -797,7 +797,7 @@
     <string name="cd_attached_image">添付画像</string>
     <string name="model_selector_search">モデルを検索…</string>
     <string name="model_selector_my_agents">マイエージェント</string>
-    <string name="model_selector_spec_only_note">このサーバーでは上に表示されたオプションのみ使用できます。</string>
+    <string name="model_selector_spec_only_top_note">送信できるのはサーバーのモデルスペックのみです。グレー表示のモデルは参考用です。</string>
     <string name="agent_handoff_to">エージェント %1$s</string>
     <string name="agent_handoff_run">実行：%1$s</string>
     <string name="sibling_position">回答 %1$d / %2$d</string>

@@ -5,6 +5,8 @@ import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.SAVED_TAG
 import com.garfiec.librechat.core.model.iconEndpoint
+import com.garfiec.librechat.core.model.iconProvider
+import com.garfiec.librechat.core.model.media.ProviderId
 import com.garfiec.librechat.core.model.resolveEndpointIconUrl
 import kotlin.time.Instant
 
@@ -19,6 +21,11 @@ data class ConversationDisplayData(
     val isFavorite: Boolean,
     val endpointIconUrl: String? = null,
     val iconEndpoint: String? = endpoint,
+    /**
+     * The brand art the row draws when [endpointIconUrl] is null or fails to load; beats [iconEndpoint].
+     * Null when the endpoint's configured icon is an image, as on web.
+     */
+    val iconProvider: ProviderId? = null,
 )
 
 fun Conversation.toDisplayData(
@@ -32,5 +39,6 @@ fun Conversation.toDisplayData(
     updatedAt = updatedAt,
     isFavorite = SAVED_TAG in tags,
     endpointIconUrl = resolveEndpointIconUrl(endpointConfigs, serverUrl),
-    iconEndpoint = iconEndpoint,
+    iconEndpoint = iconEndpoint(endpointConfigs),
+    iconProvider = iconProvider(endpointConfigs),
 )

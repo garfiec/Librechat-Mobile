@@ -854,7 +854,7 @@
     <string name="cd_attached_image">Attached image</string>
     <string name="model_selector_search">Search models…</string>
     <string name="model_selector_my_agents">My Agents</string>
-    <string name="model_selector_spec_only_note">This server only accepts the options listed above.</string>
+    <string name="model_selector_spec_only_top_note">Only the server's model specs can be sent; greyed models are for reference.</string>
     <string name="agent_handoff_to">Agent %1$s</string>
     <string name="agent_handoff_run">Run: %1$s</string>
     <string name="sibling_position">Response %1$d of %2$d</string>

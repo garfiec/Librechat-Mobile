@@ -113,7 +113,6 @@ private fun SenderBubble(message: Message, layout: String) {
         editSession = null,
         userAvatarUrl = null,
         userName = PREVIEW_USER_NAME,
-        selectedEndpoint = null,
         showImageDescriptions = false,
         showActionsInitially = false,
         searchQuery = null,

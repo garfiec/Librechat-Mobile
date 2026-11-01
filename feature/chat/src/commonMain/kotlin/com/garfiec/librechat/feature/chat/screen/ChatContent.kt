@@ -15,6 +15,7 @@ import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.model.config.displayLabel
 import com.garfiec.librechat.core.model.config.labelFor
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
+import com.garfiec.librechat.core.model.media.resolveIconSource
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.feature.chat.components.LandingContent
 import com.garfiec.librechat.feature.chat.components.LandingHeroIcon
@@ -28,7 +29,7 @@ import com.garfiec.librechat.feature.chat.resources.sender_assistant
 import com.garfiec.librechat.feature.chat.util.ClipboardWriter
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.collapseParallelToPrimary
-import com.garfiec.librechat.feature.chat.util.ownIconSource
+import com.garfiec.librechat.feature.chat.util.iconSource
 import com.garfiec.librechat.feature.chat.util.rememberClipboardWriter
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
@@ -86,16 +87,7 @@ internal fun ColumnScope.ChatContent(
     val topInsetModifier = Modifier
         .weight(1f)
         .padding(top = topContentPadding)
-    // Streaming-bubble sender label for the active model: the agent's
-    // display name under the agents endpoint, else the raw model id.
-    val senderName = run {
-        val model = uiState.selectedModel
-        if (uiState.selectedEndpoint == EndpointConstants.AGENTS && model != null) {
-            uiState.agents.find { it.id == model }?.name ?: model
-        } else {
-            model ?: fallbackSenderName
-        }
-    }
+    val senderName = uiState.replySenderName(fallbackSenderName)
     // The thread's scroll position, shared by the single list and Compare's pane A: opening or
     // cancelling Compare swaps one for the other, and the reader keeps their place. A fresh one per
     // ACTIVE stretch: the landing entry outlives its chats (a handed-off new chat resets it to the
@@ -298,7 +290,7 @@ private fun ChatMessageListPane(
         onRefresh = viewModel::refreshMessages,
         userAvatarUrl = uiState.userAvatarUrl,
         userName = uiState.userName,
-        selectedEndpoint = uiState.selectedEndpoint,
+        streamingAvatar = uiState.avatars.streaming,
         streamingSenderName = streamingSenderName,
         showImageDescriptions = showImageDescriptions,
         chatLayoutStyle = chatLayoutStyle,
@@ -320,21 +312,42 @@ private fun ChatMessageListPane(
 }
 
 /**
- * The new chat's own icon, as web's landing shows it: the selected spec's own icon ([ownIconSource]:
- * its `iconURL`, its preset's, its agent's avatar), else the selected agent's avatar. Null keeps the
- * app tile, so a spec with no icon of its own looks like the raw model it runs on.
+ * The new chat's icon, as web's landing draws it (`ConvoIcon`): the selected spec's ([iconSource]: its
+ * `iconURL`, its preset's, its agent's avatar, else its endpoint's brand), the selected agent's avatar
+ * (the agents glyph without one), else the selected endpoint's brand. Null, before anything is
+ * selected, keeps the app tile.
  */
 internal fun ChatUiState.landingHeroIcon(): LandingHeroIcon? {
     val spec = modelSpecs?.list?.find { it.name == selectedSpec }
-    if (spec != null) {
-        val icon = spec.ownIconSource(agents, serverUrl) ?: return null
-        return LandingHeroIcon(endpointName = icon.endpointName, iconUrl = icon.imageUrl)
+    val icon = when {
+        spec != null -> spec.iconSource(agents, serverUrl, endpointConfigs)
+        selectedEndpoint.isBlank() -> return null
+        // No agent yet is the selection before seeding, not a choice to draw.
+        selectedEndpoint == EndpointConstants.AGENTS ->
+            return if (selectedModel == null) {
+                null
+            } else {
+                LandingHeroIcon(
+                    endpointName = EndpointConstants.AGENTS,
+                    iconUrl = selectedAgent()?.avatarUrl?.let { resolveAvatarUrl(it, serverUrl) },
+                )
+            }
+        else -> resolveIconSource(null, selectedEndpoint, serverUrl, endpointConfigs)
     }
-    val agentAvatar = selectedAgent()
-        ?.avatarUrl
-        ?.let { resolveAvatarUrl(it, serverUrl) }
-        ?: return null
-    return LandingHeroIcon(endpointName = null, iconUrl = agentAvatar)
+    return LandingHeroIcon(endpointName = icon.endpointName, iconUrl = icon.imageUrl, provider = icon.provider)
+}
+
+/**
+ * The name a reply in progress goes by until the server's saved one replaces it: the agent's name
+ * under the agents endpoint, else the selected spec's label (the names the server saves those
+ * replies under), else the model, where the server's own name (`getResponseSender`) isn't ported.
+ */
+internal fun ChatUiState.replySenderName(fallback: String): String {
+    val model = selectedModel
+    if (selectedEndpoint == EndpointConstants.AGENTS && model != null) {
+        return agents.find { it.id == model }?.name ?: model
+    }
+    return modelSpecs?.labelFor(selectedSpec) ?: model ?: fallback
 }
 
 private fun ChatUiState.selectedAgent() =

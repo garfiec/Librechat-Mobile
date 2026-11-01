@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.common.EndpointConstants
+import com.garfiec.librechat.core.model.endpoint.endpointDisplayName
 import com.garfiec.librechat.feature.chat.util.blocksSelection
 import com.garfiec.librechat.feature.chat.util.requiresSpec
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
@@ -106,7 +107,7 @@ class SendReadinessDelegate(
         // still loading (or never fetched) lets the send through, as the picker does.
         if (state.endpointKeyStates[state.selectedEndpoint].blocksSelection()) {
             // The name the picker shows for the endpoint, not its config key.
-            val label = state.endpointConfigs[state.selectedEndpoint]?.modelDisplayLabel ?: state.selectedEndpoint
+            val label = endpointDisplayName(state.selectedEndpoint, state.endpointConfigs[state.selectedEndpoint])
             return SendBlockReason.ApiKeyRequired(label)
         }
         return null

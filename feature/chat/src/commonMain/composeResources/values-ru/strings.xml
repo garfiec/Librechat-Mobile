@@ -833,7 +833,7 @@
     <string name="cd_attached_image">Прикреплённое изображение</string>
     <string name="model_selector_search">Поиск моделей…</string>
     <string name="model_selector_my_agents">Мои агенты</string>
-    <string name="model_selector_spec_only_note">Этот сервер принимает только варианты, перечисленные выше.</string>
+    <string name="model_selector_spec_only_top_note">Отправлять можно только спецификации моделей с сервера; серые модели показаны для справки.</string>
     <string name="agent_handoff_to">Агент %1$s</string>
     <string name="agent_handoff_run">Запуск: %1$s</string>
     <string name="sibling_position">Ответ %1$d из %2$d</string>

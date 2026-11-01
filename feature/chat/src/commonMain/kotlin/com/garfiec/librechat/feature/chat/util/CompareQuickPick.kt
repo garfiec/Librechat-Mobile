@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.config.displayLabel
 import com.garfiec.librechat.core.model.endpoint.KeyState
+import com.garfiec.librechat.core.model.endpoint.endpointDisplayName
 import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.FavoritesDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.filterModelsByEndpoint
@@ -66,7 +67,7 @@ fun compareQuickPicks(
         .takeIf { rawSendable && modelSpecs.showsRawEndpoint(EndpointConstants.AGENTS, modelSelect) }
         .orEmpty()
         .associateBy { it.id }
-    fun sourceOf(endpoint: String) = endpointConfigs[endpoint]?.modelDisplayLabel ?: endpoint
+    fun sourceOf(endpoint: String) = endpointDisplayName(endpoint, endpointConfigs[endpoint])
     fun modelPick(endpoint: String, model: String) = CompareQuickPick(
         endpoint = endpoint,
         model = model,
@@ -94,7 +95,7 @@ fun compareQuickPicks(
             source = if (seed.endpoint == EndpointConstants.AGENTS) agentCaption else sourceOf(seed.endpoint),
             starred = spec.name in favoriteSpecNames,
             spec = spec.name,
-            icon = spec.menuIconSource(agents, serverUrl),
+            icon = spec.menuIconSource(agents, serverUrl, endpointConfigs),
         )
     }
 

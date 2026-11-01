@@ -57,6 +57,7 @@ import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.FeedbackRating
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
+import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.feature.chat.resources.*
@@ -261,6 +262,8 @@ private fun SelectionScope(enabled: Boolean, content: @Composable () -> Unit) {
 @Composable
 internal fun MessageContentAndActions(
     message: Message,
+    /** The reply's resolved avatar ([com.garfiec.librechat.feature.chat.util.MessageNode.avatar]), for its segment headers. */
+    avatar: IconSource?,
     isUser: Boolean,
     /** Non-null only on the message being edited; see [MessageEditSession]. */
     editSession: MessageEditSession?,
@@ -539,8 +542,7 @@ internal fun MessageContentAndActions(
                                         SegmentAuthorHeader(
                                             author = author,
                                             messageSender = message.sender,
-                                            messageIconUrl = message.iconURL,
-                                            messageEndpoint = message.endpoint,
+                                            messageAvatar = avatar,
                                         )
                                     }
                                     segment.groups.forEach { group ->

@@ -21,9 +21,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.core.ui.components.AvatarImage
-import com.garfiec.librechat.core.ui.components.endpointIconPainter
-import com.garfiec.librechat.core.ui.components.isMonochromeEndpointIcon
+import com.garfiec.librechat.core.ui.components.EndpointAvatar
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.SegmentAuthor
@@ -98,8 +98,7 @@ internal fun SteerContentPart(
 internal fun SegmentAuthorHeader(
     author: SegmentAuthor,
     messageSender: String?,
-    messageIconUrl: String?,
-    messageEndpoint: String?,
+    messageAvatar: IconSource?,
     modifier: Modifier = Modifier,
 ) {
     // The run had already handed off when the steer landed, so the resumed content belongs to a
@@ -117,18 +116,25 @@ internal fun SegmentAuthorHeader(
             modifier = modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            AvatarImage(
-                imageUrl = if (isOtherAgent) null else messageIconUrl,
-                fallbackText = label,
-                fallbackIconPainter = when {
-                    isOtherAgent -> rememberVectorPainter(Icons.Default.SmartToy)
-                    messageIconUrl == null -> endpointIconPainter(messageEndpoint)
-                    else -> null
-                },
-                tintIcon = isOtherAgent || (messageIconUrl == null && isMonochromeEndpointIcon(messageEndpoint)),
-                size = 22.dp,
-                contentDescription = null,
-            )
+            if (isOtherAgent) {
+                AvatarImage(
+                    imageUrl = null,
+                    fallbackText = label,
+                    fallbackIconPainter = rememberVectorPainter(Icons.Default.SmartToy),
+                    tintIcon = true,
+                    size = 22.dp,
+                    contentDescription = null,
+                )
+            } else {
+                EndpointAvatar(
+                    imageUrl = messageAvatar?.imageUrl,
+                    endpointName = messageAvatar?.endpointName,
+                    provider = messageAvatar?.provider,
+                    fallbackText = label,
+                    size = 22.dp,
+                    contentDescription = null,
+                )
+            }
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 modifier = Modifier.semantics { heading() },

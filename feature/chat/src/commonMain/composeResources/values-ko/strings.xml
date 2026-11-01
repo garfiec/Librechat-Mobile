@@ -797,7 +797,7 @@
     <string name="cd_attached_image">첨부된 이미지</string>
     <string name="model_selector_search">모델 검색…</string>
     <string name="model_selector_my_agents">내 에이전트</string>
-    <string name="model_selector_spec_only_note">이 서버에서는 위에 표시된 옵션만 사용할 수 있습니다.</string>
+    <string name="model_selector_spec_only_top_note">서버의 모델 사양으로만 보낼 수 있습니다. 회색으로 표시된 모델은 참고용입니다.</string>
     <string name="agent_handoff_to">에이전트 %1$s</string>
     <string name="agent_handoff_run">실행: %1$s</string>
     <string name="sibling_position">응답 %1$d/%2$d</string>

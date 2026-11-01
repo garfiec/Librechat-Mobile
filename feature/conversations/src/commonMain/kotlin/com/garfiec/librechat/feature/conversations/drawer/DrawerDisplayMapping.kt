@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.model.SAVED_TAG
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.config.labelFor
 import com.garfiec.librechat.core.model.iconEndpoint
+import com.garfiec.librechat.core.model.iconProvider
 import com.garfiec.librechat.core.model.resolveEndpointIconUrl
 
 /**
@@ -41,6 +42,7 @@ internal fun Conversation.toDrawerDisplayData(
         chatProjectId = chatProjectId,
         tags = tags,
         endpointIconUrl = resolveEndpointIconUrl(endpointConfigs, serverUrl),
-        iconEndpoint = iconEndpoint,
+        iconEndpoint = iconEndpoint(endpointConfigs),
+        iconProvider = iconProvider(endpointConfigs),
     )
 }
