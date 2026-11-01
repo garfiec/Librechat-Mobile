@@ -41,7 +41,10 @@ class McpOAuthNavigationGateTest {
         )
         assertEquals(
             listOf("http://localhost:3080"),
-            mcpOAuthCookieOrigins("http://localhost:3080", "https://idp/a?redirect_uri=http%3A%2F%2Flocalhost%3A3080%2Fapi%2Fmcp%2Fx%2Foauth%2Fcallback"),
+            mcpOAuthCookieOrigins(
+                "http://localhost:3080",
+                "https://idp/a?redirect_uri=http%3A%2F%2Flocalhost%3A3080%2Fapi%2Fmcp%2Fx%2Foauth%2Fcallback",
+            ),
         )
     }
 

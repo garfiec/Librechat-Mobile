@@ -44,7 +44,6 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.mcp.McpOAuthLaunch
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
-import com.garfiec.librechat.core.ui.mcp.McpOAuthSignInDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveExtendedFloatingActionButton
 import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
@@ -62,6 +61,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
+import com.garfiec.librechat.core.ui.mcp.McpOAuthSignInDialog
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.MCP_SEARCH_THRESHOLD

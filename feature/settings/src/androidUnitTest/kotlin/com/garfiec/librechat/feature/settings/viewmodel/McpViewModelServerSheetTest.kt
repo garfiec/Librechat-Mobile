@@ -55,6 +55,8 @@ class McpViewModelServerSheetTest {
         every { currentUrlFlow } returns flowOf("https://chat.example.test")
     }
 
+    private fun vm() = McpViewModel(mcpRepository, roleRepository, permissionsRepository, serverDataStore, mockk(relaxed = true))
+
     @Before
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -67,7 +69,7 @@ class McpViewModelServerSheetTest {
 
     @Test
     fun `an open server shows its own tools only`() = runTest {
-        val vm = McpViewModel(mcpRepository, roleRepository, permissionsRepository, serverDataStore, mockk(relaxed = true))
+        val vm = vm()
 
         vm.openServer("github")
 
@@ -77,7 +79,7 @@ class McpViewModelServerSheetTest {
 
     @Test
     fun `deleting the open server closes its sheet`() = runTest {
-        val vm = McpViewModel(mcpRepository, roleRepository, permissionsRepository, serverDataStore, mockk(relaxed = true))
+        val vm = vm()
         vm.openServer("github")
 
         vm.deleteServer("github")
@@ -90,7 +92,7 @@ class McpViewModelServerSheetTest {
     @Test
     fun `retrying a failed delete sends the delete again`() = runTest {
         coEvery { mcpRepository.deleteServer("linear") } returnsMany listOf(Result.Error(message = "boom"), Result.Success(Unit))
-        val vm = McpViewModel(mcpRepository, roleRepository, permissionsRepository, serverDataStore, mockk(relaxed = true))
+        val vm = vm()
         vm.deleteServer("linear")
         val retry = vm.uiState.value.errorRetry
         assertThat(retry).isEqualTo(McpRetry.Delete("linear"))
@@ -105,7 +107,7 @@ class McpViewModelServerSheetTest {
     @Test
     fun `the all-tools sheet names servers by title`() = runTest {
         servers.value = listOf(McpServer(name = "github_ab12", title = "GitHub"), McpServer(name = "linear"))
-        val vm = McpViewModel(mcpRepository, roleRepository, permissionsRepository, serverDataStore, mockk(relaxed = true))
+        val vm = vm()
 
         assertThat(vm.uiState.value.serverTitles).containsExactly("github_ab12", "GitHub", "linear", "linear")
     }

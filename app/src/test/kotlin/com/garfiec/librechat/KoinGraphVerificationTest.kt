@@ -45,6 +45,7 @@ import com.garfiec.librechat.core.data.repository.EndpointTokenRepository
 import com.garfiec.librechat.core.data.repository.FavoritesRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.KeyRepository
+import com.garfiec.librechat.core.data.repository.McpOAuthLauncher
 import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.repository.MemoryRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
@@ -235,6 +236,7 @@ class KoinGraphVerificationTest {
             FileRepository::class,
             KeyRepository::class,
             McpRepository::class,
+            McpOAuthLauncher::class,
             MemoryRepository::class,
             MessageRepository::class,
             PermissionsRepository::class,
