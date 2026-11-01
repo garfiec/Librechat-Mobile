@@ -19,6 +19,8 @@ import kotlin.uuid.Uuid
 
 object ChatPayloadBuilder {
 
+    private fun String?.nonBlankId(): String? = this?.takeIf { it.isNotBlank() }
+
     @OptIn(ExperimentalUuidApi::class)
     fun build(
         text: String,
@@ -48,7 +50,10 @@ object ChatPayloadBuilder {
         manualSkills: List<String>? = null,
         editedContent: EditedContent? = null,
     ): ChatRequest {
-        val resolvedParentMessageId = parentMessageId ?: NO_PARENT
+        // v0.8.9-rc1 400s (`INVALID_MESSAGE_ID`) any turn id that is present but not 1-256 chars of
+        // `[A-Za-z0-9_:.-]`, and an empty string counts as present. Older servers read a blank id as
+        // absent, so a blank one is sent as absent here (a blank parent as a new root, as before).
+        val resolvedParentMessageId = parentMessageId.nonBlankId() ?: NO_PARENT
         // Assistants take none (upstream createPayload strips them there). Otherwise deduped and
         // capped the way the server resolves them.
         val sentSkills = if (manualSkillsSupportedOn(endpoint)) normalizeManualSkills(manualSkills) else emptyList()
@@ -59,7 +64,7 @@ object ChatPayloadBuilder {
         return ChatRequest(
             text = text,
             conversationId = conversationId,
-            messageId = userMessageId,
+            messageId = userMessageId.nonBlankId(),
             parentMessageId = resolvedParentMessageId,
             endpoint = endpoint,
             endpointType = endpointType,
@@ -68,8 +73,8 @@ object ChatPayloadBuilder {
             model = model,
             spec = spec,
             agentId = agentId,
-            overrideParentMessageId = overrideParentMessageId,
-            responseMessageId = responseMessageId,
+            overrideParentMessageId = overrideParentMessageId.nonBlankId(),
+            responseMessageId = responseMessageId.nonBlankId(),
             isEdited = isEdited,
             // A compaction borrows the regenerate SHAPE client-side — no user message is minted —
             // but the server must see it as a compaction and nothing else: rc3's
