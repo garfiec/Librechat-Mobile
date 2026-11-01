@@ -6,6 +6,7 @@ import io.ktor.http.Headers
 import io.ktor.http.HeadersBuilder
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMessage
+import io.ktor.http.renderSetCookieHeader
 import io.ktor.http.setCookie
 import kotlin.time.Clock
 
@@ -76,6 +77,14 @@ object CookieHelper {
     fun extractRefreshToken(headers: Headers): String? {
         return responseCookies(headers).firstOrNull { it.name == "refreshToken" }?.value
     }
+
+    /**
+     * The response's cookies named in [names], each re-rendered as its own `Set-Cookie` value with
+     * every attribute kept (Path, Max-Age, Secure, HttpOnly, SameSite). A WebView jar seeded from
+     * these holds what a browser would have stored from the same response.
+     */
+    fun setCookieValues(headers: Headers, names: Set<String>): List<String> =
+        responseCookies(headers).filter { it.name in names && it.value.isNotBlank() }.map(::renderSetCookieHeader)
 
     // Foundation combines repeated Set-Cookie fields. Ktor's parser separates them while
     // retaining commas inside Expires attributes and the default RAW cookie encoding.

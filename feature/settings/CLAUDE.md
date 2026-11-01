@@ -131,6 +131,15 @@
   a consent dialog.
 - **Gotcha**: do NOT auto-launch the browser. The redirect hands a third-party provider this
   session, so the launch has to be an explicit user action, not a side effect of tapping reconnect.
+- **Continue binds, then opens in app (v0.8.9-rc1).** The callback now needs the `oauth_csrf` /
+  `oauth_session` cookies, which the system browser never has. `continueOAuth()` asks
+  `McpOAuthLauncher` (`:core:data`, the one version gate, shared with chat): an `InApp` launch
+  (`POST /oauth/bind`'s cookies) renders `McpOAuthSignInDialog` from `:core:ui`; an `External` one
+  (known server before rc1) opens the system browser as before. The bind is at the tap, not when
+  the prompt appears: the CSRF cookie lives ten minutes.
+- The in-app sign-in fires no ON_RESUME, so `onOAuthOutcome` reloads the servers itself and reports
+  through the `OAUTH_SIGNED_IN_MARKER` / `OAUTH_FAILED_MARKER` sentinels (Retry = reconnect).
+  Closing the page is silent.
 - `connectionDeferred` is a third outcome: the ack landed but the connection is still being made.
   Reported via the `McpViewModel.DEFERRED_MARKER` sentinel, which the screen swaps for a localized
   string (the VM has no access to compose resources).

@@ -345,4 +345,8 @@
         <item quantity="one">Use %1$d character or fewer</item>
         <item quantity="other">Use %1$d characters or fewer</item>
     </plurals>
+    <!-- Title of the in-app page where the user signs in to an MCP server's provider. %1$s is the server's name -->
+    <string name="mcp_oauth_sign_in_title">Sign in to %1$s</string>
+    <!-- Accessibility label for the button that closes the MCP sign-in page without finishing -->
+    <string name="mcp_oauth_sign_in_close">Close sign-in</string>
 </resources>

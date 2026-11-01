@@ -4287,6 +4287,61 @@
       },
       "why": "The account providers enforced 2FA applies to (local, ldap). Disable 2FA is hidden only for them while twoFactorAuthenticationRequired is on, because only for them does the server refuse it.",
       "failure_mode": "Upstream adds a provider: Disable 2FA stays visible for it and fails with a 403 when tapped."
+    },
+    {
+      "id": "mcp-oauth-csrf-cookie",
+      "upstream": {
+        "file": "packages/api/src/oauth/csrf.ts",
+        "symbol": "OAUTH_CSRF_COOKIE",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/api/McpApi.kt",
+        "symbol": "MCP_OAUTH_BINDING_COOKIES"
+      },
+      "why": "One of the two cookies the MCP OAuth callback accepts as browser binding (v0.8.9-rc1). Mobile copies it by name from the bind response into the sign-in WebView's jar.",
+      "failure_mode": "Upstream renames the cookie: bind still answers 200 but the cookie is filtered out, the WebView carries no binding, and every in-app MCP sign-in ends at /oauth/error?error=csrf_validation_failed."
+    },
+    {
+      "id": "mcp-oauth-session-cookie",
+      "upstream": {
+        "file": "packages/api/src/oauth/csrf.ts",
+        "symbol": "OAUTH_SESSION_COOKIE",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/api/McpApi.kt",
+        "symbol": "MCP_OAUTH_BINDING_COOKIES"
+      },
+      "why": "The user-bound cookie the MCP OAuth callback accepts when the per-flow CSRF cookie is missing or was replaced by a later prompt.",
+      "failure_mode": "Upstream renames it: a sign-in whose CSRF cookie lapsed or was overwritten by another prompt fails with csrf_validation_failed instead of falling back to the session binding."
+    },
+    {
+      "id": "mcp-oauth-tool-call-name",
+      "upstream": {
+        "file": "packages/api/src/mcp/utils.ts",
+        "symbol": "buildOAuthToolCallName",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpOAuthLaunch.kt",
+        "symbol": "MCP_OAUTH_TOOL_PREFIX"
+      },
+      "why": "The sign-in prompt's tool call is named oauth_mcp_<normalized server>; mobile reads the server name from it when the authorization URL's redirect_uri names no MCP callback.",
+      "failure_mode": "Upstream changes the prefix: a prompt whose URL has no MCP redirect_uri shows no Sign in action, and the run waits until the prompt expires."
+    },
+    {
+      "id": "mcp-oauth-result-pages",
+      "upstream": {
+        "file": "api/server/routes/mcp.js",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/mcp/McpOAuthNavigationGate.kt",
+        "symbol": "McpOAuthNavigationGate"
+      },
+      "why": "The MCP OAuth callback ends with a redirect to {basePath}/oauth/success or {basePath}/oauth/error?error=; the in-app sign-in WebView stops on those two paths to report the outcome.",
+      "failure_mode": "Upstream moves the result pages: the WebView loads the web app's page and never reports success, so Settings does not reload and the user has to close the page by hand."
     }
   ]
 }

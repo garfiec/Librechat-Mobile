@@ -50,7 +50,8 @@
   `authRepository.loginWithOAuthToken`. It reports an error *type*; the screen owns the wording.
 - `LoginViewModel` shows a one-time warning before the first social sign-in — the flow works only
   because the WebView sends a browser User-Agent, which providers can stop honouring at any time.
-- That agent is `SSO_ANDROID_USER_AGENT` / `safariApplicationName`, **not**
+- That agent is `SSO_ANDROID_USER_AGENT` / `safariApplicationName` (in `:core:ui` `web/`, shared
+  with the MCP OAuth sign-in WebView), **not**
   `LibreChatHttpClient.BROWSER_USER_AGENT`. The API constant answers the server's `ua-parser-js`
   soft-ban; this one answers a provider's embedded-browser detection, and the two are free to
   diverge. Android uses Chrome's reduced form with the device segment frozen at `Android 10; K`,

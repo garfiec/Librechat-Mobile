@@ -13,6 +13,7 @@ import com.garfiec.librechat.core.model.mcp.McpServerStatus
 import com.garfiec.librechat.core.model.mcp.McpServerType
 import com.garfiec.librechat.core.model.mcp.McpTool
 import com.garfiec.librechat.core.model.mcp.McpToolCatalog
+import com.garfiec.librechat.core.network.client.CookieHelper
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
@@ -21,6 +22,7 @@ import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.appendPathSegments
 import io.ktor.http.path
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -89,6 +91,19 @@ class McpApi constructor(
             return McpReinitializeResponse(success = false, message = "Server returned unexpected response")
         }
         return json.decodeFromString(text)
+    }
+
+    /**
+     * POST /api/mcp/:serverName/oauth/bind — sets the cookies the OAuth callback checks: `oauth_csrf`
+     * (bound to this user's flow for [serverName], 10 min, Path `/api/mcp`) and `oauth_session`
+     * (bound to the user, 24 h, Path `/api`). This client keeps no cookie jar, so they come back as
+     * `Set-Cookie` values for the in-app sign-in WebView to seed. Empty when the server set none.
+     */
+    suspend fun bindOAuth(serverName: String): List<String> {
+        val response = client.post {
+            url { appendPathSegments("api", "mcp", serverName, "oauth", "bind") }
+        }
+        return CookieHelper.setCookieValues(response.headers, MCP_OAUTH_BINDING_COOKIES)
     }
 
     suspend fun getConnectionStatus(): Map<String, McpServerStatus> {
@@ -302,6 +317,12 @@ private val McpApiKeySource.serialName: String
         McpApiKeySource.ADMIN -> "admin"
         McpApiKeySource.USER -> "user"
     }
+
+/**
+ * Upstream `OAUTH_CSRF_COOKIE` / `OAUTH_SESSION_COOKIE` (`packages/api/src/oauth/csrf.ts`), the two
+ * cookies the MCP OAuth callback accepts as proof the browser belongs to the flow's user.
+ */
+internal val MCP_OAUTH_BINDING_COOKIES: Set<String> = setOf("oauth_csrf", "oauth_session")
 
 private val McpAuthorizationType.serialName: String
     get() = when (this) {

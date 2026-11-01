@@ -65,6 +65,7 @@ import com.garfiec.librechat.core.data.repository.FileRepositoryImpl
 import com.garfiec.librechat.core.data.repository.KeyRepository
 import com.garfiec.librechat.core.data.repository.KeyRepositoryImpl
 import com.garfiec.librechat.core.data.repository.McpRepository
+import com.garfiec.librechat.core.data.repository.McpOAuthLauncher
 import com.garfiec.librechat.core.data.repository.McpRepositoryImpl
 import com.garfiec.librechat.core.data.repository.MemoryRepository
 import com.garfiec.librechat.core.data.repository.MemoryRepositoryImpl
@@ -580,6 +581,7 @@ val dataModule = module {
     singleOf(::KeyRepositoryImpl) bind KeyRepository::class
     singleOf(::ApiKeyRepositoryImpl) bind ApiKeyRepository::class
     singleOf(::McpRepositoryImpl) bind McpRepository::class
+    factoryOf(::McpOAuthLauncher)
     single<MemoryRepository> {
         MemoryRepositoryImpl(
             memoriesApi = get(),

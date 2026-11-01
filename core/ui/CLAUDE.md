@@ -275,6 +275,19 @@ row math and filtering are pure and live in `:core:model` (`usage/ContextBreakdo
 `usage/ContextDetail.kt`). Also here: `SegmentedMeter`, `pressureColor` (amber at a rounded 80%, error
 at 95%), `formatCost` with its platform currency actuals, and `SampleContextModel` for previews.
 
+### MCP OAuth sign-in (`mcp/`, v0.8.9-rc1)
+`McpOAuthSignInDialog` is the one sign-in page for an MCP server's provider, used by Settings and by
+the chat's Sign in action (features can't share it otherwise). It takes an `McpOAuthLaunch.InApp`
+(`:core:model`) and reports one `McpOAuthOutcome`; the bind that produced it is the caller's.
+- `McpOAuthWebView` (expect/actual) seeds the bind's `Set-Cookie` values for every origin in
+  `mcpOAuthCookieOrigins` (the `redirect_uri`'s and the app's server) **before** loading the
+  provider URL. Android wipes the jar and chains each `setCookie` callback into the next, loading from
+  the last; iOS uses a fresh `nonPersistentDataStore` and awaits every `setCookie` completion. A load
+  issued earlier can reach the callback without its binding.
+- `McpOAuthNavigationGate` (pure, commonTest) cancels the redirect to `/oauth/success` or
+  `/oauth/error` on either server host and ends the flow there.
+- The User-Agent is `web/EmbeddedBrowserUserAgent.kt`, which SSO uses too.
+
 ### Date & time (`datetime/`, #445)
 - `ProvideDateTimeFormat` sits once inside `AppLocale` in `LibreChatNavHost`. It sits there rather than at the
   activity root because Android's language override reaches the configuration inside `AppLocale`. It provides two locals:

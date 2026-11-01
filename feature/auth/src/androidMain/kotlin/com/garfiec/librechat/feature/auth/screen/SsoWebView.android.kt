@@ -19,7 +19,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.model.auth.AuthCookies
 import com.garfiec.librechat.core.network.client.CookieHelper
-import com.garfiec.librechat.feature.auth.oauth.SSO_ANDROID_USER_AGENT
+import com.garfiec.librechat.core.ui.web.SSO_ANDROID_USER_AGENT
 import com.garfiec.librechat.feature.auth.oauth.SsoNavigationDecision
 import com.garfiec.librechat.feature.auth.oauth.SsoNavigationGate
 import com.garfiec.librechat.feature.auth.oauth.extractAuthCookies

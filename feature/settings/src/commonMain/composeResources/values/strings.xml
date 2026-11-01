@@ -772,6 +772,10 @@
     <string name="mcp_oauth_title">Sign in to %1$s</string>
     <string name="mcp_oauth_message">This server needs your permission before it can be used. You will be sent to the provider to authorize access, then you can come back and reconnect.</string>
     <string name="mcp_oauth_continue">Continue</string>
+    <!-- Snackbar after the in-app MCP sign-in reached the server's success page -->
+    <string name="mcp_oauth_signed_in">Signed in. Connecting…</string>
+    <!-- Snackbar when an MCP sign-in could not start or the server refused it; Retry reconnects -->
+    <string name="mcp_oauth_failed">Sign-in didn't complete. Reconnect to try again.</string>
     <string name="mcp_connection_deferred">Connecting in the background \u2014 tools appear once it is ready.</string>
     <string name="show_site_icons">Show website icons</string>
     <string name="show_site_icons_desc">Load icons for web search results from Google and other websites</string>
