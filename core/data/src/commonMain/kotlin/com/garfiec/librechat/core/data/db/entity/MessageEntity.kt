@@ -21,6 +21,8 @@ data class MessageEntity(
     val text: String?,
     val content: String?,
     val isCreatedByUser: Boolean,
+    /** `Message.isUserSubmitted` (v0.8.9-rc1). Null when the server did not say. */
+    val isUserSubmitted: Boolean? = null,
     val model: String?,
     val endpoint: String?,
     val iconURL: String?,

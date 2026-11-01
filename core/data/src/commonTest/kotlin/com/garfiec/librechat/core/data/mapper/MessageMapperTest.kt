@@ -29,6 +29,13 @@ class MessageMapperTest {
     }
 
     @Test
+    fun isUserSubmitted_roundTripsThroughEntity() {
+        assertEquals(true, baseMessage(null).copy(isUserSubmitted = true).toEntity().toModel().isUserSubmitted)
+        assertEquals(false, baseMessage(null).copy(isUserSubmitted = false).toEntity().toModel().isUserSubmitted)
+        assertNull(baseMessage(null).toEntity().toModel().isUserSubmitted)
+    }
+
+    @Test
     fun quotes_null_staysNull() {
         val restored = baseMessage(null).toEntity().toModel()
         assertNull(restored.quotes)

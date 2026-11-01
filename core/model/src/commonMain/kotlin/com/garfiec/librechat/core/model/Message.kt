@@ -18,6 +18,12 @@ data class Message(
     val sender: String? = null,
     val text: String = "",
     val isCreatedByUser: Boolean = false,
+    /**
+     * True when the whole stored row came from outside the model (v0.8.9-rc1). A host wake-up is
+     * saved as a user message too, so this is what tells a user who typed a wake-up's header from
+     * the host that wrote one. Absent on older servers and older host wake-ups.
+     */
+    val isUserSubmitted: Boolean? = null,
     val error: Boolean = false,
     val unfinished: Boolean = false,
     @SerialName("finish_reason") val finishReason: String? = null,

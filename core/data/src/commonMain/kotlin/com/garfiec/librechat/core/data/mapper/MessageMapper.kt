@@ -43,6 +43,7 @@ fun Message.toEntity(): MessageEntity = MessageEntity(
     text = text,
     content = content?.let { json.encodeToString(ListSerializer(MessageContentPart.serializer()), it) },
     isCreatedByUser = isCreatedByUser,
+    isUserSubmitted = isUserSubmitted,
     model = model,
     endpoint = endpoint,
     iconURL = iconURL,
@@ -71,6 +72,7 @@ fun MessageEntity.toModel(): Message = Message(
         try { json.decodeFromString<List<MessageContentPart>>(it) } catch (_: Exception) { null }
     },
     isCreatedByUser = isCreatedByUser,
+    isUserSubmitted = isUserSubmitted,
     model = model,
     endpoint = endpoint,
     iconURL = iconURL,

@@ -56,14 +56,20 @@ import kotlin.math.roundToInt
 /**
  * The wake-up this message is, when it should render as a system event rather than a user bubble.
  *
- * Only a user-authored message can be one (the server saves wake-ups as user turns), and never
- * while it is being edited: the row's footer offers Edit, and upstream's `MessageRender` drops the
+ * Only a user-authored message can be one (the server saves wake-ups as user turns), never one the
+ * server marks `isUserSubmitted` (a user who typed a wake-up's header is still the author, upstream
+ * `parseWakeupMessage`; older wake-ups omit the flag and keep the header check), and never while it
+ * is being edited: the row's footer offers Edit, and upstream's `MessageRender` drops the
  * system treatment under edit too, so the ordinary bubble's edit field shows the text the user is
  * actually changing. Callers must pass the same `isEditing` to the list's `contentType` as to the
  * body, or a slot composed for one layout is reused for the other.
  */
 internal fun systemEventFor(message: Message, isEditing: Boolean): WakeupDisplay? =
-    if (!message.isCreatedByUser || isEditing) null else WakeupMessage.parse(message.text)
+    if (!message.isCreatedByUser || message.isUserSubmitted == true || isEditing) {
+        null
+    } else {
+        WakeupMessage.parse(message.text)
+    }
 
 /**
  * [systemEventFor] for every node of a list, parsed once per list instead of on every measure

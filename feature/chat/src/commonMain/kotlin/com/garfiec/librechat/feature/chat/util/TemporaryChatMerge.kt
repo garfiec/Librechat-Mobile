@@ -74,4 +74,5 @@ fun Message.mergedOver(local: Message): Message = copy(
     manualSkills = manualSkills ?: local.manualSkills,
     alwaysAppliedSkills = alwaysAppliedSkills ?: local.alwaysAppliedSkills,
     quotes = quotes ?: local.quotes,
+    isUserSubmitted = isUserSubmitted ?: local.isUserSubmitted,
 )

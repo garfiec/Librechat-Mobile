@@ -35,6 +35,18 @@ class SystemEventRowTest {
     }
 
     @Test
+    fun a_user_submitted_lookalike_stays_a_user_bubble() {
+        val typed = message(wakeupText, byUser = true).copy(isUserSubmitted = true)
+        assertNull(systemEventFor(typed, isEditing = false))
+    }
+
+    @Test
+    fun a_host_wakeup_saying_it_was_not_user_submitted_is_still_a_system_event() {
+        val host = message(wakeupText, byUser = true).copy(isUserSubmitted = false)
+        assertNotNull(systemEventFor(host, isEditing = false))
+    }
+
+    @Test
     fun ordinary_user_text_is_a_user_bubble() {
         assertNull(systemEventFor(message("What did the background task find?", byUser = true), isEditing = false))
     }

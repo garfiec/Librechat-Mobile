@@ -47,7 +47,7 @@ import com.garfiec.librechat.core.data.db.entity.ServerEntity
         MessageSearchFtsEntity::class,
         ProjectOrderEntity::class,
     ],
-    version = 13,
+    version = 14,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -74,6 +74,9 @@ import com.garfiec.librechat.core.data.db.entity.ServerEntity
         AutoMigration(from = 11, to = 12),
         // 12 -> 13 adds the account-scoped project_order table (Switchboard-only drawer folder order).
         AutoMigration(from = 12, to = 13),
+        // 13 -> 14 adds `isUserSubmitted` on messages (v0.8.9-rc1), so a user's own text that
+        // quotes a wake-up header stays a user bubble when the chat opens from the cache.
+        AutoMigration(from = 13, to = 14),
     ],
 )
 @TypeConverters(Converters::class)
