@@ -23,6 +23,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.MessageEditingHandle
 import com.garfiec.librechat.feature.chat.viewmodel.MessageEditingState
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonObject
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -60,8 +61,15 @@ class MessageEditingDelegate(
     private val runWhenSendReady: (onRefused: () -> Unit, action: () -> Unit) -> Unit,
     /** `ComparisonModeDelegate.onSendStart`: resets both panes before a comparison resubmit. */
     private val onComparisonSendStart: () -> Unit,
-    /** `ComparisonModeDelegate.buildAddedConvo`: Compare's second model, null when not comparing. */
-    private val buildAddedConvo: (parentMessageId: String?) -> AddedConversation?,
+    /**
+     * `ComparisonModeDelegate.buildAddedConvo`: Compare's second model, null when not comparing.
+     * Given the primary's model-parameter payload, whose instructions the second model shares.
+     */
+    private val buildAddedConvo: (
+        parentMessageId: String?,
+        primaryEndpoint: String?,
+        primaryModelParams: JsonObject?,
+    ) -> AddedConversation?,
 ) {
 
     /**
@@ -301,9 +309,10 @@ class MessageEditingDelegate(
         val ephemeralAgent = requestBuilder.buildEphemeralAgent()
         Logger.d { "$logLabel: webSearch=$webSearchEnabled, ephemeralAgent=$ephemeralAgent" }
         val dispatch = requestBuilder.currentDispatch()
+        val modelParams = requestBuilder.buildModelParams()
         val addedConvo = if (withComparison) {
             onComparisonSendStart()
-            buildAddedConvo(parentMessageId)
+            buildAddedConvo(parentMessageId, state.selectedEndpoint, modelParams)
         } else {
             null
         }
@@ -332,7 +341,7 @@ class MessageEditingDelegate(
                 manualSkills = manualSkills,
                 ephemeralAgent = ephemeralAgent,
                 isTemporary = state.isTemporaryChat,
-                modelParams = requestBuilder.buildModelParams(),
+                modelParams = modelParams,
                 editedContent = editedContent,
                 addedConvo = addedConvo,
             ),

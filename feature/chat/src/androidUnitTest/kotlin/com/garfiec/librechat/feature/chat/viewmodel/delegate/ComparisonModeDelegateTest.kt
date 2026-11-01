@@ -34,6 +34,8 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.junit.Test
 
 class ComparisonModeDelegateTest {
@@ -213,6 +215,95 @@ class ComparisonModeDelegateTest {
         assertThat(added.spec).isNull()
         assertThat(added.temperature).isNull()
     }
+
+    @Test
+    fun `a model lane takes the primary's custom instructions`() {
+        val (delegate, _) = delegateWith(laneBComparing())
+        val primary = buildJsonObject {
+            put("temperature", 0.3)
+            put("promptPrefix", "Reply in French.")
+        }
+
+        val added = delegate.buildAddedConvo("p1", primaryEndpoint = "anthropic", primaryModelParams = primary)!!
+
+        assertThat(added.promptPrefix).isEqualTo("Reply in French.")
+        // Only the instructions carry over: the server drops the rest for this lane.
+        assertThat(added.temperature).isNull()
+    }
+
+    @Test
+    fun `a primary's system field counts as its instructions`() {
+        val (delegate, _) = delegateWith(laneBComparing())
+
+        val added = delegate.buildAddedConvo(
+            "p1",
+            primaryEndpoint = "bedrock",
+            primaryModelParams = buildJsonObject { put("system", "Be terse.") },
+        )!!
+
+        assertThat(added.promptPrefix).isEqualTo("Be terse.")
+    }
+
+    @Test
+    fun `no or blank primary instructions send none`() {
+        val (delegate, _) = delegateWith(laneBComparing())
+
+        assertThat(delegate.buildAddedConvo("p1", primaryEndpoint = "anthropic", primaryModelParams = null)!!.promptPrefix).isNull()
+        val blank = buildJsonObject { put("promptPrefix", "  ") }
+        assertThat(delegate.buildAddedConvo("p1", primaryEndpoint = "anthropic", primaryModelParams = blank)!!.promptPrefix).isNull()
+    }
+
+    @Test
+    fun `a saved-agent lane keeps its own instructions`() {
+        val (delegate, _) = delegateWith(
+            ChatUiState(comparisonState = ComparisonState(isEnabled = true, secondaryEndpoint = "agents", secondaryModel = "agent_abc")),
+        )
+
+        val added = delegate.buildAddedConvo(
+            "p1",
+            primaryEndpoint = "anthropic",
+            primaryModelParams = buildJsonObject { put("promptPrefix", "Reply in French.") },
+        )!!
+
+        assertThat(added.agentId).isEqualTo("agent_abc")
+        assertThat(added.promptPrefix).isNull()
+    }
+
+    @Test
+    fun `a saved-agent primary's payload instructions don't reach the model lane`() {
+        val (delegate, _) = delegateWith(laneBComparing())
+
+        val added = delegate.buildAddedConvo(
+            "p1",
+            primaryEndpoint = "agents",
+            primaryModelParams = buildJsonObject { put("system", "Be terse.") },
+        )!!
+
+        assertThat(added.promptPrefix).isNull()
+    }
+
+    @Test
+    fun `the turn's primary decides, not the live selection`() {
+        // A queued turn composed on a model drains after the user switched the chat to an agent.
+        val (delegate, _) = delegateWith(
+            ChatUiState(
+                selection = ModelSelectionState(choice = ModelChoice.Raw("agents", "agent_primary")),
+                comparisonState = ComparisonState(isEnabled = true, secondaryEndpoint = "openAI", secondaryModel = "gpt-4o"),
+            ),
+        )
+
+        val added = delegate.buildAddedConvo(
+            "p1",
+            primaryEndpoint = "anthropic",
+            primaryModelParams = buildJsonObject { put("promptPrefix", "Reply in French.") },
+        )!!
+
+        assertThat(added.promptPrefix).isEqualTo("Reply in French.")
+    }
+
+    private fun laneBComparing() = ChatUiState(
+        comparisonState = ComparisonState(isEnabled = true, secondaryEndpoint = "openAI", secondaryModel = "gpt-4o"),
+    )
 
     private fun landingWithPrimary() = ChatUiState(
         content = MessagesState(screenState = ChatScreenState.LANDING),

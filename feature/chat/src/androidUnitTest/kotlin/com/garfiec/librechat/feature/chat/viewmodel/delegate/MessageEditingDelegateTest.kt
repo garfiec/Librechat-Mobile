@@ -76,7 +76,7 @@ class MessageEditingDelegateTest {
             // where it does not (no model selected, a readiness timeout, Compare setup opening).
             runWhenSendReady = { onRefused, action -> if (refuseSend) onRefused() else action() },
             onComparisonSendStart = {},
-            buildAddedConvo = { null },
+            buildAddedConvo = { _, _, _ -> null },
         )
         val state get() = flow.value
     }

@@ -25,6 +25,8 @@ import com.garfiec.librechat.feature.chat.viewmodel.resolveEndpointDispatch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 /**
  * Owns model-comparison mode end to end: selecting the secondary model, building its
@@ -162,10 +164,21 @@ class ComparisonModeDelegate(
      * A spec lane carries its preset's sampling settings (see [AddedConversation]). Not its
      * prompt: the served config leaves a spec's `promptPrefix` out, and the server applies it to
      * the primary only.
+     *
+     * A model lane carries the primary's custom instructions, read from [primaryModelParams] (the
+     * payload the primary's own request sends). A saved-agent lane gets none (it runs its own), and
+     * a saved-agent primary gives none (the server ignores its payload). [primaryEndpoint] is the
+     * turn's own primary, not the live selection: a queued turn drains with the config it was
+     * composed with. See "Lane B's settings" in feature/chat/CLAUDE.md.
+     *
      * It must send no `modelLabel`: the server would save that as the lane's sender in place of
      * the spec's label, and [rehydrateFromMessage] reads the spec back from it.
      */
-    fun buildAddedConvo(parentMessageId: String? = null): AddedConversation? {
+    fun buildAddedConvo(
+        parentMessageId: String? = null,
+        primaryEndpoint: String? = null,
+        primaryModelParams: JsonObject? = null,
+    ): AddedConversation? {
         val state = handle.state
         val comparison = state.comparisonState
         if (!comparison.isEnabled) return null
@@ -190,6 +203,11 @@ class ComparisonModeDelegate(
             agentId = if (isAgent) model else null,
             model = if (isAgent) null else model,
             spec = spec,
+            promptPrefix = if (isAgent || primaryEndpoint == EndpointConstants.AGENTS) {
+                null
+            } else {
+                primaryModelParams.customInstructions()
+            },
             temperature = preset?.temperature,
             topP = preset?.topP,
             topK = preset?.topK,
@@ -199,6 +217,16 @@ class ComparisonModeDelegate(
             maxTokens = preset?.maxTokens,
         )
     }
+
+    /**
+     * The custom instructions a primary payload carries: `promptPrefix`, or `system` where the
+     * provider's parameter set names it that (Bedrock). The added convo takes them as `promptPrefix`
+     * whatever its provider: that is the one name `loadAddedAgent` reads.
+     */
+    private fun JsonObject?.customInstructions(): String? =
+        sequenceOf("promptPrefix", "system")
+            .mapNotNull { key -> (this?.get(key) as? JsonPrimitive)?.takeIf { it.isString }?.content }
+            .firstOrNull { it.isNotBlank() }
 
     /**
      * Rebuilds comparison mode from a persisted parallel response [message] on reopen.
