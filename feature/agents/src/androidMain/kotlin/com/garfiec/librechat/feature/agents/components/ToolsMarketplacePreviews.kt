@@ -49,7 +49,12 @@ private val previewCatalog = listOf(
     MarketplaceItem(MarketplaceKind.BUILTIN, "execute_code", labelRes = MarketplaceBuiltinLabel.CODE_INTERPRETER),
     MarketplaceItem(MarketplaceKind.BUILTIN, "file_search", labelRes = MarketplaceBuiltinLabel.FILE_SEARCH),
     MarketplaceItem(MarketplaceKind.BUILTIN, "web_search", labelRes = MarketplaceBuiltinLabel.WEB_SEARCH),
-    MarketplaceItem(MarketplaceKind.TOOL, "dalle", name = "DALL-E 3", description = "Generates images from a prompt."),
+    MarketplaceItem(
+        MarketplaceKind.TOOL,
+        "image_gen_oai",
+        name = "OpenAI Image Tools",
+        description = "Generates and edits images from a prompt.",
+    ),
     MarketplaceItem(MarketplaceKind.TOOL, "wolfram", name = "Wolfram", description = "Computes answers from curated data."),
     MarketplaceItem(MarketplaceKind.MCP, "jira_search", name = "search_issues", serverName = "Jira"),
     MarketplaceItem(MarketplaceKind.MCP, "jira_create", name = "create_issue", serverName = "Jira"),
