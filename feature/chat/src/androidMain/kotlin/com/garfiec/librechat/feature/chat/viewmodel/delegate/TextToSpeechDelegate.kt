@@ -188,33 +188,31 @@ class TextToSpeechDelegate(
                 writeBytes(audioBytes)
             }
         }
-        // Created on a Looper-less ioDispatcher thread, so its callbacks fire on the Main looper.
-        val player = try {
-            withContext(ioDispatcher) {
-                MediaPlayer().apply {
+        var player: MediaPlayer? = null
+        try {
+            // Created on a Looper-less ioDispatcher thread, so its callbacks fire on the Main looper.
+            // Assigned before prepare() so a failed prepare is still released below.
+            val prepared = withContext(ioDispatcher) {
+                MediaPlayer().also { player = it }.apply {
                     setDataSource(tempFile.absolutePath)
                     prepare()
                 }
             }
-        } catch (e: Exception) {
-            withContext(NonCancellable + ioDispatcher) { tempFile.delete() }
-            throw e
-        }
-        serverTtsPlayer = player
-        try {
+            serverTtsPlayer = prepared
             return suspendCancellableCoroutine { continuation ->
-                player.setOnCompletionListener { if (continuation.isActive) continuation.resume(true) }
-                player.setOnErrorListener { _, _, _ ->
+                prepared.setOnCompletionListener { if (continuation.isActive) continuation.resume(true) }
+                prepared.setOnErrorListener { _, _, _ ->
                     if (continuation.isActive) continuation.resume(false)
                     true
                 }
-                player.start()
+                prepared.start()
             }
         } finally {
-            if (serverTtsPlayer === player) serverTtsPlayer = null
+            val created = player
+            if (created != null && serverTtsPlayer === created) serverTtsPlayer = null
             // release() and the file delete block, and must run even when a stop cancelled us.
             withContext(NonCancellable + ioDispatcher) {
-                player.release()
+                created?.release()
                 tempFile.delete()
             }
         }
