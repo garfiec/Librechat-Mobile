@@ -85,7 +85,7 @@ class ServerUrlCleanerTest {
         listOf(
             "/login/2fa", "/search", "/c", "/prompts", "/prompts/new", "/prompts/p1", "/skills", "/skills/new",
             "/skills/s1", "/projects", "/projects/p1", "/agents", "/agents/promoted", "/oauth/success",
-            "/oauth/error",
+            "/oauth/error", "/login/2fa/setup", "/insights", "/code/setup/a1",
         ).forEach { route ->
             assertEquals("https://h.example", cleanServerUrl("https://h.example$route"), route)
             assertEquals("https://h.example/librechat", cleanServerUrl("https://h.example/librechat$route"), route)
