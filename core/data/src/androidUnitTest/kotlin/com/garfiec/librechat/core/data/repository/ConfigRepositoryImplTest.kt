@@ -118,6 +118,40 @@ class ConfigRepositoryImplTest {
         assertThat(result.error().message).contains("LibreChat")
     }
 
+    /**
+     * From v0.8.9-rc1 `/api/config` fails closed: a config it cannot resolve answers a generic
+     * `500 {"error":"Failed to load startup config"}` instead of a partial payload. That has to stay a
+     * retryable error (or fall back to the cache), never a published config or "not LibreChat".
+     */
+    @Test
+    fun `a fail-closed 500 keeps the cached config and publishes nothing new`() = runTest {
+        coEvery { configCache.loadStartupConfig() } returns validConfig
+        coEvery { configApi.getStartupConfig() } throws ApiException(500, "Failed to load startup config")
+        val repo = repository()
+
+        val result = repo.fetchStartupConfig()
+
+        assertThat(result).isEqualTo(Result.Success(validConfig))
+        coVerify(exactly = 0) { configCache.saveStartupConfig(any()) }
+    }
+
+    @Test
+    fun `a fail-closed 500 with no cache is an error, and the server check stops on it`() = runTest {
+        coEvery { configCache.loadStartupConfig() } returns null
+        coEvery { configApi.getStartupConfig() } throws ApiException(500, "Failed to load startup config")
+        val repo = repository()
+
+        assertThat(repo.fetchStartupConfig()).isInstanceOf(Result.Error::class.java)
+        assertThat(repo.startupConfig.value).isNull()
+        val probed = answering(
+            typed to { throw ApiException(500, "Failed to load startup config") },
+            origin to { validConfig },
+        )
+        assertThat(repo.resolve(typed, origin)).isInstanceOf(ServerResolution.Failed::class.java)
+        // Same host, same outcome: a 5xx is not a reason to try the origin.
+        assertThat(probed).containsExactly(typed)
+    }
+
     @Test
     fun `publishStartupConfig publishes and caches`() = runTest {
         val repo = repository()
