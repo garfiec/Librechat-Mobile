@@ -4384,6 +4384,19 @@
       },
       "why": "The sentence boundaries a long reply is cut at for read-aloud (server segments and the device engine's 4,000-char utterances), the same ones upstream's streamed speech splits on.",
       "failure_mode": "Upstream changes its boundaries and mobile keeps cutting at the old ones; a segment may end mid-sentence where web's would not. Nothing fails."
+    },
+    {
+      "id": "opaque-reasoning",
+      "upstream": {
+        "file": "packages/data-provider/src/reasoning.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/OpaqueReasoning.kt",
+        "symbol": "reasoningDisplay"
+      },
+      "why": "Which reasoning text is an encrypted provider payload (an unbroken base64/base64url run of 128+ chars, the persisted <think> wrapper ignored) and how a streaming tail is held until classified. The thinking card, find-in-page, copy and the editor's read-only rule all read it; an all-payload part renders the 'Reasoning (encrypted)' marker.",
+      "failure_mode": "Upstream changes the threshold, the alphabet or the streaming hold, and mobile shows ciphertext as thinking again (or hides prose) with nothing failing."
     }
   ]
 }

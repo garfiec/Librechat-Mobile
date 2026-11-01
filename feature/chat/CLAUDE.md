@@ -561,7 +561,7 @@ ported.
 ## Content Rendering
 - `ContentPartRenderer` dispatches by `ContentPart.type`:
   - `text` -> `MarkdownContent` (custom regex parser with LaTeX support)
-  - `think` -> collapsible thinking block
+  - `think` -> collapsible thinking block. Encrypted reasoning (a provider's base64 payload, v0.8.9-rc1) is filtered by `reasoningDisplay` (`:core:model` `content/OpaqueReasoning.kt`): the readable text around it shows, a part with none draws a "Reasoning (encrypted)" row, and find-in-page, copy and the editor (payload-bearing reasoning is read-only) read the same filter. Not applied to the search index.
   - `tool_call` -> `StreamingToolCallCard` (expandable, shows args/output), except `ask_user_question`
     (see below)
   - `image_file` / `image_url` -> inline AsyncImage, tap opens `FullscreenImageViewer`

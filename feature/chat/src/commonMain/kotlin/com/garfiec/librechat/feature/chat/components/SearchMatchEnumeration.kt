@@ -1,10 +1,11 @@
 package com.garfiec.librechat.feature.chat.components
 
-import com.garfiec.librechat.core.model.content.LegacyThinking
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.content.CitationIndex
+import com.garfiec.librechat.core.model.content.LegacyThinking
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.core.model.content.stripOpaqueReasoning
 import com.garfiec.librechat.feature.chat.components.artifact.Artifact
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactSegment
 import com.garfiec.librechat.feature.chat.components.artifact.detectArtifacts
@@ -121,7 +122,8 @@ internal fun countPartOccurrences(
     consumedLateBatchLabel: Boolean = false,
 ): Int = when (part.type) {
     ContentType.TEXT, ContentType.TEXT_DELTA -> countTextPartOccurrences(part.text.orEmpty(), query)
-    ContentType.THINK -> countMarkdownOccurrences(part.think.orEmpty(), query)
+    // What the thinking card renders: encrypted payloads removed (an all-payload part draws a marker).
+    ContentType.THINK -> countMarkdownOccurrences(stripOpaqueReasoning(part.think.orEmpty()), query)
     // The user's own mid-run steer renders as a turn inside the response, so it has to be
     // findable — it is the one thing in a reply they definitely wrote.
     ContentType.STEER -> countMarkdownOccurrences(part.steerText().orEmpty(), query)

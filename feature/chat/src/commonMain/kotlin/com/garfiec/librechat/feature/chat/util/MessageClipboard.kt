@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.content.AgentToolCall
 import com.garfiec.librechat.core.model.content.CitationClipboard
 import com.garfiec.librechat.core.model.content.CitationIndex
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.core.model.content.stripOpaqueReasoning
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -70,6 +71,7 @@ private fun formatPartForClipboard(part: MessageContentPart, citations: Citation
         part.text?.takeIf { it.isNotBlank() }?.let { "" to citations.process(it) }
 
     ContentType.THINK -> part.think
+        ?.let(::stripOpaqueReasoning)
         ?.trim()
         ?.removePrefix("<think>")
         ?.removeSuffix("</think>")
