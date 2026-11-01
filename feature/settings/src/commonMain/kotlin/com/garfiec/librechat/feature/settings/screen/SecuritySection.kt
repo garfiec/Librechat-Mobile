@@ -29,6 +29,7 @@ import org.jetbrains.compose.resources.stringResource
 internal fun SecuritySection(
     isTwoFactorEnabled: Boolean,
     isLoading: Boolean,
+    canDisableTwoFactor: Boolean,
     onToggleTwoFactor: () -> Unit,
     onRegenerateBackupCodes: () -> Unit,
     modifier: Modifier = Modifier,
@@ -77,14 +78,23 @@ internal fun SecuritySection(
                 }
             }
 
-            // Enable/Disable 2FA button
-            AdaptiveOutlinedButton(
-                onClick = onToggleTwoFactor,
-                enabled = !isLoading,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
+            // Enable/Disable 2FA button. Disable is hidden when the server requires 2FA for this
+            // account (v0.8.9-rc1), since it refuses the request with a 403.
+            if (!isTwoFactorEnabled || canDisableTwoFactor) {
+                AdaptiveOutlinedButton(
+                    onClick = onToggleTwoFactor,
+                    enabled = !isLoading,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        stringResource(if (isTwoFactorEnabled) Res.string.disable_two_factor else Res.string.enable_two_factor),
+                    )
+                }
+            } else {
                 Text(
-                    stringResource(if (isTwoFactorEnabled) Res.string.disable_two_factor else Res.string.enable_two_factor),
+                    text = stringResource(Res.string.two_factor_required_by_server),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 

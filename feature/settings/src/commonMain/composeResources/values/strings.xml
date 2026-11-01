@@ -373,6 +373,7 @@
     <string name="enable_two_factor">Enable Two-Factor Authentication</string>
     <string name="disable_two_factor">Disable Two-Factor Authentication</string>
     <string name="regenerate_backup_codes">Regenerate backup codes</string>
+    <string name="two_factor_required_by_server">This server requires two-factor authentication, so it can\'t be turned off.</string>
 
     <!-- 2FA setup dialog -->
     <string name="dialog_title_enable_2fa">Enable Two-Factor Authentication</string>

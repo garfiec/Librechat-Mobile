@@ -8,4 +8,6 @@ data class UserDisplayData(
     val email: String,
     val username: String,
     val avatar: String?,
+    /** `local`, `ldap` or an identity provider; decides whether enforced 2FA applies. */
+    val provider: String? = null,
 )

@@ -20,6 +20,7 @@ import com.garfiec.librechat.feature.settings.viewmodel.delegate.AccountDelegate
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.ProviderKeysSummary
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.ProviderKeysSummaryDelegate
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.TwoFactorSecurityDelegate
+import com.garfiec.librechat.feature.settings.viewmodel.delegate.isTwoFactorRequiredFor
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -86,6 +87,11 @@ data class AccountSettingsUiState(
     val showEnableTwoFactorOtpDialog: Boolean = false,
     val showBackupCodesOtpDialog: Boolean = false,
     val showRegenerateBackupCodesConfirm: Boolean = false,
+    /**
+     * False while the server enforces 2FA (`twoFactorAuthenticationRequired`, v0.8.9-rc1) for this
+     * account's provider; the server then refuses to disable it, so the action is hidden.
+     */
+    val canDisableTwoFactor: Boolean = true,
     /** The Provider Keys row's summary; null hides the row (no endpoint takes a user-provided value). */
     val providerKeysSummary: ProviderKeysSummary = ProviderKeysSummary.Hidden,
 )
@@ -151,6 +157,7 @@ class AccountSettingsViewModel(
                 allowAccountDeletion = config?.allowAccountDeletion ?: true,
                 balanceEnabled = config?.balance?.enabled == true,
                 providerKeysSummary = providerKeysSummary,
+                canDisableTwoFactor = !isTwoFactorRequiredFor(config?.twoFactorAuthenticationRequired, state.user?.provider),
             )
         }.stateIn(viewModelScope, SharingStarted.Eagerly, AccountSettingsUiState())
 
@@ -217,4 +224,5 @@ internal fun User.toDisplayData() = UserDisplayData(
     email = email,
     username = username ?: "",
     avatar = avatar,
+    provider = provider,
 )

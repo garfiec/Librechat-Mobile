@@ -272,6 +272,7 @@ fun AccountSettingsContent(
                     SecuritySection(
                         isTwoFactorEnabled = uiState.isTwoFactorEnabled,
                         isLoading = uiState.isTwoFactorLoading,
+                        canDisableTwoFactor = uiState.canDisableTwoFactor,
                         onToggleTwoFactor = viewModel::toggleTwoFactor,
                         onRegenerateBackupCodes = viewModel::requestRegenerateBackupCodes,
                     )

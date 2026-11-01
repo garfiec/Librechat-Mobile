@@ -252,10 +252,12 @@ internal fun BackupCodesDialog(
                             modifier = Modifier.padding(12.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
+                            // 32 hex characters each from v0.8.9-rc1: the smaller face keeps one
+                            // per line on most phones, and a narrower one wraps rather than clips.
                             backupCodes.forEach { code ->
                                 Text(
                                     text = code,
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    style = MaterialTheme.typography.bodySmall,
                                     fontFamily = FontFamily.Monospace,
                                 )
                             }
