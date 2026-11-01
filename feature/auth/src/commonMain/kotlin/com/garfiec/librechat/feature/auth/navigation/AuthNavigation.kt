@@ -10,6 +10,7 @@ import com.garfiec.librechat.feature.auth.screen.ServerUrlScreen
 import com.garfiec.librechat.feature.auth.screen.SsoLoginScreen
 import com.garfiec.librechat.feature.auth.screen.TermsScreen
 import com.garfiec.librechat.feature.auth.screen.TwoFactorScreen
+import com.garfiec.librechat.feature.auth.screen.TwoFactorSetupScreen
 import com.garfiec.librechat.feature.auth.screen.VerifyEmailScreen
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
@@ -52,6 +53,15 @@ val NavKey.isAddAccountFlowRoute: Boolean
 
 @Serializable data class TwoFactor(val tempToken: String) : AuthRoute
 
+/**
+ * Required 2FA enrollment (v0.8.9-rc1). [tempToken] is the setup credential a sign-in, a refresh or
+ * a gated request handed out — never a login challenge, so never [TwoFactor]. The later single-use
+ * credentials stay in the ViewModel.
+ */
+@Serializable data class TwoFactorSetup(val tempToken: String) : AuthRoute {
+    override fun toString(): String = "TwoFactorSetup"
+}
+
 @Serializable data class VerifyEmail(val email: String) : AuthRoute
 
 @Serializable data object Terms : AuthRoute
@@ -88,6 +98,7 @@ fun EntryProviderScope<NavKey>.authEntries(
             onNavigateToTwoFactor = { tempToken ->
                 onNavigate(TwoFactor(tempToken = tempToken))
             },
+            onNavigateToTwoFactorSetup = { tempToken -> onNavigate(TwoFactorSetup(tempToken = tempToken)) },
             onNavigateToSso = { provider -> onNavigate(SsoLogin(provider)) },
             onBack = onBack,
         )
@@ -100,6 +111,7 @@ fun EntryProviderScope<NavKey>.authEntries(
             onNavigateToTwoFactor = { tempToken ->
                 onNavigate(TwoFactor(tempToken = tempToken))
             },
+            onNavigateToTwoFactorSetup = { tempToken -> onNavigate(TwoFactorSetup(tempToken = tempToken)) },
             onNavigateToSso = { provider -> onNavigate(SsoLogin(provider)) },
         )
     }
@@ -128,6 +140,14 @@ fun EntryProviderScope<NavKey>.authEntries(
             tempToken = key.tempToken,
         )
     }
+    entry<TwoFactorSetup> { key ->
+        TwoFactorSetupScreen(
+            tempToken = key.tempToken,
+            onComplete = onAuthComplete,
+            // Below it is the sign-in screen, which is also where an expired setup starts over.
+            onBack = onBack,
+        )
+    }
     entry<VerifyEmail> { key ->
         VerifyEmailScreen(
             onVerify = onBack,
@@ -135,9 +155,11 @@ fun EntryProviderScope<NavKey>.authEntries(
             email = key.email,
         )
     }
+    // Pushed over the signed-in stack when the server requires the terms (modalAcceptance), so
+    // accepting just returns to where the user was.
     entry<Terms> {
         TermsScreen(
-            onAccept = onAuthComplete,
+            onAccept = onBack,
             onBack = onBack,
         )
     }
@@ -161,6 +183,7 @@ val authSerializersModule = SerializersModule {
         subclass(Register::class, Register.serializer())
         subclass(ForgotPassword::class, ForgotPassword.serializer())
         subclass(TwoFactor::class, TwoFactor.serializer())
+        subclass(TwoFactorSetup::class, TwoFactorSetup.serializer())
         subclass(VerifyEmail::class, VerifyEmail.serializer())
         subclass(Terms::class, Terms.serializer())
         subclass(ResetPassword::class, ResetPassword.serializer())

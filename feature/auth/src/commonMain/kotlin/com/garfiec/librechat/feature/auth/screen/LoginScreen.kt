@@ -45,6 +45,7 @@ import com.garfiec.librechat.core.ui.components.withIosTextContentType
 import com.garfiec.librechat.feature.auth.diagnostics.DiagnosticLogLink
 import com.garfiec.librechat.feature.auth.resources.*
 import com.garfiec.librechat.feature.auth.resources.Res
+import com.garfiec.librechat.feature.auth.viewmodel.LoginRefusal
 import com.garfiec.librechat.feature.auth.viewmodel.LoginViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -56,6 +57,7 @@ fun LoginScreen(
     modifier: Modifier = Modifier,
     onNavigateToForgotPassword: () -> Unit = {},
     onNavigateToTwoFactor: (String) -> Unit = {},
+    onNavigateToTwoFactorSetup: (String) -> Unit = {},
     onNavigateToSso: (String) -> Unit = {},
     onBack: (() -> Unit)? = null,
     viewModel: LoginViewModel = koinViewModel(),
@@ -63,6 +65,15 @@ fun LoginScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnLoginSuccess by rememberUpdatedState(onLoginSuccess)
     val currentOnNavigateToTwoFactor by rememberUpdatedState(onNavigateToTwoFactor)
+    val currentOnNavigateToTwoFactorSetup by rememberUpdatedState(onNavigateToTwoFactorSetup)
+
+    LaunchedEffect(uiState.twoFactorSetupTempToken) {
+        val tempToken = uiState.twoFactorSetupTempToken
+        if (tempToken != null) {
+            currentOnNavigateToTwoFactorSetup(tempToken)
+            viewModel.consumeTwoFactorSetupNavigation()
+        }
+    }
 
     val currentOnNavigateToSso by rememberUpdatedState(onNavigateToSso)
     LaunchedEffect(uiState.ssoProvider) {
@@ -160,10 +171,15 @@ fun LoginScreen(
                 )
             }
 
-            if (uiState.error != null) {
+            val errorText = when (uiState.refusal) {
+                LoginRefusal.FederatedBlocked -> stringResource(Res.string.login_error_federated_blocked)
+                LoginRefusal.TenantRequired -> stringResource(Res.string.login_error_tenant_required)
+                null -> uiState.error
+            }
+            if (errorText != null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = uiState.error!!,
+                    text = errorText,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.testTag("login_error"),

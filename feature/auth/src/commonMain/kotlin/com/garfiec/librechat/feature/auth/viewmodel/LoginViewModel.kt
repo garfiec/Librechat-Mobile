@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.model.LoginOutcome
+import com.garfiec.librechat.core.model.error.ServerErrorCode
 import com.garfiec.librechat.core.network.client.CertificateAuthority
 import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
 import com.garfiec.librechat.feature.auth.diagnostics.offersDiagnosticLog
@@ -35,6 +36,10 @@ data class LoginUiState(
     val offerDiagnosticLog: Boolean = false,
     val isLoggedIn: Boolean = false,
     val twoFactorTempToken: String? = null,
+    /** Setup credential when the server requires 2FA enrollment; consumed by navigation. */
+    val twoFactorSetupTempToken: String? = null,
+    /** A coded sign-in refusal the screen words itself; shown instead of [error] when set. */
+    val refusal: LoginRefusal? = null,
     val registrationEnabled: Boolean = false,
     val socialLoginEnabled: Boolean = false,
     val socialLogins: List<String> = emptyList(),
@@ -47,6 +52,15 @@ data class LoginUiState(
     val ssoProvider: String? = null,
     val trustedViaUserCa: Boolean = false,
 )
+
+/** Sign-in refusals with a code of their own (v0.8.9-rc1), worded by the screen. */
+enum class LoginRefusal {
+    /** A federated account tried a password sign-in while 2FA is enforced. */
+    FederatedBlocked,
+
+    /** Strict tenant isolation, and the request named no tenant. */
+    TenantRequired,
+}
 
 class LoginViewModel(
     private val authRepository: AuthRepository,
@@ -143,11 +157,11 @@ class LoginViewModel(
     }
 
     fun onEmailChanged(email: String) {
-        _uiState.value = _uiState.value.copy(email = email, error = null)
+        _uiState.value = _uiState.value.copy(email = email, error = null, refusal = null)
     }
 
     fun onPasswordChanged(password: String) {
-        _uiState.value = _uiState.value.copy(password = password, error = null)
+        _uiState.value = _uiState.value.copy(password = password, error = null, refusal = null)
     }
 
     fun login() {
@@ -158,7 +172,7 @@ class LoginViewModel(
         }
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null, offerDiagnosticLog = false)
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null, refusal = null, offerDiagnosticLog = false)
 
             when (val result = authRepository.login(state.email, state.password)) {
                 is Result.Success -> {
@@ -173,6 +187,12 @@ class LoginViewModel(
                             _uiState.value = _uiState.value.copy(
                                 isLoading = false,
                                 twoFactorTempToken = outcome.tempToken,
+                            )
+                        }
+                        is LoginOutcome.TwoFactorSetupRequired -> {
+                            _uiState.value = _uiState.value.copy(
+                                isLoading = false,
+                                twoFactorSetupTempToken = outcome.tempToken,
                             )
                         }
                     }
@@ -191,7 +211,15 @@ class LoginViewModel(
                     // transient network block would hide the form for a condition the user can simply
                     // wait out. Only LibreChat's own JSON envelope sets that flag.
                     val apiException = result.exception as? ApiException
-                    val isEmailLoginDisabled = apiException?.statusCode == 403 &&
+                    // Two more server-authored 403s on this route (v0.8.9-rc1) say nothing about
+                    // email login, and hiding the form over them would strand the user.
+                    val refusal = when (apiException?.statusCode?.takeIf { it == 403 }?.let { ServerErrorCode.from(apiException.body) }) {
+                        ServerErrorCode.TWO_FACTOR_FEDERATED_LOGIN_BLOCKED -> LoginRefusal.FederatedBlocked
+                        ServerErrorCode.TENANT_CONTEXT_REQUIRED -> LoginRefusal.TenantRequired
+                        else -> null
+                    }
+                    val isEmailLoginDisabled = refusal == null &&
+                        apiException?.statusCode == 403 &&
                         apiException.serverAuthored &&
                         !apiException.isBanned
                     _uiState.value = _uiState.value.copy(
@@ -201,6 +229,7 @@ class LoginViewModel(
                         } else {
                             result.message ?: "Login failed"
                         },
+                        refusal = refusal,
                         offerDiagnosticLog = result.offersDiagnosticLog(),
                         emailLoginEnabled = if (isEmailLoginDisabled) false else _uiState.value.emailLoginEnabled,
                     )
@@ -212,5 +241,9 @@ class LoginViewModel(
 
     fun consumeTwoFactorNavigation() {
         _uiState.value = _uiState.value.copy(twoFactorTempToken = null)
+    }
+
+    fun consumeTwoFactorSetupNavigation() {
+        _uiState.value = _uiState.value.copy(twoFactorSetupTempToken = null)
     }
 }

@@ -14,7 +14,7 @@ import com.garfiec.librechat.feature.auth.oauth.SsoNavigationGate
 import com.garfiec.librechat.feature.auth.oauth.cookieAppliesTo
 import com.garfiec.librechat.feature.auth.oauth.cookiePathAppliesTo
 import com.garfiec.librechat.feature.auth.oauth.extractAuthCookies
-import com.garfiec.librechat.feature.auth.oauth.extractQueryParameter
+import com.garfiec.librechat.feature.auth.oauth.ssoFailureCode
 import com.garfiec.librechat.feature.auth.oauth.safariApplicationName
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.ObjCSignatureOverride
@@ -106,7 +106,7 @@ private class SsoNavigationDelegate(
         // Cancelling here means the post-callback page is never fetched, so the web app's
         // silentRefresh() cannot rotate the token out from under us.
         decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyCancel)
-        finish(webView, extractQueryParameter(url, "error"))
+        finish(webView, ssoFailureCode(url))
     }
 
     @ObjCSignatureOverride

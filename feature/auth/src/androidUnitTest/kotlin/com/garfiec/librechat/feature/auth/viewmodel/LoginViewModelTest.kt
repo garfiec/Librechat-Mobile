@@ -288,6 +288,54 @@ class LoginViewModelTest {
         assertThat(state.offerDiagnosticLog).isTrue()
     }
 
+    @Test
+    fun `login requiring 2FA setup navigates to setup, not the code challenge`() = runTest {
+        coEvery { authRepository.login("user@example.com", "pw") } returns
+            Result.Success(LoginOutcome.TwoFactorSetupRequired("setup-token"))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.onEmailChanged("user@example.com")
+        viewModel.onPasswordChanged("pw")
+        viewModel.login()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.twoFactorSetupTempToken).isEqualTo("setup-token")
+        assertThat(state.twoFactorTempToken).isNull()
+        viewModel.consumeTwoFactorSetupNavigation()
+        assertThat(viewModel.uiState.value.twoFactorSetupTempToken).isNull()
+    }
+
+    /** v0.8.9-rc1: coded, server-authored 403s that are not "email login disabled". */
+    @Test
+    fun `the federated-blocked and tenant 403s keep the form and get their own wording`() = runTest {
+        val bodies = mapOf(
+            """{"code":"TWO_FACTOR_FEDERATED_LOGIN_BLOCKED","message":"Sign in with your identity provider to continue."}""" to
+                LoginRefusal.FederatedBlocked,
+            """{"message":"Tenant context required in strict isolation mode","code":"TENANT_CONTEXT_REQUIRED"}""" to
+                LoginRefusal.TenantRequired,
+        )
+        bodies.forEach { (body, refusal) ->
+            coEvery { authRepository.login("user@example.com", "pw") } returns Result.Error(
+                exception = ApiException(403, "server message", body = body, serverAuthored = true),
+                message = "server message",
+            )
+            viewModel = createViewModel()
+            advanceUntilIdle()
+            viewModel.onEmailChanged("user@example.com")
+            viewModel.onPasswordChanged("pw")
+            viewModel.login()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertThat(state.emailLoginEnabled).isTrue()
+            assertThat(state.refusal).isEqualTo(refusal)
+            viewModel.onPasswordChanged("pw2")
+            assertThat(viewModel.uiState.value.refusal).isNull()
+        }
+    }
+
     /** A ban is also a server-authored 403 and must keep the form; `isBanned` is that discriminator. */
     @Test
     fun `a ban keeps the email form and the server's own message`() = runTest {

@@ -85,4 +85,37 @@
     <string name="diagnostic_log_failed">Couldn't export the log.</string>
     <string name="user_ca_notice">This server's certificate is trusted through a certificate authority installed on this device, not one built into Android. Continue only if you or your organization installed it.</string>
     <string name="continue_with_provider">Continue with %1$s</string>
+
+    <!-- Required two-factor setup (v0.8.9-rc1) -->
+    <string name="two_factor_setup_title">Set up two-factor authentication</string>
+    <string name="two_factor_setup_required_description">This server requires two-factor authentication. Set it up to continue.</string>
+    <string name="two_factor_setup_begin">Begin setup</string>
+    <string name="two_factor_setup_authenticator_heading">Add this account to your authenticator</string>
+    <string name="two_factor_setup_authenticator_body">Open it in your authenticator app, enter the setup key, or scan the QR code from another device.</string>
+    <string name="two_factor_setup_open_authenticator">Open authenticator app</string>
+    <string name="two_factor_setup_no_authenticator">No authenticator app on this device could open the link. Enter the setup key instead.</string>
+    <string name="two_factor_setup_key">Setup key</string>
+    <string name="two_factor_setup_show_qr">Show QR code</string>
+    <string name="two_factor_setup_hide_qr">Hide QR code</string>
+    <string name="two_factor_setup_qr_description">QR code for your authenticator app</string>
+    <string name="two_factor_setup_next">Next</string>
+    <string name="two_factor_setup_verify_heading">Enter the code from your authenticator</string>
+    <string name="two_factor_setup_backup_heading">Save your backup codes</string>
+    <string name="two_factor_setup_backup_body">Each code signs you in once if you lose your authenticator. Keep them somewhere safe; they are not shown again.</string>
+    <string name="two_factor_setup_save_codes">Save to file</string>
+    <string name="two_factor_setup_codes_saved">Backup codes saved.</string>
+    <string name="two_factor_setup_codes_acknowledged">I have saved these codes</string>
+    <string name="two_factor_setup_complete">Complete setup</string>
+    <string name="two_factor_setup_expired">Your setup session has expired. Sign in again to continue.</string>
+    <string name="two_factor_setup_back_to_sign_in">Back to sign in</string>
+    <string name="two_factor_setup_error_start">Couldn't start setup. Try again.</string>
+    <string name="two_factor_setup_error_invalid">That code didn't match. Enter the current code from your authenticator.</string>
+    <string name="two_factor_setup_error_rate_limited">Too many attempts. Wait a moment and try again.</string>
+    <string name="two_factor_setup_error_finalize">Couldn't finish setup. Try again.</string>
+    <string name="two_factor_setup_error_connection">Couldn't reach the server. Check your connection and try again.</string>
+
+    <!-- Sign-in refusals (v0.8.9-rc1) -->
+    <string name="login_error_federated_blocked">This account signs in with its identity provider. Use that sign-in option instead.</string>
+    <string name="login_error_tenant_required">This server needs to know which organization you belong to. Sign in from your organization's address for this server.</string>
+    <string name="sso_tenant_required">This server needs to know which organization you belong to before you can sign in. Use your organization's address for this server.</string>
 </resources>

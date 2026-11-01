@@ -11,6 +11,8 @@ kotlin {
         commonMain.dependencies {
             implementation(project(":core:network"))
             implementation(project(":core:logging"))
+            // QR code for the required 2FA setup screen, same library as Settings' enrollment.
+            implementation(libs.qrose)
         }
         named("androidUnitTest").dependencies {
             implementation(libs.kotlinx.serialization.json)
