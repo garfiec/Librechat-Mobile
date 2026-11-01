@@ -357,9 +357,9 @@ class MessageEditingDelegate(
         if (messageId in savesInFlight) return
         val message = handle.state.messages.find { it.messageId == messageId } ?: return
         when (editShapeOf(message)) {
-            // Seeded from the flat text, NOT from `getMessageText`, which concatenates text and
-            // reasoning parts for TTS: that would drop the model's reasoning into the answer field,
-            // and saving it would write the two back as one blob.
+            // Seeded from the flat text, NOT from a content-parts flattening: joining text and
+            // reasoning parts would drop the model's reasoning into the answer field, and saving it
+            // would write the two back as one blob.
             MessageEditShape.PLAIN_TEXT -> handle.update {
                 editing = MessageEditingState(
                     editingMessageId = messageId,

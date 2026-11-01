@@ -1760,7 +1760,7 @@
         "mode": "block"
       },
       "kotlin": {
-        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/mapper/MessageSearchMapper.kt",
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/LegacyThinking.kt",
         "symbol": "LegacyThinking"
       },
       "why": "Messages saved before reasoning had its own content part keep it in `text` as a `:::thinking ... :::` block. The web client splits the first such block off as reasoning; search does the same, so the block is indexed as reasoning (the in-reasoning badge, answers only) and the preview shows the answer without it.",
@@ -4342,6 +4342,20 @@
       },
       "why": "The MCP OAuth callback ends with a redirect to {basePath}/oauth/success or {basePath}/oauth/error?error=; the in-app sign-in WebView stops on those two paths to report the outcome.",
       "failure_mode": "Upstream moves the result pages: the WebView loads the web app's page and never reports success, so Settings does not reload and the user has to close the page by hand."
+    },
+    {
+      "id": "speech-text",
+      "upstream": {
+        "file": "packages/data-provider/src/parsers.ts",
+        "symbol": "getSpeechText",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/SpeechText.kt",
+        "symbol": "speechTextOf"
+      },
+      "why": "What Read Aloud speaks: the TEXT parts of a reply (parseTextParts with skipReasoning), or its plain text minus a legacy :::thinking block. Reasoning is never spoken.",
+      "failure_mode": "Upstream widens or narrows what is spoken (a new part type, steer text, a different legacy split) and mobile keeps reading the old selection aloud; nothing fails."
     }
   ]
 }

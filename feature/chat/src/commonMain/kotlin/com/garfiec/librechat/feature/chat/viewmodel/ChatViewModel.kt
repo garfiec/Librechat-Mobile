@@ -51,6 +51,7 @@ import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.isTraceViewerEnabled
+import com.garfiec.librechat.core.model.content.speechTextOf
 import com.garfiec.librechat.core.model.content.stripCitations
 import com.garfiec.librechat.core.model.error.UserKeyError
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
@@ -223,7 +224,7 @@ class ChatViewModel(
     private val fileDelegate = platformDelegateFactory.createFileHandler(ErrorOnlyHandle(stateHandle))
 
     // Spoken without citation markers: "turn zero search zero" is not part of the reply.
-    private val ttsDelegate = platformDelegateFactory.createTts(TtsHandle(stateHandle)) { stripCitations(getMessageText(it)) }
+    private val ttsDelegate = platformDelegateFactory.createTts(TtsHandle(stateHandle)) { stripCitations(getSpeechText(it)) }
     private val voiceDelegate = platformDelegateFactory.createVoiceInput(VoiceHandle(stateHandle), ::sendMessage)
     private val shareConsumer = platformDelegateFactory.createShareConsumer()
 
@@ -1274,18 +1275,13 @@ class ChatViewModel(
     }
 
     /**
-     * Text-parts extraction for TTS and the edit prefill. NOT the copy path — whole-message copy
-     * goes through [getMessageClipboardText], which serializes every part.
+     * What Read Aloud speaks for a message: its answer, never its reasoning (upstream
+     * `getSpeechText`, see [speechTextOf]). NOT the copy path — whole-message copy goes through
+     * [getMessageClipboardText], which serializes every part.
      */
-    fun getMessageText(messageId: String): String {
+    fun getSpeechText(messageId: String): String {
         val message = _uiState.value.messages.find { it.messageId == messageId } ?: return ""
-        val contentParts = message.content
-        if (!contentParts.isNullOrEmpty()) {
-            return contentParts.mapNotNull { part ->
-                part.text ?: part.think
-            }.joinToString("")
-        }
-        return message.text
+        return speechTextOf(message)
     }
 
     /**

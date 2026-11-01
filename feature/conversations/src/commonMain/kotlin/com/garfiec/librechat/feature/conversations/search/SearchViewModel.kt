@@ -8,7 +8,7 @@ import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
-import com.garfiec.librechat.core.data.mapper.LegacyThinking
+import com.garfiec.librechat.core.model.content.LegacyThinking
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository

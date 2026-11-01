@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.data.mapper
 
+import com.garfiec.librechat.core.model.content.LegacyThinking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

@@ -1,6 +1,6 @@
 package com.garfiec.librechat.feature.chat.components
 
-import com.garfiec.librechat.core.data.mapper.LegacyThinking
+import com.garfiec.librechat.core.model.content.LegacyThinking
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.content.CitationIndex
