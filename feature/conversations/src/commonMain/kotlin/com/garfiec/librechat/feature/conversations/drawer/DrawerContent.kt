@@ -1694,6 +1694,7 @@ private fun DrawerConversationItem(
                 EndpointIcon(
                     endpointName = data.iconEndpoint,
                     iconUrl = data.endpointIconUrl,
+                    provider = data.iconProvider,
                     size = 18.dp,
                     glyphTint = if (data.isActive) {
                         MaterialTheme.colorScheme.primary

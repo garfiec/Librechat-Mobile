@@ -32,6 +32,9 @@ Material 3 theme and shared Compose components used across all feature modules. 
   screen. The checklist renders a `BookmarkPickerUiState`; `:core:data` `BookmarkPickerController`
   drives it (each tap saves at once). The editor validates with `:core:model` `BookmarkNameRules`.
 - `AvatarImage` - User/agent/model avatar with Coil image loading and fallback.
+- `EndpointIcon` / `EndpointAvatar` - Endpoint and reply-avatar icons: an image `iconURL`, else the
+  provider art the user's server serves at `{server}/assets/` (read from `LocalServerUrl`), else a
+  monogram tile. No third-party logo is bundled; see `feature/chat/CLAUDE.md` "Brand art".
 - `ConfirmationDialog` - Reusable confirm/cancel dialog.
 - `DiscardChangesDialog` - "Discard changes?" for leaving an editor with unsaved edits. Every
   full-screen editor (agent, skill, schedule, prompt, role skills) uses it the same way: the ViewModel

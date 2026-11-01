@@ -809,7 +809,7 @@
     <string name="cd_attached_image">Angehängtes Bild</string>
     <string name="model_selector_search">Modelle suchen…</string>
     <string name="model_selector_my_agents">Meine Agenten</string>
-    <string name="model_selector_spec_only_note">Dieser Server akzeptiert nur die oben aufgeführten Optionen.</string>
+    <string name="model_selector_spec_only_top_note">Nur die Modellvorgaben des Servers können gesendet werden; ausgegraute Modelle dienen nur zur Information.</string>
     <string name="agent_handoff_to">Agent %1$s</string>
     <string name="agent_handoff_run">Lauf: %1$s</string>
     <string name="sibling_position">Antwort %1$d von %2$d</string>

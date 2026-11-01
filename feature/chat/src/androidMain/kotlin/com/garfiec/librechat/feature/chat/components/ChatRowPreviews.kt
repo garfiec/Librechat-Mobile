@@ -101,7 +101,6 @@ private fun AiTurnHost(siblingCount: Int) {
         editSession = null,
         userAvatarUrl = null,
         userName = null,
-        selectedEndpoint = null,
         showImageDescriptions = false,
         showActionsInitially = true,
         searchQuery = null,

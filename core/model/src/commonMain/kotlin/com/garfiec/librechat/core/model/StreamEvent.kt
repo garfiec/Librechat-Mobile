@@ -150,6 +150,12 @@ sealed interface StreamEvent {
 
     data class Sync(
         val aggregatedContent: List<MessageContentPart>,
+        /**
+         * The id the run's reply will be saved under (`resumeState.responseMessageId`). A client that
+         * drops its stream makes the server save the reply so far under it, `unfinished`, so the
+         * client that resumes may read that partial back from the messages route while the run goes on.
+         */
+        val responseMessageId: String? = null,
     ) : StreamEvent
 
     /**

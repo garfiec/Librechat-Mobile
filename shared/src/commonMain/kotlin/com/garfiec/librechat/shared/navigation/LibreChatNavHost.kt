@@ -69,6 +69,7 @@ import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.BannerDisplay
+import com.garfiec.librechat.core.ui.components.LocalServerUrl
 import com.garfiec.librechat.core.ui.components.share.LocalExternalUriHandler
 import com.garfiec.librechat.core.ui.components.share.LocalOpenSharedChat
 import com.garfiec.librechat.core.ui.components.topbar.CoversNativeBars
@@ -348,8 +349,10 @@ fun LibreChatNavHost(
     // The locale wrapper must sit BELOW the back stack: changing language recreates the rendered
     // UI so every stringResource re-resolves, while the back stack created above survives the swap
     // and the user stays on their current screen.
+    val serverUrl by navHostViewModel.serverUrl.collectAsStateWithLifecycle()
     AppLocale(tag = appLocaleTag) {
         CompositionLocalProvider(
+            LocalServerUrl provides serverUrl,
             LocalUriHandler provides sharedLinkUriHandler,
             LocalExternalUriHandler provides platformUriHandler,
             LocalOpenSharedChat provides openSharedChat,

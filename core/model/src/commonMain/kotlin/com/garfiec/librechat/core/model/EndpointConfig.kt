@@ -7,6 +7,12 @@ data class EndpointConfig(
     val type: String? = null,
     val order: Int? = null,
     val iconURL: String? = null,
+    /**
+     * The brand a custom endpoint draws as, resolved by the server from its `iconURL`, `baseURL` host,
+     * `provider` and name (a [com.garfiec.librechat.core.model.media.ProviderId] id). Kept a string so
+     * an id this client doesn't know still decodes; older servers omit it.
+     */
+    val providerId: String? = null,
     val modelDisplayLabel: String? = null,
     val name: String? = null,
     val userProvide: Boolean? = null,

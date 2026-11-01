@@ -1,7 +1,9 @@
 package com.garfiec.librechat.core.model
 
+import com.garfiec.librechat.core.model.media.ProviderId
 import com.garfiec.librechat.core.model.media.isImageUrl
 import com.garfiec.librechat.core.model.media.resolveIconSource
+import com.garfiec.librechat.core.model.media.resolveProviderIcon
 import com.garfiec.librechat.core.model.serializer.LenientInstantSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -106,24 +108,36 @@ data class Conversation(
 
 /**
  * Resolves the icon URL to display for this conversation, as web's `EndpointIcon`: an image
- * [iconURL] (a spec's or an agent thread's) wins; otherwise the [EndpointConfig.iconURL] of the
- * endpoint [iconEndpoint] names. Either is joined to [serverUrl] when it is a rooted, bare or
- * protocol-relative path, as the picker's icons are ([resolveIconSource]). Returns null when no URL
- * is available — callers fall through to the bundled brand glyph or Material fallback.
+ * [iconURL] (a spec's or an agent thread's) wins; otherwise the image [EndpointConfig.iconURL] of
+ * the endpoint [iconEndpoint] names. Either is joined to [serverUrl] when it is a rooted, bare or
+ * protocol-relative path, as the picker's icons are ([resolveIconSource]). Returns null when no
+ * image is available (a configured `iconURL` naming a brand reaches the row as [iconProvider]):
+ * callers fall through to the brand glyph or Material fallback.
  */
 fun Conversation.resolveEndpointIconUrl(
     endpointConfigs: Map<String, EndpointConfig>,
     serverUrl: String,
 ): String? {
     val icon = iconURL?.takeIf(::isImageUrl)
-        ?: (iconURL?.takeIf { it in endpointConfigs } ?: endpoint)?.let { endpointConfigs[it]?.iconURL }
-    return icon?.takeIf(::isImageUrl)?.let { resolveIconSource(it, endpoint, serverUrl).imageUrl } ?: icon
+        ?: iconEndpoint(endpointConfigs)?.let { endpointConfigs[it]?.iconURL }?.takeIf(::isImageUrl)
+    return icon?.let { resolveIconSource(it, endpoint, serverUrl).imageUrl }
 }
 
 /**
- * The endpoint whose glyph stands for this conversation: a spec stores an endpoint or provider
- * name in [iconURL] (`"groq"` on an OpenAI-compatible endpoint), which wins over [endpoint]. A blank
- * or image [iconURL] leaves [endpoint].
+ * The endpoint whose glyph stands for this conversation, as web's `getIconEndpoint`: a spec may store
+ * an endpoint's key in [iconURL], which wins over [endpoint] only when [endpointConfigs] lists that
+ * key. Any other [iconURL] (an image, a bare provider name like `"groq"`, blank) leaves [endpoint].
+ *
+ * MIRRORED from `client/src/components/Endpoints/EndpointIcon.tsx` (registered in
+ * `scripts/mirrors.json` as `endpoint-icon-rule`).
  */
-val Conversation.iconEndpoint: String?
-    get() = iconURL?.takeIf { it.isNotBlank() && !isImageUrl(it) } ?: endpoint
+fun Conversation.iconEndpoint(endpointConfigs: Map<String, EndpointConfig>): String? =
+    iconURL?.takeIf { it.isNotEmpty() && it in endpointConfigs } ?: endpoint
+
+/**
+ * The brand art for this conversation's row: [iconEndpoint]'s by [resolveProviderIcon] (its configured
+ * `iconURL` naming a brand, its served `providerId`, its first-class brand, then its name). Null when
+ * that endpoint's configured icon is an image, or nothing resolves.
+ */
+fun Conversation.iconProvider(endpointConfigs: Map<String, EndpointConfig>): ProviderId? =
+    resolveProviderIcon(iconEndpoint(endpointConfigs), endpointConfigs).provider

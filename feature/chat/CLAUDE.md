@@ -60,8 +60,18 @@ feature added to only one composer does not.
   - They render as `LandingStarters` in `ChatScreen`'s measured bottom box, docked on the composer, not
     inside `LandingContent`: that way they ride the keyboard and never sit under the composer. The hero
     centres in the space they leave (`bottomPadding`) and drops its icon when that is too short.
-  - The hero shows the selected spec's icon (see "Spec presentation") or the agent's avatar, as
-    web's landing does (`landingHeroIcon`), and falls back to the app tile.
+  - The hero draws what web's landing `ConvoIcon` draws (`landingHeroIcon`): the selected spec's icon
+    (see "Spec presentation", down to its endpoint's brand), the agent's avatar (the agents glyph
+    without one), else the selected endpoint's brand; the app tile only before anything is selected
+    (agents with no agent yet). A temporary chat shows the
+    temporary toggle's `VisibilityOff` in `ChatInputDefaults.temporaryAccent` instead, whatever is
+    selected, swapped as temporary chat's band crosses the heading (`landingHero`; web swaps in
+    `HatGlasses`).
+  - Compact mode (`maxHeight - bottomPadding` under `CompactHeroBelow`, plus the description's
+    measured height at the hero's width, up to its four-line limit, and its gap when there is one)
+    drops the icon, shrinks the greeting and cuts the description to two lines, so a spec's landing
+    with the keyboard up and starters docked doesn't scroll. Measuring the description (rather than
+    reserving its line limit) keeps a one-line description from tipping the hero into compact.
   - The words are `landingText` (web's `Landing.tsx`): the selected agent's name, else a
     `showOnLanding` spec's label, replaces the time-of-day greeting; the agent's description, else
     that spec's, else the spec preset's `greeting` (applied without `showOnLanding`) replaces "How can
@@ -255,7 +265,10 @@ ignores it. A spec served with no endpoint (an explicit `endpoint: null`) opens 
 **Model shortcuts** (launcher shortcuts, iOS quick actions; mobile-only). Usage is counted per pair
 and spec (`SettingsDataStore.incrementModelUsage`): a spec's sends count apart from the raw model and
 keep its label for the shortcut's title, and the spec rides the link
-(`librechat://model?…&spec=`, `NewChat.spec`). At Tier 0 a shortcut reopens its spec on the spec's
+(`librechat://model?…&spec=`, `NewChat.spec`). Before publishing, the ranked list is reconciled
+with the cached spec config (`ModelRef.reconciledWith`, Android `MainActivity` and iOS
+`IosKoinAccessor`): a spec the server no longer lists drops out and a kept one takes its current
+label; with no config yet the list is left as is. At Tier 0 a shortcut reopens its spec on the spec's
 current pair (`reopenedPick`). One with no spec (a raw pick, or recorded before shortcuts kept
 specs) opens its raw pair only where the picker lists that endpoint (`showsRawEndpoint` with the
 live `modelSelect`); elsewhere the one spec on the pair opens, or nothing and the landing seeds as
@@ -314,15 +327,53 @@ Compare setup stages specs like models, so a spec can be either lane before the 
   every group is its own section, as on web. Sections start closed except the one holding the
   selected spec. A search lists specs flat, without groups, as web's does; Starred is unchanged.
   Divergence: a spec grouped under an endpoint with no models gets a group of its own (web hides it).
+  Such a group named after a configured endpoint key or `agents` (also every endpoint-keyed group
+  under `enforce` without `addedEndpoints`, where no raw endpoint is listed) takes that endpoint's
+  label (`endpointDisplayName`, "My Agents") and icon but stays its own section; under
+  `modelSelect: false` it keeps the raw name, as on web.
+- **Row order** (`util/PickerRows.kt`): `pickerRows(PickerInputs)` lays out the whole picker as
+  data (header / spec / model / agent / note / divider rows with their keys); the sheet only resolves
+  strings, icons and clicks, so order and keys are tested in commonTest (`PickerRowsTest`).
+  - Under `enforce` with greyed raw rows, one note ("Only the server's model specs can be sent…") is
+    the first row, above Starred, so no sendable spec sits above or below a misleading note. The
+    note is mobile-only; web explains nothing.
+  - An endpoint that needs the user's key keeps its grouped specs listed under the greyed "Add key"
+    header (a tap opens the key screen) and hides its raw models, as web's `EndpointItem` lists them.
 - **Icons** (`isImageUrl`, `iconValue` and `resolveIconSource` in `:core:model` `media/IconUrls.kt`,
   `util/SpecIcons.kt`): a spec's `iconURL`, its preset's, its agent's avatar, then its endpoint; a
   value is an image by web's `isImageURL` rule, else an endpoint or provider whose glyph to borrow,
   and `""` is unset. The picker rows, landing hero, Compare's spec lane and quick picks use it, and
-  reply avatars resolve a message's `iconURL` through `resolveIconSource` too;
+  so do reply avatars (see "Reply avatars" below);
   `showIconInMenu: false` hides it in the picker and quick picks. The conversation rows apply web's
-  `EndpointIcon` rule (`Conversation.iconEndpoint`), joining a relative icon path to the server
+  `EndpointIcon` rule (`Conversation.iconEndpoint(configs)` / `iconProvider(configs)`: a non-image
+  `iconURL` counts only when it is an endpoint key), joining a relative icon path to the server
   (`ConfigRepository.serverUrl`). `showIconInHeader` is decoded only: the header
   chip is text-only by design.
+- **Brand art** follows web's `resolveProviderIcon` (`:core:model` `media/ProviderIcons.kt`): an
+  image icon, then an icon value naming a provider (`groq`, `grok`, `Together.AI`), then the
+  endpoint's served `providerId` (the server derives it from the endpoint's `iconURL`, `baseURL`
+  host, `provider` and name), then the first-class brand, then the endpoint name.
+  `resolveIconSource` and the `SpecIcons` helpers take optional `endpointConfigs` to fill
+  `IconSource.provider`; pass them, and `EndpointIcon(provider = …)`, wherever configs are in reach,
+  or a custom endpoint draws its monogram or the generic glyph.
+- **Reply avatars are view data.** A bubble never resolves its own icon: `ChatViewModel`'s exposed
+  `uiState` combine fills each node's `MessageNode.avatar` (`util/ReplyAvatars.kt`: the message's
+  `iconURL`, else its endpoint's brand with configs), because the server URL and the endpoint configs
+  arrive on their own flows and a path built before them would keep a stale avatar. `ReplyAvatarMemo`
+  skips the walk while the path, URL and configs are unchanged, so streaming emissions cost nothing.
+  `ChatUiState.avatars` (`ReplyAvatarsState`) holds the streaming reply's and Compare lane B's, and
+  `buildComparisonDisplayMessages` puts lane B's on pane B's nodes. The bubbles, the streaming
+  bubble and the steer segment header (`SegmentAuthorHeader`) draw the `IconSource` they are given.
+  Shared links map their snapshot the same way without configs, so a custom endpoint resolves by
+  name there.
+  - **No third-party logo art is bundled.** Brand terms forbid most unlicensed logo use in an app,
+    and F-Droid would flag bundled logos as NonFreeAssets. The art loads at runtime from the user's
+    own server, which serves it as static files at `{server}/assets/<file>` (`providerAssetFiles` /
+    `providerAssetUrl` in `ProviderIcons.kt`, subpath-aware; `LocalServerUrl` is provided by the nav
+    host). A provider with no served file (Anthropic, Azure, Bedrock, xAI, Moonshot, Vercel) or a
+    file an older server lacks draws a monogram tile of its label. Loaded art is never tinted;
+    near-black art (OpenAI, MLX) sits on a light tile in a dark theme. Web's model-level refinement
+    (`byModel`) isn't ported.
 
 ## Message Tree
 - Messages stored flat, linked by `parentMessageId` (root = `NO_PARENT` UUID)
@@ -337,7 +388,8 @@ Compare setup stages specs like models, so a spec can be either lane before the 
 - The leaf is the optimistic user message for `doSendMessage` / `editUserMessage` (passed inline alongside the message insert), and the existing parent user message for `regenerateMessageNow` / `rerunReply` (via `anchorStreamTo`).
 - This is a one-shot rebuild — there is no stored anchor field. The truncated `displayMessages` just persists in state for the stream's duration. On Final the untruncated path is rebuilt **in memory** by `finalizeChatDisplay` (normal + temp chats); only comparison chats still rebuild via a background `loadConversation`/Room reconcile. The full tree stays in `messages`/DB, so the old branch remains reachable via sibling navigation.
 - **Invariant (load-bearing):** while streaming, nothing may write to Room or mutate `activeBranches` — otherwise the `loadConversation` observer re-emits and rebuilds `displayMessages` with no `streamingLeafId`, un-truncating the path and clobbering the in-place view. The send paths uphold this (no mid-stream Room write); `switchBranch`, `rerunEdit`/`saveEdit`, and `regenerateMessage` are all gated on `!isStreaming` so user taps can't break it either.
-- **Handed-off new chat (load-bearing):** when a chat is created from the landing page, the landing VM is reset and a fresh `Chat(id)` VM resumes the stream — so the optimistic user message lives only in the discarded landing VM, and the server persists the *request* message only when the reply completes (`agents/request.js` saves it right before the Final event). Without intervention the resumed screen would show only the streaming bubble (no user message) for the whole stream. Fix: `NewChatSelectionHandoff` carries the optimistic `Message`; `ChatViewModel.init` seeds it into `messages`/`displayMessages` and into `pendingResumeUserMessage`. `loadConversation` keeps that seed appended — inside its off-Main `combine` map, guarded so it only appends while no server row is its copy — until the server's copy arrives, then drops it (so a later server-side delete still removes the row). "Its copy" is matched by id **or** by content (`isServerCopyOf`: user-authored, same parent, same text), because rc3+ servers do not adopt the client-minted id (see *Optimistic id reconciliation*). An id-only match never fired there, so a run that ended without a Final — a resume that 404s because the job already finished — left the seed as a second root sibling, and the path's newest-sibling default showed it alone over the persisted turn and its reply. `finalizeChatDisplay` *also* clears `pendingResumeUserMessage` in its atomic Final update. This is what feeds `finalizeChatDisplay`'s in-memory backfill in the handoff case — do **not** replace it with a network `reloadConversation` on Final (that was the #169 regression being avoided).
+- **Handed-off new chat (load-bearing):** when a chat is created from the landing page, the landing VM is reset and a fresh `Chat(id)` VM resumes the stream — so the optimistic user message lives only in the discarded landing VM, and the server persists the *request* message only when the reply completes (`agents/request.js` saves it right before the Final event) or when a client drops its stream (see the next rule; the landing's own stream closes at the handoff, but the read can land first). Without intervention the resumed screen would show only the streaming bubble (no user message) for the whole stream. Fix: `NewChatSelectionHandoff` carries the optimistic `Message`; `ChatViewModel.init` seeds it into `messages`/`displayMessages` and into `pendingResumeUserMessage`. `loadConversation` keeps that seed appended — inside its off-Main `combine` map, guarded so it only appends while no server row is its copy — until the server's copy arrives, then drops it (so a later server-side delete still removes the row). "Its copy" is matched by id **or** by content (`isServerCopyOf`: user-authored, same parent, same text), because rc3+ servers do not adopt the client-minted id (see *Optimistic id reconciliation*). An id-only match never fired there, so a run that ended without a Final — a resume that 404s because the job already finished — left the seed as a second root sibling, and the path's newest-sibling default showed it alone over the persisted turn and its reply. `finalizeChatDisplay` *also* clears `pendingResumeUserMessage` in its atomic Final update. This is what feeds `finalizeChatDisplay`'s in-memory backfill in the handoff case — do **not** replace it with a network `reloadConversation` on Final (that was the #169 regression being avoided).
+- **A resumed run's saved partial stays off the thread.** When the client that started a run drops its stream (the landing handing off, a network drop), the server saves the user message and the reply so far, the latter `unfinished` under the run's `responseMessageId`, and keeps writing. The resumed stream's sync frame names that id (`StreamEvent.Sync.responseMessageId` → `MessagesState.resumedReplyId`), and while the stream is live the partial is left out of `displayMessages` (`withoutLivePartial`): in `loadConversation`'s path build, and in the sync update itself for a partial the load read first. Not a `combine` input, so it never re-emits the observer mid-stream. Only the `unfinished` copy goes, so the finished reply (same id) shows. The ends that reload nothing (`AbortFallback`, `ResumeFailed`) rebuild the path, since the bubble goes with `isStreaming`. Without it the partial sat frozen above the streaming bubble until Final.
 - **Optimistic id reconciliation:** `doSendMessage` / `editUserMessage` mint the optimistic user message's id and send it as `ChatRequest.messageId` (the `userMessageId` arg on `startChat`), which servers before v0.8.8-rc3 adopt and echo in the Final `requestMessage`. **rc3+ does not:** the agents controller persists the user message under `resolvePreallocatedUserMessageId` (`overrideUserMessageId ?? overrideParentMessageId ?? randomUUID()`, `api/server/controllers/agents/request.js`) and overwrites the request's `messageId` with it. The web client sends `overrideUserMessageId` only for steer recovery and queue drain, never for a plain send. So on those servers the reconciliation below does not happen by id: the Final's `requestMessage` merges in (via `mergeFinalMessagesInMemory`, keyed by id) as a sibling of the optimistic message rather than over it, and the newest-sibling default is what shows the server's copy. For a normal chat the optimistic row was never persisted, so the next Room emission drops it. Whether a **temporary** chat keeps both as a visible sibling pair is not verified. On older servers the optimistic message does reconcile by id, for normal and temp chats alike, via `mergeFinalMessagesInMemory` (`finalizeChatDisplay`, in-memory). Normal chats additionally persist the finalized turn to Room via `cacheMessages` (no network reload); the response's `parentMessageId` matching the adopted id is also what lets `finalizeChatDisplay` backfill the user message into the returned turn when a loose Final payload omits `requestMessage`, so the cached turn never drops it. Mirrors the web client's top-level `messageId`; without it the optimistic message would linger as a phantom sibling. Regenerate/continue/edit-AI send no `messageId` (they create no new user message).
 - **Completion render (load-bearing):** `MessageList` keys its `LazyColumn` items by the conversation **slot** (`MessageNode.treeParentKey`), and the trailing streaming bubble is keyed to the slot its finalized message will occupy (the last visible message's id == the reply's parent). This makes the streaming→final swap an in-place update of one item rather than a remove+add, so the list never loses its scroll anchor at completion. The finalize update is also atomic (it clears the streaming fields in the *same* `stateHandle.update` that swaps in the message — see `finalizeChatDisplay`), and the last message renders markdown synchronously via `LocalImmediateMarkdown` so it doesn't mount through a zero-height async-parse frame. Reverting any of these (per-id keys, a separate streaming-clear update, async parse for the last message) reintroduces the completion flicker.
 
@@ -544,6 +596,10 @@ haiku wrote only escapes), so everything converts the escape first.
   and text still inside an **unclosed** code fence, because
   `parseMarkdownSegments` only lifts *closed* fences out — without that last case a long code reply
   would stream with no cursor at all. The segment-kind half is unit-tested.
+- The bubble's sender is `replySenderName`: the agent's name, else the selected spec's label (the
+  names the server saves those replies under), else the model. Compare's pane A takes the same name
+  for its parallel turn. A raw model's reply still takes the server's own name at Final (upstream
+  `getResponseSender`: "Claude", "GPT-4o"), which isn't ported.
 - Before the first delta there is no insertion point, so the bubble shows `StreamingWaitIndicator`
   instead of a cursor blinking against empty space.
 - Tool calls tracked in `activeToolCalls` list (start -> complete lifecycle)

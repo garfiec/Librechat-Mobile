@@ -5,6 +5,8 @@ import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.content.AgentToolCall
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.core.model.media.IconSource
+import com.garfiec.librechat.core.model.media.ProviderId
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
@@ -56,35 +58,34 @@ class ComparisonDisplayTest {
     }
 
     @Test
-    fun `secondary pane re-points endpoint and icon so the avatar differs from primary`() {
-        val withPrimaryIcon = node(
-            Message(
-                messageId = "m1",
-                conversationId = "c1",
-                endpoint = "anthropic",
-                iconURL = "https://host/primary-avatar.png",
-                content = listOf(
-                    textPart("primary reply", agentId = "agent_a"),
-                    textPart("secondary reply", agentId = "agent_a____1"),
-                ),
-            ),
-        )
+    fun `secondary pane takes its lane's avatar, primary keeps its own`() {
+        val primaryAvatar = IconSource("anthropic", "https://host/primary-avatar.png", ProviderId.ANTHROPIC)
+        val laneB = IconSource("My OpenRouter", null, ProviderId.OPENROUTER)
+        val mapped = parallelNode().copy(avatar = primaryAvatar)
+
         val primary = buildComparisonDisplayMessages(
-            listOf(withPrimaryIcon), secondary = false,
+            listOf(mapped), secondary = false,
             parallelMessageId = "m1", finalContent = null, senderName = "P",
-        )[0].message
-        // Primary keeps its own endpoint/icon.
-        assertThat(primary.endpoint).isEqualTo("anthropic")
-        assertThat(primary.iconURL).isEqualTo("https://host/primary-avatar.png")
+            secondaryAvatar = laneB,
+        )[0]
+        assertThat(primary.avatar).isEqualTo(primaryAvatar)
 
         val secondary = buildComparisonDisplayMessages(
-            listOf(withPrimaryIcon), secondary = true,
+            listOf(mapped), secondary = true,
             parallelMessageId = "m1", finalContent = null, senderName = "S",
-            secondaryEndpoint = "openAI", secondaryIconUrl = null,
-        )[0].message
-        // Secondary is re-pointed: endpoint swapped, primary's icon cleared (endpoint fallback).
-        assertThat(secondary.endpoint).isEqualTo("openAI")
-        assertThat(secondary.iconURL).isNull()
+            secondaryAvatar = laneB,
+        )[0]
+        assertThat(secondary.avatar).isEqualTo(laneB)
+    }
+
+    @Test
+    fun `secondary pane without a lane avatar never shows the primary's`() {
+        val mapped = parallelNode().copy(avatar = IconSource("anthropic", "https://host/primary-avatar.png"))
+        val secondary = buildComparisonDisplayMessages(
+            listOf(mapped), secondary = true,
+            parallelMessageId = "m1", finalContent = null, senderName = "S",
+        )[0]
+        assertThat(secondary.avatar).isNull()
     }
 
     @Test

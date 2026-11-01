@@ -242,6 +242,7 @@ private fun ArchivedConversationItem(
         EndpointIcon(
             endpointName = data.iconEndpoint,
             iconUrl = data.endpointIconUrl,
+            provider = data.iconProvider,
             size = 24.dp,
             contentDescription = endpointLabel,
         )

@@ -413,6 +413,17 @@ class SseEventMapperTest {
     }
 
     @Test
+    fun `a sync frame names the reply the run is writing`() {
+        val event = SseEvent(
+            event = "",
+            data = """{"sync":true,"resumeState":{"aggregatedContent":[],"responseMessageId":"resp-1"}}""",
+        )
+        assertThat((mapper.map(event) as StreamEvent.Sync).responseMessageId).isEqualTo("resp-1")
+        val unnamed = SseEvent(event = "", data = """{"sync":true,"resumeState":{"aggregatedContent":[]}}""")
+        assertThat((mapper.map(unnamed) as StreamEvent.Sync).responseMessageId).isNull()
+    }
+
+    @Test
     fun `a sync frame drops the null slots of its sparse aggregatedContent`() {
         val event = SseEvent(
             event = "",

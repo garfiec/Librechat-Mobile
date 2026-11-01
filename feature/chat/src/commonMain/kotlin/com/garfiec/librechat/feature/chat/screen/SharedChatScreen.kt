@@ -370,7 +370,6 @@ internal fun SharedChatScaffold(
                     // Whoever opens a link didn't write its prompts: a neutral label, no avatar.
                     userAvatarUrl = null,
                     userName = stringResource(Res.string.shared_chat_user),
-                    selectedEndpoint = null,
                     showImageDescriptions = display.showImageDescriptions,
                     chatLayoutStyle = display.chatLayoutStyle,
                     showAvatars = display.showAvatars,

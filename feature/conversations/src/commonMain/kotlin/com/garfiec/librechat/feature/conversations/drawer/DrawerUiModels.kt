@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.conversations.drawer
 
 import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.data.search.MessageSearchHit
+import com.garfiec.librechat.core.model.media.ProviderId
 import com.garfiec.librechat.feature.conversations.search.SearchNote
 import kotlin.time.Instant
 
@@ -28,6 +29,11 @@ data class DrawerConversationDisplayData(
     val endpointIconUrl: String? = null,
     val modelLabel: String? = model,
     val iconEndpoint: String? = endpoint,
+    /**
+     * The brand art the row draws when [endpointIconUrl] is null or fails to load; beats [iconEndpoint].
+     * Null when the endpoint's configured icon is an image, as on web.
+     */
+    val iconProvider: ProviderId? = null,
 )
 
 /**

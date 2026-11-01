@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.core.model.media.IconSource
 
 /**
  * Derives one comparison pane's message list. v0.8.7 persists a comparison as a
@@ -14,12 +15,9 @@ import com.garfiec.librechat.core.model.content.MessageContentPart
  * used only as a fallback: for the brief Final→reload gap before the attributed
  * server message arrives, or if a pane ended up with no attributed parts.
  *
- * The persisted message carries only the *primary* agent's `endpoint`/`iconURL`, so
- * on the [secondary] pane the bubble avatar would otherwise duplicate the primary's.
- * Pass [secondaryEndpoint]/[secondaryIconUrl] to re-point the secondary pane's icon at
- * its own agent (icon precedence in the bubble is `iconURL` → endpoint fallback, so a
- * null [secondaryIconUrl] falls back to [secondaryEndpoint]'s icon). Also updates the
- * sender name so the bubble shows the correct model.
+ * The persisted message carries only the *primary* agent's `endpoint`/`iconURL`, so the
+ * [secondary] pane's nodes take [secondaryAvatar], its own lane's icon, as their
+ * [MessageNode.avatar]. Also updates the sender name so the bubble shows the correct model.
  */
 fun buildComparisonDisplayMessages(
     displayMessages: List<MessageNode>,
@@ -27,20 +25,10 @@ fun buildComparisonDisplayMessages(
     parallelMessageId: String?,
     finalContent: String?,
     senderName: String?,
-    secondaryEndpoint: String? = null,
-    secondaryIconUrl: String? = null,
+    secondaryAvatar: IconSource? = null,
 ): List<MessageNode> {
-    fun Message.forPane(newContent: List<MessageContentPart>, paneAttachments: List<Attachment>?): Message {
-        val base = copy(content = newContent, attachments = paneAttachments, sender = senderName ?: sender)
-        // Only the secondary pane needs re-pointing; the primary message already carries
-        // its own endpoint/iconURL. Force iconURL (even to null) so the primary's avatar
-        // never bleeds into the secondary pane.
-        return if (secondary) {
-            base.copy(endpoint = secondaryEndpoint ?: base.endpoint, iconURL = secondaryIconUrl)
-        } else {
-            base
-        }
-    }
+    fun Message.forPane(newContent: List<MessageContentPart>, paneAttachments: List<Attachment>?): Message =
+        copy(content = newContent, attachments = paneAttachments, sender = senderName ?: sender)
     return displayMessages.map { node ->
         val message = node.message
         when {
@@ -52,6 +40,7 @@ fun buildComparisonDisplayMessages(
                     paneParts
                 }
                 node.copy(
+                    avatar = if (secondary) secondaryAvatar else node.avatar,
                     message = message.forPane(
                         newContent = content,
                         paneAttachments = message.attachments?.let {
@@ -66,6 +55,7 @@ fun buildComparisonDisplayMessages(
             // once the attributed message arrives.
             message.messageId == parallelMessageId && !finalContent.isNullOrBlank() -> {
                 node.copy(
+                    avatar = if (secondary) secondaryAvatar else node.avatar,
                     message = message.forPane(
                         newContent = listOf(MessageContentPart(type = ContentType.TEXT, text = finalContent)),
                         paneAttachments = message.attachments?.takeIf { !secondary },

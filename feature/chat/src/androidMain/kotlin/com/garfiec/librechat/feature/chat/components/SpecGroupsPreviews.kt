@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
@@ -57,6 +58,70 @@ private fun SpecGroupsHost(style: UiStyle) {
                 modelSpecs = specs,
                 selectedSpec = "scholar",
                 onToggleSpecFavorite = {},
+            )
+        }
+    }
+}
+
+// Under `enforce` with `addedEndpoints: [openAI]`: the note heads the list; a spec nested in OpenAI's
+// section above its greyed models; groups named `anthropic` and `agents` (not listed raw) read as
+// "Anthropic" and "My Agents" with their endpoints' icons; a custom group keeps its folder; and a
+// key-needed endpoint lists its spec beside "Add key".
+
+@PreviewNarrowScreens
+@Composable
+private fun EnforcedSpecGroupsMaterialPreview() = EnforcedSpecGroupsHost(UiStyle.MATERIAL)
+
+@PreviewNarrowScreens
+@Composable
+private fun EnforcedSpecGroupsGlassPreview() = EnforcedSpecGroupsHost(UiStyle.LIQUID_GLASS)
+
+@Composable
+private fun EnforcedSpecGroupsHost(style: UiStyle) {
+    fun spec(name: String, label: String, endpoint: String, group: String? = null, description: String? = null) =
+        ModelSpec(
+            name = name,
+            label = label,
+            description = description,
+            group = group,
+            preset = Preset(endpoint = endpoint, model = "model"),
+        )
+    val specs = ModelSpecs(
+        list = listOf(
+            spec("general", "General", "openAI", description = "Everyday questions"),
+            spec("fast", "Fast", "openAI", group = "openAI", description = "Quick, cheap answers"),
+            spec("groq-fast", "Groq Fast", "groq", group = "groq"),
+            spec("claude-coder", "Claude Coder", "anthropic", group = "anthropic"),
+            spec("helper", "Helper", "openAI", group = "agents"),
+            spec("writer", "Writer", "openAI", group = "Writing"),
+        ),
+        enforce = true,
+        addedEndpoints = listOf("openAI", "groq"),
+    )
+    LibreChatTheme(darkTheme = true, uiStyle = style) {
+        Surface {
+            ModelSelectorSheetContent(
+                endpointConfigs = mapOf(
+                    "openAI" to EndpointConfig(modelDisplayLabel = "OpenAI"),
+                    "groq" to EndpointConfig(modelDisplayLabel = "Groq", userProvide = true),
+                    "anthropic" to EndpointConfig(modelDisplayLabel = "Anthropic"),
+                    "agents" to EndpointConfig(),
+                ),
+                availableModels = mapOf(
+                    "openAI" to listOf("gpt-4o", "gpt-4o-mini"),
+                    "groq" to listOf("llama-3.3-70b"),
+                    "anthropic" to listOf("claude-sonnet"),
+                ),
+                agents = emptyList(),
+                selectedEndpoint = "openAI",
+                selectedModel = "model",
+                onModelSelect = { _, _ -> },
+                modelSelect = true,
+                onSetApiKey = {},
+                modelSpecs = specs,
+                selectedSpec = "fast",
+                onToggleSpecFavorite = {},
+                endpointKeyStates = mapOf("groq" to KeyState.Unset),
             )
         }
     }

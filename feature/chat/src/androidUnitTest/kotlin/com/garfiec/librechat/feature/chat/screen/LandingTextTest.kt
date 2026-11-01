@@ -2,9 +2,11 @@ package com.garfiec.librechat.feature.chat.screen
 
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.model.Agent
+import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.core.model.media.ProviderId
 import com.garfiec.librechat.feature.chat.components.LandingHeroIcon
 import com.garfiec.librechat.feature.chat.viewmodel.ChatPrefsState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
@@ -15,7 +17,7 @@ import com.google.common.truth.Truth.assertThat
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Test
 
-/** [landingText] and [landingHeroIcon]: web's `Landing.tsx` title, description and icon. */
+/** [landingText], [landingHeroIcon] and [replySenderName]: what the new chat and the reply in progress show. */
 class LandingTextTest {
 
     private val modelSpec = ModelSpec(
@@ -105,10 +107,61 @@ class LandingTextTest {
     @Test
     fun theHeroIconFollowsTheSpecChain() {
         assertThat(state(agentSpec).landingHeroIcon()).isEqualTo(LandingHeroIcon("agents", "https://av/a.png"))
-        // No icon of its own: the app tile, as for the raw model it runs on.
-        assertThat(state(modelSpec).landingHeroIcon()).isNull()
-        assertThat(state(modelSpec.copy(iconURL = "groq")).landingHeroIcon()).isEqualTo(LandingHeroIcon("groq", null))
+        // No icon of its own: its endpoint's brand, as web's ConvoIcon draws it.
+        assertThat(state(modelSpec).landingHeroIcon()).isEqualTo(LandingHeroIcon("openAI", null, ProviderId.OPENAI))
+        assertThat(state(modelSpec.copy(iconURL = "groq")).landingHeroIcon())
+            .isEqualTo(LandingHeroIcon("groq", null, ProviderId.GROQ))
+        // An image keeps the endpoint's brand, drawn if it fails to load.
         assertThat(state(modelSpec.copy(iconURL = "/images/c.png")).landingHeroIcon())
-            .isEqualTo(LandingHeroIcon("openAI", "https://srv/images/c.png"))
+            .isEqualTo(LandingHeroIcon("openAI", "https://srv/images/c.png", ProviderId.OPENAI))
+    }
+
+    @Test
+    fun theHeroIconDrawsTheServedProviderOfACustomEndpoint() {
+        val proxied = modelSpec.copy(iconURL = "Router", preset = Preset(endpoint = "Router", model = "m"))
+        val state = state(proxied).let {
+            it.copy(selection = it.selection.copy(endpointConfigs = mapOf("Router" to EndpointConfig(providerId = "openrouter"))))
+        }
+        assertThat(state.landingHeroIcon()).isEqualTo(LandingHeroIcon("Router", null, ProviderId.OPENROUTER))
+    }
+
+    @Test
+    fun aRawModelDrawsItsEndpointsBrand() {
+        assertThat(state(null).landingHeroIcon()).isEqualTo(LandingHeroIcon("openAI", null, ProviderId.OPENAI))
+        val custom = state(null).copy(
+            selection = ModelSelectionState(
+                choice = ModelChoice.Raw("Gateway", "m"),
+                endpointConfigs = mapOf("Gateway" to EndpointConfig(providerId = "deepseek")),
+            ),
+        )
+        assertThat(custom.landingHeroIcon()).isEqualTo(LandingHeroIcon("Gateway", null, ProviderId.DEEPSEEK))
+    }
+
+    @Test
+    fun anAgentDrawsItsAvatarElseTheAgentsGlyph() {
+        val withAvatar = state(null).copy(
+            selection = ModelSelectionState(choice = ModelChoice.Raw(EndpointConstants.AGENTS, "a1"), agents = listOf(agent)),
+        )
+        assertThat(withAvatar.landingHeroIcon()).isEqualTo(LandingHeroIcon(EndpointConstants.AGENTS, "https://av/a.png"))
+        val unknown = state(null).copy(
+            selection = ModelSelectionState(choice = ModelChoice.Raw(EndpointConstants.AGENTS, "gone")),
+        )
+        assertThat(unknown.landingHeroIcon()).isEqualTo(LandingHeroIcon(EndpointConstants.AGENTS, null))
+    }
+
+    @Test
+    fun aReplyInProgressGoesByItsAgentOrSpecElseItsModel() {
+        assertThat(state(modelSpec).replySenderName("Assistant")).isEqualTo("Coder")
+        assertThat(state(null).replySenderName("Assistant")).isEqualTo("gpt-5")
+        assertThat(state(agentSpec).replySenderName("Assistant")).isEqualTo("Travel Planner")
+        val noModel = state(null).copy(selection = ModelSelectionState(choice = ModelChoice.Raw("openAI", null)))
+        assertThat(noModel.replySenderName("Assistant")).isEqualTo("Assistant")
+    }
+
+    @Test
+    fun nothingSelectedKeepsTheAppTile() {
+        // The selection before seeding: no agent picked yet.
+        val none = state(null).copy(selection = ModelSelectionState())
+        assertThat(none.landingHeroIcon()).isNull()
     }
 }

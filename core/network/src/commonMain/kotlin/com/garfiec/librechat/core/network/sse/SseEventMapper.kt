@@ -310,7 +310,10 @@ class SseEventMapper(private val json: Json) {
                     null
                 }
             }
-            StreamEvent.Sync(aggregatedContent = contentParts)
+            StreamEvent.Sync(
+                aggregatedContent = contentParts,
+                responseMessageId = (resumeState["responseMessageId"] as? JsonPrimitive)?.contentOrNull,
+            )
         }
 
         // The run's latest context snapshot. A client that attaches after the live

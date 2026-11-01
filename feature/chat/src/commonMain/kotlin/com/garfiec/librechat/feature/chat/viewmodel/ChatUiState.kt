@@ -85,6 +85,7 @@ data class ChatUiState(
     val prefs: ChatPrefsState = ChatPrefsState(),
     val selection: ModelSelectionState = ModelSelectionState(),
     val content: MessagesState = MessagesState(),
+    val avatars: ReplyAvatarsState = ReplyAvatarsState(),
     val conversation: ConversationMetaState = ConversationMetaState(),
     val error: String? = null,
     // Model comparison state

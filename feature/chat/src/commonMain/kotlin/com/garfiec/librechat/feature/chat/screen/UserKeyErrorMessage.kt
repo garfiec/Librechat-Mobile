@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.screen
 
 import com.garfiec.librechat.core.common.datetime.ResolvedDateTimeFormat
 import com.garfiec.librechat.core.model.EndpointConfig
+import com.garfiec.librechat.core.model.endpoint.endpointDisplayName
 import com.garfiec.librechat.core.model.error.UserKeyError
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.provider_keys_chat_error_expired
@@ -29,11 +30,11 @@ internal data class UserKeyErrorMessage(val res: StringResource, val args: List<
 }
 
 /**
- * The name the user knows [UserKeyError.endpoint] by: the endpoint's `modelDisplayLabel`, else its
- * name. Null when the server sent no endpoint.
+ * The name the user knows [UserKeyError.endpoint] by ([endpointDisplayName]). Null when the server
+ * sent no endpoint.
  */
 internal fun UserKeyError.endpointLabel(configs: Map<String, EndpointConfig>): String? =
-    endpoint?.takeIf { it.isNotBlank() }?.let { name -> configs[name]?.modelDisplayLabel ?: name }
+    endpoint?.takeIf { it.isNotBlank() }?.let { name -> endpointDisplayName(name, configs[name]) }
 
 /**
  * The snackbar message for [error], naming the endpoint by [label] when there is one. Every

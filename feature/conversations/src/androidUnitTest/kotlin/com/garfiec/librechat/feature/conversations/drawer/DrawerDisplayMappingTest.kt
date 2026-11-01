@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.core.model.media.ProviderId
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import kotlin.time.Instant
@@ -141,5 +142,26 @@ class DrawerDisplayMappingTest {
 
         assertThat(data.endpointIconUrl).isEqualTo("https://srv/images/spec.png")
         assertThat(data.iconEndpoint).isEqualTo("openAI")
+    }
+
+    @Test
+    fun aCustomEndpointDrawsTheProviderTheServerResolved() {
+        val configs = mapOf("My Router" to EndpointConfig(type = "custom", providerId = "openrouter"))
+        val convo = Conversation(conversationId = "c1", endpoint = "My Router")
+
+        val data = convo.toDrawerDisplayData(activeConversationId = null, endpointConfigs = configs, serverUrl = "")
+
+        assertThat(data.iconProvider).isEqualTo(ProviderId.OPENROUTER)
+        assertThat(data.endpointIconUrl).isNull()
+    }
+
+    @Test
+    fun aProviderNameTheConfigDoesNotListLeavesTheEndpoint() {
+        val convo = Conversation(conversationId = "c1", endpoint = "anthropic", iconURL = "groq")
+
+        val data = convo.toDrawerDisplayData(activeConversationId = null, endpointConfigs = emptyMap(), serverUrl = "")
+
+        assertThat(data.iconEndpoint).isEqualTo("anthropic")
+        assertThat(data.iconProvider).isEqualTo(ProviderId.ANTHROPIC)
     }
 }

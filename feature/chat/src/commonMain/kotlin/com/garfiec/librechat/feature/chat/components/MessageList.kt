@@ -41,6 +41,7 @@ import com.garfiec.librechat.core.common.ChatLayoutConstants
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.PendingAction
+import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
@@ -116,7 +117,8 @@ fun MessageList(
     onRefresh: () -> Unit = {},
     userAvatarUrl: String? = null,
     userName: String? = null,
-    selectedEndpoint: String? = null,
+    /** The streaming reply's avatar, resolved like each node's [MessageNode.avatar]. */
+    streamingAvatar: IconSource? = null,
     streamingSenderName: String = "Assistant",
     showImageDescriptions: Boolean = true,
     chatLayoutStyle: String = ChatLayoutConstants.THREAD,
@@ -609,11 +611,11 @@ fun MessageList(
                     editSession = editSession,
                     userAvatarUrl = userAvatarUrl,
                     userName = userName,
-                    selectedEndpoint = selectedEndpoint,
                     showImageDescriptions = showImageDescriptions,
                     chatLayoutStyle = chatLayoutStyle,
                     showAvatars = showAvatars,
                     showBubbles = showBubbles,
+                    avatar = node.avatar,
                     useKatex = useKatex,
                     searchQuery = searchQuery,
                     isSearchMatch = isMatch,
@@ -662,9 +664,8 @@ fun MessageList(
                         StreamingMessageBubble(
                             streamingContent = streamingContent,
                             senderName = streamingSenderName,
-                            senderIconUrl = null,
+                            avatar = streamingAvatar,
                             fontSizeMultiplier = fontSizeMultiplier,
-                            selectedEndpoint = selectedEndpoint,
                             chatLayoutStyle = chatLayoutStyle,
                             showAvatars = showAvatars,
                             showBubbles = showBubbles,
