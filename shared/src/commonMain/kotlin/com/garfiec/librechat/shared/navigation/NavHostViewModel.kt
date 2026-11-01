@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.common.identity.AccountTransition
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.accountTransitions
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
+import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.AccountEntry
 import com.garfiec.librechat.core.data.datastore.AccountRoster
@@ -23,10 +24,12 @@ import com.garfiec.librechat.core.data.repository.FailoverResult
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.ToolFavoritesRepository
+import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.util.SessionTaskRunner
 import com.garfiec.librechat.core.model.Banner
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.network.client.AccountReadyGate
+import com.garfiec.librechat.core.network.client.AuthGate
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
 import com.garfiec.librechat.core.network.client.SessionEndReason
 import com.garfiec.librechat.core.network.client.SessionHealth
@@ -43,6 +46,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -65,8 +69,25 @@ data class SessionExpiredNotice(
     val banned: Boolean = false,
 )
 
-/** Where a session change sends the app: sign-in, or the chat of the account now active. */
-enum class SessionRoute { SignIn, Chat }
+/** Where a session change sends the app. */
+sealed interface SessionRoute {
+    /** Sign-in. */
+    data object SignIn : SessionRoute
+
+    /** The chat of the account now active. */
+    data object Chat : SessionRoute
+
+    /**
+     * The server requires 2FA setup before this account may go on (v0.8.9-rc1); its session has
+     * already been ended. [tempToken] is the setup credential.
+     */
+    data class TwoFactorSetup(val tempToken: String) : SessionRoute {
+        override fun toString(): String = "TwoFactorSetup"
+    }
+
+    /** The server requires the terms to be accepted (modalAcceptance); shown over the current screen. */
+    data object Terms : SessionRoute
+}
 
 /**
  * Navigation-shell ViewModel: auth/session routing, account identity + hygiene, banners, version
@@ -93,6 +114,7 @@ class NavHostViewModel(
     private val activeAccountProvider: ActiveAccountProvider,
     private val accountRoster: AccountRoster,
     private val accountSwitcher: AccountSwitcher,
+    private val userRepository: UserRepository,
 ) : ViewModel() {
 
     private val bannerStateHolder =
@@ -268,6 +290,7 @@ class NavHostViewModel(
                     // favorites sync). Runs on the application scope so tasks outlive
                     // this VM's scope. Fresh logins fire these from AuthRepositoryImpl.
                     sessionTaskRunner.runAll()
+                    checkTermsAcceptance()
                     // Offline-upgrade recovery: getUser() couldn't run, so the account is unresolved and
                     // every tenant read is empty for an otherwise logged-in user. Re-attempt when
                     // connectivity returns instead of stranding them until a manual relaunch.
@@ -287,6 +310,11 @@ class NavHostViewModel(
             tokenManager.sessionExpiredFlow.collect { reason ->
                 if (reason == SessionEndReason.BANNED) onBanned() else onSessionEnded(reason)
             }
+        }
+        // Required steps the server reports (v0.8.9-rc1). A state, not an event, so a gate raised
+        // by a background request or a refresh before this VM existed is still acted on.
+        viewModelScope.launch {
+            tokenManager.authGate.filterNotNull().collect { gate -> onAuthGate(gate) }
         }
         // The active account changed underneath this Activity-scoped VM (switch / add-completion /
         // remove → Switched; remove-last → Ended; plain logout also lands here as Ended, where the
@@ -323,6 +351,7 @@ class NavHostViewModel(
                     bannerStateHolder.fetchBanner()
                     versionCheckStateHolder.checkBackendVersion()
                     sessionTaskRunner.runAll()
+                    checkTermsAcceptance()
                 } else if (transition is AccountTransition.Ended) {
                     // The last account signed out (plain logout, or remove-last): mark logged-out so
                     // first-frame routing is correct. Nav-to-auth itself rides the session-expired
@@ -441,6 +470,47 @@ class NavHostViewModel(
     }
 
     /**
+     * A step the server requires before the active account may go on.
+     *
+     * 2FA enrollment ends this account's session (a refresh already did, server-side) and opens
+     * setup. It is **not** an expiry: no failover to another signed-in account, which would move the
+     * user off the account they have to finish, and no "signed out" dialog. Under [sessionDecision]
+     * like the expiry handler, so the two cannot interleave on the active account.
+     */
+    private suspend fun onAuthGate(gate: AuthGate) = sessionDecision.withLock {
+        tokenManager.consumeAuthGate(gate)
+        val active = activeAccountId()
+        if (gate.accountId != null && gate.accountId != active) return@withLock
+        when (gate) {
+            is AuthGate.TwoFactorSetupRequired -> {
+                tokenManager.endSessionForReauth(active)
+                sessionRevision.update { it + 1 }
+                // Lowered before the route goes out, as in [onSessionEnded].
+                _isLoggedIn.value = false
+                _sessionRoute.trySend(SessionRoute.TwoFactorSetup(gate.tempToken))
+            }
+            is AuthGate.TermsNotAccepted -> if (_isLoggedIn.value) _sessionRoute.trySend(SessionRoute.Terms)
+        }
+    }
+
+    /**
+     * Opens the terms when the deployment requires them (`interface.termsOfService.modalAcceptance`)
+     * and this user has not accepted. From v0.8.9-rc1 the server refuses writes until then; on older
+     * servers this is the acceptance the web client asks for. Best-effort: a failed read leaves the
+     * server's 403 to open the screen later.
+     */
+    private fun checkTermsAcceptance() {
+        viewModelScope.launch {
+            val config = configRepository.startupConfig.value ?: configRepository.fetchStartupConfig().let {
+                (it as? Result.Success)?.data
+            }
+            if (config?.interfaceConfig?.termsOfService?.modalAcceptance != true) return@launch
+            val terms = userRepository.getTerms() as? Result.Success ?: return@launch
+            if (!terms.data.termsAccepted && _isLoggedIn.value) _sessionRoute.trySend(SessionRoute.Terms)
+        }
+    }
+
+    /**
      * A ban leaves the user where they are (see [SessionEndReason.BANNED]); if the server ended the
      * session, the next refresh reports EXPIRED and signs out through [onSessionEnded]. Routing to
      * sign-in here would end a session the server may not have ended, and sign-in is ban-checked too.
@@ -525,6 +595,7 @@ class NavHostViewModel(
         // preceding login/OAuth/2FA success, so we don't re-run them here.
         bannerStateHolder.fetchBanner()
         versionCheckStateHolder.checkBackendVersion()
+        checkTermsAcceptance()
     }
 
     fun setTabletSidebarOpen(open: Boolean) {

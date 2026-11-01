@@ -11,7 +11,10 @@ import androidx.compose.ui.input.key.type
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import com.garfiec.librechat.feature.auth.navigation.AuthRoute
+import com.garfiec.librechat.feature.auth.navigation.Login
 import com.garfiec.librechat.feature.auth.navigation.ServerUrl
+import com.garfiec.librechat.feature.auth.navigation.Terms
+import com.garfiec.librechat.feature.auth.navigation.TwoFactorSetup
 import com.garfiec.librechat.feature.auth.navigation.isAddAccountFlowRoute
 import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.NewChat
@@ -235,6 +238,28 @@ class Navigator(
             backStack.clear()
             backStack.add(ServerUrl)
         }
+    }
+
+    /**
+     * Required 2FA setup (v0.8.9-rc1) for an account whose session the server just ended for it.
+     * Sign-in sits underneath, so backing out — or a setup credential that expires — lands where the
+     * user can start over. Replaces the whole stack, like [navigateToAuth]: the signed-in routes
+     * belong to a session that no longer exists.
+     */
+    fun navigateToTwoFactorSetup(tempToken: String) = changing {
+        backStack.clear()
+        backStack.add(ServerUrl)
+        backStack.add(Login)
+        backStack.add(TwoFactorSetup(tempToken))
+    }
+
+    /**
+     * The terms screen over whatever the user is on, when the server requires acceptance. Not over
+     * the sign-in flow (there is no session to accept for yet), and not twice.
+     */
+    fun showTerms() {
+        if (isInAuthFlow) return
+        navigate(Terms)
     }
 
     /**

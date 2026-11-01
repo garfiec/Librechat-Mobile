@@ -10,6 +10,8 @@ import com.garfiec.librechat.feature.auth.navigation.AddAccountServerUrl
 import com.garfiec.librechat.feature.auth.navigation.Login
 import com.garfiec.librechat.feature.auth.navigation.Register
 import com.garfiec.librechat.feature.auth.navigation.ServerUrl
+import com.garfiec.librechat.feature.auth.navigation.Terms
+import com.garfiec.librechat.feature.auth.navigation.TwoFactorSetup
 import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.conversations.navigation.ProjectChats
@@ -287,6 +289,25 @@ class NavigatorTest {
         val navigator = createNavigator(ServerUrl)
         navigator.navigateToAuth()
         assertEquals(listOf(ServerUrl), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `required 2FA setup replaces the stack with setup over sign-in`() {
+        val navigator = createNavigator(NewChat(), Chat("conv-1"))
+        navigator.navigateToTwoFactorSetup("setup-token")
+        assertEquals(listOf(ServerUrl, Login, TwoFactorSetup("setup-token")), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `terms open over the signed-in stack once and never over sign-in`() {
+        val navigator = createNavigator(NewChat(), Chat("conv-1"))
+        navigator.showTerms()
+        navigator.showTerms()
+        assertEquals(listOf(NewChat(), Chat("conv-1"), Terms), navigator.backStack.toList())
+
+        val signingIn = createNavigator(ServerUrl, Login)
+        signingIn.showTerms()
+        assertEquals(listOf(ServerUrl, Login), signingIn.backStack.toList())
     }
 
     @Test
