@@ -4397,6 +4397,34 @@
       },
       "why": "Which reasoning text is an encrypted provider payload (an unbroken base64/base64url run of 128+ chars, the persisted <think> wrapper ignored) and how a streaming tail is held until classified. The thinking card, find-in-page, copy and the editor's read-only rule all read it; an all-payload part renders the 'Reasoning (encrypted)' marker.",
       "failure_mode": "Upstream changes the threshold, the alphabet or the streaming hold, and mobile shows ciphertext as thinking again (or hides prose) with nothing failing."
+    },
+    {
+      "id": "chat-content-filter-block",
+      "upstream": {
+        "file": "packages/api/src/middleware/contentFilter.ts",
+        "symbol": "contentFilterBlockResponse",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/ServerErrorCode.kt",
+        "symbol": "CONTENT_FILTER_BLOCK"
+      },
+      "why": "A chat POST the content filter refused is a 400 {error: 'content_filter_block', message, source, field}, nothing saved. The chat keys contentFilterNotice on that error id: the filter's sentence is shown, or a localized notice when it has none, never the bare code.",
+      "failure_mode": "A renamed error id makes a filtered send read as a generic 400; a body without a message then shows the raw code as the error."
+    },
+    {
+      "id": "invalid-message-id",
+      "upstream": {
+        "file": "packages/api/src/middleware/messageIds.ts",
+        "symbol": "validateChatMessageIds",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/ChatPayloadBuilder.kt",
+        "symbol": "nonBlankId"
+      },
+      "why": "Every /api/agents/chat route 400s INVALID_MESSAGE_ID for a present turn id outside 1-256 chars of [A-Za-z0-9_:.-] (an empty string is present). ChatPayloadBuilder sends blank ids as absent, and ChatPayloadMessageIdTest pins mobile's ids against the rule.",
+      "failure_mode": "Upstream tightens the rule (new fields, a shorter limit, a narrower alphabet) and a send mobile builds starts failing with 400 INVALID_MESSAGE_ID while every test stays green."
     }
   ]
 }
