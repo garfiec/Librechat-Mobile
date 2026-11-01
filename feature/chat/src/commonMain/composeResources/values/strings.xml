@@ -145,7 +145,7 @@
     <string name="cd_thinking_indicator">Thinking indicator</string>
     <string name="label_thinking">Thinking</string>
     <string name="label_reasoning_encrypted">Reasoning (encrypted)</string>
-    <string name="cd_reasoning_encrypted">Reasoning (encrypted). The model returned its reasoning encrypted, so it can\'t be shown.</string>
+    <string name="cd_reasoning_encrypted">Reasoning (encrypted). The model returned its reasoning encrypted, so it can't be shown.</string>
     <string name="cd_collapse">Collapse</string>
     <string name="cd_expand">Expand</string>
     <string name="cd_collapse_thinking">Collapse thinking block</string>
