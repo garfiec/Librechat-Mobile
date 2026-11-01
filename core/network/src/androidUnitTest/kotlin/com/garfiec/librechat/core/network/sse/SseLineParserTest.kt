@@ -7,6 +7,7 @@ import co.touchlab.kermit.Severity
 import com.google.common.truth.Truth.assertThat
 import io.ktor.utils.io.ByteChannel
 import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.writeFully
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
@@ -161,6 +162,27 @@ class SseLineParserTest {
             assertThat(logged).doesNotContain(Severity.Error)
         } finally {
             Logger.setLogWriters(previousWriters)
+        }
+    }
+
+    @Test
+    fun `keepalive comments hold a quiet stream open past the stall timeout`() = runTest {
+        // v0.8.9-rc1 writes `:\n\n` whenever a stream is quiet for 25 s. Each one is a line read,
+        // so a run silent for longer than the stall timeout (a long tool call, a review pause) is
+        // not cut, and none of them is an event.
+        val channel = ByteChannel()
+        launch(start = CoroutineStart.UNDISPATCHED) {
+            repeat(4) {
+                kotlinx.coroutines.delay(3_000L)
+                channel.writeFully(":\n\n".encodeToByteArray())
+                channel.flush()
+            }
+            channel.writeFully("data: {\"n\":1}\n\n".encodeToByteArray())
+            channel.flushAndClose()
+        }
+        parser.parse(channel).test {
+            assertThat(awaitItem().data).isEqualTo("{\"n\":1}")
+            awaitComplete()
         }
     }
 }

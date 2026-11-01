@@ -23,7 +23,7 @@ import org.junit.Test
 /**
  * A body that ends without the run's end is a drop, not a finished run.
  *
- * Upstream sends no heartbeat, so a proxy or CDN idle timeout during a long tool call or a
+ * Servers before v0.8.9-rc1 send no keepalive (rc1's can be switched off), so a proxy or CDN idle timeout during a long tool call or a
  * human-review pause closes a live stream cleanly — and the server's own `res.destroy()` on a
  * publication failure asks the client to reconnect. Read as terminal, the caller tore the live turn
  * down and reloaded before anything was saved. Only the resume can tell: a sync frame if the run is

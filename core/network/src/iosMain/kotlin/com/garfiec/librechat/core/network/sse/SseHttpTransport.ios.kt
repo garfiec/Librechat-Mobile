@@ -258,7 +258,9 @@ actual class SseHttpTransport(
 
         // Recursive receive loop. Each call to nw_connection_receive arms a
         // single-shot callback; we re-arm inside the callback until isComplete
-        // or an error fires.
+        // or an error fires. A minimum of one byte is what delivers v0.8.9-rc1's
+        // 3-byte keepalive (`:\n\n`) as it arrives, so it restarts the shared
+        // line parser's stall timeout on iOS as it does on Android.
         fun armReceive() {
             nw_connection_receive(
                 connection = connection,
