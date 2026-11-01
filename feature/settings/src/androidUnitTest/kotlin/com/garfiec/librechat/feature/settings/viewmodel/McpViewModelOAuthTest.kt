@@ -80,6 +80,20 @@ class McpViewModelOAuthTest {
     }
 
     @Test
+    fun `dismissing while the bind is in flight opens nothing`() = runTest {
+        val bound = kotlinx.coroutines.CompletableDeferred<Result<McpOAuthLaunch>>()
+        coEvery { launcher.prepare(any(), any()) } coAnswers { bound.await() }
+        val vm = vm()
+
+        vm.continueOAuth()
+        vm.dismissOAuthPrompt()
+        bound.complete(Result.Success(inApp))
+
+        assertThat(vm.uiState.value.oauthLaunch).isNull()
+        assertThat(vm.uiState.value.isPreparingOAuth).isFalse()
+    }
+
+    @Test
     fun `a failed bind opens nothing and offers a reconnect`() = runTest {
         coEvery { launcher.prepare(any(), any()) } returns Result.Error(message = null)
         val vm = vm()

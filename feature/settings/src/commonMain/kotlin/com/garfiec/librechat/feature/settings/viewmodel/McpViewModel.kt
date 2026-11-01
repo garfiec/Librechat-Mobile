@@ -314,7 +314,8 @@ class McpViewModel(
 
     /** Dismisses the consent prompt without authorizing. The server stays unconnected. */
     fun dismissOAuthPrompt() {
-        _uiState.value = _uiState.value.copy(pendingOAuth = null)
+        // Also withdraws a bind still in flight, so the sign-in does not open after the user left.
+        _uiState.value = _uiState.value.copy(pendingOAuth = null, isPreparingOAuth = false)
     }
 
     /**
@@ -326,7 +327,9 @@ class McpViewModel(
         if (_uiState.value.isPreparingOAuth) return
         _uiState.value = _uiState.value.copy(isPreparingOAuth = true)
         viewModelScope.launch {
-            when (val result = oauthLauncher.prepare(prompt.serverName, prompt.authorizationUrl)) {
+            val result = oauthLauncher.prepare(prompt.serverName, prompt.authorizationUrl)
+            if (!_uiState.value.isPreparingOAuth) return@launch
+            when (result) {
                 is Result.Success -> _uiState.value = _uiState.value.copy(
                     pendingOAuth = null,
                     isPreparingOAuth = false,
