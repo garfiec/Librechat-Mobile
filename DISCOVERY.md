@@ -1682,6 +1682,31 @@ data: {"sync":true,"resumeState":{"runSteps":[...],"aggregatedContent":[...]}}
 - Max 5 retries
 - Resume preserves state via sync event
 
+### v0.8.9-rc1 changes on the chat and speech routes (no new endpoints)
+- **Keepalive** (4afd5e17f): the stream route writes an SSE comment `:\n\n` after
+  `endpoints.agents.streamKeepaliveIntervalMs` of quiet (default 25 s, `0` disables). Skipped by
+  `SseLineParser`; each one restarts its 120 s stall timeout. Not an event, so it never resets
+  `SseClient`'s attempt counter. (BUILT)
+- **Turn-id validation** (f18b16bae): every `/api/agents/chat` route 400s
+  `{ code: "INVALID_MESSAGE_ID" }` for a `messageId` / `responseMessageId` / `parentMessageId` /
+  `overrideUserMessageId` / `overrideParentMessageId` that is present but not 1-256 chars of
+  `[A-Za-z0-9_:.-]` (257 for response/parent ids). An empty string is present. `ChatPayloadBuilder`
+  sends blank ids as absent. (BUILT)
+- **Content filter** (73d704656): a filtered chat POST answers 400
+  `{ error: "content_filter_block", message, source, field }` before anything is saved. The chat
+  shows `message` (or a localized notice when it has none) and un-sends the turn. (BUILT)
+- **Abort persistence**: on generation protocol v1 (mobile's), a stop whose partial failed to save
+  is 409 `ABORT_PERSISTENCE_FAILED` + `Retry-After: 1` and the run is kept; `abortChat` retries it.
+  v2 reports it as `persistenceFailed: true` and an already-ended run as
+  `{ success: false, settled: true, code: "RUN_ALREADY_SETTLED", terminalStatus }`; decoded, unused
+  on v1. (BUILT)
+- **TTS input cap** (698ee25fe): `POST /api/files/speech/tts/manual` synthesizes only the first
+  `speech.tts.maxInputChars` (default 20,000, not in startup config) characters and drops the rest
+  silently. Android's server read-aloud sends sentence-cut segments of at most 4,000 characters and
+  plays them in turn. iOS's server path only probes the route and speaks on-device. (BUILT)
+- **Encrypted reasoning** (50324a0ba): THINK text may be a provider's base64 payload; it is filtered
+  at render (`reasoningDisplay`), not in the SSE mapper, so persisted parts are covered too. (BUILT)
+
 ---
 
 ## Authentication Details
