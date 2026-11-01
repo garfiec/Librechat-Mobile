@@ -1,0 +1,9 @@
+- Receive files from other apps' "Open with" list
+- Fold the footer links into a Workspace tray with pinning
+- Animate the temporary chat toggle with a sweeping band
+- Swipe between tabs in Files, Search and the Media page
+- Add Bookmarks screens and keep web-set tags on every write
+- Overhaul Provider API Keys
+- Place servers built past the commit map by build branch or date
+- Keep one rule for leaving a model spec and close the enforce seams
+- And 10 more; see the release notes on GitHub.
