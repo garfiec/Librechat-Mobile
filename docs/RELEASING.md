@@ -248,7 +248,7 @@ second full shrink on every pull request.
 > next pass — fdroidserver skips a build only when its output APK already exists — so publish
 > the draft and leave it alone.
 
-1. Actions → **Release** → *Run workflow* → choose the bump (`patch` for a stable
+1. Actions → **Create New Release** → *Run workflow* → choose the bump (`patch` for a stable
    release, or `prepatch`/`rc`/`finalize` for the candidate flow). Year/month are
    derived from the current UTC date automatically.
 2. The job bumps `version.properties`, generates the changelog, commits and tags

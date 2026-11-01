@@ -1,6 +1,6 @@
 # GitHub CI/CD
 
-## Workflow: App Store Upload
+## Workflow: Apple App Store Upload
 
 File: `.github/workflows/appstore.yml`
 
