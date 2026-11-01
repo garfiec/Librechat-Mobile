@@ -1,4 +1,4 @@
-name: F-Droid reproduce
+name: F-Droid reproduce verification
 
 # Rebuild each stable release in F-Droid's build image and verify it against the APK we
 # signed, the same check F-Droid runs before publishing. F-Droid only finds out a day or more
