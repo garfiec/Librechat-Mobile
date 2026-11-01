@@ -40,6 +40,7 @@ class RecordingChatRepository : com.garfiec.librechat.core.data.repository.ChatR
         val isContinued: Boolean = false,
         val compact: Boolean? = null,
         val addedConvo: AddedConversation? = null,
+        val modelParams: JsonObject? = null,
     )
 
     val sent = mutableListOf<Sent>()
@@ -88,6 +89,7 @@ class RecordingChatRepository : com.garfiec.librechat.core.data.repository.ChatR
             isContinued = isContinued,
             compact = compact,
             addedConvo = addedConvo,
+            modelParams = modelParams,
         )
         return emptyFlow()
     }

@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.json.JsonObject
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -61,8 +62,15 @@ class SendDispatchDelegate(
     private val launchStream: (Flow<StreamEvent>) -> Unit,
     /** `ComparisonModeDelegate.onSendStart`, before the added conversation is built. */
     private val onComparisonSendStart: () -> Unit,
-    /** `ComparisonModeDelegate.buildAddedConvo` for the parent this turn attaches to. */
-    private val buildAddedConvo: (parentMessageId: String?) -> AddedConversation?,
+    /**
+     * `ComparisonModeDelegate.buildAddedConvo` for the parent this turn attaches to, given the
+     * primary's model-parameter payload (the second model shares its instructions).
+     */
+    private val buildAddedConvo: (
+        parentMessageId: String?,
+        primaryEndpoint: String?,
+        primaryModelParams: JsonObject?,
+    ) -> AddedConversation?,
     /** The project a new chat from this landing is filed into; sent on its first turn only. */
     private val chatProjectId: String? = null,
     private val newChatDraftKey: String = NEW_CHAT_DRAFT_KEY,
@@ -402,7 +410,7 @@ class SendDispatchDelegate(
         val effectiveAgentId = spec.agentId
         onComparisonSendStart()
 
-        val effectiveAddedConvo = buildAddedConvo(lastMessageId)
+        val effectiveAddedConvo = buildAddedConvo(lastMessageId, spec.endpoint, spec.modelParamsPayload)
         val stream = chatRepository.startChat(
             text = messageText,
             conversationId = conversationId,

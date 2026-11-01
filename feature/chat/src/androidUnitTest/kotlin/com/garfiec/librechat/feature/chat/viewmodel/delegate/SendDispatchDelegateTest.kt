@@ -81,7 +81,7 @@ class SendDispatchDelegateTest {
             beginStreaming = { _, spec -> recorder.begun += spec },
             launchStream = {},
             onComparisonSendStart = {},
-            buildAddedConvo = { null },
+            buildAddedConvo = { _, _, _ -> null },
             turnSkillsOn = { recorder.skillsTurnedOn++ },
         )
         try {

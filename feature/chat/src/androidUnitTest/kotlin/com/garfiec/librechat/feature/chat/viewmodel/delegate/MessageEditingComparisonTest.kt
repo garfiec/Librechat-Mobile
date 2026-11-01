@@ -13,10 +13,14 @@ import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import com.google.common.truth.Truth.assertThat
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.junit.Test
 
 /**
@@ -49,17 +53,22 @@ class MessageEditingComparisonTest {
         )
         val chatRepository = RecordingChatRepository()
         val events = mutableListOf<String>()
+        val primaryParams = buildJsonObject { put("promptPrefix", "Reply in French.") }
+        var builtWith: Pair<String?, JsonObject?>? = null
         val delegate = MessageEditingDelegate(
             handle = MessageEditingHandle(ChatStateHandle(flow, CoroutineScope(Dispatchers.Unconfined))),
             chatRepository = chatRepository,
             messageRepository = mockk(relaxed = true),
             treeDelegate = mockk(relaxed = true),
             streamingManager = mockk(relaxed = true),
-            requestBuilder = mockk<ChatRequestBuilder>(relaxed = true),
+            requestBuilder = mockk<ChatRequestBuilder>(relaxed = true) {
+                every { buildModelParams() } returns primaryParams
+            },
             runWhenSendReady = { _, action -> action() },
             onComparisonSendStart = { events += "start" },
-            buildAddedConvo = { parent ->
+            buildAddedConvo = { parent, primaryEndpoint, primaryModelParams ->
                 events += "build"
+                builtWith = primaryEndpoint to primaryModelParams
                 if (comparing) AddedConversation(endpoint = "anthropic", model = "claude", parentMessageId = parent) else null
             },
         )
@@ -77,6 +86,16 @@ class MessageEditingComparisonTest {
         assertThat(f.sent.addedConvo?.parentMessageId).isEqualTo("root")
         // Both panes reset before the second model's request is built.
         assertThat(f.events).containsExactly("start", "build").inOrder()
+    }
+
+    @Test
+    fun `the second model is built from the payload the primary sends`() {
+        val f = Fixture(listOf(userTurn, reply), comparing = true)
+
+        f.delegate.regenerateMessage("a1")
+
+        assertThat(f.builtWith).isEqualTo("openAI" to f.primaryParams)
+        assertThat(f.sent.modelParams).isEqualTo(f.primaryParams)
     }
 
     @Test
