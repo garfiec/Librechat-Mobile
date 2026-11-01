@@ -191,14 +191,27 @@ internal fun ModelSpecs?.uniqueSpecFor(endpoint: String, model: String): String?
 /**
  * The spec a reopened comparison's second lane was sent with, read back from its ephemeral agent
  * id. The server saves no spec for the added convo; the id's sender segment is
- * `modelLabel ?? spec.label ?? modelDisplayLabel` (`getEphemeralSender`, left out when empty), and
- * the client never sends a `modelLabel` for lane B, so a spec lane's sender is its label. The one
+ * `modelLabel ?? spec.label ?? modelDisplayLabel` (`added.ts`, left out when empty), and the
+ * client never sends a `modelLabel` for lane B, so a spec lane's sender is its label. The one
  * spec on [endpoint] and [model] with that label wins. Failing that, an enforced server, which
  * only a spec lane can have come from, takes the one spec on the pair ([uniqueSpecFor]); any other
  * server reopens the raw pair, since a raw lane with that pair is just as likely.
+ *
+ * A sender equal to the endpoint's [displayLabel] (its `modelDisplayLabel`) is also what a raw lane
+ * on that endpoint saves, so outside `enforce` it names no spec and the lane reopens raw: a wrong
+ * raw reopen loses only the preset, while a wrong spec reopen sends the spec's name and preset unasked.
+ * Until the endpoint's config has loaded ([displayLabelKnown] false) any sender might be that label,
+ * so the lane reopens raw meanwhile, and the next read decides once it arrives.
  */
-internal fun ModelSpecs?.laneBSpecFor(endpoint: String, model: String, sender: String?): String? {
-    val byLabel = sender?.let { label ->
+internal fun ModelSpecs?.laneBSpecFor(
+    endpoint: String,
+    model: String,
+    sender: String?,
+    displayLabel: String? = null,
+    displayLabelKnown: Boolean = true,
+): String? {
+    val ambiguous = sender != null && !requiresSpec && (!displayLabelKnown || sender == displayLabel)
+    val byLabel = sender?.takeUnless { ambiguous }?.let { label ->
         this?.list.orEmpty().singleOrNull { spec ->
             spec.label == label && spec.toSeed()?.let { it.endpoint == endpoint && it.model == model } == true
         }

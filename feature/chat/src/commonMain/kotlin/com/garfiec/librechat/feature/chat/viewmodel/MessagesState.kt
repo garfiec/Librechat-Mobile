@@ -141,6 +141,13 @@ data class MessagesState(
      * field, not off `isStreaming`, to tell "waiting on the model" from "waiting on you".
      */
     val pendingAction: PendingAction? = null,
+    /**
+     * Whether this chat knows if the server has a run going for it. False from opening a
+     * conversation until `/chat/status` answers, since [pendingAction] and [isStreaming] only arrive
+     * with that answer: a reply paused for approval is saved `unfinished`, and would otherwise read
+     * as cut short meanwhile. Stays false when the check fails (offline). New chats start settled.
+     */
+    val runStatusSettled: Boolean = true,
     /** A decision for [pendingAction] is in flight; the resolve controls are disabled meanwhile. */
     val isResolvingPendingAction: Boolean = false,
     /**

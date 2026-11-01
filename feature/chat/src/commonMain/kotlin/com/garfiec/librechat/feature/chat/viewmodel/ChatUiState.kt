@@ -143,10 +143,16 @@ data class ChatUiState(
 
     /** The latest reply cut short, which the chat offers to continue ([stoppedReplyId]). */
     val continuableReplyId: String?
-        get() = stoppedReplyId(displayMessages, isStreaming, pendingAction != null, comparisonState.isEnabled)
+        get() = stoppedReplyId(
+            displayMessages = displayMessages,
+            isStreaming = isStreaming,
+            hasPendingAction = pendingAction != null,
+            comparing = comparisonState.isEnabled,
+            runStatusSettled = runStatusSettled,
+        )
 
     /** Compare's second lane's spec, including one a reopened comparison was sent with ([ComparisonState.laneBSpec]). */
-    val laneBSpec: String? get() = comparisonState.laneBSpec(modelSpecs)
+    val laneBSpec: String? get() = comparisonState.laneBSpec(modelSpecs, endpointConfigs)
     val selectedModel: String? get() = selection.selectedModel
     val selectedEndpoint: String get() = selection.selectedEndpoint
     val endpointConfigs: Map<String, EndpointConfig> get() = selection.endpointConfigs
@@ -392,6 +398,7 @@ data class ChatUiState(
     val displayMessages: List<MessageNode> get() = content.displayMessages
     val pendingResumeUserMessage: Message? get() = content.pendingResumeUserMessage
     val activeBranches: Map<String, Int> get() = content.activeBranches
+    val runStatusSettled: Boolean get() = content.runStatusSettled
     val justSettledMessageId: String? get() = content.justSettledMessageId
     val isStreaming: Boolean get() = content.isStreaming
 

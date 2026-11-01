@@ -37,7 +37,7 @@ class RepositoryFailureReportingTest {
         val delegate = ComparisonModeDelegate(
             handle = ComparisonHandle(ChatStateHandle(flow, CoroutineScope(Dispatchers.Unconfined))),
             messageRepository = messageRepository,
-            reloadConversation = { reloaded = true },
+            reloadConversation = { _, _ -> reloaded = true },
             currentModelSpecs = { null },
         )
 

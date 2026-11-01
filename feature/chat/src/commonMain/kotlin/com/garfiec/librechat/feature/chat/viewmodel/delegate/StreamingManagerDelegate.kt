@@ -63,6 +63,9 @@ class StreamingManagerDelegate(
 
     private val networkRecovery = NetworkRecoveryTrigger(connectivityObserver, handle.scope, ::attemptNetworkRecovery)
 
+    /** Re-asks the run status an open's check failed to get. */
+    private val statusRetry = RunStatusRetry(connectivityObserver, handle.scope, ::recheckRunStatus)
+
     /**
      * The account active when the current stream started (origin-capture provenance): its finalize —
      * message cache, conversation save, gen_title — lands minutes later, possibly after the user
@@ -288,6 +291,8 @@ class StreamingManagerDelegate(
         buffer.clear()
         liveReply.onTurnStarted()
         buffer.startUpdater()
+        // A turn this client started leaves nothing paused behind it that the chip could misread.
+        settleRunStatus()
     }
 
     /**
@@ -545,7 +550,7 @@ class StreamingManagerDelegate(
             // Comparison reconciles via background reload (no in-memory finalize to fold the
             // streaming-clear into), so clear the single-stream UI fields now.
             handle.update { content = content.resetLiveReply(isStreaming = false) }
-            comparisonDelegate.onFinal((event.responseMessage ?: event.message)?.messageId)
+            comparisonDelegate.onFinal(event.responseMessage ?: event.message)
         }
         // Non-comparison chats fold the streaming-clear into finalizeChatDisplay (atomic
         // bubble→message swap; see SendCompletionDelegate.onFinal).
@@ -1079,7 +1084,11 @@ class StreamingManagerDelegate(
     ) {
         // Sibling of onResume (runs on conversation open); apply the same hardening so the two
         // can't race into two resumes, and a pending Stop is never overridden by a restart.
-        if (abortRequested) return
+        if (abortRequested) {
+            // A Stop is pending, so this client has a run going: nothing paused for the chip to misread.
+            settleRunStatus()
+            return
+        }
         val session = streamSession
         // An attach usually starts from an ENDED session — the previous turn finished, which is
         // exactly when a server-admitted queued turn arrives — so "ended" cannot by itself mean
@@ -1092,8 +1101,12 @@ class StreamingManagerDelegate(
         scope.launch {
             suspendRunCatching {
                 val status = chatRepository.checkStreamStatus(conversationId, steeringDelegate::reclaimParked)
+                statusRetry.stop()
                 val superseded = streamSession != session || (!endedAtStart && isSessionEnded())
-                if (superseded || abortRequested) return@launch
+                if (superseded || abortRequested) {
+                    settleRunStatus()
+                    return@launch
+                }
                 if (status.active) {
                     // The server only starts a run once the previous turn has finished, so a live
                     // one is proof every boundary before it is done. That is the only evidence the
@@ -1105,18 +1118,35 @@ class StreamingManagerDelegate(
                         content = content.copy(
                             isStreaming = true,
                             screenState = ChatScreenState.ACTIVE,
+                            runStatusSettled = true,
                         )
                     }
                     attachToRun(conversationId)
                     applyStatusPendingAction(status)
                 } else {
+                    settleRunStatus()
                     onInactive()
                 }
             }.onFailure { e ->
                 Logger.d(e) { "No active stream to resume for $conversationId" }
+                // Unsettled, the Stopped chip stays off a reply that may be paused for approval.
+                if (!handle.state.runStatusSettled) statusRetry.schedule()
                 onFailed()
             }
         }
+    }
+
+    private fun settleRunStatus() {
+        statusRetry.stop()
+        if (handle.state.runStatusSettled) return
+        handle.update { content = content.copy(runStatusSettled = true) }
+    }
+
+    private fun recheckRunStatus() {
+        val state = handle.state
+        if (state.runStatusSettled || state.isStreaming) return
+        val conversationId = state.conversationId ?: return
+        resumeActiveStreamIfNeeded(conversationId)
     }
 
     /**

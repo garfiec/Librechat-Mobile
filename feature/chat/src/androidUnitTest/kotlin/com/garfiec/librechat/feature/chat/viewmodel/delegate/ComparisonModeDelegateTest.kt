@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.model.ContentType
+import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.RunStepStatus
@@ -10,7 +11,9 @@ import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.core.model.request.NO_PARENT
 import com.garfiec.librechat.feature.chat.util.MessageNode
+import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
@@ -22,7 +25,9 @@ import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import com.google.common.truth.Truth.assertThat
+import io.mockk.Runs
 import io.mockk.coEvery
+import io.mockk.just
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -49,7 +54,7 @@ class ComparisonModeDelegateTest {
         val delegate = ComparisonModeDelegate(
             handle = ComparisonHandle(handle),
             messageRepository = mockk<MessageRepository>(relaxed = true),
-            reloadConversation = {},
+            reloadConversation = { _, _ -> },
             currentModelSpecs = specs,
         )
         return delegate to flow
@@ -131,21 +136,28 @@ class ComparisonModeDelegateTest {
     private val quick =
         ModelSpec(name = "quick", label = "Quick", preset = Preset(endpoint = "openAI", model = "gpt-4o"))
 
+    /** The endpoint configs have loaded: `openAI` is known and displays no label of its own. */
+    private val openAiLoaded = ChatUiState(
+        selection = ModelSelectionState(endpointConfigs = mapOf("openAI" to EndpointConfig())),
+    )
+
     @Test
     fun `a reopened spec lane gets its spec back from the sender in its id`() {
         val specs = ModelSpecs(list = listOf(quick, research))
-        val (delegate, flow) = delegateWith(specs = { specs })
+        val (delegate, flow) = delegateWith(openAiLoaded, specs = { specs })
 
         delegate.rehydrateFromMessage(parallelMessage("openAI__gpt-4o___Research____1"))
 
-        assertThat(flow.value.comparisonState.secondarySpec).isEqualTo("research")
+        // Read from the id on every use, never pinned at reopen: the config it is read against
+        // can still change.
+        assertThat(flow.value.comparisonState.secondarySpec).isNull()
         assertThat(delegate.buildAddedConvo()?.spec).isEqualTo("research")
     }
 
     @Test
     fun `a reopen that lands before the spec config finds the spec once it loads`() {
         var specs: ModelSpecs? = null
-        val (delegate, flow) = delegateWith(specs = { specs })
+        val (delegate, flow) = delegateWith(openAiLoaded, specs = { specs })
 
         delegate.rehydrateFromMessage(parallelMessage("openAI__gpt-4o___Research____1"))
         assertThat(flow.value.comparisonState.secondarySpec).isNull()
@@ -482,7 +494,7 @@ class ComparisonModeDelegateTest {
         val delegate = ComparisonModeDelegate(
             handle = ComparisonHandle(ChatStateHandle(flow, scope)),
             messageRepository = messageRepository,
-            reloadConversation = {},
+            reloadConversation = { _, _ -> },
             currentModelSpecs = { null },
         )
 
@@ -494,13 +506,63 @@ class ComparisonModeDelegateTest {
         assertThat(flow.value.error).isNull()
     }
 
+    @Test
+    fun `keep shows the kept reply under a parent the tree files at the root`() = runTest {
+        // The comparison reply's parent isn't in the loaded list, so the path builder files it and
+        // its kept sibling at the root, where the user had pinned the comparison reply.
+        val parallel = parallelMessage("agent_secondary____1").copy(parentMessageId = "not-loaded")
+        val kept = Message(messageId = "m-kept", conversationId = "c1", parentMessageId = "not-loaded")
+        val messageRepository = mockk<MessageRepository>(relaxed = true)
+        coEvery { messageRepository.branchMessage(any(), any(), any()) } returns Result.Success(kept)
+        val pinned = mapOf(NO_PARENT to 0)
+        val flow = MutableStateFlow(
+            ChatUiState(
+                conversation = ConversationMetaState(conversationId = "c1", isTemporaryChat = true),
+                content = MessagesState(
+                    messages = listOf(parallel),
+                    activeBranches = pinned,
+                    displayMessages = buildActiveMessagePath(listOf(parallel), pinned),
+                ),
+                comparisonState = ComparisonState(isEnabled = true, parallelMessageId = "m-parallel"),
+            ),
+        )
+        val scope = CoroutineScope(StandardTestDispatcher(testScheduler) + Job())
+        val delegate = ComparisonModeDelegate(
+            handle = ComparisonHandle(ChatStateHandle(flow, scope)),
+            messageRepository = messageRepository,
+            reloadConversation = { _, _ -> },
+            currentModelSpecs = { null },
+        )
+
+        delegate.branchFromComparison("agent_secondary____1")
+        advanceUntilIdle()
+
+        assertThat(flow.value.displayMessages.last().message.messageId).isEqualTo("m-kept")
+        assertThat(flow.value.activeBranches).doesNotContainKey(NO_PARENT)
+        scope.cancel()
+    }
+
+    @Test
+    fun `the final message names each lane over an id learned while streaming`() {
+        val (delegate, flow) = delegateWith(
+            ChatUiState(comparisonState = ComparisonState(isEnabled = true, secondaryAgentId = "stale____1")),
+        )
+
+        delegate.onFinal(parallelMessage("openAI__gpt-4o___GPT-4o____1"))
+
+        assertThat(flow.value.comparisonState.secondaryAgentId).isEqualTo("openAI__gpt-4o___GPT-4o____1")
+        assertThat(flow.value.comparisonState.primaryAgentId).isEqualTo("agent_primary")
+    }
+
     private fun keepHarness(
         scope: CoroutineScope,
+        reloadSettles: Boolean = true,
         onReload: (MutableStateFlow<ChatUiState>) -> Unit,
     ): Pair<ComparisonModeDelegate, MutableStateFlow<ChatUiState>> {
         val messageRepository = mockk<MessageRepository>()
         coEvery { messageRepository.branchMessage(any(), any(), any()) } returns
             Result.Success(Message(messageId = "m-kept", conversationId = "c1"))
+        coEvery { messageRepository.cacheMessages(any(), any()) } just Runs
         val flow = MutableStateFlow(
             ChatUiState(
                 conversation = ConversationMetaState(conversationId = "c1"),
@@ -510,7 +572,10 @@ class ComparisonModeDelegateTest {
         val delegate = ComparisonModeDelegate(
             handle = ComparisonHandle(ChatStateHandle(flow, scope)),
             messageRepository = messageRepository,
-            reloadConversation = { onReload(flow) },
+            reloadConversation = { _, onSettled ->
+                onReload(flow)
+                if (reloadSettles) onSettled?.invoke()
+            },
             currentModelSpecs = { null },
         )
         return delegate to flow
@@ -570,9 +635,11 @@ class ComparisonModeDelegateTest {
     }
 
     @Test
-    fun `keep and continue gives up with a notice when the kept reply never shows`() = runTest {
+    fun `keep and continue gives up with a notice when the reload never settles`() = runTest {
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler) + Job())
-        val (delegate, flow) = keepHarness(scope) {}
+        // The kept reply shows at once (merged in memory), but a Continue that starts before the
+        // reload lands would have its streaming anchor rebuilt away by the reload's Room write.
+        val (delegate, flow) = keepHarness(scope, reloadSettles = false) {}
         var continued = 0
 
         delegate.keepAndContinue("agent_secondary____1") { continued++ }

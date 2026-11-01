@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 import androidx.compose.runtime.Immutable
+import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.feature.chat.util.laneBSpecFor
 import com.garfiec.librechat.feature.chat.util.parseEphemeralAgentId
@@ -43,10 +44,21 @@ data class ComparisonPick(val endpoint: String, val model: String, val spec: Str
 
 /**
  * Lane B's spec: the one picked, else the one a reopened comparison was sent with, read against
- * [specs] ([laneBSpecFor]). Null for a raw model or a saved agent.
+ * [specs] and the lane endpoint's display label in [endpointConfigs] ([laneBSpecFor]). Null for a
+ * raw model or a saved agent.
  */
-internal fun ComparisonState.laneBSpec(specs: ModelSpecs?): String? {
+internal fun ComparisonState.laneBSpec(
+    specs: ModelSpecs?,
+    endpointConfigs: Map<String, EndpointConfig>,
+): String? {
     secondarySpec?.let { return it }
     val reopened = reopenedSecondaryId?.let(::parseEphemeralAgentId) ?: return null
-    return specs.laneBSpecFor(reopened.endpoint, reopened.model, reopened.sender)
+    val config = endpointConfigs[reopened.endpoint]
+    return specs.laneBSpecFor(
+        endpoint = reopened.endpoint,
+        model = reopened.model,
+        sender = reopened.sender,
+        displayLabel = config?.modelDisplayLabel,
+        displayLabelKnown = config != null,
+    )
 }

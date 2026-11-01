@@ -73,6 +73,7 @@ import com.garfiec.librechat.feature.chat.util.ReplyAvatarMemo
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.extractBranchMedia
+import com.garfiec.librechat.feature.chat.util.isAddedAgentId
 import com.garfiec.librechat.feature.chat.util.newChatDraftKey
 import com.garfiec.librechat.feature.chat.util.parametersFor
 import com.garfiec.librechat.feature.chat.util.reopenedParameters
@@ -234,7 +235,7 @@ class ChatViewModel(
     private val comparisonDelegate: ComparisonModeDelegate = ComparisonModeDelegate(
         handle = ComparisonHandle(stateHandle),
         messageRepository = messageRepository,
-        reloadConversation = { id -> conversationLoadDelegate.loadConversation(id) },
+        reloadConversation = { id, onSettled -> conversationLoadDelegate.loadConversation(id, onSettled = onSettled) },
         currentModelSpecs = { configRepository.startupConfig.value?.modelSpecs },
     )
     private val contextProjectionDelegate = ContextProjectionDelegate(
@@ -757,6 +758,8 @@ class ChatViewModel(
                     // land on an empty ACTIVE chat rather than a LOADING spinner that never resolves.
                     content = it.content.copy(
                         screenState = if (initialIsTemporary) ChatScreenState.ACTIVE else ChatScreenState.LOADING,
+                        // Settled by resumeActiveStreamIfNeeded below, which learns of a paused run.
+                        runStatusSettled = false,
                     ),
                 )
             }
@@ -1856,7 +1859,22 @@ class ChatViewModel(
 
     fun branchFromComparison(agentId: String) = comparisonDelegate.branchFromComparison(agentId)
 
-    fun keepAndContinue(agentId: String) = comparisonDelegate.keepAndContinue(agentId, ::continueGeneration)
+    /**
+     * Keeps [agentId]'s answer and continues it with the model that wrote it. A Continue sends with
+     * the chat's model, which during a comparison is lane A's, so keeping lane B switches the chat
+     * to lane B's model and spec first; read now, since keeping the lane clears the comparison.
+     */
+    fun keepAndContinue(agentId: String) {
+        val state = _uiState.value
+        val comparison = state.comparisonState
+        val laneB = comparison.secondaryEndpoint?.takeIf { isAddedAgentId(agentId) }?.let { endpoint ->
+            comparison.secondaryModel?.let { model -> ModelChoice.restore(endpoint, model, state.laneBSpec) }
+        }
+        comparisonDelegate.keepAndContinue(agentId) {
+            laneB?.let(modelDelegate::onChoiceSelected)
+            continueGeneration()
+        }
+    }
 
     fun setContextGaugeExpanded(expanded: Boolean) {
         contextGaugeExpandedOverride.value = expanded

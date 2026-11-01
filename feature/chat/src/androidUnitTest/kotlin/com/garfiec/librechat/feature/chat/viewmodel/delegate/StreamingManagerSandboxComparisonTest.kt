@@ -58,7 +58,7 @@ class StreamingManagerSandboxComparisonTest {
             comparisonDelegate = ComparisonModeDelegate(
                 handle = ComparisonHandle(root),
                 messageRepository = mockk(relaxed = true),
-                reloadConversation = {},
+                reloadConversation = { _, _ -> },
                 currentModelSpecs = { null },
             ),
             liveReply = LiveReplyDelegate(StreamingHandle(root), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true)),
