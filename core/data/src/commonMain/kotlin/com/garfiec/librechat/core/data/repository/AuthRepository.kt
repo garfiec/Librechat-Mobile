@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.VerifyTwoFactorOutcome
 import com.garfiec.librechat.core.model.auth.AuthCookies
 import com.garfiec.librechat.core.model.response.BackupCodesResponse
+import com.garfiec.librechat.core.model.response.TwoFactorSetupConfirmResponse
 import com.garfiec.librechat.core.model.response.TwoFactorSetupResponse
 
 interface AuthRepository {
@@ -45,6 +46,22 @@ interface AuthRepository {
     suspend fun confirmTwoFactor(code: String): Result<Unit>
     suspend fun disableTwoFactor(token: String? = null, backupCode: String? = null): Result<Unit>
     suspend fun regenerateBackupCodes(token: String? = null, backupCode: String? = null): Result<BackupCodesResponse>
+
+    /*
+     * Required 2FA enrollment (v0.8.9-rc1). Authorised only by the credentials each step hands the
+     * next, starting from the setup tempToken; routed to the pending server in add-account mode. A
+     * failure is a Result.Error whose ApiException status says what happened: 401/403 means the
+     * setup credential is dead (start over from sign-in), 400 on confirm a wrong code, 400 on
+     * acknowledge/finalize a credential already spent.
+     */
+    suspend fun startTwoFactorSetup(tempToken: String): Result<TwoFactorSetupResponse>
+    suspend fun confirmTwoFactorSetup(tempToken: String, code: String): Result<TwoFactorSetupConfirmResponse>
+
+    /** Acknowledges the backup codes; returns the finalization credential. */
+    suspend fun acknowledgeTwoFactorSetup(acknowledgementToken: String): Result<String>
+
+    /** Enables 2FA and signs in: on success the session is committed exactly as a 2FA verify commits it. */
+    suspend fun finalizeTwoFactorSetup(finalizationToken: String): Result<User>
     suspend fun requestPasswordReset(email: String): Result<Unit>
     suspend fun resetPassword(userId: String, token: String, password: String, confirmPassword: String): Result<Unit>
 }

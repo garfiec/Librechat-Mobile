@@ -8,6 +8,7 @@ import com.garfiec.librechat.core.common.result.failureKind
 import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.logging.LogOrigin
 import com.garfiec.librechat.core.logging.redact.LogRedactor
+import com.garfiec.librechat.core.model.error.ServerErrorCode
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngineFactory
 import io.ktor.client.plugins.DefaultRequest.DefaultRequestBuilder
@@ -177,6 +178,10 @@ object LibreChatHttpClient {
                         }
                     }
 
+                    if (statusCode == HttpStatusCode.Forbidden.value) {
+                        reportAuthGate(tokenManager, response, bodyText)
+                    }
+
                     throw ApiException(
                         statusCode = statusCode,
                         message = extracted.message,
@@ -235,6 +240,28 @@ object LibreChatHttpClient {
      * Requiring LibreChat's own JSON shape means an unrecognised 403 fails the request without
      * reporting a ban.
      */
+    /**
+     * Turns a 403 that is one of the server's required steps (v0.8.9-rc1) into an [AuthGate]:
+     * the 2FA enrollment gate every authenticated route answers, and the terms gate on writes.
+     *
+     * Keyed on the body's code, never on the status: the user-agent soft-ban, a ban, an access
+     * gateway and a WAF all answer 403 too, and none of them is a step the user can take in the app.
+     * Scoped to the request's account like the ban report; a pending add-flow request is the add
+     * flow's own business (its sign-in answers the enrollment 200 itself).
+     */
+    private fun reportAuthGate(tokenManager: TokenManager, response: HttpResponse, bodyText: String) {
+        val identity = response.call.request.attributes.getOrNull(RequestIdentityKey)
+        if (identity?.isPending == true) return
+        val accountId = identity?.accountId
+        val setupToken = ServerErrorCode.twoFactorEnrollmentToken(bodyText)
+        val gate = when {
+            setupToken != null -> AuthGate.TwoFactorSetupRequired(accountId, setupToken)
+            ServerErrorCode.isTermsNotAccepted(bodyText) -> AuthGate.TermsNotAccepted(accountId)
+            else -> return
+        }
+        tokenManager.reportAuthGate(gate)
+    }
+
     private fun isLibreChatBan(statusCode: Int, extracted: ExtractedError): Boolean {
         if (statusCode != 403 || !extracted.serverAuthored) return false
         return BAN_MESSAGE_MARKERS.all { extracted.message.contains(it, ignoreCase = true) }

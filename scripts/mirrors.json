@@ -4203,6 +4203,90 @@
       },
       "why": "The Tailwind build web's artifact iframes load. The client vendors the same pinned Play CDN build; a move to v4 (@tailwindcss/browser) renames utilities model output still uses, so follow it deliberately (see the tailwind entry's pin_reason).",
       "failure_mode": "Artifacts style differently on web and mobile: utilities one build has and the other lacks."
+      },
+    {
+      "id": "two-factor-enrollment-required-code",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "TWO_FACTOR_ENROLLMENT_REQUIRED_CODE",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/ServerErrorCode.kt",
+        "symbol": "TWO_FACTOR_ENROLLMENT_REQUIRED"
+      },
+      "why": "The code on the login 200, the refresh 200 and the authenticated-route 403 that say the account must set up 2FA before going on. The refresh store branches on it before reading the response cookies, and the response validator raises the setup gate on it.",
+      "failure_mode": "Upstream renames the code: a required-enrollment refresh reads as a malformed 2xx again (refresh limbo), the 403 raises nothing and every request fails with no way forward. Nothing fails to decode."
+    },
+    {
+      "id": "two-factor-federated-login-blocked-code",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "TWO_FACTOR_FEDERATED_LOGIN_BLOCKED_CODE",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/ServerErrorCode.kt",
+        "symbol": "TWO_FACTOR_FEDERATED_LOGIN_BLOCKED"
+      },
+      "why": "The 403 code a password sign-in of an identity-provider account gets while 2FA is enforced. LoginViewModel tells it apart from the email-login-disabled 403 so the form is not hidden.",
+      "failure_mode": "Upstream renames it and the sign-in screen tells an SSO user that email login is disabled on the server, and hides the form."
+    },
+    {
+      "id": "terms-not-accepted-code",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "TERMS_NOT_ACCEPTED_CODE",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/ServerErrorCode.kt",
+        "symbol": "TERMS_NOT_ACCEPTED, isTermsNotAccepted"
+      },
+      "why": "The 403 code (flat {code}, or nested {error:{code}} on the remote agent routes; see packages/api/src/middleware/terms.ts) a write gets while the terms are required and not accepted. The validator raises the terms gate on it, which opens the Terms screen.",
+      "failure_mode": "Upstream renames the code or changes the envelope: every write fails with a generic error and the Terms screen never opens."
+    },
+    {
+      "id": "tenant-context-required-code",
+      "upstream": {
+        "file": "packages/api/src/middleware/tenant.ts",
+        "symbol": "TENANT_CONTEXT_REQUIRED",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/ServerErrorCode.kt",
+        "symbol": "TENANT_CONTEXT_REQUIRED"
+      },
+      "why": "The 403 code (and the OAuth callback error= value) a pre-auth route answers under strict tenant isolation when the request names no tenant. The sign-in and SSO screens give it their own explanation instead of 'email login disabled' or a generic failure.",
+      "failure_mode": "Upstream renames it and a tenant refusal reads as email login being disabled, which hides the sign-in form."
+    },
+    {
+      "id": "safe-link-url",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "isSafeLinkUrl",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/SafeLinkUrl.kt",
+        "symbol": "isSafeLinkUrl, LINK_SCHEMES"
+      },
+      "why": "Which configured policy links (privacy policy, terms of service externalUrl) may be opened: http(s), mailto, tel or relative, with the scheme read the way a URL parser reads it. Ported as a hand-written scan, not the regex.",
+      "failure_mode": "Upstream widens or narrows the allowlist and the client opens a link the web refuses (or hides one it shows). Nothing fails to decode."
+    },
+    {
+      "id": "two-factor-policy-providers",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "TWO_FACTOR_POLICY_PROVIDERS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/delegate/TwoFactorSecurityDelegate.kt",
+        "symbol": "TWO_FACTOR_POLICY_PROVIDERS"
+      },
+      "why": "The account providers enforced 2FA applies to (local, ldap). Disable 2FA is hidden only for them while twoFactorAuthenticationRequired is on, because only for them does the server refuse it.",
+      "failure_mode": "Upstream adds a provider: Disable 2FA stays visible for it and fails with a 403 when tapped."
     }
   ]
 }

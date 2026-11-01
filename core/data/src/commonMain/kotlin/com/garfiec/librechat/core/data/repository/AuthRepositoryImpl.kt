@@ -18,6 +18,7 @@ import com.garfiec.librechat.core.model.VerifyTwoFactorOutcome
 import com.garfiec.librechat.core.model.auth.AuthCookies
 import com.garfiec.librechat.core.model.auth.SessionCredentials
 import com.garfiec.librechat.core.model.response.BackupCodesResponse
+import com.garfiec.librechat.core.model.response.TwoFactorSetupConfirmResponse
 import com.garfiec.librechat.core.model.response.TwoFactorSetupResponse
 import com.garfiec.librechat.core.network.api.AuthApi
 import com.garfiec.librechat.core.network.api.UserApi
@@ -147,7 +148,14 @@ class AuthRepositoryImpl(
         return safeApiCall {
             withAuthIdentity(pending) {
                 val result = authApi.login(email, password)
-                if (result.response.twoFAPending) {
+                // Before twoFAPending, which the enrollment answer also sets: its tempToken is a setup
+                // credential, and verify-temp refuses it with a 401.
+                if (result.response.isTwoFactorSetupRequired) {
+                    LoginOutcome.TwoFactorSetupRequired(
+                        result.response.tempToken
+                            ?: throw IllegalStateException("Server required 2FA setup but tempToken was null"),
+                    )
+                } else if (result.response.twoFAPending) {
                     LoginOutcome.TwoFactorRequired(
                         result.response.tempToken
                             ?: throw IllegalStateException("Server indicated 2FA required but tempToken was null"),
@@ -171,7 +179,12 @@ class AuthRepositoryImpl(
         return safeApiCall {
             withAuthIdentity(pending) {
                 val result = authApi.refresh(cookies)
-                tokenManager.setSession(SessionCredentials(result.response.token, result.cookies))
+                // Only password (local/LDAP) accounts are subject to enforced 2FA, so an SSO capture
+                // should never see the enrollment answer; if a server sends it anyway there is no
+                // session to store.
+                val token = result.response.token?.takeUnless { result.response.isTwoFactorSetupRequired }
+                    ?: throw incompleteAuthResponse("token")
+                tokenManager.setSession(SessionCredentials(token, result.cookies))
                 // Fetch the user profile, then establish identity before session tasks fire.
                 val user = fetchAuthenticatedUser(pending)
                 establishSession(pending, user)
@@ -180,7 +193,6 @@ class AuthRepositoryImpl(
         }.fireSessionTasksIfLoggedIn(previousAccountId)
     }
 
-    @Suppress("TooGenericExceptionCaught") // any commit failure must roll back the staged session
     override suspend fun verifyTwoFactor(tempToken: String, code: String, isBackupCode: Boolean): VerifyTwoFactorOutcome {
         val pending = accountSwitcher.pendingAdd
         val previousAccountId = activeAccountProvider.currentAccountId()
@@ -209,22 +221,75 @@ class AuthRepositoryImpl(
         // established. A fault here is NOT a wire verdict: the code is already spent, so it maps to
         // SessionIncomplete (clear the entry, honest message) — never a connectivity lie or a doomed
         // retry of a consumed code.
-        return try {
+        return when (val committed = commitAcceptedSession(pending, previousAccountId, loginResult)) {
+            is Result.Success -> VerifyTwoFactorOutcome.Success(committed.data)
+            else -> VerifyTwoFactorOutcome.SessionIncomplete(INCOMPLETE_AUTH_MESSAGE)
+        }
+    }
+
+    /**
+     * Phase 2 of a 2FA sign-in (verify or setup finalize): the server has already spent the
+     * credential and minted a session, so commit it atomically under NonCancellable. A fault here is
+     * not a wire verdict; it rolls the staged pair back and reports [INCOMPLETE_AUTH_MESSAGE].
+     */
+    @Suppress("TooGenericExceptionCaught") // any commit failure must roll back the staged session
+    private suspend fun commitAcceptedSession(
+        pending: PendingAddSession?,
+        previousAccountId: AccountId?,
+        loginResult: LoginResult,
+    ): Result<User> =
+        try {
             val user = withContext(NonCancellable) {
                 val user = stageAuthenticatedSession(loginResult)
                 establishSession(pending, user)
                 user
             }
             Result.Success(user).fireSessionTasksIfLoggedIn(previousAccountId)
-            VerifyTwoFactorOutcome.Success(user)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Logger.w(e) { "2FA code accepted but session commit failed" }
+            Logger.w(e) { "2FA accepted but session commit failed" }
             // stageAuthenticatedSession already wrote the token pair; roll it back so a failed commit
             // can't leave an orphaned session behind (see rollbackStagedSession).
             rollbackStagedSession(pending)
-            VerifyTwoFactorOutcome.SessionIncomplete(INCOMPLETE_AUTH_MESSAGE)
+            Result.Error(IllegalStateException(INCOMPLETE_AUTH_MESSAGE), INCOMPLETE_AUTH_MESSAGE)
+        }
+
+    override suspend fun startTwoFactorSetup(tempToken: String): Result<TwoFactorSetupResponse> =
+        safeApiCall {
+            withAuthIdentity(accountSwitcher.pendingAdd) { authApi.startTwoFactorSetup(tempToken) }
+        }
+
+    override suspend fun confirmTwoFactorSetup(tempToken: String, code: String): Result<TwoFactorSetupConfirmResponse> =
+        safeApiCall {
+            withAuthIdentity(accountSwitcher.pendingAdd) {
+                val response = authApi.confirmTwoFactorSetup(tempToken, code)
+                if (response.acknowledgementToken.isNullOrBlank() || response.backupCodes.isEmpty()) {
+                    throw incompleteAuthResponse("acknowledgementToken")
+                }
+                response
+            }
+        }
+
+    override suspend fun acknowledgeTwoFactorSetup(acknowledgementToken: String): Result<String> =
+        safeApiCall {
+            withAuthIdentity(accountSwitcher.pendingAdd) {
+                authApi.acknowledgeTwoFactorSetup(acknowledgementToken).finalizationToken
+                    ?.takeIf { it.isNotBlank() }
+                    ?: throw incompleteAuthResponse("finalizationToken")
+            }
+        }
+
+    override suspend fun finalizeTwoFactorSetup(finalizationToken: String): Result<User> {
+        val pending = accountSwitcher.pendingAdd
+        val previousAccountId = activeAccountProvider.currentAccountId()
+        val wire = safeApiCall {
+            withAuthIdentity(pending) { authApi.finalizeTwoFactorSetup(finalizationToken) }
+        }
+        return when (wire) {
+            is Result.Success -> commitAcceptedSession(pending, previousAccountId, wire.data)
+            is Result.Error -> wire
+            is Result.Loading -> error("safeApiCall never returns Loading")
         }
     }
 

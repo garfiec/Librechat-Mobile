@@ -105,4 +105,11 @@ data class StartupConfig(
      * ignores, producing an empty turn — so absent is withheld, not defaulted true.
      */
     val compactionEnabled: Boolean? = null,
+    /**
+     * `ENFORCE_TWO_FACTOR_AUTHENTICATION` (v0.8.9-rc1). Every password (local/LDAP) account must have
+     * 2FA, and the server refuses to disable it for them. It hides Disable 2FA; it does not decide
+     * whether setup is required, which the server says per response
+     * (`TWO_FACTOR_ENROLLMENT_REQUIRED`).
+     */
+    val twoFactorAuthenticationRequired: Boolean? = null,
 )

@@ -191,4 +191,21 @@ interface TokenManager {
      * as [sessionHealth].
      */
     suspend fun endSessionForReauth(accountId: String?) = Unit
+
+    /**
+     * The step the server requires before the active session may continue, or null — see
+     * [AuthGate]. A state rather than an event so a report raised while no navigation host is
+     * composed (a background request, a refresh) is still there when one is; the shell takes it
+     * with [consumeAuthGate]. Defaulted like [sessionHealth].
+     */
+    val authGate: StateFlow<AuthGate?> get() = NoAuthGate
+
+    /**
+     * Report [gate]. Ignored unless [AuthGate.accountId] is the active binding (null = the active or
+     * legacy session): a straggler request for a switched-away account must not move the live one.
+     */
+    fun reportAuthGate(gate: AuthGate) = Unit
+
+    /** Clear [gate] once the shell has acted on it; a newer report is left alone. */
+    fun consumeAuthGate(gate: AuthGate) = Unit
 }

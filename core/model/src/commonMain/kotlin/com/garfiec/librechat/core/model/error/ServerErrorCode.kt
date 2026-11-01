@@ -84,6 +84,52 @@ object ServerErrorCode {
      */
     const val MCP_AUTHENTICATION_REFRESH_FAILED = "MCP_AUTHENTICATION_REFRESH_FAILED"
 
+    /**
+     * The server enforces 2FA (`ENFORCE_TWO_FACTOR_AUTHENTICATION`, v0.8.9-rc1) and this password
+     * account has not set it up. Arrives three ways, each carrying a setup `tempToken`: a 200 from
+     * login, a 200 from refresh (no token; the session is already gone server-side), and a 403 from
+     * every authenticated route. Never a ban, a soft-ban or an expired session.
+     */
+    const val TWO_FACTOR_ENROLLMENT_REQUIRED = "TWO_FACTOR_ENROLLMENT_REQUIRED"
+
+    /**
+     * 403 from login / verify-temp: a federated account (created by an identity provider) asked for
+     * a password sign-in while 2FA is enforced. The only way in is that provider.
+     */
+    const val TWO_FACTOR_FEDERATED_LOGIN_BLOCKED = "TWO_FACTOR_FEDERATED_LOGIN_BLOCKED"
+
+    /**
+     * 403 from a write while `interface.termsOfService.modalAcceptance` is on and the user has not
+     * accepted (v0.8.9-rc1). Lower-case on the wire. Flat `{ code }` on most routes; the remote
+     * agent routes nest it as `{ error: { code } }` — read it with [isTermsNotAccepted].
+     */
+    const val TERMS_NOT_ACCEPTED = "terms_not_accepted"
+
+    /**
+     * 403 from a pre-auth route (login, register, password reset, 2FA, OAuth start) when the server
+     * runs strict tenant isolation and the request named no tenant (v0.8.9-rc1).
+     */
+    const val TENANT_CONTEXT_REQUIRED = "TENANT_CONTEXT_REQUIRED"
+
+    /** True for a [TERMS_NOT_ACCEPTED] body in either envelope: `{ code }` or `{ error: { code } }`. */
+    fun isTermsNotAccepted(body: String?): Boolean {
+        val obj = objectOf(body) ?: return false
+        if ((obj["code"] as? JsonPrimitive)?.contentOrNull == TERMS_NOT_ACCEPTED) return true
+        val nested = obj["error"] as? JsonObject ?: return false
+        return (nested["code"] as? JsonPrimitive)?.contentOrNull == TERMS_NOT_ACCEPTED
+    }
+
+    /**
+     * The setup `tempToken` of a [TWO_FACTOR_ENROLLMENT_REQUIRED] body, or null when [body] is any
+     * other answer. Keyed on the code, never on the status: a 403 alone is just as likely the
+     * user-agent soft-ban, a ban, or a proxy.
+     */
+    fun twoFactorEnrollmentToken(body: String?): String? {
+        val obj = objectOf(body) ?: return null
+        if ((obj["code"] as? JsonPrimitive)?.contentOrNull != TWO_FACTOR_ENROLLMENT_REQUIRED) return null
+        return (obj["tempToken"] as? JsonPrimitive)?.takeIf { it.isString }?.content?.ifBlank { null }
+    }
+
     private val parser = Json { ignoreUnknownKeys = true; isLenient = true }
 
     /**
