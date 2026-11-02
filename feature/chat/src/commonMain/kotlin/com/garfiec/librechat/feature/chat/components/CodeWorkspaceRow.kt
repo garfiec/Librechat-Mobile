@@ -53,13 +53,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveAssistChip
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveChipDefaults
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.AdaptiveRadioButton
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoice
 import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
-import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_code_chip
 import com.garfiec.librechat.feature.chat.resources.code_branch
@@ -312,18 +312,6 @@ private fun CodeChip(
     trailing: ImageVector? = null,
     tint: androidx.compose.ui.graphics.Color? = null,
 ) {
-    // Same container as the pinned tool chips: the composer overlays the list, so an outline-only
-    // chip would show scrolled text through its label. Glass keeps M3's defaults.
-    val colors = when {
-        isLiquidGlass -> AssistChipDefaults.assistChipColors()
-        tint != null -> AssistChipDefaults.assistChipColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            labelColor = tint,
-            leadingIconContentColor = tint,
-            trailingIconContentColor = tint,
-        )
-        else -> AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
-    }
     AdaptiveAssistChip(
         onClick = onClick ?: {},
         label = { Text(label.clipped(), maxLines = 1, overflow = TextOverflow.Ellipsis) },
@@ -331,7 +319,8 @@ private fun CodeChip(
             contentDescription = description
             role = Role.Button
         },
-        colors = colors,
+        // The composer overlays the list, so the chip needs a container; the tint shows in both styles.
+        colors = AdaptiveChipDefaults.overlayAssistChipColors(tint),
         leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize)) },
         trailingIcon = when {
             trailing != null -> {
