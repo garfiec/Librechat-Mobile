@@ -56,4 +56,15 @@ class SafeLinkUrlTest {
         assertEquals(true, config.termsOfService?.modalAcceptance)
         assertNull(TermsOfServiceConfig(externalUrl = "  ").safeExternalUrl)
     }
+
+    @Test
+    fun relativeLinksResolveAgainstTheDeploymentRoot() {
+        val root = "https://host.example/librechat"
+        assertEquals("https://other.example/p", absoluteLinkUrl("https://other.example/p", root))
+        assertEquals("mailto:a@b.example", absoluteLinkUrl("mailto:a@b.example", root))
+        assertEquals("https://host.example/librechat/privacy", absoluteLinkUrl("privacy", root))
+        assertEquals("https://host.example/privacy", absoluteLinkUrl("/privacy", root))
+        assertEquals("https://cdn.example/t", absoluteLinkUrl("//cdn.example/t", root))
+        assertEquals("https://host.example/terms", absoluteLinkUrl("/terms", "https://host.example/"))
+    }
 }

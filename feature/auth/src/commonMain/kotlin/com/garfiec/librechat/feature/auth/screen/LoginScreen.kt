@@ -245,6 +245,8 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }
+
+            PolicyLinksFooter(uiState.policyLinks, modifier = Modifier.padding(top = 16.dp))
         }
 
         uiState.pendingSsoProvider?.let {

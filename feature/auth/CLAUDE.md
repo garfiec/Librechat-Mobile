@@ -74,6 +74,13 @@
   2FA setup does not: a 403 there ends the setup credential and sends the user to sign-in, whose own
   refusal then says why.
 
+## Policy links
+- The login screen's footer (`PolicyLinksFooter`) shows the deployment's privacy policy and terms of
+  service links, as upstream's `Auth/Footer.tsx` does. `PolicyLinks.from` maps them at the top from
+  the config's `safeExternalUrl` only (blank or unsafe-scheme URLs are dropped; see `isSafeLinkUrl`)
+  and resolves a relative one against the server (`absoluteLinkUrl`). Read `safeExternalUrl`, never
+  `externalUrl`, in any new consumer. Opened through `LocalUriHandler`.
+
 ## Diagnostic log
 - `DiagnosticLogLink` ("Export diagnostic logs", the same label as Settings) offers the log under a
   sign-in error. Settings → Data has the same export but can't be reached before sign-in.

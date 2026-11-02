@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.auth.viewmodel
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.suspendRunCatching
@@ -12,6 +13,8 @@ import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.model.LoginOutcome
+import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.model.config.absoluteLinkUrl
 import com.garfiec.librechat.core.network.client.CertificateAuthority
 import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
 import com.garfiec.librechat.feature.auth.diagnostics.offersDiagnosticLog
@@ -19,6 +22,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -50,7 +54,31 @@ data class LoginUiState(
     val pendingSsoProvider: String? = null,
     val ssoProvider: String? = null,
     val trustedViaUserCa: Boolean = false,
+    /** The server's published policy links, absolute and safe to open; null hides each. */
+    val policyLinks: PolicyLinks = PolicyLinks(),
 )
+
+/**
+ * The privacy policy and terms of service a deployment publishes (`interface.privacyPolicy` /
+ * `termsOfService.externalUrl`), as the auth footer shows them. Only a non-blank URL with a safe
+ * scheme (see `isSafeLinkUrl`) is kept, resolved against the server so a relative one opens.
+ */
+@Immutable
+data class PolicyLinks(
+    val privacyPolicyUrl: String? = null,
+    val termsOfServiceUrl: String? = null,
+) {
+    companion object {
+        fun from(config: StartupConfig, serverUrl: String?): PolicyLinks {
+            val root = serverUrl?.let(::cleanServerUrl) ?: return PolicyLinks()
+            val interfaceConfig = config.interfaceConfig ?: return PolicyLinks()
+            return PolicyLinks(
+                privacyPolicyUrl = interfaceConfig.privacyPolicy?.safeExternalUrl?.let { absoluteLinkUrl(it, root) },
+                termsOfServiceUrl = interfaceConfig.termsOfService?.safeExternalUrl?.let { absoluteLinkUrl(it, root) },
+            )
+        }
+    }
+}
 
 class LoginViewModel(
     private val authRepository: AuthRepository,
@@ -70,14 +98,16 @@ class LoginViewModel(
         // session's probed config — the global startupConfig still describes the live server. The
         // repository layer routes the sign-in calls themselves via the same pending session.
         val configSource = accountSwitcher.pendingAdd?.startupConfig ?: configRepository.startupConfig
+        val serverUrl = accountSwitcher.pendingAdd?.serverUrl?.let(::flowOf) ?: serverDataStore.currentUrlFlow
         viewModelScope.launch {
-            configSource.collect { config ->
+            combine(configSource, serverUrl) { config, url -> config to url }.collect { (config, url) ->
                 if (config != null) {
                     _uiState.value = _uiState.value.copy(
                         registrationEnabled = config.registrationEnabled,
                         socialLoginEnabled = config.socialLoginEnabled,
                         socialLogins = config.socialLogins.orEmpty(),
                         emailLoginEnabled = config.emailLoginEnabled,
+                        policyLinks = PolicyLinks.from(config, url),
                     )
                 }
             }

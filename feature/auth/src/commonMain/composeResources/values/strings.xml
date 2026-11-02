@@ -70,6 +70,8 @@
     <string name="terms_title">Terms of Service</string>
     <string name="i_accept">I Accept</string>
     <string name="terms_decline">Decline</string>
+    <string name="privacy_policy">Privacy policy</string>
+    <string name="terms_of_service">Terms of service</string>
     <string name="retry">Retry</string>
 
     <!-- Common -->

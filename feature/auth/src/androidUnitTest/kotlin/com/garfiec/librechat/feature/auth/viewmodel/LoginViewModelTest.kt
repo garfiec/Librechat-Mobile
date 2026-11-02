@@ -10,7 +10,10 @@ import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.PendingAddSession
 import com.garfiec.librechat.core.model.LoginOutcome
 import com.garfiec.librechat.core.model.User
+import com.garfiec.librechat.core.model.config.InterfaceConfig
+import com.garfiec.librechat.core.model.config.PrivacyPolicyConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.model.config.TermsOfServiceConfig
 import com.garfiec.librechat.core.network.client.CertificateAuthority
 import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
 import com.google.common.truth.Truth.assertThat
@@ -73,6 +76,29 @@ class LoginViewModelTest {
         serverDataStore = serverDataStore,
         certificateTrust = certificateTrust,
     )
+
+    @Test
+    fun `published policy links reach the footer only when safe, resolved against the server`() = runTest {
+        configFlow.value = StartupConfig(
+            interfaceConfig = InterfaceConfig(
+                privacyPolicy = PrivacyPolicyConfig(externalUrl = "javascript:alert(1)"),
+                termsOfService = TermsOfServiceConfig(externalUrl = "/terms"),
+            ),
+        )
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val links = viewModel.uiState.value.policyLinks
+        assertThat(links.privacyPolicyUrl).isNull()
+        assertThat(links.termsOfServiceUrl).isEqualTo("https://chat.example.com/terms")
+
+        configFlow.value = StartupConfig(
+            interfaceConfig = InterfaceConfig(privacyPolicy = PrivacyPolicyConfig(externalUrl = "https://x.example/p")),
+        )
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.policyLinks)
+            .isEqualTo(PolicyLinks(privacyPolicyUrl = "https://x.example/p"))
+    }
 
     @Test
     fun `a server trusted through a user-installed CA is noted`() = runTest {

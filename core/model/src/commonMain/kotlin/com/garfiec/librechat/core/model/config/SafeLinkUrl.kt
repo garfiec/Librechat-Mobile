@@ -23,6 +23,28 @@ fun isSafeLinkUrl(url: String): Boolean {
 /** [url] when it is non-blank and [isSafeLinkUrl]; otherwise null (no link is shown). */
 fun safeLinkUrlOrNull(url: String?): String? = url?.trim()?.takeIf { it.isNotEmpty() && isSafeLinkUrl(it) }
 
+/**
+ * [url], a value [safeLinkUrlOrNull] let through, as an absolute URL the app can hand to the system
+ * opener. The web client resolves a relative link against the page it is on, a page under the
+ * deployment root, so the same is done here against [deploymentRoot] (the cleaned server URL): a
+ * path-absolute link against its origin, a scheme-relative one with its scheme, anything else under
+ * the root. A link that already names a scheme is returned as is.
+ */
+fun absoluteLinkUrl(url: String, deploymentRoot: String): String {
+    if (linkScheme(url) != null) return url
+    val root = deploymentRoot.trimEnd('/')
+    val schemeEnd = root.indexOf("://")
+    if (schemeEnd < 0) return url
+    val authorityEnd = root.indexOf('/', schemeEnd + SCHEME_SEPARATOR_LENGTH).let { if (it < 0) root.length else it }
+    return when {
+        url.startsWith("//") -> root.substring(0, schemeEnd + 1) + url
+        url.startsWith("/") -> root.substring(0, authorityEnd) + url
+        else -> "$root/$url"
+    }
+}
+
+private const val SCHEME_SEPARATOR_LENGTH = 3
+
 /** Upstream's `/^[\u0000- \s]*([a-z][a-z\d+.\t\n\r-]*):/i`, lower-cased without tabs/newlines. */
 private fun linkScheme(url: String): String? {
     var i = 0
