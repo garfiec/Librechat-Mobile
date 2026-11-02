@@ -5,7 +5,7 @@ import com.garfiec.librechat.feature.chat.resources.Res
 import org.jetbrains.compose.resources.StringResource
 
 /**
- * MIRRORED from upstream `Parts/guidance.ts` (v0.8.8). The poll tool's notes, messages and notices
+ * MIRRORED from upstream `Parts/guidance.ts` (v0.8.9-rc1). The poll tool's notes, messages and notices
  * are model-facing English, matched EXACTLY here so the user sees a localized sentence instead;
  * anything unrecognized points at the raw details rather than surfacing the prose.
  */
@@ -29,6 +29,16 @@ internal object BackgroundTaskGuidance {
     private val MESSAGES: Map<String, StringResource> = mapOf(
         "Cancellation was requested. The task remains active until its executor settles; " +
             "poll again for a terminal result." to Res.string.background_tasks_cancellation_requested,
+        "Automatic completion delivery is enabled for this subagent task. Continue independent work if " +
+            "available; otherwise end this turn and the host will resume you when the task finishes. Do not " +
+            "repeatedly poll an unchanged running task. Use check_background_task only for explicit status or " +
+            "control, or as a fallback if automatic delivery is unavailable." to
+            Res.string.background_tasks_subagent_wakeup_guidance,
+        "This subagent resumes you automatically when it finishes, so there is no need to check again. " +
+            "If you do, wait next_check_s and pass since: activity.cursor." to
+            Res.string.background_tasks_subagent_wakeup_guidance,
+        "Results are not pushed for this subagent. Check again after next_check_s, passing since: " +
+            "activity.cursor to get only new activity." to Res.string.background_tasks_subagent_poll_guidance,
     )
 
     private val NOTICES: Map<String, StringResource> = mapOf(

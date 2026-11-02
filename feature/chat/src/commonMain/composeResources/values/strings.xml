@@ -737,6 +737,19 @@
     <string name="background_tasks_running_elsewhere">Still running outside this turn. Its result may arrive as a new turn.</string>
     <string name="background_tasks_pending_delivery_note">Result pending delivery. It may still arrive as a new turn; poll to collect it sooner.</string>
     <string name="background_tasks_failed_delivery_note">Automatic delivery failed. Poll this task to collect its result; it will not arrive as a new turn.</string>
+    <string name="background_tasks_subagent_wakeup_guidance">This subagent resumes the agent by itself when it finishes, so it does not need checking again.</string>
+    <string name="background_tasks_subagent_poll_guidance">This subagent's result is not delivered automatically; the agent checks on it again later.</string>
+    <string name="background_tasks_view_activity">View activity</string>
+    <string name="subagent_progress">Progress</string>
+    <string name="subagent_progress_counts">Turns %1$d · Tool calls %2$d · Failed %3$d</string>
+    <string name="subagent_progress_nested">Turns %1$s · Tool calls %2$s</string>
+    <string name="subagent_progress_more">+%1$s more</string>
+    <string name="subagent_progress_reply">Reply</string>
+    <string name="subagent_progress_thinking">Thinking</string>
+    <string name="subagent_progress_turn">Turn %1$s</string>
+    <string name="subagent_progress_turns">Turns %1$s</string>
+    <string name="subagent_progress_evicted">Summary only: the detail of these turns is no longer kept.</string>
+    <string name="subagent_progress_truncated">Some steps are folded to keep this summary short.</string>
     <string name="background_tasks_cancellation_requested">Cancellation requested. The task may still be running; check again for its final status.</string>
 
     <!-- App update banner -->

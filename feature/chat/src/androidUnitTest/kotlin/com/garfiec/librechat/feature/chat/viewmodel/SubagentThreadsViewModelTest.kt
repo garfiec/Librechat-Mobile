@@ -148,6 +148,18 @@ class SubagentThreadsViewModelTest {
     }
 
     @Test
+    fun a_background_task_card_opens_the_thread_it_names() = runTest(dispatcher) {
+        // A polled subagent task carries `subagent_thread_id` (v0.8.9-rc1), so no join is needed,
+        // and a thread the bounded index left out still opens.
+        val vm = SubagentThreadsViewModel(repository)
+
+        vm.openFor("convo-1", null, focusThreadId = "child-unlisted")
+
+        coVerify(exactly = 1) { repository.getThread("convo-1", "child-unlisted") }
+        assertThat(vm.uiState.value.openThreadId).isEqualTo("child-unlisted")
+    }
+
+    @Test
     fun a_tool_call_the_index_does_not_name_opens_the_list() = runTest(dispatcher) {
         val vm = SubagentThreadsViewModel(repository)
 

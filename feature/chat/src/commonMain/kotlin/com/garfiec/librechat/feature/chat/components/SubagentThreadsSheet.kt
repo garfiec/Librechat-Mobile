@@ -73,14 +73,15 @@ internal fun SubagentThreadsSheet(
     parentConversationId: String,
     focusParentToolCallId: String?,
     onDismiss: () -> Unit,
+    focusThreadId: String? = null,
     modifier: Modifier = Modifier,
     viewModel: SubagentThreadsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    LaunchedEffect(parentConversationId, focusParentToolCallId) {
-        viewModel.openFor(parentConversationId, focusParentToolCallId)
+    LaunchedEffect(parentConversationId, focusParentToolCallId, focusThreadId) {
+        viewModel.openFor(parentConversationId, focusParentToolCallId, focusThreadId)
     }
 
     AdaptiveModalBottomSheet(

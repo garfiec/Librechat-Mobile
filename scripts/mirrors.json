@@ -1341,9 +1341,9 @@
       },
       "kotlin": {
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/background/BackgroundTaskOutput.kt",
-        "symbol": "BackgroundTaskOutput.parse / outcome, PolledTaskStatus"
+        "symbol": "BackgroundTaskOutput.parse / outcome, PolledTaskStatus, SubagentDigestParser (SubagentDigest.kt)"
       },
-      "why": "The web client's rules for turning a check_background_task result into a card: which shapes are host-shaped (one task, a {tasks[], partial} list, a {status, message} notice), the accepted task statuses and the cancellation_requested -> stopping rewrite, and which outcomes read as failed or cancelled despite a successful run step. The tool output is model-facing JSON; the server serves no display contract. formatBackgroundCodeOutput in the same file is not ported.",
+      "why": "The web client's rules for turning a check_background_task result into a card: which shapes are host-shaped (one task, a {tasks[], partial} list, a {status, message} notice), the accepted task statuses and the cancellation_requested -> stopping rewrite, and which outcomes read as failed or cancelled despite a successful run step. The tool output is model-facing JSON; the server serves no display contract. formatBackgroundCodeOutput in the same file is not ported. Since v0.8.9-rc1 a subagent task also carries subagent_thread_id and an activity digest; parseDigest's strictness (finite non-negative counts, the path grammar, at most 200 nodes, bounded texts, a malformed digest dropped but never the card) is ported in SubagentDigestParser.",
       "failure_mode": "A status or shape upstream adds is refused, so the call falls back to the raw JSON card; or a failed poll reads as a success because the outcome table drifted. Nothing errors."
     },
     {
@@ -1356,7 +1356,7 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/BackgroundTaskGuidance.kt",
         "symbol": "BackgroundTaskGuidance (NOTES / MESSAGES / NOTICES / noticeKey)"
       },
-      "why": "The exact English notes, messages and notice statuses the poll tool emits, matched verbatim to localized copy. backgroundListGuidanceKeys is not ported (the card points at raw details instead).",
+      "why": "The exact English notes, messages (including the v0.8.9-rc1 subagent wake-up and poll guidance) and notice statuses the poll tool emits, matched verbatim to localized copy. backgroundListGuidanceKeys is not ported (the card points at raw details instead).",
       "failure_mode": "A reworded server sentence stops matching and the card says 'More information in raw task details.' instead of the specific guidance. Nothing errors."
     },
     {
@@ -4439,6 +4439,19 @@
       },
       "why": "The attached-workspace bash_tool ends its output with an exit-status trailer ([exit code: N][terminated by SIG][timed out][output truncated]) written by formatCommandResult; the client reads it (as upstream Parts/command.ts parseCommandOutput does) to count a non-zero exit as a failed call in an activity-group header. The server serves no verdict field.",
       "failure_mode": "The trailer's wording changes and every attached-workspace command reads as succeeded in the group header while its card (on web) shows the failure. Nothing errors."
+    },
+    {
+      "id": "subagent-progress-digest-summary",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/SubagentProgress.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/SubagentProgressBlock.kt",
+        "symbol": "parseDigestSummary / digestParentPath / buildDigestTree / isOnDigestPath"
+      },
+      "why": "The server folds a digest node's children into a model-facing English tally ('bash_tool ×3, text +2 more', '1 turn, 2 tools'); the web client takes it apart with three regexes so every fragment but a tool name is localized, rebuilds the tree from positional paths ('3.2' under '3', '1-14' at the root) and opens the branch holding the active path. None of this is served as structure.",
+      "failure_mode": "The tally's wording or the path scheme changes and the progress card shows raw English fragments, or nests nodes under the wrong turn. Nothing errors."
     }
   ]
 }

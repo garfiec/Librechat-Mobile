@@ -97,9 +97,18 @@ fun ChatRoot(
     // both carry a null tool call.
     var subagentSheetOpen by rememberSaveable { mutableStateOf(false) }
     var subagentFocusToolCallId by rememberSaveable { mutableStateOf<String?>(null) }
+    var subagentFocusThreadId by rememberSaveable { mutableStateOf<String?>(null) }
     val openSubagentThreads = remember {
         { parentToolCallId: String? ->
             subagentFocusToolCallId = parentToolCallId
+            subagentFocusThreadId = null
+            subagentSheetOpen = true
+        }
+    }
+    val openSubagentThread = remember {
+        { threadId: String ->
+            subagentFocusToolCallId = null
+            subagentFocusThreadId = threadId
             subagentSheetOpen = true
         }
     }
@@ -132,6 +141,7 @@ fun ChatRoot(
         LocalFileNotice provides onFileNotice,
         LocalOpenFileActions provides openFileActions,
         LocalSubagentThreads provides openSubagentThreads,
+        LocalOpenSubagentThread provides openSubagentThread,
         // Both halves: a conversation to read children from, and a server that can serve them.
         // The repository asks the version question again before it issues a request — this one
         // decides whether the affordance is drawn at all.
@@ -196,6 +206,7 @@ fun ChatRoot(
                 SubagentThreadsSheet(
                     parentConversationId = conversationId,
                     focusParentToolCallId = subagentFocusToolCallId,
+                    focusThreadId = subagentFocusThreadId,
                     onDismiss = { subagentSheetOpen = false },
                 )
             }
