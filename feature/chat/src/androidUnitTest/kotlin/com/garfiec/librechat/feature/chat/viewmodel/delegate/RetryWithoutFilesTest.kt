@@ -35,7 +35,8 @@ class RetryWithoutFilesTest {
         manualSkills = listOf("skill"),
         reasoningOverride = high,
     )
-    private val failed = Message(messageId = "a1", conversationId = "c1", parentMessageId = "u1", text = "too long", error = true)
+    private val failed =
+        Message(messageId = "a1", conversationId = "c1", parentMessageId = "u1", text = "too long", error = true)
 
     private fun fixture(streaming: Boolean = false): Pair<RecordingChatRepository, MutableStateFlow<ChatUiState>> {
         val flow = MutableStateFlow(

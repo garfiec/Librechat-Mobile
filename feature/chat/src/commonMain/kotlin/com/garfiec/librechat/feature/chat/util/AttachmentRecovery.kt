@@ -262,19 +262,18 @@ fun attachmentRecoveries(path: List<Message>, branchSupported: Boolean): Map<Str
     if (path.none { !it.isCreatedByUser && (it.error || it.content?.any { p -> p.type == ContentType.ERROR } == true) }) {
         return emptyMap()
     }
-    val result = LinkedHashMap<String, AttachmentRecoveryView>()
-    for (message in path) {
-        val text = failureText(message) ?: continue
-        if (!mayBeAttachmentError(text)) continue
-        val recovery = findAttachmentRecovery(path, message) ?: continue
-        val canBranch = branchSupported && recovery.branchTargetId != null
-        if (!recovery.canRetry && !canBranch) continue
-        result[message.messageId] = AttachmentRecoveryView(
-            failedMessageId = message.messageId,
-            namesCause = isAttachmentError(text),
-            canRetry = recovery.canRetry,
-            canBranch = canBranch,
-        )
-    }
-    return result
+    return path.mapNotNull { recoveryViewFor(path, it, branchSupported) }.associateBy { it.failedMessageId }
+}
+
+private fun recoveryViewFor(path: List<Message>, message: Message, branchSupported: Boolean): AttachmentRecoveryView? {
+    val text = failureText(message)?.takeIf(::mayBeAttachmentError) ?: return null
+    val recovery = findAttachmentRecovery(path, message) ?: return null
+    val canBranch = branchSupported && recovery.branchTargetId != null
+    if (!recovery.canRetry && !canBranch) return null
+    return AttachmentRecoveryView(
+        failedMessageId = message.messageId,
+        namesCause = isAttachmentError(text),
+        canRetry = recovery.canRetry,
+        canBranch = canBranch,
+    )
 }

@@ -47,8 +47,8 @@ import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.util.MessageNode
-import com.garfiec.librechat.feature.chat.util.hasEditablePart
 import com.garfiec.librechat.feature.chat.util.attachmentRecoveries
+import com.garfiec.librechat.feature.chat.util.hasEditablePart
 import com.garfiec.librechat.feature.chat.util.withLiveSubagentFilesAdopted
 import com.garfiec.librechat.feature.chat.util.withPreviews
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall

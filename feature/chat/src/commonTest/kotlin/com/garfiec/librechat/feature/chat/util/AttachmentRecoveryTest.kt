@@ -51,7 +51,8 @@ class AttachmentRecoveryTest {
 
     @Test
     fun the_langchain_code_is_the_errors_segment_of_the_langchain_token() {
-        assertEquals("MODEL_NOT_FOUND", parseLangChainErrorCode("x https://js.langchain.com/docs/troubleshooting/errors/model_not_found/ y"))
+        val url = "x https://js.langchain.com/docs/troubleshooting/errors/model_not_found/ y"
+        assertEquals("MODEL_NOT_FOUND", parseLangChainErrorCode(url))
         assertNull(parseLangChainErrorCode("https://example.com/errors/MODEL_NOT_FOUND"))
         assertNull(parseLangChainErrorCode("no url"))
     }

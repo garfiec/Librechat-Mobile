@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -269,7 +270,7 @@ private fun UsageBlock(
     cost: Double?,
     currency: CurrencyConfig?,
     subtitle: String? = null,
-    rows: @Composable () -> Unit,
+    rows: @Composable ColumnScope.() -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
@@ -304,7 +305,7 @@ private fun UsageBlock(
 
 /** Input and output always; the cache rows only when they hold something. */
 @Composable
-private fun UsageRows(usage: UsageAmount) {
+private fun ColumnScope.UsageRows(usage: UsageAmount) {
     UsageRow(stringResource(Res.string.context_usage_input), usage.input)
     UsageRow(stringResource(Res.string.context_usage_output), usage.output)
     if (usage.cacheRead > 0) UsageRow(stringResource(Res.string.context_usage_cache_read), usage.cacheRead)

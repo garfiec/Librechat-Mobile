@@ -34,14 +34,16 @@ class ConversationActionsDelegateForkTest {
     private val repository = mockk<ConversationRepository>(relaxed = true)
     private val drafts = mockk<DraftRepository>(relaxed = true)
 
+    private fun files(id: String) = listOf(FileReference(fileId = id))
+
     private fun node(message: Message) = MessageNode(message, emptyList(), siblingIndex = 0, siblingCount = 1)
 
     /** u1 (files) → a1 → u2 (files, "send again") → a2 failed on the files. */
     private fun failedChat(): ChatUiState {
         val messages = listOf(
-            Message("u1", "c1", parentMessageId = NO_PARENT, isCreatedByUser = true, files = listOf(FileReference(fileId = "f1"))),
+            Message("u1", "c1", parentMessageId = NO_PARENT, isCreatedByUser = true, files = files("f1")),
             Message("a1", "c1", parentMessageId = "u1"),
-            Message("u2", "c1", parentMessageId = "a1", text = "send again", isCreatedByUser = true, files = listOf(FileReference(fileId = "f2"))),
+            Message("u2", "c1", parentMessageId = "a1", text = "send again", isCreatedByUser = true, files = files("f2")),
             Message("a2", "c1", parentMessageId = "u2", text = "prompt is too long", error = true),
         )
         return ChatUiState(
