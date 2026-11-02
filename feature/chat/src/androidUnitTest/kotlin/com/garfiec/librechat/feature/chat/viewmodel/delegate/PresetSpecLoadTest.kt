@@ -147,7 +147,7 @@ class PresetSpecLoadTest {
     fun `a preset over an active spec replaces the spec's parameters`() = runTest {
         val deep = ModelSpec(
             name = "deep",
-            preset = Preset(endpoint = "openAI", model = "gpt-4.1", temperature = 0.9, topP = 0.5),
+            preset = Preset(endpoint = "openAI", model = "gpt-4.1", temperature = 0.9, topPSnake = 0.5),
         )
         val spec = ModelChoice.Spec("deep", "openAI", "gpt-4.1")
 
@@ -187,7 +187,7 @@ class PresetSpecLoadTest {
         val shown = ModelParameters.DEFAULT.copy(temperature = 0.9f, webSearch = true)
 
         val selection = loadPreset(
-            Preset(presetId = "p1", temperature = 0.2, topP = 0.3),
+            Preset(presetId = "p1", temperature = 0.2, topPSnake = 0.3),
             ModelSpecs(list = listOf(deep), enforce = true),
             state = ModelSelectionState(choice = ModelChoice.Spec("deep", "openAI", "gpt-4.1"), modelParameters = shown),
         )

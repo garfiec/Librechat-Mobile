@@ -156,6 +156,8 @@
     <string name="param_label_prompt_caching">Mise en cache du prompt</string>
     <string name="param_label_reasoning_effort">Effort de raisonnement</string>
     <string name="param_label_reasoning_summary">Résumé du raisonnement</string>
+    <string name="param_label_reasoning_mode">Mode de raisonnement</string>
+    <string name="param_label_reasoning_context">Contexte du raisonnement</string>
     <string name="param_label_reasoning_visibility">Visibilité du raisonnement</string>
     <string name="param_label_region">Région</string>
     <string name="param_label_resend_files">Renvoyer les fichiers</string>
@@ -181,6 +183,10 @@
     <string name="param_option_auto">Auto</string>
     <string name="param_option_concise">Concis</string>
     <string name="param_option_detailed">Détaillé</string>
+    <string name="param_option_standard">Standard</string>
+    <string name="param_option_pro">Pro</string>
+    <string name="param_option_current_turn">Tour actuel</string>
+    <string name="param_option_all_turns">Tous les tours</string>
     <string name="param_option_summarized">Résumé</string>
     <string name="param_option_omitted">Omis</string>
     <string name="param_option_updates">Mises à jour</string>
@@ -207,6 +213,8 @@
     <string name="param_desc_frequency_penalty">Pénalise les jetons selon leur fréquence dans le texte.</string>
     <string name="param_desc_url_context">Permet au modèle de récupérer les URL (et YouTube) que vous citez et de s’y appuyer.</string>
     <string name="param_desc_reasoning_summary">Manière dont le résumé du raisonnement apparaît dans la réponse.</string>
+    <string name="param_desc_reasoning_mode">Responses API uniquement : choisit le mode de raisonnement. Pro active le raisonnement étendu sur les modèles compatibles.</string>
+    <string name="param_desc_reasoning_context">Responses API uniquement : quelle part du raisonnement précédent le modèle réutilise.</string>
     <string name="param_desc_prompt_cache_duration">Durée de conservation du cache de prompt (Anthropic). S’applique quand la mise en cache est activée.</string>
     <string name="param_desc_thinking_level">Contrôle l’ampleur de la réflexion du modèle.</string>
     <string name="param_desc_reasoning_effort">Contrôle l’ampleur du raisonnement du modèle.</string>

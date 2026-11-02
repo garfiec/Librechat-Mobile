@@ -170,6 +170,8 @@
     <string name="param_label_prompt_caching">Prompt Caching</string>
     <string name="param_label_reasoning_effort">Reasoning Effort</string>
     <string name="param_label_reasoning_summary">Reasoning Summary</string>
+    <string name="param_label_reasoning_mode">Reasoning Mode</string>
+    <string name="param_label_reasoning_context">Reasoning Context</string>
     <string name="param_label_reasoning_visibility">Reasoning Visibility</string>
     <string name="param_label_region">Region</string>
     <string name="param_label_resend_files">Resend Files</string>
@@ -195,6 +197,10 @@
     <string name="param_option_auto">Auto</string>
     <string name="param_option_concise">Concise</string>
     <string name="param_option_detailed">Detailed</string>
+    <string name="param_option_standard">Standard</string>
+    <string name="param_option_pro">Pro</string>
+    <string name="param_option_current_turn">Current turn</string>
+    <string name="param_option_all_turns">All turns</string>
     <string name="param_option_summarized">Summarized</string>
     <string name="param_option_omitted">Omitted</string>
     <string name="param_option_updates">Updates</string>
@@ -221,6 +227,8 @@
     <string name="param_desc_frequency_penalty">Penalizes tokens based on their frequency in the text so far.</string>
     <string name="param_desc_url_context">Let the model fetch and ground on URLs (and YouTube) you reference.</string>
     <string name="param_desc_reasoning_summary">How reasoning summary is exposed in the response.</string>
+    <string name="param_desc_reasoning_mode">Responses API only: selects the reasoning mode. Pro turns on extended reasoning on models that support it.</string>
+    <string name="param_desc_reasoning_context">Responses API only: how much earlier reasoning the model reuses.</string>
     <string name="param_desc_prompt_cache_duration">How long prompt caches persist (Anthropic). Applies when prompt caching is on.</string>
     <string name="param_desc_thinking_level">Controls how much thinking the model performs.</string>
     <string name="param_desc_reasoning_effort">Controls how much reasoning the model performs.</string>

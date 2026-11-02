@@ -34,13 +34,15 @@ class ConversationSerializationTest {
             tags = listOf("work", "important"),
             isArchived = true,
             temperature = 0.7,
-            topP = 0.9,
+            topPSnake = 0.9,
+            topPCamel = 0.8,
             topK = 40,
             frequencyPenalty = 0.5,
             presencePenalty = 0.3,
             maxOutputTokens = 4096,
             maxContextTokens = 128000,
-            maxTokens = 4096,
+            maxTokensSnake = 4096,
+            maxTokensCamel = 2048,
             system = "You are a helpful assistant.",
             reasoningEffort = "high",
             effort = "high",
@@ -85,12 +87,48 @@ class ConversationSerializationTest {
         val decoded = json.decodeFromString(Conversation.serializer(), serverJson)
         assertEquals("agent-1", decoded.agentId)
         assertEquals("asst-1", decoded.assistantId)
-        assertEquals(0.95, decoded.topP)
+        assertEquals(0.95, decoded.topPSnake)
         assertEquals(0.2, decoded.frequencyPenalty)
         assertEquals(0.1, decoded.presencePenalty)
         assertEquals("medium", decoded.reasoningEffort)
         assertEquals(false, decoded.webSearch)
         assertEquals("basic", decoded.thinkingLevel)
+    }
+
+    /**
+     * Upstream spells some keys per provider (`tConversationSchema`), and each provider's schema keeps
+     * only its own: a conversation reopened without its spelling sends the default and the server
+     * unsets the stored value.
+     */
+    @Test
+    fun everyProviderSpellingOfTopPAndMaxTokensDecodes() {
+        val decoded = json.decodeFromString(
+            Conversation.serializer(),
+            """{"top_p": 0.1, "topP": 0.2, "max_tokens": 100, "maxTokens": 200, "maxOutputTokens": 300}""",
+        )
+        assertEquals(0.1, decoded.topPSnake)
+        assertEquals(0.2, decoded.topPCamel)
+        assertEquals(100, decoded.maxTokensSnake)
+        assertEquals(200, decoded.maxTokensCamel)
+        assertEquals(300, decoded.maxOutputTokens)
+
+        // The cached blob is a Preset: every spelling survives the round trip through it.
+        val restored = Conversation().withParameters(decoded.parameterPreset())
+        assertEquals(0.1, restored.topPSnake)
+        assertEquals(0.2, restored.topPCamel)
+        assertEquals(100, restored.maxTokensSnake)
+        assertEquals(200, restored.maxTokensCamel)
+        assertEquals(300, restored.maxOutputTokens)
+    }
+
+    @Test
+    fun presetEncodesEachSpellingUnderItsOwnKey() {
+        val encoded = json.encodeToString(
+            Preset.serializer(),
+            Preset(topPSnake = 0.1, topPCamel = 0.2, maxTokensSnake = 100, maxTokensCamel = 200, appendCurrentDatetime = true),
+        )
+        listOf("\"top_p\":0.1", "\"topP\":0.2", "\"max_tokens\":100", "\"maxTokens\":200", "\"append_current_datetime\":true")
+            .forEach { assertEquals(true, encoded.contains(it), "Expected $it in $encoded") }
     }
 
     @Test

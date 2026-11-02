@@ -16,8 +16,10 @@ import com.garfiec.librechat.core.model.ActionMetadata
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.AgentCategory
 import com.garfiec.librechat.core.model.AgentFile
+import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.HandoffEdge
 import com.garfiec.librechat.core.model.SkillSummary
+import com.garfiec.librechat.core.model.config.paramSettingsKey
 import com.garfiec.librechat.core.model.mcp.McpTool
 import com.garfiec.librechat.core.model.request.FunctionTool
 import com.garfiec.librechat.core.ui.components.PdfPasswordPromptUi
@@ -184,6 +186,8 @@ data class AgentEditorUiState(
     /** `/api/config.endpointsDropParamsMap` (v0.8.8-rc3), unresolved; hides advanced-parameter
      *  controls this server strips before calling the provider. */
     val dropParamsMap: Map<String, JsonElement>? = null,
+    /** `/api/endpoints`, for [parameterProvider]. */
+    val endpointConfigs: Map<String, EndpointConfig> = emptyMap(),
     // Skills (v0.8.6) — agent-editor skills selector.
     /** Whether the agent `skills_enabled` master toggle is on. */
     val skillsEnabled: Boolean = false,
@@ -273,6 +277,13 @@ data class AgentEditorUiState(
      * then: leaving first would let the late result pop or replace the screen the user went back to.
      */
     val isCommitting: Boolean get() = isSaving || isDuplicating || isDeleting
+
+    /**
+     * The key of [provider]'s parameter set ([paramSettingsKey]), as web's agent model panel resolves
+     * it: an agent on a custom endpoint gets the parameter set of its `type` (OpenAI's), or its
+     * `customParams.defaultParamsEndpoint`, not the generic one its name falls through to.
+     */
+    val parameterProvider: String get() = paramSettingsKey(provider, endpointConfigs)
 }
 
 /**

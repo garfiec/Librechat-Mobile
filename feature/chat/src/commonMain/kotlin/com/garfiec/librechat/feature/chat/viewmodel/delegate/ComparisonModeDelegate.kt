@@ -216,12 +216,14 @@ class ComparisonModeDelegate(
                 primaryModelParams.customInstructions()
             },
             temperature = preset?.temperature,
-            topP = preset?.topP,
+            topPSnake = preset?.topPSnake,
+            topPCamel = preset?.topPCamel,
             topK = preset?.topK,
             presencePenalty = preset?.presencePenalty,
             frequencyPenalty = preset?.frequencyPenalty,
             maxOutputTokens = preset?.maxOutputTokens,
-            maxTokens = preset?.maxTokens,
+            maxTokensSnake = preset?.maxTokensSnake,
+            maxTokensCamel = preset?.maxTokensCamel,
         )
     }
 

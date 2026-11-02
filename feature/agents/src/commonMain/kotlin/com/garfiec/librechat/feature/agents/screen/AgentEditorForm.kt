@@ -550,6 +550,7 @@ internal fun AgentEditorForm(
             extendedEffortSupported = uiState.isHandoffsAvailable,
             thinkingDisplayUpdatesSupported = uiState.isThinkingDisplayUpdatesAvailable,
             dropParamsMap = uiState.dropParamsMap,
+            parameterProvider = uiState.parameterProvider,
         )
 
         Spacer(modifier = Modifier.height(24.dp))

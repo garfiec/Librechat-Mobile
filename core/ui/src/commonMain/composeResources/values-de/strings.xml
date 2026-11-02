@@ -152,6 +152,8 @@
     <string name="param_label_prompt_caching">Prompt-Caching</string>
     <string name="param_label_reasoning_effort">Denkaufwand</string>
     <string name="param_label_reasoning_summary">Zusammenfassung des Denkens</string>
+    <string name="param_label_reasoning_mode">Denkmodus</string>
+    <string name="param_label_reasoning_context">Denkkontext</string>
     <string name="param_label_reasoning_visibility">Sichtbarkeit des Denkens</string>
     <string name="param_label_region">Region</string>
     <string name="param_label_resend_files">Dateien erneut senden</string>
@@ -177,6 +179,10 @@
     <string name="param_option_auto">Automatisch</string>
     <string name="param_option_concise">Knapp</string>
     <string name="param_option_detailed">Ausführlich</string>
+    <string name="param_option_standard">Standard</string>
+    <string name="param_option_pro">Pro</string>
+    <string name="param_option_current_turn">Aktueller Zug</string>
+    <string name="param_option_all_turns">Alle Züge</string>
     <string name="param_option_summarized">Zusammengefasst</string>
     <string name="param_option_omitted">Ausgelassen</string>
     <string name="param_option_updates">Zwischenstände</string>
@@ -203,6 +209,8 @@
     <string name="param_desc_frequency_penalty">Bestraft Token nach ihrer Häufigkeit im bisherigen Text.</string>
     <string name="param_desc_url_context">Lässt das Modell genannte URLs (und YouTube) abrufen und sich darauf stützen.</string>
     <string name="param_desc_reasoning_summary">Wie die Zusammenfassung des Denkens in der Antwort erscheint.</string>
+    <string name="param_desc_reasoning_mode">Nur Responses API: wählt den Denkmodus. Pro schaltet erweitertes Denken bei unterstützten Modellen ein.</string>
+    <string name="param_desc_reasoning_context">Nur Responses API: wie viel früheres Denken das Modell wiederverwendet.</string>
     <string name="param_desc_prompt_cache_duration">Wie lange Prompt-Caches bestehen bleiben (Anthropic). Gilt bei aktivem Prompt-Caching.</string>
     <string name="param_desc_thinking_level">Steuert, wie viel das Modell nachdenkt.</string>
     <string name="param_desc_reasoning_effort">Steuert, wie viel das Modell abwägt.</string>

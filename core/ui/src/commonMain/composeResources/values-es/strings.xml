@@ -156,6 +156,8 @@
     <string name="param_label_prompt_caching">Caché de prompts</string>
     <string name="param_label_reasoning_effort">Esfuerzo de razonamiento</string>
     <string name="param_label_reasoning_summary">Resumen del razonamiento</string>
+    <string name="param_label_reasoning_mode">Modo de razonamiento</string>
+    <string name="param_label_reasoning_context">Contexto del razonamiento</string>
     <string name="param_label_reasoning_visibility">Visibilidad del razonamiento</string>
     <string name="param_label_region">Región</string>
     <string name="param_label_resend_files">Reenviar archivos</string>
@@ -181,6 +183,10 @@
     <string name="param_option_auto">Automático</string>
     <string name="param_option_concise">Conciso</string>
     <string name="param_option_detailed">Detallado</string>
+    <string name="param_option_standard">Estándar</string>
+    <string name="param_option_pro">Pro</string>
+    <string name="param_option_current_turn">Turno actual</string>
+    <string name="param_option_all_turns">Todos los turnos</string>
     <string name="param_option_summarized">Resumido</string>
     <string name="param_option_omitted">Omitido</string>
     <string name="param_option_updates">Actualizaciones</string>
@@ -207,6 +213,8 @@
     <string name="param_desc_frequency_penalty">Penaliza los tokens según su frecuencia en el texto.</string>
     <string name="param_desc_url_context">Permite al modelo obtener las URL (y YouTube) que menciones y basarse en ellas.</string>
     <string name="param_desc_reasoning_summary">Cómo se muestra el resumen del razonamiento en la respuesta.</string>
+    <string name="param_desc_reasoning_mode">Solo Responses API: elige el modo de razonamiento. Pro activa el razonamiento ampliado en los modelos compatibles.</string>
+    <string name="param_desc_reasoning_context">Solo Responses API: cuánto razonamiento anterior reutiliza el modelo.</string>
     <string name="param_desc_prompt_cache_duration">Cuánto dura la caché de prompts (Anthropic). Se aplica con la caché de prompts activada.</string>
     <string name="param_desc_thinking_level">Controla cuánto razona el modelo.</string>
     <string name="param_desc_reasoning_effort">Controla cuánto razonamiento realiza el modelo.</string>

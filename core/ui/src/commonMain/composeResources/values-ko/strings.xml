@@ -148,6 +148,8 @@
     <string name="param_label_prompt_caching">프롬프트 캐싱</string>
     <string name="param_label_reasoning_effort">추론 노력</string>
     <string name="param_label_reasoning_summary">추론 요약</string>
+    <string name="param_label_reasoning_mode">추론 모드</string>
+    <string name="param_label_reasoning_context">추론 컨텍스트</string>
     <string name="param_label_reasoning_visibility">추론 표시</string>
     <string name="param_label_region">리전</string>
     <string name="param_label_resend_files">파일 다시 보내기</string>
@@ -173,6 +175,10 @@
     <string name="param_option_auto">자동</string>
     <string name="param_option_concise">간결</string>
     <string name="param_option_detailed">상세</string>
+    <string name="param_option_standard">표준</string>
+    <string name="param_option_pro">Pro</string>
+    <string name="param_option_current_turn">현재 턴</string>
+    <string name="param_option_all_turns">모든 턴</string>
     <string name="param_option_summarized">요약</string>
     <string name="param_option_omitted">생략</string>
     <string name="param_option_updates">업데이트</string>
@@ -199,6 +205,8 @@
     <string name="param_desc_frequency_penalty">지금까지의 텍스트에서 나타난 빈도에 따라 토큰에 페널티를 줍니다.</string>
     <string name="param_desc_url_context">언급한 URL(및 YouTube)을 모델이 가져와 근거로 사용합니다.</string>
     <string name="param_desc_reasoning_summary">응답에서 추론 요약을 표시하는 방식입니다.</string>
+    <string name="param_desc_reasoning_mode">Responses API 전용: 추론 모드를 선택합니다. Pro는 지원하는 모델에서 확장 추론을 켭니다.</string>
+    <string name="param_desc_reasoning_context">Responses API 전용: 모델이 이전 추론을 얼마나 재사용할지입니다.</string>
     <string name="param_desc_prompt_cache_duration">프롬프트 캐시가 유지되는 시간입니다(Anthropic). 프롬프트 캐싱이 켜져 있을 때 적용됩니다.</string>
     <string name="param_desc_thinking_level">모델이 수행하는 사고의 양을 조절합니다.</string>
     <string name="param_desc_reasoning_effort">모델이 수행하는 추론의 양을 조절합니다.</string>

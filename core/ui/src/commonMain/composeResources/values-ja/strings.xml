@@ -148,6 +148,8 @@
     <string name="param_label_prompt_caching">プロンプトキャッシュ</string>
     <string name="param_label_reasoning_effort">推論の労力</string>
     <string name="param_label_reasoning_summary">推論の要約</string>
+    <string name="param_label_reasoning_mode">推論モード</string>
+    <string name="param_label_reasoning_context">推論コンテキスト</string>
     <string name="param_label_reasoning_visibility">推論の表示</string>
     <string name="param_label_region">リージョン</string>
     <string name="param_label_resend_files">ファイルを再送信</string>
@@ -173,6 +175,10 @@
     <string name="param_option_auto">自動</string>
     <string name="param_option_concise">簡潔</string>
     <string name="param_option_detailed">詳細</string>
+    <string name="param_option_standard">標準</string>
+    <string name="param_option_pro">Pro</string>
+    <string name="param_option_current_turn">現在のターン</string>
+    <string name="param_option_all_turns">すべてのターン</string>
     <string name="param_option_summarized">要約</string>
     <string name="param_option_omitted">省略</string>
     <string name="param_option_updates">途中経過</string>
@@ -199,6 +205,8 @@
     <string name="param_desc_frequency_penalty">これまでのテキストでの出現頻度に応じてトークンにペナルティを与えます。</string>
     <string name="param_desc_url_context">参照した URL（および YouTube）をモデルが取得し、根拠として使います。</string>
     <string name="param_desc_reasoning_summary">応答で推論の要約をどのように示すかです。</string>
+    <string name="param_desc_reasoning_mode">Responses API のみ: 推論モードを選びます。Pro は対応モデルで拡張推論を有効にします。</string>
+    <string name="param_desc_reasoning_context">Responses API のみ: モデルが以前の推論をどこまで再利用するかです。</string>
     <string name="param_desc_prompt_cache_duration">プロンプトキャッシュの保持期間です（Anthropic）。プロンプトキャッシュが有効なときに適用されます。</string>
     <string name="param_desc_thinking_level">モデルが行う思考の量を制御します。</string>
     <string name="param_desc_reasoning_effort">モデルが行う推論の量を制御します。</string>

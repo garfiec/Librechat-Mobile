@@ -43,13 +43,16 @@ data class Conversation(
      */
     val isShared: Boolean? = null,
     val temperature: Double? = null,
-    @SerialName("top_p") val topP: Double? = null,
+    // One field per upstream spelling (`tConversationSchema`), as on [Preset].
+    @SerialName("top_p") val topPSnake: Double? = null,
+    @SerialName("topP") val topPCamel: Double? = null,
     val topK: Int? = null,
     @SerialName("frequency_penalty") val frequencyPenalty: Double? = null,
     @SerialName("presence_penalty") val presencePenalty: Double? = null,
+    @SerialName("max_tokens") val maxTokensSnake: Int? = null,
+    @SerialName("maxTokens") val maxTokensCamel: Int? = null,
     val maxOutputTokens: Int? = null,
     val maxContextTokens: Int? = null,
-    val maxTokens: Int? = null,
     val system: String? = null,
     @SerialName("reasoning_effort") val reasoningEffort: String? = null,
     /** Reasoning mode for Responses-API models (sibling of [reasoningEffort]). */

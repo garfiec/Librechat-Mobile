@@ -861,7 +861,11 @@ Additive response fields (parse-layer only unless a row says BUILT):
 - Conversation + preset — add `reasoning_mode` / `reasoning_context` (Responses-API siblings of
   `reasoning_effort`); agents add `stateful_code_sessions` (persistent code-interpreter sandbox across a run's
   tool calls) and `memory_scope` (`"agent"` isolates memories per user+agent, `"user"`/null = shared pool).
-  Round-tripped so a mobile edit doesn't drop what was set on web; no mobile editor controls.
+  Mobile sends `reasoning_mode` / `reasoning_context` on the OpenAI-like parameter sets (openAI, azure, custom,
+  OpenRouter), where the parameters sheet offers them, and restores them on a reopened chat or a preset. That is
+  what keeps them: a chat turn unsets every stored conversation field the request leaves out
+  (`getUnsetFields`, `packages/api/src/conversations/save.ts`), so a key the client merely decodes is erased on
+  the next send. The agent fields have no mobile editor controls.
 - Model spec — adds `showInMenu`. The server already drops `showInMenu: false` specs from `/api/config`, so
   mobile never receives one; a hidden spec stays resolvable by name on a conversation.
 - `GET /api/config` — adds `fileUploadSseEnabled` (`FILE_UPLOAD_SSE_ENABLED`, off by default). Detection-only:

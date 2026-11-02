@@ -148,6 +148,8 @@
     <string name="param_label_prompt_caching">提示缓存</string>
     <string name="param_label_reasoning_effort">推理强度</string>
     <string name="param_label_reasoning_summary">推理摘要</string>
+    <string name="param_label_reasoning_mode">推理模式</string>
+    <string name="param_label_reasoning_context">推理上下文</string>
     <string name="param_label_reasoning_visibility">推理可见性</string>
     <string name="param_label_region">区域</string>
     <string name="param_label_resend_files">重新发送文件</string>
@@ -173,6 +175,10 @@
     <string name="param_option_auto">自动</string>
     <string name="param_option_concise">简洁</string>
     <string name="param_option_detailed">详细</string>
+    <string name="param_option_standard">标准</string>
+    <string name="param_option_pro">Pro</string>
+    <string name="param_option_current_turn">当前轮次</string>
+    <string name="param_option_all_turns">所有轮次</string>
     <string name="param_option_summarized">摘要</string>
     <string name="param_option_omitted">省略</string>
     <string name="param_option_updates">进度更新</string>
@@ -199,6 +205,8 @@
     <string name="param_desc_frequency_penalty">根据令牌在文本中出现的频率进行惩罚。</string>
     <string name="param_desc_url_context">让模型获取你引用的 URL（及 YouTube）并以其为依据。</string>
     <string name="param_desc_reasoning_summary">推理摘要在回复中的呈现方式。</string>
+    <string name="param_desc_reasoning_mode">仅限 Responses API：选择推理模式。Pro 会在支持的模型上开启扩展推理。</string>
+    <string name="param_desc_reasoning_context">仅限 Responses API：模型复用多少先前的推理。</string>
     <string name="param_desc_prompt_cache_duration">提示缓存的保留时长（Anthropic）。在启用提示缓存时生效。</string>
     <string name="param_desc_thinking_level">控制模型的思考量。</string>
     <string name="param_desc_reasoning_effort">控制模型的推理量。</string>

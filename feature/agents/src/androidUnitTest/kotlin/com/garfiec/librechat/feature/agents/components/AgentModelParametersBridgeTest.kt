@@ -1,7 +1,9 @@
 package com.garfiec.librechat.feature.agents.components
 
+import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.ui.components.EndpointParameterRegistry
 import com.garfiec.librechat.feature.agents.components.model.AgentAdvancedSettings
+import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorUiState
 import com.google.common.truth.Truth.assertThat
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Test
@@ -70,5 +72,50 @@ class AgentModelParametersBridgeTest {
         val saved = loaded.toModelParameters().toAgentAdvancedSettings(loaded, undetectedDefs, removed)
 
         assertThat(saved.extras["effort"]).isEqualTo(JsonPrimitive("max"))
+    }
+
+    /**
+     * An agent on a custom endpoint ("Groq") gets its type's parameter set, as web's agent panel
+     * resolves it, not the generic one the name falls through to, so its Top P saves as `top_p`.
+     */
+    @Test
+    fun `an agent on a custom endpoint gets OpenAI's parameter set`() {
+        val state = AgentEditorUiState(
+            provider = "Groq",
+            model = "llama-3.3-70b",
+            endpointConfigs = mapOf("Groq" to EndpointConfig(type = "custom")),
+        )
+
+        val keys = agentParameterDefinitions(
+            provider = state.provider,
+            model = state.model,
+            extendedEffortSupported = false,
+            dropParamsMap = null,
+            parameterProvider = state.parameterProvider,
+        ).map { it.key }
+
+        assertThat(state.parameterProvider).isEqualTo("custom")
+        assertThat(keys).containsAtLeast("top_p", "max_tokens", "reasoning_effort")
+        assertThat(keys).containsNoneOf("topP", "maxOutputTokens")
+    }
+
+    /** An agent an older build saved with the generic list's `topP` resaves under one spelling, `top_p`. */
+    @Test
+    fun `a custom-endpoint agent saved camelCased resaves snake-cased only`() {
+        val defs = agentParameterDefinitions(
+            provider = "Groq",
+            model = "llama-3.3-70b",
+            extendedEffortSupported = false,
+            dropParamsMap = null,
+            parameterProvider = "custom",
+        )
+        val loaded =
+            AgentAdvancedSettings(topP = 0.5f, topPKey = "topP", maxTokens = 900, maxTokensKey = "maxOutputTokens")
+
+        val saved = loaded.toModelParameters().toAgentAdvancedSettings(loaded, defs, emptyMap())
+
+        assertThat(saved.topPKey).isEqualTo("top_p")
+        assertThat(saved.maxTokensKey).isEqualTo("max_tokens")
+        assertThat(saved.extras.keys).containsNoneOf("topP", "top_p", "maxOutputTokens", "max_tokens")
     }
 }

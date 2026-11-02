@@ -56,7 +56,7 @@ class ChatPayloadBuilderTest {
             text = "hi", conversationId = "c-1", endpoint = "openAI", model = "gpt-4o",
             addedConvo = AddedConversation(
                 endpoint = "anthropic", model = "claude", spec = "research",
-                temperature = 0.2, topP = 0.9, maxTokens = 512,
+                temperature = 0.2, topPSnake = 0.9, maxTokensSnake = 512,
             ),
         )
         val added = wire.encodeToJsonElement(ChatRequest.serializer(), withSpec).jsonObject["addedConvo"]!!.jsonObject

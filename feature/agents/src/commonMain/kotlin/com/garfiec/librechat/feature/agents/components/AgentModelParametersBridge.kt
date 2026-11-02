@@ -151,6 +151,9 @@ private fun encodeAsJsonElement(value: String, type: ParameterType): JsonElement
  * The parameter definitions an agent with [provider] and [model] offers — what the Advanced panel
  * renders. Not what a save checks stored values against: the options here also lack version-gated
  * values, so a value's absence is no reason to drop it. See [agentModelRemovedOptions].
+ *
+ * [parameterProvider] picks the parameter set (`AgentEditorUiState.parameterProvider`: a custom
+ * endpoint's type's); [provider] is the configured name, which `dropParams` is keyed on.
  */
 internal fun agentParameterDefinitions(
     provider: String,
@@ -158,10 +161,11 @@ internal fun agentParameterDefinitions(
     extendedEffortSupported: Boolean,
     dropParamsMap: Map<String, JsonElement>?,
     thinkingDisplayUpdatesSupported: Boolean = false,
+    parameterProvider: String = provider,
 ): List<ParameterDefinition> = EndpointParameterRegistry.getDefinitions(
     endpoint = "agents",
     extendedEffortSupported = extendedEffortSupported,
-    provider = provider.takeIf { it.isNotBlank() },
+    provider = parameterProvider.takeIf { it.isNotBlank() },
     model = model.takeIf { it.isNotBlank() },
     dropParams = EndpointDropParams.resolve(dropParamsMap, endpoint = "agents", provider = provider, model = model),
     thinkingDisplayUpdatesSupported = thinkingDisplayUpdatesSupported,
@@ -175,9 +179,10 @@ internal fun agentModelRemovedOptions(
     provider: String,
     model: String,
     dropParamsMap: Map<String, JsonElement>?,
+    parameterProvider: String = provider,
 ): Map<String, Set<String>> = EndpointParameterRegistry.modelRemovedOptions(
     endpoint = "agents",
-    provider = provider.takeIf { it.isNotBlank() },
+    provider = parameterProvider.takeIf { it.isNotBlank() },
     model = model.takeIf { it.isNotBlank() },
     dropParams = EndpointDropParams.resolve(dropParamsMap, endpoint = "agents", provider = provider, model = model),
 )

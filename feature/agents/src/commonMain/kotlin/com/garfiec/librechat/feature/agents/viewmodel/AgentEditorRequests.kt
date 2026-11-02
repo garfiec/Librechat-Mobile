@@ -155,6 +155,7 @@ private fun AgentEditorUiState.writeFields(): AgentWriteFields {
         provider = state.provider,
         model = state.model,
         dropParamsMap = state.dropParamsMap,
+        parameterProvider = state.parameterProvider,
     )
     val modelParameters = buildModelParameters(state.advancedSettings.withoutModelRemovedValues(modelRemoved))
 

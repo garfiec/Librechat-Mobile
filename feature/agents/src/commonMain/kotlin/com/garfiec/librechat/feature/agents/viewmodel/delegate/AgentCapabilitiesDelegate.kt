@@ -45,6 +45,7 @@ class AgentCapabilitiesDelegate(
         observeServerVersion()
         observeFileRemovalSemantics()
         observeDropParams()
+        observeEndpointConfigs()
     }
 
     /**
@@ -72,6 +73,15 @@ class AgentCapabilitiesDelegate(
         stateHandle.scope.launch {
             configRepository.startupConfig.collect { config ->
                 stateHandle.update { copy(dropParamsMap = config?.endpointsDropParamsMap) }
+            }
+        }
+    }
+
+    /** The endpoint configs pick the parameter set of an agent on a custom endpoint (`parameterProvider`). */
+    private fun observeEndpointConfigs() {
+        stateHandle.scope.launch {
+            configRepository.endpointConfigs.collect { configs ->
+                stateHandle.update { copy(endpointConfigs = configs) }
             }
         }
     }

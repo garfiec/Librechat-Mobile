@@ -129,7 +129,7 @@ class ComparisonModeDelegateTest {
             endpoint = "openAI",
             model = "gpt-4o",
             temperature = 0.2,
-            topP = 0.9,
+            topPSnake = 0.9,
             maxOutputTokens = 2048,
         ),
     )
@@ -209,7 +209,7 @@ class ComparisonModeDelegateTest {
 
         assertThat(added.spec).isEqualTo("research")
         assertThat(added.temperature).isEqualTo(0.2)
-        assertThat(added.topP).isEqualTo(0.9)
+        assertThat(added.topPSnake).isEqualTo(0.9)
         assertThat(added.maxOutputTokens).isEqualTo(2048)
         // Read back from the sender on reopen, which a label would replace.
         assertThat(added.modelLabel).isNull()
