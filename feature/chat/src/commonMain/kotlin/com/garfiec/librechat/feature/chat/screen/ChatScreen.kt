@@ -65,6 +65,7 @@ import com.garfiec.librechat.feature.chat.components.veil.rememberModeVeilModifi
 import com.garfiec.librechat.feature.chat.components.veil.rememberModeVeilState
 import com.garfiec.librechat.feature.chat.components.veil.rememberVeilTarget
 import com.garfiec.librechat.feature.chat.prompts.components.VariableInputDialog
+import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.McpSignInViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.UpdateBannerViewModel
@@ -567,7 +568,16 @@ fun ChatScreen(
                                                     keyboardController?.hide()
                                                 }
                                             },
+                                            onInterrupt = {
+                                                viewModel.interruptMessage()
+                                                if (dismissKeyboardOnSend) {
+                                                    keyboardController?.hide()
+                                                }
+                                            },
                                             canSteer = uiState.canSteerNow,
+                                            // Built-in search can't be interrupted (provider-hosted tool), so the
+                                            // menu says so instead of promising to stop it.
+                                            builtInSearchOn = uiState.webSearchRoute == WebSearchRoute.BUILT_IN,
                                             duringRunAction = uiState.effectiveDuringRunAction,
                                             duringRunSendTarget = uiState.duringRunSendTarget,
                                             pendingSteers = uiState.pendingSteers,
@@ -576,6 +586,7 @@ fun ChatScreen(
                                             pendingManualSkills = uiState.pendingManualSkills,
                                             onRemoveManualSkill = viewModel::removePendingManualSkill,
                                             onCancelSteer = viewModel::cancelSteer,
+                                            onInterruptSteer = viewModel::armSteer,
                                             onSetDuringRunAction = viewModel::setDuringRunAction,
                                             attachedFiles = attachedFiles,
                                             onRemoveFile = viewModel::removeFile,

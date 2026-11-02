@@ -33,6 +33,11 @@ class SendButtonModeTest {
     // ── The button names its target ───────────────────────────────────────
 
     @Test
+    fun `an interrupt default shows the interrupt face, not the steer one`() {
+        assertThat(mode(target = DuringRunSendTarget.INTERRUPT)).isEqualTo(SendButtonMode.INTERRUPT)
+    }
+
+    @Test
     fun `a send that will answer a paused run says so`() {
         assertThat(mode(target = DuringRunSendTarget.ANSWER_PAUSE)).isEqualTo(SendButtonMode.ANSWER)
     }

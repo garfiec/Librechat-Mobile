@@ -697,6 +697,23 @@
     <string name="during_run_always_queue">Always queue while generating</string>
     <string name="steer_pending_hint">Joins the reply at its next tool step. If the reply finishes first, it’s sent after it.</string>
     <string name="steer_queued_as_follow_up">Your message couldn’t join this reply, so it’s queued to send after it.</string>
+    <!-- Interrupt and steer: a steer that stops the current tool or thinking step -->
+    <string name="during_run_interrupt">Interrupt and steer</string>
+    <string name="during_run_always_interrupt">Always interrupt while generating</string>
+    <string name="during_run_steer_detail">Joins at the next step</string>
+    <string name="during_run_interrupt_detail">Stops the current step</string>
+    <string name="during_run_interrupt_detail_built_in_search">Can’t stop built-in search</string>
+    <string name="during_run_queue_detail">Sends after the reply</string>
+    <string name="during_run_attachments_detail">Attachments send after the reply</string>
+    <string name="cd_during_run_default">Default</string>
+    <string name="cd_interrupt_message">Interrupt and steer this reply</string>
+    <string name="cd_interrupt_steer_now">Interrupt now: %1$s</string>
+    <string name="steer_interrupt_requested">Interrupt requested</string>
+    <string name="steer_interrupting_hint">Stopping the current step. What’s already written stays, and the reply continues with your message.</string>
+    <string name="steer_interrupt_unavailable">This reply can’t be interrupted. Your message will join at the next step.</string>
+    <string name="steer_interrupt_failed">Couldn’t interrupt. Your message may already be in the reply, or it will join at the next step.</string>
+    <string name="steer_interrupt_unconfirmed">Couldn’t confirm the interrupt. Your message may join sooner, or at the next step.</string>
+    <string name="tool_interrupted_by_you">Interrupted by your message</string>
     <!-- System events: wake-up turns (v0.8.8-rc4 styling) -->
     <string name="system_event_label">System</string>
     <string name="wakeup_explainer">This durable result woke the agent to continue the conversation.</string>

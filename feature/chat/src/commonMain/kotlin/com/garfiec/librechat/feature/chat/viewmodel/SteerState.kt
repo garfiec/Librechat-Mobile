@@ -62,7 +62,33 @@ data class PendingSteerChip(
      * order reflects what the user did, not how fast each round-trip was.
      */
     val createdAt: Long,
+    /** The server holds this steer as an interrupt (from the 202's echo or an arm, never the request). */
+    val isInterrupting: Boolean = false,
+    /** A `/chat/steer/arm` for this chip is in flight. */
+    val isArming: Boolean = false,
 ) {
     /** Whether a cancel can be posted for this chip (a local placeholder has no server handle). */
     val isCancellable: Boolean get() = status == SteerChipStatus.PENDING
+
+    /** Whether the chip offers "Interrupt now" at all: a waiting steer the server knows, not yet interrupting. */
+    val offersInterrupt: Boolean get() = status == SteerChipStatus.PENDING && !isInterrupting
+}
+
+/** Whether an interrupt is open: one chip interrupting or an arm in flight. Only one at a time, as on web. */
+val List<PendingSteerChip>.interruptPending: Boolean
+    get() = any { it.isInterrupting || it.isArming }
+
+/**
+ * Something the user should know about an interrupt that did not go as asked. The words are safe
+ * in every case — the steer is still queued — so these are snackbars, never the error channel.
+ */
+enum class SteerNotice {
+    /** The run can't be interrupted (the 202 echoed `preempt != true`, or `PREEMPT_UNSUPPORTED`); the message joins at the next step. */
+    INTERRUPT_UNAVAILABLE,
+
+    /** The arm was answered with a no (`armed:false`, 400/403/409): it may already be in the reply. */
+    ARM_FAILED,
+
+    /** No answer to the arm in time, or it never reached the server. */
+    ARM_UNCONFIRMED,
 }

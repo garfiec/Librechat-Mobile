@@ -734,14 +734,15 @@ data class ChatUiState(
 
     /**
      * What the composer's send control will actually do mid-run: the user's preference, degraded
-     * to [DuringRunAction.QUEUE] whenever steering is unavailable.
+     * to [DuringRunAction.QUEUE] whenever steering is unavailable — for Interrupt as for Steer, since
+     * an interrupt is a steer. Interrupt never degrades to Stop + send.
      *
      * Degradation is silent by design. Queueing is the behaviour mobile has always had and it
      * works against every server, so a preference that cannot be honoured costs the user
      * nothing — whereas a control that announced "steer" and then failed would.
      */
     val effectiveDuringRunAction: DuringRunAction
-        get() = if (canSteerNow) duringRunAction else DuringRunAction.QUEUE
+        get() = if (canSteerNow || !duringRunAction.isLive) duringRunAction else DuringRunAction.QUEUE
 
     /**
      * What the composer's send control does while a reply is generating.
@@ -770,6 +771,7 @@ data class ChatUiState(
             }
             return when (effectiveDuringRunAction) {
                 DuringRunAction.STEER -> DuringRunSendTarget.STEER
+                DuringRunAction.INTERRUPT -> DuringRunSendTarget.INTERRUPT
                 DuringRunAction.QUEUE -> DuringRunSendTarget.QUEUE
             }
         }
@@ -961,6 +963,9 @@ enum class DuringRunSendTarget {
 
     /** Inject into the running turn (v0.8.8 steering). */
     STEER,
+
+    /** Inject with `preempt`: stop the current tool or thinking step and continue with the message. */
+    INTERRUPT,
 
     /** Hold as a follow-up for after the run. */
     QUEUE,

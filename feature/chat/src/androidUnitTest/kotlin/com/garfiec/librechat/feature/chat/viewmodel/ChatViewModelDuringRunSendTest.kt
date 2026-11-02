@@ -191,6 +191,16 @@ class ChatViewModelDuringRunSendTest {
         }
 
     @Test
+    fun `send during a run interrupts when the preference is interrupt`() =
+        duringRunTest(DuringRunAction.INTERRUPT) { vm ->
+            vm.onInputChanged(TEXT)
+            vm.sendDuringRun()
+            runCurrent()
+
+            coVerify(exactly = 1) { chatRepository.steerChat(match { it.text == TEXT && it.preempt == true }) }
+        }
+
+    @Test
     fun `a steer does not destroy a staged attachment routing batch`() =
         duringRunTest(DuringRunAction.STEER) { vm ->
             assertThat(vm.uiState.value.isStreaming).isTrue()

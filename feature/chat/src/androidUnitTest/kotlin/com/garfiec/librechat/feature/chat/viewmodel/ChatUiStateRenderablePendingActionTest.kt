@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
+import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.model.AskUserQuestionItem
 import com.garfiec.librechat.core.model.AskUserQuestionRequest
 import com.garfiec.librechat.core.model.PendingAction
@@ -114,6 +115,20 @@ class ChatUiStateRenderablePendingActionTest {
     fun `a pause with no actionId leaves the composer queueing`() {
         val target = pausedState(askUserQuestion(null)).duringRunSendTarget
         assertThat(target).isEqualTo(DuringRunSendTarget.QUEUE)
+    }
+
+    /** Interrupt is a steer: a pause that turns steering off sends it to the queue, never to Stop + send. */
+    @Test
+    fun `an interrupt default degrades to the queue while a pause blocks steering`() {
+        val steerable = pausedState(null).copy(
+            prefs = ChatPrefsState(duringRunAction = DuringRunAction.INTERRUPT),
+            gates = FeatureGatesState(steeringSupported = true),
+        )
+        assertThat(steerable.duringRunSendTarget).isEqualTo(DuringRunSendTarget.INTERRUPT)
+
+        val paused = steerable.copy(content = MessagesState(pendingAction = toolApproval("act_1")))
+        assertThat(paused.effectiveDuringRunAction).isEqualTo(DuringRunAction.QUEUE)
+        assertThat(paused.duringRunSendTarget).isEqualTo(DuringRunSendTarget.QUEUE)
     }
 
     @Test

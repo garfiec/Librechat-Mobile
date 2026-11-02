@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.viewmodel
 
 import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.model.config.CurrencyConfig
+import com.garfiec.librechat.core.model.config.DEFAULT_STEER_ARM_CONFIRMATION_TIMEOUT_MS
 import com.garfiec.librechat.core.model.queuedturn.QUEUED_TURN_RECONCILIATION_MS
 import kotlinx.serialization.json.JsonElement
 
@@ -37,6 +38,11 @@ data class FeatureGatesState(
      * enqueue outcome the transport hid stays polled for. Default upstream's 60 s.
      */
     val queuedTurnReconciliationMs: Long = QUEUED_TURN_RECONCILIATION_MS,
+    /**
+     * `interface.steerArmConfirmationTimeoutMs`: how long an "Interrupt now" waits for the server
+     * before the client says it couldn't confirm. Default upstream's 10 s.
+     */
+    val steerArmConfirmationMs: Long = DEFAULT_STEER_ARM_CONFIRMATION_TIMEOUT_MS,
     /** LibreChat search allowed: `WEB_SEARCH.USE` AND `interface.webSearch`. */
     val webSearchEnabled: Boolean = true,
     /**

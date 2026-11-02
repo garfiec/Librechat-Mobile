@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Stop
@@ -90,6 +91,7 @@ import com.garfiec.librechat.feature.chat.resources.cd_cancel_pending_send
 import com.garfiec.librechat.feature.chat.resources.cd_collapse
 import com.garfiec.librechat.feature.chat.resources.cd_during_run_options
 import com.garfiec.librechat.feature.chat.resources.cd_expand
+import com.garfiec.librechat.feature.chat.resources.cd_interrupt_message
 import com.garfiec.librechat.feature.chat.resources.cd_send_message
 import com.garfiec.librechat.feature.chat.resources.cd_start_voice_recording
 import com.garfiec.librechat.feature.chat.resources.cd_steer_message
@@ -135,6 +137,9 @@ data class ChatInputState(
     /** Whether a mid-stream send could instead be steered into the running reply (v0.8.8).
      *  False leaves the composer with queueing alone and hides the during-run picker. */
     val canSteer: Boolean = false,
+    /** Built-in (provider-hosted) web search is on for this send. Such a run can't be interrupted,
+     *  so the during-run menu says so on its Interrupt row instead of promising to stop it. */
+    val builtInSearchOn: Boolean = false,
     /** Which route the during-run picker marks as the standing default — already degraded to
      *  [DuringRunAction.QUEUE] by the ViewModel when steering is unavailable. This is the
      *  *preference*; it is NOT what the send button does. See [duringRunSendTarget]. */
@@ -214,8 +219,12 @@ fun CommonChatInputCore(
     onDuringRunSend: () -> Unit = {},
     /** The during-run picker's explicit "steer this one" (v0.8.8). */
     onSteer: () -> Unit = {},
+    /** The during-run picker's explicit "interrupt and steer this one". */
+    onInterrupt: () -> Unit = {},
     /** Withdraw a steer the run has not injected yet. */
     onCancelSteer: (steerId: String) -> Unit = {},
+    /** "Interrupt now" on a waiting steer chip. */
+    onInterruptSteer: (steerId: String) -> Unit = {},
     /** Remove one staged quote chip (v0.8.7 "Add to chat"). */
     onRemoveQuote: (index: Int) -> Unit = {},
     /** Remove one picked skill's chip. */
@@ -308,6 +317,7 @@ fun CommonChatInputCore(
             PendingSteerChipsSection(
                 pendingSteers = state.pendingSteers,
                 onCancel = onCancelSteer,
+                onInterrupt = onInterruptSteer,
                 fontSizeMultiplier = fontSizeMultiplier,
             )
 
@@ -448,6 +458,7 @@ fun CommonChatInputCore(
                         onStop = onStop,
                         onQueue = onQueue,
                         onSteer = onSteer,
+                        onInterrupt = onInterrupt,
                         onDuringRunSend = onDuringRunSend,
                         onSetDuringRunAction = onSetDuringRunAction,
                         onCommitEdit = onCommitEdit,
@@ -473,6 +484,7 @@ private fun ComposerInputRow(
     onStop: () -> Unit,
     onQueue: (() -> Unit)?,
     onSteer: () -> Unit,
+    onInterrupt: () -> Unit,
     onDuringRunSend: () -> Unit,
     onSetDuringRunAction: (DuringRunAction) -> Unit,
     onCommitEdit: () -> Unit,
@@ -502,13 +514,21 @@ private fun ComposerInputRow(
         // from offering a steer/queue choice over a send that will answer the pause.
         val picker = duringRunSend && state.canSteer
         val foldPicker = picker && compact
+        val menuOptions = DuringRunMenuOptions(
+            defaultAction = state.duringRunAction,
+            // Steering is text-only on mobile: a live send with attachments goes to the queue, so
+            // the two live rows would promise something the tap won't do.
+            liveRowsEnabled = state.attachedFiles.isEmpty(),
+            builtInSearchOn = state.builtInSearchOn,
+        )
         // Keyed on the fold, so a menu left open when the run ends, the draft clears or
         // the window widens doesn't pop back open on the next mid-run draft.
         var foldedMenuOpen by remember(foldPicker) { mutableStateOf(false) }
         if (picker && !compact) {
             DuringRunSendMenu(
-                defaultAction = state.duringRunAction,
+                options = menuOptions,
                 onSteerOnce = onSteer,
+                onInterruptOnce = onInterrupt,
                 onQueueOnce = onQueue ?: {},
                 onSetDefault = onSetDuringRunAction,
             )
@@ -538,8 +558,9 @@ private fun ComposerInputRow(
             DuringRunSendDropdown(
                 expanded = foldPicker && foldedMenuOpen,
                 onDismiss = { foldedMenuOpen = false },
-                defaultAction = state.duringRunAction,
+                options = menuOptions,
                 onSteerOnce = onSteer,
+                onInterruptOnce = onInterrupt,
                 onQueueOnce = onQueue ?: {},
                 onSetDefault = onSetDuringRunAction,
             )
@@ -553,7 +574,7 @@ private val GlassComposerShape = RoundedCornerShape(28.dp)
 private val COMPACT_COMPOSER_ROW_WIDTH = 336.dp
 
 /** Visual mode of the trailing composer button. */
-internal enum class SendButtonMode { SEND, STOP, QUEUE, STEER, ANSWER, UPDATE, AWAITING }
+internal enum class SendButtonMode { SEND, STOP, QUEUE, STEER, INTERRUPT, ANSWER, UPDATE, AWAITING }
 
 /**
  * Whether the composer holds something the trailing control can act on. Drives both that control's
@@ -598,6 +619,7 @@ internal fun sendButtonModeFor(
     canQueue -> when (duringRunTarget) {
         DuringRunSendTarget.ANSWER_PAUSE -> SendButtonMode.ANSWER
         DuringRunSendTarget.STEER -> SendButtonMode.STEER
+        DuringRunSendTarget.INTERRUPT -> SendButtonMode.INTERRUPT
         DuringRunSendTarget.QUEUE -> SendButtonMode.QUEUE
     }
 
@@ -738,6 +760,21 @@ fun SendStopButton(
                 DuringRunSendIcon(
                     imageVector = Icons.Default.Bolt,
                     contentDescription = stringResource(Res.string.cd_steer_message),
+                    opensMenu = opensMenu,
+                )
+            }
+
+            SendButtonMode.INTERRUPT -> IconButton(
+                onClick = onQueue,
+                modifier = Modifier.size(56.dp),
+                colors = ChatInputDefaults.sendButtonColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                ),
+            ) {
+                DuringRunSendIcon(
+                    imageVector = Icons.Default.FlashOff,
+                    contentDescription = stringResource(Res.string.cd_interrupt_message),
                     opensMenu = opensMenu,
                 )
             }

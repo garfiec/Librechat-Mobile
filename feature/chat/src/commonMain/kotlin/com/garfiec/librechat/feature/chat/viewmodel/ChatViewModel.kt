@@ -331,6 +331,10 @@ class ChatViewModel(
     private val _steersQueuedAsFollowUp = Channel<Int>(Channel.BUFFERED)
     val steersQueuedAsFollowUp: Flow<Int> = _steersQueuedAsFollowUp.receiveAsFlow()
 
+    /** An interrupt that didn't go as asked (one-shot, like [steersQueuedAsFollowUp]; never `error`). */
+    private val _steerNotices = Channel<SteerNotice>(Channel.BUFFERED)
+    val steerNotices: Flow<SteerNotice> = _steerNotices.receiveAsFlow()
+
     // Explicitly typed: inference cannot close the loop through sendDispatchDelegate.
     private val queueDelegate: MessageQueueDelegate = MessageQueueDelegate(
         handle = QueueHandle(stateHandle),
@@ -639,6 +643,8 @@ class ChatViewModel(
         },
         isStreaming = { _uiState.value.isStreaming },
         restageQuotes = { quotes -> sendDispatchDelegate.restagePendingQuotes(quotes) },
+        onSteerNotice = { notice -> _steerNotices.trySend(notice) },
+        armTimeoutMs = { _uiState.value.gates.steerArmConfirmationMs },
     )
 
     private val streamingManager = StreamingManagerDelegate(
@@ -1215,6 +1221,7 @@ class ChatViewModel(
             }
 
             DuringRunSendTarget.STEER -> steerMessage()
+            DuringRunSendTarget.INTERRUPT -> steerMessage(interrupt = true)
             DuringRunSendTarget.QUEUE -> queueMessage()
         }
     }
@@ -1226,8 +1233,12 @@ class ChatViewModel(
      * Attachments send it to the queue instead: mobile steering is text-only, and silently
      * dropping the files the user attached would be worse than delivering the message a turn
      * later with them intact.
+     *
+     * [interrupt] is "Interrupt and steer": the same steer, sent with `preempt` so the run stops
+     * its current tool or thinking step. It falls back exactly like a steer (to the queue when the
+     * run can't take a steer, to a plain steer when it can't be interrupted), never to Stop + send.
      */
-    fun steerMessage() {
+    fun steerMessage(interrupt: Boolean = false) {
         val state = _uiState.value
         if (!state.isStreaming || !state.canSteerNow) return
         val conversationId = state.conversationId ?: return
@@ -1252,11 +1263,17 @@ class ChatViewModel(
             ?.let { it.copy(quotes = sendDispatchDelegate.takePendingQuotes(it.endpoint)) }
             ?: return
         sendDispatchDelegate.clearComposer()
-        steeringDelegate.steer(conversationId, spec)
+        steeringDelegate.steer(conversationId, spec, interrupt = interrupt)
     }
+
+    /** The during-run menu's explicit "Interrupt and steer" for this one message. */
+    fun interruptMessage() = steerMessage(interrupt = true)
 
     /** Withdraws a steer that has not been injected into the running reply yet. */
     fun cancelSteer(steerId: String) = steeringDelegate.cancel(steerId)
+
+    /** "Interrupt now" on a waiting steer chip: upgrades it to an interrupt in place. */
+    fun armSteer(steerId: String) = steeringDelegate.arm(steerId)
 
     /** The website-icons prompt's answer; also what stops it asking again. */
     fun setShowSiteIcons(show: Boolean) {
@@ -1274,7 +1291,7 @@ class ChatViewModel(
     /** The website-icons prompt was closed without a choice: stay quiet until the next launch. */
     fun dismissSiteIconPrompt() = siteIconPromptSession.dismiss()
 
-    /** Settings/composer-menu write for the default during-run action (steer vs queue). */
+    /** Settings/composer-menu write for the default during-run action (steer, interrupt or queue). */
     fun setDuringRunAction(action: DuringRunAction) {
         viewModelScope.launch { settingsDataStore.setDuringRunAction(action) }
     }
