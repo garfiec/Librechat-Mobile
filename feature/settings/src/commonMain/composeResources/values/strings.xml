@@ -766,11 +766,13 @@
 
     <!-- Mid-run steering (v0.8.8): what send does while a reply is still generating -->
     <string name="during_run_action_title">While generating</string>
-    <string name="during_run_action_desc">What sending a message does while a reply is still being written. The composer can override this per message.</string>
+    <string name="during_run_action_desc">What sending a message does while a reply is still being written. The send menu can override this per message.</string>
     <string name="during_run_action_queue">Add to queue</string>
     <string name="during_run_action_queue_desc">Send it as the next message once the reply finishes.</string>
     <string name="during_run_action_steer">Steer the reply</string>
-    <string name="during_run_action_steer_desc">Push it into the reply being written so the assistant changes course. Needs a server that supports steering; otherwise it queues.</string>
+    <string name="during_run_action_steer_desc">Joins the reply after the current step finishes, so the assistant changes course without starting over. Needs a server that supports steering; otherwise it queues.</string>
+    <string name="during_run_action_interrupt">Interrupt and steer</string>
+    <string name="during_run_action_interrupt_desc">Stops the current tool or thinking step, keeps what’s written, and continues with your message. Actions a tool already took can’t be undone. Falls back to steering when a reply can’t be interrupted.</string>
     <string name="upload_routing_title">Attachments</string>
     <string name="upload_routing_desc">Files can be sent to the model as-is, or read on the server and sent as text. Not every model accepts every file type.</string>
     <string name="upload_routing_auto">Choose for me</string>

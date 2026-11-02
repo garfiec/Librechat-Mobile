@@ -92,6 +92,7 @@ internal fun contextBarPlacementLabel(placement: ContextBarPlacement): String = 
 internal fun duringRunActionLabel(action: DuringRunAction): String = when (action) {
     DuringRunAction.QUEUE -> stringResource(Res.string.during_run_action_queue)
     DuringRunAction.STEER -> stringResource(Res.string.during_run_action_steer)
+    DuringRunAction.INTERRUPT -> stringResource(Res.string.during_run_action_interrupt)
 }
 
 @Composable
