@@ -114,6 +114,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
@@ -153,13 +154,17 @@ import com.garfiec.librechat.core.ui.components.dragSelectRow
 import com.garfiec.librechat.core.ui.components.menuDragAnchor
 import com.garfiec.librechat.core.ui.components.pressBounce
 import com.garfiec.librechat.core.ui.components.pullrequest.PullRequestStateIcon
-import com.garfiec.librechat.core.ui.components.pullrequest.pullRequestSummary
+import com.garfiec.librechat.core.ui.components.pullrequest.pullRequestChecksText
+import com.garfiec.librechat.core.ui.components.pullrequest.pullRequestLabel
+import com.garfiec.librechat.core.ui.components.pullrequest.pullRequestStateText
 import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
 import com.garfiec.librechat.core.ui.components.rememberPressBounce
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.core.ui.datetime.LocalRelativeTimeReference
 import com.garfiec.librechat.core.ui.datetime.resolve
 import com.garfiec.librechat.core.ui.glass.GlassControlColors
+import com.garfiec.librechat.core.ui.resources.Res as CoreUiRes
+import com.garfiec.librechat.core.ui.resources.pr_checks
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.core.ui.theme.searchMatchColor
@@ -1773,6 +1778,7 @@ private fun DrawerConversationItem(
     val longPressLabel = stringResource(Res.string.cd_conversation_actions)
 
     val menuDrag = rememberMenuDragSelection()
+    val pullRequestDescription = data.pullRequest?.let { pullRequestRowDescription(it) }
 
     // Box wraps the row so the long-press action menu (a DropdownMenu) anchors to this row.
     Box(modifier = modifier) {
@@ -1805,6 +1811,8 @@ private fun DrawerConversationItem(
                     // menuDragAnchor already fires the hold haptic; on here it buzzes twice.
                     hapticFeedbackEnabled = false,
                 )
+                // The mark is silent; the row itself carries its summary.
+                .semantics { pullRequestDescription?.let { stateDescription = it } }
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -1946,18 +1954,26 @@ private fun UnreadDot(modifier: Modifier = Modifier) {
 }
 
 /**
- * A row's pull request, before its star: the state glyph with the CI dot on its corner. Decorative,
- * since the row opens the chat (whose ⋮ has the detail); the summary rides the row's semantics.
+ * A row's pull request, before its star: the state glyph with the CI dot on its corner. Decorative
+ * and silent, since the row opens the chat (whose ⋮ has the detail); [pullRequestRowDescription]
+ * rides the row's semantics instead.
  */
 @Composable
 private fun PullRequestMark(mark: DrawerPullRequestMark, modifier: Modifier = Modifier) {
-    val summary = pullRequestSummary(mark.pullRequest, mark.presentation)
     PullRequestStateIcon(
         presentation = mark.presentation,
         size = 16.dp,
-        modifier = modifier.semantics { contentDescription = summary },
+        modifier = modifier.clearAndSetSemantics {},
     )
 }
+
+/** What the row adds for its mark: "PR #482, Open, Checks: Running". */
+@Composable
+private fun pullRequestRowDescription(mark: DrawerPullRequestMark): String = listOf(
+    pullRequestLabel(mark.pullRequest, mark.presentation),
+    pullRequestStateText(mark.presentation.state),
+    stringResource(CoreUiRes.string.pr_checks, pullRequestChecksText(mark.presentation.checks)),
+).joinToString(", ")
 
 /**
  * Drawer section header (icon + title), shared by the Pinned and Favorites sections. With a non-null

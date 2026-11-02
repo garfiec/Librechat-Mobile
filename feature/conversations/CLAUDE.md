@@ -79,5 +79,6 @@ The conversation list lives in the drawer (`drawer/DrawerContent.kt`, `DrawerVie
   (all of them, chunked by 50 with `pullRequestsMaxConcurrentLookups` in flight), re-asked once their answer is a minute old. Rows never poll. Gate:
   `pullRequestBatchAvailable` (rc1 + `pullRequestsEnabled` + `pullRequestsBatchVersion == 1`).
 - The mark (`PullRequestStateIcon`, 16dp) sits before the star, is decorative (the row still opens the
-  chat, whose ⋮ has the detail) and carries the summary as its description. Hidden on running rows.
+  chat, whose ⋮ has the detail) and silent; the row carries "PR #482, Open, Checks: Running" as its
+  state description. Hidden on running rows.
 - Answers come from `:core:data` `PullRequestRepository` (memory only, per account), shared with the chat.
