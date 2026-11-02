@@ -5448,6 +5448,90 @@
       },
       "why": "Remembered workspace picks: keyed per server, user, agent and machine, most recent first, capped at 100.",
       "failure_mode": "A different key or cap changes which workspace a new chat pre-selects."
+    },
+    {
+      "id": "tool-call-previews-param",
+      "upstream": {
+        "file": "packages/data-provider/src/previews.ts",
+        "symbol": "TOOL_CALL_PREVIEWS_PARAM",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/ToolCallPreviews.kt",
+        "symbol": "ToolCallPreviews.PARAM"
+      },
+      "why": "The query parameter that opts a message load (and fork, duplicate, shared fork, branch) into tool-call previews.",
+      "failure_mode": "A renamed parameter is ignored by the server: loads silently go back to full payloads."
+    },
+    {
+      "id": "tool-call-previews-version",
+      "upstream": {
+        "file": "packages/data-provider/src/previews.ts",
+        "symbol": "TOOL_CALL_PREVIEWS_VERSION",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/ToolCallPreviews.kt",
+        "symbol": "ToolCallPreviews.VERSION"
+      },
+      "why": "The preview format we understand; the server honours only an exact match.",
+      "failure_mode": "A bumped format makes the server send us full payloads again: safe, but the load-size gain is gone without notice."
+    },
+    {
+      "id": "tool-call-preview-revision",
+      "upstream": {
+        "file": "packages/data-provider/src/previews.ts",
+        "symbol": "getToolCallPreviewRevision",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/AgentToolCall.kt",
+        "symbol": "previewKey"
+      },
+      "why": "Keys a fetched full part to the stored version its preview stands for (previewRevision + FNV-1a of output, args and the three lengths).",
+      "failure_mode": "A key that ignores a changed field shows a stale fetched part after the stored call changed."
+    },
+    {
+      "id": "tool-call-preview-markers",
+      "upstream": {
+        "file": "packages/data-provider/src/previews.ts",
+        "symbol": "hasToolCallPreview",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/AgentToolCall.kt",
+        "symbol": "isPreview"
+      },
+      "why": "Which flags make a call a preview; drives fetching, copy, export and the import refusal.",
+      "failure_mode": "A new marker flag goes unseen: a shortened call is copied, exported or shown as if it were full."
+    },
+    {
+      "id": "tool-call-with-full",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/hydration.tsx",
+        "symbol": "withFullToolCall",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/AgentToolCall.kt",
+        "symbol": "withFull"
+      },
+      "why": "Which fields a fetched full part replaces (only the shortened ones) and which markers it clears.",
+      "failure_mode": "A new shortened field keeps its preview after the fetch, or a fetched copy rolls back a newer cached field."
+    },
+    {
+      "id": "tool-call-lengths",
+      "upstream": {
+        "file": "packages/chat/src/core/usage/registry.ts",
+        "symbol": "toolCallLengths",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/AgentToolCall.kt",
+        "symbol": "fullArgsLength"
+      },
+      "why": "The context gauge's estimate counts a preview at its full argsLength/outputLength (ContextGaugeResolver).",
+      "failure_mode": "The gauge drops sharply on every previewed chat."
     }
   ]
 }
