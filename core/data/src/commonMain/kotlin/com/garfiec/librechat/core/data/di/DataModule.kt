@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.data.datastore.CodeWorkspacePreferenceStore
 import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
+import com.garfiec.librechat.core.data.datastore.McpAppConsentStore
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.DeploymentThemeSync
 import com.garfiec.librechat.core.data.datastore.DrawerPinsStore
@@ -68,6 +69,8 @@ import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.FileRepositoryImpl
 import com.garfiec.librechat.core.data.repository.KeyRepository
 import com.garfiec.librechat.core.data.repository.KeyRepositoryImpl
+import com.garfiec.librechat.core.data.repository.McpAppsRepository
+import com.garfiec.librechat.core.data.repository.McpAppsRepositoryImpl
 import com.garfiec.librechat.core.data.repository.McpOAuthLauncher
 import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.repository.McpRepositoryImpl
@@ -331,6 +334,7 @@ val dataModule = module {
     singleOf(::ConfigCacheDataStore)
     singleOf(::RoleCacheDataStore)
     singleOf(::ConversationWebSearchStore)
+    singleOf(::McpAppConsentStore)
     singleOf(::CodeWorkspacePreferenceStore)
     single {
         DateTimePrefsStore(
@@ -601,6 +605,7 @@ val dataModule = module {
     singleOf(::ApiKeyRepositoryImpl) bind ApiKeyRepository::class
     singleOf(::McpRepositoryImpl) bind McpRepository::class
     factoryOf(::McpOAuthLauncher)
+    singleOf(::McpAppsRepositoryImpl) bind McpAppsRepository::class
     single<MemoryRepository> {
         MemoryRepositoryImpl(
             memoriesApi = get(),

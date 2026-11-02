@@ -11,6 +11,7 @@ import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
+import io.ktor.client.request.post
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -310,6 +311,27 @@ class AuthInterceptorTest {
         val response = client.get("https://example.com/api/data")
         assertThat(response.status).isEqualTo(HttpStatusCode.Unauthorized)
         assertThat(tokenManager.refreshCallCount).isEqualTo(1)
+    }
+
+    @Test
+    fun `an MCP App route's invalid_token after a good refresh does not end the session`() = runTest {
+        // The App routes 401 `{error:"invalid_token"}` when the MCP server's own OpenID token needs
+        // a new sign-in. The LibreChat session is fine, so the refresh succeeds and the retry 401s
+        // again: that must reach the caller as a 401, not sign the user out.
+        val tokenManager = FakeTokenManager(
+            accessToken = "token",
+            refreshOutcome = RefreshResult.Refreshed,
+            refreshedToken = "token-2",
+        )
+        val engine = MockEngine {
+            respond("""{"error":"invalid_token"}""", HttpStatusCode.Unauthorized)
+        }
+        val client = createClient(tokenManager, engine)
+
+        val response = client.post("https://example.com/api/mcp/app-tool-call")
+        assertThat(response.status).isEqualTo(HttpStatusCode.Unauthorized)
+        assertThat(tokenManager.refreshCallCount).isEqualTo(1)
+        assertThat(tokenManager.sessionExpiredCount).isEqualTo(0)
     }
 
     @Test

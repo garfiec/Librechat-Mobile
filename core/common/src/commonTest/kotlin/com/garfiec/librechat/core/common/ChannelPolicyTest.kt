@@ -25,6 +25,13 @@ class ChannelPolicyTest {
     }
 
     @Test
+    fun everyChannelAsksBeforeRunningAnMcpApp() {
+        for (channel in DistributionChannel.entries) {
+            assertTrue(ChannelPolicy(channel).mcpAppsNeedConsent, "$channel")
+        }
+    }
+
+    @Test
     fun pickReturnsTheValueNamedForTheChannel() {
         assertEquals("oss", ChannelPolicy(DistributionChannel.OPEN_SOURCE).pick("oss", "play", "appstore"))
         assertEquals("play", ChannelPolicy(DistributionChannel.PLAY_STORE).pick("oss", "play", "appstore"))

@@ -20,6 +20,7 @@ import com.garfiec.librechat.core.network.api.FilesExtApi
 import com.garfiec.librechat.core.network.api.GitHubReleasesApi
 import com.garfiec.librechat.core.network.api.KeysApi
 import com.garfiec.librechat.core.network.api.McpApi
+import com.garfiec.librechat.core.network.api.McpAppsApi
 import com.garfiec.librechat.core.network.api.MemoriesApi
 import com.garfiec.librechat.core.network.api.MessagesApi
 import com.garfiec.librechat.core.network.api.PasskeyApi
@@ -236,6 +237,7 @@ val networkModule = module {
     single { GitHubReleasesApi(get(KoinQualifiers.External)) }
     singleOf(::KeysApi)
     singleOf(::McpApi)
+    singleOf(::McpAppsApi)
     singleOf(::MemoriesApi)
     singleOf(::MessagesApi)
     singleOf(::PasskeyApi)
