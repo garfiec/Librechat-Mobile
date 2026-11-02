@@ -429,8 +429,9 @@ class SseEventMapper(private val json: Json) {
             "on_run_step" -> mapRunStep(data, agentId, groupId)
             // Argument streaming is not tracked; a delta carrying `auth` is an MCP sign-in prompt.
             "on_run_step_delta" -> mapRunStepAuthDelta(data, agentId, groupId)
-            // v0.8.8 timing marks. The durations they produce are stamped onto the persisted
-            // tool call (`toolPreparationDurationMs` / `toolExecutionDurationMs`) by the server.
+            // A call's arguments started streaming / it was handed to execution. They drive the live
+            // card's "Preparing" state; the durations they yield are stamped on the persisted call
+            // (`toolPreparationDurationMs` / `toolExecutionDurationMs`) by the server.
             "on_tool_preparation" -> toolPreparation.onPreparation(data, stepToolCallIds)
             "on_tool_calls_dispatched" -> toolPreparation.onDispatched(data)
             "on_run_step_completed" -> mapRunStepCompleted(data, agentId, groupId)

@@ -4466,6 +4466,19 @@
       },
       "why": "Which stored graph edges the handoff editor owns: not edgeType 'direct', and not an untyped, unconditional edge from one source to several destinations, which the agents SDK runs as direct. The rule is the SDK's, copied by the web client; the server serves no classification.",
       "failure_mode": "The SDK changes its default and the editor lists direct edges as handoffs (or hides real ones); an edit then rewrites the edge's meaning on save. Nothing errors."
+    },
+    {
+      "id": "tool-call-preparing",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/preparation.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/StreamingToolCallCard.kt",
+        "symbol": "preparingToolLabel / MCP_DELIMITER / ACTION_DELIMITER; ActiveToolCall.isPreparing in viewmodel/MessagesState.kt"
+      },
+      "why": "When a live tool call reads 'Preparing {tool}': a preparation marker without a dispatch, result or terminal status (isToolCallPreparing; dispatch and results outrank the marker), and never for an MCP (`_mcp_`) or action (`_action_`, data-provider actionDelimiter) tool, which keeps its integration name. Upstream also reads incomplete arguments as preparing; this client tracks no argument deltas and does not.",
+      "failure_mode": "Upstream changes the precedence or the integration exclusion and live cards say Preparing while a tool runs, or prefix a raw tool_mcp_server string. Nothing errors."
     }
   ]
 }
