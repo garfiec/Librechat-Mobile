@@ -1788,7 +1788,8 @@ data: {"sync":true,"resumeState":{"runSteps":[...],"aggregatedContent":[...]}}
 - Resume preserves state via sync event
 - `resumeState.pendingOAuthPrompts` (6122d210d #15471, v0.8.8-rc2+): `[{ stepId, runId?, index,
   toolCallId?, toolName, authURL, expiresAt? }]`, the MCP sign-ins the run still waits on (server
-  drops expired ones and finished steps). Mapped to `ToolCallAuthRequired`, with a `ToolCallStart`
+  drops expired ones and finished steps, and keeps only `oauth_mcp_*` calls, so an `on_use` prompt
+  inside a real tool call is not in it). Mapped to `ToolCallAuthRequired`, with a `ToolCallStart`
   first when `aggregatedContent` lacks the call. Absent on older servers. (BUILT)
 
 ### v0.8.9-rc1 changes on the chat and speech routes (no new endpoints)

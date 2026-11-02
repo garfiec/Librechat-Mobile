@@ -716,6 +716,10 @@ haiku wrote only escapes), so everything converts the escape first.
     unexpired, on unfinished steps), and `SseEventMapper` turns each into the same
     `ToolCallAuthRequired`, after the snapshot, preceded by a `ToolCallStart` only when the
     snapshot lacks the call (as web's `applyPendingOAuthPrompt`). `runSteps` stay unread.
+    Verified server limit: the projection keeps only `oauth_mcp_*` calls (the synthetic step of a
+    turn-start or reconnect prompt, `buildMCPAuthToolCall`). An `on_use` prompt raised inside a
+    real tool call (`MCP.js` passes that call's own name) is not projected, so a reconnect during
+    it still loses the action, on web too.
   - **A subagent's prompt shows on the `subagent` call.** Its tools run on the parent's stream, so an
     `on_use` prompt arrives as a top-level delta naming a call that lives in the subagent's trace,
     not in `activeToolCalls`. `LiveReplyDelegate.onAuthRequired` puts it on the parent whose trace
