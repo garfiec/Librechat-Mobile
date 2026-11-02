@@ -25,7 +25,8 @@ import kotlinx.serialization.json.Json
  * its CSP declaration decides what else the App may load.
  *
  * Account-scoped (`acct:<id>:…`), so the logout prefix purge sweeps it with the account. Settings ›
- * Chat clears it. Never consulted unless `ChannelPolicy.mcpAppsNeedConsent` asks for consent.
+ * Chat clears it. Most recent first, capped, so the oldest consent is the one dropped. Never
+ * consulted unless `ChannelPolicy.mcpAppsNeedConsent` asks for consent.
  */
 class McpAppConsentStore(
     private val dataStore: DataStore<Preferences>,
@@ -69,8 +70,7 @@ class McpAppConsentStore(
         withContext(NonCancellable) {
             bestEffortCache({ Logger.w(it) { "Failed to store MCP app consent" } }) {
                 dataStore.edit { prefs ->
-                    val next = (decode(prefs[key]) + serverName).sorted().takeLast(MAX_ENTRIES)
-                    prefs[key] = json.encodeToString(next)
+                    prefs[key] = json.encodeToString(withAllowed(decodeList(prefs[key]), serverName))
                 }
             }
         }
@@ -86,12 +86,18 @@ class McpAppConsentStore(
         }
     }
 
-    private fun decode(raw: String?): Set<String> =
-        raw?.let { runCatching { json.decodeFromString<List<String>>(it) }.getOrNull() }?.toSet() ?: emptySet()
+    private fun decode(raw: String?): Set<String> = decodeList(raw).toSet()
 
-    private companion object {
-        const val BASE = "mcp_app_consent"
+    private fun decodeList(raw: String?): List<String> =
+        raw?.let { runCatching { json.decodeFromString<List<String>>(it) }.getOrNull() } ?: emptyList()
+
+    internal companion object {
+        private const val BASE = "mcp_app_consent"
         const val MAX_ENTRIES = 200
-        val json = Json { ignoreUnknownKeys = true }
+        private val json = Json { ignoreUnknownKeys = true }
+
+        /** Most recent first, so the cap evicts the oldest consent, never the one just given. */
+        fun withAllowed(current: List<String>, serverName: String): List<String> =
+            (listOf(serverName) + current.filter { it != serverName }).take(MAX_ENTRIES)
     }
 }
