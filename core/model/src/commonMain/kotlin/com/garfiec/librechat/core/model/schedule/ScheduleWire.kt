@@ -9,6 +9,8 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class ScheduleLimits(
+    /** Whether this deployment asks owners to consent before MCP servers run unattended (v0.8.9-rc1). */
+    val mcpConsent: Boolean? = null,
     val maxPerUser: Int = 0,
     val minIntervalMinutes: Int = 1,
     /** Every schedule must be filed under a chat project. Implied by [projectId]. */

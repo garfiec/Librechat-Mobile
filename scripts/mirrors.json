@@ -682,6 +682,34 @@
       "failure_mode": "Upstream widens or narrows the reason set, or changes which source wins, and the schedule list names the wrong repair for a paused schedule. Nothing errors."
     },
     {
+      "id": "schedule-mcp-failure-reasons",
+      "upstream": {
+        "file": "packages/data-provider/src/types/scheduleConsent.ts",
+        "symbol": "scheduledMCPFailureReasonSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/schedule/Schedule.kt",
+        "symbol": "ScheduleMcpFailureReason / ScheduleMcpRecovery (isKnownShape)"
+      },
+      "why": "The reasons and recovery values an MCP outcome may carry. Upstream's outcome schema rejects any other value, and the client mirrors that: an outcome with an unknown reason fails the shape check, so the structured list falls back to the error string and a run is never named blocked from a value it can't word. The consent reasons decide the 'needs your consent' sentence.",
+      "failure_mode": "Upstream adds a reason or recovery and blocked runs on it stop saying why on mobile while web words them. Nothing errors."
+    },
+    {
+      "id": "schedule-mcp-receipt-projection",
+      "upstream": {
+        "file": "packages/data-provider/src/types/schedules.ts",
+        "symbol": "isScheduleMCPAuthorizationFailure",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/schedule/Schedule.kt",
+        "symbol": "isAuthorizationFailure / blockedRunReceipts / blockedRun"
+      },
+      "why": "Which outcomes are durable denials (unattended-auth detail, or a non-ready status with a reason and automaticReplay false). projectScheduleMCPReceipt turns such a run into status error with error = '<reason>: <JSON>'; the schedule list reads the receipts (structured lastRun.mcp first, that string as the fallback) to say which server blocked the run and what the owner can do, and never shows the string.",
+      "failure_mode": "Upstream changes the predicate or the projection and a blocked run reads as an ordinary failure, or a readiness snapshot reads as a block. Nothing errors."
+    },
+    {
       "id": "trace-record-kinds",
       "upstream": {
         "file": "packages/data-provider/src/types/traces.ts",

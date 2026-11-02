@@ -17,6 +17,11 @@ import kotlinx.serialization.json.Json
 @Serializable
 data class Schedule(
     val id: String,
+    /**
+     * Whether the owner has a live consent for the schedule's MCP servers to run unattended
+     * (v0.8.9-rc1). Absent on older servers and on deployments that do not ask for consent.
+     */
+    @SerialName("hasMCPConsent") val hasMcpConsent: Boolean? = null,
     val user: String = "",
     val name: String = "",
     val prompt: String = "",
@@ -77,7 +82,103 @@ data class ScheduleMcpOutcome(
     val status: String = "",
     /** A finer diagnosis under [status] (v0.8.8). See [ScheduleMcpDetail]. */
     val detail: String? = null,
+    /**
+     * Why a scheduled MCP invocation was refused (v0.8.9-rc1), upstream
+     * `scheduledMCPFailureReasonSchema`. Raw; see [ScheduleMcpFailureReason].
+     */
+    val reason: String? = null,
+    /** What the owner can do about it (v0.8.9-rc1). Raw; see [ScheduleMcpRecovery]. */
+    val recovery: String? = null,
+    /** `false` when the server will not replay the run once the cause is fixed; only ever `false`. */
+    val automaticReplay: Boolean? = null,
 )
+
+/**
+ * Upstream `isScheduleMCPAuthorizationFailure`: a durable invocation receipt (the server refused
+ * the call and will not replay it), not a readiness snapshot or an ordinary tool error.
+ */
+val ScheduleMcpOutcome.isAuthorizationFailure: Boolean
+    get() = detail == ScheduleMcpDetail.UNATTENDED_AUTH_REQUIRED ||
+        (status != ScheduleMcpStatus.READY && reason != null && automaticReplay == false)
+
+/** Upstream `scheduledMCPFailureReasonSchema` (`packages/data-provider/src/types/scheduleConsent.ts`). */
+object ScheduleMcpFailureReason {
+    const val CONSENT_MISSING = "consent_missing"
+    const val CONSENT_EXPIRED = "consent_expired"
+    const val CONSENT_REVOKED = "consent_revoked"
+    const val BINDING_MISMATCH = "binding_mismatch"
+    const val RBAC_DENIED = "rbac_denied"
+    const val TOOL_POLICY_DENIED = "tool_policy_denied"
+    const val APPROVAL_REQUIRED = "approval_required"
+    const val CREDENTIAL_MISSING = "credential_missing"
+    const val CREDENTIAL_REJECTED = "credential_rejected"
+    const val RESOURCE_PERMISSION_DENIED = "resource_permission_denied"
+    const val PROVIDER_MISSING = "provider_missing"
+    const val RESOURCE_UNVERIFIED = "resource_unverified"
+    const val UNSUPPORTED_MODE = "unsupported_mode"
+    const val DEPENDENCY_UNAVAILABLE = "dependency_unavailable"
+
+    internal val ALL = setOf(
+        CONSENT_MISSING, CONSENT_EXPIRED, CONSENT_REVOKED, BINDING_MISMATCH, RBAC_DENIED,
+        TOOL_POLICY_DENIED, APPROVAL_REQUIRED, CREDENTIAL_MISSING, CREDENTIAL_REJECTED,
+        RESOURCE_PERMISSION_DENIED, PROVIDER_MISSING, RESOURCE_UNVERIFIED, UNSUPPORTED_MODE,
+        DEPENDENCY_UNAVAILABLE,
+    )
+}
+
+/** Upstream `scheduleMCPOutcomeSchema.recovery`. */
+object ScheduleMcpRecovery {
+    const val AUTHORIZE = "authorize"
+    const val CONFIGURE = "configure"
+    const val RESTORE_PERMISSION = "restore_permission"
+    const val RETRY_LATER = "retry_later"
+
+    internal val ALL = setOf(AUTHORIZE, CONFIGURE, RESTORE_PERMISSION, RETRY_LATER)
+}
+
+/**
+ * The receipts that blocked the last run, if it was blocked (v0.8.9-rc1): upstream's
+ * `projectScheduleMCPReceipt` turns a denied run into status `error` with
+ * `error = "<reason>: <JSON>"`, so the structured `lastRun.mcp` is read first and the string is
+ * only the fallback (`readScheduleMCPReceipts`). The error string itself is never shown.
+ */
+fun Schedule.blockedRunReceipts(): List<ScheduleMcpOutcome> {
+    val run = lastRun ?: return emptyList()
+    if (run.status != ScheduleRunStatus.ERROR) return emptyList()
+    val persisted = run.mcp?.takeIf { outcomes -> outcomes.all { it.isKnownShape() } }
+    return (persisted ?: readScheduleMcpOutcomes(run.error)).filter { it.isAuthorizationFailure }
+}
+
+/** What the owner has to do about a blocked run, as the schedule list words it. */
+enum class BlockedRunRepair { SIGN_IN, CONSENT, ADMINISTRATOR, ACCESS, RETRY_LATER, UNKNOWN }
+
+/** Why the last run was blocked, naming the first server the receipts refused. */
+data class BlockedRun(val server: String, val repair: BlockedRunRepair)
+
+private val CONSENT_REASONS = setOf(
+    ScheduleMcpFailureReason.CONSENT_MISSING,
+    ScheduleMcpFailureReason.CONSENT_EXPIRED,
+    ScheduleMcpFailureReason.CONSENT_REVOKED,
+)
+
+/**
+ * The blocked last run's repair, from its first receipt: consent first (a consent reason needs the
+ * owner's consent whatever recovery says), then the server's `recovery`, then the missing
+ * unattended credential (`detail`), which is an administrator's to fix.
+ */
+fun Schedule.blockedRun(): BlockedRun? {
+    val receipt = blockedRunReceipts().firstOrNull() ?: return null
+    val repair = when {
+        receipt.reason in CONSENT_REASONS -> BlockedRunRepair.CONSENT
+        receipt.recovery == ScheduleMcpRecovery.AUTHORIZE -> BlockedRunRepair.SIGN_IN
+        receipt.recovery == ScheduleMcpRecovery.CONFIGURE -> BlockedRunRepair.ADMINISTRATOR
+        receipt.recovery == ScheduleMcpRecovery.RESTORE_PERMISSION -> BlockedRunRepair.ACCESS
+        receipt.recovery == ScheduleMcpRecovery.RETRY_LATER -> BlockedRunRepair.RETRY_LATER
+        receipt.detail == ScheduleMcpDetail.UNATTENDED_AUTH_REQUIRED -> BlockedRunRepair.ADMINISTRATOR
+        else -> BlockedRunRepair.UNKNOWN
+    }
+    return BlockedRun(receipt.server, repair)
+}
 
 object ScheduleMcpDetail {
     /**
@@ -151,7 +252,11 @@ private val KNOWN_MCP_STATUSES = setOf(
 // Upstream's schema requires `server` and `status`; the data class defaults both to "", so a blank
 // status is what a missing one decodes to and fails the known-status check like any other.
 private fun ScheduleMcpOutcome.isKnownShape(): Boolean =
-    status in KNOWN_MCP_STATUSES && (detail == null || detail == ScheduleMcpDetail.UNATTENDED_AUTH_REQUIRED)
+    status in KNOWN_MCP_STATUSES &&
+        (detail == null || detail == ScheduleMcpDetail.UNATTENDED_AUTH_REQUIRED) &&
+        (reason == null || reason in ScheduleMcpFailureReason.ALL) &&
+        (recovery == null || recovery in ScheduleMcpRecovery.ALL) &&
+        automaticReplay != true
 
 private val outcomesJson = Json { ignoreUnknownKeys = true }
 

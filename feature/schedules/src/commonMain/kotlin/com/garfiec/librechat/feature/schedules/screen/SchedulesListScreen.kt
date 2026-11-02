@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.datetime.ResolvedDateTimeFormat
 import com.garfiec.librechat.core.model.schedule.Schedule
 import com.garfiec.librechat.core.model.schedule.cadenceToCron
+import com.garfiec.librechat.core.model.schedule.blockedRun
 import com.garfiec.librechat.core.model.schedule.pausedForUnattendedMcpAuth
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
@@ -53,6 +54,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
+import com.garfiec.librechat.feature.schedules.components.blockedRunLabel
 import com.garfiec.librechat.feature.schedules.components.disabledReasonLabel
 import com.garfiec.librechat.feature.schedules.resources.Res
 import com.garfiec.librechat.feature.schedules.resources.schedule_cancel
@@ -263,6 +265,15 @@ internal fun ScheduleCard(
                     text = stringResource(Res.string.schedule_last_run, it.asScheduleTimestamp(LocalDateTimeFormat.current)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            // A run the server refused on an MCP receipt (v0.8.9-rc1) says why and what to do. Not
+            // shown under a pause, whose own sentence already names the repair.
+            schedule.blockedRun()?.takeIf { schedule.disabledReason == null || schedule.enabled }?.let { blocked ->
+                Text(
+                    text = blockedRunLabel(blocked),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
                 )
             }
             // A schedule the SERVER paused always says why: several of these name a different
