@@ -30,7 +30,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -58,6 +57,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveCard
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.ErrorBanner
 import com.garfiec.librechat.core.ui.components.InitialTile
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
@@ -328,7 +328,7 @@ private fun DeleteAgentDialog(name: String?, actions: AgentDetailActions) {
             Text(stringResource(Res.string.delete_agent_confirm, name ?: stringResource(Res.string.delete_this_agent)))
         },
         confirmButton = {
-            TextButton(
+            AdaptiveTextButton(
                 onClick = actions.onConfirmDelete,
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
             ) {
@@ -336,7 +336,7 @@ private fun DeleteAgentDialog(name: String?, actions: AgentDetailActions) {
             }
         },
         dismissButton = {
-            TextButton(onClick = actions.onDismissDelete) { Text(stringResource(Res.string.cancel)) }
+            AdaptiveTextButton(onClick = actions.onDismissDelete) { Text(stringResource(Res.string.cancel)) }
         },
     )
 }

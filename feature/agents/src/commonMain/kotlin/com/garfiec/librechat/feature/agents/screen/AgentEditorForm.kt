@@ -20,7 +20,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,6 +37,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicato
 import com.garfiec.librechat.core.ui.components.AdaptiveInputChip
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.ErrorBanner
 import com.garfiec.librechat.feature.agents.components.AgentAclSharingSection
 import com.garfiec.librechat.feature.agents.components.AgentActionsPanel
@@ -96,12 +96,12 @@ internal fun AgentEditorForm(
             },
             text = { Text(stringResource(Res.string.agent_file_remove_confirm_message)) },
             confirmButton = {
-                TextButton(onClick = viewModel::confirmAgentFileRemoval) {
+                AdaptiveTextButton(onClick = viewModel::confirmAgentFileRemoval) {
                     Text(stringResource(Res.string.remove))
                 }
             },
             dismissButton = {
-                TextButton(onClick = viewModel::dismissAgentFileRemoval) { Text(stringResource(Res.string.cancel)) }
+                AdaptiveTextButton(onClick = viewModel::dismissAgentFileRemoval) { Text(stringResource(Res.string.cancel)) }
             },
         )
     }
@@ -137,7 +137,7 @@ internal fun AgentEditorForm(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (uiState.isEditMode && !uiState.avatarUrl.isNullOrBlank()) {
-                TextButton(onClick = viewModel::resetAvatar) {
+                AdaptiveTextButton(onClick = viewModel::resetAvatar) {
                     Text(stringResource(Res.string.remove_avatar))
                 }
             }

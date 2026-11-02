@@ -30,7 +30,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -56,6 +55,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.OtpVerificationDialog
 import com.garfiec.librechat.core.ui.components.adaptiveRowColor
 import com.garfiec.librechat.core.ui.components.adaptiveSection
@@ -468,12 +468,12 @@ fun AccountSettingsContent(
                 title = { Text(stringResource(Res.string.dialog_title_regenerate_backup_codes)) },
                 text = { Text(stringResource(Res.string.regenerate_backup_codes_warning)) },
                 confirmButton = {
-                    TextButton(onClick = viewModel::confirmRegenerateBackupCodes) {
+                    AdaptiveTextButton(onClick = viewModel::confirmRegenerateBackupCodes) {
                         Text(stringResource(Res.string.action_regenerate))
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = viewModel::dismissRegenerateBackupCodesConfirm) {
+                    AdaptiveTextButton(onClick = viewModel::dismissRegenerateBackupCodesConfirm) {
                         Text(stringResource(Res.string.action_cancel))
                     }
                 },
@@ -514,7 +514,7 @@ fun AccountSettingsContent(
                 title = { Text(stringResource(Res.string.dialog_title_sign_out)) },
                 text = { Text(stringResource(Res.string.dialog_sign_out_message)) },
                 confirmButton = {
-                    TextButton(
+                    AdaptiveTextButton(
                         onClick = {
                             showLogoutDialog = false
                             viewModel.logout()
@@ -524,7 +524,7 @@ fun AccountSettingsContent(
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showLogoutDialog = false }) {
+                    AdaptiveTextButton(onClick = { showLogoutDialog = false }) {
                         Text(stringResource(Res.string.action_cancel))
                     }
                 },
@@ -540,7 +540,7 @@ fun AccountSettingsContent(
                     Text(stringResource(Res.string.dialog_delete_account_message))
                 },
                 confirmButton = {
-                    TextButton(
+                    AdaptiveTextButton(
                         onClick = {
                             showDeleteDialog = false
                             viewModel.deleteAccount()
@@ -553,7 +553,7 @@ fun AccountSettingsContent(
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDeleteDialog = false }) {
+                    AdaptiveTextButton(onClick = { showDeleteDialog = false }) {
                         Text(stringResource(Res.string.action_cancel))
                     }
                 },

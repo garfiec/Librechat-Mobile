@@ -21,7 +21,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +38,7 @@ import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.ui.components.AdaptiveCard
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_collapse
 import com.garfiec.librechat.feature.chat.resources.cd_collapse_subagent
@@ -199,7 +199,7 @@ internal fun SubagentTraceCard(
                     // turns. Shown only where a viewer exists to open (v0.8.8-rc2 and inside the
                     // chat screen), so nothing offers a dead affordance.
                     if (openThreads != null) {
-                        TextButton(onClick = { openThreads(parentToolCallId) }) {
+                        AdaptiveTextButton(onClick = { openThreads(parentToolCallId) }) {
                             Text(stringResource(Res.string.subagent_threads_open))
                         }
                     }

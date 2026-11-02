@@ -21,7 +21,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -68,6 +67,7 @@ import com.garfiec.librechat.core.common.lifecycle.ForegroundSignal
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.BannerDisplay
 import com.garfiec.librechat.core.ui.components.DrawerGestureLock
 import com.garfiec.librechat.core.ui.components.LocalDrawerGestureLock
@@ -491,7 +491,7 @@ internal fun SessionExpiredDialog(notice: SessionExpiredNotice, onDismiss: () ->
             )
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            AdaptiveTextButton(onClick = onDismiss) {
                 Text(stringResource(Res.string.dismiss))
             }
         },
@@ -520,12 +520,12 @@ internal fun VersionMismatchDialog(
             )
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            AdaptiveTextButton(onClick = onDismiss) {
                 Text(stringResource(Res.string.dismiss))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismissPermanently) {
+            AdaptiveTextButton(onClick = onDismissPermanently) {
                 Text(stringResource(Res.string.dont_warn_again))
             }
         },

@@ -26,7 +26,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -339,8 +338,8 @@ internal fun CompactConfirmDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.compact_confirm_title)) },
         text = { Text(stringResource(Res.string.compact_confirm_body, percent)) },
-        confirmButton = { TextButton(onClick = onCompact) { Text(stringResource(Res.string.compact_confirm_action)) } },
-        dismissButton = { TextButton(onClick = onNotNow) { Text(stringResource(Res.string.compact_confirm_not_now)) } },
+        confirmButton = { AdaptiveTextButton(onClick = onCompact) { Text(stringResource(Res.string.compact_confirm_action)) } },
+        dismissButton = { AdaptiveTextButton(onClick = onNotNow) { Text(stringResource(Res.string.compact_confirm_not_now)) } },
     )
 }
 

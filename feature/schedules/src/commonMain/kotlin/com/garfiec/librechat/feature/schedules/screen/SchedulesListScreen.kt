@@ -24,7 +24,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -187,13 +186,13 @@ fun SchedulesListScreen(
             title = { Text(stringResource(Res.string.schedule_delete_confirm_title)) },
             text = { Text(stringResource(Res.string.schedule_delete_confirm_body)) },
             confirmButton = {
-                TextButton(onClick = {
+                AdaptiveTextButton(onClick = {
                     pendingDelete = null
                     viewModel.delete(schedule)
                 }) { Text(stringResource(Res.string.schedule_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) {
+                AdaptiveTextButton(onClick = { pendingDelete = null }) {
                     Text(stringResource(Res.string.schedule_cancel))
                 }
             },

@@ -81,7 +81,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -144,6 +143,7 @@ import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.model.config.ChatProjectLimits
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.DragSelectRowShape
 import com.garfiec.librechat.core.ui.components.EndpointIcon
 import com.garfiec.librechat.core.ui.components.MenuDragSelection
@@ -1531,7 +1531,7 @@ private fun DrawerProjectsList(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // Weighted, so a long translation is cut short rather than squeezing out the +.
-                TextButton(onClick = onOpenProjectsIndex, modifier = Modifier.weight(1f, fill = false)) {
+                AdaptiveTextButton(onClick = onOpenProjectsIndex, modifier = Modifier.weight(1f, fill = false)) {
                     Text(
                         text = stringResource(Res.string.projects_all),
                         style = MaterialTheme.typography.labelMedium,

@@ -24,7 +24,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,6 +55,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.MenuDragSelection
 import com.garfiec.librechat.core.ui.components.avatarColorForSeed
@@ -300,7 +300,7 @@ fun ProjectEditorSheet(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) }
+                AdaptiveTextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) }
                 AdaptiveButton(
                     enabled = name.isNotBlank() && description.trim().length <= maxDescriptionLength,
                     onClick = { onConfirm(name.trim(), description.trim()) },
@@ -325,12 +325,12 @@ fun ProjectDeleteDialog(
         title = { Text(stringResource(Res.string.project_delete)) },
         text = { Text(stringResource(Res.string.project_delete_confirm, projectName)) },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
+            AdaptiveTextButton(onClick = onConfirm) {
                 Text(stringResource(Res.string.delete), color = MaterialTheme.colorScheme.error)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) }
+            AdaptiveTextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) }
         },
     )
 }
