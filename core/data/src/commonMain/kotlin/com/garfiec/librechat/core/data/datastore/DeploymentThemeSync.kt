@@ -19,8 +19,14 @@ import kotlinx.coroutines.launch
  * (v0.8.9-rc1), so both app roots paint it from the theme warm-up on the next cold start and on the
  * sign-in screen, before `/api/config` answers.
  *
- * - **No config is "unknown", not "no theme"**: a cold start, a logout or a switch whose new server
- *   was never cached leaves the cached accent alone. A config that arrives without a theme clears it.
+ * - **Only the active server's config writes.** The config is read through
+ *   [ConfigRepository.startupConfigForServer] and used only when its server is the active one: on a
+ *   switch the URL flips before the config is reseeded, and the old server's accent must not land
+ *   under the new server's id.
+ * - **No config is "unknown", not "no theme"**: a cold start or a logout leaves the active server's
+ *   cached accent alone. A cached accent that belongs to another server is cleared as soon as the
+ *   active server changes, so a switch to a server whose config never loads paints no accent rather
+ *   than the previous server's. A config that arrives without a theme clears it.
  * - **Field-led gate.** `interface.theme` is new in v0.8.9-rc1, so its presence proves the server.
  *   The version check refuses only a server known to be older: the version is detected after sign-in,
  *   and requiring it would leave the sign-in screen unpainted.
@@ -37,11 +43,18 @@ class DeploymentThemeSync(
     init {
         appScope.launch {
             combine(
-                configRepository.startupConfig.filterNotNull(),
+                configRepository.startupConfigForServer,
                 serverDataStore.currentUrlFlow,
                 configRepository.detectedBackendVersion,
-            ) { config, url, version ->
-                url.takeIf { it.isNotBlank() }?.let { deriveServerId(it).value to accentFor(config, version) }
+                themeDataStore.serverAccent,
+            ) { tagged, url, version, stored ->
+                if (url.isBlank()) return@combine null
+                val serverId = deriveServerId(url).value
+                when {
+                    tagged != null && tagged.serverId == serverId -> serverId to accentFor(tagged.config, version)
+                    stored != null && stored.serverId != serverId -> serverId to null
+                    else -> null
+                }
             }
                 .filterNotNull()
                 .distinctUntilChanged()

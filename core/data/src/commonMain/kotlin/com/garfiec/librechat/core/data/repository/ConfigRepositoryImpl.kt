@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.common.DetectedBackend
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.UnmappedBuildDetection
 import com.garfiec.librechat.core.common.generated.BackendCommitMap
+import com.garfiec.librechat.core.common.identity.deriveServerId
 import com.garfiec.librechat.core.common.result.AccessGatewayException
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.FailureKind
@@ -36,13 +37,29 @@ class ConfigRepositoryImpl(
     private val configApi: ConfigApi,
     private val configCache: ConfigCacheDataStore,
     private val dispatcher: CoroutineDispatcher,
-    serverDataStore: ServerDataStore,
+    private val serverDataStore: ServerDataStore,
 ) : ConfigRepository {
 
     override val serverUrl: Flow<String> = serverDataStore.currentUrlFlow
 
     private val _startupConfig = MutableStateFlow<StartupConfig?>(null)
     override val startupConfig: StateFlow<StartupConfig?> = _startupConfig.asStateFlow()
+
+    private val _startupConfigForServer = MutableStateFlow<ServerStartupConfig?>(null)
+    override val startupConfigForServer: StateFlow<ServerStartupConfig?> = _startupConfigForServer.asStateFlow()
+
+    /**
+     * The one writer of both config flows. [serverId] is the server the config was read from or
+     * fetched for, captured before the read or request so a switch landing mid-way tags it with the
+     * server it came from.
+     */
+    private fun setStartupConfig(config: StartupConfig?, serverId: String?) {
+        _startupConfigForServer.value = if (config != null && serverId != null) ServerStartupConfig(serverId, config) else null
+        _startupConfig.value = config
+    }
+
+    private suspend fun activeServerId(): String? =
+        serverDataStore.awaitBaseUrl().takeIf { it.isNotBlank() }?.let { deriveServerId(it).value }
 
     private val _endpointConfigs = MutableStateFlow<Map<String, EndpointConfig>>(emptyMap())
     override val endpointConfigs: StateFlow<Map<String, EndpointConfig>> = _endpointConfigs.asStateFlow()
@@ -101,7 +118,7 @@ class ConfigRepositoryImpl(
     }
 
     override suspend fun publishStartupConfig(config: StartupConfig) {
-        _startupConfig.value = config
+        setStartupConfig(config, activeServerId())
         configCache.saveStartupConfig(config)
         logConfigSnapshot(config)
     }
@@ -253,7 +270,8 @@ class ConfigRepositoryImpl(
     }
 
     override suspend fun reloadForActiveServer() {
-        _startupConfig.value = configCache.loadStartupConfig()
+        val serverId = activeServerId()
+        setStartupConfig(configCache.loadStartupConfig(), serverId)
         _endpointConfigs.value = configCache.loadEndpointConfigs().orEmpty()
         _availableModels.value = configCache.loadAvailableModels().orEmpty().normalizedModels()
         // Version re-detects from the reloaded config on the next checkBackendVersion pass.
@@ -263,15 +281,16 @@ class ConfigRepositoryImpl(
 
     override suspend fun fetchStartupConfig(): Result<StartupConfig> {
         // Emit cached value first if state is empty
+        val serverId = activeServerId()
         if (_startupConfig.value == null) {
             configCache.loadStartupConfig()?.let { cached ->
-                _startupConfig.value = cached
+                setStartupConfig(cached, serverId)
             }
         }
 
         val result = safeApiCall {
             val config = configApi.getStartupConfig()
-            _startupConfig.value = config
+            setStartupConfig(config, serverId)
             configCache.saveStartupConfig(config)
             logConfigSnapshot(config)
             config
@@ -499,7 +518,7 @@ class ConfigRepositoryImpl(
     override suspend fun clear() {
         _endpointConfigs.value = emptyMap()
         _availableModels.value = emptyMap()
-        _startupConfig.value = null
+        setStartupConfig(null, null)
         publishDetectedBackend(null)
         loggedConfigSignature = null
         configCache.clear()
