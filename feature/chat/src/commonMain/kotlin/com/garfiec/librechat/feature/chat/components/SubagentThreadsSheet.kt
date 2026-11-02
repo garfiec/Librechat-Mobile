@@ -32,7 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.ContentType
-import com.garfiec.librechat.feature.chat.util.steerText
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.subagent.SubagentOrigin
 import com.garfiec.librechat.core.model.subagent.SubagentSummary
@@ -52,6 +51,7 @@ import com.garfiec.librechat.feature.chat.resources.subagent_threads_open
 import com.garfiec.librechat.feature.chat.resources.subagent_threads_title
 import com.garfiec.librechat.feature.chat.resources.subagent_threads_truncated
 import com.garfiec.librechat.feature.chat.resources.subagent_threads_unavailable
+import com.garfiec.librechat.feature.chat.util.steerText
 import com.garfiec.librechat.feature.chat.viewmodel.SubagentThreadsViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -73,8 +73,8 @@ internal fun SubagentThreadsSheet(
     parentConversationId: String,
     focusParentToolCallId: String?,
     onDismiss: () -> Unit,
-    focusThreadId: String? = null,
     modifier: Modifier = Modifier,
+    focusThreadId: String? = null,
     viewModel: SubagentThreadsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()

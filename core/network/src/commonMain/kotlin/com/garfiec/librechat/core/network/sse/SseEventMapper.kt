@@ -73,12 +73,7 @@ class SseEventMapper(private val json: Json) {
     // together.
     private val stepToolCallIds = mutableMapOf<String, String>()
 
-    /**
-     * Steps and calls whose `on_tool_preparation` arrived before the run step announced them. The
-     * marker carries no call id for a call the SDK has not named yet, so it can only name the
-     * step; the announcing [StreamEvent.ToolCallStart] then starts out preparing.
-     */
-    private val preparedBeforeStart = mutableSetOf<String>()
+    private val toolPreparation = ToolPreparationTracker()
 
     /** Resets tracked state. Call when starting a new SSE stream. */
     fun resetState() {
@@ -86,7 +81,7 @@ class SseEventMapper(private val json: Json) {
         activeGroupId = null
         stepAgentContext.clear()
         stepToolCallIds.clear()
-        preparedBeforeStart.clear()
+        toolPreparation.clear()
     }
 
     /**
@@ -436,8 +431,8 @@ class SseEventMapper(private val json: Json) {
             "on_run_step_delta" -> mapRunStepAuthDelta(data, agentId, groupId)
             // v0.8.8 timing marks. The durations they produce are stamped onto the persisted
             // tool call (`toolPreparationDurationMs` / `toolExecutionDurationMs`) by the server.
-            "on_tool_preparation" -> mapToolPreparation(data)
-            "on_tool_calls_dispatched" -> mapToolCallsDispatched(data)
+            "on_tool_preparation" -> toolPreparation.onPreparation(data, stepToolCallIds)
+            "on_tool_calls_dispatched" -> toolPreparation.onDispatched(data)
             "on_run_step_completed" -> mapRunStepCompleted(data, agentId, groupId)
             // v0.8.8-rc2: a run step reached a terminal state. The rc1 server registered no
             // handler, so this never reached the wire before.
@@ -564,23 +559,6 @@ class SseEventMapper(private val json: Json) {
         )
     }
 
-    /**
-     * A steer applied inside a child run. Host-authored guidance need not carry a `steerId`, which
-     * the parent's [mapSteerApplied] requires to retire a chip; here nothing is retired, so only
-     * the text is needed.
-     */
-    private fun mapSubagentSteer(data: JsonObject): StreamEvent? {
-        val part = data["part"] as? JsonObject ?: return null
-        val text = (part["steer"] as? JsonPrimitive)?.takeIf { it.isString }?.content?.takeIf { it.isNotBlank() }
-            ?: return null
-        return StreamEvent.SteerApplied(
-            steerId = (part["steerId"] as? JsonPrimitive)?.contentOrNull.orEmpty(),
-            index = (data["index"] as? JsonPrimitive)?.intOrNull,
-            text = text,
-            clientSteerId = (part["clientSteerId"] as? JsonPrimitive)?.contentOrNull,
-        )
-    }
-
     private fun mapMessageDelta(
         data: JsonObject,
         agentId: String?,
@@ -656,7 +634,7 @@ class SseEventMapper(private val json: Json) {
 
         val stepId = data["id"]?.jsonPrimitive?.contentOrNull
         stepId?.let { stepToolCallIds[it] = toolCallId }
-        val preparing = preparedBeforeStart.remove(toolCallId) or (stepId != null && preparedBeforeStart.remove(stepId))
+        val preparing = toolPreparation.consumeForStart(toolCallId, stepId)
 
         return StreamEvent.ToolCallStart(
             toolCallId = toolCallId,
@@ -666,35 +644,6 @@ class SseEventMapper(private val json: Json) {
             groupId = groupId,
             preparing = preparing,
         )
-    }
-
-    /**
-     * Maps `on_tool_preparation` (`{id: stepId, index, toolCallId?, observed_at}`), the first
-     * argument fragment of a call. Resolved like upstream `applyToolPreparation`: the marker's own
-     * call id, else the step's call when it is the step's first (`index` 0); this mapper only
-     * tracks a step's first call. A marker for a step not announced yet is held for its start.
-     */
-    private fun mapToolPreparation(data: JsonObject): StreamEvent? {
-        val stepId = (data["id"] as? JsonPrimitive)?.contentOrNull ?: return null
-        val index = (data["index"] as? JsonPrimitive)?.intOrNull ?: 0
-        val markerCallId = (data["toolCallId"] as? JsonPrimitive)?.takeIf { it.isString }?.content
-        val toolCallId = markerCallId ?: stepToolCallIds[stepId]?.takeIf { index == 0 }
-        if (toolCallId == null || stepId !in stepToolCallIds) {
-            if (preparedBeforeStart.size < MAX_PREPARED_BEFORE_START) {
-                preparedBeforeStart += markerCallId ?: stepId.takeIf { index == 0 } ?: return null
-            }
-            return null
-        }
-        return StreamEvent.ToolCallPreparation(toolCallIds = listOf(toolCallId), dispatched = false)
-    }
-
-    /** Maps `on_tool_calls_dispatched` (`{dispatched_at, toolCalls: [{id, name, stepId?}]}`). */
-    private fun mapToolCallsDispatched(data: JsonObject): StreamEvent? {
-        val calls = data["toolCalls"] as? JsonArray ?: return null
-        val ids = calls.mapNotNull { ((it as? JsonObject)?.get("id") as? JsonPrimitive)?.contentOrNull }
-        if (ids.isEmpty()) return null
-        ids.forEach { preparedBeforeStart.remove(it) }
-        return StreamEvent.ToolCallPreparation(toolCallIds = ids, dispatched = true)
     }
 
     /**
@@ -970,9 +919,6 @@ class SseEventMapper(private val json: Json) {
     }
 
     companion object {
-        /** Bound on [preparedBeforeStart]: markers for steps that are never announced must not pile up. */
-        private const val MAX_PREPARED_BEFORE_START = 64
-
         /**
          * MIRRORED SERVER CONSTANT — registered in `scripts/mirrors.json` as
          * `generation-reconcile-message`. Verbatim from `api/server/routes/agents/index.js`'s

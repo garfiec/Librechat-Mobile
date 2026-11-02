@@ -49,6 +49,8 @@ fun mergeFinalMessagesInMemory(
  * - [Message.text] / [Message.sender]: non-blank incoming wins; blank keeps local (they are
  *   non-null in the model, so `?:` can't express absence).
  */
+// One `?:` per field: the branches are the field list, not decision logic.
+@Suppress("CyclomaticComplexMethod")
 fun Message.mergedOver(local: Message): Message = copy(
     parentMessageId = parentMessageId ?: local.parentMessageId,
     responseMessageId = responseMessageId ?: local.responseMessageId,
