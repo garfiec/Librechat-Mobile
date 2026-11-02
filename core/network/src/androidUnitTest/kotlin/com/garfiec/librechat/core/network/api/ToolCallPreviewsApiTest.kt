@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.network.api
 
 import com.garfiec.librechat.core.model.request.BranchMessageRequest
+import com.garfiec.librechat.core.model.request.ForkConversationRequest
 import com.garfiec.librechat.core.network.di.librechatJson
 import com.google.common.truth.Truth.assertThat
 import io.ktor.client.HttpClient
@@ -75,6 +76,15 @@ class ToolCallPreviewsApiTest {
         val parameters = requests.single().url.parameters
         assertThat(parameters["stepId"]).isEqualTo("step_1")
         assertThat(parameters["agentId"]).isEqualTo("agent_x____1")
+    }
+
+    @Test
+    fun `fork, duplicate and shared fork opt in to previews`() = runTest {
+        val convos = ConversationsApi(client("""{"conversation":{"conversationId":"c2"},"messages":[]}"""))
+        convos.forkConversation(ForkConversationRequest(conversationId = "c", messageId = "m"))
+        ConversationsApi(client("""{"conversationId":"c3"}""")).duplicateConversation("c", null)
+        ShareApi(client("""{"conversation":{"conversationId":"c4"},"messages":[]}""")).forkSharedConversation("share-1")
+        assertThat(requests.map { it.url.parameters["toolPreviews"] }).containsExactly("1", "1", "1")
     }
 
     @Test
