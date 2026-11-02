@@ -1566,6 +1566,92 @@ Code investigations for this sync. The file:line evidence is in the local, gitig
   at the call site), as mobile does. The drawer has no non-default sort, so the sort guard has
   nothing to read.
 
+### v0.8.9-rc1 sync (tag v0.8.9-rc1, commit 8d3da9bb, 2026-11-01) — endpoint / shape changes
+
+Range `e8f3be08..8d3da9bb`. Wave 1 (breaking, security and wire-correctness) is built; waves 2 and 3
+(new features) are not yet. Routes already documented in place are not repeated: required 2FA
+enrollment and the new auth codes (Authentication block), `GET /api/prompts/groups/:id/resolve` and
+the rc1 response codes (Configuration block), MCP `oauth/bind` / callback / `delta.auth` (v0.8.8-line
+MCP table), and the chat and speech route changes (SSE section).
+
+**Removed endpoints: none.** Every `-router.*` line in the range is a reformat or a handler moved
+into `packages/api` under the same path (`prompts.js` lost ~560 lines that way; its route list is
+unchanged). The `oauth/apple|openid|saml` and `verify` hits are pre-existing admin routes.
+
+**New endpoints**
+```
+POST   /api/auth/2fa/setup{,/confirm,/acknowledge,/finalize}   required 2FA enrollment (BUILT, see Authentication)
+GET    /api/prompts/groups/:groupId/resolve                    external prompt text (BUILT, see Configuration)
+POST   /api/auth/passkey/login/options, /login/verify           passkey sign-in (NOT built; wave 2)
+GET    /api/auth/passkey; POST /passkey/register/options, /register/verify;
+PATCH|DELETE /api/auth/passkey/:passkeyId                       passkey management (NOT built; wave 2)
+POST   /api/user/email/change {currentPassword,newEmail}       (NOT built; wave 2)
+POST   /api/user/email/verify {email,token,userId}  (no JWT)   (NOT built; wave 2)
+POST   /api/convos/seen {arg:{conversationId,lastResponseAt?}}, /api/convos/unread {arg:{conversationId}}
+                                                               unread replies (NOT built; wave 2)
+GET    /api/projects/:projectId/files, /files/available; POST /:projectId/files;
+DELETE /api/projects/:projectId/files/:fileId                  project context (NOT built; wave 2)
+GET    /api/endpoints/reasoning-capabilities?endpoint=          {capabilities, expiresInMs} (NOT built; wave 2)
+GET|POST|DELETE /api/schedules/:id/mcp-consent                 (NOT built; wave 2)
+POST   /api/messages/:conversationId/owner-text                PII owner text (NOT built; wave 2)
+POST   /api/agents/tools/approvals/reset                       agent approval modes (NOT built; wave 2)
+GET    /api/messages/:c/:m/parts/:partIndex, /:c/:m/subagent-calls
+                                                               opt-in `?toolPreviews=1` previews (NOT built; wave 3)
+POST   /api/mcp/app/validate, /resources/read, /resources/list, /resources/templates/list,
+       /app-tool-call; GET /api/mcp/sandbox                    MCP Apps (NOT built; wave 3)
+GET    /api/convos/:conversationId/pull-request; POST /api/convos/pull-requests; /api/pull-requests/*
+                                                               (NOT built; wave 3)
+```
+
+**Revised request / response shapes**
+- `GET /api/convos` takes `updatedAfter`, `createdAfter` (ISO 8601), repeatable `endpoints`, `hasFiles`,
+  `sharedOnly`; a malformed facet is 400 `{ error }`. (NOT built; wave 2)
+- `GET /api/agents` takes `?sort=` and `?mine=1`; a cursor from another ordering is 409
+  `cursor_ordering_mismatch`. (NOT built; wave 2)
+- `POST /api/convos/fork` accepts `excludeFiles`. (NOT built; wave 2)
+- `GET /api/files ?limit=` is bounded by the server's `fileListLimit`. Mobile does not page it.
+- `POST /api/auth/refresh` 200 may be the enrollment body with **no token** (see Authentication);
+  `RefreshResponse.token` is nullable and the store branches on `code` before the cookie update. (BUILT)
+- Every authenticated route: 403 `TWO_FACTOR_ENROLLMENT_REQUIRED`; writes 403 `terms_not_accepted` under
+  `interface.termsOfService.modalAcceptance`; pre-auth routes 403 `TENANT_CONTEXT_REQUIRED` under strict
+  tenancy. Each is told apart from the UA soft-ban 403. (BUILT)
+- `POST /api/auth/2fa/disable` 403s while `twoFactorAuthenticationRequired`; the setting is hidden then. (BUILT)
+- Register and reset-request errors are now a generic `Something went wrong`; reset also deletes
+  passkeys. Validation 400 messages are Zod v4's wording; mobile matches no validation text, so
+  nothing changed.
+- `GET /api/config`: fails closed (authed config resolution error is a generic 500, no partial config)
+  (BUILT). New top-level keys, decoded: `twoFactorAuthenticationRequired`, `conversationTitleOwnershipVersion`.
+  New `interface` keys, decoded: `landingHeading` (`entity`|`greeting`) / `landingFooter`,
+  `runningChatRename`, `queuedTurnReconciliationTimeoutMs`, `queuedSendLockTimeoutMs`,
+  `steerArmConfirmationTimeoutMs`, `retentionMode: "ephemeral"` (temporary chat forced on);
+  policy links pass through `isSafeLinkUrl`. `balance` gains `refillMode` (`add`|`reset`) and
+  `display` (`credits`|`currency`|`percent`). Not yet decoded (waves 2/3): `passkeyLoginEnabled`,
+  `maxPasskeysPerUser`, `allowEmailChange`, `conversationListLimits`, `ragEnabled`, `projects{…}`,
+  `mcpApps{…}`, `pullRequests*`, `codeWorkspaceInheritanceVersion`, `interface.theme`,
+  `interface.replyNotifications`.
+- `endpoints.<ep>.models` is authoritative: a chat or agent on a model the config dropped is refused,
+  and an enforced spec is restored for continuations. Mobile already shows the server's refusal;
+  no change.
+- Conversations: `titleSetByUser`, `titleRevision` (BUILT); `lastResponseAt`, `lastResponseMessageId`,
+  `isMarkedUnread`, `lastSeenAt` (NOT built; wave 2). `gen_title` may answer
+  `{ title, titleSetByUser: true, titleRevision }` or 500 `title_read_failed`.
+- Messages: `isUserSubmitted` (a host wake-up row is not user text; Room 13 → 14) (BUILT);
+  `privacyRevision`, `reasoningOverride`, `subagentContent` (NOT built).
+- Agents: `instructionsPrompt` (link to a prompt group; read-only in the editor) (BUILT);
+  `tool_options.approval_mode` / `approval_revision` (NOT built; wave 2). Create/update 400 on an
+  undeclared `model_parameters` key (BUILT, see Configuration).
+- Prompt groups: `source` (`native` or an external store such as `langfuse`); external groups are
+  read-only (403 `read_only`). (BUILT)
+- Abort result: `settled`, `terminalStatus`, `persistenceFailed` decoded; on protocol v1 a 409
+  `ABORT_PERSISTENCE_FAILED` is retried. (BUILT, see SSE section)
+- Subagent events: activity item type `steer`, phase `steer_applied`, `activityDroppedCount`;
+  background tasks carry `subagent_thread_id` and a folded `activity` progress tree. (BUILT)
+- Schedules: MCP receipts on `lastRun` explain a blocked MCP call. (BUILT)
+- Tool approval: `ToolReviewConfig.allow_always` / `remember_scope`, resolution `scope: "session"`
+  (NOT built; wave 2). Token usage `input_token_details.cache_creation_1h` (not decoded; cost
+  display does not split cache tiers).
+- The DALL-E 3 tool is retired server-side; marketplace previews use its replacement. (BUILT)
+
 ### Other
 ```
 GET/POST/DELETE /api/presets

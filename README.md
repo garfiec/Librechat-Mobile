@@ -1,10 +1,10 @@
 # Switchboard: LibreChat Mobile Client
 
-[![LibreChat](https://img.shields.io/badge/LibreChat-v0.8.4_–_v0.8.8-blue)](https://github.com/LibreChat-AI/LibreChat/releases/tag/v0.8.8)
+[![LibreChat](https://img.shields.io/badge/LibreChat-v0.8.4_–_v0.8.9--rc1-blue)](https://github.com/LibreChat-AI/LibreChat/releases/tag/v0.8.9-rc1)
 
 All of [LibreChat](https://www.librechat.ai/), built for Android and iOS. Switchboard keeps the experience you're used to while making it faster and more natural to use on a phone. It also brings new possibilities, from offline chats to interactive content you can keep on your home screen.
 
-> **Backend compatibility:** Tested against LibreChat **v0.8.4 – v0.8.8**. Older releases may work but are not guaranteed; newer releases are supported on a best-effort basis until the next sync.
+> **Backend compatibility:** Tested against LibreChat **v0.8.4 – v0.8.9-rc1**. Older releases may work but are not guaranteed; newer releases are supported on a best-effort basis until the next sync.
 
 ## Get it
 
