@@ -5753,6 +5753,74 @@
       },
       "why": "Which spec style variables the host sends an App in its host context (mapped onto Material roles here).",
       "failure_mode": "Apps theme a different subset than on web, or miss a variable web starts sending."
+    },
+    {
+      "id": "pull-request-is-code-conversation",
+      "upstream": {
+        "file": "client/src/components/Chat/PullRequest/code.ts",
+        "symbol": "isCodeConversation",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/pullrequest/ConversationPullRequest.kt",
+        "symbol": "isCodeConversation"
+      },
+      "why": "Which chats may have a pull request: only those are ever asked, on the chat screen and in the drawer.",
+      "failure_mode": "Code chats show no pull request, or ordinary chats cost lookups."
+    },
+    {
+      "id": "pull-request-presentation",
+      "upstream": {
+        "file": "client/src/components/Chat/PullRequest/status.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/pullrequest/PullRequestPresentation.kt",
+        "symbol": "presentPullRequest"
+      },
+      "why": "State/checks/provider to glyph, tone, CI dot and labels for the overflow item, sheet and drawer mark.",
+      "failure_mode": "The phone colours or words a pull request differently from web (e.g. a dot on a merged PR)."
+    },
+    {
+      "id": "pull-request-refetch-interval",
+      "upstream": {
+        "file": "client/src/data-provider/PullRequest/queries.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/pullrequest/ConversationPullRequest.kt",
+        "symbol": "pullRequestRefetchIntervalMs"
+      },
+      "why": "Chat-screen polling cadence (20 s active, 60 s settled, stop when finished) and the 15 s / 60 s stale times.",
+      "failure_mode": "The chat polls GitHub through the server faster than web, or stops while checks still run."
+    },
+    {
+      "id": "pull-request-batch-limits",
+      "upstream": {
+        "file": "packages/data-provider/src/types/pullRequest.ts",
+        "symbol": "PULL_REQUEST_BATCH_MAX",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/pullrequest/ConversationPullRequest.kt",
+        "symbol": "PULL_REQUEST_BATCH_MAX"
+      },
+      "why": "Batch chunk size (50) and PULL_REQUEST_BATCH_VERSION (1) the drawer gates its batch on.",
+      "failure_mode": "The server 400s an oversized batch, or the drawer asks a replica whose batch version it does not speak."
+    },
+    {
+      "id": "pull-request-error-codes",
+      "upstream": {
+        "file": "packages/api/src/pulls/types.ts",
+        "symbol": "PULL_REQUEST_ERROR_CODES",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/pullrequest/ConversationPullRequest.kt",
+        "symbol": "PullRequestErrorCodes"
+      },
+      "why": "The lookup failure codes the client logs; all read the same to the user.",
+      "failure_mode": "A new code is logged unnamed; behaviour is unchanged."
     }
   ]
 }

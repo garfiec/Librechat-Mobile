@@ -163,6 +163,17 @@ data class StartupConfig(
      * [mcpAppsPolicy], which treats a missing or malformed policy as Apps off, as web does.
      */
     val mcpApps: JsonElement? = null,
+    /**
+     * Conversation pull requests (v0.8.9-rc1, post-login only): true when the server looks up the pull
+     * request a code chat opened. The three below come only with it.
+     */
+    val pullRequestsEnabled: Boolean? = null,
+    /** The batch lookup route's version; the drawer asks in batches only when it is 1. */
+    val pullRequestsBatchVersion: Int? = null,
+    /** How many lookups the server runs at once (default 4); bounds the batch chunks in flight. */
+    val pullRequestsMaxConcurrentLookups: Int? = null,
+    /** The provider users may connect their own account to (Settings; not built). */
+    val pullRequestsConnect: String? = null,
 ) {
     /** The resolved MCP Apps policy; [McpAppsPolicy.enabled] is the gate for every App row. */
     val mcpAppsPolicy: McpAppsPolicy

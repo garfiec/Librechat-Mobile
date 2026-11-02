@@ -2,6 +2,7 @@ package com.garfiec.librechat.core.network.api
 
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationListFilters
+import com.garfiec.librechat.core.model.asFullDocument
 import com.garfiec.librechat.core.model.background.BackgroundTaskCancelRequest
 import com.garfiec.librechat.core.model.background.BackgroundTaskCancelResponse
 import com.garfiec.librechat.core.model.background.BackgroundTaskIndex
@@ -101,10 +102,14 @@ class ConversationsApi constructor(
             setBody(ConvoUnreadBody(arg = ConvoUnreadArg(conversationId = conversationId)))
         }.body()
 
+    /**
+     * The full conversation document. Stamped [asFullDocument], since only here does a missing code
+     * field mean "none" rather than "not projected".
+     */
     suspend fun getConversation(conversationId: String): Conversation =
         client.get {
             url { path("api/convos/$conversationId") }
-        }.body()
+        }.body<Conversation>().asFullDocument()
 
     suspend fun updateTitle(conversationId: String, title: String): Conversation =
         client.post {

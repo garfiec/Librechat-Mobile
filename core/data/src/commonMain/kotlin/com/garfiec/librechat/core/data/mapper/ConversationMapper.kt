@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.data.mapper
 import com.garfiec.librechat.core.data.db.entity.ConversationEntity
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.Preset
+import com.garfiec.librechat.core.model.isCodeConversation
 import com.garfiec.librechat.core.model.parameterPreset
 import com.garfiec.librechat.core.model.withParameters
 import kotlinx.serialization.Serializable
@@ -45,6 +46,7 @@ fun Conversation.toEntity(): ConversationEntity {
         lastResponseIsManual = lastResponseIsManual,
         isMarkedUnread = isMarkedUnread,
         lastSeenAt = lastSeenAt?.toEpochMilliseconds(),
+        isCodeConversation = isCodeConversation,
     )
 }
 
@@ -78,6 +80,7 @@ fun ConversationEntity.toModel(): Conversation = Conversation(
     lastResponseIsManual = lastResponseIsManual,
     isMarkedUnread = isMarkedUnread,
     lastSeenAt = lastSeenAt?.let(Instant::fromEpochMilliseconds),
+    cachedIsCodeConversation = isCodeConversation,
 ).let { conversation ->
     decodeParams(modelParams)?.let {
         conversation.withParameters(it.params).copy(parametersAsOf = Instant.fromEpochMilliseconds(it.asOf))

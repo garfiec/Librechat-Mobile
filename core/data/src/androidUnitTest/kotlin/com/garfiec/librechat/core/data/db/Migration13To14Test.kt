@@ -31,11 +31,11 @@ class Migration13To14Test {
             }
             connection.prepare(
                 "SELECT title, lastResponseAt, lastResponseMessageId, lastResponseIsManual, isMarkedUnread, " +
-                    "lastSeenAt FROM conversations WHERE conversationId = 'existing'",
+                    "lastSeenAt, isCodeConversation FROM conversations WHERE conversationId = 'existing'",
             ).use {
                 assertTrue(it.step())
                 assertEquals("Hi", it.getText(0))
-                for (column in 1..5) assertTrue(it.isNull(column))
+                for (column in 1..6) assertTrue(it.isNull(column))
             }
         } finally {
             connection.close()

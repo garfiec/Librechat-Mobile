@@ -130,8 +130,13 @@ interface ConversationDao {
             val existing = getByIdForAccount(entity.conversationId, accountId)
             // The list route sends no parameters either: keep the ones a full read cached.
             val toUpsert = if (existing != null) {
-                entity.copy(tags = existing.tags, modelParams = entity.modelParams ?: existing.modelParams)
-                    .withReadStateOf(existing)
+                entity.copy(
+                    tags = existing.tags,
+                    modelParams = entity.modelParams ?: existing.modelParams,
+                    // A list row from an older replica (or a stream's stub) doesn't say; keep what a
+                    // full read learned.
+                    isCodeConversation = entity.isCodeConversation ?: existing.isCodeConversation,
+                ).withReadStateOf(existing)
             } else {
                 entity
             }

@@ -28,6 +28,7 @@ import com.garfiec.librechat.core.network.api.PermissionsApi
 import com.garfiec.librechat.core.network.api.PresetsApi
 import com.garfiec.librechat.core.network.api.ProjectsApi
 import com.garfiec.librechat.core.network.api.PromptsApi
+import com.garfiec.librechat.core.network.api.PullRequestsApi
 import com.garfiec.librechat.core.network.api.QueuedTurnsApi
 import com.garfiec.librechat.core.network.api.RolesApi
 import com.garfiec.librechat.core.network.api.SchedulesApi
@@ -228,6 +229,7 @@ val networkModule = module {
     singleOf(::BannerApi)
     singleOf(::ChatApi)
     singleOf(::CodeEnvironmentsApi)
+    singleOf(::PullRequestsApi)
     singleOf(::ConfigApi)
     singleOf(::ConversationsApi)
     singleOf(::EndpointTokenApi)

@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.model.media.ProviderId
 import com.garfiec.librechat.core.model.media.isImageUrl
 import com.garfiec.librechat.core.model.media.resolveIconSource
 import com.garfiec.librechat.core.model.media.resolveProviderIcon
+import com.garfiec.librechat.core.model.pullrequest.isCodeConversation
 import com.garfiec.librechat.core.model.serializer.LenientInstantSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -126,6 +127,11 @@ data class Conversation(
     val codeEnvironmentMode: String? = null,
     /** The attached workspaces that decision selected, one per machine. */
     val codeWorkspaces: List<CodeWorkspaceSelection>? = null,
+    /**
+     * Set on `GET /api/convos` list rows (v0.8.9-rc1) when the replica that listed them projected the
+     * code fields: a row with this and neither field is an ordinary chat. Absent = not known.
+     */
+    val codeDecisionListed: Boolean? = null,
     /** Tri-state: false when a reply was stamped, true when hand-marked unread, null on legacy rows. */
     val isMarkedUnread: Boolean? = null,
     /** When the user caught up; [UNSEEN_REPLY_WATERMARK] when a reply landed unseen. */
@@ -137,7 +143,32 @@ data class Conversation(
      */
     @Transient
     val parametersAsOf: Instant? = null,
+    /**
+     * Local only: the [isCodeConversation] verdict the cache holds (`conversations.isCodeConversation`),
+     * or the one a full single-conversation read settled. Null = not known.
+     */
+    @Transient
+    val cachedIsCodeConversation: Boolean? = null,
 )
+
+/**
+ * Whether this chat ran against an attached code workspace, so it can have a pull request: true or
+ * false when known, null when nothing says (an older list row, a row cached before the column).
+ * The code fields win, then a list row's [Conversation.codeDecisionListed] stamp, then the cache.
+ */
+val Conversation.isCodeConversation: Boolean?
+    get() = when {
+        isCodeConversation(codeEnvironmentMode, codeWorkspaces?.size ?: 0) -> true
+        codeDecisionListed == true -> false
+        else -> cachedIsCodeConversation
+    }
+
+/**
+ * This conversation as the single-conversation GET returned it: the full document, so the absence of
+ * the code fields means an ordinary chat and [isCodeConversation] is settled either way.
+ */
+fun Conversation.asFullDocument(): Conversation =
+    copy(cachedIsCodeConversation = isCodeConversation(codeEnvironmentMode, codeWorkspaces?.size ?: 0))
 
 /**
  * Resolves the icon URL to display for this conversation, as web's `EndpointIcon`: an image

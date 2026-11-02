@@ -89,6 +89,8 @@ import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepositoryImpl
 import com.garfiec.librechat.core.data.repository.PromptRepository
 import com.garfiec.librechat.core.data.repository.PromptRepositoryImpl
+import com.garfiec.librechat.core.data.repository.PullRequestRepository
+import com.garfiec.librechat.core.data.repository.PullRequestRepositoryImpl
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepositoryImpl
 import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
@@ -641,6 +643,8 @@ val dataModule = module {
     singleOf(::UserRepositoryImpl) bind UserRepository::class
     singleOf(::BannerRepositoryImpl) bind BannerRepository::class
     singleOf(::CodeEnvironmentRepositoryImpl) bind CodeEnvironmentRepository::class
+    // Conversation pull requests: an in-memory, per-account session cache the chat and drawer share.
+    single<PullRequestRepository> { PullRequestRepositoryImpl(api = get(), activeAccountProvider = get()) }
     single<FavoritesRepository> {
         FavoritesRepositoryImpl(
             favoritesApi = get(),

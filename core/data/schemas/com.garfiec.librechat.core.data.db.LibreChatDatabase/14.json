@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 14,
-    "identityHash": "c5821c66bcd8d93a882ff5f06500d1e6",
+    "identityHash": "254c5e2ebcb233ac4901e83f81eef531",
     "entities": [
       {
         "tableName": "conversations",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`conversationId` TEXT NOT NULL, `title` TEXT NOT NULL, `user` TEXT NOT NULL, `endpoint` TEXT, `endpointType` TEXT, `model` TEXT, `agentId` TEXT, `isArchived` INTEGER NOT NULL, `pinned` INTEGER NOT NULL DEFAULT 0, `chatProjectId` TEXT, `tags` TEXT NOT NULL, `iconURL` TEXT, `greeting` TEXT, `modelParams` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `lastSyncedAt` INTEGER NOT NULL, `accountId` TEXT, `spec` TEXT, `lastResponseAt` INTEGER, `lastResponseMessageId` TEXT, `lastResponseIsManual` INTEGER, `isMarkedUnread` INTEGER, `lastSeenAt` INTEGER, PRIMARY KEY(`conversationId`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`conversationId` TEXT NOT NULL, `title` TEXT NOT NULL, `user` TEXT NOT NULL, `endpoint` TEXT, `endpointType` TEXT, `model` TEXT, `agentId` TEXT, `isArchived` INTEGER NOT NULL, `pinned` INTEGER NOT NULL DEFAULT 0, `chatProjectId` TEXT, `tags` TEXT NOT NULL, `iconURL` TEXT, `greeting` TEXT, `modelParams` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `lastSyncedAt` INTEGER NOT NULL, `accountId` TEXT, `spec` TEXT, `lastResponseAt` INTEGER, `lastResponseMessageId` TEXT, `lastResponseIsManual` INTEGER, `isMarkedUnread` INTEGER, `lastSeenAt` INTEGER, `isCodeConversation` INTEGER, PRIMARY KEY(`conversationId`))",
         "fields": [
           {
             "fieldPath": "conversationId",
@@ -136,6 +136,11 @@
           {
             "fieldPath": "lastSeenAt",
             "columnName": "lastSeenAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "isCodeConversation",
+            "columnName": "isCodeConversation",
             "affinity": "INTEGER"
           }
         ],
@@ -891,7 +896,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c5821c66bcd8d93a882ff5f06500d1e6')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '254c5e2ebcb233ac4901e83f81eef531')"
     ]
   }
 }
