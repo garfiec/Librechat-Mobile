@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.toSafeError
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
+import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.model.Agent
@@ -34,6 +35,10 @@ abstract class AgentMarketplaceViewModelTestBase {
     protected val roleRepository = mockk<RoleRepository>(relaxed = true)
     protected val permissionGate = mockk<PermissionGate>(relaxed = true)
     protected val roleFlow = MutableStateFlow<UserRolePermissions?>(null)
+    protected val configRepository = mockk<ConfigRepository>(relaxed = true)
+
+    /** The detected server version; null (unknown) keeps sort and "My agents" off. */
+    protected val versionFlow = MutableStateFlow<String?>(null)
 
     protected lateinit var viewModel: AgentMarketplaceViewModel
 
@@ -60,6 +65,7 @@ abstract class AgentMarketplaceViewModelTestBase {
         // A null role is permissive: the flags stay `true`, and awaitRole() answering null
         // (a timeout) lets the gated first read through.
         every { roleRepository.userPermissions } returns roleFlow
+        every { configRepository.detectedBackendVersion } returns versionFlow
         coEvery { permissionGate.awaitRole() } returns null
         every { serverDataStore.getBaseUrl() } returns "https://chat.example.com"
         stubPage(null) returns page(testAgents, next = "c1")
@@ -80,6 +86,8 @@ abstract class AgentMarketplaceViewModelTestBase {
             category = any(),
             promoted = any(),
             requiredPermission = any(),
+            sort = any(),
+            mine = any(),
         )
     }
 
@@ -96,5 +104,6 @@ abstract class AgentMarketplaceViewModelTestBase {
         serverDataStore = serverDataStore,
         roleRepository = roleRepository,
         permissionGate = permissionGate,
+        configRepository = configRepository,
     )
 }

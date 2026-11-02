@@ -88,6 +88,22 @@ class AgentsApiListWireShapeTest {
     }
 
     @Test
+    fun `sort is sent as given and mine as 1`() = runTest {
+        api().getAgentsPaginated(limit = 20, sort = "popular", mine = true)
+
+        assertThat(param("sort")).isEqualTo("popular")
+        assertThat(param("mine")).isEqualTo("1")
+    }
+
+    @Test
+    fun `no sort and mine off send neither`() = runTest {
+        api().getAgentsPaginated(limit = 20)
+
+        assertThat(param("sort")).isNull()
+        assertThat(param("mine")).isNull()
+    }
+
+    @Test
     fun `the response's after is decoded for the next request`() = runTest {
         val page = api().getAgentsPaginated(limit = 1)
 

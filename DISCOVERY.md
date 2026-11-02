@@ -1734,8 +1734,12 @@ GET    /api/convos/:conversationId/pull-request; POST /api/convos/pull-requests;
 **Revised request / response shapes**
 - `GET /api/convos` takes `updatedAfter`, `createdAfter` (ISO 8601), repeatable `endpoints`, `hasFiles`,
   `sharedOnly`; a malformed facet is 400 `{ error }`. (NOT built; wave 2)
-- `GET /api/agents` takes `?sort=` and `?mine=1`; a cursor from another ordering is 409
-  `cursor_ordering_mismatch`. (NOT built; wave 2)
+- `GET /api/agents` takes `?sort=newest|oldest|popular|author` (unknown → ignored) and `?mine=1`
+  (agents the caller authored, ANDed with the ACL set); a cursor from another ordering is 409
+  `{ error: "cursor_ordering_mismatch" }`. With no `sort`, rc1 orders by `createdAt` desc (was
+  `updatedAt`). (BUILT: `AgentsApi.getAgentsPaginated(sort, mine)`, gated on rc1; the marketplace
+  always sends a sort there, and restarts from page one once per query on the 409. Page size stays
+  20, not web's 32. `interface.marketplace.retryDelaysMs` not read: retry is tap-only.)
 - `POST /api/convos/fork` accepts `excludeFiles`. (NOT built; wave 2)
 - `GET /api/files ?limit=` is bounded by the server's `fileListLimit`. Mobile does not page it.
 - `POST /api/auth/refresh` 200 may be the enrollment body with **no token** (see Authentication);

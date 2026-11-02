@@ -49,6 +49,10 @@ class AgentsApi constructor(
      * [promoted] narrows to Top picks and is sent as `promoted=1`, the only "on" value the route
      * matches. [requiredPermission] is the permission bit the caller needs on each agent; omitted,
      * the server uses VIEW.
+     *
+     * [sort] (`newest` | `oldest` | `popular` | `author`) and [mine] (`mine=1`, agents the caller
+     * authored) are v0.8.9-rc1; an older server ignores both. A cursor read under one sort and sent
+     * with another answers 409 `{ error: "cursor_ordering_mismatch" }`.
      */
     suspend fun getAgentsPaginated(
         limit: Int,
@@ -57,6 +61,8 @@ class AgentsApi constructor(
         category: String? = null,
         promoted: Boolean = false,
         requiredPermission: Int? = null,
+        sort: String? = null,
+        mine: Boolean = false,
     ): AgentListResponse =
         client.get {
             url { path("api/agents") }
@@ -66,6 +72,8 @@ class AgentsApi constructor(
             if (category != null) parameter("category", category)
             if (promoted) parameter("promoted", "1")
             if (requiredPermission != null) parameter("requiredPermission", requiredPermission)
+            if (sort != null) parameter("sort", sort)
+            if (mine) parameter("mine", "1")
         }.body()
 
     suspend fun getAgent(agentId: String): Agent {

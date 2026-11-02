@@ -56,6 +56,8 @@ class AgentRepositoryImpl(
         category: String?,
         promoted: Boolean,
         requiredPermission: Int?,
+        sort: String?,
+        mine: Boolean,
     ): Result<PaginatedAgents> {
         return safeApiCall {
             val response = agentsApi.getAgentsPaginated(
@@ -65,6 +67,8 @@ class AgentRepositoryImpl(
                 category = category,
                 promoted = promoted,
                 requiredPermission = requiredPermission,
+                sort = sort,
+                mine = mine,
             )
             recordListed(response.data)
             PaginatedAgents(

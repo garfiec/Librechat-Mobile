@@ -5270,6 +5270,34 @@
       },
       "why": "Which turns count as carrying files (uploads, file-backed attachments, file locators in content, a steer's files): decides whether Retry and Branch without files are offered, and whether a copy from an older server still has its files.",
       "failure_mode": "Upstream adds a file locator shape: a branch carrying only that shape offers no recovery, and an older server's copy holding it is announced as clean."
+    },
+    {
+      "id": "agent-marketplace-sort",
+      "upstream": {
+        "file": "packages/api/src/agents/marketplace.ts",
+        "symbol": "AGENT_SORT_OPTIONS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/viewmodel/AgentListFilter.kt",
+        "symbol": "AgentSort"
+      },
+      "why": "The marketplace `sort` values the list route accepts (v0.8.9-rc1), in menu order. The route drops an unknown value silently and answers in its own order.",
+      "failure_mode": "A renamed or removed mode is sent and ignored: the list comes back in the default order under a menu label that says otherwise. A new mode is never offered. Nothing errors."
+    },
+    {
+      "id": "agent-marketplace-cursor-mismatch",
+      "upstream": {
+        "file": "packages/api/src/agents/marketplace.ts",
+        "symbol": "mapMarketplaceListError",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/AgentListFailure.kt",
+        "symbol": "CURSOR_ORDERING_MISMATCH / isCursorOrderingMismatch"
+      },
+      "why": "The 409 `{ error: \"cursor_ordering_mismatch\" }` a cursor read under another order gets. The marketplace restarts the list from page one once per query on it.",
+      "failure_mode": "A changed status or body makes every such page read as an ordinary failure: the footer shows Couldn't load more and Retry repeats the same stale cursor."
     }
   ]
 }
