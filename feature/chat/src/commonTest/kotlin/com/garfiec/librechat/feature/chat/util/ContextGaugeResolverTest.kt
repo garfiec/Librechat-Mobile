@@ -148,6 +148,27 @@ class ContextGaugeResolverTest {
     }
 
     @Test
+    fun a_previewed_tool_call_counts_at_its_full_lengths() {
+        // The model sees the stored call: 3 (name) + 400 (argsLength) + 4000 (outputLength) = 4403
+        // chars -> round(1100.75) = 1101, not the preview's 3 + 3 + 9 = 15 chars.
+        val preview = AgentToolCall(
+            name = "web",
+            args = JsonPrimitive("q=1"),
+            output = "head…tail",
+            argsTruncated = true,
+            argsLength = 400,
+            outputTruncated = true,
+            outputLength = 4000,
+        )
+        val branch = listOf(
+            message("a1", content = listOf(MessageContentPart(type = ContentType.TOOL_CALL, toolCall = preview))),
+        )
+
+        assertEquals(1101, estimateContextUsage(branch, windowTokens = 10_000, overheadTokens = 0)?.usedTokens)
+        assertEquals(1101, estimateDetail(branch, windowTokens = 10_000, overheadTokens = 0)?.toolCallTokens)
+    }
+
+    @Test
     fun structured_content_is_counted_over_text_and_reasoning_is_skipped() {
         val content = listOf(
             MessageContentPart(type = ContentType.THINK, think = "x".repeat(400)),
