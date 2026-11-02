@@ -4534,6 +4534,19 @@
       },
       "why": "The codes a failed audited permission update carries in its error body (permissionErrorCode), which the access editors word as 'try again' (busy lock, lock store down, audit log down) instead of a generic failure. Web maps the same set in client/src/components/Sharing/errors.ts.",
       "failure_mode": "Upstream adds or renames a code and the editors fall back to the generic failure for a refusal that would pass on retry. Nothing errors."
+    },
+    {
+      "id": "agent-inference-profiles",
+      "upstream": {
+        "file": "packages/api/src/agents/inference.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/viewmodel/AgentInferenceProfile.kt",
+        "symbol": "keepAcceptedInferenceParameters (profiles, ALIASES, parameterKey, knownFamily, Bedrock envelope hoist)"
+      },
+      "why": "Which model_parameters keys the v0.8.9-rc1+ agent create/update routes accept per provider family (openai, openrouter, anthropic, google, bedrock, bedrock-anthropic, mistral), how aliases map to profile keys, how a custom endpoint picks its family (defaultParamsEndpoint) and admits declared extras, and how a legacy Bedrock additionalModelRequestFields envelope is read. The editor drops every other key before saving, because the route rejects the whole save with a 400 otherwise.",
+      "failure_mode": "Upstream admits a new key and the editor deletes it from every agent it saves; or it stops admitting one and every save of an agent holding it fails with a 400 the user can't clear from mobile."
     }
   ]
 }

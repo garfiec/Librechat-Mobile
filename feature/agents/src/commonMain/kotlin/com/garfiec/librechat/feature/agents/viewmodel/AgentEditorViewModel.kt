@@ -188,6 +188,14 @@ data class AgentEditorUiState(
     val dropParamsMap: Map<String, JsonElement>? = null,
     /** `/api/endpoints`, for [parameterProvider]. */
     val endpointConfigs: Map<String, EndpointConfig> = emptyMap(),
+    /**
+     * Whether a save keeps `model_parameters` to the inference parameters the server accepts for
+     * the agent's provider (v0.8.9-rc1+, which 400s on any other key). False until the server is
+     * known to carry the check, so an older server keeps every key it stored. See VERSION_GATES.md.
+     */
+    val filtersInferenceParameters: Boolean = false,
+    /** Each endpoint's `customParams` as the agent inference filter reads it, keyed by endpoint name. */
+    val inferenceEndpoints: Map<String, AgentInferenceEndpoint> = emptyMap(),
     // Skills (v0.8.6) — agent-editor skills selector.
     /** Whether the agent `skills_enabled` master toggle is on. */
     val skillsEnabled: Boolean = false,

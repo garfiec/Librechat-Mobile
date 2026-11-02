@@ -7,6 +7,7 @@ import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorEvent
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorStateHandle
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorUiState
 import com.garfiec.librechat.feature.agents.viewmodel.applyAgentData
+import com.garfiec.librechat.feature.agents.viewmodel.inferenceParameterRejection
 import com.garfiec.librechat.feature.agents.viewmodel.toCreateAgentRequest
 import com.garfiec.librechat.feature.agents.viewmodel.toUpdateAgentRequest
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -83,7 +84,9 @@ class AgentSaveDelegate(
                 }
                 is Result.Error -> {
                     stateHandle.update {
-                        copy(isSaving = false, error = result.message ?: "Failed to save agent")
+                        // A refused model parameter is named, rather than "Invalid request data".
+                        val message = inferenceParameterRejection(result.exception) ?: result.message
+                        copy(isSaving = false, error = message ?: "Failed to save agent")
                     }
                 }
                 is Result.Loading -> { /* no-op */ }

@@ -13,6 +13,7 @@ import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorStateHandle
+import com.garfiec.librechat.feature.agents.viewmodel.AgentInferenceEndpoint
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -75,6 +76,14 @@ class AgentCapabilitiesDelegate(
                 stateHandle.update { copy(dropParamsMap = config?.endpointsDropParamsMap) }
             }
         }
+        stateHandle.scope.launch {
+            configRepository.endpointConfigs.collect { configs ->
+                val endpoints = configs.mapValues { (_, config) ->
+                    AgentInferenceEndpoint(config.customParams?.defaultParamsEndpoint, config.customParams?.declaredKeys.orEmpty())
+                }
+                stateHandle.update { copy(inferenceEndpoints = endpoints) }
+            }
+        }
     }
 
     /** The endpoint configs pick the parameter set of an agent on a custom endpoint (`parameterProvider`). */
@@ -101,6 +110,8 @@ class AgentCapabilitiesDelegate(
                     BackendVersion.isCompatibleOrNewer(version, "0.8.5-rc1")
                 stateHandle.update {
                     copy(
+                        filtersInferenceParameters = version != null &&
+                            BackendVersion.isCompatibleOrNewer(version, "0.8.9-rc1"),
                         showCollaborativeToggle = show,
                         isHandoffsAvailable = handoffsAvailable,
                         isAclAvailable = handoffsAvailable,

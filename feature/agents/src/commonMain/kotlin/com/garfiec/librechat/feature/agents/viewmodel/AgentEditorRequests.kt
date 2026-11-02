@@ -158,6 +158,15 @@ private fun AgentEditorUiState.writeFields(): AgentWriteFields {
         parameterProvider = state.parameterProvider,
     )
     val modelParameters = buildModelParameters(state.advancedSettings.withoutModelRemovedValues(modelRemoved))
+        ?.let { params ->
+            if (!state.filtersInferenceParameters) return@let params
+            val endpoint = state.inferenceEndpoints[state.provider]
+            // A custom endpoint's declared extras are unknown until /api/endpoints has loaded;
+            // filtering then would delete them, so the agent is saved as it is.
+            if (endpoint == null && !isBuiltInInferenceProvider(state.provider)) return@let params
+            JsonObject(keepAcceptedInferenceParameters(params, state.provider, state.model.ifBlank { null }, endpoint))
+                .takeIf { it.isNotEmpty() }
+        }
 
     // Artifacts: upstream `ArtifactModes` enum serialized as its wire string.
     // null means "off" (omitted from the request body via encodeDefaults=false).

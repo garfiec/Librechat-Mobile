@@ -1,6 +1,8 @@
 package com.garfiec.librechat.core.model
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 @Serializable
 data class EndpointConfig(
@@ -33,13 +35,18 @@ data class EndpointConfig(
     val userProvideSecretAccessKey: Boolean? = null,
     val userProvideSessionToken: Boolean? = null,
     val userProvideBearerToken: Boolean? = null,
-    /** A custom endpoint's parameter overrides; see [CustomParams]. Absent on other endpoints. */
+    /**
+     * A custom endpoint's parameter settings: the endpoint whose parameter set it follows
+     * (`defaultParamsEndpoint`) and the controls an administrator declared (`paramDefinitions`).
+     * Absent on other endpoints.
+     */
     val customParams: CustomParams? = null,
 )
 
 /**
- * A custom endpoint's `customParams` as `/api/endpoints` serves them. Only the key that picks the
- * parameter set is read; `paramDefinitions` (an admin's definition overrides) is not honoured.
+ * A custom endpoint's `customParams` as `/api/endpoints` serves them. The chat reads only
+ * [defaultParamsEndpoint]; the agent editor also reads [declaredKeys] to keep `model_parameters` to
+ * what the server accepts (v0.8.9-rc1).
  */
 @Serializable
 data class CustomParams(
@@ -48,4 +55,14 @@ data class CustomParams(
      * server fills it from the endpoint's `provider` unless the admin chose one other than `custom`.
      */
     val defaultParamsEndpoint: String? = null,
-)
+    /** Only each definition's `key` is read; the rest stays raw so a new field never fails the decode. */
+    val paramDefinitions: List<JsonObject>? = null,
+) {
+    val declaredKeys: Set<String>
+        get() = paramDefinitions.orEmpty().mapNotNull { def ->
+            (def["key"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+        }.toSet()
+}
+
+/** The sync's name for [CustomParams]. */
+typealias EndpointCustomParams = CustomParams
