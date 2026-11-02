@@ -48,6 +48,7 @@ import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.hasEditablePart
+import com.garfiec.librechat.feature.chat.util.withLiveSubagentFilesAdopted
 import com.garfiec.librechat.feature.chat.util.withPreviews
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import com.garfiec.librechat.feature.chat.viewmodel.JumpFlash
@@ -466,8 +467,11 @@ fun MessageList(
         },
     ) {
         val previewOverrides = LocalPreviewOverrides.current
-        val liveAttachments = remember(streamingAttachments, previewOverrides) {
-            streamingAttachments.withPreviews(previewOverrides)
+        // A file a subagent's child call saved has no live card of its own (the child calls live
+        // only in the trace), so it goes under the subagent's card rather than nowhere.
+        val subagentTraces = LocalSubagentProgress.current
+        val liveAttachments = remember(streamingAttachments, previewOverrides, activeToolCalls, subagentTraces) {
+            streamingAttachments.withPreviews(previewOverrides).withLiveSubagentFilesAdopted(activeToolCalls, subagentTraces)
         }
         LazyColumn(
             modifier = Modifier

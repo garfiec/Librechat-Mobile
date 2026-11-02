@@ -104,6 +104,9 @@ data class Attachment(
     /** The agent whose tool call produced this file. The server stamps it on every code output;
      *  null on older servers and on uploads. */
     val agentId: String? = null,
+    /** The run step whose tool call produced this file (upstream's attachment scope, with
+     *  [agentId]); a child call inside a subagent run can share its id with another run's. */
+    val stepId: String? = null,
     /** What a stateful code session did to this path in its workspace. Null unless the run used
      *  the stateful execution profile and the tool authored the file. */
     val workspaceChange: WorkspaceChange? = null,

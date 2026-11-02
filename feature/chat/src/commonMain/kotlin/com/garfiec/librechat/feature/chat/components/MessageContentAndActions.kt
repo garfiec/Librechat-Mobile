@@ -71,6 +71,7 @@ import com.garfiec.librechat.feature.chat.util.groupedToolCallIds
 import com.garfiec.librechat.feature.chat.util.hasParallelGroupIds
 import com.garfiec.librechat.feature.chat.util.steerText
 import com.garfiec.librechat.feature.chat.util.withPreviews
+import com.garfiec.librechat.feature.chat.util.withSubagentFilesAdopted
 import org.jetbrains.compose.resources.stringResource
 
 /** Material 3's disabled content alpha. */
@@ -360,7 +361,10 @@ internal fun MessageContentAndActions(
         // Workspace changes render once, in their own section, so every other reader takes the
         // inline rest. Markdown images still resolve against all of them, as on web.
         val workspace = remember(effectiveAttachments) { partitionWorkspaceChanges(effectiveAttachments) }
-        val inlineAttachments = workspace.inline
+        // A subagent child's file whose call no transcript names yet goes under the subagent card.
+        val inlineAttachments = remember(workspace.inline, message.content) {
+            workspace.inline.withSubagentFilesAdopted(message.content)
+        }
         ProvideMarkdownMedia(effectiveAttachments, baseUrl) {
             // Unwrapped while the parts editor is open: it puts a text field in place of each
             // editable part, and a text field must never sit inside a SelectionContainer (the

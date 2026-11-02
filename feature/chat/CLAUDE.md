@@ -1388,6 +1388,17 @@ tool block. It is pure because this module has no Compose test harness.
 - Steer text and rendered activity labels are counted by `SearchMatchEnumeration`, so in-conversation
   search can reach them and a collapsed group holding the focused match opens.
 
+## Subagent files with no owner yet (v0.8.9-rc1, slice 1)
+A tool inside a subagent saves its files under the CHILD call's id, which only the subagent's
+transcript names. After a mid-run resume there is no transcript (run steps are not replayed), and the
+live list never draws child calls at all, so such a file matched nothing. `withSubagentFilesAdopted`
+(saved messages, claimed = `outputToolCallIds`) and `withLiveSubagentFilesAdopted` (the streaming
+reply, claimed = the live call ids) rewrite an unclaimed stored file's `toolCallId` to the message's
+`subagent` call: the only one, else the one whose agent stamped the file, else the last. Rewriting
+(rather than a side map) is what keeps `unclaimedOfficePreviewRows` from drawing the same file again.
+Metadata attachments (memory, search) never move. Upstream's `/subagent-calls` lookup (slice 2) is
+not used.
+
 ## Tool intent labels (v0.8.8)
 A tool card's title is the model's own `intent` string when present, else the raw tool name.
 **Accepted only when it is the FIRST key of the args object** — the opt-in (capability +

@@ -124,6 +124,7 @@ class SubagentTraceDelegate(
                     toolCallId to current.copy(
                         subagentRunId = current.subagentRunId ?: event.subagentRunId,
                         subagentType = event.subagentType ?: current.subagentType,
+                        subagentAgentId = event.subagentAgentId ?: current.subagentAgentId,
                         label = event.label ?: current.label,
                         phase = event.phase,
                         parts = nextParts,

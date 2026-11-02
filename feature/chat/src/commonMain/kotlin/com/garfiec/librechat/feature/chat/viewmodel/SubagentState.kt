@@ -32,6 +32,8 @@ data class SubagentTrace(
     val parentToolCallId: String,
     val subagentRunId: String? = null,
     val subagentType: String? = null,
+    /** The agent running the subagent, which stamps its id on the files its tools save. */
+    val subagentAgentId: String? = null,
     /** Latest phase label for the live ticker (e.g. the agent's display name). */
     val label: String? = null,
     /** Latest lifecycle/content phase reported by the server. */
