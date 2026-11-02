@@ -34,12 +34,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import java.util.Collections
 
 class PullRequestRepositoryTest {
 
     private val accountState = MutableStateFlow<AccountState>(AccountState.Resolved(AccountId("a")))
     private val accounts = mockk<ActiveAccountProvider> { every { state } returns accountState }
-    private val requests = mutableListOf<HttpRequestData>()
+
+    // The fallback's single lookups run in parallel on the IO dispatcher, so the engine appends concurrently.
+    private val requests: MutableList<HttpRequestData> = Collections.synchronizedList(mutableListOf())
 
     private fun pr(number: Int, checks: String = "running") =
         """{"number":$number,"title":"t","url":"https://github.com/o/r/pull/$number","additions":1,"deletions":2,
