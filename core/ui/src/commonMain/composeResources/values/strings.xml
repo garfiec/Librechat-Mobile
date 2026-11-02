@@ -358,4 +358,53 @@
     <string name="mcp_oauth_sign_in_title">Sign in to %1$s</string>
     <!-- Accessibility label for the button that closes the MCP sign-in page without finishing -->
     <string name="mcp_oauth_sign_in_close">Close sign-in</string>
+    <!-- Conversation pull requests: the pull request a code chat opened on its repository host -->
+    <!-- Noun for a pull request (GitHub, Bitbucket), as in the sheet title -->
+    <string name="pull_request">Pull request</string>
+    <!-- GitLab's name for a pull request -->
+    <string name="merge_request">Merge request</string>
+    <!-- Short label for a pull request. %1$d is its number, e.g. "PR #482" -->
+    <string name="pr_label">PR #%1$d</string>
+    <!-- Short label for a GitLab merge request. %1$d is its number, e.g. "MR !482" -->
+    <string name="pr_label_gitlab">MR !%1$d</string>
+    <!-- Pull request state: open -->
+    <string name="pr_state_open">Open</string>
+    <!-- Pull request state: a draft -->
+    <string name="pr_state_draft">Draft</string>
+    <!-- Pull request state: merged -->
+    <string name="pr_state_merged">Merged</string>
+    <!-- Pull request state: closed without merging -->
+    <string name="pr_state_closed">Closed</string>
+    <!-- Pull request state: open but has merge conflicts -->
+    <string name="pr_state_conflicts">Conflicts</string>
+    <!-- CI checks on the pull request all passed -->
+    <string name="pr_checks_passing">Passing</string>
+    <!-- CI checks on the pull request failed -->
+    <string name="pr_checks_failing">Failing</string>
+    <!-- CI checks on the pull request are still running -->
+    <string name="pr_checks_running">Running</string>
+    <!-- The repository reports no CI checks -->
+    <string name="pr_checks_none">None</string>
+    <!-- Badge with the pull request's state. %1$s is a state, e.g. "Open" -->
+    <string name="pr_state">State: %1$s</string>
+    <!-- Badge with the pull request's checks. %1$s is a checks value, e.g. "Running" -->
+    <string name="pr_checks">Checks: %1$s</string>
+    <!-- Second line of the chat menu's pull request item. %1$s is the state, %2$s the checks in lowercase, e.g. "Open · Checks running" -->
+    <string name="pr_menu_subtitle">%1$s · Checks %2$s</string>
+    <!-- Second line of the chat menu's pull request item when the repository has no checks. %1$s is the state -->
+    <string name="pr_menu_subtitle_no_checks">%1$s · No checks</string>
+    <!-- Button that opens the pull request on GitHub -->
+    <string name="pr_open_in_github">Open in GitHub</string>
+    <!-- Button that opens the merge request on GitLab -->
+    <string name="pr_open_in_gitlab">Open in GitLab</string>
+    <!-- Button that opens the pull request on Bitbucket -->
+    <string name="pr_open_in_bitbucket">Open in Bitbucket</string>
+    <!-- Shown under the pull request when a later lookup failed; the last known state stays -->
+    <string name="pr_refresh_failed">Couldn't refresh the pull request</string>
+    <!-- Retry the pull request lookup -->
+    <string name="pr_retry">Retry</string>
+    <!-- Accessibility label for the added-lines count. %1$d is the number of lines -->
+    <string name="pr_additions_cd">%1$d lines added</string>
+    <!-- Accessibility label for the removed-lines count. %1$d is the number of lines -->
+    <string name="pr_deletions_cd">%1$d lines removed</string>
 </resources>
