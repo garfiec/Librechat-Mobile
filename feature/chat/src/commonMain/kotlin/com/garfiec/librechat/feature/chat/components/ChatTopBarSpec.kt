@@ -5,7 +5,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.geometry.Rect
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
+import com.garfiec.librechat.core.model.pullrequest.PullRequestIcon
+import com.garfiec.librechat.core.model.pullrequest.presentPullRequest
 import com.garfiec.librechat.core.model.usage.percentOf
+import com.garfiec.librechat.core.ui.components.pullrequest.pullRequestLabel
+import com.garfiec.librechat.core.ui.components.pullrequest.pullRequestMenuSubtitle
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarAction
 import com.garfiec.librechat.core.ui.components.topbar.BarIcon
@@ -119,7 +123,7 @@ internal fun rememberChatTopBarSpec(
     }
 
     val menuSections = sections.map { section ->
-        BarMenuSection(section.map { item -> overflowMenuItem(item, uiState) { onItem(item) } })
+        BarMenuSection(section.mapNotNull { item -> overflowMenuItem(item, uiState) { onItem(item) } })
     }
 
     val actions = buildList {
@@ -153,7 +157,7 @@ internal fun rememberChatTopBarSpec(
 }
 
 @Composable
-private fun overflowMenuItem(item: ChatOverflowItem, uiState: ChatUiState, onClick: () -> Unit): BarMenuItem {
+private fun overflowMenuItem(item: ChatOverflowItem, uiState: ChatUiState, onClick: () -> Unit): BarMenuItem? {
     fun entry(
         label: String,
         icon: BarIcon,
@@ -186,6 +190,15 @@ private fun overflowMenuItem(item: ChatOverflowItem, uiState: ChatUiState, onCli
             },
         )
         ChatOverflowItem.COMPACT -> entry(stringResource(Res.string.compact_nudge_menu), BarIcons.Compact)
+        // The native menu draws no CI dot: the subtitle says the state and checks in words.
+        ChatOverflowItem.PULL_REQUEST -> uiState.pullRequest.pullRequest?.let { pr ->
+            val presentation = remember(pr) { presentPullRequest(pr) }
+            entry(
+                pullRequestLabel(pr, presentation),
+                if (presentation.icon == PullRequestIcon.MERGED) BarIcons.PullRequestMerged else BarIcons.PullRequest,
+                subtitle = pullRequestMenuSubtitle(presentation),
+            )
+        }
         ChatOverflowItem.SHARE -> entry(shareItemLabel(uiState.shareLinkActive), BarIcons.Share)
         // The filled glyph, not `checked`: a checked row draws a tick, and this one opens a checklist.
         ChatOverflowItem.BOOKMARKS -> entry(

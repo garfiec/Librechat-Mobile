@@ -67,6 +67,7 @@ actual val chatPlatformModule: Module = module {
             conversationWebSearchStore = get(),
             codeEnvironmentRepository = get(),
             codeWorkspacePreferenceStore = get(),
+            pullRequestRepository = get(),
             permissionGate = get(),
             connectivityObserver = get(),
             activeAccountProvider = get(),

@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.hasParameters
+import com.garfiec.librechat.core.model.isCodeConversation
 import com.garfiec.librechat.core.model.parametersStale
 import com.garfiec.librechat.core.model.request.MAX_MANUAL_SKILLS
 import com.garfiec.librechat.feature.chat.util.MessageNode
@@ -79,6 +80,12 @@ class ConversationLoadDelegate(
     private val currentModelSpecs: () -> ModelSpecs?,
     /** The active account's id, which keys [specBackfillDone]: conversation ids repeat across servers. */
     private val currentAccountId: () -> String?,
+    /**
+     * Whether the server looks up pull requests. A cached row that doesn't know whether the chat is
+     * a code chat (cached before that was recorded) is then read once in full, so its pull request
+     * can show.
+     */
+    private val pullRequestsAvailable: () -> Boolean = { false },
     /**
      * ModelSelectionDelegate.selectionWatches ([SelectionWatches]). The default sees no config
      * rewrites, so it counts a spec drop as the user's change: pass the shared watches.
@@ -403,7 +410,8 @@ class ConversationLoadDelegate(
             val backfillKey = currentAccountId()?.let { "$it:$conversationId:${cached?.updatedAt}" }
             val incomplete = cached != null && (
                 (cached.spec == null && currentModelSpecs()?.enforce == true) ||
-                    (wantsParameters && (!cached.hasParameters || cached.parametersStale))
+                    (wantsParameters && (!cached.hasParameters || cached.parametersStale)) ||
+                    (cached.isCodeConversation == null && pullRequestsAvailable())
                 )
             if (incomplete && backfillKey != null && backfillKey !in conversationBackfillDone) {
                 val unchanged = watchSelection()

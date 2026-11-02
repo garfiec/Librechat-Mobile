@@ -31,6 +31,7 @@ import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
+import com.garfiec.librechat.core.data.repository.PullRequestRepository
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
@@ -108,6 +109,7 @@ class ChatModuleVerificationTest {
                 ConversationWebSearchStore::class,
                 CodeEnvironmentRepository::class,
                 CodeWorkspacePreferenceStore::class,
+                PullRequestRepository::class,
                 SkillsRepository::class,
                 UserRepository::class,
                 ConnectivityObserver::class,

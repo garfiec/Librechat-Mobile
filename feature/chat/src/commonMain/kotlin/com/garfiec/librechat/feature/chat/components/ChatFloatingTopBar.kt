@@ -117,6 +117,7 @@ internal fun ChatFloatingTopBar(
     var showContextSheet by remember { mutableStateOf(false) }
     var showCompactConfirm by remember { mutableStateOf(false) }
     var showTraceViewer by remember { mutableStateOf(false) }
+    var showPullRequestSheet by remember { mutableStateOf(false) }
     val conversationId = uiState.conversationId
     val conversationTitle = uiState.conversationTitle
     // Interactive on the new-chat landing; once a temporary chat is active it stays visible (ON) as
@@ -143,6 +144,7 @@ internal fun ChatFloatingTopBar(
         firstTurnStreaming = uiState.isFirstTurnStreaming,
         bookmarksEnabled = uiState.bookmarksEnabled,
         isTemporaryChat = uiState.isTemporaryChat,
+        hasPullRequest = uiState.pullRequest.pullRequest != null,
     )
     val overflowSections = remember(overflowGates) { chatOverflowSections(overflowGates) }
     val onOverflowItem: (ChatOverflowItem) -> Unit = { item ->
@@ -160,6 +162,7 @@ internal fun ChatFloatingTopBar(
             ChatOverflowItem.TRACE -> showTraceViewer = true
             ChatOverflowItem.CONTEXT_USAGE -> showContextSheet = true
             ChatOverflowItem.COMPACT -> showCompactConfirm = true
+            ChatOverflowItem.PULL_REQUEST -> showPullRequestSheet = true
             ChatOverflowItem.SHARE -> viewModel.shareConversation()
             ChatOverflowItem.BOOKMARKS -> viewModel.openBookmarks()
             ChatOverflowItem.RENAME -> onRename()
@@ -251,6 +254,18 @@ internal fun ChatFloatingTopBar(
             details = sheetContextGauge,
             onDismiss = { showContextSheet = false },
             onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
+        )
+    }
+
+    // Hosted here like the context sheet. It reads the live state, so a poll that turns the checks
+    // green updates it in place; it closes on its own if the pull request goes away (a chat switch).
+    val pullRequest = uiState.pullRequest.pullRequest
+    if (showPullRequestSheet && pullRequest != null) {
+        PullRequestSheet(
+            pullRequest = pullRequest,
+            refreshFailed = uiState.pullRequest.refreshFailed,
+            onRetry = viewModel::retryPullRequest,
+            onDismiss = { showPullRequestSheet = false },
         )
     }
 
@@ -445,6 +460,7 @@ private fun MaterialChatTopBar(
                     contextGauge = uiState.contextGaugeDetails,
                     shareLinkActive = uiState.shareLinkActive,
                     hasBookmark = uiState.hasBookmark,
+                    pullRequest = uiState.pullRequest.pullRequest,
                     onItem = onItem,
                     dragSelection = overflowDrag.takeIf { !isLiquidGlass },
                 )

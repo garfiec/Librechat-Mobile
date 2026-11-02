@@ -102,6 +102,8 @@ data class ChatUiState(
     val comparisonState: ComparisonState = ComparisonState(),
     /** The composer's attached-machine workspace row; written only by `CodeWorkspaceDelegate`. */
     val codeWorkspace: CodeWorkspaceUiState = CodeWorkspaceUiState(),
+    /** The chat's pull request; written only by `PullRequestDelegate`. In memory, never Room. */
+    val pullRequest: PullRequestUiState = PullRequestUiState(),
     /**
      * Open-state for the full-screen zoomable media viewer (null = closed). Computed once on
      * tap by [ChatViewModel.openMedia] from a state snapshot, so the branch-media walk never

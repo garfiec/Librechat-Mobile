@@ -11,6 +11,7 @@ import com.garfiec.librechat.feature.chat.components.ChatOverflowItem.DELETE
 import com.garfiec.librechat.feature.chat.components.ChatOverflowItem.DUPLICATE
 import com.garfiec.librechat.feature.chat.components.ChatOverflowItem.LOAD_PRESET
 import com.garfiec.librechat.feature.chat.components.ChatOverflowItem.PROMPTS_LIBRARY
+import com.garfiec.librechat.feature.chat.components.ChatOverflowItem.PULL_REQUEST
 import com.garfiec.librechat.feature.chat.components.ChatOverflowItem.RENAME
 import com.garfiec.librechat.feature.chat.components.ChatOverflowItem.SAVE_PRESET
 import com.garfiec.librechat.feature.chat.components.ChatOverflowItem.SEARCH
@@ -45,11 +46,12 @@ class ChatOverflowSectionsTest {
         firstTurnStreaming: Boolean = false,
         bookmarksEnabled: Boolean = true,
         isTemporaryChat: Boolean = false,
+        hasPullRequest: Boolean = false,
     ) = chatOverflowSections(
         ChatOverflowGates(
             conversationId, hasShowAllMedia, presetsEnabled, hasPromptsLibrary, promptsEnabled, multiConvoEnabled,
             traceViewerAvailable, contextUsage, contextUsageEnabled, contextBarPlacement, sharedLinksEnabled,
-            compactNudgeVisible, firstTurnStreaming, bookmarksEnabled, isTemporaryChat,
+            compactNudgeVisible, firstTurnStreaming, bookmarksEnabled, isTemporaryChat, hasPullRequest,
         ),
     )
 
@@ -74,6 +76,13 @@ class ChatOverflowSectionsTest {
             ),
             sections(),
         )
+    }
+
+    @Test
+    fun aKnownPullRequestLeadsTheConversationSectionAndIsAbsentOtherwise() {
+        assertEquals(listOf(PULL_REQUEST, SHARE, BOOKMARKS, RENAME, DUPLICATE, ARCHIVE), sections(hasPullRequest = true)[1])
+        assertFalse(PULL_REQUEST in sections().flatten())
+        assertFalse(PULL_REQUEST in sections(conversationId = null, hasPullRequest = true).flatten())
     }
 
     @Test

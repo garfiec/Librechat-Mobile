@@ -36,6 +36,8 @@ import com.garfiec.librechat.core.data.repository.MemoryRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
+import com.garfiec.librechat.core.data.repository.PullRequestEntry
+import com.garfiec.librechat.core.data.repository.PullRequestRepository
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
@@ -137,6 +139,13 @@ internal class ChatViewModelTestFixture {
     }
     val codeWorkspacePreferenceStore = mockk<CodeWorkspacePreferenceStore>(relaxed = true).also {
         coEvery { it.snapshot() } returns emptyMap()
+    }
+
+    /** Pull requests: none known, and no lookup answers unless a test says so. */
+    var pullRequestRepository: PullRequestRepository = object : PullRequestRepository {
+        override val entries = MutableStateFlow<Map<String, PullRequestEntry>>(emptyMap())
+        override suspend fun refresh(conversationId: String) = Unit
+        override suspend fun refreshBatch(conversationIds: List<String>, maxConcurrent: Int?) = Unit
     }
 
     /** Shared by every ViewModel this fixture builds, like the app's single, so its cache carries over. */
@@ -285,6 +294,7 @@ internal class ChatViewModelTestFixture {
         conversationWebSearchStore = conversationWebSearchStore,
         codeEnvironmentRepository = codeEnvironmentRepository,
         codeWorkspacePreferenceStore = codeWorkspacePreferenceStore,
+        pullRequestRepository = pullRequestRepository,
         permissionGate = permissionGate,
         connectivityObserver = connectivityObserver,
         serverDataStore = serverDataStore,

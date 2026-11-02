@@ -194,6 +194,20 @@ class CodeWorkspaceHandle(root: ChatStateHandle) : DelegateHandle(root) {
         root.update { CodeWorkspaceWrites(this).apply(block).applyTo(this) }
 }
 
+// ── PullRequestDelegate ──────────────────────────────────────────────────
+class PullRequestWrites internal constructor(state: ChatUiState) {
+    var pullRequest: PullRequestUiState = state.pullRequest
+    var error: String? = state.error
+    internal fun applyTo(s: ChatUiState) = s.copy(pullRequest = pullRequest, error = error)
+}
+
+class PullRequestHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    /** Read-only observation of the full state (chat id, first-turn streaming). */
+    val stateFlow: StateFlow<ChatUiState> get() = root.stateFlow
+    fun update(block: PullRequestWrites.() -> Unit) =
+        root.update { PullRequestWrites(this).apply(block).applyTo(this) }
+}
+
 // ── PresetPromptDelegate ──────────────────────────────────────────────────
 class PresetPromptWrites internal constructor(state: ChatUiState) {
     var presetPrompts: PresetPromptState = state.presetPrompts

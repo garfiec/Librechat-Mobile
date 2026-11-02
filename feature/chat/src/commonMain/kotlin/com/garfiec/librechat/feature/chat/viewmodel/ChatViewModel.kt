@@ -34,6 +34,7 @@ import com.garfiec.librechat.core.data.repository.MemoryRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
+import com.garfiec.librechat.core.data.repository.PullRequestRepository
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
@@ -60,6 +61,7 @@ import com.garfiec.librechat.core.model.error.UserKeyError
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
+import com.garfiec.librechat.core.model.pullrequest.pullRequestsAvailable
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
 import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.core.ui.components.ModelParameters
@@ -111,6 +113,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.PdfPasswordPrompt
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PendingActionDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformDelegateFactory
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PresetPromptDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.PullRequestDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.QueueOrchestrationDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.QueuedTurnDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ReasoningCatalogDelegate
@@ -197,6 +200,7 @@ class ChatViewModel(
     private val conversationWebSearchStore: ConversationWebSearchStore,
     codeEnvironmentRepository: CodeEnvironmentRepository,
     codeWorkspacePreferenceStore: CodeWorkspacePreferenceStore,
+    pullRequestRepository: PullRequestRepository,
     private val permissionGate: PermissionGate,
     private val connectivityObserver: ConnectivityObserver,
     private val activeAccountProvider: ActiveAccountProvider,
@@ -321,6 +325,15 @@ class ChatViewModel(
         environments = codeEnvironmentRepository,
         preferences = codeWorkspacePreferenceStore,
     )
+
+    // The chat's pull request (a code chat started elsewhere): looked up, polled while in front.
+    private val pullRequestDelegate = PullRequestDelegate(
+        handle = PullRequestHandle(stateHandle),
+        configRepository = configRepository,
+        conversationRepository = conversationRepository,
+        repository = pullRequestRepository,
+    )
+
     private val reasoningCatalogDelegate = ReasoningCatalogDelegate(
         handle = ReasoningHandle(stateHandle),
         repository = reasoningCapabilitiesRepository,
@@ -617,6 +630,9 @@ class ChatViewModel(
         onMessagesSettled = attachmentPreviewDelegate::onMessagesSettled,
         currentModelSpecs = { configRepository.startupConfig.value?.modelSpecs },
         currentAccountId = { activeAccountProvider.currentAccountId()?.value },
+        pullRequestsAvailable = {
+            pullRequestsAvailable(configRepository.startupConfig.value, configRepository.detectedBackendVersion.value)
+        },
         watchSelection = modelDelegate.selectionWatches::watch,
     )
 
@@ -907,6 +923,7 @@ class ChatViewModel(
         // The Skills toggle follows the slot this chat maps to (conversation, new chat, temp, spec).
         skillsToggleDelegate.start()
         codeWorkspaceDelegate.start()
+        pullRequestDelegate.start()
         // The Thinking chip's catalog, and dropping a staged choice the selection stops accepting.
         reasoningCatalogDelegate.start()
         loadSkillCatalogWhenPickerOpens()
@@ -1507,12 +1524,14 @@ class ChatViewModel(
     fun onPause() {
         streamingManager.onPause()
         codeWorkspaceDelegate.onForeground(false)
+        pullRequestDelegate.onForeground(false)
         queuedTurnDelegate.stopPolling()
     }
 
     fun onResume() {
         streamingManager.onResume()
         codeWorkspaceDelegate.onForeground(true)
+        pullRequestDelegate.onForeground(true)
         // A foreground is a reconciliation point, not just a stream resume: the server may have
         // admitted, dropped or added a queued turn while the app was away, and there is nothing
         // to hear it from.
@@ -1750,6 +1769,9 @@ class ChatViewModel(
     fun selectNoCodeWorkspace() = codeWorkspaceDelegate.selectNoWorkspace()
 
     fun refreshCodeWorkspaces() = codeWorkspaceDelegate.refresh()
+
+    /** The pull request sheet's Retry, after a refresh failed. */
+    fun retryPullRequest() = pullRequestDelegate.retry()
 
     fun dismissSendBlockReason() {
         _uiState.update { it.copy(composer = it.composer.copy(sendBlockReason = null)) }
