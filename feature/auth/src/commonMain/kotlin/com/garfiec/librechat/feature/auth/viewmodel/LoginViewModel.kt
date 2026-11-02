@@ -22,7 +22,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -97,19 +96,15 @@ class LoginViewModel(
         // live, so its feature flags (registration, social logins) must come from the pending
         // session's probed config — the global startupConfig still describes the live server. The
         // repository layer routes the sign-in calls themselves via the same pending session.
-        val configSource = accountSwitcher.pendingAdd?.startupConfig ?: configRepository.startupConfig
-        val serverUrl = accountSwitcher.pendingAdd?.serverUrl?.let(::flowOf) ?: serverDataStore.currentUrlFlow
         viewModelScope.launch {
-            combine(configSource, serverUrl) { config, url -> config to url }.collect { (config, url) ->
-                if (config != null) {
-                    _uiState.value = _uiState.value.copy(
-                        registrationEnabled = config.registrationEnabled,
-                        socialLoginEnabled = config.socialLoginEnabled,
-                        socialLogins = config.socialLogins.orEmpty(),
-                        emailLoginEnabled = config.emailLoginEnabled,
-                        policyLinks = PolicyLinks.from(config, url),
-                    )
-                }
+            authServerConfig(configRepository, accountSwitcher, serverDataStore).collect { (config, url) ->
+                _uiState.value = _uiState.value.copy(
+                    registrationEnabled = config.registrationEnabled,
+                    socialLoginEnabled = config.socialLoginEnabled,
+                    socialLogins = config.socialLogins.orEmpty(),
+                    emailLoginEnabled = config.emailLoginEnabled,
+                    policyLinks = PolicyLinks.from(config, url),
+                )
             }
         }
         observeCertificateTrust(serverDataStore, certificateTrust)

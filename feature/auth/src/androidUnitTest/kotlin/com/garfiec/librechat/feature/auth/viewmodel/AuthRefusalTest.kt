@@ -2,12 +2,18 @@ package com.garfiec.librechat.feature.auth.viewmodel
 
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.datastore.ServerDataStore
+import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -26,6 +32,22 @@ class AuthRefusalTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val authRepository = mockk<AuthRepository>(relaxed = true)
+    private val configRepository = mockk<ConfigRepository> { every { startupConfig } returns MutableStateFlow(null) }
+    private val accountSwitcher = mockk<AccountSwitcher> { every { pendingAdd } returns null }
+    private val serverDataStore = mockk<ServerDataStore> {
+        every { currentUrlFlow } returns flowOf("https://chat.example.com")
+    }
+
+    private fun forgotPassword() = ForgotPasswordViewModel(authRepository, configRepository, accountSwitcher, serverDataStore)
+
+    private fun resetPassword() = ResetPasswordViewModel(
+        authRepository,
+        configRepository,
+        accountSwitcher,
+        serverDataStore,
+        initialUserId = "u1",
+        initialToken = "t1",
+    )
 
     @Before
     fun setup() = Dispatchers.setMain(testDispatcher)
@@ -53,7 +75,7 @@ class AuthRefusalTest {
     @Test
     fun `forgot password words a tenant-required 403`() = runTest {
         coEvery { authRepository.requestPasswordReset(any()) } returns tenantError()
-        val viewModel = ForgotPasswordViewModel(authRepository)
+        val viewModel = forgotPassword()
         viewModel.onEmailChanged("user@example.com")
         viewModel.requestReset()
         advanceUntilIdle()
@@ -69,7 +91,7 @@ class AuthRefusalTest {
     @Test
     fun `reset password words a tenant-required 403`() = runTest {
         coEvery { authRepository.resetPassword(any(), any(), any(), any()) } returns tenantError()
-        val viewModel = ResetPasswordViewModel(authRepository, initialUserId = "u1", initialToken = "t1")
+        val viewModel = resetPassword()
         viewModel.onPasswordChanged("password123")
         viewModel.onConfirmPasswordChanged("password123")
         viewModel.resetPassword()
@@ -85,7 +107,7 @@ class AuthRefusalTest {
             exception = ApiException(403, "Illegal request", body = """{"message":"Illegal request"}"""),
             message = "Illegal request",
         )
-        val viewModel = ResetPasswordViewModel(authRepository, initialUserId = "u1", initialToken = "t1")
+        val viewModel = resetPassword()
         viewModel.onPasswordChanged("password123")
         viewModel.onConfirmPasswordChanged("password123")
         viewModel.resetPassword()

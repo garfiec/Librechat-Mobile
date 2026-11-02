@@ -180,6 +180,8 @@ fun ResetPasswordScreen(
                         Text(stringResource(Res.string.reset_password_button))
                     }
                 }
+
+                PolicyLinksFooter(uiState.policyLinks, modifier = Modifier.padding(top = 16.dp))
             }
         }
     }

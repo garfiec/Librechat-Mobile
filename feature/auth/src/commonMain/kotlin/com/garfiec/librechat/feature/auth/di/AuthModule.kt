@@ -47,6 +47,9 @@ val authModule = module {
     viewModel { params ->
         ResetPasswordViewModel(
             authRepository = get(),
+            configRepository = get(),
+            accountSwitcher = get(),
+            serverDataStore = get(),
             initialUserId = params.getOrNull(),
             initialToken = params.getOrNull(),
         )

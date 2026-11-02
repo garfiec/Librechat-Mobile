@@ -75,8 +75,11 @@
   refusal then says why.
 
 ## Policy links
-- The login screen's footer (`PolicyLinksFooter`) shows the deployment's privacy policy and terms of
-  service links, as upstream's `Auth/Footer.tsx` does. `PolicyLinks.from` maps them at the top from
+- The footer (`PolicyLinksFooter`) on Login, Register, ForgotPassword and ResetPassword shows the
+  deployment's privacy policy and terms of service links, as upstream's `Auth/Footer.tsx` does on
+  every `AuthLayout` screen. Each ViewModel maps them from `authServerConfig` (the pending
+  add-account server while one is pending, else the live one). Upstream's register-page
+  `LegalConsent` sentence is deliberately not ported. `PolicyLinks.from` maps them at the top from
   the config's `safeExternalUrl` only (blank or unsafe-scheme URLs are dropped; see `isSafeLinkUrl`)
   and resolves a relative one against the server (`absoluteLinkUrl`). Read `safeExternalUrl`, never
   `externalUrl`, in any new consumer. Opened through `LocalUriHandler`.

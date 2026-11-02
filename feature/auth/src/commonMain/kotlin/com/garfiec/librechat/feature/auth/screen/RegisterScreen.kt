@@ -189,5 +189,7 @@ fun RegisterScreen(
         TextButton(onClick = onNavigateToLogin) {
             Text(stringResource(Res.string.have_account_sign_in))
         }
+
+        PolicyLinksFooter(uiState.policyLinks, modifier = Modifier.padding(top = 16.dp))
     }
 }

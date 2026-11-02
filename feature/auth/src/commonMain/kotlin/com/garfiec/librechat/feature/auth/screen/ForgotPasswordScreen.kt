@@ -142,6 +142,8 @@ fun ForgotPasswordScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     DiagnosticLogLink()
                 }
+
+                PolicyLinksFooter(uiState.policyLinks, modifier = Modifier.padding(top = 16.dp))
             }
         }
     }
