@@ -178,7 +178,7 @@ fun PromptDetailScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
                 )
-                AdaptiveTextButton(onClick = onRetryText) {
+                AdaptiveTextButton(onClick = onRetryText, enabled = !group.isRetryingText) {
                     Text(stringResource(Res.string.retry))
                 }
             }

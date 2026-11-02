@@ -65,6 +65,9 @@ class PromptsViewModel(
     private var requestedRevision: Long? = null
     private var reloadJob: Job? = null
 
+    /** The open detail's load. Replaced by a newer one and cancelled on back, so a late result can't reopen it. */
+    private var selectJob: Job? = null
+
     init {
         observePermissionFlags()
         loadInitialGroups()
@@ -172,7 +175,8 @@ class PromptsViewModel(
     }
 
     fun selectGroup(groupId: String) {
-        viewModelScope.launch {
+        selectJob?.cancel()
+        selectJob = viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             val groupResult = promptRepository.getGroup(groupId)
             val promptsResult = promptRepository.getPromptsByGroupId(groupId)
@@ -183,6 +187,7 @@ class PromptsViewModel(
                     if (group == null) {
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
+                            selectedGroup = _uiState.value.selectedGroup?.copy(isRetryingText = false),
                             error = "This prompt is not available.",
                         )
                         return@launch
@@ -207,6 +212,7 @@ class PromptsViewModel(
                 is Result.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
+                        selectedGroup = _uiState.value.selectedGroup?.copy(isRetryingText = false),
                         error = groupResult.message ?: "Failed to load prompt details",
                     )
                 }
@@ -215,8 +221,23 @@ class PromptsViewModel(
         }
     }
 
+    /** Reads an external group's live text again after a failed read, from the open detail. */
+    fun retryPromptText() {
+        val group = _uiState.value.selectedGroup ?: return
+        if (!group.textUnavailable || group.isRetryingText) return
+        _uiState.value = _uiState.value.copy(selectedGroup = group.copy(isRetryingText = true))
+        selectGroup(group.id)
+    }
+
     fun clearSelectedGroup() {
-        _uiState.value = _uiState.value.copy(selectedGroup = null, pendingDeleteGroupId = null)
+        val loading = selectJob?.isActive == true
+        selectJob?.cancel()
+        selectJob = null
+        _uiState.value = _uiState.value.copy(
+            selectedGroup = null,
+            pendingDeleteGroupId = null,
+            isLoading = if (loading) false else _uiState.value.isLoading,
+        )
     }
 
     fun onCategorySelected(category: String?) {

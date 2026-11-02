@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +19,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -92,5 +94,60 @@ class PromptsViewModelExternalGroupTest {
         assertTrue(detail?.textUnavailable == true)
         // No stale body to Use: the detail's Use button is enabled only on text.
         assertNull(detail?.productionPromptText)
+    }
+
+    @Test
+    fun retryAfterAFailedReadShowsTheTextOnceItLoads() {
+        coEvery { promptRepository.getAllGroups() } returns Result.Success(listOf(group("langfuse")))
+        coEvery { promptRepository.getGroup(any()) } returns Result.Success(group("langfuse"))
+        coEvery { promptRepository.withResolvedText(any()) } returns Result.Error(message = "offline")
+        val vm = PromptsViewModel(promptRepository, roleRepository, permissionGate).also { it.selectGroup("g-1") }
+
+        val live = CompletableDeferred<Result<PromptGroup>>()
+        coEvery { promptRepository.withResolvedText(any()) } coAnswers { live.await() }
+        vm.retryPromptText()
+
+        // While the read is out, the failed state stays up with its Retry disabled.
+        val pending = vm.uiState.value.selectedGroup
+        assertTrue(pending?.textUnavailable == true)
+        assertTrue(pending?.isRetryingText == true)
+
+        live.complete(Result.Success(group("langfuse").copy(prompts = emptyList()).withResolvedText("live text")))
+
+        val detail = vm.uiState.value.selectedGroup
+        assertFalse(detail?.textUnavailable == true)
+        assertFalse(detail?.isRetryingText == true)
+        assertEquals("live text", detail?.productionPromptText)
+    }
+
+    @Test
+    fun aRetryThatFailsAgainReEnablesRetry() {
+        coEvery { promptRepository.getAllGroups() } returns Result.Success(listOf(group("langfuse")))
+        coEvery { promptRepository.getGroup(any()) } returns Result.Success(group("langfuse"))
+        coEvery { promptRepository.withResolvedText(any()) } returns Result.Error(message = "offline")
+        val vm = PromptsViewModel(promptRepository, roleRepository, permissionGate).also { it.selectGroup("g-1") }
+
+        vm.retryPromptText()
+
+        val detail = vm.uiState.value.selectedGroup
+        assertTrue(detail?.textUnavailable == true)
+        assertFalse(detail?.isRetryingText == true)
+    }
+
+    @Test
+    fun backDuringARetryDoesNotReopenTheDetail() {
+        coEvery { promptRepository.getAllGroups() } returns Result.Success(listOf(group("langfuse")))
+        coEvery { promptRepository.getGroup(any()) } returns Result.Success(group("langfuse"))
+        coEvery { promptRepository.withResolvedText(any()) } returns Result.Error(message = "offline")
+        val vm = PromptsViewModel(promptRepository, roleRepository, permissionGate).also { it.selectGroup("g-1") }
+
+        val live = CompletableDeferred<Result<PromptGroup>>()
+        coEvery { promptRepository.withResolvedText(any()) } coAnswers { live.await() }
+        vm.retryPromptText()
+        vm.clearSelectedGroup()
+        live.complete(Result.Success(group("langfuse").copy(prompts = emptyList()).withResolvedText("live text")))
+
+        assertNull(vm.uiState.value.selectedGroup)
+        assertFalse(vm.uiState.value.isLoading)
     }
 }

@@ -38,6 +38,8 @@ data class PromptGroupDetailDisplayData(
     val external: ExternalPromptSource? = null,
     /** An external group whose live text could not be read: nothing to show or use. */
     val textUnavailable: Boolean = false,
+    /** A Retry of that read is in flight. */
+    val isRetryingText: Boolean = false,
 )
 
 /** An externally managed prompt group's store and its own name for the prompt. */
