@@ -338,17 +338,42 @@ class ComparisonModeDelegate(
         }
     }
 
-    /** An MCP sign-in is per user, not per pane, so it goes to whichever pane holds the call. */
-    private fun routeToolCallAuth(event: StreamEvent.ToolCallAuthRequired) {
+    /**
+     * An MCP sign-in is per user, not per pane, so it goes to whichever pane holds the call, found
+     * as the single stream finds it: a subagent child's prompt lands on the pane's `subagent` call
+     * whose trace holds the child (else [envelopeParentId]).
+     */
+    private fun routeToolCallAuth(event: StreamEvent.ToolCallAuthRequired, envelopeParentId: String? = null) {
+        val traces = handle.state.subagentProgress
         handle.update {
             comparisonState = comparisonState.copy(
-                primaryActiveToolCalls = comparisonState.primaryActiveToolCalls.map { tc ->
-                    if (tc.id == event.toolCallId) tc.authRequiredBy(event) else tc
-                },
-                secondaryActiveToolCalls = comparisonState.secondaryActiveToolCalls.map { tc ->
-                    if (tc.id == event.toolCallId) tc.authRequiredBy(event) else tc
-                },
+                primaryActiveToolCalls = comparisonState.primaryActiveToolCalls.withAuthRequired(event, traces, envelopeParentId),
+                secondaryActiveToolCalls = comparisonState.secondaryActiveToolCalls.withAuthRequired(event, traces, envelopeParentId),
             )
+        }
+    }
+
+    /** A subagent child call ended, so whichever pane's parent card carried its sign-in drops it. */
+    private fun clearSubagentAuthFor(childToolCallId: String) {
+        val state = handle.state.comparisonState
+        if ((state.primaryActiveToolCalls + state.secondaryActiveToolCalls).none { it.authToolCallId == childToolCallId }) {
+            return
+        }
+        handle.update {
+            comparisonState = comparisonState.copy(
+                primaryActiveToolCalls = comparisonState.primaryActiveToolCalls.withoutSubagentAuthFor(childToolCallId),
+                secondaryActiveToolCalls = comparisonState.secondaryActiveToolCalls.withoutSubagentAuthFor(childToolCallId),
+            )
+        }
+    }
+
+    /** The pane half of a subagent envelope: its sign-in, and the end of the child call that held one. */
+    private fun routeSubagentAuth(event: StreamEvent.SubagentUpdate) {
+        when (val inner = event.inner) {
+            is StreamEvent.ToolCallAuthRequired -> routeToolCallAuth(inner, event.parentToolCallId)
+            is StreamEvent.ToolCallComplete -> clearSubagentAuthFor(inner.toolCallId)
+            is StreamEvent.ToolCallClosed -> clearSubagentAuthFor(inner.toolCallId)
+            else -> Unit
         }
     }
 
@@ -360,6 +385,9 @@ class ComparisonModeDelegate(
      * A tool-call event with no branch here falls through to the standard path, which writes the
      * non-comparison `activeToolCalls` the panes never read. That is why the closure needs one:
      * without it an aborted comparison run leaves both panes' cards spinning.
+     *
+     * A `subagent_update` is the one event routed here and still passed on (`false`): the panes take
+     * its MCP sign-in, and the standard path still records the subagent's trace.
      */
     fun routeEvent(event: StreamEvent): Boolean {
         if (!handle.state.comparisonState.isEnabled) return false
@@ -368,9 +396,20 @@ class ComparisonModeDelegate(
             is StreamEvent.ContentDelta -> { routeTextDelta(event.agentId, event.chunk, isReasoning = false); true }
             is StreamEvent.ThinkingDelta -> { routeTextDelta(event.agentId, event.chunk, isReasoning = true); true }
             is StreamEvent.ToolCallStart -> { routeToolCallStart(event); true }
-            is StreamEvent.ToolCallComplete -> { routeToolCallComplete(event); clearSandboxStarting(event.toolCallId); true }
-            is StreamEvent.ToolCallClosed -> { routeToolCallClosed(event); clearSandboxStarting(event.toolCallId); true }
+            is StreamEvent.ToolCallComplete -> {
+                routeToolCallComplete(event)
+                clearSandboxStarting(event.toolCallId)
+                clearSubagentAuthFor(event.toolCallId)
+                true
+            }
+            is StreamEvent.ToolCallClosed -> {
+                routeToolCallClosed(event)
+                clearSandboxStarting(event.toolCallId)
+                clearSubagentAuthFor(event.toolCallId)
+                true
+            }
             is StreamEvent.ToolCallAuthRequired -> { routeToolCallAuth(event); true }
+            is StreamEvent.SubagentUpdate -> { routeSubagentAuth(event); false }
             // No agent on the marker either; the ids are unique across panes, so both lists take it.
             is StreamEvent.ToolCallPreparation -> {
                 handle.update {

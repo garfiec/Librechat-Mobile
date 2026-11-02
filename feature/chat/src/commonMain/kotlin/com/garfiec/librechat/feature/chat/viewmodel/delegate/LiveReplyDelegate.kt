@@ -17,6 +17,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ContextUsageSource
 import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.garfiec.librechat.feature.chat.viewmodel.RetryInfo
 import com.garfiec.librechat.feature.chat.viewmodel.StreamingHandle
+import com.garfiec.librechat.feature.chat.viewmodel.SubagentTrace
 
 /**
  * Projects the stream events that only describe the reply in progress — tool calls, attachments,
@@ -241,18 +242,9 @@ class LiveReplyDelegate(
      */
     private fun onAuthRequired(event: StreamEvent.ToolCallAuthRequired, parentToolCallId: String?) {
         val state = handle.state
-        if (state.activeToolCalls.any { it.id == event.toolCallId }) {
-            handle.update { content = content.updateToolCall(event.toolCallId) { it.authRequiredBy(event) } }
-            return
-        }
-        val parentId = state.subagentProgress.entries.firstOrNull { (_, trace) ->
-            trace.parts.any { it.toolCall?.id == event.toolCallId }
-        }?.key ?: parentToolCallId ?: return
-        handle.update {
-            content = content.updateToolCall(parentId) {
-                it.authRequiredBy(event).copy(authToolCallId = event.toolCallId)
-            }
-        }
+        val updated = state.activeToolCalls.withAuthRequired(event, state.subagentProgress, parentToolCallId)
+        if (updated === state.activeToolCalls) return
+        handle.update { content = content.copy(activeToolCalls = updated) }
     }
 
     private fun clearSubagentAuthFor(childToolCallId: String) {
@@ -324,19 +316,49 @@ private fun MessagesState.updateToolCall(id: String, transform: (ActiveToolCall)
     copy(activeToolCalls = activeToolCalls.map { if (it.id == id) transform(it) else it })
 
 /** A subagent's child call finished, so the parent card stops offering its sign-in. */
-private fun MessagesState.withoutSubagentAuthFor(childToolCallId: String): MessagesState =
-    if (activeToolCalls.none { it.authToolCallId == childToolCallId }) {
+private fun MessagesState.withoutSubagentAuthFor(childToolCallId: String): MessagesState {
+    val updated = activeToolCalls.withoutSubagentAuthFor(childToolCallId)
+    return if (updated === activeToolCalls) this else copy(activeToolCalls = updated)
+}
+
+/**
+ * Puts an MCP sign-in on the call in this list that holds it: the call it names, else the
+ * `subagent` call whose trace in [subagentProgress] holds that call (else [envelopeParentId], the
+ * `subagent_update` envelope's parent), recording the child's id in `authToolCallId`. A subagent's
+ * tool runs with the parent's stream, so its prompt names a call that is only in the trace. Returns
+ * this same list when no call here holds it. Shared with the comparison panes, which hold the calls
+ * in their own lists.
+ */
+internal fun List<ActiveToolCall>.withAuthRequired(
+    event: StreamEvent.ToolCallAuthRequired,
+    subagentProgress: Map<String, SubagentTrace>,
+    envelopeParentId: String?,
+): List<ActiveToolCall> {
+    if (any { it.id == event.toolCallId }) {
+        return map { if (it.id == event.toolCallId) it.authRequiredBy(event) else it }
+    }
+    val parentId = subagentProgress.entries.firstOrNull { (_, trace) ->
+        trace.parts.any { it.toolCall?.id == event.toolCallId }
+    }?.key ?: envelopeParentId ?: return this
+    if (none { it.id == parentId }) return this
+    return map { if (it.id == parentId) it.authRequiredBy(event).copy(authToolCallId = event.toolCallId) else it }
+}
+
+/**
+ * Takes a subagent child's sign-in off its parent card once the child call ends. Returns this same
+ * list when no card carries it. Shared with the comparison panes.
+ */
+internal fun List<ActiveToolCall>.withoutSubagentAuthFor(childToolCallId: String): List<ActiveToolCall> =
+    if (none { it.authToolCallId == childToolCallId }) {
         this
     } else {
-        copy(
-            activeToolCalls = activeToolCalls.map {
-                if (it.authToolCallId == childToolCallId) {
-                    it.copy(authUrl = null, authServerName = null, authExpiresAt = null, authToolCallId = null)
-                } else {
-                    it
-                }
-            },
-        )
+        map {
+            if (it.authToolCallId == childToolCallId) {
+                it.copy(authUrl = null, authServerName = null, authExpiresAt = null, authToolCallId = null)
+            } else {
+                it
+            }
+        }
     }
 
 /** A completed or closed call is past its sandbox boot. Shared with the comparison panes. */
