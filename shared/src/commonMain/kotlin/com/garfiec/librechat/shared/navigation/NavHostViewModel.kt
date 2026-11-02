@@ -530,8 +530,10 @@ class NavHostViewModel(
      */
     private fun checkTermsAcceptance() {
         // Captured before the reads, so an answer landing after a switch is not applied to the new account.
-        val account = activeAccountId()
+        val captured = activeAccountId()
         viewModelScope.launch {
+            // A sign-in whose identity had not resolved by the call is still this account's check.
+            val account = captured ?: activeAccountId()
             val config = configRepository.startupConfig.value ?: configRepository.fetchStartupConfig().let {
                 (it as? Result.Success)?.data
             }

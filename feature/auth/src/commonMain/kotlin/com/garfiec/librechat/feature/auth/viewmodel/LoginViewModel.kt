@@ -70,7 +70,7 @@ data class PolicyLinks(
 ) {
     companion object {
         fun from(config: StartupConfig, serverUrl: String?): PolicyLinks {
-            val root = serverUrl?.let(::cleanServerUrl) ?: return PolicyLinks()
+            val root = serverUrl?.takeIf { it.isNotBlank() }?.let(::cleanServerUrl) ?: return PolicyLinks()
             val interfaceConfig = config.interfaceConfig ?: return PolicyLinks()
             return PolicyLinks(
                 privacyPolicyUrl = interfaceConfig.privacyPolicy?.safeExternalUrl?.let { absoluteLinkUrl(it, root) },
