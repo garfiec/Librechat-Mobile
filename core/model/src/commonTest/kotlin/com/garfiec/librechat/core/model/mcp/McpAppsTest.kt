@@ -83,7 +83,7 @@ class McpAppsTest {
     }
 
     @Test
-    fun `declared domains widen only their directives, and the loader admits its frame`() {
+    fun `declared domains widen only their directives and the loader admits its frame`() {
         val decl = McpAppCspDeclaration(
             resourceDomains = listOf("https://cdn.x"),
             connectDomains = listOf("https://api.x"),
@@ -99,7 +99,7 @@ class McpAppsTest {
     // --- links ---
 
     @Test
-    fun `a link opens only on a declared host, scheme and port`() {
+    fun `a link opens only on a declared host scheme and port`() {
         val csp = McpAppCspDeclaration(
             connectDomains = listOf("https://api.example.com"),
             resourceDomains = listOf("https://*.cdn.example.com", "wss://socket.example.com"),
@@ -121,7 +121,7 @@ class McpAppsTest {
     }
 
     @Test
-    fun `nothing declared means no links, and address literals never match`() {
+    fun `nothing declared means no links and address literals never match`() {
         assertFalse(isAllowedAppLink("https://example.com/", McpAppCspDeclaration()))
         val csp = McpAppCspDeclaration(connectDomains = listOf("https://127.0.0.1"))
         assertFalse(isAllowedAppLink("https://127.0.0.1/", csp))
@@ -149,7 +149,7 @@ class McpAppsTest {
         "text":"<html></html>","serverName":"weather","toolName":"show_forecast","serverBinding":"v1.abc"}"""
 
     @Test
-    fun `selects Apps in order, skipping legacy html and index-keyed payloads`() {
+    fun `selects Apps in order skipping legacy html and index-keyed payloads`() {
         val legacy = """{"resourceId":"r2","uri":"ui://x","mimeType":"text/html","serverName":"weather","toolName":"t"}"""
         val selected = selectToolCallUiResources(
             listOf(
@@ -174,7 +174,7 @@ class McpAppsTest {
     }
 
     @Test
-    fun `inline html comes from text, else from a utf-8 blob`() {
+    fun `inline html comes from text else from a utf-8 blob`() {
         val fromText = UiResource.from(json(app))!!
         assertEquals("<html></html>", fromText.inlineHtml())
         // "<p>é</p>" in UTF-8, base64.

@@ -28,7 +28,7 @@ class McpAppRelayPageTest {
     }
 
     @Test
-    fun `the inner frame never gets same-origin, popups or top navigation`() {
+    fun `the inner frame never gets same-origin popups or top navigation`() {
         listOf("allow-same-origin", "allow-popups", "allow-top-navigation").forEach {
             assertFalse(it in page.relayScript, it)
         }

@@ -17,13 +17,13 @@ class McpAppFailureTest {
     }
 
     @Test
-    fun `a 401 invalid_token asks for the MCP server's sign-in, any other 401 does not`() {
+    fun `a 401 invalid_token asks for the MCP server's sign-in any other 401 does not`() {
         assertEquals(McpAppFailure.REAUTH_REQUIRED, failure(401, """{"error":"invalid_token"}"""))
         assertEquals(McpAppFailure.OTHER, failure(401, """{"message":"jwt expired"}"""))
     }
 
     @Test
-    fun `a 400 is final whatever its message, and limiter or budget answers are busy`() {
+    fun `a 400 is final whatever its message and limiter or budget answers are busy`() {
         assertEquals(McpAppFailure.REJECTED, failure(400, """{"error":"MCP App binding for server \"x\" is no longer valid."}"""))
         listOf(429, 502, 503, 504).forEach { assertEquals(McpAppFailure.BUSY, failure(it, """{"error":"busy"}""")) }
         assertEquals(McpAppFailure.OTHER, failure(500, """{"error":"Failed to execute tool"}"""))
