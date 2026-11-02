@@ -1,7 +1,7 @@
 # feature:conversations
 
 ## Screens
-The conversation list lives in the drawer (`drawer/DrawerContent.kt`, `DrawerViewModel`); there is no full-screen list route. `ConversationsRoute : NavKey` covers the screens the drawer opens: `ArchivedConversations`, `Projects`, `Bookmarks`, `BookmarkChats`, `Search`, `ProjectChats`.
+The conversation list lives in the drawer (`drawer/DrawerContent.kt`, `DrawerViewModel`); there is no full-screen list route. `ConversationsRoute : NavKey` covers the screens the drawer opens: `ArchivedConversations`, `Projects`, `Bookmarks`, `BookmarkChats`, `Search`, `ProjectChats`, and `ProjectInstructions` (opened from a project page).
 
 ## Pagination
 - Cursor-based via `ConversationRepository.loadNextPage(cursor, tags)`
@@ -50,3 +50,25 @@ The conversation list lives in the drawer (`drawer/DrawerContent.kt`, `DrawerVie
 - The gesture lives on the LazyColumn, not the rows, and consumes in the Initial pass once a folder is held, so the row's click, the list scroll and the drawer swipe never see the drag. Only the folder row picks up; a long-press on an open folder's chat is that chat's menu.
 - `DrawerViewModel.reorderProjects` applies the drop at once and saves it; a load in flight is restarted behind the save so it can't land the old order over the drop.
 - The Projects index offers the same order as `ProjectSort.CUSTOM` (read-only).
+
+## Project context: instructions and files (v0.8.9-rc1)
+- Gate: `projectContextGate` (`viewmodel/ProjectContextGate.kt`) maps config, endpoints and role once into
+  `ProjectContextGate`; `ProjectChatsViewModel.projectContext` turns it plus the held project and the files
+  state into `ProjectContextUi`. Screens never read config. See VERSION_GATES.md for why the date is the
+  day after landing and why it is `== PRESENT`.
+- The project page is network-direct; `ProjectChatsViewModel` holds the project. **Every add, remove and
+  instructions save bumps `contextRevision`**, and the held project must be replaced with the response
+  (`ProjectFilesController.onProjectUpdated`), or the next instructions save sends a stale revision and
+  reads as a conflict. The instructions editor (`ProjectInstructionsViewModel`) re-GETs the project on
+  open, so it starts from the current revision.
+- A save conflict is only a 409 with `code: CHAT_PROJECT_CONFLICT`; on `POST /:id/files` any 409 is the
+  file limit (`:core:data` `ProjectContextFailure`). Name/description edits never send `contextRevision`.
+- Uploads (`ProjectFilesController`) run one at a time: `POST /api/files` (agents, `file_search`,
+  `message_file`), refuse a result that isn't `embedded`, then attach. The upload alone is a temporary
+  attachment, so a failed attach keeps the file id and Retry repeats only the attach.
+- `ProjectFilePicker` is an expect/actual copy of the agent editor's picker (feature modules can't
+  share it). iOS reads the bytes inside the picker delegate, while the security scope is open.
+- The draft is not saved across process death: at the 200,000-character ceiling it would come near the
+  Bundle limit.
+- Project errors are string resources (`ShowErrorRes`); the description field is capped at
+  `projects.maxDescriptionLength` (the server answers 400 above it) and the name at 100 (the server cuts it).

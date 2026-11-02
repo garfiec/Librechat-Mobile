@@ -141,6 +141,7 @@ import com.garfiec.librechat.core.data.search.FtsQueryPlan
 import com.garfiec.librechat.core.data.search.MessageSearchHit
 import com.garfiec.librechat.core.data.search.TitleMatch
 import com.garfiec.librechat.core.model.ChatProject
+import com.garfiec.librechat.core.model.config.ChatProjectLimits
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.DragSelectRowShape
@@ -289,6 +290,7 @@ fun DrawerContent(
     val searchFieldText by viewModel.searchQuery.collectAsStateWithLifecycle()
     val projects by viewModel.projects.collectAsStateWithLifecycle()
     val inlineProjectChats by viewModel.inlineProjectChats.collectAsStateWithLifecycle()
+    val projectLimits by viewModel.projectLimits.collectAsStateWithLifecycle()
     val libraryTab by viewModel.drawerLibraryTab.collectAsStateWithLifecycle()
     val workspace by viewModel.workspace.collectAsStateWithLifecycle()
 
@@ -409,6 +411,7 @@ fun DrawerContent(
         onPickUpProject = viewModel::closeExpandedProject,
         onReorderProjects = viewModel::reorderProjects,
         onCreateProject = viewModel::createProject,
+        projectDescriptionLimit = projectLimits.maxDescriptionLength,
         onEditProject = viewModel::editProject,
         onNewChatInProject = onNewChatInProject,
         onDeleteProject = viewModel::deleteProject,
@@ -501,6 +504,7 @@ fun DrawerContent(
     onPickUpProject: () -> Unit = {},
     onReorderProjects: (orderedIds: List<String>) -> Unit = {},
     onCreateProject: (String, String) -> Unit = { _, _ -> },
+    projectDescriptionLimit: Int = ChatProjectLimits.DEFAULT_MAX_DESCRIPTION_LENGTH,
     onEditProject: (String, String, String) -> Unit = { _, _, _ -> },
     onDeleteProject: (String) -> Unit = {},
     onNewChatInProject: (projectId: String, projectName: String) -> Unit = { _, _ -> },
@@ -1159,6 +1163,7 @@ fun DrawerContent(
                 onReorderProjects = onReorderProjects,
                 onOpenProjectsIndex = onOpenProjectsIndex,
                 onCreateProject = onCreateProject,
+                descriptionLimit = projectDescriptionLimit,
                 onEditProject = onEditProject,
                 onNewChatInProject = onNewChatInProject,
                 onDeleteProject = onDeleteProject,
@@ -1439,6 +1444,7 @@ private fun DrawerProjectsList(
     onReorderProjects: (orderedIds: List<String>) -> Unit,
     onOpenProjectsIndex: () -> Unit,
     onCreateProject: (name: String, description: String) -> Unit,
+    descriptionLimit: Int,
     onEditProject: (projectId: String, name: String, description: String) -> Unit,
     onNewChatInProject: (projectId: String, projectName: String) -> Unit,
     onDeleteProject: (String) -> Unit,
@@ -1614,6 +1620,7 @@ private fun DrawerProjectsList(
         ProjectEditorSheet(
             title = stringResource(Res.string.project_new),
             confirmLabel = stringResource(Res.string.project_create_confirm),
+            maxDescriptionLength = descriptionLimit,
             onConfirm = { name, description ->
                 onCreateProject(name, description)
                 showCreateDialog = false
@@ -1628,6 +1635,7 @@ private fun DrawerProjectsList(
             confirmLabel = stringResource(Res.string.save),
             initialName = target.name,
             initialDescription = target.description.orEmpty(),
+            maxDescriptionLength = descriptionLimit,
             onConfirm = { name, description ->
                 onEditProject(target.id, name, description)
                 editTarget = null

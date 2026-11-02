@@ -4,8 +4,10 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.model.ChatProject
+import com.garfiec.librechat.core.model.config.ChatProjectLimits
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -18,6 +20,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
 
 /** Project index orderings, as the `GET /api/projects` `sortBy`/`sortDirection` pair. */
 enum class ProjectSort(val wire: String?, val direction: String?) {
@@ -50,6 +53,9 @@ data class ProjectsUiState(
 sealed interface ProjectsEvent {
     data class ShowError(val message: String) : ProjectsEvent
 
+    /** An error whose text is this module's own string, resolved where it's shown. */
+    data class ShowErrorRes(val message: StringResource) : ProjectsEvent
+
     /** A project was just created here; the screen opens it so the next step is a chat inside it. */
     data class OpenProject(val projectId: String, val projectName: String) : ProjectsEvent
 }
@@ -57,7 +63,11 @@ sealed interface ProjectsEvent {
 /** Browse-all-folders index (v0.8.7). Server is the source of truth — no local cache. */
 class ProjectsViewModel(
     private val projectRepository: ProjectRepository,
+    configRepository: ConfigRepository,
 ) : ViewModel() {
+
+    /** The create and edit sheets cap the description here; the server refuses longer with a 400. */
+    val projectLimits: StateFlow<ChatProjectLimits> = configRepository.projectLimits(viewModelScope)
 
     private val _uiState = MutableStateFlow(ProjectsUiState())
     val uiState: StateFlow<ProjectsUiState> = _uiState.asStateFlow()
@@ -68,7 +78,7 @@ class ProjectsViewModel(
     private val actions = ProjectActionsDelegate(
         scope = viewModelScope,
         projectRepository = projectRepository,
-        emitError = { _events.emit(ProjectsEvent.ShowError(it)) },
+        emitError = { _events.emit(ProjectsEvent.ShowErrorRes(it)) },
         onCreated = { _events.emit(ProjectsEvent.OpenProject(it.id, it.name)) },
     )
 

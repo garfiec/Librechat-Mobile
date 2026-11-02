@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.bookmarks.BookmarkPickerController
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
+import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
@@ -20,6 +21,7 @@ import com.garfiec.librechat.core.data.share.ShareLinkController
 import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.model.Conversation
+import com.garfiec.librechat.core.model.config.ChatProjectLimits
 import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
 import com.garfiec.librechat.feature.conversations.components.ConversationDisplayData
 import com.garfiec.librechat.feature.conversations.components.message
@@ -66,6 +68,8 @@ data class ProjectChatsUiState(
     val project: ChatProject? = null,
     /** The server no longer has this project (deleted elsewhere): the page has nothing to show. */
     val projectDeleted: Boolean = false,
+    /** The Edit sheet's description cap (`projects.maxDescriptionLength`). */
+    val descriptionLimit: Int = ChatProjectLimits.DEFAULT_MAX_DESCRIPTION_LENGTH,
 )
 
 /**
@@ -86,6 +90,7 @@ class ProjectChatsViewModel(
     private val roleRepository: RoleRepository,
     private val configRepository: ConfigRepository,
     private val projectRepository: ProjectRepository,
+    fileRepository: FileRepository,
     // Defaulted rather than Koin-provided: this one is built by an explicit `viewModel { }` block
     // (projectId arrives via parametersOf), so a default costs no DI wiring. Tests override it —
     // the production flow never completes, which would hang `advanceUntilIdle()`.
@@ -142,12 +147,54 @@ class ProjectChatsViewModel(
     private val projectActions = ProjectActionsDelegate(
         scope = viewModelScope,
         projectRepository = projectRepository,
-        emitError = { _events.emit(ConversationListEvent.ShowError(it)) },
+        emitError = { _events.emit(ConversationListEvent.ShowErrorRes(it)) },
     )
 
     private val isRealProject = projectId != ChatProject.UNASSIGNED
 
     private var projectJob: Job? = null
+
+    private val contextGate: StateFlow<ProjectContextGate> = combine(
+        configRepository.detectedBackend,
+        configRepository.startupConfig,
+        configRepository.endpointConfigs,
+        roleRepository.userPermissions,
+        ::projectContextGate,
+    ).stateIn(viewModelScope, SharingStarted.Eagerly, ProjectContextGate())
+
+    /** The project's reference files (v0.8.9-rc1); loaded the first time the Files card can show. */
+    val projectFiles = ProjectFilesController(
+        scope = viewModelScope,
+        projectId = projectId,
+        projectRepository = projectRepository,
+        fileRepository = fileRepository,
+        maxFiles = { contextGate.value.limits.maxFiles },
+        // Each add or remove bumps the project's contextRevision: hold the answer, or the next
+        // instructions save would carry a stale revision and read as a conflict.
+        onProjectUpdated = { project -> _uiState.update { it.copy(project = project) } },
+        onProjectGone = { _uiState.update { it.copy(projectDeleted = true) } },
+    )
+
+    /**
+     * The Instructions and Files cards, or null while they can't show: an older server, the
+     * Unassigned filter, or a project not loaded yet.
+     */
+    val projectContext: StateFlow<ProjectContextUi?> = combine(
+        _uiState.map { it.project }.distinctUntilChanged(),
+        contextGate,
+        projectFiles.state,
+    ) { project, gate, files ->
+        if (project == null || !isRealProject || !gate.enabled) {
+            null
+        } else {
+            ProjectContextUi(
+                instructions = project.instructions.orEmpty(),
+                files = files.takeIf { gate.showFiles },
+                canUploadFiles = gate.canUploadFiles,
+                maxFiles = gate.limits.maxFiles,
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     init {
         observePaging()
@@ -155,6 +202,7 @@ class ProjectChatsViewModel(
         loadProject()
         observeGrouped()
         observePermissions()
+        observeFilesGate()
         viewModelScope.launch {
             bookmarkPicker.failures.collect { _events.emit(ConversationListEvent.ShowErrorRes(it.message)) }
         }
@@ -192,10 +240,30 @@ class ProjectChatsViewModel(
     /**
      * Back from a chat started here: Nav3 kept this ViewModel alive and nothing else reloads it, so
      * the new chat would be missing. Skips while a first page is already loading.
+     *
+     * The project itself is read again too: back from the instructions editor after a save that
+     * found the project gone, this is what closes the page.
      */
     fun refreshOnReturn() {
-        retryProjectIfMissing()
+        if (isRealProject && projectJob?.isActive != true && !_uiState.value.projectDeleted) loadProject()
         if (!pager.isLoadingFirstPage) pager.reloadQuietly()
+    }
+
+    /** Loads the files the first time the Files card can show (feature on, RAG on, project loaded). */
+    private fun observeFilesGate() {
+        if (!isRealProject) return
+        viewModelScope.launch {
+            combine(contextGate.map { it.showFiles }, _uiState.map { it.project != null }) { show, loaded ->
+                show && loaded
+            }.distinctUntilChanged().collect { canShow ->
+                if (canShow && !projectFiles.hasLoaded) projectFiles.load()
+            }
+        }
+        viewModelScope.launch {
+            contextGate.map { it.limits.maxDescriptionLength }.distinctUntilChanged().collect { limit ->
+                _uiState.update { it.copy(descriptionLimit = limit) }
+            }
+        }
     }
 
     /** The project failed to load (offline, say): a pull or a return tries again. */
@@ -261,6 +329,7 @@ class ProjectChatsViewModel(
     fun refresh() {
         if (_uiState.value.isRefreshing) return
         retryProjectIfMissing()
+        if (contextGate.value.showFiles && projectFiles.hasLoaded) projectFiles.load()
         pager.refresh()
     }
 

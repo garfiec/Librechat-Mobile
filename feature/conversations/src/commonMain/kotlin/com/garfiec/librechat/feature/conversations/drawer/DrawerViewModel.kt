@@ -26,6 +26,7 @@ import com.garfiec.librechat.core.model.ChatProject
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.SAVED_TAG
+import com.garfiec.librechat.core.model.config.ChatProjectLimits
 import com.garfiec.librechat.core.model.config.ConversationListLimits
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.config.isSchedulesEnabled
@@ -43,9 +44,12 @@ import com.garfiec.librechat.feature.conversations.resources.Res
 import com.garfiec.librechat.feature.conversations.resources.favorite_update_failed
 import com.garfiec.librechat.feature.conversations.resources.mark_read_failed
 import com.garfiec.librechat.feature.conversations.resources.mark_unread_failed
+import com.garfiec.librechat.feature.conversations.resources.project_create_failed
+import com.garfiec.librechat.feature.conversations.resources.project_move_failed
 import com.garfiec.librechat.feature.conversations.viewmodel.ConversationListActionsDelegate
 import com.garfiec.librechat.feature.conversations.viewmodel.ConversationListEvent
 import com.garfiec.librechat.feature.conversations.viewmodel.ProjectActionsDelegate
+import com.garfiec.librechat.feature.conversations.viewmodel.projectLimits
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -251,10 +255,13 @@ class DrawerViewModel(
     )
 
     // Shared project CRUD (same delegate ProjectsViewModel uses).
+    /** The drawer's project sheets cap the description here; the server refuses longer with a 400. */
+    val projectLimits: StateFlow<ChatProjectLimits> = configRepository.projectLimits(viewModelScope)
+
     private val projectActions = ProjectActionsDelegate(
         scope = viewModelScope,
         projectRepository = projectRepository,
-        emitError = { _events.emit(ConversationListEvent.ShowError(it)) },
+        emitError = { _events.emit(ConversationListEvent.ShowErrorRes(it)) },
     )
 
     // Drawer "Library" tab is optimistic local state (instant toggle) with DataStore as a write-behind
@@ -862,7 +869,7 @@ class DrawerViewModel(
                 is Result.Success -> Unit
                 is Result.Error -> {
                     Logger.e(result.exception) { "Failed to move conversation to project" }
-                    _events.emit(ConversationListEvent.ShowError("Failed to move conversation"))
+                    _events.emit(ConversationListEvent.ShowErrorRes(Res.string.project_move_failed))
                 }
                 is Result.Loading -> Unit
             }
@@ -877,7 +884,7 @@ class DrawerViewModel(
                     when (val assign = projectRepository.assignConversation(conversationId, created.data.id)) {
                         is Result.Error -> {
                             Logger.e(assign.exception) { "Failed to assign new project" }
-                            _events.emit(ConversationListEvent.ShowError("Failed to move conversation"))
+                            _events.emit(ConversationListEvent.ShowErrorRes(Res.string.project_move_failed))
                         }
                         is Result.Success -> Unit
                         is Result.Loading -> Unit
@@ -885,7 +892,7 @@ class DrawerViewModel(
                 }
                 is Result.Error -> {
                     Logger.e(created.exception) { "Failed to create project" }
-                    _events.emit(ConversationListEvent.ShowError("Failed to create project"))
+                    _events.emit(ConversationListEvent.ShowErrorRes(Res.string.project_create_failed))
                 }
                 is Result.Loading -> Unit
             }

@@ -102,6 +102,7 @@ import com.garfiec.librechat.feature.conversations.drawer.DrawerViewModel
 import com.garfiec.librechat.feature.conversations.navigation.ArchivedConversations
 import com.garfiec.librechat.feature.conversations.navigation.BookmarkChats
 import com.garfiec.librechat.feature.conversations.navigation.ProjectChats
+import com.garfiec.librechat.feature.conversations.navigation.ProjectInstructions
 import com.garfiec.librechat.feature.conversations.navigation.Projects
 import com.garfiec.librechat.feature.conversations.navigation.conversationsEntries
 import com.garfiec.librechat.feature.files.navigation.FilesPicker
@@ -842,6 +843,7 @@ fun MainNavDisplay(
                 onNewChatInProject = { projectId, projectName ->
                     navigator.navigateToNewChatInProject(projectId, projectName)
                 },
+                onOpenProjectInstructions = { projectId -> navigator.navigate(ProjectInstructions(projectId)) },
                 onNavigateToBookmark = { tag -> navigator.navigate(BookmarkChats(tag)) },
                 onBack = { navigator.goBack() },
                 onRemove = { navigator.remove(it) },

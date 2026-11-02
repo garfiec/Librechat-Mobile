@@ -112,6 +112,7 @@ import com.garfiec.librechat.feature.conversations.viewmodel.ProjectsEvent
 import com.garfiec.librechat.feature.conversations.viewmodel.ProjectsUiState
 import com.garfiec.librechat.feature.conversations.viewmodel.ProjectsViewModel
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -131,6 +132,7 @@ fun ProjectsScreen(
     viewModel: ProjectsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val projectLimits by viewModel.projectLimits.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     var showCreateDialog by remember { mutableStateOf(false) }
@@ -146,6 +148,7 @@ fun ProjectsScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is ProjectsEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
+                is ProjectsEvent.ShowErrorRes -> snackbarHostState.showSnackbar(getString(event.message))
                 is ProjectsEvent.OpenProject -> currentOnProjectClick(event.projectId, event.projectName)
             }
         }
@@ -293,6 +296,7 @@ fun ProjectsScreen(
         ProjectEditorSheet(
             title = stringResource(Res.string.project_new),
             confirmLabel = stringResource(Res.string.project_create_confirm),
+            maxDescriptionLength = projectLimits.maxDescriptionLength,
             onConfirm = { name, description ->
                 viewModel.createProject(name, description)
                 showCreateDialog = false
@@ -307,6 +311,7 @@ fun ProjectsScreen(
             confirmLabel = stringResource(Res.string.save),
             initialName = target.name,
             initialDescription = target.description.orEmpty(),
+            maxDescriptionLength = projectLimits.maxDescriptionLength,
             onConfirm = { name, description ->
                 viewModel.editProject(target.id, name, description)
                 editTarget = null

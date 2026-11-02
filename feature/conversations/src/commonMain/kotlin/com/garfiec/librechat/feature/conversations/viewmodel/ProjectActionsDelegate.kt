@@ -4,8 +4,13 @@ import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.model.ChatProject
+import com.garfiec.librechat.feature.conversations.resources.Res
+import com.garfiec.librechat.feature.conversations.resources.project_create_failed
+import com.garfiec.librechat.feature.conversations.resources.project_delete_failed
+import com.garfiec.librechat.feature.conversations.resources.project_update_failed
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
 
 /**
  * Shared Chat Projects CRUD (create/rename/delete) used by both [ProjectsViewModel] (the browse-all
@@ -17,7 +22,7 @@ import kotlinx.coroutines.launch
 class ProjectActionsDelegate(
     private val scope: CoroutineScope,
     private val projectRepository: ProjectRepository,
-    private val emitError: suspend (message: String) -> Unit,
+    private val emitError: suspend (message: StringResource) -> Unit,
     private val onCreated: suspend (ChatProject) -> Unit = {},
 ) {
 
@@ -28,7 +33,7 @@ class ProjectActionsDelegate(
                 is Result.Success -> onCreated(result.data)
                 is Result.Error -> {
                     Logger.e(result.exception) { "Failed to create project" }
-                    emitError("Failed to create project")
+                    emitError(Res.string.project_create_failed)
                 }
                 is Result.Loading -> Unit
             }
@@ -45,7 +50,7 @@ class ProjectActionsDelegate(
                 is Result.Success -> Unit
                 is Result.Error -> {
                     Logger.e(result.exception) { "Failed to update project" }
-                    emitError("Failed to update project")
+                    emitError(Res.string.project_update_failed)
                 }
                 is Result.Loading -> Unit
             }
@@ -58,7 +63,7 @@ class ProjectActionsDelegate(
                 is Result.Success -> Unit
                 is Result.Error -> {
                     Logger.e(result.exception) { "Failed to delete project" }
-                    emitError("Failed to delete project")
+                    emitError(Res.string.project_delete_failed)
                 }
                 is Result.Loading -> Unit
             }
