@@ -23,6 +23,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material3.Icon
@@ -114,7 +115,7 @@ fun AppearanceSettingsScreen(
                         ThemeSelector(
                             selected = uiState.themeMode,
                             uiStyle = uiState.uiStyle,
-                            accentColor = Color(uiState.accentColor),
+                            accentColor = Color(uiState.shownAccentColor),
                             useDynamicColor = uiState.useDynamicColor,
                             onSelect = viewModel::setThemeMode,
                         )
@@ -128,10 +129,20 @@ fun AppearanceSettingsScreen(
                     }
                     row(key = "accent_color_row") {
                         AccentColorRow(
-                            color = uiState.accentColor,
+                            color = uiState.shownAccentColor,
                             enabled = !uiState.useDynamicColor,
+                            serverName = uiState.serverAccent?.name?.takeIf { uiState.accentSetByServer },
                             onClick = { choosingAccent = true },
                         )
+                    }
+                    // Only on a server with a theme; a withdrawn theme takes the row with it.
+                    uiState.serverAccent?.let { serverAccent ->
+                        row(key = "server_accent_toggle") {
+                            ServerAccentToggle(
+                                enabled = serverAccent.enabled,
+                                onEnabledChange = viewModel::setUseServerAccent,
+                            )
+                        }
                     }
                     if (uiState.dynamicColorSupported) {
                         row(key = "dynamic_color_toggle") {
@@ -149,6 +160,7 @@ fun AppearanceSettingsScreen(
     if (choosingAccent) {
         AccentColorDialog(
             currentColor = uiState.accentColor,
+            note = if (uiState.accentSetByServer) stringResource(Res.string.accent_set_by_server_note) else null,
             onColorSelect = {
                 viewModel.setAccentColor(it)
                 choosingAccent = false
@@ -439,6 +451,8 @@ private fun AccentColorRow(
     enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The server whose accent is in use; the row then reads as set by it and dims, but still opens the picker. */
+    serverName: String? = null,
 ) {
     Column(modifier = modifier) {
         Surface(
@@ -450,7 +464,7 @@ private fun AccentColorRow(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .alpha(if (enabled) 1f else DISABLED_ALPHA)
+                    .alpha(if (enabled && serverName == null) 1f else DISABLED_ALPHA)
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -467,7 +481,7 @@ private fun AccentColorRow(
                         style = MaterialTheme.typography.bodyLarge,
                     )
                     Text(
-                        text = Color(color).toHexString(),
+                        text = serverName?.let { stringResource(Res.string.accent_set_by_server, it) } ?: Color(color).toHexString(),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -482,6 +496,47 @@ private fun AccentColorRow(
             }
         }
         AdaptiveDivider()
+    }
+}
+
+@Composable
+private fun ServerAccentToggle(
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Dns,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(Res.string.use_server_accent),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Text(
+                    text = stringResource(Res.string.use_server_accent_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            AdaptiveSwitch(
+                checked = enabled,
+                onCheckedChange = onEnabledChange,
+            )
+        }
+        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
     }
 }
 

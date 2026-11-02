@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
+import com.garfiec.librechat.core.data.datastore.DeploymentThemeSync
 import com.garfiec.librechat.core.data.datastore.DrawerPinsStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.RoleCacheDataStore
@@ -301,6 +302,16 @@ val dataModule = module {
             dataStore = get(),
             appScope = get<CoroutineScope>(KoinQualifiers.ApplicationScope),
             ioDispatcher = get(KoinQualifiers.IO),
+        )
+    }
+    // Eager: nothing asks for it, and it must be running before the first config lands to cache the
+    // server's accent for the next cold start.
+    single(createdAtStart = true) {
+        DeploymentThemeSync(
+            configRepository = get(),
+            serverDataStore = get(),
+            themeDataStore = get(),
+            appScope = get<CoroutineScope>(KoinQualifiers.ApplicationScope),
         )
     }
     // Eager because the warm gate blocks the first HTTP request: starting the seed read at Koin start

@@ -1759,8 +1759,14 @@ GET    /api/convos/:conversationId/pull-request; POST /api/convos/pull-requests;
   policy links pass through `isSafeLinkUrl`. `balance` gains `refillMode` (`add`|`reset`) and
   `display` (`credits`|`currency`|`percent`). Not yet decoded (waves 2/3): `passkeyLoginEnabled`,
   `maxPasskeysPerUser`, `allowEmailChange`, `conversationListLimits`, `ragEnabled`, `projects{…}`,
-  `mcpApps{…}`, `pullRequests*`, `codeWorkspaceInheritanceVersion`, `interface.theme`,
+  `mcpApps{…}`, `pullRequests*`, `codeWorkspaceInheritanceVersion`,
   `interface.replyNotifications`.
+- `interface.theme` (decoded raw): a bundled name (`librechat`, `clickhouse`) or an inline
+  `{ version: 1, name, modes: { light, dark: { colors: { "rgb-accent-primary": "R G B", … } } } }`,
+  served pre-login too. BUILT for inline definitions only: the light accent (dark when the light one
+  is grey) seeds the app's scheme while Settings → Appearance → Use server accent is on (per server,
+  default on); cached in `ThemeDataStore` by `DeploymentThemeSync` for cold start and sign-in.
+  Bundled names give no accent.
 - `endpoints.<ep>.models` is authoritative: a chat or agent on a model the config dropped is refused,
   and an enforced spec is restored for continuations. Mobile already shows the server's refusal;
   no change.

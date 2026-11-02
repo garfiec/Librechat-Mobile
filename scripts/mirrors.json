@@ -5340,6 +5340,20 @@
       },
       "why": "The strict confirm body: `expectedRevision` is nullable but required, and `lifetimeHours` is 1..8760. Built as a JsonObject so the null survives `explicitNulls = false`.",
       "failure_mode": "A renamed or added required key makes every Confirm a 400 `consent_invalid`, shown as Authorization could not be updated."
+    },
+    {
+      "id": "deployment-theme-accent",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "themeDefinitionSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/DeploymentTheme.kt",
+        "symbol": "readDeploymentAccent / parseRgbTriplet"
+      },
+      "why": "The inline `interface.theme` shape (version 1, name, modes.light|dark.colors) and its \"R G B\" colour format, read for the `rgb-accent-primary` token only. Bundled names (`bundledThemeNames` in theme.ts: librechat, clickhouse) give no accent on purpose.",
+      "failure_mode": "A new version, a moved token or a changed colour format reads as Invalid: the server's brand accent silently stops painting the app and the user's own shows instead. Nothing errors."
     }
   ]
 }

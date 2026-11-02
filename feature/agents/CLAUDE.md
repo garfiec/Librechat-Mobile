@@ -40,6 +40,12 @@
   through `startLoad`, which cancels the previous read and any next-page read and bumps a generation; a late
   answer from an older generation is dropped. Search is trimmed and debounced 300ms; a search that trims to
   the request already made doesn't read again.
+- **Sort and "My agents" (v0.8.9-rc1, `sortAvailable`)**: a row under the chips (`AgentSortRow`): an
+  `AdaptiveFilterChip` toggle (`mine=1`) and a Sort menu (`AgentSort`, sent as `sort=` on every rc1 read,
+  newest by default, as the web does). Both are part of `AgentListQuery`, so a change goes through
+  `startLoad` like a chip. Mine on under Top picks selects All. Not remembered across visits. A next
+  page answered 409 `cursor_ordering_mismatch` restarts the list once per query (`mismatchRecoveredFor`),
+  then shows the footer error. Mine with nothing authored is `AgentListState.MineEmpty` (keeps the chips).
 - `loadMore()` appends the page after `nextCursor`; no-ops while any read runs, with no cursor, or after a
   failed page (`loadMoreFailed`) until `retryLoadMore()` (the footer's Retry). Without that stop, the scroll
   trigger re-arms and re-reads a failing page forever.

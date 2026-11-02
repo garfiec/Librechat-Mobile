@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -60,6 +61,8 @@ internal fun AccentColorDialog(
     onColorSelect: (Int) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Shown above the swatches, e.g. that the server's accent is in use until its switch is off. */
+    note: String? = null,
 ) {
     val initialHsv = remember(currentColor) { Color(currentColor).toHsv() }
     var hue by remember { mutableFloatStateOf(initialHsv.first) }
@@ -89,6 +92,14 @@ internal fun AccentColorDialog(
                     .imePadding()
                     .verticalScroll(rememberScrollState()),
             ) {
+                note?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 12.dp),
+                    )
+                }
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),

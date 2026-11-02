@@ -135,6 +135,11 @@ class MainActivity : ComponentActivity() {
             val accentColorArgb by themeDataStore.accentColor.collectAsStateWithLifecycle(
                 initialValue = themeDataStore.initialAccentColor,
             )
+            // The server's accent (interface.theme) outranks the user's while "Use server accent" is on;
+            // wallpaper colours outrank both inside LibreChatTheme.
+            val serverAccent by themeDataStore.serverAccent.collectAsStateWithLifecycle(
+                initialValue = themeDataStore.initialServerAccent,
+            )
             val useDynamicColor by themeDataStore.useDynamicColor.collectAsStateWithLifecycle(
                 initialValue = themeDataStore.initialUseDynamicColor,
             )
@@ -170,7 +175,7 @@ class MainActivity : ComponentActivity() {
             if (themeReady && localeReady && dateTimeReady) {
                 LibreChatTheme(
                     darkTheme = darkTheme,
-                    accentColor = Color(accentColorArgb),
+                    accentColor = Color(serverAccent?.activeSeed ?: accentColorArgb),
                     useDynamicColor = useDynamicColor,
                     uiStyle = storedUiStyle,
                 ) {

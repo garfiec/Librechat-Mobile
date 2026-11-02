@@ -6,6 +6,12 @@
 ## Sections
 - **Account**: displays user profile from `UserApi.getUser()`
 - **Appearance**: its own page (General → Appearance): theme (System / Light / Dark), interface style, accent colour, wallpaper colours, via `ThemeDataStore`
+  - **Server accent (v0.8.9-rc1 `interface.theme`)**: `DeploymentThemeSync` (`:core:data`) caches the
+    active server's inline-theme accent in `ThemeDataStore.serverAccent`; both app roots paint
+    `serverAccent?.activeSeed ?: accentColor`. "Use server accent" is stored per server (absent = on)
+    and its row shows only while the server sets an accent. While it's on, the Accent row reads
+    "Set by your server (name)", dims, and its picker carries a note; a picked colour is kept for
+    when the switch goes off. Wallpaper colours still win over both.
 - **Server**: shows current server URL from `ServerDataStore`
 - **About**: app version info
 - **Danger Zone**: delete account with confirmation dialog

@@ -43,6 +43,11 @@ data class InterfaceConfig(
      * temporary-chat toggle is locked on. Read it through [isForcedTemporaryRetention].
      */
     val retentionMode: String? = null,
+    /**
+     * Deployment theme (v0.8.9-rc1): a bundled theme name or an inline definition, applied to every
+     * user. Kept raw; read the accent through [readDeploymentAccent], never by hand.
+     */
+    val theme: JsonElement? = null,
     // --- v0.8.7 detection / gating ---
     /** Whether the context-usage gauge is enabled. Server default is `true`. Gates the
      *  chat-screen context gauge (combined with a `BackendVersion.isCompatibleOrNewer("0.8.7-rc1")` check). */
