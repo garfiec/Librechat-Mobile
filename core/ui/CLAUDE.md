@@ -65,7 +65,8 @@ Material 3 theme and shared Compose components used across all feature modules. 
   `onRevealedChange`) so the caller can re-mask on ON_PAUSE and knows when a secret is on screen. Use
   it rather than a new reveal toggle; the PDF password and gateway-header value fields do.
 - `KeyboardOptions.withIosTextContentType()` (`components/IosTextContentType.kt`): iOS
-  `textContentType` roles (`.username`, `.newPassword`, `.oneTimeCode`); a no-op on Android.
+  `textContentType` roles (`.username`, `.password`, `.newPassword`, `.oneTimeCode`, `.emailAddress`);
+  a no-op on Android.
 
 ### Keyboard dismissal (`components/ClearFocusOnTap.kt`)
 `Modifier.clearFocusOnTap()` clears focus — dismissing the keyboard — on a tap nothing else handled.
