@@ -36,6 +36,16 @@ object ModelParamPayload {
     /**
      * Builds the model-parameter map for the given endpoint selection, carrying only the params the
      * user changed from the default composer state. Returns an empty object when nothing was customized.
+     *
+     * [settingsEndpoint] / [settingsProvider] pick the parameter set, and so the wire key of every
+     * value (`top_p` on a custom endpoint, `topP` on Anthropic): see `paramSettingsKey`. [endpoint] /
+     * [provider] are the configured names `dropParams` is keyed on. They differ only for a custom
+     * endpoint (or an agent on one).
+     *
+     * **Only the keys of that set go out, and the server unsets every stored field a request leaves
+     * out** (`getUnsetFields`, `packages/api/src/conversations/save.ts`). A value lost on the way here,
+     * a key missing from the set or sent under another provider's spelling, is erased from the
+     * conversation on the next send, including one set on web.
      */
     fun build(
         endpoint: String,
@@ -44,19 +54,22 @@ object ModelParamPayload {
         extendedEffortSupported: Boolean,
         params: ModelParameters,
         dropParamsMap: Map<String, JsonElement>? = null,
+        settingsEndpoint: String = endpoint,
+        settingsProvider: String? = provider,
     ): JsonObject {
+        val dropParams = EndpointDropParams.resolve(dropParamsMap, endpoint, provider, model)
         val definitions = EndpointParameterRegistry.getDefinitions(
-            endpoint = endpoint,
+            endpoint = settingsEndpoint,
             extendedEffortSupported = extendedEffortSupported,
-            provider = provider,
+            provider = settingsProvider,
             model = model,
-            dropParams = EndpointDropParams.resolve(dropParamsMap, endpoint, provider, model),
+            dropParams = dropParams,
         )
         val modelRemoved = EndpointParameterRegistry.modelRemovedOptions(
-            endpoint = endpoint,
-            provider = provider,
+            endpoint = settingsEndpoint,
+            provider = settingsProvider,
             model = model,
-            dropParams = EndpointDropParams.resolve(dropParamsMap, endpoint, provider, model),
+            dropParams = dropParams,
         )
         val out = LinkedHashMap<String, JsonElement>()
         for (definition in definitions) {

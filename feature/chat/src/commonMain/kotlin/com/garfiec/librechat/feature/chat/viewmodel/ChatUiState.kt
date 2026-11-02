@@ -19,6 +19,7 @@ import com.garfiec.librechat.core.model.config.EndpointDropParams
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecSkills
 import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.core.model.config.supportsUrlContext
 import com.garfiec.librechat.core.model.content.Compaction
 import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.core.model.request.manualSkillsSupportedOn
@@ -45,6 +46,7 @@ import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.BuiltInSearchProvider
 import com.garfiec.librechat.feature.chat.util.CatalogSkill
 import com.garfiec.librechat.feature.chat.util.MessageNode
+import com.garfiec.librechat.feature.chat.util.ParameterTarget
 import com.garfiec.librechat.feature.chat.util.PendingUsage
 import com.garfiec.librechat.feature.chat.util.SkillPickRules
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
@@ -52,6 +54,7 @@ import com.garfiec.librechat.feature.chat.util.WebSearchKind
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.util.builtInSearchProvider
 import com.garfiec.librechat.feature.chat.util.changedPartIndices
+import com.garfiec.librechat.feature.chat.util.parameterTarget
 import com.garfiec.librechat.feature.chat.util.pickableSkills
 import com.garfiec.librechat.feature.chat.util.requiresSpec
 import com.garfiec.librechat.feature.chat.util.resolveLandingStarters
@@ -588,19 +591,20 @@ data class ChatUiState(
     /** [webSearchTarget] with the provider it would run on, for the control's caption. */
     val webSearchKind: WebSearchKind get() = WebSearchKind(webSearchTarget, builtInSearchProvider)
 
+    /** The parameter set the selection resolves to, for the sheet, the payload and a saved preset. */
+    val parameterTarget: ParameterTarget
+        get() = parameterTarget(selectedEndpoint, selectedModel, agents, endpointConfigs)
+
     /**
-     * Whether the active provider is Google/Gemini, the only provider that supports the
-     * `url_context` toggle (upstream gates it to `googleConfig`). Computed (not folded into
-     * the static permission/config flow) because it depends on the live model selection:
-     * a direct `google` endpoint, or the agents endpoint backed by a Google-provider agent.
-     * Mirrors the provider resolution in [ChatRequestBuilder.buildModelParams].
+     * Whether the URL context toggle does anything here: a Google parameter set (upstream gates it
+     * to `googleConfig`), the google endpoint or a Google agent, on a model the server runs the tool
+     * on ([supportsUrlContext]; it skips it on others with only a debug log).
      */
     val urlContextProviderGate: Boolean
         get() {
-            if (selectedEndpoint.equals("google", ignoreCase = true)) return true
-            if (selectedEndpoint != EndpointConstants.AGENTS) return false
-            val agentProvider = agents.firstOrNull { it.id == selectedModel }?.provider
-            return agentProvider.equals("google", ignoreCase = true)
+            val target = parameterTarget
+            if (!target.settingsKey.equals("google", ignoreCase = true)) return false
+            return target.model?.let(::supportsUrlContext) == true
         }
 
     /**

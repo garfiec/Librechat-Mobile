@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
 import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.PromptGroup
+import com.garfiec.librechat.core.ui.components.EndpointParameterRegistry
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
@@ -110,6 +111,18 @@ class PresetPromptDelegate(
         // What the chat shows: under a spec its tools, not the user's hidden toggles.
         val params = state.selection.sendParameters
         val dyn = params.dynamicValues
+        // Each value under the key the chat's parameter set spells it with, as the send does, so web
+        // reads it back: `top_p` / `max_tokens` on openAI and custom, `topP` on the native providers.
+        val target = state.parameterTarget
+        fun wireKey(spellings: List<String>) = EndpointParameterRegistry.wireKeyFor(
+            endpoint = target.settingsEndpoint,
+            provider = target.settingsProvider,
+            model = target.model,
+            spellings = spellings,
+        )
+        val topP = params.topP.toDouble().takeIf { it != ModelParameters.DEFAULT.topP.toDouble() }
+        val topPKey = wireKey(EndpointParameterRegistry.TOP_P_KEYS)
+        val maxTokensKey = wireKey(EndpointParameterRegistry.MAX_OUTPUT_TOKENS_KEYS)
         val preset = Preset(
             title = name,
             endpoint = state.selectedEndpoint.takeIf { it.isNotBlank() },
@@ -127,13 +140,12 @@ class PresetPromptDelegate(
             // equal these mobile defaults, so on reload the value is
             // restored from upstream's schema default.
             temperature = params.temperature.toDouble().takeIf { it != ModelParameters.DEFAULT.temperature.toDouble() },
-            topP = params.topP.toDouble().takeIf { it != ModelParameters.DEFAULT.topP.toDouble() },
+            topPSnake = topP.takeIf { topPKey == "top_p" },
+            topPCamel = topP.takeIf { topPKey == "topP" },
             topK = params.topK,
-            // maxOutputTokens is the canonical wire key; older clients also
-            // expect maxTokens, but emit only one to avoid an ambiguous
-            // payload — pickers/loaders coalesce via `?: preset.maxTokens`.
-            maxTokens = null,
-            maxOutputTokens = params.maxOutputTokens,
+            maxTokensSnake = params.maxOutputTokens.takeIf { maxTokensKey == "max_tokens" },
+            maxTokensCamel = params.maxOutputTokens.takeIf { maxTokensKey == "maxTokens" },
+            maxOutputTokens = params.maxOutputTokens.takeIf { maxTokensKey == "maxOutputTokens" },
             maxContextTokens = params.maxContextTokens,
             frequencyPenalty = params.frequencyPenalty.toDouble().takeIf { it != ModelParameters.DEFAULT.frequencyPenalty.toDouble() },
             presencePenalty = params.presencePenalty.toDouble().takeIf { it != ModelParameters.DEFAULT.presencePenalty.toDouble() },
@@ -144,6 +156,8 @@ class PresetPromptDelegate(
             stop = dyn["stop"]?.takeIf { it.isNotBlank() }?.split("\n")?.filter { it.isNotBlank() },
             effort = dyn["effort"],
             reasoningEffort = dyn["reasoning_effort"],
+            reasoningMode = dyn["reasoning_mode"],
+            reasoningContext = dyn["reasoning_context"],
             reasoningSummary = dyn["reasoning_summary"],
             verbosity = dyn["verbosity"],
             useResponsesApi = dyn["useResponsesApi"]?.toBooleanStrictOrNull(),
@@ -342,6 +356,8 @@ internal fun ModelParameters.mergedFromPreset(preset: Preset): ModelParameters {
     preset.stop?.takeIf { it.isNotEmpty() }?.let { dyn["stop"] = it.joinToString("\n") }
     preset.effort?.let { dyn["effort"] = it }
     preset.reasoningEffort?.let { dyn["reasoning_effort"] = it }
+    preset.reasoningMode?.let { dyn["reasoning_mode"] = it }
+    preset.reasoningContext?.let { dyn["reasoning_context"] = it }
     preset.reasoningSummary?.let { dyn["reasoning_summary"] = it }
     preset.verbosity?.let { dyn["verbosity"] = it }
     preset.useResponsesApi?.let { dyn["useResponsesApi"] = it.toString() }
@@ -355,9 +371,10 @@ internal fun ModelParameters.mergedFromPreset(preset: Preset): ModelParameters {
     preset.region?.let { dyn["region"] = it }
     return copy(
         temperature = preset.temperature?.toFloat() ?: temperature,
-        topP = preset.topP?.toFloat() ?: topP,
+        // Each provider keeps one spelling; a preset or conversation carries whichever it was saved under.
+        topP = (preset.topPSnake ?: preset.topPCamel)?.toFloat() ?: topP,
         topK = preset.topK ?: topK,
-        maxOutputTokens = preset.maxOutputTokens ?: preset.maxTokens ?: maxOutputTokens,
+        maxOutputTokens = preset.maxOutputTokens ?: preset.maxTokensSnake ?: preset.maxTokensCamel ?: maxOutputTokens,
         maxContextTokens = preset.maxContextTokens ?: maxContextTokens,
         frequencyPenalty = preset.frequencyPenalty?.toFloat() ?: frequencyPenalty,
         presencePenalty = preset.presencePenalty?.toFloat() ?: presencePenalty,

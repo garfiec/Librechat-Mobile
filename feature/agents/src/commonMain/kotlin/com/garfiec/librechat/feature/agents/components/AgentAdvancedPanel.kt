@@ -51,6 +51,8 @@ fun AgentAdvancedPanel(
     modifier: Modifier = Modifier,
     dropParamsMap: Map<String, JsonElement>? = null,
     thinkingDisplayUpdatesSupported: Boolean = false,
+    /** The key of [provider]'s parameter set; see `AgentEditorUiState.parameterProvider`. */
+    parameterProvider: String = provider,
 ) {
     val dropParams = remember(dropParamsMap, provider, model) {
         EndpointDropParams.resolve(dropParamsMap, endpoint = "agents", provider = provider, model = model)
@@ -85,6 +87,7 @@ fun AgentAdvancedPanel(
             val parameters = remember(settings) { settings.toModelParameters() }
             val definitions = remember(
                 provider,
+                parameterProvider,
                 model,
                 extendedEffortSupported,
                 thinkingDisplayUpdatesSupported,
@@ -96,10 +99,11 @@ fun AgentAdvancedPanel(
                     extendedEffortSupported,
                     dropParamsMap,
                     thinkingDisplayUpdatesSupported,
+                    parameterProvider,
                 )
             }
-            val modelRemoved = remember(provider, model, dropParamsMap) {
-                agentModelRemovedOptions(provider, model, dropParamsMap)
+            val modelRemoved = remember(provider, parameterProvider, model, dropParamsMap) {
+                agentModelRemovedOptions(provider, model, dropParamsMap, parameterProvider)
             }
 
             ModelParameterContent(
@@ -108,7 +112,7 @@ fun AgentAdvancedPanel(
                     onSettingsChange(updated.toAgentAdvancedSettings(settings, definitions, modelRemoved))
                 },
                 selectedEndpoint = "agents",
-                selectedProvider = provider.takeIf { it.isNotBlank() },
+                selectedProvider = parameterProvider.takeIf { it.isNotBlank() },
                 selectedModel = model.takeIf { it.isNotBlank() },
                 dropParams = dropParams,
                 extendedEffortSupported = extendedEffortSupported,

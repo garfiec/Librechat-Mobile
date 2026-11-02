@@ -46,7 +46,7 @@ class ChatRequestBuilderSpecTest {
             list = listOf(
                 ModelSpec(
                     name = "deep-o3",
-                    preset = Preset(endpoint = "openAI", model = "o3", reasoningEffort = "high", maxTokens = 32000),
+                    preset = Preset(endpoint = "openAI", model = "o3", reasoningEffort = "high", maxTokensSnake = 32000),
                 ),
             ),
         )

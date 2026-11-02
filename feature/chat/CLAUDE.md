@@ -220,7 +220,15 @@ chat opened on a spec gets the admin's prompt as on web.
 **A spec's preset becomes the chat's parameters** (`util/SpecParameters.kt`), as web copies
 `{...spec.preset, spec}` into the conversation. Without `enforce` the server applies none of the
 preset's public fields (temperature, `reasoning_effort`, `max_tokens`, `maxContextTokens`, …), so the
-client has to send them. Only a change of spec touches the parameters (`acrossSpecChange`, from
+client has to send them. **Only the keys of the selection's parameter set go out, and the server unsets
+every stored field a request leaves out** (`getUnsetFields`), so a key the client drops or misspells is
+also erased from what web set. The set is picked by `ChatUiState.parameterTarget`: a custom endpoint's
+`customParams.defaultParamsEndpoint`, else its `type` (`paramSettingsKey`), never its own name, and an
+agent's provider resolved the same way; the sheet, the payload and `savePreset` all read it. Top P and max
+tokens are spelled per provider (`top_p` / `max_tokens` on openAI, azure and custom, `topP` on the native
+providers, `maxOutputTokens` on Anthropic and Google, `maxTokens` on Bedrock): `Preset` and `Conversation`
+keep one field per spelling, `mergedFromPreset` coalesces them, and `savePreset` writes each under the key
+the set uses (`EndpointParameterRegistry.wireKeyFor`). Only a change of spec touches the parameters (`acrossSpecChange`, from
 `applySelection` and the seeder's spec-config write, `withSpecsRefreshed`), never a re-emission of the
 same one, so a tweak on top of a spec survives config refreshes and is sent:
 - Onto a spec (a pick, a seeded tier, a retargeted spec re-applied): that spec's preset over the defaults.
@@ -865,6 +873,9 @@ existing upload/usage path already handles them.
   conversation (`SkillsToggleDelegate`).
 - Tool toggles and MCP servers live in the paged "+" options sheet (`ChatToolsSheetContent`),
   reached from `ChatInput`'s `onOpenTools`, plus the server's pinned chips (`PinnedToolsRow`).
+- URL context shows only on a Google parameter set and a model the server runs it on
+  (`urlContextProviderGate`, `supportsUrlContext`: Gemini 2.5+, not image/live/TTS/audio). The server
+  skips it elsewhere with only a debug log. Web shows it on every Google model; the divergence is deliberate.
 - **Everything reads the tools in use, not the toggles**: `ModelSelectionState.effectiveTools`,
   `effectiveMcpServerNames` and `sendParameters` (the parameters with web search and URL context
   from the tools in use). The toolbar, the sheet and the request's `ephemeralAgent` go through

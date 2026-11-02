@@ -89,6 +89,24 @@ object EndpointParameterRegistry {
         }.toMap()
     }
 
+    /**
+     * Which of [spellings] (one value's per-provider keys, [TOP_P_KEYS] or [MAX_OUTPUT_TOKENS_KEYS])
+     * the parameter set for [endpoint] / [provider] / [model] uses, or null when it has none of them.
+     * [endpoint] and [provider] are settings keys, as [getDefinitions] takes them.
+     *
+     * Read from the provider's whole list, before `dropParams` and the per-model rules: a preset saved
+     * on a model that hides Top P (Opus 5.5) still keeps its Top P under the provider's spelling.
+     */
+    fun wireKeyFor(endpoint: String, provider: String?, model: String?, spellings: List<String>): String? =
+        baseDefinitions(endpoint, extendedEffortSupported = true, provider, model, dropParams = emptyList())
+            .firstOrNull { it.key in spellings }?.key
+
+    /** Top P's spellings: openAI-like sets use `top_p`, the native providers `topP`. */
+    val TOP_P_KEYS = listOf("top_p", "topP")
+
+    /** Max output tokens' spellings: openAI-like `max_tokens`, Bedrock `maxTokens`, Anthropic/Google `maxOutputTokens`. */
+    val MAX_OUTPUT_TOKENS_KEYS = listOf("max_tokens", "maxTokens", "maxOutputTokens")
+
     // Upstream resolves the settings key from `endpointType ?? provider`, which for the agents
     // endpoint is the agent's own provider — so an Anthropic agent is subject to the same
     // per-model rules as the Anthropic endpoint.
@@ -340,6 +358,12 @@ object EndpointParameterRegistry {
     )
 
     private val EFFORT_KEYS = setOf("reasoning_effort", "effort")
+
+    /** English sources of `param_desc_reasoning_mode` / `param_desc_reasoning_context`. */
+    internal const val REASONING_MODE_DESCRIPTION =
+        "Responses API only: selects the reasoning mode. Pro turns on extended reasoning on models that support it."
+    internal const val REASONING_CONTEXT_DESCRIPTION =
+        "Responses API only: how much earlier reasoning the model reuses."
     private val EXTENDED_EFFORT_VALUES = setOf("xhigh", "max")
     private const val THINKING_DISPLAY_KEY = "thinkingDisplay"
     private val THINKING_DISPLAY_GATED_VALUES = setOf("updates")
@@ -360,6 +384,7 @@ object EndpointParameterRegistry {
         "openai" to openAiParams(),
         "azureopenai" to openAiParams(),
         "custom" to openAiParams(),
+        "openrouter" to openRouterParams(),
         "anthropic" to anthropicParams(),
         "google" to googleParams(),
         "default" to defaultParams(),
@@ -531,22 +556,24 @@ object EndpointParameterRegistry {
         description = "Maximum number of tokens from attached files.",
     )
 
-    private fun bedrockImageDetail() = ParameterDefinition(
-        key = "imageDetail",
-        label = "Image Detail",
+    // Upstream `bedrock.promptCacheTtl`: no default, so unset leaves the provider's.
+    private fun bedrockPromptCacheTtl() = ParameterDefinition(
+        key = "promptCacheTtl",
+        label = "Prompt Cache Duration",
         type = ParameterType.ENUM_SLIDER,
-        options = listOf("low", "auto", "high"),
-        default = "auto",
-        description = "Detail level for image inputs.",
+        options = listOf("", "5m", "1h"),
+        default = "",
+        description = "How long prompt caches persist (Anthropic). Applies when prompt caching is on.",
     )
 
+    // The variant lists below hold only the keys upstream lists. `bedrockInputParser` moves any key it
+    // doesn't know (`imageDetail`, `tags`, …) into `additionalModelRequestFields`, which goes to AWS.
+
     /**
-     * Bedrock — Anthropic variant. Mirrors upstream `bedrockAnthropic`
-     * (parameterSettings.ts:859-876).
+     * Bedrock — Anthropic variant. Mirrors upstream `bedrockAnthropic`.
      *
-     * Note: the wire key is `reasoning_effort`, not `effort`. The Bedrock-Anthropic
-     * effort dropdown intentionally omits `xhigh` and `max` — only the values
-     * [unset, low, medium, high] are valid per upstream `bedrock.reasoning_effort`.
+     * Effort is Anthropic's `effort` (sent as `output_config.effort`): for Claude the server deletes
+     * `reasoning_effort` (`packages/data-provider/src/bedrock.ts`).
      */
     @Suppress("UnusedParameter")
     private fun bedrockAnthropic(extendedEffortSupported: Boolean) = listOf(
@@ -561,6 +588,7 @@ object EndpointParameterRegistry {
         bedrockResendFiles(),
         bedrockRegion(),
         bedrockPromptCache(default = "true"),
+        bedrockPromptCacheTtl(),
         ParameterDefinition(
             key = "thinking",
             label = "Thinking",
@@ -577,16 +605,7 @@ object EndpointParameterRegistry {
             default = BedrockAnthropicDefaults.THINKING_BUDGET,
             description = "Max tokens for thinking (1024-200000).",
         ),
-        ParameterDefinition(
-            key = "reasoning_effort",
-            label = "Reasoning Effort",
-            type = ParameterType.ENUM_SLIDER,
-            // Bedrock-Anthropic effort: enum is [unset, low, medium, high] only;
-            // xhigh/max are NOT valid here — see upstream bedrock.reasoning_effort.
-            options = listOf("", "low", "medium", "high"),
-            default = "",
-            description = "Controls the overall effort level of the response.",
-        ),
+        anthropicEffort(),
         ParameterDefinition(
             key = "thinkingDisplay",
             label = "Reasoning Visibility",
@@ -595,9 +614,7 @@ object EndpointParameterRegistry {
             default = "auto",
             description = "Controls whether reasoning tokens are streamed to the client (Claude Opus 4.7+).",
         ),
-        bedrockImageDetail(),
         bedrockFileTokenLimit(),
-        tagsDefinition(),
     )
 
     // Bedrock — Mistral variant. Mirrors upstream `bedrockMistral`.
@@ -610,9 +627,7 @@ object EndpointParameterRegistry {
         bedrockTopP(default = "1.0"),
         bedrockResendFiles(),
         bedrockRegion(),
-        bedrockStop(),
         bedrockFileTokenLimit(),
-        tagsDefinition(),
     )
 
     // Bedrock — Cohere variant. Mirrors upstream `bedrockCohere`.
@@ -625,9 +640,7 @@ object EndpointParameterRegistry {
         bedrockTopP(default = "0.75", min = 0.01, max = 0.99),
         bedrockResendFiles(),
         bedrockRegion(),
-        bedrockStop(),
         bedrockFileTokenLimit(),
-        tagsDefinition(),
     )
 
     // Bedrock — Meta / general (also used for AI21, Amazon, DeepSeek upstream).
@@ -640,9 +653,8 @@ object EndpointParameterRegistry {
         bedrockResendFiles(),
         bedrockRegion(),
         bedrockPromptCache(default = "false"),
-        bedrockStop(),
+        bedrockPromptCacheTtl(),
         bedrockFileTokenLimit(),
-        tagsDefinition(),
     )
 
     private fun bedrockMeta() = bedrockGeneral()
@@ -669,9 +681,7 @@ object EndpointParameterRegistry {
             default = "",
             description = "Controls the overall effort level of the response.",
         ),
-        bedrockImageDetail(),
         bedrockFileTokenLimit(),
-        tagsDefinition(),
     )
 
     // Bedrock — ZAI variant. Mirrors upstream `bedrockZAI`.
@@ -692,8 +702,20 @@ object EndpointParameterRegistry {
             description = "Controls the overall effort level of the response.",
         ),
         bedrockFileTokenLimit(),
-        tagsDefinition(),
     )
+
+    // Upstream `anthropic.effort`, shared by the Anthropic and Bedrock-Anthropic sets.
+    private fun anthropicEffort() = ParameterDefinition(
+        key = "effort",
+        label = "Effort",
+        type = ParameterType.ENUM_SLIDER,
+        options = listOf("", "low", "medium", "high", "xhigh", "max"),
+        default = "",
+        description = "Controls the overall effort level of the response.",
+    )
+
+    /** Upstream `openRouter`: OpenAI's list plus Anthropic's prompt-cache controls. */
+    private fun openRouterParams() = openAiParams() + anthropicParams().filter { it.key in PROMPT_CACHE_KEYS }
 
     @Suppress("LongMethod") // debt: 150 lines
     private fun openAiParams() = listOf(
@@ -798,6 +820,24 @@ object EndpointParameterRegistry {
             options = listOf("", "auto", "concise", "detailed"),
             default = "",
             description = "How reasoning summary is exposed in the response.",
+        ),
+        ParameterDefinition(
+            key = "reasoning_mode",
+            label = "Reasoning Mode",
+            type = ParameterType.ENUM_SLIDER,
+            // Upstream's ReasoningMode.unset wire value is `""`.
+            options = listOf("", "standard", "pro"),
+            default = "",
+            description = REASONING_MODE_DESCRIPTION,
+        ),
+        ParameterDefinition(
+            key = "reasoning_context",
+            label = "Reasoning Context",
+            type = ParameterType.ENUM_SLIDER,
+            // Upstream's ReasoningContext.unset wire value is `""`.
+            options = listOf("", "auto", "current_turn", "all_turns"),
+            default = "",
+            description = REASONING_CONTEXT_DESCRIPTION,
         ),
         ParameterDefinition(
             key = "verbosity",
@@ -949,14 +989,7 @@ object EndpointParameterRegistry {
             default = AnthropicDefaults.THINKING_BUDGET,
             description = "Max tokens for thinking (1024-200000).",
         ),
-        ParameterDefinition(
-            key = "effort",
-            label = "Effort",
-            type = ParameterType.ENUM_SLIDER,
-            options = listOf("", "low", "medium", "high", "xhigh", "max"),
-            default = "",
-            description = "Controls the overall effort level of the response.",
-        ),
+        anthropicEffort(),
         ParameterDefinition(
             key = "thinkingDisplay",
             label = "Reasoning Visibility",

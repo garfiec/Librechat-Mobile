@@ -61,7 +61,7 @@ class SpecPresetParametersTest {
 
     private val deep = ModelSpec(
         name = "deep",
-        preset = Preset(endpoint = "openAI", model = "gpt-4.1", temperature = 0.9, reasoningEffort = "high", maxTokens = 32000),
+        preset = Preset(endpoint = "openAI", model = "gpt-4.1", temperature = 0.9, reasoningEffort = "high", maxTokensSnake = 32000),
     )
     private val quick = ModelSpec(
         name = "quick",

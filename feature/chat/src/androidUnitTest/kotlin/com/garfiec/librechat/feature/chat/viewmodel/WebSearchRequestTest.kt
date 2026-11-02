@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.viewmodel
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.data.datastore.WebSearchPreference
+import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
@@ -149,10 +150,13 @@ class WebSearchRequestTest {
 
     @Test
     fun `OpenRouter has a built-in search`() {
-        val wire = wire(state(choice = ModelChoice.Raw("OpenRouter", "x/y"), librechatReady = false))
+        val base = state(choice = ModelChoice.Raw("OpenRouter", "x/y"), librechatReady = false)
+        val custom = base.copy(
+            selection = base.selection.copy(endpointConfigs = mapOf("OpenRouter" to EndpointConfig(type = "custom"))),
+        )
 
-        // Top level only: a custom endpoint's parameter list has no web_search row (#667).
-        assertEquals(Wire(librechat = false, topLevel = true, payload = false), wire)
+        // A custom endpoint takes OpenAI's parameter list, which has the web_search row, as on web.
+        assertEquals(builtIn, wire(custom))
     }
 
     @Test

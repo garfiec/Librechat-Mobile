@@ -7,9 +7,11 @@ package com.garfiec.librechat.core.model
  */
 fun Conversation.parameterPreset(): Preset = Preset(
     temperature = temperature,
-    topP = topP,
+    topPSnake = topPSnake,
+    topPCamel = topPCamel,
     topK = topK,
-    maxTokens = maxTokens,
+    maxTokensSnake = maxTokensSnake,
+    maxTokensCamel = maxTokensCamel,
     maxOutputTokens = maxOutputTokens,
     maxContextTokens = maxContextTokens,
     frequencyPenalty = frequencyPenalty,
@@ -54,9 +56,11 @@ val Conversation.parametersStale: Boolean
 /** This conversation with its parameters replaced by [params]' ([parameterPreset]'s inverse). */
 fun Conversation.withParameters(params: Preset): Conversation = copy(
     temperature = params.temperature,
-    topP = params.topP,
+    topPSnake = params.topPSnake,
+    topPCamel = params.topPCamel,
     topK = params.topK,
-    maxTokens = params.maxTokens,
+    maxTokensSnake = params.maxTokensSnake,
+    maxTokensCamel = params.maxTokensCamel,
     maxOutputTokens = params.maxOutputTokens,
     maxContextTokens = params.maxContextTokens,
     frequencyPenalty = params.frequencyPenalty,

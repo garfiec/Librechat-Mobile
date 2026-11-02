@@ -3928,6 +3928,132 @@
       },
       "why": "An IdP bearer requires both OpenID marker cookies on authenticated API and SSE requests; iOS raw SSE mirrors the same contract.",
       "failure_mode": "Login succeeds but subsequent native bearer requests fail authentication because a new strategy-selection rule was not mirrored."
+    },
+    {
+      "id": "conversation-param-wire-keys",
+      "upstream": {
+        "file": "packages/data-provider/src/schemas.ts",
+        "symbol": "tConversationSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/Preset.kt",
+        "symbol": "Preset (and Conversation, ConversationParameters.kt, AddedConversation: one field per spelling)"
+      },
+      "why": "Upstream spells Top P and max output tokens per provider (`top_p` / `max_tokens` for openAI, azure and custom; `topP` for google, anthropic and bedrock; `maxOutputTokens` for google and anthropic; `maxTokens` for bedrock), and each endpoint schema keeps only its own spelling. Preset and Conversation hold one field per spelling (`topPSnake` / `topPCamel`, `maxTokensSnake` / `maxTokensCamel`, `maxOutputTokens`), and `mergedFromPreset` coalesces them into one slot. A key upstream adds or respells has no field here, so nothing reads it.",
+      "failure_mode": "A conversation or spec carrying the new key reopens without it, mobile sends the default, and the server unsets the stored value on the first send (getUnsetFields), erasing what web set."
+    },
+    {
+      "id": "endpoint-param-schema-openai",
+      "upstream": {
+        "file": "packages/data-provider/src/schemas.ts",
+        "symbol": "openAIBaseSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
+        "symbol": "openAiParams"
+      },
+      "why": "The keys the server keeps for openAI, azure and custom endpoints (it parses custom with openAISchema). The registry's openAI list must spell each value the way this schema picks it, or the server strips it.",
+      "failure_mode": "A control is offered and its value sent under a key the schema strips: the setting does nothing, and the stored value under the right key is unset."
+    },
+    {
+      "id": "endpoint-param-schema-anthropic",
+      "upstream": {
+        "file": "packages/data-provider/src/schemas.ts",
+        "symbol": "anthropicBaseSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
+        "symbol": "anthropicParams"
+      },
+      "why": "The keys the server keeps for the anthropic endpoint. The registry's Anthropic list must spell each value the way this schema picks it.",
+      "failure_mode": "A value sent under a key the schema strips does nothing, and the stored value is unset."
+    },
+    {
+      "id": "endpoint-param-schema-google",
+      "upstream": {
+        "file": "packages/data-provider/src/schemas.ts",
+        "symbol": "googleBaseSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
+        "symbol": "googleParams"
+      },
+      "why": "The keys the server keeps for the google endpoint. The registry's Google list must spell each value the way this schema picks it.",
+      "failure_mode": "A value sent under a key the schema strips does nothing, and the stored value is unset."
+    },
+    {
+      "id": "param-settings-key-resolution",
+      "upstream": {
+        "file": "packages/data-provider/src/parsers.ts",
+        "symbol": "getFallbackEndpointSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/ParamSettingsKey.kt",
+        "symbol": "paramSettingsKey"
+      },
+      "why": "Which parameter set a custom endpoint uses: `customParams.defaultParamsEndpoint` (the server fills it from the endpoint's `provider`), else its `type`. Web's Panel.tsx and the agent model panel resolve it the same way. The registry is keyed on the result, never on the endpoint's own name, which names no parameter set.",
+      "failure_mode": "A custom endpoint falls back to the generic list: its Top P and max tokens go out camelCased and the server's openAISchema strips them, along with every OpenAI-only control."
+    },
+    {
+      "id": "endpoint-schema-keys",
+      "upstream": {
+        "file": "packages/data-provider/src/parsers.ts",
+        "symbol": "endpointSchemas",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/ParamSettingsKey.kt",
+        "symbol": "ENDPOINT_SCHEMA_KEYS"
+      },
+      "why": "The server honours `customParams.defaultParamsEndpoint` only when it is exactly one of these keys (`isEndpointSchemaLookupKey`); any other value parses with the endpoint `type`'s schema. `paramSettingsKey` accepts the override on the same test.",
+      "failure_mode": "An override the server ignores (or one it newly accepts) picks a different parameter set on the client: values go out under keys the server's schema strips, and the stored values are unset."
+    },
+    {
+      "id": "bedrock-input-parser-keys",
+      "upstream": {
+        "file": "packages/data-provider/src/bedrock.ts",
+        "symbol": "bedrockInputParser",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
+        "symbol": "bedrockAnthropic / bedrockMistral / bedrockCohere / bedrockGeneral / bedrockMoonshot / bedrockZai"
+      },
+      "why": "The keys Bedrock knows. Any other key is moved into `additionalModelRequestFields` and sent to AWS, so the Bedrock variant lists hold only what upstream lists. Claude effort is `effort` (sent as `output_config.effort`); the parser deletes `reasoning_effort` for Claude.",
+      "failure_mode": "A control sends a key the parser forwards to AWS (which may reject the request) or deletes (the control does nothing)."
+    },
+    {
+      "id": "conversation-unset-fields",
+      "upstream": {
+        "file": "packages/api/src/conversations/save.ts",
+        "symbol": "getUnsetFields",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/ModelParamPayload.kt",
+        "symbol": "ModelParamPayload.build"
+      },
+      "why": "Every chat turn unsets each stored conversation field the request leaves out (except `excludedKeys`). The payload sends only registry keys, so a key the client drops or misspells is erased from the conversation, including one set on web. See feature/chat/CLAUDE.md, \"A spec's preset becomes the chat's parameters\".",
+      "failure_mode": "If upstream narrows or widens what gets unset, mobile's omissions change meaning: a value left out could start surviving (stale) or start being erased."
+    },
+    {
+      "id": "url-context-model-support",
+      "upstream": {
+        "file": "packages/api/src/endpoints/google/llm.ts",
+        "symbol": "supportsUrlContext",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/UrlContextSupport.kt",
+        "symbol": "supportsUrlContext"
+      },
+      "why": "Which Gemini models the server runs URL Context on (2.5+, not image/live/TTS/audio). The two regexes it reads are declared just above the function and are part of this mirror. The chat hides the toggle on other models (ChatUiState.urlContextProviderGate); web doesn't.",
+      "failure_mode": "The toggle shows on a model the server skips it for (a silent no-op), or hides on a newly supported one."
     }
   ]
 }

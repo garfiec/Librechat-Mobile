@@ -156,6 +156,8 @@
     <string name="param_label_prompt_caching">Cache de prompt</string>
     <string name="param_label_reasoning_effort">Esforço de raciocínio</string>
     <string name="param_label_reasoning_summary">Resumo do raciocínio</string>
+    <string name="param_label_reasoning_mode">Modo de raciocínio</string>
+    <string name="param_label_reasoning_context">Contexto do raciocínio</string>
     <string name="param_label_reasoning_visibility">Visibilidade do raciocínio</string>
     <string name="param_label_region">Região</string>
     <string name="param_label_resend_files">Reenviar arquivos</string>
@@ -181,6 +183,10 @@
     <string name="param_option_auto">Automático</string>
     <string name="param_option_concise">Conciso</string>
     <string name="param_option_detailed">Detalhado</string>
+    <string name="param_option_standard">Padrão</string>
+    <string name="param_option_pro">Pro</string>
+    <string name="param_option_current_turn">Turno atual</string>
+    <string name="param_option_all_turns">Todos os turnos</string>
     <string name="param_option_summarized">Resumido</string>
     <string name="param_option_omitted">Omitido</string>
     <string name="param_option_updates">Atualizações</string>
@@ -207,6 +213,8 @@
     <string name="param_desc_frequency_penalty">Penaliza tokens conforme sua frequência no texto.</string>
     <string name="param_desc_url_context">Permite que o modelo busque as URLs (e YouTube) citadas e se baseie nelas.</string>
     <string name="param_desc_reasoning_summary">Como o resumo do raciocínio aparece na resposta.</string>
+    <string name="param_desc_reasoning_mode">Somente Responses API: escolhe o modo de raciocínio. Pro ativa o raciocínio estendido nos modelos compatíveis.</string>
+    <string name="param_desc_reasoning_context">Somente Responses API: quanto do raciocínio anterior o modelo reutiliza.</string>
     <string name="param_desc_prompt_cache_duration">Por quanto tempo o cache de prompt persiste (Anthropic). Vale quando o cache de prompt está ativado.</string>
     <string name="param_desc_thinking_level">Controla quanto o modelo raciocina.</string>
     <string name="param_desc_reasoning_effort">Controla quanto raciocínio o modelo realiza.</string>

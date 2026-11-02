@@ -160,6 +160,8 @@
     <string name="param_label_prompt_caching">Кэширование промптов</string>
     <string name="param_label_reasoning_effort">Глубина рассуждений</string>
     <string name="param_label_reasoning_summary">Сводка рассуждений</string>
+    <string name="param_label_reasoning_mode">Режим рассуждений</string>
+    <string name="param_label_reasoning_context">Контекст рассуждений</string>
     <string name="param_label_reasoning_visibility">Видимость рассуждений</string>
     <string name="param_label_region">Регион</string>
     <string name="param_label_resend_files">Повторно отправлять файлы</string>
@@ -185,6 +187,10 @@
     <string name="param_option_auto">Авто</string>
     <string name="param_option_concise">Кратко</string>
     <string name="param_option_detailed">Подробно</string>
+    <string name="param_option_standard">Стандартный</string>
+    <string name="param_option_pro">Pro</string>
+    <string name="param_option_current_turn">Текущий ход</string>
+    <string name="param_option_all_turns">Все ходы</string>
     <string name="param_option_summarized">Сводка</string>
     <string name="param_option_omitted">Скрыто</string>
     <string name="param_option_updates">Обновления</string>
@@ -211,6 +217,8 @@
     <string name="param_desc_frequency_penalty">Штрафует токены в зависимости от частоты их появления в тексте.</string>
     <string name="param_desc_url_context">Модель загружает упомянутые вами URL (и YouTube) и опирается на них.</string>
     <string name="param_desc_reasoning_summary">Как сводка рассуждений отображается в ответе.</string>
+    <string name="param_desc_reasoning_mode">Только Responses API: выбирает режим рассуждений. Pro включает расширенные рассуждения на поддерживаемых моделях.</string>
+    <string name="param_desc_reasoning_context">Только Responses API: сколько прежних рассуждений модель использует повторно.</string>
     <string name="param_desc_prompt_cache_duration">Сколько хранится кэш промптов (Anthropic). Действует при включённом кэшировании.</string>
     <string name="param_desc_thinking_level">Определяет, сколько модель размышляет.</string>
     <string name="param_desc_reasoning_effort">Определяет глубину рассуждений модели.</string>

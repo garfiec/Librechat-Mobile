@@ -168,6 +168,8 @@
     <string name="param_label_prompt_caching">التخزين المؤقت للموجه</string>
     <string name="param_label_reasoning_effort">جهد الاستدلال</string>
     <string name="param_label_reasoning_summary">ملخص الاستدلال</string>
+    <string name="param_label_reasoning_mode">وضع الاستدلال</string>
+    <string name="param_label_reasoning_context">سياق الاستدلال</string>
     <string name="param_label_reasoning_visibility">إظهار الاستدلال</string>
     <string name="param_label_region">المنطقة</string>
     <string name="param_label_resend_files">إعادة إرسال الملفات</string>
@@ -193,6 +195,10 @@
     <string name="param_option_auto">تلقائي</string>
     <string name="param_option_concise">موجز</string>
     <string name="param_option_detailed">مفصل</string>
+    <string name="param_option_standard">قياسي</string>
+    <string name="param_option_pro">Pro</string>
+    <string name="param_option_current_turn">الدور الحالي</string>
+    <string name="param_option_all_turns">كل الأدوار</string>
     <string name="param_option_summarized">ملخص</string>
     <string name="param_option_omitted">محذوف</string>
     <string name="param_option_updates">تحديثات</string>
@@ -219,6 +225,8 @@
     <string name="param_desc_frequency_penalty">يعاقب الرموز بناءً على تكرارها في النص حتى الآن.</string>
     <string name="param_desc_url_context">يتيح للنموذج جلب عناوين URL (وYouTube) التي تشير إليها والاستناد إليها.</string>
     <string name="param_desc_reasoning_summary">كيفية عرض ملخص الاستدلال في الرد.</string>
+    <string name="param_desc_reasoning_mode">لواجهة Responses API فقط: يحدد وضع الاستدلال. يفعّل Pro الاستدلال الموسّع على النماذج التي تدعمه.</string>
+    <string name="param_desc_reasoning_context">لواجهة Responses API فقط: مقدار الاستدلال السابق الذي يعيد النموذج استخدامه.</string>
     <string name="param_desc_prompt_cache_duration">مدة بقاء ذاكرة الموجه المؤقتة (Anthropic). تنطبق عند تفعيل التخزين المؤقت للموجه.</string>
     <string name="param_desc_thinking_level">يتحكم في مقدار تفكير النموذج.</string>
     <string name="param_desc_reasoning_effort">يتحكم في مقدار استدلال النموذج.</string>

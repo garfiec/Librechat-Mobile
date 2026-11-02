@@ -33,4 +33,19 @@ data class EndpointConfig(
     val userProvideSecretAccessKey: Boolean? = null,
     val userProvideSessionToken: Boolean? = null,
     val userProvideBearerToken: Boolean? = null,
+    /** A custom endpoint's parameter overrides; see [CustomParams]. Absent on other endpoints. */
+    val customParams: CustomParams? = null,
+)
+
+/**
+ * A custom endpoint's `customParams` as `/api/endpoints` serves them. Only the key that picks the
+ * parameter set is read; `paramDefinitions` (an admin's definition overrides) is not honoured.
+ */
+@Serializable
+data class CustomParams(
+    /**
+     * The endpoint whose parameter set this one uses (`anthropic`, `google`, `openrouter`, …). The
+     * server fills it from the endpoint's `provider` unless the admin chose one other than `custom`.
+     */
+    val defaultParamsEndpoint: String? = null,
 )

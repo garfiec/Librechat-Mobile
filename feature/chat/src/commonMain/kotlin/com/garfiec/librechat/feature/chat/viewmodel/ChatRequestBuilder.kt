@@ -1,6 +1,5 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
-import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.model.request.EphemeralAgent
@@ -92,20 +91,18 @@ class ChatRequestBuilder(
      */
     fun buildModelParams(): JsonObject? {
         val state = stateProvider()
-        val isAgent = state.selectedEndpoint == EndpointConstants.AGENTS
-        val agent = if (isAgent) state.agents.firstOrNull { it.id == state.selectedModel } else null
+        // The same target the options sheet renders from, so a control it shows is a key sent here.
+        // Its model is the agent's own on the agents endpoint, never the agent id `selectedModel` holds.
+        val target = state.parameterTarget
         return ModelParamPayload.build(
-            endpoint = state.selectedEndpoint,
-            provider = agent?.provider,
-            // The agent's own model, not `selectedModel` — that is the AGENT ID on this endpoint,
-            // and every model-keyed rule in the registry (Bedrock's variant dispatch, the Anthropic
-            // prompt-cache filter, Google's thinking-budget bounds) would resolve against a string
-            // no rule can match. The options sheet already passes the agent's model, so a mismatch
-            // here renders a control and then drops the value it produced.
-            model = agent?.model ?: state.selectedModel,
+            endpoint = target.endpoint,
+            provider = target.provider,
+            model = target.model,
             extendedEffortSupported = state.extendedEffortSupported,
             params = state.selection.sendParameters.copy(webSearch = state.webSearchRoute == WebSearchRoute.BUILT_IN),
             dropParamsMap = state.gates.dropParamsMap,
+            settingsEndpoint = target.settingsEndpoint,
+            settingsProvider = target.settingsProvider,
         ).takeIf { it.isNotEmpty() }
     }
 
