@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.data.repository
 
+import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.mcp.McpOAuthLaunch
 import com.google.common.truth.Truth.assertThat
@@ -58,5 +59,33 @@ class McpOAuthLauncherTest {
     fun `a failed bind is reported, not opened`() = runTest {
         coEvery { mcp.bindOAuth(any()) } returns Result.Error(message = "nope")
         assertThat(launcher("0.8.9").prepare("github", "https://idp")).isInstanceOf(Result.Error::class.java)
+    }
+
+    @Test
+    fun `an unknown version whose server lacks the bind route falls back to the system browser`() = runTest {
+        coEvery { mcp.bindOAuth(any()) } returns
+            Result.Error(exception = ApiException(statusCode = 404, message = "Not Found"))
+
+        val launch = (launcher(null).prepare("github", "https://idp") as Result.Success).data
+
+        assertThat(launch).isEqualTo(McpOAuthLaunch.External("github", "https://idp"))
+    }
+
+    @Test
+    fun `a bind 404 on a server reporting rc1 still falls back rather than failing`() = runTest {
+        coEvery { mcp.bindOAuth(any()) } returns
+            Result.Error(exception = ApiException(statusCode = 404, message = "Not Found"))
+
+        val launch = (launcher("0.8.9-rc1").prepare("github", "https://idp") as Result.Success).data
+
+        assertThat(launch).isEqualTo(McpOAuthLaunch.External("github", "https://idp"))
+    }
+
+    @Test
+    fun `a bind failure other than 404 is still reported`() = runTest {
+        coEvery { mcp.bindOAuth(any()) } returns
+            Result.Error(exception = ApiException(statusCode = 500, message = "Failed to bind OAuth flow"))
+
+        assertThat(launcher(null).prepare("github", "https://idp")).isInstanceOf(Result.Error::class.java)
     }
 }

@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.data.repository
 
 import com.garfiec.librechat.core.common.BackendVersion
+import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.mcp.McpOAuthLaunch
 import kotlinx.coroutines.flow.first
@@ -13,10 +14,14 @@ import kotlinx.coroutines.flow.first
  * redirects to `/oauth/error?error=csrf_validation_failed` unless the browser carries the
  * `oauth_csrf` or `oauth_session` cookie. Those are set only on the response to an authenticated
  * request, and this app's HTTP client keeps no jar, so on those servers the cookies from
- * `POST /oauth/bind` are seeded into an in-app WebView ([McpOAuthLaunch.InApp]). An unknown version
- * takes that path too: bind exists on every supported server, so it works either way. A known older
+ * `POST /oauth/bind` are seeded into an in-app WebView ([McpOAuthLaunch.InApp]). A known older
  * server keeps the system browser ([McpOAuthLaunch.External]), where the pending-flow fallback lets
  * the callback through. See VERSION_GATES.md.
+ *
+ * An unknown version tries the bind too, but the route only exists from upstream v0.8.3-rc1, so a
+ * 404 from it (on any version: the handler itself never answers 404) means the route is missing and
+ * the server predates the cookie check. That falls back to the system browser rather than failing
+ * the sign-in.
  *
  * Bound at the moment of the tap, never earlier: the CSRF cookie lives ten minutes, and a later
  * prompt for the same callback path replaces it.
@@ -38,13 +43,22 @@ class McpOAuthLauncher(
                     seedCookies = bound.data,
                 ),
             )
-            is Result.Error -> bound
+            is Result.Error ->
+                if (bound.isRouteMissing()) {
+                    Result.Success(McpOAuthLaunch.External(serverName, authorizationUrl))
+                } else {
+                    bound
+                }
             Result.Loading -> Result.Error(message = null)
         }
     }
 
+    private fun Result.Error.isRouteMissing(): Boolean =
+        (exception as? ApiException)?.statusCode == HTTP_NOT_FOUND
+
     companion object {
         const val BROWSER_BINDING_MIN_VERSION = "0.8.9-rc1"
+        private const val HTTP_NOT_FOUND = 404
 
         fun usesBoundWebView(version: String?): Boolean =
             version == null || BackendVersion.isCompatibleOrNewer(version, BROWSER_BINDING_MIN_VERSION)
