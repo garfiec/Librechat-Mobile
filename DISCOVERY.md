@@ -1708,9 +1708,37 @@ GET    /api/messages/:c/:m/subagent-calls?files=[…]            subagent-file-d
 POST   /api/mcp/app/validate, /resources/read, /resources/list, /resources/templates/list,
        /app-tool-call                                          MCP Apps (BUILT; see "MCP Apps" below).
 GET    /api/mcp/sandbox                                        web's sandbox proxy: NOT used (see below)
-GET    /api/convos/:conversationId/pull-request; POST /api/convos/pull-requests; /api/pull-requests/*
-                                                               (NOT built; wave 3)
+GET    /api/convos/:conversationId/pull-request             {pullRequest|null} (BUILT; see "Conversation pull requests")
+POST   /api/convos/pull-requests {conversationIds}             {results:[…]} (BUILT; bare body, max 50)
+GET|DELETE /api/pull-requests/oauth/*                          account connection: NOT built (slice 2, deferred)
 ```
+
+**Conversation pull requests** (BUILT slice 1, v0.8.9-rc1; abed1a29e3e5 #16794)
+- Gate: `isCompatibleOrNewer(version, "0.8.9-rc1") && pullRequestsEnabled == true`
+  (`pullRequestsAvailable`); the drawer's batch also needs `pullRequestsBatchVersion == 1`
+  (`pullRequestBatchAvailable`). `pullRequestsMaxConcurrentLookups` (default 4) bounds batch chunks in
+  flight; `pullRequestsConnect` is decoded only (the account row is deferred).
+- `GET /api/convos/:id/pull-request` → `{ pullRequest: TConversationPullRequest | null }`. `null` is not
+  an error (no lane, repo not allowed, feature off, another user's chat, an unconnected OAuth-only
+  user). 404 `{error}` bad id; 503 `{code: NOT_CONFIGURED|RATE_LIMITED|UPSTREAM_ERROR}`; 500. Codes are
+  logged, never shown; all read the same.
+- `POST /api/convos/pull-requests` takes a **bare** `{conversationIds: string[]}` (not `arg`-wrapped),
+  at most 50 (`PULL_REQUEST_BATCH_MAX`), and answers `{results: [{conversationId, pullRequest} |
+  {conversationId, error:{code}}]}` by the server's own deadline (≤120 s, so the client lifts its 30 s
+  cap). A 404 (a replica without the route) falls back to single GETs with the same bound.
+- `TConversationPullRequest`: `number, title, url, provider?` (absent = github), `additions, deletions,
+  state (open|closed|merged), isDraft, mergeable (clean|conflicting|unknown), checks
+  (passing|failing|running|none)`. Enumerated fields stay strings on the client.
+- Only code chats are asked (`isCodeConversation`: `codeEnvironmentMode == "attached"` or a non-empty
+  `codeWorkspaces`). List rows (rc1) carry `codeDecisionListed: true` when the replica projected the
+  code fields; Room keeps a derived nullable `isCodeConversation` column (DB 14): a full single GET
+  settles it, a stamped list row says false, anything else keeps what the cache knew; null = ask.
+- Results are in memory only (`PullRequestRepository`, per account), never Room. The chat polls on
+  upstream's interval (20 s while checks run or mergeability is unknown, 60 s otherwise, stop once
+  closed/merged with checks done) only while the chat screen is in front; the drawer never polls.
+- `/api/pull-requests/oauth/{status,connect,callback}` and `DELETE /oauth` exist only when the operator
+  configured `pullRequests.oauth`. `/oauth/connect` sets its own binding cookies (`oauth_csrf`,
+  `oauth_session`); there is no separate bind call, unlike MCP. Not built (slice 2).
 
 **MCP Apps** (BUILT, v0.8.9-rc1; 7b27e7941e11 #13831)
 - Gate: `GET /api/config` (authenticated) → `mcpApps` (`TMCPAppsPolicy`), read as web's
@@ -1808,7 +1836,8 @@ GET    /api/convos/:conversationId/pull-request; POST /api/convos/pull-requests;
   policy links pass through `isSafeLinkUrl`. `balance` gains `refillMode` (`add`|`reset`) and
   `display` (`credits`|`currency`|`percent`). Not yet decoded (waves 2/3): `passkeyLoginEnabled`,
   `maxPasskeysPerUser`, `allowEmailChange`, `conversationListLimits`, `ragEnabled`, `projects{…}`,
-  `pullRequests*`, `codeWorkspaceInheritanceVersion`, (`mcpApps{…}` is now read: see "MCP Apps"),
+  `codeWorkspaceInheritanceVersion`, (`mcpApps{…}` and `pullRequests*` are now read: see "MCP Apps",
+  "Conversation pull requests"),
   `interface.replyNotifications`.
 - `interface.theme` (decoded raw): a bundled name (`librechat`, `clickhouse`) or an inline
   `{ version: 1, name, modes: { light, dark: { colors: { "rgb-accent-primary": "R G B", … } } } }`,

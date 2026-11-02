@@ -1526,6 +1526,23 @@ attachment. The chat shows an inert "Open app" row and runs the App in a full-sc
   relay's loader CSP needs a `frame-src` entry for its `about:srcdoc` child, and that WebKit
   delivers the inner frame's `message` events to the isolated content world.
 
+## Conversation pull requests (v0.8.9-rc1, slice 1)
+A code chat (one that ran against an attached workspace) can have a pull request; web shows it in the
+header, its small-screen layout in the ⋮ menu, which is where it goes here.
+- **Who is asked** (`PullRequestDelegate`): `pullRequestsAvailable` (rc1 + `pullRequestsEnabled`), a
+  saved chat not on its first streaming turn, and `Conversation.isCodeConversation == true` from the
+  cached row. A row cached before that was known is read once in full on open (the
+  `ConversationLoadDelegate` backfill), which settles it. Nothing else is ever looked up.
+- **In memory only**: `:core:data` `PullRequestRepository`, per account, shared with the drawer's
+  marks so the open chat isn't fetched twice. Never Room. Polls on upstream's interval only while the
+  screen is in front (`onPause`/`onResume`); on return an answer over 15 s old is asked at once.
+- **UI**: `ChatOverflowItem.PULL_REQUEST` leads the conversation section once a lookup found one
+  (absent otherwise; never disabled). Material draws `PullRequestStateIcon` with the CI dot; glass and
+  the native iOS menu get a `BarMenuItem` whose subtitle says the state and checks in words.
+  `PullRequestSheet` opens from it, reads the live state, shows its link only for
+  `ConversationPullRequest.openableUrl()` (absolute http(s) passing `isSafeLinkUrl`), and a Retry row
+  when a refresh failed after a success. Account connection (slice 2) is not built.
+
 ## Tool intent labels (v0.8.8)
 A tool card's title is the model's own `intent` string when present, else the raw tool name.
 **Accepted only when it is the FIRST key of the args object** — the opt-in (capability +

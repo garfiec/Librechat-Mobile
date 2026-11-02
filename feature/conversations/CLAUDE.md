@@ -72,3 +72,12 @@ The conversation list lives in the drawer (`drawer/DrawerContent.kt`, `DrawerVie
   Bundle limit.
 - Project errors are string resources (`ShowErrorRes`); the description field is capped at
   `projects.maxDescriptionLength` (the server answers 400 above it) and the name at 100 (the server cuts it).
+
+## Pull request marks (v0.8.9-rc1)
+- `drawer/DrawerPullRequests.kt`: while the drawer is open, the shown rows that may be code chats
+  (`Conversation.isCodeConversation != false`) and aren't running are asked through the batch route,
+  one batch of up to 50, re-asked once their answer is a minute old. Rows never poll. Gate:
+  `pullRequestBatchAvailable` (rc1 + `pullRequestsEnabled` + `pullRequestsBatchVersion == 1`).
+- The mark (`PullRequestStateIcon`, 16dp) sits before the star, is decorative (the row still opens the
+  chat, whose ⋮ has the detail) and carries the summary as its description. Hidden on running rows.
+- Answers come from `:core:data` `PullRequestRepository` (memory only, per account), shared with the chat.
