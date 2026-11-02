@@ -19,6 +19,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -78,5 +79,18 @@ class PromptsViewModelExternalGroupTest {
     fun aNativeOrUnlabelledGroupStaysEditable() {
         assertNull(open("native").uiState.value.selectedGroup?.external)
         assertNull(open(null).uiState.value.selectedGroup?.external)
+    }
+
+    @Test
+    fun aFailedLiveReadShowsTheTextAsUnavailable() {
+        coEvery { promptRepository.getAllGroups() } returns Result.Success(listOf(group("langfuse")))
+        coEvery { promptRepository.getGroup(any()) } returns Result.Success(group("langfuse"))
+        coEvery { promptRepository.withResolvedText(any()) } returns Result.Error(message = "offline")
+        val vm = PromptsViewModel(promptRepository, roleRepository, permissionGate).also { it.selectGroup("g-1") }
+
+        val detail = vm.uiState.value.selectedGroup
+        assertTrue(detail?.textUnavailable == true)
+        // No stale body to Use: the detail's Use button is enabled only on text.
+        assertNull(detail?.productionPromptText)
     }
 }

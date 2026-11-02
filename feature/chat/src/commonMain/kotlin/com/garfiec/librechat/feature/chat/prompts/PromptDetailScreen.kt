@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.LibreChatTopBar
 import com.garfiec.librechat.core.ui.components.topbar.BarAction
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
@@ -44,6 +45,7 @@ fun PromptDetailScreen(
     onEdit: (String) -> Unit,
     modifier: Modifier = Modifier,
     onShare: () -> Unit = {},
+    onRetryText: () -> Unit = {},
     isDeleting: Boolean = false,
 ) {
     AdaptiveScaffold(
@@ -166,6 +168,18 @@ fun PromptDetailScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(12.dp),
                     )
+                }
+            }
+
+            if (group.textUnavailable) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = stringResource(Res.string.prompt_text_unavailable),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                AdaptiveTextButton(onClick = onRetryText) {
+                    Text(stringResource(Res.string.retry))
                 }
             }
 

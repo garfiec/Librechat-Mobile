@@ -3,7 +3,6 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.common.result.getOrNull
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
 import com.garfiec.librechat.core.model.Preset
@@ -287,7 +286,14 @@ class PresetPromptDelegate(
         if (group.isExternal) {
             // An externally managed group (v0.8.9-rc1) stores no text: read it live first.
             handle.scope.launch {
-                promptRepository.withResolvedText(group).getOrNull()?.let { insertSlashCommand(displayData, it) }
+                when (val resolved = promptRepository.withResolvedText(group)) {
+                    is Result.Success -> insertSlashCommand(displayData, resolved.data)
+                    is Result.Error -> {
+                        Logger.d(resolved.exception) { "Failed to resolve prompt text: ${resolved.message}" }
+                        handle.setError(resolved.message ?: ChatNotice.PROMPT_RESOLVE_FAILED.marker())
+                    }
+                    is Result.Loading -> { /* no-op */ }
+                }
             }
             return
         }

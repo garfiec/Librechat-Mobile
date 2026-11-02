@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
-import com.garfiec.librechat.core.common.result.getOrNull
 import com.garfiec.librechat.core.data.repository.PromptRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
@@ -189,12 +188,19 @@ class PromptsViewModel(
                         return@launch
                     }
                     val prompts = (promptsResult as? Result.Success)?.data ?: emptyList()
-                    // An external group stores no text; a failed live read leaves it textless.
-                    val mergedGroup = group.copy(prompts = prompts).let { merged ->
-                        promptRepository.withResolvedText(merged).getOrNull() ?: merged
+                    val merged = group.copy(prompts = prompts)
+                    // An external group stores no text: it is read live, and a failed read is
+                    // shown as such rather than as a prompt with no body.
+                    val detail = when (val resolved = promptRepository.withResolvedText(merged)) {
+                        is Result.Success -> resolved.data.toDetailDisplayData()
+                        is Result.Error -> {
+                            Logger.d(resolved.exception) { "Failed to resolve prompt text: ${resolved.message}" }
+                            merged.toDetailDisplayData().copy(productionPromptText = null, textUnavailable = true)
+                        }
+                        is Result.Loading -> merged.toDetailDisplayData()
                     }
                     _uiState.value = _uiState.value.copy(
-                        selectedGroup = mergedGroup.toDetailDisplayData(),
+                        selectedGroup = detail,
                         isLoading = false,
                     )
                 }

@@ -501,6 +501,7 @@
     <string name="prompt_author">by %1$s</string>
     <string name="prompt_managed_in_langfuse_named">Managed in Langfuse (prompt %1$s). Edit it in Langfuse.</string>
     <string name="prompt_managed_in_langfuse">Managed in Langfuse. Edit it in Langfuse.</string>
+    <string name="prompt_text_unavailable">Could not load this prompt's text.</string>
     <string name="prompt_managed_externally">Managed outside LibreChat, so it can't be changed here.</string>
     <string name="prompt_sort_label">Sort: %1$s</string>
 
@@ -781,6 +782,7 @@
     <string name="notice_preset_save_failed">Could not save preset</string>
     <string name="notice_preset_delete_failed">Could not delete preset</string>
     <string name="notice_preset_update_failed">Could not update preset</string>
+    <string name="notice_prompt_resolve_failed">Could not load this prompt's text. Try again.</string>
     <string name="notice_continue_response_failed">Failed to continue with selected response</string>
     <string name="notice_favorites_limit">You can pin up to %1$d favorites.</string>
     <string name="notice_favorites_update_failed">Could not update favorites.</string>

@@ -29,6 +29,9 @@ enum class ChatNotice(val wire: String) {
     PRESET_SAVE_FAILED("preset_save_failed"),
     PRESET_DELETE_FAILED("preset_delete_failed"),
     PRESET_UPDATE_FAILED("preset_update_failed"),
+
+    /** An external (Langfuse) prompt picked from `/` whose live text could not be read. */
+    PROMPT_RESOLVE_FAILED("prompt_resolve_failed"),
     CONTINUE_RESPONSE_FAILED("continue_response_failed"),
 
     /** A message edit the server refused, when it gave no reason of its own. */
