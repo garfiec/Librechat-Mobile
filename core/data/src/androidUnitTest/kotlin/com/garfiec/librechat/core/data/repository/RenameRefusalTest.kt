@@ -11,7 +11,8 @@ class RenameRefusalTest {
 
     @Test
     fun `the rolling-upgrade 409 reads as not ready`() {
-        val e = ApiException(statusCode = 409, message = "x", body = """{"error":"conversation_title_ownership_not_ready"}""")
+        val e =
+            ApiException(statusCode = 409, message = "x", body = """{"error":"conversation_title_ownership_not_ready"}""")
         assertThat(renameRefusalOf(e)).isEqualTo(RenameRefusal.TITLE_NOT_READY)
     }
 

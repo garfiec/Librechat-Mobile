@@ -178,7 +178,10 @@ class EndpointParameterRegistryModelAwareTest {
 
     @Test
     fun haiku55KeepsTheThinkingToggleButHidesBudgetAndSampling() {
-        for (model in listOf("claude-haiku-5-5", "claude-haiku-5.5", "claude-5-5-haiku", "global.anthropic.claude-haiku-5-5", "claude-haiku-6")) {
+        val haikus = listOf(
+            "claude-haiku-5-5", "claude-haiku-5.5", "claude-5-5-haiku", "global.anthropic.claude-haiku-5-5", "claude-haiku-6",
+        )
+        for (model in haikus) {
             val defs = anthropic(model)
             val keys = keysOf(defs)
             assertTrue(keys.contains("thinking"), model)

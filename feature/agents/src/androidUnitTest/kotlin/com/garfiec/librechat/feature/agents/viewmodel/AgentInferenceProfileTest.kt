@@ -20,7 +20,8 @@ class AgentInferenceProfileTest {
 
     @Test
     fun `each family keeps its own keys and drops another family's`() {
-        val params = mapOf("temperature" to n, "reasoning_effort" to n, "topK" to n, "thinking" to n, "frequency_penalty" to n)
+        val params =
+            mapOf("temperature" to n, "reasoning_effort" to n, "topK" to n, "thinking" to n, "frequency_penalty" to n)
         assertThat(keep(params, "anthropic")).containsExactly("temperature", "topK", "thinking")
         assertThat(keep(params, "openAI")).containsExactly("temperature", "reasoning_effort", "frequency_penalty")
         assertThat(keep(params, "google")).containsExactly("temperature", "topK", "thinking")
@@ -89,8 +90,10 @@ class AgentInferenceProfileTest {
 
     @Test
     fun `the save filters only on a server known to check`() {
-        val settings = AgentAdvancedSettings(temperature = 0.5f, extras = mapOf("reasoning_effort" to JsonPrimitive("high")))
-        val base = AgentEditorUiState(name = "a", provider = "anthropic", model = "claude-x", advancedSettings = settings)
+        val settings =
+            AgentAdvancedSettings(temperature = 0.5f, extras = mapOf("reasoning_effort" to JsonPrimitive("high")))
+        val base =
+            AgentEditorUiState(name = "a", provider = "anthropic", model = "claude-x", advancedSettings = settings)
         assertThat(base.toUpdateAgentRequest().modelParameters!!.keys).containsExactly("temperature", "reasoning_effort")
         val filtered = base.copy(filtersInferenceParameters = true).toUpdateAgentRequest().modelParameters as JsonObject
         assertThat(filtered.keys).containsExactly("temperature")
@@ -99,7 +102,13 @@ class AgentInferenceProfileTest {
     @Test
     fun `a custom endpoint not yet known is saved as it is`() {
         val settings = AgentAdvancedSettings(extras = mapOf("routing_hint" to JsonPrimitive("x")))
-        val state = AgentEditorUiState(name = "a", provider = "MyGateway", model = "m", advancedSettings = settings, filtersInferenceParameters = true)
+        val state = AgentEditorUiState(
+            name = "a",
+            provider = "MyGateway",
+            model = "m",
+            advancedSettings = settings,
+            filtersInferenceParameters = true,
+        )
         assertThat(state.toUpdateAgentRequest().modelParameters!!.keys).containsExactly("routing_hint")
     }
 

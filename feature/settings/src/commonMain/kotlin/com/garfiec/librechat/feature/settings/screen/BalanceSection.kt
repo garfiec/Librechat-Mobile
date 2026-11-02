@@ -28,8 +28,8 @@ import com.garfiec.librechat.core.common.extensions.formatLocalizedNumber
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionScope
-import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.core.ui.contextusage.formatCost
+import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.feature.settings.model.AutoRefillInfo
 import com.garfiec.librechat.feature.settings.model.BalanceDisplay
 import com.garfiec.librechat.feature.settings.model.CREDITS_PER_USD
@@ -63,7 +63,7 @@ internal fun AdaptiveSectionScope.balanceRows(state: BalanceUiState, onRetry: ()
  * with no credit figure anywhere.
  */
 @Composable
-private fun CreditsRow(tokenCredits: Double?, reading: BalanceUiState.Loaded? = null, modifier: Modifier = Modifier) {
+private fun CreditsRow(tokenCredits: Double?, modifier: Modifier = Modifier, reading: BalanceUiState.Loaded? = null) {
     val localeTag = LocalDateTimeFormat.current.localeTag
     val display = reading?.display ?: BalanceDisplay.CREDITS
     val usedPercent = reading?.usedPercent
@@ -79,7 +79,8 @@ private fun CreditsRow(tokenCredits: Double?, reading: BalanceUiState.Loaded? = 
             }
         }
     }
-    val title = stringResource(if (display == BalanceDisplay.PERCENT) Res.string.balance_usage_limit else Res.string.token_credits)
+    val title =
+        stringResource(if (display == BalanceDisplay.PERCENT) Res.string.balance_usage_limit else Res.string.token_credits)
     // The share spent sits under the figure when the figure is not itself the share.
     val status = when {
         tokenCredits == null -> null

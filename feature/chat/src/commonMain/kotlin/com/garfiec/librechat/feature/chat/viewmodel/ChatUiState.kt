@@ -381,6 +381,7 @@ data class ChatUiState(
     val mcpServersEnabled: Boolean get() = gates.mcpServersEnabled
     val multiConvoEnabled: Boolean get() = gates.multiConvoEnabled
     val temporaryChatEnabled: Boolean get() = gates.temporaryChatEnabled
+
     /** `retentionMode: "ephemeral"`: the server makes every new chat temporary; the toggle is locked on. */
     val temporaryChatEnforced: Boolean get() = gates.temporaryChatEnforced
     val webSearchEnabled: Boolean get() = gates.webSearchEnabled
@@ -507,6 +508,7 @@ data class ChatUiState(
     val traceViewerAvailable: Boolean
         get() = conversationId != null && gates.traceViewerConversationId == conversationId
     val conversationTitle: String? get() = conversation.conversationTitle
+
     /**
      * The chat is temporary: the conversation says so, or it has no id yet and the server forces
      * every new chat temporary (`retentionMode: "ephemeral"`). The second half is derived rather

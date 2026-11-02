@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.common.result.FailureKind
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
+import com.garfiec.librechat.core.data.repository.permissionUpdateFailure
 import com.garfiec.librechat.core.model.AccessRole
 import com.garfiec.librechat.core.model.AccessRoleIds
 import com.garfiec.librechat.core.model.Principal
@@ -12,11 +13,10 @@ import com.garfiec.librechat.core.model.ResourcePermissions
 import com.garfiec.librechat.core.model.ResourceType
 import com.garfiec.librechat.core.model.UpdateResourcePermissionsRequest
 import com.garfiec.librechat.core.model.acl.AclEntry
-import com.garfiec.librechat.core.data.repository.permissionUpdateFailure
 import com.garfiec.librechat.core.model.acl.AclError
-import com.garfiec.librechat.core.model.acl.PermissionUpdateFailure
 import com.garfiec.librechat.core.model.acl.AclSearch
 import com.garfiec.librechat.core.model.acl.AclState
+import com.garfiec.librechat.core.model.acl.PermissionUpdateFailure
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions

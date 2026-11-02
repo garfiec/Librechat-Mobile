@@ -17,8 +17,8 @@ import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.ui.media.AvatarImagePreparer
 import com.garfiec.librechat.feature.settings.model.AutoRefillInfo
 import com.garfiec.librechat.feature.settings.model.BalanceDisplay
-import com.garfiec.librechat.feature.settings.model.usedPercent
 import com.garfiec.librechat.feature.settings.model.UserDisplayData
+import com.garfiec.librechat.feature.settings.model.usedPercent
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.AccountDelegate
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.ProviderKeysSummary

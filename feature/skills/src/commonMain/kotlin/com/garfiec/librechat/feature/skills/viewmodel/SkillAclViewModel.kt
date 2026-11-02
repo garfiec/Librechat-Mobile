@@ -6,14 +6,14 @@ import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.PermissionsRepository
-import com.garfiec.librechat.core.data.repository.permissionUpdateFailure
-import com.garfiec.librechat.core.model.acl.PermissionUpdateFailure
 import com.garfiec.librechat.core.data.repository.RoleRepository
+import com.garfiec.librechat.core.data.repository.permissionUpdateFailure
 import com.garfiec.librechat.core.model.AccessRole
 import com.garfiec.librechat.core.model.Principal
 import com.garfiec.librechat.core.model.ResourcePermissions
 import com.garfiec.librechat.core.model.ResourceType
 import com.garfiec.librechat.core.model.UpdateResourcePermissionsRequest
+import com.garfiec.librechat.core.model.acl.PermissionUpdateFailure
 import com.garfiec.librechat.core.model.isSearchablePrincipalQuery
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
@@ -344,7 +344,13 @@ class SkillAclViewModel(
         if (_uiState.value.isUpdating) return
         val interruptedLoad = grantsJob?.isActive == true
         grantsJob?.cancel()
-        _uiState.value = _uiState.value.copy(isUpdating = true, isLoading = false, updateFailed = false, errorMessage = null, updateFailure = null)
+        _uiState.value = _uiState.value.copy(
+            isUpdating = true,
+            isLoading = false,
+            updateFailed = false,
+            errorMessage = null,
+            updateFailure = null,
+        )
         viewModelScope.launch {
             when (val r = permissionsRepository.updateResourcePermissions(ResourceType.SKILL, skillId, body)) {
                 is Result.Success -> {

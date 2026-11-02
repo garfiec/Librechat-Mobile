@@ -55,10 +55,12 @@ class InterfaceConfigV089Test {
 
     @Test
     fun titleOwnershipNeedsTheCapabilityAndRunningRename() {
-        assertTrue(startup("""{ "conversationTitleOwnershipVersion": 1, "interface": { "runningChatRename": true } }""").supportsConversationTitleOwnership)
+        val on = """{ "conversationTitleOwnershipVersion": 1, "interface": { "runningChatRename": true } }"""
+        assertTrue(startup(on).supportsConversationTitleOwnership)
         // The schema defaults runningChatRename to true, so an absent flag is on.
         assertTrue(startup("""{ "conversationTitleOwnershipVersion": 1 }""").supportsConversationTitleOwnership)
-        assertFalse(startup("""{ "conversationTitleOwnershipVersion": 1, "interface": { "runningChatRename": false } }""").supportsConversationTitleOwnership)
+        val off = """{ "conversationTitleOwnershipVersion": 1, "interface": { "runningChatRename": false } }"""
+        assertFalse(startup(off).supportsConversationTitleOwnership)
         assertFalse(startup("""{ "interface": { "runningChatRename": true } }""").supportsConversationTitleOwnership)
         assertFalse(startup("""{ "conversationTitleOwnershipVersion": 2 }""").supportsConversationTitleOwnership)
     }

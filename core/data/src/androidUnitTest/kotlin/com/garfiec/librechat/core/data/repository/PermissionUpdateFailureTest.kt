@@ -44,7 +44,8 @@ class PermissionUpdateFailureTest {
     @Test
     fun `an unapproved code or no code is an ordinary failure`() = runTest {
         assertThat(failureFor(refused(500, "EOTHER")).permissionUpdateFailure()).isNull()
-        val plain = ApiException(statusCode = 400, message = "Bad", body = """{"error":"Failed to update permissions"}""")
+        val plain =
+            ApiException(statusCode = 400, message = "Bad", body = """{"error":"Failed to update permissions"}""")
         assertThat(failureFor(plain).permissionUpdateFailure()).isNull()
     }
 

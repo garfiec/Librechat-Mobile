@@ -37,7 +37,8 @@ fun TempChatToggle(
     /** An administrator forces temporary chats: the toggle stays on and says so. */
     enforced: Boolean = false,
 ) {
-    val temporaryChatCd = stringResource(if (enforced) Res.string.temporary_chat_enforced else Res.string.cd_temporary_chat)
+    val temporaryChatCd =
+        stringResource(if (enforced) Res.string.temporary_chat_enforced else Res.string.cd_temporary_chat)
     val tint by animateColorAsState(
         targetValue = if (showsTemporary) {
             ChatInputDefaults.temporaryAccent

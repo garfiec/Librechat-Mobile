@@ -13,8 +13,8 @@ import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorStateHandle
-import com.garfiec.librechat.feature.agents.viewmodel.AgentInferenceEndpoint
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorViewModel
+import com.garfiec.librechat.feature.agents.viewmodel.AgentInferenceEndpoint
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
