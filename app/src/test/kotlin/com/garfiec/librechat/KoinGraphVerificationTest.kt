@@ -58,6 +58,7 @@ import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
+import com.garfiec.librechat.core.data.repository.PullRequestRepository
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
@@ -260,6 +261,7 @@ class KoinGraphVerificationTest {
             ResumePinStore::class,
             ProjectRepository::class,
             PromptRepository::class,
+            PullRequestRepository::class,
             QueuedTurnRepository::class,
             ReasoningCapabilitiesRepository::class,
             RoleRepository::class,
