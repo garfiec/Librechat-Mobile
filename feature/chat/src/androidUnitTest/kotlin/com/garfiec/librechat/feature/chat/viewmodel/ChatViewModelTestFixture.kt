@@ -158,6 +158,8 @@ internal class ChatViewModelTestFixture {
     val promptRevision = MutableStateFlow(0L)
 
     fun stubDefaults() {
+        // No catalog: a relaxed mock's Result would read as a failure and retry forever.
+        coEvery { reasoningCapabilitiesRepository.catalog(any()) } returns null
         every { configRepository.startupConfig } returns MutableStateFlow(null)
         every { configRepository.detectedBackendVersion } returns MutableStateFlow("0.8.7")
         every { configRepository.detectedBackend } returns MutableStateFlow(null)

@@ -214,6 +214,7 @@ fun ChatScreen(
     // and the pull-up, hence the controller. Independent of uiState.showModelSheet (the standalone
     // selector), which keeps dismissing straight to the chat.
     val optionsController = rememberChatOptionsSheetController()
+    val thinkingChip = uiState.thinkingChip
     // On a phone's comparison tab 1 the composer edits the secondary model, so the selector page and
     // label both follow the active tab. Side by side there is no current tab (the remembered index
     // can be stale from before an unfold), so it is never the secondary one.
@@ -594,7 +595,7 @@ fun ChatScreen(
                                             enabledTools = uiState.effectiveEnabledTools,
                                             pinnedToolKeys = uiState.pinnedToolChips,
                                             onToggleTool = viewModel::toggleTool,
-                                            thinking = uiState.thinkingChip,
+                                            thinking = thinkingChip,
                                             onOpenThinking = { showThinkingSheet = true },
                                             mcpServers = uiState.mcpServers,
                                             selectedMcpServerNames = uiState.effectiveMcpServerNames,
@@ -700,7 +701,6 @@ fun ChatScreen(
     )
 
     // Closes itself when the chip goes away (a model switch, a spec, a comparison).
-    val thinkingChip = uiState.thinkingChip
     if (showThinkingSheet && thinkingChip != null) {
         ThinkingSheet(
             chip = thinkingChip,

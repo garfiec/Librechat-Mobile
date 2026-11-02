@@ -2,14 +2,17 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
+import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.ui.components.ReasoningSettingResolver
 import com.garfiec.librechat.feature.chat.util.reasoningTarget
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
+import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import com.garfiec.librechat.feature.chat.viewmodel.ReasoningCatalogState
 import com.garfiec.librechat.feature.chat.viewmodel.ReasoningHandle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
@@ -42,6 +45,16 @@ class ReasoningCatalogDelegate(
         }
         handle.scope.launch {
             handle.stateFlow
+                // Only what the setting is resolved from: the state also changes on every streamed token.
+                .distinctUntilChangedBy { state ->
+                    ReasoningInputs(
+                        state.selection,
+                        state.gates.backendVersion,
+                        state.gates.parametersEnabled,
+                        state.comparisonState.isEnabled,
+                        state.composer.pendingReasoningOverride,
+                    )
+                }
                 .map { state -> state.reasoningSetting to state.isCatalogPending() }
                 .distinctUntilChanged()
                 .collect { (_, pending) -> if (!pending) dropRefusedChoice() }
@@ -109,8 +122,17 @@ internal fun catalogEndpoint(state: ChatUiState): String? {
 }
 
 /** The selection needs a catalog that is not known yet. */
-private fun ChatUiState.isCatalogPending(): Boolean {
+internal fun ChatUiState.isCatalogPending(): Boolean {
     val endpoint = catalogEndpoint(this) ?: return false
     val catalog = selection.reasoningCatalog
     return catalog?.endpoint != endpoint || catalog.models == null
 }
+
+/** What `ChatUiState.reasoningSetting` and the staged choice are read from. */
+private data class ReasoningInputs(
+    val selection: ModelSelectionState,
+    val backendVersion: String?,
+    val parametersEnabled: Boolean,
+    val comparing: Boolean,
+    val pending: ReasoningOverride?,
+)

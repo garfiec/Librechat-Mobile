@@ -334,8 +334,8 @@ from `backendTargetVersion` in the root `version.properties` by core/common's
     reading aloud without the reasoning, the content-filter notice, the activity-group outcome rule,
     the server-URL cleaner routes, and keeping direct graph edges out of the handoff editor (80d3cf3a0,
     the SDK's own reading of an edge).
-  Waves 2 and 3 (passkeys, email change, unread replies, list facets, project context, reasoning
-  capabilities, agent approval modes, MCP Apps, pull requests, code workspace controls, tool-call
+  Waves 2 and 3 (passkeys, email change, unread replies, list facets, project context,
+  agent approval modes, MCP Apps, pull requests, code workspace controls, tool-call
   previews, among others) are approved with `isCompatibleOrNewer(version, "0.8.9-rc1")` gates and will
   add their rows when built.
 

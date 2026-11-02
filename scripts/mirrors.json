@@ -5047,6 +5047,20 @@
       },
       "why": "Which Claude models take effort (adaptive) rather than a token budget, for the reasoning override key.",
       "failure_mode": "A new Claude model resolves to thinkingBudget (chip hidden) or to effort where the server expects a budget (sends 400)."
+    },
+    {
+      "id": "reasoning-manual-claude-pattern",
+      "upstream": {
+        "file": "packages/data-provider/src/parameterSettings.ts",
+        "symbol": "isManualClaudeThinkingModel",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/ReasoningSettingResolver.kt",
+        "symbol": "MANUAL_CLAUDE_THINKING"
+      },
+      "why": "Which Claude models that are not adaptive take a token budget (thinkingBudget) for the reasoning override.",
+      "failure_mode": "A manual-thinking Claude model resolves to no setting, or a non-thinking one to thinkingBudget; a replayed budget then 400s or is dropped. Nothing fails to decode."
     }
   ]
 }

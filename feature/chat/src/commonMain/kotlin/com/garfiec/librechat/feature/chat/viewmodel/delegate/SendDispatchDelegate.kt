@@ -251,9 +251,12 @@ class SendDispatchDelegate(
     /**
      * Takes the composer's Thinking choice for the turn being minted, or null. One the selection
      * no longer accepts is dropped rather than sent: the server 400s it (upstream
-     * `resolveSubmittedReasoning`).
+     * `resolveSubmittedReasoning`). While the selection's catalog is not known the choice can't be
+     * checked, so it is not sent and stays staged for the next message, as upstream's
+     * `restoreStaged` puts it back; `ReasoningCatalogDelegate` judges it once the catalog lands.
      */
     fun takePendingReasoningOverride(): ReasoningOverride? {
+        if (handle.state.isCatalogPending()) return null
         var taken: ReasoningOverride? = null
         handle.update {
             taken = pendingReasoningOverride
