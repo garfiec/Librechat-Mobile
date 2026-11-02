@@ -274,7 +274,12 @@ class McpAppHost(
                 }
             }
             McpAppProtocol.TOOLS_CALL -> launchTracked { respond(id, callTool(params)) }
-            McpAppProtocol.MESSAGE -> launchTracked { respond(id, sendMessage(params)) }
+            McpAppProtocol.MESSAGE -> launchTracked {
+                val sent = sendMessage(params)
+                respond(id, if (sent) JsonObject(emptyMap()) else IS_ERROR)
+                // Answered first, then closed: the reply reaches the App before teardown.
+                if (sent) callbacks.close()
+            }
             McpAppProtocol.RESOURCES_READ -> {
                 val uri = (params["uri"] as? JsonPrimitive)?.takeIf { it.isString }?.content
                 if (uri == null) {
@@ -342,7 +347,8 @@ class McpAppHost(
         }
     }
 
-    private suspend fun sendMessage(params: JsonObject): JsonObject {
+    /** True once the chat accepted the text; a later abort can't undo it, so it counts as sent. */
+    private suspend fun sendMessage(params: JsonObject): Boolean {
         val text = (params["content"] as? JsonArray).orEmpty()
             .mapNotNull { block ->
                 val obj = block as? JsonObject ?: return@mapNotNull null
@@ -350,12 +356,9 @@ class McpAppHost(
                 (obj["text"] as? JsonPrimitive)?.takeIf { it.isString }?.content
             }
             .joinToString("\n")
-        if (text.isBlank() || text.length > policy.maxActionPreviewChars) return IS_ERROR
-        if (!requestApproval(McpAppAction.Message(serverName, text))) return IS_ERROR
-        if (closed || !callbacks.sendMessage(text)) return IS_ERROR
-        // Accepted: a later abort can't undo it, so it is reported as sent before the panel closes.
-        callbacks.close()
-        return JsonObject(emptyMap())
+        if (text.isBlank() || text.length > policy.maxActionPreviewChars) return false
+        if (!requestApproval(McpAppAction.Message(serverName, text))) return false
+        return !closed && callbacks.sendMessage(text)
     }
 
     private fun reportActionFailure(failure: McpAppFailure) {

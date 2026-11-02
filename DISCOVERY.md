@@ -1808,7 +1808,7 @@ GET    /api/convos/:conversationId/pull-request; POST /api/convos/pull-requests;
   policy links pass through `isSafeLinkUrl`. `balance` gains `refillMode` (`add`|`reset`) and
   `display` (`credits`|`currency`|`percent`). Not yet decoded (waves 2/3): `passkeyLoginEnabled`,
   `maxPasskeysPerUser`, `allowEmailChange`, `conversationListLimits`, `ragEnabled`, `projects{…}`,
-  `mcpApps{…}`, `pullRequests*`, `codeWorkspaceInheritanceVersion`,
+  `pullRequests*`, `codeWorkspaceInheritanceVersion`, (`mcpApps{…}` is now read: see "MCP Apps"),
   `interface.replyNotifications`.
 - `interface.theme` (decoded raw): a bundled name (`librechat`, `clickhouse`) or an inline
   `{ version: 1, name, modes: { light, dark: { colors: { "rgb-accent-primary": "R G B", … } } } }`,

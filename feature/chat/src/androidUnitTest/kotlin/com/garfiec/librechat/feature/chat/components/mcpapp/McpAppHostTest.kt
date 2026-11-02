@@ -55,6 +55,7 @@ class McpAppHostTest {
         val links = mutableListOf<String>()
         val notices = mutableListOf<McpAppNotice>()
         var closes = 0
+        var onClose: () -> Unit = {}
         override fun sendMessage(text: String): Boolean {
             sent += text
             return acceptMessage
@@ -67,6 +68,7 @@ class McpAppHostTest {
         }
         override fun close() {
             closes++
+            onClose()
         }
     }
 
@@ -216,6 +218,8 @@ class McpAppHostTest {
     @Test
     fun `a message is sent as text only after approval, and closes the panel`() = runTest {
         val h = loaded()
+        // As the real screen does: closing the panel closes the host.
+        h.callbacks.onClose = { h.host.close() }
         h.app(
             """{"jsonrpc":"2.0","id":9,"method":"ui/message","params":{"role":"user",""" +
                 """"content":[{"type":"text","text":"Plan a hike"},{"type":"image","data":"x"}]}}""",
