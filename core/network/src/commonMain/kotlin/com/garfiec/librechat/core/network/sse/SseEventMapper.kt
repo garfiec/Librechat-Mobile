@@ -849,6 +849,7 @@ class SseEventMapper(private val json: Json) {
             messageId = (data["messageId"] as? JsonPrimitive)?.contentOrNull,
             conversationId = (data["conversationId"] as? JsonPrimitive)?.contentOrNull,
             agentId = (data["agentId"] as? JsonPrimitive)?.contentOrNull,
+            stepId = (data["stepId"] as? JsonPrimitive)?.contentOrNull,
             expiresAt = (data["expiresAt"] as? JsonPrimitive)?.longOrNull,
             bytes = (data["bytes"] as? JsonPrimitive)?.longOrNull,
             workspaceChange = workspaceChange,

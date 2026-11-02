@@ -124,6 +124,9 @@ sealed interface StreamEvent {
         val conversationId: String? = null,
         /** The agent whose tool call produced the file. */
         val agentId: String? = null,
+        /** The run step whose tool call produced it (`ui_resources` and memory attachments carry it
+         *  from v0.8.9-rc1). With [agentId] it tells apart calls that share a provider tool-call id. */
+        val stepId: String? = null,
         /** Epoch millis; only a download fallback sets it (see [Attachment.expiresAt]). */
         val expiresAt: Long? = null,
         val bytes: Long? = null,

@@ -864,6 +864,28 @@ class SseEventMapperTest {
     }
 
     @Test
+    fun `keeps the attachment's step id, which rc1 stamps beside the agent id`() {
+        val event = SseEvent(
+            event = "attachment",
+            data = """{"type":"ui_resources","toolCallId":"call_ui","agentId":"agent_1","stepId":"step_9","ui_resources":[]}""",
+        )
+        val result = mapper.map(event) as StreamEvent.AttachmentCreated
+        assertThat(result.agentId).isEqualTo("agent_1")
+        assertThat(result.stepId).isEqualTo("step_9")
+    }
+
+    @Test
+    fun `a step id of the wrong shape drops only that field`() {
+        val event = SseEvent(
+            event = "attachment",
+            data = """{"type":"ui_resources","toolCallId":"call_ui","stepId":{"x":1},"ui_resources":[]}""",
+        )
+        val result = mapper.map(event) as StreamEvent.AttachmentCreated
+        assertThat(result.stepId).isNull()
+        assertThat(result.toolCallId).isEqualTo("call_ui")
+    }
+
+    @Test
     fun `still drops an attachment carrying neither a file nor a payload`() {
         val event = SseEvent(event = "attachment", data = """{"type":"memory","messageId":"m1"}""")
         assertThat(mapper.map(event)).isNull()

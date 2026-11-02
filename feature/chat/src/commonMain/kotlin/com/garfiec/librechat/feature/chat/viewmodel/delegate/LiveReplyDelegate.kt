@@ -407,6 +407,7 @@ private fun StreamEvent.AttachmentCreated.toAttachment() = Attachment(
     toolCallId = toolCallId,
     expiresAt = expiresAt,
     agentId = agentId,
+    stepId = stepId,
     workspaceChange = workspaceChange,
     bytes = bytes,
     width = width,
