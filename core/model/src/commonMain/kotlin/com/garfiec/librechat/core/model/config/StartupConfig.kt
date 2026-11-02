@@ -112,4 +112,18 @@ data class StartupConfig(
      * (`TWO_FACTOR_ENROLLMENT_REQUIRED`).
      */
     val twoFactorAuthenticationRequired: Boolean? = null,
-)
+    /**
+     * Conversation title ownership capability (v0.8.9-rc1): `1` when this replica tracks who set a
+     * title (`titleSetByUser` / `titleRevision`). Absent on older servers and older replicas.
+     */
+    val conversationTitleOwnershipVersion: Int? = null,
+) {
+    /**
+     * Upstream `supportsConversationTitleOwnership`: the capability is announced AND
+     * `interface.runningChatRename` is not off. Upstream reads `=== true` off a parsed config whose
+     * schema defaults the flag to true, so an absent flag counts as on here.
+     */
+    val supportsConversationTitleOwnership: Boolean
+        get() = conversationTitleOwnershipVersion == CONVERSATION_TITLE_OWNERSHIP_VERSION &&
+            interfaceConfig?.runningChatRename != false
+}
