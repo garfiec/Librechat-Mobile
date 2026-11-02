@@ -75,8 +75,8 @@ The conversation list lives in the drawer (`drawer/DrawerContent.kt`, `DrawerVie
 
 ## Pull request marks (v0.8.9-rc1)
 - `drawer/DrawerPullRequests.kt`: while the drawer is open, the shown rows that may be code chats
-  (`Conversation.isCodeConversation != false`) and aren't running are asked through the batch route,
-  one batch of up to 50, re-asked once their answer is a minute old. Rows never poll. Gate:
+  (`Conversation.isCodeConversation != false`) and aren't running are asked through the batch route
+  (all of them, chunked by 50 with `pullRequestsMaxConcurrentLookups` in flight), re-asked once their answer is a minute old. Rows never poll. Gate:
   `pullRequestBatchAvailable` (rc1 + `pullRequestsEnabled` + `pullRequestsBatchVersion == 1`).
 - The mark (`PullRequestStateIcon`, 16dp) sits before the star, is decorative (the row still opens the
   chat, whose ⋮ has the detail) and carries the summary as its description. Hidden on running rows.

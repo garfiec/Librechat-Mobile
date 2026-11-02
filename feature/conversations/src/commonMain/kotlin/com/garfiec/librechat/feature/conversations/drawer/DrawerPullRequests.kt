@@ -5,7 +5,6 @@ import com.garfiec.librechat.core.data.repository.PullRequestEntry
 import com.garfiec.librechat.core.data.repository.PullRequestRepository
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.pullrequest.ConversationPullRequest
-import com.garfiec.librechat.core.model.pullrequest.PULL_REQUEST_BATCH_MAX
 import com.garfiec.librechat.core.model.pullrequest.PULL_REQUEST_ROW_STALE_MS
 import com.garfiec.librechat.core.model.pullrequest.pullRequestBatchAvailable
 import kotlinx.coroutines.CoroutineScope
@@ -27,8 +26,9 @@ import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * The drawer's pull request marks (v0.8.9-rc1), upstream's sidebar row marks: while the drawer is
- * open, the shown rows that may be code chats and aren't running are asked in one batch, and again
- * only once their answer is a minute old. Rows never poll. Answers live in [PullRequestRepository],
+ * open, the shown rows that may be code chats and aren't running are asked (all of them: the
+ * repository chunks by `PULL_REQUEST_BATCH_MAX` with a bounded number in flight), and again only
+ * once their answer is a minute old. Rows never poll. Answers live in [PullRequestRepository],
  * which the chat screen shares, so the open chat is not fetched twice.
  */
 internal class DrawerPullRequests(
@@ -75,7 +75,7 @@ internal class DrawerPullRequests(
                             runningIds = runningIds,
                             answeredAt = entries.value.mapValues { it.value.fetchedAt },
                             staleBefore = clock.now() - PULL_REQUEST_ROW_STALE_MS.milliseconds,
-                        ).filterNot { it in inFlight }.take(PULL_REQUEST_BATCH_MAX)
+                        ).filterNot { it in inFlight }
                     }.filter { it.isNotEmpty() }
                 }
             }
