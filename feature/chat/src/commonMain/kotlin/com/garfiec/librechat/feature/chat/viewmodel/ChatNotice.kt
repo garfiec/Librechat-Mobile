@@ -17,6 +17,12 @@ import com.garfiec.librechat.core.network.api.chatRefusalText
  */
 enum class ChatNotice(val wire: String) {
     RENAME_FAILED("rename_failed"),
+
+    /** 409 `conversation_title_ownership_not_ready`: the title is still being generated, or a run is going. */
+    RENAME_NOT_READY("rename_not_ready"),
+
+    /** 404 `conversation_not_found`. */
+    RENAME_NOT_FOUND("rename_not_found"),
     DELETE_FAILED("delete_failed"),
     ARCHIVE_FAILED("archive_failed"),
     DUPLICATE_FAILED("duplicate_failed"),

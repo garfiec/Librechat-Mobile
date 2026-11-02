@@ -302,7 +302,15 @@ class SendCompletionDelegate(
         handle.scope.launch {
             when (val result = conversationRepository.generateTitle(conversationId, originAccount)) {
                 is Result.Success -> {
-                    handle.update { conversation = conversation.copy(conversationTitle = result.data) }
+                    if (handle.state.conversation.titleSetByUser) {
+                        // Renamed while the title generated: the server kept the manual title, so
+                        // re-read it rather than show (and leave cached) the generated one.
+                        conversationRepository.refreshConversation(conversationId, originAccount).getOrNull()?.let { fetched ->
+                            handle.update { conversation = conversation.copy(conversationTitle = fetched.title) }
+                        }
+                    } else {
+                        handle.update { conversation = conversation.copy(conversationTitle = result.data) }
+                    }
                 }
                 is Result.Error -> {
                     Logger.d { "Title generation failed for $conversationId: ${result.message}" }

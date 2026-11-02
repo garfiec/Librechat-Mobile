@@ -235,6 +235,7 @@ class LiveReplyDelegate(
     private fun onTitleUpdate(event: StreamEvent.TitleUpdate) {
         val current = handle.state.conversationId
         if (current != null && current != event.conversationId) return
+        if (handle.state.conversation.titleSetByUser) return
         handle.update { conversation = conversation.copy(conversationTitle = event.title) }
     }
 }

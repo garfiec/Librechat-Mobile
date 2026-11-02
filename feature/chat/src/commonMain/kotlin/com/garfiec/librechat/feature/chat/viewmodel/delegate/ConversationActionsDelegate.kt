@@ -2,6 +2,8 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConversationRepository
+import com.garfiec.librechat.core.data.repository.RenameRefusal
+import com.garfiec.librechat.core.data.repository.renameRefusal
 import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.share.ShareLinkController
 import com.garfiec.librechat.core.data.share.ShareTarget
@@ -48,12 +50,18 @@ class ConversationActionsDelegate(
         val conversationId = handle.state.conversationId ?: return
         handle.update { actions = actions.copy(showRenameDialog = false) }
         handle.scope.launch {
-            when (conversationRepository.updateTitle(conversationId, newTitle)) {
+            when (val result = conversationRepository.updateTitle(conversationId, newTitle)) {
                 is Result.Success -> {
-                    handle.update { conversation = conversation.copy(conversationTitle = newTitle) }
+                    // The user owns the title now: a generated one that lands later must not replace it.
+                    handle.update { conversation = conversation.copy(conversationTitle = newTitle, titleSetByUser = true) }
                 }
                 is Result.Error -> {
-                    handle.setError(ChatNotice.RENAME_FAILED.marker())
+                    val notice = when (result.renameRefusal()) {
+                        RenameRefusal.TITLE_NOT_READY -> ChatNotice.RENAME_NOT_READY
+                        RenameRefusal.NOT_FOUND -> ChatNotice.RENAME_NOT_FOUND
+                        null -> ChatNotice.RENAME_FAILED
+                    }
+                    handle.setError(notice.marker())
                 }
                 is Result.Loading -> { /* no-op */ }
             }

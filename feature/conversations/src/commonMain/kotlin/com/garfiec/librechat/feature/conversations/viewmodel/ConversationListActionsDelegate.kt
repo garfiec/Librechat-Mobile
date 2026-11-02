@@ -2,7 +2,9 @@ package com.garfiec.librechat.feature.conversations.viewmodel
 
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConversationRepository
+import com.garfiec.librechat.core.data.repository.RenameRefusal
 import com.garfiec.librechat.core.data.repository.TagRepository
+import com.garfiec.librechat.core.data.repository.renameRefusal
 import com.garfiec.librechat.core.data.share.ShareLinkController
 import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.model.Conversation
@@ -11,6 +13,8 @@ import com.garfiec.librechat.feature.conversations.export.ConversationExporter
 import com.garfiec.librechat.feature.conversations.export.ExportFormat
 import com.garfiec.librechat.feature.conversations.resources.Res
 import com.garfiec.librechat.feature.conversations.resources.favorite_update_failed
+import com.garfiec.librechat.feature.conversations.resources.rename_not_found
+import com.garfiec.librechat.feature.conversations.resources.rename_not_ready
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
@@ -56,8 +60,12 @@ class ConversationListActionsDelegate(
 
     fun renameConversation(id: String, newTitle: String) {
         scope.launch {
-            when (conversationRepository.updateTitle(id, newTitle)) {
-                is Result.Error -> events.emit(ConversationListEvent.ShowError("Failed to rename conversation"))
+            when (val result = conversationRepository.updateTitle(id, newTitle)) {
+                is Result.Error -> when (result.renameRefusal()) {
+                    RenameRefusal.TITLE_NOT_READY -> events.emit(ConversationListEvent.ShowErrorRes(Res.string.rename_not_ready))
+                    RenameRefusal.NOT_FOUND -> events.emit(ConversationListEvent.ShowErrorRes(Res.string.rename_not_found))
+                    null -> events.emit(ConversationListEvent.ShowError("Failed to rename conversation"))
+                }
                 else -> onMutated()
             }
         }

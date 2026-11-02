@@ -93,6 +93,13 @@ data class Conversation(
     /** True for a temporary chat (v0.8.6): not persisted to normal history and
      *  expired/cleaned up server-side after [expiredAt]. Server-derived. */
     val isTemporary: Boolean? = null,
+    /**
+     * The user set the title (v0.8.9-rc1 title ownership): a generated title no longer replaces it.
+     * Server-derived; absent on older servers.
+     */
+    val titleSetByUser: Boolean? = null,
+    /** Bumped on every title write (v0.8.9-rc1); orders competing title saves server-side. */
+    val titleRevision: Int? = null,
     /** Expiry for a temporary chat, computed server-side from the interface
      *  `temporaryChatRetention` setting. Null for permanent chats. */
     @Serializable(with = LenientInstantSerializer::class)

@@ -4575,6 +4575,20 @@
       },
       "why": "Which model_parameters keys the v0.8.9-rc1+ agent create/update routes accept per provider family (openai, openrouter, anthropic, google, bedrock, bedrock-anthropic, mistral), how aliases map to profile keys, how a custom endpoint picks its family (defaultParamsEndpoint) and admits declared extras, and how a legacy Bedrock additionalModelRequestFields envelope is read. The editor drops every other key before saving, because the route rejects the whole save with a 400 otherwise.",
       "failure_mode": "Upstream admits a new key and the editor deletes it from every agent it saves; or it stops admitting one and every save of an agent holding it fails with a 400 the user can't clear from mobile."
+    },
+    {
+      "id": "conversation-rename-refusals",
+      "upstream": {
+        "file": "packages/api/src/conversations/rename.ts",
+        "symbol": "createRenameConversationHandler",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/RenameRefusedException.kt",
+        "symbol": "RenameRefusal"
+      },
+      "why": "The rename handler's named refusals: 409 conversation_title_ownership_not_ready while interface.runningChatRename is off and the title is unset or a run is active, and 404 conversation_not_found. The chat and the drawer word each instead of a generic failure.",
+      "failure_mode": "Upstream renames a code or adds a refusal and the rename falls back to 'Failed to rename conversation' with no hint that waiting would help. Nothing errors."
     }
   ]
 }

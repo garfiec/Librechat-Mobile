@@ -6,7 +6,10 @@ import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.identity.flatMapAccountOrEmpty
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.FailureKind
+import com.garfiec.librechat.core.common.result.apiCallCatching
 import com.garfiec.librechat.core.common.result.safeApiCall
+import com.garfiec.librechat.core.common.result.toSafeError
 import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.db.dao.ConversationDao
@@ -183,7 +186,7 @@ class ConversationRepositoryImpl(
     }
 
     override suspend fun updateTitle(id: String, title: String): Result<Conversation> {
-        return safeApiCall {
+        return apiCallCatching({
             // Capture identity before the network suspend; skip the local cache update when unresolved
             // rather than running an account-blind by-PK write.
             val accountId = activeAccountProvider.currentAccountId()?.value
@@ -191,7 +194,11 @@ class ConversationRepositoryImpl(
             if (accountId != null) {
                 conversationDao.updateTitle(id, title, Clock.System.now().toEpochMilliseconds(), accountId)
             }
-            updated
+            Result.Success(updated)
+        }) { e ->
+            // v0.8.9-rc1's rename handler names its refusals; the 409 is retryable.
+            renameRefusalOf(e)?.let { Result.Error(RenameRefusedException(it, e), kind = FailureKind.Server) }
+                ?: e.toSafeError()
         }
     }
 

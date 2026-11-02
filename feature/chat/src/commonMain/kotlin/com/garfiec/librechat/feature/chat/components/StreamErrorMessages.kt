@@ -77,6 +77,8 @@ private fun localizedNotice(parsed: ChatNotice.Parsed): String {
     }
     val res = when (parsed.notice) {
         ChatNotice.RENAME_FAILED -> Res.string.notice_rename_failed
+        ChatNotice.RENAME_NOT_READY -> Res.string.notice_rename_not_ready
+        ChatNotice.RENAME_NOT_FOUND -> Res.string.notice_rename_not_found
         ChatNotice.DELETE_FAILED -> Res.string.notice_delete_failed
         ChatNotice.ARCHIVE_FAILED -> Res.string.notice_archive_failed
         ChatNotice.DUPLICATE_FAILED -> Res.string.notice_duplicate_failed

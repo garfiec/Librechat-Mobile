@@ -75,6 +75,8 @@
     <string name="projects_no_match">No projects match "%1$s"</string>
     <string name="rename_conversation">Rename conversation</string>
     <string name="rename_dialog_message">Enter a new title for this conversation.</string>
+    <string name="rename_not_ready">This chat can't be renamed until its title is ready. Try again once the reply has finished.</string>
+    <string name="rename_not_found">This chat no longer exists, so it can't be renamed.</string>
     <string name="title_label">Title</string>
     <string name="delete_conversation">Delete conversation</string>
     <string name="delete_confirmation_message">Are you sure you want to delete "%1$s"? This action cannot be undone.</string>
