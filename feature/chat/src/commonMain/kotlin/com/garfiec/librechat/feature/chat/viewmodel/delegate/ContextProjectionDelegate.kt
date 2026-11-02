@@ -18,6 +18,7 @@ import com.garfiec.librechat.feature.chat.util.deepestPersistedSnapshot
 import com.garfiec.librechat.feature.chat.util.estimateContextUsage
 import com.garfiec.librechat.feature.chat.util.estimateDetail
 import com.garfiec.librechat.feature.chat.util.latestExchangeTokens
+import com.garfiec.librechat.feature.chat.util.modelCatalogKey
 import com.garfiec.librechat.feature.chat.util.persistedContextUsage
 import com.garfiec.librechat.feature.chat.util.usageOver
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
@@ -287,7 +288,7 @@ class ContextProjectionDelegate(
         // token-config is memoized on the singleton repository, so this hits the network at most
         // once per session even though each chat gets its own ViewModel.
         val config = endpointTokenRepository.getTokenConfig().getOrNull() ?: return null
-        return config[endpoint]?.get(model)?.context?.takeIf { it > 0 }
+        return config[modelCatalogKey(endpoint, config)]?.get(model)?.context?.takeIf { it > 0 }
     }
 
     /**

@@ -1058,6 +1058,33 @@
       "failure_mode": "A renamed status makes every predicate false for that row: the poll stops, the drain stops refusing, and the same words can be submitted twice. An ADDED status is silently treated as terminal. The decode does not fail -- these are plain strings, not an enum."
     },
     {
+      "id": "queued-turn-enqueue-no-spec",
+      "upstream": {
+        "file": "packages/data-provider/src/types/queuedTurns.ts",
+        "symbol": "enqueueAgentQueuedTurnSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/QueueOrchestrationDelegate.kt",
+        "symbol": "serverOwnedSpec"
+      },
+      "why": "The server's queued turn has no `spec` field, so under `modelSpecs.enforce` a turn queued on the server is refused by `buildEndpointOption` when it drains, even if the composer held a spec. `serverOwnedSpec` keeps such a follow-up on the local drain instead.",
+      "failure_mode": "Upstream adds `spec` to the enqueue schema and mobile keeps routing enforce-mode follow-ups locally -- harmless but stale. Or the schema stays and someone removes the local fallback: the queued turn is silently refused at drain time."
+    },
+    {
+      "id": "queued-turn-trigger-host",
+      "upstream": {
+        "file": "packages/api/src/agents/triggers/host.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/QueueOrchestrationDelegate.kt",
+        "symbol": "serverOwnedSpec"
+      },
+      "why": "The other half of queued-turn-enqueue-no-spec: the worker re-posts a drained queued turn to the chat route without a `spec`. If it starts carrying one, enforce-mode follow-ups could go to the server queue like any other.",
+      "failure_mode": "Upstream's worker starts sending the spec and mobile keeps the local-drain detour it no longer needs, or the reverse."
+    },
+    {
       "id": "oauth-browser-flow-routes",
       "upstream": {
         "file": "api/server/routes/oauth.js",
@@ -1395,10 +1422,10 @@
       },
       "kotlin": {
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpecSeed.kt",
-        "symbol": "resolveDefaultModelSpec (prioritized flag)"
+        "symbol": "resolveDefaultModelSpec (prioritized flag); also Tier 0 applyPendingOverride in feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/ModelSelectionDelegate.kt"
       },
-      "why": "`shouldApplyModelSpec` decides whether getDefaultModelSpec's answer is used at all: only under `prioritize === true` or `interface.modelSelect` off, or for a soft default when the new chat carries no selection. The resolver folds that gate in. Watched as a file because the gate is a nested const the block extractor cannot isolate.",
-      "failure_mode": "Upstream loosens or tightens when a spec overrides the user's selection, and mobile keeps applying the old rule -- forcing a spec web no longer forces, or leaving a raw model where web now opens the spec."
+      "why": "`shouldApplyModelSpec` decides whether getDefaultModelSpec's answer is used at all: only under `prioritize === true` or `interface.modelSelect` off, or for a soft default when the new chat carries no selection. The resolver folds that gate in. The surrounding `if (!preset && ...)` is why a start-chat link wins over the spec: every link entry point (AgentDetail, useQueryParams) passes a preset. Mobile's equivalent is Tier 0 (`applyPendingOverride`), checked before the spec tier. Watched as a file because the gate is a nested const the block extractor cannot isolate.",
+      "failure_mode": "Upstream loosens or tightens when a spec overrides the user's selection, and mobile keeps applying the old rule -- forcing a spec web no longer forces, leaving a raw model where web now opens the spec, or letting a start-chat link beat a spec that web now applies over it."
     },
     {
       "id": "model-spec-endpoint-resolution",
@@ -1476,7 +1503,7 @@
       },
       "kotlin": {
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpecParameters.kt",
-        "symbol": "acrossSpecChange"
+        "symbol": "acrossSpecChange; also parametersSetBySpec in feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/ChatUiState.kt"
       },
       "why": "Without `enforce` the server applies none of a spec's public preset fields (`mergeModelSpecPreset` fills only the private ones, `PRIVATE_MODEL_SPEC_PRESET_FIELDS`), so the client sends the spec's preset as the chat's parameters (`parametersFor`, `acrossSpecChange`). Under `enforce` it replaces the body with the preset, keeping only `ENFORCED_MODEL_SPEC_REQUEST_FIELDS`, which is why `parametersSetBySpec` locks the sheet and a loaded preset keeps the spec's values. Compare's lane B relies on the same private-field list.",
       "failure_mode": "Upstream starts applying public preset fields itself, or keeps more of the body under `enforce`, and mobile's parameters or locked sheet no longer match what the server runs."
@@ -1533,6 +1560,33 @@
       },
       "why": "How a snapshot becomes the gauge's numbers (denominator `contextBudget ?? maxContextTokens`, the breakdown floor, the post-snapshot `completedOutputTokens`/`retainedToolTokens` additions) and the live / saved / estimate precedence. The precedence diverges deliberately (the saved snapshot replaces the finished turn's live reading); see the delegate KDoc. The breakdown's Totals and Cost come from the same file's view (branchUsage / totalUsage); see the context-breakdown-rows and usage-totals-folding entries.",
       "failure_mode": "The gauge reads a different percentage from web for the same snapshot, or shows a stale source after a reload."
+    },
+    {
+      "id": "context-gauge-window-order",
+      "upstream": {
+        "file": "client/src/hooks/Chat/useTokenLimits.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/ContextProjectionDelegate.kt",
+        "symbol": "resolveWindow / resolveModel"
+      },
+      "why": "The gauge's denominator before any snapshot: the conversation's maxContextTokens, then the agent's model_parameters, then the spec preset's, then token-config under the agent's provider and model. The token-config key goes through the same catalog alias web applies (model-catalog-key-aliases).",
+      "failure_mode": "Upstream reorders the chain or adds a step, and the gauge reads a different percentage from web for the same chat before the first snapshot. No error: just a different number."
+    },
+    {
+      "id": "model-catalog-key-aliases",
+      "upstream": {
+        "file": "packages/data-provider/src/providers.ts",
+        "symbol": "modelCatalogAliases",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/ModelCatalogKey.kt",
+        "symbol": "MODEL_CATALOG_ALIASES / modelCatalogKey"
+      },
+      "why": "`resolveModelCatalogKey` looks a runtime provider up under its native alias when token-config has no catalog of its own name. Token-config is keyed by endpoint and Vertex AI runs as `google`, so an agent whose provider is `vertexai` (only possible through the API) needs `google` for its context window.",
+      "failure_mode": "Upstream adds an alias (another provider that runs under a different endpoint's catalog), and the gauge for such an agent shows no token-config window on mobile while web shows one."
     },
     {
       "id": "context-overhead-key",
@@ -3087,6 +3141,20 @@
       "failure_mode": "If web changes what a spec chat starts from (say, layering the user's toggles over the spec's), mobile sends a different tool set than web for the same spec."
     },
     {
+      "id": "model-spec-artifacts-web",
+      "upstream": {
+        "file": "client/src/utils/endpoints.ts",
+        "symbol": "applyModelSpecEphemeralAgent",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/ModelSpec.kt",
+        "symbol": "ModelSpec.artifactsMode"
+      },
+      "why": "Web turns a spec's `artifacts` into `ephemeralAgent.artifacts` (`true` -> `'default'`, a string as is), and the server reads artifacts only from the ephemeral agent, never from the spec. Separate from model-spec-tools-web because that entry names ModelSelectionState.kt and this rule lives on the model.",
+      "failure_mode": "Upstream changes the mapping (a new mode, a different default for `true`), and a spec chat on mobile gets different artifacts from web, or none."
+    },
+    {
       "id": "web-search-provider-conflicts",
       "upstream": {
         "file": "packages/api/src/agents/initialize.ts",
@@ -3587,6 +3655,19 @@
       },
       "why": "An endpoint that needs the user's key gets a Set API Key button in web's `EndpointItem`, which still lists its nested specs. Mobile greys the header behind Add key, keeps the grouped specs listed (a tap opens the key screen) and hides the raw models. Mobile reads the per-endpoint key state (unset or expired) rather than the bare `userProvide` flag.",
       "failure_mode": "If web changes what counts as needing a key or what it lists under such an endpoint, mobile hides specs web lists or shows models web gates."
+    },
+    {
+      "id": "send-requires-user-key",
+      "upstream": {
+        "file": "client/src/hooks/Input/useRequiresKey.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/SendReadinessDelegate.kt",
+        "symbol": "SendBlockReason.ApiKeyRequired"
+      },
+      "why": "Web disables the composer when the selected endpoint takes a user-provided key (`userProvide`) and the user has none stored (no expiry). Mobile refuses the send in the preflight with the same rule instead of letting the server fail it with `no_user_key`; like the picker it lets the send through while the key state is loading or unknown.",
+      "failure_mode": "Upstream changes when a key counts as required (say, per spec or per agent provider), and mobile blocks sends web allows or lets through sends the server refuses."
     },
     {
       "id": "model-spec-groups",
