@@ -384,6 +384,13 @@ class AuthRepositoryImpl(
         }
     }
 
+    override suspend fun revokeActiveSession() {
+        accountRegistry.awaitReady()
+        apiCallCatching({ serverSessionRevoker.revoke(switchGate.captureSnapshot()) }) {
+            Logger.w(it) { "Server-side revocation failed for the active account" }
+        }
+    }
+
     override suspend fun removeAccount(accountId: String) {
         accountRegistry.awaitReady()
         // Decide from the snapshot the sign-out acts on: a live-identity check followed by logout()

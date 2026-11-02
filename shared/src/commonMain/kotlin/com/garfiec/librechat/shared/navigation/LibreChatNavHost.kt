@@ -86,6 +86,7 @@ import com.garfiec.librechat.core.ui.theme.AppLocale
 import com.garfiec.librechat.feature.agents.navigation.agentsEntries
 import com.garfiec.librechat.feature.auth.navigation.AddAccountServerUrl
 import com.garfiec.librechat.feature.auth.navigation.ServerUrl
+import com.garfiec.librechat.feature.auth.navigation.Terms
 import com.garfiec.librechat.feature.auth.navigation.authEntries
 import com.garfiec.librechat.feature.auth.navigation.isAddAccountFlowRoute
 import com.garfiec.librechat.feature.chat.navigation.Chat
@@ -129,6 +130,7 @@ import com.garfiec.librechat.shared.resources.version_mismatch_message
 import com.garfiec.librechat.shared.resources.version_mismatch_title
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
@@ -249,7 +251,6 @@ fun LibreChatNavHost(
             when (route) {
                 SessionRoute.SignIn -> navigator.navigateToAuth()
                 is SessionRoute.TwoFactorSetup -> navigator.navigateToTwoFactorSetup(route.tempToken)
-                SessionRoute.Terms -> navigator.showTerms()
                 // Only off the sign-in screens: on chat, the account flip has already reset the stack.
                 SessionRoute.Chat -> if (navigator.isInAuthFlow) {
                     navigator.navigateToChat(
@@ -258,6 +259,22 @@ fun LibreChatNavHost(
                 }
             }
         }
+    }
+
+    // Terms the server requires (modalAcceptance). Opened from state, re-evaluated whenever the
+    // navigator enters or leaves the sign-in flow, so a requirement learned during sign-in (the
+    // post-login check can land before the stack reaches chat) opens the screen once it does, and
+    // whenever the screen leaves the stack while still required (a drawer jump to a top-level
+    // destination pops it), so it cannot be navigated around.
+    LaunchedEffect(Unit) {
+        combine(
+            navHostViewModel.termsRequirement.required,
+            navHostViewModel.isLoggedIn,
+            snapshotFlow { navigator.isInAuthFlow },
+            snapshotFlow { navigator.backStack.any { it is Terms } },
+        ) { required, loggedIn, inAuthFlow, termsOpen ->
+            TermsRequirementStateHolder.shouldShow(required, loggedIn, inAuthFlow, termsOpen)
+        }.collect { show -> if (show) navigator.showTerms() }
     }
 
     // A restored back stack can still hold add-account routes after process death, but the pending
@@ -784,6 +801,12 @@ fun MainNavDisplay(
                         accountScope = (navHostViewModel.accountState.value as? AccountState.Resolved)?.id?.value,
                     )
                 },
+                onTermsAccepted = {
+                    navHostViewModel.termsRequirement.clear()
+                    navigator.remove(Terms)
+                },
+                // Signs out of this account; the sign-in route that follows clears the stack.
+                onTermsDeclined = navHostViewModel::declineTerms,
             )
             chatEntries(
                 onNavigate = { navigator.navigate(it) },

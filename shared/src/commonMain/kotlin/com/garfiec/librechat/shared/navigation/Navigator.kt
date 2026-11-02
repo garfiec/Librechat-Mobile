@@ -257,10 +257,11 @@ class Navigator(
 
     /**
      * The terms screen over whatever the user is on, when the server requires acceptance. Not over
-     * the sign-in flow (there is no session to accept for yet), and not twice.
+     * the sign-in flow (there is no session to accept for yet; the shell calls again once the flow is
+     * left), and not twice, even when something has been pushed over an open one.
      */
     fun showTerms() {
-        if (isInAuthFlow) return
+        if (isInAuthFlow || backStack.any { it is Terms }) return
         navigate(Terms)
     }
 

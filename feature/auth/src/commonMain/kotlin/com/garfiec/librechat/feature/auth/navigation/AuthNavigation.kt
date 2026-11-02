@@ -72,6 +72,8 @@ fun EntryProviderScope<NavKey>.authEntries(
     onNavigate: (NavKey) -> Unit,
     onBack: () -> Unit,
     onAuthComplete: () -> Unit,
+    onTermsAccepted: () -> Unit,
+    onTermsDeclined: () -> Unit,
 ) {
     entry<ServerUrl> {
         ServerUrlScreen(
@@ -156,11 +158,11 @@ fun EntryProviderScope<NavKey>.authEntries(
         )
     }
     // Pushed over the signed-in stack when the server requires the terms (modalAcceptance), so
-    // accepting just returns to where the user was.
+    // accepting just returns to where the user was. Never dismissable: back is a decline.
     entry<Terms> {
         TermsScreen(
-            onAccept = onBack,
-            onBack = onBack,
+            onAccept = onTermsAccepted,
+            onDecline = onTermsDeclined,
         )
     }
     entry<ResetPassword> { key ->

@@ -24,6 +24,13 @@ interface AuthRepository {
     suspend fun logout(): Result<Unit>
 
     /**
+     * Revokes the active account's server session, best-effort, and changes nothing locally: the
+     * caller ends the local session itself (declining required terms signs out of this account
+     * only, with no failover, which [logout]'s teardown would do).
+     */
+    suspend fun revokeActiveSession()
+
+    /**
      * Revokes [accountId]'s server session, best-effort, then removes the account and its local data.
      * The active account goes through [logout].
      */

@@ -84,9 +84,6 @@ sealed interface SessionRoute {
     data class TwoFactorSetup(val tempToken: String) : SessionRoute {
         override fun toString(): String = "TwoFactorSetup"
     }
-
-    /** The server requires the terms to be accepted (modalAcceptance); shown over the current screen. */
-    data object Terms : SessionRoute
 }
 
 /**
@@ -171,14 +168,34 @@ class NavHostViewModel(
      * cannot fail over from underneath it.
      */
     fun signInAgain() {
+        viewModelScope.launch { endActiveSessionForSignIn() }
+    }
+
+    /**
+     * Ends the active account's session and routes to sign-in, for a sign-out the user chose for THIS
+     * account: no failover to another signed-in account and no "signed out" dialog. The roster entry
+     * and cached data stay, so signing back in restores everything.
+     */
+    private suspend fun endActiveSessionForSignIn() = sessionDecision.withLock<Unit> {
+        termsRequirement.clear()
+        tokenManager.endSessionForReauth(activeAccountId())
+        sessionRevision.update { it + 1 }
+        // Lowered before the route event goes out, as in [onSessionEnded].
+        _isLoggedIn.value = false
+        _sessionRoute.trySend(SessionRoute.SignIn)
+    }
+
+    /**
+     * The user declined the required terms. Upstream signs out; here that is this account only, as
+     * [signInAgain] does: a failover would move the user onto another account they didn't pick, and
+     * the declining account has to sign in (and accept) again before it can write. The server-side
+     * session is revoked first, best-effort, while the slot still holds the credential to revoke it.
+     */
+    fun declineTerms() {
+        termsRequirement.clear()
         viewModelScope.launch {
-            sessionDecision.withLock {
-                tokenManager.endSessionForReauth(activeAccountId())
-                sessionRevision.update { it + 1 }
-                // Lowered before the route event goes out, as in [onSessionEnded].
-                _isLoggedIn.value = false
-                _sessionRoute.trySend(SessionRoute.SignIn)
-            }
+            authRepository.revokeActiveSession()
+            endActiveSessionForSignIn()
         }
     }
 
@@ -197,6 +214,13 @@ class NavHostViewModel(
     // The account a ban was last announced for. Every request to a ban-checked route reports the ban
     // again, so without this the dialog would come back each time the user dismissed it.
     private var banAnnouncedFor: String? = null
+
+    /**
+     * Whether the active account still has to accept the terms. The NavHost opens the Terms screen
+     * from it and clears it on acceptance. Declared before init{}: the auth-gate collector launched
+     * there can run at once.
+     */
+    val termsRequirement = TermsRequirementStateHolder(::activeAccountId)
 
     fun dismissSessionExpiredNotice() {
         _sessionExpiredNotice.value = null
@@ -323,6 +347,8 @@ class NavHostViewModel(
         // its own independent accountTransitions() subscription.
         viewModelScope.launch {
             activeAccountProvider.accountTransitions().collect { transition ->
+                // The requirement belonged to the account just left; a switch re-checks below.
+                termsRequirement.clear()
                 endpointTokenRepository.clear()
                 // Tool favorites are process-lifetime in-memory state, and refresh() deliberately
                 // keeps the old set on any non-404 error, so without this drop a flaky incoming
@@ -438,6 +464,7 @@ class NavHostViewModel(
         val expiredLabel = if (expired) expiredAccountLabel().orEmpty() else null
         val failover = if (expired) accountSwitcher.failOverFromActive() else FailoverResult.NoLiveAccount
         sessionRevision.update { it + 1 }
+        if (failover != FailoverResult.ActiveStillLive) termsRequirement.clear()
         when {
             failover is FailoverResult.Switched -> {
                 failoverTarget = failover.entry.accountId
@@ -489,7 +516,7 @@ class NavHostViewModel(
                 _isLoggedIn.value = false
                 _sessionRoute.trySend(SessionRoute.TwoFactorSetup(gate.tempToken))
             }
-            is AuthGate.TermsNotAccepted -> if (_isLoggedIn.value) _sessionRoute.trySend(SessionRoute.Terms)
+            is AuthGate.TermsNotAccepted -> if (_isLoggedIn.value) termsRequirement.raise(active)
         }
     }
 
@@ -500,13 +527,15 @@ class NavHostViewModel(
      * server's 403 to open the screen later.
      */
     private fun checkTermsAcceptance() {
+        // Captured before the reads, so an answer landing after a switch is not applied to the new account.
+        val account = activeAccountId()
         viewModelScope.launch {
             val config = configRepository.startupConfig.value ?: configRepository.fetchStartupConfig().let {
                 (it as? Result.Success)?.data
             }
             if (config?.interfaceConfig?.termsOfService?.modalAcceptance != true) return@launch
             val terms = userRepository.getTerms() as? Result.Success ?: return@launch
-            if (!terms.data.termsAccepted && _isLoggedIn.value) _sessionRoute.trySend(SessionRoute.Terms)
+            if (!terms.data.termsAccepted && _isLoggedIn.value) termsRequirement.raise(account)
         }
     }
 

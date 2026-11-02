@@ -1,7 +1,9 @@
 package com.garfiec.librechat.feature.auth.screen
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,6 +29,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
@@ -38,17 +41,24 @@ import com.garfiec.librechat.feature.auth.viewmodel.TermsViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-/** Displays server terms of service loaded from the backend; gates navigation on user acceptance. */
+/**
+ * The server's terms, which the deployment requires the user to accept (`modalAcceptance`). Shown
+ * only when acceptance is required, so it cannot be dismissed: the top-bar arrow, system back and the
+ * predictive back gesture all mean [onDecline], as the explicit Decline button does. Upstream's
+ * decline signs out; the shell does the same for this account only.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TermsScreen(
     onAccept: () -> Unit,
-    onBack: () -> Unit,
+    onDecline: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TermsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnAccepted by rememberUpdatedState(onAccept)
+
+    PlatformBackHandler(enabled = true, onBack = onDecline)
 
     LaunchedEffect(uiState.isAccepted) {
         if (uiState.isAccepted) {
@@ -62,7 +72,7 @@ fun TermsScreen(
         topBar = {
             AdaptiveTopBar(
                 spec = AdaptiveTopBarSpec(
-                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.back), onBack),
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.terms_decline), onDecline),
                     title = BarTitle(stringResource(Res.string.terms_title)),
                     actions = emptyList(),
                 ),
@@ -138,21 +148,33 @@ fun TermsScreen(
                         )
                     }
 
-                    AdaptiveButton(
-                        onClick = viewModel::acceptTerms,
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(24.dp),
-                        enabled = !uiState.isLoading,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        if (uiState.isLoading) {
-                            AdaptiveCircularProgressIndicator(
-                                modifier = Modifier.height(20.dp),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                strokeWidth = 2.dp,
-                            )
-                        } else {
-                            Text(stringResource(Res.string.i_accept))
+                        AdaptiveOutlinedButton(
+                            onClick = onDecline,
+                            modifier = Modifier.weight(1f),
+                            enabled = !uiState.isLoading,
+                        ) {
+                            Text(stringResource(Res.string.terms_decline))
+                        }
+                        AdaptiveButton(
+                            onClick = viewModel::acceptTerms,
+                            modifier = Modifier.weight(1f),
+                            enabled = !uiState.isLoading,
+                        ) {
+                            if (uiState.isLoading) {
+                                AdaptiveCircularProgressIndicator(
+                                    modifier = Modifier.height(20.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    strokeWidth = 2.dp,
+                                )
+                            } else {
+                                Text(stringResource(Res.string.i_accept))
+                            }
                         }
                     }
                 }

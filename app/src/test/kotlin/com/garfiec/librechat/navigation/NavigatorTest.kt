@@ -311,6 +311,23 @@ class NavigatorTest {
     }
 
     @Test
+    fun `terms already on the stack under another screen are not opened again`() {
+        val navigator = createNavigator(NewChat(), Terms, Chat("conv-1"))
+        navigator.showTerms()
+        assertEquals(listOf(NewChat(), Terms, Chat("conv-1")), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `terms requested during sign-in open once the stack reaches chat`() {
+        val navigator = createNavigator(ServerUrl, Login)
+        navigator.showTerms()
+        navigator.navigateToChat(accountScope = "acct-1")
+        // The shell re-evaluates on leaving the sign-in flow and asks again.
+        navigator.showTerms()
+        assertEquals(listOf(NewChat(accountScope = "acct-1"), Terms), navigator.backStack.toList())
+    }
+
+    @Test
     fun `an expiry while the terms are open still goes to sign-in`() {
         val navigator = createNavigator(NewChat(), Chat("conv-1"), Terms)
         navigator.navigateToAuth()

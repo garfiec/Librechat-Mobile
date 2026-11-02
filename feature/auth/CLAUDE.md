@@ -122,7 +122,13 @@
 - Pushed over the signed-in stack by the shell (`Navigator.showTerms`): after sign-in, on cold start
   and on account switch when `interface.termsOfService.modalAcceptance` is on and `GET /api/user/terms`
   says not accepted, and whenever a write answers `403 terms_not_accepted` (v0.8.9-rc1 enforces it
-  server-side; the validator raises `AuthGate.TermsNotAccepted`). Accept and Back both pop.
+  server-side; the validator raises `AuthGate.TermsNotAccepted`).
+- Required means not dismissable: Accept pops; Decline, the top-bar arrow, system back and predictive
+  back all decline, which (as upstream's decline-logs-out) revokes this account's server session
+  best-effort and ends its local session for sign-in — this account only, no failover.
+- The shell keeps the requirement as state (`TermsRequirementStateHolder`), not a route event, and
+  opens the screen whenever it is required, signed in, out of the sign-in flow and not already on the
+  stack: a requirement learned while the stack is still on sign-in is kept until it reaches chat.
 
 ### Required 2FA setup (v0.8.9-rc1)
 - `TwoFactorSetup(tempToken)` route + `TwoFactorSetupScreen`/`TwoFactorSetupViewModel`: start →
