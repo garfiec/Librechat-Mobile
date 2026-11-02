@@ -7,8 +7,9 @@ import kotlin.time.Clock
 
 /**
  * Attachment `type` values that are NOT files — they carry structured payloads (search sources,
- * memory artifacts, MCP UI resources) that mobile renders from tool *output* elsewhere. They must
- * never render as a file chip. Mirrors upstream `TAttachmentMetadata` (schemas.ts).
+ * memory artifacts, MCP UI resources) that their own components render: search cards, memory
+ * cards, and for `ui_resources` the MCP App rows (`mcpapp/McpAppRow.kt`). They must never render
+ * as a file chip. Mirrors upstream `TAttachmentMetadata` (schemas.ts).
  */
 private val PSEUDO_ATTACHMENT_TYPES = setOf("web_search", "file_search", "memory", "ui_resources")
 

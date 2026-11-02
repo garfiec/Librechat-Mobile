@@ -5739,6 +5739,20 @@
       },
       "why": "The approval queue bound, cancel-pauses-the-View rule and stop-requests behaviour.",
       "failure_mode": "An App can queue more actions, or keep asking after the user cancelled."
+    },
+    {
+      "id": "mcp-app-host-style-vars",
+      "upstream": {
+        "file": "client/src/hooks/MCP/useAppBridge.ts",
+        "symbol": "HOST_STYLE_VAR_MAP",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/mcpapp/McpAppHostContext.kt",
+        "symbol": "hostStyleVariables"
+      },
+      "why": "Which spec style variables the host sends an App in its host context (mapped onto Material roles here).",
+      "failure_mode": "Apps theme a different subset than on web, or miss a variable web starts sending."
     }
   ]
 }

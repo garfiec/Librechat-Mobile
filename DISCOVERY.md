@@ -1706,10 +1706,58 @@ GET    /api/messages/:c/:m/parts/:partIndex?toolCallId=&stepId=&agentId=
 GET    /api/messages/:c/:m/subagent-calls?files=[…]            subagent-file-delivery slice 2: DEFERRED;
                                                                slice 1 places unclaimed child files client-side
 POST   /api/mcp/app/validate, /resources/read, /resources/list, /resources/templates/list,
-       /app-tool-call; GET /api/mcp/sandbox                    MCP Apps (NOT built; wave 3)
+       /app-tool-call                                          MCP Apps (BUILT; see "MCP Apps" below).
+GET    /api/mcp/sandbox                                        web's sandbox proxy: NOT used (see below)
 GET    /api/convos/:conversationId/pull-request; POST /api/convos/pull-requests; /api/pull-requests/*
                                                                (NOT built; wave 3)
 ```
+
+**MCP Apps** (BUILT, v0.8.9-rc1; 7b27e7941e11 #13831)
+- Gate: `GET /api/config` (authenticated) → `mcpApps` (`TMCPAppsPolicy`), read as web's
+  `getPublishedPolicy` does: Apps only when `enabled === true`, and a policy whose `enabled` or
+  `legacyHtmlEnabled` is not a Boolean is no policy. Pre-rc1 servers send none, so there is no
+  version check (`McpAppsPolicy.resolve`, `StartupConfig.mcpAppsPolicy`).
+- An App is a `ui_resources` attachment entry (SSE `attachment` and persisted
+  `message.attachments[]`) with `toolName`, `serverName` and the App media type
+  `text/html;profile=mcp-app`; its payload must be an array (`selectToolCallUiResources`). Each
+  carries `resourceId, uri, mimeType, text | blob (base64), serverBinding ("v1.<hmac>"),
+  structuredContent, content, toolArgs, isError, resultMeta, csp, permissions`. Over the server's
+  `maxPersistedAppBytes` it arrives URI-only (no `text`/`blob`/`csp`). rc1 also stamps `stepId` on
+  the attachment (now kept on live attachments too).
+- Routes (`api/server/routes/mcp.js`), all `POST`, bare JSON (NOT `arg`), JWT, MCP use permission,
+  then a 240/min per-user admission limiter and 120/min resource / 60/min tool-call limiters
+  (`McpAppsApi`; failures read by `McpAppFailure`):
+
+  | Route | Body | 200 |
+  |---|---|---|
+  | `/api/mcp/app/validate` | `{serverName, serverBinding}` | `{valid:true}` |
+  | `/api/mcp/resources/read` | `{serverName, serverBinding, uri}` | raw `ReadResourceResult` |
+  | `/api/mcp/resources/list` | `{serverName, serverBinding, cursor?}` | raw `ListResourcesResult` |
+  | `/api/mcp/resources/templates/list` | same | raw `ListResourceTemplatesResult` |
+  | `/api/mcp/app-tool-call` | `{serverName, serverBinding, toolName, arguments}` | raw `CallToolResult` |
+
+- Errors (`packages/api/src/mcp/apps.ts`): 400 `{error:<message>}` for a bad body, a stale binding or a
+  tool whose `_meta.ui.visibility` excludes `app` (never matched on its text: any 400 from validate or
+  read is "the server changed, run the tool again"; from a tool call it is just `isError` to the
+  App); 401 `{error:"invalid_token"}` is the MCP server's own OpenID reauth, not the LibreChat
+  session (the auth plugin's refresh succeeds, the retry 401s again, and nothing signs out;
+  `AuthInterceptorTest` pins it); 403 `{error:"MCP Apps are disabled"}` vs any other 403 (no MCP
+  permission), told apart by body; 413/502/503/504 `{error:<code>, message}` operation budget; 429
+  limiter; 500 `{error:"Failed to execute tool"}`. The binding is invalidated by a change of server
+  owner, endpoint, command, custom vars or config generation, not by token refresh.
+- **Deliberate divergence: no `sandboxUrl` requirement.** Web refuses to load an App unless
+  `mcpApps.sandboxUrl` names a dedicated origin other than the chat's (`client/src/utils/mcpApps.ts`),
+  a browser same-origin problem. The app cannot use that proxy anyway: `mcp-sandbox.html` talks only
+  to `window.parent` and its `frame-ancestors` would not list us. It ships its own relay page
+  (`McpAppRelayPage`, a port of the proxy's inner-frame half) loaded at the synthetic origin
+  `https://mcp-app.switchboard.invalid`, with native code as the parent. So a server whose web client
+  shows a load error for lack of a sandbox URL still runs Apps on mobile.
+- Tokens never enter the WebView: every route above is called natively by `McpAppHost`. The App runs in
+  an opaque `srcdoc` frame (`sandbox="allow-scripts allow-forms"`); the bridge is an origin-scoped
+  `WebMessageListener` on Android and an isolated `WKContentWorld` on iOS. No geolocation or clipboard
+  delegation in this slice.
+- Protocol: spec `2026-01-26` (`@modelcontextprotocol/ext-apps` 1.7.5), spoken by a Kotlin host, not
+  the vendored SDK (it has no browser build). Method names pinned in `McpAppHostTest`.
 
 **Tool approval: Always allow and agent approval modes** (BUILT)
 - `POST /api/agents/tools/approvals/reset` (`api/server/routes/agents/tools.js`,

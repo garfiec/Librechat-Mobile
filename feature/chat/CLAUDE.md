@@ -36,7 +36,7 @@
   per SSE envelope unthrottled, so subagent-heavy runs still re-execute the chrome — needs a
   separate collection path or a write-side throttle in `SubagentTraceDelegate` (open follow-up).
 
-## One screen, four platform seams
+## One screen, five platform seams
 `ChatScreen` / `NewChatScreen` are a single commonMain composable for both platforms. Where the
 platforms genuinely differ, the screen calls an `expect`, never an `if (platform)`:
 - `ChatComposer` — `ChatInput` on Android, `IosChatInput` on iOS. iOS's clipboard-image paste lives
@@ -44,6 +44,7 @@ platforms genuinely differ, the screen calls an `expect`, never an `if (platform
 - `rememberChatAttachmentActions` — activity-result launchers vs the native iOS pickers.
 - `rememberChatStartRecording` — Android routes API 26–30 through the system recognizer overlay.
 - `Modifier.addToChatSelectionItem` — a no-op on iOS.
+- `McpAppWebView` — the MCP App's web view and its isolated bridge (see "MCP Apps").
 
 Known iOS gaps behind those seams: the document picker ignores the endpoint's MIME allowlist, and
 there is no "Add to chat" selection item. A feature added to the screen reaches both platforms; a
@@ -1213,6 +1214,12 @@ also why the CSPs in these documents name no remote origin — `img-src https:` 
 deliberate exception, because a remote `<img>` in an artifact is content the user asked to
 see rather than code the app chose to run.
 
+**MCP Apps are not covered by this rule and do not change it.** An App is third-party code its MCP
+server supplies at run time, and its declared CSP may let it load more. The app itself bundles
+nothing for it (the relay page loads no script), runs it only after a per-server consent, and
+keeps it in an opaque sandboxed frame; see "MCP Apps". None of the renderers above may take a
+remote script on the strength of that.
+
 What is vendored, at which version, and why each pin sits where it does is in
 `scripts/web-assets.json`; `scripts/vendor-web-assets.py` moves the bytes and CI runs
 `--check` against a sha256 lock. Repin through **`/update-web-assets`**, never by editing a
@@ -1485,6 +1492,39 @@ The chat load asks for bounded previews of settled tool calls; a previewed call 
   the full call (`seedsFor`) instead of refetching it.
 - A subagent's transcript-less preview routes its child calls' files by `subagentAttachmentCalls`
   (`omittedTranscriptCalls`, also folded into `outputToolCallIds`).
+
+## MCP Apps (v0.8.9-rc1, `components/mcpapp/`)
+An MCP tool can ship a View (`text/html;profile=mcp-app`) that arrives as a `ui_resources`
+attachment. The chat shows an inert "Open app" row and runs the App in a full-screen panel.
+- **Rows** (`McpAppRows`, from `selectToolCallUiResources`): after the tool card
+  (`ToolCallContentPart`, `StreamingToolCallCard`), or under an activity group in its hoisted slot,
+  never inside a fold. Only while `mcpApps.enabled` (`McpAppsViewModel.policy` → `LocalMcpApps`);
+  a missing binding reads "could not be loaded" with no button; the shared viewer passes
+  `McpApps.ReadOnly`. Subagent and background-task cards show none (slice 2).
+- **Consent** (`ChannelPolicy.mcpAppsNeedConsent`, true on every channel): the first open per
+  account + MCP `serverName` asks first; "Don't ask again" goes in `McpAppConsentStore`, cleared from
+  Settings › Chat. Whether this satisfies F-Droid's policy on downloaded code is an open question
+  for the F-Droid reviewers; don't describe it as compliant.
+- **Panel** (`McpAppPanel`, an `AdaptiveDialog`): full screen, never inline, because a WebView in the
+  thread's lazy list is disposed on scroll, which tears the App down mid-request. One App at a time;
+  closing or leaving the chat tears it down (no in-View state survives). Retry is a new host and a
+  new web view.
+- **Host** (`McpAppHost`): the spec `2026-01-26` JSON-RPC in Kotlin, unit-tested without a WebView
+  (`McpAppHostTest`). Every server call is native through `McpAppsRepository`, so no token reaches
+  the page. Tool calls and messages wait on the approval dialog (exact text, never truncated; over
+  `maxActionPreviewChars` refused without asking; queue bounded by `operationLimits.maxActive`;
+  Cancel pauses the App until reopened). Links open only on hosts the delivered CSP declared.
+  An approved message goes through `ChatViewModel.sendAppMessage`: only its text, composer
+  untouched, refused while a reply runs.
+- **Relay page** (`McpAppRelayPage`): a port of `mcp-sandbox.html`'s inner-frame half (mirror
+  `mcp-app-sandbox-relay`). It loads nothing; the App's own CSP may name hosts its frame loads from.
+  The bridge (`McpAppWebView`, the platform seam): Android `WebViewCompat.addWebMessageListener`
+  scoped to `https://mcp-app.switchboard.invalid` — **never `addJavascriptInterface`**, which reaches
+  every frame including the App's; iOS a dedicated `WKContentWorld`, main frame only. Both refuse
+  main-frame navigation and new windows.
+- **Not verified on a device yet:** the dialog-hosted WebView across rotation/fold, whether the
+  relay's loader CSP needs a `frame-src` entry for its `about:srcdoc` child, and that WebKit
+  delivers the inner frame's `message` events to the isolated content world.
 
 ## Tool intent labels (v0.8.8)
 A tool card's title is the model's own `intent` string when present, else the raw tool name.
