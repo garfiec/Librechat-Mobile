@@ -1463,6 +1463,29 @@ reply, claimed = the live call ids) rewrite an unclaimed stored file's `toolCall
 Metadata attachments (memory, search) never move. Upstream's `/subagent-calls` lookup (slice 2) is
 not used.
 
+## Tool-call previews (v0.8.9-rc1, `?toolPreviews=1`)
+The chat load asks for bounded previews of settled tool calls; a previewed call carries
+`AgentToolCall.isPreview` and its full lengths. Rules that keep a preview from passing for the whole:
+- **Fetched parts never touch Room.** `ToolPartHydrationDelegate` holds them in memory (cleared on a
+  conversation or account switch, ~4M-char budget that never evicts a part an open card holds). A card
+  can open mid-stream, when no Room write is allowed, and Room keeps only what the server last said.
+- **The overlay runs in `ChatViewModel.uiState`'s combine** (`ToolPartOverlay`), over the built
+  `displayMessages`: never a tree rebuild, never `activeBranches`, never the streaming anchor.
+  Delegates read the backing state, which keeps the previews. The loaded map rides beside the server
+  URL flow so it adds no hop to every state emission.
+- **Cards request from an effect, not the click** (`ToolContentDisclosure`, at the top of every
+  disclosure that reveals args, output or transcript): a card restored open, or carried open from
+  the live reply, asks too. `ToolCallDispatcher` provides the call's `LocalToolPreview`; nested
+  transcript calls get their own. `LocalToolContent` is null outside `ChatScreen` (shared links are
+  never previewed), and cards render as before there.
+- **Never copy a preview.** A `CodeBlock` inside a previewed card disables Copy; the code-execution
+  output pane (visible without a disclosure) fetches first; message Copy fetches every previewed part
+  (8 at a time) and copies nothing on a failure (`COPY_TOOL_CONTENT_FAILED`).
+- A reload that replaces a call held in full with a preview of the same identity and lengths seeds
+  the full call (`seedsFor`) instead of refetching it.
+- A subagent's transcript-less preview routes its child calls' files by `subagentAttachmentCalls`
+  (`omittedTranscriptCalls`, also folded into `outputToolCallIds`).
+
 ## Tool intent labels (v0.8.8)
 A tool card's title is the model's own `intent` string when present, else the raw tool name.
 **Accepted only when it is the FIRST key of the args object** — the opt-in (capability +

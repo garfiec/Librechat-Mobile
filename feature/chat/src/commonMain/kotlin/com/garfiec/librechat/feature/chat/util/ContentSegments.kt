@@ -185,6 +185,8 @@ fun outputToolCallIds(parts: List<MessageContentPart>): List<String> {
             val call = part.toolCall ?: return@forEach
             call.id?.takeIf(String::isNotEmpty)?.let(ids::add)
             call.subagentContent?.let(::walk)
+            // A previewed subagent call left its transcript out; its file-bearing child calls ride along.
+            omittedTranscriptCalls(call).forEach { ids.add(it.id) }
         }
     }
     walk(parts)

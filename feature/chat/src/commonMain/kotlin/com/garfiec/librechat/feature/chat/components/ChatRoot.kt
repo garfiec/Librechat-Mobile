@@ -82,6 +82,8 @@ fun ChatRoot(
     mcpSignIn: McpSignIn?,
     /** Required, not defaulted, so a screen cannot quietly leave the setting unread again (#586). */
     thinkingOpenByDefault: Boolean,
+    /** Backs [LocalToolContent]: fetches previewed tool calls in full. Null where nothing is previewed. */
+    toolContent: ToolContentHost? = null,
     content: @Composable () -> Unit,
 ) {
     // Driven from the chat screen's composition rather than a ViewModel collector, which defers the
@@ -134,6 +136,7 @@ fun ChatRoot(
         LocalMermaidRenderCache provides mermaidRenderCache,
         LocalParsedMarkdownCache provides parsedMarkdownCache,
         LocalSubagentProgress provides subagentProgress,
+        LocalToolContent provides toolContent,
         LocalPreviewOverrides provides previewOverrides,
         LocalExpansionStates provides rememberExpansionStates(),
         LocalChatMediaViewer provides onOpenMedia,

@@ -356,6 +356,7 @@ private fun SettledWebSearch(
         }
     }
 
+    ToolContentDisclosure(open = (showDetails && hasDetails) || (isExpanded && hasSources))
     AnimatedVisibility(visible = showDetails && hasDetails, enter = expandVertically(), exit = shrinkVertically()) {
         WebSearchDetails(query, count, answerBox)
     }

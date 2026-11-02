@@ -151,6 +151,7 @@ fun MemoryArtifactCard(
                 val canToggle = isExpanded || overflows
                 val bodyState =
                     stringResource(if (isExpanded) Res.string.state_expanded else Res.string.state_collapsed)
+                ToolContentDisclosure(open = isExpanded)
                 Text(
                     text = body,
                     style = MaterialTheme.typography.bodyMedium,

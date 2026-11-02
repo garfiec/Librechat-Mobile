@@ -27,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,14 +48,17 @@ import com.garfiec.librechat.core.model.background.CHECK_BACKGROUND_TASK_TOOL
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.util.attachmentsOwnedByHints
+import com.garfiec.librechat.feature.chat.util.omittedTranscriptCalls
 import com.garfiec.librechat.feature.chat.util.outputToolCallIds
 import org.jetbrains.compose.resources.stringResource
 
 // ─── ToolCallDispatcher ─────────────────────────────────────────────
 
-// A dispatcher: each branch emits one card and returns. Wrapping it to satisfy the rule would
-// add a layout node to every tool call in every message.
-@Suppress("MultipleEmitters")
+/**
+ * Draws one tool call. Every card below reads the call's tool-call preview state
+ * ([LocalToolPreview]) from here, so a disclosure that reveals its content can fetch it in full.
+ */
 @Composable
 internal fun ToolCallDispatcher(
     part: MessageContentPart,
@@ -68,6 +72,34 @@ internal fun ToolCallDispatcher(
     allowSubagentCard: Boolean = true,
     // True while this call renders inside an activity group, which hoists its tool calls' files out.
     hideAttachments: Boolean = false,
+) {
+    CompositionLocalProvider(LocalToolPreview provides rememberToolPreviewScope(part.toolCall, part.agentId)) {
+        ToolCallDispatcherContent(
+            part = part,
+            baseUrl = baseUrl,
+            attachments = attachments,
+            showImageDescriptions = showImageDescriptions,
+            modifier = modifier,
+            stateKey = stateKey,
+            allowSubagentCard = allowSubagentCard,
+            hideAttachments = hideAttachments,
+        )
+    }
+}
+
+// A dispatcher: each branch emits one card and returns. Wrapping it to satisfy the rule would
+// add a layout node to every tool call in every message.
+@Suppress("MultipleEmitters")
+@Composable
+private fun ToolCallDispatcherContent(
+    part: MessageContentPart,
+    baseUrl: String,
+    attachments: List<Attachment>,
+    showImageDescriptions: Boolean,
+    stateKey: String,
+    allowSubagentCard: Boolean,
+    hideAttachments: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     val toolCall = part.toolCall
     val cardKey = toolCall?.id?.takeIf { it.isNotEmpty() } ?: stateKey
@@ -101,10 +133,14 @@ internal fun ToolCallDispatcher(
                 stateKey = cardKey,
             )
             if (!hideAttachments) {
-                val hoisted = remember(attachments, toolCallId, tracedParts) {
+                val hoisted = remember(attachments, toolCall, tracedParts) {
+                    // With the transcript left out of a preview, the walk finds no child calls: the
+                    // ones the files were saved under ride along in `subagentAttachmentCalls`.
+                    val ownIds = listOfNotNull(toolCallId?.takeIf { it.isNotEmpty() }) + outputToolCallIds(tracedParts)
+                    val hints = omittedTranscriptCalls(toolCall)
                     collectGroupAttachments(
-                        attachments,
-                        listOfNotNull(toolCallId?.takeIf { it.isNotEmpty() }) + outputToolCallIds(tracedParts),
+                        attachmentsOwnedByHints(attachments, hints, ownIds),
+                        ownIds + hints.map { it.id },
                     )
                 }
                 ToolAttachmentBuckets(
@@ -435,6 +471,8 @@ internal fun GenericToolCallCard(
 
             AnimatedVisibility(visible = isExpanded, enter = expandVertically(), exit = shrinkVertically()) {
                 Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
+                    // At the top of the body, so it shows even when the output runs past the screen.
+                    ToolContentDisclosure(open = isExpanded)
                     if (!args.isNullOrBlank()) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(

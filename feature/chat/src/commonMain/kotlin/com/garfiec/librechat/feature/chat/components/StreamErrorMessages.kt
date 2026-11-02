@@ -121,6 +121,7 @@ private fun localizedNotice(parsed: ChatNotice.Parsed): String {
         ChatNotice.FORK_RATE_LIMITED -> Res.string.notice_fork_rate_limited
         ChatNotice.BRANCH_WITHOUT_FILES_UNSUPPORTED -> Res.string.notice_branch_without_files_unsupported
         ChatNotice.CODE_WORKSPACE_SENT_WITHOUT -> Res.string.code_workspace_sent_without
+        ChatNotice.COPY_TOOL_CONTENT_FAILED -> Res.string.notice_copy_tool_content_failed
         // Reached only with an unreadable argument; the generic message-limit copy still applies.
         ChatNotice.MESSAGE_LIMIT_RETRY -> Res.string.error_message_limit
     }

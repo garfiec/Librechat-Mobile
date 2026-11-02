@@ -103,6 +103,12 @@ enum class ChatNotice(val wire: String) {
      * (offline, or a worker too old for workspaces): the chat is now sealed without files or commands.
      */
     CODE_WORKSPACE_SENT_WITHOUT("code_workspace_sent_without"),
+
+    /**
+     * A message copy whose tool-call previews could not be fetched in full. Nothing was copied:
+     * copying the previews would hand out shortened output as if it were the whole.
+     */
+    COPY_TOOL_CONTENT_FAILED("copy_tool_content_failed"),
     ;
 
     fun marker(vararg args: Any): String =

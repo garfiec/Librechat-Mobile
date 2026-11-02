@@ -233,10 +233,8 @@ private fun copyMessageToClipboard(
     clipboard: ClipboardWriter,
     messageId: String,
 ) {
-    val text = viewModel.getMessageClipboardText(messageId)
-    if (text.isNotBlank()) {
-        clipboard.copy(text, "Message")
-    }
+    // Asynchronous: a message with tool-call previews fetches their full parts before anything is copied.
+    viewModel.copyMessage(messageId) { text -> clipboard.copy(text, "Message") }
 }
 
 /**

@@ -31,7 +31,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,10 +48,12 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.core.ui.platform.rememberReduceMotion
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.util.ToolPartStatus
 import com.garfiec.librechat.feature.chat.util.rememberClipboardWriter
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.pluralStringResource
@@ -151,11 +152,10 @@ fun CodeExecutionCard(
                 enter = if (reduceMotion) EnterTransition.None else expandVertically(),
                 exit = if (reduceMotion) ExitTransition.None else shrinkVertically(),
             ) {
-                CodeBlock(
-                    code = code,
-                    language = result.language,
-                    modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
-                )
+                Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
+                    ToolContentDisclosure(open = isCodeExpanded)
+                    CodeBlock(code = code, language = result.language)
+                }
             }
         }
         if (settled && (!result.output.isNullOrBlank() || !result.error.isNullOrBlank())) {
@@ -293,6 +293,28 @@ private fun CodeExecutionOutput(result: CodeExecutionResult, stateKey: String, l
     val outputLabel = stringResource(Res.string.label_output)
     val lineCount = remember(copyText) { copyText.lines().size }
 
+    // This pane shows without a disclosure, so Copy on a preview fetches the full output first
+    // rather than sitting disabled; a failure reverts the icon and shows the status row.
+    val preview = LocalToolPreview.current
+    val isPreview = preview?.isPreview == true
+    var copyRequested by remember { mutableStateOf(false) }
+    var copyPending by remember { mutableStateOf(false) }
+    LaunchedEffect(copyPending, isPreview, copyText) {
+        if (copyPending && !isPreview) {
+            clipboard.copy(copyText, outputLabel)
+            showCopied = true
+            copyPending = false
+        }
+    }
+    // A retry from a failed fetch still reads the old failure until the new request is seen.
+    var staleFailure by remember { mutableStateOf(false) }
+    LaunchedEffect(copyPending, preview?.status) {
+        when {
+            preview?.status != ToolPartStatus.FAILED -> staleFailure = false
+            copyPending && !staleFailure -> copyPending = false
+        }
+    }
+
     Column(modifier = Modifier.padding(start = 12.dp, end = 4.dp, bottom = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -303,18 +325,31 @@ private fun CodeExecutionOutput(result: CodeExecutionResult, stateKey: String, l
             )
             IconButton(
                 onClick = {
-                    clipboard.copy(copyText, outputLabel)
-                    showCopied = true
+                    if (isPreview) {
+                        staleFailure = preview?.status == ToolPartStatus.FAILED
+                        copyRequested = true
+                        copyPending = true
+                        preview?.key?.let(preview.host::request)
+                    } else {
+                        clipboard.copy(copyText, outputLabel)
+                        showCopied = true
+                    }
                 },
+                enabled = !copyPending,
             ) {
-                Icon(
-                    imageVector = if (showCopied) Icons.Default.Check else Icons.Default.ContentCopy,
-                    contentDescription = stringResource(if (showCopied) Res.string.cd_copied else Res.string.cd_copy_output),
-                    modifier = Modifier.size(18.dp),
-                    tint = if (showCopied) colors.primary else colors.onSurfaceVariant,
-                )
+                if (copyPending) {
+                    AdaptiveCircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                } else {
+                    Icon(
+                        imageVector = if (showCopied) Icons.Default.Check else Icons.Default.ContentCopy,
+                        contentDescription = stringResource(if (showCopied) Res.string.cd_copied else Res.string.cd_copy_output),
+                        modifier = Modifier.size(18.dp),
+                        tint = if (showCopied) colors.primary else colors.onSurfaceVariant,
+                    )
+                }
             }
         }
+        ToolContentDisclosure(open = showAll || copyRequested, modifier = Modifier.padding(end = 8.dp))
         val maxLines = if (showAll) Int.MAX_VALUE else OUTPUT_PREVIEW_LINES
         Column(modifier = Modifier.padding(end = 8.dp)) {
             if (stdout != null) {
@@ -340,7 +375,7 @@ private fun CodeExecutionOutput(result: CodeExecutionResult, stateKey: String, l
             }
         }
         if (!showAll && (stdoutClipped || stderrClipped)) {
-            TextButton(onClick = { showAll = true }) {
+            AdaptiveTextButton(onClick = { showAll = true }) {
                 Text(pluralStringResource(Res.plurals.show_all_n_lines, lineCount, lineCount))
             }
         }

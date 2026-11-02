@@ -75,6 +75,9 @@ import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.ReplyAvatarMemo
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
+import com.garfiec.librechat.feature.chat.util.ToolPartIdentity
+import com.garfiec.librechat.feature.chat.util.ToolPartKey
+import com.garfiec.librechat.feature.chat.util.ToolPartStatus
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.extractBranchMedia
 import com.garfiec.librechat.feature.chat.util.isAddedAgentId
@@ -121,6 +124,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.SteeringDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.StreamingHost
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.StreamingManagerDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SubagentTraceDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.ToolPartHydrationDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.UploadIntakeDelegate
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.NonCancellable
@@ -255,6 +259,15 @@ class ChatViewModel(
         endpointTokenRepository,
     )
     private val ownerTextDelegate = OwnerTextDelegate(OwnerTextHandle(stateHandle), messageRepository)
+    private val toolPartDelegate = ToolPartHydrationDelegate(
+        scope = viewModelScope,
+        messageRepository = messageRepository,
+        currentConversationId = { _uiState.value.conversationId },
+        currentMessages = { _uiState.value.messages },
+        currentAccountId = { activeAccountProvider.currentAccountId()?.value },
+        defaultDispatcher = defaultDispatcher,
+    )
+    private val toolPartOverlay = ToolPartOverlay()
     private val searchDelegate = InConversationSearchDelegate(SearchHandle(stateHandle))
     private val jumpDelegate = JumpToMessageDelegate(JumpHandle(stateHandle), defaultDispatcher)
 
@@ -524,12 +537,16 @@ class ChatViewModel(
 
     val uiState: StateFlow<ChatUiState> = combine(
         _uiState,
-        serverDataStore.currentUrlFlow,
+        // Paired off the backing-state path, so a fetched tool part adds no hop to every state emission.
+        combine(serverDataStore.currentUrlFlow, toolPartDelegate.loaded, ::Pair),
         settingsDataStore.chatFontSize,
         settingsDataStore.starredModelsDisplay,
         chatDisplayPrefs,
-    ) { state, url, fontSize, starredDisplay, displayPrefs ->
-        state.copy(
+    ) { state, (url, loadedToolParts), fontSize, starredDisplay, displayPrefs ->
+        // Fetched full tool calls go over the display path here, after it is built and before the
+        // UI collects it: a fetch landing never rebuilds the tree or touches the streaming anchor,
+        // and delegates keep reading the backing state's previews.
+        toolPartOverlay.apply(state, loadedToolParts).copy(
             prefs = ChatPrefsState(
                 serverUrl = url,
                 chatFontSize = fontSize,
@@ -886,6 +903,7 @@ class ChatViewModel(
         // Seed/refresh the context-usage gauge for a loaded or snapshot-less branch (v0.8.7).
         contextProjectionDelegate.start()
         ownerTextDelegate.start()
+        toolPartDelegate.start(_uiState.map { it.conversationId to it.messages })
         // The Skills toggle follows the slot this chat maps to (conversation, new chat, temp, spec).
         skillsToggleDelegate.start()
         codeWorkspaceDelegate.start()
@@ -1349,10 +1367,37 @@ class ChatViewModel(
      * The clipboard serialization of a whole message — tool calls, reasoning and media parts as
      * labeled blocks, not just its text. Mirrors web `serializeMessageForClipboard`.
      */
-    fun getMessageClipboardText(messageId: String): String {
-        val message = _uiState.value.messages.find { it.messageId == messageId } ?: return ""
-        return serializeMessageForClipboard(message)
+    fun copyMessage(messageId: String, write: (String) -> Unit) {
+        viewModelScope.launch {
+            val text = getMessageClipboardText(messageId)
+            if (text.isNotBlank()) write(text)
+        }
     }
+
+    internal suspend fun getMessageClipboardText(messageId: String): String {
+        val message = _uiState.value.messages.find { it.messageId == messageId } ?: return ""
+        if (message.content.orEmpty().none { it.toolCall?.isPreview == true }) {
+            return serializeMessageForClipboard(message)
+        }
+        // A previewed call would copy shortened output: fetch the full parts first, or copy nothing.
+        val full = toolPartDelegate.fullMessage(messageId)
+        if (full == null) {
+            stateHandle.update { copy(error = ChatNotice.COPY_TOOL_CONTENT_FAILED.marker()) }
+            return ""
+        }
+        return serializeMessageForClipboard(full)
+    }
+
+    /** Tool-call previews: what each card whose full content is not in place shows. */
+    val toolPartStatuses: StateFlow<Map<ToolPartKey, ToolPartStatus>> get() = toolPartDelegate.statuses
+
+    /** A card that shows a preview's content opened: fetch its full part (a retry from failed). */
+    fun requestToolPart(key: ToolPartKey) = toolPartDelegate.request(key)
+
+    /** An open card holds its fetched part against eviction until [releaseToolPart]. */
+    fun retainToolPart(identity: ToolPartIdentity) = toolPartDelegate.retain(identity)
+
+    fun releaseToolPart(identity: ToolPartIdentity) = toolPartDelegate.release(identity)
 
     fun stopGeneration() = streamingManager.stopGeneration()
 

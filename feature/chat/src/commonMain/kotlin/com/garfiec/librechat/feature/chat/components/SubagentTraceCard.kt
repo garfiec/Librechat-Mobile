@@ -165,6 +165,9 @@ internal fun SubagentTraceCard(
 
             AnimatedVisibility(visible = isExpanded, enter = expandVertically(), exit = shrinkVertically()) {
                 Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
+                    // A previewed call left its transcript out: while it loads this row is the whole
+                    // body, so an open card is never silently empty.
+                    ToolContentDisclosure(open = isExpanded)
                     parts.forEachIndexed { index, part ->
                         Spacer(modifier = Modifier.padding(top = 6.dp))
                         // The shared dispatcher draws no steer; the parent reply's renderer claims

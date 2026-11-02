@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -112,11 +113,16 @@ fun CodeBlock(
                 )
             }
             Spacer(modifier = Modifier.weight(1f))
+            // Inside a tool card whose content is still a preview, Copy would copy shortened text:
+            // it waits (disabled, keeping its label) until the full part lands.
+            val copyEnabled = !toolContentIsPreview()
             IconButton(
                 onClick = {
                     clipboard.copy(code, "Code")
                     showCopied = true
                 },
+                enabled = copyEnabled,
+                modifier = if (copyEnabled) Modifier else Modifier.alpha(DISABLED_ALPHA),
             ) {
                 AnimatedContent(
                     targetState = showCopied,
@@ -292,6 +298,8 @@ private data class TokenRule(
 // Color palette for syntax highlighting (works on both light and dark themes)
 // These are chosen to be visible on dark backgrounds (surfaceContainerHighest)
 // and also acceptable on light backgrounds.
+private const val DISABLED_ALPHA = 0.38f
+
 private val commentStyle = SpanStyle(color = Color(0xFF6A9955), fontStyle = FontStyle.Italic)
 private val stringStyle = SpanStyle(color = Color(0xFFCE9178))
 private val keywordStyle = SpanStyle(color = Color(0xFF569CD6))

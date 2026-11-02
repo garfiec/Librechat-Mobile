@@ -138,6 +138,7 @@ internal fun BackgroundTaskCallCard(
             }
             AnimatedVisibility(visible = isExpanded, enter = expandVertically(), exit = shrinkVertically()) {
                 Column(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
+                    ToolContentDisclosure(open = isExpanded)
                     when (display) {
                         is BackgroundTaskDisplay.Task -> PolledTaskBlock(display.task, stateKey)
                         is BackgroundTaskDisplay.TaskList -> {

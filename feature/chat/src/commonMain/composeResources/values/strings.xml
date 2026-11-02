@@ -1071,6 +1071,9 @@
     <string name="code_workspace_locked_recovery">Reconnect or restore this workspace, or start a new chat.</string>
     <string name="code_workspace_refresh">Refresh</string>
     <string name="code_workspace_sent_without">Sent without a workspace. This chat can't use files or commands.</string>
+    <string name="notice_copy_tool_content_failed">Couldn't load the full tool output, so nothing was copied.</string>
+    <string name="tool_content_loading">Loading the full tool call…</string>
+    <string name="tool_content_error">Couldn't load the full tool call.</string>
     <string name="code_branch">Branch</string>
     <string name="code_branch_info">Branch reported by the registered workspace. Branch selection is not supported.</string>
     <string name="code_checkout_mode">Checkout mode</string>

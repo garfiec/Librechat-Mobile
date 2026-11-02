@@ -168,6 +168,7 @@ internal fun FileSearchSourcesCard(
                     .clip(RoundedCornerShape(8.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp)),
             ) {
+                ToolContentDisclosure(open = isExpanded, modifier = Modifier.padding(horizontal = 12.dp))
                 citations.forEachIndexed { index, citation ->
                     CitationRow(
                         citation = citation,

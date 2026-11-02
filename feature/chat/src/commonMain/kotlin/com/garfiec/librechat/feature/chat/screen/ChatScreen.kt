@@ -53,6 +53,7 @@ import com.garfiec.librechat.feature.chat.components.LandingStarters
 import com.garfiec.librechat.feature.chat.components.LocalCodeWorkspaceComposer
 import com.garfiec.librechat.feature.chat.components.ThinkingSheet
 import com.garfiec.librechat.feature.chat.components.ToolApprovalPanel
+import com.garfiec.librechat.feature.chat.components.ToolContentHost
 import com.garfiec.librechat.feature.chat.components.UpdateAvailableBanner
 import com.garfiec.librechat.feature.chat.components.UploadRoutingSheet
 import com.garfiec.librechat.feature.chat.components.addToChatSelectionItem
@@ -329,6 +330,17 @@ fun ChatScreen(
     val mcpSignInViewModel: McpSignInViewModel = koinViewModel()
     val mcpSignIn = rememberMcpSignIn(mcpSignInViewModel, snackbarHostState)
 
+    // Collected apart from uiState: it changes only when a preview's fetch starts, lands or fails.
+    val toolPartStatuses by viewModel.toolPartStatuses.collectAsStateWithLifecycle()
+    val toolContent = remember(toolPartStatuses, viewModel) {
+        ToolContentHost(
+            statuses = toolPartStatuses,
+            onRequest = viewModel::requestToolPart,
+            onRetain = viewModel::retainToolPart,
+            onRelease = viewModel::releaseToolPart,
+        )
+    }
+
     ChatRoot(
         inlineArtifactPrefs = prefs.inlineArtifactPrefs,
         mermaidRenderCache = viewModel.mermaidRenderCache,
@@ -355,6 +367,7 @@ fun ChatScreen(
         onOpenMemories = onOpenMemories?.takeIf { uiState.gates.memoriesPageEnabled },
         mcpSignIn = mcpSignIn,
         thinkingOpenByDefault = prefs.thinkingOpenByDefault,
+        toolContent = toolContent,
     ) {
     Scaffold(
         modifier = modifier
