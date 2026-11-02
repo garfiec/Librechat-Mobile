@@ -885,13 +885,7 @@ fun DrawerContent(
                                 projectPickerTarget = data
                             },
                             showShareAction = uiState.sharedLinksEnabled,
-                            readStateAction = when {
-                                !uiState.readStateEnabled -> null
-                                data.isUnread -> ReadStateAction.MarkRead
-                                // Not on the chat that is open: reading it would clear the mark at once.
-                                data.isActive -> null
-                                else -> ReadStateAction.MarkUnread
-                            },
+                            readStateAction = data.readStateAction(uiState.readStateEnabled),
                             onReadStateAction = { action ->
                                 when (action) {
                                     ReadStateAction.MarkRead -> onMarkRead(data.conversationId)

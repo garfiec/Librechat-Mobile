@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.model.iconEndpoint
 import com.garfiec.librechat.core.model.iconProvider
 import com.garfiec.librechat.core.model.isUnseen
 import com.garfiec.librechat.core.model.resolveEndpointIconUrl
+import com.garfiec.librechat.feature.conversations.components.ReadStateAction
 
 /**
  * The drawer's conversation sections, already mapped to row data.
@@ -48,5 +49,18 @@ internal fun Conversation.toDrawerDisplayData(
         iconProvider = iconProvider(endpointConfigs),
         // As on web, a running row shows no dot: its reply isn't finished yet.
         isUnread = isUnseen && convId !in runningIds,
+        isRunning = convId in runningIds,
     )
+}
+
+/**
+ * The long-press menu's read-state action, or null for none: none on a running row (it has no
+ * finished reply to mark either way) or on the open chat when it is read (reading it would clear an
+ * unread mark at once).
+ */
+internal fun DrawerConversationDisplayData.readStateAction(readStateEnabled: Boolean): ReadStateAction? = when {
+    !readStateEnabled || isRunning -> null
+    isUnread -> ReadStateAction.MarkRead
+    isActive -> null
+    else -> ReadStateAction.MarkUnread
 }

@@ -36,6 +36,8 @@ data class DrawerConversationDisplayData(
     val iconProvider: ProviderId? = null,
     /** A reply the user has not seen (v0.8.9-rc1); never on a running row. */
     val isUnread: Boolean = false,
+    /** Its reply is still being generated (the Running group's rows, wherever else they show). */
+    val isRunning: Boolean = false,
 )
 
 /**
