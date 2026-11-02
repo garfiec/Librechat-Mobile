@@ -2,6 +2,7 @@ package com.garfiec.librechat.core.model.request
 
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.ReasoningOverride
+import com.garfiec.librechat.core.model.code.CodeWorkspaceSelection
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
@@ -124,4 +125,12 @@ data class ChatRequest(
      * server 400s one the model does not accept, so the caller drops it rather than send it then.
      */
     val reasoningOverride: ReasoningOverride? = null,
+    /**
+     * The chat's code-workspace decision (`attached` / `without_attached`) and the workspaces it
+     * selects. Sent only when an agent in the chat runs code on an attached machine; a turn that
+     * sends neither on a chat that already decided keeps the recorded decision, and a NEW chat that
+     * sends neither is sealed "No workspace" for good. Agents endpoint only.
+     */
+    val codeEnvironmentMode: String? = null,
+    val codeWorkspaces: List<CodeWorkspaceSelection>? = null,
 )

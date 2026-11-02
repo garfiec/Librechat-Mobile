@@ -146,6 +146,17 @@ data class StartupConfig(
     val ragEnabled: Boolean? = null,
     /** The `projects` limits block (v0.8.9-rc1, post-login only). Null stands for upstream's defaults. */
     val projects: ChatProjectsConfig? = null,
+    /**
+     * Attached-machine capability versions. Each is compared with `==`, as web does
+     * (`CodeCapabilityVersions`): a version this client does not know is unsupported. The decision
+     * version is an env var admins may leave unset, and without it a client must never send a
+     * selection-less ("No workspace") decision. Inheritance is v0.8.9-rc1; the rest are 0.8.8.
+     */
+    val codeEnvironmentDecisionVersion: Int? = null,
+    val codeEnvironmentMoveVersion: Int? = null,
+    val codeEnvironmentTransitionVersion: Int? = null,
+    val codeWorkspaceRecoveryVersion: Int? = null,
+    val codeWorkspaceInheritanceVersion: Int? = null,
 ) {
     /**
      * Upstream `supportsConversationTitleOwnership`: the capability is announced AND

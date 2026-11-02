@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.model.error
 
+import com.garfiec.librechat.core.model.code.CodeWorkspaceUnavailableReason
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -347,5 +348,20 @@ class StreamErrorTypeTest {
                     """{"type":"upstream_model_error","message":"no such model"}""",
             ),
         )
+    }
+
+    @Test
+    fun readsTheCodeWorkspaceRejectionReason() {
+        val start = """{"status":409,"code":"code_workspace_unavailable","reason":"locked","error":"This conversation already has a different code environment decision."}"""
+        assertEquals(CodeWorkspaceUnavailableReason.LOCKED, StreamErrorType.codeWorkspaceReason(start))
+        for (reason in CodeWorkspaceUnavailableReason.entries) {
+            assertEquals(
+                reason,
+                StreamErrorType.codeWorkspaceReason("""{"code":"code_workspace_unavailable","reason":"${reason.wire}"}"""),
+            )
+        }
+        assertNull(StreamErrorType.codeWorkspaceReason("""{"code":"code_workspace_unavailable","reason":"new"}"""))
+        assertNull(StreamErrorType.codeWorkspaceReason("""{"code":"code_workspace_unavailable"}"""))
+        assertNull(StreamErrorType.codeWorkspaceReason("""{"type":"message_limit","reason":"locked"}"""))
     }
 }

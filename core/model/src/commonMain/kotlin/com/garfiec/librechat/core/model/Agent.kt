@@ -136,6 +136,17 @@ data class Agent(
     /** The persistent code workspace this agent's sandbox attaches to (v0.8.8-rc2). Round-tripped. */
     @SerialName("code_workspace_id") val codeWorkspaceId: String? = null,
     /**
+     * The attached machine this agent runs code on; absent means the deployment's default. Read,
+     * never written, like [gitIdentity]: the update route changes it only when the key is present.
+     * Served by the LIST route only (`GET /api/agents`), not by `GET /api/agents/:id`.
+     */
+    @SerialName("code_environment_id") val codeEnvironmentId: String? = null,
+    /**
+     * Machines the agent's author allows a chat to pick instead of [codeEnvironmentId] (v0.8.9-rc1).
+     * Read only, LIST route only, as above.
+     */
+    @SerialName("code_environment_ids") val codeEnvironmentIds: List<String>? = null,
+    /**
      * Which skills the agent is exposed to while skills are enabled (v0.8.8-rc2). A missing value
      * preserves the legacy semantics server-side, which is exactly why this is a raw String and
      * not an enum: an unrecognized value would throw at decode and fail the whole agent.

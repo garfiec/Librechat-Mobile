@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.model.error
 
+import com.garfiec.librechat.core.model.code.CodeWorkspaceUnavailableReason
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -145,7 +146,10 @@ enum class StreamErrorType(
      */
     EMPTY_MESSAGES("empty_messages"),
 
-    /** The code-interpreter workspace the turn selected could not be reached. */
+    /**
+     * The chat's attached-machine workspace decision was refused; the payload's `reason` says why
+     * ([codeWorkspaceReason]). On the start POST's 409 and in-band on the stream.
+     */
     CODE_WORKSPACE_UNAVAILABLE("code_workspace_unavailable"),
 
     /** A stateful code environment was asked for on a deployment that does not permit one. */
@@ -261,6 +265,18 @@ enum class StreamErrorType(
                     ?.content
                     ?.takeIf { it.isNotBlank() },
             )
+        }
+
+        /**
+         * Why a [CODE_WORKSPACE_UNAVAILABLE] rejection refused the chat's workspace decision, or
+         * null for any other message or a `reason` this client does not know. The rejection is
+         * `{ code: "code_workspace_unavailable", reason }` (`packages/api/src/code/errors.ts`), on
+         * the start POST's 409 body and in-band on the stream alike.
+         */
+        fun codeWorkspaceReason(rawMessage: String): CodeWorkspaceUnavailableReason? {
+            if (parse(rawMessage) != CODE_WORKSPACE_UNAVAILABLE) return null
+            val (payload, _) = identifiedPayload(rawMessage) ?: return null
+            return CodeWorkspaceUnavailableReason.of((payload["reason"] as? JsonPrimitive)?.contentOrNull)
         }
 
         /**

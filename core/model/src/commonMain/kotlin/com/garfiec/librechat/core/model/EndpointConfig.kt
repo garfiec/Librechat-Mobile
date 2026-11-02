@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.model
 
+import com.garfiec.librechat.core.model.code.StatefulCodeSessionsConfig
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -48,6 +49,11 @@ data class EndpointConfig(
      * server enforces the real policy.
      */
     val toolApproval: EndpointToolApproval? = null,
+    /**
+     * The agents entry's attached code machines (`environments`, already scoped to the caller)
+     * and whether a chat may pick among an agent's allowed machines.
+     */
+    val statefulCodeSessions: StatefulCodeSessionsConfig? = null,
 )
 
 @Serializable

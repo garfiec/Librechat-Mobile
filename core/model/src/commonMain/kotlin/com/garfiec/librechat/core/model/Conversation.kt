@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.model
 
+import com.garfiec.librechat.core.model.code.CodeWorkspaceSelection
 import com.garfiec.librechat.core.model.media.ProviderId
 import com.garfiec.librechat.core.model.media.isImageUrl
 import com.garfiec.librechat.core.model.media.resolveIconSource
@@ -118,6 +119,13 @@ data class Conversation(
     val lastResponseMessageId: String? = null,
     /** True only while [lastResponseAt] is the synthetic "Mark as unread" marker. */
     val lastResponseIsManual: Boolean? = null,
+    /**
+     * The chat's sealed code-workspace decision: `attached` or `without_attached`, recorded with its
+     * first coding turn. Server-owned; read off the single-conversation GET, not cached.
+     */
+    val codeEnvironmentMode: String? = null,
+    /** The attached workspaces that decision selected, one per machine. */
+    val codeWorkspaces: List<CodeWorkspaceSelection>? = null,
     /** Tri-state: false when a reply was stamped, true when hand-marked unread, null on legacy rows. */
     val isMarkedUnread: Boolean? = null,
     /** When the user caught up; [UNSEEN_REPLY_WATERMARK] when a reply landed unseen. */

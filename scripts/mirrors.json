@@ -5354,6 +5354,87 @@
       },
       "why": "The inline `interface.theme` shape (version 1, name, modes.light|dark.colors) and its \"R G B\" colour format, read for the `rgb-accent-primary` token only. Bundled names (`bundledThemeNames` in theme.ts: librechat, clickhouse) give no accent on purpose.",
       "failure_mode": "A new version, a moved token or a changed colour format reads as Invalid: the server's brand accent silently stops painting the app and the user's own shows instead. Nothing errors."
+    },
+    {
+      "id": "code-workspace-routing",
+      "upstream": {
+        "file": "packages/data-provider/src/code/workspace.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/code/CodeWorkspaceRouting.kt",
+        "symbol": "isSelection(s) / resolveCodeEnvironmentSelection / resolveCodeWorkspaceInheritance / isCheckoutAvailable"
+      },
+      "why": "The server routes each agent to a machine with these exact rules (owner, then inherited parent, then default, then a single legacy pick) and validates a decision's ids, checkout and owners the same way. The composer resolves the same rules to know which workspaces a send must carry. Spec tables ported in CodeWorkspaceSelectionTest / CodeWorkspaceInheritanceTest.",
+      "failure_mode": "A changed precedence or validation makes the composer ask for a workspace the server never uses, or send a decision the server refuses as code_workspace_unavailable (invalid/required/locked). Nothing fails to decode."
+    },
+    {
+      "id": "code-workspace-capability-versions",
+      "upstream": {
+        "file": "packages/data-provider/src/code/workspace.ts",
+        "symbol": "CODE_ENVIRONMENT_DECISION_VERSION",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/code/CodeWorkspace.kt",
+        "symbol": "CodeCapabilityVersions"
+      },
+      "why": "Each /api/config capability version is matched with ==, as web does. The decision version is what allows sending a selection-less (\"No workspace\") decision; inheritance lets a subagent skip its own workspace.",
+      "failure_mode": "A bumped version reads as unsupported: the composer stops offering No workspace and holds sends, or asks subagents for workspaces they no longer need. Silent."
+    },
+    {
+      "id": "code-workspace-composer",
+      "upstream": {
+        "file": "client/src/hooks/Agents/useCodeWorkspace.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/code/CodeWorkspaceResolver.kt",
+        "symbol": "CodeWorkspaceResolver.resolve"
+      },
+      "why": "When the workspace control applies, the per-machine state, the pre-selection order (agent default, remembered pick, sole workspace) and what a send carries (resolveSubmission). Two deliberate divergences are documented on the object.",
+      "failure_mode": "A changed rule pre-selects a different workspace than web, or sends a decision web would not, and the chat is sealed on it for good."
+    },
+    {
+      "id": "code-workspace-agent-graph",
+      "upstream": {
+        "file": "client/src/hooks/Agents/useCodeApprovalMode.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/code/CodeWorkspaceAgents.kt",
+        "symbol": "choiceIds / findExecutionEnvironment / collectReachableAgents / resolveReachableInheritance"
+      },
+      "why": "Which agents a chat reaches (agent_ids, edges, enabled subagents and their graphs) and which machine each runs on, including per-chat machine choice from an agent's allowlist.",
+      "failure_mode": "An agent the composer no longer counts gets no workspace and the server refuses the turn as required, or a machine choice is offered that the server refuses."
+    },
+    {
+      "id": "code-workspace-select",
+      "upstream": {
+        "file": "client/src/components/Chat/Input/CodeWorkspaceMenu.tsx",
+        "symbol": "selectWorkspace",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/code/CodeWorkspaceResolver.kt",
+        "symbol": "CodeWorkspaceResolver.selectWorkspace"
+      },
+      "why": "How a pick rewrites the draft decision: which machines it replaces, which fixed machines it keeps, and which agents own a per-chat machine choice (agentIds).",
+      "failure_mode": "A draft that keeps a replaced machine or drops an owner is refused by the server as invalid/required on the first turn."
+    },
+    {
+      "id": "code-workspace-unavailable-reasons",
+      "upstream": {
+        "file": "packages/data-provider/src/code/workspace.ts",
+        "symbol": "CODE_WORKSPACE_SELECTION_ERROR_REASONS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/code/CodeWorkspace.kt",
+        "symbol": "CodeWorkspaceUnavailableReason"
+      },
+      "why": "The six reasons a code_workspace_unavailable rejection carries; each has its own copy (error_code_workspace_*), from translation.json com_error_code_workspace_*.",
+      "failure_mode": "A new reason falls back to the generic message; a renamed one shows the wrong advice."
     }
   ]
 }
