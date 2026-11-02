@@ -45,7 +45,7 @@
     <string name="agents_sort_oldest">Oldest first</string>
     <string name="agents_sort_popular">Popular</string>
     <string name="agents_sort_author">By creator name</string>
-    <string name="agents_mine_empty_title">You haven\'t created any agents yet</string>
+    <string name="agents_mine_empty_title">You haven't created any agents yet</string>
     <string name="agents_top_pick">Top pick</string>
     <string name="agents_new_agent">New agent</string>
     <string name="agent_unnamed">Unnamed agent</string>

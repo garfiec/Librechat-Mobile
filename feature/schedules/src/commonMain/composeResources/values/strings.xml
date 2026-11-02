@@ -34,7 +34,7 @@
     <string name="schedule_consent_confirmed">Authorization recorded. The schedule remains unchanged.</string>
     <string name="schedule_consent_revoke">Revoke authorization</string>
     <string name="schedule_consent_error">Authorization could not be updated. Reload the current state and try again.</string>
-    <string name="schedule_consent_load_error">Couldn\'t load the authorization.</string>
+    <string name="schedule_consent_load_error">Couldn't load the authorization.</string>
     <string name="schedule_consent_retry">Retry</string>
     <string name="schedule_consent_issuer">Issuer: %1$s</string>
     <string name="schedule_consent_audience">Audience: %1$s</string>
