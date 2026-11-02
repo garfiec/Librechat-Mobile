@@ -299,7 +299,9 @@ class SseEventMapper(private val json: Json) {
         // map; our client renders tool calls from a flat list keyed by id, and
         // `aggregatedContent` already carries every tool_call part (in-progress
         // with a null output, completed with its output merged in) in order — so
-        // it is the authoritative snapshot. runSteps would only duplicate it.
+        // it is the authoritative snapshot. runSteps would only duplicate it. The one thing it
+        // lacks is a pending MCP sign-in, which the server projects for us as
+        // `pendingOAuthPrompts` (read below).
         val snapshot = resumeState["aggregatedContent"]?.jsonArray?.let { aggregatedContent ->
             // The array is sparse, indexed by step: a step that reserved its index but has no
             // content yet serializes as null. Nothing here reads parts by position.
@@ -348,7 +350,8 @@ class SseEventMapper(private val json: Json) {
             parsePendingSteers(resumeState["pendingSteers"]),
         )
 
-        return listOfNotNull(snapshot, contextUsage, usageBackfill, pendingAction, pendingSteers)
+        val oauthPrompts = mapPendingOAuthPrompts(resumeState["pendingOAuthPrompts"], snapshot, stepToolCallIds::set)
+        return listOfNotNull(snapshot) + oauthPrompts + listOfNotNull(contextUsage, usageBackfill, pendingAction, pendingSteers)
     }
 
     /** Decodes a `TPendingSteer[]` payload, dropping entries that carry no id to cancel by. */
@@ -545,7 +548,9 @@ class SseEventMapper(private val json: Json) {
                 SubagentPhase.RUN_STEP_COMPLETED -> mapRunStepCompleted(payload, agentId, groupId)
                 SubagentPhase.RUN_STEP_CLOSED -> mapRunStepClosed(payload, agentId, groupId)
                 SubagentPhase.STEER_APPLIED -> mapSubagentSteer(payload)
-                else -> null // start / stop / error / run_step_delta carry no foldable content
+                // Only a delta carrying `auth` maps; every other run_step_delta stays dropped.
+                SubagentPhase.RUN_STEP_DELTA -> mapRunStepAuthDelta(payload, agentId, groupId)
+                else -> null // start / stop / error carry no foldable content
             }
         }
         return StreamEvent.SubagentUpdate(

@@ -1786,6 +1786,10 @@ data: {"sync":true,"resumeState":{"runSteps":[...],"aggregatedContent":[...]}}
 - Exponential backoff: 1s, 2s, 4s, 8s... max 30s
 - Max 5 retries
 - Resume preserves state via sync event
+- `resumeState.pendingOAuthPrompts` (6122d210d #15471, v0.8.8-rc2+): `[{ stepId, runId?, index,
+  toolCallId?, toolName, authURL, expiresAt? }]`, the MCP sign-ins the run still waits on (server
+  drops expired ones and finished steps). Mapped to `ToolCallAuthRequired`, with a `ToolCallStart`
+  first when `aggregatedContent` lacks the call. Absent on older servers. (BUILT)
 
 ### v0.8.9-rc1 changes on the chat and speech routes (no new endpoints)
 - **Keepalive** (4afd5e17f): the stream route writes an SSE comment `:\n\n` after

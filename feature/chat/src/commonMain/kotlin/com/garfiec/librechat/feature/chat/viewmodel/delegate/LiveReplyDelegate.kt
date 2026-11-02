@@ -109,6 +109,7 @@ class LiveReplyDelegate(
                 handle.update {
                     content = content.updateToolCall(event.toolCallId) { it.completedBy(event) }
                         .withoutSandboxStarting(event.toolCallId)
+                        .withoutSubagentAuthFor(event.toolCallId)
                 }
                 // If this was a `subagent` tool_call, freeze its live trace —
                 // the child run is done; stop accumulating for that key.
@@ -118,14 +119,13 @@ class LiveReplyDelegate(
                 handle.update {
                     content = content.updateToolCall(event.toolCallId) { it.closedBy(event) }
                         .withoutSandboxStarting(event.toolCallId)
+                        .withoutSubagentAuthFor(event.toolCallId)
                 }
                 // An aborted run closes its steps without ever completing them, so this is also
                 // where a subagent trace stops accumulating on that path.
                 subagentTraceDelegate.onParentToolCallResolved(event.toolCallId)
             }
-            is StreamEvent.ToolCallAuthRequired -> handle.update {
-                content = content.updateToolCall(event.toolCallId) { it.authRequiredBy(event) }
-            }
+            is StreamEvent.ToolCallAuthRequired -> onAuthRequired(event, parentToolCallId = null)
             is StreamEvent.ToolCallPreparation -> handle.update {
                 content = content.copy(activeToolCalls = content.activeToolCalls.preparedBy(event))
             }
@@ -134,7 +134,7 @@ class LiveReplyDelegate(
             }
             is StreamEvent.AttachmentCreated -> onAttachment(event.toAttachment())
             is StreamEvent.Sync -> onSync(event)
-            is StreamEvent.SubagentUpdate -> subagentTraceDelegate.onUpdate(event)
+            is StreamEvent.SubagentUpdate -> onSubagentUpdate(event)
             is StreamEvent.TitleUpdate -> onTitleUpdate(event)
             is StreamEvent.ContextUsageUpdate -> onContextUsage(event.usage)
             // Every billed call counts toward the breakdown's Totals, buckets included (summary
@@ -198,6 +198,43 @@ class LiveReplyDelegate(
      * ActiveToolCall the live path produces, so the existing StreamingToolCallCard / ImageGenCard
      * render it identically. A part with a non-blank output is already complete.
      */
+    private fun onSubagentUpdate(event: StreamEvent.SubagentUpdate) {
+        subagentTraceDelegate.onUpdate(event)
+        when (val inner = event.inner) {
+            is StreamEvent.ToolCallAuthRequired -> onAuthRequired(inner, event.parentToolCallId)
+            is StreamEvent.ToolCallComplete -> clearSubagentAuthFor(inner.toolCallId)
+            is StreamEvent.ToolCallClosed -> clearSubagentAuthFor(inner.toolCallId)
+            else -> Unit
+        }
+    }
+
+    /**
+     * Puts an MCP sign-in on the call it holds. A subagent's tool runs with the parent's stream, so
+     * its prompt arrives naming a call that lives in the subagent's trace, not in [ActiveToolCall]s:
+     * then it goes on the `subagent` call whose trace holds it (else the envelope's parent), which
+     * is the card the user sees. Without this the prompt was dropped and the run waited unseen.
+     */
+    private fun onAuthRequired(event: StreamEvent.ToolCallAuthRequired, parentToolCallId: String?) {
+        val state = handle.state
+        if (state.activeToolCalls.any { it.id == event.toolCallId }) {
+            handle.update { content = content.updateToolCall(event.toolCallId) { it.authRequiredBy(event) } }
+            return
+        }
+        val parentId = state.subagentProgress.entries.firstOrNull { (_, trace) ->
+            trace.parts.any { it.toolCall?.id == event.toolCallId }
+        }?.key ?: parentToolCallId ?: return
+        handle.update {
+            content = content.updateToolCall(parentId) {
+                it.authRequiredBy(event).copy(authToolCallId = event.toolCallId)
+            }
+        }
+    }
+
+    private fun clearSubagentAuthFor(childToolCallId: String) {
+        if (handle.state.activeToolCalls.none { it.authToolCallId == childToolCallId }) return
+        handle.update { content = content.withoutSubagentAuthFor(childToolCallId) }
+    }
+
     private fun onSync(event: StreamEvent.Sync) {
         val syncedToolCalls = event.aggregatedContent
             .mapNotNull { part -> part.toolCall?.takeIf { !it.id.isNullOrBlank() } }
@@ -261,6 +298,22 @@ internal fun MessagesState.resetLiveReply(
 private fun MessagesState.updateToolCall(id: String, transform: (ActiveToolCall) -> ActiveToolCall) =
     copy(activeToolCalls = activeToolCalls.map { if (it.id == id) transform(it) else it })
 
+/** A subagent's child call finished, so the parent card stops offering its sign-in. */
+private fun MessagesState.withoutSubagentAuthFor(childToolCallId: String): MessagesState =
+    if (activeToolCalls.none { it.authToolCallId == childToolCallId }) {
+        this
+    } else {
+        copy(
+            activeToolCalls = activeToolCalls.map {
+                if (it.authToolCallId == childToolCallId) {
+                    it.copy(authUrl = null, authServerName = null, authExpiresAt = null, authToolCallId = null)
+                } else {
+                    it
+                }
+            },
+        )
+    }
+
 /** A completed or closed call is past its sandbox boot. Shared with the comparison panes. */
 internal fun MessagesState.withoutSandboxStarting(toolCallId: String): MessagesState =
     if (toolCallId in sandboxStartingToolCallIds) {
@@ -292,7 +345,7 @@ internal fun List<ActiveToolCall>.preparedBy(event: StreamEvent.ToolCallPreparat
 
 /** The run is waiting on the user to sign in to an MCP server. Shared with the comparison panes. */
 internal fun ActiveToolCall.authRequiredBy(event: StreamEvent.ToolCallAuthRequired) =
-    copy(authUrl = event.authUrl, authServerName = event.serverName, authExpiresAt = event.expiresAt)
+    copy(authUrl = event.authUrl, authServerName = event.serverName, authExpiresAt = event.expiresAt, authToolCallId = null)
 
 internal fun ActiveToolCall.closedBy(event: StreamEvent.ToolCallClosed) =
     copy(isComplete = true, closedStatus = event.status, durationMs = event.durationMs ?: durationMs)

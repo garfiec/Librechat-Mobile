@@ -225,6 +225,12 @@ data class ActiveToolCall(
     val authServerName: String? = null,
     /** Server epoch ms the prompt expires at. Display only; never compared to the device clock. */
     val authExpiresAt: Long? = null,
+    /**
+     * Set when this is a `subagent` call surfacing a sign-in one of its child's calls is held on
+     * (that call lives in the trace, not in the active list): the child call's id. Its completion
+     * clears the prompt, since this parent call stays running for the rest of the subagent's run.
+     */
+    val authToolCallId: String? = null,
     /** The model has started writing this call's arguments (`on_tool_preparation`, v0.8.9-rc1). */
     val preparationStarted: Boolean = false,
     /** The SDK handed the call to execution (`on_tool_calls_dispatched`). */
