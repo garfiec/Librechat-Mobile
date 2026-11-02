@@ -135,7 +135,8 @@
   `oauth_session` cookies, which the system browser never has. `continueOAuth()` asks
   `McpOAuthLauncher` (`:core:data`, the one version gate, shared with chat): an `InApp` launch
   (`POST /oauth/bind`'s cookies) renders `McpOAuthSignInDialog` from `:core:ui`; an `External` one
-  (known server before rc1, or any server whose bind route 404s: it is absent before v0.8.3-rc1)
+  (known server before rc1, or any server whose bind sets no binding cookie or 404s: the route is
+  absent before v0.8.3-rc1, where the SPA catch-all answers it 200 HTML with no `Set-Cookie`)
   opens the system browser as before. The bind is at the tap, not when
   the prompt appears: the CSRF cookie lives ten minutes.
 - The in-app sign-in fires no ON_RESUME, so `onOAuthOutcome` reloads the servers itself and reports

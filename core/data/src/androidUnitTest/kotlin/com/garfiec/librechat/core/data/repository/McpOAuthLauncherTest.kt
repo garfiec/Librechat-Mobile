@@ -42,7 +42,7 @@ class McpOAuthLauncherTest {
 
     @Test
     fun `an unknown version takes the bound path`() = runTest {
-        coEvery { mcp.bindOAuth(any()) } returns Result.Success(emptyList())
+        coEvery { mcp.bindOAuth(any()) } returns Result.Success(listOf("oauth_session=s; Path=/api"))
         val launch = (launcher(null).prepare("github", "https://idp") as Result.Success).data
         assertThat(launch).isInstanceOf(McpOAuthLaunch.InApp::class.java)
     }
@@ -59,6 +59,16 @@ class McpOAuthLauncherTest {
     fun `a failed bind is reported, not opened`() = runTest {
         coEvery { mcp.bindOAuth(any()) } returns Result.Error(message = "nope")
         assertThat(launcher("0.8.9").prepare("github", "https://idp")).isInstanceOf(Result.Error::class.java)
+    }
+
+    @Test
+    fun `a bind answered by the SPA catch-all with no binding cookie falls back to the system browser`() = runTest {
+        // Before v0.8.3-rc1 an unmatched POST /api/mcp/... gets index.html with a 200 and no Set-Cookie.
+        coEvery { mcp.bindOAuth(any()) } returns Result.Success(emptyList())
+
+        val launch = (launcher(null).prepare("github", "https://idp") as Result.Success).data
+
+        assertThat(launch).isEqualTo(McpOAuthLaunch.External("github", "https://idp"))
     }
 
     @Test

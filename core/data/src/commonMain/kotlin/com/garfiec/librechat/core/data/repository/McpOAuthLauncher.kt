@@ -18,10 +18,13 @@ import kotlinx.coroutines.flow.first
  * server keeps the system browser ([McpOAuthLaunch.External]), where the pending-flow fallback lets
  * the callback through. See VERSION_GATES.md.
  *
- * An unknown version tries the bind too, but the route only exists from upstream v0.8.3-rc1, so a
- * 404 from it (on any version: the handler itself never answers 404) means the route is missing and
- * the server predates the cookie check. That falls back to the system browser rather than failing
- * the sign-in.
+ * An unknown version tries the bind too, but the route only exists from upstream v0.8.3-rc1. On an
+ * older server the unmatched POST falls through to the SPA catch-all, which answers 200 `text/html`
+ * with no `Set-Cookie`, so a bind that succeeds without an `oauth_csrf`/`oauth_session` cookie means
+ * the route is missing and the server predates the cookie check. A 404 (a proxy or a deployment
+ * without the catch-all; the handler itself never answers 404) means the same. Both fall back to
+ * the system browser rather than failing the sign-in: an unseeded WebView has nothing the browser
+ * lacks.
  *
  * Bound at the moment of the tap, never earlier: the CSRF cookie lives ten minutes, and a later
  * prompt for the same callback path replaces it.
@@ -35,14 +38,19 @@ class McpOAuthLauncher(
             return Result.Success(McpOAuthLaunch.External(serverName, authorizationUrl))
         }
         return when (val bound = mcpRepository.bindOAuth(serverName)) {
-            is Result.Success -> Result.Success(
-                McpOAuthLaunch.InApp(
-                    serverName = serverName,
-                    authorizationUrl = authorizationUrl,
-                    serverUrl = configRepository.serverUrl.first(),
-                    seedCookies = bound.data,
-                ),
-            )
+            is Result.Success ->
+                if (bound.data.isEmpty()) {
+                    Result.Success(McpOAuthLaunch.External(serverName, authorizationUrl))
+                } else {
+                    Result.Success(
+                        McpOAuthLaunch.InApp(
+                            serverName = serverName,
+                            authorizationUrl = authorizationUrl,
+                            serverUrl = configRepository.serverUrl.first(),
+                            seedCookies = bound.data,
+                        ),
+                    )
+                }
             is Result.Error ->
                 if (bound.isRouteMissing()) {
                     Result.Success(McpOAuthLaunch.External(serverName, authorizationUrl))
