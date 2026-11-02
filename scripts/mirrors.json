@@ -4730,6 +4730,20 @@
       "failure_mode": "The default moves and the client gives up reconciling earlier or later than web, re-queuing a turn the server committed (a duplicate) or polling long after web has stopped."
     },
     {
+      "id": "steer-arm-confirmation-default",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "DEFAULT_STEER_ARM_CONFIRMATION_TIMEOUT_MS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/InterfaceConfig.kt",
+        "symbol": "DEFAULT_STEER_ARM_CONFIRMATION_TIMEOUT_MS"
+      },
+      "why": "How long \"Interrupt now\" waits for /chat/steer/arm before saying it couldn't confirm, when interface.steerArmConfirmationTimeoutMs is absent or invalid. The server serves the configured value, never its default.",
+      "failure_mode": "The default moves and the client reports \"couldn't confirm\" sooner or later than web. No error either way."
+    },
+    {
       "id": "interface-schema-bounds",
       "upstream": {
         "file": "packages/data-provider/src/config.ts",

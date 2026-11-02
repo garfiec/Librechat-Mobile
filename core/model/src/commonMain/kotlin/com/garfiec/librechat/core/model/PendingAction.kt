@@ -275,4 +275,12 @@ data class PendingSteer(
     /** This client's own id for the steer, when the server learned it. Correlates a report with
      *  the optimistic chip whose 202 has not landed yet. */
     val clientSteerId: String? = null,
+    /**
+     * The steer is queued as an interrupt (sent with `preempt`, or armed later through
+     * `/chat/steer/arm`). Carried on every report, so a chip re-seeded on reconnect keeps its
+     * interrupting look.
+     */
+    val preempt: Boolean? = null,
+    /** Server revision of [preempt], for last-writer-wins when two reports disagree. */
+    val preemptRevision: Int? = null,
 )

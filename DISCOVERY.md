@@ -588,6 +588,36 @@ POST   /api/agents/chat/steer             { conversationId, text, files? } → 2
                                             `files` — steering here is text-only and a during-run send carrying
                                             attachments is routed to the follow-up queue instead.
                                             (#14220, landedDate 2026-07-14) (BUILT)
+                                            `preempt: true` in the body (2026-07-31, e7f183851, before the
+                                            v0.8.8-rc1 tag) asks the run to INTERRUPT: cancel the active tools
+                                            and reasoning, keep what is written, continue the same reply with the
+                                            steer. The 202 echoes `preempt` from the durable item, so it is
+                                            `true` only when the run can be interrupted — a run with a
+                                            provider-hosted tool or OpenRouter's `web` plugin
+                                            (`supportsRunInterruption`) keeps it as a plain steer and echoes
+                                            `false`. Never a rejection. Mobile's "Interrupt and steer" sends it,
+                                            reads the echo for the chip's look, and announces a `false` echo.
+                                            `preemptRevision` is echoed on protocol v2 only (mobile is v1). The
+                                            reports that hand steers back (`resumeState.pendingSteers`, final /
+                                            abort `pendingSteers`, `unrecoveredSteers`) carry `preempt` /
+                                            `preemptRevision` too; mobile decodes them so a re-seeded chip keeps
+                                            its interrupting look. A cancelled tool's result is the server's
+                                            `INTERRUPTED` sentence (`steering/tools.ts`), wrapped by the SDK as
+                                            `Error: <sentence>\n Please fix your mistakes.`; mobile draws it as
+                                            "Interrupted by your message" (mirror `steer-interrupted-tool-result`).
+                                            (BUILT, v0.8.9-rc1 sync)
+POST   /api/agents/chat/steer/arm         { conversationId, steerId, generationCreatedAt? } → 200 { armed,
+                                            code?, preemptRevision? }. Upgrades a still-queued steer to an
+                                            interrupt IN PLACE (keeps its FIFO position). Same limiters as cancel,
+                                            no PII/moderation pass. `armed: false` is a 200, not an error: the
+                                            steer was injected, cancelled, or the run is gone;
+                                            `code: PREEMPT_UNSUPPORTED` = this run can't be interrupted. Errors:
+                                            400 INVALID_CONVERSATION / INVALID_GENERATION_IDENTITY /
+                                            INVALID_STEER_ID, 403 UNAUTHORIZED, 409 RUN_REPLACED, 500
+                                            STEER_ARM_FAILED. Mobile sends `{conversationId, steerId}` from a
+                                            waiting chip's "Interrupt now", one attempt (web retries only on v2),
+                                            bounded by `interface.steerArmConfirmationTimeoutMs` (default 10 000).
+                                            (e7f183851, 2026-07-31; covered by the steer gate) (BUILT)
 POST   /api/agents/chat/steer/cancel      { conversationId, steerId } → { removed }. Withdraws a still-queued
                                             steer before injection. No moderation pass (nothing model-bound
                                             yet). `removed: false` is a 200, not a failure: the cancel lost its
@@ -1199,8 +1229,10 @@ Three parts of the rc2 steer surface are deliberately NOT ported:
   not already have. `clientSteerId` IS sent — it costs nothing (the placeholder already exists) and
   is what correlates an event that beats its own POST.
 - **`on_steer_updated` / `TSteerUpdatedEvent`** — a preempt-label change on a still-queued steer.
-  Mobile never asks to `preempt`, so every steer it sends is `preempt: false` and the event could
-  only ever relabel a chip to what it already reads. Lands in `SseEventMapper`'s `else -> null`.
+  Emitted on generation protocol v2 only; mobile speaks v1 and never receives it, so it lands in
+  `SseEventMapper`'s `else -> null`. Since the v0.8.9-rc1 sync mobile does send `preempt` and arm
+  steers; the cost of not having this event is that a chip whose interrupt the server withdraws (a
+  pause taking over) keeps its "Interrupt requested" label. The words still land.
 - **Rendering steer quotes as reference blocks.** The persisted `steer` part carries them and web
   draws them with the same component normal message quotes use. Mobile renders the part's text as a
   user turn and ignores the excerpts — a display gap on a persisted part, separable from the

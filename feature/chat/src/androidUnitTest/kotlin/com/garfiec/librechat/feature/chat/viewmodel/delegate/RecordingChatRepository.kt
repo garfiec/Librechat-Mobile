@@ -110,6 +110,8 @@ class RecordingChatRepository : com.garfiec.librechat.core.data.repository.ChatR
 
     override suspend fun cancelSteer(request: SteerCancelRequest) = unused<Nothing>()
 
+    override suspend fun armSteer(request: com.garfiec.librechat.core.model.request.SteerArmRequest) = unused<Nothing>()
+
     override suspend fun checkStreamStatus(
         conversationId: String,
         claimSteers: (List<PendingSteer>) -> Unit,

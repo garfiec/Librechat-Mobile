@@ -27,12 +27,14 @@ data class SteerResponse(
      */
     val quotesAccepted: Boolean? = null,
     /**
-     * Whether the `preempt` seal was actually armed. Never a rejection: a deployment whose SDK
-     * cannot seal mid-stream still queues the steer and echoes `false`. Decode-only — mobile
-     * never asks to preempt, so this is always absent or false today.
+     * Whether the steer was queued as an interrupt. Mirrors the durable item's flag: `true` only
+     * when the request asked to preempt AND this run can be interrupted. Never a rejection: a run
+     * that cannot (provider-hosted tools, OpenRouter's `web` plugin) still queues the steer, echoes
+     * `false`, and the steer waits for the next tool boundary. The chip's interrupting look reads
+     * this echo, never the request.
      */
     val preempt: Boolean? = null,
-    /** Monotonic server revision for last-writer-wins preempt labels. Decode-only. */
+    /** Monotonic server revision for last-writer-wins preempt labels. Echoed on protocol v2 only. */
     val preemptRevision: Int? = null,
     /** A receipt replayed after the item already left the durable queue (v2 receipts). */
     val settled: Boolean? = null,
@@ -56,3 +58,25 @@ data class SteerResponse(
 data class SteerCancelResponse(
     val removed: Boolean = false,
 )
+
+/**
+ * Reply to `POST /api/agents/chat/steer/arm`, which upgrades a still-queued steer to an interrupt
+ * in place.
+ *
+ * [armed] false is a 200, not an error: the steer was already injected, was cancelled, or the run
+ * is gone. [code] `PREEMPT_UNSUPPORTED` says this run cannot be interrupted at all. The 400
+ * `INVALID_*`, 403 `UNAUTHORIZED` and 409 `RUN_REPLACED` replies arrive as errors.
+ */
+@Serializable
+data class SteerArmResponse(
+    val armed: Boolean = false,
+    val code: String? = null,
+    /** Echoed on generation protocol v2 only; see [SteerResponse.preemptRevision]. */
+    val preemptRevision: Int? = null,
+) {
+    val isPreemptUnsupported: Boolean get() = code == CODE_PREEMPT_UNSUPPORTED
+
+    companion object {
+        const val CODE_PREEMPT_UNSUPPORTED = "PREEMPT_UNSUPPORTED"
+    }
+}

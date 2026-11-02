@@ -13,11 +13,13 @@ import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.request.ChatResumeRequest
 import com.garfiec.librechat.core.model.request.EditedContent
 import com.garfiec.librechat.core.model.request.EphemeralAgent
+import com.garfiec.librechat.core.model.request.SteerArmRequest
 import com.garfiec.librechat.core.model.request.SteerCancelRequest
 import com.garfiec.librechat.core.model.request.SteerRequest
 import com.garfiec.librechat.core.model.response.ChatAbortResponse
 import com.garfiec.librechat.core.model.response.ChatResumeResponse
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
+import com.garfiec.librechat.core.model.response.SteerArmResponse
 import com.garfiec.librechat.core.model.response.SteerCancelResponse
 import com.garfiec.librechat.core.model.response.SteerResponse
 import com.garfiec.librechat.core.network.api.ChatApi
@@ -191,6 +193,10 @@ class ChatRepositoryImpl(
 
     override suspend fun cancelSteer(request: SteerCancelRequest): Result<SteerCancelResponse> = safeApiCall {
         chatApi.cancelSteer(request)
+    }
+
+    override suspend fun armSteer(request: SteerArmRequest): Result<SteerArmResponse> = safeApiCall {
+        chatApi.armSteer(request)
     }
 
     override suspend fun checkStreamStatus(

@@ -115,7 +115,7 @@ data class InterfaceConfig(
      * [StartupConfig.conversationTitleOwnershipVersion] through [supportsConversationTitleOwnership].
      */
     val runningChatRename: Boolean? = null,
-    /** Client confirmation window for a steer escalation arm (ms). Decoded only: mobile has no arm. */
+    /** Client confirmation window for a steer arm (ms). Raw; read through [steerArmConfirmationTimeoutMs]. */
     val steerArmConfirmationTimeoutMs: JsonElement? = null,
     /**
      * How long a transport-ambiguous queued turn stays reconcilable (ms). Raw like
@@ -138,12 +138,25 @@ private const val MAX_INTERFACE_TIMEOUT_MS: Long = 2_147_483_647
  * milliseconds up to upstream's ceiling, else [DEFAULT_QUEUED_TURN_RECONCILIATION_TIMEOUT_MS]
  * (absent, `null`, a string, a fraction or out of range all fall back, as the schema default would).
  */
-fun InterfaceConfig?.queuedTurnReconciliationTimeoutMs(): Long {
-    val primitive = this?.queuedTurnReconciliationTimeoutMs as? JsonPrimitive
-        ?: return DEFAULT_QUEUED_TURN_RECONCILIATION_TIMEOUT_MS
-    if (primitive.isString) return DEFAULT_QUEUED_TURN_RECONCILIATION_TIMEOUT_MS
-    val value = primitive.longOrNull ?: return DEFAULT_QUEUED_TURN_RECONCILIATION_TIMEOUT_MS
-    return value.takeIf { it in 1..MAX_INTERFACE_TIMEOUT_MS } ?: DEFAULT_QUEUED_TURN_RECONCILIATION_TIMEOUT_MS
+fun InterfaceConfig?.queuedTurnReconciliationTimeoutMs(): Long =
+    interfaceTimeoutMs(this?.queuedTurnReconciliationTimeoutMs, DEFAULT_QUEUED_TURN_RECONCILIATION_TIMEOUT_MS)
+
+/** Upstream `DEFAULT_STEER_ARM_CONFIRMATION_TIMEOUT_MS` (`packages/data-provider/src/config.ts`). */
+const val DEFAULT_STEER_ARM_CONFIRMATION_TIMEOUT_MS: Long = 10_000
+
+/**
+ * The effective `interface.steerArmConfirmationTimeoutMs`: how long the client waits for a
+ * `/chat/steer/arm` reply before saying it couldn't confirm the interrupt. Parsed exactly like
+ * [queuedTurnReconciliationTimeoutMs], else [DEFAULT_STEER_ARM_CONFIRMATION_TIMEOUT_MS].
+ */
+fun InterfaceConfig?.steerArmConfirmationTimeoutMs(): Long =
+    interfaceTimeoutMs(this?.steerArmConfirmationTimeoutMs, DEFAULT_STEER_ARM_CONFIRMATION_TIMEOUT_MS)
+
+private fun interfaceTimeoutMs(raw: JsonElement?, default: Long): Long {
+    val primitive = raw as? JsonPrimitive ?: return default
+    if (primitive.isString) return default
+    val value = primitive.longOrNull ?: return default
+    return value.takeIf { it in 1..MAX_INTERFACE_TIMEOUT_MS } ?: default
 }
 
 /** Upstream `isForcedTemporaryRetention`: only `retentionMode: "ephemeral"` forces every chat temporary. */

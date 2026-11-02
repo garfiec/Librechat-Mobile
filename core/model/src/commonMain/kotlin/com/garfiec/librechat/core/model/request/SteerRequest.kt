@@ -38,6 +38,26 @@ data class SteerRequest(
      * without it such an event names an id the client has not learned yet.
      */
     val clientSteerId: String? = null,
+    /**
+     * `true` asks the run to interrupt: cancel the active tools and reasoning, keep what is already
+     * written, and continue the same reply with this text. Whether it took is the 202's
+     * [com.garfiec.librechat.core.model.response.SteerResponse.preempt] echo. Null (omitted) for an
+     * ordinary steer, so its body is unchanged.
+     */
+    val preempt: Boolean? = null,
+)
+
+/**
+ * Body of `POST /api/agents/chat/steer/arm` — upgrades a steer that is already queued to an
+ * interrupt, keeping its place in line.
+ *
+ * Upstream also accepts an optional `generationCreatedAt` fence; mobile omits it for the reason it
+ * omits it on the steer POST (`SteerRecord.turnEpoch` fences locally).
+ */
+@Serializable
+data class SteerArmRequest(
+    val conversationId: String,
+    val steerId: String,
 )
 
 /**

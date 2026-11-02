@@ -38,6 +38,32 @@ class InterfaceConfigV089Test {
     }
 
     @Test
+    fun steerArmWindowDefaultsWhenAbsent() {
+        assertEquals(10_000, iface("{}").steerArmConfirmationTimeoutMs())
+        assertEquals(10_000, (null as InterfaceConfig?).steerArmConfirmationTimeoutMs())
+    }
+
+    @Test
+    fun steerArmWindowHonoursAValidValue() {
+        assertEquals(4_000, iface("""{ "steerArmConfirmationTimeoutMs": 4000 }""").steerArmConfirmationTimeoutMs())
+        assertEquals(
+            2_147_483_647,
+            iface("""{ "steerArmConfirmationTimeoutMs": 2147483647 }""").steerArmConfirmationTimeoutMs(),
+        )
+    }
+
+    @Test
+    fun steerArmWindowFallsBackOnAnUnvalidatedValue() {
+        listOf("0", "-5", "1.5", "\"9000\"", "2147483648", "null", "{}").forEach { raw ->
+            assertEquals(
+                10_000,
+                iface("""{ "steerArmConfirmationTimeoutMs": $raw }""").steerArmConfirmationTimeoutMs(),
+                raw,
+            )
+        }
+    }
+
+    @Test
     fun onlyEphemeralRetentionForcesTemporaryChats() {
         assertTrue(isForcedTemporaryRetention("ephemeral"))
         assertFalse(isForcedTemporaryRetention("all"))
