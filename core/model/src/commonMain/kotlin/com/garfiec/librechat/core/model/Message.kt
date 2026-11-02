@@ -54,4 +54,10 @@ data class Message(
      * regenerate or continue of the turn sends it again, as web does. Never shown on the bubble.
      */
     val reasoningOverride: ReasoningOverride? = null,
+    /**
+     * Set on a user turn whose text the server redacted before the model saw it (v0.8.9-rc1, PII
+     * protection): [text] is the filtered version, and the author can read the original through
+     * `POST /api/messages/:conversationId/owner-text`, valid only while this revision matches.
+     */
+    val privacyRevision: String? = null,
 )

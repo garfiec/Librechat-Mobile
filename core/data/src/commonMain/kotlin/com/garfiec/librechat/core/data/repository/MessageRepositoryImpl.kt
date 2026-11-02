@@ -18,7 +18,9 @@ import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.request.BranchMessageRequest
+import com.garfiec.librechat.core.model.request.OwnerTextRequest
 import com.garfiec.librechat.core.model.request.UpdateMessageRequest
+import com.garfiec.librechat.core.model.response.OwnerText
 import com.garfiec.librechat.core.network.api.MessagesApi
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.NonCancellable
@@ -174,6 +176,11 @@ class MessageRepositoryImpl(
             }
         }
     }
+
+    override suspend fun getOwnerTexts(conversationId: String, messageIds: List<String>): Result<List<OwnerText>> =
+        safeApiCall {
+            messagesApi.getOwnerTexts(conversationId, OwnerTextRequest(messageIds.take(OWNER_TEXT_BATCH))).messages
+        }
 
     override suspend fun branchMessage(
         conversationId: String,

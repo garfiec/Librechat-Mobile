@@ -581,3 +581,17 @@ class TtsHandle(root: ChatStateHandle) : DelegateHandle(root) {
 // ── Error-only (FileAttachmentDelegate / IosFileHandler) ──────────────────
 /** For delegates that keep their real data in a separate flow and only surface errors here. */
 class ErrorOnlyHandle(root: ChatStateHandle) : DelegateHandle(root)
+
+// ── OwnerTextDelegate ─────────────────────────────────────────────────────
+// Narrow on purpose: it writes the owner texts and nothing else on the content slice.
+class OwnerTextWrites internal constructor(state: ChatUiState) {
+    var ownerTexts: Map<String, OwnerTextState> = state.content.ownerTexts
+    var error: String? = state.error
+    internal fun applyTo(s: ChatUiState) = s.copy(content = s.content.copy(ownerTexts = ownerTexts), error = error)
+}
+
+class OwnerTextHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    val stateFlow: StateFlow<ChatUiState> get() = root.stateFlow
+    fun update(block: OwnerTextWrites.() -> Unit) =
+        root.update { OwnerTextWrites(this).apply(block).applyTo(this) }
+}

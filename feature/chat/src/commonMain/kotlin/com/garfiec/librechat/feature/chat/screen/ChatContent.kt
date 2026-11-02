@@ -297,6 +297,8 @@ private fun ChatMessageListPane(
         recoveryBusy = uiState.isForkInProgress,
         onRetryWithoutFiles = viewModel::retryWithoutFiles,
         onBranchWithoutFiles = viewModel::branchWithoutFiles,
+        ownerTexts = uiState.ownerTexts,
+        onRetryOwnerTexts = viewModel::retryOwnerTexts,
         onFork = viewModel::showForkOptions,
         currentlyReadingMessageId = uiState.currentlyReadingMessageId,
         editing = uiState.editing,

@@ -100,6 +100,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageEditingDeleg
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageQueueDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageTreeDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ModelSelectionDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.OwnerTextDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PdfPasswordPrompt
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PendingActionDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformDelegateFactory
@@ -248,6 +249,7 @@ class ChatViewModel(
         agentRepository,
         endpointTokenRepository,
     )
+    private val ownerTextDelegate = OwnerTextDelegate(OwnerTextHandle(stateHandle), messageRepository)
     private val searchDelegate = InConversationSearchDelegate(SearchHandle(stateHandle))
     private val jumpDelegate = JumpToMessageDelegate(JumpHandle(stateHandle), defaultDispatcher)
 
@@ -866,6 +868,7 @@ class ChatViewModel(
 
         // Seed/refresh the context-usage gauge for a loaded or snapshot-less branch (v0.8.7).
         contextProjectionDelegate.start()
+        ownerTextDelegate.start()
         // The Skills toggle follows the slot this chat maps to (conversation, new chat, temp, spec).
         skillsToggleDelegate.start()
         // The Thinking chip's catalog, and dropping a staged choice the selection stops accepting.
@@ -1307,6 +1310,9 @@ class ChatViewModel(
         if (_uiState.value.isEditingQueued) return
         editingDelegate.retryWithoutFiles(failedReplyId)
     }
+
+    /** "Retry loading original" under a redacted user turn. */
+    fun retryOwnerTexts() = ownerTextDelegate.retry()
 
     /** "Branch without files" under a failed reply; see [ConversationActionsDelegate.branchWithoutFiles]. */
     fun branchWithoutFiles(failedReplyId: String) = conversationActionsDelegate.branchWithoutFiles(failedReplyId)

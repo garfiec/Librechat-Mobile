@@ -831,6 +831,10 @@
     <string name="notice_branch_without_files_draft">Copied without files. Your message is ready to send.</string>
     <string name="fork_exclude_files">Leave out files</string>
     <string name="fork_exclude_files_desc">The new conversation copies the messages without their attached or generated files, so later messages don't send them again.</string>
+    <string name="private_text_hidden">Private details hidden from the model</string>
+    <string name="private_text_loading">Loading your original message…</string>
+    <string name="private_text_unavailable">Original unavailable. Showing the filtered message.</string>
+    <string name="private_text_retry">Retry loading original</string>
     <string name="attachment_recovery_cause">The files in this conversation are likely causing this, and every new message sends them again.</string>
     <string name="attachment_recovery_retry_info">Retry without files sends your message again without its files. Your original message is kept.</string>
     <string name="attachment_recovery_branch_info">Branch without files copies this conversation into a new chat with no files. Your original conversation is kept.</string>

@@ -47,7 +47,7 @@ import com.garfiec.librechat.core.data.db.entity.ServerEntity
         MessageSearchFtsEntity::class,
         ProjectOrderEntity::class,
     ],
-    version = 16,
+    version = 17,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -83,6 +83,10 @@ import com.garfiec.librechat.core.data.db.entity.ServerEntity
         // 15 -> 16 adds `reasoningOverride` on messages (v0.8.9-rc1), so an edit or regenerate of a
         // turn opened from the cache sends the one-turn reasoning choice it was sent with.
         AutoMigration(from = 15, to = 16),
+        // 16 -> 17 adds `privacyRevision` on messages (v0.8.9-rc1), so a redacted turn opened from
+        // the cache still says its private details were hidden and fetches the original. Only the
+        // marker: the original text is never stored.
+        AutoMigration(from = 16, to = 17),
     ],
 )
 @TypeConverters(Converters::class)

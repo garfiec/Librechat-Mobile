@@ -276,6 +276,9 @@ class SseEventMapper(private val json: Json) {
             conversationId = conversationId,
             messageId = messageId,
             parentMessageId = parentMessageId,
+            // Safe-cast: a non-primitive here must not fail the frame.
+            privacyRevision = (messageObj?.get("privacyRevision") as? JsonPrimitive)
+                ?.takeIf { it.isString }?.content?.takeIf(String::isNotEmpty),
         )
     }
 

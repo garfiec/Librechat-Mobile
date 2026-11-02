@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
+import com.garfiec.librechat.core.model.response.OwnerText
 import kotlinx.coroutines.flow.Flow
 
 interface MessageRepository {
@@ -57,4 +58,14 @@ interface MessageRepository {
         text: String,
     ): Result<Unit>
     suspend fun branchMessage(conversationId: String, messageId: String, agentId: String? = null): Result<Message>
+
+    /**
+     * The author's original text of redacted user turns (v0.8.9-rc1), network-direct and never
+     * cached: held in memory by the caller only. [messageIds] is one batch of at most
+     * [OWNER_TEXT_BATCH] ids.
+     */
+    suspend fun getOwnerTexts(conversationId: String, messageIds: List<String>): Result<List<OwnerText>>
 }
+
+/** The owner-text route's per-request cap. */
+const val OWNER_TEXT_BATCH = 50

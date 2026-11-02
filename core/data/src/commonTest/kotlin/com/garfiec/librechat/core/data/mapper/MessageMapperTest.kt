@@ -47,6 +47,12 @@ class MessageMapperTest {
     }
 
     @Test
+    fun privacyRevision_roundTripsThroughEntity() {
+        assertEquals("rev-1", baseMessage(null).copy(privacyRevision = "rev-1").toEntity().toModel().privacyRevision)
+        assertNull(baseMessage(null).toEntity().toModel().privacyRevision)
+    }
+
+    @Test
     fun quotes_null_staysNull() {
         val restored = baseMessage(null).toEntity().toModel()
         assertNull(restored.quotes)

@@ -452,6 +452,7 @@ data class ChatUiState(
     val contextUsageIsEstimate: Boolean get() = content.contextUsageSource == ContextUsageSource.ESTIMATE
     val pendingUsage: PendingUsage get() = content.pendingUsage
     val contextUsageTotals: ContextUsageTotals get() = content.contextUsageTotals
+    val ownerTexts: Map<String, OwnerTextState> get() = content.ownerTexts
 
     /** Everything a gauge surface renders, or null when there is no reading. */
     val contextGaugeDetails: ContextGaugeDetails?

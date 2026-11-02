@@ -60,6 +60,7 @@ fun Message.toEntity(): MessageEntity = MessageEntity(
     manualSkills = manualSkills?.let { json.encodeToString(ListSerializer(String.serializer()), it) },
     alwaysAppliedSkills = alwaysAppliedSkills?.let { json.encodeToString(ListSerializer(String.serializer()), it) },
     reasoningOverride = reasoningOverride?.let { json.encodeToString(ReasoningOverride.serializer(), it) },
+    privacyRevision = privacyRevision,
     createdAt = parseTimestamp(createdAt),
     updatedAt = parseTimestamp(updatedAt),
 )
@@ -106,6 +107,7 @@ fun MessageEntity.toModel(): Message = Message(
     reasoningOverride = reasoningOverride?.let {
         try { json.decodeFromString<ReasoningOverride>(it) } catch (_: Exception) { null }
     },
+    privacyRevision = privacyRevision,
     createdAt = formatTimestamp(createdAt),
     updatedAt = formatTimestamp(updatedAt),
 )

@@ -1311,6 +1311,22 @@ branch in `MessageList` and read by each bubble through `LocalAttachmentRecovery
   provider's error as an answer. Fork failures are `ChatNotice.FORK_FAILED` / `FORK_RATE_LIMITED`
   (429), never the server's text.
 
+## Redacted user turns: the author's original (v0.8.9-rc1)
+A server with PII protection stores a user turn filtered (`text` = `[EMAIL]`…) and stamps
+`privacyRevision`. Its author sees the original (`PrivateTextBody`, web's `PrivateText`), read by
+`OwnerTextDelegate` from `POST /owner-text` once the chat is not streaming, in batches of 50.
+- **The original lives in `MessagesState.ownerTexts` only.** Never Room (only the
+  `privacyRevision` marker is cached, DB 17), never the search index, drafts, exports or share links;
+  Copy, Edit, Regenerate, Read aloud and Fork keep `message.text`. A conversation switch clears it.
+- **Accepted only for the stored turn it was read against**: same revision, same filtered text
+  (`ownerTextStateFor`). An answer with no row for an id is no state (a client-minted id the server
+  never adopted); a failed request or a row without text is Unavailable, with Retry.
+- The live turn is marked from the `created` frame (`StreamEvent.Created.privacyRevision`), in memory,
+  node for node, so it says its details were hidden without breaking the streaming anchor; its text
+  is what was typed. `isServerCopyOf` matches a redacted server copy by author and parent, since its
+  text never equals the typed text.
+- Search counts `message.text`, so the query is not applied while the original is drawn.
+
 ## Feedback: rating + reason tag + comment
 - **Both** thumbs open `FeedbackTagSheet` — the route validates against an object schema whose
   `tag` is REQUIRED, so a bare rating is rejected 400 and there is no one-tap path. Tapping the

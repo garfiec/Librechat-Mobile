@@ -54,6 +54,7 @@ import com.garfiec.librechat.feature.chat.util.withPreviews
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import com.garfiec.librechat.feature.chat.viewmodel.JumpFlash
 import com.garfiec.librechat.feature.chat.viewmodel.MessageEditingState
+import com.garfiec.librechat.feature.chat.viewmodel.OwnerTextState
 import com.garfiec.librechat.feature.chat.viewmodel.SearchFocusRequest
 import com.garfiec.librechat.feature.chat.viewmodel.SearchMatch
 import kotlinx.coroutines.delay
@@ -112,6 +113,9 @@ fun MessageList(
     recoveryBusy: Boolean = false,
     onRetryWithoutFiles: (failedReplyId: String) -> Unit = {},
     onBranchWithoutFiles: (failedReplyId: String) -> Unit = {},
+    /** The originals of redacted user turns (v0.8.9-rc1), for their authors' eyes only. */
+    ownerTexts: Map<String, OwnerTextState> = emptyMap(),
+    onRetryOwnerTexts: () -> Unit = {},
     currentlyReadingMessageId: String? = null,
     /**
      * Which message is being edited, with its drafts and their baselines. One value rather than an
@@ -474,6 +478,8 @@ fun MessageList(
             onBranch = { branchWithoutFiles(it) },
         )
     }
+    val retryOwnerTexts by rememberUpdatedState(onRetryOwnerTexts)
+    val ownerTextHost = remember(ownerTexts) { OwnerTextHost(ownerTexts) { retryOwnerTexts() } }
     // Parsed once per list; `contentType` below runs on every measure pass.
     val wakeups = remember(displayMessages) { wakeupsByMessageId(displayMessages) }
 
@@ -563,6 +569,7 @@ fun MessageList(
                     LocalFeedbackEnabled provides (!isStreaming && !readOnly),
                     LocalExpansionScope provides expansionScope(ExpansionPane.PRIMARY, node.message.parentMessageId),
                     LocalAttachmentRecovery provides recoveryHost,
+                    LocalOwnerTexts provides ownerTextHost,
                 ) {
                 // Built here, where the message is in hand: whether a rerun is possible, and
                 // whether the changes can ride it, are both questions about THIS message's parts

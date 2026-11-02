@@ -311,6 +311,9 @@ class PrefetchEngineTest {
 
         override suspend fun branchMessage(conversationId: String, messageId: String, agentId: String?) =
             throw UnsupportedOperationException()
+
+        override suspend fun getOwnerTexts(conversationId: String, messageIds: List<String>) =
+            throw UnsupportedOperationException()
     }
 
     /** A 429 means "slower", not "broken": the server is answering, it is just asking us to wait. */

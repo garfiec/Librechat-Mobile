@@ -273,6 +273,11 @@ sealed interface StreamEvent {
          * older servers — the resume is then sent unfenced, which stays legal.
          */
         val generationCreatedAt: Long? = null,
+        /**
+         * The user turn's redaction revision (v0.8.9-rc1): the server hid private details from
+         * the model. The live turn shows it as its own message already shows the original text.
+         */
+        val privacyRevision: String? = null,
     ) : StreamEvent
 
     /**

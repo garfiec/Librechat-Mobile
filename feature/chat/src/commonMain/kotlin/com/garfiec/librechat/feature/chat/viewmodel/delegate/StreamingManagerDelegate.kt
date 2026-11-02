@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.common.result.toSafeError
 import com.garfiec.librechat.core.data.repository.ChatRepository
+import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.StreamErrorCodes
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.error.StreamErrorType
@@ -22,6 +23,7 @@ import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.keyEndpointOf
 import com.garfiec.librechat.feature.chat.util.resolvedResponseMessage
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
+import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import com.garfiec.librechat.feature.chat.viewmodel.StreamingHandle
 import com.garfiec.librechat.feature.chat.viewmodel.contentFilterNotice
@@ -496,10 +498,16 @@ class StreamingManagerDelegate(
         // Read before the id lands: a forced-temporary new chat is temporary only while it has no
         // id (ChatUiState.isTemporaryChat), so the flag is latched into the slice here.
         val temporary = handle.state.isTemporaryChat
+        val privateTurnId = currentTurnOptimisticUserMessageId.takeIf { event.privacyRevision != null }
         handle.update {
             conversation = conversation.copy(conversationId = event.conversationId, isTemporaryChat = temporary)
             if (content.retryInfo != null) {
                 content = content.copy(retryInfo = null)
+            }
+            // The live turn says its private details were hidden from the model. In memory only,
+            // node for node: no Room write, no path rebuild, so the streaming anchor stands.
+            if (privateTurnId != null) {
+                content = content.withPrivacyRevision(privateTurnId, event.privacyRevision)
             }
         }
         // The conversation now has an id to key the resume pin by. A brand-new chat had none at
@@ -1217,4 +1225,15 @@ class StreamingManagerDelegate(
         const val ATTACH_ATTEMPTS = 3
         const val ATTACH_RETRY_DELAY_MS = 2_000L
     }
+}
+
+/** [messageId] marked redacted at [revision], in both the tree and the displayed path. */
+private fun MessagesState.withPrivacyRevision(messageId: String, revision: String?): MessagesState {
+    fun Message.marked() = if (this.messageId == messageId) copy(privacyRevision = revision) else this
+    return copy(
+        messages = messages.map { it.marked() },
+        displayMessages = displayMessages.map { node ->
+            if (node.message.messageId == messageId) node.copy(message = node.message.marked()) else node
+        },
+    )
 }

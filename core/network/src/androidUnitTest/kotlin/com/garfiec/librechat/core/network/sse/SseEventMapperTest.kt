@@ -389,6 +389,16 @@ class SseEventMapperTest {
         )
         val result = mapper.map(event) as StreamEvent.Created
         assertThat(result.conversationId).isEqualTo("c1")
+        assertThat(result.privacyRevision).isNull()
+    }
+
+    @Test
+    fun `maps a redacted turn's privacy revision from the created message`() {
+        val event = SseEvent(
+            event = "",
+            data = """{"created":true,"message":{"conversationId":"c1","messageId":"m1","parentMessageId":"m0","privacyRevision":"r1","text":"[EMAIL]"}}""",
+        )
+        assertThat((mapper.map(event) as StreamEvent.Created).privacyRevision).isEqualTo("r1")
     }
 
     @Test

@@ -4,8 +4,10 @@ import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.request.BranchMessageRequest
 import com.garfiec.librechat.core.model.request.FeedbackRequest
+import com.garfiec.librechat.core.model.request.OwnerTextRequest
 import com.garfiec.librechat.core.model.request.UpdateMessageRequest
 import com.garfiec.librechat.core.model.response.MessageSearchResponse
+import com.garfiec.librechat.core.model.response.OwnerTextResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -43,6 +45,16 @@ class MessagesApi constructor(
     suspend fun updateMessage(conversationId: String, messageId: String, request: UpdateMessageRequest): Message =
         client.put {
             url { path("api/messages/$conversationId/$messageId") }
+            setBody(request)
+        }.body()
+
+    /**
+     * The author's original text of redacted user turns (v0.8.9-rc1). At most 50 ids per call; a
+     * 503 means the server can't open them now.
+     */
+    suspend fun getOwnerTexts(conversationId: String, request: OwnerTextRequest): OwnerTextResponse =
+        client.post {
+            url { path("api/messages/$conversationId/owner-text") }
             setBody(request)
         }.body()
 

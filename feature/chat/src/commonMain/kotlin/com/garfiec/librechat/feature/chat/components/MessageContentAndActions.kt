@@ -625,6 +625,16 @@ internal fun MessageContentAndActions(
                     } else {
                         if (isPersistedTurnError(message)) {
                             StreamErrorPart(raw = message.text)
+                        } else if (isUser && !message.privacyRevision.isNullOrEmpty()) {
+                            // A turn the server redacted: its author sees what they typed, with why.
+                            PrivateTextBody(
+                                message = message,
+                                fontSizeMultiplier = fontSizeMultiplier,
+                                useKatex = useKatex,
+                                searchQuery = if (isSearchMatch) searchQuery else null,
+                                searchFocusedOccurrence = if (isCurrentSearchMatch) searchFocusedOccurrence else -1,
+                                onFocusedOccurrencePosition = if (isCurrentSearchMatch) onFocusedOccurrencePosition else null,
+                            )
                         } else if (message.text.isNotBlank()) {
                             val query = if (isSearchMatch) searchQuery else null
                             val focused = if (isCurrentSearchMatch) searchFocusedOccurrence else -1

@@ -1692,11 +1692,18 @@ GET    /api/projects/:projectId/files, /files/available; POST /:projectId/files;
 DELETE /api/projects/:projectId/files/:fileId                  project context (BUILT, see Chat Projects)
 GET    /api/endpoints/reasoning-capabilities?endpoint=          {capabilities, expiresInMs} (NOT built; wave 2)
 GET|POST|DELETE /api/schedules/:id/mcp-consent                 (NOT built; wave 2)
-POST   /api/messages/:conversationId/owner-text                PII owner text (NOT built; wave 2)
+POST   /api/messages/:conversationId/owner-text {messageIds:[1..50]} (bare, NOT under `arg`; strict)
+                                                               → {messages:[{messageId,revision,canonicalText,text?}]};
+                                                               503 when unavailable; `Cache-Control: private, no-store`.
+                                                               PII owner text (BUILT: MessagesApi.getOwnerTexts, held in
+                                                               memory only; `privacyRevision` on messages and the
+                                                               `created` frame's message)
 POST   /api/agents/tools/approvals/reset {agentId, toolName?}  → {reset:true}; forget the caller's
                                                                remembered approvals (BUILT; see below)
 GET    /api/messages/:c/:m/parts/:partIndex, /:c/:m/subagent-calls
-                                                               opt-in `?toolPreviews=1` previews (NOT built; wave 3)
+                                                               opt-in `?toolPreviews=1` previews (NOT built; wave 3).
+                                                               subagent-calls is subagent-file-delivery slice 2: DEFERRED;
+                                                               slice 1 places unclaimed child files client-side
 POST   /api/mcp/app/validate, /resources/read, /resources/list, /resources/templates/list,
        /app-tool-call; GET /api/mcp/sandbox                    MCP Apps (NOT built; wave 3)
 GET    /api/convos/:conversationId/pull-request; POST /api/convos/pull-requests; /api/pull-requests/*

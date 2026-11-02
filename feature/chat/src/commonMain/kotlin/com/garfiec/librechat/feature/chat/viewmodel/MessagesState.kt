@@ -131,6 +131,12 @@ data class MessagesState(
     /** The breakdown's branch-wide figures, derived by `ContextProjectionDelegate`. */
     val contextUsageTotals: ContextUsageTotals = ContextUsageTotals(),
     /**
+     * The author's original text of redacted user turns, by message id (v0.8.9-rc1), read by
+     * `OwnerTextDelegate`. Memory only, for display only: never written to Room, the search
+     * index, drafts, exports or share links, and never used by copy, edit, retry or read aloud.
+     */
+    val ownerTexts: Map<String, OwnerTextState> = emptyMap(),
+    /**
      * The live human-review pause blocking this run, or null when nothing is awaiting the user
      * (v0.8.8 HITL). Set from `on_pending_action`, from `resumeState.pendingAction` on a
      * reconnect, and from `/chat/status` on a cold open; cleared when the user's decision is

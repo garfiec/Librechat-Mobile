@@ -42,6 +42,11 @@ data class MessageEntity(
     val alwaysAppliedSkills: String? = null,
     /** JSON-encoded `ReasoningOverride` the user turn was sent with (v0.8.9-rc1). Null when absent. */
     val reasoningOverride: String? = null,
+    /**
+     * The redaction revision of a user turn the server filtered (v0.8.9-rc1). Only the marker is
+     * cached: the author's original text is read on demand and never stored.
+     */
+    val privacyRevision: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     /** Row-tenancy owner (self-owning; stamped from the carried command, not only transitively via conversation). See ConversationEntity.accountId. */
