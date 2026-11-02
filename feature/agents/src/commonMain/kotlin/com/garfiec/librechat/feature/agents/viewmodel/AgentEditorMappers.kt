@@ -21,7 +21,9 @@ import com.garfiec.librechat.feature.agents.util.OpenApiSpecParser
 import com.garfiec.librechat.feature.agents.util.normalizeMcpServerName
 import com.garfiec.librechat.feature.agents.util.resolveRawMcpServerName
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.floatOrNull
@@ -262,11 +264,25 @@ private data class ParsedEdges(
     val unparsed: List<JsonElement>,
 )
 
+/**
+ * Splits `edges` into the handoffs the editor shows and everything else, which is kept raw and
+ * re-sent untouched.
+ *
+ * A graph edge is not necessarily a handoff: `edgeType: "direct"` is a direct edge, and so is an
+ * untyped, unconditional edge from one source to several destinations (the SDK's default, mirrored
+ * in upstream `isHandoffEdge`, `client/src/components/SidePanel/Agents/Tools/items/orchestration.ts`).
+ * [HandoffEdge] defaults a missing `edgeType` to `handoff`, so decoding first would list such an
+ * edge as a handoff and let the user "edit" it into one.
+ */
 private fun parseHandoffEdges(edges: List<JsonElement>?): ParsedEdges {
     if (edges.isNullOrEmpty()) return ParsedEdges(emptyList(), emptyList())
     val typed = mutableListOf<HandoffEdge>()
     val unparsed = mutableListOf<JsonElement>()
     edges.forEach { element ->
+        if (!isHandoffEdge(element)) {
+            unparsed += element
+            return@forEach
+        }
         try {
             typed += EDGE_JSON.decodeFromJsonElement(HandoffEdge.serializer(), element)
         } catch (_: Exception) {
@@ -278,6 +294,21 @@ private fun parseHandoffEdges(edges: List<JsonElement>?): ParsedEdges {
         }
     }
     return ParsedEdges(typed, unparsed)
+}
+
+/**
+ * Upstream `isHandoffEdge`: not `direct`, and not an untyped, unconditional one-to-many edge (which
+ * the SDK runs as direct). An element that is not an object is left to the decoder, which keeps it
+ * raw.
+ */
+internal fun isHandoffEdge(edge: JsonElement): Boolean {
+    val obj = edge as? JsonObject ?: return true
+    val sourceCount = (obj["from"] as? JsonArray)?.size ?: 1
+    val destinationCount = (obj["to"] as? JsonArray)?.size ?: 1
+    val edgeType = (obj["edgeType"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+    val hasCondition = obj["condition"].let { it != null && it !is JsonNull }
+    val defaultDirect = edgeType == null && !hasCondition && sourceCount == 1 && destinationCount > 1
+    return edgeType != "direct" && !defaultDirect
 }
 
 internal fun encodeHandoffEdges(edges: List<HandoffEdge>): List<JsonElement>? {

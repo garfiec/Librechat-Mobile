@@ -178,4 +178,10 @@
 - Version history is fetched lazily (`AgentLoaderDelegate.loadVersions`) because v0.8.8 stopped
   inlining `versions[]`. The active-revision comparison runs against `versionBasis`, captured at
   load — reading live form state would compare against whatever the user has since typed.
-- Not ported from upstream's rework: OrchestrationHub and StatefulSessions.
+- Not ported from upstream's rework: OrchestrationHub (v0.8.9-rc1 folds it into a native
+  "Orchestration" tool row) and StatefulSessions.
+- **Only handoff edges reach `AgentHandoffsSection`** (`isHandoffEdge`, upstream
+  `Tools/items/orchestration.ts`): `edgeType: "direct"` and an untyped, unconditional one-to-many
+  edge (the SDK runs it as direct) stay raw in `unparsedHandoffEdges` and are re-sent untouched.
+  `HandoffEdge` defaults a missing `edgeType` to `handoff`, so classify on the raw JSON, never after
+  decoding. Not version-gated: it is the SDK's own reading of an edge on every server.

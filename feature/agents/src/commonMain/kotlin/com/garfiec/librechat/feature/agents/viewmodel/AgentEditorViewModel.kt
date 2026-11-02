@@ -238,10 +238,10 @@ data class AgentEditorUiState(
     val chainAgentIds: List<String> = emptyList(),
     // Handoffs (graph edges) — saved as edges; v0.8.5+ only
     val handoffEdges: List<HandoffEdge> = emptyList(),
-    /** Raw edge payloads that failed to decode into [HandoffEdge] on load
-     *  (e.g. upstream added a field the mobile model doesn't know about).
-     *  Re-emitted as-is on save so we don't clobber server-side edges with
-     *  an empty list just because one was unparseable. */
+    /** Raw edge payloads the handoff editor does not own: ones that failed to decode into
+     *  [HandoffEdge] on load (e.g. upstream added a field the mobile model doesn't know about), and
+     *  edges that are not handoffs at all (direct edges, see `isHandoffEdge`). Re-emitted as-is on
+     *  save so we don't clobber server-side edges with an empty list. */
     val unparsedHandoffEdges: List<JsonElement> = emptyList(),
     val allAgents: List<AgentHandoffDisplayData> = emptyList(),
     // Support contact

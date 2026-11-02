@@ -4452,6 +4452,20 @@
       },
       "why": "The server folds a digest node's children into a model-facing English tally ('bash_tool ×3, text +2 more', '1 turn, 2 tools'); the web client takes it apart with three regexes so every fragment but a tool name is localized, rebuilds the tree from positional paths ('3.2' under '3', '1-14' at the root) and opens the branch holding the active path. None of this is served as structure.",
       "failure_mode": "The tally's wording or the path scheme changes and the progress card shows raw English fragments, or nests nodes under the wrong turn. Nothing errors."
+    },
+    {
+      "id": "agent-handoff-edge-classification",
+      "upstream": {
+        "file": "client/src/components/SidePanel/Agents/Tools/items/orchestration.ts",
+        "symbol": "isHandoffEdge",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/viewmodel/AgentEditorMappers.kt",
+        "symbol": "isHandoffEdge / parseHandoffEdges"
+      },
+      "why": "Which stored graph edges the handoff editor owns: not edgeType 'direct', and not an untyped, unconditional edge from one source to several destinations, which the agents SDK runs as direct. The rule is the SDK's, copied by the web client; the server serves no classification.",
+      "failure_mode": "The SDK changes its default and the editor lists direct edges as handoffs (or hides real ones); an edit then rewrites the edge's meaning on save. Nothing errors."
     }
   ]
 }
