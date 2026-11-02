@@ -25,6 +25,7 @@ func verifySharedFrameworkImport() {
         sender: "Assistant",
         text: "Hello from Swift!",
         isCreatedByUser: false,
+        isUserSubmitted: nil,
         error: false,
         unfinished: false,
         finishReason: "stop",
@@ -42,7 +43,9 @@ func verifySharedFrameworkImport() {
         title: nil,
         manualSkills: nil,
         alwaysAppliedSkills: nil,
-        quotes: nil
+        quotes: nil,
+        reasoningOverride: nil,
+        privacyRevision: nil
     )
     assert(message.messageId == "msg-swift-001")
     assert(message.text == "Hello from Swift!")
