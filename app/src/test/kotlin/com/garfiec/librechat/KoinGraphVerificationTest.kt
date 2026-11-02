@@ -49,11 +49,13 @@ import com.garfiec.librechat.core.data.repository.McpOAuthLauncher
 import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.repository.MemoryRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
+import com.garfiec.librechat.core.data.repository.PasskeyRepository
 import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
+import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ScheduleRepository
@@ -247,8 +249,10 @@ class KoinGraphVerificationTest {
             ProjectRepository::class,
             PromptRepository::class,
             QueuedTurnRepository::class,
+            ReasoningCapabilitiesRepository::class,
             RoleRepository::class,
             ScheduleRepository::class,
+            PasskeyRepository::class,
             SearchRepository::class,
             MessageSearchRepository::class,
             SearchCapabilityRepository::class,
