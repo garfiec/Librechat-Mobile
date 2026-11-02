@@ -32,6 +32,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.runBlocking
@@ -263,6 +264,7 @@ class GateProbeDeviceTest {
 
     private class FakeConfig(detected: DetectedBackend?) : ConfigRepository {
         override val startupConfig = MutableStateFlow<StartupConfig?>(null)
+        override val startupConfigRefreshes = MutableSharedFlow<StartupConfig>()
         override val endpointConfigs = MutableStateFlow<Map<String, EndpointConfig>>(emptyMap())
         override val availableModels = MutableStateFlow<Map<String, List<String>>>(emptyMap())
         override val serverUrl = MutableStateFlow("")

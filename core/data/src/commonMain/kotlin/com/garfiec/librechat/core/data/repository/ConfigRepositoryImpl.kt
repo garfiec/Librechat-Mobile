@@ -26,9 +26,12 @@ import com.garfiec.librechat.core.network.client.PendingRequestIdentity
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
@@ -47,6 +50,10 @@ class ConfigRepositoryImpl(
 
     private val _startupConfigForServer = MutableStateFlow<ServerStartupConfig?>(null)
     override val startupConfigForServer: StateFlow<ServerStartupConfig?> = _startupConfigForServer.asStateFlow()
+
+    private val _startupConfigRefreshes =
+        MutableSharedFlow<StartupConfig>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    override val startupConfigRefreshes: Flow<StartupConfig> = _startupConfigRefreshes.asSharedFlow()
 
     /**
      * The one writer of both config flows. [serverId] is the server the config was read from or
@@ -119,6 +126,7 @@ class ConfigRepositoryImpl(
 
     override suspend fun publishStartupConfig(config: StartupConfig) {
         setStartupConfig(config, activeServerId())
+        _startupConfigRefreshes.tryEmit(config)
         configCache.saveStartupConfig(config)
         logConfigSnapshot(config)
     }
@@ -291,6 +299,7 @@ class ConfigRepositoryImpl(
         val result = safeApiCall {
             val config = configApi.getStartupConfig()
             setStartupConfig(config, serverId)
+            _startupConfigRefreshes.tryEmit(config)
             configCache.saveStartupConfig(config)
             logConfigSnapshot(config)
             config

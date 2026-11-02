@@ -5,10 +5,12 @@ import com.garfiec.librechat.core.common.ChannelPolicy
 import com.garfiec.librechat.core.common.DistributionChannel
 import com.garfiec.librechat.core.data.datastore.McpAppConsentStore
 import com.garfiec.librechat.core.data.repository.ConfigRepository
+import com.garfiec.librechat.core.data.repository.McpAppFailure
 import com.garfiec.librechat.core.data.repository.McpAppResult
 import com.garfiec.librechat.core.data.repository.McpAppsRepository
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.model.mcp.McpAppsPolicy
 import com.garfiec.librechat.core.model.mcp.selectToolCallUiResources
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -17,6 +19,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -30,6 +33,7 @@ import org.junit.Test
 class McpAppsViewModelTest {
 
     private val config = MutableStateFlow<StartupConfig?>(null)
+    private val refreshes = MutableSharedFlow<StartupConfig>(extraBufferCapacity = 1)
     private val consent = mockk<McpAppConsentStore>(relaxed = true)
     private val repository = mockk<McpAppsRepository>()
 
@@ -60,6 +64,7 @@ class McpAppsViewModelTest {
     private fun viewModel(): McpAppsViewModel {
         val configRepository = mockk<ConfigRepository>(relaxed = true)
         every { configRepository.startupConfig } returns config
+        every { configRepository.startupConfigRefreshes } returns refreshes
         val appInfo = mockk<AppInfo>()
         every { appInfo.versionName } returns "1.0"
         return McpAppsViewModel(
@@ -134,5 +139,23 @@ class McpAppsViewModelTest {
         vm.retry()
         assertThat(vm.session.value!!.attempt).isEqualTo(first.attempt + 1)
         assertThat(vm.session.value!!.host).isNotSameInstanceAs(first.host)
+    }
+
+    @Test
+    fun `apps reported off stay off until the server answers a config again, even an unchanged one`() {
+        config.value = enabledConfig()
+        coEvery { consent.isAllowed("weather") } returns true
+        coEvery { repository.validate(any(), any()) } returns McpAppResult.Failure(McpAppFailure.APPS_DISABLED)
+        val vm = viewModel()
+
+        vm.open(occurrence)
+        assertThat(vm.policy.value).isEqualTo(McpAppsPolicy.DISABLED)
+
+        // An equal config is deduped by the StateFlow: on its own it lifts nothing.
+        config.value = enabledConfig()
+        assertThat(vm.policy.value).isEqualTo(McpAppsPolicy.DISABLED)
+
+        refreshes.tryEmit(enabledConfig())
+        assertThat(vm.policy.value.enabled).isTrue()
     }
 }

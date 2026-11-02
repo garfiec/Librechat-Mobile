@@ -44,6 +44,14 @@ interface ConfigRepository {
      * the new URL; anything persisted per server reads this instead and checks the id.
      */
     val startupConfigForServer: StateFlow<ServerStartupConfig?>
+
+    /**
+     * One emission per config the server answered ([fetchStartupConfig] succeeding, or
+     * [publishStartupConfig]), equal or not. [startupConfig] dedupes an unchanged config, so a reader
+     * that has to notice "the server spoke again" (lifting a state a route reported) collects this.
+     * Not replayed; a cached or reseeded config is not a refresh.
+     */
+    val startupConfigRefreshes: Flow<StartupConfig>
     val endpointConfigs: StateFlow<Map<String, EndpointConfig>>
     val availableModels: StateFlow<Map<String, List<String>>>
 

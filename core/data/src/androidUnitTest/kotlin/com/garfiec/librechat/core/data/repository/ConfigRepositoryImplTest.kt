@@ -157,6 +157,22 @@ class ConfigRepositoryImplTest {
     }
 
     @Test
+    fun `every config the server answers is a refresh, an unchanged one too, and a cache fallback is not`() = runTest {
+        coEvery { configCache.loadStartupConfig() } returns validConfig
+        coEvery { configApi.getStartupConfig() } returns validConfig
+        val repo = repository()
+        val refreshes = mutableListOf<StartupConfig>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { repo.startupConfigRefreshes.collect { refreshes += it } }
+
+        repo.fetchStartupConfig()
+        repo.fetchStartupConfig()
+        coEvery { configApi.getStartupConfig() } throws ApiException(500, "Failed to load startup config")
+        repo.fetchStartupConfig()
+
+        assertThat(refreshes).containsExactly(validConfig, validConfig)
+    }
+
+    @Test
     fun `publishStartupConfig publishes and caches`() = runTest {
         val repo = repository()
 

@@ -52,7 +52,10 @@ class McpAppsViewModel(
     configRepository: ConfigRepository,
 ) : ViewModel() {
 
-    /** Set when an App route says Apps are off; cleared by the next config the server sends. */
+    /**
+     * Set when an App route says Apps are off; cleared by the next config the server sends, equal or
+     * not (`startupConfigRefreshes`: `startupConfig` would swallow an unchanged one).
+     */
     private val disabledByServer = MutableStateFlow(false)
 
     /** The server's App policy, or [McpAppsPolicy.DISABLED] until its config says otherwise. */
@@ -80,7 +83,7 @@ class McpAppsViewModel(
     init {
         // A fresh config is the server speaking again: it lifts a "disabled" an App route reported.
         viewModelScope.launch {
-            configRepository.startupConfig.collect { disabledByServer.value = false }
+            configRepository.startupConfigRefreshes.collect { disabledByServer.value = false }
         }
     }
 
