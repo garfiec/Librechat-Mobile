@@ -131,7 +131,8 @@ fun AppearanceSettingsScreen(
                         AccentColorRow(
                             color = uiState.shownAccentColor,
                             enabled = !uiState.useDynamicColor,
-                            serverName = uiState.serverAccent?.name?.takeIf { uiState.accentSetByServer },
+                            // Wallpaper colours outrank the server's accent; the row then says that, not "set by your server".
+                            serverName = uiState.serverAccent?.name?.takeIf { uiState.accentSetByServer && !uiState.useDynamicColor },
                             onClick = { choosingAccent = true },
                         )
                     }

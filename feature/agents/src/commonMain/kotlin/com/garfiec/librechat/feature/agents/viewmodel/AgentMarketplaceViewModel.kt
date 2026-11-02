@@ -399,6 +399,8 @@ class AgentMarketplaceViewModel(
         if (mode == LoadMode.REPLACE) loadMoreAfterReload = false
         val stamp = ++generation
         val query = currentQuery()
+        // A new query gets its own one recovery, as the web's per-signature guard does.
+        if (query != requestedQuery) mismatchRecoveredFor = null
         requestedQuery = query
         _uiState.update {
             it.copy(
