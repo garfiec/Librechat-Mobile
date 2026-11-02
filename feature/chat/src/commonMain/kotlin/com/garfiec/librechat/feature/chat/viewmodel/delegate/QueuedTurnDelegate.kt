@@ -101,6 +101,7 @@ class QueuedTurnDelegate(
                     }.ifEmpty { null },
                     quotes = spec.quotes.ifEmpty { null },
                     manualSkills = spec.manualSkills.ifEmpty { null },
+                    reasoningOverride = spec.reasoningOverride,
                     expectedPredecessorCreatedAt = spec.expectedPredecessorCreatedAt,
                 ),
             )

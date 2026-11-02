@@ -15,6 +15,7 @@ import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.EndpointConfig
+import com.garfiec.librechat.core.model.ReasoningOverrideKeys
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.mcp.McpServer
@@ -50,6 +51,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 /** Failure banner published by [ModelSelectionDelegate.loadAgents]; cleared by a later success. */
 private const val AGENTS_LOAD_ERROR = "Could not load available agents"
@@ -317,16 +321,16 @@ class ModelSelectionDelegate(
     private fun resolveAgentProvider(agentId: String?) {
         agentProviderJob?.cancel()
         if (agentId == null) {
-            publishAgentView(provider = null, starters = null)
+            publishAgentView(AgentViewFacts.UNRESOLVED)
             return
         }
         agentViews[agentId]?.let {
-            publishAgentView(it.provider, it.conversationStarters)
+            publishAgentView(it)
             return
         }
         // Clear first: the previous agent's provider must not linger over the new selection while
         // the fetch runs, or an attachment routes against the wrong provider for a network RTT.
-        publishAgentView(provider = null, starters = null)
+        publishAgentView(AgentViewFacts.UNRESOLVED)
         agentProviderJob = handle.scope.launch { fetchAgentView(agentId) }
     }
 
@@ -388,16 +392,16 @@ class ModelSelectionDelegate(
         agentViews[agentId]?.let { return it }
         return when (val result = agentRepository.getAgentForViewing(agentId)) {
             is Result.Success -> {
-                val facts = AgentViewFacts(result.data.provider, result.data.conversationStarters)
+                val facts = AgentViewFacts.of(result.data)
                 agentViews[agentId] = facts
                 // The selection may have moved while the fetch was in flight.
-                if (currentAgentId() == agentId) publishAgentView(facts.provider, facts.conversationStarters)
+                if (currentAgentId() == agentId) publishAgentView(facts)
                 facts
             }
 
             is Result.Error -> {
                 Logger.d(result.exception) { "Failed to resolve agent provider" }
-                if (currentAgentId() == agentId) publishAgentView(provider = null, starters = emptyList())
+                if (currentAgentId() == agentId) publishAgentView(AgentViewFacts.UNRESOLVED.copy(conversationStarters = emptyList()))
                 null
             }
 
@@ -405,16 +409,10 @@ class ModelSelectionDelegate(
         }
     }
 
-    private fun publishAgentView(provider: String?, starters: List<String>?) {
-        val current = handle.state.selection
-        if (current.selectedAgentProvider == provider && current.selectedAgentStarters == starters) return
-        handle.update {
-            selection = selection.copy(selectedAgentProvider = provider, selectedAgentStarters = starters)
-        }
+    private fun publishAgentView(facts: AgentViewFacts) {
+        if (AgentViewFacts.of(handle.state.selection) == facts) return
+        handle.update { selection = facts.applyTo(selection) }
     }
-
-    /** The single-agent read's answers this delegate keeps: the two the list projection omits. */
-    private data class AgentViewFacts(val provider: String?, val conversationStarters: List<String>)
 
     /**
      * Re-filters availableModels into UI state and, for EXISTING conversations,
@@ -1269,3 +1267,48 @@ internal fun McpServer.toDisplayData() = McpServerDisplayData(
     description = description,
     isConnected = isConnected,
 )
+
+/** The agent's saved reasoning values, by key, as strings: what the Thinking chip shows as its setting. */
+private fun reasoningParameters(modelParameters: JsonElement?): Map<String, String> {
+    val params = modelParameters as? JsonObject ?: return emptyMap()
+    return ReasoningOverrideKeys.ALL.mapNotNull { key ->
+        (params[key] as? JsonPrimitive)?.let { key to it.content }
+    }.toMap()
+}
+
+/**
+ * The single-agent read's answers this delegate keeps: what the list projection omits (provider,
+ * starters, and the model and reasoning values the composer's Thinking chip resolves against).
+ */
+private data class AgentViewFacts(
+    val provider: String?,
+    val conversationStarters: List<String>?,
+    val model: String? = null,
+    val reasoning: Map<String, String> = emptyMap(),
+) {
+    fun applyTo(selection: ModelSelectionState) = selection.copy(
+        selectedAgentProvider = provider,
+        selectedAgentStarters = conversationStarters,
+        selectedAgentModel = model,
+        selectedAgentReasoning = reasoning,
+    )
+
+    companion object {
+        val UNRESOLVED = AgentViewFacts(provider = null, conversationStarters = null)
+
+        fun of(agent: Agent) = AgentViewFacts(
+            provider = agent.provider,
+            conversationStarters = agent.conversationStarters,
+            model = agent.model,
+            reasoning = reasoningParameters(agent.modelParameters),
+        )
+
+        /** What [selection] currently shows. */
+        fun of(selection: ModelSelectionState) = AgentViewFacts(
+            provider = selection.selectedAgentProvider,
+            conversationStarters = selection.selectedAgentStarters,
+            model = selection.selectedAgentModel,
+            reasoning = selection.selectedAgentReasoning,
+        )
+    }
+}

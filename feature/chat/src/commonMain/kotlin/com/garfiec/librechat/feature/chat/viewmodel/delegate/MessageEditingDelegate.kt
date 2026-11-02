@@ -8,6 +8,7 @@ import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.request.EditedContent
 import com.garfiec.librechat.feature.chat.util.MessageEditShape
@@ -107,6 +108,7 @@ class MessageEditingDelegate(
             // The edited turn keeps its skill pills and primes the same skills (web's
             // `overrideManualSkills: message.manualSkills` on save-and-submit).
             manualSkills = originalMessage.manualSkills,
+            reasoningOverride = originalMessage.reasoningOverride,
         )
         handle.update {
             val updatedMessages = content.messages + optimisticMessage
@@ -122,6 +124,7 @@ class MessageEditingDelegate(
             userMessageId = optimisticMessage.messageId,
             files = originalMessage.files,
             manualSkills = originalMessage.manualSkills,
+            reasoningOverride = originalMessage.reasoningOverride,
             isEdited = true,
             logLabel = "editUserMessage",
         )
@@ -150,6 +153,7 @@ class MessageEditingDelegate(
             files = parentUserMessage.files,
             quotes = parentUserMessage.quotes,
             manualSkills = parentUserMessage.manualSkills,
+            reasoningOverride = parentUserMessage.reasoningOverride,
             isEdited = editedContent != null,
             isRegenerate = true,
             editedContent = editedContent,
@@ -179,6 +183,7 @@ class MessageEditingDelegate(
             files = parentUserMessage.files,
             quotes = parentUserMessage.quotes,
             manualSkills = parentUserMessage.manualSkills,
+            reasoningOverride = parentUserMessage.reasoningOverride,
             isRegenerate = true,
             logLabel = "regenerateMessage",
         )
@@ -239,6 +244,7 @@ class MessageEditingDelegate(
             overrideParentMessageId = parentUserMessage.messageId,
             responseMessageId = lastAiMessage.messageId,
             files = parentUserMessage.files,
+            reasoningOverride = parentUserMessage.reasoningOverride,
             isEdited = true,
             isRegenerate = true,
             isContinued = true,
@@ -261,7 +267,9 @@ class MessageEditingDelegate(
      * them silently drops the quoted context while the chips stay visible. Continue sends
      * none, matching web. Regenerate and both edits likewise replay the user turn's persisted
      * [manualSkills] (web's `overrideManualSkills`), so the new reply is primed with the skills
-     * its pills show; continue and compaction send none.
+     * its pills show; continue and compaction send none. Edit, regenerate and continue replay the
+     * user turn's [reasoningOverride] (web's `overrideReasoning`), not the composer's pending choice,
+     * dropped when the current selection no longer accepts it (the server would 400 it).
      *
      * In a comparison an edit or regenerate carries the second model too ([buildAddedConvo]), so
      * both panes answer again, as on web. Compaction and continue don't; a comparison's panes keep
@@ -286,6 +294,7 @@ class MessageEditingDelegate(
         files: List<FileReference>? = null,
         quotes: List<String>? = null,
         manualSkills: List<String>? = null,
+        reasoningOverride: ReasoningOverride? = null,
         isEdited: Boolean = false,
         isRegenerate: Boolean = false,
         isContinued: Boolean = false,
@@ -344,6 +353,7 @@ class MessageEditingDelegate(
                 modelParams = modelParams,
                 editedContent = editedContent,
                 addedConvo = addedConvo,
+                reasoningOverride = reasoningOverride?.takeIf { state.acceptsReasoning(it) },
             ),
         )
     }

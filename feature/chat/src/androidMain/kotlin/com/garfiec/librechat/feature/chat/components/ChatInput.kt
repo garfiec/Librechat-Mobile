@@ -49,6 +49,7 @@ import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.util.ThinkingChip
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
@@ -117,6 +118,8 @@ fun ChatInput(
     enabledTools: Set<String> = emptySet(),
     onToggleTool: (String) -> Unit = {},
     pinnedToolKeys: List<String> = emptyList(),
+    thinking: ThinkingChip? = null,
+    onOpenThinking: () -> Unit = {},
     mcpServers: List<McpServerDisplayData> = emptyList(),
     selectedMcpServerNames: Set<String> = emptySet(),
     selectedModelDisplay: String? = null,
@@ -163,6 +166,7 @@ fun ChatInput(
         isTranscribing = isTranscribing,
         enabledTools = enabledTools,
         pinnedToolKeys = pinnedToolKeys,
+        thinking = thinking,
         mcpServers = mcpServers,
         selectedMcpServerNames = selectedMcpServerNames,
         selectedModelDisplay = selectedModelDisplay,
@@ -198,6 +202,7 @@ fun ChatInput(
         onStop = onStop,
         onSelectPickerItem = onPickerSelect,
         onToggleTool = onToggleTool,
+        onOpenThinking = onOpenThinking,
         onQueue = onQueue,
         onDuringRunSend = onDuringRunSend,
         onSteer = onSteer,

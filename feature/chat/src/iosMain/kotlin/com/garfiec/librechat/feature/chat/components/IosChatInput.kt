@@ -42,6 +42,7 @@ import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_attach_file
 import com.garfiec.librechat.feature.chat.resources.cd_paste_image
+import com.garfiec.librechat.feature.chat.util.ThinkingChip
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
@@ -96,6 +97,8 @@ fun IosChatInput(
     enabledTools: Set<String> = emptySet(),
     pinnedToolKeys: List<String> = emptyList(),
     onToggleTool: (String) -> Unit = {},
+    thinking: ThinkingChip? = null,
+    onOpenThinking: () -> Unit = {},
     mcpServers: List<McpServerDisplayData> = emptyList(),
     selectedMcpServerNames: Set<String> = emptySet(),
     isRecording: Boolean = false,
@@ -134,6 +137,7 @@ fun IosChatInput(
         isTranscribing = isTranscribing,
         enabledTools = enabledTools,
         pinnedToolKeys = pinnedToolKeys,
+        thinking = thinking,
         mcpServers = mcpServers,
         selectedMcpServerNames = selectedMcpServerNames,
         selectedModelDisplay = selectedModelDisplay,
@@ -169,6 +173,7 @@ fun IosChatInput(
         onStop = onStop,
         onSelectPickerItem = onPickerSelect,
         onToggleTool = onToggleTool,
+        onOpenThinking = onOpenThinking,
         onQueue = onQueue,
         onDuringRunSend = onDuringRunSend,
         onSteer = onSteer,

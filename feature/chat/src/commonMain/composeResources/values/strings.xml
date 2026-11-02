@@ -1005,4 +1005,11 @@
         <item quantity="one">+%1$d file</item>
         <item quantity="other">+%1$d files</item>
     </plurals>
+    <!-- Per-turn thinking (v0.8.9-rc1 reasoningOverride) -->
+    <string name="thinking_title">Thinking</string>
+    <string name="thinking_chip_next_message">%1$s · next message</string>
+    <string name="cd_thinking_chip">Thinking for the next message: %1$s</string>
+    <string name="thinking_next_message_only">For your next message only. Afterwards this chat goes back to its own setting.</string>
+    <string name="thinking_chat_setting">This chat's setting</string>
+    <string name="thinking_change_chat_setting">Change this chat's setting</string>
 </resources>

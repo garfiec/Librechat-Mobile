@@ -33,6 +33,7 @@ import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
+import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
@@ -76,6 +77,7 @@ import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.extractBranchMedia
 import com.garfiec.librechat.feature.chat.util.isAddedAgentId
 import com.garfiec.librechat.feature.chat.util.newChatDraftKey
+import com.garfiec.librechat.feature.chat.util.overrideFor
 import com.garfiec.librechat.feature.chat.util.parametersFor
 import com.garfiec.librechat.feature.chat.util.reopenedParameters
 import com.garfiec.librechat.feature.chat.util.restore
@@ -104,6 +106,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformDelegateFac
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PresetPromptDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.QueueOrchestrationDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.QueuedTurnDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.ReasoningCatalogDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SendCompletionDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SendDispatchDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SendReadinessDelegate
@@ -166,6 +169,7 @@ class ChatViewModel(
     private val configRepository: ConfigRepository,
     private val conversationRepository: ConversationRepository,
     private val endpointTokenRepository: EndpointTokenRepository,
+    reasoningCapabilitiesRepository: ReasoningCapabilitiesRepository,
     private val draftRepository: DraftRepository,
     favoritesRepository: FavoritesRepository,
     private val keyRepository: KeyRepository,
@@ -287,6 +291,10 @@ class ChatViewModel(
         initialSpec = initialSpec,
     )
     private val skillsToggleDelegate = SkillsToggleDelegate(SkillsToggleHandle(stateHandle), settingsDataStore)
+    private val reasoningCatalogDelegate = ReasoningCatalogDelegate(
+        handle = ReasoningHandle(stateHandle),
+        repository = reasoningCapabilitiesRepository,
+    )
     private val keyStatusDelegate = EndpointKeyStatusDelegate(
         handle = EndpointKeyHandle(stateHandle),
         keyRepository = keyRepository,
@@ -853,6 +861,8 @@ class ChatViewModel(
         contextProjectionDelegate.start()
         // The Skills toggle follows the slot this chat maps to (conversation, new chat, temp, spec).
         skillsToggleDelegate.start()
+        // The Thinking chip's catalog, and dropping a staged choice the selection stops accepting.
+        reasoningCatalogDelegate.start()
         loadSkillCatalogWhenPickerOpens()
         clearCompactNudgeSnoozeWhenBelowThreshold()
 
@@ -1482,6 +1492,10 @@ class ChatViewModel(
                     // picked.
                     selectedAgentProvider = current.selection.selectedAgentProvider,
                     selectedAgentStarters = current.selection.selectedAgentStarters,
+                    selectedAgentModel = current.selection.selectedAgentModel,
+                    selectedAgentReasoning = current.selection.selectedAgentReasoning,
+                    // Per endpoint, not per chat; the fetcher only refetches when the endpoint changes.
+                    reasoningCatalog = current.selection.reasoningCatalog,
                     modelSpecs = current.selection.modelSpecs,
                     availableModels = current.availableModels,
                     endpointConfigs = current.endpointConfigs,
@@ -1712,6 +1726,15 @@ class ChatViewModel(
         if (sendDispatchDelegate.addPendingManualSkill(name)) skillsToggleDelegate.turnOn()
     }
     fun removePendingManualSkill(name: String) = sendDispatchDelegate.removePendingManualSkill(name)
+
+    /**
+     * Stages [value] from the Thinking sheet for the next message only (v0.8.9-rc1). Picking the
+     * chat's own setting clears the choice instead.
+     */
+    fun selectThinkingLevel(value: String) {
+        val chip = _uiState.value.thinkingChip ?: return
+        _uiState.update { it.copy(composer = it.composer.copy(pendingReasoningOverride = chip.overrideFor(value))) }
+    }
 
     // Queue
     fun editQueued(localId: String) = queueOrchestrationDelegate.editQueued(localId)

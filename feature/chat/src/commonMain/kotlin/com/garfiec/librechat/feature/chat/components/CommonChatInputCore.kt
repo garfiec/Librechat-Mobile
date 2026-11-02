@@ -102,6 +102,7 @@ import com.garfiec.librechat.feature.chat.resources.hint_message
 import com.garfiec.librechat.feature.chat.resources.hint_message_model
 import com.garfiec.librechat.feature.chat.resources.queue_held_after_refusal
 import com.garfiec.librechat.feature.chat.resources.recording
+import com.garfiec.librechat.feature.chat.util.ThinkingChip
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
@@ -119,6 +120,8 @@ data class ChatInputState(
     /** Tool keys (already mapped + gated) to surface as inline quick-toggle chips on the
      *  input bar (v0.8.7 `defaultPinnedTools`). Selected state reads from [enabledTools]. */
     val pinnedToolKeys: List<String> = emptyList(),
+    /** The per-turn Thinking chip (v0.8.9-rc1), shown after the pinned tools; null hides it. */
+    val thinking: ThinkingChip? = null,
     val mcpServers: List<McpServerDisplayData>,
     val selectedMcpServerNames: Set<String>,
     val selectedModelDisplay: String?,
@@ -200,6 +203,8 @@ fun CommonChatInputCore(
     modifier: Modifier = Modifier,
     /** Toggle a pinned tool from its inline chip (v0.8.7 `defaultPinnedTools`). */
     onToggleTool: (String) -> Unit = {},
+    /** Opens the Thinking sheet from its chip. */
+    onOpenThinking: () -> Unit = {},
     /** Queue a follow-up while streaming. Null (or [ChatInputState.canQueue] false) keeps the
      *  button as plain Stop mid-stream (e.g. on a brand-new conversation). Also the during-run
      *  picker's explicit "add to queue" — never the default-action route. */
@@ -347,12 +352,15 @@ fun CommonChatInputCore(
             )
 
             // Server-pinned tools (v0.8.7 defaultPinnedTools) as inline quick-toggle chips.
-            if (state.pinnedToolKeys.isNotEmpty()) {
+            // The Thinking chip rides the same row, so it shows with no pinned tools too.
+            if (state.pinnedToolKeys.isNotEmpty() || state.thinking != null) {
                 PinnedToolsRow(
                     pinnedToolKeys = state.pinnedToolKeys,
                     enabledTools = state.enabledTools,
                     lockedTools = state.gates.lockedTools,
                     onToggleTool = onToggleTool,
+                    thinking = state.thinking,
+                    onOpenThinking = onOpenThinking,
                     modifier = Modifier.padding(bottom = 4.dp),
                 )
             }

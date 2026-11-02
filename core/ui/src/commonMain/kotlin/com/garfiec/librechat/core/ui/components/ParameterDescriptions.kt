@@ -119,6 +119,16 @@ private val PLACEHOLDERS: Map<String, StringResource> = mapOf(
     "Assistant" to Res.string.param_placeholder_assistant,
 )
 
+/**
+ * The label for one reasoning level (the composer's Thinking chip and sheet). The empty value reads
+ * Auto, or Off where it means no reasoning ([unsetIsOff]), as upstream's `enumMappings` name it.
+ */
+@Composable
+fun reasoningLevelLabel(value: String, unsetIsOff: Boolean): String = when {
+    value.isEmpty() -> stringResource(if (unsetIsOff) Res.string.param_option_off else Res.string.param_option_auto)
+    else -> OPTIONS[value]?.let { stringResource(it) } ?: value.replaceFirstChar { it.uppercase() }
+}
+
 /** The label to show for a parameter control, translated when a translation exists. */
 @Composable
 internal fun ParameterDefinition.localizedLabel(): String = LABELS[label]?.let { stringResource(it) } ?: label

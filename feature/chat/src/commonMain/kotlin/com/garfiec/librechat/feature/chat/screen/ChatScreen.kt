@@ -22,6 +22,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,10 +44,12 @@ import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.feature.chat.components.AskUserQuestionPanel
 import com.garfiec.librechat.feature.chat.components.ChatComposer
 import com.garfiec.librechat.feature.chat.components.ChatFloatingTopBar
+import com.garfiec.librechat.feature.chat.components.ChatOptionsPage
 import com.garfiec.librechat.feature.chat.components.ChatRoot
 import com.garfiec.librechat.feature.chat.components.ComposerComparison
 import com.garfiec.librechat.feature.chat.components.ComposerComparisonHint
 import com.garfiec.librechat.feature.chat.components.LandingStarters
+import com.garfiec.librechat.feature.chat.components.ThinkingSheet
 import com.garfiec.librechat.feature.chat.components.ToolApprovalPanel
 import com.garfiec.librechat.feature.chat.components.UpdateAvailableBanner
 import com.garfiec.librechat.feature.chat.components.UploadRoutingSheet
@@ -167,6 +170,7 @@ fun ChatScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var showPresetPicker by remember { mutableStateOf(false) }
+    var showThinkingSheet by rememberSaveable { mutableStateOf(false) }
     var showSavePresetDialog by remember { mutableStateOf(false) }
     var showSecondaryModelSheet by remember { mutableStateOf(false) }
     var activeComparisonTab by remember { mutableIntStateOf(0) }
@@ -590,6 +594,8 @@ fun ChatScreen(
                                             enabledTools = uiState.effectiveEnabledTools,
                                             pinnedToolKeys = uiState.pinnedToolChips,
                                             onToggleTool = viewModel::toggleTool,
+                                            thinking = uiState.thinkingChip,
+                                            onOpenThinking = { showThinkingSheet = true },
                                             mcpServers = uiState.mcpServers,
                                             selectedMcpServerNames = uiState.effectiveMcpServerNames,
                                             selectedModelDisplay = effectiveSelectedModelDisplay,
@@ -692,6 +698,20 @@ fun ChatScreen(
         onShowSavePresetDialog = { showSavePresetDialog = true },
         compareSetupPick = compareSetupPick,
     )
+
+    // Closes itself when the chip goes away (a model switch, a spec, a comparison).
+    val thinkingChip = uiState.thinkingChip
+    if (showThinkingSheet && thinkingChip != null) {
+        ThinkingSheet(
+            chip = thinkingChip,
+            onSelect = viewModel::selectThinkingLevel,
+            onOpenChatSetting = {
+                showThinkingSheet = false
+                optionsController.open(ChatOptionsPage.ModelParameters)
+            },
+            onDismiss = { showThinkingSheet = false },
+        )
+    }
 
     ChatScreenDialogs(
         uiState = uiState,

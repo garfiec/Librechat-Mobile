@@ -15,6 +15,7 @@ import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.PendingAction
+import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.config.EndpointDropParams
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecSkills
@@ -36,6 +37,8 @@ import com.garfiec.librechat.core.model.usage.ContextUsageTotals
 import com.garfiec.librechat.core.model.usage.compactNudgeBand
 import com.garfiec.librechat.core.model.usage.percentOf
 import com.garfiec.librechat.core.ui.components.ModelParameters
+import com.garfiec.librechat.core.ui.components.ReasoningSetting
+import com.garfiec.librechat.core.ui.components.ReasoningSettingResolver
 import com.garfiec.librechat.core.ui.contextusage.ContextBreakdownModel
 import com.garfiec.librechat.core.ui.media.MediaPreviewState
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
@@ -49,17 +52,21 @@ import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.ParameterTarget
 import com.garfiec.librechat.feature.chat.util.PendingUsage
 import com.garfiec.librechat.feature.chat.util.SkillPickRules
+import com.garfiec.librechat.feature.chat.util.ThinkingChip
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.util.WebSearchKind
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.util.builtInSearchProvider
 import com.garfiec.librechat.feature.chat.util.changedPartIndices
+import com.garfiec.librechat.feature.chat.util.composerReasoningSetting
 import com.garfiec.librechat.feature.chat.util.parameterTarget
 import com.garfiec.librechat.feature.chat.util.pickableSkills
+import com.garfiec.librechat.feature.chat.util.reasoningTarget
 import com.garfiec.librechat.feature.chat.util.requiresSpec
 import com.garfiec.librechat.feature.chat.util.resolveLandingStarters
 import com.garfiec.librechat.feature.chat.util.skillPickRules
 import com.garfiec.librechat.feature.chat.util.stoppedReplyId
+import com.garfiec.librechat.feature.chat.util.thinkingChip
 import com.garfiec.librechat.feature.chat.util.webSearchRoute
 
 /**
@@ -679,9 +686,51 @@ data class ChatUiState(
      * This is availability, not preference — [effectiveDuringRunAction] applies the user's
      * choice on top, and the composer's during-run menu reads this to decide whether steering
      * can be picked per send.
+     *
+     * A staged Thinking choice forces the message to queue, as on web: the steer route carries no
+     * reasoning, so steering it would drop the choice the user just made.
      */
     val canSteerNow: Boolean
-        get() = canQueueFollowUp && gates.steeringSupported && pendingAction == null
+        get() = canQueueFollowUp && gates.steeringSupported && pendingAction == null &&
+            composer.pendingReasoningOverride == null
+
+    /**
+     * The reasoning control a one-turn override may carry for the current selection (v0.8.9-rc1),
+     * or null when there is none. See [composerReasoningSetting]. `hideBadgeRow` does not hide it:
+     * upstream gates it on `interface.parameters` alone, like the parameters panel.
+     */
+    val reasoningSetting: ReasoningSetting?
+        get() = composerReasoningSetting(
+            backendVersion = gates.backendVersion,
+            parametersEnabled = parametersEnabled,
+            endpointSupportsIt = quotesSupportedOnEndpoint,
+            comparing = comparisonState.isEnabled,
+            target = reasoningTarget(
+                selectedEndpoint = selectedEndpoint,
+                selectedModel = selectedModel,
+                agentProvider = selection.selectedAgentProvider,
+                agentModel = selection.selectedAgentModel,
+            ),
+            endpointConfigs = endpointConfigs,
+            catalog = selection.reasoningCatalog,
+            enforcedPreset = activeSpec?.preset?.takeIf { selection.modelSpecs.requiresSpec },
+        )
+
+    /** The composer's Thinking chip, or null when it is hidden. */
+    val thinkingChip: ThinkingChip?
+        get() {
+            val setting = reasoningSetting ?: return null
+            val configured = if (selectedEndpoint == EndpointConstants.AGENTS) {
+                selection.selectedAgentReasoning[setting.key].orEmpty()
+            } else {
+                modelParameters.getValueForKey(setting.key)
+            }
+            return thinkingChip(setting, configured, composer.pendingReasoningOverride)
+        }
+
+    /** Whether [override] can be sent for the current selection; the server 400s one it can't. */
+    fun acceptsReasoning(override: ReasoningOverride): Boolean =
+        ReasoningSettingResolver.isSupported(override, reasoningSetting)
 
     /**
      * What the composer's send control will actually do mid-run: the user's preference, degraded

@@ -1090,6 +1090,26 @@ moves a custom OpenAI-compatible endpoint to a Responses API it may not serve.
     the request still carries the spec's own tools and artifacts, as web sends them.
   - `ephemeralAgent` is read from the body even under `enforce`, so nothing more is locked there.
 
+### Per-turn thinking (v0.8.9-rc1 `reasoningOverride`)
+- **What resolves it.** `ReasoningSettingResolver` (`:core:ui`) ports upstream
+  `resolveReasoningSettingForTarget`, which the server also runs on the request: a key or level the
+  client resolves differently is a 400 `invalid-reasoning-override`. It carries its own reasoning-key
+  table (`SETTINGS`) rather than reading `EndpointParameterRegistry`'s lists, which differ from
+  upstream's (Bedrock Anthropic's effort key). Every mirror is in `scripts/mirrors.json`.
+- **When the chip shows** (`ChatUiState.reasoningSetting` → `thinkingChip`): server ≥ 0.8.9-rc1,
+  `interface.parameters` on, not assistants, not a comparison, a resolved target (a saved agent's
+  provider and model, fetched with its provider), a key an enforced spec's preset doesn't set, and
+  levels only: a `thinkingBudget` model gets no chip. `hideBadgeRow` does not hide it.
+- **OpenRouter catalog.** An endpoint whose efforts come from the catalog (`usesCatalog`) offers
+  none until `ReasoningCatalogDelegate` has it; it refetches at the server's `expiresInMs` and
+  retries failures. A model the catalog doesn't list keeps the generic list.
+- **One message only.** `ComposerState.pendingReasoningOverride` is taken by a fresh send or a
+  composer-origin queue (`takePendingReasoningOverride`, which drops one the selection refuses) and
+  rides the `QueuedMessage` (and the server queue's enqueue body). A staged choice makes a mid-run
+  send queue, never steer (`canSteerNow`). A model switch drops it only once the new setting is
+  known and refuses it. Edit, regenerate and continue send the user message's own
+  `reasoningOverride` (cached in Room, DB 16), not the pending one; nothing shows it on the bubble.
+
 ## Content Cards
 - `ImageGenCard` renders DALL-E / image generation results (spinner while generating, AsyncImage when done)
 - `LogContentCard` renders expandable log output blocks with monospace text

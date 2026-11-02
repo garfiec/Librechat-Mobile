@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 import androidx.compose.runtime.Immutable
+import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.components.AttachedFile
@@ -63,6 +64,13 @@ data class ComposerState(
      * these are the edited item's own picks; the draft's are stashed in `ComposerSnapshot`.
      */
     val pendingManualSkills: List<String> = emptyList(),
+    /**
+     * The Thinking chip's choice for the next message only (v0.8.9-rc1 `reasoningOverride`). Taken
+     * by a fresh send or a composer-origin queue (`SendDispatchDelegate.takePendingReasoningOverride`),
+     * which drops it if the selected model no longer accepts it; a model or endpoint switch drops it
+     * the same way (`ReasoningCatalogDelegate`). During a queued edit this is the edited item's.
+     */
+    val pendingReasoningOverride: ReasoningOverride? = null,
 ) {
     /** True while at least one intake is still in flight. See [resolvingPickCount]. */
     val isResolvingPickedFiles: Boolean get() = resolvingPickCount > 0
@@ -152,6 +160,8 @@ data class ComposerSnapshot(
      * item's own while editing, so saving the edit sends it as it was queued.
      */
     val skillsToggle: Boolean = false,
+    /** The pending Thinking choice: the draft's while stashed, the queued item's while editing. */
+    val reasoningOverride: ReasoningOverride? = null,
 ) {
     val endpoint: String get() = choice.endpoint
     val model: String? get() = choice.model

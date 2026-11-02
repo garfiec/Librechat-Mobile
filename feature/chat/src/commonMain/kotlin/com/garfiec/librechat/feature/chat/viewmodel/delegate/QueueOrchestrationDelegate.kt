@@ -55,6 +55,7 @@ class QueueOrchestrationDelegate(
         val withContext = spec.copy(
             quotes = sendDispatchDelegate.takePendingQuotes(spec.endpoint),
             manualSkills = sendDispatchDelegate.takePendingManualSkills(spec.endpoint),
+            reasoningOverride = sendDispatchDelegate.takePendingReasoningOverride(),
         )
         sendDispatchDelegate.clearComposer()
         enqueueSpec(withContext)
@@ -288,6 +289,9 @@ class QueueOrchestrationDelegate(
                     // The chips on screen during the edit are this item's own (see
                     // [beginQueuedEdit]), so what the user added or removed there is what it sends.
                     manualSkills = sendDispatchDelegate.sendablePendingManualSkills(spec.endpoint),
+                    // On screen during the edit was this item's own choice, like the skill chips.
+                    reasoningOverride = handle.state.composer.pendingReasoningOverride
+                        ?.takeIf { handle.state.acceptsReasoning(it) },
                 )
             }
             if (edited != null) {
@@ -472,6 +476,7 @@ class QueueOrchestrationDelegate(
             modelParameters = state.modelParameters,
             manualSkills = state.pendingManualSkills,
             skillsToggle = state.skillsToggle,
+            reasoningOverride = state.composer.pendingReasoningOverride,
         )
     }
 
@@ -497,6 +502,7 @@ class QueueOrchestrationDelegate(
             specTools = snapshot.specTools
             modelParameters = snapshot.modelParameters
             pendingManualSkills = snapshot.manualSkills
+            pendingReasoningOverride = snapshot.reasoningOverride
             skillsToggle = snapshot.skillsToggle
         }
     }

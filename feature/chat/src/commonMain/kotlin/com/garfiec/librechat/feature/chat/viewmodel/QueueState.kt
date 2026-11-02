@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.viewmodel
 import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
+import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.components.AttachedFile
@@ -114,6 +115,12 @@ data class QueuedMessage(
      * stay in the composer.
      */
     val manualSkills: List<String> = emptyList(),
+    /**
+     * The Thinking choice taken with the composer when this spec was minted (v0.8.9-rc1), sent as
+     * the turn's `reasoningOverride`. A steer's spec carries none: a staged choice makes the
+     * composer queue instead (`ChatUiState.canSteerNow`).
+     */
+    val reasoningOverride: ReasoningOverride? = null,
     val dispatch: EndpointDispatch,
     val isTemporary: Boolean = false,
     /**
@@ -208,4 +215,5 @@ fun QueuedMessage.toComposerSnapshot(): ComposerSnapshot = ComposerSnapshot(
     modelParameters = modelParameters,
     manualSkills = manualSkills,
     skillsToggle = ephemeralAgent?.skills == true,
+    reasoningOverride = reasoningOverride,
 )

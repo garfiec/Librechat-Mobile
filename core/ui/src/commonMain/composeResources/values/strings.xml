@@ -195,6 +195,7 @@
     <string name="param_option_xhigh">Extra high</string>
     <string name="param_option_max">Max</string>
     <string name="param_option_auto">Auto</string>
+    <string name="param_option_off">Off</string>
     <string name="param_option_concise">Concise</string>
     <string name="param_option_detailed">Detailed</string>
     <string name="param_option_standard">Standard</string>

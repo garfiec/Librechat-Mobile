@@ -35,6 +35,7 @@ import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
+import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
@@ -88,6 +89,7 @@ internal class ChatViewModelTestFixture {
     val configRepository = mockk<ConfigRepository>(relaxed = true)
     val conversationRepository = mockk<ConversationRepository>(relaxed = true)
     val endpointTokenRepository = mockk<EndpointTokenRepository>(relaxed = true)
+    val reasoningCapabilitiesRepository = mockk<ReasoningCapabilitiesRepository>(relaxed = true)
     val draftRepository = mockk<DraftRepository>(relaxed = true)
     val favoritesRepository = mockk<FavoritesRepository>(relaxed = true)
     val keyRepository = mockk<KeyRepository>(relaxed = true)
@@ -246,6 +248,7 @@ internal class ChatViewModelTestFixture {
         configRepository = configRepository,
         conversationRepository = conversationRepository,
         endpointTokenRepository = endpointTokenRepository,
+        reasoningCapabilitiesRepository = reasoningCapabilitiesRepository,
         draftRepository = draftRepository,
         favoritesRepository = favoritesRepository,
         keyRepository = keyRepository,

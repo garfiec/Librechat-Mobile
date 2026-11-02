@@ -26,6 +26,7 @@ import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
+import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
@@ -73,6 +74,7 @@ class ChatModuleVerificationTest {
                 ConversationRepository::class,
                 DraftRepository::class,
                 EndpointTokenRepository::class,
+                ReasoningCapabilitiesRepository::class,
                 FavoritesRepository::class,
                 FileRepository::class,
                 KeyRepository::class,

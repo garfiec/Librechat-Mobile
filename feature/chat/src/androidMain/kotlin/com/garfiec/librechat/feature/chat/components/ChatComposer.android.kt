@@ -8,6 +8,7 @@ import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
+import com.garfiec.librechat.feature.chat.util.ThinkingChip
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
@@ -56,6 +57,8 @@ internal actual fun ChatComposer(
     enabledTools: Set<String>,
     pinnedToolKeys: List<String>,
     onToggleTool: (String) -> Unit,
+    thinking: ThinkingChip?,
+    onOpenThinking: () -> Unit,
     mcpServers: List<McpServerDisplayData>,
     selectedMcpServerNames: Set<String>,
     selectedModelDisplay: String?,
@@ -123,6 +126,8 @@ internal actual fun ChatComposer(
         enabledTools = enabledTools,
         pinnedToolKeys = pinnedToolKeys,
         onToggleTool = onToggleTool,
+        thinking = thinking,
+        onOpenThinking = onOpenThinking,
         mcpServers = mcpServers,
         selectedMcpServerNames = selectedMcpServerNames,
         selectedModelDisplay = selectedModelDisplay,

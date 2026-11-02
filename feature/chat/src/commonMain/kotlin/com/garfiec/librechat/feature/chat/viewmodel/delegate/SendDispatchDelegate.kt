@@ -8,6 +8,7 @@ import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.DraftRepository
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.request.MAX_MANUAL_SKILLS
@@ -247,6 +248,20 @@ class SendDispatchDelegate(
      * a selection staged elsewhere must not silently ride along (web's `quotesSupported` guard).
      * Regenerate/continue/edit never call this — those flows replay a prior turn.
      */
+    /**
+     * Takes the composer's Thinking choice for the turn being minted, or null. One the selection
+     * no longer accepts is dropped rather than sent: the server 400s it (upstream
+     * `resolveSubmittedReasoning`).
+     */
+    fun takePendingReasoningOverride(): ReasoningOverride? {
+        var taken: ReasoningOverride? = null
+        handle.update {
+            taken = pendingReasoningOverride
+            pendingReasoningOverride = null
+        }
+        return taken?.takeIf { handle.state.acceptsReasoning(it) }
+    }
+
     fun takePendingQuotes(endpoint: String): List<String> {
         if (!quotesSupportedOn(endpoint)) return emptyList()
         var taken: List<String> = emptyList()
@@ -337,6 +352,7 @@ class SendDispatchDelegate(
             baseSpec.copy(
                 quotes = takePendingQuotes(baseSpec.endpoint),
                 manualSkills = takePendingManualSkills(baseSpec.endpoint),
+                reasoningOverride = takePendingReasoningOverride(),
             )
         } else {
             baseSpec
@@ -373,6 +389,8 @@ class SendDispatchDelegate(
             quotes = spec.quotes.takeIf { it.isNotEmpty() },
             // Painted now for the same reason: the user bubble's skill pills.
             manualSkills = spec.manualSkills.takeIf { it.isNotEmpty() },
+            // Not shown, but an edit or regenerate of this turn before the reload replays it.
+            reasoningOverride = spec.reasoningOverride,
         )
         val isNewChat = conversationId == null
         handle.update {
@@ -431,6 +449,7 @@ class SendDispatchDelegate(
             modelParams = spec.modelParamsPayload,
             quotes = spec.quotes.takeIf { it.isNotEmpty() },
             manualSkills = spec.manualSkills.takeIf { it.isNotEmpty() },
+            reasoningOverride = spec.reasoningOverride,
             // First turn only: the server saves it on every turn that carries it, so a later one
             // would move the chat. A temporary chat is never filed.
             chatProjectId = if (isNewChat && !spec.isTemporary) chatProjectId else null,

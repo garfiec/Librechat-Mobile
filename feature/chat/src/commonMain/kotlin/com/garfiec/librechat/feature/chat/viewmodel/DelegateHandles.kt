@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 import com.garfiec.librechat.core.model.PendingAction
+import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.ContextUsageTotals
@@ -143,6 +144,25 @@ class SkillsToggleHandle(root: ChatStateHandle) : DelegateHandle(root) {
     val stateFlow: StateFlow<ChatUiState> get() = root.stateFlow
     fun update(block: SkillsToggleWrites.() -> Unit) =
         root.update { SkillsToggleWrites(this).apply(block).applyTo(this) }
+}
+
+// ── ReasoningCatalogDelegate ──────────────────────────────────────────────
+// Owns the selection's reasoning catalog, and on the composer only drops a staged Thinking choice
+// the selection no longer accepts.
+class ReasoningWrites internal constructor(state: ChatUiState) {
+    var reasoningCatalog: ReasoningCatalogState? = state.selection.reasoningCatalog
+    var pendingReasoningOverride: ReasoningOverride? = state.composer.pendingReasoningOverride
+    internal fun applyTo(s: ChatUiState) = s.copy(
+        selection = s.selection.copy(reasoningCatalog = reasoningCatalog),
+        composer = s.composer.copy(pendingReasoningOverride = pendingReasoningOverride),
+    )
+}
+
+class ReasoningHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    /** Read-only observation of the full state (the target and its resolved setting). */
+    val stateFlow: StateFlow<ChatUiState> get() = root.stateFlow
+    fun update(block: ReasoningWrites.() -> Unit) =
+        root.update { ReasoningWrites(this).apply(block).applyTo(this) }
 }
 
 // ── EndpointKeyStatusDelegate ─────────────────────────────────────────────
@@ -467,6 +487,7 @@ class SendDispatchWrites internal constructor(state: ChatUiState) {
     var inputText: String = state.composer.inputText
     var pendingQuotes: List<String> = state.composer.pendingQuotes
     var pendingManualSkills: List<String> = state.composer.pendingManualSkills
+    var pendingReasoningOverride: ReasoningOverride? = state.composer.pendingReasoningOverride
     var pendingUploadRouting: PendingUploadRouting? = state.composer.pendingUploadRouting
     var error: String? = state.error
     internal fun applyTo(s: ChatUiState) = s.copy(
@@ -475,6 +496,7 @@ class SendDispatchWrites internal constructor(state: ChatUiState) {
             inputText = inputText,
             pendingQuotes = pendingQuotes,
             pendingManualSkills = pendingManualSkills,
+            pendingReasoningOverride = pendingReasoningOverride,
             pendingUploadRouting = pendingUploadRouting,
         ),
         error = error,
@@ -498,6 +520,7 @@ class QueueOrchestrationWrites internal constructor(state: ChatUiState) {
     var pendingUploadRouting: PendingUploadRouting? = state.composer.pendingUploadRouting
     var editingQueuedItem: QueuedEditSession? = state.composer.editingQueuedItem
     var pendingManualSkills: List<String> = state.composer.pendingManualSkills
+    var pendingReasoningOverride: ReasoningOverride? = state.composer.pendingReasoningOverride
     var choice: ModelChoice = state.selection.choice
     var enabledTools: Set<String> = state.selection.enabledTools
     var selectedMcpServerNames: Set<String> = state.selection.selectedMcpServerNames
@@ -511,6 +534,7 @@ class QueueOrchestrationWrites internal constructor(state: ChatUiState) {
             pendingUploadRouting = pendingUploadRouting,
             editingQueuedItem = editingQueuedItem,
             pendingManualSkills = pendingManualSkills,
+            pendingReasoningOverride = pendingReasoningOverride,
         ),
         selection = s.selection.copy(
             choice = choice,
