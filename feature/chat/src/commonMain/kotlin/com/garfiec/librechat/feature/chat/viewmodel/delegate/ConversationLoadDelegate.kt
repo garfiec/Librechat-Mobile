@@ -411,6 +411,8 @@ class ConversationLoadDelegate(
             val incomplete = cached != null && (
                 (cached.spec == null && currentModelSpecs()?.enforce == true) ||
                     (wantsParameters && (!cached.hasParameters || cached.parametersStale)) ||
+                    // Writes only the conversation row, which the message observer doesn't read, so
+                    // it is safe mid-stream (the streaming anchor depends on the messages alone).
                     (cached.isCodeConversation == null && pullRequestsAvailable())
                 )
             if (incomplete && backfillKey != null && backfillKey !in conversationBackfillDone) {
