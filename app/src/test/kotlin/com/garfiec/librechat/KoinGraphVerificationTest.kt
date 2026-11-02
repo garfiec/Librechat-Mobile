@@ -21,6 +21,7 @@ import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.DrawerPinsStore
+import com.garfiec.librechat.core.data.datastore.McpAppConsentStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
@@ -47,6 +48,7 @@ import com.garfiec.librechat.core.data.repository.EndpointTokenRepository
 import com.garfiec.librechat.core.data.repository.FavoritesRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.KeyRepository
+import com.garfiec.librechat.core.data.repository.McpAppsRepository
 import com.garfiec.librechat.core.data.repository.McpOAuthLauncher
 import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.repository.MemoryRepository
@@ -97,6 +99,7 @@ import com.garfiec.librechat.core.network.api.FilesApi
 import com.garfiec.librechat.core.network.api.FilesExtApi
 import com.garfiec.librechat.core.network.api.KeysApi
 import com.garfiec.librechat.core.network.api.McpApi
+import com.garfiec.librechat.core.network.api.McpAppsApi
 import com.garfiec.librechat.core.network.api.MemoriesApi
 import com.garfiec.librechat.core.network.api.MessagesApi
 import com.garfiec.librechat.core.network.api.PasskeyApi
@@ -198,6 +201,7 @@ class KoinGraphVerificationTest {
             FilesExtApi::class,
             KeysApi::class,
             McpApi::class,
+            McpAppsApi::class,
             MemoriesApi::class,
             MessagesApi::class,
             PermissionsApi::class,
@@ -228,6 +232,7 @@ class KoinGraphVerificationTest {
             SsoRiskDataStore::class,
             ThemeDataStore::class,
             ConversationWebSearchStore::class,
+            McpAppConsentStore::class,
             CodeWorkspacePreferenceStore::class,
             AgentRepository::class,
             AgentToolsRepository::class,
@@ -246,6 +251,7 @@ class KoinGraphVerificationTest {
             FileRepository::class,
             KeyRepository::class,
             McpRepository::class,
+            McpAppsRepository::class,
             McpOAuthLauncher::class,
             MemoryRepository::class,
             MessageRepository::class,

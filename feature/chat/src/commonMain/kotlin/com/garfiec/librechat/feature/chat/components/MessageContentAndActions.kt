@@ -60,6 +60,7 @@ import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
+import com.garfiec.librechat.feature.chat.components.mcpapp.McpAppRows
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.ContentGroup
@@ -603,6 +604,13 @@ internal fun MessageContentAndActions(
                                                                 SearchVerticalsSection(
                                                                     verticals = groupVerticals,
                                                                     stateKey = "${message.messageId}:${group.key}",
+                                                                    modifier = Modifier.padding(top = 8.dp),
+                                                                )
+                                                                // Never inside the fold: an App row stays
+                                                                // reachable with the group collapsed.
+                                                                McpAppRows(
+                                                                    attachments = inlineAttachments,
+                                                                    toolCallIds = group.groupedToolCallIds(),
                                                                     modifier = Modifier.padding(top = 8.dp),
                                                                 )
                                                             }

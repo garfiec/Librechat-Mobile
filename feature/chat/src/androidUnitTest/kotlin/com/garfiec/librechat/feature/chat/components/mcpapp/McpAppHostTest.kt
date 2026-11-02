@@ -108,7 +108,10 @@ class McpAppHostTest {
         h.host.start()
         runCurrent()
         h.app("""{"jsonrpc":"2.0","method":"ui/notifications/sandbox-proxy-ready","params":{}}""")
-        h.app("""{"jsonrpc":"2.0","id":1,"method":"ui/initialize","params":{"protocolVersion":"2026-01-26","appInfo":{"name":"a","version":"1"},"appCapabilities":{}}}""")
+        h.app(
+            """{"jsonrpc":"2.0","id":1,"method":"ui/initialize","params":{"protocolVersion":"2026-01-26",""" +
+                """"appInfo":{"name":"a","version":"1"},"appCapabilities":{}}}""",
+        )
         h.app("""{"jsonrpc":"2.0","method":"ui/notifications/initialized"}""")
         return h
     }
@@ -158,7 +161,10 @@ class McpAppHostTest {
     @Test
     fun `a tool call waits for approval, then runs natively and answers the App`() = runTest {
         val h = loaded()
-        h.app("""{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"refresh_forecast","arguments":{"city":"Seattle","units":"metric"}}}""")
+        h.app(
+            """{"jsonrpc":"2.0","id":7,"method":"tools/call",""" +
+                """"params":{"name":"refresh_forecast","arguments":{"city":"Seattle","units":"metric"}}}""",
+        )
         runCurrent()
         val pending = h.host.pendingAction.value as McpAppAction.ToolCall
         assertThat(pending.toolName).isEqualTo("refresh_forecast")
@@ -210,7 +216,10 @@ class McpAppHostTest {
     @Test
     fun `a message is sent as text only after approval, and closes the panel`() = runTest {
         val h = loaded()
-        h.app("""{"jsonrpc":"2.0","id":9,"method":"ui/message","params":{"role":"user","content":[{"type":"text","text":"Plan a hike"},{"type":"image","data":"x"}]}}""")
+        h.app(
+            """{"jsonrpc":"2.0","id":9,"method":"ui/message","params":{"role":"user",""" +
+                """"content":[{"type":"text","text":"Plan a hike"},{"type":"image","data":"x"}]}}""",
+        )
         runCurrent()
         assertThat((h.host.pendingAction.value as McpAppAction.Message).text).isEqualTo("Plan a hike")
         h.host.approve()

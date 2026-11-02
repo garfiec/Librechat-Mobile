@@ -1210,6 +1210,17 @@ class ChatViewModel(
     }
 
     /**
+     * An MCP App's approved `ui/message`: sends only [text] as a new user turn and leaves the
+     * composer as it is. Refused (false) while a reply runs, or before a run can start, as web's
+     * `ask` refuses; once it returns true the turn is the chat's and a later App abort can't undo it.
+     */
+    fun sendAppMessage(text: String): Boolean {
+        val state = _uiState.value
+        if (state.isStreaming || !state.canStartRun || state.isEditingQueued) return false
+        return sendDispatchDelegate.sendAppText(text.trim())
+    }
+
+    /**
      * Queues a follow-up message while a reply streams, to auto-send (FIFO) when the current
      * reply completes. Only valid mid-stream and on an existing conversation (the queue
      * affordance is hidden on the landing/new-chat screen). Shares [sendMessage]'s upload-wait

@@ -84,7 +84,10 @@ class McpAppsTest {
 
     @Test
     fun `declared domains widen only their directives, and the loader admits its frame`() {
-        val decl = McpAppCspDeclaration(resourceDomains = listOf("https://cdn.x"), connectDomains = listOf("https://api.x"))
+        val decl = McpAppCspDeclaration(
+            resourceDomains = listOf("https://cdn.x"),
+            connectDomains = listOf("https://api.x"),
+        )
         val view = buildMcpAppCspPolicy(decl, proxyLoader = false)
         assertTrue("script-src 'self' 'unsafe-inline' https://cdn.x" in view)
         assertTrue("connect-src https://api.x" in view)

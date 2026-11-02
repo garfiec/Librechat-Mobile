@@ -74,6 +74,7 @@ import com.garfiec.librechat.feature.chat.components.MessageList
 import com.garfiec.librechat.feature.chat.components.ParsedMarkdownCache
 import com.garfiec.librechat.feature.chat.components.SharedTextFileSheet
 import com.garfiec.librechat.feature.chat.components.artifact.MermaidRenderCache
+import com.garfiec.librechat.feature.chat.components.mcpapp.McpApps
 import com.garfiec.librechat.feature.chat.components.toAttachment
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_back
@@ -228,6 +229,8 @@ fun SharedChatScreen(
         // The memories shown are the sharer's, not the viewer's: no Manage.
         onOpenMemories = null,
         mcpSignIn = null,
+        // Public shares omit App attachments; any that remain say Apps don't run here.
+        mcpApps = McpApps.ReadOnly,
     ) {
         ProvideSharedFileOpeners(state, viewModel) {
             SharedChatScaffold(

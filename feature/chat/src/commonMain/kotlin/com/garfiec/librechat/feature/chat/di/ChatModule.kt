@@ -9,6 +9,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.BackgroundTasksViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNoticeHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMediaViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationSeenViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.McpAppsViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.McpSignInViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.NewChatSelectionHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.ProjectLandingViewModel
@@ -40,6 +41,7 @@ val chatModule = module {
     viewModelOf(::ConversationSeenViewModel)
     viewModelOf(::UpdateBannerViewModel)
     viewModelOf(::McpSignInViewModel)
+    viewModelOf(::McpAppsViewModel)
     // Koin's constructor-DSL (`viewModelOf`) wires every argument via `get()` and cannot read
     // values passed through `parametersOf`. This VM receives its `initialGroupId` from the
     // navigation layer via `parametersOf`, so the lambda-form `viewModel { params -> ... }` is

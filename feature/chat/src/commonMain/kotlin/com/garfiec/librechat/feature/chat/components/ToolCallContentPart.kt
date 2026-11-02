@@ -46,6 +46,7 @@ import com.garfiec.librechat.core.model.RunStepStatus
 import com.garfiec.librechat.core.model.background.BackgroundTaskOutput
 import com.garfiec.librechat.core.model.background.CHECK_BACKGROUND_TASK_TOOL
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.feature.chat.components.mcpapp.McpAppRows
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.attachmentsOwnedByHints
@@ -385,6 +386,10 @@ private fun ToolCallDispatcherContent(
                 baseUrl = baseUrl,
                 modifier = Modifier.padding(top = 8.dp),
             )
+        }
+        // MCP Apps sit after the card; inside a group they hoist with its files (MessageContentAndActions).
+        if (!hideAttachments) {
+            McpAppRows(attachments, listOfNotNull(toolCall?.id), Modifier.padding(top = 8.dp))
         }
     }
 }

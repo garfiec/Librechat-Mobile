@@ -57,6 +57,7 @@ import com.garfiec.librechat.feature.chat.components.ToolContentHost
 import com.garfiec.librechat.feature.chat.components.UpdateAvailableBanner
 import com.garfiec.librechat.feature.chat.components.UploadRoutingSheet
 import com.garfiec.librechat.feature.chat.components.addToChatSelectionItem
+import com.garfiec.librechat.feature.chat.components.mcpapp.rememberMcpApps
 import com.garfiec.librechat.feature.chat.components.rememberChatAttachmentActions
 import com.garfiec.librechat.feature.chat.components.rememberChatOptionsSheetController
 import com.garfiec.librechat.feature.chat.components.rememberMcpSignIn
@@ -70,6 +71,7 @@ import com.garfiec.librechat.feature.chat.components.veil.rememberVeilTarget
 import com.garfiec.librechat.feature.chat.prompts.components.VariableInputDialog
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.McpAppsViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.McpSignInViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.UpdateBannerViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.asString
@@ -330,6 +332,10 @@ fun ChatScreen(
     val mcpSignInViewModel: McpSignInViewModel = koinViewModel()
     val mcpSignIn = rememberMcpSignIn(mcpSignInViewModel, snackbarHostState)
 
+    // MCP Apps: the panel, its consent and approval dialogs live here; rows read the result.
+    val mcpAppsViewModel: McpAppsViewModel = koinViewModel()
+    val mcpApps = rememberMcpApps(mcpAppsViewModel, snackbarHostState, onSendMessage = viewModel::sendAppMessage)
+
     // Collected apart from uiState: it changes only when a preview's fetch starts, lands or fails.
     val toolPartStatuses by viewModel.toolPartStatuses.collectAsStateWithLifecycle()
     val toolContent = remember(toolPartStatuses, viewModel) {
@@ -366,6 +372,7 @@ fun ChatScreen(
         onSiteIconsPromptDismiss = viewModel::dismissSiteIconPrompt,
         onOpenMemories = onOpenMemories?.takeIf { uiState.gates.memoriesPageEnabled },
         mcpSignIn = mcpSignIn,
+        mcpApps = mcpApps,
         thinkingOpenByDefault = prefs.thinkingOpenByDefault,
         toolContent = toolContent,
     ) {

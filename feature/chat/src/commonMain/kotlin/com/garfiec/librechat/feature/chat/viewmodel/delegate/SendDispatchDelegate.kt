@@ -156,6 +156,19 @@ class SendDispatchDelegate(
     }
 
     /**
+     * Sends an MCP App's approved message as a user turn on the chat's current selection, as
+     * web's `ask` with every composer override emptied: only [text]. The composer's draft, staged
+     * files, quotes, skill chips and one-turn reasoning choice are not read, taken or cleared.
+     * False when the chat can't start a run now (a reply is running), so the App gets an error.
+     */
+    fun sendAppText(text: String): Boolean {
+        if (text.isBlank() || handle.state.isStreaming) return false
+        val spec = buildSendSpec(text)?.copy(attachments = emptyList()) ?: return false
+        if (spec.codeWorkspace == null) return false
+        return doSendWithSpec(spec, fromComposer = false)
+    }
+
+    /**
      * Says so when a send or queue that just took the chips left some staged: whatever
      * [takePendingManualSkills] did not take is a chip this chat can't run. Called after the send,
      * which clears the error channel.

@@ -1090,4 +1090,29 @@
     <string name="command_exit_code">exit code %1$d</string>
     <string name="command_terminated">terminated by %1$s</string>
     <string name="command_timed_out">timed out</string>
+    <!-- MCP Apps (v0.8.9-rc1). The first 17 mirror upstream's com_ui_mcp_app_* keys verbatim. -->
+    <string name="mcp_app_loading_interactive_view">Loading interactive view…</string>
+    <string name="mcp_app_failed_to_load">Interactive view failed to load.</string>
+    <string name="mcp_app_open">Open app</string>
+    <string name="mcp_app_close">Close app</string>
+    <string name="mcp_app_open_named">Open app: %1$s (%2$d)</string>
+    <string name="mcp_app_close_named">Close app: %1$s (%2$d)</string>
+    <string name="mcp_app_stop">Close app and stop requests</string>
+    <string name="mcp_app_cancel_pauses">Cancel pauses further action requests until you close and reopen this app.</string>
+    <string name="mcp_app_confirm_tool">Run tool from app?</string>
+    <string name="mcp_app_confirm_message">Send message from app?</string>
+    <string name="mcp_app_message_tool_context">Sending this message starts a model response in the current conversation. Its selected agent and tools may be used.</string>
+    <string name="mcp_app_action_warning">Review this request. The app cannot act until you approve it.</string>
+    <string name="mcp_app_run_tool">Run tool</string>
+    <string name="mcp_app_send_message">Send message</string>
+    <string name="mcp_app_load_error">Interactive view could not be loaded.</string>
+    <string name="mcp_app_shared_unavailable">MCP Apps aren't viewable in shared conversations.</string>
+    <string name="mcp_app_tool_line">%1$s / %2$s</string>
+    <string name="mcp_app_binding_stale">This app's server changed. Run the tool again to get a new view.</string>
+    <string name="mcp_app_disabled">MCP apps are turned off on this server.</string>
+    <string name="mcp_app_busy">The app's server is busy. Try again.</string>
+    <string name="mcp_app_reauth">Sign in to %1$s again from MCP servers.</string>
+    <string name="mcp_app_consent_title">Run this app?</string>
+    <string name="mcp_app_consent_text">MCP apps are web pages supplied by the MCP server "%1$s" through your LibreChat server. Opening one runs its code inside Switchboard, and it may load more code from the sites it lists. It can only act on your behalf after you approve each request.</string>
+    <string name="mcp_app_consent_remember">Don't ask again for %1$s</string>
 </resources>

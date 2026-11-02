@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.feature.chat.components.mcpapp.McpAppRows
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
@@ -173,6 +174,7 @@ fun StreamingToolCallCard(
                 modifier = Modifier.padding(top = 8.dp),
                 live = true,
             )
+            McpAppRows(streamingAttachments, listOf(toolCall.id), Modifier.padding(top = 8.dp))
         }
         return
     }
@@ -372,6 +374,8 @@ private fun GenericStreamingToolCard(
             modifier = Modifier.padding(top = 8.dp),
             live = true,
         )
+        // An App can be opened mid-reply: its tool has settled once the attachment arrives.
+        McpAppRows(streamingAttachments, listOf(toolCall.id), Modifier.padding(top = 8.dp))
     }
 }
 

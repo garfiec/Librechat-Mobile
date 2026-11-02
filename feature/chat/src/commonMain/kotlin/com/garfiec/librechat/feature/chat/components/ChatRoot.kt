@@ -27,6 +27,8 @@ import com.garfiec.librechat.core.ui.resources.open_in
 import com.garfiec.librechat.feature.chat.components.artifact.LocalInlineArtifactPrefs
 import com.garfiec.librechat.feature.chat.components.artifact.LocalMermaidRenderCache
 import com.garfiec.librechat.feature.chat.components.artifact.MermaidRenderCache
+import com.garfiec.librechat.feature.chat.components.mcpapp.LocalMcpApps
+import com.garfiec.librechat.feature.chat.components.mcpapp.McpApps
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.attachment_fallback
 import com.garfiec.librechat.feature.chat.resources.cd_close
@@ -80,6 +82,11 @@ fun ChatRoot(
     onOpenMemories: (() -> Unit)?,
     /** Backs [LocalMcpSignIn]; null where nothing can sign in (the shared-chat viewer). */
     mcpSignIn: McpSignIn?,
+    /**
+     * Backs [LocalMcpApps]: the chat's App rows and panel, or [McpApps.ReadOnly] in the shared-chat
+     * viewer. Required, not defaulted, so a screen cannot quietly hide every App row.
+     */
+    mcpApps: McpApps?,
     /** Required, not defaulted, so a screen cannot quietly leave the setting unread again (#586). */
     thinkingOpenByDefault: Boolean,
     /** Backs [LocalToolContent]: fetches previewed tool calls in full. Null where nothing is previewed. */
@@ -152,6 +159,7 @@ fun ChatRoot(
         LocalSiteIcons provides siteIconsLocal,
         LocalOpenMemories provides onOpenMemories,
         LocalMcpSignIn provides mcpSignIn,
+        LocalMcpApps provides mcpApps,
         LocalThinkingOpenByDefault provides thinkingOpenByDefault,
     ) {
         PdfOverlayHost(onDownload = onDownloadAttachment) {
