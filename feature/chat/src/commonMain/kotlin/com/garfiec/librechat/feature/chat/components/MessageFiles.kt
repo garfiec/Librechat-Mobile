@@ -30,6 +30,8 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
+import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.FILE_SOURCE_TEXT
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.files.fileKindOf
 import com.garfiec.librechat.core.model.media.resolveFileReferenceUrl
@@ -72,16 +74,24 @@ fun MessageFiles(
     Column(modifier = modifier) {
         // Non-image file chips
         if (otherFiles.isNotEmpty()) {
+            val toolFileActions = rememberToolFileActions(baseUrl)
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 otherFiles.forEach { file ->
+                    val attachment = remember(file) { file.toAttachment() }
                     FileChip(
                         filename = file.filename ?: file.filepath?.substringAfterLast('/') ?: stringResource(Res.string.file_fallback),
                         type = file.type,
                         bytes = file.bytes,
-                        onClick = openFile?.let { open -> { open(file) } },
+                        onClick = when {
+                            openFile != null -> { { openFile(file) } }
+                            // A text-source file has no stored bytes to download or preview.
+                            file.source != FILE_SOURCE_TEXT && toolFileActions.canOpen(attachment) ->
+                                { { toolFileActions.openToolFile(attachment) } }
+                            else -> null
+                        },
                     )
                 }
             }
@@ -196,3 +206,14 @@ internal fun FileChip(
         onClick = onClick,
     )
 }
+
+internal fun FileReference.toAttachment(): Attachment = Attachment(
+    fileId = fileId,
+    filename = filename,
+    filepath = filepath,
+    type = type,
+    width = width,
+    height = height,
+    bytes = bytes,
+    source = source,
+)
