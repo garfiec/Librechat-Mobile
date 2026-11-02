@@ -4921,6 +4921,132 @@
       },
       "why": "How a mode change is written to tool_options: a fresh approval_revision UUID on every change (or on a remembering mode without a valid one), inherit removing both fields while keeping the tool's other options.",
       "failure_mode": "A changed mode keeps old grants alive (stale revision), or a remembering mode without a revision is silently ignored by the server. Nothing fails to decode."
+    },
+    {
+      "id": "reasoning-setting-for-target",
+      "upstream": {
+        "file": "packages/data-provider/src/parameterSettings.ts",
+        "symbol": "resolveReasoningSettingForTarget",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/ReasoningSettingResolver.kt",
+        "symbol": "ReasoningSettingResolver.resolve"
+      },
+      "why": "Which reasoning key and values a one-turn reasoningOverride may carry for an endpoint and model. The server runs the same function on the request, so the Thinking chip and the send-time check must agree with it.",
+      "failure_mode": "The chip offers a level the server answers with a 400 invalid-reasoning-override (the send fails), or hides itself for a model that takes one. Nothing fails to decode."
+    },
+    {
+      "id": "reasoning-setting-per-model",
+      "upstream": {
+        "file": "packages/data-provider/src/parameterSettings.ts",
+        "symbol": "resolveReasoningSetting",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/ReasoningSettingResolver.kt",
+        "symbol": "resolveForModel"
+      },
+      "why": "Per-provider model rules for the reasoning key: Gemini budget vs level, adaptive vs manual Claude, the OpenAI reasoning-model regex, Azure needing a declared definition.",
+      "failure_mode": "Same as reasoning-setting-for-target, for one provider's models."
+    },
+    {
+      "id": "reasoning-model-patterns",
+      "upstream": {
+        "file": "packages/data-provider/src/parameterSettings.ts",
+        "symbol": "isKnownOpenAIReasoningModel",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/ReasoningSettingResolver.kt",
+        "symbol": "KNOWN_OPENAI_REASONING_MODEL / MANUAL_CLAUDE_THINKING / GEMINI_THINKING_LEVEL"
+      },
+      "why": "The model-name patterns that decide whether an OpenAI, Claude or Gemini model takes a reasoning override at all (isKnownOpenAIReasoningModel, isManualClaudeThinkingModel, and the gemini-3+/gemma-4+ test).",
+      "failure_mode": "A new reasoning model gets no Thinking chip, or a non-reasoning one gets a chip whose sends 400. Nothing fails to decode."
+    },
+    {
+      "id": "reasoning-known-providers",
+      "upstream": {
+        "file": "packages/data-provider/src/parameterSettings.ts",
+        "symbol": "knownReasoningProviderEndpoints",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/ReasoningSettingResolver.kt",
+        "symbol": "KNOWN_REASONING_PROVIDERS"
+      },
+      "why": "Which defaultParamsEndpoint values count as a reasoning capability for a custom endpoint.",
+      "failure_mode": "A custom endpoint backed by a newly listed provider gets no chip, or one that is no longer listed keeps a chip the server refuses."
+    },
+    {
+      "id": "reasoning-param-settings",
+      "upstream": {
+        "file": "packages/data-provider/src/parameterSettings.ts",
+        "symbol": "paramSettings",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/ReasoningSettingResolver.kt",
+        "symbol": "SETTINGS"
+      },
+      "why": "Only the reasoning keys of each parameter set (and that the set exists), which is what resolveReasoningSettingForTarget picks from. The registry's full lists are not used for this because they differ from upstream's (Bedrock Anthropic's effort key).",
+      "failure_mode": "The chip's key or level list disagrees with what the server resolves, so a send 400s or a level is missing."
+    },
+    {
+      "id": "reasoning-openrouter-narrowing",
+      "upstream": {
+        "file": "packages/data-provider/src/parameterSettings.ts",
+        "symbol": "narrowOpenRouterEfforts",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/ReasoningSettingResolver.kt",
+        "symbol": "applyModelAwareDefaults (catalog part)"
+      },
+      "why": "How OpenRouter's per-model catalog narrows reasoning_effort: Auto kept, unknown levels dropped, none dropped when mandatory, no efforts hides it.",
+      "failure_mode": "The sheet offers a level the provider refuses, or hides one it accepts."
+    },
+    {
+      "id": "reasoning-uses-capabilities",
+      "upstream": {
+        "file": "client/src/hooks/Endpoint/useModelReasoning.ts",
+        "symbol": "usesReasoningCapabilities",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/ReasoningSettingResolver.kt",
+        "symbol": "usesCatalog"
+      },
+      "why": "Which endpoints the client fetches GET /api/endpoints/reasoning-capabilities for (and hides efforts on until it answers).",
+      "failure_mode": "An OpenRouter endpoint offers its generic list unchecked (sends 400 for models without that effort), or a non-catalog endpoint waits forever for a catalog and shows no chip."
+    },
+    {
+      "id": "reasoning-override-schema",
+      "upstream": {
+        "file": "packages/data-provider/src/schemas.ts",
+        "symbol": "reasoningOverrideSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/ReasoningSettingResolver.kt",
+        "symbol": "SCHEMA_VALUES / REASONING_EFFORT_VALUES / ANTHROPIC_EFFORT_VALUES / THINKING_LEVEL_VALUES"
+      },
+      "why": "The values each override key accepts (ReasoningEffort, AnthropicEffort, ThinkingLevel), used to drop declared options an override can never carry.",
+      "failure_mode": "A level upstream added is never offered, or one it removed is offered and 400s."
+    },
+    {
+      "id": "supports-adaptive-thinking",
+      "upstream": {
+        "file": "packages/data-provider/src/bedrock.ts",
+        "symbol": "supportsAdaptiveThinking",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
+        "symbol": "supportsAdaptiveThinking"
+      },
+      "why": "Which Claude models take effort (adaptive) rather than a token budget, for the reasoning override key.",
+      "failure_mode": "A new Claude model resolves to thinkingBudget (chip hidden) or to effort where the server expects a budget (sends 400)."
     }
   ]
 }

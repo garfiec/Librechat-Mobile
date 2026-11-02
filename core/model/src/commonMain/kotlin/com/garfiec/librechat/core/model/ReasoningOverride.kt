@@ -23,6 +23,9 @@ data class ReasoningOverride(
     /** The value as the string the enum keys carry, or null for a numeric budget. */
     val enumValue: String? get() = value.takeIf { it.isString }?.content
 
+    /** The value as a whole number, for `thinkingBudget`; null for an enum value. */
+    val budgetValue: Long? get() = value.takeIf { !it.isString }?.content?.toLongOrNull()
+
     companion object {
         fun level(key: String, value: String): ReasoningOverride = ReasoningOverride(key, JsonPrimitive(value))
     }

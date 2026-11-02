@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.model
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
@@ -85,10 +86,16 @@ data class CustomParams(
             (def["key"] as? JsonPrimitive)?.takeIf { it.isString }?.content
         }.toSet()
 
-    /** The first declared definition for [key], raw. */
-    fun declaredDefinition(key: String): JsonObject? = paramDefinitions.orEmpty().firstOrNull { def ->
-        (def["key"] as? JsonPrimitive)?.takeIf { it.isString }?.content == key
-    }
+    /** Each declared definition's key, and its `options` and `type` when it states them, in order. */
+    val declaredParams: List<DeclaredParam>
+        get() = paramDefinitions.orEmpty().mapNotNull { def ->
+            val key = (def["key"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: return@mapNotNull null
+            DeclaredParam(
+                key = key,
+                options = (def["options"] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content },
+                type = (def["type"] as? JsonPrimitive)?.takeIf { it.isString }?.content,
+            )
+        }
 
     companion object {
         /** MIRRORED from upstream `ReasoningParameterFormat.disabled` (`schemas.ts`). */
@@ -98,3 +105,12 @@ data class CustomParams(
 
 /** The sync's name for [CustomParams]. */
 typealias EndpointCustomParams = CustomParams
+
+/** One administrator-declared parameter definition, as far as the client reads it. */
+data class DeclaredParam(
+    val key: String,
+    /** The values it offers, or null when it states none (the built-in list applies). */
+    val options: List<String>?,
+    /** `enum`, `number`, … or null when it states none. */
+    val type: String?,
+)

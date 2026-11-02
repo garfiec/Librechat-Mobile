@@ -268,6 +268,26 @@ object EndpointParameterRegistry {
     private data class ThinkingBudgetBounds(val min: Int, val max: Int)
 
     /**
+     * MIRRORED from upstream `supportsAdaptiveThinking` (`packages/data-provider/src/bedrock.ts`): Opus
+     * and Sonnet 4.6+, Haiku 5.5+ and the Mythos class take `effort` rather than a token budget.
+     */
+    internal fun supportsAdaptiveThinking(model: String): Boolean =
+        isAtLeast(claudeVersion(model, OPUS_NAME_FIRST, OPUS_NUMBER_FIRST), 4, 6) ||
+            isAtLeast(claudeVersion(model, SONNET_NAME_FIRST, SONNET_NUMBER_FIRST), 4, 6) ||
+            hasAdaptiveHaikuThinking(model) ||
+            MYTHOS_CLASS.containsMatchIn(model)
+
+    /** Whether a Gemini model takes a token budget (upstream `getGoogleThinkingBudgetBounds != null`). */
+    internal fun hasGoogleThinkingBudget(model: String): Boolean = googleThinkingBudgetBounds(model) != null
+
+    /** The Grok 4.7 per-model effort list, matched as [applyModelAwareDefaults] does; null for other models. */
+    internal fun grok47Efforts(model: String): List<String>? =
+        GROK_4_7_EFFORT.takeIf { GROK_4_7.containsMatchIn(model.substringAfterLast('/')) }
+
+    /** gpt-6-sol / gpt-6-luna, which take no `minimal` effort. */
+    internal fun isGpt6SolOrLuna(model: String): Boolean = GPT_6_SOL_LUNA.containsMatchIn(model)
+
+    /**
      * MIRRORED from upstream `getGoogleThinkingBudgetBounds` (`packages/data-provider/src/schemas.ts`).
      * The shared 32,000 bound under-limits Pro and accepts Flash values the provider rejects.
      */
