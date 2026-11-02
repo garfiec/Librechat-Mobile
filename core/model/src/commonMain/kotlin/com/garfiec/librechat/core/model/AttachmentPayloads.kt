@@ -75,6 +75,8 @@ data class MemoryArtifactData(
  * Carried as raw JSON, not decoded structurally: the server forwards
  * `artifact.ui_resources.data` verbatim and it is not always an array (upstream's own tests cover
  * an index-keyed object), so a typed decode would reject the whole message's `attachments`.
- * Nothing renders it yet — upstream's renderer is `@mcp-ui/client`'s `UIResourceRenderer`.
+ * MCP Apps (`text/html;profile=mcp-app`) are read out of it with `selectToolCallUiResources`
+ * (`mcp/UiResource.kt`) and run in the chat's App panel. Plain `text/html` entries are the legacy
+ * MCP-UI feature, which mobile does not render.
  */
 typealias UiResources = JsonElement

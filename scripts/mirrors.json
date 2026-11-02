@@ -5532,6 +5532,174 @@
       },
       "why": "The context gauge's estimate counts a preview at its full argsLength/outputLength (ContextGaugeResolver).",
       "failure_mode": "The gauge drops sharply on every previewed chat."
+    },
+    {
+      "id": "mcp-app-mime-type",
+      "upstream": {
+        "file": "packages/data-provider/src/mcp/appMime.ts",
+        "symbol": "isMcpAppMimeType",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpAppCsp.kt",
+        "symbol": "isMcpAppMimeType"
+      },
+      "why": "Which ui_resources entries are MCP Apps (get an Open app row) rather than legacy MCP-UI HTML.",
+      "failure_mode": "Apps the server attaches show no row, or legacy HTML is run through the App bridge."
+    },
+    {
+      "id": "mcp-app-csp-normalize",
+      "upstream": {
+        "file": "packages/data-provider/src/mcp/csp.ts",
+        "symbol": "normalizeMCPAppCspDeclaration",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpAppCsp.kt",
+        "symbol": "McpAppCspDeclaration.normalize"
+      },
+      "why": "The CSP sources an App's declaration may contribute to its sandbox and its link allowlist.",
+      "failure_mode": "An App runs under a wider or narrower policy than web gives it, or opens links web refuses."
+    },
+    {
+      "id": "mcp-app-csp-source-pattern",
+      "upstream": {
+        "file": "packages/data-provider/src/mcp/csp.ts",
+        "symbol": "MCP_APP_CSP_SOURCE_PATTERN",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpAppCsp.kt",
+        "symbol": "SOURCE_PATTERN"
+      },
+      "why": "The source grammar an App's CSP entries must match to be kept.",
+      "failure_mode": "Raw CSP syntax reaches the policy, or valid sources are dropped."
+    },
+    {
+      "id": "mcp-app-csp-policy",
+      "upstream": {
+        "file": "packages/api/src/mcp/sandbox.ts",
+        "symbol": "buildCspPolicy",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpAppCsp.kt",
+        "symbol": "buildMcpAppCspPolicy"
+      },
+      "why": "The relay page's and the View's Content-Security-Policy, built natively because the app does not load /api/mcp/sandbox.",
+      "failure_mode": "An App gets egress, frames or scripts that web's sandbox denies."
+    },
+    {
+      "id": "mcp-app-link-allowed",
+      "upstream": {
+        "file": "client/src/utils/mcpApps.ts",
+        "symbol": "isAllowedAppLink",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpAppCsp.kt",
+        "symbol": "isAllowedAppLink"
+      },
+      "why": "Which ui/open-link URLs the host opens: only hosts the delivered CSP declared.",
+      "failure_mode": "An App exfiltrates proxied MCP data through a host-opened link, or a declared link is refused."
+    },
+    {
+      "id": "mcp-app-link-host-match",
+      "upstream": {
+        "file": "client/src/utils/mcpApps.ts",
+        "symbol": "urlMatchesDeclaredSource",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpAppCsp.kt",
+        "symbol": "matchesDeclaredSource"
+      },
+      "why": "CSP3 host-source matching for links (scheme, port, wildcard, address literals).",
+      "failure_mode": "Link matching drifts from web's, widening what an App may open."
+    },
+    {
+      "id": "mcp-app-link-host-pattern",
+      "upstream": {
+        "file": "client/src/utils/mcpApps.ts",
+        "symbol": "APP_LINK_HOST_PATTERN",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpAppCsp.kt",
+        "symbol": "APP_LINK_HOST_PATTERN"
+      },
+      "why": "The host-source grammar the link check matches against.",
+      "failure_mode": "Link matching drifts from web's."
+    },
+    {
+      "id": "mcp-app-view-height",
+      "upstream": {
+        "file": "client/src/utils/mcpApps.ts",
+        "symbol": "clampAppViewHeight",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpAppCsp.kt",
+        "symbol": "clampAppViewHeight"
+      },
+      "why": "Bounds on an App's reported size.",
+      "failure_mode": "An App reports a size the host trusts without bound."
+    },
+    {
+      "id": "mcp-app-tool-result",
+      "upstream": {
+        "file": "client/src/utils/mcpApps.ts",
+        "symbol": "buildAppToolResult",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/UiResource.kt",
+        "symbol": "UiResource.appToolResult"
+      },
+      "why": "The tool-result notification an App receives after initialize.",
+      "failure_mode": "Apps that hydrate from structuredContent or _meta render empty."
+    },
+    {
+      "id": "mcp-app-select-resources",
+      "upstream": {
+        "file": "client/src/utils/mcpApps.ts",
+        "symbol": "selectToolCallUIResources",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/UiResource.kt",
+        "symbol": "selectToolCallUiResources"
+      },
+      "why": "Which attachments become App rows, their identity key and ordinal.",
+      "failure_mode": "Rows duplicate or collide when a provider reuses tool-call ids."
+    },
+    {
+      "id": "mcp-app-read-document",
+      "upstream": {
+        "file": "client/src/utils/mcpApps.ts",
+        "symbol": "fetchMCPResourceHtml",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/UiResource.kt",
+        "symbol": "pickAppDocument"
+      },
+      "why": "Which resources/read item is the App document and where its CSP comes from.",
+      "failure_mode": "A URI-only App loads the wrong document or runs under the default policy."
+    },
+    {
+      "id": "mcp-apps-policy",
+      "upstream": {
+        "file": "client/src/Providers/MCPAppsPolicyContext.tsx",
+        "symbol": "getPublishedPolicy",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpAppsPolicy.kt",
+        "symbol": "McpAppsPolicy.resolve"
+      },
+      "why": "When a server's mcpApps policy counts as enabled and which limits apply.",
+      "failure_mode": "Rows show on a server whose policy web treats as off, or limits differ from web's."
     }
   ]
 }

@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.model.config
 
+import com.garfiec.librechat.core.model.mcp.McpAppsPolicy
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -157,7 +158,16 @@ data class StartupConfig(
     val codeEnvironmentTransitionVersion: Int? = null,
     val codeWorkspaceRecoveryVersion: Int? = null,
     val codeWorkspaceInheritanceVersion: Int? = null,
+    /**
+     * The MCP Apps policy (v0.8.9-rc1, post-login only). Raw on purpose: read it through
+     * [mcpAppsPolicy], which treats a missing or malformed policy as Apps off, as web does.
+     */
+    val mcpApps: JsonElement? = null,
 ) {
+    /** The resolved MCP Apps policy; [McpAppsPolicy.enabled] is the gate for every App row. */
+    val mcpAppsPolicy: McpAppsPolicy
+        get() = McpAppsPolicy.resolve(mcpApps)
+
     /**
      * Upstream `supportsConversationTitleOwnership`: the capability is announced AND
      * `interface.runningChatRename` is not off. Upstream reads `=== true` off a parsed config whose

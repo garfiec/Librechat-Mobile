@@ -132,8 +132,8 @@ data class Attachment(
     @SerialName("file_search") val fileSearch: FileSearchData? = null,
     /** One memory write, present only when [type] == `memory`. */
     val memory: MemoryArtifactData? = null,
-    /** MCP UI resources, present only when [type] == `ui_resources`. Carried, not yet rendered —
-     *  see [UiResources]. */
+    /** MCP UI resources, present only when [type] == `ui_resources`. MCP Apps among them render
+     *  as an "Open app" row; see [UiResources]. */
     @SerialName("ui_resources") val uiResources: UiResources? = null,
     /** Where the file is stored; [FILE_SOURCE_TEXT] marks a text-only file. Null when the server omits it. */
     val source: String? = null,
