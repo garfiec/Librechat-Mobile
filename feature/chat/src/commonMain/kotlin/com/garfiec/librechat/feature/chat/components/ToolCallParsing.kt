@@ -260,10 +260,21 @@ internal fun parseCodeExecution(toolCall: AgentToolCall?): CodeExecutionResult? 
         ?: functionArgs?.takeIf { codeArgsObject(it)?.codeField() != null }
         ?: fromArgs
         ?: functionArgs
-    return parseCodeExecution(
+    val output = toolCall.output ?: toolCall.function?.output
+    val parsed = parseCodeExecution(
         name = toolCall.name ?: toolCall.function?.name.orEmpty(),
         argsJson = argsJson,
-        output = toolCall.output ?: toolCall.function?.output,
+        output = output,
+    ) ?: return null
+    // Only a call the server stamped as attached-workspace carries an exit trailer; sandbox output
+    // keeps the text heuristics even when it prints something that looks like one.
+    if (toolCall.executor != AgentToolCall.EXECUTOR_ATTACHED_WORKSPACE) return parsed
+    val command = parseCommandOutput(output) ?: return parsed
+    return parsed.copy(
+        output = command.head.trimEnd().ifEmpty { null },
+        error = command.stderr.trimEnd().ifEmpty { null },
+        exitCode = command.exitCode,
+        command = command,
     )
 }
 

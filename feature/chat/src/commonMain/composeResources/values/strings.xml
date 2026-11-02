@@ -1083,4 +1083,8 @@
     <string name="code_checkout_registered_chip">Registered checkout</string>
     <string name="code_checkout_registered_info">The machine's checkout, shared with other chats</string>
     <string name="cd_code_chip">%1$s: %2$s</string>
+    <string name="command_finished">Ran command</string>
+    <string name="command_exit_code">exit code %1$d</string>
+    <string name="command_terminated">terminated by %1$s</string>
+    <string name="command_timed_out">timed out</string>
 </resources>

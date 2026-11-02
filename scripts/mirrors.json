@@ -4573,9 +4573,9 @@
       },
       "kotlin": {
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/CommandOutput.kt",
-        "symbol": "attachedCommandFailed / COMMAND_RESULT_TRAILER"
+        "symbol": "parseCommandOutput / attachedCommandFailed / COMMAND_RESULT_TRAILER"
       },
-      "why": "The attached-workspace bash_tool ends its output with an exit-status trailer ([exit code: N][terminated by SIG][timed out][output truncated]) written by formatCommandResult; the client reads it (as upstream Parts/command.ts parseCommandOutput does) to count a non-zero exit as a failed call in an activity-group header. The server serves no verdict field.",
+      "why": "The attached-workspace bash_tool ends its output with an exit-status trailer ([exit code: N][terminated by SIG][timed out][output truncated]) written by formatCommandResult; the client reads it (as upstream Parts/command.ts parseCommandOutput does) to count a non-zero exit as a failed call in an activity-group header, and to split the code card into stdout, stderr and the exit badge (\"Ran command · exit code 1\"). The server serves no verdict field.",
       "failure_mode": "The trailer's wording changes and every attached-workspace command reads as succeeded in the group header while its card (on web) shows the failure. Nothing errors."
     },
     {

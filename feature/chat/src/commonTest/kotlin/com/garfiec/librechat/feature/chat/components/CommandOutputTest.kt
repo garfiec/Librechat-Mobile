@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.chat.components
 
+import com.garfiec.librechat.core.model.content.AgentToolCall
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -40,5 +41,38 @@ class CommandOutputTest {
         assertNull(attachedCommandFailed("stdout:\nhello"))
         // JavaScript's `$` is the end of the text; a trailing newline after the trailer is not the shape.
         assertNull(attachedCommandFailed("stdout:\nhello\n[exit code: 1]\n"))
+    }
+
+    @Test
+    fun the_output_splits_into_stdout_stderr_and_trailer_without_losing_text() {
+        val output = "stdout:\nhello\nstderr:\nboom\n[exit code: 2]"
+        val parts = parseCommandOutput(output)!!
+        assertEquals("stdout:\nhello\n", parts.head)
+        assertEquals("stderr:\nboom\n", parts.stderr)
+        assertEquals("[exit code: 2]", parts.trailer)
+        assertEquals(output, parts.head + parts.stderr + parts.trailer)
+        assertEquals(2, parts.exitCode)
+        assertEquals(true, parts.failed)
+    }
+
+    @Test
+    fun a_signal_and_a_timeout_are_named() {
+        assertEquals("SIGKILL", parseCommandOutput("stdout:\n\n[terminated by SIGKILL]")?.signal)
+        val timedOut = parseCommandOutput("stdout:\nslow\n[exit code: 0][timed out]\nCommand reached timeoutMs: 30000")!!
+        assertEquals(true, timedOut.timedOut)
+        assertEquals(true, timedOut.failed)
+    }
+
+    @Test
+    fun only_an_attached_workspace_call_reads_the_trailer() {
+        val output = "stdout:\nok\nstderr:\nwarning\n[exit code: 0]"
+        val attached = parseCodeExecution(
+            AgentToolCall(name = "bash_tool", output = output, executor = AgentToolCall.EXECUTOR_ATTACHED_WORKSPACE),
+        )!!
+        assertEquals(false, attached.indicatesError())
+        assertEquals(0, attached.exitCode)
+        assertEquals("stderr:\nwarning", attached.error)
+        val sandbox = parseCodeExecution(AgentToolCall(name = "bash_tool", output = output))!!
+        assertNull(sandbox.command)
     }
 }
