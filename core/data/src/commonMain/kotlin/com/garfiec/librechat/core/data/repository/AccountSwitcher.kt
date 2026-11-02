@@ -4,6 +4,7 @@ import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.extensions.trimTrailingSlash
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
+import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.identity.deriveAccountId
 import com.garfiec.librechat.core.common.identity.deriveServerId
@@ -430,6 +431,21 @@ class AccountSwitcher(
      * [TokenManager.isTwoFactorSetupRequired]). Signing in to it again runs the setup flow.
      */
     suspend fun needsTwoFactorSetup(accountId: String): Boolean = tokenManager.isTwoFactorSetupRequired(accountId)
+
+    /**
+     * The roster accounts on [serverUrl] that are signed out because their server now requires 2FA
+     * setup ([needsTwoFactorSetup]), for the sign-in screen to name. Signing in to one runs the setup
+     * flow, and that sign-in clears its marker.
+     */
+    suspend fun awaitingTwoFactorSetupOn(serverUrl: String): List<AccountEntry> {
+        val server = cleanServerUrl(serverUrl).trimTrailingSlash()
+        if (server.isEmpty()) return emptyList()
+        return roster.snapshot().entries.filter { entry ->
+            cleanServerUrl(entry.serverUrl).trimTrailingSlash() == server &&
+                !hasSession(entry.accountId) &&
+                needsTwoFactorSetup(entry.accountId)
+        }
+    }
 
     private suspend fun liveSuccessor(entries: List<AccountEntry>, excluding: String): AccountEntry? =
         entries

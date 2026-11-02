@@ -22,9 +22,11 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -55,6 +57,11 @@ data class LoginUiState(
     val trustedViaUserCa: Boolean = false,
     /** The server's published policy links, absolute and safe to open; null hides each. */
     val policyLinks: PolicyLinks = PolicyLinks(),
+    /**
+     * The accounts on this server that are signed out because it now requires 2FA setup, joined
+     * for the notice; null when there are none. Signing in to one runs the setup flow.
+     */
+    val twoFactorSetupAccounts: String? = null,
 )
 
 /**
@@ -108,6 +115,26 @@ class LoginViewModel(
             }
         }
         observeCertificateTrust(serverDataStore, certificateTrust)
+        observeTwoFactorSetupMarkers(serverDataStore)
+    }
+
+    /**
+     * Names the accounts on this server whose session ended because the server now requires 2FA
+     * setup (the marker the token store keeps), so a user who tapped one in the account switcher
+     * learns why they are here. Read once per server: the marker changes only with a sign-in, which
+     * leaves this screen.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun observeTwoFactorSetupMarkers(serverDataStore: ServerDataStore) {
+        val serverUrl = accountSwitcher.pendingAdd?.serverUrl?.let(::flowOf) ?: serverDataStore.currentUrlFlow
+        viewModelScope.launch {
+            serverUrl.distinctUntilChanged().mapLatest { url ->
+                suspendRunCatching { accountSwitcher.awaitingTwoFactorSetupOn(url) }.getOrDefault(emptyList())
+                    .map { it.displayLabel }
+                    .takeIf { it.isNotEmpty() }
+                    ?.joinToString(", ")
+            }.collect { labels -> _uiState.update { it.copy(twoFactorSetupAccounts = labels) } }
+        }
     }
 
     /** The server screen's probe has just connected, so this is known by the time the screen shows. */

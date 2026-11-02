@@ -164,6 +164,10 @@
   go to `TwoFactor`/verify-temp, which 401s it). Mid-session, a refresh or any request reports
   `AuthGate.TwoFactorSetupRequired`; `NavHostViewModel` ends the session for re-auth (no failover, no
   expiry dialog) and the navigator stacks `ServerUrl, Login, TwoFactorSetup`.
+- A background account whose refresh hit enrollment has no gate, only the token store's marker; its
+  switcher row leads to sign-in. `LoginViewModel` names the signed-out accounts on the screen's server
+  (pending add server, else the live one) that carry the marker, as a one-line notice
+  (`twoFactorSetupAccounts`). The finalize commits through `setSession` + re-home, which clears it.
 - Ack/finalization credentials live only in the ViewModel. 401/403 = start over at sign-in; 400 on
   ack/finalize = spent; a failed finalize retries with the same finalization token.
 - **Note**: `VerifyEmailScreen` already existed pre-Round 2

@@ -133,6 +133,17 @@ fun LoginScreen(
                 )
             }
 
+            uiState.twoFactorSetupAccounts?.let { accounts ->
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = stringResource(Res.string.login_two_factor_setup_required, accounts),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.testTag("login_two_factor_setup_notice"),
+                )
+            }
+
             Spacer(modifier = Modifier.height(32.dp))
 
             // The email/password form is hidden when the server disables email login

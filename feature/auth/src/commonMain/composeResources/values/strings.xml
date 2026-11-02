@@ -120,4 +120,5 @@
     <!-- Sign-in refusals (v0.8.9-rc1) -->
     <string name="login_error_federated_blocked">This account signs in with its identity provider. Use that sign-in option instead.</string>
     <string name="auth_error_tenant_required">This server needs to know which organization you belong to. Use your organization's address for this server.</string>
+    <string name="login_two_factor_setup_required">This server now requires two-factor authentication for %1$s. Sign in to set it up.</string>
 </resources>

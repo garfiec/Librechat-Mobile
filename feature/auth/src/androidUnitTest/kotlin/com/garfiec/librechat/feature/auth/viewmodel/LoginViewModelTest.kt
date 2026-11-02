@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.auth.viewmodel
 
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.datastore.AccountEntry
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
@@ -125,6 +126,26 @@ class LoginViewModelTest {
         certificateTrust.record("pending.example.com", 8443, CertificateAuthority.UserInstalled)
         advanceUntilIdle()
         assertThat(viewModel.uiState.value.trustedViaUserCa).isTrue()
+    }
+
+    @Test
+    fun `an account on this server that owes 2FA setup is named on sign-in`() = runTest {
+        coEvery { accountSwitcher.awaitingTwoFactorSetupOn("https://chat.example.com") } returns listOf(
+            AccountEntry(accountId = "a1", serverUrl = "https://chat.example.com", displayLabel = "me@chat", lastActiveAt = 0L),
+        )
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.twoFactorSetupAccounts).isEqualTo("me@chat")
+    }
+
+    @Test
+    fun `no notice when no account on this server owes setup`() = runTest {
+        coEvery { accountSwitcher.awaitingTwoFactorSetupOn(any()) } returns emptyList()
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.twoFactorSetupAccounts).isNull()
     }
 
     @Test
