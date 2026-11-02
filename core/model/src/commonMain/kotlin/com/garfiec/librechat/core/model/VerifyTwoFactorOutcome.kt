@@ -34,9 +34,11 @@ sealed interface VerifyTwoFactorOutcome {
 
     /**
      * The server answered without judging the code: 400 malformed, 429 rate-limited, any other
-     * non-401 4xx, or a 5xx fault. Keep the entry intact for a plain retry.
+     * non-401 4xx, or a 5xx fault. Keep the entry intact for a plain retry. [code] is the server's
+     * error code on a 403 (strict tenant isolation, a federated account), which the screen words
+     * itself; null otherwise.
      */
-    data class NotEvaluated(val message: String) : VerifyTwoFactorOutcome
+    data class NotEvaluated(val message: String, val code: String? = null) : VerifyTwoFactorOutcome
 
     /**
      * No usable response at all (IO/timeout). Keep the entry; the UI supplies its own

@@ -17,6 +17,7 @@ import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.VerifyTwoFactorOutcome
 import com.garfiec.librechat.core.model.auth.AuthCookies
 import com.garfiec.librechat.core.model.auth.SessionCredentials
+import com.garfiec.librechat.core.model.error.ServerErrorCode
 import com.garfiec.librechat.core.model.response.BackupCodesResponse
 import com.garfiec.librechat.core.model.response.TwoFactorSetupConfirmResponse
 import com.garfiec.librechat.core.model.response.TwoFactorSetupResponse
@@ -33,6 +34,8 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 
 /** Surfaced when a 2xx auth response yields no usable session (missing fields or unparseable). */
+private const val HTTP_FORBIDDEN = 403
+
 internal const val INCOMPLETE_AUTH_MESSAGE = "The server's sign-in response was incomplete. Please try again."
 
 @Suppress("LongParameterList") // debt: constructor dependencies
@@ -504,6 +507,9 @@ internal fun classifyVerifyFailure(e: Throwable?): VerifyTwoFactorOutcome = when
     // and falls to ConnectionFailure — an HTML 200 usually means the request never reached the backend.
     e is ContentConvertException -> VerifyTwoFactorOutcome.SessionIncomplete(INCOMPLETE_AUTH_MESSAGE)
     e is ApiException && e.statusCode == 401 -> VerifyTwoFactorOutcome.CodeRejected(e.message)
-    e is ApiException -> VerifyTwoFactorOutcome.NotEvaluated(e.message)
+    e is ApiException -> VerifyTwoFactorOutcome.NotEvaluated(
+        e.message,
+        code = if (e.statusCode == HTTP_FORBIDDEN) ServerErrorCode.from(e.body) else null,
+    )
     else -> VerifyTwoFactorOutcome.ConnectionFailure
 }

@@ -312,9 +312,9 @@ class LoginViewModelTest {
     fun `the federated-blocked and tenant 403s keep the form and get their own wording`() = runTest {
         val bodies = mapOf(
             """{"code":"TWO_FACTOR_FEDERATED_LOGIN_BLOCKED","message":"Sign in with your identity provider to continue."}""" to
-                LoginRefusal.FederatedBlocked,
+                AuthRefusal.FederatedBlocked,
             """{"message":"Tenant context required in strict isolation mode","code":"TENANT_CONTEXT_REQUIRED"}""" to
-                LoginRefusal.TenantRequired,
+                AuthRefusal.TenantRequired,
         )
         bodies.forEach { (body, refusal) ->
             coEvery { authRepository.login("user@example.com", "pw") } returns Result.Error(

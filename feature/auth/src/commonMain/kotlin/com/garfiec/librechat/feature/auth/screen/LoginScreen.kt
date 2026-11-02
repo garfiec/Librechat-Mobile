@@ -45,7 +45,6 @@ import com.garfiec.librechat.core.ui.components.withIosTextContentType
 import com.garfiec.librechat.feature.auth.diagnostics.DiagnosticLogLink
 import com.garfiec.librechat.feature.auth.resources.*
 import com.garfiec.librechat.feature.auth.resources.Res
-import com.garfiec.librechat.feature.auth.viewmodel.LoginRefusal
 import com.garfiec.librechat.feature.auth.viewmodel.LoginViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -171,11 +170,7 @@ fun LoginScreen(
                 )
             }
 
-            val errorText = when (uiState.refusal) {
-                LoginRefusal.FederatedBlocked -> stringResource(Res.string.login_error_federated_blocked)
-                LoginRefusal.TenantRequired -> stringResource(Res.string.login_error_tenant_required)
-                null -> uiState.error
-            }
+            val errorText = authErrorText(uiState.refusal, uiState.error)
             if (errorText != null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(

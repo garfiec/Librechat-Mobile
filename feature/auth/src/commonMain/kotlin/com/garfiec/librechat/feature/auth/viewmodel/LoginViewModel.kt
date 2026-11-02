@@ -12,7 +12,6 @@ import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.model.LoginOutcome
-import com.garfiec.librechat.core.model.error.ServerErrorCode
 import com.garfiec.librechat.core.network.client.CertificateAuthority
 import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
 import com.garfiec.librechat.feature.auth.diagnostics.offersDiagnosticLog
@@ -39,7 +38,7 @@ data class LoginUiState(
     /** Setup credential when the server requires 2FA enrollment; consumed by navigation. */
     val twoFactorSetupTempToken: String? = null,
     /** A coded sign-in refusal the screen words itself; shown instead of [error] when set. */
-    val refusal: LoginRefusal? = null,
+    val refusal: AuthRefusal? = null,
     val registrationEnabled: Boolean = false,
     val socialLoginEnabled: Boolean = false,
     val socialLogins: List<String> = emptyList(),
@@ -52,15 +51,6 @@ data class LoginUiState(
     val ssoProvider: String? = null,
     val trustedViaUserCa: Boolean = false,
 )
-
-/** Sign-in refusals with a code of their own (v0.8.9-rc1), worded by the screen. */
-enum class LoginRefusal {
-    /** A federated account tried a password sign-in while 2FA is enforced. */
-    FederatedBlocked,
-
-    /** Strict tenant isolation, and the request named no tenant. */
-    TenantRequired,
-}
 
 class LoginViewModel(
     private val authRepository: AuthRepository,
@@ -213,11 +203,7 @@ class LoginViewModel(
                     val apiException = result.exception as? ApiException
                     // Two more server-authored 403s on this route (v0.8.9-rc1) say nothing about
                     // email login, and hiding the form over them would strand the user.
-                    val refusal = when (apiException?.statusCode?.takeIf { it == 403 }?.let { ServerErrorCode.from(apiException.body) }) {
-                        ServerErrorCode.TWO_FACTOR_FEDERATED_LOGIN_BLOCKED -> LoginRefusal.FederatedBlocked
-                        ServerErrorCode.TENANT_CONTEXT_REQUIRED -> LoginRefusal.TenantRequired
-                        else -> null
-                    }
+                    val refusal = result.authRefusalOrNull()
                     val isEmailLoginDisabled = refusal == null &&
                         apiException?.statusCode == 403 &&
                         apiException.serverAuthored &&

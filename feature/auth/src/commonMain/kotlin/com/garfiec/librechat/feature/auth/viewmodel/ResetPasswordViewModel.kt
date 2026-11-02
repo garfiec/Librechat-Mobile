@@ -19,6 +19,8 @@ data class ResetPasswordUiState(
     val error: String? = null,
     /** [error] came from a failure the diagnostic log can help with; see `offersDiagnosticLog`. */
     val offerDiagnosticLog: Boolean = false,
+    /** A coded refusal ([AuthRefusal]) the screen words itself, in place of [error], while [error] is set. */
+    val refusal: AuthRefusal? = null,
     val isReset: Boolean = false,
 )
 
@@ -43,7 +45,7 @@ class ResetPasswordViewModel(
     }
 
     fun resetPassword() {
-        val state = _uiState.value.copy(offerDiagnosticLog = false)
+        val state = _uiState.value.copy(offerDiagnosticLog = false, refusal = null)
 
         if (state.password.isBlank()) {
             _uiState.value = state.copy(error = "Please enter a new password")
@@ -76,6 +78,7 @@ class ResetPasswordViewModel(
                         isLoading = false,
                         error = result.rateLimitMessageOrNull()
                             ?: "Could not reset password. The link may have expired.",
+                        refusal = result.authRefusalOrNull(),
                         offerDiagnosticLog = result.offersDiagnosticLog(),
                     )
                 }

@@ -18,6 +18,8 @@ data class ForgotPasswordUiState(
     val error: String? = null,
     /** [error] came from a failure the diagnostic log can help with; see `offersDiagnosticLog`. */
     val offerDiagnosticLog: Boolean = false,
+    /** A coded refusal ([AuthRefusal]) the screen words itself, in place of [error], while [error] is set. */
+    val refusal: AuthRefusal? = null,
     val isSent: Boolean = false,
 )
 
@@ -35,7 +37,11 @@ class ForgotPasswordViewModel(
     fun requestReset() {
         val email = _uiState.value.email.trim()
         if (email.isBlank()) {
-            _uiState.value = _uiState.value.copy(error = "Please enter your email", offerDiagnosticLog = false)
+            _uiState.value = _uiState.value.copy(
+                error = "Please enter your email",
+                offerDiagnosticLog = false,
+                refusal = null,
+            )
             return
         }
 
@@ -50,6 +56,7 @@ class ForgotPasswordViewModel(
                         isLoading = false,
                         error = result.message
                             ?: "Could not send reset email. Please check your connection and try again.",
+                        refusal = result.authRefusalOrNull(),
                         offerDiagnosticLog = result.offersDiagnosticLog(),
                     )
                 }

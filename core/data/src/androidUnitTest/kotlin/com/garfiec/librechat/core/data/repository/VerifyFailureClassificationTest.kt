@@ -41,6 +41,25 @@ class VerifyFailureClassificationTest {
     }
 
     @Test
+    fun `a coded 403 never judged the code and carries its code to the screen`() {
+        val body = """{"message":"Tenant context required in strict isolation mode","code":"TENANT_CONTEXT_REQUIRED"}"""
+        val exception = ApiException(403, "Tenant context required", body = body, serverAuthored = true)
+        val outcome = classifyVerifyFailure(exception)
+
+        assertThat(outcome).isEqualTo(
+            VerifyTwoFactorOutcome.NotEvaluated("Tenant context required", code = "TENANT_CONTEXT_REQUIRED"),
+        )
+    }
+
+    @Test
+    fun `a code outside a 403 is not carried`() {
+        val body = """{"code":"TENANT_CONTEXT_REQUIRED"}"""
+        val outcome = classifyVerifyFailure(ApiException(400, "Bad request", body = body))
+
+        assertThat(outcome).isEqualTo(VerifyTwoFactorOutcome.NotEvaluated("Bad request"))
+    }
+
+    @Test
     fun `a 5xx is a server fault, not a verdict`() {
         val outcome = classifyVerifyFailure(ApiException(500, "Something went wrong"))
 

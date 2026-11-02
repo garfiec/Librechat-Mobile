@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.auth.viewmodel
 
+import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
@@ -55,6 +56,27 @@ class RegisterViewModelTest {
         viewModel.onUsernameChanged("testuser")
         viewModel.onPasswordChanged("password123")
         viewModel.onConfirmPasswordChanged("password123")
+    }
+
+    @Test
+    fun `a tenant-required 403 is worded as a refusal, and a later local error drops it`() = runTest {
+        coEvery { authRepository.register(any(), any(), any(), any()) } returns Result.Error(
+            exception = ApiException(403, "server message", body = TENANT_BODY, serverAuthored = true),
+            message = "server message",
+        )
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        fillValidFields()
+        viewModel.register()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.refusal).isEqualTo(AuthRefusal.TenantRequired)
+        assertThat(viewModel.uiState.value.error).isNotNull()
+
+        viewModel.onConfirmPasswordChanged("mismatch")
+        viewModel.register()
+        assertThat(viewModel.uiState.value.refusal).isNull()
+        assertThat(viewModel.uiState.value.error).isEqualTo("Passwords do not match")
     }
 
     @Test
@@ -263,5 +285,9 @@ class RegisterViewModelTest {
 
         viewModel.onNameChanged("Test")
         assertThat(viewModel.uiState.value.error).isNull()
+    }
+
+    private companion object {
+        const val TENANT_BODY = """{"message":"Tenant context required in strict isolation mode","code":"TENANT_CONTEXT_REQUIRED"}"""
     }
 }

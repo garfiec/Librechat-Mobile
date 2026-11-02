@@ -126,10 +126,11 @@ fun TwoFactorScreen(
                 )
             }
 
-            if (uiState.error != null) {
+            val errorText = authErrorText(uiState.refusal, uiState.error)
+            if (errorText != null) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = uiState.error!!,
+                    text = errorText,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.testTag("twofa_error"),

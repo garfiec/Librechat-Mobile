@@ -117,6 +117,5 @@
 
     <!-- Sign-in refusals (v0.8.9-rc1) -->
     <string name="login_error_federated_blocked">This account signs in with its identity provider. Use that sign-in option instead.</string>
-    <string name="login_error_tenant_required">This server needs to know which organization you belong to. Sign in from your organization's address for this server.</string>
-    <string name="sso_tenant_required">This server needs to know which organization you belong to before you can sign in. Use your organization's address for this server.</string>
+    <string name="auth_error_tenant_required">This server needs to know which organization you belong to. Use your organization's address for this server.</string>
 </resources>

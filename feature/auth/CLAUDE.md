@@ -63,6 +63,17 @@
   consistent with an overridden agent.
 - Supported providers configured by server: Google, GitHub, Discord, Facebook, Apple, OpenID
 
+## Coded refusals (v0.8.9-rc1)
+- `AuthRefusal` (`viewmodel/AuthRefusal.kt`) is the one mapping for the coded 403s of the pre-auth
+  routes: `TENANT_CONTEXT_REQUIRED` (strict tenant isolation; every `/api/auth` route and `/oauth`)
+  and `TWO_FACTOR_FEDERATED_LOGIN_BLOCKED`. Keyed on the body's code, never the status, so the UA
+  soft-ban, a ban, `terms_not_accepted` and a proxy 403 keep their own handling.
+- Login, Register, ForgotPassword, ResetPassword and TwoFactor set `refusal` from it (TwoFactor via
+  `VerifyTwoFactorOutcome.NotEvaluated.code`); each screen shows `authErrorText(refusal, error)`, the
+  app's wording while `error` is set. SSO words the callback's `code` with the same string. Required
+  2FA setup does not: a 403 there ends the setup credential and sends the user to sign-in, whose own
+  refusal then says why.
+
 ## Diagnostic log
 - `DiagnosticLogLink` ("Export diagnostic logs", the same label as Settings) offers the log under a
   sign-in error. Settings → Data has the same export but can't be reached before sign-in.

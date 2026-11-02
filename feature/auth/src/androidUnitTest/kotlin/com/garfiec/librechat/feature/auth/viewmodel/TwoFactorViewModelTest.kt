@@ -248,6 +248,27 @@ class TwoFactorViewModelTest {
     }
 
     @Test
+    fun `a tenant-required 403 is worded as a refusal and keeps the entry`() = runTest {
+        coEvery { authRepository.verifyTwoFactor(any(), any(), any()) } returns
+            VerifyTwoFactorOutcome.NotEvaluated("Tenant context required", code = "TENANT_CONTEXT_REQUIRED")
+
+        val viewModel = createViewModel()
+        viewModel.enterDigits("123456")
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.refusal).isEqualTo(AuthRefusal.TenantRequired)
+        assertThat(state.code).isEqualTo("123456")
+
+        // The next attempt starts clean.
+        coEvery { authRepository.verifyTwoFactor(any(), any(), any()) } returns
+            VerifyTwoFactorOutcome.NotEvaluated("Server error. Please try again.")
+        viewModel.submit()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.refusal).isNull()
+    }
+
+    @Test
     fun `a rate limit keeps the entry so the unevaluated code can be retried`() = runTest {
         // A 429 refuses the request before verification — the code was never judged, so wiping
         // it would force a pointless re-type of a still-valid code.

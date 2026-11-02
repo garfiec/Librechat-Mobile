@@ -86,7 +86,7 @@ fun SsoLoginScreen(
 @Composable
 private fun SsoErrorPane(error: SsoLoginError, onBack: (() -> Unit)?) {
     val fallback = stringResource(Res.string.sso_sign_in_failed)
-    val tenantRequired = stringResource(Res.string.sso_tenant_required)
+    val tenantRequired = stringResource(Res.string.auth_error_tenant_required)
     val message = when (error) {
         is SsoLoginError.Exchange -> error.message ?: fallback
         is SsoLoginError.Provider ->

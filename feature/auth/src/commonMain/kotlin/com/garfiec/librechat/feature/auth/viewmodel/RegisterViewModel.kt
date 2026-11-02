@@ -23,6 +23,8 @@ data class RegisterUiState(
     val error: String? = null,
     /** [error] came from a failure the diagnostic log can help with; see `offersDiagnosticLog`. */
     val offerDiagnosticLog: Boolean = false,
+    /** A coded refusal ([AuthRefusal]) the screen words itself, in place of [error], while [error] is set. */
+    val refusal: AuthRefusal? = null,
     val isRegistered: Boolean = false,
     val minPasswordLength: Int = 8,
 )
@@ -68,7 +70,7 @@ class RegisterViewModel(
     }
 
     fun register() {
-        val state = _uiState.value.copy(offerDiagnosticLog = false)
+        val state = _uiState.value.copy(offerDiagnosticLog = false, refusal = null)
 
         if (state.name.isBlank() || state.email.isBlank() || state.username.isBlank() || state.password.isBlank()) {
             _uiState.value = state.copy(error = "All fields are required")
@@ -97,6 +99,7 @@ class RegisterViewModel(
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = result.message ?: "Registration failed",
+                        refusal = result.authRefusalOrNull(),
                         offerDiagnosticLog = result.offersDiagnosticLog(),
                     )
                 }
