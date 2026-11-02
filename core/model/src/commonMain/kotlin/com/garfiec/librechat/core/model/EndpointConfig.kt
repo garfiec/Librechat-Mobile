@@ -41,6 +41,23 @@ data class EndpointConfig(
      * Absent on other endpoints.
      */
     val customParams: CustomParams? = null,
+    /**
+     * The agents entry's tool-approval policy (v0.8.9-rc1). The server already ANDs `agentModes`
+     * with `enabled`. The glob lists are for display only (which modes the editor may offer); the
+     * server enforces the real policy.
+     */
+    val toolApproval: EndpointToolApproval? = null,
+)
+
+@Serializable
+data class EndpointToolApproval(
+    val enabled: Boolean? = null,
+    val agentModes: Boolean? = null,
+    /** `default`, `dontAsk` or `bypass`. */
+    val mode: String? = null,
+    val allow: List<String>? = null,
+    val deny: List<String>? = null,
+    val ask: List<String>? = null,
 )
 
 /**
