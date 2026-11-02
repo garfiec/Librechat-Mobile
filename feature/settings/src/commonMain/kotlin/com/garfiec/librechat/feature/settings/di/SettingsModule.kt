@@ -11,6 +11,7 @@ import com.garfiec.librechat.feature.settings.viewmodel.ContextUsageSettingsView
 import com.garfiec.librechat.feature.settings.viewmodel.DataSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.FavoritesViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.GeneralSettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.McpAppConsentSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.McpServerEditorViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.McpViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.MemoriesViewModel
@@ -80,6 +81,7 @@ val settingsModule = module {
     viewModelOf(::ApiKeysViewModel)
     viewModelOf(::AppearanceSettingsViewModel)
     viewModelOf(::ChatLayoutSettingsViewModel)
+    viewModelOf(::McpAppConsentSettingsViewModel)
     viewModelOf(::ContextUsageSettingsViewModel)
     viewModelOf(::FavoritesViewModel)
     viewModelOf(::GeneralSettingsViewModel)
