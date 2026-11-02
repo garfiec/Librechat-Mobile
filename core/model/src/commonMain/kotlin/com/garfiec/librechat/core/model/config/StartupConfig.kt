@@ -138,6 +138,14 @@ data class StartupConfig(
      * Only meaningful together with [emailEnabled]: the change needs a mail transport.
      */
     val allowEmailChange: Boolean = false,
+    /**
+     * Whether the server has a RAG API (`RAG_API_URL` set; v0.8.9-rc1, post-login only). Project
+     * reference files are searched through it, so web hides a project's Files section without it.
+     * Null before sign-in and on older servers.
+     */
+    val ragEnabled: Boolean? = null,
+    /** The `projects` limits block (v0.8.9-rc1, post-login only). Null stands for upstream's defaults. */
+    val projects: ChatProjectsConfig? = null,
 ) {
     /**
      * Upstream `supportsConversationTitleOwnership`: the capability is announced AND

@@ -3,6 +3,8 @@ package com.garfiec.librechat.core.data.repository
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.ChatProject
+import com.garfiec.librechat.core.model.response.AvailableProjectFilesResponse
+import com.garfiec.librechat.core.model.response.ChatProjectFile
 import com.garfiec.librechat.core.model.response.ProjectListResponse
 import kotlinx.coroutines.flow.StateFlow
 
@@ -62,6 +64,37 @@ interface ProjectRepository {
         description: String? = null,
     ): Result<ChatProject>
     suspend fun deleteProject(projectId: String): Result<Unit>
+
+    /**
+     * Saves the project's instructions (v0.8.9-rc1) against [contextRevision], the revision the draft
+     * was based on. Success carries the updated project and bumps [revision]. Read a failure with
+     * [toProjectContextFailure]: a stale revision is [ProjectContextFailure.Conflict].
+     */
+    suspend fun updateInstructions(
+        projectId: String,
+        instructions: String,
+        contextRevision: Int?,
+    ): Result<ChatProject>
+
+    /** The project's reference files (v0.8.9-rc1), in order. */
+    suspend fun listProjectFiles(projectId: String): Result<List<ChatProjectFile>>
+
+    /** One page of the user's files that could be added (v0.8.9-rc1). */
+    suspend fun listAvailableProjectFiles(
+        projectId: String,
+        cursor: String? = null,
+        search: String? = null,
+        limit: Int? = null,
+    ): Result<AvailableProjectFilesResponse>
+
+    /**
+     * Attaches [fileId] (v0.8.9-rc1). Success carries the updated project (its new `contextRevision`)
+     * and bumps [revision]. At the file limit the failure reads as [ProjectContextFailure.FileLimit].
+     */
+    suspend fun addProjectFile(projectId: String, fileId: String): Result<ChatProject>
+
+    /** Detaches [fileId] (v0.8.9-rc1). Success carries the updated project and bumps [revision]. */
+    suspend fun removeProjectFile(projectId: String, fileId: String): Result<ChatProject>
 
     /** Assigns [conversationId] to [projectId], or unassigns it when [projectId] is null. */
     suspend fun assignConversation(conversationId: String, projectId: String?): Result<Unit>

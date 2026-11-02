@@ -41,6 +41,11 @@ data class FileObject(
     val storageRegion: String? = null,
     val tenantId: String? = null,
     val metadata: FileMetadata? = null,
+    /**
+     * Whether the RAG API indexed the file for search. A project accepts only an embedded upload
+     * (v0.8.9-rc1); null on routes and servers that don't say.
+     */
+    val embedded: Boolean? = null,
 )
 
 /** `TFile.metadata` (v0.8.6) — code-sandbox file-cache references. */

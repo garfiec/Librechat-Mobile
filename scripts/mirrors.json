@@ -5144,6 +5144,62 @@
       },
       "why": "After a 429 without Retry-After, Send stays off for the limiter's default window (EMAIL_CHANGE_USER_WINDOW, 2 minutes).",
       "failure_mode": "A longer default window: the user retries early and each 429 logs another VERIFY_EMAIL_LIMIT violation toward a ban. Shorter: Send stays off longer than needed."
+    },
+    {
+      "id": "project-instructions-conflict-code",
+      "upstream": {
+        "file": "packages/api/src/projects/handlers.ts",
+        "symbol": "updateProject",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/ProjectContextFailure.kt",
+        "symbol": "CHAT_PROJECT_CONFLICT_CODE"
+      },
+      "why": "An instructions save answered 409 with code CHAT_PROJECT_CONFLICT keeps the draft, reloads the project and offers View theirs; any other refusal is a plain save error.",
+      "failure_mode": "Upstream renames the code: a stale-revision save reads as a generic failure, the project is never reloaded, and every later Save conflicts again until the screen is reopened."
+    },
+    {
+      "id": "project-file-limit-409",
+      "upstream": {
+        "file": "packages/api/src/projects/handlers.ts",
+        "symbol": "addProjectFile",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/ProjectContextFailure.kt",
+        "symbol": "toProjectFileAddFailure"
+      },
+      "why": "On POST /:id/files a 409 (uncoded, { error }) is the project's file limit and is worded with the cap; a 400 is an ineligible file.",
+      "failure_mode": "Upstream gives the route another 409 meaning: it is told the project is full when it isn't."
+    },
+    {
+      "id": "project-file-availability",
+      "upstream": {
+        "file": "packages/data-provider/src/types.ts",
+        "symbol": "TChatProjectFile",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/response/ChatProjectResponses.kt",
+        "symbol": "AVAILABILITY_READY"
+      },
+      "why": "A project file row reads Ready only for availability 'ready'; anything else (including a new value) is Unavailable.",
+      "failure_mode": "Upstream adds a usable state (say 'processing'): the row reads Unavailable although the model can read it."
+    },
+    {
+      "id": "project-name-length",
+      "upstream": {
+        "file": "packages/data-provider/src/limits.ts",
+        "symbol": "MAX_CHAT_PROJECT_NAME_LENGTH",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/ChatProjectsConfig.kt",
+        "symbol": "MAX_NAME_LENGTH"
+      },
+      "why": "The project editor caps the name where the server silently truncates it.",
+      "failure_mode": "Upstream lowers the cap: a saved name comes back shorter than typed. Raises it: names are refused locally that the server would keep."
     }
   ]
 }

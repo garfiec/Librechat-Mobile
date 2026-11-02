@@ -338,6 +338,29 @@ DELETE /api/projects/:projectId          → { deletedCount, modifiedCount }
 PUT    /api/projects/conversations/:conversationId → { projectId|null } → { conversation, previousProjectId, projectId }
 GET    /api/convos?projectId=<id|unassigned>       → conversations filtered by project (added projectId query param)
 
+# Project context: instructions and reference files (v0.8.9-rc1; BUILT — ProjectChats cards +
+# ProjectInstructions editor route; gated featureSupport(0.8.9-rc1, landed 2026-10-02) == PRESENT,
+# Files card also startup.ragEnabled). None is arg-wrapped. Limits: startup.projects
+# { maxFiles 50, maxInstructionsLength 16000, maxDescriptionLength 1000 } (defaults when absent;
+# ceilings 500 / 200000 / 10000). Name silently cut at 100.
+# ChatProject gains: instructions, contextRevision, file_ids (detail only); hasInstructions, fileCount (list only).
+PATCH  /api/projects/:projectId          { instructions, contextRevision } → ChatProject
+  409 { message, code: "CHAT_PROJECT_CONFLICT" } = stale contextRevision (also on a no-change save);
+  400 { error } over maxInstructionsLength / maxDescriptionLength (description no longer trimmed).
+  A name/description PATCH without contextRevision never conflicts.
+GET    /api/projects/:projectId/files    → [{ file_id, filename?, type?, bytes?, availability: "ready"|"unavailable" }]  (not paged)
+GET    /api/projects/:projectId/files/available?limit(1..50)&cursor&search
+                                         → { files: [TFile], nextCursor }   (attached files excluded; empty cursor= → 400)
+POST   /api/projects/:projectId/files    { file_id } → ChatProject
+  409 { error: "Project file limit reached" } (uncoded); 400 { error: "Project file unavailable" }.
+  Upload first via POST /api/files (endpoint=agents, message_file=true, tool_resource=file_search);
+  the upload must come back embedded:true. The attach clears the upload's temporary hold.
+DELETE /api/projects/:projectId/files/:fileId → ChatProject
+  Every add/remove/instructions change bumps contextRevision; the response is the updated project.
+# Send-time (POST /api/agents/chat in a project), before the ack:
+#   409 { code: "PROJECT_RESOURCES_CHANGED", retryable: true, error } — files moved while starting; retry.
+#   404 { error: "Conversation context unavailable" } — the project context could not be resolved.
+
 # Context-usage gauge (BUILT — gauge + SSE; context-projection seeds the gauge on chat
 # open / model switch; gated on interface.contextUsage && >= 0.8.7)
 GET    /api/endpoints/token-config       → { [endpoint]: { [model]: { context, prompt?, completion?, cacheWrite?, cacheRead? } } }
@@ -1665,7 +1688,7 @@ POST   /api/user/email/verify {email,token,userId}  (no JWT)   (NOT built; wave 
 POST   /api/convos/seen {arg:{conversationId,lastResponseAt?}}, /api/convos/unread {arg:{conversationId}}
                                                                unread replies (NOT built; wave 2)
 GET    /api/projects/:projectId/files, /files/available; POST /:projectId/files;
-DELETE /api/projects/:projectId/files/:fileId                  project context (NOT built; wave 2)
+DELETE /api/projects/:projectId/files/:fileId                  project context (BUILT, see Chat Projects)
 GET    /api/endpoints/reasoning-capabilities?endpoint=          {capabilities, expiresInMs} (NOT built; wave 2)
 GET|POST|DELETE /api/schedules/:id/mcp-consent                 (NOT built; wave 2)
 POST   /api/messages/:conversationId/owner-text                PII owner text (NOT built; wave 2)
