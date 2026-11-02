@@ -281,7 +281,7 @@
         "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
         "symbol": "(whole file -- per-endpoint/provider/variant parameter builders)"
       },
-      "why": "Which generation parameters each endpoint, provider and Bedrock variant exposes, along with their ranges and defaults. Mirrored across the whole Kotlin registry rather than as one table, so the watch is file-level. Includes the model-aware pass (`applyModelAwareDefaults`), whose per-model rules return EARLY and replace the provider rules after them (rc4: Grok 4.7 effort ladder, gpt-6-sol/luna without `minimal`, Opus 5.5 hiding thinking and sampling; v0.8.8: Opus 5.5+/Mythos-class always-on thinking, the Sonnet 5.5+ `between_tools` floor, and the gpt-6 tier read through families.ts `gpt6Tier`). Not mirrored, deliberately: the gpt-6-sol/luna `useResponsesApi` rendered default, which upstream resolves from `/api/endpoints` `responsesApiRouting`.",
+      "why": "Which generation parameters each endpoint, provider and Bedrock variant exposes, along with their ranges and defaults. Mirrored across the whole Kotlin registry rather than as one table, so the watch is file-level. Includes the model-aware pass (`applyModelAwareDefaults`), whose per-model rules return EARLY and replace the provider rules after them (rc4: Grok 4.7 effort ladder, gpt-6-sol/luna without `minimal`, Opus 5.5 hiding thinking and sampling; v0.8.8: Opus 5.5+/Mythos-class always-on thinking, the Sonnet 5.5+ `between_tools` floor, and the gpt-6 tier read through families.ts `gpt6Tier`; v0.8.9-rc1: Haiku 5.5+ keeping the thinking toggle while hiding thinkingBudget and sampling). Not mirrored, deliberately: the gpt-6-sol/luna `useResponsesApi` rendered default, which upstream resolves from `/api/endpoints` `responsesApiRouting`.",
       "failure_mode": "A parameter is offered with a stale range or default, or a newly supported one is missing. Values outside the server's accepted range are rejected at send time."
     },
     {
@@ -1208,6 +1208,20 @@
       },
       "why": "The predicate over parseOpusVersion and isMythosClassModel that decides which models hide thinking, thinkingBudget, temperature, topP and topK: Opus 5.5 and later, and the Mythos class (the hidden list itself is in parameterSettings.ts, under parameter-settings). Replaced the exact-match isOpus55Model at v0.8.8.",
       "failure_mode": "Same as opus-version-parse: the always-on rule applies to the wrong set of models, silently -- a toggle the server rejects with a 400 stays offered, or one it honours disappears."
+    },
+    {
+      "id": "adaptive-haiku-thinking",
+      "upstream": {
+        "file": "packages/data-provider/src/bedrock.ts",
+        "symbol": "hasAdaptiveHaikuThinking",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
+        "symbol": "hasAdaptiveHaikuThinking / HAIKU_NAME_FIRST / HAIKU_NUMBER_FIRST"
+      },
+      "why": "Which Haiku ids (5.5 and later, both spellings, via parseHaikuVersion) keep the thinking toggle but lose thinkingBudget, temperature, topP and topK in applyModelAwareDefaults. Lives in bedrock.ts, which parameter-settings does not watch.",
+      "failure_mode": "A new Haiku spelling or version is read wrongly: the panel offers a budget or sampling values the provider rejects with a 400, or hides them from a model that takes them. Nothing errors until the send."
     },
     {
       "id": "between-tools-thinking-floor-predicate",
