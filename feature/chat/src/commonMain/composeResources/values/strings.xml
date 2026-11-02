@@ -424,6 +424,12 @@
 
     <!-- Activity groups and mid-run steering -->
     <string name="activity_used_n_tools">Used %1$d tools</string>
+    <string name="tool_preparing">Preparing %1$s</string>
+    <string name="activity_n_of_n_failed">%1$d/%2$d failed</string>
+    <plurals name="activity_n_cancelled">
+        <item quantity="one">%1$d cancelled</item>
+        <item quantity="other">%1$d cancelled</item>
+    </plurals>
     <string name="steer_sent_during_reply">sent while replying</string>
     <string name="state_expanded">Expanded</string>
     <string name="state_collapsed">Collapsed</string>

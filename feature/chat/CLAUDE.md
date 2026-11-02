@@ -1271,10 +1271,19 @@ tool block. It is pure because this module has no Compose test harness.
   boundary so a later filled label cannot reach back past it. With no label at all the block
   re-splits into the legacy shape (reasoning standalone, runs of ≥2 tools grouped), so a server
   without the feature renders exactly as before.
-- **The header's failed colour is `activityGroupFailed`, joined with attachments at the render
-  site**: the label's `failed`/`partial` status, or a refused memory write in the block judged by
-  the memory card's own rule (`isFailedMemoryToolCall`), as web's `outcome.ts` does. Run-step
-  `failed` and generic error output on other tools are not counted yet.
+- **The header's verdict is `activityGroupOutcome`, joined with attachments at the render site**
+  (web's `outcome.ts`, #16949). Each call is judged by `toolCallOutcome` as its card judges it: the
+  run step's terminal status, a refused memory write (`isFailedMemoryToolCall`), error-shaped output,
+  an attached-workspace `bash_tool` whose trailer reports a non-zero exit (`attachedCommandFailed`,
+  only when the server stamped `executor`), a background-task poll whose task failed or stopped.
+  The header turns red only when **every** call failed or the label says `failed`; mixed outcomes
+  keep it neutral and add "n/N failed" / "n cancelled". A `partial` label is mixed by definition
+  and shows a warning glyph only when the per-call verdicts can't corroborate it. Not counted: a
+  backgrounded call's `background_task_status` error attachment.
+- **Live cards say "Preparing {tool}"** while the model writes a call's arguments
+  (`on_tool_preparation` → `ActiveToolCall.isPreparing`, cleared by `on_tool_calls_dispatched`, a
+  result or a close). Generic card only; MCP and action tools keep their name. Upstream also reads
+  incomplete arguments as preparing; this client doesn't track argument deltas, so it doesn't.
 - **Group identity is anchored to the first TOOL CALL, never the first part.** A label absorbs the
   block's leading `THINK` when its text lands, so `parts[0]` flips at the instant the block becomes
   a group; keying on it remounts the group and drops the user's expansion.

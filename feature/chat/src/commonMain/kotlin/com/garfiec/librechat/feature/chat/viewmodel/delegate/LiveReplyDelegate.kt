@@ -97,7 +97,12 @@ class LiveReplyDelegate(
                 content = content.copy(retryInfo = RetryInfo(attempt = event.attempt, maxAttempts = event.maxAttempts))
             }
             is StreamEvent.ToolCallStart -> {
-                val newToolCall = ActiveToolCall(id = event.toolCallId, name = event.toolName, input = event.input)
+                val newToolCall = ActiveToolCall(
+                    id = event.toolCallId,
+                    name = event.toolName,
+                    input = event.input,
+                    preparationStarted = event.preparing,
+                )
                 handle.update { content = content.copy(activeToolCalls = content.activeToolCalls + newToolCall) }
             }
             is StreamEvent.ToolCallComplete -> {
@@ -120,6 +125,9 @@ class LiveReplyDelegate(
             }
             is StreamEvent.ToolCallAuthRequired -> handle.update {
                 content = content.updateToolCall(event.toolCallId) { it.authRequiredBy(event) }
+            }
+            is StreamEvent.ToolCallPreparation -> handle.update {
+                content = content.copy(activeToolCalls = content.activeToolCalls.preparedBy(event))
             }
             is StreamEvent.SandboxStarting -> handle.update {
                 content = content.copy(sandboxStartingToolCallIds = content.sandboxStartingToolCallIds + event.toolCallId)
@@ -268,6 +276,18 @@ internal fun ActiveToolCall.completedBy(event: StreamEvent.ToolCallComplete) =
         input = event.input ?: input,
         inputValidationError = event.inputValidationError,
     )
+
+/** A preparation marker or a dispatch, applied to the calls it names. Shared with the comparison panes. */
+internal fun List<ActiveToolCall>.preparedBy(event: StreamEvent.ToolCallPreparation): List<ActiveToolCall> {
+    if (none { it.id in event.toolCallIds }) return this
+    return map { call ->
+        when {
+            call.id !in event.toolCallIds -> call
+            event.dispatched -> call.copy(dispatched = true)
+            else -> call.copy(preparationStarted = true)
+        }
+    }
+}
 
 /** The run is waiting on the user to sign in to an MCP server. Shared with the comparison panes. */
 internal fun ActiveToolCall.authRequiredBy(event: StreamEvent.ToolCallAuthRequired) =

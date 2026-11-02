@@ -18,6 +18,8 @@ sealed interface StreamEvent {
         val input: String,
         val agentId: String? = null,
         val groupId: Int? = null,
+        /** The call's `on_tool_preparation` arrived before this run step announced it. */
+        val preparing: Boolean = false,
     ) : StreamEvent
 
     data class ToolCallComplete(
@@ -86,6 +88,18 @@ sealed interface StreamEvent {
         val expiresAt: Long? = null,
         val agentId: String? = null,
         val groupId: Int? = null,
+    ) : StreamEvent
+
+    /**
+     * Where a tool call is between its run step and its result (v0.8.9-rc1, upstream #16619):
+     * `on_tool_preparation` (the model has started writing the call's arguments) or
+     * `on_tool_calls_dispatched` ([dispatched]: the SDK handed the calls to execution). Lets a live
+     * card say "Preparing …" while the arguments stream instead of "Running". Like
+     * [SandboxStarting] it carries no agent, and the ids are unique across comparison panes.
+     */
+    data class ToolCallPreparation(
+        val toolCallIds: List<String>,
+        val dispatched: Boolean,
     ) : StreamEvent
 
     data class ThinkingDelta(

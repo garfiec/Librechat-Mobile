@@ -358,9 +358,9 @@
       },
       "kotlin": {
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/ActivityGroup.kt",
-        "symbol": "activityGroupFailed (via isFailedMemoryToolCall in ToolCallParsing.kt)"
+        "symbol": "activityGroupOutcome / toolCallOutcome / isSpanFailed (memory verdict via isFailedMemoryToolCall in ToolCallParsing.kt)"
       },
-      "why": "Web's getToolMeta reuses isMemoryFailureOutput plus the memory error-attachment check (outcome.ts at v0.8.8) so an activity-group header does not claim success over a failed memory card. activityGroupFailed ORs the same verdict, isFailedMemoryToolCall (the card's own rule, no second copy of the regexes), into the batch label's failed/partial status. Web's header also counts a run step closed as failed and generic error output on other tools; the mobile header does not yet (not a memory rule).",
+      "why": "Web's getToolMeta decides each call's verdict for anything summarizing calls: the run step's terminal status, memory tools' prose failures and error artifacts (isMemoryFailureOutput), generic error output, an attached-workspace bash_tool's exit trailer, a background-task poll's outcome. ToolCallGroup reads the header as failed only when every call failed (isSpanFailed) or the label says failed, and shows a partial label as a warning only when the counts cannot corroborate it (partialMarkerFallback). toolCallOutcome and ActivityOutcome port those rules; the background_task_status attachment arm is not ported.",
       "failure_mode": "Web changes which memory calls count as failed in its group header and the mobile card keeps the old rule. The card is still drawn; its error state disagrees with web's."
     },
     {
@@ -4425,6 +4425,20 @@
       },
       "why": "Every /api/agents/chat route 400s INVALID_MESSAGE_ID for a present turn id outside 1-256 chars of [A-Za-z0-9_:.-] (an empty string is present). ChatPayloadBuilder sends blank ids as absent, and ChatPayloadMessageIdTest pins mobile's ids against the rule.",
       "failure_mode": "Upstream tightens the rule (new fields, a shorter limit, a narrower alphabet) and a send mobile builds starts failing with 400 INVALID_MESSAGE_ID while every test stays green."
+    },
+    {
+      "id": "attached-command-trailer",
+      "upstream": {
+        "file": "packages/data-provider/src/previews.ts",
+        "symbol": "COMMAND_RESULT_TRAILER",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/CommandOutput.kt",
+        "symbol": "attachedCommandFailed / COMMAND_RESULT_TRAILER"
+      },
+      "why": "The attached-workspace bash_tool ends its output with an exit-status trailer ([exit code: N][terminated by SIG][timed out][output truncated]) written by formatCommandResult; the client reads it (as upstream Parts/command.ts parseCommandOutput does) to count a non-zero exit as a failed call in an activity-group header. The server serves no verdict field.",
+      "failure_mode": "The trailer's wording changes and every attached-workspace command reads as succeeded in the group header while its card (on web) shows the failure. Nothing errors."
     }
   ]
 }

@@ -289,7 +289,8 @@ private fun GenericStreamingToolCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = toolCall.name,
+                        text = preparingToolLabel(toolCall)?.let { stringResource(Res.string.tool_preparing, it) }
+                            ?: toolCall.name,
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f),
@@ -372,3 +373,19 @@ private fun GenericStreamingToolCard(
 
 private val EMPTY_CODE_RESULT =
     CodeExecutionResult(language = null, code = null, output = null, error = null, exitCode = null)
+
+/**
+ * The tool name to put in "Preparing {tool}" while the model is still writing the call's
+ * arguments (upstream `ToolPreparation`, #16619), or null when the card shows its ordinary title.
+ * An MCP or action tool keeps its own name: upstream leaves those to the integration card's own
+ * name parsing rather than prefixing a raw `tool_mcp_server` string.
+ */
+internal fun preparingToolLabel(toolCall: ActiveToolCall): String? {
+    if (!toolCall.isPreparing) return null
+    val name = toolCall.name
+    if (name.isBlank() || MCP_DELIMITER in name || ACTION_DELIMITER in name) return null
+    return name
+}
+
+private const val MCP_DELIMITER = "_mcp_"
+private const val ACTION_DELIMITER = "_action_"

@@ -559,8 +559,8 @@ internal fun MessageContentAndActions(
                                                             group.groupedToolCallIds(),
                                                         )
                                                     }
-                                                    val groupFailed = remember(inlineAttachments, group) {
-                                                        activityGroupFailed(group, inlineAttachments)
+                                                    val groupOutcome = remember(inlineAttachments, group) {
+                                                        activityGroupOutcome(group, inlineAttachments)
                                                     }
                                                     // A field the user cannot reach is worse than
                                                     // no field: a reply whose only editable part is
@@ -581,7 +581,7 @@ internal fun MessageContentAndActions(
                                                     }
                                                     ActivityGroup(
                                                         group = group,
-                                                        failed = groupFailed,
+                                                        outcome = groupOutcome,
                                                         stateKey = "${message.messageId}:${group.key}",
                                                         autoExpand = group.key == focusedGroupKey || holdsEditedPart,
                                                         autoExpandKey = LocalSearchFocusNonce.current,

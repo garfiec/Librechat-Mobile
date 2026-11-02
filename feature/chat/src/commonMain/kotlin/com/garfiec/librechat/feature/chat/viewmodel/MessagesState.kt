@@ -225,4 +225,19 @@ data class ActiveToolCall(
     val authServerName: String? = null,
     /** Server epoch ms the prompt expires at. Display only; never compared to the device clock. */
     val authExpiresAt: Long? = null,
-)
+    /** The model has started writing this call's arguments (`on_tool_preparation`, v0.8.9-rc1). */
+    val preparationStarted: Boolean = false,
+    /** The SDK handed the call to execution (`on_tool_calls_dispatched`). */
+    val dispatched: Boolean = false,
+) {
+    /**
+     * Upstream `isToolCallPreparing`: arguments are still being written. Dispatch, a result or a
+     * terminal status outranks a preparation marker, whichever order they arrived in.
+     *
+     * Upstream also counts incomplete arguments as preparing, for servers that emit no marker.
+     * This client does not track argument deltas (the start carries the empty announcement and only
+     * the completion has the whole call), so that rule would read every running call as preparing.
+     */
+    val isPreparing: Boolean
+        get() = preparationStarted && !dispatched && !isComplete && closedStatus == null && output.isNullOrEmpty()
+}

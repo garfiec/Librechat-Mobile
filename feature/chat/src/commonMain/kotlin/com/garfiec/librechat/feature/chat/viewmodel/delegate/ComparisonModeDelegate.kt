@@ -363,6 +363,16 @@ class ComparisonModeDelegate(
             is StreamEvent.ToolCallComplete -> { routeToolCallComplete(event); clearSandboxStarting(event.toolCallId); true }
             is StreamEvent.ToolCallClosed -> { routeToolCallClosed(event); clearSandboxStarting(event.toolCallId); true }
             is StreamEvent.ToolCallAuthRequired -> { routeToolCallAuth(event); true }
+            // No agent on the marker either; the ids are unique across panes, so both lists take it.
+            is StreamEvent.ToolCallPreparation -> {
+                handle.update {
+                    comparisonState = comparisonState.copy(
+                        primaryActiveToolCalls = comparisonState.primaryActiveToolCalls.preparedBy(event),
+                        secondaryActiveToolCalls = comparisonState.secondaryActiveToolCalls.preparedBy(event),
+                    )
+                }
+                true
+            }
             else -> false
         }
     }
@@ -401,7 +411,12 @@ class ComparisonModeDelegate(
     }
 
     private fun routeToolCallStart(event: StreamEvent.ToolCallStart) {
-        val newToolCall = ActiveToolCall(id = event.toolCallId, name = event.toolName, input = event.input)
+        val newToolCall = ActiveToolCall(
+            id = event.toolCallId,
+            name = event.toolName,
+            input = event.input,
+            preparationStarted = event.preparing,
+        )
         if (isSecondaryEvent(event.agentId)) {
             handle.update {
                 comparisonState = comparisonState.copy(

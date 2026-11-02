@@ -61,6 +61,16 @@ data class AgentToolCall(
      * round trip or database time. Same omission rule as [toolPreparationDurationMs].
      */
     val toolExecutionDurationMs: Long? = null,
+    /** First observed argument fragment, epoch ms, while the call is still being prepared (v0.8.9-rc1). */
+    val toolPreparationStartedAt: Long? = null,
+    /** The SDK's handoff to execution, epoch ms (v0.8.9-rc1). Not proof the tool itself started. */
+    val toolDispatchedAt: Long? = null,
+    /**
+     * `attached_workspace` when the call resolved to the attached-workspace `bash_tool` (v0.8.9-rc1),
+     * stamped by the server at run-step completion. The sandbox tool shares the name, so this is
+     * the only sign the output ends in an exit-status trailer; never derive it from the text.
+     */
+    val executor: String? = null,
     /**
      * Stamped when a detached task's final output replaced the dispatch handle in [output]: the
      * only durable signal that the call ran in the background. When set, [runStepDurationMs] is
@@ -77,6 +87,11 @@ data class AgentToolCall(
      */
     val effectiveRunStepStatus: RunStepStatus?
         get() = if (backgroundTask?.cancelled == true) RunStepStatus.CANCELLED else runStepStatus
+
+    companion object {
+        /** [executor] of the attached-workspace `bash_tool`. */
+        const val EXECUTOR_ATTACHED_WORKSPACE = "attached_workspace"
+    }
 }
 
 /**
