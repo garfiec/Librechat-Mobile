@@ -641,6 +641,8 @@
     <string name="error_model_stream_stalled">The model provider stopped sending the response, and the request timed out waiting for it. Anything already received was kept. Try again, or ask an administrator to check the provider.</string>
     <string name="error_mcp_authentication_rejected">A connected MCP server rejected your sign-in, so the message was not sent. Reconnect the server (or sign in again), then send it again.</string>
     <string name="error_mcp_authentication_refresh_failed">Sign-in for a connected MCP server could not be refreshed, so the message was not sent. Try again in a moment.</string>
+    <string name="error_project_resources_changed">This project's files changed while the message was starting, so it was not sent. Try again.</string>
+    <string name="error_project_context_unavailable">This chat's project is no longer available, so the message was not sent. It may have been deleted.</string>
     <string name="error_final_context_overflow">This conversation no longer fits the model's context window. Start a new conversation, or switch to a model with a larger window.</string>
     <string name="error_compaction_skipped">There was nothing to compact yet. Keep chatting and try again later.</string>
     <string name="error_compaction_failed">The summary couldn't be generated, so the conversation is unchanged. Try again.</string>

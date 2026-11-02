@@ -391,8 +391,9 @@ class StreamingManagerDelegate(
             // isNetwork, which is what arms the connectivity observer that resumes the stream.
             val safe = e.toSafeError()
             // A start POST refused for MCP authentication says which of two different repairs
-            // applies; the prose under `error` does not.
-            val mcpAuthMarker = (e as? ApiException)?.let { StreamErrorType.startFailureMarker(it.body) }
+            // applies; the prose under `error` does not. A project chat's start can fail the same
+            // way (files changed mid-start, or the project gone).
+            val mcpAuthMarker = (e as? ApiException)?.let { StreamErrorType.startFailureMarker(it.body, it.statusCode) }
             endStream(
                 StreamEndReason.StreamError(
                     refusalErrorMarker(e) ?: contentFilterNotice(e, safe.message) ?: mcpAuthMarker

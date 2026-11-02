@@ -160,22 +160,42 @@ enum class StreamErrorType(
 
     /** The start POST's 503 counterpart: the MCP credential could not be refreshed. Retryable. */
     MCP_AUTHENTICATION_REFRESH_FAILED(ServerErrorCode.MCP_AUTHENTICATION_REFRESH_FAILED, classifiesPayload = false),
+
+    /**
+     * The chat start POST was refused 409 because a project chat's files changed while the turn was
+     * starting (v0.8.9-rc1). Retryable. Classified only from the start POST — see [startFailureMarker].
+     */
+    PROJECT_RESOURCES_CHANGED(ServerErrorCode.PROJECT_RESOURCES_CHANGED, classifiesPayload = false),
+
+    /**
+     * The chat start POST was refused 404 because the chat's project could not be resolved
+     * (v0.8.9-rc1): deleted, or not this user's. Classified only from the start POST.
+     */
+    PROJECT_CONTEXT_UNAVAILABLE("project_context_unavailable", classifiesPayload = false),
     ;
 
     companion object {
         private val byWire = entries.filter { it.classifiesPayload }.associateBy { it.wire }
 
         /**
-         * The marker for a chat start POST that failed up front with an MCP authentication code,
-         * or null for any other start failure. [body] is the raw error-response body; the code is
-         * read with [ServerErrorCode.generationCodeOf], since that route's `error` key is prose.
+         * The marker for a chat start POST that failed up front with an MCP authentication code or
+         * a project context failure, or null for any other start failure. [body] is the raw
+         * error-response body; the code is read with [ServerErrorCode.generationCodeOf], since that
+         * route's `error` key is prose. The one uncoded case, the project-context 404, is matched on
+         * [status] and the server's exact sentence together.
          */
-        fun startFailureMarker(body: String?): String? =
+        fun startFailureMarker(body: String?, status: Int? = null): String? =
             when (ServerErrorCode.generationCodeOf(body)) {
                 ServerErrorCode.MCP_AUTHENTICATION_REJECTED -> MCP_AUTHENTICATION_REJECTED.marker
                 ServerErrorCode.MCP_AUTHENTICATION_REFRESH_FAILED -> MCP_AUTHENTICATION_REFRESH_FAILED.marker
+                ServerErrorCode.PROJECT_RESOURCES_CHANGED -> PROJECT_RESOURCES_CHANGED.marker
+                null -> PROJECT_CONTEXT_UNAVAILABLE.marker.takeIf {
+                    status == HTTP_NOT_FOUND && ServerErrorCode.from(body) == ServerErrorCode.PROJECT_CONTEXT_UNAVAILABLE_MESSAGE
+                }
                 else -> null
             }
+
+        private const val HTTP_NOT_FOUND = 404
 
         /**
          * The marker for a generation POST the server's middleware refused, or null when the

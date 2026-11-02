@@ -67,6 +67,8 @@ internal fun localizedStreamError(raw: String): String {
         StreamErrorType.MCP_AUTHENTICATION_REJECTED -> stringResource(Res.string.error_mcp_authentication_rejected)
         StreamErrorType.MCP_AUTHENTICATION_REFRESH_FAILED ->
             stringResource(Res.string.error_mcp_authentication_refresh_failed)
+        StreamErrorType.PROJECT_RESOURCES_CHANGED -> stringResource(Res.string.error_project_resources_changed)
+        StreamErrorType.PROJECT_CONTEXT_UNAVAILABLE -> stringResource(Res.string.error_project_context_unavailable)
     }
 }
 

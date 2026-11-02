@@ -5200,6 +5200,20 @@
       },
       "why": "The project editor caps the name where the server silently truncates it.",
       "failure_mode": "Upstream lowers the cap: a saved name comes back shorter than typed. Raises it: names are refused locally that the server would keep."
+    },
+    {
+      "id": "project-turn-start-failures",
+      "upstream": {
+        "file": "packages/api/src/projects/turn.ts",
+        "symbol": "getChatProjectTurnFailure",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/ServerErrorCode.kt",
+        "symbol": "PROJECT_RESOURCES_CHANGED"
+      },
+      "why": "A project chat's start POST refused 409 PROJECT_RESOURCES_CHANGED, or 404 with the sentence 'Conversation context unavailable' (PROJECT_CONTEXT_UNAVAILABLE_MESSAGE; upstream CHAT_PROJECT_CONTEXT_UNAVAILABLE_RESPONSE above this block), gets its own copy instead of a generic failure.",
+      "failure_mode": "Upstream renames the code or rewords the 404: the send fails with a generic error that doesn't say the project changed or is gone."
     }
   ]
 }

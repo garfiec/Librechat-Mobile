@@ -163,6 +163,21 @@ class StreamErrorTypeTest {
         assertEquals(StreamErrorType.MODEL_STREAM_STALLED.marker, StreamErrorType.markerOrText(stalled))
     }
 
+    /** `getChatProjectTurnFailure` (packages/api/src/projects/turn.ts), v0.8.9-rc1. */
+    @Test
+    fun a_start_post_refused_for_project_context_maps_to_its_marker() {
+        val changed =
+            """{"code":"PROJECT_RESOURCES_CHANGED","retryable":true,"error":"Project files changed. Please retry."}"""
+        val gone = """{"error":"Conversation context unavailable"}"""
+
+        assertEquals(StreamErrorType.PROJECT_RESOURCES_CHANGED.marker, StreamErrorType.startFailureMarker(changed, 409))
+        assertEquals(StreamErrorType.PROJECT_CONTEXT_UNAVAILABLE.marker, StreamErrorType.startFailureMarker(gone, 404))
+        // The sentence alone, on another status, is not this failure.
+        assertNull(StreamErrorType.startFailureMarker(gone, 400))
+        assertNull(StreamErrorType.startFailureMarker("""{"error":"Conversation not found"}""", 404))
+        assertNull(StreamErrorType.parse(changed))
+    }
+
     /** `getInitializationFailure` + `getAgentErrorMetadata` (api/server/controllers/agents/request.js). */
     @Test
     fun a_start_post_refused_for_mcp_auth_maps_to_its_marker_only_at_that_site() {

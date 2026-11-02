@@ -120,6 +120,20 @@ object ServerErrorCode {
     const val MCP_AUTHENTICATION_REFRESH_FAILED = "MCP_AUTHENTICATION_REFRESH_FAILED"
 
     /**
+     * 409 on the chat start POST (v0.8.9-rc1, `packages/api/src/projects/turn.ts`): a project chat's
+     * reference files changed while the turn was starting. `retryable: true`; nothing ran, so a new
+     * send can go again.
+     */
+    const val PROJECT_RESOURCES_CHANGED = "PROJECT_RESOURCES_CHANGED"
+
+    /**
+     * The uncoded 404 body on the chat start POST when a project chat's context can't be resolved
+     * (v0.8.9-rc1): the project is gone or not the user's. It is the server's `error` sentence, not a
+     * code, so it is matched only together with the 404 at that one site.
+     */
+    const val PROJECT_CONTEXT_UNAVAILABLE_MESSAGE = "Conversation context unavailable"
+
+    /**
      * The server enforces 2FA (`ENFORCE_TWO_FACTOR_AUTHENTICATION`, v0.8.9-rc1) and this password
      * account has not set it up. Arrives three ways, each carrying a setup `tempToken`: a 200 from
      * login, a 200 from refresh (no token; the session is already gone server-side), and a 403 from
