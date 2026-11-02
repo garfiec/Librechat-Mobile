@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.AccountScopedPrefsPurger
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
+import com.garfiec.librechat.core.data.datastore.CodeWorkspacePreferenceStore
 import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.DeploymentThemeSync
@@ -48,6 +49,8 @@ import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.BalanceRepositoryImpl
 import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.BannerRepositoryImpl
+import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepository
+import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepositoryImpl
 import com.garfiec.librechat.core.data.repository.BookmarksGate
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.ChatRepositoryImpl
@@ -328,6 +331,7 @@ val dataModule = module {
     singleOf(::ConfigCacheDataStore)
     singleOf(::RoleCacheDataStore)
     singleOf(::ConversationWebSearchStore)
+    singleOf(::CodeWorkspacePreferenceStore)
     single {
         DateTimePrefsStore(
             dataStore = get(),
@@ -631,6 +635,7 @@ val dataModule = module {
     singleOf(::PasskeyRepositoryImpl) bind PasskeyRepository::class
     singleOf(::UserRepositoryImpl) bind UserRepository::class
     singleOf(::BannerRepositoryImpl) bind BannerRepository::class
+    singleOf(::CodeEnvironmentRepositoryImpl) bind CodeEnvironmentRepository::class
     single<FavoritesRepository> {
         FavoritesRepositoryImpl(
             favoritesApi = get(),

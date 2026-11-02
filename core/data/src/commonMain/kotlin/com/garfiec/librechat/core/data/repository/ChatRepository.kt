@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.PendingSteer
 import com.garfiec.librechat.core.model.ReasoningOverride
+import com.garfiec.librechat.core.model.code.CodeWorkspaceSubmission
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.request.ChatResumeRequest
@@ -59,6 +60,11 @@ interface ChatRepository {
         editedContent: EditedContent? = null,
         /** Reasoning for this turn only; see `ChatRequest.reasoningOverride`. */
         reasoningOverride: ReasoningOverride? = null,
+        /**
+         * The chat's code-workspace decision for this turn; null or [CodeWorkspaceSubmission.NONE]
+         * sends neither field. Agents endpoint only.
+         */
+        codeWorkspace: CodeWorkspaceSubmission? = null,
     ): Flow<StreamEvent>
 
     /**

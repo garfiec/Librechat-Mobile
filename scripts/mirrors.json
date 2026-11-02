@@ -5435,6 +5435,19 @@
       },
       "why": "The six reasons a code_workspace_unavailable rejection carries; each has its own copy (error_code_workspace_*), from translation.json com_error_code_workspace_*.",
       "failure_mode": "A new reason falls back to the generic message; a renamed one shows the wrong advice."
+    },
+    {
+      "id": "code-workspace-preferences",
+      "upstream": {
+        "file": "client/src/hooks/Agents/workspacePreferences.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/datastore/CodeWorkspacePreferenceStore.kt",
+        "symbol": "CodeWorkspacePreferenceStore"
+      },
+      "why": "Remembered workspace picks: keyed per server, user, agent and machine, most recent first, capped at 100.",
+      "failure_mode": "A different key or cap changes which workspace a new chat pre-selects."
     }
   ]
 }

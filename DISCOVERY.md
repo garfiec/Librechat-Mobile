@@ -1800,6 +1800,47 @@ GET    /api/convos/:conversationId/pull-request; POST /api/convos/pull-requests;
   display does not split cache tiers).
 - The DALL-E 3 tool is retired server-side; marketplace previews use its replacement. (BUILT)
 
+**Attached code machines (code workspace controls).** None of this is new in rc1 except the
+`code_environment_ids` agent field and subagent inheritance; the routes and send fields were already
+on the 0.8.8 line. Gated on config fields and exact capability versions, never on the server version.
+```
+GET    /api/code-environments/:id/status          machine state + registered workspaces (BUILT, CodeEnvironmentsApi.status)
+PATCH  /api/code-environments/conversations/:id/decision   move/attach/detach a saved chat (NOT built; slice 2)
+```
+- `status` → 200 `{ environmentId, status: offline|starting|ready, workspaces?: [{ id, name?,
+  workspaceInstances?: ["git_worktree"], workspaceScopes?: ["git_linked_worktree"], environment?:
+  { fingerprint, repo?, ref?, actions[] } }], operations?, runtimes? }`. `workspaces` absent = the
+  worker predates workspaces. 404 unknown, 503 not configured/busy, 504 timeout, 502 other; IP and
+  per-user rate limited. Polled every 10 s only while the composer shows the control and the app is
+  in front (web's `refetchInterval`), 30 s after a 503/504, stopped on a 404.
+- `PATCH …/decision` body `{ from: Selection[], to: Selection[] }` (NOT `arg`-wrapped; `from` must
+  equal the saved decision, empty `to` = detach) → 200 `{ conversationId, codeEnvironmentMode,
+  codeWorkspaces? }`; 403 moves/transitions disabled, 404, 409 busy (no `code`), 409 `{code, reason}`,
+  503. Not used: a locked chat shows its status and the web is the way out.
+- Config: `GET /api/endpoints` → `agents.statefulCodeSessions { environments[{id, name, type:
+  managed|attached, default?, configSchema?.workspaces{allowCheckoutSelection, linkedWorktrees},
+  settings?}], allowEnvironmentSelection?, maxEnvironmentChoices?, approvalsEnabled, approvalModes }`
+  plus `capabilities` containing `execute_code` and `stateful_code_sessions`. `GET /api/config` →
+  `codeEnvironmentDecisionVersion` (1), `codeEnvironmentMoveVersion` (1),
+  `codeEnvironmentTransitionVersion` (2), `codeWorkspaceRecoveryVersion` (1),
+  `codeWorkspaceInheritanceVersion` (1, rc1), each matched with `==`.
+- Agent fields (`GET /api/agents` LIST route only; the VIEW route returns none of them):
+  `stateful_code_sessions`, `tools` (cut to `["execute_code"]` or `[]`), `code_environment_id`,
+  `code_environment_ids` (rc1), `code_workspace_id`, `agent_ids`, `edges.from/to`, `subagents` ids.
+  Mobile's agents cache is the in-memory list response, so all of them are kept.
+- Send: chat POST `codeEnvironmentMode: attached|without_attached` and `codeWorkspaces:
+  [{environmentId, workspaceId, checkout?: source|isolated, agentIds?}]`, beside `manualSkills`. A
+  NEW chat that sends neither is sealed "No workspace" for good (`decision.ts`); a chat that already
+  decided keeps its decision when neither is sent, and a different one is `locked`. Mobile sends them
+  only when a reachable agent runs code on an attached machine, and sends nothing on a chat that
+  already holds a decision. Saved conversations carry both fields; mobile reads them off the
+  single-conversation GET (not cached in Room).
+- Rejection: 409 / in-band `{ code: "code_workspace_unavailable", reason: required|invalid|
+  worker_unavailable|unsupported|missing|locked }`; each reason has its own message. A first-turn
+  rejection does not save the new chat (`shouldPersistCodeWorkspaceInitializationError`).
+- Not built: code approval mode (`codeApprovalMode`, `statefulCodeSessions.approvalModes`), machine
+  setup and pairing (same-origin browser session only), the agent editor's machine allowlist.
+
 ### Other
 ```
 GET/POST/DELETE /api/presets

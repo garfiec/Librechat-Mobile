@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.PendingSteer
 import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.StreamEvent
+import com.garfiec.librechat.core.model.code.CodeWorkspaceSubmission
 import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.request.ChatResumeRequest
 import com.garfiec.librechat.core.model.request.EditedContent
@@ -44,6 +45,7 @@ class RecordingChatRepository : com.garfiec.librechat.core.data.repository.ChatR
         val modelParams: JsonObject? = null,
         val reasoningOverride: ReasoningOverride? = null,
         val files: List<FileReference>? = null,
+        val codeWorkspace: CodeWorkspaceSubmission? = null,
     )
 
     val sent = mutableListOf<Sent>()
@@ -78,6 +80,7 @@ class RecordingChatRepository : com.garfiec.librechat.core.data.repository.ChatR
         manualSkills: List<String>?,
         editedContent: EditedContent?,
         reasoningOverride: ReasoningOverride?,
+        codeWorkspace: CodeWorkspaceSubmission?,
     ): Flow<StreamEvent> {
         sent += Sent(
             text = text,
@@ -96,6 +99,7 @@ class RecordingChatRepository : com.garfiec.librechat.core.data.repository.ChatR
             modelParams = modelParams,
             reasoningOverride = reasoningOverride,
             files = files,
+            codeWorkspace = codeWorkspace,
         )
         return emptyFlow()
     }

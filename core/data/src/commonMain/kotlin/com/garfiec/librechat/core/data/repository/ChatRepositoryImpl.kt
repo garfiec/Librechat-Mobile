@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.PendingSteer
 import com.garfiec.librechat.core.model.ReasoningOverride
+import com.garfiec.librechat.core.model.code.CodeWorkspaceSubmission
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.error.ServerErrorCode
 import com.garfiec.librechat.core.model.request.AddedConversation
@@ -87,6 +88,7 @@ class ChatRepositoryImpl(
         manualSkills: List<String>?,
         editedContent: EditedContent?,
         reasoningOverride: ReasoningOverride?,
+        codeWorkspace: CodeWorkspaceSubmission?,
     ): Flow<StreamEvent> = flow {
         // Phase 1: POST to start the chat - get back a streamId (= conversationId)
         val request = ChatPayloadBuilder.build(
@@ -117,6 +119,7 @@ class ChatRepositoryImpl(
             manualSkills = manualSkills,
             editedContent = editedContent,
             reasoningOverride = reasoningOverride,
+            codeWorkspace = codeWorkspace,
         )
         // A send whose parent response is still being written now 409s ("Cannot submit a
         // follow-up while the selected parent response is still being saved"), which an

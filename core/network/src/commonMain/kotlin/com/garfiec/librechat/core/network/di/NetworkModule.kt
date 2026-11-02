@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.network.api.AuthApi
 import com.garfiec.librechat.core.network.api.BalanceApi
 import com.garfiec.librechat.core.network.api.BannerApi
 import com.garfiec.librechat.core.network.api.ChatApi
+import com.garfiec.librechat.core.network.api.CodeEnvironmentsApi
 import com.garfiec.librechat.core.network.api.ConfigApi
 import com.garfiec.librechat.core.network.api.ConversationsApi
 import com.garfiec.librechat.core.network.api.EndpointTokenApi
@@ -225,6 +226,7 @@ val networkModule = module {
     singleOf(::BalanceApi)
     singleOf(::BannerApi)
     singleOf(::ChatApi)
+    singleOf(::CodeEnvironmentsApi)
     singleOf(::ConfigApi)
     singleOf(::ConversationsApi)
     singleOf(::EndpointTokenApi)
