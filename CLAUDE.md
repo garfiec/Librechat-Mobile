@@ -80,7 +80,8 @@ Each module has its own `CLAUDE.md` with specific guidance.
 - **`backendTargetVersion`** (root `version.properties`) — single source of truth for the targeted backend; must match the tag in `UPSTREAM_VERSION` (without `v` prefix). A core/common Gradle task code-generates `BackendVersion.SUPPORTED_BACKEND_VERSION` from it, and `release.yml` reads it for release notes. Edit the property, not the constant.
 - **`/sync-upstream`** — Claude Code skill to diff upstream releases, identify gaps, propose changes, and implement them with user approval. Uses Agent Teams (investigator, android-expert, implementer, verifier).
 - **`scripts/web-assets.json`** — registry of the third-party JavaScript the artifact/diagram/math
-  WebViews execute (KaTeX, mermaid, marked, highlight.js, Tailwind, Babel, React). All of it is
+  WebViews execute (KaTeX, mermaid, marked, highlight.js, Tailwind, Babel, React, and the npm
+  modules React artifacts may import, bundled from `scripts/artifact-modules/`). All of it is
   **vendored into the app**; none of it is fetched at render time. This is required for F-Droid,
   which rejects apps that download executable code without explicit opt-in consent — a
   `<script src="https://cdn…">` in a WebView is exactly that. It also closes a silent-drift hole:

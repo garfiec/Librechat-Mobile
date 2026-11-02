@@ -4135,6 +4135,74 @@
       },
       "why": "Which Gemini models the server runs URL Context on (2.5+, not image/live/TTS/audio). The two regexes it reads are declared just above the function and are part of this mirror. The chat hides the toggle on other models (ChatUiState.urlContextProviderGate); web doesn't.",
       "failure_mode": "The toggle shows on a model the server skips it for (a silent no-op), or hides on a newly supported one."
+    },
+    {
+      "id": "artifact-sandpack-dependencies",
+      "upstream": {
+        "file": "client/src/utils/artifacts.ts",
+        "symbol": "standardDependencies",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "scripts/web-assets.json",
+        "symbol": "the `bundle` entries (lucide-react, recharts, three, date-fns, react-router, dat-gui, shadcn-ui, vaul); exact pins in scripts/artifact-modules/package.json"
+      },
+      "why": "The npm packages web's Sandpack installs for every React artifact, i.e. what an artifact may `import` on web. The client vendors the same set as bundles (no CDN; see scripts/web-assets.json's `bundle` source type) and the runner reads them from the generated VendoredWebAssets.MODULES. Deliberate divergences, each explained in its registry entry: recharts and react-router-dom run AHEAD of web's pins (deprecated line / advisories); tailwindcss-animate is not bundled (a Tailwind plugin, not a module); three's addons and date-fns locales are not bundled. A package added here is one models can be told about and that fails on mobile with 'not bundled'. Reconcile through /update-web-assets: add the pin to package.json, a registry entry (or the shadcn-ui modules list), then --sync. Check the new version against the dependency policy, and give an unmaintained/deprecated/vulnerable one an `advisory` so users are asked before it loads.",
+      "failure_mode": "An artifact that renders on web shows 'This artifact imports \"X\", which is not bundled with the app' on mobile. A version bump on web (e.g. lucide-react's minor) means icons the prompt-era model writes may not exist in our pin, which fails as an undefined export."
+    },
+    {
+      "id": "artifact-shadcn-mounts",
+      "upstream": {
+        "file": "client/src/utils/artifacts.ts",
+        "symbol": "sharedFiles",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "scripts/web-assets.json",
+        "symbol": "shadcn-ui and vaul `modules` (/components/ui/*, /lib/utils)"
+      },
+      "why": "Which shadcn/ui components web mounts into every React artifact, and at which path. The vendored shadcn-ui bundle registers each under that path; ReactArtifactImports aliases the artifact's import to it. build.mjs refuses to --sync while this list and the registry disagree, so a drift here is caught at the next re-vendor, but nothing forces a re-vendor; this entry does.",
+      "failure_mode": "A component web mounts is 'not bundled' on mobile; one web stopped mounting still renders on mobile (harmless, but no longer what the prompt describes)."
+    },
+    {
+      "id": "artifact-shadcn-sources",
+      "upstream": {
+        "file": "packages/data-provider/src/artifacts.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "scripts/web-assets.json",
+        "symbol": "shadcn-ui / vaul source.shadcn.components_url (pinned to an upstream commit)"
+      },
+      "why": "The shadcn/ui component SOURCES web compiles into each artifact (template literals in shadcnComponents). The vendored bundles compile the copy at the commit their components_url names, so a fix or restyle upstream does not reach mobile until those URLs (and the shadcn-ui entry's version) move to the new commit and --sync runs. Shares the file with the artifact-modes entry; a diff that only touches ArtifactModes is that entry's, not this one's.",
+      "failure_mode": "Components look or behave like the old upstream version: a styling fix, a new variant or a new export missing on mobile. Silent, since the old sources still compile."
+    },
+    {
+      "id": "artifact-prompt-libraries",
+      "upstream": {
+        "file": "packages/api/src/prompts/artifacts/index.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "scripts/web-assets.json",
+        "symbol": "the `bundle` entries, and lucide-react's pinned version"
+      },
+      "why": "The server's artifact system prompt tells the model which libraries it may import ('The lucide-react@0.394.0 library is available', recharts, three, date-fns, react-day-picker, shadcn/ui at /components/ui/*). That list, not web's dependency map, is what models actually write against. Noisy (most edits are prose), but a changed library line or version is a direct signal: lucide-react is pinned to exactly the version this prompt names.",
+      "failure_mode": "The model is told about a library mobile doesn't bundle, or a version whose icon names differ from ours, and its artifacts fail on mobile only."
+    },
+    {
+      "id": "artifact-tailwind-cdn",
+      "upstream": {
+        "file": "client/src/utils/artifacts.ts",
+        "symbol": "TAILWIND_CDN",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "scripts/web-assets.json",
+        "symbol": "tailwind (pinned URL, v3.4.17)"
+      },
+      "why": "The Tailwind build web's artifact iframes load. The client vendors the same pinned Play CDN build; a move to v4 (@tailwindcss/browser) renames utilities model output still uses, so follow it deliberately (see the tailwind entry's pin_reason).",
+      "failure_mode": "Artifacts style differently on web and mobile: utilities one build has and the other lacks."
     }
   ]
 }

@@ -3,7 +3,9 @@ name: update-web-assets
 description: >
   Update the third-party JavaScript vendored into the app for the artifact,
   diagram, and math WebViews (KaTeX, mermaid, marked, highlight.js, Tailwind,
-  Babel, React). Checks what is outdated, reads each pin's rationale before
+  Babel, React) and the npm modules React artifacts may import (lucide-react,
+  recharts, three, date-fns, react-router, shadcn/ui and its Radix base, dat.gui,
+  vaul). Checks what is outdated, reads each pin's rationale before
   proposing a bump, re-downloads from the official source, verifies the lock,
   and runs the gates. Ends by naming what must be checked on a device, because
   a broken WebView asset fails silently. Use when bumping a vendored web
@@ -68,6 +70,32 @@ For each asset the user named (or each one `--outdated` flags, if they named non
    with a clear error if a declared path no longer exists.
 4. For a major version, use AskUserQuestion rather than deciding alone.
 
+### Artifact modules (`source.type: "bundle"`)
+
+The packages a React artifact may `import` are not lifted from a tarball: esbuild bundles each
+into one classic script from `scripts/artifact-modules/` (exact pins in `package.json`, the tree in
+`package-lock.json`, the bundling in `build.mjs`). So:
+
+- `--sync` needs **node and npm** (`npm ci --ignore-scripts` runs inside it). `--check` does not.
+- `--bump` refuses bundles. Repin in `package.json`, run
+  `npm install --prefix scripts/artifact-modules --ignore-scripts` to refresh the lockfile, set the
+  registry entry's `version` to match, then `--sync`. `--check` fails until the lock's recipe hash
+  matches, so a lockfile edited without a re-sync can't ship.
+- `--outdated` reports single-package bundles; for `shadcn-ui` run `npm outdated` in that directory.
+- What to bundle follows web: `standardDependencies` in upstream `client/src/utils/artifacts.ts`
+  (watched as `artifact-sandpack-dependencies`), with divergences recorded in each `pin_reason`.
+  lucide-react stays on the exact version the server's artifact prompt names.
+- **Dependency policy applies.** Before adding or bumping one, check its last release date and its
+  advisories (`npm audit` in `scripts/artifact-modules`). A package that is unmaintained,
+  deprecated or vulnerable but still worth shipping gets an `advisory` (`kind`, `library`) and a
+  `sandbox_risk` explaining why the sandbox makes it acceptable. Users are then asked before an
+  artifact loads it (`ArtifactLibraryGate`), so a flagged library must live in a bundle of its own
+  (as vaul does): declining it has to keep its code from running at all.
+- The shadcn components come from upstream source at a pinned commit (`components_url`,
+  `shared_files_url` in the shadcn-ui and vaul entries). After a sync, move both entries' URLs and
+  shadcn-ui's `version` to the new `UPSTREAM_VERSION` commit. `build.mjs` refuses to build when
+  upstream mounts a component no entry lists, or the registry lists one upstream dropped.
+
 `tailwind` is pinned to a URL, not npm, because Tailwind v3 never published a browser
 build. `--bump` refuses it deliberately; repinning it means editing both the version and
 every file URL in the registry by hand, and moving to `@tailwindcss/browser` means moving
@@ -81,7 +109,8 @@ scripts/vendor-web-assets.py --bump <id> <version>
 ```
 
 This repins the registry, wipes that asset's directory, re-downloads from the official
-tarball, rewrites the lock, and regenerates `VendoredWebAssets.kt`. The wipe is deliberate:
+tarball, rewrites the lock, and regenerates `VendoredWebAssets.kt` and the Settings catalog of
+flagged libraries (`core/data/…/FlaggedArtifactLibraries.kt`). The wipe is deliberate:
 a repin that drops a file must not leave the old one behind to be served.
 
 Adding a **new** asset instead: add a registry entry (with a real `why`, `pin_reason` and
@@ -97,6 +126,7 @@ builder in the same pass. The builders are:
 | mermaid | `androidMain/components/MermaidDiagram.kt`, `commonMain/…/artifact/MermaidWebContent.kt`, `iosMain/components/PlatformMediaComponents.ios.kt` |
 | marked, marked-highlight, highlight | `commonMain/…/artifact/MarkdownWebContent.kt` |
 | tailwind, babel, react, react-dom | `commonMain/…/artifact/ArtifactWebContent.kt` |
+| every `bundle` asset | loaded by `commonMain/…/artifact/ArtifactWebContent.kt` through the generated `VendoredWebAssets.MODULES`; which modules load is `ReactArtifactImports.kt`; the consent prompt for `advisory` entries is `ArtifactLibraryGate.kt` |
 | jszip, docx-preview | not built here: the server builds the document; `commonMain/…/artifact/OfficePreviewLocalizer.kt` rewrites its exact CDN URLs (`VENDORED_OFFICE_RENDERERS`). Repin only to the server's `DOCX_PREVIEW_CDN` versions, and update the map in the same pass |
 
 Note KaTeX and mermaid each have **two** independent HTML builders (Android and iOS) that
@@ -136,5 +166,9 @@ the assets that actually moved:
 | tailwind | an HTML artifact using utility classes |
 | babel / react / react-dom | a React artifact that uses hooks; then one importing an unbundled package, which must show the naming error rather than a blank box |
 | jszip / docx-preview | a code-interpreter DOCX preview — page-style render, NOT the "High-fidelity renderer unavailable" fallback notice |
+| any `bundle` asset | a React artifact importing it renders (`VendoredWebAssetInstrumentedTest` has one case per bundle: run it on an emulator); for one with an `advisory`, the prompt appears inline and fullscreen, and Don't load shows the stub |
+
+`VendoredWebAssetInstrumentedTest` covers the bundles on a real WebView:
+`ANDROID_SERIAL=<emulator> ./gradlew :feature:chat:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.garfiec.librechat.feature.chat.components.web.VendoredWebAssetInstrumentedTest`.
 
 Do not open a PR. Per the repo's convention, stop at local commits and let the user device-test first.

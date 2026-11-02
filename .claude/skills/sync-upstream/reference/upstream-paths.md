@@ -114,6 +114,25 @@ Some paths below contain values the client copies verbatim because the server ne
 `FEEDBACK_TAGS` (`feedback.ts`), `ArtifactModes` (`artifacts.ts`), plus the whole of
 `parameterSettings.ts` and `packages/api/src/artifacts/update.ts`.
 
+### Artifact runtime dependencies (vendored, not mirrored as Kotlin)
+
+What a React artifact may `import` is decided in three upstream places, none served over the API:
+
+| Path | What It Contains | Client side |
+|------|------------------|-------------|
+| `client/src/utils/artifacts.ts` → `standardDependencies` | The npm packages web's Sandpack installs for every artifact | `bundle` entries in `scripts/web-assets.json`, pins in `scripts/artifact-modules/package.json` |
+| `client/src/utils/artifacts.ts` → `sharedFiles`, `TAILWIND_CDN` | Which shadcn/ui components are mounted at `/components/ui/*`; the Tailwind build | `shadcn-ui` / `vaul` `modules`; the `tailwind` pin |
+| `packages/data-provider/src/artifacts.ts` → `shadcnComponents` | The component sources themselves | Compiled into the `shadcn-ui` / `vaul` bundles from a commit-pinned URL |
+| `packages/api/src/prompts/artifacts/index.ts` | The system prompt telling the model which libraries exist (and lucide-react's exact version) | What models actually write against |
+
+All four are `scripts/mirrors.json` entries (`artifact-*`), so Phase 0's check-mirrors run reports
+them. A drift there is reconciled through **`/update-web-assets`**, never by hand-editing a
+vendored file: a new or bumped package needs node for `--sync`, a dependency-policy check, and an
+`advisory` if it is unmaintained, deprecated or vulnerable (the app then asks users before
+loading it). A diff in `client/src/components/Artifacts/` that changes how Sandpack is set up
+(`customSetup`, `externalResources`, a new template) is the same class of change: read it as a
+change to what artifacts can import.
+
 `excelMimeTypes` is tracked separately because upstream spreads it into `fullMimeTypesList` while
 the Kotlin transcription inlines it — so it moves without `fullMimeTypesList` appearing to change.
 
