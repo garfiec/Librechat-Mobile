@@ -27,6 +27,7 @@ import com.garfiec.librechat.core.network.api.FilesApi
 import com.garfiec.librechat.core.network.api.FilesExtApi
 import com.garfiec.librechat.core.network.api.KeysApi
 import com.garfiec.librechat.core.network.api.McpApi
+import com.garfiec.librechat.core.network.api.McpAppsApi
 import com.garfiec.librechat.core.network.api.MemoriesApi
 import com.garfiec.librechat.core.network.api.MessagesApi
 import com.garfiec.librechat.core.network.api.PasskeyApi
@@ -106,6 +107,7 @@ class DataModuleVerificationTest {
                 KeysApi::class,
                 ApiKeysApi::class,
                 McpApi::class,
+                McpAppsApi::class,
                 MemoriesApi::class,
                 SpeechApi::class,
                 BannerApi::class,
