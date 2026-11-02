@@ -1125,7 +1125,7 @@ moves a custom OpenAI-compatible endpoint to a Responses API it may not serve.
   rides the `QueuedMessage` (and the server queue's enqueue body). A staged choice makes a mid-run
   send queue, never steer (`canSteerNow`). A model switch drops it only once the new setting is
   known and refuses it. Edit, regenerate and continue send the user message's own
-  `reasoningOverride` (cached in Room, DB 16), not the pending one; nothing shows it on the bubble.
+  `reasoningOverride` (cached in Room, DB 14), not the pending one; nothing shows it on the bubble.
 
 ## Content Cards
 - `ImageGenCard` renders DALL-E / image generation results (spinner while generating, AsyncImage when done)
@@ -1316,7 +1316,7 @@ A server with PII protection stores a user turn filtered (`text` = `[EMAIL]`…)
 `privacyRevision`. Its author sees the original (`PrivateTextBody`, web's `PrivateText`), read by
 `OwnerTextDelegate` from `POST /owner-text` once the chat is not streaming, in batches of 50.
 - **The original lives in `MessagesState.ownerTexts` only.** Never Room (only the
-  `privacyRevision` marker is cached, DB 17), never the search index, drafts, exports or share links;
+  `privacyRevision` marker is cached, DB 14), never the search index, drafts, exports or share links;
   Copy, Edit, Regenerate, Read aloud and Fork keep `message.text`. A conversation switch clears it.
 - **Accepted only for the stored turn it was read against**: same revision, same filtered text
   (`ownerTextStateFor`). An answer with no row for an id is no state (a client-minted id the server

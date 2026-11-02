@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 14,
-    "identityHash": "7ab4c43531840881e967e058ea5b6c04",
+    "identityHash": "c5821c66bcd8d93a882ff5f06500d1e6",
     "entities": [
       {
         "tableName": "conversations",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`conversationId` TEXT NOT NULL, `title` TEXT NOT NULL, `user` TEXT NOT NULL, `endpoint` TEXT, `endpointType` TEXT, `model` TEXT, `agentId` TEXT, `isArchived` INTEGER NOT NULL, `pinned` INTEGER NOT NULL DEFAULT 0, `chatProjectId` TEXT, `tags` TEXT NOT NULL, `iconURL` TEXT, `greeting` TEXT, `modelParams` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `lastSyncedAt` INTEGER NOT NULL, `accountId` TEXT, `spec` TEXT, PRIMARY KEY(`conversationId`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`conversationId` TEXT NOT NULL, `title` TEXT NOT NULL, `user` TEXT NOT NULL, `endpoint` TEXT, `endpointType` TEXT, `model` TEXT, `agentId` TEXT, `isArchived` INTEGER NOT NULL, `pinned` INTEGER NOT NULL DEFAULT 0, `chatProjectId` TEXT, `tags` TEXT NOT NULL, `iconURL` TEXT, `greeting` TEXT, `modelParams` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `lastSyncedAt` INTEGER NOT NULL, `accountId` TEXT, `spec` TEXT, `lastResponseAt` INTEGER, `lastResponseMessageId` TEXT, `lastResponseIsManual` INTEGER, `isMarkedUnread` INTEGER, `lastSeenAt` INTEGER, PRIMARY KEY(`conversationId`))",
         "fields": [
           {
             "fieldPath": "conversationId",
@@ -112,6 +112,31 @@
             "fieldPath": "spec",
             "columnName": "spec",
             "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastResponseAt",
+            "columnName": "lastResponseAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lastResponseMessageId",
+            "columnName": "lastResponseMessageId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastResponseIsManual",
+            "columnName": "lastResponseIsManual",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "isMarkedUnread",
+            "columnName": "isMarkedUnread",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lastSeenAt",
+            "columnName": "lastSeenAt",
+            "affinity": "INTEGER"
           }
         ],
         "primaryKey": {
@@ -135,7 +160,7 @@
       },
       {
         "tableName": "messages",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`messageId` TEXT NOT NULL, `conversationId` TEXT NOT NULL, `parentMessageId` TEXT, `sender` TEXT, `text` TEXT, `content` TEXT, `isCreatedByUser` INTEGER NOT NULL, `isUserSubmitted` INTEGER, `model` TEXT, `endpoint` TEXT, `iconURL` TEXT, `unfinished` INTEGER NOT NULL, `error` INTEGER NOT NULL, `finishReason` TEXT, `tokenCount` INTEGER, `feedback` TEXT, `files` TEXT, `attachments` TEXT, `metadata` TEXT, `quotes` TEXT, `manualSkills` TEXT, `alwaysAppliedSkills` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `accountId` TEXT, PRIMARY KEY(`messageId`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`messageId` TEXT NOT NULL, `conversationId` TEXT NOT NULL, `parentMessageId` TEXT, `sender` TEXT, `text` TEXT, `content` TEXT, `isCreatedByUser` INTEGER NOT NULL, `isUserSubmitted` INTEGER, `model` TEXT, `endpoint` TEXT, `iconURL` TEXT, `unfinished` INTEGER NOT NULL, `error` INTEGER NOT NULL, `finishReason` TEXT, `tokenCount` INTEGER, `feedback` TEXT, `files` TEXT, `attachments` TEXT, `metadata` TEXT, `quotes` TEXT, `manualSkills` TEXT, `alwaysAppliedSkills` TEXT, `reasoningOverride` TEXT, `privacyRevision` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `accountId` TEXT, PRIMARY KEY(`messageId`))",
         "fields": [
           {
             "fieldPath": "messageId",
@@ -250,6 +275,16 @@
           {
             "fieldPath": "alwaysAppliedSkills",
             "columnName": "alwaysAppliedSkills",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "reasoningOverride",
+            "columnName": "reasoningOverride",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "privacyRevision",
+            "columnName": "privacyRevision",
             "affinity": "TEXT"
           },
           {
@@ -856,7 +891,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7ab4c43531840881e967e058ea5b6c04')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c5821c66bcd8d93a882ff5f06500d1e6')"
     ]
   }
 }
