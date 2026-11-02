@@ -1372,7 +1372,7 @@
         "file": "feature/conversations/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/drawer/RunningChats.kt",
         "symbol": "groupWithRunning"
       },
-      "why": "The web sidebar's rule for the Running section: which conversations are lifted out of their date groups (those in GET /api/agents/chat/active), that the group goes first, that emptied date groups are dropped, and which list orderings it applies to. The server serves only the ids; the grouping is client logic. The poll cadence (upstream ACTIVE_JOBS_POLL_MS / ACTIVE_JOBS_SUCCESSOR_GRACE_MS in client/src/data-provider/SSE/queries.ts) is copied into DrawerViewModel and is not watched here.",
+      "why": "The web sidebar's rule for the Running section: which conversations are lifted out of their date groups (those in GET /api/agents/chat/active), that the group goes first, that Finished follows it with the server-stamped unseen replies (isFinishedUnseen, mirrored in core/model Conversation.kt), that running chats no loaded row holds are merged newest-first minus archived and temporary ones, that emptied date groups are dropped, and which list orderings it applies to. The server serves only the ids; the grouping is client logic. The poll cadence (upstream ACTIVE_JOBS_POLL_MS / ACTIVE_JOBS_SUCCESSOR_GRACE_MS in client/src/data-provider/SSE/queries.ts) is copied into DrawerViewModel and is not watched here.",
       "failure_mode": "The drawer orders chats differently from the web sidebar -- a running chat is listed twice or stays buried under its date. Nothing errors."
     },
     {
@@ -4839,6 +4839,48 @@
       },
       "why": "The 403 both setup predicates fold in by name, declared outside their blocks.",
       "failure_mode": "As two-factor-setup-credential-dead."
+    },
+    {
+      "id": "unseen-reply-watermark",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "UNSEEN_REPLY_WATERMARK",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/Conversation.kt",
+        "symbol": "UNSEEN_REPLY_WATERMARK"
+      },
+      "why": "The lastSeenAt value the server stamps beside a real reply. The drawer's Finished group keys on it to tell a reply that finished unseen from a chat marked unread by hand.",
+      "failure_mode": "A changed watermark empties Finished: replies still show their dot, but nothing is lifted to the top. Nothing fails to decode."
+    },
+    {
+      "id": "conversation-unseen-rules",
+      "upstream": {
+        "file": "client/src/utils/convos.ts",
+        "symbol": "isConversationUnseen",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/Conversation.kt",
+        "symbol": "isUnseen"
+      },
+      "why": "When a chat reads as unread: a reply stamp newer than the catch-up, a missing stamp reading as seen.",
+      "failure_mode": "The dot shows on chats the web shows as read, or the reverse; /seen is sent for chats already caught up, or never for one that is not."
+    },
+    {
+      "id": "conversation-list-limits-defaults",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "conversationListConfigSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/ConversationListLimits.kt",
+        "symbol": "DEFAULT_MAX_ENDPOINT_FILTERS / DEFAULT_MAX_ENDPOINT_NAME_LENGTH"
+      },
+      "why": "The endpoint-filter bounds the list route applies when a server does not publish conversationListLimits. The filter sheet stops a selection at them.",
+      "failure_mode": "The sheet lets the user pick more endpoints than the route accepts and the filtered list fails with a 400, or stops them short of what the server would take."
     }
   ]
 }

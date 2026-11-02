@@ -3,8 +3,10 @@ package com.garfiec.librechat.core.data.repository
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.Conversation
+import com.garfiec.librechat.core.model.ConversationListFilters
 import com.garfiec.librechat.core.model.ConversationPage
 import kotlinx.coroutines.flow.Flow
+import kotlin.time.Instant
 
 interface ConversationRepository {
     fun observeConversations(isArchived: Boolean = false): Flow<Result<List<Conversation>>>
@@ -89,4 +91,29 @@ interface ConversationRepository {
     suspend fun archiveAll(): Result<Int>
     suspend fun saveConversation(conversation: Conversation, originAccount: AccountId?)
     suspend fun syncFavoritesFromServer(): Result<Unit>
+
+    /**
+     * A cursor page of the chats matching [filters] (and the server's [search], when given), newest
+     * first (v0.8.9-rc1). Network-direct and never cached: Room can't answer "has files" or
+     * "shared", and a filtered page written into the cache would read as the whole list.
+     */
+    suspend fun getConversationsFiltered(
+        filters: ConversationListFilters,
+        cursor: String? = null,
+        search: String? = null,
+        limit: Int = 25,
+    ): Result<ConversationPage>
+
+    /** One conversation off the server, not written to the cache (the drawer's unlisted running rows). */
+    suspend fun fetchConversationUncached(id: String): Result<Conversation>
+
+    /**
+     * `POST /api/convos/seen` (v0.8.9-rc1) for the reply stamped [lastResponseAt]. True when the
+     * server took it, and the cached row is then caught up. False when a newer reply landed: the row
+     * stays unread and is refreshed, so the newer stamp reaches the cache.
+     */
+    suspend fun markSeen(id: String, lastResponseAt: Instant): Result<Boolean>
+
+    /** `POST /api/convos/unread` (v0.8.9-rc1); the cached row takes the read state it answered with. */
+    suspend fun markUnread(id: String): Result<Unit>
 }

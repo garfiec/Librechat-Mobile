@@ -40,6 +40,11 @@ fun Conversation.toEntity(): ConversationEntity {
         },
         createdAt = createdAt?.toEpochMilliseconds() ?: now,
         updatedAt = updatedAt?.toEpochMilliseconds() ?: now,
+        lastResponseAt = lastResponseAt?.toEpochMilliseconds(),
+        lastResponseMessageId = lastResponseMessageId,
+        lastResponseIsManual = lastResponseIsManual,
+        isMarkedUnread = isMarkedUnread,
+        lastSeenAt = lastSeenAt?.toEpochMilliseconds(),
     )
 }
 
@@ -68,6 +73,11 @@ fun ConversationEntity.toModel(): Conversation = Conversation(
     greeting = greeting,
     createdAt = Instant.fromEpochMilliseconds(createdAt),
     updatedAt = Instant.fromEpochMilliseconds(updatedAt),
+    lastResponseAt = lastResponseAt?.let(Instant::fromEpochMilliseconds),
+    lastResponseMessageId = lastResponseMessageId,
+    lastResponseIsManual = lastResponseIsManual,
+    isMarkedUnread = isMarkedUnread,
+    lastSeenAt = lastSeenAt?.let(Instant::fromEpochMilliseconds),
 ).let { conversation ->
     decodeParams(modelParams)?.let {
         conversation.withParameters(it.params).copy(parametersAsOf = Instant.fromEpochMilliseconds(it.asOf))

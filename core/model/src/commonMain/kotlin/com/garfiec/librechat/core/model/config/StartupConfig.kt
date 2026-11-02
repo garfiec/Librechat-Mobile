@@ -117,6 +117,11 @@ data class StartupConfig(
      * title (`titleSetByUser` / `titleRevision`). Absent on older servers and older replicas.
      */
     val conversationTitleOwnershipVersion: Int? = null,
+    /**
+     * What one chat-list filter request may name (v0.8.9-rc1, post-login only). Null on older
+     * servers; [ConversationListLimits.DEFAULT] stands in, as upstream's schema defaults do.
+     */
+    val conversationListLimits: ConversationListLimits? = null,
 ) {
     /**
      * Upstream `supportsConversationTitleOwnership`: the capability is announced AND

@@ -109,6 +109,21 @@ data class Conversation(
     @Serializable(with = LenientInstantSerializer::class)
     val updatedAt: Instant? = null,
     /**
+     * Read state (v0.8.9-rc1), server-owned. When the newest reply was stamped, or the synthetic
+     * marker "Mark as unread" stamped on a chat with no reply yet. See [isUnseen].
+     */
+    @Serializable(with = LenientInstantSerializer::class)
+    val lastResponseAt: Instant? = null,
+    /** The reply [lastResponseAt] names; absent for a manual marker. */
+    val lastResponseMessageId: String? = null,
+    /** True only while [lastResponseAt] is the synthetic "Mark as unread" marker. */
+    val lastResponseIsManual: Boolean? = null,
+    /** Tri-state: false when a reply was stamped, true when hand-marked unread, null on legacy rows. */
+    val isMarkedUnread: Boolean? = null,
+    /** When the user caught up; [UNSEEN_REPLY_WATERMARK] when a reply landed unseen. */
+    @Serializable(with = LenientInstantSerializer::class)
+    val lastSeenAt: Instant? = null,
+    /**
      * Local only: the [updatedAt] this conversation had when its cached parameters were read off
      * the server. The list route sends no parameters, so a row it refreshed keeps older ones.
      */
@@ -151,3 +166,33 @@ fun Conversation.iconEndpoint(endpointConfigs: Map<String, EndpointConfig>): Str
  */
 fun Conversation.iconProvider(endpointConfigs: Map<String, EndpointConfig>): ProviderId? =
     resolveProviderIcon(iconEndpoint(endpointConfigs), endpointConfigs).provider
+
+/**
+ * MIRRORED from upstream `UNSEEN_REPLY_WATERMARK` (`packages/data-provider/src/config.ts`): the
+ * [Conversation.lastSeenAt] a server stamps beside a real reply, which tells a reply that finished
+ * unseen from a chat the user marked unread by hand.
+ */
+val UNSEEN_REPLY_WATERMARK: Instant = Instant.fromEpochMilliseconds(0)
+
+/**
+ * MIRRORED from upstream `isConversationUnseen` (`client/src/utils/convos.ts`): the chat has a reply
+ * newer than the user's catch-up. A row without [Conversation.lastResponseAt] (an older server, or a
+ * chat stamped before read state existed) reads as seen.
+ */
+val Conversation.isUnseen: Boolean
+    get() {
+        val response = lastResponseAt ?: return false
+        val seen = lastSeenAt ?: return true
+        return seen < response
+    }
+
+/**
+ * MIRRORED from upstream `isFinishedUnseen` (`client/src/components/Conversations/running.ts`): an
+ * unseen reply the server stamped, as opposed to one the user marked unread by hand. A missing
+ * [Conversation.isMarkedUnread] is legacy, not evidence of a new reply.
+ */
+val Conversation.isFinishedUnseen: Boolean
+    get() = isMarkedUnread == false &&
+        lastSeenAt == UNSEEN_REPLY_WATERMARK &&
+        lastResponseIsManual != true &&
+        isUnseen

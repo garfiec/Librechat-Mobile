@@ -39,4 +39,13 @@ data class ConversationEntity(
      */
     val accountId: String? = null,
     val spec: String? = null,
+    /**
+     * Read state (v0.8.9-rc1), epoch millis; the unseen-reply watermark is `0`. Null on older
+     * servers and on rows cached before it existed, which read as seen.
+     */
+    val lastResponseAt: Long? = null,
+    val lastResponseMessageId: String? = null,
+    val lastResponseIsManual: Boolean? = null,
+    val isMarkedUnread: Boolean? = null,
+    val lastSeenAt: Long? = null,
 )

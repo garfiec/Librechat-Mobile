@@ -214,7 +214,23 @@ POST   /api/convos/fork                     → fork from message
 POST   /api/convos/duplicate                → duplicate conversation
 POST   /api/convos/import                   → import (multipart)
 GET    /api/convos/gen_title/:conversationId → generated title
+POST   /api/convos/seen   { arg: { conversationId, lastResponseAt } } → { modified }        (v0.8.9-rc1)
+POST   /api/convos/unread { arg: { conversationId } } → { modified, lastResponseAt, lastResponseMessageId,
+                                                          lastResponseIsManual, isMarkedUnread } (v0.8.9-rc1)
 ```
+
+- **Read state (v0.8.9-rc1).** List rows (and the single GET, and the SSE final event's conversation)
+  carry `lastResponseAt`, `lastResponseMessageId`, `lastResponseIsManual`, `isMarkedUnread` and
+  `lastSeenAt`. A chat is unread when `lastResponseAt` is newer than `lastSeenAt` (or `lastSeenAt` is
+  missing). A real reply is stamped with `isMarkedUnread: false` and `lastSeenAt` =
+  `1970-01-01T00:00:00.000Z` (`UNSEEN_REPLY_WATERMARK`); "Mark as unread" sets `isMarkedUnread: true`
+  (plus a synthetic `lastResponseAt` and `lastResponseIsManual: true` on a chat with no reply). `/seen`
+  matches only while the stored reply is no newer than `lastResponseAt`, so `modified: false` means a
+  newer reply landed. Both writes use `timestamps: false`: `updatedAt` does not move.
+- **List facets (v0.8.9-rc1)** on `GET /api/convos`: `updatedAfter`, `createdAfter` (ISO 8601; a
+  timestamp without an offset is UTC), repeated `endpoints`, `hasFiles=true`, `sharedOnly=true`.
+  Malformed values answer 400. `endpoints` is bounded by `/api/config` `conversationListLimits`
+  `{ maxEndpointFilters (50), maxEndpointNameLength (128) }`.
 
 ### Messages
 ```
