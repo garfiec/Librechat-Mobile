@@ -131,8 +131,8 @@ Which spec applies, and whether it is prioritized, is `util/SpecSeed.kt`, a port
   Tier-0 override yields it. `ChatViewModel.onPendingNavigationHandled` re-arms it, so the next new
   chat is back on the spec. A spec agent the loaded list doesn't contain (deleted, not shared, no
   agents at all, agents denied) falls through to the ordinary tiers.
-- **Last spec**: a spec the user picked is stored with the last-used pair (`lastUsedSpec`; a raw
-  pick clears it). Unless a spec is marked `default`, new chats reopen on it, under `prioritize` too
+- **Last spec**: a spec the user picked is stored with the last-used pair (`LastUsedSelection.spec` in `:core:data`'s
+  `SettingsDataStore`; a raw pick clears it). Unless a spec is marked `default`, new chats reopen on it, under `prioritize` too
   and ahead of a soft default, as web reopens on `LAST_CONVO_SETUP.spec`. On restore it reopens on the
   spec's current endpoint and model (`reopenedPick`), as the resolver does, so a spec an admin moved
   to another model still opens, in both "Start new chats on" modes; only a spec the server no longer
@@ -212,7 +212,9 @@ rows even when they share a model, and a raw pick clears the name. Nothing infer
 model match, with one exception: under `enforce`, a Tier-0 entry point (an agent card, a model
 shortcut) adopts the spec when exactly one opens on its pair (`uniqueSpecFor`), since the server
 would refuse the raw pair anyway. With none or several, the send preflight asks. Queue and
-composer snapshots, the new-chat handoff, the conversation cache (`spec` column, Room 10→11), comparison, presets, edit/regenerate and paused-run pins all carry it. Sending
+composer snapshots, the new-chat handoff, the conversation cache (`spec` column, Room 10→11), comparison, presets, edit/regenerate and paused-run pins all carry it.
+Comparison carries it on send only: after a reopen, lane B's spec is read back on a best-effort basis
+(see "Lane B's spec on reopen" under "Compare Models"). Sending
 it changes what the server does even without `enforce`: it fills the spec's unset private preset
 fields (`promptPrefix`, `instructions`, `system`, …) into the request (`mergeModelSpecPreset`), so a
 chat opened on a spec gets the admin's prompt as on web.
@@ -263,7 +265,8 @@ same one, so a tweak on top of a spec survives config refreshes and is sent:
   apply: the server reads `ephemeralAgent` from the body even under `enforce`.
 - The spec's `artifacts` go out as `ephemeralAgent.artifacts` (`true` → `"default"`), the only place
   the server reads them. The context gauge takes the spec's `preset.maxContextTokens` after the
-  agent's and before token-config, as web's `useTokenLimits` does.
+  agent's and before token-config, as web's `useTokenLimits` does, and looks token-config up under
+  web's catalog alias (`modelCatalogKey`: an API-made agent on `vertexai` reads `google`'s window).
 
 **A spec's pair comes from `preset.endpoint` alone** (`toSeed`, as upstream's
 `resolveModelSpecEndpoint`): an agents spec runs its `agent_id`, any other its `model`. The server
@@ -383,6 +386,92 @@ Compare setup stages specs like models, so a spec can be either lane before the 
     file an older server lacks draws a monogram tile of its label. Loaded art is never tinted;
     near-black art (OpenAI, MLX) sits on a light tile in a dark theme. Web's model-level refinement
     (`byModel`) isn't ported.
+
+**Model spec fields** (v0.8.8, #668). Every field `GET /api/config` serves for a spec, and what this
+client does with it. A field that is decoded but not honoured, or not decoded at all, is left out
+on purpose; the reason is in the last column, so a sync doesn't "fix" it. The served list has
+already been through `excludeHiddenModelSpecs` and `sanitizeModelSpecs` (which strips `skills`,
+`subagents.agent_ids` / `shareFiles` and the private preset fields). Undecoded fields are also
+listed in `ModelSpec`'s KDoc.
+
+| `TModelSpec` field | Decoded | Honoured | Where | Why not / note |
+|---|---|---|---|---|
+| `name` | yes | yes | sent as `spec`; `ModelChoice.Spec` | |
+| `label` | yes | yes | picker, header chip, lane B sender (`laneBSpecFor`) | Falls back to `name` (`ModelSpec.displayLabel`), as `normalizeModelSpecs` |
+| `preset` | yes | yes | see the preset rows below | |
+| `order` | yes | yes | `visibleSpecs` sort | Web ignores it (librechatios parity) |
+| `default` | yes | yes | `SpecSeed` (`resolveDefaultModelSpec`) | |
+| `softDefault` | yes | yes | `SpecSeed`, Tier 1b | |
+| `description` | yes | yes | picker row, landing (`landingText`, with `showOnLanding`) | |
+| `group` | yes | yes | `SpecGroups` | |
+| `groupIcon` | yes | yes | `SpecGroups`, `ModelSelectorSheet` group header | Endpoint-named icon resolves to that endpoint's brand (deliberate divergence, see "Spec presentation") |
+| `showIconInMenu` | yes | yes | `SpecIcons` (picker, quick picks) | |
+| `showIconInHeader` | yes | no | | The header chip is text-only by design |
+| `showOnLanding` | yes | yes | `landingText` | |
+| `conversation_starters` | yes | yes | `resolveLandingStarters` | An agent's own starters win |
+| `showInMenu` | yes | filtered | `visibleSpecs` | Never arrives `false` (`excludeHiddenModelSpecs`); filtered again anyway |
+| `iconURL` | yes | yes | `iconValue` / `resolveIconSource`, reply avatars | |
+| `authType` | no | | | Dead upstream: only the schema and web's fake picker data mention it |
+| `hideBadgeRow` | yes | yes | `toolsHiddenBySpec` → `toolbarShown` | |
+| `webSearch` | yes | yes | `SpecTools.forcedTools`, `webSearchRoute` → LibreChat search | The server ORs it with the request's flag |
+| `fileSearch`, `executeCode`, `memory` | yes | yes | `SpecTools.forcedTools` | Same |
+| `askUserQuestion` | yes | server only | | No composer control; web sends none either |
+| `runInBackground` | no | | | The server resolves it by spec name (`agents/background.ts`); web reads it nowhere. Its results render (background-task cards) |
+| `describeIntent` | no | | | The server resolves it by spec name (`agents/intent.ts`); web reads it nowhere. Intent labels render (see "Tool intent labels") |
+| `artifacts` | yes | yes | `artifactsMode` → `ephemeralAgent.artifacts` | The server reads artifacts only from `ephemeralAgent` |
+| `mcpServers` | yes | yes | `SpecTools.forcedMcpServers` | |
+| `skills` | yes | inert | `skillsSetting` | Stripped by `sanitizeModelSpecs`, so always null against v0.8.8; the server still applies it |
+| `subagents` | no | | | Applied by the server (`agents/load.ts`, `added.ts`); only `enabled` / `allowSelf` are served, and web reads neither |
+
+| `modelSpecs` (`TSpecsConfig`) | Decoded | Where |
+|---|---|---|
+| `enforce` | yes | `requiresSpec`, `parametersSetBySpec`, `seedableLastUsed`, `fallbackSpecSeeds` |
+| `prioritize` | yes | `SpecSeed` (Tier 0b) |
+| `list` | yes | `visibleSpecs` |
+| `addedEndpoints` | yes | `showsRawEndpoint` |
+
+| Spec `preset` fields | Decoded | Honoured | Where / why not |
+|---|---|---|---|
+| `endpoint`, `model`, `agent_id` | yes | yes | The spec's pair (`toSeed`) |
+| `endpointType` | yes | no | Taken from the endpoint's own config (`EndpointConfig.type`) instead |
+| Sampling, reasoning and request keys (`temperature`, `top_p` / `topP`, `topK`, the max-token spellings, `maxContextTokens`, penalties, `stop`, `thinking*`, `effort`, `reasoning_*`, `verbosity`, `useResponsesApi`, `disableStreaming`, `promptCache*`, `imageDetail`, `resendFiles`, `fileTokenLimit`, `region`, `modelLabel`) | yes | yes | `mergedFromPreset` → the parameters; only keys the selection's parameter set lists go out, under that set's spelling (`parameterTarget`, `wireKeyFor`). `maxContextTokens` also feeds the context gauge. Under `enforce` the sheet is read-only (`parametersSetBySpec`) |
+| `web_search` | yes | yes | `presetTools` → the provider's built-in search (`webSearchRoute`) |
+| `url_context` | yes | yes | `presetTools`, shown only where `supportsUrlContext` passes |
+| `greeting` | yes | yes | Landing description fallback (`landingText`) |
+| `iconURL` | yes | yes | Icon chain after the spec's own (`iconValue`) |
+| Private: `promptPrefix`, `instructions`, `additional_instructions`, `system` | yes | server | Never served (`sanitizeModelSpecs`), so always null here; the server fills them in when the request names the spec (`mergeModelSpecPreset`). Decoded for user presets |
+| Private: `context`, `examples` | no | server | Never served; the server fills them in the same way |
+| `artifacts` (preset level) | no | | The server reads artifacts only from `ephemeralAgent`; the spec's top-level `artifacts` is what counts |
+| `codeApprovalMode`, `codeEnvironmentMode`, `codeWorkspaces` | no | | No mobile feature |
+| `tools` | no | | Legacy plugins |
+| `additionalModelRequestFields` | no | | No mobile feature (Bedrock passthrough) |
+| `assistant_id` | no | | Assistants endpoint unsupported (below) |
+| `append_current_datetime` | yes | no | Assistants-only upstream; `mergedFromPreset` ignores it |
+| `stream`, `isTemporary`, `userLabel`, `archivedAt`, `pinned`, `isShared`, `subagentThread` | no | | Conversation-only; meaningless on a preset |
+
+**Deliberate omissions and server limits.** Each is server behaviour the client accepts. Don't
+"fix" one without a server change:
+- **Two searches under `enforce`.** A spec with `webSearch: true` and a preset `web_search: true`
+  on OpenAI runs both: the server replaces the body with the preset, and also loads its own tool
+  from the spec (`agents/load.ts`, the `modelSpec?.webSearch` OR). `resolveProviderToolConflicts`
+  keeps both on OpenAI. The client can't prevent it (see the known gap under "Web search").
+- **Lane B's web search.** With an ephemeral primary (a model or spec, not a saved agent), lane B
+  copies the primary's tools (`added.ts`, `tools: [...primaryAgent.tools]`) with empty
+  `model_parameters`. So LibreChat search reaches it and the provider's built-in search never does,
+  which is why a comparison routes to LibreChat search. With a saved-agent primary, lane B searches
+  only when its own spec sets `webSearch`: the added convo carries no `ephemeralAgent`, and its
+  `model_parameters` take only the sampling keys. Web is the same.
+- **Keep this answer loses the Stopped chip.** `POST /api/messages/branch` saves the kept message
+  with `unfinished: false` and no finish reason (`routes/messages.js`), so after a plain Keep on a
+  cut-short comparison the chip never returns. Keep and continue is unaffected: it continues
+  directly.
+- **The assistants endpoint is not supported.** `Conversation` decodes `assistant_id` for display,
+  but no request model sends it.
+- **A stored `url_context: true` is still sent** after the model's URL context control is hidden
+  (#667). The server skips URL context on models that don't run it, so this is harmless.
+- **Seen on a v0.8.8 rig during #661, not traced in code** (a candidate for an upstream report):
+  every continue saves a stray user message with parent `NO_PARENT` and reparents the reply. Web's
+  payload does the same.
 
 ## Message Tree
 - Messages stored flat, linked by `parentMessageId` (root = `NO_PARENT` UUID)
