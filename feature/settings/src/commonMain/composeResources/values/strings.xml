@@ -246,6 +246,16 @@
     <string name="auto_refill_interval">Interval</string>
     <string name="auto_refill_next">Next refill</string>
     <string name="auto_refill_next_info">A refill happens only after this time, and only when a message would take your balance below zero.</string>
+    <string name="balance_usage_limit">Usage limit</string>
+    <string name="balance_used">%1$s used</string>
+    <string name="balance_usage_unavailable">Usage unavailable</string>
+    <string name="balance_out_of_credits">Out of credits</string>
+    <string name="cd_balance_reading">%1$s: %2$s</string>
+    <string name="auto_reset_title">Automatic reset</string>
+    <string name="auto_reset_last">Last reset</string>
+    <string name="auto_reset_amount">Reset allowance</string>
+    <string name="auto_reset_next">Next reset</string>
+    <string name="auto_reset_next_info">Once the interval has passed, reading your balance or sending a request replaces it with the allowance. Unused credits don't carry over, and requests in progress still count against it.</string>
     <plurals name="auto_refill_every_seconds">
         <item quantity="one">Every %1$s second</item>
         <item quantity="other">Every %1$s seconds</item>

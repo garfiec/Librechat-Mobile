@@ -11,9 +11,13 @@ import com.garfiec.librechat.core.data.repository.KeyRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.model.User
+import com.garfiec.librechat.core.model.config.CurrencyConfig
+import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.ui.media.AvatarImagePreparer
 import com.garfiec.librechat.feature.settings.model.AutoRefillInfo
+import com.garfiec.librechat.feature.settings.model.BalanceDisplay
+import com.garfiec.librechat.feature.settings.model.usedPercent
 import com.garfiec.librechat.feature.settings.model.UserDisplayData
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.AccountDelegate
@@ -101,10 +105,38 @@ data class AccountSettingsUiState(
 sealed interface BalanceUiState {
     data object Loading : BalanceUiState
 
-    data class Loaded(val tokenCredits: Double, val autoRefill: AutoRefillInfo) : BalanceUiState
+    /**
+     * [display] and [currency] come from the deployment's config; [usedPercent] is the share of the
+     * period's allotment spent (null with no allotment). [allotmentFromRefill] is the record's own
+     * allotment, read before the config's `startBalance` fallback is applied.
+     */
+    data class Loaded(
+        val tokenCredits: Double,
+        val autoRefill: AutoRefillInfo,
+        val display: BalanceDisplay = BalanceDisplay.CREDITS,
+        val usedPercent: Int? = null,
+        val currency: CurrencyConfig? = null,
+        val allotmentFromRefill: Double? = null,
+    ) : BalanceUiState
 
     /** The request failed. A server with no balance record for the user answers 404, which is `Loaded(0)`. */
     data object Error : BalanceUiState
+}
+
+/**
+ * The reading as the deployment wants it shown (`balance.display`, `interface.currency`), and the
+ * share of the allotment spent: the record's refill amount, else the config's `startBalance`. Web's
+ * `summarizeBalance`. Applied where the config is combined in, so a config change re-presents a
+ * balance already loaded.
+ */
+internal fun BalanceUiState.presentedFor(config: StartupConfig?): BalanceUiState {
+    if (this !is BalanceUiState.Loaded) return this
+    val allotment = allotmentFromRefill ?: config?.balance?.startBalance?.takeIf { it.isFinite() && it > 0 }
+    return copy(
+        display = BalanceDisplay.fromWire(config?.balance?.display),
+        usedPercent = usedPercent(tokenCredits, allotment),
+        currency = config?.interfaceConfig?.currency,
+    )
 }
 
 /** Backs the Account tab: profile, avatar, balance, two-factor, sign out and account deletion. */
@@ -156,6 +188,7 @@ class AccountSettingsViewModel(
                 user = state.user?.let { it.copy(avatar = resolveAvatarUrl(it.avatar, baseUrl)) },
                 allowAccountDeletion = config?.allowAccountDeletion ?: true,
                 balanceEnabled = config?.balance?.enabled == true,
+                balance = state.balance.presentedFor(config),
                 providerKeysSummary = providerKeysSummary,
                 canDisableTwoFactor = !isTwoFactorRequiredFor(config?.twoFactorAuthenticationRequired, state.user?.provider),
             )

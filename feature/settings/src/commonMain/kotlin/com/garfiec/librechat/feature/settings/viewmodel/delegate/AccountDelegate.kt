@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.ui.media.AvatarImagePreparer
+import com.garfiec.librechat.feature.settings.model.allotment
 import com.garfiec.librechat.feature.settings.model.autoRefillInfo
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsUiState
@@ -77,7 +78,11 @@ class AccountDelegate(
             stateHandle.update { copy(balance = BalanceUiState.Loading) }
             when (val result = balanceRepository.getBalance()) {
                 is Result.Success -> {
-                    val loaded = BalanceUiState.Loaded(result.data.tokenCredits, result.data.autoRefillInfo())
+                    val loaded = BalanceUiState.Loaded(
+                        tokenCredits = result.data.tokenCredits,
+                        autoRefill = result.data.autoRefillInfo(),
+                        allotmentFromRefill = result.data.allotment(startBalance = null),
+                    )
                     stateHandle.update { copy(balance = loaded) }
                 }
                 is Result.Error -> {

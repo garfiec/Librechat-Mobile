@@ -1864,6 +1864,33 @@
       "failure_mode": "Upstream changes the rule and the Balance section shows a next-refill date that differs from web's. A wrong date renders exactly like a right one."
     },
     {
+      "id": "balance-display-modes",
+      "upstream": {
+        "file": "packages/data-provider/src/balance.ts",
+        "symbol": "BALANCE_DISPLAY_MODES",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/model/AutoRefillInfo.kt",
+        "symbol": "BalanceDisplay / CREDITS_PER_USD"
+      },
+      "why": "How the Balance section shows the reading: raw credits, their currency value (credits / CREDITS_PER_USD through interface.currency), or the share of the allotment spent with no credit figure anywhere. An unknown mode reads as credits, as web's toDisplay.",
+      "failure_mode": "Upstream adds a mode or changes the credits-per-dollar rate and the section shows credits, or the wrong amount of money, where web shows the new reading. Nothing fails to decode."
+    },
+    {
+      "id": "balance-summary",
+      "upstream": {
+        "file": "client/src/utils/balance.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/model/AutoRefillInfo.kt",
+        "symbol": "usedPercent / Balance.allotment; BalanceUiState.presentedFor in viewmodel/AccountSettingsViewModel.kt"
+      },
+      "why": "The share spent (floored, held to 99 while credits remain, 100 once empty) and its allotment (the refill amount under auto-refill, else the config's startBalance), plus the reset-mode wording AutoRefillSettings swaps in for refillMode 'reset'. The server serves only the raw record.",
+      "failure_mode": "Upstream changes the rounding or the allotment and the percent here disagrees with web's for the same account. A wrong percent renders like a right one."
+    },
+    {
       "id": "preview-poll-interval",
       "upstream": {
         "file": "client/src/data-provider/Files/queries.ts",
