@@ -69,6 +69,8 @@ import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.BannerDisplay
+import com.garfiec.librechat.core.ui.components.DrawerGestureLock
+import com.garfiec.librechat.core.ui.components.LocalDrawerGestureLock
 import com.garfiec.librechat.core.ui.components.LocalServerUrl
 import com.garfiec.librechat.core.ui.components.share.LocalExternalUriHandler
 import com.garfiec.librechat.core.ui.components.share.LocalOpenSharedChat
@@ -519,6 +521,7 @@ fun PhoneLayout(
     navHostViewModel: NavHostViewModel = koinViewModel(),
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val drawerGestureLock = remember { DrawerGestureLock() }
     val scope = rememberCoroutineScope()
     val isLoggedIn by navHostViewModel.isLoggedIn.collectAsStateWithLifecycle()
     val banner by navHostViewModel.banner.collectAsStateWithLifecycle()
@@ -550,7 +553,8 @@ fun PhoneLayout(
         // not just "not in the auth flow" — a logged-out deep link (e.g. an artifact viewer atop the
         // auth base) leaves a non-auth route on top, and without this its edge-swipe would open the
         // drawer over a session-less state.
-        gesturesEnabled = isLoggedIn && !navigator.isInAuthFlow,
+        // A full-screen viewer with gestures of its own (the PDF viewer) turns it off while shown.
+        gesturesEnabled = isLoggedIn && !navigator.isInAuthFlow && !drawerGestureLock.isLocked,
         // Liquid Glass shows the screen through the panel, so it dims it only lightly.
         scrimColor = if (glass != null) GlassDrawerScrim else DrawerDefaults.scrimColor,
         drawerContent = {
@@ -649,7 +653,9 @@ fun PhoneLayout(
                     onDismiss = navHostViewModel::dismissBanner,
                 )
             }
-            navDisplay({ scope.launch { drawerState.open() } }, Modifier.fillMaxSize())
+            CompositionLocalProvider(LocalDrawerGestureLock provides drawerGestureLock) {
+                navDisplay({ scope.launch { drawerState.open() } }, Modifier.fillMaxSize())
+            }
         }
     }
     // The drawer is drawn in the Compose canvas, under any native glass bar; hide those bars from

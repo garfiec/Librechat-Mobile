@@ -55,11 +55,9 @@ fun PdfPageContent(
 
     val widthPx = size.width
     val renderState = produceState<PageRender>(PageRender.Loading, doc, index, widthPx) {
-        // A width-change restart supersedes the previous bitmap: blank the display first (effects
-        // run before this frame draws), then it is safe to free the old pixels.
-        val superseded = (value as? PageRender.Ready)?.bitmap
-        value = PageRender.Loading
-        superseded?.asAndroidBitmap()?.recycle()
+        // A width change (a zoom) keeps drawing the previous bitmap, scaled, until the new one lands,
+        // so the page doesn't blank. The superseded bitmap is left to the GC, not recycled: the frame
+        // in flight may still draw it.
         if (widthPx > 0) {
             value = doc.renderPage(index, widthPx)?.let { PageRender.Ready(it) } ?: PageRender.Failed
         }
