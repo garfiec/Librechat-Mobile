@@ -5700,6 +5700,45 @@
       },
       "why": "When a server's mcpApps policy counts as enabled and which limits apply.",
       "failure_mode": "Rows show on a server whose policy web treats as off, or limits differ from web's."
+    },
+    {
+      "id": "mcp-app-sandbox-relay",
+      "upstream": {
+        "file": "client/public/mcp-sandbox.html",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/mcpapp/McpAppRelayPage.kt",
+        "symbol": "RELAY_SCRIPT"
+      },
+      "why": "The relay page is a port of the sandbox proxy's inner-frame half: sandbox token allowlist, View CSP meta + nonce heartbeat injection, head injection point, source and attestation checks.",
+      "failure_mode": "An App frame gains a capability or a message path web's sandbox refuses, or a new handshake step never reaches the App and every open times out."
+    },
+    {
+      "id": "mcp-app-bridge-host",
+      "upstream": {
+        "file": "client/src/hooks/MCP/useAppBridge.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/mcpapp/McpAppHost.kt",
+        "symbol": "McpAppHost"
+      },
+      "why": "The host's capabilities, initialize/host context, tool-input-then-result order, what needs approval, the preview-size fail-closed rule and the message overrides.",
+      "failure_mode": "The Kotlin host advertises or allows something web's bridge does not, or an App waiting for a step web sends never gets it."
+    },
+    {
+      "id": "mcp-app-approval-queue",
+      "upstream": {
+        "file": "client/src/hooks/MCP/approval.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/mcpapp/McpAppHost.kt",
+        "symbol": "requestApproval"
+      },
+      "why": "The approval queue bound, cancel-pauses-the-View rule and stop-requests behaviour.",
+      "failure_mode": "An App can queue more actions, or keep asking after the user cancelled."
     }
   ]
 }
