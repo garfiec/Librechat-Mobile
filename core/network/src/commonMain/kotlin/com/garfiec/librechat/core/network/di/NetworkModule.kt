@@ -21,6 +21,7 @@ import com.garfiec.librechat.core.network.api.KeysApi
 import com.garfiec.librechat.core.network.api.McpApi
 import com.garfiec.librechat.core.network.api.MemoriesApi
 import com.garfiec.librechat.core.network.api.MessagesApi
+import com.garfiec.librechat.core.network.api.PasskeyApi
 import com.garfiec.librechat.core.network.api.PermissionsApi
 import com.garfiec.librechat.core.network.api.PresetsApi
 import com.garfiec.librechat.core.network.api.ProjectsApi
@@ -235,6 +236,7 @@ val networkModule = module {
     singleOf(::McpApi)
     singleOf(::MemoriesApi)
     singleOf(::MessagesApi)
+    singleOf(::PasskeyApi)
     singleOf(::PermissionsApi)
     singleOf(::PresetsApi)
     singleOf(::ProjectsApi)

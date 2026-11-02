@@ -8,6 +8,7 @@ import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.model.User
+import com.garfiec.librechat.core.model.auth.RequestEmailChangeRequest
 import com.garfiec.librechat.core.model.request.ResendVerificationRequest
 import com.garfiec.librechat.core.model.request.VerifyEmailRequest
 import com.garfiec.librechat.core.model.response.TermsAcceptResponse
@@ -38,6 +39,11 @@ class UserRepositoryImpl(
                 .onFailure { Logger.w(it) { "Avatar uploaded but the roster entry was not updated" } }
         }
         return result
+    }
+
+    override suspend fun requestEmailChange(newEmail: String, currentPassword: String): Result<Unit> = safeApiCall {
+        userApi.requestEmailChange(RequestEmailChangeRequest(currentPassword = currentPassword, newEmail = newEmail))
+        Unit
     }
 
     override suspend fun verifyEmail(token: String): Result<Unit> = safeApiCall {

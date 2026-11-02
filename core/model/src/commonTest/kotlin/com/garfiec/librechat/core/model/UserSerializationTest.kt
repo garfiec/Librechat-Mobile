@@ -58,13 +58,20 @@ class UserSerializationTest {
         assertEquals("user-srv", decoded.id)
         assertEquals("mongo-srv", decoded.mongoId)
         assertEquals("Server User", decoded.name)
+        assertEquals("local", decoded.provider)
+    }
+
+    @Test
+    fun absentProviderIsUnknownNotLocal() {
+        val decoded = json.decodeFromString(User.serializer(), """{"email":"a@example.com"}""")
+        assertEquals(null, decoded.provider)
     }
 
     @Test
     fun userDefaultValuesPreserved() {
         val user = User(email = "defaults@example.com")
         assertEquals(false, user.emailVerified)
-        assertEquals("local", user.provider)
+        assertEquals(null, user.provider)
         assertEquals("USER", user.role)
         assertEquals(false, user.twoFactorEnabled)
         assertEquals(false, user.termsAccepted)

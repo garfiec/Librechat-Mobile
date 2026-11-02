@@ -5089,6 +5089,61 @@
       },
       "why": "Which Claude models that are not adaptive take a token budget (thinkingBudget) for the reasoning override.",
       "failure_mode": "A manual-thinking Claude model resolves to no setting, or a non-thinking one to thinkingBudget; a replayed budget then 400s or is dropped. Nothing fails to decode."
+    },
+    {
+      "id": "passkey-name-max-length",
+      "upstream": {
+        "file": "packages/api/src/auth/passkey/handlers.ts",
+        "symbol": "MAX_PASSKEY_NAME_LENGTH",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/auth/Passkey.kt",
+        "symbol": "MAX_PASSKEY_NAME_LENGTH"
+      },
+      "why": "The rename dialog's field stops at the length the server keeps (it truncates past it).",
+      "failure_mode": "Upstream raises the cap: names are cut short in the app for no reason. Lowers it: the server silently truncates a name the dialog accepted."
+    },
+    {
+      "id": "email-change-error-codes",
+      "upstream": {
+        "file": "packages/data-provider/src/types.ts",
+        "symbol": "EmailChangeErrorCode",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/auth/EmailChange.kt",
+        "symbol": "EmailChangeError"
+      },
+      "why": "Each code of POST /api/user/email/change gets its own string and lands under the field it concerns (email, password, or the dialog).",
+      "failure_mode": "A new or renamed code falls through to the generic 'request failed' message, and a field error stops highlighting its field. Nothing fails to decode."
+    },
+    {
+      "id": "email-change-request-schema",
+      "upstream": {
+        "file": "packages/api/src/auth/email.ts",
+        "symbol": "requestSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/auth/EmailChange.kt",
+        "symbol": "MAX_EMAIL_CHANGE_PASSWORD_LENGTH"
+      },
+      "why": "The dialog refuses a current password over the schema's max(128) before sending, as it could never match.",
+      "failure_mode": "Upstream raises the cap: a long valid password is refused locally as incorrect and the user cannot change their email."
+    },
+    {
+      "id": "email-change-limiter-window",
+      "upstream": {
+        "file": "api/server/middleware/limiters/emailChangeLimiter.js",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/auth/EmailChange.kt",
+        "symbol": "EMAIL_CHANGE_COOLDOWN_SECONDS"
+      },
+      "why": "After a 429 without Retry-After, Send stays off for the limiter's default window (EMAIL_CHANGE_USER_WINDOW, 2 minutes).",
+      "failure_mode": "A longer default window: the user retries early and each 429 logs another VERIFY_EMAIL_LIMIT violation toward a ban. Shorter: Send stays off longer than needed."
     }
   ]
 }

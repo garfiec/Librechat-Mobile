@@ -71,6 +71,8 @@ import com.garfiec.librechat.core.data.repository.MemoryRepository
 import com.garfiec.librechat.core.data.repository.MemoryRepositoryImpl
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.MessageRepositoryImpl
+import com.garfiec.librechat.core.data.repository.PasskeyRepository
+import com.garfiec.librechat.core.data.repository.PasskeyRepositoryImpl
 import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.PermissionsRepositoryImpl
 import com.garfiec.librechat.core.data.repository.PresetRepository
@@ -615,6 +617,7 @@ val dataModule = module {
     singleOf(::SubagentRepositoryImpl) bind SubagentRepository::class
     singleOf(::BackgroundTaskRepositoryImpl) bind BackgroundTaskRepository::class
     singleOf(::SpeechRepositoryImpl) bind SpeechRepository::class
+    singleOf(::PasskeyRepositoryImpl) bind PasskeyRepository::class
     singleOf(::UserRepositoryImpl) bind UserRepository::class
     singleOf(::BannerRepositoryImpl) bind BannerRepository::class
     single<FavoritesRepository> {

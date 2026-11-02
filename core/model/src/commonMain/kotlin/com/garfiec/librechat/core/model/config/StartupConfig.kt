@@ -122,6 +122,22 @@ data class StartupConfig(
      * servers; [ConversationListLimits.DEFAULT] stands in, as upstream's schema defaults do.
      */
     val conversationListLimits: ConversationListLimits? = null,
+    /**
+     * `ALLOW_PASSKEY_LOGIN` with at least one origin configured (v0.8.9-rc1). Every
+     * `/api/auth/passkey` route answers 404 while it is off, so absent is off.
+     */
+    val passkeyLoginEnabled: Boolean = false,
+    /**
+     * `passkeys.perUserMax` / `MAX_PASSKEYS_PER_USER` (v0.8.9-rc1, post-login only). Null on older
+     * servers and before sign-in; the server's 409 is the real guard.
+     */
+    val maxPasskeysPerUser: Int? = null,
+    /**
+     * Whether a local account may change its email (v0.8.9-rc1, `emailChange.enabled` /
+     * `ALLOW_EMAIL_CHANGE`). Web reads `=== true`; older servers don't send it, so absent is off.
+     * Only meaningful together with [emailEnabled]: the change needs a mail transport.
+     */
+    val allowEmailChange: Boolean = false,
 ) {
     /**
      * Upstream `supportsConversationTitleOwnership`: the capability is announced AND

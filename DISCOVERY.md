@@ -146,6 +146,18 @@ POST /api/auth/2fa/setup/finalize    { finalizationToken }         → { token, 
 #   403 terms_not_accepted on writes when interface.termsOfService.modalAcceptance (flat {code} or
 #   nested {error:{code}}); 403 TENANT_CONTEXT_REQUIRED on pre-auth routes under strict tenancy
 #   (OAuth callback: redirect to /login?...&code=TENANT_CONTEXT_REQUIRED).
+
+# Passkey management (v0.8.9-rc1). Bearer required; every route 404s
+# { message: "Passkey authentication is not enabled" } while startup.passkeyLoginEnabled is false.
+# No arg wrapper. Errors carry { message } only, no code.
+GET    /api/auth/passkey               → { passkeys: [{ id, name, deviceType, backedUp, transports, createdAt, lastUsedAt|null }] }
+                                          (newest first)
+PATCH  /api/auth/passkey/:passkeyId   { name }       → { passkey }  (trimmed, cut at 60; 400 blank, 404 not found)
+DELETE /api/auth/passkey/:passkeyId   { password? }  → { message }  (JSON body on a DELETE)
+  403 "Incorrect password" = step-up refused (deliberately 403, never 401); waived for an account
+  with no password hash. 404 = already gone. 429 = passkeyStepUpLimiter.
+# Not used by the app (native WebAuthn origins are rejected by rc1's normalizeOrigin):
+#   POST /api/auth/passkey/register/options|verify, POST /api/auth/passkey/login/options|verify.
 ```
 
 ### Configuration
@@ -1757,6 +1769,20 @@ GET /api/banner
 - id, name, email, username, avatar, role, provider
 - emailVerified, twoFactorEnabled
 - favorites, termsAccepted
+
+### Change account email (v0.8.9-rc1)
+```
+POST /api/user/email/change   { currentPassword, newEmail }  → { message, code? }   (no arg wrapper)
+  Mails a link to newEmail (${DOMAIN_CLIENT}/verify?type=email-change&…, 15 min default); the change
+  lands when it is opened on the web (POST /api/user/email/verify, not called by the app). Sessions
+  survive. Gate: provider == "local" && emailEnabled && allowEmailChange (startup config).
+  Codes: 400 invalid_request | same_email; 403 email_change_disabled | local_account_required |
+  current_password_invalid | email_domain_not_allowed; 409 email_in_use | account_modified |
+  request_in_progress; 500 email_delivery_failed; 503 email_service_unavailable;
+  429 (no code, emailChangeLimiter: 3 per 2 min per user, logs a VERIFY_EMAIL_LIMIT violation).
+  The "change requested" notice goes to the OLD address before the password is checked, so every
+  attempt mails it. Never retried.
+```
 
 ### Conversation
 - conversationId (UUID), title, user, endpoint, model

@@ -12,7 +12,14 @@ data class User(
     val email: String,
     val emailVerified: Boolean = false,
     val avatar: String? = null,
-    val provider: String = "local",
+    /**
+     * `local`, `ldap`, or the identity provider the account signs in with. Null when the server
+     * didn't say, which is deliberately not read as `local`: gates that need a password account
+     * (email change, the passkey password step-up) treat null as not local and stay hidden. The
+     * enforced-2FA check in settings still coalesces null to `local`, because there the safe
+     * direction is hiding Disable.
+     */
+    val provider: String? = null,
     val role: String = "USER",
     val twoFactorEnabled: Boolean = false,
     val termsAccepted: Boolean = false,
