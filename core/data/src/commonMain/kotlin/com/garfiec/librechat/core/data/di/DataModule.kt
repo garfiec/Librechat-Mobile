@@ -58,6 +58,8 @@ import com.garfiec.librechat.core.data.repository.DraftRepository
 import com.garfiec.librechat.core.data.repository.DraftRepositoryImpl
 import com.garfiec.librechat.core.data.repository.EndpointTokenRepository
 import com.garfiec.librechat.core.data.repository.EndpointTokenRepositoryImpl
+import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
+import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepositoryImpl
 import com.garfiec.librechat.core.data.repository.FavoritesRepository
 import com.garfiec.librechat.core.data.repository.FavoritesRepositoryImpl
 import com.garfiec.librechat.core.data.repository.FileRepository
@@ -593,6 +595,13 @@ val dataModule = module {
     }
     singleOf(::PermissionsRepositoryImpl) bind PermissionsRepository::class
     singleOf(::EndpointTokenRepositoryImpl) bind EndpointTokenRepository::class
+    single<ReasoningCapabilitiesRepository> {
+        ReasoningCapabilitiesRepositoryImpl(
+            endpointTokenApi = get(),
+            configRepository = get(),
+            activeAccountProvider = get(),
+        )
+    }
     singleOf(::PresetRepositoryImpl) bind PresetRepository::class
     singleOf(::ProjectChangeSignal)
     singleOf(::ProjectRepositoryImpl) bind ProjectRepository::class

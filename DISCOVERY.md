@@ -332,6 +332,21 @@ GET    /api/endpoints/token-config       → { [endpoint]: { [model]: { context,
 POST   /api/endpoints/context-projection → { conversationId, messageId, endpoint, model?, agentId?, spec?,
                                             maxContextTokens?, calibrationRatio? } → ContextUsage | null
 
+# Per-turn thinking (v0.8.9-rc1; gated isCompatibleOrNewer "0.8.9-rc1")
+GET    /api/endpoints/reasoning-capabilities?endpoint=<name>
+                                         → { capabilities: { [endpoint]: { [model]: { efforts: string[], mandatory? } } },
+                                             expiresInMs }
+                                            400 { error: endpoint_required } · 503 { error: reasoning_catalog_unavailable }
+                                            (retry, never cache) · 500 { error: reasoning_capabilities_failed }
+                                            Asked only for an OpenRouter-catalog endpoint (customParams.defaultParamsEndpoint
+                                            "openrouter", reasoningFormat not "disabled", no declared reasoning_effort).
+                                            Empty efforts = the model takes no effort; an unlisted model = unknown.
+POST   /api/agents/chat/:endpoint  { …, reasoningOverride: { key, value } }   one turn only; key is
+                                            reasoning_effort | effort | thinkingLevel | thinkingBudget (number). The server
+                                            applies it without saving it on the conversation, stores it on the user message
+                                            (`message.reasoningOverride`), and 400s one the target does not resolve to.
+                                            Also on POST /api/agents/chat/queued-turns (revalidated at admission).
+
 # Shared links: getSharedLinks dropped the isPublic query param (visibility now ACL-governed).
 GET    /api/share?cursor&pageSize&sortBy&sortDirection&search   (NO isPublic — removed in v0.8.7)
 ```
