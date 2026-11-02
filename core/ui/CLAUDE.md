@@ -306,8 +306,9 @@ at 95%), `formatCost` with its platform currency actuals, and `SampleContextMode
 - `PdfDocumentHolder` - Owns the `PdfRenderer`/fd; mutex-serialized on-demand `renderPage` with
   dimension caps and a page-count bound. Created from bytes, closed by the owning composable.
 - `PdfPageContent` - One page rendered when it scrolls into a LazyColumn window and recycled when
-  it scrolls out. Shared by `:feature:chat`'s viewer (adds per-page pinch-zoom via the modifier
-  slot) and `:feature:files`' preview (adds page labels). Fix render/recycle logic HERE, not in the
+  it scrolls out; a width change (a zoom) keeps drawing the old bitmap until the new one lands, and
+  leaves it to the GC. Shared by `:feature:chat`'s viewer (document-wide zoom: it lays pages out
+  wider, so they re-render sharp) and `:feature:files`' preview (adds page labels). Fix render/recycle logic HERE, not in the
   feature copies — there are none.
 
 ## Rules

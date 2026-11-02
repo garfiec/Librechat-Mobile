@@ -74,6 +74,7 @@ import com.garfiec.librechat.feature.chat.components.MessageList
 import com.garfiec.librechat.feature.chat.components.ParsedMarkdownCache
 import com.garfiec.librechat.feature.chat.components.SharedTextFileSheet
 import com.garfiec.librechat.feature.chat.components.artifact.MermaidRenderCache
+import com.garfiec.librechat.feature.chat.components.toAttachment
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_back
 import com.garfiec.librechat.feature.chat.resources.cd_more_options
@@ -273,20 +274,7 @@ private fun ProvideSharedFileOpeners(
         }
     }
     val messageFile: (FileReference) -> Unit = remember(fileActions) {
-        { file ->
-            fileActions(
-                Attachment(
-                    fileId = file.fileId,
-                    filename = file.filename,
-                    filepath = file.filepath,
-                    type = file.type,
-                    width = file.width,
-                    height = file.height,
-                    bytes = file.bytes,
-                    source = file.source,
-                ),
-            )
-        }
+        { file -> fileActions(file.toAttachment()) }
     }
     CompositionLocalProvider(
         LocalOpenFileActions provides fileActions,

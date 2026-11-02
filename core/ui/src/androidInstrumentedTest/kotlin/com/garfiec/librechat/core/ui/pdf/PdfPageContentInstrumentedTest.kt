@@ -96,8 +96,8 @@ class PdfPageContentInstrumentedTest {
         }
         try {
             composeRule.waitUntilPageRendered(1)
-            // Each flip recycles the superseded bitmap; recycling a still-displayed one would
-            // crash the draw pass.
+            // Each flip re-renders while the superseded bitmap stays on screen until the new one
+            // lands; recycling a still-displayed one would crash the draw pass.
             repeat(3) {
                 composeRule.runOnUiThread { narrow.value = !narrow.value }
                 composeRule.waitForIdle()

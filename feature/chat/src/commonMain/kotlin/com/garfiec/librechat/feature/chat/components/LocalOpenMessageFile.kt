@@ -4,8 +4,10 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import com.garfiec.librechat.core.model.FileReference
 
 /**
- * Opens a non-image file attached to a message (`message.files`). Null, the default, leaves those
- * chips untappable, as they are in the chat; the shared-chat viewer provides it, since a viewer has
- * no other way to read a shared file.
+ * Overrides how a non-image file attached to a message (`message.files`) opens. Null, the default,
+ * opens it as a tool's file opens ([ToolFileActions.openToolFile]): a PDF in the native viewer,
+ * anything else in the file-actions sheet. (A message file carries no extracted text, so it never
+ * opens in the artifact panel.) The shared-chat viewer provides it, since a shared file downloads
+ * through the share's route.
  */
 val LocalOpenMessageFile = staticCompositionLocalOf<((FileReference) -> Unit)?> { null }

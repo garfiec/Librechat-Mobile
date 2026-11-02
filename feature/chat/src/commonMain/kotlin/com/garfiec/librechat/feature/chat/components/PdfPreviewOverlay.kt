@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.BlockDrawerGestures
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.media.FileAction
 import com.garfiec.librechat.core.ui.media.FileActionsMenu
@@ -108,7 +109,12 @@ internal fun PdfPreviewOverlay(
         else -> null
     }
 
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+    // The overlay sits inside the navigation drawer, which would open on the viewer's sideways drags.
+    BlockDrawerGestures()
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.surface,
+    ) {
         Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp),
