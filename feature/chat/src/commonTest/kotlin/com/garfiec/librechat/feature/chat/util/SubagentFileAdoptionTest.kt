@@ -22,6 +22,17 @@ class SubagentFileAdoptionTest {
     }
 
     @Test
+    fun a_code_outputs_download_fallback_without_a_file_id_is_adopted_too() {
+        val fallback =
+            Attachment(filename = "chart.png", filepath = "/api/files/code/download/s/f", toolCallId = "child")
+        val owners = listOf(SubagentOwner("call_sub", null))
+
+        val adopted = adoptUnclaimedSubagentFiles(listOf(fallback), setOf("call_sub"), owners)
+
+        assertEquals("call_sub", adopted.single().toolCallId)
+    }
+
+    @Test
     fun a_claimed_file_stays_with_its_own_call() {
         val attachments = listOf(file("f1", "child_1"), file("f2", "call_sub"))
 

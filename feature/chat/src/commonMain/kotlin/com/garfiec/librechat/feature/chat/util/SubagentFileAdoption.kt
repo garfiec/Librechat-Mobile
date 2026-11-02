@@ -44,8 +44,10 @@ fun adoptUnclaimedSubagentFiles(
     return if (changed) adopted else attachments
 }
 
+/** A file the tool produced: a stored one, or a code output's download fallback (a `filepath`, no id). */
 private fun Attachment.isStoredToolFile(): Boolean =
-    !fileId.isNullOrBlank() && memory == null && webSearch == null && fileSearch == null && uiResources == null
+    (!fileId.isNullOrBlank() || !filepath.isNullOrBlank()) &&
+        memory == null && webSearch == null && fileSearch == null && uiResources == null
 
 /**
  * [adoptUnclaimedSubagentFiles] for a saved message: its calls claim their own files and, through
