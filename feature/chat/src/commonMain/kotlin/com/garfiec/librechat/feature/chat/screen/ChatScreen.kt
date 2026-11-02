@@ -46,9 +46,11 @@ import com.garfiec.librechat.feature.chat.components.ChatComposer
 import com.garfiec.librechat.feature.chat.components.ChatFloatingTopBar
 import com.garfiec.librechat.feature.chat.components.ChatOptionsPage
 import com.garfiec.librechat.feature.chat.components.ChatRoot
+import com.garfiec.librechat.feature.chat.components.CodeWorkspaceComposer
 import com.garfiec.librechat.feature.chat.components.ComposerComparison
 import com.garfiec.librechat.feature.chat.components.ComposerComparisonHint
 import com.garfiec.librechat.feature.chat.components.LandingStarters
+import com.garfiec.librechat.feature.chat.components.LocalCodeWorkspaceComposer
 import com.garfiec.librechat.feature.chat.components.ThinkingSheet
 import com.garfiec.librechat.feature.chat.components.ToolApprovalPanel
 import com.garfiec.librechat.feature.chat.components.UpdateAvailableBanner
@@ -531,7 +533,22 @@ fun ChatScreen(
                                     swell = COMPOSER_SWELL,
                                 )
                                 Box(composerVeil.modifier) {
-                                    CompositionLocalProvider(LocalComposerFlare provides composerVeil.flare) {
+                                    val codeWorkspace = uiState.codeWorkspace
+                                    val codeWorkspaceComposer = remember(codeWorkspace, viewModel) {
+                                        CodeWorkspaceComposer(
+                                            state = codeWorkspace,
+                                            onOpenSheet = viewModel::openCodeWorkspaceSheet,
+                                            onDismissSheet = viewModel::dismissCodeWorkspaceSheet,
+                                            onSelectWorkspace = viewModel::selectCodeWorkspace,
+                                            onSetCheckout = viewModel::setCodeCheckout,
+                                            onSelectNoWorkspace = viewModel::selectNoCodeWorkspace,
+                                            onRefresh = viewModel::refreshCodeWorkspaces,
+                                        )
+                                    }
+                                    CompositionLocalProvider(
+                                        LocalComposerFlare provides composerVeil.flare,
+                                        LocalCodeWorkspaceComposer provides codeWorkspaceComposer,
+                                    ) {
                                         ChatComposer(
                                             inputText = uiState.inputText,
                                             isStreaming = isAnyStreaming,

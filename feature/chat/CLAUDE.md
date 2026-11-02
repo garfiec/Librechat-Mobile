@@ -1127,6 +1127,36 @@ moves a custom OpenAI-compatible endpoint to a Responses API it may not serve.
   known and refuses it. Edit, regenerate and continue send the user message's own
   `reasoningOverride` (cached in Room, DB 14), not the pending one; nothing shows it on the bubble.
 
+## Code workspace: attached machines (`CodeWorkspaceDelegate`)
+An agent with stateful code sessions can run files and commands on the user's own machine (the
+`librechat-code` worker). The chat's choice of machine and workspace is a **decision the server seals
+with the first coding turn**: a new chat that sends neither `codeEnvironmentMode` nor `codeWorkspaces`
+is sealed "No workspace" for good. The rules are `:core:model` `code/CodeWorkspaceResolver.kt` (web's
+`useCodeWorkspace`, mirrored); the delegate gathers inputs, polls, and keeps the draft; the composer's
+`CodeWorkspaceRow` (provided through `LocalCodeWorkspaceComposer`, so both platform composers draw it)
+only draws `CodeWorkspaceUiState`.
+- **Gate on the fields, never the version** (VERSION_GATES.md): `RUN_CODE.USE`, the agents endpoint's
+  `execute_code` + `stateful_code_sessions` capabilities, an `attached` machine in
+  `statefulCodeSessions.environments`, a reachable agent that routes code there. Capability versions
+  are `==` checks. A plain agents chat sends neither field.
+- **Agents come from the list** (`ModelSelectionState.agents`, the in-memory list cache): only that
+  route projects `code_environment_id(s)`, `tools`, `agent_ids`, `edges` and `subagents`.
+- **What a send carries is `submissionForSend()`**: the resolved decision on a new or undecided chat,
+  nothing on a chat that holds one (the server applies it; resending could only be `locked`), null
+  while the row holds the send. A queued spec snapshots it at queue time. Deliberate divergence: with
+  workspaces to pick and nothing picked the send is held (web sends "No workspace", which the phone
+  cannot undo); with nothing to pick it sends "No workspace" and says so (`CODE_WORKSPACE_SENT_WITHOUT`).
+- **The saved decision is read live** (`CodeEnvironmentRepository.savedDecision`, no Room), only when a
+  coding agent is in the chat, and again whenever a run ends. Read the live value before re-fetching:
+  `combine` can hand the transform a superseded `Pending`, and re-reading on it never settles.
+- **Status polling** every 10 s only while the row is visible and the app is in front (`onPause` /
+  `onResume`), 30 s after a 503/504, never again after a 404. One read is always made when the set of
+  machines changes. The poll target is compared before launching: on an immediate dispatcher the
+  launch runs inline and re-enters `retarget`.
+- **Rejections** (`code_workspace_unavailable`) carry their `reason` in the marker
+  (`StreamErrorType.ARG_SEPARATOR`); `required`/`missing`/`worker_unavailable` also refresh status and
+  tint the workspace chip. Slice 2 (move/attach/detach a saved decision) is not built.
+
 ## Content Cards
 - `ImageGenCard` renders DALL-E / image generation results (spinner while generating, AsyncImage when done)
 - `LogContentCard` renders expandable log output blocks with monospace text

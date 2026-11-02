@@ -361,6 +361,11 @@ fun CommonChatInputCore(
                 showEphemeralTools = state.gates.showEphemeralTools,
             )
 
+            // The attached machine a coding agent works on (machine, workspace, branch, checkout).
+            LocalCodeWorkspaceComposer.current?.let { codeWorkspace ->
+                CodeWorkspaceRow(codeWorkspace, modifier = Modifier.padding(bottom = 4.dp))
+            }
+
             // Server-pinned tools (v0.8.7 defaultPinnedTools) as inline quick-toggle chips.
             // The Thinking chip rides the same row, so it shows with no pinned tools too.
             if (state.pinnedToolKeys.isNotEmpty() || state.thinking != null) {
@@ -500,7 +505,10 @@ private fun ComposerInputRow(
         // A comparison still choosing its second model has nowhere to send yet. Committing a queued
         // edit sends nothing (the queue is held through setup), so Update stays available.
         val blockedBySetup = state.comparisonHint == ComposerComparisonHint.SETTING_UP && !state.isEditingQueued
-        val hasComposerContent = !blockedBySetup && composerCanSend(
+        // A new turn waits on the workspace row (its lines say why); a mid-run queue does not.
+        val blockedByWorkspace = LocalCodeWorkspaceComposer.current?.state?.holdsSend == true &&
+            !state.isStreaming && !state.isEditingQueued
+        val hasComposerContent = !blockedBySetup && !blockedByWorkspace && composerCanSend(
             inputText = state.inputText,
             hasAttachments = state.attachedFiles.isNotEmpty(),
             arePicksUnsettled = state.arePicksUnsettled,
