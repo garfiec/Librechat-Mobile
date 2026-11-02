@@ -189,8 +189,8 @@ internal fun AgentDetailContent(
     val resetText = resetNotice?.let { approvalResetText(it) }
     LaunchedEffect(resetNotice) {
         if (resetText == null) return@LaunchedEffect
-        currentActions.onDismissApprovalReset()
         snackbarHostState.showSnackbar(resetText)
+        currentActions.onDismissApprovalReset()
     }
 
     if (uiState.showDeleteDialog) {

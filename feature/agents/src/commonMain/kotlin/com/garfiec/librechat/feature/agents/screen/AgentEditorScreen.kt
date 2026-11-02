@@ -105,8 +105,9 @@ fun AgentEditorScreen(
     val resetText = uiState.approvalResetNotice?.let { approvalResetText(it) }
     LaunchedEffect(uiState.approvalResetNotice) {
         val text = resetText ?: return@LaunchedEffect
-        viewModel.dismissApprovalResetNotice()
+        // Shown first: dismissing changes this effect's key, which would cancel the snackbar.
         snackbarHostState.showSnackbar(text)
+        viewModel.dismissApprovalResetNotice()
     }
 
     LaunchedEffect(Unit) {
