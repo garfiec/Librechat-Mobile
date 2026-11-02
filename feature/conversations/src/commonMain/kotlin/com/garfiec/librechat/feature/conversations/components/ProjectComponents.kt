@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.garfiec.librechat.core.common.extensions.formatLocalizedNumber
 import com.garfiec.librechat.core.model.config.ChatProjectLimits
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
@@ -63,6 +64,7 @@ import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
 import com.garfiec.librechat.core.ui.components.menuDragAnchor
 import com.garfiec.librechat.core.ui.components.menuDragTarget
 import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
+import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.feature.conversations.resources.Res
 import com.garfiec.librechat.feature.conversations.resources.cancel
 import com.garfiec.librechat.feature.conversations.resources.delete
@@ -281,11 +283,12 @@ fun ProjectEditorSheet(
                 supportingText = {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(stringResource(Res.string.project_description_help), modifier = Modifier.weight(1f))
+                        val localeTag = LocalDateTimeFormat.current.localeTag
                         Text(
                             text = stringResource(
                                 Res.string.project_length_counter,
-                                description.length.toString(),
-                                maxDescriptionLength.toString(),
+                                formatLocalizedNumber(description.length.toDouble(), localeTag),
+                                formatLocalizedNumber(maxDescriptionLength.toDouble(), localeTag),
                             ),
                             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                         )

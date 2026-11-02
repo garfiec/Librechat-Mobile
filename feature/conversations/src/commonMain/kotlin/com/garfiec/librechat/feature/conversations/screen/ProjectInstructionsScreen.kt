@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -190,11 +191,13 @@ private fun InstructionsEditor(state: ProjectInstructionsUiState, onDraftChange:
                 Icon(Icons.Outlined.Info, contentDescription = stringResource(Res.string.project_instructions_about_cd))
             }
         }
+        // Names the field for a screen reader; the label above it is not attached to it.
+        val fieldLabel = stringResource(Res.string.project_instructions_label)
         AdaptiveOutlinedTextField(
             value = state.draft,
             onValueChange = onDraftChange,
             readOnly = state.isSaving,
-            modifier = Modifier.fillMaxWidth().weight(1f),
+            modifier = Modifier.fillMaxWidth().weight(1f).semantics { contentDescription = fieldLabel },
         )
         val localeTag = LocalDateTimeFormat.current.localeTag
         val used = remember(localeTag, state.draft.length) {
