@@ -13,6 +13,7 @@ import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
+import com.garfiec.librechat.core.data.repository.PullRequestRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.model.ConversationTag
@@ -88,6 +89,7 @@ class DrawerBookmarksTest {
             pins = mockk<DrawerPinsStore> { every { pinned } returns MutableStateFlow(emptyList()) },
         ),
         chatRepository = mockk(relaxed = true),
+        pullRequestRepository = mockk<PullRequestRepository> { every { entries } returns flowOf(emptyMap()) },
         search = mockk<DrawerSearchSources>(relaxed = true) {
             every { messageSearch(any(), any()) } returns flowOf(DrawerMessageSearch.Idle)
         },

@@ -17,6 +17,7 @@ import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
+import com.garfiec.librechat.core.data.repository.PullRequestRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.SearchCapabilityRepository
 import com.garfiec.librechat.core.data.repository.SearchRepository
@@ -58,6 +59,8 @@ class ConversationsModuleVerificationTest {
                 BookmarksGate::class,
                 // DrawerViewModel's filter sheet: connectivity, and the filters held through process death.
                 ConnectivityObserver::class,
+                // The drawer's pull request marks.
+                PullRequestRepository::class,
                 SavedStateHandle::class,
             ),
         )

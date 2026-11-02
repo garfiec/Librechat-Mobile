@@ -17,6 +17,7 @@ import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
+import com.garfiec.librechat.core.data.repository.PullRequestRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.data.repository.bookmarksEnabled
@@ -36,6 +37,7 @@ import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
 import com.garfiec.librechat.core.model.permissions.canReachMemoriesSettings
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
+import com.garfiec.librechat.core.model.pullrequest.ConversationPullRequest
 import com.garfiec.librechat.core.model.resolveEndpointIconUrl
 import com.garfiec.librechat.feature.conversations.components.message
 import com.garfiec.librechat.feature.conversations.export.ConversationExporter
@@ -100,6 +102,7 @@ class DrawerViewModel(
     private val activeAccountProvider: ActiveAccountProvider,
     private val preferences: DrawerPreferences,
     private val chatRepository: ChatRepository,
+    private val pullRequestRepository: PullRequestRepository,
     private val search: DrawerSearchSources,
     connectivityObserver: ConnectivityObserver,
     /** Holds the applied filters through process death; a cold start begins unfiltered. */
@@ -195,17 +198,22 @@ class DrawerViewModel(
         val endpoints: Map<String, EndpointConfig>,
         val specs: ModelSpecs?,
         val serverUrl: String,
+        val pullRequests: Map<String, ConversationPullRequest> = emptyMap(),
     ) {
         fun display(convo: Conversation, activeId: String?, runningIds: Set<String> = emptySet()) =
-            convo.toDrawerDisplayData(activeId, endpoints, serverUrl, specs, runningIds)
+            convo.toDrawerDisplayData(activeId, endpoints, serverUrl, specs, runningIds, pullRequests)
     }
+
+    /** The rows' pull request marks and the lookups behind them. */
+    private val pullRequests = DrawerPullRequests(configRepository, pullRequestRepository, viewModelScope)
 
     private val drawerModelConfig = combine(
         configRepository.endpointConfigs,
         // Only the specs matter here: any other startup-config change would re-map the whole list.
         configRepository.startupConfig.map { it?.modelSpecs }.distinctUntilChanged(),
         configRepository.serverUrl,
-    ) { endpoints, specs, serverUrl -> DrawerModelConfig(endpoints, specs, serverUrl) }
+        pullRequests.marks,
+    ) { endpoints, specs, serverUrl, marks -> DrawerModelConfig(endpoints, specs, serverUrl, marks) }
 
     val inlineProjectChats: StateFlow<InlineProjectChatsState> = combine(
         _expandedProjectId,
@@ -502,6 +510,15 @@ class DrawerViewModel(
     }
 
     init {
+        pullRequests.start(
+            visible = drawerVisible,
+            shown = combine(
+                conversationListStateHolder.groupedConversations,
+                pinnedConversations,
+                favoriteConversations,
+            ) { grouped, pinned, favorites -> pinned + favorites + grouped.flatMap { it.second } },
+            running = activeJobIds,
+        )
         viewModelScope.launch {
             activeJobsPoll.collect { ids ->
                 _activeJobIds.value = ids
@@ -551,6 +568,7 @@ class DrawerViewModel(
             activeAccountProvider.accountTransitions().collect { transition ->
                 _activeJobIds.value = emptySet()
                 _fetchedUnlisted.value = emptyMap()
+                pullRequests.onAccountSwitched()
                 unlistedInFlight.clear()
                 // Filters name the outgoing account's bookmarks and endpoints.
                 setFilters(DrawerFilters.None)

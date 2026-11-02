@@ -3,6 +3,8 @@ package com.garfiec.librechat.feature.conversations.drawer
 import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.data.search.MessageSearchHit
 import com.garfiec.librechat.core.model.media.ProviderId
+import com.garfiec.librechat.core.model.pullrequest.ConversationPullRequest
+import com.garfiec.librechat.core.model.pullrequest.PullRequestPresentation
 import com.garfiec.librechat.feature.conversations.search.SearchNote
 import kotlin.time.Instant
 
@@ -38,6 +40,15 @@ data class DrawerConversationDisplayData(
     val isUnread: Boolean = false,
     /** Its reply is still being generated (the Running group's rows, wherever else they show). */
     val isRunning: Boolean = false,
+    /** The pull request its code workspace opened, as the row's mark shows it; never on a running row. */
+    val pullRequest: DrawerPullRequestMark? = null,
+)
+
+/** A drawer row's pull request, presented once in the mapping rather than per frame. */
+@Immutable
+data class DrawerPullRequestMark(
+    val pullRequest: ConversationPullRequest,
+    val presentation: PullRequestPresentation,
 )
 
 /**

@@ -144,6 +144,7 @@ import com.garfiec.librechat.core.model.config.ChatProjectLimits
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
+import com.garfiec.librechat.core.ui.components.CornerStatusDot
 import com.garfiec.librechat.core.ui.components.DragSelectRowShape
 import com.garfiec.librechat.core.ui.components.EndpointIcon
 import com.garfiec.librechat.core.ui.components.MenuDragSelection
@@ -151,6 +152,8 @@ import com.garfiec.librechat.core.ui.components.adaptiveSelectedRowColor
 import com.garfiec.librechat.core.ui.components.dragSelectRow
 import com.garfiec.librechat.core.ui.components.menuDragAnchor
 import com.garfiec.librechat.core.ui.components.pressBounce
+import com.garfiec.librechat.core.ui.components.pullrequest.PullRequestStateIcon
+import com.garfiec.librechat.core.ui.components.pullrequest.pullRequestSummary
 import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
 import com.garfiec.librechat.core.ui.components.rememberPressBounce
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
@@ -1895,6 +1898,12 @@ private fun DrawerConversationItem(
                 }
             }
 
+            data.pullRequest?.let { mark ->
+                Spacer(modifier = Modifier.width(8.dp))
+                PullRequestMark(mark)
+                if (!showBookmarkToggle) Spacer(modifier = Modifier.width(4.dp))
+            }
+
             if (showBookmarkToggle) {
                 val starBounce = rememberPressBounce()
                 Icon(
@@ -1930,13 +1939,23 @@ private fun DrawerConversationItem(
 @Composable
 private fun UnreadDot(modifier: Modifier = Modifier) {
     val description = stringResource(Res.string.cd_unread_reply)
-    Box(
-        modifier = modifier
-            .size(10.dp)
-            .background(if (isLiquidGlass) Color.Transparent else MaterialTheme.colorScheme.surfaceContainerLow, CircleShape)
-            .padding(2.dp)
-            .background(MaterialTheme.colorScheme.primary, CircleShape)
-            .semantics { contentDescription = description },
+    CornerStatusDot(
+        color = MaterialTheme.colorScheme.primary,
+        modifier = modifier.semantics { contentDescription = description },
+    )
+}
+
+/**
+ * A row's pull request, before its star: the state glyph with the CI dot on its corner. Decorative,
+ * since the row opens the chat (whose ⋮ has the detail); the summary rides the row's semantics.
+ */
+@Composable
+private fun PullRequestMark(mark: DrawerPullRequestMark, modifier: Modifier = Modifier) {
+    val summary = pullRequestSummary(mark.pullRequest, mark.presentation)
+    PullRequestStateIcon(
+        presentation = mark.presentation,
+        size = 16.dp,
+        modifier = modifier.semantics { contentDescription = summary },
     )
 }
 

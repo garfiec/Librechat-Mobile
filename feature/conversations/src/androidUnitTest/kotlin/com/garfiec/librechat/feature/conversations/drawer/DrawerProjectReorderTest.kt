@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.AllProjects
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
+import com.garfiec.librechat.core.data.repository.PullRequestRepository
 import com.garfiec.librechat.core.model.ChatProject
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -65,6 +66,7 @@ class DrawerProjectReorderTest {
             pins = mockk<DrawerPinsStore> { every { pinned } returns MutableStateFlow(emptyList()) },
         ),
         chatRepository = mockk(relaxed = true),
+        pullRequestRepository = mockk<PullRequestRepository> { every { entries } returns flowOf(emptyMap()) },
         search = mockk(relaxed = true),
         connectivityObserver = mockk<ConnectivityObserver> { every { isConnected } returns flowOf(true) },
         savedStateHandle = SavedStateHandle(),
