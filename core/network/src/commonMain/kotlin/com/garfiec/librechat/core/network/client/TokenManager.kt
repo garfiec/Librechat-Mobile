@@ -191,4 +191,13 @@ interface TokenManager : AuthGateHolder {
      * as [sessionHealth].
      */
     suspend fun endSessionForReauth(accountId: String?) = Unit
+
+    /**
+     * True when [accountId]'s session was ended because the server now requires it to set up 2FA
+     * (v0.8.9-rc1) and it has not signed in since. Persisted with the account's token slot, so it
+     * survives a restart and covers an account that was not active when its refresh was refused.
+     * Cleared by the next sign-in that resolves to the account, and by removing it. Defaulted to
+     * false for the same reason as [sessionHealth].
+     */
+    suspend fun isTwoFactorSetupRequired(accountId: String): Boolean = false
 }

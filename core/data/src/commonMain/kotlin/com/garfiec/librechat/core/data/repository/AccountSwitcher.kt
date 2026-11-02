@@ -425,6 +425,12 @@ class AccountSwitcher(
     /** Whether [accountId]'s keyed slot still holds a session. A hard expiry empties it. */
     suspend fun hasSession(accountId: String): Boolean = tokenManager.getAccessTokenFor(accountId) != null
 
+    /**
+     * True when [accountId] lost its session because its server now requires 2FA setup (see
+     * [TokenManager.isTwoFactorSetupRequired]). Signing in to it again runs the setup flow.
+     */
+    suspend fun needsTwoFactorSetup(accountId: String): Boolean = tokenManager.isTwoFactorSetupRequired(accountId)
+
     private suspend fun liveSuccessor(entries: List<AccountEntry>, excluding: String): AccountEntry? =
         entries
             .filter { it.accountId != excluding && hasSession(it.accountId) }

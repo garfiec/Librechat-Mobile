@@ -253,6 +253,7 @@ class NavHostViewModel(
                         .thenByDescending { it.lastActiveAt },
                 )
                 .map { entry ->
+                    val needsSignIn = !accountSwitcher.hasSession(entry.accountId)
                     AccountUiModel(
                         accountId = entry.accountId,
                         displayLabel = entry.displayLabel,
@@ -264,7 +265,8 @@ class NavHostViewModel(
                         // re-pointed server URL heals on the next read.
                         avatarUrl = resolveAvatarUrl(entry.avatarUrl, entry.serverUrl),
                         isActive = entry.accountId == activeId,
-                        needsSignIn = !accountSwitcher.hasSession(entry.accountId),
+                        needsSignIn = needsSignIn,
+                        needsTwoFactorSetup = needsSignIn && accountSwitcher.needsTwoFactorSetup(entry.accountId),
                     )
                 }
         }

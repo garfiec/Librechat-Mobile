@@ -61,6 +61,11 @@ data class AccountUiModel(
     val isActive: Boolean,
     /** The session expired: the account stays listed, but needs signing in to before it's usable. */
     val needsSignIn: Boolean = false,
+    /**
+     * Its session ended because the server now requires 2FA setup; only with [needsSignIn]. Signing
+     * in to it again returns the setup flow.
+     */
+    val needsTwoFactorSetup: Boolean = false,
 )
 
 /**

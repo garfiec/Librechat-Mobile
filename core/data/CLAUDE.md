@@ -90,6 +90,13 @@ would throw on the cleared cookie and read as Retryable — the old refresh limb
 the expiry report latched for the active binding (stragglers then settle HardExpired silently), and
 `authGate` set to `AuthGate.TwoFactorSetupRequired`. It returns `Transient`, never `settle()`: an
 expiry fails over to another account. `authGate` is cleared wherever the expiry latch is re-armed.
+The gate is raised only for the active binding, so a **non-active** account's enrollment would leave
+just an empty slot. Every enrollment therefore also writes a persisted marker beside the slot
+(`acct:<id>:two_factor_setup_required`), read through `TokenManager.isTwoFactorSetupRequired` /
+`AccountSwitcher.needsTwoFactorSetup`: the account switcher words that row as needing 2FA setup and
+its tap goes to sign-in, whose login answer runs the setup flow. Writing it starts no failover and
+leaves the active pointer alone. A sign-in that re-homes into the slot, a teardown and an account
+removal clear it.
 
 **A kept session that cannot renew is reported, not just kept.** The unattributed-403 arm also
 publishes `TokenManager.sessionHealth = SessionHealth.RenewalBlocked(accountId)`; the nav shell shows

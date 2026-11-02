@@ -64,6 +64,7 @@ import com.garfiec.librechat.core.ui.components.rememberListDragSelection
 import com.garfiec.librechat.core.ui.components.testTagsAsResourceIdSubtree
 import com.garfiec.librechat.feature.conversations.resources.Res
 import com.garfiec.librechat.feature.conversations.resources.account_signed_out
+import com.garfiec.librechat.feature.conversations.resources.account_two_factor_setup_required
 import com.garfiec.librechat.feature.conversations.resources.accounts
 import com.garfiec.librechat.feature.conversations.resources.add_account
 import com.garfiec.librechat.feature.conversations.resources.cancel
@@ -321,10 +322,11 @@ private fun AccountRow(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = if (account.needsSignIn) {
-                    stringResource(Res.string.account_signed_out, account.serverHost)
-                } else {
-                    account.serverHost
+                text = when {
+                    account.needsTwoFactorSetup ->
+                        stringResource(Res.string.account_two_factor_setup_required, account.serverHost)
+                    account.needsSignIn -> stringResource(Res.string.account_signed_out, account.serverHost)
+                    else -> account.serverHost
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = if (account.needsSignIn) {

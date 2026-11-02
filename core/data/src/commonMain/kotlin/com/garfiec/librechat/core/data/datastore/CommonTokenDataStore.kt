@@ -307,6 +307,8 @@ abstract class CommonTokenDataStore(
             // Same as [setTokens]: the keyed slot is being overwritten with a freshly-issued pair.
             clearRejectedRefresh(slotKey(accountId))
             sessions.writeSession(accountId, checkNotNull(staged))
+            // A fresh sign-in got past whatever the server required: setup is done.
+            removeValue(twoFactorSetupKey(accountId))
         }
         writeValue(KEY_ACTIVE_ACCOUNT, accountId)
         activeAccountKey = accountId
@@ -336,6 +338,7 @@ abstract class CommonTokenDataStore(
         clearRejectedRefresh(slotKey(activeAccountKey))
         clearRejectedRefresh(slotKey(null))
         sessions.removeSession(activeAccountKey)
+        activeAccountKey?.let { removeValue(twoFactorSetupKey(it)) }
         if (activeAccountKey != null) {
             // The active slot is keyed, so the bare keys can only hold a stale staged pair — purge it
             // so a killed login can't be cold-started back into an apparently-authenticated state.
@@ -384,6 +387,7 @@ abstract class CommonTokenDataStore(
         resetSessionExpiryLatch()
         bumpEpoch(accountId)
         sessions.removeSession(accountId)
+        removeValue(twoFactorSetupKey(accountId))
         // Evict the account's single-flight lock so [flights] doesn't retain a Mutex per removed
         // account. Safe: removeAccount bumps the epoch, so any in-flight refresh of this account
         // discards its result on commit regardless.
@@ -1277,6 +1281,11 @@ abstract class CommonTokenDataStore(
 
     override fun consumeAuthGate(gate: AuthGate) = authGates.consume(gate)
 
+    override suspend fun isTwoFactorSetupRequired(accountId: String): Boolean =
+        stateMutex.withLock { readValue(twoFactorSetupKey(accountId)) != null }
+
+    private fun twoFactorSetupKey(accountId: String): String = accountScopedName(accountId, KEY_TWO_FACTOR_SETUP_REQUIRED)
+
     /**
      * A refresh answered the enrollment 200: the server enforces 2FA, this account has none, and it
      * has already deleted the session and cleared the `refreshToken` cookie. So the slot goes, as on
@@ -1294,6 +1303,10 @@ abstract class CommonTokenDataStore(
             if (epochOf(accountKey) != epochAtStart) return@withLock
             dropSlotLocked(accountKey)
             clearRenewalBlocked(slotKey(accountKey))
+            // Persisted for every account, active or not: a non-active account gets no gate (the shell
+            // must not leave the account the user is on), so this marker is the only record of why
+            // its slot is empty, and it outlives a restart that drops the in-memory gate too.
+            if (accountKey != null) writeValue(twoFactorSetupKey(accountKey), MARKER_SET)
             if (accountKey == activeAccountKey) {
                 sessionExpiryReported = true
                 authGates.report(AuthGate.TwoFactorSetupRequired(accountKey, tempToken), activeAccountKey)
@@ -1403,6 +1416,8 @@ abstract class CommonTokenDataStore(
         const val KEY_ACCESS_TOKEN = "access_token"
         const val KEY_REFRESH_TOKEN = "refresh_token"
         private const val KEY_ACTIVE_ACCOUNT = "active_account_id"
+        private const val KEY_TWO_FACTOR_SETUP_REQUIRED = "two_factor_setup_required"
+        private const val MARKER_SET = "1"
         private const val REFRESH_PATH = "/api/auth/refresh"
 
         /** [flights] key for the bare (null-account) refresh path. */

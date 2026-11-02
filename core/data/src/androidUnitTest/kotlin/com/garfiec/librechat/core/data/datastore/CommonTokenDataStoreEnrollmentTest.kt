@@ -104,6 +104,47 @@ class CommonTokenDataStoreEnrollmentTest {
         }
 
     @Test
+    fun `a switched-away account's enrollment is recorded with the account, and the active one is untouched`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val store = seeded(enrollmentEngine(), active = OTHER)
+            val reported = mutableListOf<SessionEndReason>()
+            val collector = launch { store.sessionExpiredFlow.toList(reported) }
+
+            store.refreshAccessTokenFor(ACCOUNT, baseUrl = "https://a.example", usedAccessToken = null)
+
+            assertThat(store.isTwoFactorSetupRequired(ACCOUNT)).isTrue()
+            assertThat(store.isTwoFactorSetupRequired(OTHER)).isFalse()
+            // Persisted, not in memory only: the marker is in the backing store.
+            assertThat(store.store.keys).contains("acct:$ACCOUNT:two_factor_setup_required")
+            // No failover, no expiry report, no move of the active pointer.
+            assertThat(store.store[ACTIVE_ACCOUNT_KEY]).isEqualTo(OTHER)
+            assertThat(store.getAccessTokenFor(OTHER)).isEqualTo("B0")
+            assertThat(reported).isEmpty()
+            collector.cancel()
+        }
+
+    @Test
+    fun `signing back in to the account clears its setup marker`() = runTest(UnconfinedTestDispatcher()) {
+        val store = seeded(enrollmentEngine(), active = OTHER)
+        store.refreshAccessTokenFor(ACCOUNT, baseUrl = "https://a.example", usedAccessToken = null)
+
+        store.setTokens("A1", "R1")
+        store.onAccountResolved(ACCOUNT)
+
+        assertThat(store.isTwoFactorSetupRequired(ACCOUNT)).isFalse()
+    }
+
+    @Test
+    fun `removing the account clears its setup marker`() = runTest(UnconfinedTestDispatcher()) {
+        val store = seeded(enrollmentEngine(), active = OTHER)
+        store.refreshAccessTokenFor(ACCOUNT, baseUrl = "https://a.example", usedAccessToken = null)
+
+        store.removeAccount(ACCOUNT)
+
+        assertThat(store.isTwoFactorSetupRequired(ACCOUNT)).isFalse()
+    }
+
+    @Test
     fun `a sign-in clears the gate and re-arms the expiry report`() = runTest(UnconfinedTestDispatcher()) {
         val store = seeded(enrollmentEngine())
         store.refreshAccessToken()
