@@ -812,7 +812,10 @@ def main() -> int:
 
     print()
     if not changed and not missing:
-        print(f"All {len(results)} mirrors unchanged across this range.")
+        if rev_from == rev_to:
+            print(f"All {len(results)} mirrors resolve at this revision.")
+        else:
+            print(f"All {len(results)} mirrors unchanged across this range.")
         return 0
 
     if changed:
