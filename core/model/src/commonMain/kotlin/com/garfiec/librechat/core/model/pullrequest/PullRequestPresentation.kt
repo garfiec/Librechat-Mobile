@@ -38,49 +38,55 @@ data class PullRequestPresentation(
  * neutral one: an unknown state as open, unknown checks as none, an unknown provider as GitHub.
  */
 fun presentPullRequest(pr: ConversationPullRequest): PullRequestPresentation {
-    val (checks, checksTone, dot) = when (pr.checks) {
-        "passing" -> Triple(PullRequestChecksLabel.PASSING, PullRequestTone.SUCCESS, PullRequestTone.SUCCESS)
-        "failing" -> Triple(PullRequestChecksLabel.FAILING, PullRequestTone.ERROR, PullRequestTone.ERROR)
-        "running" -> Triple(PullRequestChecksLabel.RUNNING, PullRequestTone.WARNING, PullRequestTone.WARNING)
-        else -> Triple(PullRequestChecksLabel.NONE, PullRequestTone.NEUTRAL, null)
-    }
-    val provider = when (pr.provider) {
-        "gitlab" -> PullRequestProvider.GITLAB
-        "bitbucket" -> PullRequestProvider.BITBUCKET
-        else -> PullRequestProvider.GITHUB
-    }
+    val state = stateOf(pr)
+    val checks = checksOf(pr.checks)
     return PullRequestPresentation(
-        icon = when {
-            pr.state == "merged" -> PullRequestIcon.MERGED
-            pr.state == "closed" -> PullRequestIcon.CLOSED
-            pr.isDraft -> PullRequestIcon.DRAFT
-            else -> PullRequestIcon.OPEN
+        icon = state.icon,
+        iconTone = state.iconTone,
+        dotTone = if (pr.state == "open") checks.dot else null,
+        state = state.label,
+        stateTone = state.tone,
+        checks = checks.label,
+        checksTone = checks.tone,
+        provider = when (pr.provider) {
+            "gitlab" -> PullRequestProvider.GITLAB
+            "bitbucket" -> PullRequestProvider.BITBUCKET
+            else -> PullRequestProvider.GITHUB
         },
-        iconTone = when {
-            pr.state == "merged" -> PullRequestTone.MERGED
-            pr.state == "closed" || pr.isDraft -> PullRequestTone.NEUTRAL
-            pr.mergeable == "conflicting" -> PullRequestTone.ERROR
-            pr.mergeable == "clean" -> PullRequestTone.SUCCESS
-            else -> PullRequestTone.NEUTRAL
-        },
-        dotTone = if (pr.state == "open") dot else null,
-        state = when {
-            pr.state == "merged" -> PullRequestStateLabel.MERGED
-            pr.state == "closed" -> PullRequestStateLabel.CLOSED
-            pr.isDraft -> PullRequestStateLabel.DRAFT
-            pr.mergeable == "conflicting" -> PullRequestStateLabel.CONFLICTS
-            else -> PullRequestStateLabel.OPEN
-        },
-        stateTone = when {
-            pr.state == "merged" -> PullRequestTone.MERGED
-            pr.state == "closed" || pr.isDraft -> PullRequestTone.NEUTRAL
-            pr.mergeable == "conflicting" -> PullRequestTone.ERROR
-            else -> PullRequestTone.SUCCESS
-        },
-        checks = checks,
-        checksTone = checksTone,
-        provider = provider,
     )
+}
+
+private class StateView(
+    val icon: PullRequestIcon,
+    val iconTone: PullRequestTone,
+    val label: PullRequestStateLabel,
+    val tone: PullRequestTone,
+)
+
+private fun stateOf(pr: ConversationPullRequest): StateView = when {
+    pr.state == "merged" ->
+        StateView(PullRequestIcon.MERGED, PullRequestTone.MERGED, PullRequestStateLabel.MERGED, PullRequestTone.MERGED)
+    pr.state == "closed" ->
+        StateView(PullRequestIcon.CLOSED, PullRequestTone.NEUTRAL, PullRequestStateLabel.CLOSED, PullRequestTone.NEUTRAL)
+    pr.isDraft ->
+        StateView(PullRequestIcon.DRAFT, PullRequestTone.NEUTRAL, PullRequestStateLabel.DRAFT, PullRequestTone.NEUTRAL)
+    pr.mergeable == "conflicting" ->
+        StateView(PullRequestIcon.OPEN, PullRequestTone.ERROR, PullRequestStateLabel.CONFLICTS, PullRequestTone.ERROR)
+    else -> StateView(
+        PullRequestIcon.OPEN,
+        if (pr.mergeable == "clean") PullRequestTone.SUCCESS else PullRequestTone.NEUTRAL,
+        PullRequestStateLabel.OPEN,
+        PullRequestTone.SUCCESS,
+    )
+}
+
+private class ChecksView(val label: PullRequestChecksLabel, val tone: PullRequestTone, val dot: PullRequestTone?)
+
+private fun checksOf(checks: String): ChecksView = when (checks) {
+    "passing" -> ChecksView(PullRequestChecksLabel.PASSING, PullRequestTone.SUCCESS, PullRequestTone.SUCCESS)
+    "failing" -> ChecksView(PullRequestChecksLabel.FAILING, PullRequestTone.ERROR, PullRequestTone.ERROR)
+    "running" -> ChecksView(PullRequestChecksLabel.RUNNING, PullRequestTone.WARNING, PullRequestTone.WARNING)
+    else -> ChecksView(PullRequestChecksLabel.NONE, PullRequestTone.NEUTRAL, null)
 }
 
 /** Whether the pull request's link may be opened: an absolute http(s) URL that [isSafeLinkUrl] passes. */

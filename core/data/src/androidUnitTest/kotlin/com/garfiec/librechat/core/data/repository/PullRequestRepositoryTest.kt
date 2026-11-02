@@ -73,7 +73,13 @@ class PullRequestRepositoryTest {
     @Test
     fun aSuccessThenAFailureKeepsTheValueAndFlagsTheRefresh() = runTest {
         var fail = false
-        val repository = repo { if (fail) json("""{"code":"RATE_LIMITED"}""", HttpStatusCode.ServiceUnavailable) else json("""{"pullRequest":${pr(7)}}""") }
+        val repository = repo {
+            if (fail) {
+                json("""{"code":"RATE_LIMITED"}""", HttpStatusCode.ServiceUnavailable)
+            } else {
+                json("""{"pullRequest":${pr(7)}}""")
+            }
+        }
 
         repository.refresh("c1")
         assertThat(repository.entries.first()["c1"]?.pullRequest?.number).isEqualTo(7)
@@ -125,7 +131,11 @@ class PullRequestRepositoryTest {
     @Test
     fun aMissingBatchRouteFallsBackToSingleLookups() = runTest {
         val repository = repo { request ->
-            if (request.method == HttpMethod.Post) json("""{"error":"not found"}""", HttpStatusCode.NotFound) else json("""{"pullRequest":${pr(3)}}""")
+            if (request.method == HttpMethod.Post) {
+                json("""{"error":"not found"}""", HttpStatusCode.NotFound)
+            } else {
+                json("""{"pullRequest":${pr(3)}}""")
+            }
         }
         repository.refreshBatch(listOf("a", "b"), maxConcurrent = null)
 
