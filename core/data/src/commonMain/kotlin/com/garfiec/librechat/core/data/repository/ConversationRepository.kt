@@ -8,7 +8,7 @@ import com.garfiec.librechat.core.model.ConversationPage
 import kotlinx.coroutines.flow.Flow
 import kotlin.time.Instant
 
-@Suppress("TooManyFunctions") // debt: 22 functions
+@Suppress("TooManyFunctions") // debt: 23 functions
 interface ConversationRepository {
     fun observeConversations(isArchived: Boolean = false): Flow<Result<List<Conversation>>>
     suspend fun loadNextPage(
@@ -104,6 +104,9 @@ interface ConversationRepository {
         search: String? = null,
         limit: Int = 25,
     ): Result<ConversationPage>
+
+    /** The cached row for [id] under the active account, or null while none is cached. */
+    fun observeConversation(id: String): Flow<Conversation?>
 
     /** One conversation off the server, not written to the cache (the drawer's unlisted running rows). */
     suspend fun fetchConversationUncached(id: String): Result<Conversation>

@@ -17,6 +17,7 @@ import com.garfiec.librechat.core.model.config.labelFor
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.model.media.resolveIconSource
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
+import com.garfiec.librechat.feature.chat.components.ConversationSeenEffect
 import com.garfiec.librechat.feature.chat.components.LandingContent
 import com.garfiec.librechat.feature.chat.components.LandingHeroIcon
 import com.garfiec.librechat.feature.chat.components.MessageList
@@ -99,6 +100,13 @@ internal fun ColumnScope.ChatContent(
     // Pane B's, hoisted for the same reasons: the narrow pager disposes the off-screen pane and the
     // wide/narrow switch rebuilds both, so a pane-local state lost the reader's place on every one.
     val secondaryListState = rememberSaveable(uiState.screenState, saver = LazyListState.Saver) { LazyListState() }
+    // Unread replies (v0.8.9-rc1): the open chat's reply is acknowledged once it is on screen.
+    ConversationSeenEffect(
+        conversationId = uiState.conversationId.takeIf { uiState.screenState == ChatScreenState.ACTIVE },
+        displayMessages = uiState.displayMessages,
+        isStreaming = uiState.isStreaming,
+        listState = primaryListState,
+    )
     val comparisonPanes: @Composable () -> Unit = {
         ComparisonPanes(
             uiState = uiState,

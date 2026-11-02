@@ -385,6 +385,11 @@ class ConversationRepositoryImpl(
         ConversationPage(conversations = response.conversations, nextCursor = response.nextCursor)
     }
 
+    override fun observeConversation(id: String): Flow<Conversation?> =
+        activeAccountProvider.flatMapAccountOrEmpty(null) { account ->
+            conversationDao.observeByIdForAccount(id, account.value).map { it?.toModel() }
+        }.flowOn(dispatcher)
+
     override suspend fun fetchConversationUncached(id: String): Result<Conversation> =
         safeApiCall { conversationsApi.getConversation(id) }
 

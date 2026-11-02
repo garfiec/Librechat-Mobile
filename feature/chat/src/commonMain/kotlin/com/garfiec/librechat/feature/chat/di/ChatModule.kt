@@ -8,6 +8,7 @@ import com.garfiec.librechat.feature.chat.prompts.PromptsViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.BackgroundTasksViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNoticeHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMediaViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.ConversationSeenViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.McpSignInViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.NewChatSelectionHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.ProjectLandingViewModel
@@ -36,6 +37,7 @@ val chatModule = module {
     viewModelOf(::SubagentThreadsViewModel)
     viewModelOf(::TraceViewerViewModel)
     viewModelOf(::BackgroundTasksViewModel)
+    viewModelOf(::ConversationSeenViewModel)
     viewModelOf(::UpdateBannerViewModel)
     viewModelOf(::McpSignInViewModel)
     // Koin's constructor-DSL (`viewModelOf`) wires every argument via `get()` and cannot read
