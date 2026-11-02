@@ -26,9 +26,12 @@ import androidx.compose.material.icons.outlined.PermMedia
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,28 +43,37 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.garfiec.librechat.core.common.extensions.formatByteSize
 import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptivePillChoice
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.ChoiceFallback
 import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.LibreChatTopBar
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.core.ui.components.selectedTabIndex
+import com.garfiec.librechat.core.ui.media.FileAction
 import com.garfiec.librechat.core.ui.media.MediaActionBar
 import com.garfiec.librechat.core.ui.media.MediaItem
 import com.garfiec.librechat.core.ui.media.MediaViewerHost
 import com.garfiec.librechat.core.ui.media.mediaThumbnail
 import com.garfiec.librechat.core.ui.media.rememberSaveImageToGallery
-import com.garfiec.librechat.core.ui.media.rememberShareFile
 import com.garfiec.librechat.core.ui.media.rememberShareImage
+import com.garfiec.librechat.feature.chat.components.AttachmentFileActions
+import com.garfiec.librechat.feature.chat.components.LocalAttachmentDownloader
+import com.garfiec.librechat.feature.chat.components.LocalFileNotice
+import com.garfiec.librechat.feature.chat.components.LocalOpenPdf
+import com.garfiec.librechat.feature.chat.components.PdfOverlayHost
 import com.garfiec.librechat.feature.chat.components.artifact.Artifact
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactButton
 import com.garfiec.librechat.feature.chat.components.artifact.LocalOpenArtifact
+import com.garfiec.librechat.feature.chat.components.rememberAttachmentFileActions
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_close
 import com.garfiec.librechat.feature.chat.resources.cd_image
 import com.garfiec.librechat.feature.chat.resources.cd_save_to_device
 import com.garfiec.librechat.feature.chat.resources.cd_share_image
+import com.garfiec.librechat.feature.chat.resources.expired_explainer
 import com.garfiec.librechat.feature.chat.resources.media_empty_artifacts
 import com.garfiec.librechat.feature.chat.resources.media_empty_files
 import com.garfiec.librechat.feature.chat.resources.media_empty_links
@@ -74,7 +86,9 @@ import com.garfiec.librechat.feature.chat.resources.media_tab_files
 import com.garfiec.librechat.feature.chat.resources.media_tab_links
 import com.garfiec.librechat.feature.chat.resources.media_tab_media
 import com.garfiec.librechat.feature.chat.util.ConversationFile
+import com.garfiec.librechat.feature.chat.util.ConversationFileTap
 import com.garfiec.librechat.feature.chat.util.ConversationLink
+import com.garfiec.librechat.feature.chat.util.conversationFileTap
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMediaViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.MediaScope
 import kotlinx.coroutines.launch
@@ -97,70 +111,90 @@ fun ConversationMediaScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val pagerState = rememberPagerState { MediaTab.entries.size }
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val showNotice: (String) -> Unit = remember(scope, snackbarHostState) {
+        { message ->
+            scope.launch {
+                snackbarHostState.currentSnackbarData?.dismiss()
+                snackbarHostState.showSnackbar(message)
+            }
+        }
+    }
+    val download: suspend (Attachment) -> ByteArray? = remember(viewModel) { viewModel::downloadFileBytes }
 
     val saveImage = rememberSaveImageToGallery()
     val shareImage = rememberShareImage()
     val saveDescription = stringResource(Res.string.cd_save_to_device)
     val shareDescription = stringResource(Res.string.cd_share_image)
-    MediaViewerHost(
-        preview = uiState.mediaPreview,
-        onDismiss = viewModel::closeMedia,
-        closeContentDescription = stringResource(Res.string.cd_close),
-        defaultContentDescription = stringResource(Res.string.cd_image),
-        actions = { item ->
-            MediaActionBar(
-                item = item,
-                onSave = saveImage,
-                onShare = shareImage,
-                saveContentDescription = saveDescription,
-                shareContentDescription = shareDescription,
-            )
-        },
+    CompositionLocalProvider(
+        LocalAttachmentDownloader provides download,
+        LocalFileNotice provides showNotice,
     ) {
-        AdaptiveScaffold(
-            modifier = modifier,
-            topBar = {
-                LibreChatTopBar(
-                    title = stringResource(Res.string.media_gallery_title),
-                    onNavigateBack = onNavigateBack,
-                )
-            },
-        ) { padding ->
-            Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-                AdaptivePillChoice(
-                    options = listOf(
-                        stringResource(Res.string.media_tab_media),
-                        stringResource(Res.string.media_tab_files),
-                        stringResource(Res.string.media_tab_links),
-                        stringResource(Res.string.media_tab_artifacts),
-                    ),
-                    selectedIndex = pagerState.selectedTabIndex(),
-                    onSelect = { scope.launch { pagerState.animateScrollToPage(it) } },
-                    modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
-                    // Tabs over the page: a radio list here would push the gallery down.
-                    fallback = ChoiceFallback.TWO_LINES,
-                )
+        // Screen-lifetime, not per pager page: a page swiped away would cancel the open it started.
+        val fileActions = rememberAttachmentFileActions()
+        PdfOverlayHost(onDownload = download) {
+            MediaViewerHost(
+                preview = uiState.mediaPreview,
+                onDismiss = viewModel::closeMedia,
+                closeContentDescription = stringResource(Res.string.cd_close),
+                defaultContentDescription = stringResource(Res.string.cd_image),
+                actions = { item ->
+                    MediaActionBar(
+                        item = item,
+                        onSave = saveImage,
+                        onShare = shareImage,
+                        saveContentDescription = saveDescription,
+                        shareContentDescription = shareDescription,
+                    )
+                },
+            ) {
+                AdaptiveScaffold(
+                    modifier = modifier,
+                    snackbarHost = { AdaptiveSnackbarHost(snackbarHostState) },
+                    topBar = {
+                        LibreChatTopBar(
+                            title = stringResource(Res.string.media_gallery_title),
+                            onNavigateBack = onNavigateBack,
+                        )
+                    },
+                ) { padding ->
+                    Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+                        AdaptivePillChoice(
+                            options = listOf(
+                                stringResource(Res.string.media_tab_media),
+                                stringResource(Res.string.media_tab_files),
+                                stringResource(Res.string.media_tab_links),
+                                stringResource(Res.string.media_tab_artifacts),
+                            ),
+                            selectedIndex = pagerState.selectedTabIndex(),
+                            onSelect = { scope.launch { pagerState.animateScrollToPage(it) } },
+                            modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
+                            // Tabs over the page: a radio list here would push the gallery down.
+                            fallback = ChoiceFallback.TWO_LINES,
+                        )
 
-                ScopeToggle(
-                    scope = uiState.scope,
-                    onScopeChange = viewModel::setScope,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                )
+                        ScopeToggle(
+                            scope = uiState.scope,
+                            onScopeChange = viewModel::setScope,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                        )
 
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxSize(),
-                    beyondViewportPageCount = 1,
-                ) { page ->
-                    when {
-                        uiState.isLoading -> LoadingIndicator(modifier = Modifier.fillMaxSize())
-                        else -> when (MediaTab.entries[page]) {
-                            MediaTab.MEDIA -> MediaGrid(uiState.media, onOpen = viewModel::openMedia)
-                            MediaTab.FILES -> FilesList(uiState.files, downloadBytes = viewModel::downloadFileBytes)
-                            MediaTab.LINKS -> LinksList(uiState.links)
-                            MediaTab.ARTIFACTS -> ArtifactsList(uiState.artifacts)
+                        HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier.fillMaxSize(),
+                            beyondViewportPageCount = 1,
+                        ) { page ->
+                            when {
+                                uiState.isLoading -> LoadingIndicator(modifier = Modifier.fillMaxSize())
+                                else -> when (MediaTab.entries[page]) {
+                                    MediaTab.MEDIA -> MediaGrid(uiState.media, onOpen = viewModel::openMedia)
+                                    MediaTab.FILES -> FilesList(uiState.files, fileActions)
+                                    MediaTab.LINKS -> LinksList(uiState.links)
+                                    MediaTab.ARTIFACTS -> ArtifactsList(uiState.artifacts)
+                                }
+                            }
                         }
                     }
                 }
@@ -221,10 +255,7 @@ private fun MediaGrid(
 }
 
 @Composable
-private fun FilesList(
-    files: List<ConversationFile>,
-    downloadBytes: suspend (Attachment) -> ByteArray?,
-) {
+private fun FilesList(files: List<ConversationFile>, fileActions: AttachmentFileActions) {
     if (files.isEmpty()) {
         EmptyState(
             title = stringResource(Res.string.media_empty_files),
@@ -232,17 +263,22 @@ private fun FilesList(
         )
         return
     }
-    val scope = rememberCoroutineScope()
-    val shareFile = rememberShareFile()
+    val openPdf = LocalOpenPdf.current
+    val openArtifact = LocalOpenArtifact.current
+    val notice = LocalFileNotice.current
+    val expiredExplainer = stringResource(Res.string.expired_explainer)
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         items(files, key = { it.key }) { file ->
+            val busy = fileActions.busyAction(file.attachment) != null
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable {
-                        scope.launch {
-                            val bytes = downloadBytes(file.attachment)
-                            if (bytes != null) shareFile(bytes, file.filename, file.type)
+                    .clickable(enabled = !busy) {
+                        when (val tap = conversationFileTap(file.attachment, canOpenArtifact = openArtifact != null)) {
+                            is ConversationFileTap.Pdf -> openPdf(tap.fileId, file.filename)
+                            is ConversationFileTap.OpenArtifact -> openArtifact?.invoke(tap.artifact, listOf(tap.artifact))
+                            ConversationFileTap.OpenWith -> fileActions.run(file.attachment, FileAction.OPEN_IN)
+                            ConversationFileTap.Expired -> notice(expiredExplainer)
                         }
                     }
                     .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -254,7 +290,7 @@ private fun FilesList(
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(40.dp),
                 )
-                Column(modifier = Modifier.padding(start = 16.dp)) {
+                Column(modifier = Modifier.weight(1f).padding(start = 16.dp)) {
                     Text(
                         text = file.filename,
                         style = MaterialTheme.typography.bodyLarge,
@@ -274,6 +310,12 @@ private fun FilesList(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
+                }
+                if (busy) {
+                    AdaptiveCircularProgressIndicator(
+                        modifier = Modifier.padding(start = 16.dp).size(24.dp),
+                        strokeWidth = 2.dp,
+                    )
                 }
             }
         }
