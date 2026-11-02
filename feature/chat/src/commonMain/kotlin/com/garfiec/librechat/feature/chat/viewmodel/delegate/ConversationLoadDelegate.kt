@@ -408,14 +408,16 @@ class ConversationLoadDelegate(
             // the chat: one that has neither there either would otherwise cost a request every open.
             val cached = conversation
             val backfillKey = currentAccountId()?.let { "$it:$conversationId:${cached?.updatedAt}" }
-            val incomplete = cached != null && (
+            val selectionIncomplete = cached != null && (
                 (cached.spec == null && currentModelSpecs()?.enforce == true) ||
-                    (wantsParameters && (!cached.hasParameters || cached.parametersStale)) ||
-                    // Writes only the conversation row, which the message observer doesn't read, so
-                    // it is safe mid-stream (the streaming anchor depends on the messages alone).
-                    (cached.isCodeConversation == null && pullRequestsAvailable())
+                    (wantsParameters && (!cached.hasParameters || cached.parametersStale))
                 )
-            if (incomplete && backfillKey != null && backfillKey !in conversationBackfillDone) {
+            // Whether this is a code chat (for its pull request) is learned from the fetch's row write
+            // alone: it re-applies no model or parameters, so a chat opened mid-run keeps the
+            // selection the cached row gave it. The row isn't read by the message observer, so the
+            // write is safe mid-stream (the streaming anchor depends on the messages alone).
+            val codeUnknown = cached != null && cached.isCodeConversation == null && pullRequestsAvailable()
+            if ((selectionIncomplete || codeUnknown) && backfillKey != null && backfillKey !in conversationBackfillDone) {
                 val unchanged = watchSelection()
                 val fetched = conversationRepository.refreshConversation(conversationId, originAccount = null).getOrNull()
                 // A model or parameter set while the fetch was out is the user's and stays.
@@ -424,7 +426,7 @@ class ConversationLoadDelegate(
                     // Only a successful fetch settles it: a failed one is retried on the next open.
                     conversationBackfillDone.add(backfillKey)
                     conversation = it
-                    if (userUnchanged) {
+                    if (selectionIncomplete && userUnchanged) {
                         applied = apply(it, restore = wantsParameters && it.hasParameters)
                     }
                 }
