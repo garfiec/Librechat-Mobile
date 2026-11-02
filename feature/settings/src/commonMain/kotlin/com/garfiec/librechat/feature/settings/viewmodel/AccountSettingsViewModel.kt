@@ -42,6 +42,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
 import kotlin.time.Clock
 
 @Immutable
@@ -52,7 +53,7 @@ data class AccountSettingsUiState(
      * the Account section so the rest of the screen (Sign Out, Delete Account, etc.) stays
      * reachable while the server is unreachable. Cleared at the start of each `loadUser()`.
      */
-    val profileLoadError: String? = null,
+    val profileLoadError: StringResource? = null,
     /**
      * Transient errors surfaced via snackbar; cleared by [AccountSettingsViewModel.dismissError]
      * after the snackbar is shown/acted on. Used for one-shot failures: avatar upload,

@@ -9,6 +9,8 @@ import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.ui.media.AvatarImagePreparer
 import com.garfiec.librechat.feature.settings.model.allotment
 import com.garfiec.librechat.feature.settings.model.autoRefillInfo
+import com.garfiec.librechat.feature.settings.resources.Res
+import com.garfiec.librechat.feature.settings.resources.account_profile_load_failed
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.BalanceUiState
@@ -46,11 +48,8 @@ class AccountDelegate(
             when (val result = userRepository.getUser()) {
                 is Result.Success -> applyUser(result.data)
                 is Result.Error -> {
-                    stateHandle.update {
-                        copy(
-                            profileLoadError = result.message ?: "Failed to load user profile",
-                        )
-                    }
+                    Logger.w(result.exception) { "Profile load failed: ${result.message}" }
+                    stateHandle.update { copy(profileLoadError = Res.string.account_profile_load_failed) }
                 }
                 is Result.Loading -> { /* no-op */ }
             }
@@ -75,9 +74,7 @@ class AccountDelegate(
                 is Result.Error -> {
                     Logger.w(result.exception) { "Profile refresh failed: ${result.message}" }
                     if (stateHandle.state.user == null) {
-                        stateHandle.update {
-                            copy(profileLoadError = result.message ?: "Failed to load user profile")
-                        }
+                        stateHandle.update { copy(profileLoadError = Res.string.account_profile_load_failed) }
                     }
                 }
                 is Result.Loading -> { /* no-op */ }

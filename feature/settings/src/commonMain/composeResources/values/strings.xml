@@ -35,6 +35,7 @@
     <string name="memory_redacted_value">This server's content policy hides what's stored here. You can still delete it.</string>
     <string name="memory_redacted_value_no_delete">This server's content policy hides what's stored here.</string>
     <string name="cd_loading_profile">Loading profile</string>
+    <string name="account_profile_load_failed">Couldn't load your profile.</string>
     <string name="cd_make_private">Make private</string>
     <string name="cd_make_public">Make public</string>
     <string name="cd_preview_voice">Preview voice</string>

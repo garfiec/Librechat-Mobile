@@ -18,6 +18,8 @@ import com.garfiec.librechat.core.model.auth.EmailChangeError
 import com.garfiec.librechat.core.model.auth.Passkey
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
+import com.garfiec.librechat.feature.settings.resources.Res
+import com.garfiec.librechat.feature.settings.resources.account_profile_load_failed
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.EmailChangeNotice
 import com.google.common.truth.Truth.assertThat
@@ -309,6 +311,19 @@ class AccountEmailChangeAndPasskeysTest {
 
         assertThat(viewModel.uiState.value.user?.email).isEqualTo("maya@example.com")
         assertThat(viewModel.uiState.value.profileLoadError).isNull()
+    }
+
+    @Test
+    fun `a failed resume refresh with no profile yet shows the localized banner, not the server text`() = runTest {
+        coEvery { userRepository.getUser() } returns Result.Error(message = "offline")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.refreshOnReturn()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.user).isNull()
+        assertThat(viewModel.uiState.value.profileLoadError).isEqualTo(Res.string.account_profile_load_failed)
     }
 
     // ── Passkeys row ───────────────────────────────────────────────

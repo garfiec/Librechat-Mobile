@@ -21,6 +21,8 @@ import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.response.BackupCodesResponse
 import com.garfiec.librechat.core.ui.media.PreparedImage
 import com.garfiec.librechat.feature.settings.model.AutoRefillInfo
+import com.garfiec.librechat.feature.settings.resources.Res
+import com.garfiec.librechat.feature.settings.resources.account_profile_load_failed
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.ProviderKeysSummary
 import com.google.common.truth.Truth.assertThat
@@ -247,7 +249,7 @@ class AccountSettingsViewModelTest {
 
         val state = viewModel.uiState.value
         assertThat(state.user).isNull()
-        assertThat(state.profileLoadError).isEqualTo("Network error")
+        assertThat(state.profileLoadError).isEqualTo(Res.string.account_profile_load_failed)
         assertThat(state.error).isNull()
     }
 
@@ -256,7 +258,7 @@ class AccountSettingsViewModelTest {
         coEvery { userRepository.getUser() } returns Result.Error(message = "Network error")
         val viewModel = createViewModel()
         advanceUntilIdle()
-        assertThat(viewModel.uiState.value.profileLoadError).isEqualTo("Network error")
+        assertThat(viewModel.uiState.value.profileLoadError).isEqualTo(Res.string.account_profile_load_failed)
 
         coEvery { userRepository.getUser() } returns Result.Success(testUser)
         viewModel.retry()
