@@ -392,15 +392,24 @@ object CodeWorkspaceResolver {
             else -> web
         }
         val visible = !locked || !canSubmit || inferredMode == CodeEnvironmentMode.WITHOUT_ATTACHED
+        // A saved chat that never decided is not attached by a suggestion (web infers "No
+        // workspace" there). Its send is held, so show it as choosing, not as a pick it isn't.
+        val unconsented = implicitWithout && !nothingToPick && !chat.isNewChat &&
+            environmentResults.any { it.state == State.READY }
+        val shownResults = if (unconsented) {
+            environmentResults.map { if (it.state == State.READY) it.copy(state = State.CHOOSE, selected = null) else it }
+        } else {
+            environmentResults
+        }
         return Resolution(
             required = true,
             supportsDecisions = supportsDecisions,
             locked = locked,
             mode = inferredMode,
-            state = state,
+            state = if (unconsented && state == State.READY) State.CHOOSE else state,
             canSubmit = submission != null,
             visible = visible,
-            environments = environmentResults,
+            environments = shownResults,
             machineOptions = machineOptions,
             machineOptionGroups = machineOptionGroups,
             machineChoiceOwners = machineChoiceOwners,

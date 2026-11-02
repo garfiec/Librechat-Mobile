@@ -16,6 +16,7 @@ import com.garfiec.librechat.core.common.network.RequestActivityTracker
 import com.garfiec.librechat.core.common.power.PowerStateObserver
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore
+import com.garfiec.librechat.core.data.datastore.CodeWorkspacePreferenceStore
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
@@ -38,6 +39,7 @@ import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.BookmarksGate
 import com.garfiec.librechat.core.data.repository.ChatRepository
+import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.DraftRepository
@@ -86,6 +88,7 @@ import com.garfiec.librechat.core.network.api.AuthApi
 import com.garfiec.librechat.core.network.api.BalanceApi
 import com.garfiec.librechat.core.network.api.BannerApi
 import com.garfiec.librechat.core.network.api.ChatApi
+import com.garfiec.librechat.core.network.api.CodeEnvironmentsApi
 import com.garfiec.librechat.core.network.api.ConfigApi
 import com.garfiec.librechat.core.network.api.ConversationsApi
 import com.garfiec.librechat.core.network.api.EndpointTokenApi
@@ -184,6 +187,7 @@ class KoinGraphVerificationTest {
             AuthApi::class,
             BalanceApi::class,
             BannerApi::class,
+            CodeEnvironmentsApi::class,
             ChatApi::class,
             ConfigApi::class,
             ConversationsApi::class,
@@ -224,12 +228,14 @@ class KoinGraphVerificationTest {
             SsoRiskDataStore::class,
             ThemeDataStore::class,
             ConversationWebSearchStore::class,
+            CodeWorkspacePreferenceStore::class,
             AgentRepository::class,
             AgentToolsRepository::class,
             ApiKeyRepository::class,
             AuthRepository::class,
             BalanceRepository::class,
             BannerRepository::class,
+            CodeEnvironmentRepository::class,
             BackgroundTaskRepository::class,
             ChatRepository::class,
             ConfigRepository::class,

@@ -1,12 +1,12 @@
 # feature:chat
 
 ## State Architecture (ChatUiState slices + narrowed handles)
-`ChatUiState` is decomposed into **17 `@Immutable` sub-state slices**, plus two top-level fields: `error`
+`ChatUiState` is decomposed into **18 `@Immutable` sub-state slices**, plus two top-level fields: `error`
 (a shared transient-banner channel) and `mediaPreview`. The slices: `conversation`, `content`
 (message tree + all streaming fields),
 `editing`, `composer`, `selection` (endpoint/model/tools/params), `queue`, `steer`, `search`,
 `presetPrompts`, `voice`, `favorites`, `subagents`, `comparisonState`, `gates`, `account`,
-`actions`, `prefs`.
+`actions`, `prefs`, `codeWorkspace`.
 
 - **Compat accessors.** `ChatUiState` keeps flat `val field get() = slice.field` accessors for
   every former field, so the ~250 UI read sites and test assertions read `uiState.isStreaming`

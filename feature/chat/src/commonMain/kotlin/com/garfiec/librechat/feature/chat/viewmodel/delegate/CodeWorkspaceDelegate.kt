@@ -224,13 +224,19 @@ class CodeWorkspaceDelegate(
         val resolution = CodeWorkspaceResolver.resolve(capabilities, chat, agentsById, statuses) { env, agent ->
             remembered[agent to env]
         }
-        if (!resolution.required || conversationId == null || inputs.isStreaming) return resolution
+        if (!resolution.required || conversationId == null) return resolution
+        val unknown = resolution.copy(visible = false, submission = CodeWorkspaceSubmission.NONE, canSubmit = true)
         return when (savedState) {
             is Saved.Known -> resolution
-            // Unknown whether this chat decided: wait for the read, and send nothing if it fails,
-            // which keeps whatever the server recorded.
-            Saved.Unreadable -> resolution.copy(visible = false, submission = CodeWorkspaceSubmission.NONE, canSubmit = true)
-            else -> {
+            // Unknown whether this chat decided: send nothing if the read failed, which keeps
+            // whatever the server recorded.
+            Saved.Unreadable -> unknown
+            // A run is out, usually the one recording the decision: what it sent is the server's
+            // now, so a follow-up queued meanwhile sends nothing rather than a pre-selection that
+            // could differ from it (`locked`). The read waits for the run to end.
+            else -> if (inputs.isStreaming) {
+                unknown
+            } else {
                 fetchSaved(conversationId)
                 resolution.copy(visible = false, submission = null, canSubmit = false)
             }
@@ -341,6 +347,9 @@ class CodeWorkspaceDelegate(
 
     /** Refetches every machine's status now (the sheet's Refresh, the locked status chip). */
     fun refresh() {
+        // A saved decision that could not be read is read again too (otherwise only when a run
+        // ends), so a chat opened offline recovers from Refresh.
+        if (saved.value?.second == Saved.Unreadable) saved.value = null
         goneMachines.clear()
         lastFetched.clear()
         pollTarget = null

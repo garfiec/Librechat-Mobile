@@ -26,6 +26,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceChipLabel
 import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
+import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import com.google.common.truth.Truth.assertThat
@@ -211,6 +212,31 @@ class CodeWorkspaceDelegateTest {
             assertThat(flow.value.codeWorkspace.visible).isFalse()
             // Nothing to send without a workspace for, so nothing to announce either.
             assertThat(ChatNotice.CODE_WORKSPACE_SENT_WITHOUT.marker()).isNotEmpty()
+        }
+    }
+
+    @Test
+    fun `a follow-up queued during the run that records the decision sends nothing`() {
+        // The landing picked a non-default workspace; the handed-off screen must not resend the
+        // agent's default under it while the first run is still out.
+        val environments = FakeEnvironments(ready(switchboard))
+        val streaming = state(conversationId = "c1").copy(content = MessagesState(isStreaming = true))
+        withDelegate(streaming, environments) { flow, delegate ->
+            assertThat(delegate.submissionForSend()).isEqualTo(CodeWorkspaceSubmission.NONE)
+            assertThat(flow.value.codeWorkspace.visible).isFalse()
+        }
+    }
+
+    @Test
+    fun `refresh re-reads a saved decision that could not be read`() {
+        val environments = FakeEnvironments(ready(switchboard), saved = Result.Error())
+        withDelegate(state(conversationId = "c1"), environments) { flow, delegate ->
+            assertThat(delegate.submissionForSend()).isEqualTo(CodeWorkspaceSubmission.NONE)
+            environments.saved = Result.Success(SavedCodeDecision(null, null))
+            delegate.refresh()
+            // Undecided after all: the chat chooses, and the send waits for the pick.
+            assertThat(delegate.submissionForSend()).isNull()
+            assertThat(flow.value.codeWorkspace.workspace.label).isEqualTo(CodeWorkspaceChipLabel.CHOOSE)
         }
     }
 }

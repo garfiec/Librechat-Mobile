@@ -202,6 +202,15 @@ every write there goes to memory and a test would pass for the wrong reason. It 
 - `AgentRepository.getAgentsPaginated()` — server-side paginated agent fetch, maps response to `PaginatedAgents` domain model
 - Both bound in `DataModule.kt` via `singleOf`, both use `safeApiCall`, no local caching
 
+### Attached code machines (`CodeEnvironmentRepository`, `CodeWorkspacePreferenceStore`)
+- `CodeEnvironmentRepository` is network-direct: a machine's live status, and a saved chat's recorded
+  code-workspace decision read off the single-conversation GET. The decision is deliberately **not**
+  cached in Room: a decision inferred from anything local can disagree with the server's, which then
+  refuses the turn as `locked`.
+- `CodeWorkspacePreferenceStore` remembers the last workspace picked per agent and machine (web's
+  browser-local `workspacePreferences.ts`), account-scoped so logout sweeps it, most recent first,
+  capped at 100. Hints only; mirrored in `scripts/mirrors.json`.
+
 ### Preference registry and one-time migrations (`AppPreferences`, `PreferenceMigrations`)
 New device-wide preferences are declared in `AppPreferences` and read and written through
 `PreferenceStore`, not added as members of `SettingsDataStore` (the older settings move over as

@@ -317,6 +317,28 @@ class CodeWorkspaceResolverTest {
     }
 
     @Test
+    fun anUndecidedSavedChatIsNotAttachedByASuggestion() {
+        val chat = Chat(
+            isAgentsConversation = true,
+            isNewChat = false,
+            agentId = dev.id,
+            mode = null,
+            selections = null,
+            holdsSavedDecision = false,
+        )
+        val result = CodeWorkspaceResolver.resolve(
+            capabilities(),
+            chat,
+            mapOf(dev.id to dev),
+            mapOf(mbp.id to ready(mbp.id, switchboard, librechat)),
+        )
+        // Web sends "No workspace" here; the phone holds the send and asks for a pick instead.
+        assertNull(result.submission)
+        assertEquals(State.CHOOSE, result.state)
+        assertNull(result.environments.single().selected)
+    }
+
+    @Test
     fun aSubagentFollowsItsParentOnlyWithTheInheritanceVersion() {
         val parent = dev.copy(subagents = AgentSubagentsConfig(enabled = true, agentIds = listOf("agent_reviewer")))
         val reviewer = Agent(
