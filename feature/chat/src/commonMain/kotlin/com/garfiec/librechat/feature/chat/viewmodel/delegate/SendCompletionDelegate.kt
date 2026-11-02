@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.StreamEvent
+import com.garfiec.librechat.core.model.content.LegacyThinking
 import com.garfiec.librechat.core.model.content.stripCitations
 import com.garfiec.librechat.feature.chat.util.NEW_CHAT_DRAFT_KEY
 import com.garfiec.librechat.feature.chat.util.resolvedResponseMessage
@@ -129,7 +130,7 @@ class SendCompletionDelegate(
      * temporary), drives the display (Room reload for normal chats, in-memory finalize for
      * temp chats), kicks off title generation, and auto-reads the response.
      *
-     * @param completedResponseText the streamed response text, for auto-read.
+     * @param completedResponseText the streamed answer text (no reasoning deltas), for auto-read.
      * @param shouldAutoRead false for edit/regenerate/continue (no auto-TTS).
      * @param aborted true when the stream ended because the turn was stopped. The frame is a
      *   deliberately poorer final (stub `conversation`, hardcoded `New Chat` title, no `text`),
@@ -240,8 +241,11 @@ class SendCompletionDelegate(
                 }
             }
         }
-        if (shouldAutoRead && completedResponseText.isNotBlank()) {
-            tts.maybeAutoReadResponse(stripCitations(completedResponseText))
+        // Same rule as manual Read Aloud (speechTextOf): never speak the reasoning. The streamed
+        // text can still carry a legacy `:::thinking … :::` block inline.
+        val spokenText = LegacyThinking.split(completedResponseText)?.answer ?: completedResponseText
+        if (shouldAutoRead && spokenText.isNotBlank()) {
+            tts.maybeAutoReadResponse(stripCitations(spokenText))
         }
     }
 

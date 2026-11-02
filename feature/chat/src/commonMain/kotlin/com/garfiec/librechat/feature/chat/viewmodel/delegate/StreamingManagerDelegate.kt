@@ -546,7 +546,7 @@ class StreamingManagerDelegate(
         val isComparison = handle.state.comparisonState.isEnabled
         val conversationId = handle.state.conversationId
             ?: event.conversation?.conversationId
-        val completedResponseText = if (isComparison) comparisonDelegate.primaryContent() else buffer.currentText
+        val completedResponseText = if (isComparison) comparisonDelegate.primaryAnswerText() else buffer.currentText
         // Never auto-read a reply the user just cut off.
         val shouldAutoRead = !isEditOrRegenerate && !aborted
         // Make sure the resolved conversation id is in state for the completion handlers.

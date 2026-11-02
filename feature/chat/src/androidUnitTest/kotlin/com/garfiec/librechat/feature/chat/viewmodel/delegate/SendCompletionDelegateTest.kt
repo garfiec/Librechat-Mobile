@@ -100,6 +100,42 @@ class SendCompletionDelegateTest {
     }
 
     @Test
+    fun `auto-read skips a legacy thinking block in the streamed text`() = runTest(StandardTestDispatcher()) {
+        val (delegate, _) = delegateWith(this)
+
+        delegate.onFinal(
+            event = StreamEvent.Final(),
+            conversationId = null,
+            completedResponseText = ":::thinking\nworking it out\n:::\nThe answer.",
+            shouldAutoRead = true,
+            isNewConversation = false,
+            isHandedOffNewChat = false,
+            isComparison = false,
+            originAccount = null,
+        )
+
+        verify(exactly = 1) { tts.maybeAutoReadResponse("The answer.") }
+    }
+
+    @Test
+    fun `auto-read stays silent when the streamed text is only reasoning`() = runTest(StandardTestDispatcher()) {
+        val (delegate, _) = delegateWith(this)
+
+        delegate.onFinal(
+            event = StreamEvent.Final(),
+            conversationId = null,
+            completedResponseText = ":::thinking\nworking it out\n:::",
+            shouldAutoRead = true,
+            isNewConversation = false,
+            isHandedOffNewChat = false,
+            isComparison = false,
+            originAccount = null,
+        )
+
+        verify(exactly = 0) { tts.maybeAutoReadResponse(any()) }
+    }
+
+    @Test
     fun `a new chat hands its parameters to the chat it opens`() = runTest(StandardTestDispatcher()) {
         val sent = ModelParameters.DEFAULT.copy(temperature = 0.3f)
         val (delegate, _) = delegateWith(

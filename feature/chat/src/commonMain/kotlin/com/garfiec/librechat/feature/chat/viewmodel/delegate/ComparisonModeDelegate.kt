@@ -60,8 +60,14 @@ class ComparisonModeDelegate(
     private val primaryBuffer = StringBuilder()
     private val secondaryBuffer = StringBuilder()
 
-    /** Accumulated primary-pane text — used as the auto-read source on Final. */
-    fun primaryContent(): String = primaryBuffer.toString()
+    /**
+     * The primary pane's answer deltas only. [primaryBuffer] also carries the reasoning (the pane
+     * renders both), which auto-read must not speak.
+     */
+    private val primaryAnswerBuffer = StringBuilder()
+
+    /** The primary pane's streamed answer, without its reasoning — the auto-read source on Final. */
+    fun primaryAnswerText(): String = primaryAnswerBuffer.toString()
 
     // ── Selection ────────────────────────────────────────────────────
 
@@ -119,6 +125,7 @@ class ComparisonModeDelegate(
     fun stopComparison() {
         if (handle.state.isStreaming) return
         primaryBuffer.clear()
+        primaryAnswerBuffer.clear()
         secondaryBuffer.clear()
         handle.update {
             comparisonState = ComparisonState()
@@ -294,6 +301,7 @@ class ComparisonModeDelegate(
     fun onSendStart() {
         if (!handle.state.comparisonState.isEnabled) return
         primaryBuffer.clear()
+        primaryAnswerBuffer.clear()
         secondaryBuffer.clear()
         handle.update {
             comparisonState = comparisonState.copy(
@@ -357,8 +365,8 @@ class ComparisonModeDelegate(
         if (!handle.state.comparisonState.isEnabled) return false
         return when (event) {
             // Thinking and content deltas both feed the same pane buffer in comparison mode.
-            is StreamEvent.ContentDelta -> { routeTextDelta(event.agentId, event.chunk); true }
-            is StreamEvent.ThinkingDelta -> { routeTextDelta(event.agentId, event.chunk); true }
+            is StreamEvent.ContentDelta -> { routeTextDelta(event.agentId, event.chunk, isReasoning = false); true }
+            is StreamEvent.ThinkingDelta -> { routeTextDelta(event.agentId, event.chunk, isReasoning = true); true }
             is StreamEvent.ToolCallStart -> { routeToolCallStart(event); true }
             is StreamEvent.ToolCallComplete -> { routeToolCallComplete(event); clearSandboxStarting(event.toolCallId); true }
             is StreamEvent.ToolCallClosed -> { routeToolCallClosed(event); clearSandboxStarting(event.toolCallId); true }
@@ -387,7 +395,7 @@ class ComparisonModeDelegate(
         handle.update { content = content.withoutSandboxStarting(toolCallId) }
     }
 
-    private fun routeTextDelta(agentId: String?, chunk: String) {
+    private fun routeTextDelta(agentId: String?, chunk: String, isReasoning: Boolean) {
         if (isSecondaryEvent(agentId)) {
             secondaryBuffer.append(chunk)
             handle.update {
@@ -399,6 +407,7 @@ class ComparisonModeDelegate(
             }
         } else {
             primaryBuffer.append(chunk)
+            if (!isReasoning) primaryAnswerBuffer.append(chunk)
             handle.update {
                 comparisonState = comparisonState.copy(
                     primaryStreamingContent = primaryBuffer.toString(),

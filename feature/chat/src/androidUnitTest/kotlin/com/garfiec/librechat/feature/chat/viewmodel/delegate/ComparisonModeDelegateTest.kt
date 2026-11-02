@@ -74,6 +74,20 @@ class ComparisonModeDelegateTest {
     )
 
     @Test
+    fun `the auto-read text carries the primary answer without its reasoning`() {
+        val (delegate, flow) = delegateWith(ChatUiState(comparisonState = ComparisonState(isEnabled = true)))
+        delegate.onSendStart()
+
+        delegate.routeEvent(StreamEvent.ThinkingDelta(chunk = "pondering. "))
+        delegate.routeEvent(StreamEvent.ContentDelta(chunk = "The answer."))
+        delegate.routeEvent(StreamEvent.ContentDelta(chunk = "other pane", agentId = "agent_secondary____1"))
+
+        assertThat(delegate.primaryAnswerText()).isEqualTo("The answer.")
+        // The pane itself still renders the reasoning.
+        assertThat(flow.value.comparisonState.primaryStreamingContent).isEqualTo("pondering. The answer.")
+    }
+
+    @Test
     fun `rehydrate from a real added-agent id maps to AGENTS endpoint`() {
         val (delegate, flow) = delegateWith()
 
