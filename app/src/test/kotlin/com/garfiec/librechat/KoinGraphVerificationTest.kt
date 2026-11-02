@@ -94,6 +94,7 @@ import com.garfiec.librechat.core.network.api.KeysApi
 import com.garfiec.librechat.core.network.api.McpApi
 import com.garfiec.librechat.core.network.api.MemoriesApi
 import com.garfiec.librechat.core.network.api.MessagesApi
+import com.garfiec.librechat.core.network.api.PasskeyApi
 import com.garfiec.librechat.core.network.api.PermissionsApi
 import com.garfiec.librechat.core.network.api.PresetsApi
 import com.garfiec.librechat.core.network.api.ProjectsApi
@@ -206,6 +207,7 @@ class KoinGraphVerificationTest {
             TagsApi::class,
             TracesApi::class,
             UserApi::class,
+            PasskeyApi::class,
             // core:data provides
             ConfigCacheDataStore::class,
             ServerDataStore::class,

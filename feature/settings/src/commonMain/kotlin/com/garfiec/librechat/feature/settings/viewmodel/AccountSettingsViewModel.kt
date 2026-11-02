@@ -3,11 +3,13 @@ package com.garfiec.librechat.feature.settings.viewmodel
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.KeyRepository
+import com.garfiec.librechat.core.data.repository.PasskeyRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.model.User
@@ -21,11 +23,15 @@ import com.garfiec.librechat.feature.settings.model.UserDisplayData
 import com.garfiec.librechat.feature.settings.model.usedPercent
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.AccountDelegate
+import com.garfiec.librechat.feature.settings.viewmodel.delegate.EmailChangeDelegate
+import com.garfiec.librechat.feature.settings.viewmodel.delegate.EmailChangeDialogState
+import com.garfiec.librechat.feature.settings.viewmodel.delegate.EmailChangeNotice
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.ProviderKeysSummary
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.ProviderKeysSummaryDelegate
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.TwoFactorSecurityDelegate
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.isTwoFactorRequiredFor
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -34,6 +40,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
@@ -98,6 +105,19 @@ data class AccountSettingsUiState(
     val canDisableTwoFactor: Boolean = true,
     /** The Provider Keys row's summary; null hides the row (no endpoint takes a user-provided value). */
     val providerKeysSummary: ProviderKeysSummary = ProviderKeysSummary.Hidden,
+    // Email change (v0.8.9-rc1)
+    /** The "Email address" row: a local account on a server that allows the change. See [isEmailChangeAvailable]. */
+    val canChangeEmail: Boolean = false,
+    /** The change-email dialog; null while it is closed. */
+    val emailChange: EmailChangeDialogState? = null,
+    /** Send stays off after a 429 for the limiter's window. Outlives the dialog. */
+    val emailChangeCoolingDown: Boolean = false,
+    val emailChangeNotice: EmailChangeNotice? = null,
+    // Passkeys (v0.8.9-rc1, management only)
+    /** The Security section's Passkeys row. See [isPasskeyManagementAvailable]. */
+    val showPasskeys: Boolean = false,
+    /** How many passkeys the account has; null until known, or when the list failed. */
+    val passkeyCount: Int? = null,
 )
 
 /** The Balance section. Shown only while [AccountSettingsUiState.balanceEnabled]. */
@@ -151,6 +171,7 @@ class AccountSettingsViewModel(
     serverDataStore: ServerDataStore,
     keyRepository: KeyRepository,
     roleRepository: RoleRepository,
+    private val passkeyRepository: PasskeyRepository,
     ioDispatcher: CoroutineDispatcher,
     clock: Clock = Clock.System,
 ) : ViewModel() {
@@ -167,6 +188,7 @@ class AccountSettingsViewModel(
         ioDispatcher,
     )
     private val twoFactorDelegate = TwoFactorSecurityDelegate(stateHandle, authRepository)
+    private val emailChangeDelegate = EmailChangeDelegate(stateHandle, userRepository)
     private val providerKeysSummaryDelegate =
         ProviderKeysSummaryDelegate(configRepository, roleRepository, keyRepository, viewModelScope, clock)
 
@@ -183,7 +205,9 @@ class AccountSettingsViewModel(
             configRepository.startupConfig,
             serverDataStore.currentUrlFlow,
             providerKeysSummaryDelegate.summary,
-        ) { state, config, baseUrl, providerKeysSummary ->
+            configRepository.detectedBackend,
+        ) { state, config, baseUrl, providerKeysSummary, backend ->
+            val showPasskeys = isPasskeyManagementAvailable(config, backend)
             state.copy(
                 user = state.user?.let { it.copy(avatar = resolveAvatarUrl(it.avatar, baseUrl)) },
                 allowAccountDeletion = config?.allowAccountDeletion ?: true,
@@ -191,6 +215,9 @@ class AccountSettingsViewModel(
                 balance = state.balance.presentedFor(config),
                 providerKeysSummary = providerKeysSummary,
                 canDisableTwoFactor = !isTwoFactorRequiredFor(config?.twoFactorAuthenticationRequired, state.user?.provider),
+                canChangeEmail = isEmailChangeAvailable(config, state.user?.provider),
+                showPasskeys = showPasskeys,
+                passkeyCount = state.passkeyCount.takeIf { showPasskeys },
             )
         }.stateIn(viewModelScope, SharingStarted.Eagerly, AccountSettingsUiState())
 
@@ -204,6 +231,34 @@ class AccountSettingsViewModel(
                 .filter { it }
                 .collect { accountDelegate.loadBalance() }
         }
+        // The Passkeys row's count rides the profile load; the gate may land after init.
+        viewModelScope.launch {
+            combine(configRepository.startupConfig, configRepository.detectedBackend) { config, backend ->
+                isPasskeyManagementAvailable(config, backend)
+            }
+                .distinctUntilChanged()
+                .filter { it }
+                .collect { loadPasskeyCount() }
+        }
+    }
+
+    private var passkeyCountJob: Job? = null
+
+    private fun loadPasskeyCount() {
+        passkeyCountJob?.cancel()
+        passkeyCountJob = viewModelScope.launch {
+            val count = (passkeyRepository.list() as? Result.Success)?.data?.size
+            _uiState.update { it.copy(passkeyCount = count) }
+        }
+    }
+
+    /**
+     * A return to the tab (back from a page, or from another app): re-reads the profile quietly, so
+     * an avatar, name or email changed on the web shows up, and the passkey count with it.
+     */
+    fun refreshOnReturn() {
+        accountDelegate.refreshQuietly(emailChangeDelegate::onProfileRefreshed)
+        if (uiState.value.showPasskeys) loadPasskeyCount()
     }
 
     private var providerKeysSummaryRequested = false
@@ -226,6 +281,14 @@ class AccountSettingsViewModel(
     fun dismissAvatarDialog() = accountDelegate.dismissAvatarDialog()
     fun uploadAvatar(uri: Any) = accountDelegate.uploadAvatar(uri)
     fun dismissError() = accountDelegate.dismissError()
+
+    // Email change
+    fun openEmailChange() = emailChangeDelegate.open()
+    fun dismissEmailChange() = emailChangeDelegate.dismiss()
+    fun onEmailChangeNewEmail(value: String) = emailChangeDelegate.onNewEmailChanged(value)
+    fun onEmailChangePassword(value: String) = emailChangeDelegate.onPasswordChanged(value)
+    fun sendEmailChange() = emailChangeDelegate.send()
+    fun consumeEmailChangeNotice() = emailChangeDelegate.consumeNotice()
 
     // Sign out & deletion
     fun logout() = accountDelegate.logout()

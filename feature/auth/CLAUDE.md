@@ -186,6 +186,8 @@
   session open.
 - **iOS** takes its roles from `KeyboardOptions.withIosTextContentType()` (`:core:ui`): `.username`
   on the email fields, `.newPassword` on Register/Reset, `.oneTimeCode` on the 2FA input.
+  `.password` and `.emailAddress` exist too (Settings' change-email and passkey dialogs use them);
+  the Login password field still sets no iOS role.
 - Fields holding other secrets (API keys, gateway tokens, PDF passwords) use
   `Modifier.excludeFromAutofill()` so a password manager doesn't offer or save the login there.
 - Limits, all outside the app's control:

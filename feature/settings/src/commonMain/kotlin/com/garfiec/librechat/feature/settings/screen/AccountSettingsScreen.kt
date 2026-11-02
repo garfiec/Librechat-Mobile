@@ -15,7 +15,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Star
@@ -71,6 +73,7 @@ import com.garfiec.librechat.feature.settings.screen.sections.BackupCodesDialog
 import com.garfiec.librechat.feature.settings.screen.sections.TwoFactorSetupDialog
 import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ServerHeadersViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.delegate.EmailChangeNotice
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.ProviderKeysSummary
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -83,6 +86,7 @@ fun AccountSettingsScreen(
     onLogout: () -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateToApiKeys: () -> Unit,
+    onNavigateToPasskeys: () -> Unit,
     onNavigateToFavorites: () -> Unit,
     onNavigateToProviderKeys: () -> Unit,
     onNavigateToRoleSkillsAdmin: () -> Unit,
@@ -107,6 +111,7 @@ fun AccountSettingsScreen(
         AccountSettingsContent(
             onLogout = onLogout,
             onNavigateToApiKeys = onNavigateToApiKeys,
+            onNavigateToPasskeys = onNavigateToPasskeys,
             onNavigateToFavorites = onNavigateToFavorites,
             onNavigateToProviderKeys = onNavigateToProviderKeys,
             onNavigateToRoleSkillsAdmin = onNavigateToRoleSkillsAdmin,
@@ -127,6 +132,7 @@ fun AccountSettingsScreen(
 fun AccountSettingsContent(
     onLogout: () -> Unit,
     onNavigateToApiKeys: () -> Unit,
+    onNavigateToPasskeys: () -> Unit,
     onNavigateToFavorites: () -> Unit,
     onNavigateToProviderKeys: () -> Unit,
     onNavigateToRoleSkillsAdmin: () -> Unit,
@@ -156,12 +162,19 @@ fun AccountSettingsContent(
     // pager also lays it out beside the visible tab, and again on scrolling back, each replaying
     // ON_RESUME to the new observer), and re-reads on each resume the entry itself goes through:
     // back from Provider Keys (NavDisplay holds an animating scene at STARTED) or from another app.
+    // That same resume re-reads the profile, so an email confirmed in the browser (or an avatar or
+    // name changed on the web) shows up, along with the passkey count.
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, viewModel) {
         var replaying = true
         val observer = LifecycleEventObserver { _, event ->
             if (event != Lifecycle.Event.ON_RESUME) return@LifecycleEventObserver
-            if (replaying) viewModel.loadProviderKeysSummary() else viewModel.refreshProviderKeysSummary()
+            if (replaying) {
+                viewModel.loadProviderKeysSummary()
+            } else {
+                viewModel.refreshProviderKeysSummary()
+                viewModel.refreshOnReturn()
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         replaying = false
@@ -178,6 +191,19 @@ fun AccountSettingsContent(
         if (result == SnackbarResult.ActionPerformed) {
             viewModel.retry()
         }
+    }
+
+    val emailNotice = uiState.emailChangeNotice
+    val emailNoticeText = when (emailNotice) {
+        is EmailChangeNotice.LinkSent -> stringResource(Res.string.email_change_link_sent, emailNotice.newEmail)
+        EmailChangeNotice.Updated -> stringResource(Res.string.email_change_updated)
+        null -> null
+    }
+    LaunchedEffect(emailNotice) {
+        val text = emailNoticeText ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message = text)
+        // Consumed after showing: consuming first would change this effect's key and cancel the snackbar.
+        viewModel.consumeEmailChangeNotice()
     }
 
     LaunchedEffect(uiState.isLoggedOut, uiState.isAccountDeleted) {
@@ -230,6 +256,17 @@ fun AccountSettingsContent(
                         onRetry = viewModel::retry,
                     )
                 }
+                val email = uiState.user?.email
+                if (uiState.canChangeEmail && email != null) {
+                    row(key = "change_email") {
+                        AccountSettingsRow(
+                            icon = Icons.Default.Email,
+                            title = stringResource(Res.string.email_change_row_title),
+                            subtitle = email,
+                            onClick = viewModel::openEmailChange,
+                        )
+                    }
+                }
                 // Sign out — grouped with the profile it acts on, kept out of the Danger Zone.
                 row(key = "sign_out") {
                     SignOutButton(
@@ -276,6 +313,22 @@ fun AccountSettingsContent(
                         onToggleTwoFactor = viewModel::toggleTwoFactor,
                         onRegenerateBackupCodes = viewModel::requestRegenerateBackupCodes,
                     )
+                }
+                // Between 2FA and API Keys, as web's registry orders them (2FA, backup codes, passkeys).
+                if (uiState.showPasskeys) {
+                    row(key = "passkeys_row") {
+                        val count = uiState.passkeyCount
+                        AccountSettingsRow(
+                            icon = Icons.Default.Fingerprint,
+                            title = stringResource(Res.string.passkeys_title),
+                            subtitle = if (count != null) {
+                                pluralStringResource(Res.plurals.passkeys_row_count, count, count)
+                            } else {
+                                stringResource(Res.string.passkeys_row_subtitle)
+                            },
+                            onClick = onNavigateToPasskeys,
+                        )
+                    }
                 }
                 row(key = "api_keys_row") {
                     AccountSettingsRow(
@@ -355,6 +408,18 @@ fun AccountSettingsContent(
 
             // Bottom spacing
             item { Spacer(modifier = Modifier.height(32.dp)) }
+        }
+
+        uiState.emailChange?.let { draft ->
+            EmailChangeDialog(
+                draft = draft,
+                currentEmail = uiState.user?.email.orEmpty(),
+                coolingDown = uiState.emailChangeCoolingDown,
+                onNewEmailChange = viewModel::onEmailChangeNewEmail,
+                onPasswordChange = viewModel::onEmailChangePassword,
+                onSend = viewModel::sendEmailChange,
+                onDismiss = viewModel::dismissEmailChange,
+            )
         }
 
         // Avatar upload dialog

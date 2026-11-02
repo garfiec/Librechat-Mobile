@@ -922,4 +922,64 @@
     <string name="shared_chats_no_match">No links match "%1$s"</string>
     <string name="shared_chats_refresh_failed">Couldn't refresh your shared chats</string>
     <string name="shared_chats_delete_failed">Couldn't delete the link</string>
+
+    <!-- Passkeys (v0.8.9-rc1, management only) -->
+    <string name="passkeys_title">Passkeys</string>
+    <string name="passkeys_row_subtitle">Sign in with your screen lock or a security key</string>
+    <plurals name="passkeys_row_count">
+        <item quantity="one">%1$d passkey</item>
+        <item quantity="other">%1$d passkeys</item>
+    </plurals>
+    <string name="passkeys_description">Sign in without a password using your device screen lock or a security key.</string>
+    <string name="passkeys_empty">You have not added any passkeys yet</string>
+    <string name="passkeys_load_failed">Your passkeys could not be loaded.</string>
+    <string name="passkeys_add_in_browser">To add a passkey, sign in at %1$s in a browser.</string>
+    <string name="passkeys_synced">Synced</string>
+    <string name="passkeys_dates">%1$s · %2$s</string>
+    <string name="passkeys_added_on">Added %1$s</string>
+    <string name="passkeys_last_used_on">Last used %1$s</string>
+    <string name="passkeys_never_used">Never used</string>
+    <string name="passkeys_row_description_synced">%1$s, synced, %2$s</string>
+    <string name="passkeys_row_description">%1$s, %2$s</string>
+    <string name="passkeys_more_options">More options for %1$s</string>
+    <string name="passkeys_action_rename">Rename</string>
+    <string name="passkeys_action_remove">Remove</string>
+    <string name="passkeys_rename_title">Rename passkey</string>
+    <string name="passkeys_name_label">Passkey name</string>
+    <string name="passkeys_rename_failed">Could not rename the passkey</string>
+    <string name="passkeys_remove_title">Remove “%1$s”?</string>
+    <string name="passkeys_remove_message">This passkey will no longer be available for sign-in.</string>
+    <string name="passkeys_confirm_password">Confirm your password</string>
+    <string name="passkeys_incorrect_password">Incorrect password. Please try again.</string>
+    <string name="passkeys_remove_failed">Could not remove the passkey</string>
+    <string name="passkeys_already_removed">That passkey was already removed.</string>
+    <string name="passkeys_too_many_attempts">Too many attempts. Try again in a few minutes.</string>
+
+    <!-- Change email (v0.8.9-rc1) -->
+    <string name="email_change_row_title">Email address</string>
+    <string name="email_change_title">Change email address</string>
+    <string name="email_change_body">Enter your new email address and your current password. We'll send a link to the new address. The change takes effect when you open that link.</string>
+    <string name="email_change_current">Current: %1$s</string>
+    <string name="email_change_new_email">New email address</string>
+    <string name="email_change_current_password">Current password</string>
+    <string name="email_change_show_password">Show password</string>
+    <string name="email_change_hide_password">Hide password</string>
+    <string name="email_change_send">Send link</string>
+    <string name="email_change_sending">Sending…</string>
+    <string name="email_change_link_sent">Check %1$s for a verification link.</string>
+    <string name="email_change_updated">Email address updated.</string>
+    <string name="email_change_error_invalid_request">Enter a valid email address and your current password.</string>
+    <string name="email_change_error_same_email">The new email address must be different from your current one.</string>
+    <string name="email_change_error_disabled">Your server's administrator has turned off email changes.</string>
+    <string name="email_change_error_local_account_required">Only accounts that sign in with email and password can change their email here.</string>
+    <string name="email_change_error_password_invalid">Your current password is incorrect.</string>
+    <string name="email_change_error_domain_not_allowed">This server doesn't accept addresses from that domain.</string>
+    <string name="email_change_error_email_in_use">That email address is already linked to another account.</string>
+    <string name="email_change_error_account_modified">Your account changed while this was sending. Try again.</string>
+    <string name="email_change_error_request_in_progress">Another email change request finished first. Use the link from that email, or try again.</string>
+    <string name="email_change_error_delivery_failed">The verification email couldn't be sent. Try again.</string>
+    <string name="email_change_error_service_unavailable">This server can't send email right now, so the address can't be changed.</string>
+    <string name="email_change_error_rate_limited">Too many attempts. Try again in a few minutes.</string>
+    <string name="email_change_error_network">Couldn't reach the server. Check your connection and try again.</string>
+    <string name="email_change_error_unknown">The email change request failed. Try again.</string>
 </resources>

@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
+import com.garfiec.librechat.core.common.DetectedBackend
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
@@ -7,6 +8,7 @@ import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.KeyRepository
+import com.garfiec.librechat.core.data.repository.PasskeyRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.model.Balance
@@ -56,6 +58,8 @@ class AccountSettingsViewModelTest {
     private val startupConfig = MutableStateFlow<StartupConfig?>(null)
     private val endpointConfigs = MutableStateFlow<Map<String, EndpointConfig>>(emptyMap())
     private val keyRepository = mockk<KeyRepository>(relaxed = true)
+    private val passkeyRepository = mockk<PasskeyRepository>(relaxed = true)
+    private val detectedBackend = MutableStateFlow<DetectedBackend?>(null)
     private val roleRepository = mockk<RoleRepository> {
         every { userPermissions } returns MutableStateFlow<UserRolePermissions?>(null)
     }
@@ -79,6 +83,7 @@ class AccountSettingsViewModelTest {
         coEvery { balanceRepository.getBalance() } returns Result.Error(message = "Not available")
         every { configRepository.startupConfig } returns startupConfig
         every { configRepository.endpointConfigs } returns endpointConfigs
+        every { configRepository.detectedBackend } returns detectedBackend
         coEvery { keyRepository.fetchKeyState(any()) } returns Result.Success(KeyState.Unset)
     }
 
@@ -97,6 +102,7 @@ class AccountSettingsViewModelTest {
         serverDataStore = serverDataStore,
         keyRepository = keyRepository,
         roleRepository = roleRepository,
+        passkeyRepository = passkeyRepository,
         ioDispatcher = testDispatcher,
         clock = clock,
     )

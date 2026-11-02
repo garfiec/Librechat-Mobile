@@ -72,6 +72,34 @@
 - **Gotcha**: the editor offers `McpServerType` SSE and STREAMABLE_HTTP only; a stored `HTTP` shows as Streamable HTTP and is saved back as-is unless the user changes it
 - **Gotcha**: a memory key can be renamed on edit. `UpdateMemoryRequest.key` is sent only when it changed (the by-id route pattern-checks any key it receives), and a key-route rename is create-then-delete, so `MemoriesViewModel` reloads after any rename failure
 
+### Passkeys (v0.8.9-rc1, management only)
+- `PasskeysScreen` + `PasskeysViewModel` (route `Passkeys`, `PasskeysNavigation.kt`): list, rename, remove
+  through `PasskeyRepository` (`:core:data`, network-direct, never cached: a password reset deletes
+  every passkey). Reached from the Account tab's Passkeys row (between 2FA and API Keys), shown by
+  `isPasskeyManagementAvailable` (`AccountGates.kt`): `passkeyLoginEnabled` and not a tagged build
+  below rc1. The row's count rides the profile load and the resume refresh.
+- **No sign-in and no Add.** Both run a WebAuthn ceremony, and rc1's `normalizeOrigin` turns a native
+  app's origin into `"null"`; iOS would also need a build-time entitlement per server. Where Add would
+  be, the page says to sign in at the server's host in a browser (a link). Don't add a Credential
+  Manager / ASAuthorization path until upstream accepts native origins.
+- Remove asks a local account for its password (`ContentType.Password`, not `SecretTextField`); a
+  non-local one sends none, and a 403 brings the field up (upstream's `serverDemandedPassword`).
+  403 = incorrect password inline, 404 = already gone (reload + snackbar), 429 = wait. Errors render
+  inside the dialog. A list 404 refetches `/api/config`: passkeys were switched off.
+
+### Change email (v0.8.9-rc1)
+- Profile row "Email address" (subtitle = current address) above Sign out, when
+  `isEmailChangeAvailable`: `provider == "local"` (null is NOT local), `emailEnabled`,
+  `allowEmailChange`. No version gate: the flag is new in rc1.
+- `EmailChangeDelegate` owns the dialog state in `AccountSettingsUiState` (draft, sending, error,
+  cooldown, one-shot notice). `EmailChangeError` (`:core:model`) maps every `code`; the server's
+  message is never shown. Field codes go under their field, the rest inside the dialog. A wrong
+  password clears only the password. A 429 holds Send off for `Retry-After`, else 2 minutes. Never
+  retried: each attempt mails the old address.
+- The change lands when the link is opened on the web; the Account tab re-reads the profile quietly
+  on every resume after the first (`refreshOnReturn`), which also fixes avatar/name staleness, and
+  says "Email address updated" only when a link was sent in this ViewModel's life.
+
 ### API Keys
 - `ApiKeysScreen` — list/create/delete API keys, own ViewModel (`ApiKeysViewModel`)
 - Route: `ApiKeys` (`@Serializable` data object extending `SettingsRoute`), accessible from Settings → Security section

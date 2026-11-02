@@ -23,6 +23,7 @@ import com.garfiec.librechat.core.data.repository.KeyRepository
 import com.garfiec.librechat.core.data.repository.McpOAuthLauncher
 import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.repository.MemoryRepository
+import com.garfiec.librechat.core.data.repository.PasskeyRepository
 import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
@@ -56,6 +57,7 @@ class SettingsModuleVerificationTest {
                 AppInfo::class,
                 ArtifactLibraryConsentStore::class,
                 UserRepository::class,
+                PasskeyRepository::class,
                 AuthRepository::class,
                 ConfigRepository::class,
                 CertificateTrustRegistry::class,
