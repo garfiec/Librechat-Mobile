@@ -91,6 +91,12 @@ class ConversationLoadDelegate(
     private var roomObserverJob: Job? = null
 
     /**
+     * `onSettled` callbacks not yet run. Kept outside any one load so a load that replaces another
+     * before it settles runs them too. Confined to the handle's Main scope.
+     */
+    private val settleWaiters = mutableListOf<() -> Unit>()
+
+    /**
      * A comparison tail that settled while Compare setup was open. Rehydrating then would replace
      * the setup, so it waits: Cancel restores it ([releaseRehydrateHeldForSetup]), Start replaces it.
      */
@@ -158,11 +164,15 @@ class ConversationLoadDelegate(
      *
      * [unsavedTurn] is a failed turn's optimistic user message whose persistence is unknown: once
      * the fetch settles, its text goes back into the composer if the server kept no copy of it.
+     *
+     * [onSettled] runs once, after the settled read is on screen. A later load that replaces this
+     * one first takes it over and runs it when it settles. Never in a temporary chat (nothing loads).
      */
     fun loadConversation(
         conversationId: String,
         cacheFirst: Boolean = false,
         unsavedTurn: Message? = null,
+        onSettled: (() -> Unit)? = null,
     ) {
         // SECURITY: do not remove — temp-chat data-at-rest guard.
         // Defense-in-depth for temporary chats: never route a temp conversation
@@ -179,6 +189,7 @@ class ConversationLoadDelegate(
         var autoRehydrateHandled = false
         rehydrateHeldForSetup = null
         var pendingUnsavedTurn = unsavedTurn
+        onSettled?.let(settleWaiters::add)
         roomObserverJob = handle.scope.launch {
             // A flow, not a plain flag: it is a `combine` input below, so settling re-runs the
             // transform even when Room never emits again — a conversation with genuinely zero
@@ -274,6 +285,11 @@ class ConversationLoadDelegate(
                     // A reply that finished while nobody was watching may have left its generated
                     // files pending; the settled read is the one that names them.
                     if (settled) onMessagesSettled(displayMessages)
+                    if (settled && settleWaiters.isNotEmpty()) {
+                        val waiters = settleWaiters.toList()
+                        settleWaiters.clear()
+                        waiters.forEach { it() }
+                    }
                     pendingUnsavedTurn?.takeIf { settled }?.let { unsent ->
                         pendingUnsavedTurn = null
                         val kept = emission.messages.any {

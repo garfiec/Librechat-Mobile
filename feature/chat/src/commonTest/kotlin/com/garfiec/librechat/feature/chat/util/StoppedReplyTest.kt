@@ -20,7 +20,8 @@ class StoppedReplyTest {
         streaming: Boolean = false,
         pending: Boolean = false,
         comparing: Boolean = false,
-    ) = stoppedReplyId(path(before, reply), streaming, pending, comparing)
+        settled: Boolean = true,
+    ) = stoppedReplyId(path(before, reply), streaming, pending, comparing, runStatusSettled = settled)
 
     private val parallel = listOf(
         MessageContentPart(type = ContentType.TEXT, text = "a", agentId = "openAI__gpt"),
@@ -47,6 +48,8 @@ class StoppedReplyTest {
         assertNull(id(stopped, streaming = true))
         // A paused run (a tool approval, a question) is also saved unfinished.
         assertNull(id(stopped, pending = true))
+        // Until the run status is known, a reopened unfinished reply may be one of those.
+        assertNull(id(stopped, settled = false))
     }
 
     @Test

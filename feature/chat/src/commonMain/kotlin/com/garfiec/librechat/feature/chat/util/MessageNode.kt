@@ -155,6 +155,16 @@ fun List<MessageNode>.withoutLivePartial(replyId: String?): List<MessageNode> {
 }
 
 /**
+ * The `activeBranches` key [buildActiveMessagePath] files [messageId] under: its parent, or
+ * [NO_PARENT] when the parent is blank or not in [messages]. Null when [messageId] isn't there.
+ */
+fun treeParentKeyOf(messages: List<Message>, messageId: String): String? {
+    val message = messages.firstOrNull { it.messageId == messageId } ?: return null
+    val parentId = message.parentMessageId?.takeIf { it != NO_PARENT && it.isNotBlank() } ?: return NO_PARENT
+    return parentId.takeIf { id -> messages.any { it.messageId == id } } ?: NO_PARENT
+}
+
+/**
  * The `activeBranches` entries that make [buildActiveMessagePath] pass through [targetId]: for each
  * ancestor of the target (and the target itself), its index among its siblings, keyed by the same
  * tree-parent key the walk uses. Null when [targetId] isn't in [messages]. One pass over the list,

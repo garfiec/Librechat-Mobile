@@ -277,6 +277,28 @@ class SpecSeedTest {
     }
 
     @Test
+    fun a_lane_b_sender_equal_to_its_endpoint_display_label_reopens_raw() {
+        // A raw lane on `Acme` saves the endpoint's modelDisplayLabel as its sender, which a spec
+        // labelled "Acme" on the same pair would also save: the sender names no spec.
+        val acme = model("acme-spec", "Acme", "acme-1").copy(label = "Acme")
+        val specs = ModelSpecs(list = listOf(acme))
+
+        assertNull(specs.laneBSpecFor("Acme", "acme-1", "Acme", displayLabel = "Acme"))
+        // A label the endpoint does not display is still the spec's own.
+        assertEquals("acme-spec", specs.laneBSpecFor("Acme", "acme-1", "Acme", displayLabel = "Acme Corp"))
+        assertEquals("acme-spec", specs.laneBSpecFor("Acme", "acme-1", "Acme", displayLabel = null))
+        // Under enforce only a spec lane can have been sent, so the label match stands.
+        val enforced = specs.copy(enforce = true)
+        assertEquals("acme-spec", enforced.laneBSpecFor("Acme", "acme-1", "Acme", displayLabel = "Acme"))
+        // Before the endpoint's config has loaded its label is unknown, so any sender may be it.
+        assertNull(specs.laneBSpecFor("Acme", "acme-1", "Acme", displayLabel = null, displayLabelKnown = false))
+        assertEquals(
+            "acme-spec",
+            enforced.laneBSpecFor("Acme", "acme-1", "Acme", displayLabel = null, displayLabelKnown = false),
+        )
+    }
+
+    @Test
     fun visible_specs_sort_by_order_with_unordered_ones_after_in_list_order() {
         val specs = ModelSpecs(
             list = listOf(

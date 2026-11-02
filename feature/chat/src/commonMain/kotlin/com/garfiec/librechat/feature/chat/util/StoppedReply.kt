@@ -14,7 +14,8 @@ private const val TOOL_CALL_LIMIT_FINISH_REASON = "tool_call_limit"
  * which a v0.8.8 agents reply never carries except for the tool-call limit, which it excludes. A
  * stopped or dropped reply is saved `unfinished` instead, so that counts too. A reply waiting on a
  * tool approval or a question is also `unfinished`; [hasPendingAction] keeps the chip off it, since
- * the run resumes from the docked panel.
+ * the run resumes from the docked panel. A reopened chat learns of that pause only from the run
+ * status check, so until [runStatusSettled] there is no chip either.
  *
  * Continue replays the user turn above the reply, so a reply with none (a chained or imported one)
  * and a compaction summary get nothing. So does a comparison's reply unless [comparing]: Continue
@@ -27,8 +28,9 @@ internal fun stoppedReplyId(
     isStreaming: Boolean,
     hasPendingAction: Boolean,
     comparing: Boolean,
+    runStatusSettled: Boolean = true,
 ): String? {
-    if (isStreaming || hasPendingAction) return null
+    if (isStreaming || hasPendingAction || !runStatusSettled) return null
     val reply = displayMessages.lastOrNull()?.message ?: return null
     val turn = displayMessages.getOrNull(displayMessages.lastIndex - 1)?.message ?: return null
     val replaysTurn = turn.isCreatedByUser && reply.parentMessageId == turn.messageId

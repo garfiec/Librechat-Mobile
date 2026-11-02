@@ -3670,6 +3670,34 @@
       "failure_mode": "If web starts offering Continue on other replies, or the server starts saving a finish_reason for stopped replies, mobile's chip shows on different replies than web's button."
     },
     {
+      "id": "branch-message-append",
+      "upstream": {
+        "file": "client/src/data-provider/Messages/mutations.ts",
+        "symbol": "useBranchMessageMutation",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/ComparisonModeDelegate.kt",
+        "symbol": "branch"
+      },
+      "why": "Keep this answer / Keep and continue put the server's branched message into the tree from the response, as web appends it to its cached list without refetching. A temporary chat never loads from the server or Room, so this is the only way the kept reply reaches its screen.",
+      "failure_mode": "If web starts refetching instead (or the route stops returning the whole saved message), mobile's merge shows a message the server no longer describes that way; in a temporary chat, Keep and continue times out with 'Failed to continue' and the old two-lane reply stays on screen."
+    },
+    {
+      "id": "compare-lane-id-from-part",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/ParallelContent.tsx",
+        "symbol": "groupParallelContent",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/ComparisonModeDelegate.kt",
+        "symbol": "onFinal"
+      },
+      "why": "A Compare lane is named by each content part's `agentId`, as web groups its columns. At the end of a run the panes fill a lane id no text delta named (a lane stopped inside its first tool call) from the final message's parts, so that pane still offers Keep.",
+      "failure_mode": "If lanes stop being read from `part.agentId`, a lane stopped before it wrote text offers no Keep or Keep and continue until the conversation is reopened."
+    },
+    {
       "id": "user-key-error-codes",
       "upstream": {
         "file": "packages/data-provider/src/config.ts",
