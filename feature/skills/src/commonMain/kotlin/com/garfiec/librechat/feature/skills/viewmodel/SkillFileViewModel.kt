@@ -90,6 +90,8 @@ data class SkillFileUiState(
     val loadError: String? = null,
     val saveFailed: Boolean = false,
     val saveError: String? = null,
+    /** The failed save was refused because the skill is being deleted. */
+    val skillDeleting: Boolean = false,
     /** Set when the user asked to leave or reload with unsaved edits. */
     val discardPrompt: SkillFileDiscardTarget? = null,
     /** A save landed; the screen pops. */
@@ -258,14 +260,14 @@ class SkillFileViewModel(
     fun onDraftChange(value: String) {
         val state = _uiState.value
         if (!state.isEditable || state.isSaving) return
-        _uiState.value = state.copy(draft = value, saveFailed = false, saveError = null)
+        _uiState.value = state.copy(draft = value, saveFailed = false, saveError = null, skillDeleting = false)
     }
 
     fun save() {
         val state = _uiState.value
         if (!state.canSave) return
         val fileId = state.fileId ?: return
-        _uiState.value = state.copy(isSaving = true, saveFailed = false, saveError = null)
+        _uiState.value = state.copy(isSaving = true, saveFailed = false, saveError = null, skillDeleting = false)
         viewModelScope.launch {
             val result = skillsRepository.editSkillFile(
                 skillId = skillId,
@@ -282,6 +284,8 @@ class SkillFileViewModel(
                     _uiState.update { it.copy(isSaving = false, saved = true) }
                 }
                 SkillFileEditResult.Conflict -> _uiState.update { it.copy(isSaving = false, conflict = true) }
+                SkillFileEditResult.SkillDeleting ->
+                    _uiState.update { it.copy(isSaving = false, saveFailed = true, saveError = null, skillDeleting = true) }
                 is SkillFileEditResult.Failed ->
                     _uiState.update { it.copy(isSaving = false, saveFailed = true, saveError = result.message) }
             }

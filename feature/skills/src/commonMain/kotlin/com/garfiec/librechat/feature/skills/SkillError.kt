@@ -2,6 +2,8 @@ package com.garfiec.librechat.feature.skills
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.repository.SkillDeletingException
 import com.garfiec.librechat.feature.skills.resources.Res
 import com.garfiec.librechat.feature.skills.resources.skill_error_changed_on_server
 import com.garfiec.librechat.feature.skills.resources.skill_error_create
@@ -11,6 +13,7 @@ import com.garfiec.librechat.feature.skills.resources.skill_error_load_files
 import com.garfiec.librechat.feature.skills.resources.skill_error_load_skill
 import com.garfiec.librechat.feature.skills.resources.skill_error_load_skills
 import com.garfiec.librechat.feature.skills.resources.skill_error_save
+import com.garfiec.librechat.feature.skills.resources.skill_error_skill_deleting
 import com.garfiec.librechat.feature.skills.resources.skill_error_skill_md_upload
 import com.garfiec.librechat.feature.skills.resources.skill_error_upload_file
 import org.jetbrains.compose.resources.StringResource
@@ -32,6 +35,9 @@ enum class SkillErrorKind(internal val fallback: StringResource) {
 
     /** A save hit a version conflict whose current skill didn't come back, so it can't be rebased. */
     CHANGED_ON_SERVER(Res.string.skill_error_changed_on_server),
+
+    /** A file write refused because the skill is being deleted (409 `SKILL_DELETING`). */
+    SKILL_DELETING(Res.string.skill_error_skill_deleting),
 }
 
 /**
@@ -46,6 +52,14 @@ data class SkillError(val kind: SkillErrorKind, val message: String? = null)
 /** [kind]'s error carrying [message] when it is usable text. */
 internal fun skillError(kind: SkillErrorKind, message: String?): SkillError =
     SkillError(kind, message?.takeIf { it.isNotBlank() })
+
+/** [kind]'s error for a failed file write, unless the skill is being deleted, which says so instead. */
+internal fun skillFileWriteError(kind: SkillErrorKind, error: Result.Error): SkillError =
+    if (error.exception is SkillDeletingException) {
+        SkillError(SkillErrorKind.SKILL_DELETING)
+    } else {
+        skillError(kind, error.message)
+    }
 
 @Composable
 internal fun SkillError.text(): String = message ?: stringResource(kind.fallback)

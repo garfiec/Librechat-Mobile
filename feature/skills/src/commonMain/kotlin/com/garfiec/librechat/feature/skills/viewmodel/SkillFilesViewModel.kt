@@ -12,6 +12,7 @@ import com.garfiec.librechat.feature.skills.SkillFileChanges
 import com.garfiec.librechat.feature.skills.SkillFilePaths
 import com.garfiec.librechat.feature.skills.components.PickedDocument
 import com.garfiec.librechat.feature.skills.skillError
+import com.garfiec.librechat.feature.skills.skillFileWriteError
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -167,7 +168,7 @@ class SkillFilesViewModel(
                 }
                 is Result.Error -> {
                     _uiState.value = _uiState.value.copy(isUploading = false)
-                    _events.trySend(SkillFilesEvent.ActionFailed(skillError(SkillErrorKind.UPLOAD_FILE, result.message)))
+                    _events.trySend(SkillFilesEvent.ActionFailed(skillFileWriteError(SkillErrorKind.UPLOAD_FILE, result)))
                 }
                 is Result.Loading -> { /* no-op */ }
             }
@@ -208,7 +209,7 @@ class SkillFilesViewModel(
                 }
                 is Result.Error -> {
                     _uiState.update { it.copy(removing = it.removing - path) }
-                    _events.trySend(SkillFilesEvent.ActionFailed(skillError(SkillErrorKind.DELETE_FILE, result.message)))
+                    _events.trySend(SkillFilesEvent.ActionFailed(skillFileWriteError(SkillErrorKind.DELETE_FILE, result)))
                 }
                 is Result.Loading -> _uiState.update { it.copy(removing = it.removing - path) }
             }

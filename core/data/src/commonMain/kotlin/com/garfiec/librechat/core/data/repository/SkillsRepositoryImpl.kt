@@ -87,11 +87,14 @@ class SkillsRepositoryImpl(
         mimeType: String,
     ): Result<SkillFile> = apiCallCatching(
         { Result.Success(skillsApi.uploadSkillFile(skillId, relativePath, bytes, filename, mimeType)) },
-        ::toValidationError,
+        { e -> skillDeletingError(e) ?: toValidationError(e) },
     )
 
     override suspend fun deleteSkillFile(skillId: String, relativePath: String): Result<DeleteSkillFileResponse> =
-        safeApiCall { skillsApi.deleteSkillFile(skillId, relativePath) }
+        apiCallCatching(
+            { Result.Success(skillsApi.deleteSkillFile(skillId, relativePath)) },
+            { e -> skillDeletingError(e) ?: e.toSafeError() },
+        )
 
     override suspend fun getSkillFileContent(
         skillId: String,
@@ -116,7 +119,9 @@ class SkillsRepositoryImpl(
             skillsApi.editSkillFile(skillId, relativePath, expectedFileId, content.encodeToByteArray(), filename, mimeType),
         )
     }) { e ->
-        if (e is ApiException && e.statusCode == HTTP_CONFLICT) {
+        if (isSkillDeleting(e, json)) {
+            SkillFileEditResult.SkillDeleting
+        } else if (e is ApiException && e.statusCode == HTTP_CONFLICT) {
             SkillFileEditResult.Conflict
         } else {
             SkillFileEditResult.Failed(displayMessage(e))
@@ -125,6 +130,10 @@ class SkillsRepositoryImpl(
 
     override suspend fun importSkill(bytes: ByteArray, filename: String, mimeType: String): Result<Skill> =
         apiCallCatching({ Result.Success(skillsApi.importSkill(bytes, filename, mimeType)) }, ::toValidationError)
+
+    /** The skill is being deleted (409 `SKILL_DELETING`), or null for any other failure. */
+    private fun skillDeletingError(e: Exception): Result.Error? =
+        if (isSkillDeleting(e, json)) Result.Error(SkillDeletingException(e)) else null
 
     private fun toValidationError(e: Exception): Result.Error =
         (e as? ApiException)?.let(::validationMessage)?.let { Result.Error(e, it) } ?: e.toSafeError()
