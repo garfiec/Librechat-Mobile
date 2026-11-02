@@ -40,6 +40,8 @@ data class MessageEntity(
     val manualSkills: String? = null,
     /** JSON-encoded `List<String>`: skills the server primed on its own (`always-apply`). Null when absent. */
     val alwaysAppliedSkills: String? = null,
+    /** JSON-encoded `ReasoningOverride` the user turn was sent with (v0.8.9-rc1). Null when absent. */
+    val reasoningOverride: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     /** Row-tenancy owner (self-owning; stamped from the carried command, not only transitively via conversation). See ConversationEntity.accountId. */

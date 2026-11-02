@@ -72,13 +72,28 @@ data class CustomParams(
      * server fills it from the endpoint's `provider` unless the admin chose one other than `custom`.
      */
     val defaultParamsEndpoint: String? = null,
-    /** Only each definition's `key` is read; the rest stays raw so a new field never fails the decode. */
+    /** Read by key (and a reasoning key's `options`); the rest stays raw so a new field never fails the decode. */
     val paramDefinitions: List<JsonObject>? = null,
+    /**
+     * How the endpoint takes reasoning (v0.8.9-rc1): `disabled` means none, any other value marks it
+     * as taking one. The server stamps `reasoning_effort` on an OpenRouter endpoint that declares none.
+     */
+    val reasoningFormat: String? = null,
 ) {
     val declaredKeys: Set<String>
         get() = paramDefinitions.orEmpty().mapNotNull { def ->
             (def["key"] as? JsonPrimitive)?.takeIf { it.isString }?.content
         }.toSet()
+
+    /** The first declared definition for [key], raw. */
+    fun declaredDefinition(key: String): JsonObject? = paramDefinitions.orEmpty().firstOrNull { def ->
+        (def["key"] as? JsonPrimitive)?.takeIf { it.isString }?.content == key
+    }
+
+    companion object {
+        /** MIRRORED from upstream `ReasoningParameterFormat.disabled` (`schemas.ts`). */
+        const val REASONING_FORMAT_DISABLED = "disabled"
+    }
 }
 
 /** The sync's name for [CustomParams]. */

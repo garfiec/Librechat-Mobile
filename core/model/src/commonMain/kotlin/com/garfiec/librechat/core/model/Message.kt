@@ -49,4 +49,9 @@ data class Message(
     // text"). Persisted UI-metadata; the web client creates them and merges them into
     // the sent text. Mobile renders them on the user bubble (no creation affordance yet).
     val quotes: List<String>? = null,
+    /**
+     * The one-turn reasoning choice this user message was sent with (v0.8.9-rc1). An edit,
+     * regenerate or continue of the turn sends it again, as web does. Never shown on the bubble.
+     */
+    val reasoningOverride: ReasoningOverride? = null,
 )

@@ -47,7 +47,7 @@ import com.garfiec.librechat.core.data.db.entity.ServerEntity
         MessageSearchFtsEntity::class,
         ProjectOrderEntity::class,
     ],
-    version = 15,
+    version = 16,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -80,6 +80,9 @@ import com.garfiec.librechat.core.data.db.entity.ServerEntity
         // 14 -> 15 adds the five nullable read-state columns on conversations (v0.8.9-rc1 unseen
         // replies): rows cached before it read as seen until the next list page restamps them.
         AutoMigration(from = 14, to = 15),
+        // 15 -> 16 adds `reasoningOverride` on messages (v0.8.9-rc1), so an edit or regenerate of a
+        // turn opened from the cache sends the one-turn reasoning choice it was sent with.
+        AutoMigration(from = 15, to = 16),
     ],
 )
 @TypeConverters(Converters::class)

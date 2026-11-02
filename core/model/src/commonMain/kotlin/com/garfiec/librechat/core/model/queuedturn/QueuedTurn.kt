@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.model.queuedturn
 
 import kotlinx.serialization.SerialName
+import com.garfiec.librechat.core.model.ReasoningOverride
 import kotlinx.serialization.Serializable
 
 /**
@@ -96,6 +97,7 @@ data class AgentQueuedTurnReceipt(
     val files: List<QueuedTurnFileRef>? = null,
     val quotes: List<String>? = null,
     val manualSkills: List<String>? = null,
+    val reasoningOverride: ReasoningOverride? = null,
     val priority: Boolean? = null,
     /** The boundary captured at enqueue. */
     val expectedPredecessorCreatedAt: Long? = null,

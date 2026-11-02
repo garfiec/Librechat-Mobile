@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.model.queuedturn
 
+import com.garfiec.librechat.core.model.ReasoningOverride
 import kotlinx.serialization.Serializable
 
 /**
@@ -23,6 +24,8 @@ data class EnqueueQueuedTurnRequest(
     val files: List<QueuedTurnFileRef>? = null,
     val quotes: List<String>? = null,
     val manualSkills: List<String>? = null,
+    /** The turn's one-shot reasoning choice; the server revalidates it at admission. */
+    val reasoningOverride: ReasoningOverride? = null,
     val priority: Boolean? = null,
     val expectedPredecessorCreatedAt: Long? = null,
 )

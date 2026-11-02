@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.FeedbackTag
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
+import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
@@ -58,6 +59,7 @@ fun Message.toEntity(): MessageEntity = MessageEntity(
     quotes = quotes?.let { json.encodeToString(ListSerializer(String.serializer()), it) },
     manualSkills = manualSkills?.let { json.encodeToString(ListSerializer(String.serializer()), it) },
     alwaysAppliedSkills = alwaysAppliedSkills?.let { json.encodeToString(ListSerializer(String.serializer()), it) },
+    reasoningOverride = reasoningOverride?.let { json.encodeToString(ReasoningOverride.serializer(), it) },
     createdAt = parseTimestamp(createdAt),
     updatedAt = parseTimestamp(updatedAt),
 )
@@ -100,6 +102,9 @@ fun MessageEntity.toModel(): Message = Message(
     },
     alwaysAppliedSkills = alwaysAppliedSkills?.let {
         try { json.decodeFromString<List<String>>(it) } catch (_: Exception) { null }
+    },
+    reasoningOverride = reasoningOverride?.let {
+        try { json.decodeFromString<ReasoningOverride>(it) } catch (_: Exception) { null }
     },
     createdAt = formatTimestamp(createdAt),
     updatedAt = formatTimestamp(updatedAt),
