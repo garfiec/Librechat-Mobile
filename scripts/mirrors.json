@@ -608,7 +608,21 @@
         "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/datastore/CommonTokenDataStore.kt",
         "symbol": "LIBRECHAT_REFRESH_REJECTIONS"
       },
-      "why": "The response bodies that distinguish LibreChat's own terminal 403 on /api/auth/refresh ('Invalid refresh token', 'Invalid OpenID refresh token', 'No session found') from a 403 minted by a reverse proxy, WAF or IP bouncer. Only the former means the session is dead and the tokens should be dropped. NOTE: this watch is deliberately COARSE — the three literals are inline in a ~150-line controller that also carries the OpenID reuse path, the session lookup and its logging, and upstream does not hoist them into a constant to anchor on. So expect it to report on edits that do not touch the literals, and diff the send() arms specifically rather than skimming the block. 'Invalid refresh token' has been confirmed byte-for-byte against a live v0.8.7 (403, text/html, 21 bytes); the other two arms are code-read only.",
+      "why": "The response bodies that distinguish LibreChat's own terminal 403 on /api/auth/refresh ('Invalid refresh token', 'Invalid OpenID refresh token', 'No session found') from a 403 minted by a reverse proxy, WAF or IP bouncer. Only the former means the session is dead and the tokens should be dropped. Since v0.8.9-rc1 only the OpenID arm ('Invalid OpenID refresh token') is still in refreshController; 'Invalid refresh token' and 'No session found' moved to packages/api/src/auth/localRefresh.ts, watched by refresh-403-rejection-bodies-local. NOTE: this watch is deliberately COARSE — the three literals are inline in a ~150-line controller that also carries the OpenID reuse path, the session lookup and its logging, and upstream does not hoist them into a constant to anchor on. So expect it to report on edits that do not touch the literals, and diff the send() arms specifically rather than skimming the block. 'Invalid refresh token' has been confirmed byte-for-byte against a live v0.8.7 (403, text/html, 21 bytes); the other two arms are code-read only.",
+      "failure_mode": "Upstream rewords an arm and the client stops recognising a dead session: it classifies a real expiry as an intermediary block, keeps the dead tokens and never routes to re-auth. Nothing fails to decode, so a sync's ordinary diff sweep reads it as an inert string edit."
+    },
+    {
+      "id": "refresh-403-rejection-bodies-local",
+      "upstream": {
+        "file": "packages/api/src/auth/localRefresh.ts",
+        "symbol": "createLocalRefreshHandler",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/datastore/CommonTokenDataStore.kt",
+        "symbol": "LIBRECHAT_REFRESH_REJECTIONS"
+      },
+      "why": "The local-session half of refresh-403-rejection-bodies (v0.8.9-rc1+): the 403 'Invalid refresh token' and 'No session found' bodies, beside the 401 expired-refresh and the 200 TWO_FACTOR_ENROLLMENT_REQUIRED arms the token store must also tell apart from a dead session. Coarse like its sibling: the literals are inline in the handler.",
       "failure_mode": "Upstream rewords an arm and the client stops recognising a dead session: it classifies a real expiry as an intermediary block, keeps the dead tokens and never routes to re-auth. Nothing fails to decode, so a sync's ordinary diff sweep reads it as an inert string edit."
     },
     {
@@ -822,7 +836,7 @@
     {
       "id": "steer-restaged-quotes",
       "upstream": {
-        "file": "client/src/utils/steer.ts",
+        "file": "packages/chat/src/core/steer/steer.ts",
         "symbol": "mergeRestagedQuotes",
         "mode": "block"
       },
@@ -836,7 +850,7 @@
     {
       "id": "steer-max-quote-count",
       "upstream": {
-        "file": "client/src/utils/steer.ts",
+        "file": "packages/chat/src/core/steer/steer.ts",
         "symbol": "MAX_QUOTE_COUNT",
         "mode": "block"
       },
@@ -934,7 +948,7 @@
     {
       "id": "queued-turn-unsupported-classification",
       "upstream": {
-        "file": "client/src/data-provider/SSE/queuedTurns.ts",
+        "file": "packages/chat/src/core/steer/errors.ts",
         "symbol": "isDefiniteQueuedTurnsUnsupported",
         "mode": "block"
       },
@@ -948,7 +962,7 @@
     {
       "id": "queued-turn-rejection-classification",
       "upstream": {
-        "file": "client/src/data-provider/SSE/queuedTurns.ts",
+        "file": "packages/chat/src/core/steer/errors.ts",
         "symbol": "isDefiniteQueuedTurnRejection",
         "mode": "block"
       },
@@ -1580,27 +1594,67 @@
     {
       "id": "context-gauge-estimate",
       "upstream": {
-        "file": "client/src/utils/tokens.ts",
+        "file": "packages/chat/src/core/usage/estimate.ts",
         "mode": "file"
       },
       "kotlin": {
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/ContextGaugeResolver.kt",
         "symbol": "estimateContextUsage / deepestPersistedSnapshot"
       },
-      "why": "The context gauge on a v0.8.8+ server, which removed the projection endpoint: the saved-snapshot walk (`findBranchSnapshotAnchor`, stopping at a summary without its own snapshot) and the snapshot-less estimate (`toEntry`'s chars/4 and quoted-turn rules, `sumBranch`'s summary cap, `prunedBranchTokens`' newest-that-fits break).",
+      "why": "The context gauge on a v0.8.8+ server, which removed the projection endpoint: the saved-snapshot walk (`findBranchSnapshotAnchor`, stopping at a summary without its own snapshot) and the snapshot-less estimate (`toEntry`'s chars/4 and quoted-turn rules, `sumBranch`'s summary cap, `prunedBranchTokens`' newest-that-fits break). Since v0.8.9-rc1 this lives in @librechat/chat's core/usage, split across four files: this entry watches estimate.ts (`estimateTokens`, output-char counting); context-gauge-estimate-branch, -registry and -snapshot watch the rest.",
+      "failure_mode": "The gauge disagrees with web for the same branch -- a different percentage, a pre-summary snapshot revived, or an over-window branch pinned at 100% -- with nothing failing."
+    },
+    {
+      "id": "context-gauge-estimate-branch",
+      "upstream": {
+        "file": "packages/chat/src/core/usage/branch.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/ContextGaugeResolver.kt",
+        "symbol": "estimateContextUsage / deepestPersistedSnapshot"
+      },
+      "why": "The branch walks of the context-gauge-estimate entry: `sumBranch` (summary cap, tail counting), `prunedBranchTokens` (newest-that-fits break) and `findBranchSnapshotAnchor` (stop at a summary without its own snapshot).",
+      "failure_mode": "The gauge disagrees with web for the same branch -- a different percentage, a pre-summary snapshot revived, or an over-window branch pinned at 100% -- with nothing failing."
+    },
+    {
+      "id": "context-gauge-estimate-registry",
+      "upstream": {
+        "file": "packages/chat/src/core/usage/registry.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/ContextGaugeResolver.kt",
+        "symbol": "estimateContextUsage / deepestPersistedSnapshot"
+      },
+      "why": "How a message becomes a token entry for the context-gauge-estimate walk: `toEntry`'s chars/4 and quoted-turn rules, tool-call argument and output lengths, and which content parts count as text.",
+      "failure_mode": "The gauge disagrees with web for the same branch -- a different percentage, a pre-summary snapshot revived, or an over-window branch pinned at 100% -- with nothing failing."
+    },
+    {
+      "id": "context-gauge-estimate-snapshot",
+      "upstream": {
+        "file": "packages/chat/src/core/usage/snapshot.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/ContextGaugeResolver.kt",
+        "symbol": "estimateContextUsage / deepestPersistedSnapshot"
+      },
+      "why": "How a persisted context snapshot is read for the context-gauge-estimate walk (the snapshot half of what client/src/utils/tokens.ts held before v0.8.9-rc1).",
       "failure_mode": "The gauge disagrees with web for the same branch -- a different percentage, a pre-summary snapshot revived, or an over-window branch pinned at 100% -- with nothing failing."
     },
     {
       "id": "context-gauge-used-tokens",
       "upstream": {
-        "file": "client/src/hooks/Chat/useTokenUsage.ts",
-        "mode": "file"
+        "file": "packages/chat/src/core/usage/view.ts",
+        "symbol": "deriveTokenUsageView",
+        "mode": "block"
       },
       "kotlin": {
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/usage/ContextUsage.kt",
         "symbol": "ContextUsage.usedTokens / windowTokens (precedence: ContextProjectionDelegate)"
       },
-      "why": "How a snapshot becomes the gauge's numbers (denominator `contextBudget ?? maxContextTokens`, the breakdown floor, the post-snapshot `completedOutputTokens`/`retainedToolTokens` additions) and the live / saved / estimate precedence. The precedence diverges deliberately (the saved snapshot replaces the finished turn's live reading); see the delegate KDoc. The breakdown's Totals and Cost come from the same file's view (branchUsage / totalUsage); see the context-breakdown-rows and usage-totals-folding entries.",
+      "why": "How a snapshot becomes the gauge's numbers (denominator `contextBudget ?? maxContextTokens`, the breakdown floor, the post-snapshot `completedOutputTokens`/`retainedToolTokens` additions) and the live / saved / estimate precedence. The precedence diverges deliberately (the saved snapshot replaces the finished turn's live reading); see the delegate KDoc. The breakdown's Totals and Cost come from the same file's view (branchUsage / totalUsage); see the context-breakdown-rows and usage-totals-folding entries. Since v0.8.9-rc1 the arithmetic is @librechat/chat's `deriveTokenUsageView`; client/src/hooks/Chat/useTokenUsage.ts only feeds it.",
       "failure_mode": "The gauge reads a different percentage from web for the same snapshot, or shows a stale source after a reload."
     },
     {
@@ -1633,7 +1687,7 @@
     {
       "id": "context-overhead-key",
       "upstream": {
-        "file": "client/src/store/usage.ts",
+        "file": "client/src/components/Chat/Input/TokenUsage/store.ts",
         "symbol": "overheadKey",
         "mode": "block"
       },
@@ -1660,14 +1714,15 @@
     {
       "id": "usage-totals-folding",
       "upstream": {
-        "file": "client/src/hooks/SSE/useUsageHandler.ts",
-        "mode": "file"
+        "file": "client/src/hooks/SSE/usage/handlers.ts",
+        "symbol": "createUsageHandlers",
+        "mode": "block"
       },
       "kotlin": {
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/LiveReplyDelegate.kt",
         "symbol": "foldUsage / onFinal / discardPendingUsage (math in util/UsageTotals.kt)"
       },
-      "why": "How live `on_token_usage` events become the breakdown's Totals: every bucket counts, each call once (runId:seq), the run's usage is attributed to its reply at the final frame, and a resume backfill folds through the same dedupe.",
+      "why": "How live `on_token_usage` events become the breakdown's Totals: every bucket counts, each call once (runId:seq), the run's usage is attributed to its reply at the final frame, and a resume backfill folds through the same dedupe. Since v0.8.9-rc1 the handlers live in client/src/hooks/SSE/usage/handlers.ts (`createUsageHandlers`); useUsageHandler.ts only wires them.",
       "failure_mode": "Totals or Cost double-count a reply at completion, drop buckets web counts, or count a replayed call twice after a reconnect."
     },
     {
@@ -1687,7 +1742,7 @@
     {
       "id": "group-tool-tokens",
       "upstream": {
-        "file": "client/src/utils/tokens.ts",
+        "file": "packages/chat/src/core/usage/estimate.ts",
         "symbol": "groupToolTokens",
         "mode": "block"
       },
@@ -1715,14 +1770,14 @@
     {
       "id": "series-palette",
       "upstream": {
-        "file": "client/src/style.css",
+        "file": "packages/client/src/theme/defaults.css",
         "mode": "file"
       },
       "kotlin": {
         "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/theme/SeriesColors.kt",
         "symbol": "SeriesColors"
       },
-      "why": "The categorical `--series-1..8` colours (light and dark blocks) the context meter and its legend use. A CSS property run has no declaration a block anchor can find, so the whole file is watched; only the `--series-*` lines matter.",
+      "why": "The categorical `--series-1..8` colours (light and dark blocks) the context meter and its legend use. A CSS property run has no declaration a block anchor can find, so the whole theme file (packages/client/src/theme/defaults.css since v0.8.9-rc1; client/src/style.css before) is watched; only the `--series-*` lines matter.",
       "failure_mode": "The app's meter colours drift from web's, so the same category reads as a different colour on the two clients."
     },
     {
@@ -1797,7 +1852,7 @@
     {
       "id": "legacy-thinking-block",
       "upstream": {
-        "file": "client/src/components/Chat/Messages/Content/MessageContent.tsx",
+        "file": "packages/data-provider/src/parsers.ts",
         "symbol": "parseThinkingContent",
         "mode": "block"
       },
@@ -1812,7 +1867,7 @@
       "id": "file-config-mb-to-bytes",
       "upstream": {
         "file": "packages/data-provider/src/file-config.ts",
-        "symbol": "mergeFileConfig",
+        "symbol": "buildMergedFileConfig",
         "mode": "block"
       },
       "kotlin": {
@@ -4066,6 +4121,20 @@
       "failure_mode": "A changed refresh-routing or cookie-rotation contract rejects native sessions after login or refresh."
     },
     {
+      "id": "openid-refresh-cookie-routing-local",
+      "upstream": {
+        "file": "packages/api/src/auth/localRefresh.ts",
+        "symbol": "createLocalRefreshHandler",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/client/CookieHelper.kt",
+        "symbol": "update"
+      },
+      "why": "The non-OpenID refresh refreshController hands off to since v0.8.9-rc1: which arms clear the refreshToken cookie (a retired token's 401, the TWO_FACTOR_ENROLLMENT_REQUIRED 200 that carries no token) and which rotate it. CookieHelper.update reads a cleared refreshToken as a dead session, so the enrollment arm has to be told apart before it.",
+      "failure_mode": "A changed refresh-routing or cookie-rotation contract rejects native sessions after login or refresh. An arm that newly clears the cookie on a 200 lands the session in refresh limbo instead of re-auth."
+    },
+    {
       "id": "openid-bearer-cookie-routing",
       "upstream": {
         "file": "api/server/middleware/requireJwtAuth.js",
@@ -4589,6 +4658,187 @@
       },
       "why": "The rename handler's named refusals: 409 conversation_title_ownership_not_ready while interface.runningChatRename is off and the title is unset or a run is active, and 404 conversation_not_found. The chat and the drawer word each instead of a generic failure.",
       "failure_mode": "Upstream renames a code or adds a refusal and the rename falls back to 'Failed to rename conversation' with no hint that waiting would help. Nothing errors."
+    },
+    {
+      "id": "conversation-title-ownership-version",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "CONVERSATION_TITLE_OWNERSHIP_VERSION",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/InterfaceConfig.kt",
+        "symbol": "CONVERSATION_TITLE_OWNERSHIP_VERSION"
+      },
+      "why": "The capability version /api/config announces when the server owns a running chat's title. StartupConfig.supportsConversationTitleOwnership compares the served number to this copy, so the copy is the half that is never served. Nothing reads that property yet (the rename refusals come from the server, see conversation-rename-refusals); it is registered so the first caller does not inherit a stale copy.",
+      "failure_mode": "Upstream bumps the version and supportsConversationTitleOwnership reads every new server as lacking title ownership. Inert until something reads it; then it silently withholds whatever that caller gates."
+    },
+    {
+      "id": "conversation-title-ownership-support",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "supportsConversationTitleOwnership",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/StartupConfig.kt",
+        "symbol": "StartupConfig.supportsConversationTitleOwnership"
+      },
+      "why": "Title ownership needs BOTH the announced version and interface.runningChatRename; a replica with the YAML option but no announced version is an older server.",
+      "failure_mode": "Upstream adds or drops a condition and the property answers wrongly for some servers. Inert until something reads it (see conversation-title-ownership-version)."
+    },
+    {
+      "id": "forced-temporary-retention",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "isForcedTemporaryRetention",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/InterfaceConfig.kt",
+        "symbol": "isForcedTemporaryRetention / RETENTION_MODE_EPHEMERAL"
+      },
+      "why": "Which interface.retentionMode makes the server save every new chat temporary (only 'ephemeral'). The client locks the temporary toggle on, latches the flag on the created chat and keeps such chats out of the cache from it.",
+      "failure_mode": "Another mode starts forcing temporary chats and the client shows them as saved, caches them and offers a toggle the server ignores -- or the reverse, a toggle locked on for nothing."
+    },
+    {
+      "id": "retention-mode-values",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "RetentionMode",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/InterfaceConfig.kt",
+        "symbol": "RETENTION_MODE_EPHEMERAL"
+      },
+      "why": "The literal behind RetentionMode.EPHEMERAL, which forced-temporary-retention's predicate names by symbol, so a renamed value would not move that block.",
+      "failure_mode": "The value is renamed and the client never recognises forced retention: every chat looks saved while the server expires it."
+    },
+    {
+      "id": "queued-turn-reconciliation-default",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "DEFAULT_QUEUED_TURN_RECONCILIATION_TIMEOUT_MS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/InterfaceConfig.kt",
+        "symbol": "DEFAULT_QUEUED_TURN_RECONCILIATION_TIMEOUT_MS"
+      },
+      "why": "How long a transport-ambiguous queued turn is reconciled when interface.queuedTurnReconciliationTimeoutMs is absent or invalid. The server serves the configured value, never its default.",
+      "failure_mode": "The default moves and the client gives up reconciling earlier or later than web, re-queuing a turn the server committed (a duplicate) or polling long after web has stopped."
+    },
+    {
+      "id": "interface-schema-bounds",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "interfaceSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/InterfaceConfig.kt",
+        "symbol": "MAX_INTERFACE_TIMEOUT_MS / landingHeadingIsGreeting"
+      },
+      "why": "The interface timeouts' validity bounds (positive integer, at most 2_147_483_647) the client applies before falling back to the default, and the landingHeading values ('entity' | 'greeting'). COARSE: the whole schema is one declaration, so expect it to report on unrelated interface options; diff the timeout and landingHeading arms.",
+      "failure_mode": "A bound or heading value changes and the client discards a configured timeout the server accepts, or keeps the entity title where web shows the greeting."
+    },
+    {
+      "id": "prompt-group-sources",
+      "upstream": {
+        "file": "packages/data-provider/src/types.ts",
+        "symbol": "PromptGroupSources",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/Prompt.kt",
+        "symbol": "PROMPT_SOURCE_NATIVE / PROMPT_SOURCE_LANGFUSE (PromptGroup.isExternal)"
+      },
+      "why": "Which prompt-group source is LibreChat's own. Any other source stores no text, so the client resolves it live and hides edit and delete, which the server refuses for it.",
+      "failure_mode": "The native value is renamed and every prompt reads as external (read-only, resolved on each open); a new external source is named as Langfuse, or its group shows edit controls the server refuses."
+    },
+    {
+      "id": "skill-deleting-upload",
+      "upstream": {
+        "file": "packages/api/src/skills/upload.ts",
+        "symbol": "createSkillUploadHandler",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/SkillDeletingException.kt",
+        "symbol": "SKILL_DELETING / isSkillDeleting"
+      },
+      "why": "A skill-file upload during a durable skill delete answers 409 { error: 'SKILL_DELETING' }. The client words it as the skill being deleted rather than an edit conflict.",
+      "failure_mode": "The code or status changes and the upload shows the bare code, or the editor reads it as another edit having landed first and offers a retry that can never succeed."
+    },
+    {
+      "id": "skill-deleting-file-delete",
+      "upstream": {
+        "file": "packages/api/src/skills/handlers.ts",
+        "symbol": "deleteFileHandler",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/SkillDeletingException.kt",
+        "symbol": "SKILL_DELETING / isSkillDeleting"
+      },
+      "why": "The skill-file delete's half of skill-deleting-upload: the same 409 { error: 'SKILL_DELETING' } during a durable skill delete.",
+      "failure_mode": "As skill-deleting-upload, for deleting a file."
+    },
+    {
+      "id": "abort-route-codes",
+      "upstream": {
+        "file": "api/server/routes/agents/index.js",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/ChatRepositoryImpl.kt",
+        "symbol": "abortChat retry set (ServerErrorCode.RUN_STILL_ACTIVE / ABORT_PERSISTENCE_FAILED / RUN_ALREADY_SETTLED)"
+      },
+      "why": "The chat abort route's outcome codes on generation protocol v1, which mobile speaks: 409 RUN_STILL_ACTIVE and 409 ABORT_PERSISTENCE_FAILED (Retry-After, run kept) are retried; RUN_ALREADY_SETTLED is final. The route is an anonymous router callback with no declaration to anchor on, so the whole routes file is watched -- COARSE; diff the /chat/abort handler.",
+      "failure_mode": "A code is renamed or a new retryable outcome appears and Stop either gives up on a run the server kept for a retry (the partial is never saved) or retries one that already settled."
+    },
+    {
+      "id": "two-factor-setup-credential-dead",
+      "upstream": {
+        "file": "client/src/components/Auth/TwoFactorSetupScreen.tsx",
+        "symbol": "isExpiredSetupCredential",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/auth/src/commonMain/kotlin/com/garfiec/librechat/feature/auth/viewmodel/TwoFactorSetupViewModel.kt",
+        "symbol": "SETUP_CREDENTIAL_DEAD"
+      },
+      "why": "Which statuses end the required-2FA setup flow (401 expired or retired setup token; 403 via isRetiredSetupFlow for policy or ban) and send the user back to sign in.",
+      "failure_mode": "A status moves and setup either retries a dead credential forever or throws the user back to sign-in on a recoverable error."
+    },
+    {
+      "id": "two-factor-setup-transition-spent",
+      "upstream": {
+        "file": "client/src/components/Auth/TwoFactorSetupScreen.tsx",
+        "symbol": "isSpentTransitionCredential",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/auth/src/commonMain/kotlin/com/garfiec/librechat/feature/auth/viewmodel/TwoFactorSetupViewModel.kt",
+        "symbol": "TRANSITION_CREDENTIAL_SPENT"
+      },
+      "why": "The acknowledgement and finalization nonces are single-use: 400 once consumed, plus the 401/403 of a dead setup credential. These end the flow rather than retrying with the same nonce.",
+      "failure_mode": "A spent nonce is retried indefinitely (the user is stuck on the backup-codes step), or a transient failure ends a setup that could have finished."
+    },
+    {
+      "id": "two-factor-setup-retired-flow",
+      "upstream": {
+        "file": "client/src/components/Auth/TwoFactorSetupScreen.tsx",
+        "symbol": "isRetiredSetupFlow",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/auth/src/commonMain/kotlin/com/garfiec/librechat/feature/auth/viewmodel/TwoFactorSetupViewModel.kt",
+        "symbol": "SETUP_CREDENTIAL_DEAD / TRANSITION_CREDENTIAL_SPENT (the 403 member)"
+      },
+      "why": "The 403 both setup predicates fold in by name, declared outside their blocks.",
+      "failure_mode": "As two-factor-setup-credential-dead."
     }
   ]
 }
