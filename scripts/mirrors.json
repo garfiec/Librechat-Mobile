@@ -4744,6 +4744,20 @@
       "failure_mode": "The default moves and the client reports \"couldn't confirm\" sooner or later than web. No error either way."
     },
     {
+      "id": "steer-interrupted-tool-result",
+      "upstream": {
+        "file": "packages/api/src/agents/steering/tools.ts",
+        "symbol": "INTERRUPTED",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/ToolCallParsing.kt",
+        "symbol": "INTERRUPTED_TOOL_RESULT"
+      },
+      "why": "The error sentence the server writes into a tool an interrupt (\"Interrupt and steer\") cancelled. Module-private and served nowhere; the client matches it to draw the call as \"Interrupted by your message\" and count it as cancelled rather than failed.",
+      "failure_mode": "Upstream rewords the sentence and every interrupted tool goes back to reading as a red failed card, with its group header counting a failure. Nothing errors; the copy is simply wrong."
+    },
+    {
       "id": "interface-schema-bounds",
       "upstream": {
         "file": "packages/data-provider/src/config.ts",

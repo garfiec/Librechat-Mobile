@@ -160,6 +160,21 @@ class ActivityGroupVerdictTest {
     }
 
     @Test
+    fun `a tool the user's interrupt cancelled counts as cancelled, not failed`() {
+        val interrupted = "Error: $INTERRUPTED_TOOL_RESULT\n Please fix your mistakes."
+        val group = group(
+            tool("c1", "web_search", interrupted),
+            tool("c2", "fetch", "ok"),
+            label(),
+        )
+
+        val outcome = activityGroupOutcome(group, emptyList())
+        assertThat(outcome.cancelled).isEqualTo(1)
+        assertThat(outcome.failed).isEqualTo(0)
+        assertThat(outcome.headerFailed).isFalse()
+    }
+
+    @Test
     fun `a cancelled step outranks failure-shaped output and is counted apart`() {
         val group = group(
             tool("c1", "fetch", "Error: tool call failed: stopped", status = RunStepStatus.CANCELLED),

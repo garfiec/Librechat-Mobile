@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -371,6 +372,7 @@ internal fun GenericToolCallCard(
     // Saveable: this card is inside a LazyColumn item, so plain `remember` state is disposed when
     // the message scrolls out of the viewport and an expanded call silently re-collapses.
     var isExpanded by rememberSaveable(key = "toolcall:$stateKey") { mutableStateOf(false) }
+    val interrupted = isInterruptedToolOutput(output)
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -404,7 +406,9 @@ internal fun GenericToolCallCard(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
-                when (toolCallVerdict(closedStatus, isComplete = true)) {
+                when (if (interrupted) null else toolCallVerdict(closedStatus, isComplete = true)) {
+                    null -> InterruptedToolStatus()
+
                     ToolCallVerdict.CANCELLED -> Icon(
                         Icons.Default.Block,
                         stringResource(Res.string.cd_tool_cancelled),
@@ -449,10 +453,33 @@ internal fun GenericToolCallCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(modifier = Modifier.height(4.dp))
-                        CodeBlock(code = output, language = null)
+                        // The server's own sentence, without the model-facing error wrapper.
+                        CodeBlock(code = if (interrupted) INTERRUPTED_TOOL_RESULT else output, language = null)
                     }
                 }
             }
         }
+    }
+}
+
+/**
+ * "Interrupted by your message", with a neutral stop glyph: a tool the user's interrupt cancelled.
+ * Deliberately not the red failed style — the tool isn't broken, the user redirected the reply.
+ */
+@Composable
+internal fun InterruptedToolStatus(modifier: Modifier = Modifier) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            Icons.Default.StopCircle,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            stringResource(Res.string.tool_interrupted_by_you),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

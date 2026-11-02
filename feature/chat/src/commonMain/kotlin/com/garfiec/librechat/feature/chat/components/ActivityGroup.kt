@@ -322,6 +322,8 @@ internal fun toolCallOutcome(call: AgentToolCall, attachments: List<Attachment>)
     } else {
         null
     }
+    // Cancelled by the user's own interrupt: counted as cancelled, never failed.
+    if (isInterruptedToolOutput(output)) return ToolCallVerdict.CANCELLED
     val hasError = failedOutput || polled == BackgroundTaskOutcome.FAILED
     val status = if (polled == BackgroundTaskOutcome.CANCELLED) RunStepStatus.CANCELLED else call.effectiveRunStepStatus
     return when (status) {

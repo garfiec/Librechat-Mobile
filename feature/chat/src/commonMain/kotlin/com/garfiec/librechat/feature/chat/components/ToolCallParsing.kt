@@ -914,6 +914,27 @@ internal fun isToolErrorOutput(output: String?): Boolean {
         VALIDATION_FEEDBACK.matches(text)
 }
 
+/**
+ * The sentence the server writes as the result of a tool an interrupt cancelled.
+ *
+ * MIRRORED SERVER CONSTANT — module-private `INTERRUPTED` in
+ * `packages/api/src/agents/steering/tools.ts`, served nowhere. Registered in `scripts/mirrors.json`
+ * as `steer-interrupted-tool-result`. It reaches the persisted call wrapped by the agents SDK's
+ * error formatter (`Error: <sentence>\n Please fix your mistakes.`), so it is matched by
+ * containment, which also survives a change to that wrapper.
+ */
+internal const val INTERRUPTED_TOOL_RESULT =
+    "Interrupted by a user message. Cancellation was requested; external effects may already have occurred. " +
+        "Do not repeat this operation automatically."
+
+/**
+ * A tool call an interrupt ("Interrupt and steer") cancelled. The user caused it, so it reads as
+ * interrupted (neutral) rather than failed (red), and a group header counts it as cancelled.
+ * Plain `contains`, not a regex: Android's ICU engine is not the JVM's.
+ */
+internal fun isInterruptedToolOutput(output: String?): Boolean =
+    output?.contains(INTERRUPTED_TOOL_RESULT) == true
+
 /** How a search card settles, from the run's verdict and the call's output (upstream `WebSearch.tsx`). */
 internal enum class SearchOutcome {
     /** Draw the search card. */
@@ -932,6 +953,9 @@ internal enum class SearchOutcome {
  * (`!isSubmitting && progress < 1`).
  */
 internal fun searchOutcome(verdict: ToolCallVerdict, output: String?, finished: Boolean = true): SearchOutcome {
+    // An interrupted search keeps a card (the generic one, in its interrupted look), so the reply
+    // shows what the user's message stopped — whatever close status the run stamped.
+    if (isInterruptedToolOutput(output)) return SearchOutcome.FAILED
     val error = verdict == ToolCallVerdict.FAILED || isToolErrorOutput(output)
     // Upstream WebSearch.tsx hides a search whose output merely contains "error processing";
     // only a recognised error falls back to the card.

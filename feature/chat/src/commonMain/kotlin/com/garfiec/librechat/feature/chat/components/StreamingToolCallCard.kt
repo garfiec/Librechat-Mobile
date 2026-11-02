@@ -296,7 +296,11 @@ private fun GenericStreamingToolCard(
                         modifier = Modifier.weight(1f),
                     )
 
-                    when (toolCallVerdict(toolCall.closedStatus, toolCall.isComplete)) {
+                    // Null: the user's own interrupt cancelled it (see InterruptedToolStatus).
+                    val interrupted = toolCall.isComplete && isInterruptedToolOutput(toolCall.output)
+                    when (if (interrupted) null else toolCallVerdict(toolCall.closedStatus, toolCall.isComplete)) {
+                        null -> InterruptedToolStatus()
+
                         ToolCallVerdict.CANCELLED -> Icon(
                             imageVector = Icons.Default.Block,
                             contentDescription = stringResource(Res.string.cd_tool_cancelled),
