@@ -76,6 +76,8 @@ class MessageTreeDelegate(
         // active the toggle is a read-only indicator — the server already created
         // it temporary, so flipping it off here would be misleading.
         if (handle.state.conversationId != null) return
+        // An administrator forces temporary chats; the toggle is a read-only indicator.
+        if (handle.state.temporaryChatEnforced) return
         handle.update { conversation = conversation.copy(isTemporaryChat = !conversation.isTemporaryChat) }
     }
 

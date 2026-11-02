@@ -40,6 +40,7 @@ import com.garfiec.librechat.feature.chat.resources.load_preset
 import com.garfiec.librechat.feature.chat.resources.prompts_library
 import com.garfiec.librechat.feature.chat.resources.save_as_preset
 import com.garfiec.librechat.feature.chat.resources.select_model
+import com.garfiec.librechat.feature.chat.resources.temporary_chat_enforced
 import com.garfiec.librechat.feature.chat.resources.trace_open
 import com.garfiec.librechat.feature.chat.screen.rememberChatModelLabel
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
@@ -128,7 +129,9 @@ internal fun rememberChatTopBarSpec(
                     id = "temporary_chat",
                     iconOff = BarIcons.Visible,
                     iconOn = BarIcons.Hidden,
-                    label = stringResource(Res.string.cd_temporary_chat),
+                    label = stringResource(
+                        if (uiState.temporaryChatEnforced) Res.string.temporary_chat_enforced else Res.string.cd_temporary_chat,
+                    ),
                     checked = uiState.isTemporaryChat,
                     onCheckedChange = { actions.onToggleTemporaryChat() },
                     checkedTint = ChatInputDefaults.temporaryAccent,

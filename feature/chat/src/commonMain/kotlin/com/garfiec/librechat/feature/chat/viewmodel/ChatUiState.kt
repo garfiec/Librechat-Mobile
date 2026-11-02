@@ -381,6 +381,8 @@ data class ChatUiState(
     val mcpServersEnabled: Boolean get() = gates.mcpServersEnabled
     val multiConvoEnabled: Boolean get() = gates.multiConvoEnabled
     val temporaryChatEnabled: Boolean get() = gates.temporaryChatEnabled
+    /** `retentionMode: "ephemeral"`: the server makes every new chat temporary; the toggle is locked on. */
+    val temporaryChatEnforced: Boolean get() = gates.temporaryChatEnforced
     val webSearchEnabled: Boolean get() = gates.webSearchEnabled
     val runCodeEnabled: Boolean get() = gates.runCodeEnabled
     val fileSearchEnabled: Boolean get() = gates.fileSearchEnabled
@@ -505,7 +507,15 @@ data class ChatUiState(
     val traceViewerAvailable: Boolean
         get() = conversationId != null && gates.traceViewerConversationId == conversationId
     val conversationTitle: String? get() = conversation.conversationTitle
-    val isTemporaryChat: Boolean get() = conversation.isTemporaryChat
+    /**
+     * The chat is temporary: the conversation says so, or it has no id yet and the server forces
+     * every new chat temporary (`retentionMode: "ephemeral"`). The second half is derived rather
+     * than written so a send can't race the config; `StreamEvent.Created` latches it into the
+     * conversation slice before the id lands, so the handed-off chat stays temporary.
+     */
+    val isTemporaryChat: Boolean
+        get() = conversation.isTemporaryChat ||
+            (gates.temporaryChatEnforced && conversation.conversationId == null)
     val sharedLinksEnabled: Boolean get() = conversation.sharedLinksEnabled
     val pendingNavigationConversationId: String? get() = conversation.pendingNavigationConversationId
 

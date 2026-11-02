@@ -492,8 +492,11 @@ class StreamingManagerDelegate(
         // usually persisted it. See currentTurnCreated for the exception.
         currentTurnCreated = true
         networkRecovery.disarm()
+        // Read before the id lands: a forced-temporary new chat is temporary only while it has no
+        // id (ChatUiState.isTemporaryChat), so the flag is latched into the slice here.
+        val temporary = handle.state.isTemporaryChat
         handle.update {
-            conversation = conversation.copy(conversationId = event.conversationId)
+            conversation = conversation.copy(conversationId = event.conversationId, isTemporaryChat = temporary)
             if (content.retryInfo != null) {
                 content = content.copy(retryInfo = null)
             }
@@ -1124,6 +1127,9 @@ class StreamingManagerDelegate(
                             screenState = ChatScreenState.ACTIVE,
                             runStatusSettled = true,
                         )
+                        // The server recorded the run as temporary (v0.8.9-rc1): keep its turn out
+                        // of Room and titling, as web's rebuilt submission does.
+                        if (status.isTemporary) conversation = conversation.copy(isTemporaryChat = true)
                     }
                     attachToRun(conversationId)
                     applyStatusPendingAction(status)

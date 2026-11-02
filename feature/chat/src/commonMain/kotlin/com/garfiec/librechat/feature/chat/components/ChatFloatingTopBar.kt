@@ -121,8 +121,9 @@ internal fun ChatFloatingTopBar(
     val conversationTitle = uiState.conversationTitle
     // Interactive on the new-chat landing; once a temporary chat is active it stays visible (ON) as
     // a persistent indicator. Gated on TEMPORARY_CHAT.USE.
+    // Under an administrator's forced temporary mode it shows locked on, even without the role.
     val showTempChatToggle = (conversationId == null || uiState.isTemporaryChat) &&
-        uiState.temporaryChatEnabled
+        (uiState.temporaryChatEnabled || uiState.temporaryChatEnforced)
 
     // Equal gates across streamed tokens, so the menu's item lists are rebuilt only when a gate moves.
     val overflowGates = ChatOverflowGates(
@@ -172,7 +173,9 @@ internal fun ChatFloatingTopBar(
     // the ViewModel ignores it once the conversation exists, so neither sweeps nor buzzes then.
     val veil = LocalModeVeil.current
     val haptics = LocalHapticFeedback.current
-    val toggleContext = rememberUpdatedState(uiState.isTemporaryChat to (conversationId == null))
+    val toggleContext = rememberUpdatedState(
+        uiState.isTemporaryChat to (conversationId == null && !uiState.temporaryChatEnforced),
+    )
     val barActions = remember(viewModel, veil, haptics) {
         ChatTopBarActions(
             onRename = viewModel::renameConversation,
@@ -404,6 +407,7 @@ private fun MaterialChatTopBar(
                     TempChatToggle(
                         isTemporary = uiState.isTemporaryChat,
                         onToggle = actions.onToggleTemporaryChat,
+                        enforced = uiState.temporaryChatEnforced,
                         showsTemporary = toggleVeil.crossed,
                     )
                 }
