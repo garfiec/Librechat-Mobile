@@ -850,6 +850,17 @@
     <string name="stt_speak_now">تحدّث الآن…</string>
     <string name="stt_recognition_unavailable">التعرف على الكلام غير متاح على هذا الجهاز</string>
     <string name="artifact_preview_failed">تعذّر تحميل المعاينة</string>
+    <string name="artifact_library_title">هل تريد تحميل %1$s؟</string>
+    <string name="artifact_library_unmaintained">يستخدم هذا العنصر التفاعلي %1$s، وهي مكتبة لم تعد تُصان.</string>
+    <string name="artifact_library_deprecated">يستخدم هذا العنصر التفاعلي %1$s، وهي مكتبة أوقف مؤلفوها دعمها.</string>
+    <string name="artifact_library_vulnerable">يستخدم هذا العنصر التفاعلي %1$s، وهي مكتبة عليها تحذير أمني معروف.</string>
+    <string name="artifact_library_sandbox">يعمل في بيئة معزولة دون وصول إلى ملفاتك أو حسابك. ومثل أي عنصر تفاعلي، يمكنه تحميل صور من الويب.</string>
+    <string name="artifact_library_remember">تذكّر لـ %1$s</string>
+    <string name="artifact_library_load">تحميل</string>
+    <string name="artifact_library_skip">عدم التحميل</string>
+    <string name="artifact_library_declined">لم يُحمَّل: %1$s</string>
+    <string name="artifact_library_allowed">مُحمَّل: %1$s</string>
+    <string name="artifact_library_change">تغيير</string>
     <string name="cd_mcp_server_enabled">خادم MCP %1$s مفعّل</string>
     <string name="cd_code_block">كتلة شيفرة</string>
     <string name="cd_code_block_language">كتلة شيفرة %1$s</string>

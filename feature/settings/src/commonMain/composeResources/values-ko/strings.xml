@@ -331,6 +331,16 @@
     <string name="artifact_mode_fullscreen_desc">더 넓은 전체 화면 페이지로 열립니다.</string>
     <string name="artifact_inline_title">인라인으로 렌더링</string>
     <string name="artifact_inline_enabled_count">%2$d개 중 %1$d개 사용</string>
+    <string name="artifact_libraries_title">주의가 필요한 라이브러리</string>
+    <string name="artifact_libraries_desc">아티팩트는 더 이상 유지 관리되지 않거나 알려진 문제가 있는 일부 라이브러리를 사용할 수 있습니다. 각각을 불러올지 선택하거나, 아티팩트마다 묻도록 할 수 있습니다. 샌드박스에서 실행되며 파일이나 계정에 접근할 수 없습니다.</string>
+    <string name="artifact_libraries_none_set">매번 묻기</string>
+    <string name="artifact_libraries_some_set">%2$d개 중 %1$d개 설정됨</string>
+    <string name="artifact_libraries_ask">묻기</string>
+    <string name="artifact_libraries_allow">불러오기</string>
+    <string name="artifact_libraries_decline">불러오지 않기</string>
+    <string name="artifact_libraries_unmaintained">더 이상 유지 관리되지 않음</string>
+    <string name="artifact_libraries_deprecated">작성자가 지원 중단함</string>
+    <string name="artifact_libraries_vulnerable">알려진 보안 권고 있음</string>
     <string name="artifacts_section_desc">아티팩트를 탭하여 여는 카드 대신 채팅에 직접 렌더링합니다. 인라인 아티팩트를 탭하면 전체 화면 보기가 열립니다.</string>
     <string name="inline_artifact_mermaid">Mermaid 다이어그램</string>
     <string name="inline_artifact_mermaid_desc">Mermaid 흐름도와 다이어그램을 인라인으로 렌더링</string>

@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import com.garfiec.librechat.core.common.AppInfo
+import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
@@ -52,6 +53,7 @@ class SettingsModuleVerificationTest {
                 // Supplied by a ViewModel's CreationExtras at resolution time, never declared.
                 SavedStateHandle::class,
                 AppInfo::class,
+                ArtifactLibraryConsentStore::class,
                 UserRepository::class,
                 AuthRepository::class,
                 ConfigRepository::class,

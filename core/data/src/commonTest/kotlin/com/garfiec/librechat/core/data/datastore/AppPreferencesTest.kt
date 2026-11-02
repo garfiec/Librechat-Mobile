@@ -55,6 +55,7 @@ class AppPreferencesTest {
             "prefer_last_used_model" to everyChannel(false),
             "web_search_first" to everyChannel(WebSearchPreference.LIBRECHAT_FIRST),
             "drawer_pinned_destinations" to everyChannel(emptyList<String>()),
+            "artifact_library_answers" to everyChannel(emptyList<String>()),
         )
         assertEquals(expected, actual)
     }

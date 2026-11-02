@@ -115,6 +115,7 @@ fun ChatSettingsContent(
     chatLayoutViewModel: ChatLayoutSettingsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val artifactLibraries by viewModel.artifactLibraries.collectAsStateWithLifecycle()
     val contextUsage by contextUsageViewModel.uiState.collectAsStateWithLifecycle()
     val chatLayout by chatLayoutViewModel.uiState.collectAsStateWithLifecycle()
     var openDialog by remember { mutableStateOf<ChatSettingDialog?>(null) }
@@ -185,8 +186,10 @@ fun ChatSettingsContent(
                             prefs.enabledCount,
                             InlineArtifactPrefs.FIELD_COUNT,
                         ),
+                        librariesSummary = artifactLibrariesSummary(artifactLibraries),
                         onOpenArtifactViewerDialog = { openDialog = ChatSettingDialog.ARTIFACT_VIEWER },
                         onOpenRenderInlineDialog = { openDialog = ChatSettingDialog.RENDER_INLINE },
+                        onOpenLibrariesDialog = { openDialog = ChatSettingDialog.ARTIFACT_LIBRARIES },
                     )
                 }
             }
@@ -391,6 +394,14 @@ fun ChatSettingsContent(
                 onHtmlChange = viewModel::setInlineArtifactHtml,
                 onReactChange = viewModel::setInlineArtifactReact,
                 onMarkdownChange = viewModel::setInlineArtifactMarkdown,
+                onDismiss = dismissDialog,
+            )
+        }
+
+        if (openDialog == ChatSettingDialog.ARTIFACT_LIBRARIES) {
+            ArtifactLibrariesDialog(
+                choices = artifactLibraries,
+                onDecisionChange = viewModel::setArtifactLibraryDecision,
                 onDismiss = dismissDialog,
             )
         }

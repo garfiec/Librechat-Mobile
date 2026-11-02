@@ -810,6 +810,17 @@
     <string name="stt_speak_now">Fale agora…</string>
     <string name="stt_recognition_unavailable">O reconhecimento de voz não está disponível neste dispositivo</string>
     <string name="artifact_preview_failed">Não foi possível carregar a prévia</string>
+    <string name="artifact_library_title">Carregar %1$s?</string>
+    <string name="artifact_library_unmaintained">Este artefato usa %1$s, uma biblioteca que não recebe mais manutenção.</string>
+    <string name="artifact_library_deprecated">Este artefato usa %1$s, uma biblioteca que seus autores descontinuaram.</string>
+    <string name="artifact_library_vulnerable">Este artefato usa %1$s, uma biblioteca com um alerta de segurança conhecido.</string>
+    <string name="artifact_library_sandbox">Ele roda isolado, sem acesso aos seus arquivos ou à sua conta. Como qualquer artefato, pode carregar imagens da web.</string>
+    <string name="artifact_library_remember">Lembrar para %1$s</string>
+    <string name="artifact_library_load">Carregar</string>
+    <string name="artifact_library_skip">Não carregar</string>
+    <string name="artifact_library_declined">Não carregado: %1$s</string>
+    <string name="artifact_library_allowed">Carregado: %1$s</string>
+    <string name="artifact_library_change">Alterar</string>
     <string name="cd_mcp_server_enabled">Servidor MCP %1$s ativado</string>
     <string name="cd_code_block">Bloco de código</string>
     <string name="cd_code_block_language">Bloco de código %1$s</string>

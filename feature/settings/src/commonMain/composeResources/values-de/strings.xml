@@ -337,6 +337,16 @@
     <string name="artifact_mode_fullscreen_desc">Öffnet sich als Vollbildseite mit mehr Platz.</string>
     <string name="artifact_inline_title">Eingebettet rendern</string>
     <string name="artifact_inline_enabled_count">%1$d von %2$d aktiviert</string>
+    <string name="artifact_libraries_title">Markierte Bibliotheken</string>
+    <string name="artifact_libraries_desc">Artefakte können einige Bibliotheken nutzen, die nicht mehr gepflegt werden oder bekannte Probleme haben. Lege fest, ob jede geladen wird, oder lass jedes Artefakt fragen. Sie laufen in einer Sandbox, ohne Zugriff auf deine Dateien oder dein Konto.</string>
+    <string name="artifact_libraries_none_set">Jedes Mal fragen</string>
+    <string name="artifact_libraries_some_set">%1$d von %2$d festgelegt</string>
+    <string name="artifact_libraries_ask">Fragen</string>
+    <string name="artifact_libraries_allow">Laden</string>
+    <string name="artifact_libraries_decline">Nicht laden</string>
+    <string name="artifact_libraries_unmaintained">Nicht mehr gepflegt</string>
+    <string name="artifact_libraries_deprecated">Von den Autoren als veraltet markiert</string>
+    <string name="artifact_libraries_vulnerable">Mit bekannter Sicherheitswarnung</string>
     <string name="artifacts_section_desc">Artefakte direkt im Chat rendern, statt hinter einer Karte zum Antippen. Tippe auf ein eingebettetes Artefakt, um die Vollbildansicht zu öffnen.</string>
     <string name="inline_artifact_mermaid">Mermaid-Diagramme</string>
     <string name="inline_artifact_mermaid_desc">Mermaid-Flussdiagramme und -Diagramme eingebettet rendern</string>

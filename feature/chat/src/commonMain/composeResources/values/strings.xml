@@ -847,6 +847,17 @@
     <string name="stt_speak_now">Speak now…</string>
     <string name="stt_recognition_unavailable">Speech recognition is not available on this device</string>
     <string name="artifact_preview_failed">Failed to load preview</string>
+    <string name="artifact_library_title">Load %1$s?</string>
+    <string name="artifact_library_unmaintained">This artifact uses %1$s, a library that is no longer maintained.</string>
+    <string name="artifact_library_deprecated">This artifact uses %1$s, a library its authors have deprecated.</string>
+    <string name="artifact_library_vulnerable">This artifact uses %1$s, a library with a known security advisory.</string>
+    <string name="artifact_library_sandbox">It runs sandboxed, with no access to your files or account. Like any artifact, it can load images from the web.</string>
+    <string name="artifact_library_remember">Remember for %1$s</string>
+    <string name="artifact_library_load">Load</string>
+    <string name="artifact_library_skip">Don't load</string>
+    <string name="artifact_library_declined">Not loaded: %1$s</string>
+    <string name="artifact_library_allowed">Loaded: %1$s</string>
+    <string name="artifact_library_change">Change</string>
     <string name="cd_mcp_server_enabled">%1$s MCP server enabled</string>
     <string name="cd_code_block">Code block</string>
     <string name="cd_code_block_language">%1$s code block</string>

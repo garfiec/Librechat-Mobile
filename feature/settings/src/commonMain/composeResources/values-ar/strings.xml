@@ -361,6 +361,16 @@
     <string name="artifact_mode_fullscreen_desc">يُفتح كصفحة بملء الشاشة بمساحة أكبر.</string>
     <string name="artifact_inline_title">العرض المضمّن</string>
     <string name="artifact_inline_enabled_count">%1$d من %2$d مفعّلة</string>
+    <string name="artifact_libraries_title">المكتبات المُعلَّمة</string>
+    <string name="artifact_libraries_desc">يمكن للعناصر التفاعلية استخدام بعض المكتبات التي لم تعد تُصان أو فيها مشكلات معروفة. اختر ما إذا كانت كل منها تُحمَّل، أو دع كل عنصر تفاعلي يسأل. تعمل في بيئة معزولة دون وصول إلى ملفاتك أو حسابك.</string>
+    <string name="artifact_libraries_none_set">السؤال في كل مرة</string>
+    <string name="artifact_libraries_some_set">تم ضبط %1$d من %2$d</string>
+    <string name="artifact_libraries_ask">اسأل</string>
+    <string name="artifact_libraries_allow">تحميل</string>
+    <string name="artifact_libraries_decline">عدم التحميل</string>
+    <string name="artifact_libraries_unmaintained">لم تعد تُصان</string>
+    <string name="artifact_libraries_deprecated">أوقف مؤلفوها دعمها</string>
+    <string name="artifact_libraries_vulnerable">عليها تحذير أمني معروف</string>
     <string name="artifacts_section_desc">عرض العناصر التفاعلية مباشرة في المحادثة بدلًا من خلف بطاقة تُفتح بالنقر. انقر على عنصر تفاعلي مضمّن لفتح العرض بملء الشاشة.</string>
     <string name="inline_artifact_mermaid">مخططات Mermaid</string>
     <string name="inline_artifact_mermaid_desc">عرض مخططات ومنظومات Mermaid الانسيابية بشكل مضمّن</string>

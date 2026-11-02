@@ -1090,7 +1090,7 @@ moves a custom OpenAI-compatible endpoint to a Responses API it may not serve.
 - `MermaidWebContent` renders Mermaid diagrams with zoom controls and dark theme
 - `MarkdownWebContent` renders Markdown (marked + highlight.js) with GFM and syntax highlighting
 - HTML/React/SVG templates include Tailwind, theme CSS vars, and error handling
-- React artifacts compile in-browser (Babel) and load as a real ES module; the artifact's `import`/`export` run verbatim against an import map the runner builds over the bundled React/ReactDOM globals (no source rewriting)
+- React artifacts compile in-browser (Babel) and load as a real ES module; the artifact's `import`/`export` run against an import map the runner builds over the bundled React/ReactDOM globals and the vendored npm bundles. The only rewrite is of shadcn import paths, on Babel's AST (see "npm imports use the same bridge")
 - `ArtifactPanel` supports fullscreen Dialog mode, version switching, loading indicator, and WebView error overlay
 - `ArtifactButton` shows type-specific icons and subtitle (e.g. "Mermaid Diagram", "React Component")
 - `ContentPartRenderer` wires `groupArtifactVersions()` to pass version lists to ArtifactButton/ArtifactPanel
@@ -1111,7 +1111,8 @@ see rather than code the app chose to run.
 What is vendored, at which version, and why each pin sits where it does is in
 `scripts/web-assets.json`; `scripts/vendor-web-assets.py` moves the bytes and CI runs
 `--check` against a sha256 lock. Repin through **`/update-web-assets`**, never by editing a
-vendored file. ~2.5 MB compressed in the APK, mermaid and Babel being two thirds of it.
+vendored file. ~3.2 MB compressed in the APK: mermaid and Babel are about half, the artifact
+module bundles (below) about 0.7 MB.
 
 **How a page finds its assets.** Each document references its scripts *relatively*
 (`katex/katex.min.js`), so the only platform-specific part is the document base URL, from
@@ -1131,11 +1132,45 @@ UMD — which is the entire reason this used to resolve `import 'react'` through
 UMD builds load as plain scripts and the runner generates small blob modules re-exporting
 `window.React` / `window.ReactDOM`, then injects an import map pointing at them *before*
 the first dynamic import (hence the classic-script-wrapping-an-async-IIFE shape — a
-`type="module"` runner would have resolved its own imports too early). A bare specifier
-that is **not** one of the bundled four resolves to a module that throws naming the
-package. Third-party npm imports (recharts, lucide-react) therefore no longer work; that
-is the known cost of this pass, and the follow-up is an opt-in consent toggle that maps
-them back to a CDN for users who accept it.
+`type="module"` runner would have resolved its own imports too early).
+
+**npm imports use the same bridge.** Web's Sandpack offers artifacts a fixed set of npm packages
+(upstream `standardDependencies`; lucide-react, recharts, three, date-fns, react-router, shadcn/ui
+and its Radix base, ...). Those are vendored as `bundle` assets: esbuild packs each into one
+**classic** script (`scripts/artifact-modules/build.mjs`) that registers module namespaces on
+`globalThis.__switchboardModules`, and the runner re-exports them from blob modules like React.
+Not ES-module files: Chromium fetches module scripts in CORS mode and `file://` is not a CORS
+scheme, so with file-from-file access off, `import 'file:///…'` is refused. A bundle never
+contains React (every `react` import inside resolves to `window.React`, or hooks break).
+- `ReactArtifactImports.plan` decides per specifier: React core, a bundle (its `<script src>`
+  goes in the page, only when imported), a stub that throws naming it (not bundled, or declined),
+  or left to the browser (relative files, URLs). The tables it emits are embedded in the runner,
+  so every string in them passes a charset guard first.
+- **shadcn/ui is imported by path** (`/components/ui/button`, as web mounts it). A path can't key
+  the import map from a `blob:` module, so a Babel visitor rewrites those import sources to
+  `@switchboard/shadcn/…` keys (AST, never text). `/`, `./` and `@/` spellings all resolve.
+- Babel runs the **typescript** preset as well as react (web's template is `react-ts`); it also
+  drops type-only imports, which bundles don't export at runtime.
+- **Flagged libraries ask first.** A bundle with an `advisory` (unmaintained, deprecated or
+  vulnerable: dat.gui, vaul today) is gated by `ArtifactLibraryGate`, inline and fullscreen: Load or
+  Don't load, optionally remembered device-wide (`ArtifactLibraryConsentStore`, `:core:data`); an
+  unremembered answer holds for that artifact until restart. A remembered answer is keyed by
+  library *and* advisory kind, so an escalated advisory asks again. Once answered, a row above the
+  preview says what loaded and what didn't; its Change takes back the answers that apply in that
+  artifact. Settings > Chat > Artifacts > Flagged libraries sets the remembered answer for each
+  library (Ask / Load / Don't load); it lists `FlaggedArtifactLibraries`, which
+  `vendor-web-assets.py` generates into `:core:data` because Settings can't read this module's
+  manifest. `VendoredAssetReferenceTest` checks the two name the same subjects.
+- **Consent fails closed.** `buildHtml` takes `allowedLibraries` (empty by default), and every
+  flagged library not in it is stubbed. A host that renders React artifacts without the gate
+  therefore loads none of them. Each flagged library is its own bundle, so not loading it keeps
+  its code from running at all; keep it that way when adding one.
+- Anything outside the set still fails by name ("not bundled"), including three's addons and
+  date-fns locales. `VendoredWebAssetInstrumentedTest` renders one artifact per bundle on a device.
+- **Known gap, HTML artifacts:** the server's prompt lets them load scripts from
+  `cdnjs.cloudflare.com`, which our CSP blocks, so such a page renders without them. Closing it
+  needs an opt-in consent for remote code (F-Droid allows that only with explicit consent), not a
+  CSP edit.
 
 **Two things this replaced were silently broken**, which is the argument for pinning in
 general: markdown syntax highlighting had never worked (marked deleted its `highlight`

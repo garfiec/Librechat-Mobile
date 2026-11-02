@@ -337,6 +337,16 @@
     <string name="artifact_mode_fullscreen_desc">S'ouvre en page plein écran avec plus d'espace.</string>
     <string name="artifact_inline_title">Afficher dans la discussion</string>
     <string name="artifact_inline_enabled_count">%1$d sur %2$d activés</string>
+    <string name="artifact_libraries_title">Bibliothèques signalées</string>
+    <string name="artifact_libraries_desc">Les artefacts peuvent utiliser quelques bibliothèques qui ne sont plus maintenues ou qui ont des problèmes connus. Choisissez si chacune est chargée, ou laissez chaque artefact demander. Elles s’exécutent dans un bac à sable, sans accès à vos fichiers ni à votre compte.</string>
+    <string name="artifact_libraries_none_set">Demander à chaque fois</string>
+    <string name="artifact_libraries_some_set">%1$d sur %2$d définies</string>
+    <string name="artifact_libraries_ask">Demander</string>
+    <string name="artifact_libraries_allow">Charger</string>
+    <string name="artifact_libraries_decline">Ne pas charger</string>
+    <string name="artifact_libraries_unmaintained">N’est plus maintenue</string>
+    <string name="artifact_libraries_deprecated">Déclarée obsolète par ses auteurs</string>
+    <string name="artifact_libraries_vulnerable">Fait l’objet d’un avis de sécurité connu</string>
     <string name="artifacts_section_desc">Afficher les artefacts directement dans la discussion au lieu d'une carte à ouvrir d'une pression. Appuyez sur un artefact intégré pour ouvrir l'affichage plein écran.</string>
     <string name="inline_artifact_mermaid">Diagrammes Mermaid</string>
     <string name="inline_artifact_mermaid_desc">Afficher les organigrammes et diagrammes Mermaid en ligne</string>

@@ -55,6 +55,7 @@ internal enum class ChatSettingDialog {
     CHAT_HEADER,
     ARTIFACT_VIEWER,
     RENDER_INLINE,
+    ARTIFACT_LIBRARIES,
 }
 
 // Option label resolvers, shared by the settings rows (current-value subtitle)

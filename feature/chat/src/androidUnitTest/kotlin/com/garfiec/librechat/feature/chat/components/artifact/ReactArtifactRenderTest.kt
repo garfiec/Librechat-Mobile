@@ -67,30 +67,149 @@ class ReactArtifactRenderTest {
         assertTrue(html.contains("'react/jsx-runtime': moduleUrl(JSX_RUNTIME)"))
     }
 
+    /** The runner's generated table `var NAME = …;`, as embedded. */
+    private fun table(html: String, name: String): String =
+        Regex("""var $name = (.*);""").find(html)!!.groupValues[1]
+
     @Test
     fun `an unbundled package fails by name instead of loading from a cdn`() {
         val html = build(
             """
-            import { Plus } from 'lucide-react';
-            import { LineChart } from 'recharts';
-            import * as Dialog from '@radix-ui/react-dialog';
-            export default function App() { return <Plus/>; }
+            import { motion } from 'framer-motion';
+            import confetti from 'canvas-confetti';
+            import * as Icons from '@radix-ui/react-icons';
+            export default function App() { return <div/>; }
             """.trimIndent(),
         )
         // Each specifier carries the names it is imported under. Those names are what the stub
-        // declares as exports, and declaring them is what lets the explanation below run at all:
+        // declares as exports, and declaring them is what lets the explanation run at all:
         // named imports are resolved while the module graph links, before any code executes, so
         // a stub exporting nothing is rejected with "does not provide an export named 'X'" and
         // the package is never named. A namespace import binds to whatever exists, so
-        // @radix-ui/react-dialog correctly needs none.
-        assertTrue(
-            html.contains(
-                """[["lucide-react",["Plus"]],["recharts",["LineChart"]],""" +
-                    """["@radix-ui/react-dialog",[]]]""",
-            ),
-            "unbundled specifiers are not routed to the naming stub with their imported names",
+        // @radix-ui/react-icons correctly needs none.
+        assertEquals(
+            """[["framer-motion","framer-motion",["motion"],null],""" +
+                """["canvas-confetti","canvas-confetti",["default"],null],""" +
+                """["@radix-ui/react-icons","@radix-ui/react-icons",[],null]]""",
+            table(html, "STUBS"),
         )
-        assertTrue(html.contains("an npm package that is not "), "stub carries no explanation")
+        assertTrue(html.contains("which is not ' +"), "stub carries no explanation")
+    }
+
+    @Test
+    fun `a bundled package loads its vendored script and is re-exported`() {
+        val html = build(
+            """
+            import { Plus } from 'lucide-react';
+            import { LineChart, XAxis } from 'recharts';
+            export default function App() { return <Plus/>; }
+            """.trimIndent(),
+        )
+        assertTrue(html.contains("""<script src="lucide-react/index.js"></script>"""))
+        assertTrue(html.contains("""<script src="recharts/index.js"></script>"""))
+        assertEquals(
+            """[["lucide-react","lucide-react",["Plus"]],["recharts","recharts",["LineChart","XAxis"]]]""",
+            table(html, "BUNDLED"),
+        )
+        assertEquals("[]", table(html, "STUBS"))
+        // A bundle loads only when imported: three is vendored, but this page has no use for it.
+        assertFalse(html.contains("three/index.js"))
+    }
+
+    @Test
+    fun `bundle scripts load after react and before the runner`() {
+        // Bundles resolve `react` to window.React when they execute, so React must already exist.
+        val html = build("import { Plus } from 'lucide-react';\nexport default () => <Plus/>;")
+        val react = html.indexOf("react-dom/react-dom.production.min.js")
+        val bundle = html.indexOf("lucide-react/index.js")
+        assertTrue(react in 1 until bundle, "bundle script precedes ReactDOM")
+        assertTrue(bundle < html.indexOf("var BUNDLED"), "bundle script loads after the runner")
+    }
+
+    @Test
+    fun `shadcn path imports alias to one key and load the shadcn bundle once`() {
+        val html = build(
+            """
+            import { Button } from '/components/ui/button';
+            import { buttonVariants } from './components/ui/button.tsx';
+            import { Card } from '@/components/ui/card';
+            import { cn } from '/lib/utils';
+            export default function App() { return <Button/>; }
+            """.trimIndent(),
+        )
+        assertEquals(1, Regex("""shadcn-ui/index\.js""").findAll(html).count(), "shadcn bundle loaded more than once")
+        assertEquals(
+            """{"/components/ui/button":"@switchboard/shadcn/components/ui/button",""" +
+                """"./components/ui/button.tsx":"@switchboard/shadcn/components/ui/button",""" +
+                """"@/components/ui/card":"@switchboard/shadcn/components/ui/card",""" +
+                """"/lib/utils":"@switchboard/shadcn/lib/utils"}""",
+            table(html, "ALIASES"),
+        )
+        assertTrue(
+            table(html, "BUNDLED").contains(
+                """["@switchboard/shadcn/components/ui/button","/components/ui/button",["Button","buttonVariants"]]""",
+            ),
+            "two spellings of one component should merge into one entry",
+        )
+    }
+
+    @Test
+    fun `a shadcn component web does not mount fails by name`() {
+        val html = build("import { Form } from '/components/ui/form';\nexport default () => <div/>;")
+        assertEquals(
+            """[["@switchboard/shadcn/components/ui/form","/components/ui/form",["Form"],null]]""",
+            table(html, "STUBS"),
+        )
+        assertEquals("""{"/components/ui/form":"@switchboard/shadcn/components/ui/form"}""", table(html, "ALIASES"))
+    }
+
+    private val flaggedSource = """
+        import { Drawer } from '/components/ui/drawer';
+        import * as dat from 'dat.gui';
+        export default function App() { return <div/>; }
+    """.trimIndent()
+
+    @Test
+    fun `only allowed flagged libraries load, the rest are stubbed and their bundles never load`() {
+        val html = ArtifactWebContent.buildHtml(flaggedSource, reactType, isDarkTheme = false, allowedLibraries = setOf("dat.gui"))
+        assertFalse(html.contains("vaul/index.js"), "a library the user didn't allow still loads")
+        assertTrue(html.contains("dat-gui/index.js"), "an allowed flagged library should load")
+        assertEquals(
+            """[["@switchboard/shadcn/components/ui/drawer","/components/ui/drawer",["Drawer"],"vaul"]]""",
+            table(html, "STUBS"),
+        )
+    }
+
+    @Test
+    fun `a caller that never asked loads no flagged library`() {
+        // Fail closed: consent is opt-in, so a host that skips ArtifactLibraryGate gets stubs.
+        val html = build(flaggedSource)
+        assertFalse(html.contains("vaul/index.js"))
+        assertFalse(html.contains("dat-gui/index.js"))
+        assertTrue(table(html, "STUBS").contains(""""dat.gui","dat.gui",[],"dat.gui"]"""))
+    }
+
+    @Test
+    fun `flagged libraries are reported once each, in import order, for react only`() {
+        val source = """
+            import * as dat from 'dat.gui';
+            import { Drawer } from '/components/ui/drawer';
+            import { Drawer as D } from 'vaul';
+            import { Plus } from 'lucide-react';
+        """.trimIndent()
+        assertEquals(
+            listOf("dat.gui", "vaul"),
+            ArtifactWebContent.libraryAdvisories(source, reactType).map { it.library },
+        )
+        assertEquals(emptyList(), ArtifactWebContent.libraryAdvisories(source, "text/html"))
+    }
+
+    @Test
+    fun `typescript compiles alongside jsx`() {
+        // Web runs artifacts in Sandpack's react-ts template, so typed artifacts are normal.
+        val html = build("export default function App(): JSX.Element { return <div/>; }")
+        assertTrue(html.contains("['typescript', { isTSX: true, allExtensions: true }]"))
+        assertTrue(html.contains("filename: 'artifact.tsx'"))
     }
 
     @Test
@@ -103,24 +222,25 @@ class ReactArtifactRenderTest {
             export default function App() { return <div/>; }
             """.trimIndent(),
         )
-        val missing = Regex("""\[([^\]]*)\]\.forEach""").find(html)!!.groupValues[1]
-        assertFalse(missing.contains("./utils"), "relative import should not be mapped")
-        assertFalse(missing.contains("example.com"), "url import should not be mapped")
-        assertFalse(missing.contains("./styles.css"), "relative css should not be mapped")
+        val generated = table(html, "STUBS") + table(html, "BUNDLED") + table(html, "ALIASES")
+        assertFalse(generated.contains("./utils"), "relative import should not be mapped")
+        assertFalse(generated.contains("example.com"), "url import should not be mapped")
+        assertFalse(generated.contains("./styles.css"), "relative css should not be mapped")
     }
 
     @Test
     fun `a specifier that is not a package name is dropped rather than embedded`() {
-        // The specifier list is interpolated into a script, and its contents come from
+        // The specifier tables are interpolated into a script, and their contents come from
         // model output. Anything outside the npm name charset never reaches the page.
         val html = build(
             """
             import x from 'evil'/*"];window.stolen=1;//*/;
+            import y from '/components/ui/x"];window.stolen=2;//';
             export default function App() { return <div/>; }
             """.trimIndent(),
         )
-        val missing = Regex("""(\[.*\])\.forEach""").find(html)!!.groupValues[1]
-        assertFalse(missing.contains("window.stolen"), "injected script escaped the specifier list")
+        val generated = table(html, "STUBS") + table(html, "BUNDLED") + table(html, "ALIASES")
+        assertFalse(generated.contains("window.stolen"), "injected script escaped the specifier tables")
     }
 
     @Test

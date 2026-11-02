@@ -75,6 +75,13 @@ object AppPreferences {
      */
     val DrawerPinned = stringListPreference("drawer_pinned_destinations")
 
+    /**
+     * Remembered answers about flagged libraries (unmaintained, deprecated or vulnerable) in React
+     * artifacts, as `allow|<library>|<advisory>` / `decline|…` entries. Device-wide. One key for all
+     * of them so a change is one write. Encoded and read only by [ArtifactLibraryConsentStore].
+     */
+    val ArtifactLibraryAnswers = stringListPreference("artifact_library_answers")
+
     val all: List<PreferenceSpec<*, *>> =
         listOf(
             SiteIcons,
@@ -87,5 +94,6 @@ object AppPreferences {
             PreferLastUsedModel,
             WebSearchFirst,
             DrawerPinned,
+            ArtifactLibraryAnswers,
         )
 }

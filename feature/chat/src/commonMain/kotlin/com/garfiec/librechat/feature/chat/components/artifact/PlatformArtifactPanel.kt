@@ -66,6 +66,8 @@ import org.jetbrains.compose.resources.stringResource
  * The platform-specific preview renderer for an artifact — an Android `WebView`
  * or an iOS `WKWebView`. Everything else about the artifact viewer (shell,
  * header, selector, code body) is shared in [ArtifactPanel] below.
+ *
+ * [allowedLibraries] go to [ArtifactWebContent.buildHtml]; [ArtifactLibraryGate] decides them.
  */
 @Composable
 expect fun ArtifactPreviewSurface(
@@ -73,6 +75,7 @@ expect fun ArtifactPreviewSurface(
     type: String,
     isDarkTheme: Boolean,
     modifier: Modifier = Modifier,
+    allowedLibraries: Set<String> = emptySet(),
 )
 
 /**
@@ -277,12 +280,21 @@ private fun ArtifactViewerBody(
             // Keep the preview surface mounted across toggles; swapping it out would
             // recreate the WebView and reload it (a full-panel flash). Code layers on top.
             if (isPreviewable) {
-                ArtifactPreviewSurface(
+                ArtifactLibraryGate(
                     content = artifact.content,
                     type = artifact.type,
-                    isDarkTheme = isDarkTheme,
                     modifier = Modifier.fillMaxSize(),
-                )
+                    fillHeight = true,
+                    blockSheetDrag = !isFullscreen,
+                ) { allowed, previewModifier ->
+                    ArtifactPreviewSurface(
+                        content = artifact.content,
+                        type = artifact.type,
+                        isDarkTheme = isDarkTheme,
+                        modifier = previewModifier,
+                        allowedLibraries = allowed,
+                    )
+                }
             }
             if (!isPreviewable || selectedTab == ArtifactTab.CODE) {
                 val codeScrollState = rememberScrollState()
@@ -422,7 +434,7 @@ private val NARROW_HEADER_BELOW = 360.dp
  * then reports it all as consumed so the parent ModalBottomSheet never receives it.
  * This isolates the content's scrolling from the sheet's drag gesture.
  */
-private class SheetScrollBlocker(private val scrollState: ScrollState) : NestedScrollConnection {
+internal class SheetScrollBlocker(private val scrollState: ScrollState) : NestedScrollConnection {
     override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
         if (available.y != 0f) {
             scrollState.dispatchRawDelta(-available.y)

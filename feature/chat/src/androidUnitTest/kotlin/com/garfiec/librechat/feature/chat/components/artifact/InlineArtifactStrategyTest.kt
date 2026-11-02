@@ -146,4 +146,21 @@ class InlineArtifactStrategyTest {
             assertFalse(shouldRenderInlineArtifact(allOn, type, streaming = true), type)
         }
     }
+
+    @Test
+    fun `usesWebGl spots three and raw WebGL contexts, not 2D canvases`() {
+        listOf(
+            "import * as THREE from 'three';",
+            "import { Scene } from \"three\";",
+            "const r = new THREE.WebGLRenderer();",
+            "canvas.getContext('webgl')",
+            "canvas.getContext( \"webgl2\" )",
+            "canvas.getContext('experimental-webgl')",
+        ).forEach { assertTrue(usesWebGl(it), it) }
+        listOf(
+            "canvas.getContext('2d')",
+            "import { LineChart } from 'recharts';",
+            "import x from 'three-stdlib';",
+        ).forEach { assertFalse(usesWebGl(it), it) }
+    }
 }

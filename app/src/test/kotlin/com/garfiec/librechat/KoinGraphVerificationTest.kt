@@ -18,6 +18,7 @@ import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
+import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore
 import com.garfiec.librechat.core.data.datastore.DrawerPinsStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
@@ -214,6 +215,7 @@ class KoinGraphVerificationTest {
             SettingsDataStore::class,
             PreferenceStore::class,
             DrawerPinsStore::class,
+            ArtifactLibraryConsentStore::class,
             SsoRiskDataStore::class,
             ThemeDataStore::class,
             ConversationWebSearchStore::class,
