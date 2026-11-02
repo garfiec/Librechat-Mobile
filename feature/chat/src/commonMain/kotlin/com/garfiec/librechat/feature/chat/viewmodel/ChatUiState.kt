@@ -131,6 +131,7 @@ data class ChatUiState(
     val showForkOptionsForMessageId: String? get() = actions.showForkOptionsForMessageId
     val isForkInProgress: Boolean get() = actions.isForkInProgress
     val forkedConversationId: String? get() = actions.forkedConversationId
+    val forkNotice: ForkNotice? get() = actions.forkNotice
     val shareLinkActive: Boolean get() = actions.shareLinkActive
     val hasBookmark: Boolean get() = bookmarks.hasBookmark
 
@@ -320,6 +321,14 @@ data class ChatUiState(
     val quoteCaptureAvailable: Boolean
         get() = quotesSupportedOnEndpoint &&
             gates.backendVersion?.let { BackendVersion.isCompatibleOrNewer(it, "0.8.7") } == true
+
+    /**
+     * Whether a fork can leave files out (`excludeFiles`, v0.8.9-rc1): the fork sheet's "Leave out
+     * files" and "Branch without files". Fail-closed: an older server ignores the flag and returns
+     * an ordinary copy.
+     */
+    val forkExcludeFilesSupported: Boolean
+        get() = gates.backendVersion?.let { BackendVersion.isCompatibleOrNewer(it, "0.8.9-rc1") } == true
 
     /** Web's `quotesSupported`: everything except the assistants endpoints. */
     val quotesSupportedOnEndpoint: Boolean

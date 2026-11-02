@@ -672,6 +672,11 @@ internal fun MessageContentAndActions(
                         }
                     }
 
+                    // Under the failure, when the files the branch carries may be its cause.
+                    if (!isUser) {
+                        DisableSelection { AttachmentRecoveryFor(message.messageId) }
+                    }
+
                     DisableSelection {
                         WorkspaceChangesSection(
                             changes = workspace.changes,

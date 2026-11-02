@@ -16,15 +16,22 @@ import org.jetbrains.compose.resources.StringResource
  */
 class ChatNoticeHandoff {
 
-    private val _pending = MutableStateFlow<StringResource?>(null)
-    val pending: StateFlow<StringResource?> = _pending.asStateFlow()
+    /** A notice, and the conversation that should show it (null: whichever chat is on screen). */
+    data class Pending(val message: StringResource, val conversationId: String? = null)
 
-    fun put(message: StringResource) {
-        _pending.value = message
+    private val _pending = MutableStateFlow<Pending?>(null)
+    val pending: StateFlow<Pending?> = _pending.asStateFlow()
+
+    /**
+     * [conversationId] targets a chat about to open (a fork's copy), so the screen being left
+     * can't take the notice in the moment before it is replaced.
+     */
+    fun put(message: StringResource, conversationId: String? = null) {
+        _pending.value = Pending(message, conversationId)
     }
 
-    /** Clears [message] once shown, unless a newer one has replaced it meanwhile. */
-    fun consume(message: StringResource) {
-        _pending.compareAndSet(message, null)
+    /** Clears [notice] once shown, unless a newer one has replaced it meanwhile. */
+    fun consume(notice: Pending) {
+        _pending.compareAndSet(notice, null)
     }
 }

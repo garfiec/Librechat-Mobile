@@ -265,6 +265,7 @@ class ChatViewModel(
             conversationRepository = conversationRepository,
             shareRepository = shareRepository,
             shareLink = shareLinkControllerFactory.create(viewModelScope),
+            draftRepository = draftRepository,
         )
     private val bookmarksDelegate = ChatBookmarksDelegate(BookmarksHandle(stateHandle), tagRepository)
     private val presetPromptDelegate =
@@ -1301,6 +1302,15 @@ class ChatViewModel(
         editingDelegate.regenerateMessage(messageId)
     }
 
+    /** "Retry without files" under a failed reply: its user turn again, as a new version, with no files. */
+    fun retryWithoutFiles(failedReplyId: String) {
+        if (_uiState.value.isEditingQueued) return
+        editingDelegate.retryWithoutFiles(failedReplyId)
+    }
+
+    /** "Branch without files" under a failed reply; see [ConversationActionsDelegate.branchWithoutFiles]. */
+    fun branchWithoutFiles(failedReplyId: String) = conversationActionsDelegate.branchWithoutFiles(failedReplyId)
+
     /**
      * What Read Aloud speaks for a message: its answer, never its reasoning (upstream
      * `getSpeechText`, see [speechTextOf]). NOT the copy path — whole-message copy goes through
@@ -1708,8 +1718,8 @@ class ChatViewModel(
     fun closeShareSheet() = conversationActionsDelegate.closeShareSheet()
     fun showForkOptions(messageId: String) = conversationActionsDelegate.showForkOptions(messageId)
     fun dismissForkOptions() = conversationActionsDelegate.dismissForkOptions()
-    fun forkFromMessage(messageId: String, option: String, splitAtTarget: Boolean = false) =
-        conversationActionsDelegate.forkFromMessage(messageId, option, splitAtTarget)
+    fun forkFromMessage(messageId: String, option: String, splitAtTarget: Boolean = false, excludeFiles: Boolean = false) =
+        conversationActionsDelegate.forkFromMessage(messageId, option, splitAtTarget, excludeFiles)
     fun onForkedConversationHandled() = conversationActionsDelegate.onForkedConversationHandled()
 
     // TTS

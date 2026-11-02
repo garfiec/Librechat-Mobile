@@ -88,6 +88,7 @@ class ConversationActionsDelegateShareTest {
             conversationRepository = mockk<ConversationRepository>(relaxed = true),
             shareRepository = shareRepository,
             shareLink = factory.create(backgroundScope),
+            draftRepository = mockk(relaxed = true),
         )
         return Harness(root, delegate)
     }

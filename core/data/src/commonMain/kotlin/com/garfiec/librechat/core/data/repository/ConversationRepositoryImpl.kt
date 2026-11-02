@@ -25,6 +25,7 @@ import com.garfiec.librechat.core.model.ConversationListFilters
 import com.garfiec.librechat.core.model.ConversationPage
 import com.garfiec.librechat.core.model.SAVED_TAG
 import com.garfiec.librechat.core.model.request.ForkConversationRequest
+import com.garfiec.librechat.core.model.response.ForkConversationResponse
 import com.garfiec.librechat.core.network.api.ConversationsApi
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -283,7 +284,8 @@ class ConversationRepositoryImpl(
         option: String?,
         splitAtTarget: Boolean?,
         latestMessageId: String?,
-    ): Result<Conversation> {
+        excludeFiles: Boolean?,
+    ): Result<ForkConversationResponse> {
         return safeApiCall {
             val accountId = activeAccountProvider.currentAccountId()?.value
             val response = conversationsApi.forkConversation(
@@ -293,11 +295,11 @@ class ConversationRepositoryImpl(
                     option = option,
                     splitAtTarget = splitAtTarget,
                     latestMessageId = latestMessageId,
+                    excludeFiles = excludeFiles,
                 ),
             )
-            val conversation = response.conversation
-            cacheOwned(accountId, conversation)
-            conversation
+            cacheOwned(accountId, response.conversation)
+            response
         }
     }
 

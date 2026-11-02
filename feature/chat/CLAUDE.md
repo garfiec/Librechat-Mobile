@@ -1293,6 +1293,24 @@ can't test this. `scripts/verify-speech-services.py` can: it boots a no-GMS AOSP
 `:testing:speech-fixture` as the default recognizer and TTS engine, and runs the `audio/` speech
 instrumented tests. Those tests skip anywhere else.
 
+## Recovering from a failure the files cause (v0.8.9-rc1)
+A reply that failed (a persisted failed turn, or an `error` part) on a branch carrying files gets a
+card under it (`AttachmentRecoveryActions`, web's `recovery.tsx`): why, then **Retry without files**
+(the failed turn again as a new sibling: no files, its quotes, skills and reasoning choice kept;
+`MessageEditingDelegate.retryWithoutFiles`) and/or **Branch without files** (fork `DIRECT_PATH` at the
+reply before the failed turn with `excludeFiles`, stage the turn's text as the copy's draft, open it;
+`ConversationActionsDelegate.branchWithoutFiles`). The decision is the pure port in
+`util/AttachmentRecovery.kt` (mirrored, see `scripts/mirrors.json`), computed once per displayed
+branch in `MessageList` and read by each bubble through `LocalAttachmentRecovery`.
+- **A copy that still has files is not a recovery.** An older server ignores `excludeFiles`; the
+  response's messages are checked and such a copy is reported, not opened. Branch and the fork sheet's
+  "Leave out files" are gated on rc1 besides (`forkExcludeFilesSupported`, VERSION_GATES.md).
+- The success snackbar is handed to the copy's screen by conversation id (`ChatNoticeHandoff.put(…,
+  conversationId)`): the screen being left could otherwise take it in the instant before it is replaced.
+- Fork and feedback are withheld on `message.error` rows (web's `HoverButtons`): a copy would carry the
+  provider's error as an answer. Fork failures are `ChatNotice.FORK_FAILED` / `FORK_RATE_LIMITED`
+  (429), never the server's text.
+
 ## Feedback: rating + reason tag + comment
 - **Both** thumbs open `FeedbackTagSheet` — the route validates against an object schema whose
   `tag` is REQUIRED, so a bare rating is rejected 400 and there is no one-tap path. Tapping the

@@ -48,6 +48,7 @@ import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.hasEditablePart
+import com.garfiec.librechat.feature.chat.util.attachmentRecoveries
 import com.garfiec.librechat.feature.chat.util.withLiveSubagentFilesAdopted
 import com.garfiec.librechat.feature.chat.util.withPreviews
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
@@ -101,6 +102,16 @@ fun MessageList(
     readOnly: Boolean = false,
     onReadAloud: (messageId: String) -> Unit = {},
     onFork: (messageId: String) -> Unit = {},
+    /**
+     * Retry / branch without files under a reply the branch's files may have failed (v0.8.9-rc1).
+     * Off unless the caller allows it (an Assistants chat keeps its files upstream, so neither
+     * leaves them behind). [recoveryBranchSupported] is the server's `excludeFiles` gate.
+     */
+    recoveryAllowed: Boolean = false,
+    recoveryBranchSupported: Boolean = false,
+    recoveryBusy: Boolean = false,
+    onRetryWithoutFiles: (failedReplyId: String) -> Unit = {},
+    onBranchWithoutFiles: (failedReplyId: String) -> Unit = {},
     currentlyReadingMessageId: String? = null,
     /**
      * Which message is being edited, with its drafts and their baselines. One value rather than an
@@ -446,6 +457,23 @@ fun MessageList(
 
     val pullToRefreshState = rememberPullToRefreshState()
     val resubmit = canResubmit && !readOnly
+    val recoveryViews = remember(displayMessages, resubmit, recoveryAllowed, recoveryBranchSupported) {
+        if (resubmit && recoveryAllowed) {
+            attachmentRecoveries(displayMessages.map { it.message }, recoveryBranchSupported)
+        } else {
+            emptyMap()
+        }
+    }
+    val retryWithoutFiles by rememberUpdatedState(onRetryWithoutFiles)
+    val branchWithoutFiles by rememberUpdatedState(onBranchWithoutFiles)
+    val recoveryHost = remember(recoveryViews, recoveryBusy || isStreaming) {
+        AttachmentRecoveryHost(
+            views = recoveryViews,
+            busy = recoveryBusy || isStreaming,
+            onRetry = { retryWithoutFiles(it) },
+            onBranch = { branchWithoutFiles(it) },
+        )
+    }
     // Parsed once per list; `contentType` below runs on every measure pass.
     val wakeups = remember(displayMessages) { wakeupsByMessageId(displayMessages) }
 
@@ -534,6 +562,7 @@ fun MessageList(
                     LocalSuppressGroupAutoCollapse provides (node.message.messageId == justSettledMessageId),
                     LocalFeedbackEnabled provides (!isStreaming && !readOnly),
                     LocalExpansionScope provides expansionScope(ExpansionPane.PRIMARY, node.message.parentMessageId),
+                    LocalAttachmentRecovery provides recoveryHost,
                 ) {
                 // Built here, where the message is in hand: whether a rerun is possible, and
                 // whether the changes can ride it, are both questions about THIS message's parts
@@ -583,7 +612,8 @@ fun MessageList(
                         },
                         onReadAloud = if (readOnly) null else ({ onReadAloud(node.message.messageId) }),
                         isReading = currentlyReadingMessageId == node.message.messageId,
-                        onFork = if (readOnly) null else ({ onFork(node.message.messageId) }),
+                        // A copy of a failed reply would carry the provider's error as an answer.
+                        onFork = if (readOnly || node.message.error) null else ({ onFork(node.message.messageId) }),
                     )
                 } else {
                 MessageBubble(
@@ -607,13 +637,14 @@ fun MessageList(
                         null
                     },
                     onCopy = { onCopyMessage(node.message.messageId) },
-                    onFeedback = if (!node.message.isCreatedByUser && feedbackEnabled && !readOnly) {
+                    // A failed reply has no answer to rate or copy into a fork (web's HoverButtons).
+                    onFeedback = if (!node.message.isCreatedByUser && !node.message.error && feedbackEnabled && !readOnly) {
                         { feedback -> onFeedback(node.message.messageId, feedback) }
                     } else {
                         null
                     },
                     onReadAloud = if (readOnly) null else ({ onReadAloud(node.message.messageId) }),
-                    onFork = if (readOnly) null else ({ onFork(node.message.messageId) }),
+                    onFork = if (readOnly || node.message.error) null else ({ onFork(node.message.messageId) }),
                     baseUrl = baseUrl,
                     fontSizeMultiplier = fontSizeMultiplier,
                     isReading = currentlyReadingMessageId == node.message.messageId,

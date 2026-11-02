@@ -85,6 +85,18 @@ enum class ChatNotice(val wire: String) {
      * allows a decision the user picked. Not the fingerprint 403; another decision can succeed.
      */
     TOOL_DECISION_NOT_PERMITTED("tool_decision_not_permitted"),
+
+    /** A fork the server refused, or one that failed in transit. */
+    FORK_FAILED("fork_failed"),
+
+    /** A fork the server's rate limiter refused (429). */
+    FORK_RATE_LIMITED("fork_rate_limited"),
+
+    /**
+     * "Branch without files" made a copy that still has its files: the server predates
+     * `excludeFiles` and ignored it. The original conversation is unchanged.
+     */
+    BRANCH_WITHOUT_FILES_UNSUPPORTED("branch_without_files_unsupported"),
     ;
 
     fun marker(vararg args: Any): String =

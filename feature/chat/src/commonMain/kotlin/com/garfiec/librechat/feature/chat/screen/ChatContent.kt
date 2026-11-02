@@ -290,6 +290,13 @@ private fun ChatMessageListPane(
         onFeedback = viewModel::submitFeedback,
         feedbackEnabled = uiState.gates.feedbackEnabled,
         onReadAloud = viewModel::readAloud,
+        // Web's `quotesSupported` rule: everything but the Assistants endpoints, which keep every
+        // file upstream, so neither a retry nor a local copy leaves them behind.
+        recoveryAllowed = uiState.quotesSupportedOnEndpoint,
+        recoveryBranchSupported = uiState.forkExcludeFilesSupported,
+        recoveryBusy = uiState.isForkInProgress,
+        onRetryWithoutFiles = viewModel::retryWithoutFiles,
+        onBranchWithoutFiles = viewModel::branchWithoutFiles,
         onFork = viewModel::showForkOptions,
         currentlyReadingMessageId = uiState.currentlyReadingMessageId,
         editing = uiState.editing,

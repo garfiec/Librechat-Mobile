@@ -43,6 +43,7 @@ class RecordingChatRepository : com.garfiec.librechat.core.data.repository.ChatR
         val addedConvo: AddedConversation? = null,
         val modelParams: JsonObject? = null,
         val reasoningOverride: ReasoningOverride? = null,
+        val files: List<FileReference>? = null,
     )
 
     val sent = mutableListOf<Sent>()
@@ -94,6 +95,7 @@ class RecordingChatRepository : com.garfiec.librechat.core.data.repository.ChatR
             addedConvo = addedConvo,
             modelParams = modelParams,
             reasoningOverride = reasoningOverride,
+            files = files,
         )
         return emptyFlow()
     }

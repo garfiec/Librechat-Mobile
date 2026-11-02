@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationListFilters
 import com.garfiec.librechat.core.model.ConversationPage
+import com.garfiec.librechat.core.model.response.ForkConversationResponse
 import kotlinx.coroutines.flow.Flow
 import kotlin.time.Instant
 
@@ -78,7 +79,8 @@ interface ConversationRepository {
         option: String? = null,
         splitAtTarget: Boolean? = null,
         latestMessageId: String? = null,
-    ): Result<Conversation>
+        excludeFiles: Boolean? = null,
+    ): Result<ForkConversationResponse>
     suspend fun duplicateConversation(conversationId: String, title: String?): Result<Conversation>
     suspend fun importConversation(jsonContent: String): Result<Conversation>
     suspend fun deleteAll(): Result<Unit>

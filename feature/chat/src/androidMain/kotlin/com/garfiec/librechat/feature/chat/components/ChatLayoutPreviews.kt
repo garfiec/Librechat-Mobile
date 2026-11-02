@@ -177,7 +177,7 @@ private fun ContextUsageSheetHost() {
 
 @Composable
 private fun ForkOptionsHost() {
-    ForkOptionsBottomSheet(onDismiss = {}, onFork = { _, _ -> })
+    ForkOptionsBottomSheet(onDismiss = {}, onFork = { _, _, _ -> }, excludeFilesSupported = true)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

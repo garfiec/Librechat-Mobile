@@ -222,7 +222,8 @@ GET    /api/convos/:conversationId          → single conversation
 POST   /api/convos/update                   → update title
 POST   /api/convos/archive                  → archive/unarchive
 DELETE /api/convos                           → delete conversation(s)
-POST   /api/convos/fork                     → fork from message
+POST   /api/convos/fork                     → fork from message (v0.8.9-rc1: `excludeFiles: true` copies
+                                               without attached/generated files; older servers ignore it)
 POST   /api/convos/duplicate                → duplicate conversation
 POST   /api/convos/import                   → import (multipart)
 GET    /api/convos/gen_title/:conversationId → generated title

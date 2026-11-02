@@ -5214,6 +5214,62 @@
       },
       "why": "A project chat's start POST refused 409 PROJECT_RESOURCES_CHANGED, or 404 with the sentence 'Conversation context unavailable' (PROJECT_CONTEXT_UNAVAILABLE_MESSAGE; upstream CHAT_PROJECT_CONTEXT_UNAVAILABLE_RESPONSE above this block), gets its own copy instead of a generic failure.",
       "failure_mode": "Upstream renames the code or rewords the 404: the send fails with a generic error that doesn't say the project changed or is gone."
+    },
+    {
+      "id": "attachment-recovery-error-patterns",
+      "upstream": {
+        "file": "client/src/components/Messages/Content/Error/attachments.ts",
+        "symbol": "attachmentErrorPatterns",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/AttachmentRecovery.kt",
+        "symbol": "ATTACHMENT_ERROR_PATTERNS"
+      },
+      "why": "The text patterns that decide a failed reply reads as caused by its branch's files, which leads the recovery card with the cause sentence and offers Retry / Branch without files for failures that are otherwise unclassified.",
+      "failure_mode": "Upstream adds or rewords a pattern: a file-caused failure shows no recovery (or no cause sentence), or a non-file failure is blamed on the files."
+    },
+    {
+      "id": "attachment-recovery-file-agnostic-codes",
+      "upstream": {
+        "file": "client/src/components/Messages/Content/Error/attachments.ts",
+        "symbol": "fileAgnosticErrorCodes",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/AttachmentRecovery.kt",
+        "symbol": "FILE_AGNOSTIC_ERROR_CODES"
+      },
+      "why": "Typed failure codes that say nothing about their cause, so files may still be to blame and the recovery card is offered; any other typed code (a key, a balance, a limit) has its own remedy and hides it. Read through readErrorCode's envelope order, mirrored beside it.",
+      "failure_mode": "Upstream adds a code to the set: that failure shows no recovery here. Upstream removes one: recovery points at files for a failure with its own remedy."
+    },
+    {
+      "id": "attachment-recovery-langchain-codes",
+      "upstream": {
+        "file": "client/src/components/Messages/Content/Error/attachments.ts",
+        "symbol": "remedialLangChainCodes",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/AttachmentRecovery.kt",
+        "symbol": "REMEDIAL_LANGCHAIN_CODES"
+      },
+      "why": "LangChain codes (read from the troubleshooting URL by parseLangChainErrorCode, packages/data-provider/src/langchain.ts, ported beside it) whose remedy is the model, key or rate limit, so no recovery is offered.",
+      "failure_mode": "A new remedial code is offered a pointless files recovery; a removed one hides recovery on a file-caused failure."
+    },
+    {
+      "id": "attachment-recovery-carries-files",
+      "upstream": {
+        "file": "packages/data-provider/src/messages.ts",
+        "symbol": "messageCarriesFiles",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/AttachmentRecovery.kt",
+        "symbol": "messageCarriesFiles"
+      },
+      "why": "Which turns count as carrying files (uploads, file-backed attachments, file locators in content, a steer's files): decides whether Retry and Branch without files are offered, and whether a copy from an older server still has its files.",
+      "failure_mode": "Upstream adds a file locator shape: a branch carrying only that shape offers no recovery, and an older server's copy holding it is announced as clean."
     }
   ]
 }

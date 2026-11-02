@@ -84,8 +84,28 @@ class MessageEditingDelegate(
 
     private fun closeEditor() = handle.update { editing = MessageEditingState() }
 
+    /**
+     * "Retry without files" (v0.8.9-rc1): sends the failed reply's user turn again as a new
+     * version beside it, with none of its files and its quotes, skills and reasoning choice kept
+     * (web's `ask` with `overrideFiles: []`). Earlier turns' files still go, which is what "Branch
+     * without files" is for.
+     */
+    fun retryWithoutFiles(failedReplyId: String) {
+        val state = handle.state
+        if (state.isStreaming) return
+        val reply = state.messages.find { it.messageId == failedReplyId } ?: return
+        if (reply.isCreatedByUser) return
+        val parent = state.messages.find { it.messageId == reply.parentMessageId } ?: return
+        if (!parent.isCreatedByUser || parent.text.isBlank()) return
+        runWhenSendReady({}) { editUserMessage(parent, parent.text, withoutFiles = true) }
+    }
+
     @OptIn(ExperimentalUuidApi::class)
-    private fun editUserMessage(originalMessage: Message, newText: String) {
+    private fun editUserMessage(originalMessage: Message, newText: String, withoutFiles: Boolean = false) {
+        val files = if (withoutFiles) null else originalMessage.files
+        // A retry is a fresh send of the same turn, so it replays the quoted excerpts too; an edit
+        // has never carried them.
+        val quotes = if (withoutFiles) originalMessage.quotes else null
         val parentMessageId = originalMessage.parentMessageId
 
         // Optimistically insert the edited text as a new sibling of the original user
@@ -104,7 +124,8 @@ class MessageEditingDelegate(
             isCreatedByUser = true,
             sender = "User",
             createdAt = Clock.System.now().toString(),
-            files = originalMessage.files,
+            files = files,
+            quotes = quotes,
             // The edited turn keeps its skill pills and primes the same skills (web's
             // `overrideManualSkills: message.manualSkills` on save-and-submit).
             manualSkills = originalMessage.manualSkills,
@@ -122,11 +143,12 @@ class MessageEditingDelegate(
             text = newText,
             parentMessageId = parentMessageId,
             userMessageId = optimisticMessage.messageId,
-            files = originalMessage.files,
+            files = files,
+            quotes = quotes,
             manualSkills = originalMessage.manualSkills,
             reasoningOverride = originalMessage.reasoningOverride,
-            isEdited = true,
-            logLabel = "editUserMessage",
+            isEdited = !withoutFiles,
+            logLabel = if (withoutFiles) "retryWithoutFiles" else "editUserMessage",
         )
     }
 
