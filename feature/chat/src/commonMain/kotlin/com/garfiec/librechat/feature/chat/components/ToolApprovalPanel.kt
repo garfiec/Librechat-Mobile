@@ -291,7 +291,7 @@ private fun CompactToolLayout(
                         isResolving = state.isResolving,
                         bodyMaxHeight = bodyMaxHeight,
                         onDraftChange = { draft -> actions.onDraftChange(active.toolCallId, draft) },
-                        onReasonFocused = actions.cancelAutoAdvance,
+                        onReasonFocus = actions.cancelAutoAdvance,
                         onPick = { draft ->
                             actions.onPick(active.toolCallId, draft, PausePanelAutoAdvance.AdvanceOrSubmit)
                         },
@@ -396,7 +396,7 @@ private fun WideToolLayout(
                             isResolving = state.isResolving,
                             bodyMaxHeight = bodyMaxHeight,
                             onDraftChange = { draft -> actions.onDraftChange(call.toolCallId, draft) },
-                            onReasonFocused = actions.cancelAutoAdvance,
+                            onReasonFocus = actions.cancelAutoAdvance,
                             onPick = { draft -> actions.onPick(call.toolCallId, draft, PausePanelAutoAdvance.NextTab) },
                         )
                     }
@@ -489,7 +489,7 @@ private fun ToolCallBody(
      * The reject reason took focus: the user is still deciding, so a Reject's pending move-on is
      * dropped and the explicit Next / Continue takes over.
      */
-    onReasonFocused: () -> Unit,
+    onReasonFocus: () -> Unit,
     /** A decision's tap, with the draft after it. */
     onPick: (ToolDecisionDraft) -> Unit,
     modifier: Modifier = Modifier,
@@ -596,7 +596,7 @@ private fun ToolCallBody(
                 modifier = Modifier
                     .fillMaxWidth()
                     .bringIntoViewRequester(fieldRequester)
-                    .onFocusChanged { if (it.isFocused) onReasonFocused() },
+                    .onFocusChanged { if (it.isFocused) onReasonFocus() },
                 label = { Text(stringResource(Res.string.tool_approval_reject_reason)) },
                 minLines = 1,
                 maxLines = 4,
