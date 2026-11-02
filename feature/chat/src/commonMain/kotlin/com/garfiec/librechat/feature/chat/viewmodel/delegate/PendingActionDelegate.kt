@@ -25,6 +25,7 @@ import com.garfiec.librechat.feature.chat.util.nextBlankQuestionIndex
 import com.garfiec.librechat.feature.chat.util.nextUndecidedCallIndex
 import com.garfiec.librechat.feature.chat.util.toResolution
 import com.garfiec.librechat.feature.chat.util.toolBatchResolutions
+import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.PendingActionHandle
 import com.garfiec.librechat.feature.chat.viewmodel.PendingActionWrites
@@ -34,6 +35,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlin.time.Clock
@@ -700,7 +704,12 @@ class PendingActionDelegate(
                         expireNow(actionId)
                         return@launch
                     }
-                    val fingerprintRejected = statusCode == HTTP_FORBIDDEN
+                    // Two 403 families: a decision the policy no longer permits names the calls
+                    // in `disallowed` and can be fixed by choosing again; anything else is the
+                    // fingerprint (or ownership) check, which no answer from here can pass.
+                    val decisionNotPermitted = statusCode == HTTP_FORBIDDEN &&
+                        isDisallowedDecisionBody((result.exception as? ApiException)?.body)
+                    val fingerprintRejected = statusCode == HTTP_FORBIDDEN && !decisionNotPermitted
                     // The resume route runs the message limiters and moderation over the answer,
                     // and their refusal arrives as a 200 naming what to do next — wait, or edit.
                     val refusalMarker = refusalErrorMarker(result.exception)
@@ -709,6 +718,7 @@ class PendingActionDelegate(
                         pendingActionResumeFailed = true
                         error = when {
                             refusalMarker != null -> refusalMarker
+                            decisionNotPermitted -> ChatNotice.TOOL_DECISION_NOT_PERMITTED.marker()
                             fingerprintRejected -> fingerprintRejectedMessage()
                             else -> resumeFailureMessage(result.message)
                         }
@@ -819,4 +829,15 @@ private class AutoAdvanceSlot(private val scope: CoroutineScope, private val isR
         job?.cancel()
         job = null
     }
+}
+
+/** The resume route's "Decision not permitted" 403 carries the offending calls in `disallowed`. */
+internal fun isDisallowedDecisionBody(body: String?): Boolean {
+    if (body.isNullOrBlank()) return false
+    val obj = try {
+        Json.parseToJsonElement(body) as? JsonObject
+    } catch (_: SerializationException) {
+        null
+    } ?: return false
+    return obj["disallowed"] is JsonArray
 }

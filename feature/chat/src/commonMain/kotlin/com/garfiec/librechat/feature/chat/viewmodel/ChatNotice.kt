@@ -79,6 +79,12 @@ enum class ChatNotice(val wire: String) {
      * plural in the largest unit that fits (see `localizedStreamError`).
      */
     MESSAGE_LIMIT_RETRY("message_limit_retry"),
+
+    /**
+     * The resume route's 403 "Decision not permitted for one or more tools": the policy no longer
+     * allows a decision the user picked. Not the fingerprint 403; another decision can succeed.
+     */
+    TOOL_DECISION_NOT_PERMITTED("tool_decision_not_permitted"),
     ;
 
     fun marker(vararg args: Any): String =

@@ -589,6 +589,15 @@
     <string name="tool_approval_edited_arguments">Edited arguments (JSON)</string>
     <string name="tool_approval_response_text">Reply to send instead of running the tool</string>
     <string name="tool_approval_invalid_json">Enter valid JSON</string>
+    <string name="tool_approval_always_allow">Always allow</string>
+    <string name="tool_approval_always_allow_hint">Always allow: this tool will run without asking for the rest of this chat.</string>
+    <string name="tool_approval_reject_reason">Reason (optional)</string>
+    <string name="tool_approval_remember_chat">Approving remembers this tool for this agent in this chat, including calls with different arguments. Administrator rules still apply.</string>
+    <string name="tool_approval_remember_always">Approving remembers this tool for you and this agent across chats, including calls with different arguments. Administrator rules still apply.</string>
+    <string name="tool_approval_remember_unavailable_connection">Approval cannot be remembered for this connection. Each call requires review.</string>
+    <string name="tool_approval_remember_unavailable_disabled">Remembered approvals are disabled. Each call requires review.</string>
+    <string name="tool_approval_remember_unavailable_storage">Remembered approval is unavailable. This approval will apply only to this call.</string>
+    <string name="tool_approval_remember_unavailable_background">Background launches cannot teach approval. Approve a successful foreground call to remember this tool.</string>
     <string name="ask_user_question_answer_hint">Type your answer</string>
     <string name="ask_user_question_other_hint">Something else</string>
     <string name="ask_user_question_send">Send</string>
@@ -796,6 +805,7 @@
     <string name="notice_speech_permission_denied">Speech recognition permission denied</string>
     <string name="notice_speech_unavailable">Speech recognition not available. Check Settings &gt; Privacy &gt; Speech Recognition.</string>
     <string name="notice_send_refused">The server refused this message.</string>
+    <string name="notice_tool_decision_not_permitted">The server no longer allows one of these decisions. Choose another for each tool and try again.</string>
     <string name="notice_content_blocked">The server's content filter blocked this message. Nothing was sent.</string>
     <string name="notice_skills_not_sent">Some skills can't be used in this chat and weren't sent.</string>
     <string name="notice_skills_removed_from_queued">Some skills can't be used in this chat and were removed from the queued message.</string>

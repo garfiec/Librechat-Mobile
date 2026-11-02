@@ -103,6 +103,7 @@ private fun localizedNotice(parsed: ChatNotice.Parsed): String {
         ChatNotice.CONTENT_BLOCKED -> Res.string.notice_content_blocked
         ChatNotice.SKILLS_NOT_SENT -> Res.string.notice_skills_not_sent
         ChatNotice.SKILLS_REMOVED_FROM_QUEUED -> Res.string.notice_skills_removed_from_queued
+        ChatNotice.TOOL_DECISION_NOT_PERMITTED -> Res.string.notice_tool_decision_not_permitted
         // Reached only with an unreadable argument; the generic message-limit copy still applies.
         ChatNotice.MESSAGE_LIMIT_RETRY -> Res.string.error_message_limit
     }

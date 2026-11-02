@@ -902,6 +902,16 @@ Paging is shared by both panels:
 - **Wide: dragging along the tabs** selects the tab under the finger, ahead of the row's own
   scroll (Initial pass), so an overflowing row scrolls to follow the selection rather than the drag.
 
+**Remembering (v0.8.9-rc1).** A call whose review config has `allow_always` (and allows approve)
+gets an "Always allow" button between Reject and Approve, with a static hint under the row (shown
+whenever offered: the pick is final and the beat moves on, so a selection-only hint would flash
+past). It is `approve` + `scope: session`, and `toolBatchResolutions` strips the scope from any call
+not offered it, because the server 403s the whole batch for one. "Approve all" stays plain. A
+`remember_scope` (the agent's chat/always mode) shows a notice above the arguments; a
+`remember_unavailable` replaces it in the error colour. Reject opens an optional reason field;
+focusing it cancels the beat, so the explicit Next / Continue takes over. A resume 403 whose body
+carries `disallowed` is `ChatNotice.TOOL_DECISION_NOT_PERMITTED`, not the fingerprint copy.
+
 The resume is all-or-nothing (`toolBatchResolutions` returns null until every call is decided and
 complete — the route 400s a partial batch and an edit/respond without its payload). Allowed
 decisions join by `tool_call_id`, never position. Drafts, the active call and the collapse state

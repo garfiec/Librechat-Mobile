@@ -3,7 +3,9 @@ package com.garfiec.librechat.feature.chat.util
 import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.model.PendingActionPayload
 import com.garfiec.librechat.core.model.ToolApprovalDecisions
+import com.garfiec.librechat.core.model.ToolReviewConfig
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
+import com.garfiec.librechat.core.model.request.ToolApprovalScopes
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 
@@ -20,6 +22,13 @@ data class ToolDecisionDraft(
     val decision: String? = null,
     val editedArguments: String = "",
     val responseText: String = "",
+    /**
+     * With an `approve`: Always allow, remembered for the rest of the chat (`scope: session`).
+     * Only ever sent for a call offered it; see [toolBatchResolutions].
+     */
+    val allowAlways: Boolean = false,
+    /** With a `reject`: an optional note for the agent. */
+    val reason: String = "",
 )
 
 /**
@@ -28,7 +37,10 @@ data class ToolDecisionDraft(
  * `respond` needs text). Returning null is what keeps the submit disabled rather than letting the
  * server 400 the batch.
  */
-internal fun ToolDecisionDraft.toResolution(toolCallId: String): ToolApprovalResolution? {
+internal fun ToolDecisionDraft.toResolution(
+    toolCallId: String,
+    canAllowAlways: Boolean = false,
+): ToolApprovalResolution? {
     val decision = this.decision ?: return null
     return when (decision) {
         ToolApprovalDecisions.EDIT -> {
@@ -39,6 +51,16 @@ internal fun ToolDecisionDraft.toResolution(toolCallId: String): ToolApprovalRes
             val text = responseText.trim().ifEmpty { return null }
             ToolApprovalResolution(toolCallId = toolCallId, decision = decision, responseText = text)
         }
+        ToolApprovalDecisions.APPROVE -> ToolApprovalResolution(
+            toolCallId = toolCallId,
+            decision = decision,
+            scope = ToolApprovalScopes.SESSION.takeIf { allowAlways && canAllowAlways },
+        )
+        ToolApprovalDecisions.REJECT -> ToolApprovalResolution(
+            toolCallId = toolCallId,
+            decision = decision,
+            reason = reason.trim().ifEmpty { null },
+        )
         else -> ToolApprovalResolution(toolCallId = toolCallId, decision = decision)
     }
 }
@@ -53,14 +75,18 @@ internal fun String.parseToolArgumentsOrNull(): JsonObject? = try {
 /**
  * The whole batch's resolutions, in payload order, or null until every call is decided AND
  * complete: the server 400s a partial batch, so nothing goes up before then.
+ *
+ * A `session` scope goes up only for a call whose review config offers Always allow: the server
+ * 403s the whole batch for a scope on any other.
  */
 internal fun toolBatchResolutions(
     payload: PendingActionPayload,
     drafts: Map<String, ToolDecisionDraft>,
 ): List<ToolApprovalResolution>? {
     if (payload.actionRequests.isEmpty()) return null
+    val offered = payload.reviewConfigs.filter { it.canAllowAlways }.map { it.toolCallId }.toSet()
     val resolutions = payload.actionRequests.mapNotNull { request ->
-        drafts[request.toolCallId]?.toResolution(request.toolCallId)
+        drafts[request.toolCallId]?.toResolution(request.toolCallId, canAllowAlways = request.toolCallId in offered)
     }
     return resolutions.takeIf { it.size == payload.actionRequests.size }
 }
@@ -72,6 +98,10 @@ internal fun toolBatchResolutions(
  */
 internal fun PendingActionPayload.allowedDecisionsByCallId(): Map<String, List<String>> =
     reviewConfigs.associate { it.toolCallId to it.allowedDecisions }
+
+/** Each call's review config, joined by `tool_call_id` like [allowedDecisionsByCallId]. */
+internal fun PendingActionPayload.reviewConfigsByCallId(): Map<String, ToolReviewConfig> =
+    reviewConfigs.associateBy { it.toolCallId }
 
 /**
  * Fallback policy for a call the batch's `review_configs` doesn't mention. Approve/reject only:

@@ -11,7 +11,9 @@ import com.garfiec.librechat.core.model.PendingActionPayload
 import com.garfiec.librechat.core.model.PendingActionTypes
 import com.garfiec.librechat.core.model.ToolApprovalDecisions
 import com.garfiec.librechat.core.model.ToolApprovalRequest
+import com.garfiec.librechat.core.model.ToolReviewConfig
 import com.garfiec.librechat.core.model.request.ChatResumeRequest
+import com.garfiec.librechat.core.model.request.ToolApprovalScopes
 import com.garfiec.librechat.core.model.response.ChatResumeResponse
 import com.garfiec.librechat.feature.chat.components.PAUSE_PANEL_AUTO_ADVANCE_DELAY_MS
 import com.garfiec.librechat.feature.chat.components.PausePanelAutoAdvance
@@ -356,6 +358,51 @@ class PendingActionAutoAdvanceTest {
 
             assertThat(resumes.single().decisions?.map { it.decision })
                 .containsExactly(ToolApprovalDecisions.APPROVE, ToolApprovalDecisions.REJECT).inOrder()
+        }
+
+    @Test
+    fun `compact - always allow on a single offered call submits it with a session scope`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val (delegate, _) = delegate()
+            val single = toolBatch("call-1")
+            delegate.onPendingAction(
+                single.copy(
+                    payload = single.payload?.copy(
+                        reviewConfigs = listOf(
+                            ToolReviewConfig(
+                                toolCallId = "call-1",
+                                allowedDecisions = listOf(ToolApprovalDecisions.APPROVE, ToolApprovalDecisions.REJECT),
+                                allowAlways = true,
+                            ),
+                        ),
+                    ),
+                ),
+            )
+
+            delegate.pickToolDecision(
+                "call-1",
+                decide(ToolApprovalDecisions.APPROVE).copy(allowAlways = true),
+                AdvanceOrSubmit,
+            )
+            afterTheBeat()
+
+            val sent = resumes.single().decisions?.single()
+            assertThat(sent?.decision).isEqualTo(ToolApprovalDecisions.APPROVE)
+            assertThat(sent?.scope).isEqualTo(ToolApprovalScopes.SESSION)
+        }
+
+    @Test
+    fun `focusing a reject reason inside the beat keeps the call on screen`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val (delegate, state) = delegate()
+            delegate.onPendingAction(toolBatch("call-1"))
+
+            delegate.pickToolDecision("call-1", decide(ToolApprovalDecisions.REJECT), AdvanceOrSubmit)
+            delegate.cancelAutoAdvance()
+            afterTheBeat()
+
+            assertThat(resumes).isEmpty()
+            assertThat(state.value.pendingAction).isNotNull()
         }
 
     @Test
