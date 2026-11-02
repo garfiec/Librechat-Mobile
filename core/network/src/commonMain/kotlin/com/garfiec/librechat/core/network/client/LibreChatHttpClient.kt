@@ -220,24 +220,6 @@ object LibreChatHttpClient {
     private data class ExtractedError(val message: String, val serverAuthored: Boolean)
 
     /**
-     * True only for LibreChat's **own** ban response: `checkBan`'s `banResponse` answers
-     * `403` with `{"message": "<the ban sentence>"}` — JSON, with the wording in a `message` field.
-     *
-     * Decided off [extractErrorMessage]'s result rather than re-parsing the body: that parse has
-     * already run for this response, and its [ExtractedError.serverAuthored] flag *is* the "this
-     * came out of a LibreChat JSON envelope" test — a proxy interstitial or an HTML error page
-     * cannot set it, and neither can an empty body. (Extraction also reads the `error` /
-     * `error_message` fallback keys, so the ban wording would be honoured there too; upstream's ban
-     * answer uses `message`, which makes that inert breadth rather than a second shape to match.)
-     *
-     * This used to be `bodyText.contains("ban")` against the raw body, which matches any 403 whose
-     * body happens to contain those three letters — including a reverse proxy's or WAF's block page.
-     * Emitting [SessionEndReason.BANNED] for one of those tells the user their account is restricted
-     * over a network-layer block (and once turned a temporary IP ban into a hard logout, #376).
-     * Requiring LibreChat's own JSON shape means an unrecognised 403 fails the request without
-     * reporting a ban.
-     */
-    /**
      * Turns a 403 that is one of the server's required steps (v0.8.9-rc1) into an [AuthGate]:
      * the 2FA enrollment gate every authenticated route answers, and the terms gate on writes.
      *
@@ -259,6 +241,24 @@ object LibreChatHttpClient {
         tokenManager.reportAuthGate(gate)
     }
 
+    /**
+     * True only for LibreChat's **own** ban response: `checkBan`'s `banResponse` answers
+     * `403` with `{"message": "<the ban sentence>"}` — JSON, with the wording in a `message` field.
+     *
+     * Decided off [extractErrorMessage]'s result rather than re-parsing the body: that parse has
+     * already run for this response, and its [ExtractedError.serverAuthored] flag *is* the "this
+     * came out of a LibreChat JSON envelope" test — a proxy interstitial or an HTML error page
+     * cannot set it, and neither can an empty body. (Extraction also reads the `error` /
+     * `error_message` fallback keys, so the ban wording would be honoured there too; upstream's ban
+     * answer uses `message`, which makes that inert breadth rather than a second shape to match.)
+     *
+     * This used to be `bodyText.contains("ban")` against the raw body, which matches any 403 whose
+     * body happens to contain those three letters — including a reverse proxy's or WAF's block page.
+     * Emitting [SessionEndReason.BANNED] for one of those tells the user their account is restricted
+     * over a network-layer block (and once turned a temporary IP ban into a hard logout, #376).
+     * Requiring LibreChat's own JSON shape means an unrecognised 403 fails the request without
+     * reporting a ban.
+     */
     private fun isLibreChatBan(statusCode: Int, extracted: ExtractedError): Boolean {
         if (statusCode != 403 || !extracted.serverAuthored) return false
         return BAN_MESSAGE_MARKERS.all { extracted.message.contains(it, ignoreCase = true) }
