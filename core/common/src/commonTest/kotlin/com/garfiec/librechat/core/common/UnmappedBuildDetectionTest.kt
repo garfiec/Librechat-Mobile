@@ -39,7 +39,9 @@ class UnmappedBuildDetectionTest {
 
     @Test
     fun branchBuildAfterThePinIsPlacedAtThePin() {
-        val detected = assertNotNull(UnmappedBuildDetection.detect("main", "2026-10-26T21:56:08Z"))
+        // Derived from the pin: a literal date falls on or before it once a sync advances the pin.
+        val afterPin = "${pinnedDate.take(4).toInt() + 1}-01-01T00:00:00Z"
+        val detected = assertNotNull(UnmappedBuildDetection.detect("main", afterPin))
         assertEquals(pinnedVersion, detected.version)
         assertEquals(BackendBuildClass.DEV, detected.classification)
         assertNull(detected.commitDate)
