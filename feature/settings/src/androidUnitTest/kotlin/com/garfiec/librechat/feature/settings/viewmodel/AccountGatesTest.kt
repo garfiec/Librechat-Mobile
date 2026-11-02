@@ -34,12 +34,23 @@ class AccountGatesTest {
     @Test
     fun `email change needs a local account, mail and the flag`() {
         val on = StartupConfig(emailEnabled = true, allowEmailChange = true)
-        assertThat(isEmailChangeAvailable(on, "local")).isTrue()
-        assertThat(isEmailChangeAvailable(on, "ldap")).isFalse()
-        assertThat(isEmailChangeAvailable(on, null)).isFalse()
-        assertThat(isEmailChangeAvailable(on.copy(emailEnabled = false), "local")).isFalse()
-        assertThat(isEmailChangeAvailable(on.copy(allowEmailChange = false), "local")).isFalse()
-        assertThat(isEmailChangeAvailable(null, "local")).isFalse()
+        assertThat(isEmailChangeAvailable(on, "local", null)).isTrue()
+        assertThat(isEmailChangeAvailable(on, "ldap", null)).isFalse()
+        assertThat(isEmailChangeAvailable(on, null, null)).isFalse()
+        assertThat(isEmailChangeAvailable(on.copy(emailEnabled = false), "local", null)).isFalse()
+        assertThat(isEmailChangeAvailable(on.copy(allowEmailChange = false), "local", null)).isFalse()
+        assertThat(isEmailChangeAvailable(null, "local", null)).isFalse()
+    }
+
+    @Test
+    fun `email change follows the release floor on a placed server`() {
+        val on = StartupConfig(emailEnabled = true, allowEmailChange = true)
+        assertThat(isEmailChangeAvailable(on, "local", DetectedBackend("0.8.9-rc1", BackendBuildClass.RC))).isTrue()
+        assertThat(isEmailChangeAvailable(on, "local", DetectedBackend("0.8.8", BackendBuildClass.OFFICIAL))).isFalse()
+        // A dev build still reporting the previous release, landed after the route: kept.
+        assertThat(
+            isEmailChangeAvailable(on, "local", DetectedBackend("0.8.8", BackendBuildClass.DEV, "2026-10-05")),
+        ).isTrue()
     }
 
     @Test

@@ -21,10 +21,18 @@ internal fun isPasskeyManagementAvailable(config: StartupConfig?, backend: Detec
     config?.passkeyLoginEnabled == true &&
         !BackendVersion.featureSupport(backend, PASSKEYS_MIN_VERSION, PASSKEYS_LANDED_DATE).isRuledOut
 
+/** First release carrying `POST /api/user/email/change`; `landingCommit` 4ffe3825ecc5. */
+internal const val EMAIL_CHANGE_MIN_VERSION = "0.8.9-rc1"
+internal const val EMAIL_CHANGE_LANDED_DATE = "2026-10-01"
+
 /**
- * Whether the profile offers "Email address" (change email): web's `changeEmail` row predicate. The
- * flag alone is the gate: `allowEmailChange` is new in v0.8.9-rc1, so a server that sends it has the
- * route. An unknown provider (null) is not treated as local.
+ * Whether the profile offers "Email address" (change email): web's `changeEmail` row predicate plus
+ * the release floor, applied like the passkey gate's: it hides the row only on a server KNOWN to
+ * predate the route, so a dev build or one past the commit map keeps it. An unknown provider (null)
+ * is not treated as local.
  */
-internal fun isEmailChangeAvailable(config: StartupConfig?, provider: String?): Boolean =
-    provider == LOCAL_PROVIDER && config?.emailEnabled == true && config.allowEmailChange
+internal fun isEmailChangeAvailable(config: StartupConfig?, provider: String?, backend: DetectedBackend?): Boolean =
+    provider == LOCAL_PROVIDER &&
+        config?.emailEnabled == true &&
+        config.allowEmailChange &&
+        !BackendVersion.featureSupport(backend, EMAIL_CHANGE_MIN_VERSION, EMAIL_CHANGE_LANDED_DATE).isRuledOut

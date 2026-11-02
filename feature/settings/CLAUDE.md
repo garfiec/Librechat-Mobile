@@ -96,7 +96,8 @@
 ### Change email (v0.8.9-rc1)
 - Profile row "Email address" (subtitle = current address) above Sign out, when
   `isEmailChangeAvailable`: `provider == "local"` (null is NOT local), `emailEnabled`,
-  `allowEmailChange`. No version gate: the flag is new in rc1.
+  `allowEmailChange`, and the rc1 floor applied like the passkey gate's (`featureSupport(...).isRuledOut`:
+  hidden only on a server known to predate the route).
 - `EmailChangeDelegate` owns the dialog state in `AccountSettingsUiState` (draft, sending, error,
   cooldown, one-shot notice). `EmailChangeError` (`:core:model`) maps every `code`; the server's
   message is never shown. Field codes go under their field, the rest inside the dialog. A wrong

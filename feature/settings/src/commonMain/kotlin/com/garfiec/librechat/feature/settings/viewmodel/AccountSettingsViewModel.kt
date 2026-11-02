@@ -215,7 +215,7 @@ class AccountSettingsViewModel(
                 balance = state.balance.presentedFor(config),
                 providerKeysSummary = providerKeysSummary,
                 canDisableTwoFactor = !isTwoFactorRequiredFor(config?.twoFactorAuthenticationRequired, state.user?.provider),
-                canChangeEmail = isEmailChangeAvailable(config, state.user?.provider),
+                canChangeEmail = isEmailChangeAvailable(config, state.user?.provider, backend),
                 showPasskeys = showPasskeys,
                 passkeyCount = state.passkeyCount.takeIf { showPasskeys },
             )
