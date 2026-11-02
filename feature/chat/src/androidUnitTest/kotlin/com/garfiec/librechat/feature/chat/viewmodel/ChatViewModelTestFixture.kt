@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
+import com.garfiec.librechat.core.data.datastore.CodeWorkspacePreferenceStore
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
@@ -22,6 +23,7 @@ import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.AgentToolsRepository
 import com.garfiec.librechat.core.data.repository.ChatRepository
+import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.DraftRepository
@@ -38,6 +40,7 @@ import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
+import com.garfiec.librechat.core.data.repository.SavedCodeDecision
 import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.SkillsRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
@@ -48,6 +51,7 @@ import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.model.ToolAuthResult
 import com.garfiec.librechat.core.model.User
+import com.garfiec.librechat.core.model.code.CodeEnvironmentStatus
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
 import com.garfiec.librechat.core.model.usage.ContextDetailPreset
 import com.garfiec.librechat.core.model.usage.DEFAULT_COMPACT_NUDGE_THRESHOLD
@@ -124,6 +128,16 @@ internal class ChatViewModelTestFixture {
 
     /** Each conversation's remembered web-search switch; nothing stored unless a test says so. */
     val conversationWebSearchStore = mockk<ConversationWebSearchStore>(relaxed = true)
+
+    /** Attached code machines: none answer unless a test says so. */
+    var codeEnvironmentRepository: CodeEnvironmentRepository = object : CodeEnvironmentRepository {
+        override suspend fun status(environmentId: String): Result<CodeEnvironmentStatus> = Result.Error()
+        override suspend fun savedDecision(conversationId: String): Result<SavedCodeDecision> =
+            Result.Success(SavedCodeDecision(mode = null, workspaces = null))
+    }
+    val codeWorkspacePreferenceStore = mockk<CodeWorkspacePreferenceStore>(relaxed = true).also {
+        coEvery { it.snapshot() } returns emptyMap()
+    }
 
     /** Shared by every ViewModel this fixture builds, like the app's single, so its cache carries over. */
     private var webSearchReadiness: WebSearchReadinessRepository? = null
@@ -269,6 +283,8 @@ internal class ChatViewModelTestFixture {
         webSearchReadiness = webSearchReadiness
             ?: WebSearchReadinessRepository(agentToolsRepository, activeAccountProvider).also { webSearchReadiness = it },
         conversationWebSearchStore = conversationWebSearchStore,
+        codeEnvironmentRepository = codeEnvironmentRepository,
+        codeWorkspacePreferenceStore = codeWorkspacePreferenceStore,
         permissionGate = permissionGate,
         connectivityObserver = connectivityObserver,
         serverDataStore = serverDataStore,

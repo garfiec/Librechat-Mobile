@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.model.ReasoningOverride
+import com.garfiec.librechat.core.model.code.CodeWorkspaceSubmission
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.components.AttachedFile
@@ -121,6 +122,12 @@ data class QueuedMessage(
      * composer queue instead (`ChatUiState.canSteerNow`).
      */
     val reasoningOverride: ReasoningOverride? = null,
+    /**
+     * The chat's code-workspace decision when this spec was minted, so a queued turn carries the
+     * decision it was composed under. Null holds a NEW chat's send (it must not go out without one);
+     * a drain into an existing chat sends nothing in its place, which keeps the recorded decision.
+     */
+    val codeWorkspace: CodeWorkspaceSubmission? = CodeWorkspaceSubmission.NONE,
     val dispatch: EndpointDispatch,
     val isTemporary: Boolean = false,
     /**

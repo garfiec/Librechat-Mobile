@@ -97,6 +97,12 @@ enum class ChatNotice(val wire: String) {
      * `excludeFiles` and ignored it. The original conversation is unchanged.
      */
     BRANCH_WITHOUT_FILES_UNSUPPORTED("branch_without_files_unsupported"),
+
+    /**
+     * A send went out as "No workspace" because its coding agent's machine had nothing to pick
+     * (offline, or a worker too old for workspaces): the chat is now sealed without files or commands.
+     */
+    CODE_WORKSPACE_SENT_WITHOUT("code_workspace_sent_without"),
     ;
 
     fun marker(vararg args: Any): String =

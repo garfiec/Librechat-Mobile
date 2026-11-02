@@ -96,6 +96,7 @@ object CodeWorkspaceRouting {
      * selection, then the machine inherited from the parent that spawned it, then the agent's own
      * default, then a single legacy selection. A null [selections] keeps the default.
      */
+    @Suppress("ReturnCount") // upstream's early-return precedence, kept in its order
     fun resolveCodeEnvironmentSelection(
         environmentId: String? = null,
         environmentIds: List<String>? = null,
@@ -154,6 +155,7 @@ object CodeWorkspaceRouting {
      * theirs to use, attached, and already selected. Returns saved agent id → inherited machine for
      * the subagents whose route changes. See upstream for the full rule; this is a line-for-line port.
      */
+    @Suppress("CyclomaticComplexMethod") // line-for-line port, diffed against upstream
     fun resolveCodeWorkspaceInheritance(
         selections: List<CodeWorkspaceSelection>?,
         rootIds: List<String>,

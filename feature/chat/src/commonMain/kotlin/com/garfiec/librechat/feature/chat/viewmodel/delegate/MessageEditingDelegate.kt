@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.ReasoningOverride
+import com.garfiec.librechat.core.model.code.CodeWorkspaceSubmission
 import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.request.EditedContent
 import com.garfiec.librechat.feature.chat.util.MessageEditShape
@@ -71,6 +72,11 @@ class MessageEditingDelegate(
         primaryEndpoint: String?,
         primaryModelParams: JsonObject?,
     ) -> AddedConversation?,
+    /**
+     * `CodeWorkspaceDelegate.submissionForSend`. An edit, regenerate or continue runs in a chat
+     * that has sent before, so a held decision (null) sends nothing and the recorded one applies.
+     */
+    private val codeWorkspace: () -> CodeWorkspaceSubmission? = { CodeWorkspaceSubmission.NONE },
 ) {
 
     /**
@@ -376,6 +382,8 @@ class MessageEditingDelegate(
                 editedContent = editedContent,
                 addedConvo = addedConvo,
                 reasoningOverride = reasoningOverride?.takeIf { state.acceptsReasoning(it) },
+                // A compaction runs no model turn, so it decides nothing.
+                codeWorkspace = if (compact == true) null else codeWorkspace()?.takeUnless { it == CodeWorkspaceSubmission.NONE },
             ),
         )
     }

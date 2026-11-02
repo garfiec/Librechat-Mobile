@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.code.CodeWorkspaceUnavailableReason
 import com.garfiec.librechat.core.model.error.StreamErrorType
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -30,7 +31,8 @@ import org.jetbrains.compose.resources.stringResource
 internal fun localizedStreamError(raw: String): String {
     ChatNotice.parse(raw)?.let { return localizedNotice(it) }
     if (!raw.startsWith(StreamErrorType.MARKER_PREFIX)) return raw
-    val wire = raw.removePrefix(StreamErrorType.MARKER_PREFIX)
+    // A marker may carry an argument after the separator (a code-workspace rejection's reason).
+    val wire = raw.removePrefix(StreamErrorType.MARKER_PREFIX).substringBefore(StreamErrorType.ARG_SEPARATOR)
     // Matched on the enum rather than on the marker string so a code removed from the enum stops
     // resolving here too, instead of leaving a branch that can never be reached.
     val type = StreamErrorType.entries.firstOrNull { it.wire == wire } ?: return raw
@@ -60,8 +62,17 @@ internal fun localizedStreamError(raw: String): String {
         StreamErrorType.STREAM_EXPIRED -> stringResource(Res.string.error_stream_expired)
         StreamErrorType.UPSTREAM_MODEL_ERROR -> stringResource(Res.string.error_upstream_model_error)
         StreamErrorType.EMPTY_MESSAGES -> stringResource(Res.string.error_empty_messages)
-        StreamErrorType.CODE_WORKSPACE_UNAVAILABLE ->
-            stringResource(Res.string.error_code_workspace_unavailable)
+        StreamErrorType.CODE_WORKSPACE_UNAVAILABLE -> stringResource(
+            when (StreamErrorType.codeWorkspaceReasonOfMarker(raw)) {
+                CodeWorkspaceUnavailableReason.REQUIRED -> Res.string.error_code_workspace_required
+                CodeWorkspaceUnavailableReason.INVALID -> Res.string.error_code_workspace_invalid
+                CodeWorkspaceUnavailableReason.WORKER_UNAVAILABLE -> Res.string.error_code_workspace_worker_unavailable
+                CodeWorkspaceUnavailableReason.UNSUPPORTED -> Res.string.error_code_workspace_unsupported
+                CodeWorkspaceUnavailableReason.MISSING -> Res.string.error_code_workspace_missing
+                CodeWorkspaceUnavailableReason.LOCKED -> Res.string.error_code_workspace_locked
+                null -> Res.string.error_code_workspace_unavailable
+            },
+        )
         StreamErrorType.STATEFUL_CODE_ENVIRONMENT_NOT_ALLOWED ->
             stringResource(Res.string.error_stateful_code_environment_not_allowed)
         StreamErrorType.MCP_AUTHENTICATION_REJECTED -> stringResource(Res.string.error_mcp_authentication_rejected)
@@ -109,6 +120,7 @@ private fun localizedNotice(parsed: ChatNotice.Parsed): String {
         ChatNotice.FORK_FAILED -> Res.string.notice_fork_failed
         ChatNotice.FORK_RATE_LIMITED -> Res.string.notice_fork_rate_limited
         ChatNotice.BRANCH_WITHOUT_FILES_UNSUPPORTED -> Res.string.notice_branch_without_files_unsupported
+        ChatNotice.CODE_WORKSPACE_SENT_WITHOUT -> Res.string.code_workspace_sent_without
         // Reached only with an unreadable argument; the generic message-limit copy still applies.
         ChatNotice.MESSAGE_LIMIT_RETRY -> Res.string.error_message_limit
     }

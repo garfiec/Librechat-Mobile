@@ -352,7 +352,8 @@ class StreamErrorTypeTest {
 
     @Test
     fun readsTheCodeWorkspaceRejectionReason() {
-        val start = """{"status":409,"code":"code_workspace_unavailable","reason":"locked","error":"This conversation already has a different code environment decision."}"""
+        val start = """{"status":409,"code":"code_workspace_unavailable","reason":"locked",""" +
+            """"error":"This conversation already has a different code environment decision."}"""
         assertEquals(CodeWorkspaceUnavailableReason.LOCKED, StreamErrorType.codeWorkspaceReason(start))
         for (reason in CodeWorkspaceUnavailableReason.entries) {
             assertEquals(
@@ -363,5 +364,20 @@ class StreamErrorTypeTest {
         assertNull(StreamErrorType.codeWorkspaceReason("""{"code":"code_workspace_unavailable","reason":"new"}"""))
         assertNull(StreamErrorType.codeWorkspaceReason("""{"code":"code_workspace_unavailable"}"""))
         assertNull(StreamErrorType.codeWorkspaceReason("""{"type":"message_limit","reason":"locked"}"""))
+    }
+
+    @Test
+    fun aCodeWorkspaceMarkerCarriesItsReasonOnEveryPath() {
+        val body = """{"status":409,"code":"code_workspace_unavailable","reason":"missing","error":"gone"}"""
+        val expected = StreamErrorType.CODE_WORKSPACE_UNAVAILABLE.marker + StreamErrorType.ARG_SEPARATOR + "missing"
+        assertEquals(expected, StreamErrorType.markerOrText(body))
+        assertEquals(expected, StreamErrorType.startFailureMarker(body, 409))
+        assertEquals(CodeWorkspaceUnavailableReason.MISSING, StreamErrorType.codeWorkspaceReasonOfMarker(expected))
+        // No known reason: the bare marker, which still localizes to the generic copy.
+        assertEquals(
+            StreamErrorType.CODE_WORKSPACE_UNAVAILABLE.marker,
+            StreamErrorType.markerOrText("""{"code":"code_workspace_unavailable"}"""),
+        )
+        assertNull(StreamErrorType.codeWorkspaceReasonOfMarker(StreamErrorType.CODE_WORKSPACE_UNAVAILABLE.marker))
     }
 }

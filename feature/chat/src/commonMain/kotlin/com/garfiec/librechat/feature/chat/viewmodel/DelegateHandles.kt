@@ -180,6 +180,20 @@ class EndpointKeyHandle(root: ChatStateHandle) : DelegateHandle(root) {
         root.update { EndpointKeyWrites(this).apply(block).applyTo(this) }
 }
 
+// ── CodeWorkspaceDelegate ─────────────────────────────────────────────────
+class CodeWorkspaceWrites internal constructor(state: ChatUiState) {
+    var codeWorkspace: CodeWorkspaceUiState = state.codeWorkspace
+    var error: String? = state.error
+    internal fun applyTo(s: ChatUiState) = s.copy(codeWorkspace = codeWorkspace, error = error)
+}
+
+class CodeWorkspaceHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    /** Read-only observation of the full state (agent, agents list, endpoints config, chat id). */
+    val stateFlow: StateFlow<ChatUiState> get() = root.stateFlow
+    fun update(block: CodeWorkspaceWrites.() -> Unit) =
+        root.update { CodeWorkspaceWrites(this).apply(block).applyTo(this) }
+}
+
 // ── PresetPromptDelegate ──────────────────────────────────────────────────
 class PresetPromptWrites internal constructor(state: ChatUiState) {
     var presetPrompts: PresetPromptState = state.presetPrompts

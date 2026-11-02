@@ -182,14 +182,16 @@ enum class StreamErrorType(
         private val byWire = entries.filter { it.classifiesPayload }.associateBy { it.wire }
 
         /**
-         * The marker for a chat start POST that failed up front with an MCP authentication code or
-         * a project context failure, or null for any other start failure. [body] is the raw
+         * The marker for a chat start POST that failed up front with an MCP authentication code, a
+         * project context failure or a refused code-workspace decision (with its reason), or null
+         * for any other start failure. [body] is the raw
          * error-response body; the code is read with [ServerErrorCode.generationCodeOf], since that
          * route's `error` key is prose. The one uncoded case, the project-context 404, is matched on
          * [status] and the server's exact sentence together.
          */
         fun startFailureMarker(body: String?, status: Int? = null): String? =
             when (ServerErrorCode.generationCodeOf(body)) {
+                CODE_WORKSPACE_UNAVAILABLE.wire -> body?.let { markerFor(CODE_WORKSPACE_UNAVAILABLE, it) }
                 ServerErrorCode.MCP_AUTHENTICATION_REJECTED -> MCP_AUTHENTICATION_REJECTED.marker
                 ServerErrorCode.MCP_AUTHENTICATION_REFRESH_FAILED -> MCP_AUTHENTICATION_REFRESH_FAILED.marker
                 ServerErrorCode.PROJECT_RESOURCES_CHANGED -> PROJECT_RESOURCES_CHANGED.marker
@@ -209,7 +211,7 @@ enum class StreamErrorType(
          * The refusal's own text is passed rather than the frame it rode in: the payload is a JSON
          * *string* inside that frame, which [parse]'s brace walk skips over.
          */
-        fun refusalMarker(refusalText: String): String? = parse(refusalText)?.marker
+        fun refusalMarker(refusalText: String): String? = parse(refusalText)?.let { markerFor(it, refusalText) }
 
         /**
          * The typed error in a raw stream-error message, or null.
@@ -411,7 +413,29 @@ enum class StreamErrorType(
          *
          * Keeping the server's text on no match is the contract, not a fallback: see [parse].
          */
-        fun markerOrText(rawMessage: String): String = parse(rawMessage)?.marker ?: rawMessage
+        fun markerOrText(rawMessage: String): String = parse(rawMessage)?.let { markerFor(it, rawMessage) } ?: rawMessage
+
+        /**
+         * [type]'s marker, carrying what the localized copy needs from the payload: a
+         * [CODE_WORKSPACE_UNAVAILABLE] marker carries its reason after [ARG_SEPARATOR], read back
+         * with [codeWorkspaceReasonOfMarker]. Without a known reason it is the bare marker.
+         */
+        private fun markerFor(type: StreamErrorType, rawMessage: String): String =
+            if (type == CODE_WORKSPACE_UNAVAILABLE) {
+                codeWorkspaceReason(rawMessage)?.let { "${type.marker}$ARG_SEPARATOR${it.wire}" } ?: type.marker
+            } else {
+                type.marker
+            }
+
+        /** The reason a [CODE_WORKSPACE_UNAVAILABLE] marker carries, or null for any other value. */
+        fun codeWorkspaceReasonOfMarker(value: String): CodeWorkspaceUnavailableReason? {
+            val prefix = CODE_WORKSPACE_UNAVAILABLE.marker + ARG_SEPARATOR
+            if (!value.startsWith(prefix)) return null
+            return CodeWorkspaceUnavailableReason.of(value.removePrefix(prefix))
+        }
+
+        /** U+001F, as `ChatNotice` uses: no wire code or reason carries a control character. */
+        const val ARG_SEPARATOR = "\u001F"
 
         /**
          * LEGACY fallback for servers at or below v0.8.8-rc1, which have no typed code for

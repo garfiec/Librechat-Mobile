@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.bookmarks.BookmarkPickerController
 import com.garfiec.librechat.core.data.datastore.AppPreferences
+import com.garfiec.librechat.core.data.datastore.CodeWorkspacePreferenceStore
 import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
@@ -20,6 +21,7 @@ import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ChatRepository
+import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.DraftRepository
@@ -87,6 +89,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.AttachmentPreviewDe
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.BranchSwitch
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ChatBookmarksDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ChatConfigDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.CodeWorkspaceDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ComparisonModeDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ContextProjectionDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ConversationActionsDelegate
@@ -188,6 +191,8 @@ class ChatViewModel(
     memoryRepository: MemoryRepository,
     webSearchReadiness: WebSearchReadinessRepository,
     private val conversationWebSearchStore: ConversationWebSearchStore,
+    codeEnvironmentRepository: CodeEnvironmentRepository,
+    codeWorkspacePreferenceStore: CodeWorkspacePreferenceStore,
     private val permissionGate: PermissionGate,
     private val connectivityObserver: ConnectivityObserver,
     private val activeAccountProvider: ActiveAccountProvider,
@@ -294,6 +299,15 @@ class ChatViewModel(
         initialSpec = initialSpec,
     )
     private val skillsToggleDelegate = SkillsToggleDelegate(SkillsToggleHandle(stateHandle), settingsDataStore)
+
+    // The attached-machine workspace a chat's coding agents run on, and what each send carries.
+    private val codeWorkspaceDelegate = CodeWorkspaceDelegate(
+        handle = CodeWorkspaceHandle(stateHandle),
+        configRepository = configRepository,
+        roleRepository = roleRepository,
+        environments = codeEnvironmentRepository,
+        preferences = codeWorkspacePreferenceStore,
+    )
     private val reasoningCatalogDelegate = ReasoningCatalogDelegate(
         handle = ReasoningHandle(stateHandle),
         repository = reasoningCapabilitiesRepository,
@@ -718,6 +732,8 @@ class ChatViewModel(
         newChatDraftKey = newChatDraftKey,
         turnSkillsOn = skillsToggleDelegate::turnOn,
         loadSkillCatalog = { skillPickerDelegate.ensureLoaded(newTrigger = true) },
+        codeWorkspace = codeWorkspaceDelegate::submissionForSend,
+        sendsWithoutWorkspace = codeWorkspaceDelegate::sendsWithoutWorkspace,
     )
 
     private val queueOrchestrationDelegate = QueueOrchestrationDelegate(
@@ -742,6 +758,7 @@ class ChatViewModel(
         runWhenSendReady = sendReadinessDelegate::runWhenSendReady,
         onComparisonSendStart = comparisonDelegate::onSendStart,
         buildAddedConvo = comparisonDelegate::buildAddedConvo,
+        codeWorkspace = codeWorkspaceDelegate::submissionForSend,
     )
 
     /** True when this ViewModel was opened for a brand-new chat (no conversationId from navigation). */
@@ -871,6 +888,7 @@ class ChatViewModel(
         ownerTextDelegate.start()
         // The Skills toggle follows the slot this chat maps to (conversation, new chat, temp, spec).
         skillsToggleDelegate.start()
+        codeWorkspaceDelegate.start()
         // The Thinking chip's catalog, and dropping a staged choice the selection stops accepting.
         reasoningCatalogDelegate.start()
         loadSkillCatalogWhenPickerOpens()
@@ -1432,11 +1450,13 @@ class ChatViewModel(
 
     fun onPause() {
         streamingManager.onPause()
+        codeWorkspaceDelegate.onForeground(false)
         queuedTurnDelegate.stopPolling()
     }
 
     fun onResume() {
         streamingManager.onResume()
+        codeWorkspaceDelegate.onForeground(true)
         // A foreground is a reconciliation point, not just a stream resume: the server may have
         // admitted, dropped or added a queued turn while the app was away, and there is nothing
         // to hear it from.
@@ -1509,6 +1529,8 @@ class ChatViewModel(
         modelDelegate.rearmModelSpecDefault()
         // …and with Skills as the new-chat slot has them, not as a pick on the last one left them.
         skillsToggleDelegate.resetNewChat()
+        // The next new chat decides its workspace afresh.
+        codeWorkspaceDelegate.reset()
         // The reset below ends any Compare setup without Cancel or Start, so nothing would release
         // its hold; the queue it held is cleared with it.
         queueOrchestrationDelegate.clearCompareSetupHold()
@@ -1655,6 +1677,23 @@ class ChatViewModel(
     fun dismissError() {
         _uiState.update { it.copy(error = null) }
     }
+
+    // ── Code workspace row (attached machines) ──────────────────────────────
+
+    /** Opens the workspace sheet; [machineId] is a machine picked from the machine chip. */
+    fun openCodeWorkspaceSheet(machineId: String? = null) = codeWorkspaceDelegate.openSheet(machineId)
+
+    fun dismissCodeWorkspaceSheet() = codeWorkspaceDelegate.dismissSheet()
+
+    fun selectCodeWorkspace(environmentId: String, workspaceId: String) =
+        codeWorkspaceDelegate.selectWorkspace(environmentId, workspaceId)
+
+    fun setCodeCheckout(environmentId: String, mode: CodeCheckoutMode) =
+        codeWorkspaceDelegate.setCheckout(environmentId, mode)
+
+    fun selectNoCodeWorkspace() = codeWorkspaceDelegate.selectNoWorkspace()
+
+    fun refreshCodeWorkspaces() = codeWorkspaceDelegate.refresh()
 
     fun dismissSendBlockReason() {
         _uiState.update { it.copy(composer = it.composer.copy(sendBlockReason = null)) }

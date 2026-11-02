@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.data.repository.DraftRepository
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.StreamEvent
+import com.garfiec.librechat.core.model.code.CodeWorkspaceSubmission
 import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.request.MAX_MANUAL_SKILLS
 import com.garfiec.librechat.core.model.request.manualSkillsSupportedOn
@@ -85,6 +86,13 @@ class SendDispatchDelegate(
      * skill catalog ([stageHeldBackManualSkills]) with none loaded, so it asks for one again.
      */
     private val loadSkillCatalog: () -> Unit = {},
+    /**
+     * `CodeWorkspaceDelegate.submissionForSend`: the chat's code-workspace decision for this turn,
+     * or null while the composer's workspace row holds the send.
+     */
+    private val codeWorkspace: () -> CodeWorkspaceSubmission? = { CodeWorkspaceSubmission.NONE },
+    /** `CodeWorkspaceDelegate.sendsWithoutWorkspace`: this send seals the chat "No workspace". */
+    private val sendsWithoutWorkspace: () -> Boolean = { false },
 ) {
     /**
      * Staged chips a new chat's first send already held back, handed to this chat
@@ -129,6 +137,7 @@ class SendDispatchDelegate(
             ephemeralAgent = requestBuilder.buildEphemeralAgent(),
             dispatch = requestBuilder.currentDispatch(),
             isTemporary = state.isTemporaryChat,
+            codeWorkspace = codeWorkspace(),
             // Capture the composing account so a drain after an account switch drops this item rather
             // than POSTing it to the newly-active account's server.
             accountId = activeAccountProvider.currentAccountId()?.value,
@@ -137,7 +146,13 @@ class SendDispatchDelegate(
 
     fun sendNow(text: String) {
         val spec = buildSendSpec(text) ?: return
-        if (doSendWithSpec(spec, fromComposer = true)) noticeHeldBackManualSkills()
+        // The workspace row holds the send and says why; the button is disabled for the same reason.
+        if (spec.codeWorkspace == null) return
+        val withoutWorkspace = sendsWithoutWorkspace()
+        if (doSendWithSpec(spec, fromComposer = true)) {
+            noticeHeldBackManualSkills()
+            if (withoutWorkspace) handle.setError(ChatNotice.CODE_WORKSPACE_SENT_WITHOUT.marker())
+        }
     }
 
     /**
@@ -350,6 +365,9 @@ class SendDispatchDelegate(
         val hasFiles = fileRefs.isNotEmpty()
         val messageText = baseSpec.text
         if ((messageText.isBlank() && !hasFiles) || handle.state.isStreaming) return false
+        // A new chat never goes out without its workspace decision: that would seal it "No workspace".
+        val codeWorkspace = baseSpec.codeWorkspace
+            ?: if (handle.state.conversationId != null) CodeWorkspaceSubmission.NONE else return false
         // Guard passed: safe to take the chips and clear the composer without risking their loss.
         val spec = if (fromComposer) {
             baseSpec.copy(
@@ -456,6 +474,8 @@ class SendDispatchDelegate(
             // First turn only: the server saves it on every turn that carries it, so a later one
             // would move the chat. A temporary chat is never filed.
             chatProjectId = if (isNewChat && !spec.isTemporary) chatProjectId else null,
+            // NONE and null both send neither field; null keeps the call identical to one before the feature.
+            codeWorkspace = codeWorkspace.takeUnless { it == CodeWorkspaceSubmission.NONE },
         )
         launchStream(stream)
         return true

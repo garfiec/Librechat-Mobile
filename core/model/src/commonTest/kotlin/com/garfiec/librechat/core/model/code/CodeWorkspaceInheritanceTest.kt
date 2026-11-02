@@ -142,7 +142,8 @@ class CodeWorkspaceInheritanceTest {
 
     @Test
     fun doesNotInheritAMachineThePrincipalCannotUse() {
-        val inheritance = resolveCodeWorkspaceInheritance(incident, listOf("lia"), graph(lia, reviewer)) { it != liaRag }
+        val inheritance =
+            resolveCodeWorkspaceInheritance(incident, listOf("lia"), graph(lia, reviewer)) { it != liaRag }
         assertTrue(inheritance.isEmpty())
     }
 

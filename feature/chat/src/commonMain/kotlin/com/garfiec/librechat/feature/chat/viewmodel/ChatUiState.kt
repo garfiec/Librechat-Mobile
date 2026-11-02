@@ -100,6 +100,8 @@ data class ChatUiState(
     val error: String? = null,
     // Model comparison state
     val comparisonState: ComparisonState = ComparisonState(),
+    /** The composer's attached-machine workspace row; written only by `CodeWorkspaceDelegate`. */
+    val codeWorkspace: CodeWorkspaceUiState = CodeWorkspaceUiState(),
     /**
      * Open-state for the full-screen zoomable media viewer (null = closed). Computed once on
      * tap by [ChatViewModel.openMedia] from a state snapshot, so the branch-media walk never

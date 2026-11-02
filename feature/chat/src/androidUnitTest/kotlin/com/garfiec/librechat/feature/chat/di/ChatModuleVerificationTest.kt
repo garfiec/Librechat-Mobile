@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
+import com.garfiec.librechat.core.data.datastore.CodeWorkspacePreferenceStore
 import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
@@ -11,6 +12,7 @@ import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.BackgroundTaskRepository
 import com.garfiec.librechat.core.data.repository.ChatRepository
+import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.DraftRepository
@@ -96,6 +98,8 @@ class ChatModuleVerificationTest {
                 MemoryRepository::class,
                 WebSearchReadinessRepository::class,
                 ConversationWebSearchStore::class,
+                CodeEnvironmentRepository::class,
+                CodeWorkspacePreferenceStore::class,
                 SkillsRepository::class,
                 UserRepository::class,
                 ConnectivityObserver::class,

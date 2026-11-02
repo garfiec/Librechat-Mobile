@@ -116,6 +116,8 @@ object CodeWorkspaceResolver {
 
     const val STATEFUL_CODE_SESSIONS = "stateful_code_sessions"
 
+    // A line-for-line port of web's hook, kept in one piece so it can be diffed against upstream.
+    @Suppress("CyclomaticComplexMethod", "LongMethod", "ComplexCondition")
     fun resolve(
         capabilities: Capabilities,
         chat: Chat,
