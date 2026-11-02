@@ -165,6 +165,11 @@
     <string name="subagent_threads_empty">This conversation has no subagent threads.</string>
     <string name="subagent_threads_unavailable">No subagent threads are available here.</string>
     <string name="subagent_threads_event_origin">Started by an event</string>
+    <string name="subagent_guidance_label">Guidance sent while it worked</string>
+    <plurals name="subagent_activity_dropped">
+        <item quantity="one">One activity update was left out while the live stream was unavailable. The finished transcript keeps it.</item>
+        <item quantity="other">%1$d activity updates were left out while the live stream was unavailable. The finished transcript keeps them.</item>
+    </plurals>
     <string name="subagent_threads_truncated">Some of this was too long to show in full.</string>
     <string name="subagent_threads_load_older">Load older</string>
     <string name="subagent_threads_older_unavailable">Older history is no longer available.</string>

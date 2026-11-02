@@ -355,6 +355,12 @@ sealed interface StreamEvent {
         val label: String? = null,
         /** The phase's content pre-mapped to a flat event, or null for lifecycle phases. */
         val inner: StreamEvent? = null,
+        /**
+         * Updates the host folded away before this one while the live stream was unavailable
+         * (`activityDroppedCount`, v0.8.9-rc1). The trace is short by that many; the persisted
+         * transcript is not.
+         */
+        val activityDroppedCount: Int? = null,
     ) : StreamEvent
 }
 

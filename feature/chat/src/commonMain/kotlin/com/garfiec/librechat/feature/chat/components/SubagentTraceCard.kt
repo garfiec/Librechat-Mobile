@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -44,8 +45,11 @@ import com.garfiec.librechat.feature.chat.resources.cd_collapse_subagent
 import com.garfiec.librechat.feature.chat.resources.cd_expand
 import com.garfiec.librechat.feature.chat.resources.cd_expand_subagent
 import com.garfiec.librechat.feature.chat.resources.label_subagent
+import com.garfiec.librechat.feature.chat.resources.subagent_activity_dropped
 import com.garfiec.librechat.feature.chat.resources.subagent_threads_open
+import com.garfiec.librechat.feature.chat.util.steerText
 import com.garfiec.librechat.feature.chat.viewmodel.SubagentTrace
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -163,6 +167,12 @@ internal fun SubagentTraceCard(
                 Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
                     parts.forEachIndexed { index, part ->
                         Spacer(modifier = Modifier.padding(top = 6.dp))
+                        // The shared dispatcher draws no steer; the parent reply's renderer claims
+                        // those itself, and in a child they are guidance, not the reader's words.
+                        if (part.type == ContentType.STEER) {
+                            part.steerText()?.let { SubagentGuidancePart(it) }
+                            return@forEachIndexed
+                        }
                         ContentPartDispatcher(
                             part = part,
                             baseUrl = baseUrl,
@@ -173,6 +183,15 @@ internal fun SubagentTraceCard(
                             allowSubagentCard = false,
                             // The caller hoists this subtree's files out — see the KDoc.
                             hideAttachments = true,
+                        )
+                    }
+                    val dropped = if (persistedParts == null) liveTrace?.droppedUpdates ?: 0 else 0
+                    if (dropped > 0) {
+                        Text(
+                            text = pluralStringResource(Res.plurals.subagent_activity_dropped, dropped, dropped),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 6.dp),
                         )
                     }
                     // The trace above is what the parent's run saw. The viewer adds what cannot

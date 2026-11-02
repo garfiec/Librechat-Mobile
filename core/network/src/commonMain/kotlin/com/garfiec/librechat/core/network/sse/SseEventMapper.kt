@@ -548,6 +548,7 @@ class SseEventMapper(private val json: Json) {
                 SubagentPhase.RUN_STEP -> mapRunStep(payload, agentId, groupId)
                 SubagentPhase.RUN_STEP_COMPLETED -> mapRunStepCompleted(payload, agentId, groupId)
                 SubagentPhase.RUN_STEP_CLOSED -> mapRunStepClosed(payload, agentId, groupId)
+                SubagentPhase.STEER_APPLIED -> mapSubagentSteer(payload)
                 else -> null // start / stop / error / run_step_delta carry no foldable content
             }
         }
@@ -559,6 +560,24 @@ class SseEventMapper(private val json: Json) {
             subagentAgentId = data["subagentAgentId"]?.jsonPrimitive?.contentOrNull,
             label = data["label"]?.jsonPrimitive?.contentOrNull,
             inner = inner,
+            activityDroppedCount = (data["activityDroppedCount"] as? JsonPrimitive)?.intOrNull?.takeIf { it > 0 },
+        )
+    }
+
+    /**
+     * A steer applied inside a child run. Host-authored guidance need not carry a `steerId`, which
+     * the parent's [mapSteerApplied] requires to retire a chip; here nothing is retired, so only
+     * the text is needed.
+     */
+    private fun mapSubagentSteer(data: JsonObject): StreamEvent? {
+        val part = data["part"] as? JsonObject ?: return null
+        val text = (part["steer"] as? JsonPrimitive)?.takeIf { it.isString }?.content?.takeIf { it.isNotBlank() }
+            ?: return null
+        return StreamEvent.SteerApplied(
+            steerId = (part["steerId"] as? JsonPrimitive)?.contentOrNull.orEmpty(),
+            index = (data["index"] as? JsonPrimitive)?.intOrNull,
+            text = text,
+            clientSteerId = (part["clientSteerId"] as? JsonPrimitive)?.contentOrNull,
         )
     }
 

@@ -39,4 +39,6 @@ data class SubagentTrace(
     val parts: List<MessageContentPart> = emptyList(),
     /** True once the server reports a terminal phase (`stop`/`error`). */
     val isComplete: Boolean = false,
+    /** Updates the host omitted while the live stream was unavailable (`activityDroppedCount`). */
+    val droppedUpdates: Int = 0,
 )

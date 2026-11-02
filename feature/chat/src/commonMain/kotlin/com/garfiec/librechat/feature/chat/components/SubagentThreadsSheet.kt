@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.ContentType
+import com.garfiec.librechat.feature.chat.util.steerText
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.subagent.SubagentOrigin
 import com.garfiec.librechat.core.model.subagent.SubagentSummary
@@ -265,6 +266,9 @@ private fun ThreadBody(
         ) { (key, part) ->
             if (part.type == ContentType.ACTIVITY_LABEL) {
                 OrphanActivityLabel(part.activityLabel.orEmpty())
+            } else if (part.type == ContentType.STEER) {
+                // The dispatcher draws no steer, so without this branch the guidance vanishes.
+                part.steerText()?.let { SubagentGuidancePart(it) }
             } else {
                 ContentPartDispatcher(
                     part = part,
@@ -312,6 +316,7 @@ private fun List<MessageContentPart>.withStableKeys(): List<KeyedThreadPart> {
             ?: part.activityLabel?.takeIf { it.isNotEmpty() }
             ?: part.text?.takeIf { it.isNotEmpty() }
             ?: part.think?.takeIf { it.isNotEmpty() }
+            ?: part.steerText()
             ?: part.toolCall?.name?.takeIf { it.isNotEmpty() }
             ?: ""
         val base = "${part.type}:${identity.hashCode()}"

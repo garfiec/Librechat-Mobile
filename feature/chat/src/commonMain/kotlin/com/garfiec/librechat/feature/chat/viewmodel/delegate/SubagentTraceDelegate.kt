@@ -11,6 +11,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.SubagentHandle
 import com.garfiec.librechat.feature.chat.viewmodel.SubagentTrace
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
 
 /**
  * Folds live `on_subagent_update` SSE envelopes (v0.8.6 subagents) into a
@@ -127,6 +128,7 @@ class SubagentTraceDelegate(
                         phase = event.phase,
                         parts = nextParts,
                         isComplete = isTerminal,
+                        droppedUpdates = current.droppedUpdates + (event.activityDroppedCount ?: 0),
                     )
                     ),
             )
@@ -156,6 +158,10 @@ class SubagentTraceDelegate(
             is StreamEvent.ToolCallComplete ->
                 completeToolCall(parts, inner.toolCallId, inner.output, inner.inputValidationError)
             is StreamEvent.ToolCallClosed -> closeToolCall(parts, inner.toolCallId, inner.status)
+            // Guidance the parent (or the user) sent the child mid-run, in the order it went in.
+            is StreamEvent.SteerApplied -> inner.text?.let {
+                capParts(parts + MessageContentPart(type = ContentType.STEER, steer = JsonPrimitive(it)))
+            } ?: parts
             else -> parts // start/stop/error/run_step_delta carry no foldable content
         }
     }

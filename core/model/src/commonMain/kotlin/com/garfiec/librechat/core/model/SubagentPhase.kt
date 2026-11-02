@@ -18,6 +18,9 @@ object SubagentPhase {
     const val STOP = "stop"
     const val ERROR = "error"
 
+    /** v0.8.9-rc1: guidance (a steer) entered the child run; `data` is `{index, part}` with a `steer` part. */
+    const val STEER_APPLIED = "steer_applied"
+
     /** Phases after which the child run is done and folding should stop. */
     val TERMINAL = setOf(STOP, ERROR)
 

@@ -70,4 +70,23 @@ class SseToolPreparationMapperTest {
         assertThat(map("""{"event":"on_tool_preparation","data":{"index":0}}""")).isNull()
         assertThat(map("""{"event":"on_tool_calls_dispatched","data":{"toolCalls":[]}}""")).isNull()
     }
+
+    @Test
+    fun `a child's applied guidance maps to an inner steer, with or without a steer id`() {
+        val update = map(
+            """{"event":"on_subagent_update","data":{"runId":"r1","subagentRunId":"sr1","parentToolCallId":"call_42","subagentType":"researcher","subagentAgentId":"agent_x","phase":"steer_applied","activityDroppedCount":3,"data":{"index":4,"part":{"type":"steer","steer":"Focus on 2025","createdAt":1}}}}""",
+        ) as StreamEvent.SubagentUpdate
+        val steer = update.inner as StreamEvent.SteerApplied
+        assertThat(steer.text).isEqualTo("Focus on 2025")
+        assertThat(steer.index).isEqualTo(4)
+        assertThat(update.activityDroppedCount).isEqualTo(3)
+    }
+
+    @Test
+    fun `a zero or absent dropped count reads as none`() {
+        val update = map(
+            """{"event":"on_subagent_update","data":{"subagentRunId":"sr1","phase":"start","activityDroppedCount":0}}""",
+        ) as StreamEvent.SubagentUpdate
+        assertThat(update.activityDroppedCount).isNull()
+    }
 }
