@@ -194,6 +194,12 @@ data class AgentEditorUiState(
      * known to carry the check, so an older server keeps every key it stored. See VERSION_GATES.md.
      */
     val filtersInferenceParameters: Boolean = false,
+    /**
+     * The loaded agent's instructions come from a linked prompt group (v0.8.9-rc1+). The field is
+     * then read-only here: mobile cannot change the link, and editing the text would change
+     * nothing the agent runs.
+     */
+    val instructionsLinkedToPrompt: Boolean = false,
     /** Each endpoint's `customParams` as the agent inference filter reads it, keyed by endpoint name. */
     val inferenceEndpoints: Map<String, AgentInferenceEndpoint> = emptyMap(),
     // Skills (v0.8.6) — agent-editor skills selector.

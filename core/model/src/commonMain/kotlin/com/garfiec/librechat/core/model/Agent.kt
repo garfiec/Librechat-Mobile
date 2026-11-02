@@ -87,6 +87,13 @@ data class Agent(
      */
     @SerialName("additional_instructions") val additionalInstructions: String? = null,
     /**
+     * The prompt group whose text the agent runs as its instructions (v0.8.9-rc1):
+     * `{ source: "native", groupId, selection }`, or `{ source, restricted: true }` for an editor
+     * without VIEW on the group. Raw: mobile only reads whether a link exists, and never sends the
+     * field, which leaves the link as it is (the update route reads absent as "no change").
+     */
+    val instructionsPrompt: JsonElement? = null,
+    /**
      * Runtime-supplied per-tool kwargs. The upstream Mongoose schema
      * (`packages/data-schemas/src/schema/agent.ts:47-49`) declares this as
      * `[{ type: Mixed }]` (an array of mixed values), so consumers must

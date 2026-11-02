@@ -192,10 +192,14 @@ internal fun AgentEditorForm(
         Spacer(modifier = Modifier.height(12.dp))
 
         // 5. Instructions field (multi-line) + Insert-variable menu
-        InstructionsField(
-            value = uiState.instructions,
-            onValueChange = viewModel::onInstructionsChanged,
-        )
+        if (uiState.instructionsLinkedToPrompt) {
+            LinkedInstructionsNote()
+        } else {
+            InstructionsField(
+                value = uiState.instructions,
+                onValueChange = viewModel::onInstructionsChanged,
+            )
+        }
 
         Spacer(modifier = Modifier.height(12.dp))
 

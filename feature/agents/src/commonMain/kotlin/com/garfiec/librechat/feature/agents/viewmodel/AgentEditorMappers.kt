@@ -167,6 +167,7 @@ internal fun AgentEditorUiState.applyAgentData(agent: Agent): AgentEditorUiState
         name = agent.name ?: "",
         description = agent.description ?: "",
         instructions = agent.instructions ?: "",
+        instructionsLinkedToPrompt = agent.instructionsPrompt.isPromptLink(),
         model = agent.model ?: "",
         provider = agent.provider ?: "",
         category = agent.category ?: "general",
@@ -488,3 +489,6 @@ private fun Agent.parseSupportContact(): SupportContactState {
         SupportContactState()
     }
 }
+
+/** Whether `instructionsPrompt` holds a link (an object), not absent or `null` (link removed). */
+internal fun JsonElement?.isPromptLink(): Boolean = this is JsonObject

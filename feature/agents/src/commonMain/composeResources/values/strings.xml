@@ -79,6 +79,7 @@
     <string name="agent_description_label">Description</string>
     <string name="agent_description_placeholder">Optional: Describe your Agent here</string>
     <string name="agent_instructions_label">Instructions</string>
+    <string name="agent_instructions_linked_prompt">This agent uses a saved prompt as its instructions. Change or unlink it on the web; edits here would not change what the agent runs.</string>
     <string name="agent_instructions_placeholder">The system instructions that the agent uses</string>
     <string name="insert_variable">Insert variable</string>
     <string name="cd_insert_variable">Insert variable</string>
