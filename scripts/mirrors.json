@@ -1386,7 +1386,7 @@
         "file": "feature/conversations/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/drawer/DrawerViewModel.kt",
         "symbol": "displayConversations"
       },
-      "why": "Which sidebar lists get a Running group is decided at the call site, not in running.ts: upstream passes includePinned: isArchivedView, so the archive keeps its server order while search results (pinned matches included) are still promoted. DrawerViewModel applies withRunningFirst to the grouped list in both the recency and search states. The running-chats-group entry watches only the helper, so a change to these options would read as ok there.",
+      "why": "Which sidebar lists get a Running group is decided at the call site, not in running.ts: upstream passes includePinned: isArchivedView, so the archive keeps its server order while search results (pinned matches included) are still promoted. DrawerViewModel applies withRunningFirst to the grouped list in both the recency and search states, and passes the unlisted running rows only while nothing narrows the list (no query, no filters), as upstream gates them on isUnnarrowed. The running-chats-group entry watches only the helper, so a change to these options would read as ok there.",
       "failure_mode": "The drawer promotes running chats in a list the web no longer does (or stops where the web still does), e.g. during search. Nothing errors."
     },
     {
@@ -4881,6 +4881,19 @@
       },
       "why": "The endpoint-filter bounds the list route applies when a server does not publish conversationListLimits. The filter sheet stops a selection at them.",
       "failure_mode": "The sheet lets the user pick more endpoints than the route accepts and the filtered list fails with a 400, or stops them short of what the server would take."
+    },
+    {
+      "id": "conversation-list-facets",
+      "upstream": {
+        "file": "client/src/components/Conversations/facets.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/conversations/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/drawer/DrawerFilters.kt",
+        "symbol": "FilterDateRange / rangeCutoff / selectableEndpoints"
+      },
+      "why": "The web's list-filter windows (Any time, Today, Previous 7/30 days, Previous year as 1/7/30/365 whole days back from local midnight) and which endpoints the filter offers (served names within maxEndpointNameLength, plus any still selected). The drawer's filter sheet copies them.",
+      "failure_mode": "The same filter lists different chats on the phone and the web, or the sheet offers an endpoint name the route refuses with a 400. Nothing fails to decode."
     }
   ]
 }

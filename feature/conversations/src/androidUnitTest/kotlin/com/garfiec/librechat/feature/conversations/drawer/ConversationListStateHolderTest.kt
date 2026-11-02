@@ -3,7 +3,10 @@ package com.garfiec.librechat.feature.conversations.drawer
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.model.Conversation
+import com.garfiec.librechat.core.model.ConversationListFilters
+import com.garfiec.librechat.core.model.ConversationPage
 import com.google.common.truth.Truth.assertThat
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
@@ -227,5 +230,83 @@ class ConversationListStateHolderTest {
         advanceUntilIdle()
 
         assertThat(asked).isEqualTo(0)
+    }
+
+    @Test
+    fun `filters page from the server and leave the cached list alone`() = runTest {
+        val roomFlow = MutableStateFlow<Result<List<Conversation>>>(Result.Success(convos))
+        every { conversationRepository.observeConversations(any()) } returns roomFlow
+        val filters = ConversationListFilters(hasFiles = true)
+        val server = Conversation(
+            conversationId = "f1",
+            title = "Has a PDF",
+            updatedAt = Instant.parse("2026-02-18T10:00:00.000Z"),
+        )
+        coEvery { conversationRepository.getConversationsFiltered(filters, null, null, any()) } returns
+            Result.Success(ConversationPage(listOf(server, convos[1]), nextCursor = null))
+        val holder = ConversationListStateHolder(conversationRepository, scope, dayBoundaries = emptyFlow())
+        advanceUntilIdle()
+
+        holder.setFilters(filters)
+        advanceUntilIdle()
+        assertThat(visibleIds(holder)).containsExactly("c2", "f1")
+        assertThat(holder.hasMore.value).isFalse()
+
+        // A delete reaches the filtered list through Room; a row Room never held stays.
+        roomFlow.value = Result.Success(convos.filter { it.conversationId == "c1" })
+        advanceUntilIdle()
+        assertThat(visibleIds(holder)).containsExactly("f1")
+
+        holder.setFilters(null)
+        advanceUntilIdle()
+        assertThat(visibleIds(holder)).containsExactly("c1")
+    }
+
+    @Test
+    fun `a failed filtered load says so instead of reading as no matches`() = runTest {
+        every { conversationRepository.observeConversations(any()) } returns MutableStateFlow(Result.Success(convos))
+        val filters = ConversationListFilters(sharedOnly = true)
+        coEvery { conversationRepository.getConversationsFiltered(filters, null, null, any()) } returns
+            Result.Error(IllegalStateException("400"))
+        val holder = ConversationListStateHolder(conversationRepository, scope, dayBoundaries = emptyFlow())
+        advanceUntilIdle()
+
+        holder.setFilters(filters)
+        advanceUntilIdle()
+
+        assertThat(visibleIds(holder)).isEmpty()
+        assertThat(holder.filterLoadFailed.value).isTrue()
+        assertThat(holder.isRefreshing.value).isFalse()
+    }
+
+    @Test
+    fun `a query over a filtered list searches the server with the same filters`() = runTest {
+        every { conversationRepository.observeConversations(any()) } returns MutableStateFlow(Result.Success(convos))
+        val filters = ConversationListFilters(endpoints = listOf("openAI"))
+        coEvery { conversationRepository.getConversationsFiltered(filters, null, null, any()) } returns
+            Result.Success(ConversationPage(listOf(convos[0]), nextCursor = null))
+        val remote = Conversation(
+            conversationId = "r1",
+            title = "Alpha far back",
+            updatedAt = Instant.parse("2025-01-01T10:00:00.000Z"),
+        )
+        coEvery { conversationRepository.getConversationsFiltered(filters, null, "Alpha", any()) } returns
+            Result.Success(ConversationPage(listOf(remote), nextCursor = null))
+        var unfilteredAsked = 0
+        val holder = ConversationListStateHolder(
+            conversationRepository,
+            scope,
+            dayBoundaries = emptyFlow(),
+            remoteTitleSearch = { unfilteredAsked++; emptyList() },
+        )
+        advanceUntilIdle()
+        holder.setFilters(filters)
+        advanceUntilIdle()
+
+        holder.onSearchQueryChanged("Alpha")
+        advanceUntilIdle()
+
+        assertThat(visibleIds(holder)).containsExactly("c1", "r1")
+        assertThat(unfilteredAsked).isEqualTo(0)
     }
 }

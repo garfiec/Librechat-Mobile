@@ -8,6 +8,7 @@ import com.garfiec.librechat.core.model.ConversationPage
 import kotlinx.coroutines.flow.Flow
 import kotlin.time.Instant
 
+@Suppress("TooManyFunctions") // debt: 22 functions
 interface ConversationRepository {
     fun observeConversations(isArchived: Boolean = false): Flow<Result<List<Conversation>>>
     suspend fun loadNextPage(

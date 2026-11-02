@@ -34,6 +34,8 @@ data class DrawerConversationDisplayData(
      * Null when the endpoint's configured icon is an image, as on web.
      */
     val iconProvider: ProviderId? = null,
+    /** A reply the user has not seen (v0.8.9-rc1); never on a running row. */
+    val isUnread: Boolean = false,
 )
 
 /**
@@ -109,7 +111,20 @@ data class DrawerUiState(
     val projectsEnabled: Boolean = false,
     /** Message hits for the current query; [DrawerMessageSearch.Idle] while not searching. */
     val messageSearch: DrawerMessageSearch = DrawerMessageSearch.Idle,
+    /** Version-gated (v0.8.9-rc1): the menu's "Mark as unread" / "Mark as read". */
+    val readStateEnabled: Boolean = false,
+    /** Version-gated (v0.8.9-rc1): the search field's filter button and the filter sheet. */
+    val filtersEnabled: Boolean = false,
+    /** The applied list filters. */
+    val filters: DrawerFilters = DrawerFilters.None,
+    /** The filtered list failed to load, so an empty one is not "nothing matches". */
+    val filterLoadFailed: Boolean = false,
+    /** What the filter sheet offers. */
+    val filterOptions: DrawerFilterOptions = DrawerFilterOptions(),
 ) {
+    /** Filters narrow the list only where the server takes them. */
+    val filtersApplied: Boolean get() = filtersEnabled && filters.isActive
+
     /**
      * The Agents entry (phone drawer and tablet sidebar): AGENTS.USE and MARKETPLACE.USE, as the web
      * app hides its marketplace. It is also the app's only way to the agent editor, so a role without
@@ -154,3 +169,25 @@ data class DrawerMessageSearch(
         val Idle = DrawerMessageSearch()
     }
 }
+
+/** One endpoint the filter sheet offers, already labelled. */
+@Immutable
+data class FilterEndpointOption(
+    val name: String,
+    val label: String,
+    val iconUrl: String?,
+)
+
+/** What the filter sheet can offer, mapped from config, role and connectivity. */
+@Immutable
+data class DrawerFilterOptions(
+    val endpoints: List<FilterEndpointOption> = emptyList(),
+    /** `conversationListLimits.maxEndpointFilters`, or upstream's default. */
+    val maxEndpoints: Int = com.garfiec.librechat.core.model.config.ConversationListLimits.DEFAULT_MAX_ENDPOINT_FILTERS,
+    /** Shared links are enabled on the server. */
+    val sharedOnlyAvailable: Boolean = false,
+    /** Bookmarks are on for this role and server. */
+    val bookmarksAvailable: Boolean = false,
+    /** Applying asks the server, so it waits for a connection. */
+    val isOnline: Boolean = true,
+)

@@ -66,6 +66,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddComment
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.OpenInFull
@@ -114,12 +115,15 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
@@ -164,6 +168,7 @@ import com.garfiec.librechat.feature.conversations.components.ProjectEditorSheet
 import com.garfiec.librechat.feature.conversations.components.ProjectMenuButton
 import com.garfiec.librechat.feature.conversations.components.ProjectPicker
 import com.garfiec.librechat.feature.conversations.components.ProjectTile
+import com.garfiec.librechat.feature.conversations.components.ReadStateAction
 import com.garfiec.librechat.feature.conversations.components.ShareLinkSheetHost
 import com.garfiec.librechat.feature.conversations.components.excludedFromReorder
 import com.garfiec.librechat.feature.conversations.components.lazyReorder
@@ -176,8 +181,13 @@ import com.garfiec.librechat.feature.conversations.resources.cd_close_search
 import com.garfiec.librechat.feature.conversations.resources.cd_collapse_section
 import com.garfiec.librechat.feature.conversations.resources.cd_conversation_actions
 import com.garfiec.librechat.feature.conversations.resources.cd_expand_section
+import com.garfiec.librechat.feature.conversations.resources.cd_filter_chats
 import com.garfiec.librechat.feature.conversations.resources.cd_open_search
 import com.garfiec.librechat.feature.conversations.resources.cd_search
+import com.garfiec.librechat.feature.conversations.resources.cd_unread_reply
+import com.garfiec.librechat.feature.conversations.resources.drawer_filter_messages_note
+import com.garfiec.librechat.feature.conversations.resources.drawer_filters_on
+import com.garfiec.librechat.feature.conversations.resources.drawer_finished_chats
 import com.garfiec.librechat.feature.conversations.resources.drawer_running_chats
 import com.garfiec.librechat.feature.conversations.resources.favorite
 import com.garfiec.librechat.feature.conversations.resources.favorites
@@ -406,6 +416,9 @@ fun DrawerContent(
         onDuplicate = { id, title -> viewModel.duplicateConversation(id, title) },
         onOpenBookmarks = { data -> viewModel.openBookmarks(data.conversationId) },
         onExportFormat = { data, format -> viewModel.exportConversation(data.conversationId, data.title, format) },
+        onMarkRead = viewModel::markRead,
+        onMarkUnread = viewModel::markUnread,
+        onFiltersChange = viewModel::setFilters,
         modifier = modifier,
         isOpen = isOpen,
     )
@@ -502,7 +515,13 @@ fun DrawerContent(
     viewMemory: DrawerViewMemory = remember { DrawerViewMemory() },
     /** Whether the drawer is showing; closing it drops the search field's focus and keyboard. */
     isOpen: Boolean = true,
+    /** The menu's "Mark as read" / "Mark as unread" (v0.8.9-rc1). */
+    onMarkRead: (String) -> Unit = {},
+    onMarkUnread: (String) -> Unit = {},
+    /** The filter sheet's Apply, a chip's x, or Clear filters: the filters to apply now. */
+    onFiltersChange: (DrawerFilters) -> Unit = {},
 ) {
+    var showFilterSheet by rememberSaveable { mutableStateOf(false) }
     // Which row's long-press action menu is currently open (null = none). Keyed by the row's
     // LazyColumn key, not the conversation id: a favorited conversation appears in BOTH the
     // favorites section and its date group, so an id-keyed menu would open in both rows at once.
@@ -675,6 +694,12 @@ fun DrawerContent(
                                     if (openSearchAndReset != null && query.isNotEmpty()) openSearchAndReset(query)
                                 },
                                 onOpenInSearch = openSearchAndReset?.let { open -> { open(searchFieldText.trim()) } },
+                                onOpenFilters = if (uiState.filtersEnabled) {
+                                    { showFilterSheet = true }
+                                } else {
+                                    null
+                                },
+                                filtersOn = uiState.filtersApplied,
                                 focusRequester = searchFocusRequester,
                                 onFocusChange = { searchFocused = it },
                                 // In glass the glyph takes the +'s place, so it starts where the + does.
@@ -755,6 +780,18 @@ fun DrawerContent(
                     }
                 }
             }
+        }
+
+        // The applied filters, under New Chat whether search is open or not, so a narrowed list is
+        // always labelled.
+        AnimatedVisibility(visible = uiState.filtersApplied) {
+            DrawerFilterChipRow(
+                filters = uiState.filters,
+                options = uiState.filterOptions,
+                onChange = onFiltersChange,
+                onOpenSheet = { showFilterSheet = true },
+                modifier = Modifier.padding(top = 8.dp),
+            )
         }
 
         // Pinned under the slot, outside the list: the bottom "See all" link sits past every title and
@@ -844,6 +881,19 @@ fun DrawerContent(
                                 projectPickerTarget = data
                             },
                             showShareAction = uiState.sharedLinksEnabled,
+                            readStateAction = when {
+                                !uiState.readStateEnabled -> null
+                                data.isUnread -> ReadStateAction.MarkRead
+                                // Not on the chat that is open: reading it would clear the mark at once.
+                                data.isActive -> null
+                                else -> ReadStateAction.MarkUnread
+                            },
+                            onReadStateAction = { action ->
+                                when (action) {
+                                    ReadStateAction.MarkRead -> onMarkRead(data.conversationId)
+                                    ReadStateAction.MarkUnread -> onMarkUnread(data.conversationId)
+                                }
+                            },
                             onFavoriteToggle = { onToggleFavorite(data) },
                             onRenameRequest = { renameTarget = data },
                             onArchive = { onArchive(data.conversationId) },
@@ -888,7 +938,8 @@ fun DrawerContent(
                 // their canonical home: when shown, they're filtered out of the date-grouped buckets
                 // (see ConversationListStateHolder.withoutPinned) so they don't appear twice. The
                 // section is hidden during search, where pinned rows instead surface in the results.
-                if (uiState.pinnedConversations.isNotEmpty() && uiState.searchQuery.isEmpty()) {
+                // Hidden while filters are on too: the filtered list holds the pinned chats that match.
+                if (uiState.pinnedConversations.isNotEmpty() && uiState.searchQuery.isEmpty() && !uiState.filtersApplied) {
                     item(key = "pinned_header") {
                         SectionHeader(
                             icon = Icons.Default.PushPin,
@@ -916,7 +967,9 @@ fun DrawerContent(
                 // any locally-cached favorites from a prior permissive session don't leak.
                 // The header collapses the whole section; when expanded, only the top
                 // [FavoritesPreviewCount] show until "Show more" reveals the rest.
-                if (uiState.bookmarksEnabled && uiState.favoriteConversations.isNotEmpty() && uiState.searchQuery.isEmpty()) {
+                if (uiState.bookmarksEnabled && uiState.favoriteConversations.isNotEmpty() && uiState.searchQuery.isEmpty() &&
+                    !uiState.filtersApplied
+                ) {
                     val favorites = uiState.favoriteConversations
                     drawerHeader(glass, key = "favorites_header") {
                         Box(
@@ -1004,15 +1057,17 @@ fun DrawerContent(
                         moreChatsLink(titleHits.size - TITLE_HIT_PREVIEW, openSearch)
                     }
                 } else {
+                    if (uiState.filtersApplied && uiState.groupedConversations.isEmpty() && !uiState.isRefreshing) {
+                        item(key = "filter_empty") {
+                            FilterEmptyState(
+                                loadFailed = uiState.filterLoadFailed,
+                                onClear = { onFiltersChange(DrawerFilters.None) },
+                            )
+                        }
+                    }
                     uiState.groupedConversations.forEach { (group, displayItems) ->
                         drawerHeader(glass, key = "header_${group.key}") {
-                            Text(
-                                text = when (group) {
-                                    DrawerGroupKey.Running -> stringResource(Res.string.drawer_running_chats)
-                                    is DrawerGroupKey.Date -> group.group.resolve()
-                                },
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .background(if (glass) Color.Transparent else MaterialTheme.colorScheme.surfaceContainerLow)
@@ -1022,7 +1077,30 @@ fun DrawerContent(
                                         top = 12.dp,
                                         bottom = 4.dp,
                                     ),
-                            )
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Text(
+                                    text = when (group) {
+                                        DrawerGroupKey.Running -> stringResource(Res.string.drawer_running_chats)
+                                        DrawerGroupKey.Finished -> stringResource(Res.string.drawer_finished_chats)
+                                        is DrawerGroupKey.Date -> group.group.resolve()
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (group == DrawerGroupKey.Finished) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                )
+                                // Status groups count their rows, as on web.
+                                if (group.isStatus) {
+                                    Text(
+                                        text = displayItems.size.toString(),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.outline,
+                                    )
+                                }
+                            }
                         }
 
                         items(
@@ -1036,6 +1114,17 @@ fun DrawerContent(
                 }
 
                 if (searching) {
+                    if (uiState.filtersApplied) {
+                        // Message hits come from the on-device index, which the filters don't reach.
+                        item(key = "filters_messages_note") {
+                            Text(
+                                text = stringResource(Res.string.drawer_filter_messages_note),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp),
+                            )
+                        }
+                    }
                     messageResultsSection(
                         search = uiState.messageSearch,
                         onHitClick = onMessageHitClick,
@@ -1139,6 +1228,18 @@ fun DrawerContent(
         )
     }
 
+    if (showFilterSheet) {
+        DrawerFilterSheet(
+            current = uiState.filters,
+            options = uiState.filterOptions,
+            onApply = { filters ->
+                showFilterSheet = false
+                onFiltersChange(filters)
+            },
+            onDismiss = { showFilterSheet = false },
+        )
+    }
+
     projectPickerTarget?.let { target ->
         ProjectPicker(
             projects = projects,
@@ -1202,6 +1303,9 @@ private fun DrawerSearchField(
     focusRequester: FocusRequester,
     onFocusChange: (Boolean) -> Unit,
     startPadding: Dp,
+    /** Opens the filter sheet; null hides the button (a server without list filters). */
+    onOpenFilters: (() -> Unit)?,
+    filtersOn: Boolean,
     glyph: @Composable () -> Unit,
 ) {
     val hint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1248,6 +1352,32 @@ private fun DrawerSearchField(
                 .focusRequester(focusRequester)
                 .onFocusChanged { onFocusChange(it.isFocused) },
         )
+        if (onOpenFilters != null) {
+            val filtersOnLabel = stringResource(Res.string.drawer_filters_on)
+            IconButton(
+                onClick = onOpenFilters,
+                modifier = Modifier
+                    .size(36.dp)
+                    .semantics { if (filtersOn) stateDescription = filtersOnLabel },
+            ) {
+                Box {
+                    Icon(
+                        imageVector = Icons.Default.FilterList,
+                        contentDescription = stringResource(Res.string.cd_filter_chats),
+                        tint = if (filtersOn) MaterialTheme.colorScheme.primary else hint,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    if (filtersOn) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .size(6.dp)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        )
+                    }
+                }
+            }
+        }
         if (onOpenInSearch != null) {
             IconButton(onClick = onOpenInSearch, modifier = Modifier.size(36.dp)) {
                 Icon(
@@ -1691,17 +1821,20 @@ private fun DrawerConversationItem(
                     tint = MaterialTheme.colorScheme.primary,
                 )
             } else {
-                EndpointIcon(
-                    endpointName = data.iconEndpoint,
-                    iconUrl = data.endpointIconUrl,
-                    provider = data.iconProvider,
-                    size = 18.dp,
-                    glyphTint = if (data.isActive) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                )
+                Box {
+                    EndpointIcon(
+                        endpointName = data.iconEndpoint,
+                        iconUrl = data.endpointIconUrl,
+                        provider = data.iconProvider,
+                        size = 18.dp,
+                        glyphTint = if (data.isActive) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
+                    if (data.isUnread) UnreadDot(Modifier.align(Alignment.BottomEnd).offset(x = 3.dp, y = 3.dp))
+                }
             }
 
             Spacer(modifier = Modifier.width(10.dp))
@@ -1718,6 +1851,7 @@ private fun DrawerConversationItem(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (data.isUnread) FontWeight.SemiBold else null,
                     color = if (data.isActive) {
                         if (glass) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSecondaryContainer
                     } else {
@@ -1788,6 +1922,20 @@ private fun DrawerConversationItem(
         // clamps it within a margin, so it never clips off-screen.
         menuContent(with(density) { DpOffset(x = pressXpx.toDp(), y = MenuVerticalGap) }, menuDrag)
     }
+}
+
+/** The unread-reply dot on the row icon's corner, ringed in the drawer's surface so it reads on any glyph. */
+@Composable
+private fun UnreadDot(modifier: Modifier = Modifier) {
+    val description = stringResource(Res.string.cd_unread_reply)
+    Box(
+        modifier = modifier
+            .size(10.dp)
+            .background(if (isLiquidGlass) Color.Transparent else MaterialTheme.colorScheme.surfaceContainerLow, CircleShape)
+            .padding(2.dp)
+            .background(MaterialTheme.colorScheme.primary, CircleShape)
+            .semantics { contentDescription = description },
+    )
 }
 
 /**

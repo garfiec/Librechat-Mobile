@@ -1,9 +1,11 @@
 package com.garfiec.librechat.feature.conversations.drawer
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
+import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.DrawerPinsStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
@@ -64,6 +66,8 @@ class DrawerProjectReorderTest {
         ),
         chatRepository = mockk(relaxed = true),
         search = mockk(relaxed = true),
+        connectivityObserver = mockk<ConnectivityObserver> { every { isConnected } returns flowOf(true) },
+        savedStateHandle = SavedStateHandle(),
     )
 
     @Before

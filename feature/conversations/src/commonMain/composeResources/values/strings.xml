@@ -289,4 +289,37 @@
     <string name="workspace_pin">Pin %1$s to the drawer</string>
     <string name="workspace_unpin">Unpin %1$s from the drawer</string>
     <string name="workspace_reorder">Drag to reorder</string>
+    <!-- Unread replies (v0.8.9-rc1) -->
+    <string name="drawer_finished_chats">Finished</string>
+    <string name="mark_as_unread">Mark as unread</string>
+    <string name="mark_as_read">Mark as read</string>
+    <string name="mark_read_failed">Couldn't mark the chat as read</string>
+    <string name="mark_unread_failed">Couldn't mark the chat as unread</string>
+    <string name="cd_unread_reply">Unread reply</string>
+    <!-- Drawer list filters (v0.8.9-rc1) -->
+    <string name="cd_filter_chats">Filter chats</string>
+    <string name="drawer_filters_on">Filters on</string>
+    <string name="drawer_filter_title">Filter chats</string>
+    <string name="drawer_filter_updated">Updated</string>
+    <string name="drawer_filter_created">Created</string>
+    <string name="drawer_filter_any_time">Any time</string>
+    <string name="drawer_filter_today">Today</string>
+    <string name="drawer_filter_previous_7_days">Previous 7 days</string>
+    <string name="drawer_filter_previous_30_days">Previous 30 days</string>
+    <string name="drawer_filter_previous_year">Previous year</string>
+    <string name="drawer_filter_created_chip">Created: %1$s</string>
+    <string name="drawer_filter_endpoint">Endpoint</string>
+    <string name="drawer_filter_endpoint_limit">Endpoint limit reached (%1$d)</string>
+    <string name="drawer_filter_has_attachments">Has attachments</string>
+    <string name="drawer_filter_shared_only">Shared only</string>
+    <string name="drawer_filter_bookmarks">Bookmarks</string>
+    <string name="drawer_filter_reset">Reset</string>
+    <string name="drawer_filter_apply">Apply</string>
+    <string name="drawer_filter_offline">You're offline. Filters need the server, so they apply once you're back online.</string>
+    <string name="drawer_filter_no_match_title">No chats match your filters</string>
+    <string name="drawer_filter_no_match_body">Try a longer date range or fewer filters.</string>
+    <string name="drawer_filter_clear">Clear filters</string>
+    <string name="drawer_filter_load_failed">Couldn't load the filtered chats. Pull down to try again.</string>
+    <string name="drawer_filter_messages_note">Message results aren't filtered.</string>
+    <string name="cd_remove_named_filter">Remove filter %1$s</string>
 </resources>

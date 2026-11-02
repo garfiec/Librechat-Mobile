@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.config.labelFor
 import com.garfiec.librechat.core.model.iconEndpoint
 import com.garfiec.librechat.core.model.iconProvider
+import com.garfiec.librechat.core.model.isUnseen
 import com.garfiec.librechat.core.model.resolveEndpointIconUrl
 
 /**
@@ -27,6 +28,7 @@ internal fun Conversation.toDrawerDisplayData(
     endpointConfigs: Map<String, EndpointConfig>,
     serverUrl: String,
     modelSpecs: ModelSpecs? = null,
+    runningIds: Set<String> = emptySet(),
 ): DrawerConversationDisplayData {
     val convId = conversationId ?: ""
     return DrawerConversationDisplayData(
@@ -44,5 +46,7 @@ internal fun Conversation.toDrawerDisplayData(
         endpointIconUrl = resolveEndpointIconUrl(endpointConfigs, serverUrl),
         iconEndpoint = iconEndpoint(endpointConfigs),
         iconProvider = iconProvider(endpointConfigs),
+        // As on web, a running row shows no dot: its reply isn't finished yet.
+        isUnread = isUnseen && convId !in runningIds,
     )
 }

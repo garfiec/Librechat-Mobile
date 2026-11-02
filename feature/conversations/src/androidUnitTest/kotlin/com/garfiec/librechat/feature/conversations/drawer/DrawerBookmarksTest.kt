@@ -1,9 +1,11 @@
 package com.garfiec.librechat.feature.conversations.drawer
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.AccountState
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
+import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.bookmarks.BookmarkPickerFailure
 import com.garfiec.librechat.core.data.datastore.DrawerPinsStore
@@ -89,6 +91,8 @@ class DrawerBookmarksTest {
         search = mockk<DrawerSearchSources>(relaxed = true) {
             every { messageSearch(any(), any()) } returns flowOf(DrawerMessageSearch.Idle)
         },
+        connectivityObserver = mockk<ConnectivityObserver> { every { isConnected } returns flowOf(true) },
+        savedStateHandle = SavedStateHandle(),
     )
 
     @Before
