@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.data.repository
 
 import com.garfiec.librechat.core.model.FileReference
+import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.request.ChatRequest
 import com.garfiec.librechat.core.model.request.EditedContent
@@ -49,6 +50,7 @@ object ChatPayloadBuilder {
         chatProjectId: String? = null,
         manualSkills: List<String>? = null,
         editedContent: EditedContent? = null,
+        reasoningOverride: ReasoningOverride? = null,
     ): ChatRequest {
         // v0.8.9-rc1 400s (`INVALID_MESSAGE_ID`) any turn id that is present but not 1-256 chars of
         // `[A-Za-z0-9_:.-]`, and an empty string counts as present. Older servers read a blank id as
@@ -107,6 +109,8 @@ object ChatPayloadBuilder {
             clientRequestId = Uuid.random().toString(),
             chatProjectId = chatProjectId,
             editedContent = if (compact == true) null else editedContent,
+            // A compaction runs no model turn, so it carries no reasoning choice.
+            reasoningOverride = if (compact == true) null else reasoningOverride,
         )
     }
 

@@ -58,8 +58,6 @@ import com.garfiec.librechat.core.data.repository.DraftRepository
 import com.garfiec.librechat.core.data.repository.DraftRepositoryImpl
 import com.garfiec.librechat.core.data.repository.EndpointTokenRepository
 import com.garfiec.librechat.core.data.repository.EndpointTokenRepositoryImpl
-import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
-import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepositoryImpl
 import com.garfiec.librechat.core.data.repository.FavoritesRepository
 import com.garfiec.librechat.core.data.repository.FavoritesRepositoryImpl
 import com.garfiec.librechat.core.data.repository.FileRepository
@@ -84,6 +82,8 @@ import com.garfiec.librechat.core.data.repository.PromptRepository
 import com.garfiec.librechat.core.data.repository.PromptRepositoryImpl
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepositoryImpl
+import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
+import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepositoryImpl
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.RoleRepositoryImpl

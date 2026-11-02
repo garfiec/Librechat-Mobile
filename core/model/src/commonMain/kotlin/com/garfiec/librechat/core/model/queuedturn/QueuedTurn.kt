@@ -1,7 +1,7 @@
 package com.garfiec.librechat.core.model.queuedturn
 
-import kotlinx.serialization.SerialName
 import com.garfiec.librechat.core.model.ReasoningOverride
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**

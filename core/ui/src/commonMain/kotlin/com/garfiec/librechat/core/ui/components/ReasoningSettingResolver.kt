@@ -122,6 +122,7 @@ object ReasoningSettingResolver {
     }
 
     /** MIRRORED from upstream `resolveReasoningSetting`. */
+    @Suppress("ReturnCount") // one early return per provider branch, as upstream reads
     private fun resolveForModel(endpoint: String, model: String, settings: List<ReasoningSetting>): ReasoningSetting? {
         fun find(key: String) = settings.firstOrNull { it.key == key }
         if (endpoint == GOOGLE) {
@@ -307,5 +308,6 @@ object ReasoningSettingResolver {
         """claude-3[-.]7|claude-(?:sonnet|opus|haiku)-[4-9]|claude-[4-9](?:[-.][0-9]+)?-(?:sonnet|opus|haiku)""",
         RegexOption.IGNORE_CASE,
     )
-    private val GEMINI_THINKING_LEVEL = Regex("""gemini-(?:[3-9]|\d{2,})|gemma-(?:[4-9]|\d{2,})""", RegexOption.IGNORE_CASE)
+    private val GEMINI_THINKING_LEVEL =
+        Regex("""gemini-(?:[3-9]|\d{2,})|gemma-(?:[4-9]|\d{2,})""", RegexOption.IGNORE_CASE)
 }

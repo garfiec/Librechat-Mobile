@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.data.repository
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.PendingSteer
+import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.request.ChatResumeRequest
@@ -54,6 +55,8 @@ interface ChatRepository {
          * [responseMessageId] = the edited message's id; see `EditedContent`.
          */
         editedContent: EditedContent? = null,
+        /** Reasoning for this turn only; see `ChatRequest.reasoningOverride`. */
+        reasoningOverride: ReasoningOverride? = null,
     ): Flow<StreamEvent>
 
     /**
