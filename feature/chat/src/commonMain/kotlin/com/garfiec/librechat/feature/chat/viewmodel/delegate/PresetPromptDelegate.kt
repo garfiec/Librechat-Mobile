@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.getOrNull
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
 import com.garfiec.librechat.core.model.Preset
@@ -283,6 +284,17 @@ class PresetPromptDelegate(
      */
     fun handleSlashCommand(displayData: PromptMentionDisplayData) {
         val group = cachedPromptGroups.find { it.id == displayData.id } ?: return
+        if (group.isExternal) {
+            // An externally managed group (v0.8.9-rc1) stores no text: read it live first.
+            handle.scope.launch {
+                promptRepository.withResolvedText(group).getOrNull()?.let { insertSlashCommand(displayData, it) }
+            }
+            return
+        }
+        insertSlashCommand(displayData, group)
+    }
+
+    private fun insertSlashCommand(displayData: PromptMentionDisplayData, group: PromptGroup) {
         when (val insertion = resolvePromptInsertion(group)) {
             // Nothing to insert; leave the composer alone rather than writing the group's name.
             null -> return

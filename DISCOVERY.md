@@ -155,7 +155,26 @@ GET /api/endpoints          → available AI providers and models  (JWT required
 POST /api/user/settings/favorites → update user favorites (agent/model pins, v0.8.5+)
 GET  /api/user/settings/favorites → list user favorites (v0.8.5+)
 POST /api/prompts/groups/:id/use  → record prompt-group usage for analytics (v0.8.5+)
+GET  /api/prompts/groups/:id/resolve[?version=N] → a group's live text (v0.8.9-rc1):
+     { source, groupId, prompt, type, version?, labels?, sourceUrl? (admins only) }.
+     Needed for an external (Langfuse, source != "native") group, which stores no text; errors are
+     {code}: 400 invalid_request, 404 not_found / not_available, 409 not_configured / source_changed,
+     422 unsupported_type. External groups refuse edits, deletes, new versions and promotion with
+     403 { code: "read_only", error }.
 ```
+
+**v0.8.9-rc1 response codes the client reads**
+- `PUT /api/permissions/:resourceType/:resourceId`: a failed audited update carries `code`
+  `RESOURCE_PERMISSIONS_BUSY` (409), `RESOURCE_PERMISSIONS_UNAVAILABLE` (503) or
+  `PERMISSION_AUDIT_UNAVAILABLE`; all retryable.
+- `POST /api/convos/update` (rename): 409 `{ error: "conversation_title_ownership_not_ready" }` while
+  `interface.runningChatRename` is false and the title is unset or a run is active; 404
+  `{ error: "conversation_not_found" }`. Conversations carry `titleSetByUser` / `titleRevision`;
+  `/api/config` carries `conversationTitleOwnershipVersion: 1`.
+- Skill file upload / edit / delete: 409 `{ error: "SKILL_DELETING" }` while the skill is being deleted.
+- Agent create/update: 400 `{ error: "Invalid request data", details: [{ path: ["model_parameters", key], message }] }`
+  for a model parameter the provider family does not declare.
+- `GET /api/agents/chat/status/:conversationId` adds `isTemporary`.
 
 **v0.8.5 notes**
 - `GET /api/config` response payload is now split into a pre-auth and post-auth variant.

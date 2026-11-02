@@ -52,29 +52,38 @@ fun PromptDetailScreen(
             LibreChatTopBar(
                 title = group.name,
                 onNavigateBack = onBack,
-                actions = listOf(
-                    BarAction.Icon(
-                        id = "share",
-                        icon = BarIcons.ShareFilled,
-                        label = stringResource(Res.string.cd_share_prompt),
-                        onClick = onShare,
-                    ),
-                    BarAction.Icon(
-                        id = "edit",
-                        icon = BarIcons.EditFilled,
-                        label = stringResource(Res.string.cd_edit_prompt),
-                        onClick = { onEdit(group.id) },
-                    ),
-                    BarAction.Icon(
-                        id = "delete",
-                        icon = BarIcons.DeleteFilled,
-                        label = stringResource(Res.string.cd_delete_prompt),
-                        tint = BarTint.DESTRUCTIVE,
-                        // Disabled while the delete is in flight, so a second tap can't fire it again.
-                        enabled = !isDeleting,
-                        onClick = onDelete,
-                    ),
-                ),
+                actions = buildList {
+                    add(
+                        BarAction.Icon(
+                            id = "share",
+                            icon = BarIcons.ShareFilled,
+                            label = stringResource(Res.string.cd_share_prompt),
+                            onClick = onShare,
+                        ),
+                    )
+                    // An externally managed group is read-only here: the server refuses both.
+                    if (group.external == null) {
+                        add(
+                            BarAction.Icon(
+                                id = "edit",
+                                icon = BarIcons.EditFilled,
+                                label = stringResource(Res.string.cd_edit_prompt),
+                                onClick = { onEdit(group.id) },
+                            ),
+                        )
+                        add(
+                            BarAction.Icon(
+                                id = "delete",
+                                icon = BarIcons.DeleteFilled,
+                                label = stringResource(Res.string.cd_delete_prompt),
+                                tint = BarTint.DESTRUCTIVE,
+                                // Disabled while the delete is in flight, so a second tap can't fire it again.
+                                enabled = !isDeleting,
+                                onClick = onDelete,
+                            ),
+                        )
+                    }
+                },
             )
         },
     ) { innerPadding ->
@@ -112,6 +121,20 @@ fun PromptDetailScreen(
                         color = MaterialTheme.colorScheme.outline,
                     )
                 }
+            }
+
+            group.external?.let { external ->
+                Text(
+                    text = when {
+                        external.isLangfuse && !external.promptName.isNullOrBlank() ->
+                            stringResource(Res.string.prompt_managed_in_langfuse_named, external.promptName)
+                        external.isLangfuse -> stringResource(Res.string.prompt_managed_in_langfuse)
+                        else -> stringResource(Res.string.prompt_managed_externally)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
             }
 
             val oneliner = group.oneliner

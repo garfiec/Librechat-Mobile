@@ -31,4 +31,13 @@ data class PromptGroupDetailDisplayData(
     val productionId: String?,
     val productionPromptText: String?,
     val promptCount: Int,
+    /**
+     * Managed outside LibreChat (v0.8.9-rc1): no Edit or Delete, which the server refuses, and a
+     * note saying where it is edited. Share and use are unaffected.
+     */
+    val external: ExternalPromptSource? = null,
 )
+
+/** An externally managed prompt group's store and its own name for the prompt. */
+@Immutable
+data class ExternalPromptSource(val isLangfuse: Boolean, val promptName: String?)

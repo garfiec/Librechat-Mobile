@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.request.CreatePromptRequest
 import com.garfiec.librechat.core.model.request.UpdatePromptGroupRequest
 import com.garfiec.librechat.core.model.response.AddPromptToGroupResponse
 import com.garfiec.librechat.core.model.response.CreatePromptResponse
+import com.garfiec.librechat.core.model.response.ResolvedPromptResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
@@ -124,5 +125,14 @@ class PromptsApi constructor(
     suspend fun recordPromptGroupUse(groupId: String): PromptUseResponse =
         client.post {
             url { path("api/prompts/groups/$groupId/use") }
+        }.body()
+
+    /**
+     * A group's live production text (v0.8.9-rc1). Needed for an externally managed (Langfuse)
+     * group, which stores none; a native group already carries its text in `productionPrompt`.
+     */
+    suspend fun resolvePromptGroup(groupId: String): ResolvedPromptResponse =
+        client.get {
+            url { path("api/prompts/groups/$groupId/resolve") }
         }.body()
 }

@@ -499,6 +499,9 @@
     <string name="cd_reset_sort">Reset sort</string>
     <string name="cd_share">Share</string>
     <string name="prompt_author">by %1$s</string>
+    <string name="prompt_managed_in_langfuse_named">Managed in Langfuse (prompt %1$s). Edit it in Langfuse.</string>
+    <string name="prompt_managed_in_langfuse">Managed in Langfuse. Edit it in Langfuse.</string>
+    <string name="prompt_managed_externally">Managed outside LibreChat, so it can't be changed here.</string>
     <string name="prompt_sort_label">Sort: %1$s</string>
 
     <!-- Prompt versions -->
