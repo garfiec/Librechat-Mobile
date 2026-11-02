@@ -51,12 +51,15 @@ class SampleContextModelTest {
     }
 
     @Test
-    fun detailed_shows_tool_types_cache_totals_and_both_costs() {
+    fun detailed_shows_tool_types_cache_totals_and_costs_in_the_usage_headers() {
         val detailed = visible(ContextDetailPreset.DETAILED)
 
         assertThat(detailed.rows.map { it.category }).contains(BreakdownCategory.SKILLS)
         assertThat(detailed.cacheRead).isEqualTo(82_100)
         assertThat(detailed.totals?.output).isEqualTo(91_100)
-        assertThat(detailed.cost).isEqualTo(CostRows(2.60, primaryIsWholeConversation = false, allBranches = 3.89))
+        assertThat(detailed.cost).isNull()
+        assertThat(detailed.lastTurn?.cost).isEqualTo(0.04)
+        assertThat(detailed.totalsCost).isEqualTo(2.60)
+        assertThat(detailed.allBranches?.cost).isEqualTo(3.89)
     }
 }
