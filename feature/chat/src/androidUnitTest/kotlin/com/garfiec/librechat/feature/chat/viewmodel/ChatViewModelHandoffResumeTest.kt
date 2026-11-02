@@ -98,7 +98,7 @@ class ChatViewModelHandoffResumeTest {
             every { platformDelegateFactory.createFileHandler(any()) } returns fileHandler
             every { fileHandler.attachedFiles } returns MutableStateFlow(emptyList())
             every { messageRepository.observeMessages(CONVERSATION_ID) } returns stored
-            coEvery { messageRepository.getMessages(CONVERSATION_ID) } coAnswers {
+            coEvery { messageRepository.getMessages(CONVERSATION_ID, any()) } coAnswers {
                 stored.value = onServer
                 Result.Success(onServer)
             }
@@ -168,7 +168,7 @@ class ChatViewModelHandoffResumeTest {
 
             // While offline, the server persists the new turn: the user's message under the id the
             // client minted, and the full reply under it.
-            coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID) } coAnswers {
+            coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID, any()) } coAnswers {
                 val sent = vm.uiState.value.messages.last { it.isCreatedByUser }
                 // Persisted under the server's own id, not the one the client minted.
                 val persisted = sent.copy(messageId = "server-user-2", conversationId = CONVERSATION_ID)
@@ -234,7 +234,7 @@ class ChatViewModelHandoffResumeTest {
         try {
             advanceUntilIdle()
             var fetchesAfterSend = 0
-            coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID) } coAnswers {
+            coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID, any()) } coAnswers {
                 fetchesAfterSend++
                 Result.Success(onServer)
             }
@@ -271,7 +271,7 @@ class ChatViewModelHandoffResumeTest {
         coEvery { fixture.chatRepository.abortChat(any(), any(), any()) } returns
             Result.Success(ChatAbortResponse())
         var fetches = 0
-        coEvery { fixture.messageRepository.getMessages(NEW_CONVERSATION_ID) } coAnswers {
+        coEvery { fixture.messageRepository.getMessages(NEW_CONVERSATION_ID, any()) } coAnswers {
             fetches++
             Result.Success(emptyList())
         }

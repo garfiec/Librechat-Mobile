@@ -39,7 +39,7 @@ class ConversationExporterGoldenTest {
     @Test
     fun timestampsExportAsIsoStringAndExplicitNull() = runTest {
         coEvery { conversationRepository.getConversation("c1", null) } returns Result.Success(conversation)
-        coEvery { messageRepository.getMessages("c1") } returns
+        coEvery { messageRepository.fetchMessagesFull("c1") } returns
             Result.Success(listOf(Message(messageId = "m1", conversationId = "c1", text = "hi")))
 
         val result = exporter(UnconfinedTestDispatcher(testScheduler)).exportAsJson("c1")
@@ -52,7 +52,7 @@ class ConversationExporterGoldenTest {
     @Test
     fun exportRoundTripsThroughTheImporter() = runTest {
         coEvery { conversationRepository.getConversation("c1", null) } returns Result.Success(conversation)
-        coEvery { messageRepository.getMessages("c1") } returns
+        coEvery { messageRepository.fetchMessagesFull("c1") } returns
             Result.Success(listOf(Message(messageId = "m1", conversationId = "c1", text = "hi")))
         val dispatcher = UnconfinedTestDispatcher(testScheduler)
 

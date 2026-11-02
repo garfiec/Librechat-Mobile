@@ -197,12 +197,14 @@ class ConversationsApi constructor(
     suspend fun forkConversation(request: ForkConversationRequest): ForkConversationResponse =
         client.post {
             url { path("api/convos/fork") }
+            withToolCallPreviews()
             setBody(request)
         }.body()
 
     suspend fun duplicateConversation(conversationId: String, title: String?): Conversation =
         client.post {
             url { path("api/convos/duplicate") }
+            withToolCallPreviews()
             setBody(DuplicateConversationRequest(conversationId = conversationId, title = title))
         }.body()
 

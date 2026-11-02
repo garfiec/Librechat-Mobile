@@ -99,7 +99,7 @@ class SearchViewModelTest {
                 Message(messageId = "f1", conversationId = "c1", parentMessageId = "m1", text = "and their wings?", isCreatedByUser = true),
             ),
         )
-        coEvery { getMessages(any()) } returns Result.Error(message = "offline")
+        coEvery { getMessages(any(), any()) } returns Result.Error(message = "offline")
     }
 
     private val agentRepository = mockk<AgentRepository> {
@@ -358,7 +358,7 @@ class SearchViewModelTest {
 
     @Test
     fun `a server hit's conversation is fetched and opened at the hit`() = runTest(dispatcher) {
-        coEvery { messageRepository.getMessages("c9") } returns Result.Success(
+        coEvery { messageRepository.getMessages("c9", any()) } returns Result.Success(
             listOf(
                 Message(messageId = "q9", conversationId = "c9", text = "ask about pelicans", isCreatedByUser = true),
                 Message(messageId = "r1", conversationId = "c9", parentMessageId = "q9", text = "pelicans fish"),
@@ -398,7 +398,7 @@ class SearchViewModelTest {
         vm.select("m1")
         advanceUntilIdle()
 
-        coVerify(exactly = 0) { messageRepository.getMessages(any()) }
+        coVerify(exactly = 0) { messageRepository.getMessages(any(), any()) }
     }
 
     @Test

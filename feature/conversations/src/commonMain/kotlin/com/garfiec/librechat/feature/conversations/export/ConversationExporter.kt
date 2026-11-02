@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.model.ConversationExport
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.content.containsToolCallPreview
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
@@ -28,10 +29,16 @@ class ConversationExporter(
             is Result.Error -> return Result.Error(result.exception, result.message)
             is Result.Loading -> return Result.Error(message = "Unexpected loading state")
         }
-        val messages = when (val result = messageRepository.getMessages(conversationId)) {
+        val messages = when (val result = messageRepository.fetchMessagesFull(conversationId)) {
             is Result.Success -> result.data
             is Result.Error -> return Result.Error(result.exception, result.message)
             is Result.Loading -> return Result.Error(message = "Unexpected loading state")
+        }
+        // The full fetch falls back to the cache offline, and cached rows can be previews. An
+        // export of shortened tool output would read as complete, and importing it would store it
+        // shortened, so it fails with the generic export error instead.
+        if (messages.containsToolCallPreview()) {
+            return Result.Error(IllegalStateException("Messages hold tool-call previews"))
         }
         val export = ConversationExport(
             conversation = conversation,
@@ -51,7 +58,7 @@ class ConversationExporter(
             is Result.Error -> return Result.Error(result.exception, result.message)
             is Result.Loading -> return Result.Error(message = "Unexpected loading state")
         }
-        val messages = when (val result = messageRepository.getMessages(conversationId)) {
+        val messages = when (val result = messageRepository.fetchMessagesFull(conversationId)) {
             is Result.Success -> result.data
             is Result.Error -> return Result.Error(result.exception, result.message)
             is Result.Loading -> return Result.Error(message = "Unexpected loading state")

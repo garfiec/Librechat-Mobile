@@ -36,6 +36,7 @@
     <string name="unknown_error">An unknown error occurred</string>
     <string name="conversation_exported">Conversation exported</string>
     <string name="imported_title">Imported: %1$s</string>
+    <string name="import_error_tool_previews">This file holds shortened tool output and can't be imported.</string>
     <string name="copy_of">Copy of %1$s</string>
 
     <!-- Conversation actions -->

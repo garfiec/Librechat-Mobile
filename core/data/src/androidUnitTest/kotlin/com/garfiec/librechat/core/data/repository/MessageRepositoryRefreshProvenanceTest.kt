@@ -67,12 +67,12 @@ class MessageRepositoryRefreshProvenanceTest {
 
     @Test
     fun `a foreground refresh fetches and replaces under the live account`() = runTest {
-        coEvery { messagesApi.getMessages("conv-1") } returns listOf(message("m1"))
+        coEvery { messagesApi.getMessages("conv-1", any()) } returns listOf(message("m1"))
 
-        val result = repository.refreshMessages("conv-1", originAccount = null)
+        val result = repository.refreshMessages("conv-1", originAccount = null, toolPreviews = true)
 
         assertThat(result).isInstanceOf(Result.Success::class.java)
-        coVerify(exactly = 1) { messagesApi.getMessages("conv-1") }
+        coVerify(exactly = 1) { messagesApi.getMessages("conv-1", any()) }
         coVerify(exactly = 1) {
             messageDao.replaceAllForConversation("conv-1", accountA.value, any())
         }
@@ -80,9 +80,9 @@ class MessageRepositoryRefreshProvenanceTest {
 
     @Test
     fun `an origin-captured refresh proceeds while its origin is still live`() = runTest {
-        coEvery { messagesApi.getMessages("conv-1") } returns listOf(message("m1"))
+        coEvery { messagesApi.getMessages("conv-1", any()) } returns listOf(message("m1"))
 
-        repository.refreshMessages("conv-1", originAccount = accountA)
+        repository.refreshMessages("conv-1", originAccount = accountA, toolPreviews = true)
 
         coVerify(exactly = 1) {
             messageDao.replaceAllForConversation("conv-1", accountA.value, any())
@@ -97,9 +97,9 @@ class MessageRepositoryRefreshProvenanceTest {
     fun `a refresh for a switched-away account never reaches the network`() = runTest {
         activeAccountProvider.set(accountB)
 
-        val result = repository.refreshMessages("conv-1", originAccount = accountA)
+        val result = repository.refreshMessages("conv-1", originAccount = accountA, toolPreviews = true)
 
-        coVerify(exactly = 0) { messagesApi.getMessages(any()) }
+        coVerify(exactly = 0) { messagesApi.getMessages(any(), any()) }
         coVerify(exactly = 0) { messageDao.replaceAllForConversation(any(), any(), any()) }
         assertThat(result).isInstanceOf(Result.Error::class.java)
     }
@@ -115,10 +115,10 @@ class MessageRepositoryRefreshProvenanceTest {
         coEvery { messageDao.observeMessagesForAccount("conv-1", accountA.value) } returns
             flowOf(listOf(message("m1").toEntity().copy(accountId = accountA.value)))
 
-        val result = repository.refreshMessages("conv-1", originAccount = accountA)
+        val result = repository.refreshMessages("conv-1", originAccount = accountA, toolPreviews = true)
 
         assertThat(result).isInstanceOf(Result.Success::class.java)
-        coVerify(exactly = 0) { messagesApi.getMessages(any()) }
+        coVerify(exactly = 0) { messagesApi.getMessages(any(), any()) }
     }
 
     /**
@@ -128,9 +128,9 @@ class MessageRepositoryRefreshProvenanceTest {
     @Test
     fun `a refresh for a removed account does not resurrect its rows`() = runTest {
         coEvery { roster.contains(accountA.value) } returns false
-        coEvery { messagesApi.getMessages("conv-1") } returns listOf(message("m1"))
+        coEvery { messagesApi.getMessages("conv-1", any()) } returns listOf(message("m1"))
 
-        repository.refreshMessages("conv-1", originAccount = accountA)
+        repository.refreshMessages("conv-1", originAccount = accountA, toolPreviews = true)
 
         coVerify(exactly = 0) { messageDao.replaceAllForConversation(any(), any(), any()) }
     }

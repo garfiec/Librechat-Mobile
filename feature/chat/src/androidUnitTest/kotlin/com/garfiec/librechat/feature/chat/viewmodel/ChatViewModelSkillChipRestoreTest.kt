@@ -98,7 +98,7 @@ class ChatViewModelSkillChipRestoreTest {
                 created("conv-1"),
                 StreamEvent.Error("An error occurred while processing the request: 401"),
             )
-            coEvery { fixture.messageRepository.getMessages("conv-1") } returns Result.Success(emptyList())
+            coEvery { fixture.messageRepository.getMessages("conv-1", any()) } returns Result.Success(emptyList())
             attachedFiles.value = listOf(AttachedFile(uri = "content://a.pdf", name = "a.pdf", fileId = "file-1"))
             vm.addPendingManualSkill("pdf-tools")
             send(vm, text = "")
@@ -117,7 +117,7 @@ class ChatViewModelSkillChipRestoreTest {
                 StreamEvent.Error("An error occurred while processing the request: 401"),
             )
             // The settled reload after the failure: the server kept nothing of the turn.
-            coEvery { fixture.messageRepository.getMessages("conv-1") } returns Result.Success(emptyList())
+            coEvery { fixture.messageRepository.getMessages("conv-1", any()) } returns Result.Success(emptyList())
             vm.addPendingManualSkill("pdf-tools")
             send(vm)
 

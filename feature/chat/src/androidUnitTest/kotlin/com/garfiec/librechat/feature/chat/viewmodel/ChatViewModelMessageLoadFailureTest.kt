@@ -71,7 +71,7 @@ class ChatViewModelMessageLoadFailureTest {
 
     @Test
     fun failedMessageLoadWithEmptyCacheSurfacesErrorAndRetryableEmptyState() = runTest(testDispatcher) {
-        coEvery { messageRepository.getMessages(any()) } returns Result.Error(message = "boom")
+        coEvery { messageRepository.getMessages(any(), any()) } returns Result.Error(message = "boom")
 
         val viewModel = newViewModel(initialConversationId = "conv-1")
         advanceUntilIdle()
@@ -87,7 +87,7 @@ class ChatViewModelMessageLoadFailureTest {
         // A chat handed off from the landing page carries its just-sent user message, and the
         // server persists the request only once the reply completes — so this fetch is expected to
         // fail while the reply streams. Reporting it would pop an error over a working chat.
-        coEvery { messageRepository.getMessages(any()) } returns Result.Error(message = "boom")
+        coEvery { messageRepository.getMessages(any(), any()) } returns Result.Error(message = "boom")
         selectionHandoff.put(
             conversationId = "conv-1",
             choice = ModelChoice.Raw("openAI", "gpt-4"),
@@ -118,7 +118,7 @@ class ChatViewModelMessageLoadFailureTest {
                 text = "cached",
             ),
         )
-        coEvery { messageRepository.getMessages(any()) } returns Result.Success(cached)
+        coEvery { messageRepository.getMessages(any(), any()) } returns Result.Success(cached)
         every { messageRepository.observeMessages(any()) } returns flowOf(cached)
 
         val viewModel = newViewModel(initialConversationId = "conv-1")

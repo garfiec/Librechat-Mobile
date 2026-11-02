@@ -78,7 +78,7 @@ class ChatViewModelFailedTurnRestoreTest {
             every { connectivityObserver.isConnected } returns MutableStateFlow(false)
         }
         stored.value = listOf(user, reply)
-        coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID) } returns
+        coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID, any()) } returns
             Result.Success(listOf(user, reply))
     }
 
@@ -143,7 +143,7 @@ class ChatViewModelFailedTurnRestoreTest {
         )
         advanceUntilIdle()
         // The post-error reload: Room then holds whatever the server kept.
-        coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID) } coAnswers {
+        coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID, any()) } coAnswers {
             stored.value = serverAfterFailure
             Result.Success(serverAfterFailure)
         }

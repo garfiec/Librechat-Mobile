@@ -140,6 +140,7 @@ class ShareApi constructor(
     ): ForkConversationResponse =
         client.post {
             url { path("api/share/$shareId/fork") }
+            withToolCallPreviews()
             setBody(ForkSharedConversationRequest(targetMessageIndex, shareRevision))
         }.body()
 }

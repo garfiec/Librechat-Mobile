@@ -4,12 +4,40 @@ import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
+import com.garfiec.librechat.core.model.content.AgentToolCall
 import com.garfiec.librechat.core.model.response.OwnerText
 import kotlinx.coroutines.flow.Flow
 
 interface MessageRepository {
     fun observeMessages(conversationId: String): Flow<List<Message>>
-    suspend fun getMessages(conversationId: String): Result<List<Message>>
+
+    /**
+     * Fetches a conversation's messages and upserts them into the cache. [toolPreviews] asks the
+     * server for bounded previews of settled tool calls (v0.8.9-rc1); previewed rows are cached WITH
+     * their markers, so nothing reads them as complete. Deliberately no default: every caller states
+     * whether shortened tool output is acceptable for what it does with the result.
+     */
+    suspend fun getMessages(conversationId: String, toolPreviews: Boolean): Result<List<Message>>
+
+    /**
+     * The conversation's messages with every tool call in full, never cached: an export must not be
+     * able to flip cached rows, and a preview must never reach an export. Falls back to the cached
+     * rows when the network fails; callers that need fullness check `containsToolCallPreview`.
+     */
+    suspend fun fetchMessagesFull(conversationId: String): Result<List<Message>>
+
+    /**
+     * One stored tool call in full (`GET …/parts/:partIndex`), network-direct and never cached: the
+     * caller holds it in memory only. [partIndex] is the raw index into `Message.content`.
+     */
+    suspend fun getToolCallPart(
+        conversationId: String,
+        messageId: String,
+        partIndex: Int,
+        toolCallId: String,
+        stepId: String?,
+        agentId: String?,
+    ): Result<AgentToolCall>
 
     /**
      * Persists [messages] to the local cache only — no network call. Records what a completed
@@ -32,9 +60,14 @@ interface MessageRepository {
      * rather than sending that account's conversation id to a different server under a different
      * bearer. Deliberately no default — a silent one would let new deferred callers compile with
      * land-time attribution, which is the mis-attribution this parameter exists to prevent. Pass null
-     * from foreground callers, where entry *is* land time.
+     * from foreground callers, where entry *is* land time. [toolPreviews] as for [getMessages], and
+     * equally without a default.
      */
-    suspend fun refreshMessages(conversationId: String, originAccount: AccountId?): Result<List<Message>>
+    suspend fun refreshMessages(
+        conversationId: String,
+        originAccount: AccountId?,
+        toolPreviews: Boolean,
+    ): Result<List<Message>>
     suspend fun updateFeedback(conversationId: String, messageId: String, feedback: MinimalFeedback?): Result<Unit>
 
     /**

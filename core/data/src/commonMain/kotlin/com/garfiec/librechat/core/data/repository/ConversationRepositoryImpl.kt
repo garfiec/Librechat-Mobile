@@ -24,6 +24,7 @@ import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationListFilters
 import com.garfiec.librechat.core.model.ConversationPage
 import com.garfiec.librechat.core.model.SAVED_TAG
+import com.garfiec.librechat.core.model.content.containsToolCallPreviewMarkers
 import com.garfiec.librechat.core.model.request.ForkConversationRequest
 import com.garfiec.librechat.core.model.response.ForkConversationResponse
 import com.garfiec.librechat.core.network.api.ConversationsApi
@@ -32,6 +33,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
@@ -316,6 +318,13 @@ class ConversationRepositoryImpl(
     }
 
     override suspend fun importConversation(jsonContent: String): Result<Conversation> {
+        // The import route has no preview guard: a file holding shortened tool output would be
+        // stored shortened for good. A file that isn't JSON at all is the server's to refuse.
+        val previewed = withContext(dispatcher) {
+            suspendRunCatching { json.parseToJsonElement(jsonContent).containsToolCallPreviewMarkers() }
+                .getOrDefault(false)
+        }
+        if (previewed) return Result.Error(ToolCallPreviewImportException())
         return safeApiCall {
             val accountId = activeAccountProvider.currentAccountId()?.value
             val fileBytes = jsonContent.encodeToByteArray()

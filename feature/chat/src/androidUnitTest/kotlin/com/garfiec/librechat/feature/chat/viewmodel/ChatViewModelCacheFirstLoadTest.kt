@@ -66,7 +66,7 @@ class ChatViewModelCacheFirstLoadTest {
         every { settingsDataStore.enabledTools } returns flowOf(emptySet())
 
         coEvery { conversationRepository.getConversation(any(), any()) } returns Result.Error(message = "test")
-        coEvery { messageRepository.getMessages(any()) } coAnswers { fetchGate.await() }
+        coEvery { messageRepository.getMessages(any(), any()) } coAnswers { fetchGate.await() }
     }
 
     @After

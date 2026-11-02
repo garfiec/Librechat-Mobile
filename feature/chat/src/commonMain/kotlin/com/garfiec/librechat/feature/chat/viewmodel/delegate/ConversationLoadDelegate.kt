@@ -125,7 +125,7 @@ class ConversationLoadDelegate(
      * repository falls back to cached rows and returns those as `Success`.
      */
     private suspend fun revalidateMessages(conversationId: String) {
-        when (val result = messageRepository.getMessages(conversationId)) {
+        when (val result = messageRepository.getMessages(conversationId, toolPreviews = true)) {
             is Result.Error -> {
                 Logger.e(result.exception) { "Failed to fetch messages for $conversationId" }
                 handle.update {
@@ -456,7 +456,7 @@ class ConversationLoadDelegate(
         handle.scope.launch {
             // Foreground pull-to-refresh: the user is looking at this conversation now, so entry is
             // land time and the live account is the right one to attribute to.
-            messageRepository.refreshMessages(conversationId, originAccount = null)
+            messageRepository.refreshMessages(conversationId, originAccount = null, toolPreviews = true)
             loadConversation(conversationId)
             handle.update { content = content.copy(isRefreshingMessages = false) }
         }

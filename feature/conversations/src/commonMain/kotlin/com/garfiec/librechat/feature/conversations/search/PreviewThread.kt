@@ -57,5 +57,5 @@ internal suspend fun MessageRepository.conversationMessages(conversationId: Stri
     if (complete || !fetch) return cached
     // Arrowing through server hits passes over most of them: fetch only where the user stops.
     delay(FETCH_DELAY_MS)
-    return (getMessages(conversationId) as? Result.Success)?.data
+    return (getMessages(conversationId, toolPreviews = true) as? Result.Success)?.data
 }

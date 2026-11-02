@@ -94,7 +94,7 @@ class ChatViewModelUsageTotalsTest {
             mockk(relaxed = true) { every { attachedFiles } returns MutableStateFlow(emptyList()) }
 
         // A settled conversation whose tail is an ordinary assistant reply: the compactable leaf.
-        coEvery { fixture.messageRepository.getMessages(any()) } returns
+        coEvery { fixture.messageRepository.getMessages(any(), any()) } returns
             Result.Success(listOf(userTurn, leaf))
         every { fixture.messageRepository.observeMessages(any()) } returns
             flowOf(listOf(userTurn, leaf))

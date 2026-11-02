@@ -82,6 +82,10 @@ interface ConversationRepository {
         excludeFiles: Boolean? = null,
     ): Result<ForkConversationResponse>
     suspend fun duplicateConversation(conversationId: String, title: String?): Result<Conversation>
+    /**
+     * Imports an export file. A file whose tool calls carry preview markers is refused with
+     * [ToolCallPreviewImportException] before anything is sent: the route stores a file as is.
+     */
     suspend fun importConversation(jsonContent: String): Result<Conversation>
     suspend fun deleteAll(): Result<Unit>
 
@@ -123,3 +127,9 @@ interface ConversationRepository {
     /** `POST /api/convos/unread` (v0.8.9-rc1); the cached row takes the read state it answered with. */
     suspend fun markUnread(id: String): Result<Unit>
 }
+
+/**
+ * An import file holding tool-call previews (shortened output with `outputTruncated` and its
+ * siblings). Importing it would store the shortened output permanently, so it is refused.
+ */
+class ToolCallPreviewImportException : IllegalArgumentException("The file holds shortened tool output")

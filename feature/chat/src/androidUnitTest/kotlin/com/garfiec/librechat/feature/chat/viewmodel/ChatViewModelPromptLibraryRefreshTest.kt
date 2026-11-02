@@ -70,7 +70,7 @@ class ChatViewModelPromptLibraryRefreshTest {
         coEvery { permissionGate.awaitRole() } returns UserRolePermissions(name = "USER")
 
         every { messageRepository.observeMessages(any()) } returns flowOf(emptyList())
-        coEvery { messageRepository.getMessages(any()) } returns Result.Success(emptyList())
+        coEvery { messageRepository.getMessages(any(), any()) } returns Result.Success(emptyList())
         coEvery { conversationRepository.getConversation(any(), any()) } returns Result.Error(message = "test")
     }
 
