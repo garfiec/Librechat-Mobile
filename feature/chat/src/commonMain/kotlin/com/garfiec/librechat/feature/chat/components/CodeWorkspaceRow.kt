@@ -52,8 +52,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveAssistChip
-import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveChipDefaults
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.AdaptiveRadioButton

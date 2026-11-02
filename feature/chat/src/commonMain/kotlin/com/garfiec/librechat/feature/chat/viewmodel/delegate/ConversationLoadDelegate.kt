@@ -408,10 +408,7 @@ class ConversationLoadDelegate(
             // the chat: one that has neither there either would otherwise cost a request every open.
             val cached = conversation
             val backfillKey = currentAccountId()?.let { "$it:$conversationId:${cached?.updatedAt}" }
-            val selectionIncomplete = cached != null && (
-                (cached.spec == null && currentModelSpecs()?.enforce == true) ||
-                    (wantsParameters && (!cached.hasParameters || cached.parametersStale))
-                )
+            val selectionIncomplete = cached != null && selectionIncomplete(cached, wantsParameters)
             // Whether this is a code chat (for its pull request) is learned from the fetch's row write
             // alone: it re-applies no model or parameters, so a chat opened mid-run keeps the
             // selection the cached row gave it. The row isn't read by the message observer, so the
@@ -455,6 +452,11 @@ class ConversationLoadDelegate(
             onModelLoadSettled()
         }
     }
+
+    /** The cached row lacks the spec an enforced server needs, or the parameters a reopen restores. */
+    private fun selectionIncomplete(cached: Conversation, wantsParameters: Boolean): Boolean =
+        (cached.spec == null && currentModelSpecs()?.enforce == true) ||
+            (wantsParameters && (!cached.hasParameters || cached.parametersStale))
 
     fun refreshMessages() {
         val conversationId = handle.state.conversationId ?: return

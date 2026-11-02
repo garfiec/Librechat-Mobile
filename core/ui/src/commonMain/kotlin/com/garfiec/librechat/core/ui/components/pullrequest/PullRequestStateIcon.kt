@@ -123,6 +123,14 @@ fun pullRequestOpenLabel(presentation: PullRequestPresentation): String = string
     },
 )
 
+/** A list row's addition for its pull request mark: "PR #482, Open, Checks: Running". */
+@Composable
+fun pullRequestRowSummary(pr: ConversationPullRequest, presentation: PullRequestPresentation): String = listOf(
+    pullRequestLabel(pr, presentation),
+    pullRequestStateText(presentation.state),
+    stringResource(Res.string.pr_checks, pullRequestChecksText(presentation.checks)),
+).joinToString(", ")
+
 /**
  * Upstream `summarizePullRequest`: one sentence saying everything the glyph, dot and badges say in
  * colour. "Pull request PR #482: Fix crash, State: Open, Checks: Running".
