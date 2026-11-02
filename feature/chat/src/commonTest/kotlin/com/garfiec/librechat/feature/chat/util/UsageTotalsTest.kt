@@ -11,6 +11,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /** Ported from upstream web (v0.8.8): `normalizeUsageUnits`, `readPersistedUsage`, the pending fold. */
@@ -124,6 +125,38 @@ class UsageTotalsTest {
         val all = branch + message("a2")
         assertEquals(100, usageOver(branch, all, anchored, isStreaming = false).input)
         assertEquals(1000, usageOver(all, all, anchored, isStreaming = false).input)
+    }
+
+    // --- last turn ---
+
+    private fun userMessage(id: String) = message(id).copy(isCreatedByUser = true)
+
+    @Test
+    fun last_turn_is_the_tail_replys_saved_usage() {
+        val branch = listOf(userMessage("u1"), message("a1", ResponseUsage(input = 100, output = 7)))
+
+        assertEquals(UsageAmount(input = 100, output = 7, costKnown = false), lastTurnUsage(branch, PendingUsage.EMPTY, false))
+    }
+
+    @Test
+    fun a_turn_in_progress_is_the_live_usage_so_far_never_the_previous_reply() {
+        val branch = listOf(userMessage("u1"), message("a1", ResponseUsage(input = 100)), userMessage("u2"))
+
+        // Before any usage event: nothing, not the previous reply's figure.
+        assertNull(lastTurnUsage(branch, PendingUsage.EMPTY, turnInProgress = true))
+        assertEquals(900, lastTurnUsage(branch, pending, turnInProgress = true)?.input)
+    }
+
+    @Test
+    fun a_settled_turn_without_usage_has_none_unless_the_run_was_attributed_to_it() {
+        val branch = listOf(userMessage("u1"), message("a1"))
+
+        assertNull(lastTurnUsage(branch, PendingUsage.EMPTY, false))
+        // An older server saves no usage: the run's own usage, once the final frame named this reply.
+        assertEquals(900, lastTurnUsage(branch, pending.copy(anchorResponseId = "a1"), false)?.input)
+        assertNull(lastTurnUsage(branch, pending.copy(anchorResponseId = "other"), false))
+        // A failed send leaves a user turn at the tail.
+        assertNull(lastTurnUsage(listOf(userMessage("u1")), PendingUsage.EMPTY, false))
     }
 
     @Test

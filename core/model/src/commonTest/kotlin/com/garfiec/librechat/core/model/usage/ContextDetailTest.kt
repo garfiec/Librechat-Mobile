@@ -75,7 +75,73 @@ class ContextDetailTest {
         assertEquals(300, v.compactionReclaim)
         assertEquals(totals.branch, v.totals)
         assertEquals(10, v.subagentTokens)
+        // Under BOTH with Totals on, each block carries its cost and the separate section goes.
+        assertNull(v.cost)
+        assertEquals(1.0, v.totalsCost)
+        assertEquals(AllBranchesUsage(totals.total, 1.5), v.allBranches)
+    }
+
+    @Test
+    fun totals_off_keeps_the_separate_cost_section_with_all_branches() {
+        val sections = ContextDetailPreset.DETAILED.sections.copy(totals = false)
+        val v = visibleBreakdown(view, sections, totals, costEnabled = true)
+
         assertEquals(CostRows(1.0, primaryIsWholeConversation = false, allBranches = 1.5), v.cost)
+        assertNull(v.lastTurn)
+        assertNull(v.allBranches)
+        assertNull(v.totalsCost)
+    }
+
+    @Test
+    fun whole_conversation_scope_keeps_one_cost_line_and_no_header_costs() {
+        val sections = ContextDetailPreset.DETAILED.sections.copy(cost = ContextCostScope.WHOLE_CONVERSATION)
+        val withTurn = totals.copy(lastTurn = UsageAmount(input = 10, output = 5, cost = 0.1))
+        val v = visibleBreakdown(view, sections, withTurn, costEnabled = true)
+
+        assertEquals(CostRows(1.5, primaryIsWholeConversation = true, allBranches = null), v.cost)
+        assertNull(v.totalsCost)
+        assertEquals(LastTurnUsage(withTurn.lastTurn, inProgress = false, cost = null), v.lastTurn)
+        assertEquals(AllBranchesUsage(totals.total, null), v.allBranches)
+    }
+
+    @Test
+    fun last_turn_carries_its_known_cost_and_states() {
+        val turn = UsageAmount(input = 10, output = 5, cost = 0.04)
+        assertEquals(
+            LastTurnUsage(turn, inProgress = false, cost = 0.04),
+            visible(ContextDetailPreset.DETAILED, totals = totals.copy(lastTurn = turn)).lastTurn,
+        )
+        // Saved without a cost: the tokens show, the cost doesn't.
+        val unpriced = turn.copy(costKnown = false)
+        assertEquals(
+            LastTurnUsage(unpriced, inProgress = false, cost = null),
+            visible(ContextDetailPreset.DETAILED, totals = totals.copy(lastTurn = unpriced)).lastTurn,
+        )
+        // A turn in progress before any usage event: waiting.
+        assertEquals(
+            LastTurnUsage(null, inProgress = true, cost = null),
+            visible(ContextDetailPreset.DETAILED, totals = ContextUsageTotals(turnInProgress = true)).lastTurn,
+        )
+        // A settled branch whose tail reply has no usage: not available.
+        assertEquals(LastTurnUsage(null, inProgress = false, cost = null), visible(ContextDetailPreset.DETAILED).lastTurn)
+        // Nothing to report on yet, and Totals hidden: no block.
+        assertNull(visible(ContextDetailPreset.DETAILED, totals = ContextUsageTotals()).lastTurn)
+        assertNull(visible(ContextDetailPreset.STANDARD, totals = totals.copy(lastTurn = turn)).lastTurn)
+    }
+
+    @Test
+    fun all_branches_shows_when_a_token_bucket_differs_or_a_known_cost_is_higher() {
+        val branch = UsageAmount(input = 100, output = 50, cost = 1.0)
+        assertFalse(showsAllBranches(branch, branch))
+        assertTrue(showsAllBranches(branch, branch.copy(cacheRead = 1)))
+        assertTrue(showsAllBranches(branch, branch.copy(cost = 1.5)))
+        // A higher total cost alone needs both sides priced.
+        assertFalse(showsAllBranches(branch.copy(costKnown = false), branch.copy(cost = 1.5)))
+        assertFalse(showsAllBranches(branch, branch.copy(cost = 1.5, costKnown = false)))
+        // Tokens differ: shown whatever the cost coverage.
+        assertTrue(showsAllBranches(branch.copy(costKnown = false), branch.copy(output = 51, costKnown = false)))
+        val same = totals.copy(total = totals.branch)
+        assertNull(visible(ContextDetailPreset.DETAILED, totals = same).allBranches)
     }
 
     @Test

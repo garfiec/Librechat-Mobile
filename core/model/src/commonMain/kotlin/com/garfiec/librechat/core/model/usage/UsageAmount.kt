@@ -46,6 +46,13 @@ data class ContextUsageTotals(
     val compactionReclaim: Int = 0,
     /** The estimate path's rows, when the reading is an estimate. */
     val estimate: EstimateDetail? = null,
+    /**
+     * The reply at the branch's tail: its saved usage, or while [turnInProgress] the live usage so
+     * far. Null when there is none to show (no usage event yet, or a reply saved without usage).
+     */
+    val lastTurn: UsageAmount? = null,
+    /** A reply is streaming on the displayed branch, so [lastTurn] is the current turn so far. */
+    val turnInProgress: Boolean = false,
 ) {
     val hasUsage: Boolean get() = branch.tokens > 0
 }

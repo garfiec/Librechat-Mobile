@@ -58,6 +58,16 @@ enum class ContextDetailPreset(val sections: ContextDetailSections) {
 /** One cost line to render; [allBranches] is the conversation total, shown beside this branch. */
 data class CostRows(val primary: Double, val primaryIsWholeConversation: Boolean, val allBranches: Double?)
 
+/**
+ * The reply at the branch's tail (upstream's "Last turn" panel). [usage] null renders the empty
+ * line: "waiting for model usage" while [inProgress], "not available" once the reply settled
+ * without any. [cost] is shown in the header, and only when known.
+ */
+data class LastTurnUsage(val usage: UsageAmount?, val inProgress: Boolean, val cost: Double?)
+
+/** Usage summed over every branch, listed when it differs from this branch's ([showsAllBranches]). */
+data class AllBranchesUsage(val usage: UsageAmount, val cost: Double?)
+
 /** What the breakdown renders for a reading under some [ContextDetailSections]. */
 data class VisibleBreakdown(
     val view: ContextBreakdownView,
@@ -76,7 +86,14 @@ data class VisibleBreakdown(
     /** Totals to list, or null when hidden or there is no usage. */
     val totals: UsageAmount?,
     val subagentTokens: Int,
+    /** A separate Cost section; null when hidden, or when the costs sit in the usage block headers. */
     val cost: CostRows?,
+    /** The tail reply's usage, above Totals; null when Totals are hidden or the chat has no reply yet. */
+    val lastTurn: LastTurnUsage? = null,
+    /** This branch's cost in the Totals header, when the costs sit there ([ContextCostScope.BOTH]). */
+    val totalsCost: Double? = null,
+    /** Every branch, below Totals, when it differs from this branch. */
+    val allBranches: AllBranchesUsage? = null,
 )
 
 /**
@@ -91,6 +108,7 @@ fun visibleBreakdown(
     costEnabled: Boolean,
 ): VisibleBreakdown {
     val estimate = view.estimate
+    val headerCosts = headerCosts(sections, costEnabled)
     val rows = when {
         !sections.breakdown || estimate != null -> emptyList()
         sections.toolTypes -> view.segments.filter(view::showsRow)
@@ -110,9 +128,51 @@ fun visibleBreakdown(
         estimate = estimate.takeIf { sections.breakdown },
         totals = totals.branch.takeIf { sections.totals && totals.hasUsage },
         subagentTokens = if (sections.totals) totals.subagent.tokens else 0,
-        cost = costRows(sections.cost, totals, costEnabled),
+        cost = if (headerCosts) null else costRows(sections.cost, totals, costEnabled),
+        lastTurn = if (sections.totals) lastTurnUsage(totals, headerCosts) else null,
+        totalsCost = totals.branch.knownCost().takeIf { headerCosts && totals.hasUsage },
+        allBranches = if (sections.totals && totals.hasUsage && showsAllBranches(totals.branch, totals.total)) {
+            AllBranchesUsage(totals.total, totals.total.knownCost().takeIf { headerCosts })
+        } else {
+            null
+        },
     )
 }
+
+/**
+ * Under [ContextCostScope.BOTH] with Totals on, each usage block carries its own cost in its header
+ * (web's layout), replacing the separate Cost section. Any other scope keeps the one cost line.
+ */
+private fun headerCosts(sections: ContextDetailSections, costEnabled: Boolean): Boolean =
+    costEnabled && sections.totals && sections.cost == ContextCostScope.BOTH
+
+private fun UsageAmount.knownCost(): Double? = cost.takeIf { costKnown && it.isFinite() }
+
+/**
+ * Last turn shows once the chat has something to report on: a reply in progress, a reply with
+ * usage, or a branch that has usage (so a reply saved without any reads "not available").
+ */
+private fun lastTurnUsage(totals: ContextUsageTotals, headerCosts: Boolean): LastTurnUsage? {
+    val usage = totals.lastTurn
+    if (!totals.turnInProgress && usage == null && !totals.hasUsage) return null
+    return LastTurnUsage(
+        usage = usage,
+        inProgress = totals.turnInProgress,
+        cost = usage?.knownCost()?.takeIf { headerCosts },
+    )
+}
+
+/**
+ * Whether "All branches" differs from this branch (upstream `showTotal`, `Breakdown.tsx`): any
+ * token bucket differs, or both costs are complete and the total is higher. Token differences
+ * count whatever the cost coverage, so a partially priced history can't hide a real difference.
+ */
+fun showsAllBranches(branch: UsageAmount, total: UsageAmount): Boolean =
+    total.input != branch.input ||
+        total.output != branch.output ||
+        total.cacheRead != branch.cacheRead ||
+        total.cacheWrite != branch.cacheWrite ||
+        (branch.costKnown && showsAllBranchesCost(branch, total))
 
 private fun costRows(scope: ContextCostScope, totals: ContextUsageTotals, costEnabled: Boolean): CostRows? {
     if (!costEnabled || !totals.hasUsage) return null

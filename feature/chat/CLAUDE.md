@@ -1420,6 +1420,14 @@ The breakdown (`util/ContextBreakdown.kt`, rendered by `ContextUsageGauge.kt`) p
   anchoring on it makes the reply's own usage never cancel pending, and Totals and Cost double for
   the rest of the session (`ChatViewModelUsageTotalsTest` fails with 2000 instead of 1000).
 
+**Last turn and All branches (v0.8.9-rc1).** Under Totals the breakdown lists, as web's three
+`Usage` panels do: the tail reply's usage (`lastTurnUsage`; "Current turn (so far)" while streaming,
+the live usage only once an event arrived, never the previous reply's), Totals for this branch, and
+All branches when any bucket or a fully priced cost differs (`showsAllBranches`, web's `showTotal`).
+Under the "both" cost scope each block carries its cost in its header and the separate Cost line
+goes. Upstream's `turnInProgress` (live response == viewed tail) is plain `isStreaming` here: the
+live reply always renders after the displayed tail, and `switchBranch` is refused mid-stream.
+
 **Detail levels and the compact suggestion.** The breakdown is always computed in full and filtered
 at render by the user's `ContextDetailSections` (Settings → Chat → Context usage: Simple / Standard /
 Detailed presets, or a custom mix), through `visibleBreakdown` in `:core:model`. The rendering itself

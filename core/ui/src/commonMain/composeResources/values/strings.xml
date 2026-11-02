@@ -86,6 +86,11 @@
     <string name="context_usage_cost">Cost</string>
     <string name="context_usage_cost_branch">Cost (this branch)</string>
     <string name="context_usage_cost_all">All branches</string>
+    <string name="context_usage_last_turn">Last turn</string>
+    <string name="context_usage_current_turn">Current turn (so far)</string>
+    <string name="context_usage_waiting">Waiting for model usage…</string>
+    <string name="context_usage_unavailable">Usage not available for this turn</string>
+    <string name="context_usage_this_branch">This branch</string>
     <string name="context_usage_tools_all">Tools</string>
     <string name="context_usage_used">Used</string>
     <!-- Message and conversation timestamps (#445). Compact on purpose: they sit under a bubble or in a row subtitle -->

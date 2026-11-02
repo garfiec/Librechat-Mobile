@@ -23,7 +23,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -40,7 +39,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.usage.percentOf
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveLinearProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.contextusage.ContextBreakdownCard
 import com.garfiec.librechat.core.ui.contextusage.pressureColor
@@ -146,7 +147,7 @@ fun ContextUsageMenuItem(
             ) {
                 Text(text = stringResource(Res.string.context_usage_label))
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                    LinearProgressIndicator(
+                    AdaptiveLinearProgressIndicator(
                         progress = { usage.usedFraction },
                         modifier = Modifier.widthIn(max = GAUGE_BAR_WIDTH).fillMaxWidth(),
                         color = pressureColor(percent) ?: MaterialTheme.colorScheme.primary,
@@ -211,7 +212,7 @@ fun ContextUsageExpandableGauge(
                 }
             }
             if (nudge != null) {
-                TextButton(
+                AdaptiveTextButton(
                     onClick = { confirmCompact = true },
                     modifier = Modifier
                         .align(Alignment.End)
@@ -273,7 +274,7 @@ private fun ContextGaugePill(
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        LinearProgressIndicator(
+        AdaptiveLinearProgressIndicator(
             progress = { usedFraction },
             modifier = if (fillWidth) {
                 Modifier.weight(1f)
