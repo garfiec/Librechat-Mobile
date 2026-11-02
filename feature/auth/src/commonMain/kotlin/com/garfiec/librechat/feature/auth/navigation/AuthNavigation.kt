@@ -1,5 +1,7 @@
 package com.garfiec.librechat.feature.auth.navigation
 
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.garfiec.librechat.feature.auth.screen.ForgotPasswordScreen
@@ -12,6 +14,7 @@ import com.garfiec.librechat.feature.auth.screen.TermsScreen
 import com.garfiec.librechat.feature.auth.screen.TwoFactorScreen
 import com.garfiec.librechat.feature.auth.screen.TwoFactorSetupScreen
 import com.garfiec.librechat.feature.auth.screen.VerifyEmailScreen
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
@@ -74,6 +77,8 @@ fun EntryProviderScope<NavKey>.authEntries(
     onAuthComplete: () -> Unit,
     onTermsAccepted: () -> Unit,
     onTermsDeclined: () -> Unit,
+    /** The shell's decline in flight. A flow read inside the entry, so the screen sees it change. */
+    termsDeclining: StateFlow<Boolean>,
 ) {
     entry<ServerUrl> {
         ServerUrlScreen(
@@ -160,9 +165,11 @@ fun EntryProviderScope<NavKey>.authEntries(
     // Pushed over the signed-in stack when the server requires the terms (modalAcceptance), so
     // accepting just returns to where the user was. Never dismissable: back is a decline.
     entry<Terms> {
+        val declining by termsDeclining.collectAsStateWithLifecycle()
         TermsScreen(
             onAccept = onTermsAccepted,
             onDecline = onTermsDeclined,
+            declining = declining,
         )
     }
     entry<ResetPassword> { key ->

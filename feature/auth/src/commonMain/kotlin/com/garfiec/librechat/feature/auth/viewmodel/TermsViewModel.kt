@@ -15,6 +15,8 @@ data class TermsUiState(
     val termsText: String = "",
     val isLoading: Boolean = false,
     val isAccepted: Boolean = false,
+    /** The acceptance request is in flight; set with [isLoading], which also covers loading the text. */
+    val isAccepting: Boolean = false,
     val error: String? = null,
 )
 
@@ -52,17 +54,19 @@ class TermsViewModel(
 
     fun acceptTerms() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            _uiState.value = _uiState.value.copy(isLoading = true, isAccepting = true, error = null)
             when (userRepository.acceptTerms()) {
                 is Result.Success -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
+                        isAccepting = false,
                         isAccepted = true,
                     )
                 }
                 is Result.Error -> {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
+                        isAccepting = false,
                         error = "Could not accept terms. Please try again.",
                     )
                 }

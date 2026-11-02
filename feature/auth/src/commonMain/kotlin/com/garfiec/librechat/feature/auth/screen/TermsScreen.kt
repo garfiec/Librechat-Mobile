@@ -46,19 +46,26 @@ import org.koin.compose.viewmodel.koinViewModel
  * only when acceptance is required, so it cannot be dismissed: the top-bar arrow, system back and the
  * predictive back gesture all mean [onDecline], as the explicit Decline button does. Upstream's
  * decline signs out; the shell does the same for this account only.
+ *
+ * [declining] is the shell's decline in flight: the screen stays up through its revoke call, and
+ * Decline, Accept and back do nothing until it ends.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TermsScreen(
     onAccept: () -> Unit,
     onDecline: () -> Unit,
+    declining: Boolean,
     modifier: Modifier = Modifier,
     viewModel: TermsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnAccepted by rememberUpdatedState(onAccept)
+    val decline = declineUnlessBusy(isAccepting = uiState.isAccepting, isDeclining = declining, onDecline = onDecline)
 
-    PlatformBackHandler(enabled = true, onBack = onDecline)
+    // Always enabled: a disabled handler would let the system pop the screen, dismissing terms the
+    // server requires. While busy it takes back and does nothing.
+    PlatformBackHandler(enabled = true, onBack = decline)
 
     LaunchedEffect(uiState.isAccepted) {
         if (uiState.isAccepted) {
@@ -72,7 +79,7 @@ fun TermsScreen(
         topBar = {
             AdaptiveTopBar(
                 spec = AdaptiveTopBarSpec(
-                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.terms_decline), onDecline),
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.terms_decline), decline),
                     title = BarTitle(stringResource(Res.string.terms_title)),
                     actions = emptyList(),
                 ),
@@ -155,16 +162,16 @@ fun TermsScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         AdaptiveOutlinedButton(
-                            onClick = onDecline,
+                            onClick = decline,
                             modifier = Modifier.weight(1f),
-                            enabled = !uiState.isLoading,
+                            enabled = !uiState.isLoading && !declining,
                         ) {
                             Text(stringResource(Res.string.terms_decline))
                         }
                         AdaptiveButton(
                             onClick = viewModel::acceptTerms,
                             modifier = Modifier.weight(1f),
-                            enabled = !uiState.isLoading,
+                            enabled = !uiState.isLoading && !declining,
                         ) {
                             if (uiState.isLoading) {
                                 AdaptiveCircularProgressIndicator(
@@ -181,4 +188,12 @@ fun TermsScreen(
             }
         }
     }
+}
+
+/**
+ * What back, predictive back, the top-bar arrow and Decline all do: decline, unless an accept or a
+ * decline is already in flight, when they do nothing.
+ */
+internal fun declineUnlessBusy(isAccepting: Boolean, isDeclining: Boolean, onDecline: () -> Unit): () -> Unit = {
+    if (!isAccepting && !isDeclining) onDecline()
 }

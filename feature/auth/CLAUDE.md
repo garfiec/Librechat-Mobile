@@ -144,6 +144,11 @@
 - Required means not dismissable: Accept pops; Decline, the top-bar arrow, system back and predictive
   back all decline, which (as upstream's decline-logs-out) revokes this account's server session
   best-effort and ends its local session for sign-in — this account only, no failover.
+- The screen stays up through the revoke call. `TermsRequirementStateHolder.decline` runs once at a
+  time (`declining`); while it or an accept is in flight, Decline and Accept are disabled and back
+  is consumed and ignored (`declineUnlessBusy`) — never a disabled `BackHandler`, which would let
+  the system pop the screen. The local end is skipped if the session already ended or a failover
+  moved off the declining account during the revoke.
 - The shell keeps the requirement as state (`TermsRequirementStateHolder`), not a route event, and
   opens the screen whenever it is required, signed in, out of the sign-in flow and not already on the
   stack: a requirement learned while the stack is still on sign-in is kept until it reaches chat.

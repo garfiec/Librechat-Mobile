@@ -807,6 +807,7 @@ fun MainNavDisplay(
                 },
                 // Signs out of this account; the sign-in route that follows clears the stack.
                 onTermsDeclined = navHostViewModel::declineTerms,
+                termsDeclining = navHostViewModel.termsRequirement.declining,
             )
             chatEntries(
                 onNavigate = { navigator.navigate(it) },

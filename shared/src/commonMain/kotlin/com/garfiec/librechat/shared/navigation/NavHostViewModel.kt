@@ -36,6 +36,7 @@ import com.garfiec.librechat.core.network.client.SessionHealth
 import com.garfiec.librechat.core.network.client.TokenManager
 import com.garfiec.librechat.feature.conversations.drawer.AccountUiModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.channels.Channel
@@ -174,16 +175,19 @@ class NavHostViewModel(
     /**
      * Ends the active account's session and routes to sign-in, for a sign-out the user chose for THIS
      * account: no failover to another signed-in account and no "signed out" dialog. The roster entry
-     * and cached data stay, so signing back in restores everything.
+     * and cached data stay, so signing back in restores everything. Does nothing when [stillApplies],
+     * read under [sessionDecision], says the session it was asked for is gone.
      */
-    private suspend fun endActiveSessionForSignIn() = sessionDecision.withLock<Unit> {
-        termsRequirement.clear()
-        tokenManager.endSessionForReauth(activeAccountId())
-        sessionRevision.update { it + 1 }
-        // Lowered before the route event goes out, as in [onSessionEnded].
-        _isLoggedIn.value = false
-        _sessionRoute.trySend(SessionRoute.SignIn)
-    }
+    private suspend fun endActiveSessionForSignIn(stillApplies: () -> Boolean = { true }) =
+        sessionDecision.withLock<Unit> {
+            if (!stillApplies()) return@withLock
+            termsRequirement.clear()
+            tokenManager.endSessionForReauth(activeAccountId())
+            sessionRevision.update { it + 1 }
+            // Lowered before the route event goes out, as in [onSessionEnded].
+            _isLoggedIn.value = false
+            _sessionRoute.trySend(SessionRoute.SignIn)
+        }
 
     /**
      * The user declined the required terms. Upstream signs out; here that is this account only, as
@@ -192,10 +196,19 @@ class NavHostViewModel(
      * session is revoked first, best-effort, while the slot still holds the credential to revoke it.
      */
     fun declineTerms() {
-        termsRequirement.clear()
-        viewModelScope.launch {
-            authRepository.revokeActiveSession()
-            endActiveSessionForSignIn()
+        if (!_isLoggedIn.value) return
+        // The account that declined. An expiry that fails over during the revoke call moves the active
+        // pointer; ending "the active account" after that would sign out an account that agreed to nothing.
+        val declining = activeAccountId()
+        // Undispatched so the in-flight flag is set before this returns: a second tap sees it.
+        viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            termsRequirement.decline(
+                revoke = authRepository::revokeActiveSession,
+                // Skipped when an expiry already ended it or a failover moved off the declining account.
+                endSession = {
+                    endActiveSessionForSignIn { _isLoggedIn.value && activeAccountId() == declining }
+                },
+            )
         }
     }
 

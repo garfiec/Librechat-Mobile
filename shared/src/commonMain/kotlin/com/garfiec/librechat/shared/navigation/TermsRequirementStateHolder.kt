@@ -32,6 +32,31 @@ class TermsRequirementStateHolder(private val activeAccount: () -> String?) {
         _required.value = false
     }
 
+    private val _declining = MutableStateFlow(false)
+
+    /**
+     * A decline is running. The Terms screen stays up through the revoke call, so it disables
+     * Decline, Accept and back on this; [decline] ignores a second call while it is set.
+     */
+    val declining: StateFlow<Boolean> = _declining.asStateFlow()
+
+    /**
+     * Declines once: [revoke] the server session, then [endSession] for sign-in. A call while one is
+     * running returns at once, so a double tap cannot revoke twice or route to sign-in twice. The flag
+     * is set before the first suspension and reset however this ends, since the shell outlives the
+     * screen and the next Terms screen must start enabled.
+     */
+    suspend fun decline(revoke: suspend () -> Unit, endSession: suspend () -> Unit) {
+        if (!_declining.compareAndSet(expect = false, update = true)) return
+        try {
+            clear()
+            revoke()
+            endSession()
+        } finally {
+            _declining.value = false
+        }
+    }
+
     companion object {
         /**
          * Whether the shell should open the terms now: required, signed in, out of the sign-in flow
