@@ -1700,9 +1700,10 @@ POST   /api/messages/:conversationId/owner-text {messageIds:[1..50]} (bare, NOT 
                                                                `created` frame's message)
 POST   /api/agents/tools/approvals/reset {agentId, toolName?}  → {reset:true}; forget the caller's
                                                                remembered approvals (BUILT; see below)
-GET    /api/messages/:c/:m/parts/:partIndex, /:c/:m/subagent-calls
-                                                               opt-in `?toolPreviews=1` previews (NOT built; wave 3).
-                                                               subagent-calls is subagent-file-delivery slice 2: DEFERRED;
+GET    /api/messages/:c/:m/parts/:partIndex?toolCallId=&stepId=&agentId=
+                                                               → {conversationId,messageId,partIndex,tool_call} (BUILT:
+                                                               MessagesApi.getToolCallPart; see "Tool-call previews" below)
+GET    /api/messages/:c/:m/subagent-calls?files=[…]            subagent-file-delivery slice 2: DEFERRED;
                                                                slice 1 places unclaimed child files client-side
 POST   /api/mcp/app/validate, /resources/read, /resources/list, /resources/templates/list,
        /app-tool-call; GET /api/mcp/sandbox                    MCP Apps (NOT built; wave 3)
@@ -1840,6 +1841,41 @@ PATCH  /api/code-environments/conversations/:id/decision   move/attach/detach a 
   rejection does not save the new chat (`shouldPersistCodeWorkspaceInitializationError`).
 - Not built: code approval mode (`codeApprovalMode`, `statefulCodeSessions.approvalModes`), machine
   setup and pairing (same-origin browser session only), the agent editor's machine allowlist.
+
+**Tool-call previews (`?toolPreviews=1`, BUILT).** Opt-in query parameter, exact value `1`
+(`packages/data-provider/src/previews.ts`, mirrored as `tool-call-previews-param`/`-version`). No
+header and no config flag reaches clients; a server before rc1, or rc1 with
+`toolCallPreviews.enabled: false`, ignores it and sends everything in full with no markers. No
+version gate: the code path is the same either way.
+- Honoured by `GET /api/messages/:c` (chat load, pull-to-refresh, media gallery, search preview and
+  prefetch send it), `POST /api/convos/fork`, `/api/convos/duplicate`, `/api/share/:id/fork` and
+  `/api/messages/branch` (these shape the response only; mobile caches none of their messages).
+  NOT honoured by search, share reads, `GET /:c/:m` or export; export sends no param
+  (`MessageRepository.fetchMessagesFull`, which never writes Room).
+- A settled agent tool call with an id, unique identity (`id + stepId + part.agentId`) and not
+  `ask_user_question`/image-gen is shortened: `output` over 512 chars (JSON keeps every key; text keeps
+  head + `"\n…\n"` + tail; the attached-workspace exit trailer is kept) → `outputTruncated`,
+  `outputLength` (UTF-16); `args` over 512 → `argsTruncated`, `argsLength` (an object that can't fit
+  becomes a string head); `subagent_content` → removed, `subagentContentOmitted`,
+  `subagentContentParts`, `subagentAttachmentCalls: [{id, agentId?, stepId?}]`. Every shortened call
+  carries `previewRevision` (the message's `updatedAt`). `stepId` is now decoded on every call: the
+  part route matches it exactly.
+- Mobile caches previewed rows in Room WITH their markers (`AgentToolCall.isPreview`), so nothing reads
+  one as complete. Fetched parts live in memory only (`ToolPartHydrationDelegate`), overlaid on the
+  built display path. The context estimate counts `argsLength`/`outputLength`.
+- `GET /api/messages/:c/:m/parts/:partIndex?toolCallId=&stepId=&agentId=` (`stepId`/`agentId` only
+  when non-empty, every id encoded): 200 `{conversationId, messageId, partIndex, tool_call}`, the stored
+  call in full (`subagent_content` included). `partIndex` must be a non-negative safe integer but is only
+  echoed; the call is found by identity. 400 `Invalid tool call part` (bad index, missing
+  `toolCallId`); 404 `Tool call not found` (message gone, identity absent or repeated, subagent
+  thread) plus the message-validation 403/404; 500 on a read failure. Owner-scoped; a live job's
+  owner can read it. Not rate limited. Mobile shows any failure as "Couldn't load the full tool
+  call." with Retry; no automatic retry.
+- Write guard: only `POST /api/messages/:c` refuses marker-bearing content (400 "Tool call previews
+  cannot be saved as message content"); mobile never calls it. **`POST /api/convos/import` has no
+  guard**: a file with previews would be stored shortened for good, so the importer and
+  `ConversationRepository.importConversation` refuse such a file client-side
+  (`ToolCallPreviewImportException`).
 
 ### Other
 ```
