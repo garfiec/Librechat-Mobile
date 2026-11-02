@@ -159,6 +159,8 @@ internal fun SelectedToolRow(
     toolDescription: String?,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Drawn before the remove button (an MCP tool's approval mode). */
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
@@ -182,6 +184,7 @@ internal fun SelectedToolRow(
                 )
             }
         }
+        trailing?.invoke()
         IconButton(onClick = onRemove) {
             Icon(
                 imageVector = Icons.Default.Close,

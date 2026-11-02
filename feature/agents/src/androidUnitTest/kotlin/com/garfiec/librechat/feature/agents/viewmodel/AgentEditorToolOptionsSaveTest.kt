@@ -2,6 +2,8 @@ package com.garfiec.librechat.feature.agents.viewmodel
 
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.mcp.McpTool
+import com.garfiec.librechat.feature.agents.util.ToolApprovalMode
+import com.garfiec.librechat.feature.agents.util.withApprovalMode
 import com.google.common.truth.Truth.assertThat
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -98,6 +100,35 @@ class AgentEditorToolOptionsSaveTest {
 
         assertThat(editing(agent).toUpdateAgentRequest().toolOptions).isNull()
         assertThat(editing(agent).hasUnsavedChanges()).isFalse()
+    }
+
+    @Test
+    fun `a mode change makes the form dirty and saves under the full id, and inherit clears it`() {
+        val agent = Agent(id = "agent-1", tools = listOf("create_issue_mcp_github"))
+        val picked = editing(agent).let {
+            it.copy(toolOptions = it.toolOptions.withApprovalMode("create_issue_mcp_github", ToolApprovalMode.CHAT))
+        }
+
+        assertThat(picked.hasUnsavedChanges()).isTrue()
+        val sent = picked.toUpdateAgentRequest().toolOptions?.get("create_issue_mcp_github") as JsonObject
+        assertThat(sent["approval_mode"]).isEqualTo(JsonPrimitive("chat"))
+
+        // Saved with a mode, then set back to inherit: the stored map must be cleared, not left alone.
+        val saved = editing(agent.copy(toolOptions = picked.toolOptions))
+        val inherited = saved.copy(toolOptions = saved.toolOptions.withApprovalMode("create_issue_mcp_github", null))
+        assertThat(inherited.toUpdateAgentRequest().toolOptions).isEqualTo(JsonObject(emptyMap()))
+    }
+
+    @Test
+    fun `a selected tool whose catalog has not loaded keeps its full-id options`() {
+        val agent = Agent(
+            id = "agent-1",
+            tools = listOf("create_issue_mcp_github"),
+            toolOptions = JsonObject(mapOf("create_issue_mcp_github" to chatMode)),
+        )
+        val state = AgentEditorUiState(isEditMode = true, agentId = agent.id).applyAgentData(agent)
+
+        assertThat(state.toUpdateAgentRequest().toolOptions?.keys).containsExactly("create_issue_mcp_github")
     }
 
     @Test

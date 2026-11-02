@@ -148,6 +148,23 @@
   gates) and instantly-saved files/avatar from counting as edits. `applyAgentData` sets
   `loadedAgent`, so load and revert both move the baseline.
 
+### Tool approval modes (v0.8.9-rc1)
+- MCP tool rows in "Tools & Actions" get a mode icon button (`ToolApprovalModeButton`) when
+  `isToolApprovalModesAvailable` (rc1+ AND `/api/endpoints` `agents.toolApproval.agentModes`). Rows
+  are mapped in the VM (`mcpToolRows`, `selectedMcpToolRows()`), not in composition. Whole-server rows
+  and tools whose server is gone get no picker (upstream's per-server bulk mode is not ported).
+- **`tool_options` keys are the full MCP id** `<tool>_mcp_<normalizedServer>`, the same string as the
+  `agent.tools` entry. `selectedMcpTools` holds bare names, so never match options against it alone:
+  `pruneToolOptions` keeps full ids, ids under a whole-server marker and legacy bare keys, and an
+  update that drops the last option sends `{}` (an omitted map leaves the stored one in place).
+- A mode change goes through `withApprovalMode` (port of upstream `withApprovalModes`): a fresh
+  `approval_revision` on every change; inherit removes both fields and keeps the rest. It edits the
+  form only and saves with the agent. The admin constraint (`toolApprovalConstraint`, a hand-written
+  glob, not Regex) leaves only inherit and Always ask. Both are in `scripts/mirrors.json`.
+- Reset: per tool in the mode menu, only when the SAVED mode is chat/always (the server checks the
+  saved agent); per agent in the agent page ⋮ for every viewer (VIEW access is enough). The MCP server
+  card menu stays removed.
+
 ### Unified tools picker (v0.8.8)
 - `ToolsMarketplaceDialog` is the ONE picker for what an agent can do — built-in capabilities,
   plugin tools, MCP servers and skills in one searchable list with kind filter chips. It replaced

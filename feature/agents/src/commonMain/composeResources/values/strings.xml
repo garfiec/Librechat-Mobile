@@ -360,4 +360,17 @@
         <item quantity="one">You can pin up to %1$d favorite.</item>
         <item quantity="other">You can pin up to %1$d favorites.</item>
     </plurals>
+    <!-- Agent tool approval modes (v0.8.9-rc1) -->
+    <string name="tool_approval_mode_cd">Tool approval mode: %1$s</string>
+    <string name="tool_approval_inherit">Use inherited policy</string>
+    <string name="tool_approval_ask">Always ask</string>
+    <string name="tool_approval_allow">Always approve</string>
+    <string name="tool_approval_chat">Ask once per chat</string>
+    <string name="tool_approval_always">Ask once, then always approve</string>
+    <string name="tool_approval_admin_ask">Administrator policy requires approval.</string>
+    <string name="tool_approval_admin_deny">Administrator policy blocks this tool.</string>
+    <string name="tool_approval_reset">Reset my remembered approvals</string>
+    <string name="tool_approval_reset_success">Your remembered approvals were reset.</string>
+    <string name="tool_approval_reset_error">Could not reset remembered approvals. Please retry.</string>
+    <string name="tool_approval_reset_forbidden">You can't reset approvals for this agent.</string>
 </resources>

@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.AgentCategory
 import com.garfiec.librechat.core.model.AgentTool
 import com.garfiec.librechat.core.model.request.CreateActionRequest
 import com.garfiec.librechat.core.model.request.CreateAgentRequest
+import com.garfiec.librechat.core.model.request.ResetToolApprovalsRequest
 import com.garfiec.librechat.core.model.request.RevertAgentRequest
 import com.garfiec.librechat.core.model.request.UpdateAgentRequest
 import com.garfiec.librechat.core.model.response.AgentListResponse
@@ -196,4 +197,17 @@ class AgentsApi constructor(
         client.get {
             url { path("api/agents/tools") }
         }.body()
+
+    /**
+     * Forgets the caller's remembered tool approvals for an agent (v0.8.9-rc1), answering
+     * `{ reset: true }`. VIEW access is enough. 403 `APPROVAL_RESET_FORBIDDEN` when the agent is
+     * gone or unviewable, or for a per-tool reset whose SAVED mode is not chat/always; 503
+     * `APPROVAL_RESET_FAILED`; rate-limited by the tool-call limiter.
+     */
+    suspend fun resetToolApprovals(request: ResetToolApprovalsRequest) {
+        client.post {
+            url { path("api/agents/tools/approvals/reset") }
+            setBody(request)
+        }
+    }
 }

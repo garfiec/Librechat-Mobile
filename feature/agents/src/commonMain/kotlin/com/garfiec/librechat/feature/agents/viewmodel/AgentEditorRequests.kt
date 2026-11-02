@@ -278,6 +278,9 @@ internal fun pruneToolOptions(
     val kept = options.filterKeys { key ->
         key in savedToolSet ||
             key in selectedMcpTools ||
+            // A selected tool whose catalog entry hasn't loaded is saved under the wrong key
+            // (a server marker), so its full-id options are kept rather than lost as well.
+            key.substringBefore(MCP_DELIMITER, missingDelimiterValue = "") in selectedMcpTools ||
             wholeServerSuffixes.any { suffix -> key.endsWith(suffix) && key.length > suffix.length }
     }
     return if (kept.isEmpty()) null else JsonObject(kept)

@@ -4894,6 +4894,33 @@
       },
       "why": "The web's list-filter windows (Any time, Today, Previous 7/30 days, Previous year as 1/7/30/365 whole days back from local midnight) and which endpoints the filter offers (served names within maxEndpointNameLength, plus any still selected). The drawer's filter sheet copies them.",
       "failure_mode": "The same filter lists different chats on the phone and the web, or the sheet offers an endpoint name the route refuses with a 400. Nothing fails to decode."
+    },
+    {
+      "id": "tool-approval-constraint",
+      "upstream": {
+        "file": "packages/data-provider/src/approval.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/util/ToolApprovalModes.kt",
+        "symbol": "toolApprovalConstraint / globMatches"
+      },
+      "why": "Which approval modes the agent editor offers per MCP tool: upstream getToolApprovalConstraint's rule order (deny, ask, allow, then dontAsk/bypass) and its '*'-only glob over the agents toolApproval policy.",
+      "failure_mode": "The mode menu offers Always approve or a remembered mode the admin's policy will never honour (it saves and does nothing), or disables modes the policy allows. Nothing fails to decode."
+    },
+    {
+      "id": "tool-approval-modes-revision",
+      "upstream": {
+        "file": "client/src/hooks/Agents/useMCPToolOptions.ts",
+        "symbol": "withApprovalModes",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/util/ToolApprovalModes.kt",
+        "symbol": "withApprovalMode"
+      },
+      "why": "How a mode change is written to tool_options: a fresh approval_revision UUID on every change (or on a remembering mode without a valid one), inherit removing both fields while keeping the tool's other options.",
+      "failure_mode": "A changed mode keeps old grants alive (stale revision), or a remembering mode without a revision is silently ignored by the server. Nothing fails to decode."
     }
   ]
 }

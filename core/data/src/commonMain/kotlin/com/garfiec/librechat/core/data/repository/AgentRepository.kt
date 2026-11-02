@@ -105,4 +105,10 @@ interface AgentRepository {
 
     // Tools
     suspend fun getAvailableTools(): Result<List<AgentTool>>
+
+    /**
+     * Forgets the caller's remembered tool approvals for [agentId], or only for [toolName] (the
+     * full MCP id) when given (v0.8.9-rc1). Touches no agent data, so no cache is invalidated.
+     */
+    suspend fun resetToolApprovals(agentId: String, toolName: String? = null): Result<Unit>
 }

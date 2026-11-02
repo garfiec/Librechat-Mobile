@@ -117,6 +117,8 @@ class AgentCapabilitiesDelegate(
                         isAclAvailable = handoffsAvailable,
                         isAgentFileUnlinkAvailable = version != null &&
                             BackendVersion.isCompatibleOrNewer(version, "0.8.8-rc1"),
+                        isToolApprovalVersionSupported = version != null &&
+                            BackendVersion.isCompatibleOrNewer(version, "0.8.9-rc1"),
                     )
                 }
             }
@@ -146,6 +148,7 @@ class AgentCapabilitiesDelegate(
                     ToolConstants.ASK_USER_QUESTION in agentsCapabilities
                 stateHandle.update {
                     copy(
+                        toolApprovalPolicy = configs["agents"]?.toolApproval,
                         isCodeInterpreterAvailable = codeAvailable,
                         isChainAvailable = chainAvailable,
                         isGenericToolsAvailable = genericToolsAvailable,

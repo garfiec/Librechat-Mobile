@@ -1610,7 +1610,8 @@ DELETE /api/projects/:projectId/files/:fileId                  project context (
 GET    /api/endpoints/reasoning-capabilities?endpoint=          {capabilities, expiresInMs} (NOT built; wave 2)
 GET|POST|DELETE /api/schedules/:id/mcp-consent                 (NOT built; wave 2)
 POST   /api/messages/:conversationId/owner-text                PII owner text (NOT built; wave 2)
-POST   /api/agents/tools/approvals/reset                       agent approval modes (NOT built; wave 2)
+POST   /api/agents/tools/approvals/reset {agentId, toolName?}  → {reset:true}; forget the caller's
+                                                               remembered approvals (BUILT; see below)
 GET    /api/messages/:c/:m/parts/:partIndex, /:c/:m/subagent-calls
                                                                opt-in `?toolPreviews=1` previews (NOT built; wave 3)
 POST   /api/mcp/app/validate, /resources/read, /resources/list, /resources/templates/list,
@@ -1618,6 +1619,27 @@ POST   /api/mcp/app/validate, /resources/read, /resources/list, /resources/templ
 GET    /api/convos/:conversationId/pull-request; POST /api/convos/pull-requests; /api/pull-requests/*
                                                                (NOT built; wave 3)
 ```
+
+**Tool approval: Always allow and agent approval modes** (BUILT)
+- `POST /api/agents/tools/approvals/reset` (`api/server/routes/agents/tools.js`,
+  `packages/api/src/agents/hitl/controller.ts`). Body `{ agentId, toolName? }`, NOT `arg`-wrapped, and
+  the schema is `.strict()`: an extra key, or `toolName: null`, is 400. `toolName` is the full MCP id
+  (`<tool>_mcp_<normalizedServer>`); without it every remembered approval the caller has for the agent
+  goes. Reply 200 `{ reset: true }`. Errors: 401 `UNAUTHORIZED`; 400 `INVALID_APPROVAL_RESET`; 403
+  `APPROVAL_RESET_FORBIDDEN` (no such agent, no VIEW access, or a per-tool reset whose SAVED
+  `approval_mode` is not `chat`/`always`); 503 `APPROVAL_RESET_FAILED`. Rate-limited by
+  `toolCallLimiter` (429). Resets only the caller's own grants; VIEW access is enough. It does not
+  touch a chat's "Always allow" list (`conversation.toolApprovalAllows`), which has no route at all.
+  Mobile: agent page ⋮ (whole agent) and the editor's per-tool mode menu.
+- `review_configs[]` gains `allow_always` (offer "Always allow" = `approve` + `scope: "session"`; a
+  scope on a call not offered it 403s the batch, `"always"` is always rejected), `remember_scope`
+  (`chat`|`always`: a plain approve teaches a grant) and `remember_unavailable`
+  (`connection`|`disabled`|`storage`|`background`). Resume 403 "Decision not permitted for one or more
+  tools" carries `disallowed: [tool_call_id]`; the fingerprint 403s carry none.
+- `agent.tool_options[<toolId>]` gains `approval_mode` (`ask`|`allow`|`chat`|`always`) and
+  `approval_revision` (UUID, rewritten on every change). Keys are the full MCP id; the update route
+  stores the sent map as is. `GET /api/endpoints` `agents.toolApproval` = `{enabled, agentModes, mode,
+  allow, deny, ask}`, with `agentModes` already ANDed with `enabled`; it gates the picker.
 
 **Revised request / response shapes**
 - `GET /api/convos` takes `updatedAfter`, `createdAfter` (ISO 8601), repeatable `endpoints`, `hasFiles`,

@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.model.AgentTool
 import com.garfiec.librechat.core.model.PaginatedAgents
 import com.garfiec.librechat.core.model.request.CreateActionRequest
 import com.garfiec.librechat.core.model.request.CreateAgentRequest
+import com.garfiec.librechat.core.model.request.ResetToolApprovalsRequest
 import com.garfiec.librechat.core.model.request.RevertAgentRequest
 import com.garfiec.librechat.core.model.request.UpdateAgentRequest
 import com.garfiec.librechat.core.network.api.AgentsApi
@@ -222,6 +223,10 @@ class AgentRepositoryImpl(
         return safeApiCall {
             agentsApi.getAvailableTools()
         }
+    }
+
+    override suspend fun resetToolApprovals(agentId: String, toolName: String?): Result<Unit> = safeApiCall {
+        agentsApi.resetToolApprovals(ResetToolApprovalsRequest(agentId = agentId, toolName = toolName))
     }
 
     private suspend fun invalidateCache() {

@@ -25,13 +25,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
@@ -57,6 +57,7 @@ import com.garfiec.librechat.feature.agents.components.AgentSkillsSection
 import com.garfiec.librechat.feature.agents.components.AgentSubagentsSection
 import com.garfiec.librechat.feature.agents.components.AgentSupportContactSection
 import com.garfiec.librechat.feature.agents.components.AgentWebSearchSection
+import com.garfiec.librechat.feature.agents.components.ToolApprovalModeButton
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
 import com.garfiec.librechat.feature.agents.viewmodel.AgentAclViewModel
@@ -349,20 +350,29 @@ internal fun AgentEditorForm(
         // MCP tools sit in the same selected list as plugin tools: which server a capability was
         // installed from is a detail of its plumbing, not of what the agent can do. Only the ones
         // actually on the agent are listed — browsing the rest is the picker's job.
-        if (uiState.selectedMcpTools.isNotEmpty()) {
-            val mcpByName = remember(uiState.mcpTools) { uiState.mcpTools.associateBy { it.name } }
+        // A tool whose server has since gone away still renders, by raw name, so it can be removed
+        // rather than sitting invisibly on the agent. The approval mode button shows only on a
+        // tool with a known server, and only when the server enables agent approval modes.
+        val mcpRows by viewModel.mcpToolRows.collectAsStateWithLifecycle()
+        if (mcpRows.isNotEmpty()) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                uiState.selectedMcpTools.forEach { toolName ->
-                    // A tool whose server has since gone away still renders, by raw name, so it
-                    // can be removed rather than sitting invisibly on the agent.
-                    val mcpTool = mcpByName[toolName]
+                mcpRows.forEach { row ->
                     SelectedToolRow(
-                        toolName = toolName,
-                        toolDescription = mcpTool?.serverName ?: mcpTool?.description,
-                        onRemove = { viewModel.onMcpToolToggled(toolName) },
+                        toolName = row.name,
+                        toolDescription = row.subtitle,
+                        onRemove = { viewModel.onMcpToolToggled(row.selectionKey) },
+                        trailing = row.approval?.let { approval ->
+                            {
+                                ToolApprovalModeButton(
+                                    approval = approval,
+                                    onModeChange = { mode -> viewModel.onToolApprovalModeChanged(approval.toolId, mode) },
+                                    onReset = { viewModel.resetToolApprovals(approval.toolId) },
+                                )
+                            }
+                        },
                     )
                 }
             }
