@@ -223,7 +223,8 @@ class ConversationListStateHolder(
         filteredCursor = null
         _filterLoadFailed.value = false
         remoteTitleHits = emptyList()
-        _hasMore.value = true
+        // Not until the first page says so: a load-more meanwhile would fetch that page twice.
+        _hasMore.value = next == null
         _isLoadingMore.value = false
         regroup()
         if (next == null) {

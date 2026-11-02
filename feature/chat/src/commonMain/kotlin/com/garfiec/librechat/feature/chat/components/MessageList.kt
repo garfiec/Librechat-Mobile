@@ -173,6 +173,8 @@ fun MessageList(
      * read. Automatic scrolls stop short of it (see [scrollToTail]).
      */
     extraEndSpace: Dp = 0.dp,
+    /** Reports whether the list rests near its tail, by the same measure its tail follower uses. */
+    onNearBottomChange: ((Boolean) -> Unit)? = null,
 ) {
     val extraEndPx = with(LocalDensity.current) { extraEndSpace.toPx() }
     val coroutineScope = rememberCoroutineScope()
@@ -218,6 +220,10 @@ fun MessageList(
     var listHasFocus by remember { mutableStateOf(false) }
 
     val isNearBottom = rememberIsNearBottom(listState, extraEndPx)
+    if (onNearBottomChange != null) {
+        val report by rememberUpdatedState(onNearBottomChange)
+        LaunchedEffect(isNearBottom.value) { report(isNearBottom.value) }
+    }
 
     // ── Auto-scroll behavior ──────────────────────────────────────────
     //

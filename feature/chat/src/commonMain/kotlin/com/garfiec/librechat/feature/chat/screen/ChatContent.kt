@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -100,12 +102,14 @@ internal fun ColumnScope.ChatContent(
     // Pane B's, hoisted for the same reasons: the narrow pager disposes the off-screen pane and the
     // wide/narrow switch rebuilds both, so a pane-local state lost the reader's place on every one.
     val secondaryListState = rememberSaveable(uiState.screenState, saver = LazyListState.Saver) { LazyListState() }
-    // Unread replies (v0.8.9-rc1): the open chat's reply is acknowledged once it is on screen.
+    // Unread replies (v0.8.9-rc1): the open chat's reply is acknowledged once it is on screen. The
+    // single list reports where it rests; Compare's panes don't, so a comparison acknowledges nothing.
+    var primaryNearBottom by remember(uiState.conversationId) { mutableStateOf(false) }
     ConversationSeenEffect(
         conversationId = uiState.conversationId.takeIf { uiState.screenState == ChatScreenState.ACTIVE },
         displayMessages = uiState.displayMessages,
         isStreaming = uiState.isStreaming,
-        listState = primaryListState,
+        nearBottom = primaryNearBottom && !uiState.showsComparisonPanes(comparisonWide),
     )
     val comparisonPanes: @Composable () -> Unit = {
         ComparisonPanes(
@@ -178,6 +182,7 @@ internal fun ColumnScope.ChatContent(
                     }
                     ChatMessageListPane(
                         listState = primaryListState,
+                        onNearBottomChange = { primaryNearBottom = it },
                         uiState = uiState,
                         viewModel = viewModel,
                         clipboard = clipboard,
@@ -242,6 +247,7 @@ private fun copyMessageToClipboard(
  */
 @Composable
 private fun ChatMessageListPane(
+    onNearBottomChange: (Boolean) -> Unit,
     uiState: ChatUiState,
     viewModel: ChatViewModel,
     clipboard: ClipboardWriter,
@@ -315,6 +321,7 @@ private fun ChatMessageListPane(
         bottomContentPadding = bottomContentPadding,
         topContentPadding = topContentPadding,
         pendingAction = uiState.renderablePendingAction,
+        onNearBottomChange = onNearBottomChange,
         modifier = modifier,
     )
 }

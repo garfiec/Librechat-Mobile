@@ -59,6 +59,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
@@ -242,7 +243,11 @@ class DrawerViewModel(
         tagRepository = tagRepository,
         shareLinkControllerFactory = shareLinkControllerFactory,
         conversationExporter = conversationExporter,
-        onMutated = {},
+        // A filtered list holds rows Room may not (never paged in), so a mutation reloads it; the
+        // cached list re-emits on its own.
+        onMutated = {
+            if (conversationListStateHolder.filters.value != null) conversationListStateHolder.refreshConversations()
+        },
     )
 
     // Shared project CRUD (same delegate ProjectsViewModel uses).
@@ -502,7 +507,7 @@ class DrawerViewModel(
         viewModelScope.launch {
             combine(_drawerFilters, drawerActionMenuState.map { it.filtersEnabled }.distinctUntilChanged()) { filters, enabled ->
                 filters.takeIf { enabled && it.isActive }
-            }.distinctUntilChanged().collect { applied -> applyToList(applied) }
+            }.distinctUntilChanged().collectLatest { applied -> applyToList(applied) }
         }
         viewModelScope.launch {
             val persisted = DrawerTab.fromString(preferences.settings.drawerLibraryTab.first())

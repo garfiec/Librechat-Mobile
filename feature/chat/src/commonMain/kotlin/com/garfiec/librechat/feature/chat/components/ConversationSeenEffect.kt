@@ -1,6 +1,5 @@
 package com.garfiec.librechat.feature.chat.components
 
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -14,14 +13,15 @@ import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Marks the open chat's newest reply seen (v0.8.9-rc1) once it has rendered, sits near the bottom
- * of [listState], the app is in front and nothing streams. Opening a chat alone sends nothing.
+ * of the list, the app is in front and nothing streams. Opening a chat alone sends nothing.
  */
 @Composable
 internal fun ConversationSeenEffect(
     conversationId: String?,
     displayMessages: List<MessageNode>,
     isStreaming: Boolean,
-    listState: LazyListState,
+    /** The list rests near its tail, as its own tail follower measures it. */
+    nearBottom: Boolean,
     viewModel: ConversationSeenViewModel = koinViewModel(),
 ) {
     LaunchedEffect(viewModel, conversationId) { viewModel.bind(conversationId) }
@@ -30,7 +30,6 @@ internal fun ConversationSeenEffect(
     val lifecycleState by lifecycle.currentStateFlow.collectAsStateWithLifecycle()
     val inForeground = lifecycleState.isAtLeast(Lifecycle.State.RESUMED)
     LaunchedEffect(viewModel, inForeground) { if (inForeground) viewModel.onForeground() }
-    val nearBottom by rememberIsNearBottom(listState)
     val replyRendered = remember(target, displayMessages) {
         val current = target ?: return@remember false
         val messageId = current.messageId
