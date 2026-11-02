@@ -1,5 +1,7 @@
 package com.garfiec.librechat.feature.chat.util
 
+import com.garfiec.librechat.core.common.result.Result
+
 /**
  * Upstream's default `speech.tts.maxInputChars` (`DEFAULT_TTS_MAX_INPUT_CHARS`,
  * `packages/api/src/files/speech.ts`, v0.8.9-rc1). The server reads only this many characters of a
@@ -58,3 +60,25 @@ private fun spaceCut(window: String): Int? = window.lastIndexOf(' ').takeIf { it
 
 private fun hardCut(window: String): Int =
     if (window.last().isHighSurrogate()) window.length - 1 else window.length
+
+/**
+ * Asks the server for [text] one [splitForSpeech] segment at a time, in order, handing each
+ * segment's audio to [onSegment] (with whether it is the last) before requesting the next. Stops at
+ * the first failed request and returns it; returns null when every segment was handed over, or
+ * when [onSegment] returned false to end the read early.
+ */
+internal suspend fun <T> synthesizeInSegments(
+    text: String,
+    synthesize: suspend (String) -> Result<T>,
+    onSegment: suspend (segment: String, audio: T, isLast: Boolean) -> Boolean,
+): Result.Error? {
+    val segments = splitForSpeech(text, SERVER_TTS_SEGMENT_CHARS)
+    segments.forEachIndexed { index, segment ->
+        when (val result = synthesize(segment)) {
+            is Result.Success -> if (!onSegment(segment, result.data, index == segments.lastIndex)) return null
+            is Result.Error -> return result
+            is Result.Loading -> Unit
+        }
+    }
+    return null
+}
