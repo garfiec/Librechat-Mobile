@@ -377,6 +377,7 @@ internal data class LandingText(
  * flag, because the landing switches each line as temporary chat's band reaches it. [agentName] is the selected agent's,
  * resolved by the caller; for an agent spec it wins over the spec's label, as on web. An agent not
  * (yet) in the list is captioned [agentFallbackLabel], so the landing still opens the picker.
+ * Under `interface.landingHeading: "greeting"` the greeting stays the title whatever is selected.
  */
 internal fun ChatUiState.landingText(agentName: String?, agentFallbackLabel: String? = null): LandingText {
     val spec = modelSpecs?.list?.find { it.name == selectedSpec }
@@ -388,9 +389,20 @@ internal fun ChatUiState.landingText(agentName: String?, agentFallbackLabel: Str
         else -> null
     }
     val branded = spec?.takeIf { it.showOnLanding == true }
-    val title = agentName ?: branded?.displayLabel
     val description = listOf(selectedAgent()?.description, branded?.description, spec?.preset?.greeting)
         .firstOrNull { !it.isNullOrBlank() }
+    // `interface.landingHeading: "greeting"`: the greeting stays the title, as web's empty `name`.
+    // Web's header selector still names the agent; mobile has no header selector, so the caption
+    // under the greeting names it instead.
+    if (gates.landingGreetingHeading) {
+        return LandingText(
+            description = description,
+            caption = agentName ?: modelLabel,
+            temporaryAgentName = agentName,
+            temporaryCaption = modelLabel,
+        )
+    }
+    val title = agentName ?: branded?.displayLabel
     return LandingText(
         title = title,
         description = description,

@@ -53,6 +53,26 @@ class LandingTextTest {
     }
 
     @Test
+    fun greetingHeadingKeepsTheGreetingAndCaptionsTheAgent() {
+        val base = state(agentSpec)
+        val text = base.copy(gates = base.gates.copy(landingGreetingHeading = true))
+            .landingText(agentName = "Travel Planner")
+        assertThat(text.title).isNull()
+        assertThat(text.caption).isEqualTo("Travel Planner")
+        assertThat(text.description).isEqualTo("Plans trips")
+        assertThat(text.temporaryAgentName).isEqualTo("Travel Planner")
+    }
+
+    @Test
+    fun greetingHeadingKeepsTheGreetingOverABrandedSpec() {
+        val base = state(modelSpec.copy(showOnLanding = true))
+        val text = base.copy(gates = base.gates.copy(landingGreetingHeading = true)).landingText(agentName = null)
+        assertThat(text.title).isNull()
+        assertThat(text.caption).isEqualTo("Coder")
+        assertThat(text.description).isEqualTo("Writes code")
+    }
+
+    @Test
     fun withoutShowOnLandingTheGreetingStaysAndThePresetGreetingDescribes() {
         val text = state(modelSpec).landingText(agentName = null)
         assertThat(text.title).isNull()
