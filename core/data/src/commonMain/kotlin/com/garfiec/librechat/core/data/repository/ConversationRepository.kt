@@ -82,11 +82,13 @@ interface ConversationRepository {
         excludeFiles: Boolean? = null,
     ): Result<ForkConversationResponse>
     suspend fun duplicateConversation(conversationId: String, title: String?): Result<Conversation>
+
     /**
      * Imports an export file. A file whose tool calls carry preview markers is refused with
      * [ToolCallPreviewImportException] before anything is sent: the route stores a file as is.
      */
     suspend fun importConversation(jsonContent: String): Result<Conversation>
+
     suspend fun deleteAll(): Result<Unit>
 
     /**

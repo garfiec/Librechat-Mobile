@@ -171,7 +171,8 @@ class ToolCallPreviewTest {
             ),
         )
         assertTrue(listOf(Message(messageId = "m", conversationId = "c", content = listOf(nested))).containsToolCallPreview())
-        assertFalse(listOf(Message(messageId = "m", conversationId = "c", content = listOf(nested.copy(toolCall = AgentToolCall())))).containsToolCallPreview())
+        val clean = nested.copy(toolCall = AgentToolCall())
+        assertFalse(listOf(Message(messageId = "m", conversationId = "c", content = listOf(clean))).containsToolCallPreview())
     }
 
     @Test
