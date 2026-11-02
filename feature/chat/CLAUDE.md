@@ -989,7 +989,24 @@ handle's Main-dispatched scope — do not add a `withContext` inside the delegat
 inside a `handle.update { }` block (that is a `MutableStateFlow.update` CAS loop and may re-run).
 
 Steering is text-only on mobile: a during-run send carrying attachments is routed to the queue, where the
-existing upload/usage path already handles them.
+existing upload/usage path already handles them. The during-run menu turns its Steer and Interrupt rows off
+while attachments are staged, so neither promises something the tap won't do.
+
+**Interrupt and steer** (`DuringRunAction.INTERRUPT`, `DuringRunSendTarget.INTERRUPT`) is a steer sent with
+`preempt: true`: every no-loss rule above applies unchanged. Two fallbacks, each stated: to the queue when
+`canSteerNow` is false (silent, like Steer), and to a plain steer when the 202 echoes `preempt != true`
+(announced, `SteerNotice.INTERRUPT_UNAVAILABLE`). It never becomes Stop + send.
+- The chip's interrupting look comes from the server (the 202 echo, an `armed: true`, or a report's
+  `preempt`), never from the request. A reconnect's sync frame carries `preempt` on `pendingSteers`, and a
+  known record takes the server's flag (higher `preemptRevision` wins; v1 sends none, so the latest report).
+- "Interrupt now" on a waiting chip is `SteeringDelegate.arm` → `POST /chat/steer/arm`. One interrupt at a
+  time (any chip interrupting or arming disables the others, it doesn't hide them); one attempt, bounded by
+  `gates.steerArmConfirmationMs`; only `armed: true` changes the chip. Outcomes are `SteerNotice`s on the
+  `steerNotices` one-shot channel, never `error`: the words are queued in every case.
+- `on_steer_updated` is v2-only and never reaches mobile, so a withdrawn interrupt keeps its label.
+- A tool the interrupt cancelled carries the server's `INTERRUPTED` sentence (`isInterruptedToolOutput`,
+  mirror `steer-interrupted-tool-result`). It renders as "Interrupted by your message" in a neutral tone,
+  an interrupted search keeps the generic card, and a group header counts it as cancelled, not failed.
 
 ## Chat Tools
 - The user's own toggles: `enabledTools` and `selectedMcpServerNames` are global (stored in
