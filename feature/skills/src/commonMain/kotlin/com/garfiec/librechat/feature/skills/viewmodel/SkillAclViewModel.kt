@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.PermissionsRepository
+import com.garfiec.librechat.core.data.repository.permissionUpdateFailure
+import com.garfiec.librechat.core.model.acl.PermissionUpdateFailure
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.model.AccessRole
 import com.garfiec.librechat.core.model.Principal
@@ -37,6 +39,8 @@ data class SkillAclUiState(
     /** The last change failed; [errorMessage] is the server's text when there was one. Shown in the sheet. */
     val updateFailed: Boolean = false,
     val errorMessage: String? = null,
+    /** The last change was refused for a reason that passes; worded by the sheet, over [errorMessage]. */
+    val updateFailure: PermissionUpdateFailure? = null,
     /** A change is on its way; every control in the sheet waits for it. */
     val isUpdating: Boolean = false,
     val principals: List<Principal> = emptyList(),
@@ -325,7 +329,7 @@ class SkillAclViewModel(
     }
 
     fun dismissError() {
-        _uiState.value = _uiState.value.copy(updateFailed = false, errorMessage = null)
+        _uiState.value = _uiState.value.copy(updateFailed = false, errorMessage = null, updateFailure = null)
     }
 
     /**
@@ -340,7 +344,7 @@ class SkillAclViewModel(
         if (_uiState.value.isUpdating) return
         val interruptedLoad = grantsJob?.isActive == true
         grantsJob?.cancel()
-        _uiState.value = _uiState.value.copy(isUpdating = true, isLoading = false, updateFailed = false, errorMessage = null)
+        _uiState.value = _uiState.value.copy(isUpdating = true, isLoading = false, updateFailed = false, errorMessage = null, updateFailure = null)
         viewModelScope.launch {
             when (val r = permissionsRepository.updateResourcePermissions(ResourceType.SKILL, skillId, body)) {
                 is Result.Success -> {
@@ -362,6 +366,7 @@ class SkillAclViewModel(
                         isUpdating = false,
                         updateFailed = true,
                         errorMessage = r.message,
+                        updateFailure = r.permissionUpdateFailure(),
                     )
                     if (interruptedLoad || !_uiState.value.loaded) loadGrants(skillId)
                 }

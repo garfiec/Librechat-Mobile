@@ -49,6 +49,7 @@ import com.garfiec.librechat.core.model.AccessRole
 import com.garfiec.librechat.core.model.Principal
 import com.garfiec.librechat.core.model.PrincipalType
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.acl.permissionUpdateFailureText
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
@@ -185,7 +186,9 @@ private fun ShareSheetErrors(state: SkillAclUiState, actions: SkillShareActions)
         }
         if (state.updateFailed) {
             SheetErrorRow(
-                message = state.errorMessage?.takeIf { it.isNotBlank() } ?: stringResource(Res.string.skill_acl_update_failed),
+                message = state.updateFailure?.let { permissionUpdateFailureText(it) }
+                    ?: state.errorMessage?.takeIf { it.isNotBlank() }
+                    ?: stringResource(Res.string.skill_acl_update_failed),
                 actionLabel = stringResource(Res.string.skill_acl_dismiss),
                 onAction = actions.onDismissError,
             )

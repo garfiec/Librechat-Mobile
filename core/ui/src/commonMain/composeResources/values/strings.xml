@@ -316,6 +316,9 @@
     <string name="acl_error_not_found">This was deleted, or you no longer have access to it.</string>
     <string name="acl_error_owner_protected">The owner's access can't be changed.</string>
     <string name="acl_error_generic">Couldn't update access. Try again.</string>
+    <string name="acl_error_busy">Another change to this access is in progress. Try again in a moment.</string>
+    <string name="acl_error_unavailable">Access can't be changed right now. Try again shortly.</string>
+    <string name="acl_error_audit_unavailable">Access wasn't changed because the server couldn't record the change. Try again shortly.</string>
     <string name="acl_error_load">Couldn't load who has access.</string>
     <string name="bookmarks">Bookmarks</string>
     <string name="bookmark_new">New bookmark</string>

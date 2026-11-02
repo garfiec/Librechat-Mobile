@@ -4520,6 +4520,20 @@
       },
       "why": "When a live tool call reads 'Preparing {tool}': a preparation marker without a dispatch, result or terminal status (isToolCallPreparing; dispatch and results outrank the marker), and never for an MCP (`_mcp_`) or action (`_action_`, data-provider actionDelimiter) tool, which keeps its integration name. Upstream also reads incomplete arguments as preparing; this client tracks no argument deltas and does not.",
       "failure_mode": "Upstream changes the precedence or the integration exclusion and live cards say Preparing while a tool runs, or prefix a raw tool_mcp_server string. Nothing errors."
+    },
+    {
+      "id": "permission-update-error-codes",
+      "upstream": {
+        "file": "packages/api/src/acl/accessControlService.ts",
+        "symbol": "APPROVED_ERROR_CODES",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/acl/PermissionUpdateFailure.kt",
+        "symbol": "PermissionUpdateFailure"
+      },
+      "why": "The codes a failed audited permission update carries in its error body (permissionErrorCode), which the access editors word as 'try again' (busy lock, lock store down, audit log down) instead of a generic failure. Web maps the same set in client/src/components/Sharing/errors.ts.",
+      "failure_mode": "Upstream adds or renames a code and the editors fall back to the generic failure for a refusal that would pass on retry. Nothing errors."
     }
   ]
 }
