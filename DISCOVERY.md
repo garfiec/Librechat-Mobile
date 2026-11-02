@@ -1691,7 +1691,7 @@ POST   /api/convos/seen {arg:{conversationId,lastResponseAt?}}, /api/convos/unre
 GET    /api/projects/:projectId/files, /files/available; POST /:projectId/files;
 DELETE /api/projects/:projectId/files/:fileId                  project context (BUILT, see Chat Projects)
 GET    /api/endpoints/reasoning-capabilities?endpoint=          {capabilities, expiresInMs} (NOT built; wave 2)
-GET|POST|DELETE /api/schedules/:id/mcp-consent                 (NOT built; wave 2)
+GET|POST|DELETE /api/schedules/:id/mcp-consent                 scheduled MCP authorization (BUILT, see below)
 POST   /api/messages/:conversationId/owner-text {messageIds:[1..50]} (bare, NOT under `arg`; strict)
                                                                → {messages:[{messageId,revision,canonicalText,text?}]};
                                                                503 when unavailable; `Cache-Control: private, no-store`.
@@ -1779,6 +1779,16 @@ GET    /api/convos/:conversationId/pull-request; POST /api/convos/pull-requests;
 - Subagent events: activity item type `steer`, phase `steer_applied`, `activityDroppedCount`;
   background tasks carry `subagent_thread_id` and a folded `activity` progress tree. (BUILT)
 - Schedules: MCP receipts on `lastRun` explain a blocked MCP call. (BUILT)
+- Schedules MCP consent (`api/server/routes/schedules.js:91-93`, `packages/api/src/schedules/authorization/handlers.ts`):
+  `GET` (no SCHEDULES permission check; anyone who can see the schedule) and `POST` (USE + CREATE)
+  answer `ScheduleMCPConsentView { state: missing|active|expired|revoked|changed|unsupported,
+  revision|null, expiresAtMs|null (epoch MS), targets[{resource{serverName,url,credentialMode,issuer,
+  audience,scopes}, permittedTools[{agentId,tools}]}], offer{digest,maxLifetimeHours}|null }`. `POST`
+  body is strict `{ offerDigest, expectedRevision (nullable, REQUIRED), lifetimeHours 1..8760 }`;
+  `DELETE` body `{ expectedRevision }` → 204. 400 `{code:"consent_invalid"}`, 404
+  `{code:"consent_not_found"}`. Offered when `limits.mcpConsent` or `schedule.hasMCPConsent`. (BUILT:
+  `SchedulesApi.getMcpConsent/confirmMcpConsent/revokeMcpConsent`; the confirm body is a JsonObject so
+  the null revision survives `explicitNulls = false`.)
 - Tool approval: `ToolReviewConfig.allow_always` / `remember_scope`, resolution `scope: "session"`
   (NOT built; wave 2). Token usage `input_token_details.cache_creation_1h` (not decoded; cost
   display does not split cache tiers).

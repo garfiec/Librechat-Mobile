@@ -5298,6 +5298,48 @@
       },
       "why": "The 409 `{ error: \"cursor_ordering_mismatch\" }` a cursor read under another order gets. The marketplace restarts the list from page one once per query on it.",
       "failure_mode": "A changed status or body makes every such page read as an ordinary failure: the footer shows Couldn't load more and Retry repeats the same stale cursor."
+    },
+    {
+      "id": "schedule-mcp-consent-view",
+      "upstream": {
+        "file": "packages/data-provider/src/types/scheduleConsent.ts",
+        "symbol": "ScheduleMCPConsentView",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/schedule/ScheduleMcpConsent.kt",
+        "symbol": "ScheduleMcpConsentView / ScheduleMcpConsentState"
+      },
+      "why": "The consent view's `state` values, each worded in the sheet, and `expiresAtMs` in epoch milliseconds.",
+      "failure_mode": "A new state reads as Authorization required; a renamed one shows the wrong status. A change of the expiry's unit renders a deadline decades off. Nothing fails to decode."
+    },
+    {
+      "id": "schedule-mcp-credential-modes",
+      "upstream": {
+        "file": "packages/data-provider/src/types/scheduleConsent.ts",
+        "symbol": "scheduledMCPResourceSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/schedule/ScheduleMcpConsent.kt",
+        "symbol": "ScheduledMcpCredentialMode"
+      },
+      "why": "The `credentialMode` enum, each value labelled in the consent sheet's target card.",
+      "failure_mode": "A new mode shows as its raw wire value; a renamed one loses its label. The user authorizes without a readable description of how the server signs in."
+    },
+    {
+      "id": "schedule-mcp-consent-confirm-body",
+      "upstream": {
+        "file": "packages/data-provider/src/types/scheduleConsent.ts",
+        "symbol": "confirmScheduleMCPConsentSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/schedule/ScheduleMcpConsent.kt",
+        "symbol": "confirmScheduleMcpConsentBody / RevokeScheduleMcpConsentRequest"
+      },
+      "why": "The strict confirm body: `expectedRevision` is nullable but required, and `lifetimeHours` is 1..8760. Built as a JsonObject so the null survives `explicitNulls = false`.",
+      "failure_mode": "A renamed or added required key makes every Confirm a 400 `consent_invalid`, shown as Authorization could not be updated."
     }
   ]
 }
