@@ -75,6 +75,12 @@ sealed interface SessionRoute {
     /** Sign-in. */
     data object SignIn : SessionRoute
 
+    /**
+     * Sign-in to the active account, which is signed out until it sets up the 2FA its server
+     * requires: its sign-in screen (which names it and runs the setup), not the server screen.
+     */
+    data object SignInForTwoFactorSetup : SessionRoute
+
     /** The chat of the account now active. */
     data object Chat : SessionRoute
 
@@ -492,9 +498,10 @@ class NavHostViewModel(
             _isLoggedIn.value = true
             return true
         }
-        // Signed out to set up 2FA, not expired: stay on it, at sign-in, which runs the setup again.
+        // Signed out to set up 2FA, not expired: stay on it, at its sign-in, which runs the setup again.
         if (accountSwitcher.awaitsTwoFactorSetup(activeAccountId())) {
             _isLoggedIn.value = false
+            _sessionRoute.trySend(SessionRoute.SignInForTwoFactorSetup)
             return false
         }
         // Read before the failover moves the active pointer off the expired account.
@@ -515,7 +522,8 @@ class NavHostViewModel(
         // An account signed out for 2FA setup has an empty slot, so its requests settle as expired
         // (a cold start's, say): that is not an expiry, and failing over would leave the account the
         // user has to finish. It goes to sign-in, without the "signed out" notice.
-        val expired = reason == SessionEndReason.EXPIRED && !accountSwitcher.awaitsTwoFactorSetup(activeAccountId())
+        val awaitsSetup = accountSwitcher.awaitsTwoFactorSetup(activeAccountId())
+        val expired = reason == SessionEndReason.EXPIRED && !awaitsSetup
         // Read before the failover moves the active pointer off the expired account.
         val expiredLabel = if (expired) expiredAccountLabel().orEmpty() else null
         val failover = if (expired) accountSwitcher.failOverFromActive() else FailoverResult.NoLiveAccount
@@ -547,7 +555,9 @@ class NavHostViewModel(
                 if (expiredLabel != null && wasLoggedIn) {
                     _sessionExpiredNotice.value = SessionExpiredNotice(expiredLabel)
                 }
-                _sessionRoute.trySend(SessionRoute.SignIn)
+                // The route channel is conflated: a cold start's 401s land here right after the startup
+                // route, so this must not overwrite the 2FA account's sign-in with the server screen.
+                _sessionRoute.trySend(if (awaitsSetup) SessionRoute.SignInForTwoFactorSetup else SessionRoute.SignIn)
             }
         }
     }

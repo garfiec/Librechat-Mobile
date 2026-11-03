@@ -254,6 +254,7 @@ fun LibreChatNavHost(
         navHostViewModel.sessionRoute.collect { route ->
             when (route) {
                 SessionRoute.SignIn -> navigator.navigateToAuth()
+                SessionRoute.SignInForTwoFactorSetup -> navigator.navigateToSignIn()
                 is SessionRoute.TwoFactorSetup -> navigator.navigateToTwoFactorSetup(route.tempToken)
                 // Only off the sign-in screens: on chat, the account flip has already reset the stack.
                 SessionRoute.Chat -> if (navigator.isInAuthFlow) {

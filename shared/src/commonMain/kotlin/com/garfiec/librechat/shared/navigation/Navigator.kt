@@ -243,6 +243,22 @@ class Navigator(
     }
 
     /**
+     * Sign-in for the account still bound (one signed out for 2FA setup): [Login] over [ServerUrl], as
+     * backing out of setup leaves it. Reported more than once (the startup route, then each 401 of a
+     * cold start), so it leaves the auth flow alone once the user is past the bare server screen, and,
+     * like [navigateToAuth], resets an add-account flow that belongs to the ended session.
+     */
+    fun navigateToSignIn() {
+        val pastServerScreen = backStack.size > 1 || currentRoute != ServerUrl
+        if (isInAuthFlow && pastServerScreen && backStack.none { it.isAddAccountFlowRoute }) return
+        changing {
+            backStack.clear()
+            backStack.add(ServerUrl)
+            backStack.add(Login)
+        }
+    }
+
+    /**
      * Required 2FA setup (v0.8.9-rc1) for an account whose session the server just ended for it.
      * Sign-in sits underneath, so backing out — or a setup credential that expires — lands where the
      * user can start over. Replaces the whole stack, like [navigateToAuth]: the signed-in routes

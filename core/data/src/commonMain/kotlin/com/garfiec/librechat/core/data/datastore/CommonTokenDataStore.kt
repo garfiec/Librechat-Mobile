@@ -338,7 +338,9 @@ abstract class CommonTokenDataStore(
         clearRejectedRefresh(slotKey(activeAccountKey))
         clearRejectedRefresh(slotKey(null))
         sessions.removeSession(activeAccountKey)
-        activeAccountKey?.let { removeValue(twoFactorSetupKey(it)) }
+        // The 2FA setup marker stays: this teardown also starts a new sign-in (Connect on the server
+        // screen), which keeps the roster entry, so the account still owes setup. A sign-in to it
+        // ([onAccountResolved]) or its removal ([removeAccount]) is what clears the marker.
         if (activeAccountKey != null) {
             // The active slot is keyed, so the bare keys can only hold a stale staged pair — purge it
             // so a killed login can't be cold-started back into an apparently-authenticated state.

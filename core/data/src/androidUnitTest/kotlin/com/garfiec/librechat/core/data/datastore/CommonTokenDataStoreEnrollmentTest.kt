@@ -151,6 +151,32 @@ class CommonTokenDataStoreEnrollmentTest {
             assertThat(store.isTwoFactorSetupRequired(ACCOUNT)).isFalse()
         }
 
+    /**
+     * Record, restart, read: the marker is read back by a fresh store over the same storage, and the
+     * teardown Connect on the server screen runs (`prepareForSignIn` → `onAccountCleared`) keeps it,
+     * since the account stays in the roster still owing setup.
+     */
+    @Test
+    fun `the setup marker survives a restart and the teardown of starting a new sign-in`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val first = seeded(enrollmentEngine())
+            first.endSessionForReauth(ACCOUNT, forTwoFactorSetup = true)
+
+            val restarted = FakeTokenStore(refreshClientOf(enrollmentEngine()), seed = first.store)
+            assertThat(restarted.isTwoFactorSetupRequired(ACCOUNT)).isTrue()
+            assertThat(restarted.getAccessToken()).isNull()
+            // The binding stays on the account, so cold start routes to its sign-in.
+            assertThat(restarted.store[ACTIVE_ACCOUNT_KEY]).isEqualTo(ACCOUNT)
+
+            restarted.onAccountCleared()
+            assertThat(restarted.isTwoFactorSetupRequired(ACCOUNT)).isTrue()
+
+            val restartedAgain = FakeTokenStore(refreshClientOf(enrollmentEngine()), seed = restarted.store)
+            assertThat(restartedAgain.isTwoFactorSetupRequired(ACCOUNT)).isTrue()
+            restartedAgain.removeAccount(ACCOUNT)
+            assertThat(restartedAgain.isTwoFactorSetupRequired(ACCOUNT)).isFalse()
+        }
+
     @Test
     fun `removing the account clears its setup marker`() = runTest(UnconfinedTestDispatcher()) {
         val store = seeded(enrollmentEngine(), active = OTHER)
