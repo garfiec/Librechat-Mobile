@@ -35,6 +35,7 @@
     <string name="memory_redacted_value">이 서버의 콘텐츠 정책에 따라 저장된 내용이 숨겨져 있습니다. 삭제는 계속 할 수 있습니다.</string>
     <string name="memory_redacted_value_no_delete">이 서버의 콘텐츠 정책에 따라 저장된 내용이 숨겨져 있습니다.</string>
     <string name="cd_loading_profile">프로필 불러오는 중</string>
+    <string name="account_profile_load_failed">프로필을 불러올 수 없습니다.</string>
     <string name="cd_make_private">비공개로 전환</string>
     <string name="cd_make_public">공개로 전환</string>
     <string name="cd_preview_voice">음성 미리듣기</string>
@@ -162,6 +163,10 @@
     <string name="accent_color_hex">16진수</string>
     <string name="use_wallpaper_colors">배경화면 색상 사용</string>
     <string name="use_wallpaper_colors_desc">앱 강조 색상을 시스템 배경화면에 맞춥니다 (Material You)</string>
+    <string name="use_server_accent">서버 강조 색상 사용</string>
+    <string name="use_server_accent_desc">서버가 모든 사용자에게 이 강조 색상을 지정합니다. 직접 고르려면 끄세요.</string>
+    <string name="accent_set_by_server">서버에서 설정함(%1$s)</string>
+    <string name="accent_set_by_server_note">직접 고르려면 '서버 강조 색상 사용'을 끄세요.</string>
 
     <!-- Settings rows -->
     <string name="language">언어</string>
@@ -237,6 +242,16 @@
     <string name="auto_refill_interval">간격</string>
     <string name="auto_refill_next">다음 충전</string>
     <string name="auto_refill_next_info">충전은 이 시간 이후, 메시지로 인해 잔액이 0 미만이 될 때만 이루어집니다.</string>
+    <string name="balance_usage_limit">사용 한도</string>
+    <string name="balance_used">%1$s 사용함</string>
+    <string name="balance_usage_unavailable">사용량을 확인할 수 없음</string>
+    <string name="balance_out_of_credits">크레딧 소진</string>
+    <string name="cd_balance_reading">%1$s: %2$s</string>
+    <string name="auto_reset_title">자동 재설정</string>
+    <string name="auto_reset_last">마지막 재설정</string>
+    <string name="auto_reset_amount">재설정 할당량</string>
+    <string name="auto_reset_next">다음 재설정</string>
+    <string name="auto_reset_next_info">간격이 지나면 잔액을 확인하거나 요청을 보낼 때 잔액이 할당량으로 바뀝니다. 사용하지 않은 크레딧은 이월되지 않으며, 진행 중인 요청도 계속 차감됩니다.</string>
     <plurals name="auto_refill_every_seconds">
         <item quantity="other">%1$s초마다</item>
     </plurals>
@@ -358,6 +373,7 @@
     <string name="enable_two_factor">2단계 인증 사용</string>
     <string name="disable_two_factor">2단계 인증 사용 안 함</string>
     <string name="regenerate_backup_codes">백업 코드 재생성</string>
+    <string name="two_factor_required_by_server">이 서버는 2단계 인증이 필수이므로 끌 수 없습니다.</string>
 
     <!-- 2FA setup dialog -->
     <string name="dialog_title_enable_2fa">2단계 인증 사용</string>
@@ -734,6 +750,8 @@
     <string name="during_run_action_queue_desc">응답이 끝나면 다음 메시지로 보냅니다.</string>
     <string name="during_run_action_steer">응답 방향 조정</string>
     <string name="during_run_action_steer_desc">작성 중인 응답에 메시지를 전달해 어시스턴트가 방향을 바꾸게 합니다. 이 기능을 지원하는 서버가 필요하며, 지원하지 않으면 대기열에 추가됩니다.</string>
+    <string name="during_run_action_interrupt">중단하고 방향 조정</string>
+    <string name="during_run_action_interrupt_desc">현재 도구 또는 생각 단계를 멈추고, 작성된 내용은 유지한 채 메시지로 이어갑니다. 도구가 이미 실행한 작업은 되돌릴 수 없습니다. 응답을 중단할 수 없으면 일반 방향 조정으로 처리됩니다.</string>
     <string name="upload_routing_title">첨부 파일</string>
     <string name="upload_routing_desc">파일은 그대로 모델에 보내거나, 서버에서 읽어 텍스트로 보낼 수 있습니다. 모든 모델이 모든 파일 형식을 지원하지는 않습니다.</string>
     <string name="upload_routing_auto">자동 선택</string>
@@ -743,6 +761,8 @@
     <string name="mcp_oauth_title">%1$s에 로그인</string>
     <string name="mcp_oauth_message">이 서버를 사용하려면 권한이 필요합니다. 제공자 페이지로 이동해 접근을 승인한 뒤 돌아와서 다시 연결하세요.</string>
     <string name="mcp_oauth_continue">계속</string>
+    <string name="mcp_oauth_signed_in">로그인했습니다. 연결 중…</string>
+    <string name="mcp_oauth_failed">로그인이 완료되지 않았습니다. 다시 연결해 재시도하세요.</string>
     <string name="mcp_connection_deferred">백그라운드에서 연결 중 — 준비되면 도구가 표시됩니다.</string>
     <string name="show_site_icons">웹사이트 아이콘 표시</string>
     <string name="show_site_icons_desc">웹 검색 결과의 아이콘을 Google 및 기타 웹사이트에서 불러옵니다</string>
@@ -883,4 +903,59 @@
     <string name="shared_chats_no_match">"%1$s"와(과) 일치하는 링크가 없습니다</string>
     <string name="shared_chats_refresh_failed">공유한 채팅을 새로고침하지 못했습니다</string>
     <string name="shared_chats_delete_failed">링크를 삭제하지 못했습니다</string>
+    <string name="passkeys_title">패스키</string>
+    <string name="passkeys_row_subtitle">화면 잠금 또는 보안 키로 로그인</string>
+    <plurals name="passkeys_row_count">
+        <item quantity="other">패스키 %1$d개</item>
+    </plurals>
+    <string name="passkeys_description">기기의 화면 잠금 또는 보안 키를 사용해 비밀번호 없이 로그인하세요.</string>
+    <string name="passkeys_empty">아직 추가한 패스키가 없습니다</string>
+    <string name="passkeys_load_failed">패스키를 불러올 수 없습니다.</string>
+    <string name="passkeys_add_in_browser">패스키를 추가하려면 브라우저에서 %1$s에 로그인하세요.</string>
+    <string name="passkeys_synced">동기화됨</string>
+    <string name="passkeys_dates">%1$s · %2$s</string>
+    <string name="passkeys_added_on">%1$s에 추가함</string>
+    <string name="passkeys_last_used_on">마지막 사용: %1$s</string>
+    <string name="passkeys_never_used">사용한 적 없음</string>
+    <string name="passkeys_row_description_synced">%1$s, 동기화됨, %2$s</string>
+    <string name="passkeys_row_description">%1$s, %2$s</string>
+    <string name="passkeys_more_options">%1$s 옵션 더보기</string>
+    <string name="passkeys_action_rename">이름 변경</string>
+    <string name="passkeys_action_remove">삭제</string>
+    <string name="passkeys_rename_title">패스키 이름 변경</string>
+    <string name="passkeys_name_label">패스키 이름</string>
+    <string name="passkeys_rename_failed">패스키 이름을 변경할 수 없습니다</string>
+    <string name="passkeys_remove_title">'%1$s'을(를) 삭제할까요?</string>
+    <string name="passkeys_remove_message">이 패스키로 더 이상 로그인할 수 없게 됩니다.</string>
+    <string name="passkeys_confirm_password">비밀번호 확인</string>
+    <string name="passkeys_incorrect_password">비밀번호가 올바르지 않습니다. 다시 시도하세요.</string>
+    <string name="passkeys_remove_failed">패스키를 삭제할 수 없습니다</string>
+    <string name="passkeys_already_removed">이미 삭제된 패스키입니다.</string>
+    <string name="passkeys_too_many_attempts">시도 횟수가 너무 많습니다. 몇 분 후에 다시 시도하세요.</string>
+    <string name="email_change_row_title">이메일 주소</string>
+    <string name="email_change_title">이메일 주소 변경</string>
+    <string name="email_change_body">새 이메일 주소와 현재 비밀번호를 입력하세요. 새 주소로 링크를 보내드립니다. 해당 링크를 열면 변경 사항이 적용됩니다.</string>
+    <string name="email_change_current">현재: %1$s</string>
+    <string name="email_change_new_email">새 이메일 주소</string>
+    <string name="email_change_current_password">현재 비밀번호</string>
+    <string name="email_change_show_password">비밀번호 표시</string>
+    <string name="email_change_hide_password">비밀번호 숨기기</string>
+    <string name="email_change_send">링크 보내기</string>
+    <string name="email_change_sending">보내는 중…</string>
+    <string name="email_change_link_sent">%1$s에서 인증 링크를 확인하세요.</string>
+    <string name="email_change_updated">이메일 주소를 업데이트했습니다.</string>
+    <string name="email_change_error_invalid_request">올바른 이메일 주소와 현재 비밀번호를 입력하세요.</string>
+    <string name="email_change_error_same_email">새 이메일 주소는 현재 주소와 달라야 합니다.</string>
+    <string name="email_change_error_disabled">서버 관리자가 이메일 변경을 사용 중지했습니다.</string>
+    <string name="email_change_error_local_account_required">이메일과 비밀번호로 로그인하는 계정만 여기에서 이메일을 변경할 수 있습니다.</string>
+    <string name="email_change_error_password_invalid">현재 비밀번호가 올바르지 않습니다.</string>
+    <string name="email_change_error_domain_not_allowed">이 서버는 해당 도메인의 주소를 허용하지 않습니다.</string>
+    <string name="email_change_error_email_in_use">이 이메일 주소는 이미 다른 계정에 연결되어 있습니다.</string>
+    <string name="email_change_error_account_modified">보내는 동안 계정이 변경되었습니다. 다시 시도하세요.</string>
+    <string name="email_change_error_request_in_progress">다른 이메일 변경 요청이 먼저 완료되었습니다. 해당 이메일의 링크를 사용하거나 다시 시도하세요.</string>
+    <string name="email_change_error_delivery_failed">인증 이메일을 보낼 수 없습니다. 다시 시도하세요.</string>
+    <string name="email_change_error_service_unavailable">이 서버는 지금 이메일을 보낼 수 없어 주소를 변경할 수 없습니다.</string>
+    <string name="email_change_error_rate_limited">시도 횟수가 너무 많습니다. 몇 분 후에 다시 시도하세요.</string>
+    <string name="email_change_error_network">서버에 연결할 수 없습니다. 연결 상태를 확인하고 다시 시도하세요.</string>
+    <string name="email_change_error_unknown">이메일 변경 요청에 실패했습니다. 다시 시도하세요.</string>
 </resources>

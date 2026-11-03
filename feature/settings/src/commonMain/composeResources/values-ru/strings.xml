@@ -35,6 +35,7 @@
     <string name="memory_redacted_value">Политика содержимого этого сервера скрывает сохранённые здесь данные. Удалить запись всё равно можно.</string>
     <string name="memory_redacted_value_no_delete">Политика содержимого этого сервера скрывает сохранённые здесь данные.</string>
     <string name="cd_loading_profile">Загрузка профиля</string>
+    <string name="account_profile_load_failed">Не удалось загрузить профиль.</string>
     <string name="cd_make_private">Сделать приватным</string>
     <string name="cd_make_public">Сделать публичным</string>
     <string name="cd_preview_voice">Прослушать голос</string>
@@ -162,6 +163,10 @@
     <string name="accent_color_hex">HEX-код</string>
     <string name="use_wallpaper_colors">Использовать цвета обоев</string>
     <string name="use_wallpaper_colors_desc">Подстраивать акцент приложения под системные обои (Material You)</string>
+    <string name="use_server_accent">Использовать акцент сервера</string>
+    <string name="use_server_accent_desc">Ваш сервер задаёт этот акцент для всех. Отключите, чтобы использовать свой.</string>
+    <string name="accent_set_by_server">Задан сервером (%1$s)</string>
+    <string name="accent_set_by_server_note">Отключите «Использовать акцент сервера», чтобы выбрать свой.</string>
 
     <!-- Settings rows -->
     <string name="language">Язык</string>
@@ -237,6 +242,16 @@
     <string name="auto_refill_interval">Интервал</string>
     <string name="auto_refill_next">Следующее пополнение</string>
     <string name="auto_refill_next_info">Пополнение происходит только после этого времени и только если сообщение опустит баланс ниже нуля.</string>
+    <string name="balance_usage_limit">Лимит использования</string>
+    <string name="balance_used">Использовано: %1$s</string>
+    <string name="balance_usage_unavailable">Данные об использовании недоступны</string>
+    <string name="balance_out_of_credits">Кредиты закончились</string>
+    <string name="cd_balance_reading">%1$s: %2$s</string>
+    <string name="auto_reset_title">Автосброс</string>
+    <string name="auto_reset_last">Последний сброс</string>
+    <string name="auto_reset_amount">Лимит после сброса</string>
+    <string name="auto_reset_next">Следующий сброс</string>
+    <string name="auto_reset_next_info">Когда интервал истечёт, при проверке баланса или отправке запроса он заменяется установленным лимитом. Неиспользованные кредиты не переносятся, а выполняемые запросы по-прежнему списываются с него.</string>
     <plurals name="auto_refill_every_seconds">
         <item quantity="one">Каждую %1$s секунду</item>
         <item quantity="few">Каждые %1$s секунды</item>
@@ -376,6 +391,7 @@
     <string name="enable_two_factor">Включить двухфакторную аутентификацию</string>
     <string name="disable_two_factor">Отключить двухфакторную аутентификацию</string>
     <string name="regenerate_backup_codes">Создать новые резервные коды</string>
+    <string name="two_factor_required_by_server">Этот сервер требует двухфакторную аутентификацию, поэтому её нельзя отключить.</string>
 
     <!-- 2FA setup dialog -->
     <string name="dialog_title_enable_2fa">Включить двухфакторную аутентификацию</string>
@@ -773,6 +789,8 @@
     <string name="during_run_action_queue_desc">Отправить следующим сообщением после завершения ответа.</string>
     <string name="during_run_action_steer">Скорректировать ответ</string>
     <string name="during_run_action_steer_desc">Передать сообщение в пишущийся ответ, чтобы ассистент сменил направление. Нужен сервер с поддержкой корректировки; иначе сообщение ставится в очередь.</string>
+    <string name="during_run_action_interrupt">Прервать и скорректировать</string>
+    <string name="during_run_action_interrupt_desc">Останавливает текущий инструмент или шаг рассуждения, сохраняет уже написанное и продолжает с вашим сообщением. Действия, уже выполненные инструментом, отменить нельзя. Если ответ нельзя прервать, выполняется обычная корректировка.</string>
     <string name="upload_routing_title">Вложения</string>
     <string name="upload_routing_desc">Файлы можно отправлять модели как есть или обрабатывать на сервере и отправлять в виде текста. Не каждая модель принимает все типы файлов.</string>
     <string name="upload_routing_auto">Выбирать автоматически</string>
@@ -782,6 +800,8 @@
     <string name="mcp_oauth_title">Вход в %1$s</string>
     <string name="mcp_oauth_message">Для использования этого сервера нужно ваше разрешение. Вы будете перенаправлены к провайдеру для авторизации доступа, после чего сможете вернуться и переподключиться.</string>
     <string name="mcp_oauth_continue">Продолжить</string>
+    <string name="mcp_oauth_signed_in">Вход выполнен. Подключение…</string>
+    <string name="mcp_oauth_failed">Вход не завершён. Переподключитесь, чтобы повторить попытку.</string>
     <string name="mcp_connection_deferred">Подключение в фоновом режиме — инструменты появятся, когда оно будет готово.</string>
     <string name="show_site_icons">Показывать значки сайтов</string>
     <string name="show_site_icons_desc">Загружать значки результатов веб-поиска с Google и других сайтов</string>
@@ -931,4 +951,62 @@
     <string name="shared_chats_no_match">Нет ссылок по запросу «%1$s»</string>
     <string name="shared_chats_refresh_failed">Не удалось обновить общие чаты</string>
     <string name="shared_chats_delete_failed">Не удалось удалить ссылку</string>
+    <string name="passkeys_title">Ключи доступа</string>
+    <string name="passkeys_row_subtitle">Вход с помощью блокировки экрана или ключа безопасности</string>
+    <plurals name="passkeys_row_count">
+        <item quantity="one">%1$d ключ доступа</item>
+        <item quantity="few">%1$d ключа доступа</item>
+        <item quantity="many">%1$d ключей доступа</item>
+        <item quantity="other">%1$d ключа доступа</item>
+    </plurals>
+    <string name="passkeys_description">Входите без пароля с помощью блокировки экрана устройства или ключа безопасности.</string>
+    <string name="passkeys_empty">Вы ещё не добавили ни одного ключа доступа</string>
+    <string name="passkeys_load_failed">Не удалось загрузить ключи доступа.</string>
+    <string name="passkeys_add_in_browser">Чтобы добавить ключ доступа, войдите на %1$s в браузере.</string>
+    <string name="passkeys_synced">Синхронизирован</string>
+    <string name="passkeys_dates">%1$s · %2$s</string>
+    <string name="passkeys_added_on">Добавлен %1$s</string>
+    <string name="passkeys_last_used_on">Последнее использование: %1$s</string>
+    <string name="passkeys_never_used">Не использовался</string>
+    <string name="passkeys_row_description_synced">%1$s, синхронизирован, %2$s</string>
+    <string name="passkeys_row_description">%1$s, %2$s</string>
+    <string name="passkeys_more_options">Другие действия для %1$s</string>
+    <string name="passkeys_action_rename">Переименовать</string>
+    <string name="passkeys_action_remove">Удалить</string>
+    <string name="passkeys_rename_title">Переименовать ключ доступа</string>
+    <string name="passkeys_name_label">Название ключа доступа</string>
+    <string name="passkeys_rename_failed">Не удалось переименовать ключ доступа</string>
+    <string name="passkeys_remove_title">Удалить «%1$s»?</string>
+    <string name="passkeys_remove_message">Этот ключ доступа больше нельзя будет использовать для входа.</string>
+    <string name="passkeys_confirm_password">Подтвердите пароль</string>
+    <string name="passkeys_incorrect_password">Неверный пароль. Попробуйте ещё раз.</string>
+    <string name="passkeys_remove_failed">Не удалось удалить ключ доступа</string>
+    <string name="passkeys_already_removed">Этот ключ доступа уже удалён.</string>
+    <string name="passkeys_too_many_attempts">Слишком много попыток. Повторите через несколько минут.</string>
+    <string name="email_change_row_title">Адрес электронной почты</string>
+    <string name="email_change_title">Изменить адрес электронной почты</string>
+    <string name="email_change_body">Введите новый адрес электронной почты и текущий пароль. Мы отправим ссылку на новый адрес. Изменение вступит в силу, когда вы откроете эту ссылку.</string>
+    <string name="email_change_current">Текущий: %1$s</string>
+    <string name="email_change_new_email">Новый адрес электронной почты</string>
+    <string name="email_change_current_password">Текущий пароль</string>
+    <string name="email_change_show_password">Показать пароль</string>
+    <string name="email_change_hide_password">Скрыть пароль</string>
+    <string name="email_change_send">Отправить ссылку</string>
+    <string name="email_change_sending">Отправка…</string>
+    <string name="email_change_link_sent">Проверьте %1$s: туда отправлена ссылка для подтверждения.</string>
+    <string name="email_change_updated">Адрес электронной почты обновлён.</string>
+    <string name="email_change_error_invalid_request">Введите действительный адрес электронной почты и текущий пароль.</string>
+    <string name="email_change_error_same_email">Новый адрес электронной почты должен отличаться от текущего.</string>
+    <string name="email_change_error_disabled">Администратор вашего сервера отключил смену адреса электронной почты.</string>
+    <string name="email_change_error_local_account_required">Изменить адрес здесь можно только для аккаунтов, которые входят по электронной почте и паролю.</string>
+    <string name="email_change_error_password_invalid">Неверный текущий пароль.</string>
+    <string name="email_change_error_domain_not_allowed">Этот сервер не принимает адреса с этим доменом.</string>
+    <string name="email_change_error_email_in_use">Этот адрес электронной почты уже привязан к другому аккаунту.</string>
+    <string name="email_change_error_account_modified">Аккаунт изменился во время отправки. Попробуйте ещё раз.</string>
+    <string name="email_change_error_request_in_progress">Другой запрос на смену адреса завершился раньше. Воспользуйтесь ссылкой из того письма или попробуйте ещё раз.</string>
+    <string name="email_change_error_delivery_failed">Не удалось отправить письмо для подтверждения. Попробуйте ещё раз.</string>
+    <string name="email_change_error_service_unavailable">Сейчас этот сервер не может отправлять письма, поэтому адрес изменить нельзя.</string>
+    <string name="email_change_error_rate_limited">Слишком много попыток. Повторите через несколько минут.</string>
+    <string name="email_change_error_network">Не удалось подключиться к серверу. Проверьте соединение и попробуйте ещё раз.</string>
+    <string name="email_change_error_unknown">Не удалось выполнить запрос на смену адреса. Попробуйте ещё раз.</string>
 </resources>

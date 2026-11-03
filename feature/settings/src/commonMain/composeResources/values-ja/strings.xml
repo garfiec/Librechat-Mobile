@@ -35,6 +35,7 @@
     <string name="memory_redacted_value">このサーバーのコンテンツポリシーにより、保存内容は非表示になっています。削除は引き続き可能です。</string>
     <string name="memory_redacted_value_no_delete">このサーバーのコンテンツポリシーにより、保存内容は非表示になっています。</string>
     <string name="cd_loading_profile">プロフィールを読み込み中</string>
+    <string name="account_profile_load_failed">プロフィールを読み込めませんでした。</string>
     <string name="cd_make_private">非公開にする</string>
     <string name="cd_make_public">公開にする</string>
     <string name="cd_preview_voice">音声をプレビュー</string>
@@ -162,6 +163,10 @@
     <string name="accent_color_hex">16進数</string>
     <string name="use_wallpaper_colors">壁紙の色を使用</string>
     <string name="use_wallpaper_colors_desc">アプリのアクセントをシステムの壁紙に合わせます（Material You）</string>
+    <string name="use_server_accent">サーバーのアクセントを使用</string>
+    <string name="use_server_accent_desc">このアクセントはサーバーが全員に設定しています。オフにすると自分のアクセントを使用できます。</string>
+    <string name="accent_set_by_server">サーバーが設定（%1$s）</string>
+    <string name="accent_set_by_server_note">自分のアクセントを選ぶには「サーバーのアクセントを使用」をオフにしてください。</string>
 
     <!-- Settings rows -->
     <string name="language">言語</string>
@@ -237,6 +242,16 @@
     <string name="auto_refill_interval">間隔</string>
     <string name="auto_refill_next">次回の補充</string>
     <string name="auto_refill_next_info">補充はこの時刻以降、メッセージによって残高がゼロを下回る場合にのみ行われます。</string>
+    <string name="balance_usage_limit">使用上限</string>
+    <string name="balance_used">%1$s 使用済み</string>
+    <string name="balance_usage_unavailable">使用状況を取得できません</string>
+    <string name="balance_out_of_credits">クレジット切れ</string>
+    <string name="cd_balance_reading">%1$s：%2$s</string>
+    <string name="auto_reset_title">自動リセット</string>
+    <string name="auto_reset_last">前回のリセット</string>
+    <string name="auto_reset_amount">リセット後の割り当て</string>
+    <string name="auto_reset_next">次回のリセット</string>
+    <string name="auto_reset_next_info">間隔が経過すると、残高の確認やリクエストの送信時に残高が割り当て量に置き換えられます。未使用のクレジットは繰り越されず、処理中のリクエストも引き続き差し引かれます。</string>
     <plurals name="auto_refill_every_seconds">
         <item quantity="other">%1$s秒ごと</item>
     </plurals>
@@ -358,6 +373,7 @@
     <string name="enable_two_factor">二要素認証を有効にする</string>
     <string name="disable_two_factor">二要素認証を無効にする</string>
     <string name="regenerate_backup_codes">バックアップコードを再生成</string>
+    <string name="two_factor_required_by_server">このサーバーでは二要素認証が必須のため、無効にできません。</string>
 
     <!-- 2FA setup dialog -->
     <string name="dialog_title_enable_2fa">二要素認証を有効にする</string>
@@ -734,6 +750,8 @@
     <string name="during_run_action_queue_desc">応答が完了したら、次のメッセージとして送信します。</string>
     <string name="during_run_action_steer">応答の方向を修正</string>
     <string name="during_run_action_steer_desc">生成中の応答に割り込み、アシスタントの方針を変えさせます。対応するサーバーが必要です。非対応の場合はキューに追加されます。</string>
+    <string name="during_run_action_interrupt">中断して方向を修正</string>
+    <string name="during_run_action_interrupt_desc">現在のツールまたは思考ステップを停止し、書かれた内容は残したまま、あなたのメッセージで続行します。ツールがすでに実行した操作は元に戻せません。応答を中断できない場合は、通常の方向修正になります。</string>
     <string name="upload_routing_title">添付ファイル</string>
     <string name="upload_routing_desc">ファイルはそのままモデルに送信するか、サーバーで読み取ってテキストとして送信できます。すべてのモデルがすべてのファイル形式に対応しているわけではありません。</string>
     <string name="upload_routing_auto">自動で選択</string>
@@ -743,6 +761,8 @@
     <string name="mcp_oauth_title">%1$s にサインイン</string>
     <string name="mcp_oauth_message">このサーバーを使用するには許可が必要です。プロバイダーに移動してアクセスを承認した後、戻って再接続してください。</string>
     <string name="mcp_oauth_continue">続行</string>
+    <string name="mcp_oauth_signed_in">サインインしました。接続しています…</string>
+    <string name="mcp_oauth_failed">サインインが完了しませんでした。再接続してもう一度お試しください。</string>
     <string name="mcp_connection_deferred">バックグラウンドで接続中です — 準備ができるとツールが表示されます。</string>
     <string name="show_site_icons">サイトのアイコンを表示</string>
     <string name="show_site_icons_desc">ウェブ検索結果のアイコンを Google などのサイトから読み込みます</string>
@@ -883,4 +903,59 @@
     <string name="shared_chats_no_match">「%1$s」に一致するリンクはありません</string>
     <string name="shared_chats_refresh_failed">共有したチャットを更新できませんでした</string>
     <string name="shared_chats_delete_failed">リンクを削除できませんでした</string>
+    <string name="passkeys_title">パスキー</string>
+    <string name="passkeys_row_subtitle">画面ロックまたはセキュリティキーでサインイン</string>
+    <plurals name="passkeys_row_count">
+        <item quantity="other">パスキー %1$d 件</item>
+    </plurals>
+    <string name="passkeys_description">デバイスの画面ロックまたはセキュリティキーを使って、パスワードなしでサインインできます。</string>
+    <string name="passkeys_empty">パスキーはまだ追加されていません</string>
+    <string name="passkeys_load_failed">パスキーを読み込めませんでした。</string>
+    <string name="passkeys_add_in_browser">パスキーを追加するには、ブラウザで %1$s にサインインしてください。</string>
+    <string name="passkeys_synced">同期済み</string>
+    <string name="passkeys_dates">%1$s · %2$s</string>
+    <string name="passkeys_added_on">%1$s に追加</string>
+    <string name="passkeys_last_used_on">最終使用: %1$s</string>
+    <string name="passkeys_never_used">未使用</string>
+    <string name="passkeys_row_description_synced">%1$s、同期済み、%2$s</string>
+    <string name="passkeys_row_description">%1$s、%2$s</string>
+    <string name="passkeys_more_options">%1$s のその他のオプション</string>
+    <string name="passkeys_action_rename">名前を変更</string>
+    <string name="passkeys_action_remove">削除</string>
+    <string name="passkeys_rename_title">パスキーの名前を変更</string>
+    <string name="passkeys_name_label">パスキー名</string>
+    <string name="passkeys_rename_failed">パスキーの名前を変更できませんでした</string>
+    <string name="passkeys_remove_title">「%1$s」を削除しますか？</string>
+    <string name="passkeys_remove_message">このパスキーはサインインに使用できなくなります。</string>
+    <string name="passkeys_confirm_password">パスワードを確認</string>
+    <string name="passkeys_incorrect_password">パスワードが正しくありません。もう一度お試しください。</string>
+    <string name="passkeys_remove_failed">パスキーを削除できませんでした</string>
+    <string name="passkeys_already_removed">そのパスキーはすでに削除されています。</string>
+    <string name="passkeys_too_many_attempts">試行回数が多すぎます。数分後にもう一度お試しください。</string>
+    <string name="email_change_row_title">メールアドレス</string>
+    <string name="email_change_title">メールアドレスを変更</string>
+    <string name="email_change_body">新しいメールアドレスと現在のパスワードを入力してください。新しいアドレスにリンクを送信します。そのリンクを開くと変更が反映されます。</string>
+    <string name="email_change_current">現在: %1$s</string>
+    <string name="email_change_new_email">新しいメールアドレス</string>
+    <string name="email_change_current_password">現在のパスワード</string>
+    <string name="email_change_show_password">パスワードを表示</string>
+    <string name="email_change_hide_password">パスワードを非表示</string>
+    <string name="email_change_send">リンクを送信</string>
+    <string name="email_change_sending">送信中…</string>
+    <string name="email_change_link_sent">%1$s に届いた確認リンクを確認してください。</string>
+    <string name="email_change_updated">メールアドレスを更新しました。</string>
+    <string name="email_change_error_invalid_request">有効なメールアドレスと現在のパスワードを入力してください。</string>
+    <string name="email_change_error_same_email">新しいメールアドレスは現在のものと異なる必要があります。</string>
+    <string name="email_change_error_disabled">サーバーの管理者がメールアドレスの変更を無効にしています。</string>
+    <string name="email_change_error_local_account_required">ここでメールアドレスを変更できるのは、メールアドレスとパスワードでサインインするアカウントのみです。</string>
+    <string name="email_change_error_password_invalid">現在のパスワードが正しくありません。</string>
+    <string name="email_change_error_domain_not_allowed">このサーバーはそのドメインのアドレスを受け付けていません。</string>
+    <string name="email_change_error_email_in_use">そのメールアドレスはすでに別のアカウントに紐付けられています。</string>
+    <string name="email_change_error_account_modified">送信中にアカウントが変更されました。もう一度お試しください。</string>
+    <string name="email_change_error_request_in_progress">別のメールアドレス変更リクエストが先に完了しました。そのメールのリンクを使用するか、もう一度お試しください。</string>
+    <string name="email_change_error_delivery_failed">確認メールを送信できませんでした。もう一度お試しください。</string>
+    <string name="email_change_error_service_unavailable">このサーバーは現在メールを送信できないため、アドレスを変更できません。</string>
+    <string name="email_change_error_rate_limited">試行回数が多すぎます。数分後にもう一度お試しください。</string>
+    <string name="email_change_error_network">サーバーに接続できませんでした。接続を確認して、もう一度お試しください。</string>
+    <string name="email_change_error_unknown">メールアドレスの変更リクエストに失敗しました。もう一度お試しください。</string>
 </resources>
