@@ -187,10 +187,14 @@ interface TokenManager : AuthGateHolder {
      * and already knows why — and latches the one-shot expiry report, so the requests still in flight
      * on the dropped bearer cannot announce a "session expired" over a sign-out the user chose.
      *
+     * [forTwoFactorSetup] is the server's 2FA enrollment 403 ending it: the account is also recorded
+     * as [isTwoFactorSetupRequired] (a refresh's enrollment answer records it itself), so a restart
+     * before setup is done does not read the empty slot as an expiry.
+     *
      * Null is the bare (pre-account-resolution / legacy) slot. Defaulted to a no-op for the same reason
      * as [sessionHealth].
      */
-    suspend fun endSessionForReauth(accountId: String?) = Unit
+    suspend fun endSessionForReauth(accountId: String?, forTwoFactorSetup: Boolean = false) = Unit
 
     /**
      * True when [accountId]'s session was ended because the server now requires it to set up 2FA

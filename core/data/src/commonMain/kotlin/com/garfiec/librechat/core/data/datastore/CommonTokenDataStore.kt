@@ -1196,9 +1196,10 @@ abstract class CommonTokenDataStore(
         if (accountKey == activeAccountKey) cachedAuth = RequestAuth(null)
     }
 
-    override suspend fun endSessionForReauth(accountId: String?) {
+    override suspend fun endSessionForReauth(accountId: String?, forTwoFactorSetup: Boolean) {
         stateMutex.withLock {
             dropSlotLocked(accountId)
+            if (forTwoFactorSetup && accountId != null) writeValue(twoFactorSetupKey(accountId), MARKER_SET)
             // Also clears the health banner this sign-out was chosen from.
             clearRejectedRefresh(slotKey(accountId))
             // Latch the one-shot expiry report (see [TokenManager.endSessionForReauth]); [setTokens]

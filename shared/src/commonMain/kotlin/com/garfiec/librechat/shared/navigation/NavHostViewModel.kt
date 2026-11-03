@@ -459,6 +459,11 @@ class NavHostViewModel(
             _isLoggedIn.value = true
             return true
         }
+        // Signed out to set up 2FA, not expired: stay on it, at sign-in, which runs the setup again.
+        if (accountSwitcher.awaitsTwoFactorSetup(activeAccountId())) {
+            _isLoggedIn.value = false
+            return false
+        }
         // Read before the failover moves the active pointer off the expired account.
         val expiredLabel = expiredAccountLabel().orEmpty()
         val switched = accountSwitcher.failOverFromActive() as? FailoverResult.Switched
@@ -474,7 +479,10 @@ class NavHostViewModel(
 
     private suspend fun onSessionEnded(reason: SessionEndReason) = sessionDecision.withLock<Unit> {
         val wasLoggedIn = _isLoggedIn.value
-        val expired = reason == SessionEndReason.EXPIRED
+        // An account signed out for 2FA setup has an empty slot, so its requests settle as expired
+        // (a cold start's, say): that is not an expiry, and failing over would leave the account the
+        // user has to finish. It goes to sign-in, without the "signed out" notice.
+        val expired = reason == SessionEndReason.EXPIRED && !accountSwitcher.awaitsTwoFactorSetup(activeAccountId())
         // Read before the failover moves the active pointer off the expired account.
         val expiredLabel = if (expired) expiredAccountLabel().orEmpty() else null
         val failover = if (expired) accountSwitcher.failOverFromActive() else FailoverResult.NoLiveAccount
@@ -525,7 +533,8 @@ class NavHostViewModel(
         if (gate.accountId != null && gate.accountId != active) return@withLock
         when (gate) {
             is AuthGate.TwoFactorSetupRequired -> {
-                tokenManager.endSessionForReauth(active)
+                // Recorded with the account, so a restart before setup is done still knows why.
+                tokenManager.endSessionForReauth(active, forTwoFactorSetup = true)
                 sessionRevision.update { it + 1 }
                 // Lowered before the route goes out, as in [onSessionEnded].
                 _isLoggedIn.value = false
@@ -678,3 +687,7 @@ class NavHostViewModel(
         viewModelScope.launch { authRepository.logout() }
     }
 }
+
+/** [accountId] was signed out because its server requires 2FA setup it has not done. */
+private suspend fun AccountSwitcher.awaitsTwoFactorSetup(accountId: String?): Boolean =
+    accountId != null && needsTwoFactorSetup(accountId)

@@ -134,6 +134,23 @@ class CommonTokenDataStoreEnrollmentTest {
         assertThat(store.isTwoFactorSetupRequired(ACCOUNT)).isFalse()
     }
 
+    /** The 403 path ends the session in the shell; the marker must survive a restart there too. */
+    @Test
+    fun `an enrollment 403 recorded by the shell persists the marker until the next sign-in`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val store = seeded(enrollmentEngine())
+
+            store.endSessionForReauth(ACCOUNT, forTwoFactorSetup = true)
+
+            assertThat(store.isTwoFactorSetupRequired(ACCOUNT)).isTrue()
+            assertThat(store.store.keys).contains("acct:$ACCOUNT:two_factor_setup_required")
+            assertThat(store.isTwoFactorSetupRequired(OTHER)).isFalse()
+
+            store.setTokens("A1", "R1")
+            store.onAccountResolved(ACCOUNT)
+            assertThat(store.isTwoFactorSetupRequired(ACCOUNT)).isFalse()
+        }
+
     @Test
     fun `removing the account clears its setup marker`() = runTest(UnconfinedTestDispatcher()) {
         val store = seeded(enrollmentEngine(), active = OTHER)
