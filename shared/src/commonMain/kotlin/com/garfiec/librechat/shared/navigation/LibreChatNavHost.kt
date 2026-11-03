@@ -68,8 +68,10 @@ import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
+import com.garfiec.librechat.core.ui.components.BackClaims
 import com.garfiec.librechat.core.ui.components.BannerDisplay
 import com.garfiec.librechat.core.ui.components.DrawerGestureLock
+import com.garfiec.librechat.core.ui.components.LocalBackClaims
 import com.garfiec.librechat.core.ui.components.LocalDrawerGestureLock
 import com.garfiec.librechat.core.ui.components.LocalServerUrl
 import com.garfiec.librechat.core.ui.components.share.LocalExternalUriHandler
@@ -562,6 +564,7 @@ fun PhoneLayout(
     // The drawer is an authenticated surface, and once the session ends its gestures are off (below),
     // which also takes away the scrim tap that would close it. Shut it here, or it stays open over
     // the sign-in screen with nothing to dismiss it on iOS.
+    val backClaims = remember { BackClaims() }
     val signedOut = !isLoggedIn || navigator.isInAuthFlow
     LaunchedEffect(signedOut) {
         if (signedOut && !drawerState.isClosed) drawerState.snapTo(DrawerValue.Closed)
@@ -574,7 +577,11 @@ fun PhoneLayout(
         // auth base) leaves a non-auth route on top, and without this its edge-swipe would open the
         // drawer over a session-less state.
         // A full-screen viewer with gestures of its own (the PDF viewer) turns it off while shown.
-        gesturesEnabled = isLoggedIn && !navigator.isInAuthFlow && !drawerGestureLock.isLocked,
+        // Off, too, while the screen takes back itself (a dirty editor's discard prompt, an open
+        // sheet): on iOS the drawer's drag would otherwise win the edge swipe that means back there.
+        // Kept on while the drawer shows, so it can still be dragged or tapped shut.
+        gesturesEnabled = isLoggedIn && !navigator.isInAuthFlow && !drawerGestureLock.isLocked &&
+            (!backClaims.isClaimed || drawerShowing),
         // Liquid Glass shows the screen through the panel, so it dims it only lightly.
         scrimColor = if (glass != null) GlassDrawerScrim else DrawerDefaults.scrimColor,
         drawerContent = {
@@ -673,7 +680,10 @@ fun PhoneLayout(
                     onDismiss = navHostViewModel::dismissBanner,
                 )
             }
-            CompositionLocalProvider(LocalDrawerGestureLock provides drawerGestureLock) {
+            CompositionLocalProvider(
+                LocalDrawerGestureLock provides drawerGestureLock,
+                LocalBackClaims provides backClaims,
+            ) {
                 navDisplay({ scope.launch { drawerState.open() } }, Modifier.fillMaxSize())
             }
         }
