@@ -362,13 +362,30 @@ fun MessageList(
     // full-screen artifact route disposes the chat entry); otherwise the initial
     // scroll re-fires on return and overrides the restored scroll position.
     var hasScrolledToBottom by rememberSaveable { mutableStateOf(false) }
+    // Whether the list holds its tail until the reader takes over (see [nextTailPin]). Not saveable:
+    // a list restored on return from another route keeps the place it was left at.
+    var pinnedToTail by remember { mutableStateOf(false) }
+    // A press anywhere on the list hands it to the reader: a tap that expands a card at the end
+    // would otherwise be scrolled out from under their finger as the card grows.
+    val unpinTail = remember { { pinnedToTail = false } }
     LaunchedEffect(displayMessages.size, jumpPending) {
         if (!hasScrolledToBottom && displayMessages.isNotEmpty() && !jumpPending) {
             // A chat opened by a jump to one message starts there, not at the bottom: the jump is
             // waited out, and only one that gave up without a message to focus lands at the bottom,
             // and only if the user hasn't scrolled the list while it waited.
             val untouched = listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
-            if (searchFocusRequest == null && untouched) listState.scrollToTail(totalItemCount - 1, extraEndPx)
+            if (searchFocusRequest == null && untouched) {
+                follower.programmaticScroll = true
+                try {
+                    listState.scrollToTail(totalItemCount - 1, extraEndPx)
+                } finally {
+                    follower.programmaticScroll = false
+                }
+                // The open lands on the tail before the thread and the bottom chrome are done
+                // measuring: messages above the tail settle taller and the composer's rows measure in
+                // a few frames later, each pushing the tail down. The pin keeps it there.
+                pinnedToTail = true
+            }
             hasScrolledToBottom = true
         }
     }
@@ -439,25 +456,50 @@ fun MessageList(
     // viewport too, and a scroll to the bottom then would interrupt that scroll and cancel it.
     val currentFocusRequest by rememberUpdatedState(searchFocusRequest)
     //
-    // The same goes for the bottom chrome growing over the list (code workspace rows, a taller
-    // composer): that raises the bottom content padding, not the viewport, so the line watched is
-    // where the tail rests, which moves up for both. Not during a run: the follower already rests
-    // the tail against the live bottom padding, and an instant jump here would cut its easing short.
+    // A list pinned to its tail (see [nextTailPin]) is put back on it whenever anything pushes the
+    // tail down: messages settling taller, the bottom chrome measuring in (code workspace rows, a
+    // wrapped chip row, a taller composer), the keyboard. Not during a run: the follower already
+    // rests the tail against the live bottom padding, and an instant jump here would cut its easing
+    // short. Not while Compare's sync holds this pane level with the other.
     val currentIsStreaming by rememberUpdatedState(isStreaming)
     val currentIsNearBottom by rememberUpdatedState(isNearBottom)
+    val currentSyncHold by rememberUpdatedState(syncHold)
+    LaunchedEffect(Unit) {
+        var wasScrolling = false
+        snapshotFlow {
+            Triple(
+                follower.isTouching || currentFocusRequest != null,
+                listState.isScrollInProgress && !follower.programmaticScroll,
+                currentIsNearBottom.value,
+            )
+        }.collect { (touching, scrolling, nearTail) ->
+            pinnedToTail = nextTailPin(pinnedToTail, touching, scrolling, wasScrolling, nearTail)
+            wasScrolling = scrolling
+        }
+    }
     LaunchedEffect(Unit) {
         var previous: TailRest? = null
         snapshotFlow {
             val info = listState.layoutInfo
-            TailRest(info.viewportEndOffset, info.viewportEndOffset - info.afterContentPadding, currentIsNearBottom.value)
-        }.collect { rest ->
-            if (!listHasFocus && currentFocusRequest == null && !currentIsStreaming) {
+            TailRest(
+                viewportEnd = info.viewportEndOffset,
+                restLine = info.viewportEndOffset - info.afterContentPadding,
+                nearTail = currentIsNearBottom.value,
+                overhang = info.tailOverhang(extraEndPx),
+            ) to pinnedToTail
+        }.collect { (rest, pinned) ->
+            if (!listHasFocus && currentFocusRequest == null && !currentIsStreaming && !currentSyncHold()) {
                 val info = listState.layoutInfo
                 val lastVisibleIndex = info.visibleItemsInfo.lastOrNull()?.index
                 val itemCount = info.totalItemsCount
-                if (reanchorsToTail(previous, rest, lastVisibleIndex, itemCount)) {
+                if (holdsPinnedTail(pinned, rest) || reanchorsToTail(previous, rest, lastVisibleIndex, itemCount)) {
                     coroutineScope.launch {
-                        listState.scrollToTail(itemCount - 1, extraEndPx)
+                        follower.programmaticScroll = true
+                        try {
+                            listState.scrollToTail(itemCount - 1, extraEndPx)
+                        } finally {
+                            follower.programmaticScroll = false
+                        }
                     }
                 }
             }
@@ -524,7 +566,8 @@ fun MessageList(
                     .glassBackdropSource(listBackdrop)
                     .onFocusChanged { listHasFocus = it.hasFocus }
                     .onGloballyPositioned { listCoordinates = it }
-                    .tailFollowerTouch(follower),
+                    .tailFollowerTouch(follower)
+                    .onEveryPress(unpinTail),
                 state = listState,
                 // The bottom reserve is the measured bar height PLUS a reading gap. The gap must stay
                 // here rather than in the follower's target: a follower-only gap is reclaimed by the

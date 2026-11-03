@@ -49,4 +49,67 @@ class TailReanchorTest {
     fun anEmptyListHasNoTail() {
         assertFalse(reanchorsToTail(atTail, chromeGrown, lastVisibleIndex = null, itemCount = 0))
     }
+
+    // The frames a locked code-workspace chat opened offline produced on a 1080x2340 phone: the open
+    // lands on the tail, then the messages above it settle 414px taller, then the workspace rows
+    // measure in, raising the bottom reserve by 169 and then 126px.
+    private val opened = TailRest(viewportEnd = 2108, restLine = 1625, nearTail = true, overhang = 0)
+    private val messagesSettled = opened.copy(nearTail = false, overhang = 414)
+    private val rowsIn = TailRest(viewportEnd = 2108, restLine = 1456, nearTail = true, overhang = 169)
+    private val rowsWrapped = TailRest(viewportEnd = 2108, restLine = 1330, nearTail = true, overhang = 126)
+
+    @Test
+    fun aPinnedTailIsHeldThroughEveryFrameOfTheOpen() {
+        listOf(messagesSettled, rowsIn, rowsWrapped).forEach { assertTrue(holdsPinnedTail(pinned = true, rest = it), "$it") }
+    }
+
+    @Test
+    fun withoutThePinTheChromeGrowthAfterTheMessagesSettledIsMissed() {
+        val settledThenAnchored = messagesSettled
+        val chromeGrown = settledThenAnchored.copy(restLine = 1330, overhang = 295)
+        assertFalse(reanchorsToTail(settledThenAnchored, chromeGrown, lastVisibleIndex = 13, itemCount = 14))
+        assertTrue(holdsPinnedTail(pinned = true, rest = chromeGrown))
+    }
+
+    @Test
+    fun anUnpinnedListIsNeverHeld() {
+        listOf(messagesSettled, rowsIn, rowsWrapped).forEach { assertFalse(holdsPinnedTail(pinned = false, rest = it)) }
+    }
+
+    @Test
+    fun aTailAtRestOrAShortListNeedsNoScroll() {
+        assertFalse(holdsPinnedTail(pinned = true, rest = opened))
+        assertFalse(holdsPinnedTail(pinned = true, rest = opened.copy(overhang = -800)))
+        assertFalse(holdsPinnedTail(pinned = true, rest = opened.copy(overhang = 1)))
+    }
+
+    @Test
+    fun aPressOrAFindTakesThePin() {
+        assertFalse(nextTailPin(pinned = true, touching = true, scrolling = false, wasScrolling = false, nearTail = true))
+    }
+
+    @Test
+    fun aScrollOfTheReadersTakesThePinWhileItRuns() {
+        assertFalse(nextTailPin(pinned = true, touching = false, scrolling = true, wasScrolling = false, nearTail = true))
+    }
+
+    @Test
+    fun aScrollThatComesToRestAwayFromTheTailLeavesItUnpinned() {
+        assertFalse(nextTailPin(pinned = false, touching = false, scrolling = false, wasScrolling = true, nearTail = false))
+    }
+
+    @Test
+    fun aScrollThatComesToRestOnTheTailPinsItAgain() {
+        assertTrue(nextTailPin(pinned = false, touching = false, scrolling = false, wasScrolling = true, nearTail = true))
+    }
+
+    @Test
+    fun aTapThatIsNotAScrollDoesNotPinAgain() {
+        assertFalse(nextTailPin(pinned = false, touching = false, scrolling = false, wasScrolling = false, nearTail = true))
+    }
+
+    @Test
+    fun layoutAloneKeepsThePin() {
+        assertTrue(nextTailPin(pinned = true, touching = false, scrolling = false, wasScrolling = false, nearTail = false))
+    }
 }
