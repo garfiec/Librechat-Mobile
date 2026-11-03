@@ -170,7 +170,7 @@ internal fun CodeWorkspaceRow(composer: CodeWorkspaceComposer, modifier: Modifie
         }
         if (lines.isNotEmpty()) {
             Text(
-                text = lines.joinToString(" "),
+                text = lines.joinToString("\n"),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
