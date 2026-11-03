@@ -1,12 +1,15 @@
 package com.garfiec.librechat.feature.chat.components.mcpapp
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.UIKitView
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.cValue
 import platform.Foundation.NSURL
+import platform.UIKit.UIColor
 import platform.WebKit.WKContentWorld
 import platform.WebKit.WKNavigationAction
 import platform.WebKit.WKNavigationActionPolicy
@@ -33,6 +36,11 @@ function __sb_post(m) { window.webkit.messageHandlers.${McpAppPage.BRIDGE_NAME}.
 actual fun McpAppWebView(page: McpAppPage, host: McpAppHost, modifier: Modifier) {
     val handler = remember(host) { RelayMessageHandler(host) }
     val navigation = remember(host) { RelayNavigationPolicy() }
+    // Compose clears its canvas where a UIKit view sits and the view shows through from below, so a
+    // transparent web view over a transparent page let the chat under the dialog draw through the
+    // App. The panel's surface goes on the view itself, as Android paints it behind its WebView.
+    val surface = MaterialTheme.colorScheme.surface
+    val background = remember(surface) { surface.toUIColor() }
     UIKitView(
         modifier = modifier,
         factory = {
@@ -54,6 +62,8 @@ actual fun McpAppWebView(page: McpAppPage, host: McpAppHost, modifier: Modifier)
             }
             val webView = WKWebView(frame = cValue { }, configuration = config)
             webView.setOpaque(false)
+            webView.backgroundColor = background
+            webView.scrollView.backgroundColor = background
             webView.navigationDelegate = navigation
             host.send = { raw ->
                 webView.evaluateJavaScript(
@@ -65,6 +75,10 @@ actual fun McpAppWebView(page: McpAppPage, host: McpAppHost, modifier: Modifier)
             }
             webView.loadHTMLString(page.shellHtml, baseURL = NSURL(string = McpAppPage.BASE_URL))
             webView
+        },
+        update = { webView ->
+            webView.backgroundColor = background
+            webView.scrollView.backgroundColor = background
         },
         onRelease = { webView ->
             host.send = null
@@ -117,3 +131,6 @@ private class RelayNavigationPolicy : NSObject(), WKNavigationDelegateProtocol {
         )
     }
 }
+
+private fun Color.toUIColor(): UIColor =
+    UIColor.colorWithRed(red.toDouble(), green.toDouble(), blue.toDouble(), alpha.toDouble())
