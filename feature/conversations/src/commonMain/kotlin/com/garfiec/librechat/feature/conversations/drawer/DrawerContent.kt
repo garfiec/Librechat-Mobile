@@ -1822,15 +1822,15 @@ private fun DrawerConversationItem(
                 Spacer(modifier = Modifier.width(8.dp))
             }
 
-            if (showBookmarkToggle && data.isFavorite) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            } else {
-                Box {
+            Box {
+                if (showBookmarkToggle && data.isFavorite) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                } else {
                     EndpointIcon(
                         endpointName = data.iconEndpoint,
                         iconUrl = data.endpointIconUrl,
@@ -1842,8 +1842,8 @@ private fun DrawerConversationItem(
                             MaterialTheme.colorScheme.onSurfaceVariant
                         },
                     )
-                    if (data.isUnread) UnreadDot(Modifier.align(Alignment.BottomEnd).offset(x = 3.dp, y = 3.dp))
                 }
+                if (data.isUnread) UnreadDot(Modifier.align(Alignment.BottomEnd).offset(x = 3.dp, y = 3.dp))
             }
 
             Spacer(modifier = Modifier.width(10.dp))
