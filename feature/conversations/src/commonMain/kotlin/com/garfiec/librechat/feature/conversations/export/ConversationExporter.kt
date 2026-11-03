@@ -6,11 +6,13 @@ import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.model.ConversationExport
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.content.containsToolCallPreview
+import com.garfiec.librechat.core.model.content.withoutUnsetToolCallPreviewFields
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlin.time.Clock
 
 class ConversationExporter(
@@ -47,7 +49,8 @@ class ConversationExporter(
             version = 1,
         )
         val encoded = withContext(ioDispatcher) {
-            json.encodeToString(ConversationExport.serializer(), export)
+            val tree = json.encodeToJsonElement(ConversationExport.serializer(), export)
+            json.encodeToString(JsonElement.serializer(), tree.withoutUnsetToolCallPreviewFields())
         }
         return Result.Success(encoded)
     }

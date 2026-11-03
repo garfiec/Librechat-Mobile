@@ -187,4 +187,19 @@ class ToolCallPreviewTest {
         assertTrue(marked.containsToolCallPreviewMarkers())
         assertFalse(clean.containsToolCallPreviewMarkers())
     }
+
+    @Test
+    fun export_tree_drops_only_unset_preview_fields_at_any_depth() {
+        val tree = json.parseToJsonElement(
+            """{"createdAt":null,"content":[{"type":"tool_call","tool_call":{"id":"a","output":"x",
+               "outputTruncated":null,"previewRevision":null,"executor":null,"subagent_content":[
+               {"type":"tool_call","tool_call":{"id":"b","argsLength":null,"argsTruncated":true}}]}}]}""",
+        )
+        val expected = json.parseToJsonElement(
+            """{"createdAt":null,"content":[{"type":"tool_call","tool_call":{"id":"a","output":"x",
+               "executor":null,"subagent_content":[
+               {"type":"tool_call","tool_call":{"id":"b","argsTruncated":true}}]}}]}""",
+        )
+        assertEquals(expected, tree.withoutUnsetToolCallPreviewFields())
+    }
 }

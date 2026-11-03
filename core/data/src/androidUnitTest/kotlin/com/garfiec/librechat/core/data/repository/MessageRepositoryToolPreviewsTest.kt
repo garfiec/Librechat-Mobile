@@ -76,12 +76,12 @@ class MessageRepositoryToolPreviewsTest {
 
     @Test
     fun `a full fetch sends no opt-in and never writes the cache`() = runTest {
-        coEvery { messagesApi.getMessages("conv-1", false) } returns listOf(previewed.copy(content = null))
+        coEvery { messagesApi.getMessagesOnce("conv-1") } returns listOf(previewed.copy(content = null))
 
         val result = repository.fetchMessagesFull("conv-1")
 
         assertThat(result).isInstanceOf(Result.Success::class.java)
-        coVerify(exactly = 1) { messagesApi.getMessages("conv-1", false) }
+        coVerify(exactly = 1) { messagesApi.getMessagesOnce("conv-1") }
         coVerify(exactly = 0) { messageDao.upsertAllIndexed(any()) }
         coVerify(exactly = 0) { messageDao.replaceAllForConversation(any(), any(), any()) }
     }

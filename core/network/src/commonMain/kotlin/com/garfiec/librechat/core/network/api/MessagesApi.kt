@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.model.response.OwnerTextResponse
 import com.garfiec.librechat.core.model.response.ToolCallPartResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.retry
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
@@ -31,6 +32,17 @@ class MessagesApi constructor(
         client.get {
             url { path("api/messages/$conversationId") }
             if (toolPreviews) withToolCallPreviews()
+        }.body()
+
+    /**
+     * A conversation's messages in full, tried once: an export the user is waiting on. Its caller
+     * falls back to the cache on failure, and the client's retry backoff would only hold that answer
+     * back (several seconds offline) after the user has moved on.
+     */
+    suspend fun getMessagesOnce(conversationId: String): List<Message> =
+        client.get {
+            url { path("api/messages/$conversationId") }
+            retry { noRetry() }
         }.body()
 
     /**

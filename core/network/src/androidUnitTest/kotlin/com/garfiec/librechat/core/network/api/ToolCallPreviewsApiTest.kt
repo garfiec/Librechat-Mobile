@@ -2,11 +2,13 @@ package com.garfiec.librechat.core.network.api
 
 import com.garfiec.librechat.core.model.request.BranchMessageRequest
 import com.garfiec.librechat.core.model.request.ForkConversationRequest
+import com.garfiec.librechat.core.network.client.configureRetryPolicy
 import com.garfiec.librechat.core.network.di.librechatJson
 import com.google.common.truth.Truth.assertThat
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.HttpRequestData
@@ -46,6 +48,25 @@ class ToolCallPreviewsApiTest {
         assertThat(requests[0].url.encodedPath).isEqualTo("/api/messages/conv-1")
         assertThat(requests[0].url.parameters["toolPreviews"]).isEqualTo("1")
         assertThat(requests[1].url.parameters.contains("toolPreviews")).isFalse()
+    }
+
+    @Test
+    fun `the export's full read asks for no previews and is not retried`() = runTest {
+        val api = MessagesApi(
+            HttpClient(
+                MockEngine { request ->
+                    requests += request
+                    respond("[]", HttpStatusCode.ServiceUnavailable, headersOf(HttpHeaders.ContentType, "application/json"))
+                },
+            ) {
+                install(ContentNegotiation) { json(librechatJson) }
+                install(HttpRequestRetry) { configureRetryPolicy() }
+            },
+        )
+        api.getMessagesOnce("conv-1")
+        assertThat(requests).hasSize(1)
+        assertThat(requests.single().url.encodedPath).isEqualTo("/api/messages/conv-1")
+        assertThat(requests.single().url.parameters.contains("toolPreviews")).isFalse()
     }
 
     @Test

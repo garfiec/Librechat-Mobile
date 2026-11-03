@@ -60,7 +60,7 @@ class MessageRepositoryImpl(
     }
 
     override suspend fun fetchMessagesFull(conversationId: String): Result<List<Message>> =
-        safeApiCall { messagesApi.getMessages(conversationId, toolPreviews = false) }
+        safeApiCall { messagesApi.getMessagesOnce(conversationId) }
             .orCachedMessages(conversationId)
 
     override suspend fun getToolCallPart(

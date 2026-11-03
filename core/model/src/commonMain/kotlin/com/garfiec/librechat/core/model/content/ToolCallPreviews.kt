@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.model.content
 import com.garfiec.librechat.core.model.Message
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
@@ -42,5 +43,31 @@ fun JsonElement.containsToolCallPreviewMarkers(): Boolean = when (this) {
     else -> false
 }
 
+/**
+ * This tree with every `tool_call`'s unset preview fields left out rather than written as `null`.
+ * The server sends them only on a preview, and web's export (`JSON.stringify`) has no key for them on
+ * a full call; an export written with `"outputTruncated": null` would read as a preview-shaped file.
+ */
+fun JsonElement.withoutUnsetToolCallPreviewFields(): JsonElement = when (this) {
+    is JsonObject -> JsonObject(
+        mapValues { (key, value) ->
+            val stripped = value.withoutUnsetToolCallPreviewFields()
+            if (key == TOOL_CALL_KEY && stripped is JsonObject) {
+                JsonObject(stripped.filterNot { (field, fieldValue) -> field in PREVIEW_FIELDS && fieldValue is JsonNull })
+            } else {
+                stripped
+            }
+        },
+    )
+    is JsonArray -> JsonArray(map { it.withoutUnsetToolCallPreviewFields() })
+    else -> this
+}
+
 private const val TOOL_CALL_KEY = "tool_call"
 private val PREVIEW_MARKERS = listOf("outputTruncated", "argsTruncated", "subagentContentOmitted")
+
+/** Every field the server sets only on a preview (`ToolCallPreviewMarkers`, upstream `previews.ts`). */
+private val PREVIEW_FIELDS = setOf(
+    "outputTruncated", "outputLength", "argsTruncated", "argsLength",
+    "subagentContentOmitted", "subagentContentParts", "previewRevision",
+)

@@ -39,6 +39,13 @@ class ConversationExportPreviewTest {
             .exportAsJson("c1")
 
         assertThat((result as Result.Success).data).contains("whole output")
+        // A full call's preview fields stay out of the file, as in web's export.
+        listOf("outputTruncated", "outputLength", "argsTruncated", "previewRevision").forEach {
+            assertThat(result.data).doesNotContain(it)
+        }
+        // And the importer still reads it back.
+        assertThat(ConversationImporter(UnconfinedTestDispatcher(testScheduler)).parseJson(result.data))
+            .isInstanceOf(Result.Success::class.java)
         coVerify(exactly = 0) { messageRepository.getMessages(any(), any()) }
     }
 
