@@ -441,10 +441,9 @@ fun ChatSettingsContent(
                 deviceVoiceName = uiState.ttsDeviceVoiceName,
                 cachingEnabled = uiState.ttsCaching,
                 ttsSource = uiState.ttsSource,
+                serverTtsEnabled = uiState.serverTtsEnabled,
                 availableEngines = listOf(TTS_DEFAULT_OPTION, "ElevenLabs", "OpenAI"),
-                availableVoices = uiState.availableVoices.map { it.name }.ifEmpty {
-                    listOf(TTS_DEFAULT_OPTION, "Alloy", "Echo", "Fable", "Onyx", "Nova", "Shimmer")
-                },
+                availableVoices = uiState.availableVoices.map { it.name },
                 availableDeviceVoices = uiState.availableDeviceVoices,
                 isPreviewPlaying = uiState.isTtsPreviewPlaying,
                 onPreviewDevice = viewModel::previewDeviceTts,

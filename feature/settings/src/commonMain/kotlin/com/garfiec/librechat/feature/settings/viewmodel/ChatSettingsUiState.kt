@@ -51,6 +51,11 @@ data class ChatSettingsUiState(
     val sttEndOfSpeech: Boolean = false,
     /** Whether the server has external STT (Whisper) configured — gates the External engine option. */
     val serverSttEnabled: Boolean = false,
+    /**
+     * Whether the server has TTS configured (`ttsExternal`). Gates the Server TTS source and the
+     * voices fetch, which a server without TTS answers with a 500. False until the config loads.
+     */
+    val serverTtsEnabled: Boolean = false,
     val ttsEngine: String = "",
     val ttsVoice: String = "",
     val ttsSpeechRate: Float = 1.0f,

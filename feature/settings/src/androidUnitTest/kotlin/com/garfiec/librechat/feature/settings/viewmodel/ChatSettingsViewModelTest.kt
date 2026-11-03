@@ -20,6 +20,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -207,5 +208,15 @@ class ChatSettingsViewModelTest {
 
         coVerify { settingsDataStore.setUploadRoutingMode(UploadRoutingMode.MANUAL) }
         assertThat(viewModel.uiState.value.uploadRoutingMode).isEqualTo(UploadRoutingMode.MANUAL)
+    }
+
+    @Test
+    fun `opening the page loads the speech config and leaves voices to it`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        // The delegate fetches voices only once the config says the server has TTS.
+        verify(exactly = 1) { speechSettingsContract.loadSpeechConfig() }
+        verify(exactly = 0) { speechSettingsContract.loadVoices() }
     }
 }

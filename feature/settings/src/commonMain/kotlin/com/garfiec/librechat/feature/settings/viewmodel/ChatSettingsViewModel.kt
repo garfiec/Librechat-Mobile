@@ -78,7 +78,7 @@ class ChatSettingsViewModel(
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     init {
-        speechDelegate.loadVoices()
+        // Also loads the server voices, once the config says the server has TTS.
         speechDelegate.loadSpeechConfig()
         speechDelegate.loadDeviceVoices()
     }

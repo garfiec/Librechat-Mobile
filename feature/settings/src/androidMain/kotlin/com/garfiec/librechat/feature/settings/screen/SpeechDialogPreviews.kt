@@ -25,6 +25,7 @@ private fun TtsDeviceHost(style: UiStyle, height: Dp = 640.dp) = DialogPreviewHo
         deviceVoiceName = "",
         cachingEnabled = false,
         ttsSource = "device",
+        serverTtsEnabled = false,
         availableEngines = emptyList(),
         availableVoices = emptyList(),
         availableDeviceVoices = listOf(DeviceVoiceInfo("en-us-x-sfg-local", "en-US")),

@@ -1,11 +1,13 @@
 package com.garfiec.librechat.core.network.api
 
 import com.garfiec.librechat.core.model.speech.TtsVoice
+import com.garfiec.librechat.core.network.client.configureRetryPolicy
 import com.garfiec.librechat.core.network.di.librechatJson
 import com.google.common.truth.Truth.assertThat
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -13,6 +15,7 @@ import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import kotlin.test.assertFails
 
 /**
  * Pins `GET /api/files/speech/tts/voices`. Every server provider answers with plain names; the
@@ -51,5 +54,27 @@ class SpeechApiVoicesTest {
     @Test
     fun `an empty list decodes`() = runTest {
         assertThat(getVoices("[]")).isEmpty()
+    }
+
+    @Test
+    fun `a 500 from a server without TTS is not retried`() = runTest {
+        // What a server with no `speech.tts` answers (getVoices.js), every time.
+        var attempts = 0
+        val engine = MockEngine {
+            attempts++
+            respond(
+                content = """{"error":"Failed to get voices: Configuration or TTS schema is missing"}""",
+                status = HttpStatusCode.InternalServerError,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val client = HttpClient(engine) {
+            install(ContentNegotiation) { json(librechatJson) }
+            install(HttpRequestRetry) { configureRetryPolicy() }
+            expectSuccess = true
+        }
+
+        assertFails { SpeechApi(client, librechatJson).getVoices() }
+        assertThat(attempts).isEqualTo(1)
     }
 }

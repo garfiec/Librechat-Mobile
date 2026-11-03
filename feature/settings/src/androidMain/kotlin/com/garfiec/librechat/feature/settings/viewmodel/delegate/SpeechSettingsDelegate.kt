@@ -15,6 +15,7 @@ import com.garfiec.librechat.feature.settings.screen.DeviceVoiceInfo
 import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -33,10 +34,12 @@ class SpeechSettingsDelegate(
     private var currentMediaPlayer: MediaPlayer? = null
     private var deviceTtsEngine: TextToSpeech? = null
 
-    // Loads + latches the server-STT flag with the shared "unknown vs disabled" retry policy. Until
-    // it has resolved once (gate.loaded), serverSttEnabled=false is "unknown", not "disabled" — so
-    // opening the STT dialog retries rather than permanently hiding the External engine.
+    // Loads + latches the server speech config (STT and TTS flags) with the shared "unknown vs
+    // disabled" retry policy. Until it has resolved once (gate.loaded), serverSttEnabled and
+    // serverTtsEnabled = false mean "unknown", not "disabled" — so opening either speech dialog
+    // retries rather than permanently hiding the External engine or the Server TTS source.
     private val serverSttGate = ServerSttGate(speechRepository)
+    private var speechConfigJob: Job? = null
 
     override fun loadVoices() {
         stateHandle.scope.launch {
@@ -80,11 +83,18 @@ class SpeechSettingsDelegate(
     }
 
     override fun loadSpeechConfig() {
-        stateHandle.scope.launch {
-            // A null result means a transient failure — leave the gate unlatched so opening the STT
-            // dialog retries rather than trusting it as a definitive "server STT disabled".
-            val enabled = serverSttGate.refresh() ?: false
-            stateHandle.update { copy(serverSttEnabled = enabled) }
+        // A dialog opened while the launch fetch is still in flight joins it rather than racing it.
+        if (speechConfigJob?.isActive == true) return
+        speechConfigJob = stateHandle.scope.launch {
+            // A null result means a transient failure — leave the gate unlatched so opening either
+            // speech dialog retries rather than trusting it as a definitive "disabled".
+            val config = serverSttGate.refreshConfig()
+            val ttsEnabled = config?.ttsExternal ?: false
+            stateHandle.update {
+                copy(serverSttEnabled = config?.sttExternal ?: false, serverTtsEnabled = ttsEnabled)
+            }
+            // A server without `speech.tts` answers the voices route with a 500.
+            if (ttsEnabled) loadVoices()
         }
     }
 
@@ -216,6 +226,13 @@ class SpeechSettingsDelegate(
     }
 
     override fun showTtsDetailDialog() {
+        // Same retry as the STT dialog: a failed config fetch at launch must not hide Server TTS,
+        // and a failed voices fetch must not hide the voice picker for the session.
+        if (!serverSttGate.loaded) {
+            loadSpeechConfig()
+        } else if (stateHandle.state.serverTtsEnabled && stateHandle.state.availableVoices.isEmpty()) {
+            loadVoices()
+        }
         stateHandle.update { copy(showTtsDetailDialog = true) }
     }
 

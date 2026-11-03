@@ -3,12 +3,14 @@ package com.garfiec.librechat.feature.settings.viewmodel.delegate
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.data.repository.ServerSttGate
 import com.garfiec.librechat.core.data.repository.SpeechRepository
 import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.feature.settings.screen.DeviceVoiceInfo
 import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
 import kotlinx.cinterop.ObjCSignatureOverride
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import platform.AVFAudio.AVSpeechBoundary
 import platform.AVFAudio.AVSpeechSynthesisVoice
@@ -28,6 +30,10 @@ class IosSpeechSettingsDelegate(
 ) : SpeechSettingsContract {
 
     private val synthesizer = AVSpeechSynthesizer()
+
+    // Latches the speech config; read here for its TTS flag only (see loadSpeechConfig).
+    private val speechConfigGate = ServerSttGate(speechRepository)
+    private var speechConfigJob: Job? = null
 
     private val synthesizerDelegate = object : NSObject(), AVSpeechSynthesizerDelegateProtocol {
         @ObjCSignatureOverride
@@ -80,10 +86,19 @@ class IosSpeechSettingsDelegate(
 
     override fun loadSpeechConfig() {
         // iOS has no server-STT (External) recording path yet — IosVoiceInput always uses
-        // SFSpeechRecognizer — so intentionally leave serverSttEnabled=false. This keeps the
+        // SFSpeechRecognizer — so serverSttEnabled intentionally stays false. This keeps the
         // External engine hidden in the shared STT dialog rather than offering an option that would
         // silently do nothing when selected. (Follow-up: implement iOS External via AVAudioRecorder
-        // + speechRepository.transcribeAudio, then fetch getSpeechConfig() here like Android does.)
+        // + speechRepository.transcribeAudio, then set it from sttExternal like Android does.)
+        // The config is still fetched for server TTS, which iOS does support. A dialog opened while
+        // the launch fetch is still in flight joins it rather than racing it.
+        if (speechConfigJob?.isActive == true) return
+        speechConfigJob = stateHandle.scope.launch {
+            val ttsEnabled = speechConfigGate.refreshConfig()?.ttsExternal ?: false
+            stateHandle.update { copy(serverTtsEnabled = ttsEnabled) }
+            // A server without `speech.tts` answers the voices route with a 500.
+            if (ttsEnabled) loadVoices()
+        }
     }
 
     override fun setAutoSendAfterStt(enabled: Boolean) {
@@ -207,6 +222,13 @@ class IosSpeechSettingsDelegate(
     }
 
     override fun showTtsDetailDialog() {
+        // A failed config fetch at launch must not hide Server TTS for the whole session, nor a
+        // failed voices fetch the voice picker.
+        if (!speechConfigGate.loaded) {
+            loadSpeechConfig()
+        } else if (stateHandle.state.serverTtsEnabled && stateHandle.state.availableVoices.isEmpty()) {
+            loadVoices()
+        }
         stateHandle.update { copy(showTtsDetailDialog = true) }
     }
 

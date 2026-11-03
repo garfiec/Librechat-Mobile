@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.core.model.speech.TtsVoiceListSerializer
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.retry
 import io.ktor.client.request.forms.formData
 import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.request.get
@@ -56,12 +57,18 @@ class SpeechApi constructor(
             setBody(request)
         }.body()
 
-    /** The server answers with plain names (`["alloy","echo"]`); the serializer also accepts voice objects. */
+    /**
+     * The server answers with plain names (`["alloy","echo"]`); the serializer also accepts voice objects.
+     *
+     * Never retried: a server without `speech.tts` answers this route with a 500 every time, so the
+     * shared 5xx retry would only triple the failing calls.
+     */
     suspend fun getVoices(): List<TtsVoice> =
         json.decodeFromJsonElement(
             TtsVoiceListSerializer,
             client.get {
                 url { path("api/files/speech/tts/voices") }
+                retry { noRetry() }
             }.body<JsonElement>(),
         )
 
