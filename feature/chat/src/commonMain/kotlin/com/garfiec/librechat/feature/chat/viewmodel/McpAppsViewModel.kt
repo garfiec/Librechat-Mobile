@@ -4,8 +4,6 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.AppInfo
-import com.garfiec.librechat.core.common.ChannelPolicy
-import com.garfiec.librechat.core.data.datastore.McpAppConsentStore
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.McpAppsRepository
 import com.garfiec.librechat.core.model.mcp.McpAppOccurrence
@@ -40,14 +38,12 @@ sealed interface McpAppEvent {
 }
 
 /**
- * Owns the one open MCP App and its first-open consent. Kept out of `ChatViewModel` and out of
- * `ChatUiState`: an App is a panel over the chat, not conversation state, and process death simply
- * closes it. The host speaks the protocol; this decides when one exists.
+ * Owns the one open MCP App. Kept out of `ChatViewModel` and out of `ChatUiState`: an App is a
+ * panel over the chat, not conversation state, and process death simply closes it. The host speaks
+ * the protocol; this decides when one exists.
  */
 class McpAppsViewModel(
     private val repository: McpAppsRepository,
-    private val consentStore: McpAppConsentStore,
-    private val channelPolicy: ChannelPolicy,
     private val appInfo: AppInfo,
     configRepository: ConfigRepository,
 ) : ViewModel() {
@@ -67,11 +63,6 @@ class McpAppsViewModel(
 
     private val _session = MutableStateFlow<McpAppSession?>(null)
     val session: StateFlow<McpAppSession?> = _session.asStateFlow()
-
-    private val _consentPrompt = MutableStateFlow<McpAppOccurrence?>(null)
-
-    /** The App waiting on the first-open consent dialog, or null. */
-    val consentPrompt: StateFlow<McpAppOccurrence?> = _consentPrompt.asStateFlow()
 
     private val _events = Channel<McpAppEvent>(capacity = 8, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     val events: Flow<McpAppEvent> = _events.receiveAsFlow()
@@ -96,30 +87,10 @@ class McpAppsViewModel(
         _session.value?.host?.updateHostContext(context)
     }
 
-    /** "Open app" on a row. Asks first on a server this account hasn't allowed, when the channel asks. */
+    /** "Open app" on a row. */
     fun open(occurrence: McpAppOccurrence) {
-        if (!policy.value.enabled || _session.value != null || _consentPrompt.value != null) return
-        val serverName = occurrence.resource.serverName.orEmpty()
-        viewModelScope.launch {
-            if (channelPolicy.mcpAppsNeedConsent && !consentStore.isAllowed(serverName)) {
-                _consentPrompt.value = occurrence
-            } else {
-                start(occurrence, attempt = 0)
-            }
-        }
-    }
-
-    fun confirmConsent(remember: Boolean) {
-        val occurrence = _consentPrompt.value ?: return
-        _consentPrompt.value = null
-        viewModelScope.launch {
-            if (remember) consentStore.allow(occurrence.resource.serverName.orEmpty())
-            start(occurrence, attempt = 0)
-        }
-    }
-
-    fun dismissConsent() {
-        _consentPrompt.value = null
+        if (!policy.value.enabled || _session.value != null) return
+        start(occurrence, attempt = 0)
     }
 
     fun retry() {

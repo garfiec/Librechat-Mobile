@@ -16,7 +16,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Brush
-import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -28,7 +27,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,7 +48,6 @@ import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
-import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.adaptiveRowColor
 import com.garfiec.librechat.core.ui.components.adaptiveSection
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
@@ -63,9 +60,6 @@ import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.ChatLayoutSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ContextUsageSettingsViewModel
-import com.garfiec.librechat.feature.settings.viewmodel.McpAppConsentSettingsViewModel
-import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -119,15 +113,11 @@ fun ChatSettingsContent(
     viewModel: ChatSettingsViewModel = koinViewModel(),
     contextUsageViewModel: ContextUsageSettingsViewModel = koinViewModel(),
     chatLayoutViewModel: ChatLayoutSettingsViewModel = koinViewModel(),
-    mcpAppConsentViewModel: McpAppConsentSettingsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val artifactLibraries by viewModel.artifactLibraries.collectAsStateWithLifecycle()
     val contextUsage by contextUsageViewModel.uiState.collectAsStateWithLifecycle()
     val chatLayout by chatLayoutViewModel.uiState.collectAsStateWithLifecycle()
-    val mcpAppConsent by mcpAppConsentViewModel.uiState.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
-    val consentResetDone = stringResource(Res.string.mcp_app_consent_reset_done)
     var openDialog by remember { mutableStateOf<ChatSettingDialog?>(null) }
     val dismissDialog = { openDialog = null }
     fun <T> saveAndClose(setter: (T) -> Unit): (T) -> Unit = {
@@ -231,17 +221,6 @@ fun ChatSettingsContent(
                         subtitle = forkModeLabel(ForkMode.fromApiValue(uiState.forkMode)),
                         onClick = viewModel::showForkSettingsDialog,
                     )
-                }
-                if (mcpAppConsent.shown) {
-                    row(key = "mcp_app_consent_row") {
-                        McpAppConsentRow(
-                            allowedServers = mcpAppConsent.allowedServers,
-                            onReset = {
-                                mcpAppConsentViewModel.revokeAll()
-                                scope.launch { snackbarHostState.showSnackbar(consentResetDone) }
-                            },
-                        )
-                    }
                 }
             }
 
@@ -526,50 +505,6 @@ internal fun SpeechDetailButtons(
             }
         }
         AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
-    }
-}
-
-/** The MCP apps consent row: who opens without asking, and the reset that makes every server ask again. */
-@Composable
-private fun McpAppConsentRow(allowedServers: Int, onReset: () -> Unit, modifier: Modifier = Modifier) {
-    Column(modifier = modifier) {
-        Surface(modifier = Modifier.fillMaxWidth(), color = adaptiveRowColor) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Widgets,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(Res.string.mcp_app_consent_row_title),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        text = if (allowedServers == 0) {
-                            stringResource(Res.string.mcp_app_consent_row_none)
-                        } else {
-                            pluralStringResource(Res.plurals.mcp_app_consent_row_allowed, allowedServers, allowedServers)
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                if (allowedServers > 0) {
-                    AdaptiveTextButton(onClick = onReset) {
-                        Text(stringResource(Res.string.mcp_app_consent_reset))
-                    }
-                }
-            }
-        }
-        AdaptiveDivider()
     }
 }
 

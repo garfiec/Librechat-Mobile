@@ -3,12 +3,10 @@ package com.garfiec.librechat.feature.chat.di
 import android.app.Application
 import android.content.Context
 import com.garfiec.librechat.core.common.AppInfo
-import com.garfiec.librechat.core.common.ChannelPolicy
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.data.datastore.CodeWorkspacePreferenceStore
 import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
-import com.garfiec.librechat.core.data.datastore.McpAppConsentStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
@@ -101,8 +99,6 @@ class ChatModuleVerificationTest {
                 McpRepository::class,
                 McpOAuthLauncher::class,
                 McpAppsRepository::class,
-                McpAppConsentStore::class,
-                ChannelPolicy::class,
                 AppInfo::class,
                 MemoryRepository::class,
                 WebSearchReadinessRepository::class,

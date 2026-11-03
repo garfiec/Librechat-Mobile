@@ -1,9 +1,6 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 import com.garfiec.librechat.core.common.AppInfo
-import com.garfiec.librechat.core.common.ChannelPolicy
-import com.garfiec.librechat.core.common.DistributionChannel
-import com.garfiec.librechat.core.data.datastore.McpAppConsentStore
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.McpAppFailure
 import com.garfiec.librechat.core.data.repository.McpAppResult
@@ -14,7 +11,6 @@ import com.garfiec.librechat.core.model.mcp.McpAppsPolicy
 import com.garfiec.librechat.core.model.mcp.selectToolCallUiResources
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -34,7 +30,6 @@ class McpAppsViewModelTest {
 
     private val config = MutableStateFlow<StartupConfig?>(null)
     private val refreshes = MutableSharedFlow<StartupConfig>(extraBufferCapacity = 1)
-    private val consent = mockk<McpAppConsentStore>(relaxed = true)
     private val repository = mockk<McpAppsRepository>()
 
     private val occurrence = selectToolCallUiResources(
@@ -69,8 +64,6 @@ class McpAppsViewModelTest {
         every { appInfo.versionName } returns "1.0"
         return McpAppsViewModel(
             repository = repository,
-            consentStore = consent,
-            channelPolicy = ChannelPolicy(DistributionChannel.OPEN_SOURCE),
             appInfo = appInfo,
             configRepository = configRepository,
         )
@@ -84,55 +77,24 @@ class McpAppsViewModelTest {
     fun `nothing opens while the server's policy is off`() {
         val vm = viewModel()
         vm.open(occurrence)
-        assertThat(vm.consentPrompt.value).isNull()
         assertThat(vm.session.value).isNull()
     }
 
     @Test
-    fun `a server not yet allowed asks first, and remembering stores it`() {
+    fun `opening starts the app straight away, and close tears it down`() {
         config.value = enabledConfig()
-        coEvery { consent.isAllowed("weather") } returns false
         val vm = viewModel()
 
         vm.open(occurrence)
-        assertThat(vm.consentPrompt.value).isEqualTo(occurrence)
-        assertThat(vm.session.value).isNull()
-
-        vm.confirmConsent(remember = true)
-        coVerify { consent.allow("weather") }
         assertThat(vm.session.value?.occurrence).isEqualTo(occurrence)
-    }
-
-    @Test
-    fun `an allowed server opens straight away, and close tears it down`() {
-        config.value = enabledConfig()
-        coEvery { consent.isAllowed("weather") } returns true
-        val vm = viewModel()
-
-        vm.open(occurrence)
-        assertThat(vm.consentPrompt.value).isNull()
-        assertThat(vm.session.value).isNotNull()
 
         vm.close()
         assertThat(vm.session.value).isNull()
     }
 
     @Test
-    fun `declining the consent opens nothing and remembers nothing`() {
-        config.value = enabledConfig()
-        coEvery { consent.isAllowed("weather") } returns false
-        val vm = viewModel()
-
-        vm.open(occurrence)
-        vm.dismissConsent()
-        assertThat(vm.session.value).isNull()
-        coVerify(exactly = 0) { consent.allow(any()) }
-    }
-
-    @Test
     fun `retry starts a fresh attempt`() {
         config.value = enabledConfig()
-        coEvery { consent.isAllowed("weather") } returns true
         val vm = viewModel()
         vm.open(occurrence)
         val first = vm.session.value!!
@@ -144,7 +106,6 @@ class McpAppsViewModelTest {
     @Test
     fun `apps reported off stay off until the server answers a config again, even an unchanged one`() {
         config.value = enabledConfig()
-        coEvery { consent.isAllowed("weather") } returns true
         coEvery { repository.validate(any(), any()) } returns McpAppResult.Failure(McpAppFailure.APPS_DISABLED)
         val vm = viewModel()
 

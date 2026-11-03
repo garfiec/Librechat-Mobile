@@ -1,11 +1,9 @@
 package com.garfiec.librechat.feature.chat.components.mcpapp
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -20,12 +18,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -34,7 +28,6 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
-import com.garfiec.librechat.core.ui.components.AdaptiveCheckbox
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
@@ -53,14 +46,10 @@ import com.garfiec.librechat.feature.chat.resources.mcp_app_cancel_pauses
 import com.garfiec.librechat.feature.chat.resources.mcp_app_close_named
 import com.garfiec.librechat.feature.chat.resources.mcp_app_confirm_message
 import com.garfiec.librechat.feature.chat.resources.mcp_app_confirm_tool
-import com.garfiec.librechat.feature.chat.resources.mcp_app_consent_remember
-import com.garfiec.librechat.feature.chat.resources.mcp_app_consent_text
-import com.garfiec.librechat.feature.chat.resources.mcp_app_consent_title
 import com.garfiec.librechat.feature.chat.resources.mcp_app_failed_to_load
 import com.garfiec.librechat.feature.chat.resources.mcp_app_load_error
 import com.garfiec.librechat.feature.chat.resources.mcp_app_loading_interactive_view
 import com.garfiec.librechat.feature.chat.resources.mcp_app_message_tool_context
-import com.garfiec.librechat.feature.chat.resources.mcp_app_open
 import com.garfiec.librechat.feature.chat.resources.mcp_app_run_tool
 import com.garfiec.librechat.feature.chat.resources.mcp_app_send_message
 import com.garfiec.librechat.feature.chat.resources.mcp_app_stop
@@ -268,46 +257,5 @@ private fun McpAppActionDialog(
         },
         // The arguments block scrolls itself; the text slot must not wrap it in a second scroll.
         scrollableText = false,
-    )
-}
-
-/**
- * First open of an App from a server this account hasn't allowed (`ChannelPolicy.mcpAppsNeedConsent`):
- * says what runs and where it comes from. "Don't ask again" stores the server for this account.
- */
-@Composable
-internal fun McpAppConsentDialog(
-    serverName: String,
-    onConfirm: (remember: Boolean) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var remember by remember { mutableStateOf(false) }
-    AdaptiveAlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.mcp_app_consent_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(stringResource(Res.string.mcp_app_consent_text, serverName), style = MaterialTheme.typography.bodyMedium)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(role = Role.Checkbox) { remember = !remember },
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    AdaptiveCheckbox(checked = remember, onCheckedChange = null)
-                    Text(
-                        text = stringResource(Res.string.mcp_app_consent_remember, serverName),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            AdaptiveButton(onClick = { onConfirm(remember) }) { Text(stringResource(Res.string.mcp_app_open)) }
-        },
-        dismissButton = {
-            AdaptiveTextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) }
-        },
     )
 }

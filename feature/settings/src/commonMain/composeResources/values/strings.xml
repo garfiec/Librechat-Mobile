@@ -987,12 +987,4 @@
     <string name="email_change_error_rate_limited">Too many attempts. Try again in a few minutes.</string>
     <string name="email_change_error_network">Couldn't reach the server. Check your connection and try again.</string>
     <string name="email_change_error_unknown">The email change request failed. Try again.</string>
-    <string name="mcp_app_consent_row_title">MCP apps</string>
-    <string name="mcp_app_consent_row_none">Every app asks before it opens</string>
-    <plurals name="mcp_app_consent_row_allowed">
-        <item quantity="one">Apps from %1$d server open without asking</item>
-        <item quantity="other">Apps from %1$d servers open without asking</item>
-    </plurals>
-    <string name="mcp_app_consent_reset">Ask again</string>
-    <string name="mcp_app_consent_reset_done">MCP apps will ask again before they open.</string>
 </resources>

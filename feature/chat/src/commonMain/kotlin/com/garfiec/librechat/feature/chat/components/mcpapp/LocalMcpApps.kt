@@ -47,9 +47,9 @@ data class McpApps(
 val LocalMcpApps = compositionLocalOf<McpApps?> { null }
 
 /**
- * Hosts the open App's panel, its consent and approval dialogs, and its notices, and returns the
- * [McpApps] the rows read. [onSendMessage] sends an approved App message as a user turn (false when
- * refused). Leaving the chat disposes this, which closes the App.
+ * Hosts the open App's panel, its approval dialogs and its notices, and returns the [McpApps] the
+ * rows read. [onSendMessage] sends an approved App message as a user turn (false when refused).
+ * Leaving the chat disposes this, which closes the App.
  */
 @Composable
 fun rememberMcpApps(
@@ -59,7 +59,6 @@ fun rememberMcpApps(
 ): McpApps {
     val policy by viewModel.policy.collectAsStateWithLifecycle()
     val session by viewModel.session.collectAsStateWithLifecycle()
-    val consent by viewModel.consentPrompt.collectAsStateWithLifecycle()
     val send by rememberUpdatedState(onSendMessage)
 
     DisposableEffect(viewModel) {
@@ -87,14 +86,6 @@ fun rememberMcpApps(
                 }
             }
         }
-    }
-
-    consent?.let { occurrence ->
-        McpAppConsentDialog(
-            serverName = occurrence.resource.serverName.orEmpty(),
-            onConfirm = viewModel::confirmConsent,
-            onDismiss = viewModel::dismissConsent,
-        )
     }
 
     session?.let { open ->

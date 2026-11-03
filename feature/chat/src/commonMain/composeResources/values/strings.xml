@@ -1112,7 +1112,4 @@
     <string name="mcp_app_disabled">MCP apps are turned off on this server.</string>
     <string name="mcp_app_busy">The app's server is busy. Try again.</string>
     <string name="mcp_app_reauth">Sign in to %1$s again from MCP servers.</string>
-    <string name="mcp_app_consent_title">Run this app?</string>
-    <string name="mcp_app_consent_text">MCP apps are web pages supplied by the MCP server "%1$s" through your LibreChat server. Opening one runs its code inside Switchboard, and it may load more code from the sites it lists. It can only act on your behalf after you approve each request.</string>
-    <string name="mcp_app_consent_remember">Don't ask again for %1$s</string>
 </resources>

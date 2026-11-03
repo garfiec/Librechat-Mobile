@@ -7,7 +7,6 @@ import com.garfiec.librechat.core.common.AppInfo
 import com.garfiec.librechat.core.common.ChannelPolicy
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
-import com.garfiec.librechat.core.data.datastore.McpAppConsentStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
@@ -67,8 +66,6 @@ class SettingsModuleVerificationTest {
                 FavoritesRepository::class,
                 McpRepository::class,
                 McpOAuthLauncher::class,
-                McpAppConsentStore::class,
-                ChannelPolicy::class,
                 PermissionsRepository::class,
                 MemoryRepository::class,
                 RoleRepository::class,

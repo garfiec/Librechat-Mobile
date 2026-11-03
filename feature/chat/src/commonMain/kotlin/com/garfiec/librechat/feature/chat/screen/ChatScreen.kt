@@ -332,7 +332,7 @@ fun ChatScreen(
     val mcpSignInViewModel: McpSignInViewModel = koinViewModel()
     val mcpSignIn = rememberMcpSignIn(mcpSignInViewModel, snackbarHostState)
 
-    // MCP Apps: the panel, its consent and approval dialogs live here; rows read the result.
+    // MCP Apps: the panel and its approval dialogs live here; rows read the result.
     val mcpAppsViewModel: McpAppsViewModel = koinViewModel()
     val mcpApps = rememberMcpApps(mcpAppsViewModel, snackbarHostState, onSendMessage = viewModel::sendAppMessage)
 

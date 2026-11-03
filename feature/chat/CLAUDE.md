@@ -1216,9 +1216,8 @@ see rather than code the app chose to run.
 
 **MCP Apps are not covered by this rule and do not change it.** An App is third-party code its MCP
 server supplies at run time, and its declared CSP may let it load more. The app itself bundles
-nothing for it (the relay page loads no script), runs it only after a per-server consent, and
-keeps it in an opaque sandboxed frame; see "MCP Apps". None of the renderers above may take a
-remote script on the strength of that.
+nothing for it (the relay page loads no script) and keeps it in an opaque sandboxed frame; see
+"MCP Apps". None of the renderers above may take a remote script on the strength of that.
 
 What is vendored, at which version, and why each pin sits where it does is in
 `scripts/web-assets.json`; `scripts/vendor-web-assets.py` moves the bytes and CI runs
@@ -1501,10 +1500,8 @@ attachment. The chat shows an inert "Open app" row and runs the App in a full-sc
   never inside a fold. Only while `mcpApps.enabled` (`McpAppsViewModel.policy` → `LocalMcpApps`);
   a missing binding reads "could not be loaded" with no button; the shared viewer passes
   `McpApps.ReadOnly`. Subagent and background-task cards show none (slice 2).
-- **Consent** (`ChannelPolicy.mcpAppsNeedConsent`, true on every channel): the first open per
-  account + MCP `serverName` asks first; "Don't ask again" goes in `McpAppConsentStore`, cleared from
-  Settings › Chat. Whether this satisfies F-Droid's policy on downloaded code is an open question
-  for the F-Droid reviewers; don't describe it as compliant.
+- **No first-open prompt**: "Open app" goes straight to the panel, as on web. Approval is per
+  action (below), not per App.
 - **Panel** (`McpAppPanel`, an `AdaptiveDialog`): full screen, never inline, because a WebView in the
   thread's lazy list is disposed on scroll, which tears the App down mid-request. One App at a time;
   closing or leaving the chat tears it down (no in-View state survives). Retry is a new host and a

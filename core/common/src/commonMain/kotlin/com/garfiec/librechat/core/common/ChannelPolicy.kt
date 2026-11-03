@@ -18,14 +18,6 @@ class ChannelPolicy(private val channel: DistributionChannel) {
     val releaseNotes: Boolean = pick(openSource = true, playStore = false, appStore = false)
 
     /**
-     * Whether opening an MCP App from a server for the first time asks the user first. An App is
-     * web code an MCP server's author supplies at run time, which may load more code from hosts it
-     * declares, so the app does not run one without an explicit yes per account and server. The
-     * same on every channel today; a field so a channel can differ without touching the chat.
-     */
-    val mcpAppsNeedConsent: Boolean = pick(openSource = true, playStore = true, appStore = true)
-
-    /**
      * The value for this build's channel. Every channel is named, so adding one fails to compile
      * until each caller decides its value.
      *

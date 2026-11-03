@@ -14,7 +14,6 @@ import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.DeploymentThemeSync
 import com.garfiec.librechat.core.data.datastore.DrawerPinsStore
-import com.garfiec.librechat.core.data.datastore.McpAppConsentStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.RoleCacheDataStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
@@ -336,7 +335,6 @@ val dataModule = module {
     singleOf(::ConfigCacheDataStore)
     singleOf(::RoleCacheDataStore)
     singleOf(::ConversationWebSearchStore)
-    singleOf(::McpAppConsentStore)
     singleOf(::CodeWorkspacePreferenceStore)
     single {
         DateTimePrefsStore(
