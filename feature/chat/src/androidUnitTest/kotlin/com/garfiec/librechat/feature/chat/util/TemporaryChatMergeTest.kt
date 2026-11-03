@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
@@ -136,5 +137,42 @@ class TemporaryChatMergeTest {
         val merged = mergeFinalMessagesInMemory(listOf(optimistic), listOf(skeletal))
 
         assertThat(merged.single().attachments).isEqualTo(optimistic.attachments)
+    }
+
+    /**
+     * A stopped turn's frame carries a skeletal request under the id the SERVER minted, not the
+     * client's. It must fold over the optimistic copy in its slot, or Continue replays the skeleton
+     * and loses the turn's reasoning choice, files and skills.
+     */
+    @Test
+    fun `a request under a server-minted id folds over this turn's optimistic message in its slot`() {
+        val override = ReasoningOverride.level("reasoning_effort", "medium")
+        val root = message("a0", text = "earlier reply")
+        val optimistic = message("client-u1", parentId = "a0", text = "think", isUser = true).copy(
+            reasoningOverride = override,
+            files = listOf(FileReference(fileId = "f1")),
+            manualSkills = listOf("skill-1"),
+        )
+        val skeletal = message("server-u1", parentId = "a0", text = "think", isUser = true)
+        val partial = message("a1", parentId = "server-u1", text = "partial").copy(unfinished = true)
+
+        val merged = mergeFinalMessagesInMemory(listOf(root, optimistic), listOf(skeletal, partial), "client-u1")
+
+        assertThat(merged.map { it.messageId }).containsExactly("a0", "server-u1", "a1").inOrder()
+        val request = merged[1]
+        assertThat(request.reasoningOverride).isEqualTo(override)
+        assertThat(request.files).isEqualTo(optimistic.files)
+        assertThat(request.manualSkills).containsExactly("skill-1")
+        assertThat(request.parentMessageId).isEqualTo("a0")
+    }
+
+    @Test
+    fun `a request that is not this turn's copy is appended, leaving the optimistic message alone`() {
+        val optimistic = message("client-u1", text = "think", isUser = true)
+        val other = message("server-u2", text = "something else", isUser = true)
+
+        val merged = mergeFinalMessagesInMemory(listOf(optimistic), listOf(other), "client-u1")
+
+        assertThat(merged.map { it.messageId }).containsExactly("client-u1", "server-u2").inOrder()
     }
 }

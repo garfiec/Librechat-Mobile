@@ -149,6 +149,8 @@ class SendCompletionDelegate(
         isComparison: Boolean,
         originAccount: AccountId?,
         aborted: Boolean = false,
+        /** This turn's optimistic user message, which the frame's request replaces. */
+        optimisticUserMessageId: String? = null,
     ) {
         val finalConversation = event.conversation
         // Belt-and-braces: if no handoff seeded the selection and the initial GET 404'd
@@ -183,7 +185,7 @@ class SendCompletionDelegate(
                 // read-through (which would upsert the message rows to disk). Drive the
                 // display from the final event in memory instead. Title generation is
                 // also skipped server-side for temp chats, so there's nothing to refresh.
-                treeDelegate.finalizeChatDisplay(event)
+                treeDelegate.finalizeChatDisplay(event, optimisticUserMessageId)
             } else {
                 if (isComparison && !aborted) {
                     // A comparison persists as ONE response message whose content parts carry
@@ -208,7 +210,7 @@ class SendCompletionDelegate(
                     // applyAbortContract, so it is either genuinely persisted or absent; the
                     // frozen pane buffers (comparisonDelegate.onFinal) cover rendering, and
                     // reopen rehydration reads the cached attributed tail.
-                    val finalizedTurn = treeDelegate.finalizeChatDisplay(event)
+                    val finalizedTurn = treeDelegate.finalizeChatDisplay(event, optimisticUserMessageId)
                     // Cache unconditionally: applyAbortContract already dropped any response the
                     // server didn't persist, and on a non-early abort the request message IS
                     // server-persisted — caching it is required, since this is the only write

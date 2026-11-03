@@ -580,6 +580,7 @@ class StreamingManagerDelegate(
             isComparison = isComparison,
             originAccount = streamOriginAccountId,
             aborted = aborted,
+            optimisticUserMessageId = currentTurnOptimisticUserMessageId,
         )
         // Fallback for degenerate finals: a non-comparison stream that ends with no
         // conversation id (and thus nothing to finalize) never reaches finalizeChatDisplay,
