@@ -318,16 +318,16 @@ internal fun holdsPinnedTail(pinned: Boolean, rest: TailRest): Boolean = pinned 
 private const val TAIL_REST_SLOP_PX = 1
 
 /**
- * Whether an unpinned list whose rest line moved up from [previous] to [current] should be put back
- * on its tail. The keyboard shrinking the viewport keeps a list showing its last items there. Bottom
- * chrome growing over an unchanged viewport does so only for a list that rested on its tail the frame
- * before it grew. A pinned list is held by [holdsPinnedTail] instead, which also covers the messages
- * themselves growing, which this can't see.
+ * Whether an unpinned list whose rest line moved up from [previous] to [current] (the keyboard
+ * opening, the bottom chrome growing) should be put back on its tail: only when it rested on its
+ * tail the frame before. A reader scrolled up stays put, even when the last items are on screen (a
+ * short chat, a long last reply). A pinned list is held by [holdsPinnedTail] instead, which also
+ * covers the messages themselves growing, which this can't see.
  */
 internal fun reanchorsToTail(previous: TailRest?, current: TailRest, lastVisibleIndex: Int?, itemCount: Int): Boolean {
     if (previous == null || previous.restLine <= 0 || current.restLine >= previous.restLine) return false
     if (lastVisibleIndex == null || itemCount == 0 || lastVisibleIndex < itemCount - 2) return false
-    return current.viewportEnd < previous.viewportEnd || previous.nearTail
+    return previous.nearTail
 }
 
 /** [scrollToTail], animated. */

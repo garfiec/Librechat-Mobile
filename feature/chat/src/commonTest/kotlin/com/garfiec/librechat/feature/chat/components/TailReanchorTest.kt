@@ -22,10 +22,18 @@ class TailReanchorTest {
     }
 
     @Test
-    fun keyboardShrinkingTheViewportReanchorsAListShowingItsLastItems() {
+    fun keyboardShrinkingTheViewportReanchorsAListOnItsTail() {
+        val keyboardUp = TailRest(viewportEnd = 1300, restLine = 900, nearTail = false)
+        assertTrue(reanchorsToTail(atTail, keyboardUp, lastVisibleIndex = 9, itemCount = 10))
+    }
+
+    @Test
+    fun keyboardOpeningUnderAReaderScrolledUpInTheLastItemsLeavesThemThere() {
+        // A short chat, or a long last reply: the last items are on screen but the reader is above the tail.
         val reading = atTail.copy(nearTail = false)
         val keyboardUp = TailRest(viewportEnd = 1300, restLine = 900, nearTail = false)
-        assertTrue(reanchorsToTail(reading, keyboardUp, lastVisibleIndex = 8, itemCount = 10))
+        assertFalse(reanchorsToTail(reading, keyboardUp, lastVisibleIndex = 1, itemCount = 2))
+        assertFalse(reanchorsToTail(reading, keyboardUp, lastVisibleIndex = 8, itemCount = 10))
     }
 
     @Test
