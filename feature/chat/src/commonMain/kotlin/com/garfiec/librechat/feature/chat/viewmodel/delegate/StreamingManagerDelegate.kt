@@ -19,9 +19,9 @@ import com.garfiec.librechat.core.model.error.parseUserKeyError
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
 import com.garfiec.librechat.core.network.api.chatRefusalText
 import com.garfiec.librechat.feature.chat.util.AttachedRun
-import com.garfiec.librechat.feature.chat.util.anchorIn
 import com.garfiec.librechat.feature.chat.util.applyAbortContract
-import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
+import com.garfiec.librechat.feature.chat.util.changesPath
+import com.garfiec.librechat.feature.chat.util.displayPath
 import com.garfiec.librechat.feature.chat.util.keyEndpointOf
 import com.garfiec.librechat.feature.chat.util.resolvedResponseMessage
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
@@ -1279,20 +1279,23 @@ class StreamingManagerDelegate(
 }
 
 /**
- * Streaming a run this screen attached to, cut at the message it answers (see
- * [MessagesState.attachedRun]). The path is rebuilt only when the tree holds that message:
- * otherwise the one on screen stands, which may be truncated at a turn this screen sent.
+ * Streaming a run this screen attached to, without the saved copy of its reply (see
+ * [MessagesState.attachedRun]). The path is rebuilt only when that changes it: otherwise the one on
+ * screen stands, which may be truncated at a turn this screen sent.
  */
 internal fun MessagesState.attachedTo(status: ChatStatusResponse): MessagesState {
     val run = AttachedRun(
         requestId = status.resumeState?.userMessage?.messageId?.takeIf { it.isNotBlank() },
         responseId = status.resumeState?.responseMessageId?.takeIf { it.isNotBlank() },
     )
-    val anchor = run.anchorIn(messages, activeBranches)
     return copy(
         isStreaming = true,
         attachedRun = run,
-        displayMessages = anchor?.let { buildActiveMessagePath(messages, activeBranches, it) } ?: displayMessages,
+        displayMessages = if (run.changesPath(messages, activeBranches)) {
+            run.displayPath(messages, activeBranches)
+        } else {
+            displayMessages
+        },
     )
 }
 

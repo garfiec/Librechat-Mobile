@@ -365,6 +365,59 @@ class ChatViewModelHandoffResumeTest {
             }
         }
 
+    /**
+     * A cold start: the app was killed mid-run on a chat's first turn, and the prefetcher cached
+     * what the server held before the chat was reopened. The server saved the request under an id of
+     * its own, so the partial it wrote when the kill dropped the subscriber hangs from an id the tree
+     * does not hold and reads as a root of its own. The cache emits before the status check answers,
+     * and the partial must still not show beside the live reply, nor take the path over from the
+     * request.
+     */
+    @Test
+    fun `a cold-start reopen whose partial hangs from an unsaved request id shows the running reply once`() =
+        runTest(testDispatcher) {
+            val partial = reply.copy(text = "Kap", unfinished = true, parentMessageId = "client-sent-1")
+            stored.value = listOf(user, partial)
+            onServer = listOf(user, partial)
+            val statusAnswers = CompletableDeferred<Unit>()
+            coEvery { fixture.chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } coAnswers {
+                statusAnswers.await()
+                ChatStatusResponse(
+                    active = true,
+                    resumeState = StatusResumeState(
+                        userMessage = StatusResumeUserMessage(messageId = "client-sent-1"),
+                        responseMessageId = "assistant-1",
+                    ),
+                )
+            }
+            every { fixture.chatRepository.resumeStream(CONVERSATION_ID) } returns flow {
+                emit(StreamEvent.Sync(aggregatedContent = listOf(MessageContentPart(type = ContentType.TEXT, text = "Kapp"))))
+                awaitCancellation()
+            }
+            val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
+            try {
+                advanceTimeBy(STEP_MS)
+                runCurrent()
+                assertThat(vm.uiState.value.isStreaming).isFalse()
+                assertThat(displayedIds(vm)).isNotEmpty()
+
+                statusAnswers.complete(Unit)
+                advanceTimeBy(SETTLE_MS)
+                runCurrent()
+
+                assertThat(vm.uiState.value.isStreaming).isTrue()
+                assertThat(displayedIds(vm)).containsExactly("user-1")
+
+                // A later read (the open's revalidate, or the prefetcher) writes the partial again.
+                stored.value = listOf(user, partial.copy(text = "Kapp"))
+                advanceTimeBy(SETTLE_MS)
+                runCurrent()
+                assertThat(displayedIds(vm)).containsExactly("user-1")
+            } finally {
+                vm.viewModelScope.cancel()
+            }
+        }
+
     /** The same on a server whose status carries no snapshot: the partial at the tail is the reply. */
     @Test
     fun `a reopened chat without the status snapshot still hides the running reply's partial`() =

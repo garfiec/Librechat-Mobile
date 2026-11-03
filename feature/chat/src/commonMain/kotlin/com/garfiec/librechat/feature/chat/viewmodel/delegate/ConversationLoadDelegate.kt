@@ -17,8 +17,8 @@ import com.garfiec.librechat.core.model.parametersStale
 import com.garfiec.librechat.core.model.request.MAX_MANUAL_SKILLS
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.NEW_CHAT_DRAFT_KEY
-import com.garfiec.librechat.feature.chat.util.anchorIn
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
+import com.garfiec.librechat.feature.chat.util.displayPath
 import com.garfiec.librechat.feature.chat.util.hasParallelParts
 import com.garfiec.librechat.feature.chat.util.stabilizeMessageInstances
 import com.garfiec.librechat.feature.chat.util.withoutLivePartial
@@ -270,17 +270,17 @@ class ConversationLoadDelegate(
                 }
                 val merged = retainedPending?.let { stabilized + it } ?: stabilized
                 // An attached run's reply is in the bubble, and may also be in this read as the
-                // partial the server saved when the last subscriber left: keep the path cut at the
-                // message the run answers, or the reply shows twice until the run ends.
-                val streamingLeafId = baseline.content.attachedRun
-                    ?.takeIf { baseline.isStreaming }
-                    ?.anchorIn(merged, branches)
+                // partial the server saved when the last subscriber left: keep that copy off the
+                // path, or the reply shows twice until the run ends.
+                val attachedRun = baseline.content.attachedRun?.takeIf { baseline.isStreaming }
                 // A resumed run's saved partial: the streaming bubble shows that text already.
                 val liveReplyId = baseline.content.resumedReplyId.takeIf { baseline.isStreaming }
                 MessagePathEmission(
                     messages = merged,
-                    displayMessages = buildActiveMessagePath(merged, branches, streamingLeafId)
-                        .withoutLivePartial(liveReplyId),
+                    displayMessages = (
+                        attachedRun?.displayPath(merged, branches)
+                            ?: buildActiveMessagePath(merged, branches)
+                        ).withoutLivePartial(liveReplyId),
                     retainedPending = retainedPending,
                     revalidated = settled,
                 )
