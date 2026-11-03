@@ -45,6 +45,12 @@ suspend fun TokenManager.refreshBearerFor(identity: RequestIdentity?): BearerRes
             // The refresh succeeded but the slot read back empty — a teardown (logout/removal) raced
             // between the commit and this read. That teardown owns the routing, so treat it as
             // Transient here rather than emitting a second session-expired over it.
+            //
+            // A no-account request against a store bound to an account reads empty here too, and is
+            // left Transient on purpose: a sign-in passes through that state (token re-home before
+            // the roster publish), and ending the session there would sign out a login that just
+            // succeeded. The lasting form of it, a binding the roster doesn't know, is dropped at
+            // cold start by `AccountRegistry`.
             auth.bearer?.let { BearerResult.Refreshed(it, auth.openId) } ?: BearerResult.Transient
         }
         RefreshResult.HardExpired -> BearerResult.Expired

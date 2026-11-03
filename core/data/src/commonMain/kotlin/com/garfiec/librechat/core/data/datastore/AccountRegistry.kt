@@ -24,10 +24,11 @@ import kotlinx.coroutines.launch
  * 3. Read the roster snapshot (authority).
  * 4. If an active entry exists: **drive** the server URL from it (enforcing the url↔account invariant
  *    even if the persisted URL drifted), reconcile the token mirror to it ([TokenManager.selectAccount],
- *    idempotent + non-destructive), then publish identity. If none: publish `Resolved(null)` and touch
- *    **no** tokens — an empty roster with tokens at rest is either a legacy pre-tenancy upgrade (bare
- *    tokens the restore safety net must claim, `restoreAccountIfNeeded`) or a crash mid-establish
- *    (keyed tokens the same safety net re-establishes); destroying them here would force a re-login.
+ *    idempotent + non-destructive), then publish identity. If none: publish `Resolved(null)`. Bare
+ *    tokens at rest are a legacy pre-tenancy upgrade the restore safety net must claim
+ *    (`restoreAccountIfNeeded`), so they stay. A store still bound to a keyed account the roster has
+ *    no entry for is torn down: no request can use that session (one with no account reads the bare
+ *    slot), so keeping it only leaves the app "signed in" with every request 401ing.
  *
  * The publish uses the **low-level** [ActiveAccountProvider.set] / [ActiveAccountProvider.clear], never
  * [upsertActive] / [clearActiveAccount] — those await [seeded] and would self-deadlock this coroutine.
@@ -52,12 +53,23 @@ class AccountRegistry(
                 // login screen. awaitBaseUrl() resolves ServerDataStore's own async warm-up.
                 val legacyUrl = serverDataStore.awaitBaseUrl()
                 roster.migrateIfNeeded(legacyUrl)
-                val activeEntry = roster.snapshot().activeEntry
+                val snapshot = roster.snapshot()
+                val activeEntry = snapshot.activeEntry
                 if (activeEntry == null) {
-                    // Authority says no account — publish logged-out, but leave the token store
-                    // alone: on a pre-tenancy upgrade the roster is empty while the user's session
-                    // lives under the bare keys, and clearing here would destroy it before the
-                    // restore safety net (restoreAccountIfNeeded) can claim it.
+                    // Authority says no account — publish logged-out, but leave the bare keys alone:
+                    // on a pre-tenancy upgrade the roster is empty while the user's session lives
+                    // under them, and clearing here would destroy it before the restore safety net
+                    // (restoreAccountIfNeeded) can claim it.
+                    //
+                    // A store bound to a keyed account the roster has never heard of is different:
+                    // requests with no account read the bare slot, so that session can never be used
+                    // or restored, only refreshed (Keychain items outliving an iOS reinstall, a crash
+                    // between the token re-home and the roster write). Drop it, so the app starts
+                    // signed out instead of in a session where every request 401s.
+                    val bound = tokenManager.boundAccountId()
+                    if (bound != null && snapshot.entries.none { it.accountId == bound }) {
+                        tokenManager.onAccountCleared()
+                    }
                     activeAccountProvider.clear()
                 } else {
                     // Drive the URL from the active entry BEFORE publishing identity: the token bearer

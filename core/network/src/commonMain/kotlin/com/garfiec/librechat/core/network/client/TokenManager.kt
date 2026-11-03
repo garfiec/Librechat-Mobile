@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
  */
 enum class RefreshResult { Refreshed, HardExpired, Transient }
 
+@Suppress("TooManyFunctions") // debt: 21 functions
 interface TokenManager : AuthGateHolder {
     /** Non-suspend check — returns true when an access token is cached in memory. */
     val isAuthenticated: Boolean
@@ -82,6 +83,13 @@ interface TokenManager : AuthGateHolder {
      * must already have keyed tokens.
      */
     suspend fun selectAccount(accountId: String)
+
+    /**
+     * The account the store is bound to (its persisted active mirror), or null for the bare slot. Read
+     * at cold start to find a binding the roster no longer knows. Defaulted to null so test fakes
+     * need not model the binding.
+     */
+    suspend fun boundAccountId(): String? = null
 
     /**
      * Delete [accountId]'s keyed tokens (account removal). When [accountId] is the active account this

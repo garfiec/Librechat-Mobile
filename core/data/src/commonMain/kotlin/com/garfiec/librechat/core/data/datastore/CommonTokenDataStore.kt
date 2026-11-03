@@ -373,6 +373,13 @@ abstract class CommonTokenDataStore(
         if (activeAccountKey == null) cachedAuth = RequestAuth(null)
     }
 
+    override suspend fun boundAccountId(): String? = stateMutex.withLock {
+        // Loads rather than reading storage around the cache: a teardown that follows keys off
+        // [activeAccountKey], and before the warm it would miss the bound account's slot.
+        if (!tokenInitialized) loadCacheFromStorage()
+        activeAccountKey
+    }
+
     override suspend fun selectAccount(accountId: String) = stateMutex.withLock {
         if (activeAccountKey == accountId) return@withLock
         // Non-destructive switch: repoint the active binding + mirror + cached bearer to an already-keyed

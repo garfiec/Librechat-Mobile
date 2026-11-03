@@ -26,6 +26,7 @@ import com.garfiec.librechat.core.network.api.UserApi
 import com.garfiec.librechat.core.network.api.dto.LoginResult
 import com.garfiec.librechat.core.network.client.PendingRequestIdentity
 import com.garfiec.librechat.core.network.client.RequestIdentity
+import com.garfiec.librechat.core.network.client.SessionEndReason
 import com.garfiec.librechat.core.network.client.SwitchGate
 import com.garfiec.librechat.core.network.client.TokenManager
 import io.ktor.serialization.ContentConvertException
@@ -379,9 +380,13 @@ class AuthRepositoryImpl(
                     // handled inside remove(): it reaps just that account without touching the live one.
                     accountSwitcher.remove(account.value)
                 } else {
-                    // Unresolved identity (should not happen after awaitReady) — no account to reap;
-                    // clear the account-blind file caches so nothing is left behind.
+                    // No account resolved, but the token store can still hold a session no roster
+                    // entry names (Keychain items that outlived a reinstall, a crash mid-sign-in).
+                    // Sign out must still sign out: drop it, clear the account-blind file caches, and
+                    // route to sign-in, which no account transition will do here.
+                    tokenManager.onAccountCleared()
                     sessionCacheCleaner.clearFileCaches()
+                    tokenManager.emitSessionExpired(reason = SessionEndReason.SIGNED_OUT)
                 }
             }
         }
