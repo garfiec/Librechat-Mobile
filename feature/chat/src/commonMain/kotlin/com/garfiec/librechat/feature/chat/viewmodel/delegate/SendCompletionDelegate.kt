@@ -16,9 +16,11 @@ import com.garfiec.librechat.core.model.content.stripCitations
 import com.garfiec.librechat.feature.chat.util.NEW_CHAT_DRAFT_KEY
 import com.garfiec.librechat.feature.chat.util.resolvedResponseMessage
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
+import com.garfiec.librechat.feature.chat.viewmodel.NOTICE_TAG
 import com.garfiec.librechat.feature.chat.viewmodel.NewChatSelectionHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.PLACEHOLDER_CONVERSATION_TITLE
 import com.garfiec.librechat.feature.chat.viewmodel.SendCompletionHandle
+import com.garfiec.librechat.feature.chat.viewmodel.noticeLabel
 import com.garfiec.librechat.feature.chat.viewmodel.shouldRequestTitleGeneration
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
@@ -109,6 +111,10 @@ class SendCompletionDelegate(
                 modelParameters = sent.modelParameters,
                 specTools = sent.selection.specTools,
             )
+            Diag.d(
+                tag = NOTICE_TAG,
+                attrs = mapOf("navigatesNow" to navigatesNow.toString(), "notice" to noticeLabel(sent.error)),
+            ) { "handoff put for $conversationId" }
             carrySkillsToggle(conversationId, isTemporary)
             if (navigatesNow) {
                 handle.update {

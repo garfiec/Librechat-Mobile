@@ -170,3 +170,16 @@ internal fun contentFilterNotice(e: Throwable?, screened: String?): String? {
     }
     return serverSentence ?: ChatNotice.CONTENT_BLOCKED.marker()
 }
+
+/** Diag tag for the error channel's notices on their way to the snackbar. */
+internal const val NOTICE_TAG = "ChatNotice"
+
+/** A notice or stream-error marker's name for a Diag line; any other text is not logged. */
+internal fun noticeLabel(raw: String?): String = when {
+    raw == null -> "none"
+    raw.startsWith(ChatNotice.MARKER_PREFIX) ->
+        raw.removePrefix(ChatNotice.MARKER_PREFIX).substringBefore(ChatNotice.ARG_SEPARATOR)
+    raw.startsWith(StreamErrorType.MARKER_PREFIX) ->
+        raw.removePrefix(StreamErrorType.MARKER_PREFIX).substringBefore(StreamErrorType.ARG_SEPARATOR)
+    else -> "text"
+}

@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.ui.resources.snackbar_dismiss
 import com.garfiec.librechat.feature.chat.components.localizedStreamError
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -19,6 +20,8 @@ import com.garfiec.librechat.feature.chat.resources.jump_message_not_found
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNoticeHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.NOTICE_TAG
+import com.garfiec.librechat.feature.chat.viewmodel.noticeLabel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import org.jetbrains.compose.resources.getString
@@ -66,6 +69,9 @@ internal fun ChatScreenEffects(
     val dismissLabel = stringResource(CoreUiRes.string.snackbar_dismiss)
     LaunchedEffect(errorMessage) {
         if (errorMessage != null) {
+            Diag.d(tag = NOTICE_TAG, attrs = mapOf("notice" to noticeLabel(uiState.error))) {
+                "snackbar shown on ${uiState.conversationId ?: "landing"}"
+            }
             snackbarHostState.showSnackbar(
                 message = errorMessage,
                 actionLabel = dismissLabel,

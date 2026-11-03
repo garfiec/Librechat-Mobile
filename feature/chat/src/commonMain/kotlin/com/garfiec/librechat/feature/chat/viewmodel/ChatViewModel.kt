@@ -843,7 +843,11 @@ class ChatViewModel(
             if (handoff != null) {
                 Diag.d(
                     tag = "ModelSel",
-                    attrs = mapOf("endpoint" to handoff.choice.endpoint, "model" to (handoff.choice.model ?: "null")),
+                    attrs = mapOf(
+                        "endpoint" to handoff.choice.endpoint,
+                        "model" to (handoff.choice.model ?: "null"),
+                        "sentWithoutWorkspaceNotice" to handoff.sentWithoutWorkspaceNotice.toString(),
+                    ),
                 ) { "handoff applied for $conversationId" }
                 modelDelegate.applyResolvedConversationModel(handoff.choice.endpoint, handoff.choice.model, handoff.choice.spec)
                 handoff.modelParameters?.let { modelDelegate.updateModelParameters(it, restoring = true) }
@@ -1754,6 +1758,9 @@ class ChatViewModel(
     suspend fun downloadFileBytes(attachment: Attachment): ByteArray? = chatConfigDelegate.downloadFileBytes(attachment)
 
     fun dismissError() {
+        Diag.d(tag = NOTICE_TAG, attrs = mapOf("notice" to noticeLabel(_uiState.value.error))) {
+            "dismissError on ${_uiState.value.conversationId ?: "landing"}"
+        }
         _uiState.update { it.copy(error = null) }
     }
 
