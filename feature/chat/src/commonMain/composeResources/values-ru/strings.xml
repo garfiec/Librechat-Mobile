@@ -1054,6 +1054,11 @@
     <string name="code_workspace_refresh">Обновить</string>
     <string name="code_workspace_sent_without">Отправлено без рабочего пространства. Этот чат не может использовать файлы и команды.</string>
     <string name="notice_copy_tool_content_failed">Не удалось загрузить полный вывод инструмента, поэтому ничего не скопировано.</string>
+    <string name="notice_queue_withdraw_refused">Не удалось отозвать это сообщение в очереди с сервера.</string>
+    <string name="notice_queue_withdraw_busy">Предыдущее сообщение ещё отзывается. Попробуйте ещё раз через минуту.</string>
+    <string name="notice_queue_edit_overtaken">Это сообщение в очереди уже отправлено, поэтому ваше изменение не применено.</string>
+    <string name="notice_queue_server_holds">На сервере ещё есть сообщение в очереди. Попробуйте ещё раз через минуту.</string>
+    <string name="notice_queue_restored_to_composer">Сообщения в очереди не были отправлены, поэтому они возвращены в поле ввода.</string>
     <string name="tool_content_loading">Загрузка полного вызова инструмента…</string>
     <string name="tool_content_error">Не удалось загрузить полный вызов инструмента.</string>
     <string name="code_branch">Ветка</string>

@@ -1003,6 +1003,11 @@
     <string name="code_workspace_refresh">새로고침</string>
     <string name="code_workspace_sent_without">작업 공간 없이 전송했습니다. 이 채팅에서는 파일이나 명령을 사용할 수 없습니다.</string>
     <string name="notice_copy_tool_content_failed">도구 출력 전체를 불러오지 못해 아무것도 복사되지 않았습니다.</string>
+    <string name="notice_queue_withdraw_refused">대기 중인 메시지를 서버에서 철회하지 못했습니다.</string>
+    <string name="notice_queue_withdraw_busy">이전 메시지를 아직 철회하는 중입니다. 잠시 후 다시 시도하세요.</string>
+    <string name="notice_queue_edit_overtaken">대기 중인 메시지가 이미 전송되어 수정 내용이 적용되지 않았습니다.</string>
+    <string name="notice_queue_server_holds">서버에 아직 대기 중인 메시지가 있습니다. 잠시 후 다시 시도하세요.</string>
+    <string name="notice_queue_restored_to_composer">대기 중인 메시지가 전송되지 않아 입력란으로 되돌렸습니다.</string>
     <string name="tool_content_loading">전체 도구 호출을 불러오는 중…</string>
     <string name="tool_content_error">전체 도구 호출을 불러오지 못했습니다.</string>
     <string name="code_branch">브랜치</string>

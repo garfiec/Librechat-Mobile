@@ -1033,6 +1033,11 @@
     <string name="code_workspace_refresh">Atualizar</string>
     <string name="code_workspace_sent_without">Enviada sem espaço de trabalho. Esta conversa não pode usar arquivos nem comandos.</string>
     <string name="notice_copy_tool_content_failed">Não foi possível carregar a saída completa da ferramenta, então nada foi copiado.</string>
+    <string name="notice_queue_withdraw_refused">Não foi possível retirar esta mensagem na fila do servidor.</string>
+    <string name="notice_queue_withdraw_busy">Ainda retirando a mensagem anterior. Tente novamente em instantes.</string>
+    <string name="notice_queue_edit_overtaken">Essa mensagem na fila já foi enviada, então sua edição não foi aplicada.</string>
+    <string name="notice_queue_server_holds">O servidor ainda mantém uma mensagem na fila. Tente novamente em instantes.</string>
+    <string name="notice_queue_restored_to_composer">As mensagens na fila não foram enviadas, então voltaram para a caixa de mensagem.</string>
     <string name="tool_content_loading">Carregando a chamada de ferramenta completa…</string>
     <string name="tool_content_error">Não foi possível carregar a chamada de ferramenta completa.</string>
     <string name="code_branch">Branch</string>

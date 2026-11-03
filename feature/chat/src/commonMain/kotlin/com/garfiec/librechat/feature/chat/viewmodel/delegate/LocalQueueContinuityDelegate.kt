@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.data.repository.DraftRepository
+import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.LocalQueueStash
 import com.garfiec.librechat.feature.chat.viewmodel.QueueHandle
 import com.garfiec.librechat.feature.chat.viewmodel.QueueState
@@ -85,7 +86,7 @@ class LocalQueueContinuityDelegate(
         if (text.isNullOrBlank()) return
         putBackInComposer(text)
         draftRepository.deleteDraft(key)
-        handle.setError(RESTORED_TO_COMPOSER_MESSAGE)
+        handle.setError(ChatNotice.QUEUE_RESTORED_TO_COMPOSER.marker())
     }
 
     private suspend fun mirror(key: LocalQueueStash.Key, textWritten: Boolean) {
@@ -124,10 +125,5 @@ class LocalQueueContinuityDelegate(
     companion object {
         /** The draft-store key holding a chat's queued text for recovery after process death. */
         fun queuedTextKey(conversationId: String): String = "queued:$conversationId"
-
-        // A plain string, like every other message on this `error` channel (see
-        // QueueOrchestrationDelegate's companion for why not a resource).
-        const val RESTORED_TO_COMPOSER_MESSAGE =
-            "Messages you had queued were not sent, so they were put back in the message box."
     }
 }

@@ -109,6 +109,21 @@ enum class ChatNotice(val wire: String) {
      * copying the previews would hand out shortened output as if it were the whole.
      */
     COPY_TOOL_CONTENT_FAILED("copy_tool_content_failed"),
+
+    /** The server declined to withdraw a queued message. */
+    QUEUE_WITHDRAW_REFUSED("queue_withdraw_refused"),
+
+    /** A withdrawal was asked for while the previous one is still in flight. */
+    QUEUE_WITHDRAW_BUSY("queue_withdraw_busy"),
+
+    /** A queued message was sent before its edit could be saved; the edit was dropped. */
+    QUEUE_EDIT_OVERTAKEN("queue_edit_overtaken"),
+
+    /** "Send queued" while the server still holds a queued turn of this chat. */
+    QUEUE_SERVER_HOLDS("queue_server_holds"),
+
+    /** Locally queued messages left unsent were put back in the composer. */
+    QUEUE_RESTORED_TO_COMPOSER("queue_restored_to_composer"),
     ;
 
     fun marker(vararg args: Any): String =

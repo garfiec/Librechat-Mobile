@@ -1020,6 +1020,11 @@
     <string name="code_workspace_refresh">Aktualisieren</string>
     <string name="code_workspace_sent_without">Ohne Arbeitsbereich gesendet. Dieser Chat kann keine Dateien oder Befehle verwenden.</string>
     <string name="notice_copy_tool_content_failed">Die vollständige Tool-Ausgabe konnte nicht geladen werden, daher wurde nichts kopiert.</string>
+    <string name="notice_queue_withdraw_refused">Die eingereihte Nachricht konnte nicht vom Server zurückgezogen werden.</string>
+    <string name="notice_queue_withdraw_busy">Die vorherige Nachricht wird noch zurückgezogen. Versuche es gleich noch einmal.</string>
+    <string name="notice_queue_edit_overtaken">Die eingereihte Nachricht wurde bereits gesendet, daher wurde deine Änderung nicht übernommen.</string>
+    <string name="notice_queue_server_holds">Der Server hält noch eine Nachricht in der Warteschlange. Versuche es gleich noch einmal.</string>
+    <string name="notice_queue_restored_to_composer">Nachrichten in der Warteschlange wurden nicht gesendet und stehen wieder im Eingabefeld.</string>
     <string name="tool_content_loading">Vollständiger Tool-Aufruf wird geladen…</string>
     <string name="tool_content_error">Der vollständige Tool-Aufruf konnte nicht geladen werden.</string>
     <string name="code_branch">Branch</string>

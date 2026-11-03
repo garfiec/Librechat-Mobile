@@ -300,7 +300,7 @@ class QueueOrchestrationDelegate(
                 // back now would send these words a second time.
                 current == null -> {
                     finishQueuedEdit(session)
-                    handle.setError(EDIT_OVERTAKEN_MESSAGE)
+                    handle.setError(ChatNotice.QUEUE_EDIT_OVERTAKEN.marker())
                 }
                 current.server == null -> {
                     if (edited != null) {
@@ -349,7 +349,7 @@ class QueueOrchestrationDelegate(
                 if (handle.state.messageQueue.any { it.localId == localId && it.server?.id != null }) {
                     queueDelegate.cancel(localId)
                     finishQueuedEdit(session)
-                    handle.setError(EDIT_OVERTAKEN_MESSAGE)
+                    handle.setError(ChatNotice.QUEUE_EDIT_OVERTAKEN.marker())
                     return@launch
                 }
                 if (edited != null) {
@@ -399,7 +399,7 @@ class QueueOrchestrationDelegate(
         if (withdrawingForEdit != null) return
         if (handle.state.messageQueue.any { it.localId == session.original.localId }) return
         finishQueuedEdit(session)
-        handle.setError(EDIT_OVERTAKEN_MESSAGE)
+        handle.setError(ChatNotice.QUEUE_EDIT_OVERTAKEN.marker())
     }
 
     private fun finishQueuedEdit(session: QueuedEditSession) {
@@ -412,12 +412,12 @@ class QueueOrchestrationDelegate(
 
     /** The queue refused a tap because [withdrawingForEdit] holds it; say so. */
     private fun reportQueueBusy() {
-        handle.setError(WITHDRAW_BUSY_MESSAGE)
+        handle.setError(ChatNotice.QUEUE_WITHDRAW_BUSY.marker())
     }
 
     /** A withdrawal the server declined. Shared, so the × and the tap-to-edit read the same. */
     private fun reportWithdrawRefused() {
-        handle.setError(WITHDRAW_REFUSED_MESSAGE)
+        handle.setError(ChatNotice.QUEUE_WITHDRAW_REFUSED.marker())
     }
 
     fun cancelQueued(localId: String) {
@@ -597,17 +597,5 @@ class QueueOrchestrationDelegate(
         val eligible = state.selectedEndpoint == EndpointConstants.AGENTS &&
             state.gates.serverQueueSupported
         queuedTurnDelegate.ensurePolling(state.conversationId.takeIf { eligible })
-    }
-
-    private companion object {
-        // Plain strings, like every other message on this `error` channel. `getString(Res.string…)`
-        // is not usable from this layer: compose-resources resolves through
-        // `Resources.getSystem()`, which is null under this module's plain-JVM unit tests.
-        const val WITHDRAW_REFUSED_MESSAGE =
-            "Could not withdraw this message from the server."
-        const val WITHDRAW_BUSY_MESSAGE =
-            "Still finishing the previous withdrawal. Try again in a moment."
-        const val EDIT_OVERTAKEN_MESSAGE =
-            "That queued message was already sent, so your edit was not applied."
     }
 }

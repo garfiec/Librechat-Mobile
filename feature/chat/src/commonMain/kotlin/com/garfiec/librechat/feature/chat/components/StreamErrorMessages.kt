@@ -122,6 +122,11 @@ private fun localizedNotice(parsed: ChatNotice.Parsed): String {
         ChatNotice.BRANCH_WITHOUT_FILES_UNSUPPORTED -> Res.string.notice_branch_without_files_unsupported
         ChatNotice.CODE_WORKSPACE_SENT_WITHOUT -> Res.string.code_workspace_sent_without
         ChatNotice.COPY_TOOL_CONTENT_FAILED -> Res.string.notice_copy_tool_content_failed
+        ChatNotice.QUEUE_WITHDRAW_REFUSED -> Res.string.notice_queue_withdraw_refused
+        ChatNotice.QUEUE_WITHDRAW_BUSY -> Res.string.notice_queue_withdraw_busy
+        ChatNotice.QUEUE_EDIT_OVERTAKEN -> Res.string.notice_queue_edit_overtaken
+        ChatNotice.QUEUE_SERVER_HOLDS -> Res.string.notice_queue_server_holds
+        ChatNotice.QUEUE_RESTORED_TO_COMPOSER -> Res.string.notice_queue_restored_to_composer
         // Reached only with an unreadable argument; the generic message-limit copy still applies.
         ChatNotice.MESSAGE_LIMIT_RETRY -> Res.string.error_message_limit
     }

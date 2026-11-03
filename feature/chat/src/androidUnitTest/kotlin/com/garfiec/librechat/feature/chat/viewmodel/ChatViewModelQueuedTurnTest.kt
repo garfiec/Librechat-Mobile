@@ -672,12 +672,16 @@ class ChatViewModelQueuedTurnTest {
     fun `queued text that outlived the process is put back in the composer`() = queuedTurnTest(
         arrange = {
             localQueueOnly()
+            // The relaxed config mock fails these with an empty message, which lands on the same
+            // error channel and would mask the notice under test.
+            coEvery { configRepository.fetchEndpoints() } returns Result.Success(mapOf(ENDPOINT to EndpointConfig()))
+            coEvery { configRepository.fetchModels() } returns Result.Success(mapOf(ENDPOINT to listOf(AGENT_ID)))
             coEvery { fixture.draftRepository.awaitDraft(CONVERSATION_ID) } returns "half-typed"
             coEvery { fixture.draftRepository.awaitDraft("queued:$CONVERSATION_ID") } returns "lost follow-up"
         },
     ) { vm ->
         assertThat(vm.uiState.value.inputText).isEqualTo("half-typed\n\nlost follow-up")
-        assertThat(vm.uiState.value.error).isNotNull()
+        assertThat(vm.uiState.value.error).isEqualTo(ChatNotice.QUEUE_RESTORED_TO_COMPOSER.marker())
         coVerify { fixture.draftRepository.deleteDraft("queued:$CONVERSATION_ID") }
         coVerify { fixture.draftRepository.saveDraft(CONVERSATION_ID, "half-typed\n\nlost follow-up") }
     }
@@ -842,7 +846,7 @@ class ChatViewModelQueuedTurnTest {
         assertThat(vm.uiState.value.isEditingQueued).isFalse()
         assertThat(vm.uiState.value.messageQueue).isEmpty()
         assertThat(vm.uiState.value.inputText).isEqualTo("pre-edit draft")
-        assertThat(vm.uiState.value.error).isNotNull()
+        assertThat(vm.uiState.value.error).isEqualTo(ChatNotice.QUEUE_EDIT_OVERTAKEN.marker())
     }
 
     /**
@@ -871,7 +875,7 @@ class ChatViewModelQueuedTurnTest {
         coVerify(exactly = 1) { queuedTurnRepository.enqueue(any()) }
         assertThat(vm.uiState.value.isEditingQueued).isFalse()
         assertThat(vm.uiState.value.messageQueue).isEmpty()
-        assertThat(vm.uiState.value.error).isNotNull()
+        assertThat(vm.uiState.value.error).isEqualTo(ChatNotice.QUEUE_EDIT_OVERTAKEN.marker())
     }
 
     /**
@@ -1062,7 +1066,7 @@ class ChatViewModelQueuedTurnTest {
         runCurrent()
 
         coVerify(exactly = 1) { queuedTurnRepository.cancel(any()) }
-        assertThat(vm.uiState.value.error).isNotNull()
+        assertThat(vm.uiState.value.error).isEqualTo(ChatNotice.QUEUE_WITHDRAW_BUSY.marker())
         assertThat(vm.uiState.value.editingQueuedItem).isNull()
 
         cancelGate.complete(Unit)
@@ -1357,7 +1361,7 @@ class ChatViewModelQueuedTurnTest {
 
         assertThat(sent).isEmpty()
         assertThat(vm.uiState.value.pausedQueueCount).isEqualTo(1)
-        assertThat(vm.uiState.value.error).isEqualTo("The server still holds a queued message. Try again in a moment.")
+        assertThat(vm.uiState.value.error).isEqualTo(ChatNotice.QUEUE_SERVER_HOLDS.marker())
     }
 
     /** Queues a server-owned follow-up, stops the run, and has the server dead-claim the row. */

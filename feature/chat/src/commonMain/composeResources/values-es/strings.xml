@@ -1033,6 +1033,11 @@
     <string name="code_workspace_refresh">Actualizar</string>
     <string name="code_workspace_sent_without">Enviado sin espacio de trabajo. Este chat no puede usar archivos ni comandos.</string>
     <string name="notice_copy_tool_content_failed">No se pudo cargar la salida completa de la herramienta, así que no se copió nada.</string>
+    <string name="notice_queue_withdraw_refused">No se pudo retirar este mensaje en cola del servidor.</string>
+    <string name="notice_queue_withdraw_busy">Todavía se está retirando el mensaje anterior. Inténtalo de nuevo en un momento.</string>
+    <string name="notice_queue_edit_overtaken">Ese mensaje en cola ya se envió, así que tu edición no se aplicó.</string>
+    <string name="notice_queue_server_holds">El servidor todavía tiene un mensaje en cola. Inténtalo de nuevo en un momento.</string>
+    <string name="notice_queue_restored_to_composer">Los mensajes en cola no se enviaron, así que se devolvieron al cuadro de mensaje.</string>
     <string name="tool_content_loading">Cargando la llamada completa a la herramienta…</string>
     <string name="tool_content_error">No se pudo cargar la llamada completa a la herramienta.</string>
     <string name="code_branch">Rama</string>

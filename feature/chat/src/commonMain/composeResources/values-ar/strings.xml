@@ -1088,6 +1088,11 @@
     <string name="code_workspace_refresh">تحديث</string>
     <string name="code_workspace_sent_without">أُرسلت دون مساحة عمل. لا يمكن لهذه المحادثة استخدام الملفات أو الأوامر.</string>
     <string name="notice_copy_tool_content_failed">تعذّر تحميل مخرجات الأداة كاملة، لذا لم يُنسخ شيء.</string>
+    <string name="notice_queue_withdraw_refused">تعذّر سحب هذه الرسالة في قائمة الانتظار من الخادم.</string>
+    <string name="notice_queue_withdraw_busy">لا يزال سحب الرسالة السابقة جاريًا. حاول مرة أخرى بعد قليل.</string>
+    <string name="notice_queue_edit_overtaken">أُرسلت الرسالة في قائمة الانتظار بالفعل، لذا لم يُطبَّق تعديلك.</string>
+    <string name="notice_queue_server_holds">لا يزال الخادم يحتفظ برسالة في قائمة الانتظار. حاول مرة أخرى بعد قليل.</string>
+    <string name="notice_queue_restored_to_composer">لم تُرسَل الرسائل في قائمة الانتظار، لذا أُعيدت إلى مربع الرسالة.</string>
     <string name="tool_content_loading">جارٍ تحميل استدعاء الأداة كاملًا…</string>
     <string name="tool_content_error">تعذّر تحميل استدعاء الأداة كاملًا.</string>
     <string name="code_branch">الفرع</string>
