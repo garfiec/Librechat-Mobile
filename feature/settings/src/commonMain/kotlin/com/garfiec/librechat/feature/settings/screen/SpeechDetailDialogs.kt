@@ -256,6 +256,7 @@ internal fun TtsDetailDialog(
     deviceVoiceName: String,
     cachingEnabled: Boolean,
     ttsSource: String,
+    serverTtsEnabled: Boolean,
     availableEngines: List<String>,
     availableVoices: List<String>,
     availableDeviceVoices: List<DeviceVoiceInfo>,
@@ -282,7 +283,12 @@ internal fun TtsDetailDialog(
 
     val deviceLabel = stringResource(Res.string.tts_source_device)
     val serverLabel = stringResource(Res.string.tts_source_server)
-    val sourceOptions = listOf("device" to deviceLabel, "server" to serverLabel)
+    // A stored "server" stays listed so the dropdown never shows a value it doesn't offer (same rule
+    // as STT's External engine).
+    val sourceOptions = buildList {
+        add("device" to deviceLabel)
+        if (serverTtsEnabled || ttsSource == "server") add("server" to serverLabel)
+    }
 
     AdaptiveAlertDialog(
         modifier = Modifier.clearFocusOnTap(),
@@ -455,37 +461,39 @@ internal fun TtsDetailDialog(
                     }
 
                     // Voice selector (only for server TTS)
-                    Text(
-                        text = stringResource(Res.string.tts_voice_label),
-                        style = MaterialTheme.typography.labelMedium,
-                    )
-                    ExposedDropdownMenuBox(
-                        expanded = voiceExpanded,
-                        onExpandedChange = { voiceExpanded = it },
-                    ) {
-                        AdaptiveOutlinedTextField(
-                            value = ttsOptionLabel(voice),
-                            onValueChange = {},
-                            readOnly = true,
-                            trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = voiceExpanded)
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    if (availableVoices.isNotEmpty()) {
+                        Text(
+                            text = stringResource(Res.string.tts_voice_label),
+                            style = MaterialTheme.typography.labelMedium,
                         )
-                        ExposedDropdownMenu(
+                        ExposedDropdownMenuBox(
                             expanded = voiceExpanded,
-                            onDismissRequest = { voiceExpanded = false },
+                            onExpandedChange = { voiceExpanded = it },
                         ) {
-                            availableVoices.forEach { item ->
-                                DropdownMenuItem(
-                                    text = { Text(ttsOptionLabel(item)) },
-                                    onClick = {
-                                        voice = item
-                                        voiceExpanded = false
-                                    },
-                                )
+                            AdaptiveOutlinedTextField(
+                                value = ttsOptionLabel(voice),
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = voiceExpanded)
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            )
+                            ExposedDropdownMenu(
+                                expanded = voiceExpanded,
+                                onDismissRequest = { voiceExpanded = false },
+                            ) {
+                                availableVoices.forEach { item ->
+                                    DropdownMenuItem(
+                                        text = { Text(ttsOptionLabel(item)) },
+                                        onClick = {
+                                            voice = item
+                                            voiceExpanded = false
+                                        },
+                                    )
+                                }
                             }
                         }
                     }
