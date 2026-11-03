@@ -66,6 +66,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.core.ui.datetime.LocalRelativeTimeReference
+import com.garfiec.librechat.core.ui.datetime.resolve
 import com.garfiec.librechat.feature.chat.components.ChatRoot
 import com.garfiec.librechat.feature.chat.components.LocalOpenFileActions
 import com.garfiec.librechat.feature.chat.components.LocalOpenMessageFile
@@ -321,7 +322,7 @@ internal fun SharedChatScaffold(
                 belowBar = shared?.let { label ->
                     {
                         Text(
-                            text = stringResource(Res.string.shared_chat_subtitle, label),
+                            text = stringResource(Res.string.shared_chat_subtitle, label.resolve()),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
