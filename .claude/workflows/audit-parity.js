@@ -70,7 +70,7 @@ Pinned upstream commit: ${PIN}. Read server${WEB ? ' and web' : ''} files ONLY a
 First read ${METHOD} completely: lenses, scope, evidence rules, known issues, what is not a finding, severity.
 ${opts.scoper ? '' : opts.noScope
     ? `The scoper for this area failed, so there is no scope.md. Build your own map from the seeds before you start.\n`
-    : `Then read ${RUN}/areas/${area.id}/scope.md, the file map for this area.\n`}${RUN}/known.md lists filed issues, recorded bugs, backend-less web features and deliberate divergences.
+    : `Then read ${RUN}/areas/${area.id}/scope.md, the file map for this area.\n`}${RUN}/known.md lists board drafts, filed issues, recorded bugs, backend-less web features and deliberate divergences.
 `
 }
 
@@ -85,7 +85,7 @@ const FINDING_PROPS = {
   evidence: { type: 'string', description: 'what the code does, and for absence claims which searches you ran; may be one line for missing-feature' },
   fix_hint: { type: 'string' },
   maybe_intentional: { type: 'boolean' },
-  duplicate_of: { type: 'string', description: '"#N" when known.md has it filed; "#N (closed, regression)" when a closed issue still reproduces in code; else empty' },
+  duplicate_of: { type: 'string', description: '"#N" when known.md has it as an open issue; "draft: <title>" when it is a board draft (an issue marked [moved to board] counts as its draft); "#N (closed, regression)" when a closed issue still reproduces in code; else empty' },
 }
 const FINDING_REQ = ['title', 'kind', 'severity', 'platforms', 'ours', 'theirs', 'trigger', 'evidence', 'fix_hint', 'maybe_intentional', 'duplicate_of']
 const FINDING = { type: 'object', properties: FINDING_PROPS, required: FINDING_REQ }
@@ -315,7 +315,7 @@ Ask what is missing: calls in the scope nobody traced, status codes or error cod
     const triage = await call(area.id, `${ctx}
 You are triaging this area's verified findings. Write ${file} (the ONLY file you may write): a JSON array, one object per finding after merging, each with every field of the input plus "id" ("${area.id}-1", "${area.id}-2", ... in rank order), "area": "${area.id}" and "merged_from" (titles folded into it).
 - Merge findings that one fix would close (same root cause), keeping each one's evidence.
-- Check each against ${RUN}/known.md and set duplicate_of: "#N" if filed and open, "#N (closed, regression)" if a closed issue still reproduces in the code.
+- Check each against ${RUN}/known.md and set duplicate_of: "#N" if it is an open issue, "draft: <title>" if it is a board draft, "#N (closed, regression)" if a closed issue still reproduces in the code. An issue marked [moved to board] is open work: use its draft, never "closed, regression".
 - Rank by severity then reach. Do not add findings and do not drop any: every input must be in the file or in some merged_from.
 Return the index of what you wrote and a condensed coverage note.
 

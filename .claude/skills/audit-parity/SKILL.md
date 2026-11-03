@@ -8,7 +8,8 @@ description: >
   behaviour gaps against the reference (gates, honoured settings, parsing, recovery, Android vs
   iOS) and dead wiring (unreachable screens, unread prefs, stubs, failures shown as empty data).
   Finders loop until two rounds add nothing, every finding is verified adversarially, then the
-  lead walks the user through filing issues one at a time. Use when asked "what's broken?",
+  lead walks the user through filing them one at a time, as drafts on the Switchboard Roadmap
+  board (a repo issue only when the user picks one). Use when asked "what's broken?",
   "where do we diverge from the web?", after a run of field reports, before a release, or for one
   feature that feels thin or flaky. Not for absorbing new upstream releases: that is
   /sync-upstream.
@@ -24,7 +25,7 @@ version we're on, and finds what is wrong with it. Defects older than the last s
 sync's diff; this is where they surface.
 
 **`reference.md` is the method**: the three lenses, scope, known issues, evidence rules, what is
-not a finding, severity and the issue format. The workflow hands it to every agent. Read it
+not a finding, severity and the ticket format. The workflow hands it to every agent. Read it
 before Phase 0.
 
 ## Modes
@@ -41,13 +42,19 @@ Phase 0 so the user can review the areas first.
 
 ## Rules
 
-- **Read-only on code.** The skill ends at filed issues. No fixes, branches or PRs.
+- **Read-only on code.** The skill ends at filed tickets. No fixes, branches or PRs.
 - **Upstream at the pin only**: `git -C upstream show "<pin>:<path>"`. The submodule checkout is
   often not the pin.
-- **One issue at a time.** Draft, show, wait for the user, file, next. Never file in bulk.
-- **Third-party `--ref` stays out of issues.** If the reference is another client, issues
+- **Findings go on the board, not the Issues page.** File each one as a draft item on the public
+  [Switchboard Roadmap](https://github.com/users/garfiec/projects/2) (project #2). The Issues page
+  is kept for outside reports and bugs users would hit and search for, so a repo issue is filed
+  only when the user picks "issue" for that finding.
+- **Security findings go to neither.** The board is public too. Flag them to the user and leave
+  the channel to them (`SECURITY.md`).
+- **One ticket at a time.** Draft, show, wait for the user, file, next. Never file in bulk.
+- **Third-party `--ref` stays out of tickets.** If the reference is another client, tickets
   describe the bug from our code and the server alone. The upstream web client may be cited.
-- No device testing unless the user asks. Issues say "found by reading the code" where it matters.
+- No device testing unless the user asks. Tickets say "found by reading the code" where it matters.
 
 ## Run directory
 
@@ -57,7 +64,7 @@ ending don't lose it. If the directory exists, add `-2`, `-3`… unless the user
 run's filing loop. Always pass it expanded.
 
 ```
-areas.json  known.md  issues.json
+areas.json  known.md  issues.json  board.json
 areas/<id>/scope.md  areas/<id>/findings.json      written by the workflow's agents
 result-1.json ...                                  each batch's workflow return, saved by you
 report.md                                          written by the report agent (or the fallback)
@@ -71,6 +78,11 @@ The default sweep. Seeds are starting points for the scoper; check they still ex
 add an area for any new `feature/*` module or `*Api.kt` the table doesn't cover.
 `GitHubReleasesApi.kt` is deliberately out: it talks to GitHub for the in-app update check, not
 to LibreChat.
+
+Each area's findings default to a board **Workstream**: auth, account and session →
+`Accounts & sign-in`; config, keys, traces and settings → `Foundations`; everything else →
+`Chat`. A finding about the OS rather than the server (share sheet, notifications, background
+work, platform APIs) goes to `OS integration` whatever its area.
 
 | id | area | seeds |
 |---|---|---|
@@ -107,8 +119,13 @@ to LibreChat.
    - `--feature <name>`: one entry you write yourself. Grep the feature's nav keys, string
      resources and API paths so `seeds` names its screens, ViewModels and Api files.
 3. **Write `$RUN/known.md`**:
-   - `gh issue list --state all --limit 2000 --json number,title,state > $RUN/issues.json`, then
-     list every issue as `#N [state] title`.
+   - `gh issue list --repo garfiec/Librechat-Mobile --state all --limit 2000 --json number,title,state,stateReason > $RUN/issues.json`.
+   - `gh project item-list 2 --owner garfiec --limit 2000 --format json > $RUN/board.json`.
+   - List every board item as `[draft] title (Status)`, adding `— moved from #N` when its body
+     starts `Migrated from #N`. Then list every issue as `#N [state] title`, writing
+     `[moved to board]` as the state for any issue that a draft says it was moved from. Those
+     issues were closed as not planned, but the work is still open: a finding that matches one
+     is a duplicate of the draft, not a regression.
    - Unfiled bugs from memory:
      `grep -il unfiled /Users/garfie/.claude/projects/-Users-garfie-Documents-code-librechat-LibreChat-Android/memory/*.md`,
      then copy each listed bug in one line with its memory file.
@@ -157,8 +174,8 @@ Per area, as a pipeline (areas don't wait for each other):
 - The area stops after **two complete rounds in a row** (all three finders ran) add no surviving
   finding, at `maxRounds`, or when its agent share can't fund another round.
 - **Critic**: checks what the rounds didn't trace. Its findings are verified the same way.
-- **Triage**: merges same-root findings, marks `duplicate_of` against `known.md` (open issue, or
-  closed issue that regressed), and writes `areas/<id>/findings.json`.
+- **Triage**: merges same-root findings, marks `duplicate_of` against `known.md` (open issue, board
+  draft, or closed issue that regressed), and writes `areas/<id>/findings.json`.
 
 On the last batch a **Report** agent decides cross-area merges, shared roots and the rank order,
 and writes `report.md`.
@@ -197,18 +214,33 @@ replay from cache.
    count. For a full sweep, also publish `report.md` as an artifact (load `artifact-design`
    first) so the list is easy to scan.
 5. Ask which to file. Default: high and medium non-duplicate bugs, highest first, a shared root
-   as one issue. Offer the lows afterwards as one decision. Missing features are offered last as
-   `[Feature]:` issues, or left for `/sync-upstream audit --full` or `/ux-overhaul`.
+   as one ticket. Offer the lows afterwards as one decision. Missing features are offered last as
+   `Kind: Feature` drafts, or left for `/sync-upstream audit --full` or `/ux-overhaul`.
+6. If several findings share one root or would be fixed together, propose an **Epic** for them:
+   an existing option on the board, or a new one, which the user must approve. A new epic also
+   gets a `📌 <Epic> — overview` draft (goal, order, "start here") filed first.
 
 ## Phase 3: the filing loop (you)
 
 For each finding the user wants filed, in order:
 1. Re-read the cited code once more and write `$RUN/drafts/<fid>.md` in the format in
-   `reference.md`. Title, labels and body.
-2. Show the title, labels and full body. **Stop and wait.**
-3. On approval ("file it", "lgtm"):
-   `gh issue create --title "<title>" --label <bug|enhancement> --label "priority: <p>" [--label well-scoped] --body-file $RUN/drafts/<fid>.md`.
-   Append `{fid, number, url}` to `$RUN/filed.json` and print the URL.
+   `reference.md`.
+2. Show the title, the full body and the fields: Priority (from severity), Workstream (from the
+   area, see Areas), Kind (`Bug`, or `Feature` for new capability), Platform (`Both`, `Android`
+   or `iOS`), Epic if any, Status `Backlog`, Source `Audit`. Say **draft** as the destination,
+   or recommend **issue** only for a bug users would hit and search for. **Stop and wait.**
+3. On approval ("file it", "lgtm"), as a draft:
+   `python3 .claude/skills/audit-parity/scripts/file_draft.py --title "<title>" --body-file $RUN/drafts/<fid>.md --priority <P> --workstream "<W>" --kind <K> --platform <Pl> [--epic "<E>"]`.
+   A new Epic option has to exist first:
+   `gh project field-list 2 --owner garfiec`, then add it to the Epic field in the board's
+   settings (ask the user) or with the `updateProjectV2Field` GraphQL mutation, passing every
+   existing option back with the new one. Passing only the new one deletes the others and clears
+   them from every item.
+   As an issue, only when the user picked it:
+   `gh issue create --repo garfiec/Librechat-Mobile --title "<[Bug]: or [Feature]:> <title>" --label <bug|enhancement> --label "priority: <p>" [--label well-scoped] --body-file $RUN/drafts/<fid>.md`,
+   then put it on the board with its fields:
+   `file_draft.py --issue-url <issue url> --priority <P> --workstream "<W>" --kind <K> --platform <Pl> [--epic "<E>"]`.
+   Append `{fid, dest: "draft"|"issue", id, url}` to `$RUN/filed.json` and print the URL.
 4. On edits, revise and show again. On "skip", record it as skipped. On "merge with F3", fold it
    into that draft. On "stop", end the loop; `filed.json` lets a later session resume it.
 5. Go to the next one.
