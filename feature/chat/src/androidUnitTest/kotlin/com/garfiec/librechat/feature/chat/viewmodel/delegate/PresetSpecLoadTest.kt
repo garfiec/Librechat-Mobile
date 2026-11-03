@@ -42,7 +42,7 @@ class PresetSpecLoadTest {
         val flow = MutableStateFlow(ChatUiState(selection = state.copy(modelSpecs = specs)))
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler) + Job())
         val delegate = PresetPromptDelegate(
-            handle = PresetPromptHandle(ChatStateHandle(flow, scope)),
+            handle = PresetPromptHandle(ChatStateHandle(flow, scope), persistDraft = {}),
             presetRepository = presetRepository,
             promptRepository = mockk<PromptRepository>(relaxed = true),
         )

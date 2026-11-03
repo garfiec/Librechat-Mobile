@@ -243,7 +243,8 @@ class ChatViewModel(
 
     // Spoken without citation markers: "turn zero search zero" is not part of the reply.
     private val ttsDelegate = platformDelegateFactory.createTts(TtsHandle(stateHandle)) { stripCitations(getSpeechText(it)) }
-    private val voiceDelegate = platformDelegateFactory.createVoiceInput(VoiceHandle(stateHandle), ::sendMessage)
+    private val voiceDelegate =
+        platformDelegateFactory.createVoiceInput(VoiceHandle(stateHandle, ::persistComposerDraft), ::sendMessage)
     private val shareConsumer = platformDelegateFactory.createShareConsumer()
 
     // --- Delegates (each gets a narrowed handle that can write only its own slices) ---
@@ -293,7 +294,11 @@ class ChatViewModel(
         )
     private val bookmarksDelegate = ChatBookmarksDelegate(BookmarksHandle(stateHandle), tagRepository)
     private val presetPromptDelegate =
-        PresetPromptDelegate(PresetPromptHandle(stateHandle), presetRepository, promptRepository)
+        PresetPromptDelegate(
+            PresetPromptHandle(stateHandle, ::persistComposerDraft),
+            presetRepository,
+            promptRepository,
+        )
     private val skillPickerDelegate = SkillPickerDelegate(
         handle = SkillPickerHandle(stateHandle),
         skillsRepository = skillsRepository,
@@ -1156,6 +1161,16 @@ class ChatViewModel(
         if (pickerWasOpen && canPickSkills && parsePickerQuery(text, canPickSkills) != null) {
             skillPickerDelegate.ensureLoaded(newTrigger = false)
         }
+        persistComposerDraft(text)
+    }
+
+    /**
+     * Saves composer text as this chat's draft. Every write of the user's own text goes through
+     * here (typing, an inserted prompt, dictation, a share), so reopening the chat brings back what
+     * was on screen. Writes that only stage text for an immediate send, or swap in a queued item for
+     * editing, deliberately skip it.
+     */
+    private fun persistComposerDraft(text: String) {
         // While editing a queued item the composer holds that item, not the persisted draft —
         // don't overwrite the on-disk new-message draft (it's restored on commit/cancel).
         if (_uiState.value.isEditingQueued) return
@@ -1195,6 +1210,7 @@ class ChatViewModel(
                 val merged = if (existing.isBlank()) shareData.text else "$existing\n${shareData.text}"
                 it.copy(composer = it.composer.copy(inputText = merged))
             }
+            persistComposerDraft(_uiState.value.inputText)
         }
 
         if (shareData.fileRefs.isNotEmpty()) {
@@ -1942,12 +1958,12 @@ class ChatViewModel(
      * Sends a new-chat starter through the composer, so the upload gate, the send preflight and a
      * failed send's restore all treat it as typed text. Refused over a non-blank composer, which
      * the starters are never shown over, so a draft is never replaced. The text skips
-     * [onInputChanged]'s draft save: that would race the send's draft delete and could bring the
+     * [persistComposerDraft]: that would race the send's draft delete and could bring the
      * starter back as the next new chat's draft.
      */
     fun sendStarter(text: String) {
         if (_uiState.value.inputText.isNotBlank()) return
-        presetPromptDelegate.insertPromptText(text)
+        sendDispatchDelegate.stageForSend(text)
         sendMessage()
     }
 

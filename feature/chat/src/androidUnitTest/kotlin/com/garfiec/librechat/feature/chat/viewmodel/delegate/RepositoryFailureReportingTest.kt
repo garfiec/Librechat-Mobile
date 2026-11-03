@@ -57,7 +57,10 @@ class RepositoryFailureReportingTest {
         coEvery { presetRepository.create(any()) } returns Result.Error(message = "boom")
         val flow = MutableStateFlow(ChatUiState())
         val delegate = PresetPromptDelegate(
-            handle = PresetPromptHandle(ChatStateHandle(flow, CoroutineScope(Dispatchers.Unconfined))),
+            handle = PresetPromptHandle(
+                ChatStateHandle(flow, CoroutineScope(Dispatchers.Unconfined)),
+                persistDraft = {},
+            ),
             presetRepository = presetRepository,
             promptRepository = mockk<PromptRepository>(relaxed = true),
         )
@@ -83,7 +86,10 @@ class RepositoryFailureReportingTest {
         coEvery { promptRepository.withResolvedText(any()) } returns Result.Error()
         val flow = MutableStateFlow(ChatUiState())
         val delegate = PresetPromptDelegate(
-            handle = PresetPromptHandle(ChatStateHandle(flow, CoroutineScope(Dispatchers.Unconfined))),
+            handle = PresetPromptHandle(
+                ChatStateHandle(flow, CoroutineScope(Dispatchers.Unconfined)),
+                persistDraft = {},
+            ),
             presetRepository = mockk<PresetRepository>(relaxed = true),
             promptRepository = promptRepository,
         )

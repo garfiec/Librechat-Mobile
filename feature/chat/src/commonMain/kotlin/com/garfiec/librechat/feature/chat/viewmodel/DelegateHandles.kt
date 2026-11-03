@@ -222,9 +222,14 @@ class PresetPromptWrites internal constructor(state: ChatUiState) {
     )
 }
 
-class PresetPromptHandle(root: ChatStateHandle) : DelegateHandle(root) {
-    fun update(block: PresetPromptWrites.() -> Unit) =
-        root.update { PresetPromptWrites(this).apply(block).applyTo(this) }
+/**
+ * Composer text written here is the user's (an inserted or filled-in prompt), so a change to it is
+ * saved as the chat's draft through [persistDraft], as typing is.
+ */
+class PresetPromptHandle(root: ChatStateHandle, private val persistDraft: (String) -> Unit) : DelegateHandle(root) {
+    fun update(block: PresetPromptWrites.() -> Unit) = root.updatePersistingDraft(persistDraft) {
+        PresetPromptWrites(this).apply(block).applyTo(this)
+    }
 }
 
 // ── SkillPickerDelegate ───────────────────────────────────────────────────
@@ -589,9 +594,25 @@ class VoiceWrites internal constructor(state: ChatUiState) {
     internal fun applyTo(s: ChatUiState) = s.copy(voice = voice, composer = composer, error = error)
 }
 
-class VoiceHandle(root: ChatStateHandle) : DelegateHandle(root) {
-    fun update(block: VoiceWrites.() -> Unit) =
-        root.update { VoiceWrites(this).apply(block).applyTo(this) }
+/** Dictated composer text is saved as the chat's draft through [persistDraft], as typing is. */
+class VoiceHandle(root: ChatStateHandle, private val persistDraft: (String) -> Unit) : DelegateHandle(root) {
+    fun update(block: VoiceWrites.() -> Unit) = root.updatePersistingDraft(persistDraft) {
+        VoiceWrites(this).apply(block).applyTo(this)
+    }
+}
+
+/** Applies [transform] and hands the composer text to [persistDraft] when the write changed it. */
+private fun ChatStateHandle.updatePersistingDraft(
+    persistDraft: (String) -> Unit,
+    transform: ChatUiState.() -> ChatUiState,
+) {
+    var written: String? = null
+    update {
+        val next = transform()
+        written = next.composer.inputText.takeIf { it != composer.inputText }
+        next
+    }
+    written?.let(persistDraft)
 }
 
 // ── Platform TTS (TextToSpeechDelegate / IosTts) ──────────────────────────

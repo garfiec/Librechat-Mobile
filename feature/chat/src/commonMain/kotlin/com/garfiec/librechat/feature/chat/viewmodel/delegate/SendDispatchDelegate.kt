@@ -345,6 +345,11 @@ class SendDispatchDelegate(
         }
     }
 
+    /** Puts [text] in the composer for a send that follows at once, without saving it as a draft. */
+    fun stageForSend(text: String) {
+        if (text.isNotBlank()) handle.update { inputText = text }
+    }
+
     /** Clears the input, its persisted draft, and any attached files. */
     fun clearComposer() {
         val draftKey = handle.state.conversationId ?: newChatDraftKey
