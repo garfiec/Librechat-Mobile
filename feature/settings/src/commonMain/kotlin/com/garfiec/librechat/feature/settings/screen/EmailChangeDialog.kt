@@ -45,6 +45,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.IosTextContentType
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
+import com.garfiec.librechat.core.ui.components.rememberDraftField
 import com.garfiec.librechat.core.ui.components.withIosTextContentType
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
@@ -55,7 +56,7 @@ import org.jetbrains.compose.resources.stringResource
  * "Change email address": the new address and the current password. Errors render inside the
  * dialog (a page snackbar would draw behind its scrim), under the field they concern. The draft
  * lives in the ViewModel, so it survives a rotation and a late answer can be dropped there; the
- * fields keep only their caret (see [rememberDraftFieldValue]).
+ * fields keep only their caret (see [rememberDraftField]).
  */
 @Composable
 internal fun EmailChangeDialog(
@@ -70,8 +71,8 @@ internal fun EmailChangeDialog(
     val emailFocus = remember { FocusRequester() }
     val passwordFocus = remember { FocusRequester() }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
-    val newEmail = rememberDraftFieldValue(draft.newEmail)
-    val password = rememberDraftFieldValue(draft.password, resetKey = draft.passwordResets)
+    val newEmail = rememberDraftField(draft.newEmail)
+    val password = rememberDraftField(draft.password, resetKey = draft.passwordResets)
     val canSend = !draft.isSending && !coolingDown &&
         draft.newEmail.isNotBlank() && draft.password.isNotEmpty()
 
@@ -102,7 +103,7 @@ internal fun EmailChangeDialog(
                 )
                 AdaptiveOutlinedTextField(
                     value = newEmail.value,
-                    onValueChange = { onDraftChange(newEmail, it, onNewEmailChange) },
+                    onValueChange = { newEmail.onValueChange(it, onNewEmailChange) },
                     label = { Text(stringResource(Res.string.email_change_new_email)) },
                     singleLine = true,
                     enabled = !draft.isSending,
@@ -122,7 +123,7 @@ internal fun EmailChangeDialog(
                 // The login password, so a password manager may fill it: deliberately not SecretTextField.
                 AdaptiveOutlinedTextField(
                     value = password.value,
-                    onValueChange = { onDraftChange(password, it, onPasswordChange) },
+                    onValueChange = { password.onValueChange(it, onPasswordChange) },
                     label = { Text(stringResource(Res.string.email_change_current_password)) },
                     singleLine = true,
                     enabled = !draft.isSending,

@@ -54,6 +54,7 @@ import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.ErrorBanner
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.core.ui.components.UnderBarsPullToRefreshBox
+import com.garfiec.librechat.core.ui.components.rememberDraftField
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarAction
@@ -302,10 +303,10 @@ private fun LazyGridScope.listHeader(
 ) {
     if (uiState.allRows.size >= MCP_SEARCH_THRESHOLD || uiState.searchQuery.isNotEmpty()) {
         item(key = "search", span = { GridItemSpan(maxLineSpan) }, contentType = "search") {
-            val query = rememberDraftFieldValue(uiState.searchQuery)
+            val query = rememberDraftField(uiState.searchQuery)
             AdaptiveOutlinedTextField(
                 value = query.value,
-                onValueChange = { onDraftChange(query, it, onQueryChange) },
+                onValueChange = { query.onValueChange(it, onQueryChange) },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text(stringResource(Res.string.mcp_search_hint)) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },

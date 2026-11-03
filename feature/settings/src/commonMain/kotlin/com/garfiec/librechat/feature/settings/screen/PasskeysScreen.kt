@@ -78,6 +78,7 @@ import com.garfiec.librechat.core.ui.components.IosTextContentType
 import com.garfiec.librechat.core.ui.components.adaptiveRowColor
 import com.garfiec.librechat.core.ui.components.adaptiveSection
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
+import com.garfiec.librechat.core.ui.components.rememberDraftField
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
@@ -456,7 +457,7 @@ private fun RemovePasskeyDialog(
     onDismiss: () -> Unit,
 ) {
     val focusRequester = remember { FocusRequester() }
-    val password = rememberDraftFieldValue(draft.password, resetKey = draft.id)
+    val password = rememberDraftField(draft.password, resetKey = draft.id)
     LaunchedEffect(draft.showPasswordField) {
         if (draft.showPasswordField) focusRequester.requestFocus()
     }
@@ -472,7 +473,7 @@ private fun RemovePasskeyDialog(
                     // The account password, so a password manager may fill it: not SecretTextField.
                     AdaptiveOutlinedTextField(
                         value = password.value,
-                        onValueChange = { onDraftChange(password, it, onPasswordChange) },
+                        onValueChange = { password.onValueChange(it, onPasswordChange) },
                         label = { Text(stringResource(Res.string.passkeys_confirm_password)) },
                         singleLine = true,
                         enabled = !draft.isRemoving,
