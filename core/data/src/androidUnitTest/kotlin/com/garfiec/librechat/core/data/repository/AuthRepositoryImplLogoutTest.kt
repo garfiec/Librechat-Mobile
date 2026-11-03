@@ -204,6 +204,20 @@ class AuthRepositoryImplLogoutTest {
         coVerify(exactly = 1) { accountSwitcher.remove(ACCOUNT_A) }
     }
 
+    /** Latched before the POST: the revocation is what makes the account's in-flight refreshes fail. */
+    @Test
+    fun `logout latches the account's expiry report before revoking its session`() = runTest {
+        var latchedBeforePost = false
+        coEvery { tokenManager.beginSignOut(ACCOUNT_A) } answers {
+            latchedBeforePost = engine.requestHistory.isEmpty()
+        }
+
+        repo().logout()
+
+        assertThat(engine.requestHistory).isNotEmpty()
+        assertThat(latchedBeforePost).isTrue()
+    }
+
     /**
      * A session no roster entry names (Keychain items that outlived an iOS reinstall): no account
      * resolves, nothing can be revoked, and sign-out must still clear the token store and route out.

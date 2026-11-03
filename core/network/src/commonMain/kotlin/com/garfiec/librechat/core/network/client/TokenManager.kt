@@ -205,6 +205,16 @@ interface TokenManager : AuthGateHolder {
     suspend fun endSessionForReauth(accountId: String?, forTwoFactorSetup: Boolean = false) = Unit
 
     /**
+     * A user-chosen sign-out of [accountId] (null = the bare slot) is starting. Latches the expiry
+     * report while that account is the active binding, before the logout POST revokes its server
+     * session: a request whose refresh then fails was ended on purpose and must not announce an
+     * expiry. Re-armed by whatever comes next: a sign-in ([setSession]), a switch to another account
+     * ([selectAccount]) or the sign-out's own teardown. Defaulted to a no-op for the same reason as
+     * [sessionHealth].
+     */
+    suspend fun beginSignOut(accountId: String?) = Unit
+
+    /**
      * True when [accountId]'s session was ended because the server now requires it to set up 2FA
      * (v0.8.9-rc1) and it has not signed in since. Persisted with the account's token slot, so it
      * survives a restart and covers an account that was not active when its refresh was refused.

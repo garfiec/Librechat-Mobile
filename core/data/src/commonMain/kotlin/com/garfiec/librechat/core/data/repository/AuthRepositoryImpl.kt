@@ -349,6 +349,9 @@ class AuthRepositoryImpl(
 
     private suspend fun signOut(snapshot: RequestIdentity) {
         val account = snapshot.accountId?.let { AccountId(it) }
+        // Before the revocation: once the server drops the session, a request whose refresh fails
+        // would otherwise announce an expiry the user didn't have.
+        tokenManager.beginSignOut(snapshot.accountId)
         try {
             serverSessionRevoker.revoke(snapshot)
         } finally {

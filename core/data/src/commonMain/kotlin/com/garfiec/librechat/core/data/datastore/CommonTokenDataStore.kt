@@ -1222,6 +1222,13 @@ abstract class CommonTokenDataStore(
         ) { "User chose to sign in again after a blocked renewal" }
     }
 
+    // Under [stateMutex] so a switch can't land between the active-binding check and the latch, which
+    // would latch the incoming account's report instead.
+    override suspend fun beginSignOut(accountId: String?) = stateMutex.withLock {
+        if (!tokenInitialized) loadCacheFromStorage()
+        if (accountId == activeAccountKey) sessionExpiryReported = true
+    }
+
     private suspend fun flightFor(accountKey: String?): Mutex = flightMutex.withLock {
         flights.getOrPut(accountKey ?: BARE_FLIGHT_KEY) { Mutex() }
     }
