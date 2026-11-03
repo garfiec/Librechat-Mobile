@@ -155,6 +155,7 @@
     <string name="skill_error_save">Dieser Skill konnte nicht gespeichert werden.</string>
     <string name="skill_error_import">Dieser Skill konnte nicht importiert werden.</string>
     <string name="skill_error_skill_md_upload">SKILL.md ist der Inhalt des Skills selbst. Bearbeite den Skill, um ihn zu ändern.</string>
+    <string name="skill_error_skill_deleting">Dieser Skill wird gerade gelöscht, daher können seine Dateien nicht geändert werden.</string>
     <string name="skill_error_changed_on_server">Dieser Skill wurde auf dem Server geändert, und seine neueste Version konnte nicht geladen werden. Deine Änderungen bleiben erhalten: Versuche erneut zu speichern.</string>
     <string name="skill_acl_principal_unknown">Unbekannt</string>
     <!-- Skill import failure summaries -->

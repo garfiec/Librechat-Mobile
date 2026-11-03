@@ -163,6 +163,7 @@
     <string name="skill_error_save">تعذّر حفظ هذه المهارة.</string>
     <string name="skill_error_import">تعذّر استيراد هذه المهارة.</string>
     <string name="skill_error_skill_md_upload">SKILL.md هو محتوى المهارة نفسه. عدّل المهارة لتغييره.</string>
+    <string name="skill_error_skill_deleting">يجري حذف هذه المهارة، لذا لا يمكن تغيير ملفاتها.</string>
     <string name="skill_error_changed_on_server">تغيّرت هذه المهارة على الخادم، وتعذّر تحميل أحدث إصدار منها. تعديلاتك محفوظة: حاول الحفظ مرة أخرى.</string>
     <string name="skill_acl_principal_unknown">غير معروف</string>
     <!-- Skill import failure summaries -->

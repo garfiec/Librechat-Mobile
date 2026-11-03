@@ -190,9 +190,7 @@ fun SkillDetailScreen(
             deleteFailed = stringResource(Res.string.skill_delete_failed),
             toggleFailed = stringResource(Res.string.skill_toggle_failed),
             tooManyOverrides = stringResource(Res.string.skill_toggle_too_many_overrides),
-            uploadFailed = stringResource(SkillErrorKind.UPLOAD_FILE.fallback),
-            removeFailed = stringResource(SkillErrorKind.DELETE_FILE.fallback),
-            skillMdRefused = stringResource(SkillErrorKind.SKILL_MD_UPLOAD.fallback),
+            fileErrors = SkillErrorKind.entries.associateWith { stringResource(it.fallback) },
             reloadFailed = stringResource(SkillErrorKind.LOAD_SKILL.fallback),
             retry = stringResource(Res.string.skills_retry),
         ),
@@ -366,17 +364,11 @@ private data class DetailSnackbarLabels(
     val deleteFailed: String,
     val toggleFailed: String,
     val tooManyOverrides: String,
-    val uploadFailed: String,
-    val removeFailed: String,
-    val skillMdRefused: String,
+    val fileErrors: Map<SkillErrorKind, String>,
     val reloadFailed: String,
     val retry: String,
 ) {
-    fun fileActionFailed(kind: SkillErrorKind): String = when (kind) {
-        SkillErrorKind.DELETE_FILE -> removeFailed
-        SkillErrorKind.SKILL_MD_UPLOAD -> skillMdRefused
-        else -> uploadFailed
-    }
+    fun fileActionFailed(kind: SkillErrorKind): String = fileErrors.getValue(kind)
 }
 
 /**

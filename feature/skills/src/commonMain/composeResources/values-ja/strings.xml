@@ -153,6 +153,7 @@
     <string name="skill_error_save">このスキルを保存できませんでした。</string>
     <string name="skill_error_import">このスキルをインポートできませんでした。</string>
     <string name="skill_error_skill_md_upload">SKILL.md はスキル自体の内容です。変更するにはスキルを編集してください。</string>
+    <string name="skill_error_skill_deleting">このスキルは削除中のため、ファイルを変更できません。</string>
     <string name="skill_error_changed_on_server">このスキルはサーバー上で変更され、最新版を読み込めませんでした。編集内容は保持されています。もう一度保存してください。</string>
     <string name="skill_acl_principal_unknown">不明</string>
     <!-- Skill import failure summaries -->
