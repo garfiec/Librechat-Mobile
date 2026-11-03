@@ -24,9 +24,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -35,12 +33,11 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.ui.components.pressBounce
+import com.garfiec.librechat.core.ui.components.rememberDraftField
 import com.garfiec.librechat.core.ui.components.rememberPressBounce
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
@@ -145,15 +142,9 @@ fun ChatInput(
 
     val focusRequester = remember { FocusRequester() }
 
-    // Use TextFieldValue internally so we can control cursor position.
-    // When inputText changes externally (e.g. STT result, prompt insertion),
-    // place the cursor at the end of the new text.
-    var textFieldValue by remember {
-        mutableStateOf(TextFieldValue(inputText, selection = TextRange(inputText.length)))
-    }
-    if (textFieldValue.text != inputText) {
-        textFieldValue = TextFieldValue(inputText, selection = TextRange(inputText.length))
-    }
+    // inputText reaches here a frame or more after each keystroke; the field keeps its own text and
+    // takes only the ViewModel's own writes (STT, prompt insertion, the clear on send).
+    val field = rememberDraftField(inputText)
 
     // Badge suppressed on agents endpoint (retained state restores on concrete models).
     val hasActiveTools by remember(enabledTools, selectedMcpServerNames, gates.showEphemeralTools) {
@@ -305,15 +296,12 @@ fun ChatInput(
         textFieldContent = {
             Box(modifier = Modifier.weight(1f)) {
                 val compactComparison = comparison?.takeIf { it.compact }
-                val comparisonCollapsed = compactComparison?.collapsedFor(textFieldValue.text) == true
+                val comparisonCollapsed = compactComparison?.collapsedFor(field.value.text) == true
                 val comparisonCollapse by animateComposerComparisonCollapse(comparisonCollapsed)
                 // The composer draws its own field (ChatInputDefaults), glass included; not the adaptive one.
                 OutlinedTextField(
-                    value = textFieldValue,
-                    onValueChange = { newValue ->
-                        textFieldValue = newValue
-                        onInputChange(newValue.text)
-                    },
+                    value = field.value,
+                    onValueChange = { field.onValueChange(it, onInputChange) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 48.dp, max = 160.dp)

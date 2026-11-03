@@ -28,6 +28,31 @@ class DraftEchoesTest {
     }
 
     @Test
+    fun typing_ahead_of_every_echo_keeps_each_keystroke() {
+        // The chat composer under fast typing: each echo lags the field by one or more keystrokes.
+        val echoes = DraftEchoes("")
+        listOf("f", "fi", "fir", "firs", "first").forEach(echoes::reported)
+
+        assertFalse(echoes.isOwnWrite("fi", fieldText = "first"))
+        assertFalse(echoes.isOwnWrite("fir", fieldText = "first"))
+        assertFalse(echoes.isOwnWrite("first", fieldText = "first"))
+        assertTrue(echoes.isOwnWrite("", fieldText = "first"))
+    }
+
+    @Test
+    fun a_lagging_echo_matching_the_field_after_a_backspace_does_not_drain_later_echoes() {
+        val echoes = DraftEchoes("")
+        echoes.reported("a")
+        echoes.reported("ab")
+        echoes.reported("a")
+
+        assertFalse(echoes.isOwnWrite("a", fieldText = "a"))
+        assertFalse(echoes.isOwnWrite("ab", fieldText = "a"))
+        assertFalse(echoes.isOwnWrite("a", fieldText = "a"))
+        assertTrue(echoes.isOwnWrite("", fieldText = "a"))
+    }
+
+    @Test
     fun a_clear_from_the_view_model_replaces_the_field() {
         val echoes = DraftEchoes("")
         echoes.reported("t")

@@ -77,8 +77,10 @@ internal class DraftEchoes(private var lastExternal: String) {
         lastExternal = external
         val echoAt = pending.indexOf(external)
         return when {
+            // Typing back to an earlier text ("ab", then backspace to "a") makes a lagging echo match
+            // the field; the reports after it are still to come back.
             external == fieldText -> {
-                pending.clear()
+                if (echoAt >= 0) repeat(echoAt + 1) { pending.removeFirst() } else pending.clear()
                 false
             }
             !changed -> false
