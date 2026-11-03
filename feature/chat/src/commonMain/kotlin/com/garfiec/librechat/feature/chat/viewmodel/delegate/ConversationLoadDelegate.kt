@@ -94,6 +94,8 @@ class ConversationLoadDelegate(
         SelectionWatches { handle.state.selection.let { it.choice to it.modelParameters } }.watch()
     },
     private val newChatDraftKey: String = NEW_CHAT_DRAFT_KEY,
+    /** SendCompletionDelegate.lastCachedTurn: the turn a stream last finalized and cached. */
+    private val lastCachedTurn: () -> CachedTurn? = { null },
 ) {
     private var roomObserverJob: Job? = null
 
@@ -132,7 +134,17 @@ class ConversationLoadDelegate(
      * repository falls back to cached rows and returns those as `Success`.
      */
     private suspend fun revalidateMessages(conversationId: String) {
-        when (val result = messageRepository.getMessages(conversationId, toolPreviews = true)) {
+        val cachedBefore = lastCachedTurn()
+        val result = messageRepository.getMessages(conversationId, toolPreviews = true)
+        // A turn finalized while the fetch was out: the server answered before it saved that turn,
+        // and the fetch's upsert just overwrote the cached copy (a reply whose stream lost a
+        // subscriber comes back as its `unfinished` partial, shown as stopped). The final frame is
+        // newer than anything the fetch read, so it goes back on top.
+        lastCachedTurn()
+            ?.takeIf { it !== cachedBefore && result is Result.Success }
+            ?.takeIf { turn -> turn.messages.all { it.conversationId == conversationId } }
+            ?.let { turn -> messageRepository.cacheMessages(turn.messages, turn.originAccount) }
+        when (result) {
             is Result.Error -> {
                 Logger.e(result.exception) { "Failed to fetch messages for $conversationId" }
                 handle.update {

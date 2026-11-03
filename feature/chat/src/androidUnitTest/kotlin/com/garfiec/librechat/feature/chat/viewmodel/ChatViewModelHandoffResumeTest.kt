@@ -168,6 +168,54 @@ class ChatViewModelHandoffResumeTest {
     }
 
     /**
+     * New-chat handoff where the landing screen's stream dropped mid-reply: the server saved what
+     * had streamed as an `unfinished` partial. The resumed stream finalizes the full reply, but the
+     * open's message fetch was still out and answers with that partial (the server emits the final
+     * frame before it saves the reply). The partial must not replace the finished reply, which
+     * would show it cut off, as stopped, until the chat is reopened.
+     */
+    @Test
+    fun `a fetch that answers after the resumed reply finalized cannot put its partial back`() =
+        runTest(testDispatcher) {
+            val partial = reply.copy(text = "Kap", unfinished = true)
+            val fetchAnswers = CompletableDeferred<Unit>()
+            coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID, any()) } coAnswers {
+                fetchAnswers.await()
+                stored.value = listOf(user, partial)
+                Result.Success(listOf(user, partial))
+            }
+            coEvery { fixture.messageRepository.cacheMessages(any(), any()) } coAnswers {
+                val written = firstArg<List<Message>>().associateBy { it.messageId }
+                stored.value = stored.value.map { written[it.messageId] ?: it } +
+                    written.values.filter { w -> stored.value.none { it.messageId == w.messageId } }
+            }
+            coEvery { fixture.chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } returns
+                ChatStatusResponse(active = true)
+            every { fixture.chatRepository.resumeStream(CONVERSATION_ID) } returns
+                flowOf(StreamEvent.Final(requestMessage = user, responseMessage = reply))
+            fixture.selectionHandoff.put(
+                conversationId = CONVERSATION_ID,
+                choice = ModelChoice.Raw(ENDPOINT, MODEL),
+                optimisticUserMessage = user.copy(messageId = "client-minted-1", conversationId = ""),
+            )
+            val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
+            try {
+                advanceUntilIdle()
+                assertThat(vm.uiState.value.isStreaming).isFalse()
+
+                fetchAnswers.complete(Unit)
+                advanceUntilIdle()
+
+                val shown = vm.uiState.value.displayMessages.last().message
+                assertThat(shown.text).isEqualTo("Kappa")
+                assertThat(shown.unfinished).isFalse()
+                assertThat(vm.uiState.value.continuableReplyId).isNull()
+            } finally {
+                vm.viewModelScope.cancel()
+            }
+        }
+
+    /**
      * Existing conversation, network drop mid-reply: the SSE client retries on its own, the
      * reconnect's resume 404s because the run finished while offline, and the send's flow ends with
      * neither Final nor Error. The partial must give way to the persisted reply.

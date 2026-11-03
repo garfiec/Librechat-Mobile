@@ -253,6 +253,15 @@ class SendCompletionDelegate(
     }
 
     /**
+     * The turn [cacheTurn] last wrote. A message fetch in flight while a turn finalizes reads the
+     * server before it saved that turn (it emits the final frame first, and a reply whose stream
+     * lost a subscriber sits there as an `unfinished` partial until then), and its upsert lands
+     * after this cache write. `ConversationLoadDelegate` writes this back over it.
+     */
+    var lastCachedTurn: CachedTurn? = null
+        private set
+
+    /**
      * Records the just-finalized [turn] to the local cache only — no network. The optimistic
      * user message was never written to Room during streaming (the streaming-anchor invariant
      * forbids mid-stream writes), so this is what keeps it from being lost on reopen. The
@@ -260,6 +269,7 @@ class SendCompletionDelegate(
      */
     private fun cacheTurn(turn: List<Message>, originAccount: AccountId?) {
         if (turn.isEmpty()) return
+        lastCachedTurn = CachedTurn(turn, originAccount)
         handle.scope.launch {
             suspendRunCatching { messageRepository.cacheMessages(turn, originAccount) }
                 .onFailure { Logger.e(it) { "Failed to cache final messages for the completed turn" } }
@@ -346,3 +356,6 @@ class SendCompletionDelegate(
         const val ABORT_TITLE_RETRY_DELAY_MS = 2_000L
     }
 }
+
+/** A finalized turn as cached, with the account it belongs to. Compared by identity: each finalize is a new one. */
+class CachedTurn(val messages: List<Message>, val originAccount: AccountId?)

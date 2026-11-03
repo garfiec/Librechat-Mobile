@@ -347,7 +347,7 @@ class ChatViewModel(
     private val attachmentPreviewDelegate =
         AttachmentPreviewDelegate(AttachmentPreviewHandle(stateHandle), fileRepository)
     private val newChatDraftKey = newChatDraftKey(initialChatProjectId)
-    private val completionDelegate = SendCompletionDelegate(
+    private val completionDelegate: SendCompletionDelegate = SendCompletionDelegate(
         handle = SendCompletionHandle(stateHandle),
         conversationRepository = conversationRepository,
         messageRepository = messageRepository,
@@ -634,6 +634,7 @@ class ChatViewModel(
             pullRequestsAvailable(configRepository.startupConfig.value, configRepository.detectedBackendVersion.value)
         },
         watchSelection = modelDelegate.selectionWatches::watch,
+        lastCachedTurn = { completionDelegate.lastCachedTurn },
     )
 
     private val uploadIntakeDelegate = UploadIntakeDelegate(
