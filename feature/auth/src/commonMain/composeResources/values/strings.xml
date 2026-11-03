@@ -68,6 +68,7 @@
 
     <!-- Terms -->
     <string name="terms_title">Terms of Service</string>
+    <string name="terms_no_content">This server didn't include the text of its terms.</string>
     <string name="i_accept">I Accept</string>
     <string name="terms_decline">Decline</string>
     <string name="privacy_policy">Privacy policy</string>

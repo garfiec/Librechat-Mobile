@@ -68,6 +68,7 @@
 
     <!-- Terms -->
     <string name="terms_title">Nutzungsbedingungen</string>
+    <string name="terms_no_content">Dieser Server hat den Text seiner Nutzungsbedingungen nicht mitgeliefert.</string>
     <string name="i_accept">Ich akzeptiere</string>
     <string name="retry">Erneut versuchen</string>
 

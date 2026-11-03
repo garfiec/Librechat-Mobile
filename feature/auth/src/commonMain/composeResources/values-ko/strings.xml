@@ -68,6 +68,7 @@
 
     <!-- Terms -->
     <string name="terms_title">서비스 약관</string>
+    <string name="terms_no_content">이 서버는 서비스 약관 본문을 제공하지 않았습니다.</string>
     <string name="i_accept">동의합니다</string>
     <string name="retry">다시 시도</string>
 

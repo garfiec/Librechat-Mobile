@@ -13,6 +13,8 @@ kotlin {
             implementation(project(":core:logging"))
             // QR code for the required 2FA setup screen, same library as Settings' enrollment.
             implementation(libs.qrose)
+            // The server's terms are Markdown; same renderer as Settings' release notes.
+            implementation(libs.markdown.renderer.m3)
         }
         named("androidUnitTest").dependencies {
             implementation(libs.kotlinx.serialization.json)

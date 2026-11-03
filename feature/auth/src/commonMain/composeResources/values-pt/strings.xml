@@ -68,6 +68,7 @@
 
     <!-- Terms -->
     <string name="terms_title">Termos de Serviço</string>
+    <string name="terms_no_content">Este servidor não incluiu o texto dos seus Termos de Serviço.</string>
     <string name="i_accept">Eu aceito</string>
     <string name="retry">Tentar novamente</string>
 

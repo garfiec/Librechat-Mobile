@@ -68,6 +68,7 @@
 
     <!-- Terms -->
     <string name="terms_title">服务条款</string>
+    <string name="terms_no_content">此服务器未提供服务条款的正文。</string>
     <string name="i_accept">我接受</string>
     <string name="retry">重试</string>
 

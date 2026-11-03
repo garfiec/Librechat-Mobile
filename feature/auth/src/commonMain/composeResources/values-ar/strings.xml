@@ -68,6 +68,7 @@
 
     <!-- Terms -->
     <string name="terms_title">شروط الخدمة</string>
+    <string name="terms_no_content">لم يُرفق هذا الخادم نص شروط الخدمة.</string>
     <string name="i_accept">أوافق</string>
     <string name="retry">إعادة المحاولة</string>
 

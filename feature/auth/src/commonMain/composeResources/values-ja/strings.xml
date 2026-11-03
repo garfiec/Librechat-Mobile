@@ -68,6 +68,7 @@
 
     <!-- Terms -->
     <string name="terms_title">利用規約</string>
+    <string name="terms_no_content">このサーバーは利用規約の本文を提供していません。</string>
     <string name="i_accept">同意します</string>
     <string name="retry">再試行</string>
 
