@@ -74,8 +74,8 @@
     <string name="context_usage_cost">Kosten</string>
     <string name="context_usage_cost_branch">Kosten (dieser Zweig)</string>
     <string name="context_usage_cost_all">Alle Zweige</string>
-    <string name="context_usage_last_turn">Letzter Zug</string>
-    <string name="context_usage_current_turn">Aktueller Zug (bisher)</string>
+    <string name="context_usage_last_turn">Letzte Runde</string>
+    <string name="context_usage_current_turn">Aktuelle Runde (bisher)</string>
     <string name="context_usage_waiting">Warte auf Modellnutzung…</string>
     <string name="context_usage_unavailable">Für diesen Zug keine Nutzungsdaten verfügbar</string>
     <string name="context_usage_this_branch">Dieser Zweig</string>

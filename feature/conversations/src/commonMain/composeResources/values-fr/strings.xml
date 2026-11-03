@@ -308,7 +308,7 @@
     <string name="drawer_filter_today">Aujourd'hui</string>
     <string name="drawer_filter_previous_7_days">7 derniers jours</string>
     <string name="drawer_filter_previous_30_days">30 derniers jours</string>
-    <string name="drawer_filter_previous_year">Année précédente</string>
+    <string name="drawer_filter_previous_year">12 derniers mois</string>
     <string name="drawer_filter_created_chip">Créée : %1$s</string>
     <string name="drawer_filter_endpoint">Endpoint</string>
     <string name="drawer_filter_endpoint_limit">Limite d'endpoints atteinte (%1$d)</string>
