@@ -1,6 +1,6 @@
-Switchboard is a third-party native client for LibreChat, the open-source chat platform you run on your own server. It is not affiliated with the official LibreChat project. Point it at any self-hosted LibreChat instance — no backend changes required.
+All of LibreChat, built for Android. Switchboard keeps the LibreChat you're used to and makes it faster and more natural on a phone, tablet or foldable. It also does things the website can't, from reading your chats offline to keeping the apps it builds on your home screen.
 
-You need your own LibreChat server to use this app. There is no hosted service and no default server.
+You need your own LibreChat server. There is no hosted service and no default server. Switchboard is a third-party app and is not affiliated with the LibreChat project.
 
 Why not just use the web app in a browser?
 

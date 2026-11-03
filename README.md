@@ -160,7 +160,7 @@ Without this setting, the server's violation system may accumulate ban points ag
 
 - **Registration** — The app respects your server's registration settings. If registration is disabled server-side, only the login form is shown.
 - **Access gateways** — If your server sits behind Cloudflare Access, Authelia, Authentik or oauth2-proxy, add the headers your gateway expects under **Advanced** on the server URL screen, or later in **Settings → Account → Server connection**.
-- **Self-signed TLS certificates** — Both platforms enforce certificate requirements stricter than browsers, and Android additionally does not trust user-installed CAs by default. See [FAQ.md](FAQ.md#can-i-use-a-self-signed-tls-certificate) for details and workarounds.
+- **Self-signed TLS certificates** — Both platforms enforce certificate requirements stricter than browsers. Install your private CA on the device and the app trusts it; on Android, sign-in and **Settings → General** say when a server relies on one. See [FAQ.md](FAQ.md#can-i-use-a-self-signed-tls-certificate) for the requirements and setup.
 
 ## Requirements
 

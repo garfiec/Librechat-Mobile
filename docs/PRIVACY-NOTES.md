@@ -6,37 +6,35 @@ step with it.
 
 ## A. Google Play Data safety (`com.garfiec.librechat.play`)
 
-The app declares **no data collected** and **no data shared**. Google's form covers data the app's
-own code and libraries send off the device to the developer or to third parties; Switchboard sends
-user data only to the LibreChat server the user chose, which is the same reading section B takes
-for Apple. Android vitals is collected by Google Play, not by the app, so it is not declared.
-
-| Form question | Answer |
-|---|---|
-| Does your app collect or share any of the required user data types? | No |
-
-With "No", the form skips the encryption, deletion and per-type questions. Play Console still asks
-for an account-deletion URL separately, because the app can create accounts (section C, item 4).
-
-If review asks for a fuller declaration, the traffic to the user's server can be declared as
-collected, not shared. The policy text supports either.
+The app declares its data as **collected, not shared**. Google counts any user data that leaves
+the device as collected, whoever runs the server it goes to, so the traffic to the user's own
+LibreChat server is declared even though it never reaches us. A form that said "no data collected"
+was rejected by Play's pre-review check (2026-11-03: "Email address not declared"). Android vitals
+is collected by Google Play, not by the app, so it is not declared.
 
 | Form question | Answer |
 |---|---|
 | Does your app collect or share any of the required user data types? | Yes |
 | Is all collected data encrypted in transit? | Yes (TLS when the user's server is `https://`; note the user-chosen `http://` case in the policy) |
-| Do you provide a way for users to request deletion? | Yes: in-app account deletion (Settings → Account → Delete account) plus sign-out/uninstall; external URL = this policy, section 11 |
+| Which methods of account creation does your app support? | Username and password; OAuth |
+| Delete account URL | `https://github.com/garfiec/Librechat-Mobile/blob/develop/docs/PRIVACY.md#11-retention-and-deletion` |
+| Can users request deletion of some data without deleting their account? | Yes, same URL |
+
+The URL's section 11 covers both routes: in-app account deletion (Settings → Account → Delete
+account) and deleting conversations, memories, shared links and API keys on the server.
+
+Every declared type is collected, not processed ephemerally (the server stores it), and not shared.
 
 | Data type | Collected | Shared | Optional | Purpose | Notes |
 |---|---|---|---|---|---|
-| Personal info → Email address, Name, User IDs | Yes | No | Required for sign-in | App functionality, Account management | Sent to the user's own server to sign in |
-| Personal info → Other (authentication tokens, 2FA codes) | Ephemeral / not stored by us | No | Required | App functionality | Declared under Account management if the form needs a row |
-| Messages → Other in-app messages | Yes | No | Required for the app's purpose | App functionality | Chat content sent to the user's server |
+| Personal info → Name, Email address, User IDs | Yes | No | Required | App functionality, Account management | Sent to the user's own server to sign in |
+| Personal info → Other (authentication tokens, 2FA codes) | Not declared | No | | | Credentials, not a listed data type |
+| Messages → Other in-app messages | Yes | No | Required | App functionality | Chat content sent to the user's server |
 | Photos and videos → Photos, Videos | Yes | No | Optional | App functionality | Attachments the user picks |
 | Files and docs | Yes | No | Optional | App functionality | Attachments the user picks |
 | Audio → Voice or sound recordings | Yes | No | Optional | App functionality | Only with the "External" speech engine (uploaded to the user's server). With the device engine, the OS recognizer sends the audio, as with system voice typing, so it is not declared |
 | Web browsing → Web browsing history | No | No | | | Search is performed by the server; favicon hostnames are a per-result lookup, not a history. Disclosed in the policy instead |
-| App activity → App interactions, Other user-generated content | Yes (user-generated content: prompts, agents, presets, memories) | No | Optional | App functionality | Stored on the user's server |
+| App activity → Other user-generated content | Yes | No | Optional | App functionality | Prompts, agents, presets, memories, stored on the user's server. App interactions are not declared |
 | App info and performance → Crash logs, Diagnostics | No | No | | | The app sends none; Android vitals is collected by the platform. Revisit if a crash SDK is ever added |
 | Device or other IDs | No | No | | | None read or sent |
 | Location, Contacts, Calendar, Health, Financial | No | No | | | Not accessed |

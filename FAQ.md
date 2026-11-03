@@ -17,7 +17,7 @@ See [Why use this instead of the web app?](README.md#why-use-this-instead-of-the
 
 ## Can I use a self-signed TLS certificate?
 
-Yes on iOS (with caveats). Not effectively on Android with the current release build — see below for workarounds.
+Yes, on both platforms, once the CA that signed it is installed on the device and the certificate meets the requirements below.
 
 Both platforms enforce TLS certificate requirements that ordinary browsers do not. A certificate that works in Chrome or Safari may still be rejected by the mobile app.
 
@@ -55,12 +55,16 @@ Once the CA is trusted on the device, you only need to re-install it if you crea
 
 Android imposes no equivalent validity-period cap — multi-year self-signed certificates are accepted as long as the requirements in the common table above are met.
 
-However, since Android 7.0 (API 24), apps trust **only the system CA store** by default. A CA that a user installs via **Settings → Security → Encryption & credentials → Install a certificate** is *not* trusted by apps unless the app explicitly opts in via its Network Security Config. **Switchboard does not currently opt in**, so a self-signed CA installed in device settings will not be trusted and the connection will fail with an `SSLHandshakeException` wrapping `CertPathValidatorException: Trust anchor for certification path not found`.
+Since Android 7.0 (API 24), apps trust only the system CA store unless they opt in to user-installed CAs. Switchboard opts in, so a CA you install yourself is trusted alongside the system's.
 
-If you need TLS with a self-hosted server on Android today, the practical options are:
+**Setup:**
 
-- Use a publicly-trusted CA on a resolvable domain (Let's Encrypt, ZeroSSL).
-- Put the server behind a reverse proxy (e.g., Caddy, Cloudflare Tunnel) that terminates TLS with a publicly-trusted certificate.
-- Connect over plain HTTP on a trusted local network and accept the in-app warning. (Cleartext is permitted but TLS validation is **not** weakened — `cleartextTrafficPermitted="true"` only governs `http://`, not which roots are trusted for `https://`.)
+1. Generate a compliant certificate signed by your own CA.
+2. On the device, install the CA certificate: **Settings → Security → Encryption & credentials → Install a certificate → CA certificate** (the path varies by manufacturer; search Settings for "CA certificate").
+3. Connect as usual. The sign-in screen notes that the server is trusted through a certificate authority installed on the device, and **Settings → General → About** shows the same under the server address.
 
-> **Looking ahead:** Apps that target API 37+ (Android 17) get Certificate Transparency enabled by default for TLS connections. If user-CA opt-in is added later and the app's `targetSdk` reaches 37, self-signed leaf certs without SCTs will additionally need `<certificateTransparency enabled="false"/>` in the Network Security Config.
+Without the CA installed, the server check rejects the certificate and suggests installing the server's private CA.
+
+If you can't install a CA on the device (a managed phone, for example), use a publicly trusted certificate instead (Let's Encrypt, ZeroSSL), or put the server behind a reverse proxy such as Caddy or Cloudflare Tunnel that terminates TLS with one. On a trusted local network you can also connect over plain HTTP and accept the in-app warning.
+
+> **Looking ahead:** apps that target API 37+ (Android 17) get Certificate Transparency enabled by default for TLS connections. When Switchboard's `targetSdk` reaches 37, self-signed leaf certificates without SCTs will need `<certificateTransparency enabled="false"/>` in the Network Security Config.
