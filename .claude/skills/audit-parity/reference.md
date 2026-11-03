@@ -22,10 +22,13 @@ not verified.
 belongs to another area only when it is central to yours; that area's own audit will find the
 rest.
 
-**Known issues.** `known.md` lists filed issues, recorded bugs, backend-less web features and
-deliberate divergences.
-- A defect that is already **filed**: still report it, with `duplicate_of: "#N"`. The audit
-  needs the count, and the issue may be incomplete.
+**Known issues.** `known.md` lists board drafts, filed issues, recorded bugs, backend-less web
+features and deliberate divergences.
+- A defect that is already **filed**: still report it, with `duplicate_of: "#N"`, or
+  `duplicate_of: "draft: <title>"` for a board draft. The audit needs the count, and the ticket
+  may be incomplete.
+- An issue marked **`[moved to board]`** is still open work. Its draft is the duplicate target,
+  never "closed, regression".
 - A **closed** issue whose defect still reproduces in the code: report it with
   `duplicate_of: "#N (closed, regression)"`.
 - **Deliberate divergences** and **backend-less features**: don't report them (see below).
@@ -139,11 +142,16 @@ You are trying to **break** it. Default to `REFUTED` when the evidence is not so
   client (`--ref <path>`) is read from its own working tree.
 - Correct line numbers, severity, trigger and kind where they're wrong.
 
-## Issue format
+## Ticket format
 
-Filed issues use the repo's style. Titles start `[Bug]:` for bugs and `[Feature]:` for gaps that
-are really new capability. Labels: `bug` or `enhancement`, plus `priority: high|medium|low`, plus
-`well-scoped` when the fix is contained.
+Findings are filed as drafts on the Switchboard Roadmap board. A draft's title has no `[Bug]:`
+or `[Feature]:` prefix; its `Kind` field says which, and Priority, Workstream, Platform and Epic
+are fields too. Write issue references as `#N`; the filing script turns them into links, since a
+draft has no repo context. When the user picks a repo issue instead, the title takes the
+`[Bug]:` / `[Feature]:` prefix and the labels are `bug` or `enhancement`, plus
+`priority: high|medium|low`, plus `well-scoped` when the fix is contained.
+
+The body is the same either way:
 
 ```
 ## Summary
@@ -163,5 +171,5 @@ Related things out of scope. How it was found only if it matters ("found by read
 not reproduced on a device").
 ```
 
-When `--ref` is a third-party client, never mention it in an issue. Describe the bug from our
+When `--ref` is a third-party client, never mention it in a ticket. Describe the bug from our
 code and the server alone. The upstream web client may be cited.
