@@ -667,6 +667,9 @@ fun PhoneLayout(
         Column(
             modifier = modifier
                 .fillMaxSize()
+                // iOS: the start-edge swipe is back wherever there is something to go back to. The
+                // open drawer's sheet and scrim sit above this, so it never takes the drawer's touches.
+                .edgeSwipeBack(enabled = backClaims.isClaimed || navigator.backStack.size > 1)
                 .background(MaterialTheme.colorScheme.background)
                 // Recorded only while the drawer is opening or open: recording redraws the screen
                 // every frame, and nothing samples it while the drawer is shut.

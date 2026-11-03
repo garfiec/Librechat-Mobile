@@ -39,8 +39,9 @@ Material 3 theme and shared Compose components used across all feature modules. 
 - `DiscardChangesDialog` - "Discard changes?" for leaving an editor with unsaved edits. Every
   full-screen editor (agent, skill, schedule, prompt, role skills) uses it the same way: the ViewModel
   owns `onBackRequested()` and the dialog flag, `PlatformBackHandler` is enabled only while dirty (a
-  clean form keeps predictive back), and the top bar's back goes through the same check, since the
-  handler never fires on iOS. Dirty = what Save would send differs from what was loaded.
+  clean form keeps predictive back), and the top bar's back goes through the same check. On iOS
+  the start-edge swipe reaches the handler (CMP's edge-pan recognizer, or the phone shell's
+  `edgeSwipeBack` fallback in `:shared`). Dirty = what Save would send differs from what was loaded.
   A sheet editor (the memory sheet) uses the `AdaptiveModalBottomSheet(interceptDismiss = dirty)`
   overload instead: while it is true, swipe, scrim, handle tap and back leave the sheet up and call
   `onDismissRequest`, which raises the dialog; the sheet closes when the caller drops it.
