@@ -27,6 +27,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveFilledTonalButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.rememberDraftField
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import org.jetbrains.compose.resources.StringResource
@@ -69,9 +70,10 @@ fun MessageEditField(
                 modifier = Modifier.padding(bottom = 4.dp),
             )
         }
+        val field = rememberDraftField(value)
         AdaptiveOutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
+            value = field.value,
+            onValueChange = { field.onValueChange(it, onValueChange) },
             enabled = enabled,
             modifier = Modifier
                 .fillMaxWidth()

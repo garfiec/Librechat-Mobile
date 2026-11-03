@@ -69,6 +69,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
+import com.garfiec.librechat.core.ui.components.rememberDraftField
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.DEFAULT_ALLOWED_TOOL_DECISIONS
@@ -582,9 +583,10 @@ private fun ToolCallBody(
         }
 
         if (draft.decision == ToolApprovalDecisions.REJECT) {
+            val reason = rememberDraftField(draft.reason, resetKey = call.toolCallId)
             AdaptiveOutlinedTextField(
-                value = draft.reason,
-                onValueChange = { onDraftChange(draft.copy(reason = it)) },
+                value = reason.value,
+                onValueChange = { reason.onValueChange(it) { text -> onDraftChange(draft.copy(reason = text)) } },
                 enabled = !isResolving,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -597,9 +599,12 @@ private fun ToolCallBody(
 
         if (draft.decision == ToolApprovalDecisions.EDIT) {
             val invalid = draft.editedArguments.isNotBlank() && draft.editedArguments.parseToolArgumentsOrNull() == null
+            val editedArguments = rememberDraftField(draft.editedArguments, resetKey = call.toolCallId)
             AdaptiveOutlinedTextField(
-                value = draft.editedArguments,
-                onValueChange = { onDraftChange(draft.copy(editedArguments = it)) },
+                value = editedArguments.value,
+                onValueChange = {
+                    editedArguments.onValueChange(it) { text -> onDraftChange(draft.copy(editedArguments = text)) }
+                },
                 enabled = !isResolving,
                 modifier = Modifier.fillMaxWidth().bringIntoViewRequester(fieldRequester),
                 textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
@@ -616,9 +621,10 @@ private fun ToolCallBody(
         }
 
         if (draft.decision == ToolApprovalDecisions.RESPOND) {
+            val responseText = rememberDraftField(draft.responseText, resetKey = call.toolCallId)
             AdaptiveOutlinedTextField(
-                value = draft.responseText,
-                onValueChange = { onDraftChange(draft.copy(responseText = it)) },
+                value = responseText.value,
+                onValueChange = { responseText.onValueChange(it) { text -> onDraftChange(draft.copy(responseText = text)) } },
                 enabled = !isResolving,
                 modifier = Modifier.fillMaxWidth().bringIntoViewRequester(fieldRequester),
                 label = { Text(stringResource(Res.string.tool_approval_response_text)) },

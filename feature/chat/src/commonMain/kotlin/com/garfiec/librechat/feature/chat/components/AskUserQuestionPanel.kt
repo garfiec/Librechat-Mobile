@@ -55,6 +55,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -70,6 +71,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveRadioButton
+import com.garfiec.librechat.core.ui.components.rememberDraftField
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
@@ -503,16 +505,13 @@ private fun RowScope.CompactFreeTextField(state: AskPanelState, actions: AskPane
     Spacer(modifier = Modifier.width(16.dp))
     Box(modifier = Modifier.weight(1f)) {
         val colors = MaterialTheme.colorScheme
+        val field = rememberDraftField(draft.freeText, resetKey = active.id)
         BasicTextField(
-            value = draft.freeText,
+            value = field.value,
             onValueChange = { typed ->
-                actions.onDraftChange(
-                    active.id,
-                    draft.copy(
-                        freeText = typed.take(askFreeTextBudget(active.options, draft.selectedOptions)),
-                        skipped = false,
-                    ),
-                )
+                field.onValueChange(typed.cappedTo(askFreeTextBudget(active.options, draft.selectedOptions))) {
+                    actions.onDraftChange(active.id, draft.copy(freeText = it, skipped = false))
+                }
             },
             enabled = !state.isResolving,
             textStyle = MaterialTheme.typography.bodyLarge.copy(color = colors.onSurface),
@@ -522,7 +521,7 @@ private fun RowScope.CompactFreeTextField(state: AskPanelState, actions: AskPane
             keyboardActions = KeyboardActions(onDone = { onDone() }),
             modifier = Modifier.fillMaxWidth(),
         )
-        if (draft.freeText.isEmpty()) {
+        if (field.value.text.isEmpty()) {
             Text(
                 text = stringResource(
                     when {
@@ -801,12 +800,13 @@ private fun AskQuestionBody(
             }
         }
 
+        val field = rememberDraftField(draft.freeText, resetKey = item.id)
         AdaptiveOutlinedTextField(
-            value = draft.freeText,
+            value = field.value,
             onValueChange = { typed ->
-                onDraftChange(
-                    draft.copy(freeText = typed.take(askFreeTextBudget(item.options, selected)), skipped = false),
-                )
+                field.onValueChange(typed.cappedTo(askFreeTextBudget(item.options, selected))) {
+                    onDraftChange(draft.copy(freeText = it, skipped = false))
+                }
             },
             enabled = !isResolving,
             modifier = Modifier.fillMaxWidth(),
@@ -887,3 +887,7 @@ private val FALLBACK_BODY_MAX_HEIGHT = 320.dp
 
 /** The narrowest the compact free-text field gets before its action moves to a line of its own. */
 private val FREE_TEXT_MIN_WIDTH = 160.dp
+
+/** This edit with its text cut to [budget] characters, the caret kept inside it. */
+private fun TextFieldValue.cappedTo(budget: Int): TextFieldValue =
+    if (text.length <= budget) this else TextFieldValue(text.take(budget), selection, composition = null)
