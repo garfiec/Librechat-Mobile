@@ -456,6 +456,7 @@ private fun RemovePasskeyDialog(
     onDismiss: () -> Unit,
 ) {
     val focusRequester = remember { FocusRequester() }
+    val password = rememberDraftFieldValue(draft.password, resetKey = draft.id)
     LaunchedEffect(draft.showPasswordField) {
         if (draft.showPasswordField) focusRequester.requestFocus()
     }
@@ -470,8 +471,8 @@ private fun RemovePasskeyDialog(
                     Spacer(Modifier.height(16.dp))
                     // The account password, so a password manager may fill it: not SecretTextField.
                     AdaptiveOutlinedTextField(
-                        value = draft.password,
-                        onValueChange = onPasswordChange,
+                        value = password.value,
+                        onValueChange = { onDraftChange(password, it, onPasswordChange) },
                         label = { Text(stringResource(Res.string.passkeys_confirm_password)) },
                         singleLine = true,
                         enabled = !draft.isRemoving,

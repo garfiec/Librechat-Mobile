@@ -302,9 +302,10 @@ private fun LazyGridScope.listHeader(
 ) {
     if (uiState.allRows.size >= MCP_SEARCH_THRESHOLD || uiState.searchQuery.isNotEmpty()) {
         item(key = "search", span = { GridItemSpan(maxLineSpan) }, contentType = "search") {
+            val query = rememberDraftFieldValue(uiState.searchQuery)
             AdaptiveOutlinedTextField(
-                value = uiState.searchQuery,
-                onValueChange = onQueryChange,
+                value = query.value,
+                onValueChange = { onDraftChange(query, it, onQueryChange) },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text(stringResource(Res.string.mcp_search_hint)) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
