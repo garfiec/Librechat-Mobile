@@ -52,6 +52,7 @@ fun SsoLoginScreen(
         SsoWebView(
             serverUrl = viewModel.serverUrl,
             provider = provider,
+            clearAllCookies = viewModel.clearAllCookies,
             onTokenCapture = viewModel::onTokenCapture,
             onOAuthError = viewModel::onOAuthError,
             onCaptureFail = viewModel::onCaptureFailed,

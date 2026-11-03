@@ -50,6 +50,12 @@ class SsoLoginViewModel(
     /** The server this screen signs into: the pending add target when set, else the live one. */
     val serverUrl: String = accountSwitcher.pendingAdd?.serverUrl ?: serverDataStore.getBaseUrl()
 
+    /**
+     * True only for add-account, where the sign-in WebView must start from an empty jar — a plain
+     * sign-in keeps the provider's session cookie so its re-auth completes without the password.
+     */
+    val clearAllCookies: Boolean = accountSwitcher.pendingAdd != null
+
     private var tokenConsumed = false
 
     fun onTokenCapture(cookies: AuthCookies) {

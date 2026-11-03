@@ -60,6 +60,22 @@ class SsoLoginViewModelTest {
     }
 
     @Test
+    fun `plain sign-in keeps whatever the cookie jar already holds`() = runTest {
+        val viewModel = createViewModel()
+
+        assertThat(viewModel.clearAllCookies).isFalse()
+    }
+
+    @Test
+    fun `an add-account sign-in starts from an empty jar`() = runTest {
+        every { accountSwitcher.pendingAdd } returns mockk(relaxed = true)
+
+        val viewModel = createViewModel()
+
+        assertThat(viewModel.clearAllCookies).isTrue()
+    }
+
+    @Test
     fun `serverUrl is the pending add target when an add is in progress`() = runTest {
         val pending = mockk<PendingAddSession>(relaxed = true)
         every { pending.serverUrl } returns ADD_SERVER

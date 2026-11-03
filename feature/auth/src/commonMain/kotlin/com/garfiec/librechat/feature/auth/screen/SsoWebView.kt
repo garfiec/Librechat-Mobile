@@ -11,17 +11,13 @@ import com.garfiec.librechat.core.model.auth.AuthCookies
  *  provider at all. The User-Agent is a browser string because the server's ua-parser middleware
  *  rejects WebView agents, and because providers block embedded-browser sign-ins.
  *
- *  The whole round-trip runs in one cookie jar, which is what lets the callback carry the state
- *  binding the server set at authorize time (upstream v0.8.8-rc3+). The callback then sets
- *  `refreshToken` on the server's own origin; this view reads it out of that jar and reports it
- *  via [onTokenCapture].
- *
- *  This view owns the jar's whole lifecycle, because the clear has to be ordered against the load
- *  and only the side that owns both can guarantee that. Every sign-in starts from an empty jar, not
- *  merely one without the server's `refreshToken`: the provider's own session cookie is what makes
- *  the round-trip re-select an identity the user never chose, and clearing it is the only way to
- *  guarantee the account chooser is reached. iOS gets this by construction from its non-persistent
- *  store; Android has to ask for it.
+ *  This view owns the jar's lifecycle around the load, because the clear has to be ordered against
+ *  the load and only the side that owns both can guarantee that. When [clearAllCookies] is true —
+ *  the add-account flow — the jar is emptied: a retained provider session would let this round-trip
+ *  silently complete as whoever the provider last authenticated, with no chooser and no error. A
+ *  plain sign-in keeps the provider's session cookie, so an expired session's re-sign-in can
+ *  complete without the password; only the server's own auth cookies are expired first. iOS gets
+ *  the empty-jar start by construction from its non-persistent store; Android has to ask for it.
  *
  *  Exactly one of [onTokenCapture], [onOAuthError] or [onCaptureFail] fires per round-trip.
  *  [onCaptureFail] is the primary failure signal — since upstream dropped `failureMessage`, a
@@ -30,6 +26,7 @@ import com.garfiec.librechat.core.model.auth.AuthCookies
 expect fun SsoWebView(
     serverUrl: String,
     provider: String,
+    clearAllCookies: Boolean,
     onTokenCapture: (AuthCookies) -> Unit,
     onOAuthError: (String?) -> Unit,
     onCaptureFail: () -> Unit,

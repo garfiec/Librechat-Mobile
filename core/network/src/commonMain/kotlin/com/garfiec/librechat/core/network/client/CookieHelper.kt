@@ -12,7 +12,14 @@ import kotlin.time.Clock
 object CookieHelper {
 
     val openIdCookieNames: Set<String> = setOf("token_provider", "openid_user_id")
-    val authCookieNames: Set<String> = setOf("refreshToken") + openIdCookieNames
+
+    /** Issuer-set session-store fallbacks (upstream's setOpenIDAuthTokens cookie branch): session
+     *  material the server owns, so the wipes must expire them; they are not capture markers. */
+    private val openIdIssuerFallbackCookieNames: Set<String> =
+        setOf("openid_access_token", "openid_id_token")
+
+    val authCookieNames: Set<String> =
+        setOf("refreshToken") + openIdCookieNames + openIdIssuerFallbackCookieNames
 
     /** Cookie values stay opaque: in particular '+' and percent escapes must survive the handoff. */
     fun capture(cookieHeader: String?): AuthCookies? {
@@ -75,6 +82,18 @@ object CookieHelper {
 
     fun extractRefreshToken(headers: Headers): String? {
         return responseCookies(headers).firstOrNull { it.name == "refreshToken" }?.value
+    }
+
+    /**
+     * An expired Set-Cookie for one auth cookie name, for driving a WebView CookieManager.
+     * `HttpOnly` must accompany it: the server sets every auth cookie with that attribute, and
+     * Chromium refuses to overwrite an HttpOnly cookie with one lacking it. Path=/ matches express's
+     * default so the key is the one the server set; Max-Age=0 because Robolectric's jar ignores an
+     * Expires-past-date delete.
+     */
+    fun expiredAuthCookie(serverUrl: String, name: String): String {
+        val secure = if (serverUrl.startsWith("https://", ignoreCase = true)) "; Secure" else ""
+        return "$name=; Path=/; Max-Age=0; HttpOnly$secure"
     }
 
     // Foundation combines repeated Set-Cookie fields. Ktor's parser separates them while

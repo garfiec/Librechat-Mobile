@@ -209,6 +209,9 @@ private class SsoNavigationDelegate(
 actual fun SsoWebView(
     serverUrl: String,
     provider: String,
+    // Android-only: the non-persistent store below starts empty by construction, so the jar never
+    // has either a stale server token or a provider session to clear.
+    clearAllCookies: Boolean,
     onTokenCapture: (AuthCookies) -> Unit,
     onOAuthError: (String?) -> Unit,
     onCaptureFail: () -> Unit,
@@ -225,9 +228,10 @@ actual fun SsoWebView(
     UIKitView(
         modifier = modifier,
         factory = {
-            // A non-persistent store is created fresh here and dies with the view, so there is no
-            // stale cookie to clear and no provider session to re-select. Android has to ask for
-            // the same guarantee with removeAllCookies; here it is structural.
+            // A non-persistent store is created fresh here and dies with the view, so plain
+            // sign-ins start empty and no provider session ever lingers on iOS. Android keeps the
+            // same start only for add-account: its persistent jar carries every provider session,
+            // and SsoWebView.android expires just the auth cookies around a plain sign-in.
             val config = WKWebViewConfiguration().apply {
                 websiteDataStore = WKWebsiteDataStore.nonPersistentDataStore()
                 defaultWebpagePreferences.allowsContentJavaScript = true

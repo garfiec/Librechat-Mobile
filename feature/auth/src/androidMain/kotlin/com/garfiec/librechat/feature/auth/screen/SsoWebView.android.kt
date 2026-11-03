@@ -28,21 +28,12 @@ import com.garfiec.librechat.feature.auth.oauth.extractRefreshTokenFromCookies
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/**
- * `HttpOnly` is load-bearing, not decoration: the server sets every auth cookie with it, and
- * Chromium refuses to overwrite an HttpOnly cookie from a value that lacks the attribute. Without it
- * this expiry never lands and a previous identity's cookie survives into the next sign-in.
- */
-private fun expiredCookie(serverUrl: String, name: String): String {
-    val secure = if (serverUrl.startsWith("https://", ignoreCase = true)) "; Secure" else ""
-    return "$name=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly$secure"
-}
-
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 actual fun SsoWebView(
     serverUrl: String,
     provider: String,
+    clearAllCookies: Boolean,
     onTokenCapture: (AuthCookies) -> Unit,
     onOAuthError: (String?) -> Unit,
     onCaptureFail: () -> Unit,
@@ -93,8 +84,12 @@ actual fun SsoWebView(
                         when {
                             captured != null -> {
                                 CookieHelper.authCookieNames.forEach { name ->
-                                    cookies.setCookie(serverUrl, expiredCookie(serverUrl, name))
+                                    cookies.setCookie(
+                                        serverUrl,
+                                        CookieHelper.expiredAuthCookie(serverUrl, name),
+                                    )
                                 }
+                                currentOnTokenCapture(checkNotNull(captured))
                                 currentOnTokenCapture(checkNotNull(captured))
                             }
                             errorCode != null -> currentOnOAuthError(errorCode)
@@ -187,17 +182,26 @@ actual fun SsoWebView(
                 cookies.setAcceptCookie(true)
                 cookies.setAcceptThirdPartyCookies(this, true)
                 val startUrl = "${cleanServerUrl(serverUrl)}/oauth/$provider"
-                // The load is issued from inside the clear's callback, because removeAllCookies is
-                // asynchronous and that ordering is the only thing keeping a stale token from being
-                // read back before the round-trip has even reached the provider.
-                //
-                // The whole jar, not just the server's refreshToken: the provider's own session
-                // cookie is process-global and survives our sign-out, so leaving it lets the flow
-                // re-select whoever was last signed in at the provider and complete as them with no
-                // chooser and no error. Nothing else in this jar holds a session — the chat
-                // WebViews render vendored local assets — and AndroidSwitchCacheCleaner already
-                // wipes it whole on every account switch for the same reason.
-                cookies.removeAllCookies { loadUrl(startUrl) }
+                if (clearAllCookies) {
+                    // Add-account guard: a retained provider session would complete the round-trip
+                    // as whoever the provider last authenticated, with no chooser. removeAllCookies
+                    // is asynchronous, so the load must be issued from inside its callback — that
+                    // ordering is the only thing keeping a stale token from being read back before
+                    // the round-trip has even reached the provider.
+                    cookies.removeAllCookies { loadUrl(startUrl) }
+                } else {
+                    // A plain sign-in keeps the provider's session cookie (password-free re-sign-in
+                    // after expiry). Only the server's own auth cookies may never linger: the stale
+                    // one would be read back by captureIfTokenPresent as an instant bogus capture.
+                    // flush() is the commit signal that orders the load after the expiry writes —
+                    // on device Chromium it blocks until the jar is written through — so the load
+                    // can never race an unexpired name back into getCookie.
+                    CookieHelper.authCookieNames.forEach { name ->
+                        cookies.setCookie(serverUrl, CookieHelper.expiredAuthCookie(serverUrl, name))
+                    }
+                    cookies.flush()
+                    loadUrl(startUrl)
+                }
             }
         },
         onRelease = { webView ->
