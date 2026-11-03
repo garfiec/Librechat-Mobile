@@ -36,6 +36,7 @@
     <string name="unknown_error">Une erreur inconnue s'est produite</string>
     <string name="conversation_exported">Conversation exportée</string>
     <string name="imported_title">Importée : %1$s</string>
+    <string name="import_error_tool_previews">Ce fichier contient des sorties d'outils raccourcies et ne peut pas être importé.</string>
     <string name="copy_of">Copie de %1$s</string>
 
     <!-- Conversation actions -->
@@ -75,6 +76,8 @@
     <string name="projects_no_match">Aucun projet ne correspond à « %1$s »</string>
     <string name="rename_conversation">Renommer la conversation</string>
     <string name="rename_dialog_message">Saisissez un nouveau titre pour cette conversation.</string>
+    <string name="rename_not_ready">Cette discussion ne peut pas être renommée tant que son titre n'est pas prêt. Réessayez une fois la réponse terminée.</string>
+    <string name="rename_not_found">Cette discussion n'existe plus, elle ne peut donc pas être renommée.</string>
     <string name="title_label">Titre</string>
     <string name="delete_conversation">Supprimer la conversation</string>
     <string name="delete_confirmation_message">Voulez-vous vraiment supprimer "%1$s" ? Cette action est irréversible.</string>
@@ -119,6 +122,7 @@
     <string name="remove">Retirer</string>
     <string name="remove_account">Retirer le compte</string>
     <string name="account_signed_out">Déconnecté · %1$s</string>
+    <string name="account_two_factor_setup_required">Connectez-vous pour configurer la 2FA, désormais obligatoire · %1$s</string>
     <string name="remove_account_message">%1$s et ses données seront retirés de cet appareil. Le compte sur le serveur n'est pas affecté.</string>
     <string name="remove_account_title">Retirer le compte ?</string>
     <string name="drawer_running_chats">En cours</string>
@@ -289,6 +293,37 @@
     <string name="workspace_pin">Épingler %1$s au menu</string>
     <string name="workspace_unpin">Désépingler %1$s du menu</string>
     <string name="workspace_reorder">Faire glisser pour réorganiser</string>
+    <string name="drawer_finished_chats">Terminées</string>
+    <string name="mark_as_unread">Marquer comme non lu</string>
+    <string name="mark_as_read">Marquer comme lu</string>
+    <string name="mark_read_failed">Impossible de marquer la discussion comme lue</string>
+    <string name="mark_unread_failed">Impossible de marquer la discussion comme non lue</string>
+    <string name="cd_unread_reply">Réponse non lue</string>
+    <string name="cd_filter_chats">Filtrer les discussions</string>
+    <string name="drawer_filters_on">Filtres actifs</string>
+    <string name="drawer_filter_title">Filtrer les discussions</string>
+    <string name="drawer_filter_updated">Mise à jour</string>
+    <string name="drawer_filter_created">Création</string>
+    <string name="drawer_filter_any_time">N'importe quand</string>
+    <string name="drawer_filter_today">Aujourd'hui</string>
+    <string name="drawer_filter_previous_7_days">7 derniers jours</string>
+    <string name="drawer_filter_previous_30_days">30 derniers jours</string>
+    <string name="drawer_filter_previous_year">Année précédente</string>
+    <string name="drawer_filter_created_chip">Créée : %1$s</string>
+    <string name="drawer_filter_endpoint">Endpoint</string>
+    <string name="drawer_filter_endpoint_limit">Limite d'endpoints atteinte (%1$d)</string>
+    <string name="drawer_filter_has_attachments">Avec pièces jointes</string>
+    <string name="drawer_filter_shared_only">Partagées uniquement</string>
+    <string name="drawer_filter_bookmarks">Signets</string>
+    <string name="drawer_filter_reset">Réinitialiser</string>
+    <string name="drawer_filter_apply">Appliquer</string>
+    <string name="drawer_filter_offline">Vous êtes hors ligne. Les filtres nécessitent le serveur et s'appliqueront dès votre retour en ligne.</string>
+    <string name="drawer_filter_no_match_title">Aucune discussion ne correspond à vos filtres</string>
+    <string name="drawer_filter_no_match_body">Essayez une période plus longue ou moins de filtres.</string>
+    <string name="drawer_filter_clear">Effacer les filtres</string>
+    <string name="drawer_filter_load_failed">Impossible de charger les discussions filtrées. Tirez vers le bas pour réessayer.</string>
+    <string name="drawer_filter_messages_note">Les résultats de messages ne sont pas filtrés.</string>
+    <string name="cd_remove_named_filter">Retirer le filtre %1$s</string>
     <!-- Project errors -->
     <string name="project_move_failed">Impossible de déplacer la discussion</string>
     <string name="project_create_failed">Impossible de créer le projet</string>

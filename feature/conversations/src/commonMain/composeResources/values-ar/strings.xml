@@ -36,6 +36,7 @@
     <string name="unknown_error">حدث خطأ غير معروف</string>
     <string name="conversation_exported">تم تصدير المحادثة</string>
     <string name="imported_title">تم الاستيراد: %1$s</string>
+    <string name="import_error_tool_previews">يحتوي هذا الملف على مخرجات أدوات مختصرة ولا يمكن استيراده.</string>
     <string name="copy_of">نسخة من %1$s</string>
 
     <!-- Conversation actions -->
@@ -75,6 +76,8 @@
     <string name="projects_no_match">لا توجد مشاريع تطابق "%1$s"</string>
     <string name="rename_conversation">إعادة تسمية المحادثة</string>
     <string name="rename_dialog_message">أدخل عنوانًا جديدًا لهذه المحادثة.</string>
+    <string name="rename_not_ready">لا يمكن إعادة تسمية هذه المحادثة حتى يصبح عنوانها جاهزًا. حاول مرة أخرى بعد انتهاء الرد.</string>
+    <string name="rename_not_found">لم تعد هذه المحادثة موجودة، لذا لا يمكن إعادة تسميتها.</string>
     <string name="title_label">العنوان</string>
     <string name="delete_conversation">حذف المحادثة</string>
     <string name="delete_confirmation_message">هل أنت متأكد أنك تريد حذف "%1$s"؟ لا يمكن التراجع عن هذا الإجراء.</string>
@@ -119,6 +122,7 @@
     <string name="remove">إزالة</string>
     <string name="remove_account">إزالة الحساب</string>
     <string name="account_signed_out">تم تسجيل الخروج · %1$s</string>
+    <string name="account_two_factor_setup_required">سجّل الدخول لإعداد المصادقة الثنائية (2FA)، وهي مطلوبة الآن · %1$s</string>
     <string name="remove_account_message">سيُزال %1$s وبياناته من هذا الجهاز. لن يتأثر الحساب على الخادم.</string>
     <string name="remove_account_title">إزالة الحساب؟</string>
     <string name="drawer_running_chats">قيد التشغيل</string>
@@ -305,6 +309,37 @@
     <string name="workspace_pin">تثبيت %1$s في القائمة</string>
     <string name="workspace_unpin">إلغاء تثبيت %1$s من القائمة</string>
     <string name="workspace_reorder">اسحب لإعادة الترتيب</string>
+    <string name="drawer_finished_chats">مكتملة</string>
+    <string name="mark_as_unread">وضع علامة كغير مقروءة</string>
+    <string name="mark_as_read">وضع علامة كمقروءة</string>
+    <string name="mark_read_failed">تعذّر وضع علامة على المحادثة كمقروءة</string>
+    <string name="mark_unread_failed">تعذّر وضع علامة على المحادثة كغير مقروءة</string>
+    <string name="cd_unread_reply">رد غير مقروء</string>
+    <string name="cd_filter_chats">تصفية المحادثات</string>
+    <string name="drawer_filters_on">عوامل التصفية مفعّلة</string>
+    <string name="drawer_filter_title">تصفية المحادثات</string>
+    <string name="drawer_filter_updated">تاريخ التحديث</string>
+    <string name="drawer_filter_created">تاريخ الإنشاء</string>
+    <string name="drawer_filter_any_time">أي وقت</string>
+    <string name="drawer_filter_today">اليوم</string>
+    <string name="drawer_filter_previous_7_days">آخر 7 أيام</string>
+    <string name="drawer_filter_previous_30_days">آخر 30 يومًا</string>
+    <string name="drawer_filter_previous_year">آخر سنة</string>
+    <string name="drawer_filter_created_chip">تاريخ الإنشاء: %1$s</string>
+    <string name="drawer_filter_endpoint">نقطة النهاية</string>
+    <string name="drawer_filter_endpoint_limit">تم بلوغ الحد الأقصى لنقاط النهاية (%1$d)</string>
+    <string name="drawer_filter_has_attachments">تحتوي على مرفقات</string>
+    <string name="drawer_filter_shared_only">المشتركة فقط</string>
+    <string name="drawer_filter_bookmarks">الإشارات المرجعية</string>
+    <string name="drawer_filter_reset">إعادة تعيين</string>
+    <string name="drawer_filter_apply">تطبيق</string>
+    <string name="drawer_filter_offline">أنت غير متصل. تحتاج عوامل التصفية إلى الخادم، لذا ستُطبَّق عند عودتك إلى الاتصال.</string>
+    <string name="drawer_filter_no_match_title">لا توجد محادثات تطابق عوامل التصفية</string>
+    <string name="drawer_filter_no_match_body">جرّب نطاقًا زمنيًا أطول أو عوامل تصفية أقل.</string>
+    <string name="drawer_filter_clear">مسح عوامل التصفية</string>
+    <string name="drawer_filter_load_failed">تعذّر تحميل المحادثات المصفّاة. اسحب للأسفل لإعادة المحاولة.</string>
+    <string name="drawer_filter_messages_note">لا تتم تصفية نتائج الرسائل.</string>
+    <string name="cd_remove_named_filter">إزالة عامل التصفية %1$s</string>
     <!-- Project errors -->
     <string name="project_move_failed">تعذّر نقل المحادثة</string>
     <string name="project_create_failed">تعذّر إنشاء المشروع</string>

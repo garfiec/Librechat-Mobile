@@ -36,6 +36,7 @@
     <string name="unknown_error">Произошла неизвестная ошибка</string>
     <string name="conversation_exported">Беседа экспортирована</string>
     <string name="imported_title">Импортировано: %1$s</string>
+    <string name="import_error_tool_previews">Этот файл содержит сокращённый вывод инструментов и не может быть импортирован.</string>
     <string name="copy_of">Копия %1$s</string>
 
     <!-- Conversation actions -->
@@ -75,6 +76,8 @@
     <string name="projects_no_match">Нет проектов по запросу «%1$s»</string>
     <string name="rename_conversation">Переименовать беседу</string>
     <string name="rename_dialog_message">Введите новое название для этой беседы.</string>
+    <string name="rename_not_ready">Этот чат нельзя переименовать, пока не готово его название. Повторите попытку, когда ответ завершится.</string>
+    <string name="rename_not_found">Этот чат больше не существует, поэтому его нельзя переименовать.</string>
     <string name="title_label">Название</string>
     <string name="delete_conversation">Удалить беседу</string>
     <string name="delete_confirmation_message">Вы уверены, что хотите удалить "%1$s"? Это действие нельзя отменить.</string>
@@ -119,6 +122,7 @@
     <string name="remove">Удалить</string>
     <string name="remove_account">Удалить аккаунт</string>
     <string name="account_signed_out">Выполнен выход · %1$s</string>
+    <string name="account_two_factor_setup_required">Войдите, чтобы настроить 2FA, теперь обязательную · %1$s</string>
     <string name="remove_account_message">%1$s и связанные данные будут удалены с этого устройства. Аккаунт на сервере не затрагивается.</string>
     <string name="remove_account_title">Удалить аккаунт?</string>
     <string name="drawer_running_chats">Выполняются</string>
@@ -295,6 +299,37 @@
     <string name="workspace_pin">Закрепить «%1$s» в меню</string>
     <string name="workspace_unpin">Открепить «%1$s» из меню</string>
     <string name="workspace_reorder">Перетащите, чтобы изменить порядок</string>
+    <string name="drawer_finished_chats">Завершены</string>
+    <string name="mark_as_unread">Отметить как непрочитанный</string>
+    <string name="mark_as_read">Отметить как прочитанный</string>
+    <string name="mark_read_failed">Не удалось отметить чат как прочитанный</string>
+    <string name="mark_unread_failed">Не удалось отметить чат как непрочитанный</string>
+    <string name="cd_unread_reply">Непрочитанный ответ</string>
+    <string name="cd_filter_chats">Фильтр чатов</string>
+    <string name="drawer_filters_on">Фильтры включены</string>
+    <string name="drawer_filter_title">Фильтр чатов</string>
+    <string name="drawer_filter_updated">Обновлён</string>
+    <string name="drawer_filter_created">Создан</string>
+    <string name="drawer_filter_any_time">За всё время</string>
+    <string name="drawer_filter_today">Сегодня</string>
+    <string name="drawer_filter_previous_7_days">Последние 7 дней</string>
+    <string name="drawer_filter_previous_30_days">Последние 30 дней</string>
+    <string name="drawer_filter_previous_year">Последний год</string>
+    <string name="drawer_filter_created_chip">Создан: %1$s</string>
+    <string name="drawer_filter_endpoint">Эндпоинт</string>
+    <string name="drawer_filter_endpoint_limit">Достигнут лимит эндпоинтов (%1$d)</string>
+    <string name="drawer_filter_has_attachments">С вложениями</string>
+    <string name="drawer_filter_shared_only">Только общие</string>
+    <string name="drawer_filter_bookmarks">Закладки</string>
+    <string name="drawer_filter_reset">Сбросить</string>
+    <string name="drawer_filter_apply">Применить</string>
+    <string name="drawer_filter_offline">Нет подключения к сети. Фильтрам нужен сервер, поэтому они применятся, когда вы снова будете в сети.</string>
+    <string name="drawer_filter_no_match_title">Нет чатов, соответствующих фильтрам</string>
+    <string name="drawer_filter_no_match_body">Выберите более длинный период или меньше фильтров.</string>
+    <string name="drawer_filter_clear">Сбросить фильтры</string>
+    <string name="drawer_filter_load_failed">Не удалось загрузить отфильтрованные чаты. Потяните вниз, чтобы повторить.</string>
+    <string name="drawer_filter_messages_note">Результаты по сообщениям не фильтруются.</string>
+    <string name="cd_remove_named_filter">Удалить фильтр %1$s</string>
     <!-- Project errors -->
     <string name="project_move_failed">Не удалось переместить чат</string>
     <string name="project_create_failed">Не удалось создать проект</string>

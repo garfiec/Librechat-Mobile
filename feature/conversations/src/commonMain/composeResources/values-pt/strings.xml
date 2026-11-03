@@ -36,6 +36,7 @@
     <string name="unknown_error">Ocorreu um erro desconhecido</string>
     <string name="conversation_exported">Conversa exportada</string>
     <string name="imported_title">Importada: %1$s</string>
+    <string name="import_error_tool_previews">Este arquivo contém saídas de ferramentas abreviadas e não pode ser importado.</string>
     <string name="copy_of">Cópia de %1$s</string>
 
     <!-- Conversation actions -->
@@ -75,6 +76,8 @@
     <string name="projects_no_match">Nenhum projeto corresponde a "%1$s"</string>
     <string name="rename_conversation">Renomear conversa</string>
     <string name="rename_dialog_message">Digite um novo título para esta conversa.</string>
+    <string name="rename_not_ready">Este chat não pode ser renomeado até que o título esteja pronto. Tente novamente quando a resposta terminar.</string>
+    <string name="rename_not_found">Este chat não existe mais, então não pode ser renomeado.</string>
     <string name="title_label">Título</string>
     <string name="delete_conversation">Excluir conversa</string>
     <string name="delete_confirmation_message">Tem certeza de que deseja excluir "%1$s"? Esta ação não pode ser desfeita.</string>
@@ -119,6 +122,7 @@
     <string name="remove">Remover</string>
     <string name="remove_account">Remover conta</string>
     <string name="account_signed_out">Sessão encerrada · %1$s</string>
+    <string name="account_two_factor_setup_required">Entre para configurar a 2FA, agora obrigatória · %1$s</string>
     <string name="remove_account_message">%1$s e seus dados serão removidos deste dispositivo. A conta no servidor não é afetada.</string>
     <string name="remove_account_title">Remover conta?</string>
     <string name="drawer_running_chats">Em execução</string>
@@ -289,6 +293,37 @@
     <string name="workspace_pin">Fixar %1$s no menu</string>
     <string name="workspace_unpin">Desafixar %1$s do menu</string>
     <string name="workspace_reorder">Arraste para reordenar</string>
+    <string name="drawer_finished_chats">Concluídos</string>
+    <string name="mark_as_unread">Marcar como não lido</string>
+    <string name="mark_as_read">Marcar como lido</string>
+    <string name="mark_read_failed">Não foi possível marcar o chat como lido</string>
+    <string name="mark_unread_failed">Não foi possível marcar o chat como não lido</string>
+    <string name="cd_unread_reply">Resposta não lida</string>
+    <string name="cd_filter_chats">Filtrar chats</string>
+    <string name="drawer_filters_on">Filtros ativos</string>
+    <string name="drawer_filter_title">Filtrar chats</string>
+    <string name="drawer_filter_updated">Atualizado</string>
+    <string name="drawer_filter_created">Criado</string>
+    <string name="drawer_filter_any_time">Qualquer data</string>
+    <string name="drawer_filter_today">Hoje</string>
+    <string name="drawer_filter_previous_7_days">Últimos 7 dias</string>
+    <string name="drawer_filter_previous_30_days">Últimos 30 dias</string>
+    <string name="drawer_filter_previous_year">Último ano</string>
+    <string name="drawer_filter_created_chip">Criado: %1$s</string>
+    <string name="drawer_filter_endpoint">Endpoint</string>
+    <string name="drawer_filter_endpoint_limit">Limite de endpoints atingido (%1$d)</string>
+    <string name="drawer_filter_has_attachments">Com anexos</string>
+    <string name="drawer_filter_shared_only">Somente compartilhados</string>
+    <string name="drawer_filter_bookmarks">Marcadores</string>
+    <string name="drawer_filter_reset">Redefinir</string>
+    <string name="drawer_filter_apply">Aplicar</string>
+    <string name="drawer_filter_offline">Você está offline. Os filtros precisam do servidor e serão aplicados quando você voltar a ficar online.</string>
+    <string name="drawer_filter_no_match_title">Nenhum chat corresponde aos seus filtros</string>
+    <string name="drawer_filter_no_match_body">Tente um intervalo de datas maior ou menos filtros.</string>
+    <string name="drawer_filter_clear">Limpar filtros</string>
+    <string name="drawer_filter_load_failed">Não foi possível carregar os chats filtrados. Puxe para baixo para tentar novamente.</string>
+    <string name="drawer_filter_messages_note">Os resultados de mensagens não são filtrados.</string>
+    <string name="cd_remove_named_filter">Remover filtro %1$s</string>
     <!-- Project errors -->
     <string name="project_move_failed">Não foi possível mover o chat</string>
     <string name="project_create_failed">Não foi possível criar o projeto</string>

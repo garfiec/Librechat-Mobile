@@ -36,6 +36,7 @@
     <string name="unknown_error">不明なエラーが発生しました</string>
     <string name="conversation_exported">会話をエクスポートしました</string>
     <string name="imported_title">インポート済み: %1$s</string>
+    <string name="import_error_tool_previews">このファイルには短縮されたツール出力が含まれているため、インポートできません。</string>
     <string name="copy_of">%1$s のコピー</string>
 
     <!-- Conversation actions -->
@@ -75,6 +76,8 @@
     <string name="projects_no_match">「%1$s」に一致するプロジェクトはありません</string>
     <string name="rename_conversation">会話の名前を変更</string>
     <string name="rename_dialog_message">この会話の新しいタイトルを入力してください。</string>
+    <string name="rename_not_ready">タイトルの準備ができるまで、このチャットの名前は変更できません。返信が完了してからもう一度お試しください。</string>
+    <string name="rename_not_found">このチャットはすでに存在しないため、名前を変更できません。</string>
     <string name="title_label">タイトル</string>
     <string name="delete_conversation">会話を削除</string>
     <string name="delete_confirmation_message">「%1$s」を削除してもよろしいですか？この操作は取り消せません。</string>
@@ -119,6 +122,7 @@
     <string name="remove">削除</string>
     <string name="remove_account">アカウントを削除</string>
     <string name="account_signed_out">サインアウト済み · %1$s</string>
+    <string name="account_two_factor_setup_required">サインインして 2FA を設定してください（必須になりました） · %1$s</string>
     <string name="remove_account_message">%1$s とそのデータがこのデバイスから削除されます。サーバー上のアカウントには影響しません。</string>
     <string name="remove_account_title">アカウントを削除しますか？</string>
     <string name="drawer_running_chats">実行中</string>
@@ -280,6 +284,37 @@
     <string name="workspace_pin">%1$sをドロワーに固定</string>
     <string name="workspace_unpin">%1$sの固定を解除</string>
     <string name="workspace_reorder">ドラッグして並べ替え</string>
+    <string name="drawer_finished_chats">完了</string>
+    <string name="mark_as_unread">未読にする</string>
+    <string name="mark_as_read">既読にする</string>
+    <string name="mark_read_failed">チャットを既読にできませんでした</string>
+    <string name="mark_unread_failed">チャットを未読にできませんでした</string>
+    <string name="cd_unread_reply">未読の返信</string>
+    <string name="cd_filter_chats">チャットを絞り込む</string>
+    <string name="drawer_filters_on">フィルター適用中</string>
+    <string name="drawer_filter_title">チャットを絞り込む</string>
+    <string name="drawer_filter_updated">更新日</string>
+    <string name="drawer_filter_created">作成日</string>
+    <string name="drawer_filter_any_time">すべての期間</string>
+    <string name="drawer_filter_today">今日</string>
+    <string name="drawer_filter_previous_7_days">過去 7 日間</string>
+    <string name="drawer_filter_previous_30_days">過去 30 日間</string>
+    <string name="drawer_filter_previous_year">過去 1 年間</string>
+    <string name="drawer_filter_created_chip">作成日: %1$s</string>
+    <string name="drawer_filter_endpoint">エンドポイント</string>
+    <string name="drawer_filter_endpoint_limit">エンドポイントの上限に達しました（%1$d）</string>
+    <string name="drawer_filter_has_attachments">添付ファイルあり</string>
+    <string name="drawer_filter_shared_only">共有のみ</string>
+    <string name="drawer_filter_bookmarks">ブックマーク</string>
+    <string name="drawer_filter_reset">リセット</string>
+    <string name="drawer_filter_apply">適用</string>
+    <string name="drawer_filter_offline">オフラインです。フィルターにはサーバーが必要なため、オンラインに戻ると適用されます。</string>
+    <string name="drawer_filter_no_match_title">フィルターに一致するチャットはありません</string>
+    <string name="drawer_filter_no_match_body">期間を長くするか、フィルターを減らしてみてください。</string>
+    <string name="drawer_filter_clear">フィルターをクリア</string>
+    <string name="drawer_filter_load_failed">絞り込んだチャットを読み込めませんでした。下に引いて再試行してください。</string>
+    <string name="drawer_filter_messages_note">メッセージの検索結果は絞り込まれません。</string>
+    <string name="cd_remove_named_filter">フィルター %1$s を削除</string>
     <!-- Project errors -->
     <string name="project_move_failed">チャットを移動できませんでした</string>
     <string name="project_create_failed">プロジェクトを作成できませんでした</string>

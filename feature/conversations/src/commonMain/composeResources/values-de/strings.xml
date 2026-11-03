@@ -36,6 +36,7 @@
     <string name="unknown_error">Ein unbekannter Fehler ist aufgetreten</string>
     <string name="conversation_exported">Unterhaltung exportiert</string>
     <string name="imported_title">Importiert: %1$s</string>
+    <string name="import_error_tool_previews">Diese Datei enthält gekürzte Tool-Ausgaben und kann nicht importiert werden.</string>
     <string name="copy_of">Kopie von %1$s</string>
 
     <!-- Conversation actions -->
@@ -75,6 +76,8 @@
     <string name="projects_no_match">Keine Projekte passend zu "%1$s"</string>
     <string name="rename_conversation">Unterhaltung umbenennen</string>
     <string name="rename_dialog_message">Gib einen neuen Titel für diese Unterhaltung ein.</string>
+    <string name="rename_not_ready">Dieser Chat kann erst umbenannt werden, wenn sein Titel bereit ist. Versuche es erneut, sobald die Antwort fertig ist.</string>
+    <string name="rename_not_found">Dieser Chat existiert nicht mehr und kann daher nicht umbenannt werden.</string>
     <string name="title_label">Titel</string>
     <string name="delete_conversation">Unterhaltung löschen</string>
     <string name="delete_confirmation_message">Möchtest du "%1$s" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.</string>
@@ -119,6 +122,7 @@
     <string name="remove">Entfernen</string>
     <string name="remove_account">Konto entfernen</string>
     <string name="account_signed_out">Abgemeldet · %1$s</string>
+    <string name="account_two_factor_setup_required">Melde dich an, um 2FA einzurichten, jetzt erforderlich · %1$s</string>
     <string name="remove_account_message">%1$s und die zugehörigen Daten werden von diesem Gerät entfernt. Das Konto auf dem Server ist davon nicht betroffen.</string>
     <string name="remove_account_title">Konto entfernen?</string>
     <string name="drawer_running_chats">Läuft</string>
@@ -285,6 +289,37 @@
     <string name="workspace_pin">%1$s an die Seitenleiste anheften</string>
     <string name="workspace_unpin">%1$s von der Seitenleiste lösen</string>
     <string name="workspace_reorder">Zum Neuordnen ziehen</string>
+    <string name="drawer_finished_chats">Fertig</string>
+    <string name="mark_as_unread">Als ungelesen markieren</string>
+    <string name="mark_as_read">Als gelesen markieren</string>
+    <string name="mark_read_failed">Chat konnte nicht als gelesen markiert werden</string>
+    <string name="mark_unread_failed">Chat konnte nicht als ungelesen markiert werden</string>
+    <string name="cd_unread_reply">Ungelesene Antwort</string>
+    <string name="cd_filter_chats">Chats filtern</string>
+    <string name="drawer_filters_on">Filter aktiv</string>
+    <string name="drawer_filter_title">Chats filtern</string>
+    <string name="drawer_filter_updated">Aktualisiert</string>
+    <string name="drawer_filter_created">Erstellt</string>
+    <string name="drawer_filter_any_time">Beliebiger Zeitraum</string>
+    <string name="drawer_filter_today">Heute</string>
+    <string name="drawer_filter_previous_7_days">Letzte 7 Tage</string>
+    <string name="drawer_filter_previous_30_days">Letzte 30 Tage</string>
+    <string name="drawer_filter_previous_year">Letztes Jahr</string>
+    <string name="drawer_filter_created_chip">Erstellt: %1$s</string>
+    <string name="drawer_filter_endpoint">Endpunkt</string>
+    <string name="drawer_filter_endpoint_limit">Endpunkt-Limit erreicht (%1$d)</string>
+    <string name="drawer_filter_has_attachments">Mit Anhängen</string>
+    <string name="drawer_filter_shared_only">Nur geteilte</string>
+    <string name="drawer_filter_bookmarks">Lesezeichen</string>
+    <string name="drawer_filter_reset">Zurücksetzen</string>
+    <string name="drawer_filter_apply">Anwenden</string>
+    <string name="drawer_filter_offline">Du bist offline. Filter benötigen den Server und werden angewendet, sobald du wieder online bist.</string>
+    <string name="drawer_filter_no_match_title">Keine Chats entsprechen deinen Filtern</string>
+    <string name="drawer_filter_no_match_body">Wähle einen längeren Zeitraum oder weniger Filter.</string>
+    <string name="drawer_filter_clear">Filter löschen</string>
+    <string name="drawer_filter_load_failed">Gefilterte Chats konnten nicht geladen werden. Zum erneuten Versuchen nach unten ziehen.</string>
+    <string name="drawer_filter_messages_note">Nachrichtenergebnisse werden nicht gefiltert.</string>
+    <string name="cd_remove_named_filter">Filter %1$s entfernen</string>
     <!-- Project errors -->
     <string name="project_move_failed">Chat konnte nicht verschoben werden</string>
     <string name="project_create_failed">Projekt konnte nicht erstellt werden</string>
