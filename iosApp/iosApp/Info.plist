@@ -19,7 +19,8 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<!-- Overwritten at build time by the "Stamp Version from version.properties"
-	     build phase; version.properties is the single source of truth. These
+	     build phase (which takes the processed copy of this file as an input, so it
+	     runs after Xcode copies it); version.properties is the single source of truth. These
 	     literals are just a sane fallback snapshot. CFBundleShortVersionString
 	     carries only the numeric calver core (App Store Connect rejects
 	     suffixes like -rc1 there); SwitchboardVersionName carries the full
