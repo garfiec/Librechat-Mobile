@@ -80,6 +80,8 @@ fun TwoFactorSetupScreen(
     onComplete: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Opens the switcher on the other signed-in accounts; null hides it. Offered before setup starts. */
+    onUseAnotherAccount: (() -> Unit)? = null,
     viewModel: TwoFactorSetupViewModel = koinViewModel { parametersOf(tempToken) },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -113,6 +115,7 @@ fun TwoFactorSetupScreen(
         ) {
             if (uiState.mustSignInAgain) {
                 ExpiredSetup(onBack = onBack)
+                UseAnotherAccountButton(onUseAnotherAccount)
                 return@Column
             }
             Text(
@@ -122,7 +125,12 @@ fun TwoFactorSetupScreen(
                 textAlign = TextAlign.Center,
             )
             when (uiState.phase) {
-                TwoFactorSetupPhase.Start -> StartPhase(uiState.isLoading, viewModel::start)
+                TwoFactorSetupPhase.Start -> {
+                    StartPhase(uiState.isLoading, viewModel::start)
+                    // Not offered mid-setup, where it would compete with the step at hand; sign-in,
+                    // one step back, still has it.
+                    UseAnotherAccountButton(onUseAnotherAccount)
+                }
                 TwoFactorSetupPhase.Authenticator -> AuthenticatorPhase(uiState, viewModel::continueToVerify)
                 TwoFactorSetupPhase.Verify -> VerifyPhase(
                     state = uiState,

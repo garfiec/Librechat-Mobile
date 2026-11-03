@@ -303,6 +303,43 @@ class NavHostViewModel(
     val tabletSidebarGestureEnabled: StateFlow<Boolean> = settingsDataStore.tabletSidebarGestureEnabled
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
+    private val accountSwitch = AccountSwitchStateHolder(
+        scope = viewModelScope,
+        accounts = accounts,
+        isLoggedIn = isLoggedIn,
+        isLoggedInNow = { _isLoggedIn.value },
+        switchAccount = accountSwitcher::switch,
+        // A refusal can mean the row was stale: a straggler request's hard expiry empties a
+        // non-active slot without any signal, so the list still showed it signed in. Re-read it,
+        // or the tap does nothing and the row never says why.
+        onSwitchRefused = { sessionRevision.update { it + 1 } },
+        // A switch from a sign-in screen: enter the app on the account, as a failover does. Under
+        // [sessionDecision], and only while it still holds a session, so an expiry handled
+        // meanwhile keeps the user at sign-in.
+        enterSwitchedAccount = {
+            sessionDecision.withLock {
+                val active = activeAccountId()
+                if (!_isLoggedIn.value && active != null && accountSwitcher.hasSession(active)) {
+                    // As after a failover: an expiry still in flight from the signed-out account
+                    // must not sign this one out.
+                    failoverTarget = active
+                    _isLoggedIn.value = true
+                    sessionRevision.update { it + 1 }
+                    // The flip's own back-stack reset does not leave the sign-in flow.
+                    _sessionRoute.trySend(SessionRoute.Chat)
+                }
+            }
+        },
+    )
+
+    /** The other signed-in accounts a sign-in screen offers to switch to; see [AccountSwitchStateHolder]. */
+    val signInEscapeAccounts: StateFlow<List<AccountUiModel>> = accountSwitch.signInEscape
+
+    /** Whether the sign-in screens offer [signInEscapeAccounts]. */
+    val signInEscapeAvailable: StateFlow<Boolean> = signInEscapeAccounts
+        .map { it.isNotEmpty() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     init {
         @Suppress("TooGenericExceptionCaught") // a failed startup check must not crash the root ViewModel
         viewModelScope.launch {
@@ -438,14 +475,10 @@ class NavHostViewModel(
 
     /** Switch the active account (no-op for the already-active one). Post-switch refresh and the
      *  back-stack reset ride on the [accountTransitions] collectors, not this call. An account whose
-     *  session has expired is not switched to, since every request on it would 401. */
+     *  session has expired is not switched to, since every request on it would 401. From a sign-in
+     *  screen the switch also enters the app, as a failover does. */
     fun switchAccount(accountId: String) {
-        viewModelScope.launch {
-            // A refusal can mean the row was stale: a straggler request's hard expiry empties a
-            // non-active slot without any signal, so the list still showed it signed in. Re-read it,
-            // or the tap does nothing and the row never says why.
-            if (!accountSwitcher.switch(accountId)) sessionRevision.update { it + 1 }
-        }
+        viewModelScope.launch { accountSwitch.switchTo(accountId) }
     }
 
     /**

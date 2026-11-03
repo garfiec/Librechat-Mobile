@@ -62,6 +62,8 @@ fun ServerUrlScreen(
     onServerValidate: () -> Unit,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
+    /** Opens the switcher on the other signed-in accounts; null hides it. */
+    onUseAnotherAccount: (() -> Unit)? = null,
     viewModel: ServerUrlViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -184,6 +186,8 @@ fun ServerUrlScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 DiagnosticLogLink()
             }
+
+            UseAnotherAccountButton(onUseAnotherAccount, modifier = Modifier.padding(top = 8.dp))
         }
 
         BackAffordanceOverlay(onBack)

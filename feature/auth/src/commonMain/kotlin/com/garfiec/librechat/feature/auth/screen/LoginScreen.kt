@@ -59,6 +59,8 @@ fun LoginScreen(
     onNavigateToTwoFactorSetup: (String) -> Unit = {},
     onNavigateToSso: (String) -> Unit = {},
     onBack: (() -> Unit)? = null,
+    /** Opens the switcher on the other signed-in accounts; null hides it. */
+    onUseAnotherAccount: (() -> Unit)? = null,
     viewModel: LoginViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -256,6 +258,8 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }
+
+            UseAnotherAccountButton(onUseAnotherAccount, modifier = Modifier.padding(top = 8.dp))
 
             PolicyLinksFooter(uiState.policyLinks, modifier = Modifier.padding(top = 16.dp))
         }

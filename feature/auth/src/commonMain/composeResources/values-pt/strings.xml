@@ -118,4 +118,5 @@
     <string name="login_error_federated_blocked">Esta conta entra pelo seu provedor de identidade. Use essa opção de login.</string>
     <string name="auth_error_tenant_required">Este servidor precisa saber a qual organização você pertence. Use o endereço da sua organização para este servidor.</string>
     <string name="login_two_factor_setup_required">Este servidor agora exige autenticação de dois fatores para %1$s. Entre para configurá-la.</string>
+    <string name="use_another_account">Usar outra conta</string>
 </resources>

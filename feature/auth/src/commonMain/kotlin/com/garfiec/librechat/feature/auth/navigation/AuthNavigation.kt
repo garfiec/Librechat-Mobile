@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.auth.navigation
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
@@ -71,6 +72,20 @@ val NavKey.isAddAccountFlowRoute: Boolean
 
 @Serializable data class ResetPassword(val userId: String, val token: String) : AuthRoute
 
+/**
+ * The way from a sign-in screen to another account that is still signed in. [available] is true while
+ * signed out with one; it is read inside the entries, like `termsDeclining`, so the screens see it
+ * change. [open] opens the shell's account switcher on those accounts.
+ */
+class SignInEscape(val available: StateFlow<Boolean>, val open: () -> Unit) {
+    /** [open] while [available], else null, which hides the screen's button. */
+    @Composable
+    internal fun actionOrNull(): (() -> Unit)? {
+        val isAvailable by available.collectAsStateWithLifecycle()
+        return open.takeIf { isAvailable }
+    }
+}
+
 fun EntryProviderScope<NavKey>.authEntries(
     onNavigate: (NavKey) -> Unit,
     onBack: () -> Unit,
@@ -79,10 +94,12 @@ fun EntryProviderScope<NavKey>.authEntries(
     onTermsDeclined: () -> Unit,
     /** The shell's decline in flight. A flow read inside the entry, so the screen sees it change. */
     termsDeclining: StateFlow<Boolean>,
+    signInEscape: SignInEscape,
 ) {
     entry<ServerUrl> {
         ServerUrlScreen(
             onServerValidate = { onNavigate(Login) },
+            onUseAnotherAccount = signInEscape.actionOrNull(),
         )
     }
     entry<AddAccountServerUrl> {
@@ -120,6 +137,7 @@ fun EntryProviderScope<NavKey>.authEntries(
             },
             onNavigateToTwoFactorSetup = { tempToken -> onNavigate(TwoFactorSetup(tempToken = tempToken)) },
             onNavigateToSso = { provider -> onNavigate(SsoLogin(provider)) },
+            onUseAnotherAccount = signInEscape.actionOrNull(),
         )
     }
     entry<SsoLogin> { key ->
@@ -153,6 +171,7 @@ fun EntryProviderScope<NavKey>.authEntries(
             onComplete = onAuthComplete,
             // Below it is the sign-in screen, which is also where an expired setup starts over.
             onBack = onBack,
+            onUseAnotherAccount = signInEscape.actionOrNull(),
         )
     }
     entry<VerifyEmail> { key ->

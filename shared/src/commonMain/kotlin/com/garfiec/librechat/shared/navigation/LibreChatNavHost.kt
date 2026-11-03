@@ -88,6 +88,7 @@ import com.garfiec.librechat.core.ui.theme.AppLocale
 import com.garfiec.librechat.feature.agents.navigation.agentsEntries
 import com.garfiec.librechat.feature.auth.navigation.AddAccountServerUrl
 import com.garfiec.librechat.feature.auth.navigation.ServerUrl
+import com.garfiec.librechat.feature.auth.navigation.SignInEscape
 import com.garfiec.librechat.feature.auth.navigation.Terms
 import com.garfiec.librechat.feature.auth.navigation.authEntries
 import com.garfiec.librechat.feature.auth.navigation.isAddAccountFlowRoute
@@ -780,6 +781,18 @@ fun MainNavDisplay(
     promptInsertionHandoff: PromptInsertionHandoff = koinInject(),
     chatNoticeHandoff: ChatNoticeHandoff = koinInject(),
 ) {
+    var signInSwitcherOpen by rememberSaveable { mutableStateOf(false) }
+    if (signInSwitcherOpen) {
+        val escapeAccounts by navHostViewModel.signInEscapeAccounts.collectAsStateWithLifecycle()
+        SignInAccountSwitcher(
+            accounts = escapeAccounts,
+            onSwitchAccount = navHostViewModel::switchAccount,
+            onDismiss = { signInSwitcherOpen = false },
+        )
+    }
+    val signInEscape = remember(navHostViewModel) {
+        SignInEscape(navHostViewModel.signInEscapeAvailable, open = { signInSwitcherOpen = true })
+    }
     NavDisplay(
         backStack = navigator.backStack,
         onBack = { navigator.goBack() },
@@ -819,6 +832,7 @@ fun MainNavDisplay(
                 // Signs out of this account; the sign-in route that follows clears the stack.
                 onTermsDeclined = navHostViewModel::declineTerms,
                 termsDeclining = navHostViewModel.termsRequirement.declining,
+                signInEscape = signInEscape,
             )
             chatEntries(
                 onNavigate = { navigator.navigate(it) },

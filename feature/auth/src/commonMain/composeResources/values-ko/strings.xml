@@ -118,4 +118,5 @@
     <string name="login_error_federated_blocked">이 계정은 ID 공급자를 통해 로그인합니다. 해당 로그인 옵션을 사용하세요.</string>
     <string name="auth_error_tenant_required">이 서버는 사용자가 속한 조직을 알아야 합니다. 이 서버의 조직용 주소를 사용하세요.</string>
     <string name="login_two_factor_setup_required">이제 이 서버는 %1$s에 대해 2단계 인증을 요구합니다. 로그인하여 설정하세요.</string>
+    <string name="use_another_account">다른 계정 사용</string>
 </resources>

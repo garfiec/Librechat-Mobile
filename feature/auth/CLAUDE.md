@@ -168,6 +168,13 @@
   switcher row leads to sign-in. `LoginViewModel` names the signed-out accounts on the screen's server
   (pending add server, else the live one) that carry the marker, as a one-line notice
   (`twoFactorSetupAccounts`). The finalize commits through `setSession` + re-home, which clears it.
+- **Escape to another account**: whenever the app parks an account at sign-in with no failover (this
+  setup, "sign in again", declined terms) other accounts may still be signed in. ServerUrl, Login and
+  the setup screen (Start phase / expired) then show "Use another account" (`SignInEscape`, passed to
+  `authEntries`), which opens the drawer's `AccountSwitcherSheet` in `:shared` on those accounts only
+  (no add/remove). The switch is `NavHostViewModel.switchAccount`, the drawer's own path, which also
+  enters the app when made signed out (`AccountSwitchStateHolder`). Hidden while signed in, so never in
+  add-account mode.
 - Ack/finalization credentials live only in the ViewModel. 401/403 = start over at sign-in; 400 on
   ack/finalize = spent; a failed finalize retries with the same finalization token.
 - **Note**: `VerifyEmailScreen` already existed pre-Round 2
