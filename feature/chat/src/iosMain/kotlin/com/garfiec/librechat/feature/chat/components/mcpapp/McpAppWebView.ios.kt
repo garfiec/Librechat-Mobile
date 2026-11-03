@@ -73,6 +73,7 @@ actual fun McpAppWebView(page: McpAppPage, host: McpAppHost, modifier: Modifier)
                     completionHandler = null,
                 )
             }
+            host.pageAttached()
             webView.loadHTMLString(page.shellHtml, baseURL = NSURL(string = McpAppPage.BASE_URL))
             webView
         },
@@ -134,3 +135,6 @@ private class RelayNavigationPolicy : NSObject(), WKNavigationDelegateProtocol {
 
 private fun Color.toUIColor(): UIColor =
     UIColor.colorWithRed(red.toDouble(), green.toDouble(), blue.toDouble(), alpha.toDouble())
+
+@Composable
+internal actual fun rememberIsRecreatingUi(): () -> Boolean = remember { { false } }

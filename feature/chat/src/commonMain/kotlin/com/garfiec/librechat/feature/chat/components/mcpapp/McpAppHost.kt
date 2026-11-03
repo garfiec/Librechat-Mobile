@@ -85,7 +85,8 @@ interface McpAppHostCallbacks {
  * approval queue for tool calls and messages, upstream's `useAppBridge` + `approval.tsx`.
  *
  * The relay page is the only thing it talks to: [onRelayMessage] takes what the page posted,
- * [send] (set by the WebView) delivers to it. A new attempt (Retry) is a new host.
+ * [send] (set by the WebView) delivers to it. A new attempt (Retry) is a new host; a new web view
+ * for the same attempt (Android recreating its Activity on rotation) calls [pageAttached].
  */
 class McpAppHost(
     private val resource: UiResource,
@@ -117,6 +118,9 @@ class McpAppHost(
     private var initialized = false
     private var revealed = false
     private var closed = false
+
+    /** Bumped by [pageAttached]: an answer to a request the previous page made is not delivered. */
+    private var page = 0
 
     /** Cancel on the visible request pauses the View until it is closed and reopened. */
     private var paused = false
@@ -190,6 +194,23 @@ class McpAppHost(
         }
     }
 
+    /**
+     * A web view is about to load the relay page. On a replacement (the first one went with a
+     * configuration change) the App starts over there: its document goes out again on the new
+     * relay's ready and it initializes again. Approvals the old page was waiting on are dropped
+     * unasked, and answers to its requests are not delivered (the new App never made them and may
+     * reuse their ids). Not a pause: the user cancelled nothing.
+     */
+    fun pageAttached() {
+        if (closed || !resourceSent) return
+        page++
+        resourceSent = false
+        initialized = false
+        queue.toList().forEach { it.second.complete(false) }
+        queue.clear()
+        _pendingAction.update { null }
+    }
+
     /** The WebView could not set up an isolated bridge; nothing runs. */
     fun bridgeUnavailable() {
         _state.value = McpAppViewState.Failed(McpAppLoadFailure.UNSUPPORTED)
@@ -260,41 +281,42 @@ class McpAppHost(
     }
 
     private fun handleRequest(id: JsonElement, method: String, params: JsonObject) {
+        val askedOn = page
         when (method) {
-            McpAppProtocol.INITIALIZE -> respond(id, initializeResult(params))
-            McpAppProtocol.PING -> respond(id, JsonObject(emptyMap()))
-            McpAppProtocol.REQUEST_DISPLAY_MODE -> respond(id, buildJsonObject { put("mode", DISPLAY_MODE) })
+            McpAppProtocol.INITIALIZE -> respond(askedOn, id, initializeResult(params))
+            McpAppProtocol.PING -> respond(askedOn, id, JsonObject(emptyMap()))
+            McpAppProtocol.REQUEST_DISPLAY_MODE -> respond(askedOn, id, buildJsonObject { put("mode", DISPLAY_MODE) })
             McpAppProtocol.OPEN_LINK -> {
                 val url = (params["url"] as? JsonPrimitive)?.takeIf { it.isString }?.content
                 if (url != null && isAllowedAppLink(url, effectiveCsp)) {
                     callbacks.openLink(url)
-                    respond(id, JsonObject(emptyMap()))
+                    respond(askedOn, id, JsonObject(emptyMap()))
                 } else {
-                    respond(id, IS_ERROR)
+                    respond(askedOn, id, IS_ERROR)
                 }
             }
-            McpAppProtocol.TOOLS_CALL -> launchTracked { respond(id, callTool(params)) }
+            McpAppProtocol.TOOLS_CALL -> launchTracked { respond(askedOn, id, callTool(params)) }
             McpAppProtocol.MESSAGE -> launchTracked {
                 val sent = sendMessage(params)
-                respond(id, if (sent) JsonObject(emptyMap()) else IS_ERROR)
+                respond(askedOn, id, if (sent) JsonObject(emptyMap()) else IS_ERROR)
                 // Answered first, then closed: the reply reaches the App before teardown.
                 if (sent) callbacks.close()
             }
             McpAppProtocol.RESOURCES_READ -> {
                 val uri = (params["uri"] as? JsonPrimitive)?.takeIf { it.isString }?.content
                 if (uri == null) {
-                    respondError(id, McpAppProtocol.ERROR_INVALID_PARAMS, "uri is required")
+                    respondError(askedOn, id, McpAppProtocol.ERROR_INVALID_PARAMS, "uri is required")
                 } else {
-                    launchTracked { respondWith(id, repository.readResource(serverName, serverBinding, uri)) }
+                    launchTracked { respondWith(askedOn, id, repository.readResource(serverName, serverBinding, uri)) }
                 }
             }
             McpAppProtocol.RESOURCES_LIST -> launchTracked {
-                respondWith(id, repository.listResources(serverName, serverBinding, params.cursor()))
+                respondWith(askedOn, id, repository.listResources(serverName, serverBinding, params.cursor()))
             }
             McpAppProtocol.RESOURCE_TEMPLATES_LIST -> launchTracked {
-                respondWith(id, repository.listResourceTemplates(serverName, serverBinding, params.cursor()))
+                respondWith(askedOn, id, repository.listResourceTemplates(serverName, serverBinding, params.cursor()))
             }
-            else -> respondError(id, McpAppProtocol.ERROR_METHOD_NOT_FOUND, "Method not found")
+            else -> respondError(askedOn, id, McpAppProtocol.ERROR_METHOD_NOT_FOUND, "Method not found")
         }
     }
 
@@ -373,12 +395,12 @@ class McpAppHost(
         }
     }
 
-    private fun respondWith(id: JsonElement, answer: McpAppResult<JsonObject>) {
+    private fun respondWith(page: Int, id: JsonElement, answer: McpAppResult<JsonObject>) {
         when (answer) {
-            is McpAppResult.Success -> respond(id, answer.data)
+            is McpAppResult.Success -> respond(page, id, answer.data)
             is McpAppResult.Failure -> {
                 reportActionFailure(answer.failure)
-                respondError(id, McpAppProtocol.ERROR_INTERNAL, "Request failed")
+                respondError(page, id, McpAppProtocol.ERROR_INTERNAL, "Request failed")
             }
         }
     }
@@ -441,7 +463,8 @@ class McpAppHost(
         job.invokeOnCompletion { jobs.remove(job) }
     }
 
-    private fun respond(id: JsonElement, result: JsonObject) {
+    private fun respond(page: Int, id: JsonElement, result: JsonObject) {
+        if (page != this.page) return
         post(
             buildJsonObject {
                 put("jsonrpc", McpAppProtocol.JSONRPC)
@@ -451,7 +474,8 @@ class McpAppHost(
         )
     }
 
-    private fun respondError(id: JsonElement, code: Int, message: String) {
+    private fun respondError(page: Int, id: JsonElement, code: Int, message: String) {
+        if (page != this.page) return
         post(
             buildJsonObject {
                 put("jsonrpc", McpAppProtocol.JSONRPC)

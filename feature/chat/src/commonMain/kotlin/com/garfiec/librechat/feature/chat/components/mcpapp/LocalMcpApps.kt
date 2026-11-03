@@ -49,7 +49,8 @@ val LocalMcpApps = compositionLocalOf<McpApps?> { null }
 /**
  * Hosts the open App's panel, its approval dialogs and its notices, and returns the [McpApps] the
  * rows read. [onSendMessage] sends an approved App message as a user turn (false when refused).
- * Leaving the chat disposes this, which closes the App.
+ * Leaving the chat disposes this, which closes the App; Android recreating its Activity (rotation,
+ * fold) disposes it too but keeps the App, which starts over in the new web view.
  */
 @Composable
 fun rememberMcpApps(
@@ -60,13 +61,14 @@ fun rememberMcpApps(
     val policy by viewModel.policy.collectAsStateWithLifecycle()
     val session by viewModel.session.collectAsStateWithLifecycle()
     val send by rememberUpdatedState(onSendMessage)
+    val isRecreatingUi = rememberIsRecreatingUi()
 
     DisposableEffect(viewModel) {
         viewModel.attachMessageSink { text -> send(text) }
         onDispose {
             viewModel.attachMessageSink(null)
-            // Navigating away from the chat closes the App.
-            viewModel.close()
+            // Navigating away from the chat closes the App; the view model outlives a recreation.
+            if (!isRecreatingUi()) viewModel.close()
         }
     }
 

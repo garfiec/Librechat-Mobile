@@ -9,6 +9,7 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -73,6 +74,7 @@ actual fun McpAppWebView(page: McpAppPage, host: McpAppHost, modifier: Modifier)
                     host.send = { raw -> replyProxy.postMessage(raw) }
                     message.data?.let(host::onRelayMessage)
                 }
+                host.pageAttached()
                 loadDataWithBaseURL(McpAppPage.BASE_URL, html, "text/html", "UTF-8", null)
             }
         },
@@ -82,4 +84,10 @@ actual fun McpAppWebView(page: McpAppPage, host: McpAppHost, modifier: Modifier)
             safelyDestroyWebView(webView)
         },
     )
+}
+
+@Composable
+internal actual fun rememberIsRecreatingUi(): () -> Boolean {
+    val activity = LocalActivity.current
+    return remember(activity) { { activity?.isChangingConfigurations == true } }
 }

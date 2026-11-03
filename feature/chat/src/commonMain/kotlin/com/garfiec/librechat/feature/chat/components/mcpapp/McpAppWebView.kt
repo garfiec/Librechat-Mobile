@@ -18,3 +18,11 @@ import androidx.compose.ui.Modifier
  */
 @Composable
 expect fun McpAppWebView(page: McpAppPage, host: McpAppHost, modifier: Modifier = Modifier)
+
+/**
+ * Whether the composition is going away only because the platform is recreating its UI (Android's
+ * Activity on rotation, fold or a theme change), so state held outside it should survive. Asked at
+ * dispose time. iOS never recreates its UI for these, so it is always false there.
+ */
+@Composable
+internal expect fun rememberIsRecreatingUi(): () -> Boolean

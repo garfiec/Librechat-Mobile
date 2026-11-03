@@ -1505,7 +1505,10 @@ attachment. The chat shows an inert "Open app" row and runs the App in a full-sc
 - **Panel** (`McpAppPanel`, an `AdaptiveDialog`): full screen, never inline, because a WebView in the
   thread's lazy list is disposed on scroll, which tears the App down mid-request. One App at a time;
   closing or leaving the chat tears it down (no in-View state survives). Retry is a new host and a
-  new web view.
+  new web view. Android Activity recreation (rotation, fold) keeps the session (`rememberIsRecreatingUi`)
+  and the new web view calls `McpAppHost.pageAttached`, so the App reloads and initializes again.
+  In-thread glass must not sample the list's own backdrop (`MessageList` nulls `LocalGlassBackdrop`
+  for its rows): a surface sampling its ancestor's recording recurses to a stack overflow on iOS.
 - **Host** (`McpAppHost`): the spec `2026-01-26` JSON-RPC in Kotlin, unit-tested without a WebView
   (`McpAppHostTest`). Every server call is native through `McpAppsRepository`, so no token reaches
   the page. Tool calls and messages wait on the approval dialog (exact text, never truncated; over

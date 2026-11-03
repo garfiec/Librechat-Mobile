@@ -335,4 +335,51 @@ class McpAppHostTest {
         h.app("""{"jsonrpc":"2.0","id":8,"method":"ping"}""")
         assertThat(h.out.size).isEqualTo(before)
     }
+
+    @Test
+    fun `a replacement web view gets the App again and it initializes again`() = runTest {
+        val h = loaded()
+        h.host.pageAttached()
+        h.out.clear()
+
+        h.app("""{"jsonrpc":"2.0","method":"ui/notifications/sandbox-proxy-ready","params":{}}""")
+        assertThat(h.methods()).containsExactly(McpAppProtocol.SANDBOX_RESOURCE_READY)
+        h.app("""{"jsonrpc":"2.0","id":1,"method":"ui/initialize","params":{"protocolVersion":"2026-01-26"}}""")
+        assertThat(h.reply(1)["result"]!!.jsonObject["protocolVersion"]!!.jsonPrimitive.content).isEqualTo("2026-01-26")
+        h.app("""{"jsonrpc":"2.0","method":"ui/notifications/initialized"}""")
+        assertThat(h.methods().takeLast(2)).containsExactly(McpAppProtocol.TOOL_INPUT, McpAppProtocol.TOOL_RESULT).inOrder()
+        assertThat(h.host.state.value).isInstanceOf(McpAppViewState.Ready::class.java)
+    }
+
+    @Test
+    fun `a replacement web view drops the old page's approval and never answers its request`() = runTest {
+        val h = loaded()
+        h.app("""{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"t","arguments":{}}}""")
+        runCurrent()
+        assertThat(h.host.pendingAction.value).isNotNull()
+
+        h.host.pageAttached()
+        runCurrent()
+        assertThat(h.host.pendingAction.value).isNull()
+        assertThat(h.repository.toolCalls).isEmpty()
+        assertThat(h.out.none { (it["id"] as? JsonPrimitive)?.content == "7" }).isTrue()
+
+        // Not a pause: the new page's App can still ask.
+        h.app("""{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"t","arguments":{}}}""")
+        runCurrent()
+        h.host.approve()
+        runCurrent()
+        assertThat(h.repository.toolCalls).hasSize(1)
+        assertThat(h.reply(7)["result"]!!.jsonObject["content"].toString()).contains("ok")
+    }
+
+    @Test
+    fun `the first web view attaching changes nothing`() = runTest {
+        val h = Harness(backgroundScope, inlineApp)
+        h.host.start()
+        runCurrent()
+        h.host.pageAttached()
+        h.app("""{"jsonrpc":"2.0","method":"ui/notifications/sandbox-proxy-ready","params":{}}""")
+        assertThat(h.methods()).containsExactly(McpAppProtocol.SANDBOX_RESOURCE_READY)
+    }
 }
