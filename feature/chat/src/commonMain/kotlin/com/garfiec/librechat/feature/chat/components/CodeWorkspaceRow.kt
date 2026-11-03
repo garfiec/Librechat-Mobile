@@ -119,9 +119,8 @@ class CodeWorkspaceComposer(
  */
 val LocalCodeWorkspaceComposer = compositionLocalOf<CodeWorkspaceComposer?> { null }
 
-private const val CHIP_TEXT_MAX = 16
-
-private fun String.clipped(): String = if (length > CHIP_TEXT_MAX) take(CHIP_TEXT_MAX - 1) + "…" else this
+/** Web's `max-w-[12rem]` on a machine, workspace or branch name. Translated labels are never capped. */
+private val CHIP_NAME_MAX_WIDTH = 192.dp
 
 /**
  * The attached-machine controls above the pinned tools: machine, workspace, branch and checkout
@@ -214,6 +213,7 @@ private fun MachineChip(
             label = label,
             description = description,
             caret = choices.isNotEmpty(),
+            isName = name != null,
             onClick = if (choices.isNotEmpty()) ({ expanded = true }) else null,
         )
         AdaptiveDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -270,6 +270,7 @@ private fun WorkspaceChip(state: CodeWorkspaceUiState, composer: CodeWorkspaceCo
         label = label,
         description = description,
         caret = chip.opensSheet,
+        isName = chip.label == CodeWorkspaceChipLabel.NAME,
         // A locked chat cannot change its decision here: a tap re-reads the machine's status.
         trailing = if (chip.opensSheet) null else Icons.Default.Refresh,
         tint = tint,
@@ -287,6 +288,7 @@ private fun BranchChip(branch: String) {
             label = branch,
             description = description,
             caret = false,
+            isName = true,
             // Read only: the tap only explains why the branch can't be changed.
             onClick = { expanded = true },
         )
@@ -309,12 +311,21 @@ private fun CodeChip(
     description: String,
     caret: Boolean,
     onClick: (() -> Unit)?,
+    /** A user-chosen name, capped in width. A translated label keeps its full length; the row wraps. */
+    isName: Boolean = false,
     trailing: ImageVector? = null,
     tint: androidx.compose.ui.graphics.Color? = null,
 ) {
     AdaptiveAssistChip(
         onClick = onClick ?: {},
-        label = { Text(label.clipped(), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        label = {
+            Text(
+                text = label,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = if (isName) Modifier.widthIn(max = CHIP_NAME_MAX_WIDTH) else Modifier,
+            )
+        },
         modifier = Modifier.semantics {
             contentDescription = description
             role = Role.Button
