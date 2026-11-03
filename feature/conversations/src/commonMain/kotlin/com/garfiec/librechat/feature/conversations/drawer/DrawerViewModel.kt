@@ -182,6 +182,9 @@ class DrawerViewModel(
 
     /** Parent of the star's writes still queued or out, which an account switch drops. */
     private val favoriteWrites = SupervisorJob(viewModelScope.coroutineContext[Job])
+
+    /** Parent of the run-transition refreshes still out, which an account switch drops. */
+    private val runRefreshes = SupervisorJob(viewModelScope.coroutineContext[Job])
     private var lastProjectsReload: TimeSource.Monotonic.ValueTimeMark? = null
 
     // Inline project-chat accordion for the drawer Projects tab. Network-direct per project (Room
@@ -521,7 +524,9 @@ class DrawerViewModel(
         )
         viewModelScope.launch {
             activeJobsPoll.collect { ids ->
+                val previous = _activeJobIds.value
                 _activeJobIds.value = ids
+                refreshRunTransitions((previous - ids) + (ids - previous))
                 // Each tick also retries an unlisted row that wasn't written yet, so a short run isn't missed.
                 fetchUnlistedRunning()
             }
@@ -578,6 +583,7 @@ class DrawerViewModel(
                 // new account's server.
                 bookmarkPicker.closeForAccountSwitch()
                 favoriteWrites.cancelChildren()
+                runRefreshes.cancelChildren()
                 // A load started for the outgoing account would otherwise land after this reset.
                 projectsLoadJob?.cancel()
                 // An order not yet written for an account being signed out would outlive its purge.
@@ -605,6 +611,25 @@ class DrawerViewModel(
 
     fun loadMoreConversations() {
         conversationListStateHolder.loadMoreConversations()
+    }
+
+    /**
+     * Upstream `useReplyWatcher`: a chat that started or stopped running is re-read, so the cached
+     * row takes the server's copy. Stopping is what stamps an unseen reply, and Finished and the dot
+     * follow the stamp; starting catches a row archived elsewhere, which Running must not show.
+     *
+     * Only rows Room holds: an unlisted one would be inserted into the date groups. The open chat is
+     * left to its own screen, whose seen write this read could land after and undo.
+     */
+    private fun refreshRunTransitions(changed: Set<String>) {
+        if (changed.isEmpty()) return
+        val cachedIds = conversationListStateHolder.recentConversations.value.mapNotNullTo(HashSet()) { it.conversationId }
+        val openId = conversationListStateHolder.activeConversationId.value
+        val account = activeAccountProvider.currentAccountId()
+        for (id in changed) {
+            if (id !in cachedIds || id == openId) continue
+            viewModelScope.launch(runRefreshes) { conversationRepository.refreshConversation(id, originAccount = account) }
+        }
     }
 
     /**
