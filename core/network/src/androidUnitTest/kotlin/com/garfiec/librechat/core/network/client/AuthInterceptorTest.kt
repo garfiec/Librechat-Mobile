@@ -534,6 +534,62 @@ class AuthInterceptorTest {
     }
 
     /**
+     * Sign-out leaves a screen on the back stack that can fetch once more. With no account, the
+     * request goes out with no bearer, and its 401 must not announce an expiry over the sign-in screen.
+     */
+    @Test
+    fun `a signed-out request's 401 neither refreshes nor expires a session`() = runTest {
+        val tokenManager = FakeTokenManager(accessToken = null, refreshOutcome = RefreshResult.HardExpired)
+        var capturedAuth: String? = "unset"
+        val engine = MockEngine { request ->
+            capturedAuth = request.headers[HttpHeaders.Authorization]
+            respond("Unauthorized", HttpStatusCode.Unauthorized)
+        }
+        val gate = SwitchGate(
+            activeAccountProvider = InMemoryActiveAccountProvider(AccountState.Resolved(null)),
+            serverUrlProvider = FakeServerUrlProvider("https://a.example.com"),
+            tokenManager = tokenManager,
+            accountReadyGate = null,
+        )
+        val client = HttpClient(engine) {
+            install(ContentNegotiation) { json() }
+            install(SwitchBarrierPlugin) { switchGate = gate }
+            install(AuthInterceptorPlugin) { this.tokenManager = tokenManager }
+        }
+
+        val response = client.get("/api/agents/agent_1/expanded")
+
+        assertThat(capturedAuth).isNull()
+        assertThat(response.status).isEqualTo(HttpStatusCode.Unauthorized)
+        assertThat(tokenManager.refreshCallCount).isEqualTo(0)
+        assertThat(tokenManager.sessionExpiredCount).isEqualTo(0)
+    }
+
+    /** The empty slot of a resolved account is a dead session, not a signed-out one: it still reports. */
+    @Test
+    fun `a resolved account with no bearer still reports its expiry`() = runTest {
+        val tokenManager = FakeTokenManager(accessToken = null, refreshOutcome = RefreshResult.HardExpired)
+        val engine = MockEngine { respond("Unauthorized", HttpStatusCode.Unauthorized) }
+        val gate = SwitchGate(
+            activeAccountProvider = InMemoryActiveAccountProvider(AccountState.Resolved(AccountId(accountA))),
+            serverUrlProvider = FakeServerUrlProvider("https://a.example.com"),
+            tokenManager = tokenManager,
+            accountReadyGate = null,
+        )
+        val client = HttpClient(engine) {
+            install(ContentNegotiation) { json() }
+            install(SwitchBarrierPlugin) { switchGate = gate }
+            install(AuthInterceptorPlugin) { this.tokenManager = tokenManager }
+        }
+
+        client.get("/api/user")
+
+        assertThat(tokenManager.refreshCallCount).isEqualTo(1)
+        assertThat(tokenManager.sessionExpiredCount).isEqualTo(1)
+        assertThat(tokenManager.lastExpiredAccountId).isEqualTo(accountA)
+    }
+
+    /**
      * The image mount must never reach the expiry path: from 0.8.8-rc2 upstream secures it by
      * default and authenticates on a cookie only, so a refreshed bearer 401s again, `alreadyRetried`
      * fires, and a live session is torn down by every conversation holding a generated image.
