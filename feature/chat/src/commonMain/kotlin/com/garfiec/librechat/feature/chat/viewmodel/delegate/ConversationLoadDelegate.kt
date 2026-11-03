@@ -23,6 +23,7 @@ import com.garfiec.librechat.feature.chat.util.stabilizeMessageInstances
 import com.garfiec.librechat.feature.chat.util.withoutLivePartial
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationLoadHandle
+import com.garfiec.librechat.feature.chat.viewmodel.isRealTitle
 import com.garfiec.librechat.feature.chat.viewmodel.isServerCopyOf
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
@@ -406,7 +407,9 @@ class ConversationLoadDelegate(
             val wantsParameters = wantsStoredParameters()
             val remembered = if (wantsParameters) rememberedWebSearch(conversationId) else null
             fun apply(loaded: Conversation, restore: Boolean): Boolean {
-                handle.update { conversationTitle = loaded.title }
+                // A handed-off new chat's row is read while its title is still generating: a
+                // placeholder must not replace the title TitleUpdate already showed.
+                handle.update { if (isRealTitle(loaded.title) || !isRealTitle(conversationTitle)) conversationTitle = loaded.title }
                 val applied = applyConversationModel(loaded)
                 // After the model, so the conversation's own parameters are what stays.
                 if (applied && restore) restoreParameters(loaded, remembered)

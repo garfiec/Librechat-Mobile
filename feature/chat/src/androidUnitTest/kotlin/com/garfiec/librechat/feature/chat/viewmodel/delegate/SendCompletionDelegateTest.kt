@@ -274,6 +274,37 @@ class SendCompletionDelegateTest {
             coVerify(exactly = 3) { conversationRepository.refreshConversation(any(), any()) }
         }
 
+    /** The post-final cache-first read can return the row cached at `created`, before the title existed. */
+    @Test
+    fun `a placeholder row read after a completed final keeps the shown title`() = runTest(StandardTestDispatcher()) {
+        coEvery { conversationRepository.getConversation(any(), any()) } returns
+            Result.Success(Conversation(conversationId = AbortFrameFixtures.CONVERSATION_ID, title = "New Chat"))
+        val state = baseState().let { it.copy(conversation = it.conversation.copy(conversationTitle = "Generated Title")) }
+        val (delegate, flow) = delegateWith(this, state)
+
+        delegate.finalArrives(StreamEvent.Final())
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { conversationRepository.getConversation(any(), any()) }
+        assertThat(flow.value.conversation.conversationTitle).isEqualTo("Generated Title")
+    }
+
+    /** The placeholder guard only refuses a downgrade: a final carrying a new real title still wins. */
+    @Test
+    fun `a completed final with a new real title replaces the shown one`() = runTest(StandardTestDispatcher()) {
+        val finalConversation =
+            Conversation(conversationId = AbortFrameFixtures.CONVERSATION_ID, title = "Renamed Elsewhere")
+        coEvery { conversationRepository.getConversation(any(), any()) } returns Result.Success(finalConversation)
+        val state = baseState().let { it.copy(conversation = it.conversation.copy(conversationTitle = "Generated Title")) }
+        val (delegate, flow) = delegateWith(this, state)
+
+        delegate.finalArrives(StreamEvent.Final(conversation = finalConversation))
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { conversationRepository.saveConversation(finalConversation, any()) }
+        assertThat(flow.value.conversation.conversationTitle).isEqualTo("Renamed Elsewhere")
+    }
+
     @Test
     fun `a stopped comparison turn finalizes in memory instead of reloading`() =
         runTest(StandardTestDispatcher()) {

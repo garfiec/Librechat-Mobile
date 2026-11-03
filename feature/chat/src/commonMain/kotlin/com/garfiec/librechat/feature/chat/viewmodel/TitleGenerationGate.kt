@@ -3,6 +3,9 @@ package com.garfiec.librechat.feature.chat.viewmodel
 /** The server's placeholder title for a conversation whose title hasn't been generated yet. */
 internal const val PLACEHOLDER_CONVERSATION_TITLE = "New Chat"
 
+/** A title other than blank or the server's placeholder: one a stream frame must never replace with the placeholder. */
+internal fun isRealTitle(title: String?): Boolean = !title.isNullOrBlank() && title != PLACEHOLDER_CONVERSATION_TITLE
+
 /**
  * Decides whether `handleFinal` should long-poll `gen_title` for the just-finished stream.
  *
@@ -24,6 +27,5 @@ internal fun shouldRequestTitleGeneration(
     currentTitle: String?,
     alreadyRequested: Boolean,
 ): Boolean {
-    val needsTitle = currentTitle.isNullOrBlank() || currentTitle == PLACEHOLDER_CONVERSATION_TITLE
-    return (isNewConversation || isHandedOffNewChat) && needsTitle && !alreadyRequested
+    return (isNewConversation || isHandedOffNewChat) && !isRealTitle(currentTitle) && !alreadyRequested
 }

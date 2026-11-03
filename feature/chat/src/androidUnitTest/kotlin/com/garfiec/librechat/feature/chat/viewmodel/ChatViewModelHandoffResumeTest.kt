@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
+import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.StreamEvent
@@ -214,6 +215,49 @@ class ChatViewModelHandoffResumeTest {
                 vm.viewModelScope.cancel()
             }
         }
+
+    /**
+     * New-chat handoff whose reply arrives through the resumed stream: the title event lands
+     * mid-reply, then the final frame carries the conversation with the placeholder title (the
+     * row as the reply's write returned it), and the row cached at `created` still has the
+     * placeholder too. Neither may take the generated title off the top bar or out of Room.
+     */
+    @Test
+    fun `a resumed final with the placeholder title keeps the generated title`() = runTest(testDispatcher) {
+        val saved = mutableListOf<Conversation>()
+        // Stands in for the conversation row: cached at `created`, before the title existed.
+        coEvery { fixture.conversationRepository.getConversation(CONVERSATION_ID, any()) } coAnswers {
+            Result.Success(saved.lastOrNull() ?: Conversation(conversationId = CONVERSATION_ID, title = "New Chat"))
+        }
+        coEvery { fixture.conversationRepository.saveConversation(any(), any()) } coAnswers {
+            saved += firstArg<Conversation>()
+        }
+        coEvery { fixture.chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } returns
+            ChatStatusResponse(active = true)
+        every { fixture.chatRepository.resumeStream(CONVERSATION_ID) } returns flowOf(
+            StreamEvent.TitleUpdate(conversationId = CONVERSATION_ID, title = GENERATED_TITLE),
+            StreamEvent.Final(
+                conversation = Conversation(conversationId = CONVERSATION_ID, title = "New Chat"),
+                requestMessage = user,
+                responseMessage = reply,
+            ),
+        )
+        fixture.selectionHandoff.put(
+            conversationId = CONVERSATION_ID,
+            choice = ModelChoice.Raw(ENDPOINT, MODEL),
+            optimisticUserMessage = user.copy(messageId = "client-minted-1", conversationId = ""),
+        )
+        val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
+        try {
+            advanceUntilIdle()
+
+            assertThat(vm.uiState.value.isStreaming).isFalse()
+            assertThat(vm.uiState.value.conversationTitle).isEqualTo(GENERATED_TITLE)
+            assertThat(saved.map { it.title }).containsExactly(GENERATED_TITLE)
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
 
     /**
      * The open's status check times out (the server stalled) while the handed-off run is alive and
@@ -446,6 +490,7 @@ class ChatViewModelHandoffResumeTest {
         const val MODEL = "claude-haiku-4-5"
         const val SETTLE_MS = 5_000L
         const val STEP_MS = 1_000L
+        const val GENERATED_TITLE = "The Slow Burning Final Smoke"
         const val NO_PARENT = "00000000-0000-0000-0000-000000000000"
     }
 }

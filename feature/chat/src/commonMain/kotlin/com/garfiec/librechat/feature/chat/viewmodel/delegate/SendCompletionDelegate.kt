@@ -18,8 +18,8 @@ import com.garfiec.librechat.feature.chat.util.resolvedResponseMessage
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.NOTICE_TAG
 import com.garfiec.librechat.feature.chat.viewmodel.NewChatSelectionHandoff
-import com.garfiec.librechat.feature.chat.viewmodel.PLACEHOLDER_CONVERSATION_TITLE
 import com.garfiec.librechat.feature.chat.viewmodel.SendCompletionHandle
+import com.garfiec.librechat.feature.chat.viewmodel.isRealTitle
 import com.garfiec.librechat.feature.chat.viewmodel.noticeLabel
 import com.garfiec.librechat.feature.chat.viewmodel.shouldRequestTitleGeneration
 import kotlinx.coroutines.NonCancellable
@@ -180,8 +180,18 @@ class SendCompletionDelegate(
         // row (title included) with placeholder data, which the web client never notices because
         // it has no local store. Skip the save; the title refresh below re-reads the real one.
         if (finalConversation?.conversationId != null && !isTemporary && !aborted) {
+            // A completed frame can still carry the placeholder title: its conversation is the row
+            // as the reply's write returned it, which can predate the title's save. The web keeps
+            // a real title it already holds over that (final.ts); so do we, in memory and in Room.
+            val knownTitle = handle.state.conversationTitle
+                .takeIf { finalConversation.conversationId == handle.state.conversationId }
+            val toSave = if (!isRealTitle(finalConversation.title) && isRealTitle(knownTitle)) {
+                finalConversation.copy(title = knownTitle)
+            } else {
+                finalConversation
+            }
             handle.scope.launch {
-                conversationRepository.saveConversation(finalConversation, originAccount)
+                conversationRepository.saveConversation(toSave, originAccount)
             }
         }
         if (conversationId != null) {
@@ -305,7 +315,7 @@ class SendCompletionDelegate(
                 if (attempt > 0) delay(ABORT_TITLE_RETRY_DELAY_MS)
                 val title = conversationRepository.refreshConversation(conversationId, originAccount)
                     .getOrNull()?.title
-                if (!title.isNullOrBlank() && title != PLACEHOLDER_CONVERSATION_TITLE) {
+                if (isRealTitle(title)) {
                     handle.update { conversation = conversation.copy(conversationTitle = title) }
                     return@launch
                 }
@@ -313,11 +323,24 @@ class SendCompletionDelegate(
         }
     }
 
+    /**
+     * Cache-first: the row can still hold the placeholder (cached at `created`, before the title
+     * existed), so a placeholder read never replaces a title already shown, e.g. one TitleUpdate
+     * delivered. A real title, including one renamed elsewhere, still applies.
+     */
     private fun refreshConversationTitle(conversationId: String, originAccount: AccountId?) {
         handle.scope.launch {
             val fetched = conversationRepository.getConversation(conversationId, originAccount).getOrNull()
                 ?: return@launch
-            handle.update { conversation = conversation.copy(conversationTitle = fetched.title) }
+            applyFetchedTitle(fetched.title)
+        }
+    }
+
+    private fun applyFetchedTitle(title: String?) {
+        handle.update {
+            if (isRealTitle(title) || !isRealTitle(conversation.conversationTitle)) {
+                conversation = conversation.copy(conversationTitle = title)
+            }
         }
     }
 
@@ -329,7 +352,7 @@ class SendCompletionDelegate(
                         // Renamed while the title generated: the server kept the manual title, so
                         // re-read it rather than show (and leave cached) the generated one.
                         conversationRepository.refreshConversation(conversationId, originAccount).getOrNull()?.let { fetched ->
-                            handle.update { conversation = conversation.copy(conversationTitle = fetched.title) }
+                            applyFetchedTitle(fetched.title)
                         }
                     } else {
                         handle.update { conversation = conversation.copy(conversationTitle = result.data) }
@@ -344,7 +367,7 @@ class SendCompletionDelegate(
                     // could never observe the title, and refreshConversation's upsert also
                     // propagates it to the Room-observing conversation list.
                     conversationRepository.refreshConversation(conversationId, originAccount).getOrNull()?.let { fetched ->
-                        handle.update { conversation = conversation.copy(conversationTitle = fetched.title) }
+                        applyFetchedTitle(fetched.title)
                     }
                 }
                 is Result.Loading -> { /* no-op */ }
