@@ -18,6 +18,8 @@ import com.garfiec.librechat.core.model.error.StreamErrorType
 import com.garfiec.librechat.core.model.error.parseUserKeyError
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
 import com.garfiec.librechat.core.network.api.chatRefusalText
+import com.garfiec.librechat.feature.chat.util.AttachedRun
+import com.garfiec.librechat.feature.chat.util.anchorIn
 import com.garfiec.librechat.feature.chat.util.applyAbortContract
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.keyEndpointOf
@@ -927,7 +929,7 @@ class StreamingManagerDelegate(
                     // closed, and this path is one of the two that recover a run which ended with
                     // NO `Final` — exactly the ending the admission fence cannot retire itself.
                     status.createdAt?.let(queueDelegate::retireAdmissionsBefore)
-                    handle.update { content = content.copy(isStreaming = true) }
+                    handle.update { content = content.attachedTo(status) }
                     attachToRun(conversationId)
                     applyStatusPendingAction(status)
                 } else {
@@ -1066,6 +1068,7 @@ class StreamingManagerDelegate(
                 else -> {
                     reattachedAfterCeiling = true
                     status.createdAt?.let(queueDelegate::retireAdmissionsBefore)
+                    handle.update { content = content.attachedTo(status) }
                     resumeStream(conversationId)
                     applyStatusPendingAction(status)
                 }
@@ -1180,8 +1183,7 @@ class StreamingManagerDelegate(
                     // ViewModel's life.
                     status.createdAt?.let(queueDelegate::retireAdmissionsBefore)
                     handle.update {
-                        content = content.copy(
-                            isStreaming = true,
+                        content = content.attachedTo(status).copy(
                             screenState = ChatScreenState.ACTIVE,
                             runStatusSettled = true,
                         )
@@ -1274,6 +1276,24 @@ class StreamingManagerDelegate(
         const val ATTACH_ATTEMPTS = 3
         const val ATTACH_RETRY_DELAY_MS = 2_000L
     }
+}
+
+/**
+ * Streaming a run this screen attached to, cut at the message it answers (see
+ * [MessagesState.attachedRun]). The path is rebuilt only when the tree holds that message:
+ * otherwise the one on screen stands, which may be truncated at a turn this screen sent.
+ */
+internal fun MessagesState.attachedTo(status: ChatStatusResponse): MessagesState {
+    val run = AttachedRun(
+        requestId = status.resumeState?.userMessage?.messageId?.takeIf { it.isNotBlank() },
+        responseId = status.resumeState?.responseMessageId?.takeIf { it.isNotBlank() },
+    )
+    val anchor = run.anchorIn(messages, activeBranches)
+    return copy(
+        isStreaming = true,
+        attachedRun = run,
+        displayMessages = anchor?.let { buildActiveMessagePath(messages, activeBranches, it) } ?: displayMessages,
+    )
 }
 
 /** [messageId] marked redacted at [revision], in both the tree and the displayed path. */

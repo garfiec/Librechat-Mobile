@@ -7,12 +7,16 @@ import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
+import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.StreamEvent
+import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.response.ChatAbortResponse
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
+import com.garfiec.librechat.core.model.response.StatusResumeState
+import com.garfiec.librechat.core.model.response.StatusResumeUserMessage
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -21,6 +25,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
@@ -310,6 +315,80 @@ class ChatViewModelHandoffResumeTest {
             vm.viewModelScope.cancel()
         }
     }
+
+    /**
+     * Reopening a chat whose reply is still running. Leaving it dropped the last subscriber, so the
+     * server saved what had streamed as an `unfinished` partial under the reply's id; the open reads
+     * that partial and attaches to the run, whose bubble streams the same reply. It must show once,
+     * also after a later read writes the partial again (the open's fetch, or the prefetcher).
+     */
+    @Test
+    fun `a reopened chat shows its running reply once, not its saved partial beside it`() =
+        runTest(testDispatcher) {
+            val partial = reply.copy(text = "Kap", unfinished = true)
+            stored.value = listOf(user, partial)
+            val fetchAnswers = CompletableDeferred<Unit>()
+            coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID, any()) } coAnswers {
+                fetchAnswers.await()
+                stored.value = listOf(user, partial.copy(text = "Kapp"))
+                Result.Success(stored.value)
+            }
+            coEvery { fixture.chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } returns
+                ChatStatusResponse(
+                    active = true,
+                    resumeState = StatusResumeState(
+                        userMessage = StatusResumeUserMessage(messageId = "user-1"),
+                        responseMessageId = "assistant-1",
+                    ),
+                )
+            every { fixture.chatRepository.resumeStream(CONVERSATION_ID) } returns flow {
+                emit(StreamEvent.Sync(aggregatedContent = listOf(MessageContentPart(type = ContentType.TEXT, text = "Kapp"))))
+                awaitCancellation()
+            }
+            val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
+            try {
+                advanceTimeBy(SETTLE_MS)
+                runCurrent()
+
+                assertThat(vm.uiState.value.isStreaming).isTrue()
+                assertThat(displayedIds(vm)).containsExactly("user-1")
+                assertThat(vm.uiState.value.continuableReplyId).isNull()
+
+                fetchAnswers.complete(Unit)
+                advanceTimeBy(SETTLE_MS)
+                runCurrent()
+
+                assertThat(vm.uiState.value.isStreaming).isTrue()
+                assertThat(displayedIds(vm)).containsExactly("user-1")
+            } finally {
+                vm.viewModelScope.cancel()
+            }
+        }
+
+    /** The same on a server whose status carries no snapshot: the partial at the tail is the reply. */
+    @Test
+    fun `a reopened chat without the status snapshot still hides the running reply's partial`() =
+        runTest(testDispatcher) {
+            val partial = reply.copy(text = "Kap", unfinished = true)
+            stored.value = listOf(user, partial)
+            onServer = listOf(user, partial)
+            coEvery { fixture.chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } returns
+                ChatStatusResponse(active = true)
+            every { fixture.chatRepository.resumeStream(CONVERSATION_ID) } returns flow {
+                emit(StreamEvent.Sync(aggregatedContent = listOf(MessageContentPart(type = ContentType.TEXT, text = "Kapp"))))
+                awaitCancellation()
+            }
+            val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
+            try {
+                advanceTimeBy(SETTLE_MS)
+                runCurrent()
+
+                assertThat(vm.uiState.value.isStreaming).isTrue()
+                assertThat(displayedIds(vm)).containsExactly("user-1")
+            } finally {
+                vm.viewModelScope.cancel()
+            }
+        }
 
     /**
      * Existing conversation, network drop mid-reply: the SSE client retries on its own, the

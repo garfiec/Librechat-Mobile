@@ -438,6 +438,7 @@ class SendDispatchDelegate(
                 buildActiveMessagePath(updatedMessages, content.activeBranches, optimisticMessage.messageId)
             content = content.copy(
                 isStreaming = true,
+                attachedRun = null,
                 streamingContent = "",
                 streamingThinking = "",
                 activeToolCalls = emptyList(),

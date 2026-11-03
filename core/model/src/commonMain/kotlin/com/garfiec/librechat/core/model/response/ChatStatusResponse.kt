@@ -43,4 +43,18 @@ data class ChatStatusResponse(
      * attaching to it after a reload keeps a temporary chat out of its cache and titling.
      */
     val isTemporary: Boolean = false,
+    /** The live run's snapshot. Only the ids of the turn it is answering are read. */
+    val resumeState: StatusResumeState? = null,
+)
+
+@Serializable
+data class StatusResumeState(
+    /** The run's request message, which its reply is saved under. */
+    val userMessage: StatusResumeUserMessage? = null,
+    val responseMessageId: String? = null,
+)
+
+@Serializable
+data class StatusResumeUserMessage(
+    val messageId: String? = null,
 )

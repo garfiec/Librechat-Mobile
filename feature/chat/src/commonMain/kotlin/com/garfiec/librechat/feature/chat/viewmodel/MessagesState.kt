@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.ContextUsageTotals
 import com.garfiec.librechat.core.model.usage.UsageAmount
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
+import com.garfiec.librechat.feature.chat.util.AttachedRun
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.PendingUsage
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
@@ -67,6 +68,14 @@ data class MessagesState(
      */
     val resumedReplyId: String? = null,
     val isStreaming: Boolean = false,
+    /**
+     * The run this screen attached to rather than started, while it streams. The server saves that
+     * run's reply as an `unfinished` partial whenever its last subscriber leaves, so a reopened chat
+     * reads the partial into the tree beside the live bubble. While [isStreaming], every rebuild cuts
+     * the path at the message the run answers (`AttachedRun.anchorIn`), so the reply shows once.
+     * Cleared when this screen starts a turn of its own.
+     */
+    val attachedRun: AttachedRun? = null,
     /**
      * A manual compaction this client submitted is still running (v0.8.8-rc3). Distinct from
      * [isStreaming], which a compaction also sets: the compact action needs to label ITSELF as

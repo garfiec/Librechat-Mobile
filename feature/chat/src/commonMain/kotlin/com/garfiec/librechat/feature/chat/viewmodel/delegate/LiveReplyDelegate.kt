@@ -305,6 +305,7 @@ internal fun MessagesState.resetLiveReply(
     thinking: String = "",
 ): MessagesState = copy(
     isStreaming = isStreaming,
+    attachedRun = null,
     streamingContent = text,
     streamingThinking = thinking,
     activeToolCalls = emptyList(),
