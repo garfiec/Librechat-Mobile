@@ -70,6 +70,9 @@
     <string name="terms_title">서비스 약관</string>
     <string name="terms_no_content">이 서버는 서비스 약관 본문을 제공하지 않았습니다.</string>
     <string name="i_accept">동의합니다</string>
+    <string name="terms_decline">거부</string>
+    <string name="privacy_policy">개인정보처리방침</string>
+    <string name="terms_of_service">서비스 약관</string>
     <string name="retry">다시 시도</string>
 
     <!-- Common -->
@@ -86,4 +89,33 @@
     <string name="diagnostic_log_failed">로그를 내보내지 못했습니다.</string>
     <string name="user_ca_notice">이 서버의 인증서는 Android에 기본 제공된 인증 기관이 아니라 이 기기에 설치된 인증 기관을 통해 신뢰됩니다. 본인 또는 조직이 설치한 경우에만 계속하세요.</string>
     <string name="continue_with_provider">%1$s(으)로 계속</string>
+    <string name="two_factor_setup_title">2단계 인증 설정</string>
+    <string name="two_factor_setup_required_description">이 서버는 2단계 인증이 필요합니다. 계속하려면 설정하세요.</string>
+    <string name="two_factor_setup_begin">설정 시작</string>
+    <string name="two_factor_setup_authenticator_heading">인증 앱에 이 계정 추가</string>
+    <string name="two_factor_setup_authenticator_body">인증 앱에서 열거나, 설정 키를 입력하거나, 다른 기기에서 QR 코드를 스캔하세요.</string>
+    <string name="two_factor_setup_open_authenticator">인증 앱 열기</string>
+    <string name="two_factor_setup_no_authenticator">이 기기에서 링크를 열 수 있는 인증 앱이 없습니다. 대신 설정 키를 입력하세요.</string>
+    <string name="two_factor_setup_key">설정 키</string>
+    <string name="two_factor_setup_show_qr">QR 코드 표시</string>
+    <string name="two_factor_setup_hide_qr">QR 코드 숨기기</string>
+    <string name="two_factor_setup_qr_description">인증 앱용 QR 코드</string>
+    <string name="two_factor_setup_next">다음</string>
+    <string name="two_factor_setup_verify_heading">인증 앱의 코드를 입력하세요</string>
+    <string name="two_factor_setup_backup_heading">백업 코드 저장</string>
+    <string name="two_factor_setup_backup_body">인증 앱을 분실한 경우 각 코드로 한 번씩 로그인할 수 있습니다. 안전한 곳에 보관하세요. 다시 표시되지 않습니다.</string>
+    <string name="two_factor_setup_save_codes">파일로 저장</string>
+    <string name="two_factor_setup_codes_saved">백업 코드를 저장했습니다.</string>
+    <string name="two_factor_setup_codes_acknowledged">이 코드를 저장했습니다</string>
+    <string name="two_factor_setup_complete">설정 완료</string>
+    <string name="two_factor_setup_expired">설정 세션이 만료되었습니다. 계속하려면 다시 로그인하세요.</string>
+    <string name="two_factor_setup_back_to_sign_in">로그인으로 돌아가기</string>
+    <string name="two_factor_setup_error_start">설정을 시작할 수 없습니다. 다시 시도하세요.</string>
+    <string name="two_factor_setup_error_invalid">코드가 일치하지 않습니다. 인증 앱의 현재 코드를 입력하세요.</string>
+    <string name="two_factor_setup_error_rate_limited">시도 횟수가 너무 많습니다. 잠시 후 다시 시도하세요.</string>
+    <string name="two_factor_setup_error_finalize">설정을 완료할 수 없습니다. 다시 시도하세요.</string>
+    <string name="two_factor_setup_error_connection">서버에 연결할 수 없습니다. 연결 상태를 확인한 후 다시 시도하세요.</string>
+    <string name="login_error_federated_blocked">이 계정은 ID 공급자를 통해 로그인합니다. 해당 로그인 옵션을 사용하세요.</string>
+    <string name="auth_error_tenant_required">이 서버는 사용자가 속한 조직을 알아야 합니다. 이 서버의 조직용 주소를 사용하세요.</string>
+    <string name="login_two_factor_setup_required">이제 이 서버는 %1$s에 대해 2단계 인증을 요구합니다. 로그인하여 설정하세요.</string>
 </resources>

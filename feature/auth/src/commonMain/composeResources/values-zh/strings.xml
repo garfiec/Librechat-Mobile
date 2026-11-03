@@ -70,6 +70,9 @@
     <string name="terms_title">服务条款</string>
     <string name="terms_no_content">此服务器未提供服务条款的正文。</string>
     <string name="i_accept">我接受</string>
+    <string name="terms_decline">拒绝</string>
+    <string name="privacy_policy">隐私政策</string>
+    <string name="terms_of_service">服务条款</string>
     <string name="retry">重试</string>
 
     <!-- Common -->
@@ -86,4 +89,33 @@
     <string name="diagnostic_log_failed">无法导出日志。</string>
     <string name="user_ca_notice">此服务器的证书通过安装在此设备上的证书颁发机构获得信任，而非 Android 内置的证书颁发机构。仅当它是由您或您的组织安装时才继续。</string>
     <string name="continue_with_provider">使用 %1$s 继续</string>
+    <string name="two_factor_setup_title">设置两步验证</string>
+    <string name="two_factor_setup_required_description">此服务器要求两步验证。请完成设置以继续。</string>
+    <string name="two_factor_setup_begin">开始设置</string>
+    <string name="two_factor_setup_authenticator_heading">将此账号添加到你的身份验证器</string>
+    <string name="two_factor_setup_authenticator_body">在身份验证器应用中打开，输入设置密钥，或用另一台设备扫描二维码。</string>
+    <string name="two_factor_setup_open_authenticator">打开身份验证器应用</string>
+    <string name="two_factor_setup_no_authenticator">此设备上没有能打开该链接的身份验证器应用。请改为输入设置密钥。</string>
+    <string name="two_factor_setup_key">设置密钥</string>
+    <string name="two_factor_setup_show_qr">显示二维码</string>
+    <string name="two_factor_setup_hide_qr">隐藏二维码</string>
+    <string name="two_factor_setup_qr_description">用于身份验证器应用的二维码</string>
+    <string name="two_factor_setup_next">下一步</string>
+    <string name="two_factor_setup_verify_heading">输入身份验证器中的验证码</string>
+    <string name="two_factor_setup_backup_heading">保存你的备用码</string>
+    <string name="two_factor_setup_backup_body">如果你丢失了身份验证器，每个备用码可用于登录一次。请妥善保管；它们不会再次显示。</string>
+    <string name="two_factor_setup_save_codes">保存到文件</string>
+    <string name="two_factor_setup_codes_saved">备用码已保存。</string>
+    <string name="two_factor_setup_codes_acknowledged">我已保存这些备用码</string>
+    <string name="two_factor_setup_complete">完成设置</string>
+    <string name="two_factor_setup_expired">设置会话已过期。请重新登录以继续。</string>
+    <string name="two_factor_setup_back_to_sign_in">返回登录</string>
+    <string name="two_factor_setup_error_start">无法开始设置。请重试。</string>
+    <string name="two_factor_setup_error_invalid">验证码不匹配。请输入身份验证器中的当前验证码。</string>
+    <string name="two_factor_setup_error_rate_limited">尝试次数过多。请稍候再试。</string>
+    <string name="two_factor_setup_error_finalize">无法完成设置。请重试。</string>
+    <string name="two_factor_setup_error_connection">无法连接到服务器。请检查网络连接后重试。</string>
+    <string name="login_error_federated_blocked">此账号通过其身份提供商登录。请改用该登录方式。</string>
+    <string name="auth_error_tenant_required">此服务器需要知道你所属的组织。请使用你所在组织对应的服务器地址。</string>
+    <string name="login_two_factor_setup_required">此服务器现在要求 %1$s 启用两步验证。请登录以进行设置。</string>
 </resources>

@@ -70,6 +70,9 @@
     <string name="terms_title">Termos de Serviço</string>
     <string name="terms_no_content">Este servidor não incluiu o texto dos seus Termos de Serviço.</string>
     <string name="i_accept">Eu aceito</string>
+    <string name="terms_decline">Recusar</string>
+    <string name="privacy_policy">Política de privacidade</string>
+    <string name="terms_of_service">Termos de serviço</string>
     <string name="retry">Tentar novamente</string>
 
     <!-- Common -->
@@ -86,4 +89,33 @@
     <string name="diagnostic_log_failed">Não foi possível exportar o log.</string>
     <string name="user_ca_notice">O certificado deste servidor é confiável por meio de uma autoridade certificadora instalada neste dispositivo, e não de uma integrada ao Android. Continue apenas se você ou sua organização a instalou.</string>
     <string name="continue_with_provider">Continuar com %1$s</string>
+    <string name="two_factor_setup_title">Configurar a autenticação de dois fatores</string>
+    <string name="two_factor_setup_required_description">Este servidor exige autenticação de dois fatores. Configure-a para continuar.</string>
+    <string name="two_factor_setup_begin">Iniciar configuração</string>
+    <string name="two_factor_setup_authenticator_heading">Adicione esta conta ao seu app autenticador</string>
+    <string name="two_factor_setup_authenticator_body">Abra-a no seu app autenticador, digite a chave de configuração ou escaneie o código QR em outro dispositivo.</string>
+    <string name="two_factor_setup_open_authenticator">Abrir app autenticador</string>
+    <string name="two_factor_setup_no_authenticator">Nenhum app autenticador neste dispositivo conseguiu abrir o link. Digite a chave de configuração.</string>
+    <string name="two_factor_setup_key">Chave de configuração</string>
+    <string name="two_factor_setup_show_qr">Mostrar código QR</string>
+    <string name="two_factor_setup_hide_qr">Ocultar código QR</string>
+    <string name="two_factor_setup_qr_description">Código QR para o seu app autenticador</string>
+    <string name="two_factor_setup_next">Próximo</string>
+    <string name="two_factor_setup_verify_heading">Digite o código do seu autenticador</string>
+    <string name="two_factor_setup_backup_heading">Salve seus códigos de backup</string>
+    <string name="two_factor_setup_backup_body">Cada código permite entrar uma vez caso você perca seu autenticador. Guarde-os em um lugar seguro; eles não serão mostrados novamente.</string>
+    <string name="two_factor_setup_save_codes">Salvar em arquivo</string>
+    <string name="two_factor_setup_codes_saved">Códigos de backup salvos.</string>
+    <string name="two_factor_setup_codes_acknowledged">Já salvei estes códigos</string>
+    <string name="two_factor_setup_complete">Concluir configuração</string>
+    <string name="two_factor_setup_expired">Sua sessão de configuração expirou. Entre novamente para continuar.</string>
+    <string name="two_factor_setup_back_to_sign_in">Voltar para entrar</string>
+    <string name="two_factor_setup_error_start">Não foi possível iniciar a configuração. Tente novamente.</string>
+    <string name="two_factor_setup_error_invalid">Esse código não confere. Digite o código atual do seu autenticador.</string>
+    <string name="two_factor_setup_error_rate_limited">Muitas tentativas. Aguarde um momento e tente novamente.</string>
+    <string name="two_factor_setup_error_finalize">Não foi possível concluir a configuração. Tente novamente.</string>
+    <string name="two_factor_setup_error_connection">Não foi possível acessar o servidor. Verifique sua conexão e tente novamente.</string>
+    <string name="login_error_federated_blocked">Esta conta entra pelo seu provedor de identidade. Use essa opção de login.</string>
+    <string name="auth_error_tenant_required">Este servidor precisa saber a qual organização você pertence. Use o endereço da sua organização para este servidor.</string>
+    <string name="login_two_factor_setup_required">Este servidor agora exige autenticação de dois fatores para %1$s. Entre para configurá-la.</string>
 </resources>

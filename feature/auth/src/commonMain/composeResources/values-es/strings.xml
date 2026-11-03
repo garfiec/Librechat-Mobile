@@ -70,6 +70,9 @@
     <string name="terms_title">Términos del servicio</string>
     <string name="terms_no_content">Este servidor no incluyó el texto de sus términos del servicio.</string>
     <string name="i_accept">Acepto</string>
+    <string name="terms_decline">Rechazar</string>
+    <string name="privacy_policy">Política de privacidad</string>
+    <string name="terms_of_service">Términos del servicio</string>
     <string name="retry">Reintentar</string>
 
     <!-- Common -->
@@ -86,4 +89,33 @@
     <string name="diagnostic_log_failed">No se pudo exportar el registro.</string>
     <string name="user_ca_notice">El certificado de este servidor es de confianza a través de una autoridad de certificación instalada en este dispositivo, no de una integrada en Android. Continúa solo si la instalaste tú o tu organización.</string>
     <string name="continue_with_provider">Continuar con %1$s</string>
+    <string name="two_factor_setup_title">Configurar la autenticación de dos factores</string>
+    <string name="two_factor_setup_required_description">Este servidor requiere autenticación de dos factores. Configúrala para continuar.</string>
+    <string name="two_factor_setup_begin">Empezar configuración</string>
+    <string name="two_factor_setup_authenticator_heading">Añade esta cuenta a tu app de autenticación</string>
+    <string name="two_factor_setup_authenticator_body">Ábrela en tu app de autenticación, introduce la clave de configuración o escanea el código QR desde otro dispositivo.</string>
+    <string name="two_factor_setup_open_authenticator">Abrir app de autenticación</string>
+    <string name="two_factor_setup_no_authenticator">Ninguna app de autenticación de este dispositivo pudo abrir el enlace. Introduce la clave de configuración en su lugar.</string>
+    <string name="two_factor_setup_key">Clave de configuración</string>
+    <string name="two_factor_setup_show_qr">Mostrar código QR</string>
+    <string name="two_factor_setup_hide_qr">Ocultar código QR</string>
+    <string name="two_factor_setup_qr_description">Código QR para tu app de autenticación</string>
+    <string name="two_factor_setup_next">Siguiente</string>
+    <string name="two_factor_setup_verify_heading">Introduce el código de tu app de autenticación</string>
+    <string name="two_factor_setup_backup_heading">Guarda tus códigos de respaldo</string>
+    <string name="two_factor_setup_backup_body">Cada código te permite iniciar sesión una vez si pierdes tu app de autenticación. Guárdalos en un lugar seguro; no se volverán a mostrar.</string>
+    <string name="two_factor_setup_save_codes">Guardar en un archivo</string>
+    <string name="two_factor_setup_codes_saved">Códigos de respaldo guardados.</string>
+    <string name="two_factor_setup_codes_acknowledged">He guardado estos códigos</string>
+    <string name="two_factor_setup_complete">Completar configuración</string>
+    <string name="two_factor_setup_expired">Tu sesión de configuración ha caducado. Vuelve a iniciar sesión para continuar.</string>
+    <string name="two_factor_setup_back_to_sign_in">Volver a iniciar sesión</string>
+    <string name="two_factor_setup_error_start">No se pudo iniciar la configuración. Inténtalo de nuevo.</string>
+    <string name="two_factor_setup_error_invalid">Ese código no coincide. Introduce el código actual de tu app de autenticación.</string>
+    <string name="two_factor_setup_error_rate_limited">Demasiados intentos. Espera un momento e inténtalo de nuevo.</string>
+    <string name="two_factor_setup_error_finalize">No se pudo completar la configuración. Inténtalo de nuevo.</string>
+    <string name="two_factor_setup_error_connection">No se pudo conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.</string>
+    <string name="login_error_federated_blocked">Esta cuenta inicia sesión con su proveedor de identidad. Usa esa opción de inicio de sesión.</string>
+    <string name="auth_error_tenant_required">Este servidor necesita saber a qué organización perteneces. Usa la dirección de tu organización para este servidor.</string>
+    <string name="login_two_factor_setup_required">Este servidor ahora requiere autenticación de dos factores para %1$s. Inicia sesión para configurarla.</string>
 </resources>

@@ -70,6 +70,9 @@
     <string name="terms_title">利用規約</string>
     <string name="terms_no_content">このサーバーは利用規約の本文を提供していません。</string>
     <string name="i_accept">同意します</string>
+    <string name="terms_decline">拒否</string>
+    <string name="privacy_policy">プライバシーポリシー</string>
+    <string name="terms_of_service">利用規約</string>
     <string name="retry">再試行</string>
 
     <!-- Common -->
@@ -86,4 +89,33 @@
     <string name="diagnostic_log_failed">ログをエクスポートできませんでした。</string>
     <string name="user_ca_notice">このサーバーの証明書は、Android に組み込まれた認証局ではなく、このデバイスにインストールされた認証局によって信頼されています。ご自身または組織がインストールした場合にのみ続行してください。</string>
     <string name="continue_with_provider">%1$s で続行</string>
+    <string name="two_factor_setup_title">二要素認証を設定</string>
+    <string name="two_factor_setup_required_description">このサーバーでは二要素認証が必要です。続行するには設定してください。</string>
+    <string name="two_factor_setup_begin">設定を開始</string>
+    <string name="two_factor_setup_authenticator_heading">このアカウントを認証アプリに追加</string>
+    <string name="two_factor_setup_authenticator_body">認証アプリで開くか、セットアップキーを入力するか、別のデバイスで QR コードをスキャンしてください。</string>
+    <string name="two_factor_setup_open_authenticator">認証アプリを開く</string>
+    <string name="two_factor_setup_no_authenticator">このデバイスにはリンクを開ける認証アプリがありません。代わりにセットアップキーを入力してください。</string>
+    <string name="two_factor_setup_key">セットアップキー</string>
+    <string name="two_factor_setup_show_qr">QR コードを表示</string>
+    <string name="two_factor_setup_hide_qr">QR コードを非表示</string>
+    <string name="two_factor_setup_qr_description">認証アプリ用の QR コード</string>
+    <string name="two_factor_setup_next">次へ</string>
+    <string name="two_factor_setup_verify_heading">認証アプリのコードを入力してください</string>
+    <string name="two_factor_setup_backup_heading">バックアップコードを保存</string>
+    <string name="two_factor_setup_backup_body">認証アプリを紛失した場合、各コードで 1 回サインインできます。安全な場所に保管してください。再表示はされません。</string>
+    <string name="two_factor_setup_save_codes">ファイルに保存</string>
+    <string name="two_factor_setup_codes_saved">バックアップコードを保存しました。</string>
+    <string name="two_factor_setup_codes_acknowledged">これらのコードを保存しました</string>
+    <string name="two_factor_setup_complete">設定を完了</string>
+    <string name="two_factor_setup_expired">設定セッションの有効期限が切れました。続行するには再度サインインしてください。</string>
+    <string name="two_factor_setup_back_to_sign_in">サインインに戻る</string>
+    <string name="two_factor_setup_error_start">設定を開始できませんでした。もう一度お試しください。</string>
+    <string name="two_factor_setup_error_invalid">コードが一致しません。認証アプリに表示されている現在のコードを入力してください。</string>
+    <string name="two_factor_setup_error_rate_limited">試行回数が多すぎます。しばらく待ってからもう一度お試しください。</string>
+    <string name="two_factor_setup_error_finalize">設定を完了できませんでした。もう一度お試しください。</string>
+    <string name="two_factor_setup_error_connection">サーバーに接続できませんでした。接続を確認してもう一度お試しください。</string>
+    <string name="login_error_federated_blocked">このアカウントは ID プロバイダーでサインインします。そのサインイン方法を使用してください。</string>
+    <string name="auth_error_tenant_required">このサーバーは、あなたが所属する組織を特定する必要があります。このサーバーの組織用アドレスを使用してください。</string>
+    <string name="login_two_factor_setup_required">このサーバーでは %1$s に二要素認証が必須になりました。サインインして設定してください。</string>
 </resources>
