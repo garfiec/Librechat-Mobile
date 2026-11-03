@@ -65,6 +65,6 @@ Since Android 7.0 (API 24), apps trust only the system CA store unless they opt 
 
 Without the CA installed, the server check rejects the certificate and suggests installing the server's private CA.
 
-If you can't install a CA on the device (a managed phone, for example), use a publicly trusted certificate instead (Let's Encrypt, ZeroSSL), or put the server behind a reverse proxy such as Caddy or Cloudflare Tunnel that terminates TLS with one.
+If you can't install a CA on the device (a managed phone, for example), use a publicly trusted certificate instead (Let's Encrypt, ZeroSSL), or put the server behind a reverse proxy such as Caddy or Cloudflare Tunnel that terminates TLS with one. On a trusted local network you can also connect over plain HTTP and accept the in-app warning.
 
 > **Looking ahead:** apps that target API 37+ (Android 17) get Certificate Transparency enabled by default for TLS connections. When Switchboard's `targetSdk` reaches 37, self-signed leaf certificates without SCTs will need `<certificateTransparency enabled="false"/>` in the Network Security Config.

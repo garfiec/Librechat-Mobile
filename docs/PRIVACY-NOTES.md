@@ -20,6 +20,9 @@ is collected by Google Play, not by the app, so it is not declared.
 | Delete account URL | `https://github.com/garfiec/Librechat-Mobile/blob/develop/docs/PRIVACY.md#11-retention-and-deletion` |
 | Can users request deletion of some data without deleting their account? | Yes, same URL |
 
+The URL's section 11 covers both routes: in-app account deletion (Settings → Account → Delete
+account) and deleting conversations, memories, shared links and API keys on the server.
+
 Every declared type is collected, not processed ephemerally (the server stores it), and not shared.
 
 | Data type | Collected | Shared | Optional | Purpose | Notes |
