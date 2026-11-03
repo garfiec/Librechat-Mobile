@@ -227,11 +227,12 @@ class StreamingManagerDelegate(
     private var currentTurnOptimisticUserMessageId: String? = null
 
     /**
-     * The server's id for this turn's user message, from the SSE `created` frame. The server mints
-     * its own id and does not adopt the optimistic one, so the optimistic id names nothing it
-     * stores.
+     * Every optimistic user-message id this ViewModel minted, mapped to the server's id for that
+     * message once its SSE `created` frame names it (null until then). The server mints its own
+     * id and never adopts the optimistic one. Kept past the turn's session, not reset with it: a
+     * reconnect mid-run starts a new session while the optimistic bubble is still the tail.
      */
-    private var currentTurnServerUserMessageId: String? = null
+    private val serverUserMessageIds = mutableMapOf<String, String?>()
 
     /**
      * The id a queued turn may anchor to when [messageId] is the visible branch tail, or null
@@ -240,7 +241,7 @@ class StreamingManagerDelegate(
      * dead-lettered `PARENT_NOT_FOUND` when the run ends instead of being sent.
      */
     fun queueAnchorFor(messageId: String): String? =
-        if (messageId == currentTurnOptimisticUserMessageId) currentTurnServerUserMessageId else messageId
+        if (messageId in serverUserMessageIds) serverUserMessageIds[messageId] else messageId
 
     /**
      * Whether this turn reached the server's `created` milestone. Below that line nothing is
@@ -304,6 +305,7 @@ class StreamingManagerDelegate(
         // After startStreamSession: its pendingActionDelegate.clear() drops the pin.
         pendingActionDelegate.onTurnStarted(turnSpec, turnManualSkills)
         currentTurnOptimisticUserMessageId = optimisticUserMessageId
+        optimisticUserMessageId?.let { serverUserMessageIds[it] = null }
         reattachedAfterCeiling = false
         // Capture the origin account at stream start so a post-switch finalize attributes to it.
         streamOriginAccountId = activeAccountProvider.currentAccountId()
@@ -389,7 +391,6 @@ class StreamingManagerDelegate(
         // A resumed stream re-enters without beginStreaming's assignment; never let a previous
         // turn's optimistic id leak into it (the un-send would remove the wrong message).
         currentTurnOptimisticUserMessageId = null
-        currentTurnServerUserMessageId = null
         currentTurnCreated = false
         currentTurnKeyEndpoint = null
         retryCeiling = null
@@ -512,7 +513,8 @@ class StreamingManagerDelegate(
         // usually persisted it. See currentTurnCreated for the exception.
         currentTurnCreated = true
         // The start POST's synthetic frame carries no message; only the server's own frame does.
-        event.messageId.takeIf { it.isNotEmpty() }?.let { currentTurnServerUserMessageId = it }
+        val optimisticId = currentTurnOptimisticUserMessageId
+        if (optimisticId != null && event.messageId.isNotEmpty()) serverUserMessageIds[optimisticId] = event.messageId
         networkRecovery.disarm()
         // Read before the id lands: a forced-temporary new chat is temporary only while it has no
         // id (ChatUiState.isTemporaryChat), so the flag is latched into the slice here.
