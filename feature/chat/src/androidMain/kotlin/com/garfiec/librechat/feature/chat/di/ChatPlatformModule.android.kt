@@ -49,6 +49,7 @@ actual val chatPlatformModule: Module = module {
             endpointTokenRepository = get(),
             reasoningCapabilitiesRepository = get(),
             draftRepository = get(),
+            localQueueStash = get(),
             favoritesRepository = get(),
             keyRepository = get(),
             presetRepository = get(),

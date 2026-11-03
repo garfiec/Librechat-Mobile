@@ -9,6 +9,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.BackgroundTasksViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNoticeHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMediaViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationSeenViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.LocalQueueStash
 import com.garfiec.librechat.feature.chat.viewmodel.McpAppsViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.McpSignInViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.NewChatSelectionHandoff
@@ -34,6 +35,7 @@ val chatModule = module {
     single { ArtifactViewerHandoff() }
     single { ModelShortcutBus() }
     single { SiteIconPromptSession() }
+    single { LocalQueueStash() }
     viewModelOf(::PromptsViewModel)
     viewModelOf(::SubagentThreadsViewModel)
     viewModelOf(::TraceViewerViewModel)

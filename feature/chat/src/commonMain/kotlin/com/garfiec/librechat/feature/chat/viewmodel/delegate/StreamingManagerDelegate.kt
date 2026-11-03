@@ -1125,9 +1125,14 @@ class StreamingManagerDelegate(
      * then the conversation is reloaded. Not when the server answered (an [ApiException], such as a
      * server without the status route): asking again would get the same answer.
      */
-    fun resumeOnOpen(conversationId: String, attemptsLeft: Int = ATTACH_ATTEMPTS) {
+    fun resumeOnOpen(
+        conversationId: String,
+        attemptsLeft: Int = ATTACH_ATTEMPTS,
+        onAttached: () -> Unit = {},
+    ) {
         resumeActiveStreamIfNeeded(
             conversationId,
+            onAttached = onAttached,
             onFailed = { e ->
                 if (e is ApiException) return@resumeActiveStreamIfNeeded
                 scope.launch {
@@ -1136,7 +1141,7 @@ class StreamingManagerDelegate(
                         return@launch
                     }
                     if (attemptsLeft > 1) {
-                        resumeOnOpen(conversationId, attemptsLeft - 1)
+                        resumeOnOpen(conversationId, attemptsLeft - 1, onAttached)
                     } else {
                         host.reloadConversation(conversationId)
                     }
@@ -1149,6 +1154,7 @@ class StreamingManagerDelegate(
         conversationId: String,
         onInactive: () -> Unit = {},
         onFailed: (Throwable) -> Unit = {},
+        onAttached: () -> Unit = {},
     ) {
         // Sibling of onResume (runs on conversation open); apply the same hardening so the two
         // can't race into two resumes, and a pending Stop is never overridden by a restart.
@@ -1193,6 +1199,7 @@ class StreamingManagerDelegate(
                     }
                     attachToRun(conversationId)
                     applyStatusPendingAction(status)
+                    onAttached()
                 } else {
                     settleRunStatus()
                     onInactive()

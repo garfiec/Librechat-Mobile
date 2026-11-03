@@ -104,6 +104,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.FavoritesDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.InConversationSearchDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.JumpToMessageDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.LiveReplyDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.LocalQueueContinuityDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageEditingDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageQueueDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageTreeDelegate
@@ -182,6 +183,7 @@ class ChatViewModel(
     private val endpointTokenRepository: EndpointTokenRepository,
     reasoningCapabilitiesRepository: ReasoningCapabilitiesRepository,
     private val draftRepository: DraftRepository,
+    localQueueStash: LocalQueueStash,
     favoritesRepository: FavoritesRepository,
     private val keyRepository: KeyRepository,
     presetRepository: PresetRepository,
@@ -789,6 +791,27 @@ class ChatViewModel(
         queueAnchor = streamingManager::queueAnchorFor,
     )
 
+    private val localQueueContinuity = LocalQueueContinuityDelegate(
+        handle = QueueHandle(stateHandle),
+        queueStates = _uiState.map { it.queue },
+        stash = localQueueStash,
+        draftRepository = draftRepository,
+        activeAccountProvider = activeAccountProvider,
+        isTemporary = { _uiState.value.isTemporaryChat },
+        putBackInComposer = ::putBackInComposer,
+    )
+
+    /** Recovered text goes after the chat's saved draft (read first, so it is not shadowed). */
+    private suspend fun putBackInComposer(text: String) {
+        val draft = _uiState.value.conversationId?.let { draftRepository.awaitDraft(it) }.orEmpty()
+        _uiState.update {
+            val base = it.composer.inputText.ifBlank { draft }
+            val merged = listOf(base, text).filter { part -> part.isNotBlank() }.joinToString("\n\n")
+            it.copy(composer = it.composer.copy(inputText = merged))
+        }
+        persistComposerDraft(_uiState.value.inputText)
+    }
+
     private val editingDelegate = MessageEditingDelegate(
         handle = MessageEditingHandle(stateHandle),
         chatRepository = chatRepository,
@@ -902,10 +925,13 @@ class ChatViewModel(
             initialTargetMessageId?.let { jumpDelegate.start(it, initialHighlightQuery, initialTargetInReasoning) }
             conversationLoadDelegate.loadConversationModel(conversationId)
             conversationLoadDelegate.restoreDraft(conversationId)
+            // Before the attach below, so follow-ups queued before the chat was left are back in
+            // the queue when the run they wait on is found still going.
+            localQueueContinuity.start(conversationId)
             // Check if there's an active stream for this conversation (e.g. when
             // navigating here from NewChat immediately after sending). If so,
             // resume it so the user sees streaming content on this screen.
-            streamingManager.resumeOnOpen(conversationId)
+            streamingManager.resumeOnOpen(conversationId, onAttached = localQueueContinuity::onRunAttached)
         } else {
             isHandedOffNewChat = false
             // For new chats, mark conversationModelLoaded so refilterModels

@@ -4,6 +4,10 @@ import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.BackendBuildClass
 import com.garfiec.librechat.core.common.DetectedBackend
 import com.garfiec.librechat.core.common.ToolConstants
+import com.garfiec.librechat.core.common.identity.AccountId
+import com.garfiec.librechat.core.common.identity.AccountState
+import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
+import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
@@ -546,6 +550,136 @@ class ChatViewModelQueuedTurnTest {
         coVerify(exactly = 1) { queuedTurnRepository.enqueue(capture(request)) }
         assertThat(request.captured.parentMessageId).isEqualTo("server-user-1")
         assertThat(request.captured.parentMessageId).isNotEqualTo(optimisticId)
+    }
+
+    // ── A local queue outlives its ViewModel ─────────────────────────────
+
+    /** A server without queued turns: every follow-up stays in the local queue. */
+    private fun localQueueOnly() {
+        coEvery { queuedTurnRepository.enqueue(any()) } returns QueuedTurnOutcome.Unsupported
+    }
+
+    private fun TestScope.reopen(
+        activeAccountProvider: ActiveAccountProvider =
+            InMemoryActiveAccountProvider(AccountState.Resolved(AccountId("srv:user-1"))),
+    ): ChatViewModel {
+        // This fixture's conversation read fails, so the chat's agent comes from the handoff the
+        // first ViewModel consumed.
+        selectionHandoff.put(conversationId = CONVERSATION_ID, choice = ModelChoice.Raw(ENDPOINT, AGENT_ID))
+        val reopened = fixture.build(
+            defaultDispatcher = testDispatcher,
+            initialConversationId = CONVERSATION_ID,
+            activeAccountProvider = activeAccountProvider,
+        )
+        runCurrent()
+        return reopened
+    }
+
+    /**
+     * Leaving a chat replaces its entry and clears its ViewModel. A follow-up the server does not
+     * hold lived only there, so it was gone on return and never sent. It now comes back, and the
+     * run it was waiting on sends it when it ends.
+     */
+    @Test
+    fun `a locally queued follow-up survives leaving the chat mid-run`() = queuedTurnTest(
+        arrange = ::localQueueOnly,
+    ) { vm ->
+        vm.onInputChanged("local follow-up")
+        vm.queueMessage()
+        runCurrent()
+        assertThat(vm.uiState.value.messageQueue.single().server).isNull()
+
+        vm.viewModelScope.cancel()
+        val reopened = reopen()
+        try {
+            val sent = captureSentTexts()
+            assertThat(reopened.uiState.value.messageQueue.map { it.text }).containsExactly("local follow-up")
+            // The run is still going, so its end drains the queue as it would have.
+            assertThat(reopened.uiState.value.isQueuePaused).isFalse()
+            assertThat(reopened.uiState.value.isStreaming).isTrue()
+            assertThat(sent).isEmpty()
+
+            resumedStream.emit(StreamEvent.Final())
+            // The run-end drain waits for the reply to settle into the tree; this fixture's tree
+            // never changes, so it goes on the settle timeout.
+            advanceTimeBy(9_000)
+            runCurrent()
+
+            assertThat(reopened.uiState.value.messageQueue).isEmpty()
+            assertThat(sent).containsExactly("local follow-up")
+        } finally {
+            reopened.viewModelScope.cancel()
+        }
+    }
+
+    /**
+     * Back after the run ended (or was stopped): nothing says the queue may go, so it waits behind
+     * "Send queued" rather than sending on its own or vanishing.
+     */
+    @Test
+    fun `a restored queue with no run to wait on is held for the user`() = queuedTurnTest(
+        arrange = ::localQueueOnly,
+    ) { vm ->
+        vm.onInputChanged("local follow-up")
+        vm.queueMessage()
+        runCurrent()
+        vm.viewModelScope.cancel()
+        coEvery { chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } returns
+            ChatStatusResponse(active = false)
+
+        val reopened = reopen()
+        try {
+            val sent = captureSentTexts()
+            assertThat(reopened.uiState.value.messageQueue.map { it.text }).containsExactly("local follow-up")
+            assertThat(reopened.uiState.value.pausedQueueCount).isEqualTo(1)
+            assertThat(sent).isEmpty()
+        } finally {
+            reopened.viewModelScope.cancel()
+        }
+    }
+
+    @Test
+    fun `a restored queue never reaches another account`() = queuedTurnTest(
+        arrange = ::localQueueOnly,
+    ) { vm ->
+        vm.onInputChanged("local follow-up")
+        vm.queueMessage()
+        runCurrent()
+        vm.viewModelScope.cancel()
+
+        val other = reopen(InMemoryActiveAccountProvider(AccountState.Resolved(AccountId("srv:user-2"))))
+        try {
+            assertThat(other.uiState.value.messageQueue).isEmpty()
+        } finally {
+            other.viewModelScope.cancel()
+        }
+    }
+
+    /** The text is also kept in the draft store, the one copy that outlives the process. */
+    @Test
+    fun `a local queue's text is kept in the draft store`() = queuedTurnTest(
+        arrange = ::localQueueOnly,
+    ) { vm ->
+        vm.onInputChanged("local follow-up")
+        vm.queueMessage()
+        runCurrent()
+
+        coVerify { fixture.draftRepository.saveDraft("queued:$CONVERSATION_ID", "local follow-up") }
+    }
+
+    /** After process death there is no stash; the kept text goes back into the composer. */
+    @Test
+    fun `queued text that outlived the process is put back in the composer`() = queuedTurnTest(
+        arrange = {
+            localQueueOnly()
+            coEvery { fixture.draftRepository.awaitDraft(CONVERSATION_ID) } returns "half-typed"
+            coEvery { fixture.draftRepository.awaitDraft("queued:$CONVERSATION_ID") } returns "lost follow-up"
+        },
+    ) { vm ->
+        assertThat(vm.uiState.value.inputText).isEqualTo("half-typed\n\nlost follow-up")
+        assertThat(vm.uiState.value.error).isNotNull()
+        coVerify { fixture.draftRepository.deleteDraft("queued:$CONVERSATION_ID") }
+        coVerify { fixture.draftRepository.saveDraft(CONVERSATION_ID, "half-typed\n\nlost follow-up") }
     }
 
     /** Opening the edit touches nothing on the server: the row stays queued there and here. */

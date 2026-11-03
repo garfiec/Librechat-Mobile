@@ -271,7 +271,7 @@ class ChatViewModelSkillPickerTest {
 
     @Test
     fun `a restored draft that opens the picker loads the catalog with no keystroke`() {
-        coEvery { fixture.draftRepository.awaitDraft(any()) } returns "\$pd"
+        coEvery { fixture.draftRepository.awaitDraft("conv-1") } returns "\$pd"
         pickerTest(conversationId = "conv-1") { vm ->
             assertThat(vm.uiState.value.inputText).isEqualTo("\$pd")
             coVerify(exactly = 1) { fixture.skillsRepository.listSkills(any(), any(), any(), null) }

@@ -97,6 +97,9 @@ internal class ChatViewModelTestFixture {
     val endpointTokenRepository = mockk<EndpointTokenRepository>(relaxed = true)
     val reasoningCapabilitiesRepository = mockk<ReasoningCapabilitiesRepository>(relaxed = true)
     val draftRepository = mockk<DraftRepository>(relaxed = true)
+
+    /** Shared by every ViewModel this fixture builds, as the app-scoped single is. */
+    val localQueueStash = LocalQueueStash()
     val favoritesRepository = mockk<FavoritesRepository>(relaxed = true)
     val keyRepository = mockk<KeyRepository>(relaxed = true)
     val presetRepository = mockk<PresetRepository>(relaxed = true)
@@ -275,6 +278,7 @@ internal class ChatViewModelTestFixture {
         endpointTokenRepository = endpointTokenRepository,
         reasoningCapabilitiesRepository = reasoningCapabilitiesRepository,
         draftRepository = draftRepository,
+        localQueueStash = localQueueStash,
         favoritesRepository = favoritesRepository,
         keyRepository = keyRepository,
         presetRepository = presetRepository,
