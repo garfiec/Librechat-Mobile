@@ -216,6 +216,58 @@ class ChatViewModelHandoffResumeTest {
         }
 
     /**
+     * The open's status check times out (the server stalled) while the handed-off run is alive and
+     * waiting. Giving up on that one failure left the chat showing only the user's message until a
+     * cold start; the check is retried and the run attached.
+     */
+    @Test
+    fun `a status check that times out on open is retried, and the live run attached`() =
+        runTest(testDispatcher) {
+            var checks = 0
+            coEvery { fixture.chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } coAnswers {
+                checks++
+                if (checks == 1) throw java.io.IOException("Request timeout has expired")
+                ChatStatusResponse(active = true)
+            }
+            every { fixture.chatRepository.resumeStream(CONVERSATION_ID) } returns
+                flowOf(StreamEvent.Final(requestMessage = user, responseMessage = reply))
+            fixture.selectionHandoff.put(
+                conversationId = CONVERSATION_ID,
+                choice = ModelChoice.Raw(ENDPOINT, MODEL),
+                optimisticUserMessage = user.copy(messageId = "client-minted-1", conversationId = ""),
+            )
+            val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
+            try {
+                advanceTimeBy(SETTLE_MS)
+                runCurrent()
+
+                assertThat(checks).isEqualTo(2)
+                assertThat(displayedIds(vm)).containsExactly("user-1", "assistant-1").inOrder()
+            } finally {
+                vm.viewModelScope.cancel()
+            }
+        }
+
+    /** A status check the server answered (a server without the route) is not asked again. */
+    @Test
+    fun `a status check the server refused on open is not retried`() = runTest(testDispatcher) {
+        var checks = 0
+        coEvery { fixture.chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } coAnswers {
+            checks++
+            throw com.garfiec.librechat.core.common.result.ApiException(statusCode = 404, message = "Not found")
+        }
+        val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
+        try {
+            advanceTimeBy(SETTLE_MS * 4)
+            runCurrent()
+
+            assertThat(checks).isEqualTo(1)
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
+
+    /**
      * Existing conversation, network drop mid-reply: the SSE client retries on its own, the
      * reconnect's resume 404s because the run finished while offline, and the send's flow ends with
      * neither Final nor Error. The partial must give way to the persisted reply.

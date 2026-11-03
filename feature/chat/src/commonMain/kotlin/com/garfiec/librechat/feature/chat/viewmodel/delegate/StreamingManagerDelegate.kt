@@ -1082,7 +1082,7 @@ class StreamingManagerDelegate(
         resumeActiveStreamIfNeeded(
             conversationId,
             onInactive = reload,
-            onFailed = {
+            onFailed = { _ ->
                 scope.launch {
                     if (attemptsLeft > 1) delay(ATTACH_RETRY_DELAY_MS)
                     if (handle.state.isStreaming || handle.state.conversationId != conversationId) {
@@ -1094,10 +1094,37 @@ class StreamingManagerDelegate(
         )
     }
 
+    /**
+     * The attach when a conversation opens. A status check that fails says nothing about the run: a
+     * stalled server times it out while the run sits there, so giving up would leave the opened chat
+     * with its user message alone for the life of the screen. Retried like a server-started attach,
+     * then the conversation is reloaded. Not when the server answered (an [ApiException], such as a
+     * server without the status route): asking again would get the same answer.
+     */
+    fun resumeOnOpen(conversationId: String, attemptsLeft: Int = ATTACH_ATTEMPTS) {
+        resumeActiveStreamIfNeeded(
+            conversationId,
+            onFailed = { e ->
+                if (e is ApiException) return@resumeActiveStreamIfNeeded
+                scope.launch {
+                    if (attemptsLeft > 1) delay(ATTACH_RETRY_DELAY_MS)
+                    if (handle.state.isStreaming || handle.state.conversationId != conversationId) {
+                        return@launch
+                    }
+                    if (attemptsLeft > 1) {
+                        resumeOnOpen(conversationId, attemptsLeft - 1)
+                    } else {
+                        host.reloadConversation(conversationId)
+                    }
+                }
+            },
+        )
+    }
+
     fun resumeActiveStreamIfNeeded(
         conversationId: String,
         onInactive: () -> Unit = {},
-        onFailed: () -> Unit = {},
+        onFailed: (Throwable) -> Unit = {},
     ) {
         // Sibling of onResume (runs on conversation open); apply the same hardening so the two
         // can't race into two resumes, and a pending Stop is never overridden by a restart.
@@ -1151,7 +1178,7 @@ class StreamingManagerDelegate(
                 Logger.d(e) { "No active stream to resume for $conversationId" }
                 // Unsettled, the Stopped chip stays off a reply that may be paused for approval.
                 if (!handle.state.runStatusSettled) statusRetry.schedule()
-                onFailed()
+                onFailed(e)
             }
         }
     }

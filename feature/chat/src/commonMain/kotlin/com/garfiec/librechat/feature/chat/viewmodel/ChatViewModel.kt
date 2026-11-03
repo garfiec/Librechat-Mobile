@@ -894,7 +894,7 @@ class ChatViewModel(
             // Check if there's an active stream for this conversation (e.g. when
             // navigating here from NewChat immediately after sending). If so,
             // resume it so the user sees streaming content on this screen.
-            streamingManager.resumeActiveStreamIfNeeded(conversationId)
+            streamingManager.resumeOnOpen(conversationId)
         } else {
             isHandedOffNewChat = false
             // For new chats, mark conversationModelLoaded so refilterModels
