@@ -63,6 +63,12 @@ class NewChatSelectionHandoff {
         /** The landing was showing the "skills not sent" notice for [stagedManualSkills]. */
         val skillsNotSentNotice: Boolean = false,
         /**
+         * The first turn went out "No workspace" because there was no workspace to pick, and the
+         * landing was about to say so. The landing is reset at navigation, so the chat it opens
+         * shows the notice instead.
+         */
+        val sentWithoutWorkspaceNotice: Boolean = false,
+        /**
          * The parameters the first turn was sent with (a spec's preset, the user's tweaks), so the
          * follow-ups send them too. Null when nothing was staged.
          */
@@ -80,6 +86,7 @@ class NewChatSelectionHandoff {
         skillsToggle: Boolean? = null,
         stagedManualSkills: List<String> = emptyList(),
         skillsNotSentNotice: Boolean = false,
+        sentWithoutWorkspaceNotice: Boolean = false,
         modelParameters: ModelParameters? = null,
         specTools: SpecTools? = null,
     ) {
@@ -90,6 +97,7 @@ class NewChatSelectionHandoff {
             skillsToggle = skillsToggle,
             stagedManualSkills = stagedManualSkills,
             skillsNotSentNotice = skillsNotSentNotice,
+            sentWithoutWorkspaceNotice = sentWithoutWorkspaceNotice,
             modelParameters = modelParameters,
             specTools = specTools,
         )

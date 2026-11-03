@@ -20,7 +20,6 @@ import com.garfiec.librechat.core.model.code.StatefulCodeSessionsConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.error.StreamErrorType
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
-import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceChipLabel
@@ -211,7 +210,7 @@ class CodeWorkspaceDelegateTest {
             assertThat(delegate.submissionForSend()).isEqualTo(CodeWorkspaceSubmission.NONE)
             assertThat(flow.value.codeWorkspace.visible).isFalse()
             // Nothing to send without a workspace for, so nothing to announce either.
-            assertThat(ChatNotice.CODE_WORKSPACE_SENT_WITHOUT.marker()).isNotEmpty()
+            assertThat(delegate.sendsWithoutWorkspace()).isFalse()
         }
     }
 

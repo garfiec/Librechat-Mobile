@@ -852,6 +852,9 @@ class ChatViewModel(
                     }
                 }
                 handoff.skillsToggle?.let { skillsToggleDelegate.seed(conversationId, it) }
+                if (handoff.sentWithoutWorkspaceNotice) {
+                    _uiState.update { it.copy(error = ChatNotice.CODE_WORKSPACE_SENT_WITHOUT.marker()) }
+                }
                 // Chips the first send held back stay staged here, still saying why.
                 if (handoff.stagedManualSkills.isNotEmpty()) {
                     sendDispatchDelegate.stageHeldBackManualSkills(

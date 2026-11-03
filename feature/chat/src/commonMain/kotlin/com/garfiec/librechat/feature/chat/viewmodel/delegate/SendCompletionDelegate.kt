@@ -105,6 +105,7 @@ class SendCompletionDelegate(
                 skillsToggle = sent.skillsToggle.takeIf { sent.activeSpecSkills == null },
                 stagedManualSkills = staged,
                 skillsNotSentNotice = staged.isNotEmpty() && sent.error == ChatNotice.SKILLS_NOT_SENT.marker(),
+                sentWithoutWorkspaceNotice = navigatesNow && sent.error == ChatNotice.CODE_WORKSPACE_SENT_WITHOUT.marker(),
                 modelParameters = sent.modelParameters,
                 specTools = sent.selection.specTools,
             )

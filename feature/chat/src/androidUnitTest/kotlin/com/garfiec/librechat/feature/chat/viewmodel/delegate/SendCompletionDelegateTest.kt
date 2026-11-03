@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.util.AbortFrameFixtures
 import com.garfiec.librechat.feature.chat.util.applyAbortContract
+import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ComparisonState
@@ -146,6 +147,30 @@ class SendCompletionDelegateTest {
         delegate.onConversationCreated("c-new", isNewConversation = true, originAccount = null)
 
         assertThat(selectionHandoff.take("c-new")?.modelParameters).isEqualTo(sent)
+    }
+
+    @Test
+    fun `a new chat sent without a workspace hands the notice to the chat it opens`() = runTest(StandardTestDispatcher()) {
+        val (delegate, _) = delegateWith(
+            this,
+            baseState().copy(error = ChatNotice.CODE_WORKSPACE_SENT_WITHOUT.marker()),
+        )
+
+        delegate.onConversationCreated("c-new", isNewConversation = true, originAccount = null)
+
+        assertThat(selectionHandoff.take("c-new")?.sentWithoutWorkspaceNotice).isTrue()
+    }
+
+    @Test
+    fun `a new chat that kept its landing keeps the workspace notice there`() = runTest(StandardTestDispatcher()) {
+        val (delegate, _) = delegateWith(
+            this,
+            baseState(isComparison = true).copy(error = ChatNotice.CODE_WORKSPACE_SENT_WITHOUT.marker()),
+        )
+
+        delegate.onConversationCreated("c-new", isNewConversation = true, originAccount = null)
+
+        assertThat(selectionHandoff.take("c-new")?.sentWithoutWorkspaceNotice).isFalse()
     }
 
     @Test

@@ -141,6 +141,32 @@ class ChatViewModelHandoffResumeTest {
         }
     }
 
+    @Test
+    fun `a handed-off first turn sent without a workspace says so on the chat it opens`() = runTest(testDispatcher) {
+        coEvery { fixture.chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } coAnswers {
+            onServer = listOf(user, reply)
+            ChatStatusResponse(active = true)
+        }
+        every { fixture.chatRepository.resumeStream(CONVERSATION_ID) } returns emptyFlow()
+        fixture.selectionHandoff.put(
+            conversationId = CONVERSATION_ID,
+            choice = ModelChoice.Raw(ENDPOINT, MODEL),
+            optimisticUserMessage = user.copy(messageId = "client-minted-1", conversationId = ""),
+            sentWithoutWorkspaceNotice = true,
+        )
+        // Relaxed, these answer an error that would stand in for the notice.
+        coEvery { fixture.configRepository.fetchEndpoints() } returns Result.Success(mapOf(ENDPOINT to EndpointConfig()))
+        coEvery { fixture.configRepository.fetchModels() } returns Result.Success(mapOf(ENDPOINT to listOf(MODEL)))
+        val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
+        try {
+            advanceUntilIdle()
+
+            assertThat(vm.uiState.value.error).isEqualTo(ChatNotice.CODE_WORKSPACE_SENT_WITHOUT.marker())
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
+
     /**
      * Existing conversation, network drop mid-reply: the SSE client retries on its own, the
      * reconnect's resume 404s because the run finished while offline, and the send's flow ends with
