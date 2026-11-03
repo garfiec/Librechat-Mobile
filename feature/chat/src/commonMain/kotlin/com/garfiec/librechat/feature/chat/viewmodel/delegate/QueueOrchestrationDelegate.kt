@@ -44,6 +44,8 @@ class QueueOrchestrationDelegate(
     private val fileHandler: PlatformFileHandler,
     /** `PendingActionDelegate.generationEpoch`: the running turn's epoch, or null when unknown. */
     private val generationEpoch: () -> Long?,
+    /** `StreamingManagerDelegate.queueAnchorFor`: the server's id for a branch tail, or null. */
+    private val queueAnchor: (String) -> String?,
 ) {
 
     fun enqueueNow(text: String) {
@@ -99,7 +101,9 @@ class QueueOrchestrationDelegate(
      * as a branch anchor rather than a literal parent — it walks forward to the newest assistant
      * message descending from it, which is how a queue of several chains correctly.
      * `displayMessages` is truncated at that leaf for the duration of a stream, so its tail IS
-     * the anchor (the same identity the completion-render keying relies on).
+     * the anchor (the same identity the completion-render keying relies on), named by the server's
+     * id for it: in a run this client started, the tail is the optimistic user message, whose id
+     * the server never stored ([queueAnchor]).
      *
      * `clientRequestId` is minted here and not taken from [QueuedMessage.localId]: localId
      * survives an edit, and reusing an id for different text is a 409.
@@ -117,7 +121,8 @@ class QueueOrchestrationDelegate(
         if (state.modelSpecs.requiresSpec) return spec
         if (state.selectedEndpoint != EndpointConstants.AGENTS) return spec
         if (!state.isStreaming) return spec
-        val parentMessageId = state.displayMessages.lastOrNull()?.message?.messageId ?: return spec
+        val parentMessageId = state.displayMessages.lastOrNull()?.message?.messageId
+            ?.let(queueAnchor) ?: return spec
         val predecessorCreatedAt = generationEpoch() ?: return spec
         return spec.copy(
             server = QueuedTurnServerState(status = QueuedTurnServerState.Status.Sending),

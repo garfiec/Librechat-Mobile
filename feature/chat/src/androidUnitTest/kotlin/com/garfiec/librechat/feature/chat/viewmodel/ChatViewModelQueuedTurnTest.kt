@@ -502,6 +502,52 @@ class ChatViewModelQueuedTurnTest {
         assertThat(vm.uiState.value.messageQueue.single().text).isEqualTo("edited follow-up")
     }
 
+    /**
+     * In a run this client started, the branch tail is the optimistic user message. The server
+     * mints its own id for that message, so a queued turn anchored to the optimistic one is
+     * dead-lettered `PARENT_NOT_FOUND` at the run end and never sent. The anchor is the id from
+     * the server's `created` frame, and until that frame arrives the follow-up stays local.
+     */
+    @Test
+    fun `a follow-up to a run this client started anchors to the server's user message`() = queuedTurnTest { vm ->
+        resumedStream.emit(StreamEvent.Final())
+        runCurrent()
+        assertThat(vm.uiState.value.isStreaming).isFalse()
+        val sendStream = MutableSharedFlow<StreamEvent>(extraBufferCapacity = 8)
+        every {
+            chatRepository.startChat(
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                any(), any(),
+            )
+        } returns sendStream
+        vm.onInputChanged("a new turn")
+        vm.sendMessage()
+        runCurrent()
+        assertThat(vm.uiState.value.isStreaming).isTrue()
+        val optimisticId = vm.uiState.value.displayMessages.last().message.messageId
+        // The start POST's own frame: an epoch, but no message.
+        sendStream.emit(StreamEvent.Created(CONVERSATION_ID, messageId = "", parentMessageId = "", generationCreatedAt = EPOCH + 1))
+        runCurrent()
+
+        vm.onInputChanged("too early")
+        vm.queueMessage()
+        runCurrent()
+        coVerify(exactly = 0) { queuedTurnRepository.enqueue(any()) }
+        assertThat(vm.uiState.value.messageQueue.single().server).isNull()
+
+        sendStream.emit(StreamEvent.Created(CONVERSATION_ID, messageId = "server-user-1", parentMessageId = "assistant-1"))
+        runCurrent()
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+
+        val request = slot<EnqueueQueuedTurnRequest>()
+        coVerify(exactly = 1) { queuedTurnRepository.enqueue(capture(request)) }
+        assertThat(request.captured.parentMessageId).isEqualTo("server-user-1")
+        assertThat(request.captured.parentMessageId).isNotEqualTo(optimisticId)
+    }
+
     /** Opening the edit touches nothing on the server: the row stays queued there and here. */
     @Test
     fun `editing a server-owned row leaves it queued`() = queuedTurnTest { vm ->

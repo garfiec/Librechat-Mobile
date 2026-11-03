@@ -227,6 +227,22 @@ class StreamingManagerDelegate(
     private var currentTurnOptimisticUserMessageId: String? = null
 
     /**
+     * The server's id for this turn's user message, from the SSE `created` frame. The server mints
+     * its own id and does not adopt the optimistic one, so the optimistic id names nothing it
+     * stores.
+     */
+    private var currentTurnServerUserMessageId: String? = null
+
+    /**
+     * The id a queued turn may anchor to when [messageId] is the visible branch tail, or null
+     * when the server's id for it is not known yet. The tail of a run this client started is
+     * the optimistic user message, an id the server never stored: a queued turn anchored there is
+     * dead-lettered `PARENT_NOT_FOUND` when the run ends instead of being sent.
+     */
+    fun queueAnchorFor(messageId: String): String? =
+        if (messageId == currentTurnOptimisticUserMessageId) currentTurnServerUserMessageId else messageId
+
+    /**
      * Whether this turn reached the server's `created` milestone. Below that line nothing is
      * persisted — not even the user message — which is what makes a failed send safe to un-send,
      * with one exception: a send the server's middleware refused (see [isTurnProbablySaved]).
@@ -373,6 +389,7 @@ class StreamingManagerDelegate(
         // A resumed stream re-enters without beginStreaming's assignment; never let a previous
         // turn's optimistic id leak into it (the un-send would remove the wrong message).
         currentTurnOptimisticUserMessageId = null
+        currentTurnServerUserMessageId = null
         currentTurnCreated = false
         currentTurnKeyEndpoint = null
         retryCeiling = null
@@ -494,6 +511,8 @@ class StreamingManagerDelegate(
         // Past this milestone a later failure must NOT un-send the turn outright: the server has
         // usually persisted it. See currentTurnCreated for the exception.
         currentTurnCreated = true
+        // The start POST's synthetic frame carries no message; only the server's own frame does.
+        event.messageId.takeIf { it.isNotEmpty() }?.let { currentTurnServerUserMessageId = it }
         networkRecovery.disarm()
         // Read before the id lands: a forced-temporary new chat is temporary only while it has no
         // id (ChatUiState.isTemporaryChat), so the flag is latched into the slice here.

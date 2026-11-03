@@ -785,6 +785,7 @@ class ChatViewModel(
         activeAccountProvider = activeAccountProvider,
         fileHandler = fileDelegate,
         generationEpoch = { pendingActionDelegate.generationEpoch },
+        queueAnchor = streamingManager::queueAnchorFor,
     )
 
     private val editingDelegate = MessageEditingDelegate(
