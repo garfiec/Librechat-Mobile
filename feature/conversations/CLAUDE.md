@@ -39,7 +39,10 @@ The conversation list lives in the drawer (`drawer/DrawerContent.kt`, `DrawerVie
 - `ConversationExporter` supports `ExportFormat.JSON` and `ExportFormat.MARKDOWN`
 - Export is client-side: fetches messages, serializes locally, emits `ExportReady` event
 - `ExportFormatPicker` component for format selection
-- `ConversationImporter` parses JSON (LibreChat/ChatGPT format) via `POST /api/convos/import`
+- The JSON export uses web's top-level shape (`conversationId`, `endpoint`, `title`, `options`, flat
+  `messages`) so `POST /api/convos/import` accepts it; `conversation`/`exportedAt`/`version` are app-only extras
+- `ConversationImporter` parses that file locally; `ConversationRepository.importConversation` posts it to
+  `POST /api/convos/import`. No screen calls either yet
 - File I/O uses SAF (Storage Access Framework)
 
 ## Events
