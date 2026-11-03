@@ -74,6 +74,11 @@
     <string name="context_usage_cost">Kosten</string>
     <string name="context_usage_cost_branch">Kosten (dieser Zweig)</string>
     <string name="context_usage_cost_all">Alle Zweige</string>
+    <string name="context_usage_last_turn">Letzter Zug</string>
+    <string name="context_usage_current_turn">Aktueller Zug (bisher)</string>
+    <string name="context_usage_waiting">Warte auf Modellnutzung…</string>
+    <string name="context_usage_unavailable">Für diesen Zug keine Nutzungsdaten verfügbar</string>
+    <string name="context_usage_this_branch">Dieser Zweig</string>
     <string name="context_usage_tools_all">Tools</string>
     <string name="context_usage_used">Belegt</string>
     <string name="timestamp_just_now">Gerade eben</string>
@@ -177,6 +182,7 @@
     <string name="param_option_xhigh">Sehr hoch</string>
     <string name="param_option_max">Maximal</string>
     <string name="param_option_auto">Automatisch</string>
+    <string name="param_option_off">Aus</string>
     <string name="param_option_concise">Knapp</string>
     <string name="param_option_detailed">Ausführlich</string>
     <string name="param_option_standard">Standard</string>
@@ -298,6 +304,9 @@
     <string name="acl_error_not_found">Das wurde gelöscht, oder du hast keinen Zugriff mehr darauf.</string>
     <string name="acl_error_owner_protected">Der Zugriff des Eigentümers kann nicht geändert werden.</string>
     <string name="acl_error_generic">Zugriff konnte nicht aktualisiert werden. Versuche es erneut.</string>
+    <string name="acl_error_busy">Eine andere Änderung an diesem Zugriff läuft gerade. Versuch es gleich noch einmal.</string>
+    <string name="acl_error_unavailable">Der Zugriff kann gerade nicht geändert werden. Versuch es in Kürze erneut.</string>
+    <string name="acl_error_audit_unavailable">Der Zugriff wurde nicht geändert, weil der Server die Änderung nicht protokollieren konnte. Versuch es in Kürze erneut.</string>
     <string name="acl_error_load">Die Zugriffsliste konnte nicht geladen werden.</string>
     <string name="bookmarks">Lesezeichen</string>
     <string name="bookmark_new">Neues Lesezeichen</string>
@@ -327,4 +336,30 @@
         <item quantity="one">Höchstens %1$d Zeichen</item>
         <item quantity="other">Höchstens %1$d Zeichen</item>
     </plurals>
+    <string name="mcp_oauth_sign_in_title">Bei %1$s anmelden</string>
+    <string name="mcp_oauth_sign_in_close">Anmeldung schließen</string>
+    <string name="pull_request">Pull-Request</string>
+    <string name="merge_request">Merge-Request</string>
+    <string name="pr_label">PR #%1$d</string>
+    <string name="pr_label_gitlab">MR !%1$d</string>
+    <string name="pr_state_open">Offen</string>
+    <string name="pr_state_draft">Entwurf</string>
+    <string name="pr_state_merged">Gemergt</string>
+    <string name="pr_state_closed">Geschlossen</string>
+    <string name="pr_state_conflicts">Konflikte</string>
+    <string name="pr_checks_passing">Erfolgreich</string>
+    <string name="pr_checks_failing">Fehlgeschlagen</string>
+    <string name="pr_checks_running">Läuft</string>
+    <string name="pr_checks_none">Keine</string>
+    <string name="pr_state">Status: %1$s</string>
+    <string name="pr_checks">Checks: %1$s</string>
+    <string name="pr_menu_subtitle">%1$s · Checks %2$s</string>
+    <string name="pr_menu_subtitle_no_checks">%1$s · Keine Checks</string>
+    <string name="pr_open_in_github">In GitHub öffnen</string>
+    <string name="pr_open_in_gitlab">In GitLab öffnen</string>
+    <string name="pr_open_in_bitbucket">In Bitbucket öffnen</string>
+    <string name="pr_refresh_failed">Pull-Request konnte nicht aktualisiert werden</string>
+    <string name="pr_retry">Erneut versuchen</string>
+    <string name="pr_additions_cd">%1$d Zeilen hinzugefügt</string>
+    <string name="pr_deletions_cd">%1$d Zeilen entfernt</string>
 </resources>

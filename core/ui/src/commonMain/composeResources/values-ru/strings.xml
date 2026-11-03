@@ -74,6 +74,11 @@
     <string name="context_usage_cost">Стоимость</string>
     <string name="context_usage_cost_branch">Стоимость (эта ветка)</string>
     <string name="context_usage_cost_all">Все ветки</string>
+    <string name="context_usage_last_turn">Последний ход</string>
+    <string name="context_usage_current_turn">Текущий ход (пока)</string>
+    <string name="context_usage_waiting">Ожидание данных об использовании модели…</string>
+    <string name="context_usage_unavailable">Данные об использовании для этого хода недоступны</string>
+    <string name="context_usage_this_branch">Эта ветка</string>
     <string name="context_usage_tools_all">Инструменты</string>
     <string name="context_usage_used">Использовано</string>
     <string name="timestamp_just_now">Только что</string>
@@ -185,6 +190,7 @@
     <string name="param_option_xhigh">Очень высокий</string>
     <string name="param_option_max">Максимальный</string>
     <string name="param_option_auto">Авто</string>
+    <string name="param_option_off">Выкл.</string>
     <string name="param_option_concise">Кратко</string>
     <string name="param_option_detailed">Подробно</string>
     <string name="param_option_standard">Стандартный</string>
@@ -306,6 +312,9 @@
     <string name="acl_error_not_found">Объект удалён, или у вас больше нет к нему доступа.</string>
     <string name="acl_error_owner_protected">Доступ владельца нельзя изменить.</string>
     <string name="acl_error_generic">Не удалось изменить доступ. Повторите попытку.</string>
+    <string name="acl_error_busy">Другое изменение этого доступа уже выполняется. Повторите попытку через мгновение.</string>
+    <string name="acl_error_unavailable">Сейчас нельзя изменить доступ. Повторите попытку чуть позже.</string>
+    <string name="acl_error_audit_unavailable">Доступ не изменён: сервер не смог зарегистрировать изменение. Повторите попытку чуть позже.</string>
     <string name="acl_error_load">Не удалось загрузить список пользователей с доступом.</string>
     <string name="bookmarks">Закладки</string>
     <string name="bookmark_new">Новая закладка</string>
@@ -339,4 +348,30 @@
         <item quantity="many">Не больше %1$d символов</item>
         <item quantity="other">Не больше %1$d символа</item>
     </plurals>
+    <string name="mcp_oauth_sign_in_title">Вход в %1$s</string>
+    <string name="mcp_oauth_sign_in_close">Закрыть вход</string>
+    <string name="pull_request">Pull request</string>
+    <string name="merge_request">Merge request</string>
+    <string name="pr_label">PR #%1$d</string>
+    <string name="pr_label_gitlab">MR !%1$d</string>
+    <string name="pr_state_open">Открыт</string>
+    <string name="pr_state_draft">Черновик</string>
+    <string name="pr_state_merged">Слит</string>
+    <string name="pr_state_closed">Закрыт</string>
+    <string name="pr_state_conflicts">Конфликты</string>
+    <string name="pr_checks_passing">Пройдены</string>
+    <string name="pr_checks_failing">Не пройдены</string>
+    <string name="pr_checks_running">Выполняются</string>
+    <string name="pr_checks_none">Нет</string>
+    <string name="pr_state">Статус: %1$s</string>
+    <string name="pr_checks">Проверки: %1$s</string>
+    <string name="pr_menu_subtitle">%1$s · Проверки: %2$s</string>
+    <string name="pr_menu_subtitle_no_checks">%1$s · Нет проверок</string>
+    <string name="pr_open_in_github">Открыть в GitHub</string>
+    <string name="pr_open_in_gitlab">Открыть в GitLab</string>
+    <string name="pr_open_in_bitbucket">Открыть в Bitbucket</string>
+    <string name="pr_refresh_failed">Не удалось обновить pull request</string>
+    <string name="pr_retry">Повторить</string>
+    <string name="pr_additions_cd">Добавлено строк: %1$d</string>
+    <string name="pr_deletions_cd">Удалено строк: %1$d</string>
 </resources>

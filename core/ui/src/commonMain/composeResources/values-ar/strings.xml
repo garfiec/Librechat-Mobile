@@ -74,6 +74,11 @@
     <string name="context_usage_cost">التكلفة</string>
     <string name="context_usage_cost_branch">التكلفة (هذا الفرع)</string>
     <string name="context_usage_cost_all">كل الفروع</string>
+    <string name="context_usage_last_turn">الدور الأخير</string>
+    <string name="context_usage_current_turn">الدور الحالي (حتى الآن)</string>
+    <string name="context_usage_waiting">في انتظار استخدام النموذج…</string>
+    <string name="context_usage_unavailable">الاستخدام غير متاح لهذا الدور</string>
+    <string name="context_usage_this_branch">هذا الفرع</string>
     <string name="context_usage_tools_all">الأدوات</string>
     <string name="context_usage_used">المستخدم</string>
     <string name="timestamp_just_now">الآن</string>
@@ -193,6 +198,7 @@
     <string name="param_option_xhigh">مرتفع جدًا</string>
     <string name="param_option_max">أقصى</string>
     <string name="param_option_auto">تلقائي</string>
+    <string name="param_option_off">إيقاف</string>
     <string name="param_option_concise">موجز</string>
     <string name="param_option_detailed">مفصل</string>
     <string name="param_option_standard">قياسي</string>
@@ -314,6 +320,9 @@
     <string name="acl_error_not_found">تم حذف هذا العنصر، أو لم يعد لديك حق الوصول إليه.</string>
     <string name="acl_error_owner_protected">لا يمكن تغيير وصول المالك.</string>
     <string name="acl_error_generic">تعذّر تحديث الوصول. حاول مرة أخرى.</string>
+    <string name="acl_error_busy">يوجد تغيير آخر على هذا الوصول قيد التنفيذ. حاول مرة أخرى بعد قليل.</string>
+    <string name="acl_error_unavailable">لا يمكن تغيير الوصول الآن. حاول مرة أخرى قريبًا.</string>
+    <string name="acl_error_audit_unavailable">لم يتم تغيير الوصول لأن الخادم لم يتمكن من تسجيل التغيير. حاول مرة أخرى قريبًا.</string>
     <string name="acl_error_load">تعذّر تحميل قائمة من لديهم حق الوصول.</string>
     <string name="bookmarks">الإشارات المرجعية</string>
     <string name="bookmark_new">إشارة مرجعية جديدة</string>
@@ -351,4 +360,30 @@
         <item quantity="many">الحد الأقصى %1$d حرفًا</item>
         <item quantity="other">الحد الأقصى %1$d حرف</item>
     </plurals>
+    <string name="mcp_oauth_sign_in_title">تسجيل الدخول إلى %1$s</string>
+    <string name="mcp_oauth_sign_in_close">إغلاق تسجيل الدخول</string>
+    <string name="pull_request">طلب سحب</string>
+    <string name="merge_request">طلب دمج</string>
+    <string name="pr_label">PR #%1$d</string>
+    <string name="pr_label_gitlab">MR !%1$d</string>
+    <string name="pr_state_open">مفتوح</string>
+    <string name="pr_state_draft">مسودة</string>
+    <string name="pr_state_merged">مدموج</string>
+    <string name="pr_state_closed">مغلق</string>
+    <string name="pr_state_conflicts">تعارضات</string>
+    <string name="pr_checks_passing">ناجحة</string>
+    <string name="pr_checks_failing">فاشلة</string>
+    <string name="pr_checks_running">قيد التشغيل</string>
+    <string name="pr_checks_none">لا يوجد</string>
+    <string name="pr_state">الحالة: %1$s</string>
+    <string name="pr_checks">الفحوصات: %1$s</string>
+    <string name="pr_menu_subtitle">%1$s · الفحوصات %2$s</string>
+    <string name="pr_menu_subtitle_no_checks">%1$s · لا توجد فحوصات</string>
+    <string name="pr_open_in_github">فتح في GitHub</string>
+    <string name="pr_open_in_gitlab">فتح في GitLab</string>
+    <string name="pr_open_in_bitbucket">فتح في Bitbucket</string>
+    <string name="pr_refresh_failed">تعذّر تحديث طلب السحب</string>
+    <string name="pr_retry">إعادة المحاولة</string>
+    <string name="pr_additions_cd">عدد الأسطر المضافة: %1$d</string>
+    <string name="pr_deletions_cd">عدد الأسطر المحذوفة: %1$d</string>
 </resources>
