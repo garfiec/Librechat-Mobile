@@ -331,6 +331,16 @@
     <string name="artifact_mode_fullscreen_desc">より広い全画面ページとして開きます。</string>
     <string name="artifact_inline_title">インラインで表示</string>
     <string name="artifact_inline_enabled_count">%2$d 件中 %1$d 件が有効</string>
+    <string name="artifact_libraries_title">注意が必要なライブラリ</string>
+    <string name="artifact_libraries_desc">アーティファクトは、メンテナンスが終了したものや既知の問題があるライブラリをいくつか使用できます。それぞれを読み込むかどうかを選ぶか、アーティファクトごとに確認するようにできます。サンドボックス内で実行され、ファイルやアカウントにはアクセスできません。</string>
+    <string name="artifact_libraries_none_set">毎回確認</string>
+    <string name="artifact_libraries_some_set">%2$d 件中 %1$d 件を設定済み</string>
+    <string name="artifact_libraries_ask">確認</string>
+    <string name="artifact_libraries_allow">読み込む</string>
+    <string name="artifact_libraries_decline">読み込まない</string>
+    <string name="artifact_libraries_unmaintained">メンテナンス終了</string>
+    <string name="artifact_libraries_deprecated">作者により非推奨</string>
+    <string name="artifact_libraries_vulnerable">既知のセキュリティ勧告あり</string>
     <string name="artifacts_section_desc">タップして開くカードの代わりに、アーティファクトをチャット内に直接レンダリングします。インラインのアーティファクトをタップすると全画面表示が開きます。</string>
     <string name="inline_artifact_mermaid">Mermaid図</string>
     <string name="inline_artifact_mermaid_desc">Mermaidのフローチャートや図をインラインでレンダリング</string>

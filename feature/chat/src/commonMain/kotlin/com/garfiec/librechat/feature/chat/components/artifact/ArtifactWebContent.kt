@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.components.artifact
 
 import com.garfiec.librechat.core.model.TextFormat
+import com.garfiec.librechat.feature.chat.components.web.VendoredAdvisory
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
@@ -15,11 +16,17 @@ import kotlin.io.encoding.ExperimentalEncodingApi
  */
 object ArtifactWebContent {
 
+    /**
+     * [allowedLibraries] are the flagged libraries ([libraryAdvisories]) the user agreed to load.
+     * Any other flagged library a React artifact imports gets a stub that says so instead of the
+     * bundle, so a caller that never asked (and passes nothing) loads none of them.
+     */
     fun buildHtml(
         content: String,
         type: String,
         isDarkTheme: Boolean,
         inline: Boolean = false,
+        allowedLibraries: Set<String> = emptySet(),
     ): String {
         val bgColor = if (isDarkTheme) "#1C1B1F" else "#FFFBFE"
         val fgColor = if (isDarkTheme) "#E6E1E5" else "#1C1B1F"
@@ -48,11 +55,23 @@ object ArtifactWebContent {
             // Escaped, never through marked: marked hands raw HTML in the text straight to
             // innerHTML, so a file's or a reply's "plain text" would render as live markup.
             ArtifactType.PLAIN, ArtifactType.CODE -> buildPlainHtml(content, bgColor, fgColor, inline)
-            ArtifactType.REACT -> buildReactHtml(content, bgColor, fgColor)
+            ArtifactType.REACT -> buildReactHtml(content, bgColor, fgColor, allowedLibraries)
             ArtifactType.SVG -> buildSvgHtml(content, bgColor, inline)
             ArtifactType.HTML -> buildEnhancedHtml(content, bgColor, fgColor)
         }
     }
+
+    /**
+     * The flagged libraries (unmaintained, deprecated or vulnerable; `advisory` in
+     * scripts/web-assets.json) a React artifact imports, in first-import order. The host asks
+     * the user about each before building the page. Empty for every other type.
+     */
+    internal fun libraryAdvisories(content: String, type: String): List<VendoredAdvisory> =
+        if (!ArtifactType.isOfficePreviewMime(type) && ArtifactType.from(type) == ArtifactType.REACT) {
+            ReactArtifactImports.advisories(content)
+        } else {
+            emptyList()
+        }
 
     /**
      * Builds the document for a deferred office-doc preview (`TFilePreview`).
@@ -168,101 +187,53 @@ object ArtifactWebContent {
     }
 
     // Security note: React artifacts intentionally render unsanitized, model-generated
-    // JSX/JS. The preview runs in a sandboxed WebView under a CSP that permits no remote
-    // origin at all: React, ReactDOM, Babel and Tailwind are the copies bundled with the
-    // app, referenced relative to the document base URL the platform host supplies.
+    // JSX/TSX. The preview runs in a sandboxed WebView under a CSP that permits no remote
+    // origin at all: React, ReactDOM, Babel, Tailwind and every npm module an artifact may
+    // import are the copies bundled with the app, referenced relative to the document base
+    // URL the platform host supplies.
     //
     // React 18 publishes no browser-ready ESM build, only CommonJS and UMD, so the UMD
     // builds load as plain scripts and the import map points at small generated modules
-    // re-exporting those globals — see `feature/chat/CLAUDE.md`, "React's module problem".
-    // The version is not named here: it is whichever build scripts/web-assets.json pins.
+    // re-exporting those globals. The npm modules (lucide-react, recharts, shadcn/ui, ...)
+    // follow the same bridge: each vendored bundle is a classic script registering module
+    // namespaces on `__switchboardModules`, re-exported the same way. See
+    // `feature/chat/CLAUDE.md`, "React's module problem". Versions are not named here: they
+    // are whatever scripts/web-assets.json pins.
 
-    /** Captures the module specifier of every `import ... from 'X'` and bare
-     *  side-effect `import 'X'`. */
-    private val MODULE_SPECIFIER = Regex("""(?:from|import)\s*['"]([^'"]+)['"]""")
-
-    /** Specifiers the runner satisfies from the bundled UMD globals. */
-    private val CORE_IMPORTS = setOf(
-        "react",
-        "react/jsx-runtime",
-        "react-dom",
-        "react-dom/client",
-    )
-
-    /** npm package names only. Anything else is dropped rather than embedded: these
-     *  strings come from model output and are interpolated into a script. */
-    private val SAFE_SPECIFIER = Regex("""^[A-Za-z0-9@][A-Za-z0-9@/._-]*${'$'}""")
-
-    /**
-     * Every bare module specifier the artifact imports that the bundle cannot satisfy.
-     * Relative (`./`, `/`) and absolute-URL specifiers are left alone -- the browser
-     * resolves those itself.
-     */
-    private fun missingSpecifiers(content: String): List<String> =
-        MODULE_SPECIFIER.findAll(content)
-            .map { it.groupValues[1] }
-            .filter { spec ->
-                spec.isNotBlank() &&
-                    !spec.startsWith(".") &&
-                    !spec.startsWith("/") &&
-                    !spec.contains(":") &&
-                    spec !in CORE_IMPORTS &&
-                    SAFE_SPECIFIER.matches(spec)
-            }
-            .distinct()
-            .toList()
-
-    /** Captures the import clause and specifier of `import <clause> from 'X'`. */
-    private val IMPORT_CLAUSE = Regex("""import\s+([^'"]+?)\s+from\s*['"]([^'"]+)['"]""")
-
-    /** A binding inside `{ ... }`, keeping the imported name rather than the local alias. */
-    private val NAMED_BINDING =
-        Regex("""([A-Za-z_${'$'}][A-Za-z0-9_${'$'}]*)(?:\s+as\s+[A-Za-z_${'$'}][A-Za-z0-9_${'$'}]*)?""")
-
-    /**
-     * The export names each unbundled specifier is imported under.
-     *
-     * A stub module has to *declare* these even though it only ever throws. A module's
-     * named imports are resolved during linking, which happens before any of its code
-     * runs, so a stub that exports nothing is rejected with "does not provide an export
-     * named 'X'" and the message explaining that the package is not bundled -- the whole
-     * point of the stub -- never gets the chance to execute.
-     *
-     * Namespace imports (`import * as X`) need no entry; they bind to whatever the module
-     * exports, including nothing.
-     */
-    private fun missingModuleExports(content: String, missing: Set<String>): Map<String, List<String>> {
-        val exports = mutableMapOf<String, MutableSet<String>>()
-        for (match in IMPORT_CLAUSE.findAll(content)) {
-            val spec = match.groupValues[2]
-            if (spec !in missing) continue
-            val names = exports.getOrPut(spec) { mutableSetOf() }
-            val clause = match.groupValues[1]
-            val braces = clause.substringAfter('{', "").substringBefore('}', "")
-            if (braces.isNotBlank()) {
-                NAMED_BINDING.findAll(braces).forEach { names += it.groupValues[1] }
-            }
-            // Anything before the brace or the `* as` is a default import.
-            val head = clause.substringBefore('{').substringBefore('*').trim().trimEnd(',').trim()
-            if (head.isNotEmpty()) names += "default"
-        }
-        return exports.mapValues { (_, names) -> names.toList() }
-    }
-
-    @Suppress("LongMethod") // debt: 186 lines
+    @Suppress("LongMethod") // debt: one HTML template
     @OptIn(ExperimentalEncodingApi::class)
-    private fun buildReactHtml(content: String, bgColor: String, fgColor: String): String {
-        val missing = missingSpecifiers(content)
-        val missingExports = missingModuleExports(content, missing.toSet())
-        val missingJson = missing.joinToString(",") { spec ->
-            val names = missingExports[spec].orEmpty().joinToString(",") { "\"" + it + "\"" }
-            "[\"" + spec + "\",[" + names + "]]"
+    private fun buildReactHtml(
+        content: String,
+        bgColor: String,
+        fgColor: String,
+        allowedLibraries: Set<String>,
+    ): String {
+        val imports = ReactArtifactImports.plan(content, allowedLibraries)
+
+        // Every string below is a module specifier that passed the plan's charset guard, an
+        // identifier from NAMED_BINDING, or a path from the generated manifest, so none can
+        // carry a quote or a backslash out of its JSON literal.
+        fun quoted(s: String) = "\"" + s + "\""
+
+        fun names(list: List<String>) = list.joinToString(",", "[", "]") { quoted(it) }
+
+        val bundledJson = imports.bundled.joinToString(",", "[", "]") {
+            "[" + quoted(it.key) + "," + quoted(it.registered) + "," + names(it.names) + "]"
         }
+        val stubsJson = imports.stubs.joinToString(",", "[", "]") {
+            "[" + quoted(it.key) + "," + quoted(it.shown) + "," + names(it.names) + "," +
+                (it.withheldLibrary?.let(::quoted) ?: "null") + "]"
+        }
+        val aliasesJson = imports.aliases.entries.joinToString(",", "{", "}") { (spec, key) ->
+            quoted(spec) + ":" + quoted(key)
+        }
+        val moduleScripts = imports.scripts.joinToString("\n") { """<script src="$it"></script>""" }
         // Embed the source as base64 so arbitrary JSX -- including `</script>`,
         // backticks, or `${'$'}{...}` -- round-trips with zero HTML/JS escaping
-        // hazards. The runner decodes, compiles JSX, and imports it as a real
-        // ES module so the artifact's own `import`/`export` statements work
-        // verbatim against the import map (no source rewriting).
+        // hazards. The runner decodes, compiles it, and imports it as a real ES module so
+        // the artifact's own `import`/`export` statements run against the import map. The
+        // one rewrite is of shadcn import paths (see ReactArtifactImports), done on Babel's
+        // AST, never on the text.
         val sourceB64 = Base64.encode(content.encodeToByteArray())
 
         return """
@@ -273,6 +244,7 @@ object ArtifactWebContent {
                 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: file:; style-src 'unsafe-inline'; img-src data: blob: https:; font-src data: file:; form-action 'none';">
                 <script src="react/react.production.min.js"></script>
                 <script src="react-dom/react-dom.production.min.js"></script>
+                $moduleScripts
                 <script src="babel/babel.min.js"></script>
                 <script src="tailwind/tailwind.min.js"></script>
                 <style>
@@ -339,14 +311,19 @@ object ArtifactWebContent {
                         return URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
                     }
 
-                    // Re-exports a UMD global as an ES module, naming each export so
+                    // Re-exports an object as an ES module, naming each export so
                     // `import { useState } from 'react'` binds like it would from npm.
-                    function globalModule(globalName, obj) {
-                        var lines = ['const m = window.' + globalName + ';', 'export default m;'];
+                    function objectModule(accessor, obj) {
+                        var lines = ['const m = ' + accessor + ';',
+                            'export default (m.default !== undefined ? m.default : m);'];
                         Object.keys(obj).forEach(function (k) {
                             if (isSafeName(k)) lines.push('export const ' + k + ' = m.' + k + ';');
                         });
                         return moduleUrl(lines.join('\n'));
+                    }
+
+                    function globalModule(globalName, obj) {
+                        return objectModule('window.' + globalName, obj);
                     }
 
                     // The stub declares the names the artifact imports from it, then throws.
@@ -354,17 +331,36 @@ object ArtifactWebContent {
                     // module graph links, before any code runs, so a stub that exports nothing
                     // is rejected with "does not provide an export named 'X'" and the message
                     // below -- the entire reason the stub exists -- never executes.
-                    function missingModule(spec, names) {
+                    function stubModule(names, message) {
                         var lines = [];
                         names.forEach(function (n) {
                             if (n === 'default') lines.push('export default undefined;');
                             else if (isSafeName(n)) lines.push('export const ' + n + ' = undefined;');
                         });
-                        lines.push('throw new Error(' + JSON.stringify(
-                            'This artifact imports "' + spec + '", an npm package that is not ' +
-                            'bundled with the app, so it cannot be loaded.'
-                        ) + ');');
+                        lines.push('throw new Error(' + JSON.stringify(message) + ');');
                         return moduleUrl(lines.join('\n'));
+                    }
+
+                    function missingModule(spec, names) {
+                        return stubModule(names, 'This artifact imports "' + spec + '", which is not ' +
+                            'bundled with the app, so it cannot be loaded.');
+                    }
+
+                    function withheldModule(spec, names, library) {
+                        var named = spec === library ? '"' + spec + '"' : '"' + spec + '" (' + library + ')';
+                        return stubModule(names, 'This artifact imports ' + named +
+                            ', which was not loaded: it needs your permission.');
+                    }
+
+                    // A bundle's script registers its modules as it runs. One that didn't (a
+                    // missing or broken file) gets a stub saying so, rather than a link error
+                    // about some export the artifact happened to import first.
+                    function bundledModule(spec, names) {
+                        var mods = window.__switchboardModules || {};
+                        if (!mods[spec]) {
+                            return stubModule(names, 'The bundled module "' + spec + '" failed to load.');
+                        }
+                        return objectModule('window.__switchboardModules[' + JSON.stringify(spec) + ']', mods[spec]);
                     }
 
                     // Babel's automatic runtime compiles JSX to jsx()/jsxs() imported from
@@ -404,7 +400,31 @@ object ArtifactWebContent {
                         'react-dom': globalModule('ReactDOM', window.ReactDOM),
                         'react-dom/client': moduleUrl(DOM_CLIENT)
                     };
-                    [$missingJson].forEach(function (e) { imports[e[0]] = missingModule(e[0], e[1]); });
+                    var BUNDLED = $bundledJson;
+                    var STUBS = $stubsJson;
+                    var ALIASES = $aliasesJson;
+                    BUNDLED.forEach(function (e) { imports[e[0]] = bundledModule(e[1], e[2]); });
+                    STUBS.forEach(function (e) {
+                        imports[e[0]] = e[3] ? withheldModule(e[1], e[2], e[3]) : missingModule(e[1], e[2]);
+                    });
+
+                    // Points shadcn path imports at their import-map keys (see ALIASES' builder).
+                    // Rewritten on the AST: a regex over the source would also hit strings and
+                    // comments that merely contain the path.
+                    function aliasImports() {
+                        function rewrite(path) {
+                            var s = path.node.source;
+                            if (s && Object.prototype.hasOwnProperty.call(ALIASES, s.value)) {
+                                s.value = ALIASES[s.value];
+                                delete s.extra;
+                            }
+                        }
+                        return { visitor: {
+                            ImportDeclaration: rewrite,
+                            ExportNamedDeclaration: rewrite,
+                            ExportAllDeclaration: rewrite
+                        } };
+                    }
 
                     // Injected before the first dynamic import, which is the only ordering
                     // requirement -- no module has been resolved yet at this point.
@@ -421,9 +441,17 @@ object ArtifactWebContent {
                             var source = new TextDecoder().decode(
                                 Uint8Array.from(atob('$sourceB64'), function(c) { return c.charCodeAt(0); })
                             );
+                            // TypeScript as well as JSX: web runs artifacts in Sandpack's react-ts
+                            // template, and the shadcn components invite typed code. The preset
+                            // also drops imports used only as types, which the bundles do not
+                            // export at runtime.
                             var compiled = Babel.transform(source, {
-                                presets: [['react', { runtime: 'automatic', development: false }]],
-                                filename: 'artifact.jsx',
+                                presets: [
+                                    ['typescript', { isTSX: true, allExtensions: true }],
+                                    ['react', { runtime: 'automatic', development: false }]
+                                ],
+                                plugins: [aliasImports],
+                                filename: 'artifact.tsx',
                                 sourceType: 'module',
                             }).code;
                             var mod = await import(moduleUrl(compiled));

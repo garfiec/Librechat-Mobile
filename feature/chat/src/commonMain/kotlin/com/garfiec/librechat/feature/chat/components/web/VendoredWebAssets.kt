@@ -28,7 +28,7 @@ internal object VendoredWebAssets {
      * version, so bumping a library to a build that ships the same names leaves the
      * list byte-identical and a stale copy would be kept and executed indefinitely.
      */
-    const val FINGERPRINT: String = "493853b9ed3a6ca8"
+    const val FINGERPRINT: String = "9c14b7ae1974414e"
 
     val FILES: List<String> = listOf(
         "katex/LICENSE",
@@ -76,5 +76,123 @@ internal object VendoredWebAssets {
         "jszip/jszip.min.js",
         "docx-preview/LICENSE",
         "docx-preview/docx-preview.min.js",
+        "lucide-react/THIRD_PARTY_NOTICES.txt",
+        "lucide-react/index.js",
+        "recharts/THIRD_PARTY_NOTICES.txt",
+        "recharts/index.js",
+        "three/THIRD_PARTY_NOTICES.txt",
+        "three/index.js",
+        "date-fns/THIRD_PARTY_NOTICES.txt",
+        "date-fns/index.js",
+        "react-router/THIRD_PARTY_NOTICES.txt",
+        "react-router/index.js",
+        "dat-gui/THIRD_PARTY_NOTICES.txt",
+        "dat-gui/index.js",
+        "shadcn-ui/THIRD_PARTY_NOTICES.txt",
+        "shadcn-ui/index.js",
+        "vaul/THIRD_PARTY_NOTICES.txt",
+        "vaul/index.js",
     )
+
+    /**
+     * Every module specifier a React artifact may import from a vendored bundle, mapped
+     * to the classic script that registers it on `globalThis.__switchboardModules`.
+     * shadcn/ui components are keyed by the path web mounts them at
+     * (`/components/ui/button`).
+     */
+    val MODULES: Map<String, String> = mapOf(
+        "lucide-react" to "lucide-react/index.js",
+        "recharts" to "recharts/index.js",
+        "three" to "three/index.js",
+        "date-fns" to "date-fns/index.js",
+        "react-router-dom" to "react-router/index.js",
+        "react-router" to "react-router/index.js",
+        "dat.gui" to "dat-gui/index.js",
+        "@radix-ui/react-accordion" to "shadcn-ui/index.js",
+        "@radix-ui/react-alert-dialog" to "shadcn-ui/index.js",
+        "@radix-ui/react-aspect-ratio" to "shadcn-ui/index.js",
+        "@radix-ui/react-avatar" to "shadcn-ui/index.js",
+        "@radix-ui/react-checkbox" to "shadcn-ui/index.js",
+        "@radix-ui/react-collapsible" to "shadcn-ui/index.js",
+        "@radix-ui/react-dialog" to "shadcn-ui/index.js",
+        "@radix-ui/react-dropdown-menu" to "shadcn-ui/index.js",
+        "@radix-ui/react-hover-card" to "shadcn-ui/index.js",
+        "@radix-ui/react-label" to "shadcn-ui/index.js",
+        "@radix-ui/react-menubar" to "shadcn-ui/index.js",
+        "@radix-ui/react-navigation-menu" to "shadcn-ui/index.js",
+        "@radix-ui/react-popover" to "shadcn-ui/index.js",
+        "@radix-ui/react-progress" to "shadcn-ui/index.js",
+        "@radix-ui/react-radio-group" to "shadcn-ui/index.js",
+        "@radix-ui/react-select" to "shadcn-ui/index.js",
+        "@radix-ui/react-separator" to "shadcn-ui/index.js",
+        "@radix-ui/react-slider" to "shadcn-ui/index.js",
+        "@radix-ui/react-slot" to "shadcn-ui/index.js",
+        "@radix-ui/react-switch" to "shadcn-ui/index.js",
+        "@radix-ui/react-tabs" to "shadcn-ui/index.js",
+        "@radix-ui/react-toast" to "shadcn-ui/index.js",
+        "@radix-ui/react-toggle" to "shadcn-ui/index.js",
+        "@radix-ui/react-toggle-group" to "shadcn-ui/index.js",
+        "@radix-ui/react-tooltip" to "shadcn-ui/index.js",
+        "class-variance-authority" to "shadcn-ui/index.js",
+        "clsx" to "shadcn-ui/index.js",
+        "tailwind-merge" to "shadcn-ui/index.js",
+        "embla-carousel-react" to "shadcn-ui/index.js",
+        "react-day-picker" to "shadcn-ui/index.js",
+        "/lib/utils" to "shadcn-ui/index.js",
+        "/components/ui/accordion" to "shadcn-ui/index.js",
+        "/components/ui/alert-dialog" to "shadcn-ui/index.js",
+        "/components/ui/alert" to "shadcn-ui/index.js",
+        "/components/ui/avatar" to "shadcn-ui/index.js",
+        "/components/ui/badge" to "shadcn-ui/index.js",
+        "/components/ui/breadcrumb" to "shadcn-ui/index.js",
+        "/components/ui/button" to "shadcn-ui/index.js",
+        "/components/ui/calendar" to "shadcn-ui/index.js",
+        "/components/ui/card" to "shadcn-ui/index.js",
+        "/components/ui/carousel" to "shadcn-ui/index.js",
+        "/components/ui/checkbox" to "shadcn-ui/index.js",
+        "/components/ui/collapsible" to "shadcn-ui/index.js",
+        "/components/ui/dialog" to "shadcn-ui/index.js",
+        "/components/ui/dropdown-menu" to "shadcn-ui/index.js",
+        "/components/ui/input" to "shadcn-ui/index.js",
+        "/components/ui/label" to "shadcn-ui/index.js",
+        "/components/ui/menubar" to "shadcn-ui/index.js",
+        "/components/ui/navigation-menu" to "shadcn-ui/index.js",
+        "/components/ui/pagination" to "shadcn-ui/index.js",
+        "/components/ui/popover" to "shadcn-ui/index.js",
+        "/components/ui/progress" to "shadcn-ui/index.js",
+        "/components/ui/radio-group" to "shadcn-ui/index.js",
+        "/components/ui/select" to "shadcn-ui/index.js",
+        "/components/ui/separator" to "shadcn-ui/index.js",
+        "/components/ui/skeleton" to "shadcn-ui/index.js",
+        "/components/ui/slider" to "shadcn-ui/index.js",
+        "/components/ui/switch" to "shadcn-ui/index.js",
+        "/components/ui/table" to "shadcn-ui/index.js",
+        "/components/ui/tabs" to "shadcn-ui/index.js",
+        "/components/ui/textarea" to "shadcn-ui/index.js",
+        "/components/ui/toast" to "shadcn-ui/index.js",
+        "/components/ui/toaster" to "shadcn-ui/index.js",
+        "/components/ui/toggle-group" to "shadcn-ui/index.js",
+        "/components/ui/toggle" to "shadcn-ui/index.js",
+        "/components/ui/tooltip" to "shadcn-ui/index.js",
+        "/components/ui/use-toast" to "shadcn-ui/index.js",
+        "vaul" to "vaul/index.js",
+        "/components/ui/drawer" to "vaul/index.js",
+    )
+
+    /**
+     * Module specifiers whose bundle carries a registry `advisory` (unmaintained, deprecated
+     * or vulnerable), mapped to the library the user is asked about. The artifact host asks
+     * before a React artifact importing one loads it; each bundle holds only flagged code, so
+     * declining keeps it from running at all.
+     */
+    val ADVISORIES: Map<String, VendoredAdvisory> = mapOf(
+        "dat.gui" to VendoredAdvisory("dat.gui", VendoredAdvisory.Kind.UNMAINTAINED),
+        "vaul" to VendoredAdvisory("vaul", VendoredAdvisory.Kind.UNMAINTAINED),
+        "/components/ui/drawer" to VendoredAdvisory("vaul", VendoredAdvisory.Kind.UNMAINTAINED),
+    )
+}
+
+/** A vendored library the user is asked about before an artifact loads it. */
+internal data class VendoredAdvisory(val library: String, val kind: Kind) {
+    enum class Kind { UNMAINTAINED, DEPRECATED, VULNERABLE }
 }

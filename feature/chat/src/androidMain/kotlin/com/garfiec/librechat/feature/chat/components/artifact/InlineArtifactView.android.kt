@@ -48,11 +48,18 @@ actual fun InlineArtifactView(
     modifier: Modifier,
     fitContent: Boolean,
     header: (@Composable () -> Unit)?,
+    allowedLibraries: Set<String>,
 ) {
     val isDarkTheme = isSurfaceDark()
     val bgArgb = MaterialTheme.colorScheme.surface.toArgb()
-    val html = remember(artifact, isDarkTheme) {
-        ArtifactWebContent.buildHtml(artifact.content, artifact.type, isDarkTheme, inline = true)
+    val html = remember(artifact, isDarkTheme, allowedLibraries) {
+        ArtifactWebContent.buildHtml(
+            artifact.content,
+            artifact.type,
+            isDarkTheme,
+            inline = true,
+            allowedLibraries = allowedLibraries,
+        )
     }
     var loadedHtml by remember { mutableStateOf("") }
     var contentHeight by remember { mutableStateOf<Float?>(null) }
@@ -184,3 +191,5 @@ private fun createInlineWebView(
         addJavascriptInterface(ContentHeightJsBridge(onContentHeight), CONTENT_HEIGHT_ANDROID_BRIDGE)
     }
 }
+
+internal actual val inlineArtifactDrawsWebGl: Boolean = false

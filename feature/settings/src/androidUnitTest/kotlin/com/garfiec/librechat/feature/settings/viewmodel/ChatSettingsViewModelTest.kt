@@ -2,7 +2,10 @@ package com.garfiec.librechat.feature.settings.viewmodel
 
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.AppPreferences
+import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore
+import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore.Decision
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
+import com.garfiec.librechat.core.data.datastore.FlaggedArtifactLibraries
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
@@ -42,12 +45,14 @@ class ChatSettingsViewModelTest {
     private val preferLastUsedFlow = MutableStateFlow(false)
     private val webSearchFirstFlow = MutableStateFlow(WebSearchPreference.LIBRECHAT_FIRST)
     private val speechRepository = mockk<SpeechRepository>(relaxed = true)
+    private val libraryConsent = mockk<ArtifactLibraryConsentStore>(relaxed = true)
 
     private lateinit var viewModel: ChatSettingsViewModel
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
+        every { libraryConsent.snapshot } returns MutableStateFlow(null)
 
         // Setup DataStore flows
         every { settingsDataStore.chatFontSize } returns MutableStateFlow(ChatFontSize.MEDIUM)
@@ -96,7 +101,45 @@ class ChatSettingsViewModelTest {
         settingsDataStore = settingsDataStore,
         preferenceStore = preferenceStore,
         speechSettingsFactory = SpeechSettingsFactory { speechSettingsContract },
+        libraryConsent = libraryConsent,
     )
+
+    @Test
+    fun `library choices wait for the stored answers, then list every flagged library`() = runTest {
+        val snapshots = MutableStateFlow<ArtifactLibraryConsentStore.Snapshot?>(null)
+        every { libraryConsent.snapshot } returns snapshots
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.artifactLibraries.value).isNull()
+
+        val answered = mockk<ArtifactLibraryConsentStore.Snapshot>()
+        val first = FlaggedArtifactLibraries.SUBJECTS.first()
+        every { answered.remembered(any()) } returns null
+        every { answered.remembered(first) } returns false
+        snapshots.value = answered
+        advanceUntilIdle()
+
+        val choices = viewModel.artifactLibraries.value!!
+        assertThat(choices.map { it.subject }).containsExactlyElementsIn(FlaggedArtifactLibraries.SUBJECTS).inOrder()
+        assertThat(choices.first().decision).isEqualTo(Decision.DECLINE)
+        assertThat(choices.drop(1).map { it.decision }).containsNoneOf(Decision.ALLOW, Decision.DECLINE)
+    }
+
+    @Test
+    fun `setting a library writes a remembered answer, and Ask forgets it`() = runTest {
+        every { libraryConsent.snapshot } returns MutableStateFlow(null)
+        viewModel = createViewModel()
+        val subject = FlaggedArtifactLibraries.SUBJECTS.first()
+
+        viewModel.setArtifactLibraryDecision(subject, Decision.ALLOW)
+        viewModel.setArtifactLibraryDecision(subject, Decision.DECLINE)
+        viewModel.setArtifactLibraryDecision(subject, Decision.ASK)
+        advanceUntilIdle()
+
+        coVerify { libraryConsent.remember(subject, true) }
+        coVerify { libraryConsent.remember(subject, false) }
+        coVerify { libraryConsent.forget(subject) }
+    }
 
     @Test
     fun `site icons read as off until chosen, then follow the stored choice`() = runTest {

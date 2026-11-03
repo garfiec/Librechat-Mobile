@@ -180,15 +180,182 @@ class VendoredWebAssetInstrumentedTest {
         )
     }
 
+    // ── Bundled npm modules (scripts/artifact-modules) ────────────────
+
+    @Test
+    fun lucideIconsRenderAsSvg() {
+        assertProbe(
+            """
+            import { Camera } from 'lucide-react';
+            export default function App() {
+                return <div id="host"><Camera size={24} /></div>;
+            }
+            """.trimIndent(),
+            probe = "document.querySelector('#host svg.lucide') ? 'svg' : ''",
+            expected = "svg",
+        )
+    }
+
+    @Test
+    fun rechartsDrawsAChart() {
+        // Fixed size: ResponsiveContainer measures its parent, which a probe page doesn't size.
+        assertProbe(
+            """
+            import { LineChart, Line, XAxis } from 'recharts';
+            const data = [{ x: 'a', y: 1 }, { x: 'b', y: 3 }, { x: 'c', y: 2 }];
+            export default function App() {
+                return <LineChart width={300} height={200} data={data}>
+                    <XAxis dataKey="x" /><Line dataKey="y" isAnimationActive={false} />
+                </LineChart>;
+            }
+            """.trimIndent(),
+            probe = "document.querySelector('.recharts-line-curve') ? 'line' : ''",
+            expected = "line",
+        )
+    }
+
+    @Test
+    fun threeLoads() {
+        assertProbe(
+            """
+            import * as THREE from 'three';
+            export default function App() {
+                const v = new THREE.Vector3(1, 2, 2);
+                return <div id="probe">{THREE.REVISION + ':' + v.length()}</div>;
+            }
+            """.trimIndent(),
+            expected = "167:3",
+        )
+    }
+
+    @Test
+    fun dateFnsFormats() {
+        assertProbe(
+            """
+            import { format } from 'date-fns';
+            export default () => <div id="probe">{format(new Date(2020, 0, 2), 'yyyy-MM-dd')}</div>;
+            """.trimIndent(),
+            expected = "2020-01-02",
+        )
+    }
+
+    @Test
+    fun reactRouterRoutes() {
+        assertProbe(
+            """
+            import { MemoryRouter, Routes, Route } from 'react-router-dom';
+            export default () => <MemoryRouter initialEntries={['/b']}>
+                <Routes><Route path="/a" element={<div id="probe">a</div>} />
+                <Route path="/b" element={<div id="probe">b</div>} /></Routes>
+            </MemoryRouter>;
+            """.trimIndent(),
+            expected = "b",
+        )
+    }
+
+    @Test
+    fun shadcnComponentsImportedByPathRenderWithTypescript() {
+        // Typed code, the paths web mounts, and two Radix-backed components sharing one bundle.
+        assertProbe(
+            """
+            import { Button } from '/components/ui/button';
+            import { Tabs, TabsList, TabsTrigger, TabsContent } from '/components/ui/tabs';
+            interface Props { label: string }
+            function Labelled({ label }: Props) { return <Button id="btn">{label}</Button>; }
+            export default function App() {
+                const tab: string = 'one';
+                return <Tabs defaultValue={tab}>
+                    <TabsList><TabsTrigger value="one">One</TabsTrigger></TabsList>
+                    <TabsContent value="one"><Labelled label="ok" /></TabsContent>
+                </Tabs>;
+            }
+            """.trimIndent(),
+            probe = "(document.getElementById('btn') || {}).textContent",
+            expected = "ok",
+        )
+    }
+
+    @Test
+    fun theDrawerLoadsFromItsOwnBundle() {
+        assertProbe(
+            """
+            import { Drawer, DrawerTrigger } from '/components/ui/drawer';
+            export default () => <Drawer><DrawerTrigger id="probe">open</DrawerTrigger></Drawer>;
+            """.trimIndent(),
+            expected = "open",
+            allowedLibraries = setOf("vaul"),
+        )
+    }
+
+    @Test
+    fun datGuiLoadsOnceAllowed() {
+        assertProbe(
+            """
+            import * as dat from 'dat.gui';
+            export default () => {
+                const gui = new dat.GUI({ autoPlace: false });
+                gui.add({ speed: 1 }, 'speed', 0, 10);
+                return <div id="probe">{gui.__controllers.length}</div>;
+            };
+            """.trimIndent(),
+            expected = "1",
+            allowedLibraries = setOf("dat.gui"),
+        )
+    }
+
+    @Test
+    fun aFlaggedLibraryNotAllowedSaysSoInsteadOfLoading() {
+        val page = render(
+            ArtifactWebContent.buildHtml(
+                """
+                import * as dat from 'dat.gui';
+                export default () => <div>{typeof dat}</div>;
+                """.trimIndent(),
+                type = "application/vnd.react",
+                isDarkTheme = false,
+            ),
+        )
+        val shown = page.awaitTruthy("document.getElementById('error-display').textContent")
+        assertTrue("should say dat.gui was withheld, was: $shown", shown.contains("needs your permission"))
+        assertEquals("the withheld bundle must not have run", "false", page.await("'dat.gui' in (window.__switchboardModules || {})"))
+    }
+
+    /**
+     * Renders [jsx] and polls [probe] until it yields something, then asserts it is [expected].
+     * The default probe reads `#probe`. A failed render reports the runner's error instead, so a
+     * broken bundle fails with its message rather than a timeout.
+     */
+    private fun assertProbe(
+        jsx: String,
+        expected: String,
+        probe: String = "(document.getElementById('probe') || {}).textContent",
+        allowedLibraries: Set<String> = emptySet(),
+    ) {
+        val page = render(
+            ArtifactWebContent.buildHtml(
+                jsx,
+                type = "application/vnd.react",
+                isDarkTheme = false,
+                allowedLibraries = allowedLibraries,
+            ),
+        )
+        val shown = page.awaitTruthy(
+            "(function(){ var v = $probe; if (v) return v; " +
+                "var e = document.getElementById('error-display'); " +
+                "return e && e.style.display === 'block' ? 'ERROR: ' + e.textContent : ''; })()",
+        )
+        assertEquals("\"$expected\"", shown)
+    }
+
     @Test
     fun reactArtifactsNameAnUnbundledPackageImportedByName() {
         assertNamesTheMissingPackage(
             """
             import React from 'react';
-            import { LineChart } from 'recharts';
-            export default function App() { return <div>{typeof LineChart}</div>; }
+            import { motion } from 'framer-motion';
+            export default function App() { return <div>{typeof motion}</div>; }
             """.trimIndent(),
-            expectedPackage = "recharts",
+            expectedPackage = "framer-motion",
         )
     }
 

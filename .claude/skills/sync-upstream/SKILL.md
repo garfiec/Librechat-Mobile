@@ -99,6 +99,14 @@ Fail LOUD on any ambiguity below — never guess a baseline or target for the us
    revision, bad registry); fix the setup and re-run rather than reporting it as a finding.
    Carry every DRIFT and `??` row into the Phase 2 interview as its own item — a `??` means upstream
    renamed or deleted the symbol, so the registry entry is wrong either way.
+   The `artifact-*` rows are a different kind of mirror: what a React artifact may `import`
+   (web's Sandpack dependencies, the shadcn components and their mount paths, the libraries the
+   artifact prompt advertises). The client side is vendored JavaScript, not Kotlin, so they are
+   reconciled with **`/update-web-assets`** (re-pin in `scripts/artifact-modules/package.json`,
+   move the shadcn source URLs to the new commit, `--sync`), not by WF2's implementers. Also move
+   those URLs when `UPSTREAM_VERSION` moves, even if the rows are `ok`: the shadcn-ui bundle's
+   version is the upstream commit its sources came from. See `reference/upstream-paths.md`,
+   "Artifact runtime dependencies".
    Registry: `scripts/mirrors.json`. Adding a mirror to the codebase means adding an entry there in
    the same PR.
 9. **Client transport contract.** `packages/chat/src/core/` (`@librechat/chat`, upstream #16964)
@@ -164,6 +172,11 @@ This is the single human gate. Present the converged report, then use `AskUserQu
 - **Drifted mirrors** (Phase 0 step 8): each one is a hand-maintained copy that upstream has moved
   underneath. They are cheap to reconcile and invisible if skipped — present them explicitly rather
   than folding them into the general findings list.
+- **Artifact dependencies** (the `artifact-*` mirror rows): name each package web added, dropped
+  or re-pinned, and for each one added, its last release date and any advisories (the dependency
+  policy applies). Ask per package: bundle it, bundle it behind the consent prompt (an `advisory`
+  in its registry entry), or leave it unbundled (artifacts importing it show "not bundled"). Run
+  `/update-web-assets` for the approved ones after WF2, on the same branch.
 - **Transport contract** (Phase 0 step 9): findings that trace to `packages/chat/src/core/`, grouped
   by the `ChatTransport` member they touch. When `contractState` is `introduced`, say plainly which
   capabilities the client has no equivalent for yet.

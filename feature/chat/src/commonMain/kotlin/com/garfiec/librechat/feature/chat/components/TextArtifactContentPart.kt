@@ -13,6 +13,7 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactButton
+import com.garfiec.librechat.feature.chat.components.artifact.ArtifactLibraryGate
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactSegment
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactType
 import com.garfiec.librechat.feature.chat.components.artifact.IncompleteArtifact
@@ -27,10 +28,12 @@ import com.garfiec.librechat.feature.chat.components.artifact.LocalMermaidRender
 import com.garfiec.librechat.feature.chat.components.artifact.LocalOpenArtifact
 import com.garfiec.librechat.feature.chat.components.artifact.detectArtifacts
 import com.garfiec.librechat.feature.chat.components.artifact.groupArtifactVersions
+import com.garfiec.librechat.feature.chat.components.artifact.inlineArtifactDrawsWebGl
 import com.garfiec.librechat.feature.chat.components.artifact.isCacheableMermaid
 import com.garfiec.librechat.feature.chat.components.artifact.mermaidCacheKey
 import com.garfiec.librechat.feature.chat.components.artifact.selectInlineArtifactStrategy
 import com.garfiec.librechat.feature.chat.components.artifact.shouldRenderInlineArtifact
+import com.garfiec.librechat.feature.chat.components.artifact.usesWebGl
 
 // ─── TextContentPart ────────────────────────────────────────────────
 
@@ -133,7 +136,9 @@ internal fun TextContentPart(
                             // A finished artifact renders as a tap-to-open card, not message prose,
                             // so it is chrome — unlike the incomplete branch above.
                             DisableSelection {
-                                if (shouldRenderInlineArtifact(inlinePrefs, segment.artifact.type, streaming)) {
+                                val content = segment.artifact.content
+                                val drawable = inlineArtifactDrawsWebGl || !remember(content) { usesWebGl(content) }
+                                if (drawable && shouldRenderInlineArtifact(inlinePrefs, segment.artifact.type, streaming)) {
                                     val type = ArtifactType.from(segment.artifact.type)
                                     val cachedSvg = rememberCachedMermaidSvg(segment.artifact.content, type)
                                     val strategy =
@@ -157,11 +162,19 @@ internal fun TextContentPart(
                                             onTap = { openArtifact?.invoke(segment.artifact, versions) },
                                             modifier = Modifier.fillMaxWidth(),
                                         )
-                                        InlineArtifactStrategy.WebViewSlot -> InlineArtifactView(
-                                            artifact = segment.artifact,
-                                            onTap = { openArtifact?.invoke(segment.artifact, versions) },
+                                        InlineArtifactStrategy.WebViewSlot -> ArtifactLibraryGate(
+                                            content = segment.artifact.content,
+                                            type = segment.artifact.type,
                                             modifier = Modifier.fillMaxWidth(),
-                                        )
+                                            onOpen = { openArtifact?.invoke(segment.artifact, versions) },
+                                        ) { allowed, previewModifier ->
+                                            InlineArtifactView(
+                                                artifact = segment.artifact,
+                                                onTap = { openArtifact?.invoke(segment.artifact, versions) },
+                                                modifier = previewModifier,
+                                                allowedLibraries = allowed,
+                                            )
+                                        }
                                     }
                                 } else {
                                     ArtifactButton(

@@ -802,6 +802,17 @@
     <string name="stt_speak_now">Jetzt sprechen…</string>
     <string name="stt_recognition_unavailable">Spracherkennung ist auf diesem Gerät nicht verfügbar</string>
     <string name="artifact_preview_failed">Vorschau konnte nicht geladen werden</string>
+    <string name="artifact_library_title">%1$s laden?</string>
+    <string name="artifact_library_unmaintained">Dieses Artefakt verwendet %1$s, eine Bibliothek, die nicht mehr gepflegt wird.</string>
+    <string name="artifact_library_deprecated">Dieses Artefakt verwendet %1$s, eine Bibliothek, die ihre Autoren als veraltet markiert haben.</string>
+    <string name="artifact_library_vulnerable">Dieses Artefakt verwendet %1$s, eine Bibliothek mit einer bekannten Sicherheitswarnung.</string>
+    <string name="artifact_library_sandbox">Es läuft in einer Sandbox, ohne Zugriff auf deine Dateien oder dein Konto. Wie jedes Artefakt kann es Bilder aus dem Web laden.</string>
+    <string name="artifact_library_remember">Für %1$s merken</string>
+    <string name="artifact_library_load">Laden</string>
+    <string name="artifact_library_skip">Nicht laden</string>
+    <string name="artifact_library_declined">Nicht geladen: %1$s</string>
+    <string name="artifact_library_allowed">Geladen: %1$s</string>
+    <string name="artifact_library_change">Ändern</string>
     <string name="cd_mcp_server_enabled">MCP-Server %1$s aktiviert</string>
     <string name="cd_code_block">Codeblock</string>
     <string name="cd_code_block_language">%1$s-Codeblock</string>

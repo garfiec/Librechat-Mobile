@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
  * [INLINE_FIT_MIN_HEIGHT] and the inline cap, instead of the fixed cap; it settles once per
  * card, so it costs one resize as the page lays out. [header] sits above the page inside the
  * card, where a tap can't land on the WebView, which takes touches for itself.
+ * [allowedLibraries] go to [ArtifactWebContent.buildHtml]; [ArtifactLibraryGate] decides them.
  */
 @Composable
 expect fun InlineArtifactView(
@@ -23,4 +24,11 @@ expect fun InlineArtifactView(
     modifier: Modifier = Modifier,
     fitContent: Boolean = false,
     header: (@Composable () -> Unit)? = null,
+    allowedLibraries: Set<String> = emptySet(),
 )
+
+/**
+ * Whether the inline view composites WebGL. Android's doesn't: it renders in a software layer
+ * (see `configureLazyListWebView`), where a WebGL canvas never reaches the screen.
+ */
+internal expect val inlineArtifactDrawsWebGl: Boolean

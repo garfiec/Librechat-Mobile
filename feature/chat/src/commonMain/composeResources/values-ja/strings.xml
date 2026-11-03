@@ -790,6 +790,17 @@
     <string name="stt_speak_now">お話しください…</string>
     <string name="stt_recognition_unavailable">このデバイスでは音声認識を使用できません</string>
     <string name="artifact_preview_failed">プレビューを読み込めませんでした</string>
+    <string name="artifact_library_title">%1$s を読み込みますか？</string>
+    <string name="artifact_library_unmaintained">このアーティファクトは、メンテナンスが終了したライブラリ %1$s を使用しています。</string>
+    <string name="artifact_library_deprecated">このアーティファクトは、作者が非推奨としたライブラリ %1$s を使用しています。</string>
+    <string name="artifact_library_vulnerable">このアーティファクトは、既知のセキュリティ勧告があるライブラリ %1$s を使用しています。</string>
+    <string name="artifact_library_sandbox">サンドボックス内で実行され、ファイルやアカウントにはアクセスできません。他のアーティファクトと同様に、ウェブから画像を読み込むことはできます。</string>
+    <string name="artifact_library_remember">%1$s について記憶する</string>
+    <string name="artifact_library_load">読み込む</string>
+    <string name="artifact_library_skip">読み込まない</string>
+    <string name="artifact_library_declined">読み込まれていません: %1$s</string>
+    <string name="artifact_library_allowed">読み込み済み: %1$s</string>
+    <string name="artifact_library_change">変更</string>
     <string name="cd_mcp_server_enabled">MCP サーバー %1$s 有効</string>
     <string name="cd_code_block">コードブロック</string>
     <string name="cd_code_block_language">%1$s のコードブロック</string>

@@ -349,6 +349,16 @@
     <string name="artifact_mode_fullscreen_desc">Открывается на полноэкранной странице с большим пространством.</string>
     <string name="artifact_inline_title">Встроенное отображение</string>
     <string name="artifact_inline_enabled_count">Включено %1$d из %2$d</string>
+    <string name="artifact_libraries_title">Отмеченные библиотеки</string>
+    <string name="artifact_libraries_desc">Артефакты могут использовать несколько библиотек, которые больше не поддерживаются или имеют известные проблемы. Выберите, загружать ли каждую, или пусть каждый артефакт спрашивает. Они работают в изолированной среде без доступа к вашим файлам и аккаунту.</string>
+    <string name="artifact_libraries_none_set">Спрашивать каждый раз</string>
+    <string name="artifact_libraries_some_set">Задано: %1$d из %2$d</string>
+    <string name="artifact_libraries_ask">Спрашивать</string>
+    <string name="artifact_libraries_allow">Загружать</string>
+    <string name="artifact_libraries_decline">Не загружать</string>
+    <string name="artifact_libraries_unmaintained">Больше не поддерживается</string>
+    <string name="artifact_libraries_deprecated">Объявлена авторами устаревшей</string>
+    <string name="artifact_libraries_vulnerable">Есть известное предупреждение о безопасности</string>
     <string name="artifacts_section_desc">Отображать артефакты прямо в чате вместо карточки «нажмите, чтобы открыть». Нажмите встроенный артефакт, чтобы открыть его в полноэкранном режиме.</string>
     <string name="inline_artifact_mermaid">Диаграммы Mermaid</string>
     <string name="inline_artifact_mermaid_desc">Отображать блок-схемы и диаграммы Mermaid встроенно</string>

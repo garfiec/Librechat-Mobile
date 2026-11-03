@@ -16,6 +16,11 @@ Two problems this solves, and only one of them is about policy:
      a user's device. Both known instances (marked deleting the `highlight` option in v5,
      @babel/standalone rolling onto a new major) went unnoticed for exactly that reason.
 
+Most assets are files lifted out of a publisher's npm tarball. The `bundle` assets are
+not: they are npm packages a React artifact imports, bundled by esbuild from the pins in
+scripts/artifact-modules into one classic script each, so their bytes are ours, built from
+the publishers' sources. --sync needs node for those; --check never does.
+
 scripts/web-assets.lock.json records the sha256 of every vendored file. --sync and --bump
 WRITE that lock from what they downloaded -- they are the trust boundary, not a check of
 one, so read the diff they produce. --check then re-verifies the working tree against the
@@ -36,8 +41,10 @@ import io
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tarfile
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -45,6 +52,12 @@ import urllib.request
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REGISTRY = os.path.join(REPO, "scripts", "web-assets.json")
 LOCK = os.path.join(REPO, "scripts", "web-assets.lock.json")
+# The `bundle` recipe. --check hashes RECIPE_FILES instead of running them, so it needs no node.
+MODULES_DIR = os.path.join(REPO, "scripts", "artifact-modules")
+RECIPE_FILES = ("package.json", "package-lock.json", "build.mjs")
+# What a bundle's `advisory` may say. Each kind has its own sentence in the consent prompt
+# (feature/chat strings artifact_library_*), so a new kind needs a string, not just an entry here.
+ADVISORY_KINDS = ("unmaintained", "deprecated", "vulnerable")
 UA = {"User-Agent": "vendor-web-assets/1 (+switchboard)"}
 TIMEOUT = 180
 
@@ -105,9 +118,94 @@ def npm_latest(pkg):
     return tags.get("latest"), sorted(data.get("versions", {}).keys())
 
 
+def recipe_sha256():
+    """Digest of everything that decides a bundle's bytes, besides the registry entry itself."""
+    h = hashlib.sha256()
+    for name in RECIPE_FILES:
+        with open(os.path.join(MODULES_DIR, name), "rb") as f:
+            h.update(name.encode() + b"\0" + f.read() + b"\0")
+    return h.hexdigest()
+
+
+def pinned_packages():
+    with open(os.path.join(MODULES_DIR, "package.json")) as f:
+        return json.load(f)["dependencies"]
+
+
+_npm_installed = False
+
+
+def ensure_node_modules():
+    """npm ci once per run. --ignore-scripts: nothing in the tree gets to run code here."""
+    global _npm_installed
+    if _npm_installed:
+        return
+    if shutil.which("node") is None or shutil.which("npm") is None:
+        die("bundle assets need node and npm on PATH (only --sync/--bump do; --check does not)")
+    print("  %snpm ci%s scripts/artifact-modules" % (DIM, OFF))
+    proc = subprocess.run(
+        ["npm", "ci", "--ignore-scripts", "--no-audit", "--no-fund"],
+        cwd=MODULES_DIR, capture_output=True, text=True,
+    )
+    if proc.returncode != 0:
+        die("npm ci failed in scripts/artifact-modules:\n%s" % proc.stderr.strip())
+    _npm_installed = True
+
+
+def bundle_files(asset):
+    """Yield (dest_relative_path, bytes) for a `bundle` asset by running build.mjs."""
+    src = asset["source"]
+    if src.get("package"):
+        pinned = pinned_packages().get(src["package"])
+        if pinned != asset["version"]:
+            die("%s: registry pins v%s but scripts/artifact-modules/package.json pins %s"
+                % (asset["id"], asset["version"], pinned))
+    ensure_node_modules()
+    with tempfile.TemporaryDirectory() as tmp:
+        job = {"id": asset["id"], "modules": asset["modules"], "outDir": os.path.join(tmp, "out")}
+        shadcn = src.get("shadcn")
+        if shadcn:
+            components = os.path.join(tmp, "components.ts")
+            client = os.path.join(tmp, "client-artifacts.ts")
+            with open(components, "wb") as f:
+                f.write(fetch(shadcn["components_url"]))
+            with open(client, "wb") as f:
+                f.write(fetch(shadcn["shared_files_url"]))
+            # The component sources are not from npm, so build.mjs cannot find their license in
+            # node_modules: carry each notice in from its pinned URL instead.
+            notices = ["%s\n%s\n%s\n\n%s" % ("=" * 78, lic["title"], "=" * 78,
+                                             fetch(lic["url"]).decode().strip())
+                       for lic in shadcn["licenses"]]
+            elsewhere = sorted(
+                spec
+                for other in load_registry()["assets"] if other["id"] != asset["id"]
+                for spec in other.get("modules", []) if spec.startswith("/")
+            )
+            job["shadcn"] = {
+                "componentsTs": components,
+                "clientArtifactsTs": client,
+                "notice": "\n\n".join(notices),
+                "mountedElsewhere": elsewhere,
+            }
+        job_path = os.path.join(tmp, "job.json")
+        with open(job_path, "w") as f:
+            json.dump(job, f)
+        proc = subprocess.run(["node", os.path.join(MODULES_DIR, "build.mjs"), job_path],
+                              capture_output=True, text=True)
+        if proc.returncode != 0:
+            die("%s: build.mjs failed:\n%s" % (asset["id"], (proc.stderr or proc.stdout).strip()))
+        out = job["outDir"]
+        for name in sorted(os.listdir(out)):
+            with open(os.path.join(out, name), "rb") as f:
+                yield name, f.read()
+
+
 def resolve_files(asset):
     """Yield (dest_relative_path, bytes) for every file one asset contributes."""
     src = asset["source"]
+    if src["type"] == "bundle":
+        yield from bundle_files(asset)
+        return
     tar = None
     if src["type"] == "npm":
         # Opened lazily: an asset can be entirely url-sourced (tailwind) and never
@@ -210,10 +308,83 @@ def render_manifest_kt(reg, lock):
     body += ["        \"%s\"," % e for e in entries]
     body += [
         "    )",
+        "",
+        "    /**",
+        "     * Every module specifier a React artifact may import from a vendored bundle, mapped",
+        "     * to the classic script that registers it on `globalThis.__switchboardModules`.",
+        "     * shadcn/ui components are keyed by the path web mounts them at",
+        "     * (`/components/ui/button`).",
+        "     */",
+        "    val MODULES: Map<String, String> = mapOf(",
+    ]
+    for asset in reg["assets"]:
+        for spec in asset.get("modules", []):
+            body.append("        \"%s\" to \"%s/index.js\"," % (spec, asset["dir"]))
+    body += [
+        "    )",
+        "",
+        "    /**",
+        "     * Module specifiers whose bundle carries a registry `advisory` (unmaintained, deprecated",
+        "     * or vulnerable), mapped to the library the user is asked about. The artifact host asks",
+        "     * before a React artifact importing one loads it; each bundle holds only flagged code, so",
+        "     * declining keeps it from running at all.",
+        "     */",
+        "    val ADVISORIES: Map<String, VendoredAdvisory> = mapOf(",
+    ]
+    for asset in reg["assets"]:
+        adv = asset.get("advisory")
+        if not adv:
+            continue
+        if adv["kind"] not in ADVISORY_KINDS:
+            die("%s: advisory kind %r is not one of %s" % (asset["id"], adv["kind"], ADVISORY_KINDS))
+        for spec in asset["modules"]:
+            body.append("        \"%s\" to VendoredAdvisory(\"%s\", VendoredAdvisory.Kind.%s),"
+                        % (spec, adv["library"], adv["kind"].upper()))
+    body += [
+        "    )",
+        "}",
+        "",
+        "/** A vendored library the user is asked about before an artifact loads it. */",
+        "internal data class VendoredAdvisory(val library: String, val kind: Kind) {",
+        "    enum class Kind { %s }" % ", ".join(k.upper() for k in ADVISORY_KINDS),
         "}",
         "",
     ]
     return out, "\n".join(body), len(entries)
+
+
+def render_catalog_kt(reg):
+    """Render the flagged-library catalog for :core:data. Returns (path, text).
+
+    Settings lists these so the user can answer ahead of time, and it can't read the
+    manifest above: that lives in :feature:chat, which no other feature may depend on.
+    The advisory string is the kind in lower case, the same value the artifact gate
+    derives from VendoredAdvisory.Kind, so an answer given in either place applies in both.
+    """
+    out = os.path.join(REPO, reg["consent_catalog_kt"])
+    subjects = []
+    for asset in reg["assets"]:
+        adv = asset.get("advisory")
+        if not adv:
+            continue
+        if adv["kind"] not in ADVISORY_KINDS:
+            die("%s: advisory kind %r is not one of %s" % (asset["id"], adv["kind"], ADVISORY_KINDS))
+        subjects.append((adv["library"], adv["kind"]))
+    body = [
+        "// Generated by scripts/vendor-web-assets.py -- do not edit by hand.",
+        "// Regenerate with: scripts/vendor-web-assets.py --sync",
+        "package com.garfiec.librechat.core.data.datastore",
+        "",
+        "/**",
+        " * Every library a React artifact may load only after the user agrees: the registry entries",
+        " * in scripts/web-assets.json that carry an `advisory`.",
+        " */",
+        "object FlaggedArtifactLibraries {",
+        "    val SUBJECTS: List<ArtifactLibraryConsentStore.Subject> = listOf(",
+    ]
+    body += ["        ArtifactLibraryConsentStore.Subject(\"%s\", \"%s\")," % sub for sub in subjects]
+    body += ["    )", "}", ""]
+    return out, "\n".join(body)
 
 
 def write_manifest_kt(reg, lock):
@@ -258,6 +429,9 @@ def cmd_sync(reg, only=None):
             "bytes": size,
             "files": files,
         }
+        if asset["source"]["type"] == "bundle":
+            lock["assets"][asset["id"]]["recipe"] = recipe_sha256()
+            lock["assets"][asset["id"]]["modules"] = asset["modules"]
         total += size
         print("  %s%-16s%s v%-10s %2d files %7.1f KB" %
               (BOLD, asset["id"], OFF, asset["version"], len(files), size / 1024))
@@ -283,8 +457,12 @@ def cmd_sync(reg, only=None):
         f.write("\n")
 
     out, n = write_manifest_kt(reg, lock)
+    catalog, catalog_text = render_catalog_kt(reg)
+    with open(catalog, "w") as f:
+        f.write(catalog_text)
     print("\n  lock     -> %s" % os.path.relpath(LOCK, REPO))
     print("  manifest -> %s (%d files)" % (os.path.relpath(out, REPO), n))
+    print("  catalog  -> %s" % os.path.relpath(catalog, REPO))
     print("\n%svendored %.1f MB%s" % (GREEN, total / 1024 / 1024, OFF))
 
 
@@ -303,6 +481,20 @@ def cmd_check(reg):
         if entry["version"] != asset["version"]:
             problems.append("%s: registry pins v%s, lock has v%s (run --sync)"
                             % (asset["id"], asset["version"], entry["version"]))
+        if asset["source"]["type"] == "bundle":
+            # The outputs are only as trustworthy as the recipe they were built from: a
+            # package-lock.json edited after the last --sync means the shipped bytes no longer
+            # come from the pins anyone is reading.
+            if entry.get("recipe") != recipe_sha256():
+                problems.append("%s: scripts/artifact-modules changed since the last --sync "
+                                "(run --sync)" % asset["id"])
+            if entry.get("modules") != asset["modules"]:
+                problems.append("%s: the registry's modules differ from the lock's (run --sync)"
+                                % asset["id"])
+            pkg = asset["source"].get("package")
+            if pkg and pinned_packages().get(pkg) != asset["version"]:
+                problems.append("%s: registry pins v%s but package.json pins %s"
+                                % (asset["id"], asset["version"], pinned_packages().get(pkg)))
         d = dest_dir(reg, asset)
         for rel, want in entry["files"].items():
             path = os.path.join(d, rel)
@@ -341,6 +533,15 @@ def cmd_check(reg):
                     problems.append(
                         "%s does not match the lock -- it is generated; run --sync" % rel)
 
+    catalog, want = render_catalog_kt(reg)
+    rel = os.path.relpath(catalog, REPO)
+    if not os.path.exists(catalog):
+        problems.append("%s is missing (run --sync)" % rel)
+    else:
+        with open(catalog) as f:
+            if f.read() != want:
+                problems.append("%s does not match the registry -- it is generated; run --sync" % rel)
+
     for p in problems:
         print("  %s%s%s" % (RED, p, OFF))
     if problems:
@@ -357,6 +558,12 @@ def cmd_outdated(reg):
     """Ask npm what is newer. Advisory only -- read pin_reason before acting."""
     for asset in reg["assets"]:
         src = asset["source"]
+        if src["type"] == "bundle" and not src.get("package"):
+            print("  %-16s v%-10s %sbundle of several packages -- npm outdated in "
+                  "scripts/artifact-modules%s" % (asset["id"], asset["version"], DIM, OFF))
+            continue
+        if src["type"] == "bundle":
+            src = {"type": "npm", "package": src["package"]}
         if src["type"] != "npm":
             print("  %-16s v%-10s %sno npm source -- %s%s"
                   % (asset["id"], asset["version"], DIM, src.get("url", "pinned url"), OFF))
@@ -373,7 +580,7 @@ def cmd_outdated(reg):
 def cmd_list(reg):
     for asset in reg["assets"]:
         src = asset["source"]
-        origin = src.get("package") or src.get("url")
+        origin = src.get("package") or src.get("url") or "bundle: scripts/artifact-modules"
         print("%s%-16s%s v%-10s %-13s %s" %
               (BOLD, asset["id"], OFF, asset["version"], asset["license"], origin))
         print("    %s" % asset["why"])
@@ -386,6 +593,10 @@ def cmd_bump(reg, asset_id, version):
     if asset is None:
         die("unknown asset %r -- known: %s"
             % (asset_id, ", ".join(a["id"] for a in reg["assets"])))
+    if asset["source"]["type"] == "bundle":
+        die("%s is a bundle. Repin it in scripts/artifact-modules/package.json (npm install "
+            "--ignore-scripts there to refresh package-lock.json), set the registry's version to "
+            "match, then --sync." % asset_id)
     if asset["source"]["type"] != "npm":
         die("%s is pinned to a URL, not an npm package. Repin it by editing "
             "scripts/web-assets.json (both the version and every file url), then --sync."

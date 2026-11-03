@@ -72,6 +72,7 @@ val settingsModule = module {
             settingsDataStore = get(),
             preferenceStore = get(),
             speechSettingsFactory = get(),
+            libraryConsent = get(),
         )
     }
     viewModelOf(::ApiKeysViewModel)

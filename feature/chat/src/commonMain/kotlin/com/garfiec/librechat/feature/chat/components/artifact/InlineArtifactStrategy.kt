@@ -37,3 +37,14 @@ fun selectInlineArtifactStrategy(
     type == ArtifactType.SVG -> InlineArtifactStrategy.IntrinsicSvg
     else -> InlineArtifactStrategy.WebViewSlot
 }
+
+/**
+ * Whether [content] draws with WebGL: it imports three.js or asks a canvas for a WebGL context.
+ * Where the inline view can't composite WebGL ([inlineArtifactDrawsWebGl]), such an artifact gets
+ * the tap-to-open card instead of a preview that would stay blank.
+ */
+fun usesWebGl(content: String): Boolean = WEBGL_USE.containsMatchIn(content)
+
+private val WEBGL_USE = Regex(
+    """from\s*['"]three['"]|\bWebGL2?Renderer\b|getContext\(\s*['"](?:experimental-)?webgl2?['"]""",
+)

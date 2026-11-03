@@ -337,6 +337,16 @@
     <string name="artifact_mode_fullscreen_desc">Abre como uma página em tela cheia com mais espaço.</string>
     <string name="artifact_inline_title">Renderizar embutido</string>
     <string name="artifact_inline_enabled_count">%1$d de %2$d ativados</string>
+    <string name="artifact_libraries_title">Bibliotecas sinalizadas</string>
+    <string name="artifact_libraries_desc">Os artefatos podem usar algumas bibliotecas que não recebem mais manutenção ou têm problemas conhecidos. Escolha se cada uma é carregada, ou deixe cada artefato perguntar. Elas rodam isoladas, sem acesso aos seus arquivos ou à sua conta.</string>
+    <string name="artifact_libraries_none_set">Perguntar sempre</string>
+    <string name="artifact_libraries_some_set">%1$d de %2$d definidas</string>
+    <string name="artifact_libraries_ask">Perguntar</string>
+    <string name="artifact_libraries_allow">Carregar</string>
+    <string name="artifact_libraries_decline">Não carregar</string>
+    <string name="artifact_libraries_unmaintained">Não recebe mais manutenção</string>
+    <string name="artifact_libraries_deprecated">Descontinuada pelos autores</string>
+    <string name="artifact_libraries_vulnerable">Tem um alerta de segurança conhecido</string>
     <string name="artifacts_section_desc">Renderizar artefatos diretamente na conversa, em vez de atrás de um cartão de toque para abrir. Toque em um artefato embutido para abrir a visualização em tela cheia.</string>
     <string name="inline_artifact_mermaid">Diagramas Mermaid</string>
     <string name="inline_artifact_mermaid_desc">Renderizar fluxogramas e diagramas Mermaid embutidos</string>

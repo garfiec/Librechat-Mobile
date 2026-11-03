@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.common.identity.SessionManager
 import com.garfiec.librechat.core.data.datastore.AccountRegistry
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.AccountScopedPrefsPurger
+import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
@@ -330,6 +331,10 @@ val dataModule = module {
     // Eager: the drawer's pins should be read before the tablet sidebar's first frame.
     single(createdAtStart = true) {
         DrawerPinsStore(preferences = get(), appScope = get<CoroutineScope>(KoinQualifiers.ApplicationScope))
+    }
+    // Eager: an artifact importing a flagged library waits on the stored answers before rendering.
+    single(createdAtStart = true) {
+        ArtifactLibraryConsentStore(preferences = get(), appScope = get<CoroutineScope>(KoinQualifiers.ApplicationScope))
     }
 
     // --- Repositories (special wiring) ---

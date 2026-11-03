@@ -97,7 +97,7 @@ role = "smart"
 artifacts = true
 requires = ["artifacts"]
 tags = ["agents"]
-note = "Interactive Artifacts row. The app bundles only React and Tailwind for artifacts, so the prompt rules out other imports (lucide-react renders as a missing-package error)."
+note = "Interactive Artifacts row. The prompt keeps to React and Tailwind so the capture doesn't depend on which libraries the app bundles (lucide-react and recharts work; anything outside web's Sandpack list renders as a missing-package error)."
 [[chats.turns]]
 text = "Build me a small React app called \"Agent Allowance Tracker\": I set a weekly budget for my AI agent, it logs purchases (pre-fill a few, mostly pistachio cream and Dubai chocolate), shows a progress bar that turns red when it overspends, and has a button that sends the agent a stern but kind note. Make it look polished. Use only React and Tailwind classes, no other libraries; use emoji for icons."
 

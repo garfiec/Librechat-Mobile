@@ -49,10 +49,17 @@ actual fun InlineArtifactView(
     modifier: Modifier,
     fitContent: Boolean,
     header: (@Composable () -> Unit)?,
+    allowedLibraries: Set<String>,
 ) {
     val isDarkTheme = isSurfaceDark()
-    val html = remember(artifact, isDarkTheme) {
-        ArtifactWebContent.buildHtml(artifact.content, artifact.type, isDarkTheme, inline = true)
+    val html = remember(artifact, isDarkTheme, allowedLibraries) {
+        ArtifactWebContent.buildHtml(
+            artifact.content,
+            artifact.type,
+            isDarkTheme,
+            inline = true,
+            allowedLibraries = allowedLibraries,
+        )
     }
 
     // Match the Android cap (see InlineArtifactSizing.kt). On iOS, points map
@@ -146,3 +153,5 @@ private class ContentHeightMessageHandler(
         if (height > 0) onHeight(height.toFloat())
     }
 }
+
+internal actual val inlineArtifactDrawsWebGl: Boolean = true

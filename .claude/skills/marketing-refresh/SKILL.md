@@ -159,8 +159,10 @@ scripts/demo-seed/review.py …        # read every reply before capturing
 ```
 
 Lessons from the last run:
-- React artifacts may import only `react` and use Tailwind. The app bundles nothing else, so
-  `lucide-react` or `recharts` render as a missing-package error.
+- React artifacts may import what web's Sandpack offers (lucide-react, recharts, three, date-fns,
+  shadcn/ui at `/components/ui/*`, ...), all bundled with the app. Anything else renders as a
+  missing-package error, and dat.gui or the shadcn Drawer (vaul) stop at a consent prompt first,
+  which a screenshot shouldn't show.
 - Seed artifact chats on the strongest model; a smaller one wrote a malformed `:::artifact` tag.
 - A web search chat needs a search provider on the server, or the model apologizes. The seeder
   skips it unless `/api/config` reports `webSearch`.

@@ -810,6 +810,17 @@
     <string name="stt_speak_now">Parlez maintenant…</string>
     <string name="stt_recognition_unavailable">La reconnaissance vocale n’est pas disponible sur cet appareil</string>
     <string name="artifact_preview_failed">Impossible de charger l’aperçu</string>
+    <string name="artifact_library_title">Charger %1$s ?</string>
+    <string name="artifact_library_unmaintained">Cet artefact utilise %1$s, une bibliothèque qui n’est plus maintenue.</string>
+    <string name="artifact_library_deprecated">Cet artefact utilise %1$s, une bibliothèque que ses auteurs ont déclarée obsolète.</string>
+    <string name="artifact_library_vulnerable">Cet artefact utilise %1$s, une bibliothèque faisant l’objet d’un avis de sécurité connu.</string>
+    <string name="artifact_library_sandbox">Il s’exécute dans un bac à sable, sans accès à vos fichiers ni à votre compte. Comme tout artefact, il peut charger des images depuis le Web.</string>
+    <string name="artifact_library_remember">Mémoriser pour %1$s</string>
+    <string name="artifact_library_load">Charger</string>
+    <string name="artifact_library_skip">Ne pas charger</string>
+    <string name="artifact_library_declined">Non chargé : %1$s</string>
+    <string name="artifact_library_allowed">Chargé : %1$s</string>
+    <string name="artifact_library_change">Modifier</string>
     <string name="cd_mcp_server_enabled">Serveur MCP %1$s activé</string>
     <string name="cd_code_block">Bloc de code</string>
     <string name="cd_code_block_language">Bloc de code %1$s</string>

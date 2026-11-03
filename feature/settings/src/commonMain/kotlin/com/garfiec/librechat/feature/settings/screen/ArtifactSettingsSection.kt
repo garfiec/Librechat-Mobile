@@ -17,8 +17,10 @@ import org.jetbrains.compose.resources.stringResource
 internal fun ArtifactSettingsSection(
     displayPrefs: ArtifactDisplayPrefs,
     inlineArtifactSummary: String,
+    librariesSummary: String,
     onOpenArtifactViewerDialog: () -> Unit,
     onOpenRenderInlineDialog: () -> Unit,
+    onOpenLibrariesDialog: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -38,6 +40,12 @@ internal fun ArtifactSettingsSection(
                 title = stringResource(Res.string.artifact_inline_title),
                 value = inlineArtifactSummary,
                 onClick = onOpenRenderInlineDialog,
+            )
+
+            SelectorRow(
+                title = stringResource(Res.string.artifact_libraries_title),
+                value = librariesSummary,
+                onClick = onOpenLibrariesDialog,
             )
         }
         AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))

@@ -826,6 +826,17 @@
     <string name="stt_speak_now">Говорите…</string>
     <string name="stt_recognition_unavailable">Распознавание речи недоступно на этом устройстве</string>
     <string name="artifact_preview_failed">Не удалось загрузить предпросмотр</string>
+    <string name="artifact_library_title">Загрузить %1$s?</string>
+    <string name="artifact_library_unmaintained">Этот артефакт использует %1$s — библиотеку, которая больше не поддерживается.</string>
+    <string name="artifact_library_deprecated">Этот артефакт использует %1$s — библиотеку, которую авторы объявили устаревшей.</string>
+    <string name="artifact_library_vulnerable">Этот артефакт использует %1$s — библиотеку с известным предупреждением о безопасности.</string>
+    <string name="artifact_library_sandbox">Он работает в изолированной среде без доступа к вашим файлам и аккаунту. Как и любой артефакт, он может загружать изображения из интернета.</string>
+    <string name="artifact_library_remember">Запомнить для %1$s</string>
+    <string name="artifact_library_load">Загрузить</string>
+    <string name="artifact_library_skip">Не загружать</string>
+    <string name="artifact_library_declined">Не загружено: %1$s</string>
+    <string name="artifact_library_allowed">Загружено: %1$s</string>
+    <string name="artifact_library_change">Изменить</string>
     <string name="cd_mcp_server_enabled">MCP-сервер %1$s включён</string>
     <string name="cd_code_block">Блок кода</string>
     <string name="cd_code_block_language">Блок кода %1$s</string>

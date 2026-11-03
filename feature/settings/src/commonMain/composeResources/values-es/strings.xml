@@ -337,6 +337,16 @@
     <string name="artifact_mode_fullscreen_desc">Se abre como una página a pantalla completa con más espacio.</string>
     <string name="artifact_inline_title">Renderizar en línea</string>
     <string name="artifact_inline_enabled_count">%1$d de %2$d activados</string>
+    <string name="artifact_libraries_title">Bibliotecas señaladas</string>
+    <string name="artifact_libraries_desc">Los artefactos pueden usar algunas bibliotecas que ya no reciben mantenimiento o tienen problemas conocidos. Elige si cada una se carga, o deja que cada artefacto pregunte. Se ejecutan en un entorno aislado, sin acceso a tus archivos ni a tu cuenta.</string>
+    <string name="artifact_libraries_none_set">Preguntar cada vez</string>
+    <string name="artifact_libraries_some_set">%1$d de %2$d configuradas</string>
+    <string name="artifact_libraries_ask">Preguntar</string>
+    <string name="artifact_libraries_allow">Cargar</string>
+    <string name="artifact_libraries_decline">No cargar</string>
+    <string name="artifact_libraries_unmaintained">Ya no recibe mantenimiento</string>
+    <string name="artifact_libraries_deprecated">Declarada obsoleta por sus autores</string>
+    <string name="artifact_libraries_vulnerable">Tiene un aviso de seguridad conocido</string>
     <string name="artifacts_section_desc">Renderiza los artefactos directamente en el chat en lugar de detrás de una tarjeta que se abre al tocar. Toca un artefacto en línea para abrir la vista a pantalla completa.</string>
     <string name="inline_artifact_mermaid">Diagramas de Mermaid</string>
     <string name="inline_artifact_mermaid_desc">Renderiza diagramas de flujo y diagramas de Mermaid en línea</string>

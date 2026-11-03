@@ -790,6 +790,17 @@
     <string name="stt_speak_now">请说话…</string>
     <string name="stt_recognition_unavailable">此设备不支持语音识别</string>
     <string name="artifact_preview_failed">无法加载预览</string>
+    <string name="artifact_library_title">加载 %1$s？</string>
+    <string name="artifact_library_unmaintained">此 artifact 使用了 %1$s，这是一个已不再维护的库。</string>
+    <string name="artifact_library_deprecated">此 artifact 使用了 %1$s，这是一个已被作者弃用的库。</string>
+    <string name="artifact_library_vulnerable">此 artifact 使用了 %1$s，这是一个存在已知安全公告的库。</string>
+    <string name="artifact_library_sandbox">它在沙盒中运行，无法访问你的文件或账户。与任何 artifact 一样，它可以从网络加载图片。</string>
+    <string name="artifact_library_remember">为 %1$s 记住此选择</string>
+    <string name="artifact_library_load">加载</string>
+    <string name="artifact_library_skip">不加载</string>
+    <string name="artifact_library_declined">未加载：%1$s</string>
+    <string name="artifact_library_allowed">已加载：%1$s</string>
+    <string name="artifact_library_change">更改</string>
     <string name="cd_mcp_server_enabled">已启用 MCP 服务器 %1$s</string>
     <string name="cd_code_block">代码块</string>
     <string name="cd_code_block_language">%1$s 代码块</string>

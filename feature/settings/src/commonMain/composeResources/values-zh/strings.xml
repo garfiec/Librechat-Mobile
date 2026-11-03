@@ -331,6 +331,16 @@
     <string name="artifact_mode_fullscreen_desc">以全屏页面打开，空间更大。</string>
     <string name="artifact_inline_title">内嵌渲染</string>
     <string name="artifact_inline_enabled_count">已启用 %1$d / %2$d</string>
+    <string name="artifact_libraries_title">需留意的库</string>
+    <string name="artifact_libraries_desc">Artifacts 可以使用少数已不再维护或存在已知问题的库。你可以选择是否加载每个库，或让每个 artifact 询问。它们在沙盒中运行，无法访问你的文件或账户。</string>
+    <string name="artifact_libraries_none_set">每次询问</string>
+    <string name="artifact_libraries_some_set">已设置 %1$d / %2$d</string>
+    <string name="artifact_libraries_ask">询问</string>
+    <string name="artifact_libraries_allow">加载</string>
+    <string name="artifact_libraries_decline">不加载</string>
+    <string name="artifact_libraries_unmaintained">已不再维护</string>
+    <string name="artifact_libraries_deprecated">已被作者弃用</string>
+    <string name="artifact_libraries_vulnerable">存在已知安全公告</string>
     <string name="artifacts_section_desc">直接在聊天中渲染 artifact，而不是隐藏在需点击打开的卡片后面。点击内嵌 artifact 可打开全屏视图。</string>
     <string name="inline_artifact_mermaid">Mermaid 图表</string>
     <string name="inline_artifact_mermaid_desc">内嵌渲染 Mermaid 流程图和图表</string>
