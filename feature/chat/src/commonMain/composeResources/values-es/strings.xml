@@ -541,6 +541,7 @@
     <string name="tool_approval_arguments">Argumentos</string>
     <string name="tool_approval_approve">Aprobar</string>
     <string name="tool_approval_reject">Rechazar</string>
+    <string name="tool_approval_reject_reason">Motivo (opcional)</string>
     <string name="tool_approval_edit">Editar</string>
     <string name="tool_approval_respond">Responder</string>
     <string name="tool_approval_approve_all">Aprobar todo</string>

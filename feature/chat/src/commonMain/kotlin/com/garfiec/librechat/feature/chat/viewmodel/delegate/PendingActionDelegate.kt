@@ -511,17 +511,17 @@ class PendingActionDelegate(
     /**
      * A decision tapped on the tool-approval panel: records [draft], the call's draft after the tap.
      *
-     * Approve and Reject are complete decisions: after a beat (so the pick is seen landing) the
-     * panel moves on as [advance] says. Edit and Respond reveal a field instead and never move on,
-     * and a call that was already decided never moves on by itself; the user is reviewing.
+     * Approve is a complete decision: after a beat (so the pick is seen landing) the panel moves on
+     * as [advance] says. Edit, Respond and Reject reveal a field instead and never move on (Reject's
+     * is the optional reason, which web offers too), and a call that was already decided never
+     * moves on by itself; the user is reviewing.
      */
     fun pickToolDecision(toolCallId: String, draft: ToolDecisionDraft, advance: PausePanelAutoAdvance) {
         val wasComplete = handle.state.toolDecisionDrafts[toolCallId]?.toResolution(toolCallId) != null
         cancelAutoAdvance()
         updateToolDecisionDraft(toolCallId, draft)
         val decision = draft.decision
-        val isFinal = decision == ToolApprovalDecisions.APPROVE || decision == ToolApprovalDecisions.REJECT
-        if (!isFinal || wasComplete) return
+        if (decision != ToolApprovalDecisions.APPROVE || wasComplete) return
         autoAdvance.schedule {
             val payload = handle.state.pendingAction?.takeIf { it.isToolApproval }?.payload
                 ?: return@schedule

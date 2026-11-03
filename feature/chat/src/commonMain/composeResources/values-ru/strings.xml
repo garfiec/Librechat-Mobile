@@ -548,6 +548,7 @@
     <string name="tool_approval_arguments">Аргументы</string>
     <string name="tool_approval_approve">Одобрить</string>
     <string name="tool_approval_reject">Отклонить</string>
+    <string name="tool_approval_reject_reason">Причина (необязательно)</string>
     <string name="tool_approval_edit">Изменить</string>
     <string name="tool_approval_respond">Ответить</string>
     <string name="tool_approval_approve_all">Одобрить все</string>

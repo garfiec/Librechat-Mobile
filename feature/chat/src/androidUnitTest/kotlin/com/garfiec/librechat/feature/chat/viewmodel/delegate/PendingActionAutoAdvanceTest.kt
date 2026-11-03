@@ -21,6 +21,7 @@ import com.garfiec.librechat.feature.chat.components.PausePanelAutoAdvance.Advan
 import com.garfiec.librechat.feature.chat.components.PausePanelAutoAdvance.NextTab
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
+import com.garfiec.librechat.feature.chat.util.toolBatchResolutions
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
@@ -341,7 +342,7 @@ class PendingActionAutoAdvanceTest {
         ToolDecisionDraft(decision = decision, editedArguments = editedArguments, responseText = responseText)
 
     @Test
-    fun `compact - approve and reject walk the batch, and the last decision submits it`() =
+    fun `compact - approve walks the batch, and the last decision submits it`() =
         runTest(UnconfinedTestDispatcher()) {
             val (delegate, state) = delegate()
             delegate.onPendingAction(toolBatch("call-1", "call-2"))
@@ -353,11 +354,41 @@ class PendingActionAutoAdvanceTest {
             assertThat(state.value.toolActiveCallId).isEqualTo("call-2")
             assertThat(resumes).isEmpty()
 
-            delegate.pickToolDecision("call-2", decide(ToolApprovalDecisions.REJECT), AdvanceOrSubmit)
+            delegate.pickToolDecision("call-2", decide(ToolApprovalDecisions.APPROVE), AdvanceOrSubmit)
             afterTheBeat()
 
             assertThat(resumes.single().decisions?.map { it.decision })
-                .containsExactly(ToolApprovalDecisions.APPROVE, ToolApprovalDecisions.REJECT).inOrder()
+                .containsExactly(ToolApprovalDecisions.APPROVE, ToolApprovalDecisions.APPROVE).inOrder()
+        }
+
+    /**
+     * Reject opens the optional reason field, so it must wait there: moving on after the beat
+     * submitted the batch before a reason could be typed, and none was ever sent.
+     */
+    @Test
+    fun `reject waits for its reason, which the explicit submit then sends`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val (delegate, state) = delegate()
+            delegate.onPendingAction(toolBatch("call-1"))
+
+            for (advance in PausePanelAutoAdvance.entries) {
+                delegate.pickToolDecision("call-1", decide(ToolApprovalDecisions.REJECT), advance)
+                afterTheBeat()
+            }
+            assertThat(resumes).isEmpty()
+            assertThat(state.value.pendingAction).isNotNull()
+
+            delegate.updateToolDecisionDraft(
+                "call-1",
+                decide(ToolApprovalDecisions.REJECT).copy(reason = " wrong repo "),
+            )
+            delegate.submitToolDecisions(
+                toolBatchResolutions(state.value.pendingAction!!.payload!!, state.value.toolDecisionDrafts)!!,
+            )
+
+            val sent = resumes.single().decisions?.single()
+            assertThat(sent?.decision).isEqualTo(ToolApprovalDecisions.REJECT)
+            assertThat(sent?.reason).isEqualTo("wrong repo")
         }
 
     @Test
@@ -389,20 +420,6 @@ class PendingActionAutoAdvanceTest {
             val sent = resumes.single().decisions?.single()
             assertThat(sent?.decision).isEqualTo(ToolApprovalDecisions.APPROVE)
             assertThat(sent?.scope).isEqualTo(ToolApprovalScopes.SESSION)
-        }
-
-    @Test
-    fun `focusing a reject reason inside the beat keeps the call on screen`() =
-        runTest(UnconfinedTestDispatcher()) {
-            val (delegate, state) = delegate()
-            delegate.onPendingAction(toolBatch("call-1"))
-
-            delegate.pickToolDecision("call-1", decide(ToolApprovalDecisions.REJECT), AdvanceOrSubmit)
-            delegate.cancelAutoAdvance()
-            afterTheBeat()
-
-            assertThat(resumes).isEmpty()
-            assertThat(state.value.pendingAction).isNotNull()
         }
 
     @Test

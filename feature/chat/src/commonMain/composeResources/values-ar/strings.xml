@@ -556,6 +556,7 @@
     <string name="tool_approval_arguments">الوسائط</string>
     <string name="tool_approval_approve">موافقة</string>
     <string name="tool_approval_reject">رفض</string>
+    <string name="tool_approval_reject_reason">السبب (اختياري)</string>
     <string name="tool_approval_edit">تعديل</string>
     <string name="tool_approval_respond">الرد</string>
     <string name="tool_approval_approve_all">الموافقة على الكل</string>

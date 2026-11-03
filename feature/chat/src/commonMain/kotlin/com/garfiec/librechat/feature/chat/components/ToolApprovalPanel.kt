@@ -44,7 +44,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
@@ -95,8 +94,9 @@ import org.jetbrains.compose.resources.stringResource
  *
  * Two layouts, split at the same width as the ask panel:
  * - **Compact** (phones, a folded foldable): the call's tool name heads the card with a
- *   `‹ ● ━ ○ ›` page-dot pager; an Approve or Reject on a call not yet decided moves straight on,
- *   and the decision that completes the batch submits it.
+ *   `‹ ● ━ ○ ›` page-dot pager; an Approve on a call not yet decided moves straight on, and the
+ *   decision that completes the batch submits it. Reject opens its optional reason field and
+ *   waits for Next / Continue, as Edit and Respond do.
  * - **Wide** (tablets, unfolded): one tab per call with explicit Back / Next / Continue, and the
  *   call body pages on a horizontal swipe.
  *
@@ -291,15 +291,14 @@ private fun CompactToolLayout(
                         isResolving = state.isResolving,
                         bodyMaxHeight = bodyMaxHeight,
                         onDraftChange = { draft -> actions.onDraftChange(active.toolCallId, draft) },
-                        onReasonFocus = actions.cancelAutoAdvance,
                         onPick = { draft ->
                             actions.onPick(active.toolCallId, draft, PausePanelAutoAdvance.AdvanceOrSubmit)
                         },
                     )
                 }
 
-                // Approve and Reject move on by themselves, so the explicit action only appears once
-                // the call holds a decision that doesn't (an Edit or Respond, or a call revisited).
+                // Approve moves on by itself, so the explicit action only appears once the call holds
+                // a decision that doesn't (an Edit, Respond or Reject, or a call revisited).
                 val canProceed = state.isDecided(active.toolCallId)
                 val hasBulk = state.isBulkAllowed(ToolApprovalDecisions.REJECT) ||
                     state.isBulkAllowed(ToolApprovalDecisions.APPROVE)
@@ -396,7 +395,6 @@ private fun WideToolLayout(
                             isResolving = state.isResolving,
                             bodyMaxHeight = bodyMaxHeight,
                             onDraftChange = { draft -> actions.onDraftChange(call.toolCallId, draft) },
-                            onReasonFocus = actions.cancelAutoAdvance,
                             onPick = { draft -> actions.onPick(call.toolCallId, draft, PausePanelAutoAdvance.NextTab) },
                         )
                     }
@@ -485,11 +483,6 @@ private fun ToolCallBody(
     isResolving: Boolean,
     bodyMaxHeight: Dp,
     onDraftChange: (ToolDecisionDraft) -> Unit,
-    /**
-     * The reject reason took focus: the user is still deciding, so a Reject's pending move-on is
-     * dropped and the explicit Next / Continue takes over.
-     */
-    onReasonFocus: () -> Unit,
     /** A decision's tap, with the draft after it. */
     onPick: (ToolDecisionDraft) -> Unit,
     modifier: Modifier = Modifier,
@@ -595,8 +588,7 @@ private fun ToolCallBody(
                 enabled = !isResolving,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .bringIntoViewRequester(fieldRequester)
-                    .onFocusChanged { if (it.isFocused) onReasonFocus() },
+                    .bringIntoViewRequester(fieldRequester),
                 label = { Text(stringResource(Res.string.tool_approval_reject_reason)) },
                 minLines = 1,
                 maxLines = 4,

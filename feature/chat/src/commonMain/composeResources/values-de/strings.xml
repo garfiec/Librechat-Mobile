@@ -540,6 +540,7 @@
     <string name="tool_approval_arguments">Argumente</string>
     <string name="tool_approval_approve">Genehmigen</string>
     <string name="tool_approval_reject">Ablehnen</string>
+    <string name="tool_approval_reject_reason">Grund (optional)</string>
     <string name="tool_approval_edit">Bearbeiten</string>
     <string name="tool_approval_respond">Antworten</string>
     <string name="tool_approval_approve_all">Alle genehmigen</string>

@@ -536,6 +536,7 @@
     <string name="tool_approval_arguments">인수</string>
     <string name="tool_approval_approve">승인</string>
     <string name="tool_approval_reject">거부</string>
+    <string name="tool_approval_reject_reason">이유(선택 사항)</string>
     <string name="tool_approval_edit">편집</string>
     <string name="tool_approval_respond">응답</string>
     <string name="tool_approval_approve_all">모두 승인</string>
