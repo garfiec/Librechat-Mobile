@@ -39,6 +39,13 @@
     <string name="agents_chip_top_picks">Top-Empfehlungen</string>
     <string name="agents_chip_all">Alle</string>
     <string name="agents_chip_editable">Bearbeitbar</string>
+    <string name="agents_filter_mine">Meine Agenten</string>
+    <string name="agents_sort_label">Sortieren nach</string>
+    <string name="agents_sort_newest">Neueste zuerst</string>
+    <string name="agents_sort_oldest">Älteste zuerst</string>
+    <string name="agents_sort_popular">Beliebt</string>
+    <string name="agents_sort_author">Nach Ersteller</string>
+    <string name="agents_mine_empty_title">Du hast noch keine Agenten erstellt</string>
     <string name="agents_top_pick">Top-Empfehlung</string>
     <string name="agents_new_agent">Neuer Agent</string>
     <string name="agent_unnamed">Unbenannter Agent</string>
@@ -79,6 +86,7 @@
     <string name="agent_description_label">Beschreibung</string>
     <string name="agent_description_placeholder">Optional: Beschreibe deinen Agenten hier</string>
     <string name="agent_instructions_label">Anweisungen</string>
+    <string name="agent_instructions_linked_prompt">Dieser Agent verwendet einen gespeicherten Prompt als Anweisungen. Ändere oder entferne die Verknüpfung im Web; Änderungen hier würden nicht ändern, was der Agent ausführt.</string>
     <string name="agent_instructions_placeholder">Die Systemanweisungen, die der Agent verwendet</string>
     <string name="insert_variable">Variable einfügen</string>
     <string name="cd_insert_variable">Variable einfügen</string>
@@ -355,4 +363,16 @@
         <item quantity="one">Du kannst bis zu %1$d Favoriten anheften.</item>
         <item quantity="other">Du kannst bis zu %1$d Favoriten anheften.</item>
     </plurals>
+    <string name="tool_approval_mode_cd">Tool-Freigabemodus: %1$s</string>
+    <string name="tool_approval_inherit">Übergeordnete Richtlinie verwenden</string>
+    <string name="tool_approval_ask">Immer fragen</string>
+    <string name="tool_approval_allow">Immer erlauben</string>
+    <string name="tool_approval_chat">Einmal pro Chat fragen</string>
+    <string name="tool_approval_always">Einmal fragen, dann immer erlauben</string>
+    <string name="tool_approval_admin_ask">Die Administratorrichtlinie erfordert eine Freigabe.</string>
+    <string name="tool_approval_admin_deny">Die Administratorrichtlinie blockiert dieses Tool.</string>
+    <string name="tool_approval_reset">Meine gespeicherten Freigaben zurücksetzen</string>
+    <string name="tool_approval_reset_success">Deine gespeicherten Freigaben wurden zurückgesetzt.</string>
+    <string name="tool_approval_reset_error">Gespeicherte Freigaben konnten nicht zurückgesetzt werden. Bitte versuch es erneut.</string>
+    <string name="tool_approval_reset_forbidden">Du kannst die Freigaben für diesen Agenten nicht zurücksetzen.</string>
 </resources>

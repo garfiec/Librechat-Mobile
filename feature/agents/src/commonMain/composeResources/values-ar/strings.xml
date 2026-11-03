@@ -39,6 +39,13 @@
     <string name="agents_chip_top_picks">الأبرز</string>
     <string name="agents_chip_all">الكل</string>
     <string name="agents_chip_editable">قابلة للتعديل</string>
+    <string name="agents_filter_mine">وكلائي</string>
+    <string name="agents_sort_label">الترتيب حسب</string>
+    <string name="agents_sort_newest">الأحدث أولًا</string>
+    <string name="agents_sort_oldest">الأقدم أولًا</string>
+    <string name="agents_sort_popular">الأكثر شيوعًا</string>
+    <string name="agents_sort_author">حسب اسم المنشئ</string>
+    <string name="agents_mine_empty_title">لم تنشئ أي وكلاء بعد</string>
     <string name="agents_top_pick">من الأبرز</string>
     <string name="agents_new_agent">وكيل جديد</string>
     <string name="agent_unnamed">وكيل بلا اسم</string>
@@ -79,6 +86,7 @@
     <string name="agent_description_label">الوصف</string>
     <string name="agent_description_placeholder">اختياري: صف وكيلك هنا</string>
     <string name="agent_instructions_label">التعليمات</string>
+    <string name="agent_instructions_linked_prompt">يستخدم هذا الوكيل موجّهًا محفوظًا كتعليمات له. غيّره أو ألغِ ربطه من الويب؛ فالتعديلات هنا لن تغيّر ما يشغّله الوكيل.</string>
     <string name="agent_instructions_placeholder">تعليمات النظام التي يستخدمها الوكيل</string>
     <string name="insert_variable">إدراج متغير</string>
     <string name="cd_insert_variable">إدراج متغير</string>
@@ -359,4 +367,16 @@
         <item quantity="many">يمكنك تثبيت ما يصل إلى %1$d عنصرًا مفضلًا.</item>
         <item quantity="other">يمكنك تثبيت ما يصل إلى %1$d عنصر مفضل.</item>
     </plurals>
+    <string name="tool_approval_mode_cd">وضع الموافقة على الأدوات: %1$s</string>
+    <string name="tool_approval_inherit">استخدام السياسة الموروثة</string>
+    <string name="tool_approval_ask">السؤال دائمًا</string>
+    <string name="tool_approval_allow">الموافقة دائمًا</string>
+    <string name="tool_approval_chat">السؤال مرة واحدة لكل محادثة</string>
+    <string name="tool_approval_always">السؤال مرة واحدة ثم الموافقة دائمًا</string>
+    <string name="tool_approval_admin_ask">تتطلب سياسة المسؤول الموافقة.</string>
+    <string name="tool_approval_admin_deny">تحظر سياسة المسؤول هذه الأداة.</string>
+    <string name="tool_approval_reset">إعادة تعيين موافقاتي المحفوظة</string>
+    <string name="tool_approval_reset_success">تمت إعادة تعيين موافقاتك المحفوظة.</string>
+    <string name="tool_approval_reset_error">تعذّرت إعادة تعيين الموافقات المحفوظة. يُرجى إعادة المحاولة.</string>
+    <string name="tool_approval_reset_forbidden">لا يمكنك إعادة تعيين الموافقات لهذا الوكيل.</string>
 </resources>

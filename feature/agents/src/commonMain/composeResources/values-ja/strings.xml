@@ -39,6 +39,13 @@
     <string name="agents_chip_top_picks">おすすめ</string>
     <string name="agents_chip_all">すべて</string>
     <string name="agents_chip_editable">編集可能</string>
+    <string name="agents_filter_mine">自分のエージェント</string>
+    <string name="agents_sort_label">並べ替え</string>
+    <string name="agents_sort_newest">新しい順</string>
+    <string name="agents_sort_oldest">古い順</string>
+    <string name="agents_sort_popular">人気順</string>
+    <string name="agents_sort_author">作成者名順</string>
+    <string name="agents_mine_empty_title">まだエージェントを作成していません</string>
     <string name="agents_top_pick">おすすめ</string>
     <string name="agents_new_agent">新しいエージェント</string>
     <string name="agent_unnamed">名前のないエージェント</string>
@@ -79,6 +86,7 @@
     <string name="agent_description_label">説明</string>
     <string name="agent_description_placeholder">任意: ここにエージェントの説明を入力</string>
     <string name="agent_instructions_label">指示</string>
+    <string name="agent_instructions_linked_prompt">このエージェントは保存済みのプロンプトを指示として使用しています。変更やリンク解除はウェブで行ってください。ここで編集しても、エージェントが実行する内容は変わりません。</string>
     <string name="agent_instructions_placeholder">エージェントが使用するシステム指示</string>
     <string name="insert_variable">変数を挿入</string>
     <string name="cd_insert_variable">変数を挿入</string>
@@ -354,4 +362,16 @@
     <plurals name="agent_pin_limit">
         <item quantity="other">お気に入りは最大%1$d件までピン留めできます。</item>
     </plurals>
+    <string name="tool_approval_mode_cd">ツールの承認モード: %1$s</string>
+    <string name="tool_approval_inherit">継承されたポリシーを使用</string>
+    <string name="tool_approval_ask">毎回確認</string>
+    <string name="tool_approval_allow">常に承認</string>
+    <string name="tool_approval_chat">チャットごとに1回確認</string>
+    <string name="tool_approval_always">1回確認し、以降は常に承認</string>
+    <string name="tool_approval_admin_ask">管理者ポリシーにより承認が必要です。</string>
+    <string name="tool_approval_admin_deny">管理者ポリシーによりこのツールはブロックされています。</string>
+    <string name="tool_approval_reset">記憶された承認をリセット</string>
+    <string name="tool_approval_reset_success">記憶された承認をリセットしました。</string>
+    <string name="tool_approval_reset_error">記憶された承認をリセットできませんでした。もう一度お試しください。</string>
+    <string name="tool_approval_reset_forbidden">このエージェントの承認はリセットできません。</string>
 </resources>
