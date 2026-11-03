@@ -81,7 +81,8 @@ internal fun codeWorkspaceUiState(
         else -> null
     }
 
-    val selected = only?.selected
+    // A locked chat keeps its recorded checkout on screen while the machine can't confirm the pick.
+    val selected = only?.selected ?: only?.recorded
     val checkout = if (only != null && selected != null && !withoutWorkspace &&
         (onlyDescriptor?.offersWorktree == true || selected.checkout != null || only.allowCheckoutSelection)
     ) {

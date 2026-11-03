@@ -115,4 +115,28 @@ class CodeWorkspaceViewTest {
         assertTrue(ui.sheet.noWorkspaceSelected)
         assertNull(ui.branch)
     }
+
+    @Test
+    fun aLockedChatOfflineKeepsItsRecordedCheckout() {
+        val saved = CodeWorkspaceResolver.Chat(
+            isAgentsConversation = true,
+            isNewChat = false,
+            agentId = dev.id,
+            mode = CodeEnvironmentMode.ATTACHED,
+            selections = listOf(CodeWorkspaceSelection(mbp.id, "switchboard", "source")),
+            holdsSavedDecision = true,
+        )
+        val resolution = CodeWorkspaceResolver.resolve(
+            capabilities,
+            saved,
+            mapOf(dev.id to dev),
+            mapOf(mbp.id to StatusResult.Loaded(CodeEnvironmentStatus(mbp.id, "offline"))),
+        )
+        val ui = codeWorkspaceUiState(resolution, null, null, null, sheetOpen = false, attention = false)
+        assertTrue(ui.locked)
+        assertTrue(ui.holdsSend)
+        assertEquals(CodeWorkspaceChipLabel.UNAVAILABLE, ui.workspace.label)
+        assertEquals(CodeCheckoutMode.REGISTERED, ui.checkout?.mode)
+        assertFalse(ui.checkout?.pickable == true)
+    }
 }

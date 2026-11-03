@@ -68,6 +68,11 @@ object CodeWorkspaceResolver {
         val selected: CodeWorkspaceSelection?,
         /** Coding agents that need this machine, subagents included. */
         val requiredBy: List<Agent>,
+        /**
+         * A locked chat's recorded pick on this machine. Unlike [selected], it is known while the
+         * machine is offline or no longer lists the workspace, so the row can still name its checkout.
+         */
+        val recorded: CodeWorkspaceSelection? = null,
     ) {
         val allowCheckoutSelection: Boolean
             get() = environment.configSchema?.workspaces?.allowCheckoutSelection == true
@@ -289,7 +294,10 @@ object CodeWorkspaceResolver {
                 workspaces.isEmpty() -> State.UNAVAILABLE
                 else -> State.CHOOSE
             }
-            EnvironmentResult(environment, state, workspaces, selected, requiredBy[environment.id].orEmpty())
+            EnvironmentResult(
+                environment, state, workspaces, selected, requiredBy[environment.id].orEmpty(),
+                recorded = if (locked) storedSelections?.firstOrNull { it.environmentId == environment.id } else null,
+            )
         }
 
         fun resolveSelections(selections: List<CodeWorkspaceSelection>?): List<CodeWorkspaceSelection>? {
