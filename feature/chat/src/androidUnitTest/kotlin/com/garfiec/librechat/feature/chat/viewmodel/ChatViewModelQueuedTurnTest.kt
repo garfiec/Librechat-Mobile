@@ -691,11 +691,14 @@ class ChatViewModelQueuedTurnTest {
         runCurrent()
         vm.onInputChanged("edited after it ran")
 
-        // Admitted: the server's list no longer has it, and the next poll retires the row.
+        // Admitted: the server's list no longer has it, and the next poll retires the row. The
+        // edit ends there, so the editing bar does not stay up over a message that already went.
         serverRows.clear()
         advanceTimeBy(3_000)
         runCurrent()
         assertThat(vm.uiState.value.messageQueue).isEmpty()
+        assertThat(vm.uiState.value.isEditingQueued).isFalse()
+        assertThat(vm.uiState.value.inputText).isEqualTo("pre-edit draft")
 
         vm.commitQueuedEdit()
         runCurrent()

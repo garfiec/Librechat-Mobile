@@ -22,12 +22,14 @@ class SendButtonModeTest {
         target: DuringRunSendTarget = DuringRunSendTarget.QUEUE,
         isEditingQueued: Boolean = false,
         isAwaitingUploadSend: Boolean = false,
+        isQueuedEditEmptied: Boolean = false,
     ) = sendButtonModeFor(
         isStreaming = isStreaming,
         canQueue = canQueue,
         duringRunTarget = target,
         isEditingQueued = isEditingQueued,
         isAwaitingUploadSend = isAwaitingUploadSend,
+        isQueuedEditEmptied = isQueuedEditEmptied,
     )
 
     // ── The button names its target ───────────────────────────────────────
@@ -70,6 +72,20 @@ class SendButtonModeTest {
         assertThat(mode(canQueue = false)).isEqualTo(SendButtonMode.STOP)
         assertThat(mode(canQueue = false, target = DuringRunSendTarget.ANSWER_PAUSE))
             .isEqualTo(SendButtonMode.STOP)
+    }
+
+    /**
+     * An emptied queued edit must still reach the commit, which withdraws the message. A disabled
+     * Update left the user no way to take it back, and the original ran at the run end.
+     */
+    @Test
+    fun `an emptied queued edit offers to remove the message`() {
+        assertThat(mode(isEditingQueued = true, isQueuedEditEmptied = true))
+            .isEqualTo(SendButtonMode.REMOVE_QUEUED)
+        assertThat(mode(isEditingQueued = true, isQueuedEditEmptied = true, isStreaming = false))
+            .isEqualTo(SendButtonMode.REMOVE_QUEUED)
+        // Only while editing: an empty composer otherwise keeps its ordinary faces.
+        assertThat(mode(isQueuedEditEmptied = true, canQueue = false)).isEqualTo(SendButtonMode.STOP)
     }
 
     @Test

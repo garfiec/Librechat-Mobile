@@ -421,6 +421,7 @@ class ChatViewModel(
         onSuccessorOwed = { streamingManager.attachToServerStartedRun() },
         projectOrphan = { receipt -> queueOrchestrationDelegate.projectOrphanQueuedTurn(receipt) },
         onServerRowsCleared = { queueOrchestrationDelegate.tryResumeDrain() },
+        onReceiptsApplied = { queueOrchestrationDelegate.onQueueReconciled() },
     )
 
     // --- Delegate-owned flows exposed to the UI ---

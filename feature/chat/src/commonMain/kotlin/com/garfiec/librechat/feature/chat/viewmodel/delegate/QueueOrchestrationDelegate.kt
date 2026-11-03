@@ -387,6 +387,21 @@ class QueueOrchestrationDelegate(
         finishQueuedEdit(session)
     }
 
+    /**
+     * After the server's answer is folded into the queue: if the row being edited has left it, the
+     * server ran (or let go of) the original, so the edit has nothing left to replace. The session
+     * ends at once rather than at the next Update, so the editing bar does not stay up over a
+     * message that already went. A withdrawal of our own is in flight when [withdrawingForEdit] is
+     * set; that path ends the session itself.
+     */
+    fun onQueueReconciled() {
+        val session = handle.state.editingQueuedItem ?: return
+        if (withdrawingForEdit != null) return
+        if (handle.state.messageQueue.any { it.localId == session.original.localId }) return
+        finishQueuedEdit(session)
+        handle.setError(EDIT_OVERTAKEN_MESSAGE)
+    }
+
     private fun finishQueuedEdit(session: QueuedEditSession) {
         if (handle.state.editingQueuedItem != session) return
         applyComposer(session.stashed, editSession = null)

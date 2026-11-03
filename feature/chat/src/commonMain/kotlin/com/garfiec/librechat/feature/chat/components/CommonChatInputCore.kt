@@ -34,6 +34,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -88,6 +89,7 @@ import com.garfiec.librechat.feature.chat.resources.cd_add_to_queue
 import com.garfiec.librechat.feature.chat.resources.cd_answer_question
 import com.garfiec.librechat.feature.chat.resources.cd_cancel_edit
 import com.garfiec.librechat.feature.chat.resources.cd_cancel_pending_send
+import com.garfiec.librechat.feature.chat.resources.cd_cancel_queued_message
 import com.garfiec.librechat.feature.chat.resources.cd_collapse
 import com.garfiec.librechat.feature.chat.resources.cd_during_run_options
 import com.garfiec.librechat.feature.chat.resources.cd_expand
@@ -559,6 +561,8 @@ private fun ComposerInputRow(
                 // In queued-edit mode the button commits the edit instead of send/stop/queue.
                 isEditingQueued = state.isEditingQueued,
                 onUpdate = onCommitEdit,
+                isQueuedEditEmptied = state.inputText.isBlank() && state.attachedFiles.isEmpty() &&
+                    !state.arePicksUnsettled,
                 // A send waiting on an in-flight upload: spinner, tap to cancel.
                 isAwaitingUploadSend = state.isAwaitingUploadSend,
                 onCancelPendingSend = onCancelPendingSend,
@@ -582,7 +586,7 @@ private val GlassComposerShape = RoundedCornerShape(28.dp)
 private val COMPACT_COMPOSER_ROW_WIDTH = 336.dp
 
 /** Visual mode of the trailing composer button. */
-internal enum class SendButtonMode { SEND, STOP, QUEUE, STEER, INTERRUPT, ANSWER, UPDATE, AWAITING }
+internal enum class SendButtonMode { SEND, STOP, QUEUE, STEER, INTERRUPT, ANSWER, UPDATE, REMOVE_QUEUED, AWAITING }
 
 /**
  * Whether the composer holds something the trailing control can act on. Drives both that control's
@@ -616,7 +620,11 @@ internal fun sendButtonModeFor(
     duringRunTarget: DuringRunSendTarget,
     isEditingQueued: Boolean,
     isAwaitingUploadSend: Boolean,
+    isQueuedEditEmptied: Boolean = false,
 ): SendButtonMode = when {
+    // Emptying a queued message and confirming withdraws it. A plain disabled Update here left no
+    // way to take the message back out, so the original ran when the reply finished.
+    isEditingQueued && isQueuedEditEmptied -> SendButtonMode.REMOVE_QUEUED
     isEditingQueued -> SendButtonMode.UPDATE
     // A send parked behind an in-flight upload only takes over the button when NOT streaming —
     // during a stream the Stop control must stay reachable, so a queued-message send parked
@@ -664,6 +672,8 @@ fun SendStopButton(
     duringRunTarget: DuringRunSendTarget = DuringRunSendTarget.QUEUE,
     isEditingQueued: Boolean = false,
     onUpdate: () -> Unit = {},
+    /** In queued-edit mode the composer was emptied: [onUpdate] withdraws the message. */
+    isQueuedEditEmptied: Boolean = false,
     isAwaitingUploadSend: Boolean = false,
     onCancelPendingSend: () -> Unit = {},
     /** A during-run tap opens the steer/queue picker rather than sending: the caret is folded in. */
@@ -675,6 +685,7 @@ fun SendStopButton(
         duringRunTarget = duringRunTarget,
         isEditingQueued = isEditingQueued,
         isAwaitingUploadSend = isAwaitingUploadSend,
+        isQueuedEditEmptied = isQueuedEditEmptied,
     )
     // On the slot, not each button, so a send's bounce survives the swap to Stop.
     val bounce = rememberPressBounce()
@@ -700,6 +711,21 @@ fun SendStopButton(
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = stringResource(Res.string.cd_update_queued_message),
+                )
+            }
+
+            SendButtonMode.REMOVE_QUEUED -> IconButton(
+                onClick = onUpdate,
+                modifier = Modifier.size(56.dp),
+                colors = ChatInputDefaults.sendButtonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError,
+                    glassContentColor = MaterialTheme.colorScheme.error,
+                ),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = stringResource(Res.string.cd_cancel_queued_message),
                 )
             }
 

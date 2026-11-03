@@ -58,6 +58,8 @@ class QueuedTurnDelegate(
      * to drain, and nothing else re-kicks the drain for the local rows behind it.
      */
     private val onServerRowsCleared: () -> Unit = {},
+    /** Called after every projection is folded in: a row being edited may have just left. */
+    private val onReceiptsApplied: () -> Unit = {},
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
 
@@ -200,6 +202,7 @@ class QueuedTurnDelegate(
         } else {
             announcedOwed + announced
         }
+        onReceiptsApplied()
         if (hadServerRows && !hasServerRows()) onServerRowsCleared()
     }
 
