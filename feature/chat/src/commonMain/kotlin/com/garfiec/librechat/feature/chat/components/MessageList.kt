@@ -438,24 +438,30 @@ fun MessageList(
     // Not while a find or jump scroll is placing a match: opening the find bar shrinks the
     // viewport too, and a scroll to the bottom then would interrupt that scroll and cancel it.
     val currentFocusRequest by rememberUpdatedState(searchFocusRequest)
+    //
+    // The same goes for the bottom chrome growing over the list (code workspace rows, a taller
+    // composer): that raises the bottom content padding, not the viewport, so the line watched is
+    // where the tail rests, which moves up for both. Not during a run: the follower already rests
+    // the tail against the live bottom padding, and an instant jump here would cut its easing short.
+    val currentIsStreaming by rememberUpdatedState(isStreaming)
+    val currentIsNearBottom by rememberUpdatedState(isNearBottom)
     LaunchedEffect(Unit) {
-        var previousViewportEnd = 0
+        var previous: TailRest? = null
         snapshotFlow {
-            listState.layoutInfo.viewportEndOffset
-        }.collect { viewportEnd ->
-            if (previousViewportEnd > 0 && viewportEnd < previousViewportEnd && !listHasFocus && currentFocusRequest == null) {
-                // Viewport shrank (e.g., keyboard opened). If user was
-                // near the bottom, scroll to keep them there.
+            val info = listState.layoutInfo
+            TailRest(info.viewportEndOffset, info.viewportEndOffset - info.afterContentPadding, currentIsNearBottom.value)
+        }.collect { rest ->
+            if (!listHasFocus && currentFocusRequest == null && !currentIsStreaming) {
                 val info = listState.layoutInfo
-                val lastVisible = info.visibleItemsInfo.lastOrNull()
+                val lastVisibleIndex = info.visibleItemsInfo.lastOrNull()?.index
                 val itemCount = info.totalItemsCount
-                if (lastVisible != null && itemCount > 0 && lastVisible.index >= itemCount - 2) {
+                if (reanchorsToTail(previous, rest, lastVisibleIndex, itemCount)) {
                     coroutineScope.launch {
                         listState.scrollToTail(itemCount - 1, extraEndPx)
                     }
                 }
             }
-            previousViewportEnd = viewportEnd
+            previous = rest
         }
     }
 

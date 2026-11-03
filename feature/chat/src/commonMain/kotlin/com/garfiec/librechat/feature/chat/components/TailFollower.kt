@@ -266,6 +266,24 @@ internal suspend fun LazyListState.scrollToTail(lastIndex: Int, extraEndPx: Floa
     if (extraEndPx > 0f) scrollBy(-extraEndPx)
 }
 
+/**
+ * One layout's view of where a list's tail rests: the viewport end, the line the tail rests on
+ * (the viewport end less the bottom padding), and whether the list sat near its tail.
+ */
+internal data class TailRest(val viewportEnd: Int, val restLine: Int, val nearTail: Boolean)
+
+/**
+ * Whether a list whose rest line moved up from [previous] to [current] should be put back on its
+ * tail. The keyboard shrinking the viewport keeps a list showing its last items there. Bottom chrome
+ * growing over an unchanged viewport does so only for a list that rested on its tail before it grew:
+ * a reader parked in a long last reply keeps their place when the composer measures in on re-entry.
+ */
+internal fun reanchorsToTail(previous: TailRest?, current: TailRest, lastVisibleIndex: Int?, itemCount: Int): Boolean {
+    if (previous == null || previous.restLine <= 0 || current.restLine >= previous.restLine) return false
+    if (lastVisibleIndex == null || itemCount == 0 || lastVisibleIndex < itemCount - 2) return false
+    return current.viewportEnd < previous.viewportEnd || previous.nearTail
+}
+
 /** [scrollToTail], animated. */
 internal suspend fun LazyListState.animateScrollToTail(lastIndex: Int, extraEndPx: Float = 0f) {
     if (extraEndPx <= 0f) {
