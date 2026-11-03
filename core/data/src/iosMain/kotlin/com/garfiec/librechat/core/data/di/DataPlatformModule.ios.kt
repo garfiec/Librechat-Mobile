@@ -11,6 +11,10 @@ import com.garfiec.librechat.core.data.datastore.CommonTokenDataStore
 import com.garfiec.librechat.core.data.datastore.IosTokenDataStore
 import com.garfiec.librechat.core.data.datastore.PreferenceMigrationRunner
 import com.garfiec.librechat.core.data.datastore.ServerUrlKeychainFallback
+import com.garfiec.librechat.core.data.datastore.iosAppSupportDirectory
+import com.garfiec.librechat.core.data.datastore.iosDataStoreDirectory
+import com.garfiec.librechat.core.data.datastore.iosDataStorePath
+import com.garfiec.librechat.core.data.datastore.iosDatabasePath
 import com.garfiec.librechat.core.data.db.LibreChatDatabase
 import com.garfiec.librechat.core.data.db.migration.MIGRATION_3_4
 import com.garfiec.librechat.core.data.db.migration.MIGRATION_4_5
@@ -40,7 +44,6 @@ import org.koin.dsl.binds
 import org.koin.dsl.module
 import platform.Foundation.NSCachesDirectory
 import platform.Foundation.NSFileManager
-import platform.Foundation.NSHomeDirectory
 import platform.Foundation.NSSearchPathForDirectoriesInDomains
 import platform.Foundation.NSUserDomainMask
 
@@ -68,9 +71,9 @@ actual val dataPlatformModule: Module = module {
 
     // --- Database ---
     single {
-        val dbDir = NSHomeDirectory() + "/Library/Application Support"
+        val dbDir = iosAppSupportDirectory()
         ensureDirectoryExists(dbDir)
-        Room.databaseBuilder<LibreChatDatabase>(name = "$dbDir/librechat.db")
+        Room.databaseBuilder<LibreChatDatabase>(name = iosDatabasePath())
             .setDriver(BundledSQLiteDriver())
             .setQueryCoroutineContext(Dispatchers.IO)
             .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
@@ -79,9 +82,9 @@ actual val dataPlatformModule: Module = module {
 
     // --- DataStore ---
     single<DataStore<Preferences>> {
-        val datastoreDir = NSHomeDirectory() + "/Library/Application Support/datastore"
+        val datastoreDir = iosDataStoreDirectory()
         ensureDirectoryExists(datastoreDir)
-        val path = "$datastoreDir/$DATASTORE_FILE_NAME.preferences_pb"
+        val path = iosDataStorePath()
         PreferenceDataStoreFactory.createWithPath(
             corruptionHandler = settingsCorruptionHandler(),
             migrations = listOf(PreferenceMigrationRunner(get())),
