@@ -30,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +39,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -50,6 +53,7 @@ import com.garfiec.librechat.core.ui.components.AdaptivePillChoice
 import com.garfiec.librechat.core.ui.components.AdaptiveRadioButton
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.core.ui.components.EndpointIcon
+import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.feature.conversations.resources.Res
 import com.garfiec.librechat.feature.conversations.resources.cd_remove_named_filter
 import com.garfiec.librechat.feature.conversations.resources.drawer_filter_any_time
@@ -98,7 +102,15 @@ internal fun DrawerFilterSheet(
     onDismiss: () -> Unit,
 ) {
     var draft by remember { mutableStateOf(current) }
-    AdaptiveModalBottomSheet(onDismissRequest = onDismiss) {
+    // Opened from the focused search field: the keyboard would otherwise stay up over the sheet
+    // (the glass sheet draws in the activity window, so nothing moves focus off the field).
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    LaunchedEffect(Unit) {
+        focusManager.clearFocus()
+        keyboardController?.hide()
+    }
+    AdaptiveModalBottomSheet(onDismissRequest = onDismiss, dragHandle = { LowProfileDragHandle() }) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

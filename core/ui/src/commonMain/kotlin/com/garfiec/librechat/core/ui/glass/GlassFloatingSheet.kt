@@ -196,7 +196,10 @@ internal fun GlassFloatingSheet(
                 // What an M3 sheet provides from its container; without it, text that relies on the
                 // ambient content colour renders in the default black, unreadable on dark glass.
                 CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
-                    dragHandle?.invoke()
+                    // Centred as M3's sheet does: its default handle is a bare pill with no width of its own.
+                    if (dragHandle != null) {
+                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) { dragHandle() }
+                    }
                     content()
                 }
             }
