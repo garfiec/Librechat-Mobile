@@ -343,6 +343,15 @@ class QueueOrchestrationDelegate(
                     reportWithdrawRefused()
                     return@launch
                 }
+                // A withdrawal that landed applied a receipt, which retires the row. One still
+                // listed with a server id was answered "not found": the server already ran it and
+                // let it go, so offering the edit back would send these words twice.
+                if (handle.state.messageQueue.any { it.localId == localId && it.server?.id != null }) {
+                    queueDelegate.cancel(localId)
+                    finishQueuedEdit(session)
+                    handle.setError(EDIT_OVERTAKEN_MESSAGE)
+                    return@launch
+                }
                 if (edited != null) {
                     // The cancel receipt has usually retired the row already. The edit goes back in
                     // its slot, with a fresh server identity minted by [placeInQueue].

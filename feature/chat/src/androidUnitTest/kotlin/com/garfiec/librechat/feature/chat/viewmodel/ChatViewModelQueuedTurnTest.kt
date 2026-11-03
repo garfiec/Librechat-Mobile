@@ -709,6 +709,35 @@ class ChatViewModelQueuedTurnTest {
     }
 
     /**
+     * The same race, closed between two polls: the server ran the original and let it go, so the
+     * withdrawal is answered "not found". That answer counts as withdrawn for the ×, but for an
+     * edit it means the words already went.
+     */
+    @Test
+    fun `an edit whose original the server no longer has is not sent again`() = queuedTurnTest { vm ->
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+        val queued = vm.uiState.value.messageQueue.single()
+        coEvery { queuedTurnRepository.cancel(any()) } answers {
+            serverRows.clear()
+            QueuedTurnOutcome.Rejected(statusCode = 404, code = "QUEUED_TURN_NOT_FOUND", message = "gone")
+        }
+        vm.editQueued(queued.localId)
+        runCurrent()
+        vm.onInputChanged("edited after it ran")
+
+        vm.commitQueuedEdit()
+        runCurrent()
+
+        coVerify(exactly = 1) { queuedTurnRepository.cancel(any()) }
+        coVerify(exactly = 1) { queuedTurnRepository.enqueue(any()) }
+        assertThat(vm.uiState.value.isEditingQueued).isFalse()
+        assertThat(vm.uiState.value.messageQueue).isEmpty()
+        assertThat(vm.uiState.value.error).isNotNull()
+    }
+
+    /**
      * Left local, an edited row is overtaken: the follow-up queued after it is server-owned, the
      * server admits it at the run end, and the drain refuses the edited one until that has run.
      */
