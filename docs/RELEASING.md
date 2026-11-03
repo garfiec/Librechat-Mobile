@@ -416,9 +416,9 @@ flavor's package changes.
   4. Until the app's first release has passed review, run the workflow with status `draft`: Play
      refuses a completed release on an app that has never been published.
 
-  Data safety form: no data collected, no data shared. The app sends user data only to the
-  LibreChat server the user chose; [`PRIVACY-NOTES.md`](PRIVACY-NOTES.md) section A has the form
-  answers. Privacy-policy URL:
+  Data safety form: data collected, none shared. The app sends user data only to the LibreChat
+  server the user chose, and Google counts that as collected;
+  [`PRIVACY-NOTES.md`](PRIVACY-NOTES.md) section A has the form answers. Privacy-policy URL:
   `https://github.com/garfiec/Librechat-Mobile/blob/develop/docs/PRIVACY.md`.
 - **App Store** — `.github/workflows/appstore.yml`, archived with the `Release-AppStore`
   configuration (see .github/CLAUDE.md).
