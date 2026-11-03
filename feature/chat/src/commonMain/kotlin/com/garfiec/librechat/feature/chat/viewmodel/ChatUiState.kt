@@ -825,6 +825,13 @@ data class ChatUiState(
     val isEditingQueued: Boolean
         get() = editingQueuedItem != null
 
+    /** The queue as the chips show it: the row being edited stays queued but is in the composer,
+     *  so it is not shown twice. */
+    val displayedMessageQueue: List<QueuedMessage>
+        get() = editingQueuedItem?.let { session ->
+            messageQueue.filterNot { it.localId == session.original.localId }
+        } ?: messageQueue
+
     /**
      * Bundle of the feature gates that flow into the composer ([ChatInput] →
      * [ChatToolsSheetContent]), so the four are threaded as one value across both

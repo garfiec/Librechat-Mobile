@@ -484,8 +484,9 @@ class ChatViewModelQueuedTurnTest {
         vm.editQueued(rejected.localId)
         runCurrent()
         assertThat(vm.uiState.value.isEditingQueued).isTrue()
-        // Taken OUT for editing. A refused row has no queuedTurnId, so nothing removed it for us.
-        assertThat(vm.uiState.value.messageQueue).isEmpty()
+        // Still queued while it is edited; only the chips hide it.
+        assertThat(vm.uiState.value.messageQueue.single().localId).isEqualTo(rejected.localId)
+        assertThat(vm.uiState.value.displayedMessageQueue).isEmpty()
 
         vm.onInputChanged("edited follow-up")
         vm.commitQueuedEdit()
@@ -499,6 +500,166 @@ class ChatViewModelQueuedTurnTest {
         assertThat(requests.map { it.clientRequestId }.toSet()).hasSize(2)
         coVerify(exactly = 0) { queuedTurnRepository.cancel(any()) }
         assertThat(vm.uiState.value.messageQueue.single().text).isEqualTo("edited follow-up")
+    }
+
+    /** Opening the edit touches nothing on the server: the row stays queued there and here. */
+    @Test
+    fun `editing a server-owned row leaves it queued`() = queuedTurnTest { vm ->
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+        val queued = vm.uiState.value.messageQueue.single()
+        vm.onInputChanged("pre-edit draft")
+
+        vm.editQueued(queued.localId)
+        runCurrent()
+
+        assertThat(vm.uiState.value.isEditingQueued).isTrue()
+        assertThat(vm.uiState.value.inputText).isEqualTo(TEXT)
+        coVerify(exactly = 0) { queuedTurnRepository.cancel(any()) }
+        assertThat(serverRows.map { it.text }).containsExactly(TEXT)
+        assertThat(vm.uiState.value.messageQueue.map { it.localId }).containsExactly(queued.localId)
+    }
+
+    /**
+     * Leaving the chat mid-edit clears this ViewModel (a chat opened from the drawer replaces the
+     * entry). The queued row must still be there when the chat is opened again, unchanged, and the
+     * unsaved edit is dropped as a cancel would drop it.
+     */
+    @Test
+    fun `a row being edited survives leaving the chat`() = queuedTurnTest { vm ->
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+        val queued = vm.uiState.value.messageQueue.single()
+        // A consistent server: a withdrawal really removes the row.
+        coEvery { queuedTurnRepository.cancel(any()) } answers {
+            serverRows.clear()
+            QueuedTurnOutcome.Committed(
+                AgentQueuedTurnReceipt(
+                    queuedTurnId = firstArg(),
+                    clientRequestId = queued.clientRequestId!!,
+                    text = queued.text,
+                    status = QueuedTurnStatus.CANCELLED,
+                ),
+            )
+        }
+        vm.editQueued(queued.localId)
+        runCurrent()
+        vm.onInputChanged("half-typed edit")
+
+        vm.viewModelScope.cancel()
+        val reopened = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
+        try {
+            runCurrent()
+
+            coVerify(exactly = 0) { queuedTurnRepository.cancel(any()) }
+            assertThat(reopened.uiState.value.isEditingQueued).isFalse()
+            assertThat(reopened.uiState.value.messageQueue.map { it.text }).containsExactly(TEXT)
+        } finally {
+            reopened.viewModelScope.cancel()
+        }
+    }
+
+    @Test
+    fun `cancelling an edit leaves the server row untouched`() = queuedTurnTest { vm ->
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+        val queued = vm.uiState.value.messageQueue.single()
+        vm.onInputChanged("pre-edit draft")
+        vm.editQueued(queued.localId)
+        runCurrent()
+        vm.onInputChanged("discarded edit")
+
+        vm.cancelQueuedEdit()
+        runCurrent()
+
+        coVerify(exactly = 0) { queuedTurnRepository.cancel(any()) }
+        coVerify(exactly = 1) { queuedTurnRepository.enqueue(any()) }
+        assertThat(vm.uiState.value.messageQueue.single()).isEqualTo(queued)
+        assertThat(vm.uiState.value.inputText).isEqualTo("pre-edit draft")
+    }
+
+    /** An Update that changes nothing the server holds keeps its copy and its place. */
+    @Test
+    fun `an unchanged edit commits without touching the server`() = queuedTurnTest { vm ->
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+        val queued = vm.uiState.value.messageQueue.single()
+        vm.editQueued(queued.localId)
+        runCurrent()
+
+        vm.commitQueuedEdit()
+        runCurrent()
+
+        coVerify(exactly = 0) { queuedTurnRepository.cancel(any()) }
+        coVerify(exactly = 1) { queuedTurnRepository.enqueue(any()) }
+        assertThat(vm.uiState.value.isEditingQueued).isFalse()
+        assertThat(vm.uiState.value.messageQueue.single().clientRequestId).isEqualTo(queued.clientRequestId)
+    }
+
+    @Test
+    fun `an edit emptied to nothing withdraws the row`() = queuedTurnTest { vm ->
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+        val queued = vm.uiState.value.messageQueue.single()
+        coEvery { queuedTurnRepository.cancel(queued.server!!.id!!) } answers {
+            serverRows.clear()
+            QueuedTurnOutcome.Committed(
+                AgentQueuedTurnReceipt(
+                    queuedTurnId = queued.server!!.id!!,
+                    clientRequestId = queued.clientRequestId!!,
+                    text = queued.text,
+                    status = QueuedTurnStatus.CANCELLED,
+                ),
+            )
+        }
+        vm.editQueued(queued.localId)
+        runCurrent()
+        vm.onInputChanged("")
+
+        vm.commitQueuedEdit()
+        runCurrent()
+
+        coVerify(exactly = 1) { queuedTurnRepository.cancel(any()) }
+        assertThat(vm.uiState.value.messageQueue).isEmpty()
+        assertThat(vm.uiState.value.isEditingQueued).isFalse()
+    }
+
+    /**
+     * The row stays on the server during the edit, so the server can admit it at the run end
+     * before the edit is committed. The edit must then not be offered back: the words would run
+     * twice.
+     */
+    @Test
+    fun `an edit of a row the server already ran is not sent again`() = queuedTurnTest { vm ->
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+        val queued = vm.uiState.value.messageQueue.single()
+        vm.onInputChanged("pre-edit draft")
+        vm.editQueued(queued.localId)
+        runCurrent()
+        vm.onInputChanged("edited after it ran")
+
+        // Admitted: the server's list no longer has it, and the next poll retires the row.
+        serverRows.clear()
+        advanceTimeBy(3_000)
+        runCurrent()
+        assertThat(vm.uiState.value.messageQueue).isEmpty()
+
+        vm.commitQueuedEdit()
+        runCurrent()
+
+        coVerify(exactly = 1) { queuedTurnRepository.enqueue(any()) }
+        coVerify(exactly = 0) { queuedTurnRepository.cancel(any()) }
+        assertThat(vm.uiState.value.isEditingQueued).isFalse()
+        assertThat(vm.uiState.value.messageQueue).isEmpty()
+        assertThat(vm.uiState.value.inputText).isEqualTo("pre-edit draft")
+        assertThat(vm.uiState.value.error).isNotNull()
     }
 
     /**
@@ -572,7 +733,8 @@ class ChatViewModelQueuedTurnTest {
 
         vm.editQueued(queued.localId)
         runCurrent()
-        coVerify(exactly = 1) { queuedTurnRepository.cancel(any()) }
+        // Withdrawn only when the edit is committed.
+        coVerify(exactly = 0) { queuedTurnRepository.cancel(any()) }
         assertThat(vm.uiState.value.isEditingQueued).isTrue()
         assertThat(vm.uiState.value.pendingManualSkills).containsExactly("pdf-tools")
 
@@ -580,6 +742,7 @@ class ChatViewModelQueuedTurnTest {
         vm.removePendingManualSkill("pdf-tools")
         vm.commitQueuedEdit()
         runCurrent()
+        coVerify(exactly = 1) { queuedTurnRepository.cancel(any()) }
 
         val requests = mutableListOf<EnqueueQueuedTurnRequest>()
         coVerify(exactly = 2) { queuedTurnRepository.enqueue(capture(requests)) }
@@ -592,13 +755,12 @@ class ChatViewModelQueuedTurnTest {
     }
 
     /**
-     * Editing a server-owned row withdraws it first, and that DELETE is a round trip. The guard on
-     * [ChatViewModel.editQueued] runs before it, so a second tap in that window opens a competing
-     * session — and whichever row loses the race has already been pulled out of the queue with
-     * nothing left that will put it back.
+     * Committing an edit of a server-owned row withdraws the original first, and that DELETE is a
+     * round trip with the session still open. A second Update, a Cancel, or a tap on another row in
+     * that window must neither start a second DELETE nor end the session the withdrawal finishes.
      */
     @Test
-    fun `a second edit tap during a withdrawal cannot strand the first row`() = queuedTurnTest { vm ->
+    fun `taps during an edit's withdrawal cannot strand a row`() = queuedTurnTest { vm ->
         vm.onInputChanged("first follow-up")
         vm.queueMessage()
         runCurrent()
@@ -627,16 +789,21 @@ class ChatViewModelQueuedTurnTest {
 
         vm.editQueued(first.localId)
         runCurrent()
+        vm.onInputChanged("first, fixed")
+        vm.commitQueuedEdit()
+        runCurrent()
+        vm.commitQueuedEdit()
+        vm.cancelQueuedEdit()
         vm.editQueued(second.localId)
         runCurrent()
+        assertThat(vm.uiState.value.editingQueuedItem?.original?.localId).isEqualTo(first.localId)
         cancelGate.complete(Unit)
         runCurrent()
 
-        // Exactly one session, and every row is either in that session or still in the queue.
-        val session = vm.uiState.value.editingQueuedItem
-        assertThat(session).isNotNull()
-        val accountedFor = vm.uiState.value.messageQueue.map { it.text } + session!!.original.text
-        assertThat(accountedFor).containsExactly("first follow-up", "second follow-up")
+        coVerify(exactly = 1) { queuedTurnRepository.cancel(any()) }
+        assertThat(vm.uiState.value.editingQueuedItem).isNull()
+        assertThat(vm.uiState.value.messageQueue.map { it.text })
+            .containsExactly("first, fixed", "second follow-up")
     }
 
     /**
@@ -694,9 +861,9 @@ class ChatViewModelQueuedTurnTest {
     }
 
     /**
-     * The same window, entered from a LEGACY row. A legacy edit opens its session synchronously, so
-     * it never reaches the server-owned branch — and the withdrawal that is still in flight lands
-     * on top of it, leaving the legacy row out of the queue with no session to put it back.
+     * The same window, entered from a LEGACY row while the × withdraws a server row. A legacy edit
+     * opens its session synchronously, and the withdrawal landing under it would shift the queue
+     * the session points into, so the tap is refused until the withdrawal is done.
      */
     @Test
     fun `a legacy edit tap during a withdrawal cannot strand either row`() = queuedTurnTest { vm ->
@@ -727,17 +894,15 @@ class ChatViewModelQueuedTurnTest {
             )
         }
 
-        vm.editQueued(first.localId)
+        vm.cancelQueued(first.localId)
         runCurrent()
         vm.editQueued(second.localId)
         runCurrent()
+        assertThat(vm.uiState.value.editingQueuedItem).isNull()
         cancelGate.complete(Unit)
         runCurrent()
 
-        val session = vm.uiState.value.editingQueuedItem
-        assertThat(session).isNotNull()
-        val accountedFor = vm.uiState.value.messageQueue.map { it.text } + session!!.original.text
-        assertThat(accountedFor).containsExactly("first follow-up", "second follow-up")
+        assertThat(vm.uiState.value.messageQueue.map { it.text }).containsExactly("second follow-up")
     }
 
     /**

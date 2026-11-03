@@ -670,7 +670,7 @@ fun ChatScreen(
                                             comparison = composerComparison,
                                             comparisonHint = composerComparisonHint,
                                             onCancelPendingSend = viewModel::cancelPendingUploadSend,
-                                            queuedMessages = uiState.messageQueue,
+                                            queuedMessages = uiState.displayedMessageQueue,
                                             onEditQueuedMessage = viewModel::editQueued,
                                             onCancelQueuedMessage = viewModel::cancelQueued,
                                             onReorderQueuedMessages = viewModel::reorderQueue,

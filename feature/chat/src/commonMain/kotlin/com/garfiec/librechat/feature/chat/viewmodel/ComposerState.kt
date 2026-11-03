@@ -22,7 +22,7 @@ data class ComposerState(
      *  user-facing string in the Compose layer. Null means no send-block to show. */
     val sendBlockReason: SendBlockReason? = null,
     /** Non-null while a queued item is being edited in the composer (queued-edit mode). Holds the
-     *  stashed new-message draft + the item's slot so both are restored on commit/cancel. */
+     *  stashed new-message draft, restored when the edit ends. */
     val editingQueuedItem: QueuedEditSession? = null,
     /** True while a tapped send is parked waiting for its attachment(s) to finish uploading (see
      *  `UploadIntakeDelegate.withUploadGate`). Drives the composer's send button into a spinner the user
@@ -170,14 +170,13 @@ data class ComposerSnapshot(
 
 /**
  * Active queued-edit session: the composer is loaded with [original]'s content + config for
- * editing, while [stashed] holds the new-message draft to restore afterward and [originalIndex]
- * is the FIFO slot to put the (possibly edited) item back into on commit/cancel.
+ * editing, while [stashed] holds the new-message draft to restore afterward. [original] stays in
+ * the queue until the edit is committed; [originalIndex] is where the edit goes back in if that row
+ * has already left the queue by then.
  */
 @Immutable
 data class QueuedEditSession(
     val original: QueuedMessage,
     val originalIndex: Int,
     val stashed: ComposerSnapshot,
-    /** [original] was withdrawn from the server queue to be edited, so it is offered back there. */
-    val withdrawnFromServer: Boolean = false,
 )
