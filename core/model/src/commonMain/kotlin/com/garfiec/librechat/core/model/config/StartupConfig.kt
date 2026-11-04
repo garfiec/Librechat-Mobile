@@ -172,7 +172,7 @@ data class StartupConfig(
     val pullRequestsBatchVersion: Int? = null,
     /** How many lookups the server runs at once (default 4); bounds the batch chunks in flight. */
     val pullRequestsMaxConcurrentLookups: Int? = null,
-    /** The provider users may connect their own account to (Settings; not built). */
+    /** The provider users may connect their own account to. Decoded only: mobile has no connect setting. */
     val pullRequestsConnect: String? = null,
 ) {
     /** The resolved MCP Apps policy; [McpAppsPolicy.enabled] is the gate for every App row. */

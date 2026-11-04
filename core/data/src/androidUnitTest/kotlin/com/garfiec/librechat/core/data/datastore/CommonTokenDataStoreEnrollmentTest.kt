@@ -19,8 +19,8 @@ import org.junit.Test
 
 /**
  * A refresh of an account that must set up 2FA (v0.8.9-rc1) answers **200** with no token, having
- * deleted the session and cleared the `refreshToken` cookie. Read as a malformed 2xx it was retried
- * under the flight lock and the dead slot kept (refresh limbo); read as an expiry it would fail over
+ * deleted the session and cleared the `refreshToken` cookie. Read as a malformed 2xx it would be
+ * retried under the flight lock and the dead slot kept (refresh limbo); read as an expiry it would fail over
  * to another account. It is neither: the slot goes and the shell is told to run setup.
  */
 @OptIn(ExperimentalCoroutinesApi::class)

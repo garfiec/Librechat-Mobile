@@ -264,8 +264,6 @@ class CodeWorkspaceDelegate(
         }
     }
 
-    // ── Status polling ───────────────────────────────────────────────────────
-
     private var pollTarget: Pair<Set<String>, Boolean>? = null
 
     private fun retarget(resolution: CodeWorkspaceResolver.Resolution) {
@@ -327,8 +325,6 @@ class CodeWorkspaceDelegate(
             if (next != null) statuses.update { it + (id to next) }
         }
     }
-
-    // ── Lifecycle and actions ────────────────────────────────────────────────
 
     fun onForeground(inFront: Boolean) {
         foreground.value = inFront

@@ -37,7 +37,7 @@ actual fun McpAppWebView(page: McpAppPage, host: McpAppHost, modifier: Modifier)
     val handler = remember(host) { RelayMessageHandler(host) }
     val navigation = remember(host) { RelayNavigationPolicy() }
     // Compose clears its canvas where a UIKit view sits and the view shows through from below, so a
-    // transparent web view over a transparent page let the chat under the dialog draw through the
+    // transparent web view over a transparent page lets the chat under the dialog draw through the
     // App. The panel's surface goes on the view itself, as Android paints it behind its WebView.
     val surface = MaterialTheme.colorScheme.surface
     val background = remember(surface) { surface.toUIColor() }

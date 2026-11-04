@@ -53,9 +53,9 @@ internal object EdgeSwipeBackRules {
  * predictive animation.
  *
  * Compose Multiplatform attaches its own edge-pan recognizer for this, which holds the touches
- * until it fails and so never lets this see a swipe it took. On the re-test rig that recognizer
- * never fired, so the drawer's drag took the edge on pushed screens. This takes the swipe in
- * Compose instead whenever the recognizer lets the touches through.
+ * until it fails and so never lets this see a swipe it took. That recognizer can fail to fire at all,
+ * which leaves the edge to the drawer's drag on pushed screens. This takes the swipe in Compose
+ * instead whenever the recognizer lets the touches through.
  *
  * Watches the Initial pass and consumes only after the touch has moved away from the edge past
  * touch slop, so taps on the content under the edge (a top bar's close button) still land and

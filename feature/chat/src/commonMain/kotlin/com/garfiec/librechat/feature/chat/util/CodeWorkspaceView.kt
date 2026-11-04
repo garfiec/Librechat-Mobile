@@ -26,7 +26,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceUiState
 
 /**
  * The composer row and sheet for [resolution], as web's `CodeWorkspaceMenu.tsx` lays them out
- * (slice 1: no move, attach, detach or recovery). [browsingMachineId] is a machine the user picked
+ * (without move, attach, detach or recovery). [browsingMachineId] is a machine the user picked
  * from the machine chip that the decision does not use yet; [browsingStatus] is its poll.
  */
 @Suppress("CyclomaticComplexMethod", "LongMethod", "ComplexCondition") // web's menu layout in one mapping

@@ -47,8 +47,7 @@ import org.jetbrains.compose.resources.stringResource
  * chat's setting clears the staged choice. The link opens the chat's Model Parameters, where a
  * lasting change belongs.
  *
- * A sheet rather than a menu, for the "next message only" line and the link (decided in the wave 2
- * UI review).
+ * A sheet rather than a menu, for the "next message only" line and the link.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

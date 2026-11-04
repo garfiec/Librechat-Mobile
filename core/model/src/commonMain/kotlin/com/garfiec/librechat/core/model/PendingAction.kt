@@ -163,7 +163,6 @@ data class ToolReviewConfig(
     /** Why remembering can't work for this call; one of [ToolApprovalRememberUnavailable]. */
     @SerialName("remember_unavailable") val rememberUnavailable: String? = null,
 ) {
-    /** Always allow is offered only with `allow_always` AND `approve` among the allowed decisions. */
     val canAllowAlways: Boolean get() = allowAlways && ToolApprovalDecisions.APPROVE in allowedDecisions
 }
 

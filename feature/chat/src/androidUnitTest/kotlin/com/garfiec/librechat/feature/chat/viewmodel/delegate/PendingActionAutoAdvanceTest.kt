@@ -363,7 +363,7 @@ class PendingActionAutoAdvanceTest {
 
     /**
      * Reject opens the optional reason field, so it must wait there: moving on after the beat
-     * submitted the batch before a reason could be typed, and none was ever sent.
+     * would submit the batch before a reason could be typed.
      */
     @Test
     fun `reject waits for its reason, which the explicit submit then sends`() =

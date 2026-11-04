@@ -158,8 +158,6 @@ class SendDispatchDelegateTest {
             coVerify(exactly = 0) { settingsDataStore.incrementModelUsage(any(), any(), any(), any()) }
         }
 
-    // ── Per-turn thinking (v0.8.9-rc1) ───────────────────────────────
-
     private fun withReasoning(flow: MutableStateFlow<ChatUiState>, model: String, override: ReasoningOverride) {
         flow.value = flow.value.copy(
             selection = flow.value.selection.copy(choice = ModelChoice.Raw("anthropic", model)),

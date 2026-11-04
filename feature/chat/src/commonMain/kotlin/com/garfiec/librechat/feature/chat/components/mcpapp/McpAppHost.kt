@@ -454,8 +454,6 @@ class McpAppHost(
         send = null
     }
 
-    // --- JSON-RPC plumbing ---
-
     private fun launchTracked(block: suspend () -> Unit) {
         if (closed) return
         val job = scope.launch { block() }

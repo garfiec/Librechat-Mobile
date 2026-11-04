@@ -83,7 +83,7 @@ internal object McpAppRelayPage {
     /**
      * The relay. `__sb_post(msg)` (platform prelude) reaches native; native calls
      * `__sb_fromHost(json)`. Everything else is `mcp-sandbox.html`'s logic with the parent window
-     * replaced by native and the permission delegation left out (none is granted in this slice).
+     * replaced by native and the permission delegation left out (none is granted).
      */
     private val RELAY_SCRIPT = """
 (function () {

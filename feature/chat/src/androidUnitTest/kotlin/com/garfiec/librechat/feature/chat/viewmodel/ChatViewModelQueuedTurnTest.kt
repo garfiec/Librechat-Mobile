@@ -552,8 +552,6 @@ class ChatViewModelQueuedTurnTest {
         assertThat(request.captured.parentMessageId).isNotEqualTo(optimisticId)
     }
 
-    // ── A local queue outlives its ViewModel ─────────────────────────────
-
     /** A server without queued turns: every follow-up stays in the local queue. */
     private fun localQueueOnly() {
         coEvery { queuedTurnRepository.enqueue(any()) } returns QueuedTurnOutcome.Unsupported
@@ -577,8 +575,7 @@ class ChatViewModelQueuedTurnTest {
 
     /**
      * Leaving a chat replaces its entry and clears its ViewModel. A follow-up the server does not
-     * hold lived only there, so it was gone on return and never sent. It now comes back, and the
-     * run it was waiting on sends it when it ends.
+     * hold comes back on return, and the run it was waiting on sends it when it ends.
      */
     @Test
     fun `a locally queued follow-up survives leaving the chat mid-run`() = queuedTurnTest(

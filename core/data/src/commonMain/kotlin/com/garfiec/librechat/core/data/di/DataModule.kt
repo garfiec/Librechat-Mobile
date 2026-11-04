@@ -641,7 +641,6 @@ val dataModule = module {
     singleOf(::UserRepositoryImpl) bind UserRepository::class
     singleOf(::BannerRepositoryImpl) bind BannerRepository::class
     singleOf(::CodeEnvironmentRepositoryImpl) bind CodeEnvironmentRepository::class
-    // Conversation pull requests: an in-memory, per-account session cache the chat and drawer share.
     single<PullRequestRepository> { PullRequestRepositoryImpl(api = get(), activeAccountProvider = get()) }
     single<FavoritesRepository> {
         FavoritesRepositoryImpl(

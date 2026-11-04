@@ -14,7 +14,7 @@ import kotlinx.serialization.json.JsonPrimitive
  * The thread view models user-visible activity in its own five-armed shape rather than as the
  * LangChain messages that produced it, so it does NOT arrive as `MessageContentPart` the way
  * `AgentToolCall.subagentContent` does. Every arm has an exact counterpart in the part model
- * though, and the renderers for all four already exist — including the activity-label grouping —
+ * though, and the renderers for all five already exist — including the activity-label grouping —
  * so this converts rather than duplicating them.
  *
  * An arm this client does not recognize is DROPPED, not rendered as an empty row: a future

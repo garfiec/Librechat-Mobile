@@ -42,7 +42,6 @@ data class SchedulesListUiState(
     val isDisabledOnServer: Boolean = false,
     /** The server has the MCP consent routes (v0.8.9-rc1). Unknown version: false. */
     val consentRoutesAvailable: Boolean = false,
-    /** The consent sheet, while one is open. */
     val consent: ScheduleConsentSheetState? = null,
 ) {
     val isAtLimit: Boolean

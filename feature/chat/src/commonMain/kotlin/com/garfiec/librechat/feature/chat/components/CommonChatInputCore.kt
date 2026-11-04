@@ -622,8 +622,7 @@ internal fun sendButtonModeFor(
     isAwaitingUploadSend: Boolean,
     isQueuedEditEmptied: Boolean = false,
 ): SendButtonMode = when {
-    // Emptying a queued message and confirming withdraws it. A plain disabled Update here left no
-    // way to take the message back out, so the original ran when the reply finished.
+    // Emptying a queued message and confirming withdraws it, so the button stays enabled.
     isEditingQueued && isQueuedEditEmptied -> SendButtonMode.REMOVE_QUEUED
     isEditingQueued -> SendButtonMode.UPDATE
     // A send parked behind an in-flight upload only takes over the button when NOT streaming —

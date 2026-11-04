@@ -72,7 +72,6 @@ data class SessionExpiredNotice(
 
 /** Where a session change sends the app. */
 sealed interface SessionRoute {
-    /** Sign-in. */
     data object SignIn : SessionRoute
 
     /**

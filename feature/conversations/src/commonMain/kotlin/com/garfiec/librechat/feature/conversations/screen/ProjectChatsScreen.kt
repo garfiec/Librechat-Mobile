@@ -271,7 +271,6 @@ fun ProjectChatsScreen(
             onRefresh = { viewModel.refresh() },
             modifier = Modifier.fillMaxSize().padding(innerPadding),
         ) {
-            // Spoken when a project file is added or removed; draws nothing.
             Box(Modifier.size(0.dp).semantics { liveRegion = LiveRegionMode.Polite; contentDescription = fileAnnouncement })
             LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                 if (isRealProject) {

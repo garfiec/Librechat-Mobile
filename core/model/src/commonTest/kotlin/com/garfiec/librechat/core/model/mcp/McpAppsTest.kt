@@ -13,8 +13,6 @@ class McpAppsTest {
 
     private fun json(text: String): JsonElement = Json.parseToJsonElement(text)
 
-    // --- policy ---
-
     @Test
     fun `a missing or malformed policy is Apps off`() {
         assertFalse(McpAppsPolicy.resolve(null).enabled)
@@ -38,8 +36,6 @@ class McpAppsTest {
         assertEquals(McpAppCspLimits.DEFAULT_MAX_SOURCES, policy.cspLimits.maxSourcesPerDirective)
     }
 
-    // --- media type ---
-
     @Test
     fun `only text html with the mcp-app profile is an App`() {
         assertTrue(isMcpAppMimeType("text/html;profile=mcp-app"))
@@ -49,8 +45,6 @@ class McpAppsTest {
         assertFalse(isMcpAppMimeType("application/xhtml+xml;profile=mcp-app"))
         assertFalse(isMcpAppMimeType(null))
     }
-
-    // --- CSP ---
 
     @Test
     fun `normalize keeps valid sources only and caps each directive`() {
@@ -96,8 +90,6 @@ class McpAppsTest {
         assertTrue("frame-src blob:" in buildMcpAppCspPolicy(decl, proxyLoader = true))
     }
 
-    // --- links ---
-
     @Test
     fun `a link opens only on a declared host scheme and port`() {
         val csp = McpAppCspDeclaration(
@@ -135,8 +127,6 @@ class McpAppsTest {
         assertNull(clampAppViewHeight(-1.0))
         assertNull(clampAppViewHeight(Double.NaN))
     }
-
-    // --- resources ---
 
     private fun appAttachment(resources: String, toolCallId: String = "call_1", stepId: String? = null) = Attachment(
         type = "ui_resources",

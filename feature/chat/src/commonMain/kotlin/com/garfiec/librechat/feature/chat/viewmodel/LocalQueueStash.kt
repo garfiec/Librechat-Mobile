@@ -4,10 +4,10 @@ package com.garfiec.librechat.feature.chat.viewmodel
  * App-scoped home for the follow-ups a chat queued locally, so they outlive its ViewModel.
  *
  * A queue that the server does not hold (any endpoint but agents, or a server without queued
- * turns) used to live only in the ViewModel, and leaving the chat mid-run cleared it: the chips
- * were gone on return and nothing was ever sent. Upstream web keeps the same queue in an app-wide
- * per-conversation atom for the same reason. Each chat mirrors its local rows here as they change
- * and the next ViewModel for that chat takes them back.
+ * turns) would otherwise be cleared with the ViewModel when the chat is left mid-run, and never
+ * sent. Upstream web keeps the same queue in an app-wide per-conversation atom for the same
+ * reason. Each chat mirrors its local rows here as they change and the next ViewModel for that
+ * chat takes them back.
  *
  * Keyed by account as well as conversation, so a queue never reaches another account. Memory only:
  * process death is covered by the text copy kept in the draft store (see

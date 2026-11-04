@@ -22,7 +22,6 @@ data class TermsUiState(
     /** A startup config has arrived, so [termsText] and [title] are what the server sends. */
     val termsLoaded: Boolean = false,
     val isAccepted: Boolean = false,
-    /** The acceptance request is in flight. */
     val isAccepting: Boolean = false,
     /** Loading the terms failed with no config to fall back on, or accepting them failed. */
     val error: String? = null,

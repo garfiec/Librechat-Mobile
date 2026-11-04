@@ -128,11 +128,9 @@ data class DrawerUiState(
     val readStateEnabled: Boolean = false,
     /** Version-gated (v0.8.9-rc1): the search field's filter button and the filter sheet. */
     val filtersEnabled: Boolean = false,
-    /** The applied list filters. */
     val filters: DrawerFilters = DrawerFilters.None,
     /** The filtered list failed to load, so an empty one is not "nothing matches". */
     val filterLoadFailed: Boolean = false,
-    /** What the filter sheet offers. */
     val filterOptions: DrawerFilterOptions = DrawerFilterOptions(),
 ) {
     /** Filters narrow the list only where the server takes them. */

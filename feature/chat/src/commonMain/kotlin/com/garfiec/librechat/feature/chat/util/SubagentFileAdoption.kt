@@ -11,8 +11,8 @@ data class SubagentOwner(val toolCallId: String, val agentId: String?)
 
 /**
  * Hands each tool file no rendered call claims to the message's `subagent` call, by rewriting its
- * `toolCallId` to that call's (upstream web's subagent attachment routing, slice 1 only: the
- * `/subagent-calls` lookup is not used).
+ * `toolCallId` to that call's (upstream web's subagent attachment routing, without its
+ * `/subagent-calls` lookup).
  *
  * A tool inside a subagent run saves its files under the CHILD call's id, which appears only in
  * the subagent's transcript. After a mid-run resume there is no transcript yet (run steps are not

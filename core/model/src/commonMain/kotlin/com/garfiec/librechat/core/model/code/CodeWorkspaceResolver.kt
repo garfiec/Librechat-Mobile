@@ -4,8 +4,8 @@ import com.garfiec.librechat.core.model.Agent
 
 /**
  * What the composer knows about a chat's code workspace, as web's `useCodeWorkspace`
- * (`client/src/hooks/Agents/useCodeWorkspace.ts`) computes it, minus the slice-2 parts (moving,
- * attaching, detaching or recovering a saved chat's decision). Pure, so every rule is unit-tested
+ * (`client/src/hooks/Agents/useCodeWorkspace.ts`) computes it, minus moving,
+ * attaching, detaching or recovering a saved chat's decision. Pure, so every rule is unit-tested
  * here rather than through a ViewModel. Registered in `scripts/mirrors.json`.
  *
  * Two deliberate divergences:
@@ -156,7 +156,6 @@ object CodeWorkspaceResolver {
             emptyMap()
         }
 
-        // ── Which attached machines the graph needs ──────────────────────────────
         val unique = LinkedHashMap<String, PublicCodeEnvironment>()
         val defaults = HashMap<String, MutableSet<String>>()
         val requiredBy = LinkedHashMap<String, MutableList<Agent>>()
@@ -241,7 +240,6 @@ object CodeWorkspaceResolver {
             if (environment?.isAttached == true) listOf(environment.id) else emptyList()
         }
 
-        // ── Per-machine state and pre-selection ───────────────────────────────────
         val environmentResults = attachedEnvironments.map { environment ->
             val status = statuses[environment.id]
             val loaded = (status as? StatusResult.Loaded)?.status

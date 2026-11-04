@@ -34,7 +34,7 @@ fun PlatformBackHandler(enabled: Boolean, onBack: () -> Unit) {
 /**
  * How many [PlatformBackHandler]s under the shell are enabled. The phone shell turns the drawer's
  * swipe off while any is: on iOS the drawer's drag otherwise takes the edge swipe that means back,
- * so a dirty editor opened the drawer (and could be left through it) instead of asking to discard.
+ * so a dirty editor would open the drawer (and could be left through it) instead of asking to discard.
  */
 @Stable
 class BackClaims {

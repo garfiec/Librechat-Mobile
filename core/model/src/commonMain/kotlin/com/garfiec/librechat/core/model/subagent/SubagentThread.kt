@@ -97,7 +97,7 @@ data class SubagentIndex(
 /**
  * One item of a child's user-visible activity.
  *
- * Flattened from upstream's four-armed discriminated union for the same reason as
+ * Flattened from upstream's five-armed discriminated union for the same reason as
  * `ScheduleCadence`: a sealed hierarchy needs a discriminator serializer that throws on a value a
  * newer server added, which would fail the whole list for one row. [type] is REQUIRED and has no
  * default — the arms share nothing else, so a row without it is unreadable rather than

@@ -98,8 +98,8 @@ data class ThinkingChip(
 }
 
 /**
- * The chip for [setting], or null. Levels only: a token budget (`thinkingBudget`) gets no chip in
- * this slice, and neither does a setting with no levels.
+ * The chip for [setting], or null. Levels only: a token budget (`thinkingBudget`) gets no chip,
+ * and neither does a setting with no levels.
  */
 fun thinkingChip(setting: ReasoningSetting?, configured: String, pending: ReasoningOverride?): ThinkingChip? {
     if (setting == null || setting.isNumeric) return null

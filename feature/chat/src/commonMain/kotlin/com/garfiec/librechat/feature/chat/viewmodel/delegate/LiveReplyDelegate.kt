@@ -241,7 +241,7 @@ class LiveReplyDelegate(
      * Puts an MCP sign-in on the call it holds. A subagent's tool runs with the parent's stream, so
      * its prompt arrives naming a call that lives in the subagent's trace, not in [ActiveToolCall]s:
      * then it goes on the `subagent` call whose trace holds it (else the envelope's parent), which
-     * is the card the user sees. Without this the prompt was dropped and the run waited unseen.
+     * is the card the user sees; otherwise the run would wait on a prompt nobody is shown.
      */
     private fun onAuthRequired(event: StreamEvent.ToolCallAuthRequired, parentToolCallId: String?) {
         val state = handle.state

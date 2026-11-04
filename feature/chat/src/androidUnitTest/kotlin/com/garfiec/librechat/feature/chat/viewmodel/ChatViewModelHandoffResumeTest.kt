@@ -266,8 +266,8 @@ class ChatViewModelHandoffResumeTest {
 
     /**
      * The open's status check times out (the server stalled) while the handed-off run is alive and
-     * waiting. Giving up on that one failure left the chat showing only the user's message until a
-     * cold start; the check is retried and the run attached.
+     * waiting: the check is retried and the run attached, rather than the chat showing only the
+     * user's message.
      */
     @Test
     fun `a status check that times out on open is retried, and the live run attached`() =

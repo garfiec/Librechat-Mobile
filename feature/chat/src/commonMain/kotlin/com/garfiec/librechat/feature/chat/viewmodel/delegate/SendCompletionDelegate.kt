@@ -182,7 +182,7 @@ class SendCompletionDelegate(
         if (finalConversation?.conversationId != null && !isTemporary && !aborted) {
             // A completed frame can still carry the placeholder title: its conversation is the row
             // as the reply's write returned it, which can predate the title's save. The web keeps
-            // a real title it already holds over that (final.ts); so do we, in memory and in Room.
+            // a real title it already holds over that (final.ts); so does this client, in memory and in Room.
             val knownTitle = handle.state.conversationTitle
                 .takeIf { finalConversation.conversationId == handle.state.conversationId }
             val toSave = if (!isRealTitle(finalConversation.title) && isRealTitle(knownTitle)) {

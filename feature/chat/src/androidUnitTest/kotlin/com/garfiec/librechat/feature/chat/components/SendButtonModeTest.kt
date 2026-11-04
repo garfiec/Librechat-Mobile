@@ -75,8 +75,8 @@ class SendButtonModeTest {
     }
 
     /**
-     * An emptied queued edit must still reach the commit, which withdraws the message. A disabled
-     * Update left the user no way to take it back, and the original ran at the run end.
+     * An emptied queued edit must still reach the commit, which withdraws the message; otherwise
+     * the user has no way to take it back and the original runs at the run end.
      */
     @Test
     fun `an emptied queued edit offers to remove the message`() {
