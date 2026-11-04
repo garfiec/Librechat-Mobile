@@ -20,6 +20,7 @@ import com.garfiec.librechat.core.model.response.ChatStatusResponse
 import com.garfiec.librechat.core.network.api.chatRefusalText
 import com.garfiec.librechat.feature.chat.util.AttachedRun
 import com.garfiec.librechat.feature.chat.util.applyAbortContract
+import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.changesPath
 import com.garfiec.librechat.feature.chat.util.displayPath
 import com.garfiec.librechat.feature.chat.util.keyEndpointOf
@@ -68,8 +69,18 @@ class StreamingManagerDelegate(
 
     private val networkRecovery = NetworkRecoveryTrigger(connectivityObserver, handle.scope, ::attemptNetworkRecovery)
 
-    /** Re-asks the run status an open's check failed to get. */
-    private val statusRetry = RunStatusRetry(connectivityObserver, handle.scope, ::recheckRunStatus)
+    /**
+     * Re-asks the run status an open's check failed to get. A stalled server times that check out
+     * while the run sits there, so an answer attaches to it; a run that ended meanwhile left its
+     * reply on the server, so the conversation is reloaded.
+     */
+    private val statusRetry = RunStatusRetry(connectivityObserver, handle.scope) {
+        val state = handle.state
+        val conversationId = state.conversationId
+        if (!state.runStatusSettled && !state.isStreaming && conversationId != null) {
+            resumeActiveStreamIfNeeded(conversationId, onInactive = { host.reloadConversation(conversationId) })
+        }
+    }
 
     /**
      * The account active when the current stream started (origin-capture provenance): its finalize —
@@ -214,7 +225,7 @@ class StreamingManagerDelegate(
      */
     private var abortWatchdogJob: Job? = null
 
-    private fun isSessionEnded() = endedSession == streamSession
+    private val isSessionEnded get() = endedSession == streamSession
 
     /** True when the current stream is from an edit, regenerate, or continue operation. */
     var isEditOrRegenerate = false
@@ -545,7 +556,7 @@ class StreamingManagerDelegate(
         // The session already ended through another reason (e.g. a failed-abort AbortFallback
         // latched while this Final sat in the dispatcher queue) — a second finalize would
         // double-apply state and queue policy.
-        if (isSessionEnded()) return
+        if (isSessionEnded) return
         // A stopped turn arrives as an ordinary `final` frame flagged `aborted` — read it off
         // the event rather than off local stop state, so an abort issued from another client on
         // the same conversation is treated identically.
@@ -904,7 +915,7 @@ class StreamingManagerDelegate(
         wasStreaming = false
         // The session ended while backgrounded (the aborted final landed in the still-live
         // collector, or an error tore down): state is already finalized — touch nothing.
-        if (isSessionEnded()) return
+        if (isSessionEnded) return
         // A Stop is pending: defer to the abort machinery (watchdog → AbortFallback), which
         // preserves the partial. Never drive resume/expire here — ResumeExpired would wipe it.
         // (Broader than a live-collector check: after onPause the collector may be dead, but the
@@ -947,7 +958,7 @@ class StreamingManagerDelegate(
     }
 
     /** A launched resume decision is stale once a newer stream started or this session ended. */
-    private fun isResumeStale(session: Int) = streamSession != session || isSessionEnded()
+    private fun isResumeStale(session: Int) = streamSession != session || isSessionEnded
 
     /**
      * Paints a human-review pause reported by `/chat/status` (v0.8.8: `active` is true while a
@@ -1091,70 +1102,54 @@ class StreamingManagerDelegate(
     fun attachToServerStartedRun(): Boolean {
         if (handle.state.isStreaming) return false
         val conversationId = handle.state.conversationId ?: return false
-        attachToServerStartedRun(conversationId, ATTACH_ATTEMPTS)
+        // A turn the server admitted can finish inside one poll interval, and then there is no run
+        // left to attach to. Its messages are on the server either way, so load them.
+        attachWithRetry(conversationId, onInactive = { host.reloadConversation(conversationId) })
         return true
     }
 
     /**
-     * The attach is announced once, so a status check that fails is retried here rather than
-     * dropped; after the last attempt the conversation is reloaded as if the run had finished.
+     * The attach when a conversation opens. A status check that fails is asked again on
+     * [statusRetry]'s backoff, unless the server answered it (a 4xx, such as a server without the
+     * status route): asking again would get the same answer.
      */
-    private fun attachToServerStartedRun(conversationId: String, attemptsLeft: Int) {
-        // A turn the server admitted can finish inside one poll interval, and then there is no run
-        // left to attach to. Its messages are on the server either way, so load them.
-        val reload = { host.reloadConversation(conversationId) }
-        resumeActiveStreamIfNeeded(
-            conversationId,
-            onInactive = reload,
-            onFailed = { _ ->
-                scope.launch {
-                    if (attemptsLeft > 1) delay(ATTACH_RETRY_DELAY_MS)
-                    if (handle.state.isStreaming || handle.state.conversationId != conversationId) {
-                        return@launch
-                    }
-                    if (attemptsLeft > 1) attachToServerStartedRun(conversationId, attemptsLeft - 1) else reload()
-                }
-            },
-        )
-    }
+    fun resumeOnOpen(conversationId: String, onAttached: () -> Unit = {}) =
+        resumeActiveStreamIfNeeded(conversationId, onAttached = onAttached)
 
     /**
-     * The attach when a conversation opens. A status check that fails says nothing about the run: a
-     * stalled server times it out while the run sits there, so giving up would leave the opened chat
-     * with its user message alone for the life of the screen. Retried like a server-started attach,
-     * then the conversation is reloaded. Not when the server answered (an [ApiException], such as a
-     * server without the status route): asking again would get the same answer.
+     * A server-started attach is announced once, so a status check that fails is retried rather
+     * than dropped; after the last attempt the conversation is reloaded as if the run had finished,
+     * and the status is asked again on [statusRetry]'s backoff so the Stopped chip can still settle.
+     * The ladder stands in for that backoff while it runs: both would ask at once.
      */
-    fun resumeOnOpen(
+    private fun attachWithRetry(
         conversationId: String,
         attemptsLeft: Int = ATTACH_ATTEMPTS,
-        onAttached: () -> Unit = {},
+        onInactive: () -> Unit = {},
     ) {
-        resumeActiveStreamIfNeeded(
-            conversationId,
-            onAttached = onAttached,
-            onFailed = { e ->
-                if (e is ApiException) return@resumeActiveStreamIfNeeded
-                scope.launch {
-                    if (attemptsLeft > 1) delay(ATTACH_RETRY_DELAY_MS)
-                    if (handle.state.isStreaming || handle.state.conversationId != conversationId) {
-                        return@launch
-                    }
-                    if (attemptsLeft > 1) {
-                        resumeOnOpen(conversationId, attemptsLeft - 1, onAttached)
-                    } else {
-                        host.reloadConversation(conversationId)
-                    }
+        resumeActiveStreamIfNeeded(conversationId, onInactive = onInactive) {
+            scope.launch {
+                if (attemptsLeft > 1) delay(ATTACH_RETRY_DELAY_MS)
+                if (handle.state.isStreaming || handle.state.conversationId != conversationId) return@launch
+                if (attemptsLeft > 1) {
+                    attachWithRetry(conversationId, attemptsLeft - 1, onInactive)
+                } else {
+                    host.reloadConversation(conversationId)
+                    if (!handle.state.runStatusSettled) statusRetry.schedule()
                 }
-            },
-        )
+            }
+        }
     }
 
     fun resumeActiveStreamIfNeeded(
         conversationId: String,
         onInactive: () -> Unit = {},
-        onFailed: (Throwable) -> Unit = {},
         onAttached: () -> Unit = {},
+        // Unsettled, the Stopped chip stays off a reply that may be paused for approval.
+        onFailed: (Throwable) -> Unit = { e ->
+            val refused = e is ApiException && e.statusCode in CLIENT_ERRORS
+            if (!refused && !handle.state.runStatusSettled) statusRetry.schedule()
+        },
     ) {
         // Sibling of onResume (runs on conversation open); apply the same hardening so the two
         // can't race into two resumes, and a pending Stop is never overridden by a restart.
@@ -1171,12 +1166,12 @@ class StreamingManagerDelegate(
         // start ended during it (its Final or aborted frame landed; resuming would resurrect it).
         // Not isResumeStale: it reads the already-ended session as stale and would drop every
         // such attach.
-        val endedAtStart = isSessionEnded()
+        val endedAtStart = isSessionEnded
         scope.launch {
             suspendRunCatching {
                 val status = chatRepository.checkStreamStatus(conversationId, steeringDelegate::reclaimParked)
                 statusRetry.stop()
-                val superseded = streamSession != session || (!endedAtStart && isSessionEnded())
+                val superseded = streamSession != session || (!endedAtStart && isSessionEnded)
                 if (superseded || abortRequested) {
                     settleRunStatus()
                     return@launch
@@ -1206,8 +1201,6 @@ class StreamingManagerDelegate(
                 }
             }.onFailure { e ->
                 Logger.d(e) { "No active stream to resume for $conversationId" }
-                // Unsettled, the Stopped chip stays off a reply that may be paused for approval.
-                if (!handle.state.runStatusSettled) statusRetry.schedule()
                 onFailed(e)
             }
         }
@@ -1217,13 +1210,6 @@ class StreamingManagerDelegate(
         statusRetry.stop()
         if (handle.state.runStatusSettled) return
         handle.update { content = content.copy(runStatusSettled = true) }
-    }
-
-    private fun recheckRunStatus() {
-        val state = handle.state
-        if (state.runStatusSettled || state.isStreaming) return
-        val conversationId = state.conversationId ?: return
-        resumeActiveStreamIfNeeded(conversationId)
     }
 
     /**
@@ -1282,6 +1268,7 @@ class StreamingManagerDelegate(
         /** Status checks spent attaching to a run the server started, and the gap between them. */
         const val ATTACH_ATTEMPTS = 3
         const val ATTACH_RETRY_DELAY_MS = 2_000L
+        private val CLIENT_ERRORS = 400..499
     }
 }
 
