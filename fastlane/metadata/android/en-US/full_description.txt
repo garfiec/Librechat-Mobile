@@ -32,4 +32,4 @@ Dictation is the one thing that can carry content elsewhere: where your phone ha
 
 Compatibility
 
-Built against LibreChat v0.8.8. Earlier v0.8.x servers are expected to work, with features gated on what your server reports; newer releases on a best-effort basis until the next sync.
+Built against LibreChat v0.8.9-rc1. Earlier v0.8.x servers are expected to work, with features gated on what your server reports; newer releases on a best-effort basis until the next sync.
