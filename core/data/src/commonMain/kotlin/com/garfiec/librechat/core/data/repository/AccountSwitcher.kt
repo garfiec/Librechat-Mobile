@@ -135,7 +135,7 @@ class AccountSwitcher(
             activeAccountProvider.clear()
             tokenManager.onAccountCleared()
             roster.deactivate()
-            switchCacheCleaner.clearOnSwitch()
+            switchCacheCleaner.clearOnSwitch(setOfNotNull(serverUrl, serverDataStore.getBaseUrl().takeIf(String::isNotBlank)))
             serverDataStore.setServerUrl(serverUrl)
         }
     }
@@ -172,6 +172,7 @@ class AccountSwitcher(
      */
     private suspend fun flipTo(entry: AccountEntry) {
         withContext(NonCancellable) {
+            val outgoingUrl = serverDataStore.getBaseUrl()
             serverDataStore.setServerUrl(entry.serverUrl)
             tokenManager.selectAccount(entry.accountId)
             roster.activate(entry.accountId)
@@ -179,7 +180,7 @@ class AccountSwitcher(
             // clear while requests are still parked and before the new identity is observable, so the
             // incoming account never sees the outgoing one's web state or OAuth cookie. Best-effort
             // inside the cleaner — a clear failure doesn't abort the switch.
-            switchCacheCleaner.clearOnSwitch()
+            switchCacheCleaner.clearOnSwitch(setOfNotNull(outgoingUrl, entry.serverUrl))
             activeAccountProvider.set(AccountId(entry.accountId))
         }
     }
@@ -311,7 +312,7 @@ class AccountSwitcher(
                 // Same quiesce → clear → publish discipline as switch(): the outgoing account's web
                 // state/cookies clear before the added account becomes observable. (The add flow has
                 // already consumed its own OAuth cookie, so clearing it here is safe.)
-                switchCacheCleaner.clearOnSwitch()
+                switchCacheCleaner.clearOnSwitch(setOfNotNull(rollbackUrl, pending.serverUrl))
                 activeAccountProvider.set(accountId)
                 flipped = true
             } finally {
@@ -355,6 +356,9 @@ class AccountSwitcher(
     suspend fun remove(accountId: String) {
         var removed = false
         var removedLastAccount = false
+        // Snapshot taken before the roster removal: on a remove-last teardown every OAuth'd
+        // server's cookies must die with the account.
+        var rosterServerUrls: Set<String> = emptySet()
         switchGate.withSwitch {
             val entries = roster.snapshot().entries
             if (entries.none { it.accountId == accountId }) return@withSwitch
@@ -371,6 +375,7 @@ class AccountSwitcher(
                         flipTo(successor)
                     } else {
                         removedLastAccount = true
+                        rosterServerUrls = entries.map { it.serverUrl }.toSet()
                         // Publish logged-out first: read collectors tear down their account-scoped
                         // queries before the token/cache teardown, same order as logout. Only the fast
                         // identity flip + token clear run under the gate; the slow WebKit / file-cache
@@ -391,7 +396,7 @@ class AccountSwitcher(
             // cache cleaner is account-blind (file caches only) — prefsPurger.purge(accountId) above
             // already reaped this account's keyed role cache and other acct:-scoped prefs.
             withContext(NonCancellable) {
-                switchCacheCleaner.clearOnSwitch()
+                switchCacheCleaner.clearOnSwitch(rosterServerUrls)
                 sessionCacheCleaner.clearFileCaches()
             }
             // Reuse the session-expired channel to drive nav-to-auth reactively; the settings screen

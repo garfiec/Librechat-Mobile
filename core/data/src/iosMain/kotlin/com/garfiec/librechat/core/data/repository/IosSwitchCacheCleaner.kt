@@ -19,7 +19,9 @@ import platform.WebKit.WKWebsiteDataStore
  * switch itself.
  */
 class IosSwitchCacheCleaner : SwitchCacheCleaner {
-    override suspend fun clearOnSwitch() {
+    // The URLs are Android's scoping tool; the shared storage holds no provider sessions worth
+    // keeping (the login WebView runs on a non-persistent store), so the clear stays whole.
+    override suspend fun clearOnSwitch(serverUrls: Set<String>) {
         runCatching {
             withContext(Dispatchers.Main) {
                 val storage = NSHTTPCookieStorage.sharedHTTPCookieStorage

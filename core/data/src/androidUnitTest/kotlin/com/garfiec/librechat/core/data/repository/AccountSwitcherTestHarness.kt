@@ -74,8 +74,10 @@ internal class RecordingTokenManager : TokenManager {
 
 internal class RecordingSwitchCacheCleaner : SwitchCacheCleaner {
     var clearCount = 0
-    override suspend fun clearOnSwitch() {
+    val clearedServerUrls = mutableListOf<Set<String>>()
+    override suspend fun clearOnSwitch(serverUrls: Set<String>) {
         clearCount++
+        clearedServerUrls += serverUrls
     }
 }
 
