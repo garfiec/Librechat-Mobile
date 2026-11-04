@@ -1330,6 +1330,7 @@ class ChatViewModelQueuedTurnTest {
             runCurrent()
             assertThat(vm.uiState.value.messageQueue).hasSize(1)
             assertThat(vm.uiState.value.isEditingQueued).isFalse()
+            assertThat(vm.uiState.value.error).isEqualTo(ChatNotice.QUEUE_WITHDRAW_REFUSED.marker())
 
             vm.cancelQueued(row.localId)
             runCurrent()
