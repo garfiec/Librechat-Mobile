@@ -1,6 +1,6 @@
 package com.garfiec.librechat.core.ui.components
 
-import com.garfiec.librechat.core.model.EndpointCustomParams
+import com.garfiec.librechat.core.model.CustomParams
 import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.ReasoningOverrideKeys
 import com.garfiec.librechat.core.model.reasoning.ModelReasoning
@@ -59,9 +59,9 @@ object ReasoningSettingResolver {
      * Whether [customParams]' efforts come from OpenRouter's per-model catalog, so the client must
      * fetch it before offering any. MIRRORED from upstream `usesReasoningCapabilities`.
      */
-    fun usesCatalog(customParams: EndpointCustomParams?): Boolean =
+    fun usesCatalog(customParams: CustomParams?): Boolean =
         customParams?.defaultParamsEndpoint == OPENROUTER &&
-            customParams.reasoningFormat != EndpointCustomParams.REASONING_FORMAT_DISABLED &&
+            customParams.reasoningFormat != CustomParams.REASONING_FORMAT_DISABLED &&
             ReasoningOverrideKeys.REASONING_EFFORT !in customParams.declaredKeys
 
     /**
@@ -75,12 +75,12 @@ object ReasoningSettingResolver {
     fun resolve(
         endpoint: String,
         model: String?,
-        customParams: EndpointCustomParams? = null,
+        customParams: CustomParams? = null,
         blockedKeys: Set<String> = emptySet(),
         catalog: CatalogEfforts = CatalogEfforts.Generic,
     ): ReasoningSetting? {
         if (model.isNullOrEmpty()) return null
-        if (customParams?.reasoningFormat == EndpointCustomParams.REASONING_FORMAT_DISABLED) return null
+        if (customParams?.reasoningFormat == CustomParams.REASONING_FORMAT_DISABLED) return null
         val combinedKey = "$endpoint-${modelKey(endpoint, model)}"
         val defaultParamsEndpoint = customParams?.defaultParamsEndpoint ?: endpoint
         val declared = declaredReasoningSettings(customParams)
@@ -205,7 +205,7 @@ object ReasoningSettingResolver {
     }
 
     /** The administrator's own reasoning definitions, in declaration order. */
-    private fun declaredReasoningSettings(customParams: EndpointCustomParams?): List<Declared> =
+    private fun declaredReasoningSettings(customParams: CustomParams?): List<Declared> =
         customParams?.declaredParams.orEmpty()
             .filter { it.key in ReasoningOverrideKeys.ALL }
             .map { Declared(it.key, it.options, it.type) }

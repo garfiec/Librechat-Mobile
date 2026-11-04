@@ -61,7 +61,7 @@ class RetryWithoutFilesTest {
             requestBuilder = mockk<ChatRequestBuilder>(relaxed = true),
             runWhenSendReady = { _, action -> action() },
             onComparisonSendStart = {},
-            buildAddedConvo = { null },
+            buildAddedConvo = { _, _, _ -> null },
         ).retryWithoutFiles("a1")
         return repository to flow
     }

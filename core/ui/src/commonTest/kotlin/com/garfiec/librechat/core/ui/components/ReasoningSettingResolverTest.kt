@@ -1,6 +1,6 @@
 package com.garfiec.librechat.core.ui.components
 
-import com.garfiec.librechat.core.model.EndpointCustomParams
+import com.garfiec.librechat.core.model.CustomParams
 import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.reasoning.ModelReasoning
 import kotlinx.serialization.json.JsonArray
@@ -27,13 +27,13 @@ class ReasoningSettingResolverTest {
         defaultParamsEndpoint: String? = null,
         reasoningFormat: String? = null,
         vararg definitions: JsonObject,
-    ) = EndpointCustomParams(
+    ) = CustomParams(
         defaultParamsEndpoint = defaultParamsEndpoint,
         paramDefinitions = definitions.toList().ifEmpty { null },
         reasoningFormat = reasoningFormat,
     )
 
-    private fun key(endpoint: String, model: String, customParams: EndpointCustomParams? = null) =
+    private fun key(endpoint: String, model: String, customParams: CustomParams? = null) =
         ReasoningSettingResolver.resolve(endpoint, model, customParams)?.key
 
     @Test
@@ -127,7 +127,7 @@ class ReasoningSettingResolverTest {
 
     private val openRouter = params("openrouter", "reasoningEffort")
 
-    private fun openRouterOptions(catalog: CatalogEfforts, customParams: EndpointCustomParams = openRouter) =
+    private fun openRouterOptions(catalog: CatalogEfforts, customParams: CustomParams = openRouter) =
         ReasoningSettingResolver.resolve("custom", "openai/gpt-6.1-sol", customParams, catalog = catalog)?.options
 
     @Test

@@ -218,6 +218,9 @@ class LiveReplyDelegate(
         handle.update {
             content = content.copy(
                 retryInfo = null,
+                resumedReplyId = event.responseMessageId,
+                // The partial may already be on screen: the load can read it before the frame lands.
+                displayMessages = content.displayMessages.withoutLivePartial(event.responseMessageId),
                 activeToolCalls = syncedToolCalls,
                 sandboxStartingToolCallIds = content.sandboxStartingToolCallIds.filterTo(HashSet()) { it in running },
             )
@@ -250,34 +253,6 @@ class LiveReplyDelegate(
     private fun clearSubagentAuthFor(childToolCallId: String) {
         if (handle.state.activeToolCalls.none { it.authToolCallId == childToolCallId }) return
         handle.update { content = content.withoutSubagentAuthFor(childToolCallId) }
-    }
-
-    private fun onSync(event: StreamEvent.Sync) {
-        val syncedToolCalls = event.aggregatedContent
-            .mapNotNull { part -> part.toolCall?.takeIf { !it.id.isNullOrBlank() } }
-            .map { tc ->
-                ActiveToolCall(
-                    id = tc.id.orEmpty(),
-                    name = tc.name.orEmpty(),
-                    input = tc.args?.toString(),
-                    isComplete = !tc.output.isNullOrBlank(),
-                    output = tc.output,
-                    inputValidationError = tc.inputValidationError == true,
-                )
-            }
-        // A boot flag survives only on a call the snapshot still shows running: the snapshot
-        // carries no boot state, and a call it reports complete (or no longer has) is past it.
-        val running = syncedToolCalls.filterNot { it.isComplete }.mapTo(HashSet()) { it.id }
-        handle.update {
-            content = content.copy(
-                retryInfo = null,
-                resumedReplyId = event.responseMessageId,
-                // The partial may already be on screen: the load can read it before the frame lands.
-                displayMessages = content.displayMessages.withoutLivePartial(event.responseMessageId),
-                activeToolCalls = syncedToolCalls,
-                sandboxStartingToolCallIds = content.sandboxStartingToolCallIds.filterTo(HashSet()) { it in running },
-            )
-        }
     }
 
     /**

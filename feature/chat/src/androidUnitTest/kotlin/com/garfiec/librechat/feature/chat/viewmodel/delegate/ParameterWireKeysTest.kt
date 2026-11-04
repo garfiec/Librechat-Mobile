@@ -171,7 +171,10 @@ class ParameterWireKeysTest {
         val tweaked = ModelParameters.DEFAULT.copy(topP = 0.4f, maxOutputTokens = 1234)
         val flow = MutableStateFlow(state(choice, tweaked, configs = configs))
         val delegate = PresetPromptDelegate(
-            handle = PresetPromptHandle(ChatStateHandle(flow, CoroutineScope(StandardTestDispatcher(testScheduler) + Job()))),
+            handle = PresetPromptHandle(
+                ChatStateHandle(flow, CoroutineScope(StandardTestDispatcher(testScheduler) + Job())),
+                persistDraft = {},
+            ),
             presetRepository = presetRepository,
             promptRepository = mockk<PromptRepository>(relaxed = true),
         )

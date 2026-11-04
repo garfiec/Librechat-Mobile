@@ -109,9 +109,6 @@ data class CustomParams(
     }
 }
 
-/** The sync's name for [CustomParams]. */
-typealias EndpointCustomParams = CustomParams
-
 /** One administrator-declared parameter definition, as far as the client reads it. */
 data class DeclaredParam(
     val key: String,

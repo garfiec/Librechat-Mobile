@@ -1,7 +1,7 @@
 package com.garfiec.librechat.feature.chat.util
 
+import com.garfiec.librechat.core.model.CustomParams
 import com.garfiec.librechat.core.model.EndpointConfig
-import com.garfiec.librechat.core.model.EndpointCustomParams
 import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.reasoning.ModelReasoning
@@ -15,7 +15,7 @@ class ComposerReasoningTest {
 
     private val openRouter = EndpointConfig(
         type = "custom",
-        customParams = EndpointCustomParams(defaultParamsEndpoint = "openrouter", reasoningFormat = "reasoningEffort"),
+        customParams = CustomParams(defaultParamsEndpoint = "openrouter", reasoningFormat = "reasoningEffort"),
     )
 
     @Suppress("LongParameterList")

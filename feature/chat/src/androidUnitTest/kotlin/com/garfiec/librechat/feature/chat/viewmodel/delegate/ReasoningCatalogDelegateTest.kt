@@ -3,8 +3,8 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
 import com.garfiec.librechat.core.data.repository.ReasoningCatalog
+import com.garfiec.librechat.core.model.CustomParams
 import com.garfiec.librechat.core.model.EndpointConfig
-import com.garfiec.librechat.core.model.EndpointCustomParams
 import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.reasoning.ModelReasoning
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
@@ -36,7 +36,7 @@ class ReasoningCatalogDelegateTest {
 
     private val openRouter = EndpointConfig(
         type = "custom",
-        customParams = EndpointCustomParams(defaultParamsEndpoint = "openrouter", reasoningFormat = "reasoningEffort"),
+        customParams = CustomParams(defaultParamsEndpoint = "openrouter", reasoningFormat = "reasoningEffort"),
     )
 
     /** Each call waits on its own answer, which the test completes through [answers]. */

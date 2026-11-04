@@ -310,10 +310,7 @@ class SseEventMapper(private val json: Json) {
             // content yet serializes as null. Nothing here reads parts by position.
             val contentParts = aggregatedContent.filterNot { it is JsonNull }.mapNotNull { element ->
                 try {
-                    json.decodeFromJsonElement(
-                        MessageContentPart.serializer(),
-                        element,
-                    )
+                    json.decodeFromJsonElement(MessageContentPart.serializer(), element)
                 } catch (e: Exception) {
                     Logger.w("SSE", e) { "Failed to parse sync aggregatedContent part" }
                     null

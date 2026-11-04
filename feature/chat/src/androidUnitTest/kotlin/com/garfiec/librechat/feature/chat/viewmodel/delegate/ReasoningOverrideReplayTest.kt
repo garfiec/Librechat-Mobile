@@ -61,7 +61,7 @@ class ReasoningOverrideReplayTest {
             requestBuilder = mockk<ChatRequestBuilder>(relaxed = true),
             runWhenSendReady = { _, action -> action() },
             onComparisonSendStart = {},
-            buildAddedConvo = { null },
+            buildAddedConvo = { _, _, _ -> null },
         )
         return repository to delegate
     }
