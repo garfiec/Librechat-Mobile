@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.garfiec.librechat.core.model.error.ServerErrorCode
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.feature.auth.diagnostics.DiagnosticLogLink
@@ -85,9 +86,12 @@ fun SsoLoginScreen(
 @Composable
 private fun SsoErrorPane(error: SsoLoginError, onBack: (() -> Unit)?) {
     val fallback = stringResource(Res.string.sso_sign_in_failed)
+    val tenantRequired = stringResource(Res.string.auth_error_tenant_required)
     val message = when (error) {
         is SsoLoginError.Exchange -> error.message ?: fallback
-        is SsoLoginError.Provider, SsoLoginError.CaptureFailed -> fallback
+        is SsoLoginError.Provider ->
+            if (error.code == ServerErrorCode.TENANT_CONTEXT_REQUIRED) tenantRequired else fallback
+        SsoLoginError.CaptureFailed -> fallback
     }
     val code = (error as? SsoLoginError.Provider)?.code
 

@@ -11,7 +11,10 @@ import androidx.compose.ui.input.key.type
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import com.garfiec.librechat.feature.auth.navigation.AuthRoute
+import com.garfiec.librechat.feature.auth.navigation.Login
 import com.garfiec.librechat.feature.auth.navigation.ServerUrl
+import com.garfiec.librechat.feature.auth.navigation.Terms
+import com.garfiec.librechat.feature.auth.navigation.TwoFactorSetup
 import com.garfiec.librechat.feature.auth.navigation.isAddAccountFlowRoute
 import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.NewChat
@@ -37,7 +40,9 @@ class Navigator(
 
     val currentRoute: NavKey? get() = backStack.lastOrNull()
 
-    val isInAuthFlow: Boolean get() = currentRoute is AuthRoute
+    // Terms is an AuthRoute but sits over a signed-in stack, not in the sign-in flow: counted here,
+    // a hard expiry while it is open would leave the user on it over a dead session.
+    val isInAuthFlow: Boolean get() = currentRoute.let { it is AuthRoute && it !is Terms }
 
     private inline fun changing(mutation: () -> Unit) {
         val top = backStack.lastOrNull()
@@ -235,6 +240,45 @@ class Navigator(
             backStack.clear()
             backStack.add(ServerUrl)
         }
+    }
+
+    /**
+     * Sign-in for the account still bound (one signed out for 2FA setup): [Login] over [ServerUrl], as
+     * backing out of setup leaves it. Reported more than once (the startup route, then each 401 of a
+     * cold start), so it leaves the auth flow alone once the user is past the bare server screen, and,
+     * like [navigateToAuth], resets an add-account flow that belongs to the ended session.
+     */
+    fun navigateToSignIn() {
+        val pastServerScreen = backStack.size > 1 || currentRoute != ServerUrl
+        if (isInAuthFlow && pastServerScreen && backStack.none { it.isAddAccountFlowRoute }) return
+        changing {
+            backStack.clear()
+            backStack.add(ServerUrl)
+            backStack.add(Login)
+        }
+    }
+
+    /**
+     * Required 2FA setup (v0.8.9-rc1) for an account whose session the server just ended for it.
+     * Sign-in sits underneath, so backing out — or a setup credential that expires — lands where the
+     * user can start over. Replaces the whole stack, like [navigateToAuth]: the signed-in routes
+     * belong to a session that no longer exists.
+     */
+    fun navigateToTwoFactorSetup(tempToken: String) = changing {
+        backStack.clear()
+        backStack.add(ServerUrl)
+        backStack.add(Login)
+        backStack.add(TwoFactorSetup(tempToken))
+    }
+
+    /**
+     * The terms screen over whatever the user is on, when the server requires acceptance. Not over
+     * the sign-in flow (there is no session to accept for yet; the shell calls again once the flow is
+     * left), and not twice, even when something has been pushed over an open one.
+     */
+    fun showTerms() {
+        if (isInAuthFlow || backStack.any { it is Terms }) return
+        navigate(Terms)
     }
 
     /**

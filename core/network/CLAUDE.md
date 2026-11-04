@@ -81,9 +81,9 @@ Legacy single-phase path (OpenAI Assistants): POST body is the SSE stream itself
 
 `SseConnectionManager` handles lifecycle: start, reconnect with exponential backoff (1s/2s/4s/8s, max 5 retries), abort via `POST /api/agents/chat/abort`, exposes `StateFlow<StreamingState>`. On reconnection, append `?resume=true` to get a `sync` event with `runSteps[]` + `aggregatedContent[]`.
 
-**A body that ends without a final frame is a drop, not the run's end.** Upstream sends no
-heartbeat, so an idle timeout (proxy, CDN) closes a live stream cleanly — during a human-review pause
-nothing is sent at all — and the server's own `res.destroy()` on a publication failure asks for a
+**A body that ends without a final frame is a drop, not the run's end.** Servers before v0.8.9-rc1
+send nothing on a quiet stream, so an idle timeout (proxy, CDN) closes a live stream cleanly — during a
+human-review pause nothing is sent at all — and the server's own `res.destroy()` on a publication failure asks for a
 reconnect. `SseClient` resumes it on the same retry ladder as any other drop; the resume answers with
 a sync frame (live), a final frame, or a 404 (gone). Only a 404, an in-band error or a Final ends the
 loop, so a flow that completes with no event means "the job is gone" (or the account switched), never
@@ -92,6 +92,14 @@ byte, so a 200 carrying no events (a captive portal) climbs the ladder instead o
 At the ceiling it emits `Error(code = RETRY_EXHAUSTED)` rather than a plain network error: running out
 of retries says nothing about the run (a live one behind an idle-timing proxy does it while online),
 so the consumer checks `/chat/status` instead of blaming the network.
+
+**v0.8.9-rc1 keepalive.** The server writes an SSE comment (`:\n\n`) whenever a stream has been quiet
+for `endpoints.agents.streamKeepaliveIntervalMs` (default 25 s; `0` turns it off). `SseLineParser`
+skips comment lines, but each one is a line read, so it restarts the 120 s stall timeout: on rc1 that
+timeout now means a dead socket rather than a long tool call. It is deliberately **not** lowered
+(older servers and a disabled keepalive still go quiet), and a keepalive is never a parsed event, so
+it does not reset `SseClient`'s attempt counter. iOS reads the same bytes: the `NWConnection` receive
+loop asks for a minimum of one byte, and `HttpResponseParser` passes a lone 3-byte chunk through.
 
 ### Don't use Ktor's SSE plugin
 

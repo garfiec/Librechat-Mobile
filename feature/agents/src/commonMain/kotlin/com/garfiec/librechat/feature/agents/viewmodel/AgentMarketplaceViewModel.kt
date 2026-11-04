@@ -3,10 +3,13 @@ package com.garfiec.librechat.feature.agents.viewmodel
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
+import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
+import com.garfiec.librechat.core.data.repository.isCursorOrderingMismatch
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.AgentCategory
@@ -22,6 +25,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -57,6 +62,15 @@ data class AgentMarketplaceUiState(
     val hasMore: Boolean = false,
     /** The last page's `after`: the cursor [AgentMarketplaceViewModel.loadMore] reads the next page by. */
     val nextCursor: String? = null,
+    /**
+     * The server takes `sort` and `mine` (v0.8.9-rc1). Below that the route ignores both, so the
+     * row that sets them is hidden rather than offering controls that do nothing.
+     */
+    val sortAvailable: Boolean = false,
+    /** The order the next read asks for. Not remembered across visits (web parity). */
+    val sort: AgentSort = AgentSort.NEWEST,
+    /** "My agents": only agents this user authored. Combines with any chip but Top picks. */
+    val mineOnly: Boolean = false,
     // Role-permission gates — default permissive.
     val agentsEnabled: Boolean = true,
     val agentsCreateEnabled: Boolean = true,
@@ -95,6 +109,7 @@ class AgentMarketplaceViewModel(
     private val serverDataStore: ServerDataStore,
     private val roleRepository: RoleRepository,
     private val permissionGate: PermissionGate,
+    private val configRepository: ConfigRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AgentMarketplaceUiState())
@@ -121,6 +136,12 @@ class AgentMarketplaceViewModel(
      */
     private var loadMoreAfterReload = false
 
+    /**
+     * The query a 409 `cursor_ordering_mismatch` already restarted from page one. Once per query,
+     * like the web: a server that keeps answering 409 then shows the ordinary load-more error.
+     */
+    private var mismatchRecoveredFor: AgentListQuery? = null
+
     private enum class LoadMode {
         /** A new chip or search, or Retry: placeholders or a dimmed list until it lands. */
         REPLACE,
@@ -134,12 +155,35 @@ class AgentMarketplaceViewModel(
 
     companion object {
         private const val PAGE_SIZE = 20
+        internal const val SORT_MIN_VERSION = "0.8.9-rc1"
         internal const val SEARCH_DEBOUNCE_MS = 300L
     }
 
     init {
         observePermissionFlags()
+        observeSortGate()
         loadInitialAgents()
+    }
+
+    /**
+     * Shows the sort row once the server is known to take `sort` and `mine`. A change of answer
+     * (version detected after the first read, an account switch) reloads only when it changes
+     * what is asked for: the first detection on an rc1 server adds `sort=newest`, which is a new
+     * order and so a new list.
+     */
+    private fun observeSortGate() {
+        viewModelScope.launch {
+            configRepository.detectedBackendVersion
+                .map { version -> version != null && BackendVersion.isCompatibleOrNewer(version, SORT_MIN_VERSION) }
+                .distinctUntilChanged()
+                .collect { available ->
+                    _uiState.update { it.copy(sortAvailable = available) }
+                    if (initialLoadStarted && currentQuery() != requestedQuery) {
+                        searchJob?.cancel()
+                        startLoad(LoadMode.REPLACE)
+                    }
+                }
+        }
     }
 
     /** Continuous collector mirroring the current role into UiState permission flags. */
@@ -203,6 +247,34 @@ class AgentMarketplaceViewModel(
         _uiState.update { it.copy(selectedChip = chip) }
         if (!initialLoadStarted) return
         // A search still in its debounce is read with this chip, now.
+        searchJob?.cancel()
+        startLoad(LoadMode.REPLACE)
+    }
+
+    /** Sets the order and reloads from page one: a cursor read under one order is void under another. */
+    fun onSortSelected(sort: AgentSort) {
+        if (sort == _uiState.value.sort) return
+        _uiState.update { it.copy(sort = sort) }
+        reloadForNewQuery()
+    }
+
+    /**
+     * Turns "My agents" on or off and reloads. Turning it on under Top picks selects All, as the
+     * web does: an admin's picks are rarely the user's own, so the intersection would be empty.
+     */
+    fun onMineToggled(mine: Boolean) {
+        if (mine == _uiState.value.mineOnly) return
+        _uiState.update {
+            it.copy(
+                mineOnly = mine,
+                selectedChip = if (mine && it.selectedChip == AgentChip.TopPicks) AgentChip.All else it.selectedChip,
+            )
+        }
+        reloadForNewQuery()
+    }
+
+    private fun reloadForNewQuery() {
+        if (!initialLoadStarted) return
         searchJob?.cancel()
         startLoad(LoadMode.REPLACE)
     }
@@ -285,7 +357,15 @@ class AgentMarketplaceViewModel(
                         nextCursor = result.data.nextCursor,
                     )
                 }
-                is Result.Error -> _uiState.update { it.copy(isLoadingMore = false, loadMoreFailed = true) }
+                is Result.Error -> if (result.isCursorOrderingMismatch() && mismatchRecoveredFor != query) {
+                    // The order behind the cursor changed (another sort, or the server's): the
+                    // pages held are of a different list. Start this one again from page one.
+                    mismatchRecoveredFor = query
+                    _uiState.update { it.copy(isLoadingMore = false) }
+                    startLoad(LoadMode.REPLACE)
+                } else {
+                    _uiState.update { it.copy(isLoadingMore = false, loadMoreFailed = true) }
+                }
                 is Result.Loading -> Unit
             }
         }
@@ -304,7 +384,12 @@ class AgentMarketplaceViewModel(
 
     private fun currentQuery(): AgentListQuery {
         val state = _uiState.value
-        return AgentListQuery(chip = state.selectedChip ?: AgentChip.All, search = state.searchQuery.trim())
+        return AgentListQuery(
+            chip = state.selectedChip ?: AgentChip.All,
+            search = state.searchQuery.trim(),
+            sort = state.sort.takeIf { state.sortAvailable },
+            mine = state.mineOnly && state.sortAvailable,
+        )
     }
 
     private fun startLoad(mode: LoadMode) {
@@ -314,6 +399,8 @@ class AgentMarketplaceViewModel(
         if (mode == LoadMode.REPLACE) loadMoreAfterReload = false
         val stamp = ++generation
         val query = currentQuery()
+        // A new query gets its own one recovery, as the web's per-signature guard does.
+        if (query != requestedQuery) mismatchRecoveredFor = null
         requestedQuery = query
         _uiState.update {
             it.copy(
@@ -415,6 +502,8 @@ class AgentMarketplaceViewModel(
             category = filter.category,
             promoted = filter.promoted,
             requiredPermission = filter.requiredPermission,
+            sort = query.sort?.wire,
+            mine = query.mine,
         )
     }
 

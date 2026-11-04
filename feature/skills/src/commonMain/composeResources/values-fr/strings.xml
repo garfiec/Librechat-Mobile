@@ -156,6 +156,7 @@
     <string name="skill_error_save">Impossible d'enregistrer cette compétence.</string>
     <string name="skill_error_import">Impossible d'importer cette compétence.</string>
     <string name="skill_error_skill_md_upload">SKILL.md est le contenu même de la compétence. Modifiez la compétence pour le changer.</string>
+    <string name="skill_error_skill_deleting">Cette compétence est en cours de suppression : ses fichiers ne peuvent pas être modifiés.</string>
     <string name="skill_error_changed_on_server">Cette compétence a été modifiée sur le serveur et sa dernière version n'a pas pu être chargée. Vos modifications sont conservées : réessayez d'enregistrer.</string>
     <string name="skill_acl_principal_unknown">Inconnu</string>
     <!-- Skill import failure summaries -->

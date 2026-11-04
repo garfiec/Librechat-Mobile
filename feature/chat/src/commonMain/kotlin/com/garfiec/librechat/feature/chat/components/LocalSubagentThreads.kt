@@ -19,5 +19,13 @@ import androidx.compose.runtime.staticCompositionLocalOf
  */
 val LocalSubagentThreads = staticCompositionLocalOf<(parentToolCallId: String?) -> Unit> { {} }
 
+/**
+ * Opens the viewer straight onto one child thread by its id. A background subagent task's poll
+ * result carries `subagent_thread_id` (v0.8.9-rc1), the one place outside the index that names a
+ * thread, so its card can deep-link where a trace card cannot. Gated by
+ * [LocalSubagentThreadsAvailable] like [LocalSubagentThreads].
+ */
+val LocalOpenSubagentThread = staticCompositionLocalOf<(threadId: String) -> Unit> { {} }
+
 /** Whether the viewer is available at all — false outside the chat screen and on an old server. */
 val LocalSubagentThreadsAvailable = staticCompositionLocalOf { false }

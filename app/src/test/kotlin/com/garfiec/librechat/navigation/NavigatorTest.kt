@@ -10,6 +10,8 @@ import com.garfiec.librechat.feature.auth.navigation.AddAccountServerUrl
 import com.garfiec.librechat.feature.auth.navigation.Login
 import com.garfiec.librechat.feature.auth.navigation.Register
 import com.garfiec.librechat.feature.auth.navigation.ServerUrl
+import com.garfiec.librechat.feature.auth.navigation.Terms
+import com.garfiec.librechat.feature.auth.navigation.TwoFactorSetup
 import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.conversations.navigation.ProjectChats
@@ -285,6 +287,49 @@ class NavigatorTest {
     @Test
     fun `navigateToAuth is a no-op when already on ServerUrl`() {
         val navigator = createNavigator(ServerUrl)
+        navigator.navigateToAuth()
+        assertEquals(listOf(ServerUrl), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `required 2FA setup replaces the stack with setup over sign-in`() {
+        val navigator = createNavigator(NewChat(), Chat("conv-1"))
+        navigator.navigateToTwoFactorSetup("setup-token")
+        assertEquals(listOf(ServerUrl, Login, TwoFactorSetup("setup-token")), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `terms open over the signed-in stack once and never over sign-in`() {
+        val navigator = createNavigator(NewChat(), Chat("conv-1"))
+        navigator.showTerms()
+        navigator.showTerms()
+        assertEquals(listOf(NewChat(), Chat("conv-1"), Terms), navigator.backStack.toList())
+
+        val signingIn = createNavigator(ServerUrl, Login)
+        signingIn.showTerms()
+        assertEquals(listOf(ServerUrl, Login), signingIn.backStack.toList())
+    }
+
+    @Test
+    fun `terms already on the stack under another screen are not opened again`() {
+        val navigator = createNavigator(NewChat(), Terms, Chat("conv-1"))
+        navigator.showTerms()
+        assertEquals(listOf(NewChat(), Terms, Chat("conv-1")), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `terms requested during sign-in open once the stack reaches chat`() {
+        val navigator = createNavigator(ServerUrl, Login)
+        navigator.showTerms()
+        navigator.navigateToChat(accountScope = "acct-1")
+        // The shell re-evaluates on leaving the sign-in flow and asks again.
+        navigator.showTerms()
+        assertEquals(listOf(NewChat(accountScope = "acct-1"), Terms), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `an expiry while the terms are open still goes to sign-in`() {
+        val navigator = createNavigator(NewChat(), Chat("conv-1"), Terms)
         navigator.navigateToAuth()
         assertEquals(listOf(ServerUrl), navigator.backStack.toList())
     }

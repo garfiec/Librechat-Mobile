@@ -8,6 +8,7 @@ import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.endpoint.KeyState
+import com.garfiec.librechat.core.model.reasoning.ModelReasoning
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.util.SpecTools
@@ -64,6 +65,16 @@ data class ModelSelectionState(
      * when the agent has none or the fetch failed.
      */
     val selectedAgentStarters: List<String>? = null,
+    /** The selected agent's model, fetched with [selectedAgentProvider]; null while unresolved. */
+    val selectedAgentModel: String? = null,
+    /** The selected agent's saved reasoning values by key (`reasoning_effort`, `effort`, …). */
+    val selectedAgentReasoning: Map<String, String> = emptyMap(),
+    /**
+     * The OpenRouter reasoning catalog for the endpoint the selection runs on (v0.8.9-rc1), or null
+     * when that endpoint takes none. Its `models` is null while unknown (loading, failed, expired):
+     * no effort is offered then. Written by `ReasoningCatalogDelegate`.
+     */
+    val reasoningCatalog: ReasoningCatalogState? = null,
     val modelParameters: ModelParameters = ModelParameters.DEFAULT,
     /** Single source of truth for whether the *standalone* model-selector sheet is open — the
      *  top-bar chip, the comparison dual-pane, and send-block auto-opens. Preflight failures and
@@ -218,3 +229,10 @@ data class ModelSelectionState(
         return current.copy(addedMcp = added)
     }
 }
+
+/** One endpoint's reasoning catalog; [models] is null while it is not known. */
+@Immutable
+data class ReasoningCatalogState(
+    val endpoint: String,
+    val models: Map<String, ModelReasoning>?,
+)

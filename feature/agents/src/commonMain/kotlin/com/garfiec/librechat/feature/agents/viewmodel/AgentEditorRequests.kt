@@ -130,21 +130,7 @@ private fun AgentEditorUiState.writeFields(): AgentWriteFields {
     // Build the full tools list: user-selected tools + capability tools + MCP server markers
     val allTools = buildToolsList(state)
 
-    // Prune `tool_options` to the keys still present in the agent's
-    // current tool selection. Upstream keys this map by tool name
-    // (MCP tool names appear without the `_mcp_serverName` suffix —
-    // see `client/src/components/SidePanel/Agents/MCPToolItem.tsx`),
-    // so we match against the bare names: `selectedMcpTools` for MCP
-    // and `selectedTools` for regular tools. Without this prune, a
-    // user who deselects an MCP tool whose options were configured
-    // via the web client would still ship those tool_options on
-    // save, producing zombie config that re-appears the next time
-    // the tool is re-added.
-    val keepableToolOptionKeys = state.selectedMcpTools.toSet() + state.selectedTools.toSet()
-    val prunedToolOptions = state.toolOptions?.let { options ->
-        val filtered = options.filterKeys { it in keepableToolOptionKeys }
-        if (filtered.isEmpty()) null else JsonObject(filtered)
-    }
+    val keptToolOptions = pruneToolOptions(state.toolOptions, allTools, state.selectedMcpTools)
 
     // Build model_parameters from advanced settings, minus any value a per-model rule took
     // away. Checked here and not only when the Advanced panel edits a control: a save that
@@ -158,6 +144,15 @@ private fun AgentEditorUiState.writeFields(): AgentWriteFields {
         parameterProvider = state.parameterProvider,
     )
     val modelParameters = buildModelParameters(state.advancedSettings.withoutModelRemovedValues(modelRemoved))
+        ?.let { params ->
+            if (!state.filtersInferenceParameters) return@let params
+            val endpoint = state.inferenceEndpoints[state.provider]
+            // A custom endpoint's declared extras are unknown until /api/endpoints has loaded;
+            // filtering then would delete them, so the agent is saved as it is.
+            if (endpoint == null && !isBuiltInInferenceProvider(state.provider)) return@let params
+            JsonObject(keepAcceptedInferenceParameters(params, state.provider, state.model.ifBlank { null }, endpoint))
+                .takeIf { it.isNotEmpty() }
+        }
 
     // Artifacts: upstream `ArtifactModes` enum serialized as its wire string.
     // null means "off" (omitted from the request body via encodeDefaults=false).
@@ -170,6 +165,14 @@ private fun AgentEditorUiState.writeFields(): AgentWriteFields {
     // server-side list. Coercing empty → null on update would let the
     // server's "missing field = no change" rule swallow the deletion.
     val isUpdate = state.isEditMode && state.agentId != null
+    // An omitted `tool_options` leaves the stored map as it was, so on UPDATE an agent that had
+    // options and now has none sends `{}`: otherwise the last approval mode set back to inherit
+    // (or the last configured tool removed) would never clear on the server.
+    val prunedToolOptions = when {
+        keptToolOptions != null -> keptToolOptions
+        isUpdate && !state.loadedAgent?.toolOptions.isNullOrEmpty() -> JsonObject(emptyMap())
+        else -> null
+    }
     val chainAgentIds = if (isUpdate) state.chainAgentIds else state.chainAgentIds.ifEmpty { null }
     // Append any raw edges that failed to deserialize on load (forward-
     // compatibility for new upstream edge fields the mobile model
@@ -248,3 +251,40 @@ private fun AgentEditorUiState.writeFields(): AgentWriteFields {
         subagents = subagents,
     )
 }
+
+/**
+ * `tool_options` kept to the tools still on the agent.
+ *
+ * Upstream keys an MCP tool's options by its full id, `<tool>_mcp_<normalizedServer>`, the same
+ * string as its `agent.tools` entry (`McpSection.tsx` `tool.tool_id`, `useMCPToolOptions.ts`), and
+ * the update route stores the map it is sent as is. So a key survives when it is one of the
+ * [savedTools] being written, or an MCP id under a whole-server marker being written. A bare key
+ * still on [selectedMcpTools] survives too: older agents may carry one, and dropping it here would
+ * be this client deleting what it doesn't own.
+ *
+ * Without the prune, a tool removed here would keep its options and they would come back the next
+ * time the tool is added.
+ */
+internal fun pruneToolOptions(
+    options: JsonObject?,
+    savedTools: List<String>,
+    selectedMcpTools: Set<String>,
+): JsonObject? {
+    if (options == null) return null
+    val savedToolSet = savedTools.toSet()
+    val wholeServerSuffixes = savedTools
+        .filter { it.startsWith(MCP_SERVER_MARKER_PREFIX) }
+        .map { MCP_DELIMITER + it.removePrefix(MCP_SERVER_MARKER_PREFIX) }
+    val kept = options.filterKeys { key ->
+        key in savedToolSet ||
+            key in selectedMcpTools ||
+            // A selected tool whose catalog entry hasn't loaded is saved under the wrong key
+            // (a server marker), so its full-id options are kept rather than lost as well.
+            key.substringBefore(MCP_DELIMITER, missingDelimiterValue = "") in selectedMcpTools ||
+            wholeServerSuffixes.any { suffix -> key.endsWith(suffix) && key.length > suffix.length }
+    }
+    return if (kept.isEmpty()) null else JsonObject(kept)
+}
+
+private const val MCP_DELIMITER = "_mcp_"
+private const val MCP_SERVER_MARKER_PREFIX = "sys__server__sys_mcp_"

@@ -107,8 +107,7 @@ class CitationIndex private constructor(
             )
         }
         val data = web[ref.turn] ?: return null
-        // Upstream Context.tsx's refTypeMap, plus images and videos, which its copy path maps but
-        // its render path forgets (they look up `image`/`video` keys that never exist).
+        // Upstream Context.tsx's refTypeMap, which its render and copy paths share.
         val list = when (ref.type) {
             "search" -> data.organic
             "news" -> data.topStories

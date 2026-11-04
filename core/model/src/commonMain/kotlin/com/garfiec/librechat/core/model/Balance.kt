@@ -18,4 +18,9 @@ data class Balance(
     /** ISO-8601 date of the last refill. */
     val lastRefill: String? = null,
     val refillAmount: Double? = null,
+    /**
+     * Upstream `BalanceRefillMode` (v0.8.9-rc1): `add` (absent on older servers) tops the balance up
+     * when it runs out; `reset` replaces it with the allowance once the interval has passed.
+     */
+    val refillMode: String? = null,
 )

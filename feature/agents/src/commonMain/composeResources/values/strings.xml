@@ -39,6 +39,13 @@
     <string name="agents_chip_top_picks">Top picks</string>
     <string name="agents_chip_all">All</string>
     <string name="agents_chip_editable">Editable</string>
+    <string name="agents_filter_mine">My agents</string>
+    <string name="agents_sort_label">Sort by</string>
+    <string name="agents_sort_newest">Newest first</string>
+    <string name="agents_sort_oldest">Oldest first</string>
+    <string name="agents_sort_popular">Popular</string>
+    <string name="agents_sort_author">By creator name</string>
+    <string name="agents_mine_empty_title">You haven't created any agents yet</string>
     <string name="agents_top_pick">Top pick</string>
     <string name="agents_new_agent">New agent</string>
     <string name="agent_unnamed">Unnamed agent</string>
@@ -79,6 +86,7 @@
     <string name="agent_description_label">Description</string>
     <string name="agent_description_placeholder">Optional: Describe your Agent here</string>
     <string name="agent_instructions_label">Instructions</string>
+    <string name="agent_instructions_linked_prompt">This agent uses a saved prompt as its instructions. Change or unlink it on the web; edits here would not change what the agent runs.</string>
     <string name="agent_instructions_placeholder">The system instructions that the agent uses</string>
     <string name="insert_variable">Insert variable</string>
     <string name="cd_insert_variable">Insert variable</string>
@@ -359,4 +367,17 @@
         <item quantity="one">You can pin up to %1$d favorite.</item>
         <item quantity="other">You can pin up to %1$d favorites.</item>
     </plurals>
+    <!-- Agent tool approval modes (v0.8.9-rc1) -->
+    <string name="tool_approval_mode_cd">Tool approval mode: %1$s</string>
+    <string name="tool_approval_inherit">Use inherited policy</string>
+    <string name="tool_approval_ask">Always ask</string>
+    <string name="tool_approval_allow">Always approve</string>
+    <string name="tool_approval_chat">Ask once per chat</string>
+    <string name="tool_approval_always">Ask once, then always approve</string>
+    <string name="tool_approval_admin_ask">Administrator policy requires approval.</string>
+    <string name="tool_approval_admin_deny">Administrator policy blocks this tool.</string>
+    <string name="tool_approval_reset">Reset my remembered approvals</string>
+    <string name="tool_approval_reset_success">Your remembered approvals were reset.</string>
+    <string name="tool_approval_reset_error">Could not reset remembered approvals. Please retry.</string>
+    <string name="tool_approval_reset_forbidden">You can't reset approvals for this agent.</string>
 </resources>

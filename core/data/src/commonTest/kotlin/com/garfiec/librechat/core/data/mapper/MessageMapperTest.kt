@@ -3,10 +3,12 @@ package com.garfiec.librechat.core.data.mapper
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.WebSearchData
 import com.garfiec.librechat.core.model.WebSearchSource
 import com.garfiec.librechat.core.model.content.AgentToolCall
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -26,6 +28,28 @@ class MessageMapperTest {
         val quotes = listOf("first excerpt", "second \"quoted\" excerpt")
         val restored = baseMessage(quotes).toEntity().toModel()
         assertEquals(quotes, restored.quotes)
+    }
+
+    @Test
+    fun isUserSubmitted_roundTripsThroughEntity() {
+        assertEquals(true, baseMessage(null).copy(isUserSubmitted = true).toEntity().toModel().isUserSubmitted)
+        assertEquals(false, baseMessage(null).copy(isUserSubmitted = false).toEntity().toModel().isUserSubmitted)
+        assertNull(baseMessage(null).toEntity().toModel().isUserSubmitted)
+    }
+
+    @Test
+    fun reasoningOverride_roundTripsThroughEntity_levelAndBudget() {
+        val level = ReasoningOverride.level("reasoning_effort", "high")
+        val budget = ReasoningOverride("thinkingBudget", JsonPrimitive(4096))
+        assertEquals(level, baseMessage(null).copy(reasoningOverride = level).toEntity().toModel().reasoningOverride)
+        assertEquals(budget, baseMessage(null).copy(reasoningOverride = budget).toEntity().toModel().reasoningOverride)
+        assertNull(baseMessage(null).toEntity().toModel().reasoningOverride)
+    }
+
+    @Test
+    fun privacyRevision_roundTripsThroughEntity() {
+        assertEquals("rev-1", baseMessage(null).copy(privacyRevision = "rev-1").toEntity().toModel().privacyRevision)
+        assertNull(baseMessage(null).toEntity().toModel().privacyRevision)
     }
 
     @Test

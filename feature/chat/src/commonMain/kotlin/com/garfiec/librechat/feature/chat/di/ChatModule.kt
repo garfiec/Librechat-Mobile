@@ -8,6 +8,10 @@ import com.garfiec.librechat.feature.chat.prompts.PromptsViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.BackgroundTasksViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNoticeHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMediaViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.ConversationSeenViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.LocalQueueStash
+import com.garfiec.librechat.feature.chat.viewmodel.McpAppsViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.McpSignInViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.NewChatSelectionHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.ProjectLandingViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.PromptInsertionHandoff
@@ -31,11 +35,15 @@ val chatModule = module {
     single { ArtifactViewerHandoff() }
     single { ModelShortcutBus() }
     single { SiteIconPromptSession() }
+    single { LocalQueueStash() }
     viewModelOf(::PromptsViewModel)
     viewModelOf(::SubagentThreadsViewModel)
     viewModelOf(::TraceViewerViewModel)
     viewModelOf(::BackgroundTasksViewModel)
+    viewModelOf(::ConversationSeenViewModel)
     viewModelOf(::UpdateBannerViewModel)
+    viewModelOf(::McpSignInViewModel)
+    viewModelOf(::McpAppsViewModel)
     // Koin's constructor-DSL (`viewModelOf`) wires every argument via `get()` and cannot read
     // values passed through `parametersOf`. This VM receives its `initialGroupId` from the
     // navigation layer via `parametersOf`, so the lambda-form `viewModel { params -> ... }` is

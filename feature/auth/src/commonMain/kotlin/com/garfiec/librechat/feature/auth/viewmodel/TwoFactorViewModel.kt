@@ -20,6 +20,8 @@ data class TwoFactorUiState(
     val error: String? = null,
     /** [error] came from a failure the diagnostic log can help with; see `offersDiagnosticLog`. */
     val offerDiagnosticLog: Boolean = false,
+    /** A coded refusal ([AuthRefusal]) the screen words itself, in place of [error], while [error] is set. */
+    val refusal: AuthRefusal? = null,
     val isVerified: Boolean = false,
     // Bumped whenever the entered code is cleared as spent (evaluated-and-rejected, or accepted
     // with an unusable session); the code input keys its focus-reset effect on this.
@@ -83,7 +85,7 @@ class TwoFactorViewModel(
 
         val generation = submitGeneration
         // Set before launching so a second submit in the same frame sees it and bails.
-        _uiState.value = state.copy(isLoading = true, error = null, offerDiagnosticLog = false)
+        _uiState.value = state.copy(isLoading = true, error = null, offerDiagnosticLog = false, refusal = null)
         viewModelScope.launch {
             when (val outcome = authRepository.verifyTwoFactor(tempToken, code, isBackupCode = state.isBackupMode)) {
                 // Always honored, even when superseded by a mode toggle: the session is already
@@ -102,7 +104,12 @@ class TwoFactorViewModel(
                 // a fresh one; it never evaluated the code → keep it for a plain retry. Focus resets
                 // (via codeAttempt) precisely when the boxes are cleared.
                 is VerifyTwoFactorOutcome.CodeConsumed -> applyVerifyFailure(generation, outcome.message, clearEntry = true)
-                is VerifyTwoFactorOutcome.NotEvaluated -> applyVerifyFailure(generation, outcome.message, clearEntry = false)
+                is VerifyTwoFactorOutcome.NotEvaluated -> applyVerifyFailure(
+                    generation,
+                    outcome.message,
+                    clearEntry = false,
+                    refusal = authRefusalOfCode(outcome.code),
+                )
                 is VerifyTwoFactorOutcome.ConnectionFailure -> applyVerifyFailure(
                     generation,
                     "Couldn't reach the server. Check your connection and try again.",
@@ -125,6 +132,7 @@ class TwoFactorViewModel(
         message: String,
         clearEntry: Boolean,
         offerDiagnosticLog: Boolean = false,
+        refusal: AuthRefusal? = null,
     ) {
         if (generation != submitGeneration) return
         val state = _uiState.value
@@ -132,6 +140,7 @@ class TwoFactorViewModel(
             isLoading = false,
             error = message,
             offerDiagnosticLog = offerDiagnosticLog,
+            refusal = refusal,
             code = if (clearEntry) "" else state.code,
             backupCode = if (clearEntry) "" else state.backupCode,
             codeAttempt = if (clearEntry) state.codeAttempt + 1 else state.codeAttempt,

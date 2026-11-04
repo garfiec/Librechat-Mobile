@@ -39,6 +39,13 @@
     <string name="agents_chip_top_picks">Coups de cœur</string>
     <string name="agents_chip_all">Tous</string>
     <string name="agents_chip_editable">Modifiables</string>
+    <string name="agents_filter_mine">Mes agents</string>
+    <string name="agents_sort_label">Trier par</string>
+    <string name="agents_sort_newest">Plus récents d'abord</string>
+    <string name="agents_sort_oldest">Plus anciens d'abord</string>
+    <string name="agents_sort_popular">Populaires</string>
+    <string name="agents_sort_author">Par nom du créateur</string>
+    <string name="agents_mine_empty_title">Vous n'avez encore créé aucun agent</string>
     <string name="agents_top_pick">Coup de cœur</string>
     <string name="agents_new_agent">Nouvel agent</string>
     <string name="agent_unnamed">Agent sans nom</string>
@@ -79,6 +86,7 @@
     <string name="agent_description_label">Description</string>
     <string name="agent_description_placeholder">Facultatif : décrivez votre agent ici</string>
     <string name="agent_instructions_label">Instructions</string>
+    <string name="agent_instructions_linked_prompt">Cet agent utilise un prompt enregistré comme instructions. Modifiez-le ou dissociez-le sur le web ; les modifications faites ici ne changeraient pas ce que l'agent exécute.</string>
     <string name="agent_instructions_placeholder">Les instructions système que l'agent utilise</string>
     <string name="insert_variable">Insérer une variable</string>
     <string name="cd_insert_variable">Insérer une variable</string>
@@ -355,4 +363,16 @@
         <item quantity="one">Vous pouvez épingler jusqu'à %1$d favori.</item>
         <item quantity="other">Vous pouvez épingler jusqu'à %1$d favoris.</item>
     </plurals>
+    <string name="tool_approval_mode_cd">Mode d'approbation des outils : %1$s</string>
+    <string name="tool_approval_inherit">Utiliser la politique héritée</string>
+    <string name="tool_approval_ask">Toujours demander</string>
+    <string name="tool_approval_allow">Toujours approuver</string>
+    <string name="tool_approval_chat">Demander une fois par chat</string>
+    <string name="tool_approval_always">Demander une fois, puis toujours approuver</string>
+    <string name="tool_approval_admin_ask">La politique de l'administrateur exige une approbation.</string>
+    <string name="tool_approval_admin_deny">La politique de l'administrateur bloque cet outil.</string>
+    <string name="tool_approval_reset">Réinitialiser mes approbations mémorisées</string>
+    <string name="tool_approval_reset_success">Vos approbations mémorisées ont été réinitialisées.</string>
+    <string name="tool_approval_reset_error">Impossible de réinitialiser les approbations mémorisées. Veuillez réessayer.</string>
+    <string name="tool_approval_reset_forbidden">Vous ne pouvez pas réinitialiser les approbations de cet agent.</string>
 </resources>

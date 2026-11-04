@@ -64,6 +64,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
             onNavigateToContextUsage = { onNavigate(ContextUsageSettings) },
             onNavigateToChatLayout = { onNavigate(ChatLayoutSettings) },
             onNavigateToApiKeys = { onNavigate(ApiKeys) },
+            onNavigateToPasskeys = { onNavigate(Passkeys) },
             onNavigateToFavorites = { onNavigate(Favorites) },
             onNavigateToProviderKeys = { onNavigate(ProviderKeys()) },
             onNavigateToRoleSkillsAdmin = { onNavigate(RoleSkillsAdmin) },
@@ -94,6 +95,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
         )
     }
     favoritesEntry(onBack = onBack)
+    passkeysEntry(onBack = onBack)
     roleSkillsAdminEntry(onBack = onBack)
     roleMemoriesAdminEntry(onBack = onBack)
     artifactShortcutsEntry(onBack = onBack)
@@ -116,6 +118,7 @@ val settingsSerializersModule = SerializersModule {
         subclass(McpServers::class, McpServers.serializer())
         subclass(McpServerEditor::class, McpServerEditor.serializer())
         subclass(Favorites::class, Favorites.serializer())
+        subclass(Passkeys::class, Passkeys.serializer())
         subclass(RoleSkillsAdmin::class, RoleSkillsAdmin.serializer())
         subclass(RoleMemoriesAdmin::class, RoleMemoriesAdmin.serializer())
         subclass(ArtifactShortcuts::class, ArtifactShortcuts.serializer())

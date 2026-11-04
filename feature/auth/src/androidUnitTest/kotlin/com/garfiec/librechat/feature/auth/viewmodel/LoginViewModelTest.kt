@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.auth.viewmodel
 
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.datastore.AccountEntry
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SsoRiskDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
@@ -10,7 +11,10 @@ import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.PendingAddSession
 import com.garfiec.librechat.core.model.LoginOutcome
 import com.garfiec.librechat.core.model.User
+import com.garfiec.librechat.core.model.config.InterfaceConfig
+import com.garfiec.librechat.core.model.config.PrivacyPolicyConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.model.config.TermsOfServiceConfig
 import com.garfiec.librechat.core.network.client.CertificateAuthority
 import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
 import com.google.common.truth.Truth.assertThat
@@ -75,6 +79,29 @@ class LoginViewModelTest {
     )
 
     @Test
+    fun `published policy links reach the footer only when safe, resolved against the server`() = runTest {
+        configFlow.value = StartupConfig(
+            interfaceConfig = InterfaceConfig(
+                privacyPolicy = PrivacyPolicyConfig(externalUrl = "javascript:alert(1)"),
+                termsOfService = TermsOfServiceConfig(externalUrl = "/terms"),
+            ),
+        )
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val links = viewModel.uiState.value.policyLinks
+        assertThat(links.privacyPolicyUrl).isNull()
+        assertThat(links.termsOfServiceUrl).isEqualTo("https://chat.example.com/terms")
+
+        configFlow.value = StartupConfig(
+            interfaceConfig = InterfaceConfig(privacyPolicy = PrivacyPolicyConfig(externalUrl = "https://x.example/p")),
+        )
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.policyLinks)
+            .isEqualTo(PolicyLinks(privacyPolicyUrl = "https://x.example/p"))
+    }
+
+    @Test
     fun `a server trusted through a user-installed CA is noted`() = runTest {
         viewModel = createViewModel()
         advanceUntilIdle()
@@ -99,6 +126,26 @@ class LoginViewModelTest {
         certificateTrust.record("pending.example.com", 8443, CertificateAuthority.UserInstalled)
         advanceUntilIdle()
         assertThat(viewModel.uiState.value.trustedViaUserCa).isTrue()
+    }
+
+    @Test
+    fun `an account on this server that owes 2FA setup is named on sign-in`() = runTest {
+        coEvery { accountSwitcher.awaitingTwoFactorSetupOn("https://chat.example.com") } returns listOf(
+            AccountEntry(accountId = "a1", serverUrl = "https://chat.example.com", displayLabel = "me@chat", lastActiveAt = 0L),
+        )
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.twoFactorSetupAccounts).isEqualTo("me@chat")
+    }
+
+    @Test
+    fun `no notice when no account on this server owes setup`() = runTest {
+        coEvery { accountSwitcher.awaitingTwoFactorSetupOn(any()) } returns emptyList()
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.twoFactorSetupAccounts).isNull()
     }
 
     @Test
@@ -286,6 +333,54 @@ class LoginViewModelTest {
         assertThat(state.emailLoginEnabled).isTrue()
         assertThat(state.error).isEqualTo("Access denied")
         assertThat(state.offerDiagnosticLog).isTrue()
+    }
+
+    @Test
+    fun `login requiring 2FA setup navigates to setup, not the code challenge`() = runTest {
+        coEvery { authRepository.login("user@example.com", "pw") } returns
+            Result.Success(LoginOutcome.TwoFactorSetupRequired("setup-token"))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.onEmailChanged("user@example.com")
+        viewModel.onPasswordChanged("pw")
+        viewModel.login()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.twoFactorSetupTempToken).isEqualTo("setup-token")
+        assertThat(state.twoFactorTempToken).isNull()
+        viewModel.consumeTwoFactorSetupNavigation()
+        assertThat(viewModel.uiState.value.twoFactorSetupTempToken).isNull()
+    }
+
+    /** v0.8.9-rc1: coded, server-authored 403s that are not "email login disabled". */
+    @Test
+    fun `the federated-blocked and tenant 403s keep the form and get their own wording`() = runTest {
+        val bodies = mapOf(
+            """{"code":"TWO_FACTOR_FEDERATED_LOGIN_BLOCKED","message":"Sign in with your identity provider to continue."}""" to
+                AuthRefusal.FederatedBlocked,
+            """{"message":"Tenant context required in strict isolation mode","code":"TENANT_CONTEXT_REQUIRED"}""" to
+                AuthRefusal.TenantRequired,
+        )
+        bodies.forEach { (body, refusal) ->
+            coEvery { authRepository.login("user@example.com", "pw") } returns Result.Error(
+                exception = ApiException(403, "server message", body = body, serverAuthored = true),
+                message = "server message",
+            )
+            viewModel = createViewModel()
+            advanceUntilIdle()
+            viewModel.onEmailChanged("user@example.com")
+            viewModel.onPasswordChanged("pw")
+            viewModel.login()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertThat(state.emailLoginEnabled).isTrue()
+            assertThat(state.refusal).isEqualTo(refusal)
+            viewModel.onPasswordChanged("pw2")
+            assertThat(viewModel.uiState.value.refusal).isNull()
+        }
     }
 
     /** A ban is also a server-authored 403 and must keep the form; `isBanned` is that discriminator. */

@@ -3,10 +3,13 @@ package com.garfiec.librechat.core.data.repository
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.model.schedule.CreateScheduleRequest
+import com.garfiec.librechat.core.model.schedule.RevokeScheduleMcpConsentRequest
 import com.garfiec.librechat.core.model.schedule.Schedule
 import com.garfiec.librechat.core.model.schedule.ScheduleListResponse
+import com.garfiec.librechat.core.model.schedule.ScheduleMcpConsentView
 import com.garfiec.librechat.core.model.schedule.ScheduleRunNowResponse
 import com.garfiec.librechat.core.model.schedule.UpdateScheduleRequest
+import com.garfiec.librechat.core.model.schedule.confirmScheduleMcpConsentBody
 import com.garfiec.librechat.core.network.api.SchedulesApi
 
 class ScheduleRepositoryImpl(
@@ -45,4 +48,19 @@ class ScheduleRepositoryImpl(
 
     override suspend fun runScheduleNow(id: String): Result<ScheduleRunNowResponse> =
         safeApiCall { schedulesApi.runScheduleNow(id) }
+
+    override suspend fun getMcpConsent(id: String): Result<ScheduleMcpConsentView> =
+        safeApiCall { schedulesApi.getMcpConsent(id) }
+
+    override suspend fun confirmMcpConsent(
+        id: String,
+        offerDigest: String,
+        expectedRevision: String?,
+        lifetimeHours: Int,
+    ): Result<ScheduleMcpConsentView> = safeApiCall {
+        schedulesApi.confirmMcpConsent(id, confirmScheduleMcpConsentBody(offerDigest, expectedRevision, lifetimeHours))
+    }
+
+    override suspend fun revokeMcpConsent(id: String, expectedRevision: String): Result<Unit> =
+        safeApiCall { schedulesApi.revokeMcpConsent(id, RevokeScheduleMcpConsentRequest(expectedRevision)) }
 }

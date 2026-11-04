@@ -142,7 +142,7 @@ class ChatViewModelCleanEndResumeTest {
     fun `a live run whose connection closes cleanly is resumed, keeping the partial and the question`() =
         runTest(testDispatcher) {
             stored.value = listOf(user, reply)
-            coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID) } returns
+            coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID, any()) } returns
                 Result.Success(listOf(user, reply))
             val client = sseClient()
             every {
@@ -157,7 +157,7 @@ class ChatViewModelCleanEndResumeTest {
             try {
                 advanceUntilIdle()
                 var fetchesAfterSend = 0
-                coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID) } coAnswers {
+                coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID, any()) } coAnswers {
                     fetchesAfterSend++
                     Result.Success(listOf(user, reply))
                 }

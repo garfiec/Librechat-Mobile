@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.network.api
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.model.request.ChatAbortRequest
 import com.garfiec.librechat.core.model.request.ChatResumeRequest
+import com.garfiec.librechat.core.model.request.SteerArmRequest
 import com.garfiec.librechat.core.model.request.SteerCancelRequest
 import com.garfiec.librechat.core.model.request.SteerRequest
 import com.garfiec.librechat.core.model.response.ActiveJobsResponse
@@ -10,6 +11,7 @@ import com.garfiec.librechat.core.model.response.ChatAbortResponse
 import com.garfiec.librechat.core.model.response.ChatResumeResponse
 import com.garfiec.librechat.core.model.response.ChatStartResponse
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
+import com.garfiec.librechat.core.model.response.SteerArmResponse
 import com.garfiec.librechat.core.model.response.SteerCancelResponse
 import com.garfiec.librechat.core.model.response.SteerResponse
 import io.ktor.client.HttpClient
@@ -140,6 +142,19 @@ class ChatApi constructor(
     suspend fun cancelSteer(request: SteerCancelRequest): SteerCancelResponse =
         client.post {
             url { path("api/agents/chat/steer/cancel") }
+            setBody(request)
+        }.bodyUnlessRefused()
+
+    /**
+     * POST /api/agents/chat/steer/arm — upgrades a still-queued steer to an interrupt in place.
+     *
+     * `{armed:false}` is a success: the steer already went in, was cancelled, or the run ended;
+     * `code: PREEMPT_UNSUPPORTED` says the run can't be interrupted. Behind the same limiters as
+     * cancel, so a refusal can arrive as a 200 — see [ChatRefusal].
+     */
+    suspend fun armSteer(request: SteerArmRequest): SteerArmResponse =
+        client.post {
+            url { path("api/agents/chat/steer/arm") }
             setBody(request)
         }.bodyUnlessRefused()
 

@@ -74,9 +74,11 @@ private const val SCHEME_SEPARATOR_LENGTH = 3
 // every route a browser can sit on belongs here. The dashboard's `d/*` is left out: it has no fixed
 // depth, and stripping an open-ended prefix could eat a real deployment path.
 private val WEB_ROUTES_EXACT = listOf(
-    "/login/2fa", "/login", "/register", "/forgot-password", "/reset-password", "/verify",
+    "/login/2fa/setup", "/login/2fa", "/login", "/register", "/forgot-password", "/reset-password", "/verify",
     "/oauth/success", "/oauth/error", "/search", "/c", "/prompts/new", "/prompts", "/skills/new",
-    "/skills", "/projects", "/agents",
+    "/skills", "/insights", "/projects", "/agents",
 )
 
-private val WEB_ROUTES_WITH_ID = listOf("/c/", "/share/", "/prompts/", "/skills/", "/projects/", "/agents/")
+private val WEB_ROUTES_WITH_ID = listOf(
+    "/c/", "/share/", "/prompts/", "/skills/", "/projects/", "/agents/", "/code/setup/",
+)

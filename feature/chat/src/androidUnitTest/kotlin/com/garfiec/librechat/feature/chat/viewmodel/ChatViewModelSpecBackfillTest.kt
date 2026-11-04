@@ -21,6 +21,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 
@@ -125,5 +126,23 @@ class ChatViewModelSpecBackfillTest {
         advanceUntilIdle()
 
         coVerify(exactly = 2) { conversationRepository.refreshConversation("bf-shared", any()) }
+    }
+
+    @Test
+    fun aCodeChatBackfillLearnsTheRowWithoutReapplyingTheSelection() = runTest(testDispatcher) {
+        startupConfig.value = StartupConfig(pullRequestsEnabled = true)
+        every { fixture.configRepository.detectedBackendVersion } returns MutableStateFlow("0.8.9-rc1")
+        coEvery { conversationRepository.getConversation("bf-code", any()) } returns Result.Success(cached("bf-code"))
+        // The server's copy differs in model and parameters; only its code-chat answer is wanted.
+        coEvery { conversationRepository.refreshConversation("bf-code", any()) } returns Result.Success(
+            cached("bf-code").copy(model = "gpt-4o", temperature = 0.9, codeEnvironmentMode = "attached"),
+        )
+
+        val vm = open("bf-code")
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { conversationRepository.refreshConversation("bf-code", any()) }
+        assertEquals("gpt-4.1", vm.uiState.value.selectedModel)
+        assertEquals(0.5f, vm.uiState.value.modelParameters.temperature)
     }
 }

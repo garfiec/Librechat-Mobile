@@ -68,7 +68,11 @@
 
     <!-- Terms -->
     <string name="terms_title">Условия использования</string>
+    <string name="terms_no_content">Этот сервер не прислал текст условий использования.</string>
     <string name="i_accept">Я принимаю</string>
+    <string name="terms_decline">Отклонить</string>
+    <string name="privacy_policy">Политика конфиденциальности</string>
+    <string name="terms_of_service">Условия использования</string>
     <string name="retry">Повторить</string>
 
     <!-- Common -->
@@ -85,4 +89,34 @@
     <string name="diagnostic_log_failed">Не удалось экспортировать журнал.</string>
     <string name="user_ca_notice">Сертификат этого сервера считается доверенным благодаря центру сертификации, установленному на этом устройстве, а не встроенному в Android. Продолжайте, только если его установили вы или ваша организация.</string>
     <string name="continue_with_provider">Продолжить через %1$s</string>
+    <string name="two_factor_setup_title">Настройка двухфакторной аутентификации</string>
+    <string name="two_factor_setup_required_description">Этот сервер требует двухфакторную аутентификацию. Настройте её, чтобы продолжить.</string>
+    <string name="two_factor_setup_begin">Начать настройку</string>
+    <string name="two_factor_setup_authenticator_heading">Добавьте этот аккаунт в приложение-аутентификатор</string>
+    <string name="two_factor_setup_authenticator_body">Откройте его в приложении-аутентификаторе, введите ключ настройки или отсканируйте QR-код с другого устройства.</string>
+    <string name="two_factor_setup_open_authenticator">Открыть приложение-аутентификатор</string>
+    <string name="two_factor_setup_no_authenticator">Ни одно приложение-аутентификатор на этом устройстве не смогло открыть ссылку. Введите ключ настройки вручную.</string>
+    <string name="two_factor_setup_key">Ключ настройки</string>
+    <string name="two_factor_setup_show_qr">Показать QR-код</string>
+    <string name="two_factor_setup_hide_qr">Скрыть QR-код</string>
+    <string name="two_factor_setup_qr_description">QR-код для приложения-аутентификатора</string>
+    <string name="two_factor_setup_next">Далее</string>
+    <string name="two_factor_setup_verify_heading">Введите код из приложения-аутентификатора</string>
+    <string name="two_factor_setup_backup_heading">Сохраните резервные коды</string>
+    <string name="two_factor_setup_backup_body">Каждый код позволяет войти один раз, если вы потеряете аутентификатор. Храните их в надёжном месте: они больше не будут показаны.</string>
+    <string name="two_factor_setup_save_codes">Сохранить в файл</string>
+    <string name="two_factor_setup_codes_saved">Резервные коды сохранены.</string>
+    <string name="two_factor_setup_codes_acknowledged">Я сохранил(а) эти коды</string>
+    <string name="two_factor_setup_complete">Завершить настройку</string>
+    <string name="two_factor_setup_expired">Сеанс настройки истёк. Войдите снова, чтобы продолжить.</string>
+    <string name="two_factor_setup_back_to_sign_in">Назад к входу</string>
+    <string name="two_factor_setup_error_start">Не удалось начать настройку. Попробуйте ещё раз.</string>
+    <string name="two_factor_setup_error_invalid">Код не подошёл. Введите текущий код из приложения-аутентификатора.</string>
+    <string name="two_factor_setup_error_rate_limited">Слишком много попыток. Подождите немного и попробуйте снова.</string>
+    <string name="two_factor_setup_error_finalize">Не удалось завершить настройку. Попробуйте ещё раз.</string>
+    <string name="two_factor_setup_error_connection">Не удалось связаться с сервером. Проверьте подключение и попробуйте снова.</string>
+    <string name="login_error_federated_blocked">Этот аккаунт входит через своего поставщика удостоверений. Используйте этот способ входа.</string>
+    <string name="auth_error_tenant_required">Этому серверу нужно знать, к какой организации вы относитесь. Используйте адрес этого сервера для вашей организации.</string>
+    <string name="login_two_factor_setup_required">Теперь этот сервер требует двухфакторную аутентификацию для %1$s. Войдите, чтобы настроить её.</string>
+    <string name="use_another_account">Использовать другой аккаунт</string>
 </resources>

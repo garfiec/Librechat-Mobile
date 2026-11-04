@@ -38,9 +38,10 @@ fun DynamicInput(
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
+        val field = rememberDraftField(value)
         AdaptiveOutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
+            value = field.value,
+            onValueChange = { field.onValueChange(it, onValueChange) },
             modifier = Modifier.fillMaxWidth(),
             placeholder = if (placeholder != null) {
                 { Text(placeholder) }

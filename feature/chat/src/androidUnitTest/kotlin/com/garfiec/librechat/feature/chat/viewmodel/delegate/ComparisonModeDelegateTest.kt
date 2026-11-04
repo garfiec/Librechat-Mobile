@@ -8,12 +8,15 @@ import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.RunStepStatus
 import com.garfiec.librechat.core.model.StreamEvent
+import com.garfiec.librechat.core.model.SubagentPhase
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.core.model.content.AgentToolCall
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.request.NO_PARENT
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
+import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
@@ -24,6 +27,8 @@ import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
 import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
+import com.garfiec.librechat.feature.chat.viewmodel.SubagentState
+import com.garfiec.librechat.feature.chat.viewmodel.SubagentTrace
 import com.google.common.truth.Truth.assertThat
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -71,6 +76,20 @@ class ComparisonModeDelegateTest {
             textPart("secondary reply", agentId = secondaryAgentId),
         ),
     )
+
+    @Test
+    fun `the auto-read text carries the primary answer without its reasoning`() {
+        val (delegate, flow) = delegateWith(ChatUiState(comparisonState = ComparisonState(isEnabled = true)))
+        delegate.onSendStart()
+
+        delegate.routeEvent(StreamEvent.ThinkingDelta(chunk = "pondering. "))
+        delegate.routeEvent(StreamEvent.ContentDelta(chunk = "The answer."))
+        delegate.routeEvent(StreamEvent.ContentDelta(chunk = "other pane", agentId = "agent_secondary____1"))
+
+        assertThat(delegate.primaryAnswerText()).isEqualTo("The answer.")
+        // The pane itself still renders the reasoning.
+        assertThat(flow.value.comparisonState.primaryStreamingContent).isEqualTo("pondering. The answer.")
+    }
 
     @Test
     fun `rehydrate from a real added-agent id maps to AGENTS endpoint`() {
@@ -666,5 +685,99 @@ class ComparisonModeDelegateTest {
         delegate.routeEvent(StreamEvent.ToolCallClosed(toolCallId = "call_2", status = RunStepStatus.COMPLETED))
 
         assertThat(flow.value.sandboxStartingToolCallIds).isEmpty()
+    }
+
+    @Test
+    fun `an MCP sign-in lands on whichever pane holds the call`() {
+        val (delegate, flow) = delegateWith(
+            ChatUiState(
+                comparisonState = ComparisonState(
+                    isEnabled = true,
+                    secondaryActiveToolCalls = listOf(ActiveToolCall(id = "oauth_1", name = "oauth_mcp_github")),
+                ),
+            ),
+        )
+
+        val consumed = delegate.routeEvent(
+            StreamEvent.ToolCallAuthRequired(toolCallId = "oauth_1", authUrl = "https://idp", serverName = "github"),
+        )
+
+        assertThat(consumed).isTrue()
+        assertThat(flow.value.comparisonState.secondaryActiveToolCalls.single().authUrl).isEqualTo("https://idp")
+    }
+
+    private fun comparingWithSubagentInPaneB(traced: Boolean) = delegateWith(
+        ChatUiState(
+            comparisonState = ComparisonState(
+                isEnabled = true,
+                primaryActiveToolCalls = listOf(ActiveToolCall(id = "call_search", name = "search")),
+                secondaryActiveToolCalls = listOf(ActiveToolCall(id = "call_sub", name = "subagent")),
+            ),
+            subagents = SubagentState(
+                subagentProgress = if (traced) {
+                    mapOf(
+                        "call_sub" to SubagentTrace(
+                            parentToolCallId = "call_sub",
+                            parts = listOf(
+                                MessageContentPart(
+                                    type = ContentType.TOOL_CALL,
+                                    toolCall = AgentToolCall(id = "call_child", name = "search_mcp_github"),
+                                ),
+                            ),
+                        ),
+                    )
+                } else {
+                    emptyMap()
+                },
+            ),
+        ),
+    )
+
+    @Test
+    fun `a subagent child's sign-in shows on the pane's subagent call until the child ends`() {
+        val (delegate, flow) = comparingWithSubagentInPaneB(traced = true)
+
+        // The child's prompt goes out top-level, naming a call only the subagent's trace holds.
+        delegate.routeEvent(
+            StreamEvent.ToolCallAuthRequired(toolCallId = "call_child", authUrl = "https://idp", serverName = "github"),
+        )
+
+        val parent = flow.value.comparisonState.secondaryActiveToolCalls.single()
+        assertThat(parent.authUrl).isEqualTo("https://idp")
+        assertThat(parent.authToolCallId).isEqualTo("call_child")
+        assertThat(flow.value.comparisonState.primaryActiveToolCalls.single().authUrl).isNull()
+
+        val passedOn = delegate.routeEvent(
+            StreamEvent.SubagentUpdate(
+                phase = SubagentPhase.RUN_STEP_COMPLETED,
+                parentToolCallId = "call_sub",
+                subagentRunId = "run_1",
+                inner = StreamEvent.ToolCallComplete(toolCallId = "call_child", output = "ok"),
+            ),
+        )
+
+        // Not consumed, so the standard path still records the trace.
+        assertThat(passedOn).isFalse()
+        val after = flow.value.comparisonState.secondaryActiveToolCalls.single()
+        assertThat(after.authUrl).isNull()
+        assertThat(after.authToolCallId).isNull()
+        assertThat(after.isComplete).isFalse()
+    }
+
+    @Test
+    fun `a sign-in wrapped in a subagent envelope lands on the pane's parent call`() {
+        val (delegate, flow) = comparingWithSubagentInPaneB(traced = false)
+
+        delegate.routeEvent(
+            StreamEvent.SubagentUpdate(
+                phase = SubagentPhase.RUN_STEP_DELTA,
+                parentToolCallId = "call_sub",
+                subagentRunId = "run_1",
+                inner = StreamEvent.ToolCallAuthRequired(toolCallId = "call_child", authUrl = "https://idp", serverName = "github"),
+            ),
+        )
+
+        assertThat(flow.value.comparisonState.secondaryActiveToolCalls.single().authUrl).isEqualTo("https://idp")
+        assertThat(flow.value.comparisonState.primaryActiveToolCalls.single().authUrl).isNull()
     }
 }

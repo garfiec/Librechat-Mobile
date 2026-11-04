@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.data.repository.permissionUpdateFailure
 import com.garfiec.librechat.core.data.skills.SkillViewer
 import com.garfiec.librechat.core.data.skills.toSkillViewer
 import com.garfiec.librechat.core.model.AccessRole
@@ -16,6 +17,7 @@ import com.garfiec.librechat.core.model.PrincipalType
 import com.garfiec.librechat.core.model.ResourcePermissions
 import com.garfiec.librechat.core.model.ResourceType
 import com.garfiec.librechat.core.model.UpdateResourcePermissionsRequest
+import com.garfiec.librechat.core.model.acl.PermissionUpdateFailure
 import com.garfiec.librechat.core.model.isSearchablePrincipalQuery
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
@@ -38,6 +40,8 @@ data class AgentAclUiState(
     val loadFailed: Boolean = false,
     /** The last change failed, with the server's text. A failed grants fetch is [loadFailed]. */
     val error: String? = null,
+    /** The last change was refused for a reason that passes; worded by the sheet, over [error]. */
+    val updateFailure: PermissionUpdateFailure? = null,
     /** A change is on its way; the section's controls wait for it, so changes can't land out of order. */
     val isUpdating: Boolean = false,
     val principals: List<Principal> = emptyList(),
@@ -418,7 +422,7 @@ class AgentAclViewModel(
     }
 
     fun dismissError() {
-        _uiState.value = _uiState.value.copy(error = null)
+        _uiState.value = _uiState.value.copy(error = null, updateFailure = null)
     }
 
     /**
@@ -433,7 +437,7 @@ class AgentAclViewModel(
         if (_uiState.value.isUpdating || !_uiState.value.canShare) return
         val interruptedLoad = grantsJob?.isActive == true
         grantsJob?.cancel()
-        _uiState.value = _uiState.value.copy(isUpdating = true, isLoading = false, error = null)
+        _uiState.value = _uiState.value.copy(isUpdating = true, isLoading = false, error = null, updateFailure = null)
         viewModelScope.launch {
             when (val r = permissionsRepository.updateResourcePermissions(ResourceType.AGENT, agentId, body)) {
                 is Result.Success -> {
@@ -456,7 +460,7 @@ class AgentAclViewModel(
                     }.copy(isUpdating = false)
                 }
                 is Result.Error -> {
-                    _uiState.value = _uiState.value.copy(isUpdating = false, error = r.message)
+                    _uiState.value = _uiState.value.copy(isUpdating = false, error = r.message, updateFailure = r.permissionUpdateFailure())
                     if (interruptedLoad || !_uiState.value.loaded) loadGrants(agentId, keepError = true)
                 }
                 is Result.Loading -> _uiState.value = _uiState.value.copy(isUpdating = false)

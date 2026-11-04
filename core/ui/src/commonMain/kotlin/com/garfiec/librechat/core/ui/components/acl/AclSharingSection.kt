@@ -51,6 +51,7 @@ import com.garfiec.librechat.core.model.PrincipalType
 import com.garfiec.librechat.core.model.acl.AclEntry
 import com.garfiec.librechat.core.model.acl.AclError
 import com.garfiec.librechat.core.model.acl.AclState
+import com.garfiec.librechat.core.model.acl.PermissionUpdateFailure
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
@@ -58,11 +59,14 @@ import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.core.ui.components.InitialTile
 import com.garfiec.librechat.core.ui.resources.Res
+import com.garfiec.librechat.core.ui.resources.acl_error_audit_unavailable
+import com.garfiec.librechat.core.ui.resources.acl_error_busy
 import com.garfiec.librechat.core.ui.resources.acl_error_forbidden
 import com.garfiec.librechat.core.ui.resources.acl_error_generic
 import com.garfiec.librechat.core.ui.resources.acl_error_load
 import com.garfiec.librechat.core.ui.resources.acl_error_not_found
 import com.garfiec.librechat.core.ui.resources.acl_error_owner_protected
+import com.garfiec.librechat.core.ui.resources.acl_error_unavailable
 import com.garfiec.librechat.core.ui.resources.acl_people_empty
 import com.garfiec.librechat.core.ui.resources.acl_people_title
 import com.garfiec.librechat.core.ui.resources.acl_public_off_hint
@@ -416,7 +420,20 @@ private fun errorText(error: AclError): String = stringResource(
         AclError.FORBIDDEN -> Res.string.acl_error_forbidden
         AclError.NOT_FOUND -> Res.string.acl_error_not_found
         AclError.OWNER_PROTECTED -> Res.string.acl_error_owner_protected
+        AclError.BUSY -> Res.string.acl_error_busy
+        AclError.UNAVAILABLE -> Res.string.acl_error_unavailable
+        AclError.AUDIT_UNAVAILABLE -> Res.string.acl_error_audit_unavailable
         AclError.GENERIC -> Res.string.acl_error_generic
+    },
+)
+
+/** The sentence for a retryable permission-update refusal, for editors that keep their own copy. */
+@Composable
+fun permissionUpdateFailureText(failure: PermissionUpdateFailure): String = stringResource(
+    when (failure) {
+        PermissionUpdateFailure.BUSY -> Res.string.acl_error_busy
+        PermissionUpdateFailure.UNAVAILABLE -> Res.string.acl_error_unavailable
+        PermissionUpdateFailure.AUDIT_UNAVAILABLE -> Res.string.acl_error_audit_unavailable
     },
 )
 

@@ -322,4 +322,18 @@ class HttpResponseParserTest {
             ),
         )
     }
+
+    @Test
+    fun keepaliveCommentChunkReachesTheBody() {
+        // v0.8.9-rc1 writes `:\n\n` on a quiet stream (packages/api/src/stream/keepalive.ts), each one
+        // its own 3-byte chunk. The iOS transport feeds it through here to the shared line parser.
+        val parser = HttpResponseParser()
+        val events = mutableListOf<ParseEvent>()
+        events += parser.feed("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n".bytes())
+        events += parser.feed("3\r\n:\n\n\r\n".bytes())
+        events += parser.feed("3\r\n:\n\n\r\n".bytes())
+
+        assertEquals(":\n\n:\n\n", collectBodyBytes(events).decodeToString())
+        assertTrue(events.none { it is ParseEvent.Error || it is ParseEvent.EndOfStream })
+    }
 }

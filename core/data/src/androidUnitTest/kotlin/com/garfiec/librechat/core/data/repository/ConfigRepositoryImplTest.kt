@@ -5,11 +5,13 @@ import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
 import com.garfiec.librechat.core.common.BackendBuildClass
 import com.garfiec.librechat.core.common.BackendVersion
+import com.garfiec.librechat.core.common.identity.deriveServerId
 import com.garfiec.librechat.core.common.result.AccessGatewayException
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.FailureKind
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
+import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.logging.LogEnvelope
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.BuildInfo
@@ -46,11 +48,13 @@ class ConfigRepositoryImplTest {
     private val configApi = mockk<ConfigApi>()
     private val configCache = mockk<ConfigCacheDataStore>(relaxed = true)
 
+    private val serverDataStore = mockk<ServerDataStore>(relaxed = true)
+
     private fun repository() = ConfigRepositoryImpl(
         configApi = configApi,
         configCache = configCache,
         dispatcher = UnconfinedTestDispatcher(),
-        serverDataStore = mockk(relaxed = true),
+        serverDataStore = serverDataStore,
     )
 
     private val validConfig = StartupConfig(serverDomain = "https://b.example.com")
@@ -116,6 +120,56 @@ class ConfigRepositoryImplTest {
         val result = repo.resolve("https://b.example.com")
 
         assertThat(result.error().message).contains("LibreChat")
+    }
+
+    /**
+     * From v0.8.9-rc1 `/api/config` fails closed: a config it cannot resolve answers a generic
+     * `500 {"error":"Failed to load startup config"}` instead of a partial payload. That has to stay a
+     * retryable error (or fall back to the cache), never a published config or "not LibreChat".
+     */
+    @Test
+    fun `a fail-closed 500 keeps the cached config and publishes nothing new`() = runTest {
+        coEvery { configCache.loadStartupConfig() } returns validConfig
+        coEvery { configApi.getStartupConfig() } throws ApiException(500, "Failed to load startup config")
+        val repo = repository()
+
+        val result = repo.fetchStartupConfig()
+
+        assertThat(result).isEqualTo(Result.Success(validConfig))
+        coVerify(exactly = 0) { configCache.saveStartupConfig(any()) }
+    }
+
+    @Test
+    fun `a fail-closed 500 with no cache is an error, and the server check stops on it`() = runTest {
+        coEvery { configCache.loadStartupConfig() } returns null
+        coEvery { configApi.getStartupConfig() } throws ApiException(500, "Failed to load startup config")
+        val repo = repository()
+
+        assertThat(repo.fetchStartupConfig()).isInstanceOf(Result.Error::class.java)
+        assertThat(repo.startupConfig.value).isNull()
+        val probed = answering(
+            typed to { throw ApiException(500, "Failed to load startup config") },
+            origin to { validConfig },
+        )
+        assertThat(repo.resolve(typed, origin)).isInstanceOf(ServerResolution.Failed::class.java)
+        // Same host, same outcome: a 5xx is not a reason to try the origin.
+        assertThat(probed).containsExactly(typed)
+    }
+
+    @Test
+    fun `every config the server answers is a refresh, an unchanged one too, and a cache fallback is not`() = runTest {
+        coEvery { configCache.loadStartupConfig() } returns validConfig
+        coEvery { configApi.getStartupConfig() } returns validConfig
+        val repo = repository()
+        val refreshes = mutableListOf<StartupConfig>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { repo.startupConfigRefreshes.collect { refreshes += it } }
+
+        repo.fetchStartupConfig()
+        repo.fetchStartupConfig()
+        coEvery { configApi.getStartupConfig() } throws ApiException(500, "Failed to load startup config")
+        repo.fetchStartupConfig()
+
+        assertThat(refreshes).containsExactly(validConfig, validConfig)
     }
 
     @Test
@@ -518,5 +572,37 @@ class ConfigRepositoryImplTest {
         assertThat(detected?.classification).isEqualTo(BackendBuildClass.RC)
         assertThat(BackendVersion.supportsFeature(detected, "0.8.7-rc1")).isTrue()
         assertThat(BackendVersion.supportsFeature(detected, "0.8.7")).isTrue()
+    }
+
+    @Test
+    fun `the config is tagged with the server it was fetched for, even when a switch lands mid-request`() = runTest {
+        val a = "https://a.example.com"
+        val b = "https://b.example.com"
+        coEvery { serverDataStore.awaitBaseUrl() } returns a
+        coEvery { configApi.getStartupConfig() } coAnswers {
+            coEvery { serverDataStore.awaitBaseUrl() } returns b
+            validConfig
+        }
+        val repo = repository()
+
+        repo.fetchStartupConfig()
+
+        assertThat(repo.startupConfigForServer.value).isEqualTo(ServerStartupConfig(deriveServerId(a).value, validConfig))
+        assertThat(repo.startupConfig.value).isEqualTo(validConfig)
+    }
+
+    @Test
+    fun `a switch reseeds the tag from the incoming server, and an uncached one clears it`() = runTest {
+        val b = "https://b.example.com"
+        coEvery { serverDataStore.awaitBaseUrl() } returns b
+        coEvery { configCache.loadStartupConfig() } returns validConfig
+        val repo = repository()
+
+        repo.reloadForActiveServer()
+        assertThat(repo.startupConfigForServer.value).isEqualTo(ServerStartupConfig(deriveServerId(b).value, validConfig))
+
+        coEvery { configCache.loadStartupConfig() } returns null
+        repo.reloadForActiveServer()
+        assertThat(repo.startupConfigForServer.value).isNull()
     }
 }

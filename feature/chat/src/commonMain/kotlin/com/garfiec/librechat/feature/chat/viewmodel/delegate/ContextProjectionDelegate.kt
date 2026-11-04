@@ -17,6 +17,7 @@ import com.garfiec.librechat.feature.chat.util.PendingUsage
 import com.garfiec.librechat.feature.chat.util.deepestPersistedSnapshot
 import com.garfiec.librechat.feature.chat.util.estimateContextUsage
 import com.garfiec.librechat.feature.chat.util.estimateDetail
+import com.garfiec.librechat.feature.chat.util.lastTurnUsage
 import com.garfiec.librechat.feature.chat.util.latestExchangeTokens
 import com.garfiec.librechat.feature.chat.util.modelCatalogKey
 import com.garfiec.librechat.feature.chat.util.persistedContextUsage
@@ -134,9 +135,17 @@ class ContextProjectionDelegate(
         } else {
             0
         }
+        // Upstream's `turnInProgress` is "submitting, and the live response is the viewed tail".
+        // Here the live reply always renders on the displayed branch, as the trailing bubble after
+        // its tail: switchBranch is refused mid-stream, and a resumed run attaches to the branch
+        // the chat opened on. So streaming is the turn in progress on this branch.
+        val turnInProgress = inputs.isStreaming
         return ContextUsageTotals(
-            branch = usageOver(branch, inputs.messages, inputs.pending, inputs.isStreaming),
+            branch = usageOver(branch, inputs.messages, inputs.pending, isStreaming = turnInProgress),
+            // Every branch includes the live run, wherever it is attached (upstream `totalUsage`).
             total = usageOver(inputs.messages, inputs.messages, inputs.pending, inputs.isStreaming),
+            lastTurn = lastTurnUsage(branch, inputs.pending, turnInProgress),
+            turnInProgress = turnInProgress,
             subagent = inputs.sessionSubagent + inputs.pending.subagent,
             compactionReclaim = reclaim,
             // The estimate reading stores its overhead as the instruction share.

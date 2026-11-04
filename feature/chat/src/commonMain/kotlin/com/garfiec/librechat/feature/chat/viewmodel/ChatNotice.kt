@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 import com.garfiec.librechat.core.common.result.ApiException
+import com.garfiec.librechat.core.model.error.ServerErrorCode
 import com.garfiec.librechat.core.model.error.StreamErrorType
 import com.garfiec.librechat.core.network.api.chatRefusalText
 
@@ -16,12 +17,21 @@ import com.garfiec.librechat.core.network.api.chatRefusalText
  */
 enum class ChatNotice(val wire: String) {
     RENAME_FAILED("rename_failed"),
+
+    /** 409 `conversation_title_ownership_not_ready`: the title is still being generated, or a run is going. */
+    RENAME_NOT_READY("rename_not_ready"),
+
+    /** 404 `conversation_not_found`. */
+    RENAME_NOT_FOUND("rename_not_found"),
     DELETE_FAILED("delete_failed"),
     ARCHIVE_FAILED("archive_failed"),
     DUPLICATE_FAILED("duplicate_failed"),
     PRESET_SAVE_FAILED("preset_save_failed"),
     PRESET_DELETE_FAILED("preset_delete_failed"),
     PRESET_UPDATE_FAILED("preset_update_failed"),
+
+    /** An external (Langfuse) prompt picked from `/` whose live text could not be read. */
+    PROMPT_RESOLVE_FAILED("prompt_resolve_failed"),
     CONTINUE_RESPONSE_FAILED("continue_response_failed"),
 
     /** A message edit the server refused, when it gave no reason of its own. */
@@ -55,6 +65,9 @@ enum class ChatNotice(val wire: String) {
     /** The server's middleware refused a send with a code this build does not recognize. */
     SEND_REFUSED("send_refused"),
 
+    /** The server's content filter blocked a send and gave no sentence of its own to show. */
+    CONTENT_BLOCKED("content_blocked"),
+
     /** A send or queue left skill chips this chat can't run staged in the composer. */
     SKILLS_NOT_SENT("skills_not_sent"),
 
@@ -66,6 +79,51 @@ enum class ChatNotice(val wire: String) {
      * plural in the largest unit that fits (see `localizedStreamError`).
      */
     MESSAGE_LIMIT_RETRY("message_limit_retry"),
+
+    /**
+     * The resume route's 403 "Decision not permitted for one or more tools": the policy no longer
+     * allows a decision the user picked. Not the fingerprint 403; another decision can succeed.
+     */
+    TOOL_DECISION_NOT_PERMITTED("tool_decision_not_permitted"),
+
+    /** A fork the server refused, or one that failed in transit. */
+    FORK_FAILED("fork_failed"),
+
+    /** A fork the server's rate limiter refused (429). */
+    FORK_RATE_LIMITED("fork_rate_limited"),
+
+    /**
+     * "Branch without files" made a copy that still has its files: the server predates
+     * `excludeFiles` and ignored it. The original conversation is unchanged.
+     */
+    BRANCH_WITHOUT_FILES_UNSUPPORTED("branch_without_files_unsupported"),
+
+    /**
+     * A send went out as "No workspace" because its coding agent's machine had nothing to pick
+     * (offline, or a worker too old for workspaces): the chat is now sealed without files or commands.
+     */
+    CODE_WORKSPACE_SENT_WITHOUT("code_workspace_sent_without"),
+
+    /**
+     * A message copy whose tool-call previews could not be fetched in full. Nothing was copied:
+     * copying the previews would hand out shortened output as if it were the whole.
+     */
+    COPY_TOOL_CONTENT_FAILED("copy_tool_content_failed"),
+
+    /** The server declined to withdraw a queued message. */
+    QUEUE_WITHDRAW_REFUSED("queue_withdraw_refused"),
+
+    /** A withdrawal was asked for while the previous one is still in flight. */
+    QUEUE_WITHDRAW_BUSY("queue_withdraw_busy"),
+
+    /** A queued message was sent before its edit could be saved; the edit was dropped. */
+    QUEUE_EDIT_OVERTAKEN("queue_edit_overtaken"),
+
+    /** "Send queued" while the server still holds a queued turn of this chat. */
+    QUEUE_SERVER_HOLDS("queue_server_holds"),
+
+    /** Locally queued messages left unsent were put back in the composer. */
+    QUEUE_RESTORED_TO_COMPOSER("queue_restored_to_composer"),
     ;
 
     fun marker(vararg args: Any): String =
@@ -106,4 +164,37 @@ internal fun refusalErrorMarker(e: Throwable?): String? {
     StreamErrorType.messageLimitRetryAfterSeconds(text)?.let { return ChatNotice.MESSAGE_LIMIT_RETRY.marker(it) }
     return StreamErrorType.refusalMarker(text)
         ?: ChatNotice.SEND_REFUSED.marker().takeUnless { api.serverAuthored }
+}
+
+/**
+ * What the error channel shows for a send the server's content filter blocked
+ * (`content_filter_block`, v0.8.9-rc1), or null when [e] is not one. The filter's own sentence
+ * names what to remove ("Submitted content contains a email address. Remove it and try again."), so
+ * it is shown when it survived screening ([screened] is the caller's screened message). A body with
+ * no `message` would otherwise surface its code: the generic extraction falls back to `error`,
+ * which here holds `content_filter_block` itself.
+ *
+ * Nothing was saved or sent to the model, so the turn is un-sent like any other pre-`created`
+ * failure and its text goes back to the composer.
+ */
+internal fun contentFilterNotice(e: Throwable?, screened: String?): String? {
+    val api = e as? ApiException ?: return null
+    if (!ServerErrorCode.isContentFilterBlock(api.body)) return null
+    val serverSentence = screened?.takeIf {
+        api.serverAuthored && it == api.message && it != ServerErrorCode.CONTENT_FILTER_BLOCK
+    }
+    return serverSentence ?: ChatNotice.CONTENT_BLOCKED.marker()
+}
+
+/** Diag tag for the error channel's notices on their way to the snackbar. */
+internal const val NOTICE_TAG = "ChatNotice"
+
+/** A notice or stream-error marker's name for a Diag line; any other text is not logged. */
+internal fun noticeLabel(raw: String?): String = when {
+    raw == null -> "none"
+    raw.startsWith(ChatNotice.MARKER_PREFIX) ->
+        raw.removePrefix(ChatNotice.MARKER_PREFIX).substringBefore(ChatNotice.ARG_SEPARATOR)
+    raw.startsWith(StreamErrorType.MARKER_PREFIX) ->
+        raw.removePrefix(StreamErrorType.MARKER_PREFIX).substringBefore(StreamErrorType.ARG_SEPARATOR)
+    else -> "text"
 }

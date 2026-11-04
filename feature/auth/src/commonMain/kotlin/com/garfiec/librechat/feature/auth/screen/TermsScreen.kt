@@ -1,7 +1,9 @@
 package com.garfiec.librechat.feature.auth.screen
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
@@ -27,6 +30,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
@@ -35,20 +39,38 @@ import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.auth.resources.*
 import com.garfiec.librechat.feature.auth.resources.Res
 import com.garfiec.librechat.feature.auth.viewmodel.TermsViewModel
+import com.mikepenz.markdown.m3.Markdown
+import com.mikepenz.markdown.m3.markdownColor
+import com.mikepenz.markdown.m3.markdownTypography
+import com.mikepenz.markdown.model.rememberMarkdownState
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-/** Displays server terms of service loaded from the backend; gates navigation on user acceptance. */
+/**
+ * The server's terms, which the deployment requires the user to accept (`modalAcceptance`). Shown
+ * only when acceptance is required, so it cannot be dismissed: the top-bar arrow, system back and the
+ * predictive back gesture all mean [onDecline], as the explicit Decline button does. Upstream's
+ * decline signs out; the shell does the same for this account only.
+ *
+ * [declining] is the shell's decline in flight: the screen stays up through its revoke call, and
+ * Decline, Accept and back do nothing until it ends.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TermsScreen(
     onAccept: () -> Unit,
-    onBack: () -> Unit,
+    onDecline: () -> Unit,
+    declining: Boolean,
     modifier: Modifier = Modifier,
     viewModel: TermsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnAccepted by rememberUpdatedState(onAccept)
+    val decline = declineUnlessBusy(isAccepting = uiState.isAccepting, isDeclining = declining, onDecline = onDecline)
+
+    // Always enabled: a disabled handler would let the system pop the screen, dismissing terms the
+    // server requires. While busy it takes back and does nothing.
+    PlatformBackHandler(enabled = true, onBack = decline)
 
     LaunchedEffect(uiState.isAccepted) {
         if (uiState.isAccepted) {
@@ -62,7 +84,7 @@ fun TermsScreen(
         topBar = {
             AdaptiveTopBar(
                 spec = AdaptiveTopBarSpec(
-                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.back), onBack),
+                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.terms_decline), decline),
                     title = BarTitle(stringResource(Res.string.terms_title)),
                     actions = emptyList(),
                 ),
@@ -75,7 +97,7 @@ fun TermsScreen(
                 .padding(innerPadding),
         ) {
             when {
-                uiState.isLoading && uiState.termsText.isEmpty() -> {
+                !uiState.termsLoaded && uiState.error == null -> {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -85,7 +107,7 @@ fun TermsScreen(
                         AdaptiveCircularProgressIndicator()
                     }
                 }
-                uiState.error != null && uiState.termsText.isEmpty() -> {
+                !uiState.termsLoaded -> {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -111,17 +133,15 @@ fun TermsScreen(
                 }
                 else -> {
                     Text(
-                        text = stringResource(Res.string.terms_title),
+                        text = uiState.title ?: stringResource(Res.string.terms_title),
                         style = MaterialTheme.typography.headlineSmall,
                         modifier = Modifier
                             .padding(horizontal = 24.dp, vertical = 16.dp)
                             .semantics { heading() },
                     )
 
-                    Text(
-                        text = uiState.termsText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    TermsBody(
+                        markdown = uiState.termsText,
                         modifier = Modifier
                             .weight(1f)
                             .padding(horizontal = 24.dp)
@@ -138,25 +158,69 @@ fun TermsScreen(
                         )
                     }
 
-                    AdaptiveButton(
-                        onClick = viewModel::acceptTerms,
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(24.dp),
-                        enabled = !uiState.isLoading,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        if (uiState.isLoading) {
-                            AdaptiveCircularProgressIndicator(
-                                modifier = Modifier.height(20.dp),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                strokeWidth = 2.dp,
-                            )
-                        } else {
-                            Text(stringResource(Res.string.i_accept))
+                        AdaptiveOutlinedButton(
+                            onClick = decline,
+                            modifier = Modifier.weight(1f),
+                            enabled = !uiState.isAccepting && !declining,
+                        ) {
+                            Text(stringResource(Res.string.terms_decline))
+                        }
+                        AdaptiveButton(
+                            onClick = viewModel::acceptTerms,
+                            modifier = Modifier.weight(1f),
+                            enabled = !uiState.isAccepting && !declining,
+                        ) {
+                            if (uiState.isAccepting) {
+                                AdaptiveCircularProgressIndicator(
+                                    modifier = Modifier.height(20.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    strokeWidth = 2.dp,
+                                )
+                            } else {
+                                Text(stringResource(Res.string.i_accept))
+                            }
                         }
                     }
                 }
             }
         }
     }
+}
+
+/** The server's terms as Markdown, as web renders them; its "no content" line when it sent none. */
+@Composable
+private fun TermsBody(markdown: String, modifier: Modifier = Modifier) {
+    if (markdown.isBlank()) {
+        Text(
+            text = stringResource(Res.string.terms_no_content),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = modifier,
+        )
+        return
+    }
+    // Parsed synchronously so the scroll column measures the whole body on its first frame.
+    val parsed by rememberMarkdownState(content = markdown, immediate = true).state.collectAsState()
+    Box(modifier) {
+        Markdown(
+            state = parsed,
+            colors = markdownColor(),
+            typography = markdownTypography(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+/**
+ * What back, predictive back, the top-bar arrow and Decline all do: decline, unless an accept or a
+ * decline is already in flight, when they do nothing.
+ */
+internal fun declineUnlessBusy(isAccepting: Boolean, isDeclining: Boolean, onDecline: () -> Unit): () -> Unit = {
+    if (!isAccepting && !isDeclining) onDecline()
 }

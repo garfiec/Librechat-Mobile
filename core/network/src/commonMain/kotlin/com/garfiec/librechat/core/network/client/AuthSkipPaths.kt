@@ -21,6 +21,11 @@ private val AUTH_SKIP_PATHS = setOf(
     "auth/login", "auth/register", "auth/refresh",
     "auth/requestPasswordReset", "auth/resetPassword",
     "auth/2fa/verify-temp",
+    // Required-enrollment setup (v0.8.9-rc1): authorised by the body's setup credential, not a
+    // bearer. Listed one by one — matching is whole-path, so `auth/2fa/setup` does not cover
+    // `auth/2fa/setup/confirm`.
+    "auth/2fa/setup", "auth/2fa/setup/confirm",
+    "auth/2fa/setup/acknowledge", "auth/2fa/setup/finalize",
 )
 
 /**

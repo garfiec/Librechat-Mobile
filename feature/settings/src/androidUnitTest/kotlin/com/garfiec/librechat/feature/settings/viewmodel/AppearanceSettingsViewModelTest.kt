@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
+import com.garfiec.librechat.core.data.datastore.ServerAccent
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeMode
 import com.garfiec.librechat.core.model.ui.UiStyle
@@ -25,6 +26,7 @@ class AppearanceSettingsViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private val themeDataStore = mockk<ThemeDataStore>(relaxed = true)
     private val storedStyle = MutableStateFlow<UiStyle?>(null)
+    private val serverAccent = MutableStateFlow<ServerAccent?>(null)
 
     @Before
     fun setup() {
@@ -33,6 +35,7 @@ class AppearanceSettingsViewModelTest {
         every { themeDataStore.uiStyle } returns storedStyle
         every { themeDataStore.accentColor } returns MutableStateFlow(ThemeDataStore.DEFAULT_ACCENT_COLOR)
         every { themeDataStore.useDynamicColor } returns MutableStateFlow(false)
+        every { themeDataStore.serverAccent } returns serverAccent
     }
 
     @After
@@ -81,5 +84,39 @@ class AppearanceSettingsViewModelTest {
         storedStyle.value = UiStyle.LIQUID_GLASS
         advanceUntilIdle()
         assertThat(viewModel.uiState.value.uiStyle).isEqualTo(UiStyle.LIQUID_GLASS)
+    }
+
+    @Test
+    fun `a server accent that is on is the one shown, and the user's stays theirs`() = runTest {
+        val viewModel = AppearanceSettingsViewModel(themeDataStore)
+        serverAccent.value = ServerAccent(serverId = "srv1", name = "Acme", seedArgb = 0xFFFAFF69.toInt(), enabled = true)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.accentSetByServer).isTrue()
+        assertThat(state.shownAccentColor).isEqualTo(0xFFFAFF69.toInt())
+        assertThat(state.accentColor).isEqualTo(ThemeDataStore.DEFAULT_ACCENT_COLOR)
+    }
+
+    @Test
+    fun `turning the server accent off shows the user's again`() = runTest {
+        val viewModel = AppearanceSettingsViewModel(themeDataStore)
+        serverAccent.value = ServerAccent(serverId = "srv1", name = "Acme", seedArgb = 0xFFFAFF69.toInt(), enabled = false)
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.accentSetByServer).isFalse()
+        assertThat(viewModel.uiState.value.shownAccentColor).isEqualTo(ThemeDataStore.DEFAULT_ACCENT_COLOR)
+    }
+
+    @Test
+    fun `the switch is written for the server whose accent is shown`() = runTest {
+        val viewModel = AppearanceSettingsViewModel(themeDataStore)
+        serverAccent.value = ServerAccent(serverId = "srv1", name = "Acme", seedArgb = 0xFFFAFF69.toInt(), enabled = true)
+        advanceUntilIdle()
+
+        viewModel.setUseServerAccent(false)
+        advanceUntilIdle()
+
+        coVerify { themeDataStore.setUseServerAccent("srv1", false) }
     }
 }

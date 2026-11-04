@@ -215,4 +215,35 @@ class SubagentTraceDelegateTest {
         delegate.onUpdate(messageDelta(null, "run_2", "second"))
         assertThat(flow.value.subagentProgress["call_x"]?.parts?.get(0)?.text).isEqualTo("second")
     }
+
+    @Test
+    fun `guidance applied to the child lands as a steer part in order`() {
+        val (delegate, flow) = fixture()
+
+        delegate.onUpdate(messageDelta("call_1", "run_1", "Working"))
+        delegate.onUpdate(
+            StreamEvent.SubagentUpdate(
+                phase = "steer_applied",
+                parentToolCallId = "call_1",
+                subagentRunId = "run_1",
+                inner = StreamEvent.SteerApplied(steerId = "", text = "Focus on 2025"),
+            ),
+        )
+        delegate.onUpdate(messageDelta("call_1", "run_1", "Narrowed"))
+
+        val parts = flow.value.subagentProgress.getValue("call_1").parts
+        assertThat(parts.map { it.type }).containsExactly(ContentType.TEXT, ContentType.STEER, ContentType.TEXT).inOrder()
+        assertThat(parts[1].steer?.toString()).isEqualTo("\"Focus on 2025\"")
+    }
+
+    @Test
+    fun `dropped update counts accumulate on the trace`() {
+        val (delegate, flow) = fixture()
+
+        delegate.onUpdate(messageDelta("call_1", "run_1", "a").copy(activityDroppedCount = 2))
+        delegate.onUpdate(messageDelta("call_1", "run_1", "b"))
+        delegate.onUpdate(messageDelta("call_1", "run_1", "c").copy(activityDroppedCount = 1))
+
+        assertThat(flow.value.subagentProgress.getValue("call_1").droppedUpdates).isEqualTo(3)
+    }
 }

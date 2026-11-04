@@ -65,6 +65,20 @@ internal fun Modifier.tailFollowerTouch(state: TailFollowerState): Modifier = po
     }
 }
 
+/**
+ * Calls [onPress] on every pointer-down, on the Initial pass so it never interferes with the press.
+ * An event, not a flag like [TailFollowerState.isTouching]: a tap's down and up can land between two
+ * frames, and a snapshot of the flag then never sees it pressed.
+ */
+internal fun Modifier.onEveryPress(onPress: () -> Unit): Modifier = pointerInput(onPress) {
+    awaitPointerEventScope {
+        while (true) {
+            val event = awaitPointerEvent(PointerEventPass.Initial)
+            if (event.changes.any { it.pressed && !it.previousPressed }) onPress()
+        }
+    }
+}
+
 /** Whether [listState] rests within [NEAR_BOTTOM_BUFFER] of its tail. */
 @Composable
 internal fun rememberIsNearBottom(listState: LazyListState, extraEndPx: Float = 0f): State<Boolean> {
@@ -264,6 +278,56 @@ internal suspend fun LazyListState.scrollToTail(lastIndex: Int, extraEndPx: Floa
     }
     scrollToItem(lastIndex, scrollOffset = Int.MAX_VALUE)
     if (extraEndPx > 0f) scrollBy(-extraEndPx)
+}
+
+/**
+ * One layout's view of where a list's tail rests: the viewport end, the line the tail rests on
+ * (the viewport end less the bottom padding), whether the list sat near its tail, and how far the
+ * tail sits below where [scrollToTail] would put it ([tailOverhang]).
+ */
+internal data class TailRest(val viewportEnd: Int, val restLine: Int, val nearTail: Boolean, val overhang: Int = 0)
+
+/**
+ * How many px the tail sits below where [scrollToTail] rests it; [Int.MAX_VALUE] when the last item
+ * isn't laid out at all, zero or less when it rests there or the list doesn't fill the viewport.
+ */
+internal fun LazyListLayoutInfo.tailOverhang(extraEndPx: Float = 0f): Int {
+    val lastItem = visibleItemsInfo.lastOrNull() ?: return 0
+    if (lastItem.index < totalItemsCount - 1) return Int.MAX_VALUE
+    val restOffset = viewportEndOffset - afterContentPadding + extraEndPx
+    return (lastItem.offset + lastItem.size - restOffset).toInt()
+}
+
+/**
+ * The next value of a list's tail pin. A chat that opens on its tail is pinned there, and holds it
+ * while the open settles: messages above the tail measure taller and the bottom chrome measures in
+ * after the open's scroll, each pushing the tail down over several frames, and only a pin outlasts
+ * them all. The reader takes it back: any touch on the list or a find/jump placing a match ([touching])
+ * and any scroll not of our own ([scrolling]) unpins it, so a tap that expands a card near the end
+ * never jumps. A scroll of theirs that comes to rest near the tail pins it again.
+ */
+internal fun nextTailPin(pinned: Boolean, touching: Boolean, scrolling: Boolean, wasScrolling: Boolean, nearTail: Boolean): Boolean = when {
+    touching || scrolling -> false
+    wasScrolling -> nearTail
+    else -> pinned
+}
+
+/** Whether a [pinned] list has had its tail pushed down past its rest and must be put back. */
+internal fun holdsPinnedTail(pinned: Boolean, rest: TailRest): Boolean = pinned && rest.overhang > TAIL_REST_SLOP_PX
+
+private const val TAIL_REST_SLOP_PX = 1
+
+/**
+ * Whether an unpinned list whose rest line moved up from [previous] to [current] (the keyboard
+ * opening, the bottom chrome growing) should be put back on its tail: only when it rested on its
+ * tail the frame before. A reader scrolled up stays put, even when the last items are on screen (a
+ * short chat, a long last reply). A pinned list is held by [holdsPinnedTail] instead, which also
+ * covers the messages themselves growing, which this can't see.
+ */
+internal fun reanchorsToTail(previous: TailRest?, current: TailRest, lastVisibleIndex: Int?, itemCount: Int): Boolean {
+    if (previous == null || previous.restLine <= 0 || current.restLine >= previous.restLine) return false
+    if (lastVisibleIndex == null || itemCount == 0 || lastVisibleIndex < itemCount - 2) return false
+    return previous.nearTail
 }
 
 /** [scrollToTail], animated. */

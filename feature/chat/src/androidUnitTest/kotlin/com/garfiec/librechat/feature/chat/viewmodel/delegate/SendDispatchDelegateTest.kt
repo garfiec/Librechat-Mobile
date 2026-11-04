@@ -9,12 +9,14 @@ import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.DraftRepository
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Preset
+import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ComposerState
+import com.garfiec.librechat.feature.chat.viewmodel.FeatureGatesState
 import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
@@ -154,5 +156,47 @@ class SendDispatchDelegateTest {
             assertThat(sent).isTrue()
             testScheduler.runCurrent()
             coVerify(exactly = 0) { settingsDataStore.incrementModelUsage(any(), any(), any(), any()) }
+        }
+
+    private fun withReasoning(flow: MutableStateFlow<ChatUiState>, model: String, override: ReasoningOverride) {
+        flow.value = flow.value.copy(
+            selection = flow.value.selection.copy(choice = ModelChoice.Raw("anthropic", model)),
+            gates = FeatureGatesState(backendVersion = "0.8.9-rc1"),
+            composer = flow.value.composer.copy(pendingReasoningOverride = override),
+        )
+    }
+
+    @Test
+    fun `a committed send takes the Thinking choice and clears it`() =
+        dispatchTest(streaming = false) { flow, delegate, recorder ->
+            val high = ReasoningOverride.level("effort", "high")
+            withReasoning(flow, "claude-opus-4-6", high)
+
+            delegate.sendNow("hello")
+
+            assertThat(recorder.begun.single().reasoningOverride).isEqualTo(high)
+            assertThat(flow.value.composer.pendingReasoningOverride).isNull()
+        }
+
+    @Test
+    fun `a choice the selected model refuses is cleared and not sent`() =
+        dispatchTest(streaming = false) { flow, delegate, recorder ->
+            withReasoning(flow, "claude-haiku-4-5", ReasoningOverride.level("effort", "high"))
+
+            delegate.sendNow("hello")
+
+            assertThat(recorder.begun.single().reasoningOverride).isNull()
+            assertThat(flow.value.composer.pendingReasoningOverride).isNull()
+        }
+
+    @Test
+    fun `a refused send keeps the Thinking choice`() =
+        dispatchTest(streaming = true) { flow, delegate, _ ->
+            val high = ReasoningOverride.level("effort", "high")
+            withReasoning(flow, "claude-opus-4-6", high)
+
+            delegate.sendNow("hello")
+
+            assertThat(flow.value.composer.pendingReasoningOverride).isEqualTo(high)
         }
 }

@@ -434,4 +434,26 @@ class ConversationRepositoryImplTest {
         coVerify(exactly = 0) { conversationDao.updateTags(any(), any(), any(), any()) }
         coVerify(exactly = 0) { conversationDao.upsert(any()) }
     }
+
+    @Test
+    fun `an import holding tool-call previews is refused before it is sent`() = runTest {
+        val file = """{"conversation":{"conversationId":"c"},"messages":[{"messageId":"m","content":[
+            {"type":"tool_call","tool_call":{"id":"t","output":"head","outputTruncated":true,"outputLength":900}}]}]}"""
+
+        val result = repository.importConversation(file)
+
+        assertThat((result as Result.Error).exception).isInstanceOf(ToolCallPreviewImportException::class.java)
+        coVerify(exactly = 0) { conversationsApi.importConversations(any(), any(), any()) }
+    }
+
+    @Test
+    fun `an import without previews goes to the server`() = runTest {
+        coEvery { conversationsApi.importConversations(any(), any(), any()) } returns Conversation(conversationId = "c")
+        val file = """{"conversation":{"conversationId":"c"},"messages":[{"messageId":"m","content":[
+            {"type":"tool_call","tool_call":{"id":"t","output":"whole"}}]}]}"""
+
+        repository.importConversation(file)
+
+        coVerify(exactly = 1) { conversationsApi.importConversations(any(), any(), any()) }
+    }
 }

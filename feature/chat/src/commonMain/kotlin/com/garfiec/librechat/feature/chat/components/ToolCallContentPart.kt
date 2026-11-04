@@ -20,12 +20,14 @@ import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,16 +46,20 @@ import com.garfiec.librechat.core.model.RunStepStatus
 import com.garfiec.librechat.core.model.background.BackgroundTaskOutput
 import com.garfiec.librechat.core.model.background.CHECK_BACKGROUND_TASK_TOOL
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.feature.chat.components.mcpapp.McpAppRows
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.util.attachmentsOwnedByHints
+import com.garfiec.librechat.feature.chat.util.omittedTranscriptCalls
 import com.garfiec.librechat.feature.chat.util.outputToolCallIds
 import org.jetbrains.compose.resources.stringResource
 
 // ─── ToolCallDispatcher ─────────────────────────────────────────────
 
-// A dispatcher: each branch emits one card and returns. Wrapping it to satisfy the rule would
-// add a layout node to every tool call in every message.
-@Suppress("MultipleEmitters")
+/**
+ * Draws one tool call. Every card below reads the call's tool-call preview state
+ * ([LocalToolPreview]) from here, so a disclosure that reveals its content can fetch it in full.
+ */
 @Composable
 internal fun ToolCallDispatcher(
     part: MessageContentPart,
@@ -67,6 +73,34 @@ internal fun ToolCallDispatcher(
     allowSubagentCard: Boolean = true,
     // True while this call renders inside an activity group, which hoists its tool calls' files out.
     hideAttachments: Boolean = false,
+) {
+    CompositionLocalProvider(LocalToolPreview provides rememberToolPreviewScope(part.toolCall, part.agentId)) {
+        ToolCallDispatcherContent(
+            part = part,
+            baseUrl = baseUrl,
+            attachments = attachments,
+            showImageDescriptions = showImageDescriptions,
+            modifier = modifier,
+            stateKey = stateKey,
+            allowSubagentCard = allowSubagentCard,
+            hideAttachments = hideAttachments,
+        )
+    }
+}
+
+// A dispatcher: each branch emits one card and returns. Wrapping it to satisfy the rule would
+// add a layout node to every tool call in every message.
+@Suppress("MultipleEmitters")
+@Composable
+private fun ToolCallDispatcherContent(
+    part: MessageContentPart,
+    baseUrl: String,
+    attachments: List<Attachment>,
+    showImageDescriptions: Boolean,
+    stateKey: String,
+    allowSubagentCard: Boolean,
+    hideAttachments: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     val toolCall = part.toolCall
     val cardKey = toolCall?.id?.takeIf { it.isNotEmpty() } ?: stateKey
@@ -100,10 +134,14 @@ internal fun ToolCallDispatcher(
                 stateKey = cardKey,
             )
             if (!hideAttachments) {
-                val hoisted = remember(attachments, toolCallId, tracedParts) {
+                val hoisted = remember(attachments, toolCall, tracedParts) {
+                    // With the transcript left out of a preview, the walk finds no child calls: the
+                    // ones the files were saved under ride along in `subagentAttachmentCalls`.
+                    val ownIds = listOfNotNull(toolCallId?.takeIf { it.isNotEmpty() }) + outputToolCallIds(tracedParts)
+                    val hints = omittedTranscriptCalls(toolCall)
                     collectGroupAttachments(
-                        attachments,
-                        listOfNotNull(toolCallId?.takeIf { it.isNotEmpty() }) + outputToolCallIds(tracedParts),
+                        attachmentsOwnedByHints(attachments, hints, ownIds),
+                        ownIds + hints.map { it.id },
                     )
                 }
                 ToolAttachmentBuckets(
@@ -349,6 +387,10 @@ internal fun ToolCallDispatcher(
                 modifier = Modifier.padding(top = 8.dp),
             )
         }
+        // MCP Apps sit after the card; inside a group they hoist with its files (MessageContentAndActions).
+        if (!hideAttachments) {
+            McpAppRows(attachments, listOfNotNull(toolCall?.id), Modifier.padding(top = 8.dp))
+        }
     }
 }
 
@@ -371,6 +413,7 @@ internal fun GenericToolCallCard(
     // Saveable: this card is inside a LazyColumn item, so plain `remember` state is disposed when
     // the message scrolls out of the viewport and an expanded call silently re-collapses.
     var isExpanded by rememberSaveable(key = "toolcall:$stateKey") { mutableStateOf(false) }
+    val interrupted = isInterruptedToolOutput(output)
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -404,7 +447,9 @@ internal fun GenericToolCallCard(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
-                when (toolCallVerdict(closedStatus, isComplete = true)) {
+                when (if (interrupted) null else toolCallVerdict(closedStatus, isComplete = true)) {
+                    null -> InterruptedToolStatus()
+
                     ToolCallVerdict.CANCELLED -> Icon(
                         Icons.Default.Block,
                         stringResource(Res.string.cd_tool_cancelled),
@@ -431,6 +476,8 @@ internal fun GenericToolCallCard(
 
             AnimatedVisibility(visible = isExpanded, enter = expandVertically(), exit = shrinkVertically()) {
                 Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
+                    // At the top of the body, so it shows even when the output runs past the screen.
+                    ToolContentDisclosure(open = isExpanded)
                     if (!args.isNullOrBlank()) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
@@ -449,10 +496,33 @@ internal fun GenericToolCallCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(modifier = Modifier.height(4.dp))
-                        CodeBlock(code = output, language = null)
+                        // The server's own sentence, without the model-facing error wrapper.
+                        CodeBlock(code = if (interrupted) INTERRUPTED_TOOL_RESULT else output, language = null)
                     }
                 }
             }
         }
+    }
+}
+
+/**
+ * "Interrupted by your message", with a neutral stop glyph: a tool the user's interrupt cancelled.
+ * Deliberately not the red failed style — the tool isn't broken, the user redirected the reply.
+ */
+@Composable
+internal fun InterruptedToolStatus(modifier: Modifier = Modifier) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            Icons.Default.StopCircle,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            stringResource(Res.string.tool_interrupted_by_you),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

@@ -17,12 +17,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,16 +34,22 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.core.ui.components.AdaptiveCard
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_collapse
 import com.garfiec.librechat.feature.chat.resources.cd_collapse_subagent
 import com.garfiec.librechat.feature.chat.resources.cd_expand
 import com.garfiec.librechat.feature.chat.resources.cd_expand_subagent
 import com.garfiec.librechat.feature.chat.resources.label_subagent
+import com.garfiec.librechat.feature.chat.resources.subagent_activity_dropped
 import com.garfiec.librechat.feature.chat.resources.subagent_threads_open
+import com.garfiec.librechat.feature.chat.util.steerText
 import com.garfiec.librechat.feature.chat.viewmodel.SubagentTrace
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -113,7 +117,7 @@ internal fun SubagentTraceCard(
     val toggleCd =
         stringResource(if (isExpanded) Res.string.cd_collapse_subagent else Res.string.cd_expand_subagent, title)
 
-    Card(
+    AdaptiveCard(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         shape = RoundedCornerShape(8.dp),
@@ -161,8 +165,17 @@ internal fun SubagentTraceCard(
 
             AnimatedVisibility(visible = isExpanded, enter = expandVertically(), exit = shrinkVertically()) {
                 Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
+                    // A previewed call left its transcript out: while it loads this row is the whole
+                    // body, so an open card is never silently empty.
+                    ToolContentDisclosure(open = isExpanded)
                     parts.forEachIndexed { index, part ->
                         Spacer(modifier = Modifier.padding(top = 6.dp))
+                        // The shared dispatcher draws no steer; the parent reply's renderer claims
+                        // those itself, and in a child they are guidance, not the reader's words.
+                        if (part.type == ContentType.STEER) {
+                            part.steerText()?.let { SubagentGuidancePart(it) }
+                            return@forEachIndexed
+                        }
                         ContentPartDispatcher(
                             part = part,
                             baseUrl = baseUrl,
@@ -175,12 +188,21 @@ internal fun SubagentTraceCard(
                             hideAttachments = true,
                         )
                     }
+                    val dropped = if (persistedParts == null) liveTrace?.droppedUpdates ?: 0 else 0
+                    if (dropped > 0) {
+                        Text(
+                            text = pluralStringResource(Res.plurals.subagent_activity_dropped, dropped, dropped),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 6.dp),
+                        )
+                    }
                     // The trace above is what the parent's run saw. The viewer adds what cannot
                     // reach a tool call at all — the child's own messages, and its history across
                     // turns. Shown only where a viewer exists to open (v0.8.8-rc2 and inside the
                     // chat screen), so nothing offers a dead affordance.
                     if (openThreads != null) {
-                        TextButton(onClick = { openThreads(parentToolCallId) }) {
+                        AdaptiveTextButton(onClick = { openThreads(parentToolCallId) }) {
                             Text(stringResource(Res.string.subagent_threads_open))
                         }
                     }

@@ -9,6 +9,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DriveFileMove
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.MarkChatRead
+import androidx.compose.material.icons.filled.MarkChatUnread
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
@@ -32,6 +34,12 @@ import com.garfiec.librechat.core.ui.components.menuDragTarget
 import com.garfiec.librechat.feature.conversations.resources.*
 import com.garfiec.librechat.feature.conversations.resources.Res
 import org.jetbrains.compose.resources.stringResource
+
+/**
+ * The menu's read-state item: "Mark as unread" on a chat that is read and not open, "Mark as read"
+ * (Switchboard's addition, the same `/seen` call) on one that is unread.
+ */
+enum class ReadStateAction { MarkUnread, MarkRead }
 
 // Rounded to match the app's other surfaces (dialogs/sheets) rather than the menu default's
 // near-square corners.
@@ -72,6 +80,9 @@ fun ConversationActionsMenu(
     onMoveToProject: () -> Unit = {},
     showMoveToProject: Boolean = false,
     showShareAction: Boolean = false,
+    /** The read-state item under Rename (v0.8.9-rc1); null leaves it out. */
+    readStateAction: ReadStateAction? = null,
+    onReadStateAction: (ReadStateAction) -> Unit = {},
     // Position offset relative to the anchor; callers feed the long-press point so the menu
     // opens with its left edge under the finger.
     offset: DpOffset = DpOffset.Zero,
@@ -97,6 +108,24 @@ fun ConversationActionsMenu(
                 onRenameRequest()
             },
         )
+
+        if (readStateAction != null) {
+            MenuActionItem(
+                dragSelection = dragSelection,
+                icon = when (readStateAction) {
+                    ReadStateAction.MarkUnread -> Icons.Default.MarkChatUnread
+                    ReadStateAction.MarkRead -> Icons.Default.MarkChatRead
+                },
+                label = when (readStateAction) {
+                    ReadStateAction.MarkUnread -> stringResource(Res.string.mark_as_unread)
+                    ReadStateAction.MarkRead -> stringResource(Res.string.mark_as_read)
+                },
+                onClick = {
+                    onDismiss()
+                    onReadStateAction(readStateAction)
+                },
+            )
+        }
 
         if (showPinAction) {
             MenuActionItem(

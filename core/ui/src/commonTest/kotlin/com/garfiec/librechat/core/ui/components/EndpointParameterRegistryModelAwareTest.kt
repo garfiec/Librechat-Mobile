@@ -177,6 +177,26 @@ class EndpointParameterRegistryModelAwareTest {
     }
 
     @Test
+    fun haiku55KeepsTheThinkingToggleButHidesBudgetAndSampling() {
+        val haikus = listOf(
+            "claude-haiku-5-5", "claude-haiku-5.5", "claude-5-5-haiku", "global.anthropic.claude-haiku-5-5", "claude-haiku-6",
+        )
+        for (model in haikus) {
+            val defs = anthropic(model)
+            val keys = keysOf(defs)
+            assertTrue(keys.contains("thinking"), model)
+            listOf("thinkingBudget", "temperature", "topP", "topK").forEach {
+                assertFalse(keys.contains(it), "$model still offers $it")
+            }
+            // Unlike Sonnet 5.5, "off" really is off: the ordinary description stays.
+            assertEquals(Res.string.param_desc_thinking, defs.single { it.key == "thinking" }.descriptionRes(), model)
+        }
+        for (model in listOf("claude-haiku-4-5", "claude-haiku-4-5-20251001", "claude-haiku-5", "claude-haiku-5-4")) {
+            assertTrue(keysOf(anthropic(model)).contains("temperature"), model)
+        }
+    }
+
+    @Test
     fun thinkingDisplayOffersUpdatesOnBothAnthropicSitesOnlyWhenSupported() {
         fun options(endpoint: String, provider: String?, model: String, supported: Boolean) =
             EndpointParameterRegistry.getDefinitions(

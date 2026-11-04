@@ -120,10 +120,13 @@ class SseClient(
                     }
                 }
                 if (!done) {
-                    // The body ended without the run's end. Not proof the job is gone: upstream
-                    // sends no heartbeat, so a proxy or CDN idle timeout during a long tool call or
-                    // a human-review pause closes a live stream, and the server's own `res.destroy()`
-                    // on a publication failure asks the client to reconnect. Treated like any other
+                    // The body ended without the run's end. Not proof the job is gone: servers
+                    // before v0.8.9-rc1 send nothing on a quiet stream (rc1 writes a `:` comment
+                    // every 25 s, configurable and switchable off), so a proxy or CDN idle timeout
+                    // during a long tool call or a human-review pause closes a live stream, and the
+                    // server's own `res.destroy()` on a publication failure asks the client to
+                    // reconnect. A keepalive is a comment, not an event, so it never resets the
+                    // attempt counter: a body of nothing but keepalives still climbs the ladder. Treated like any other
                     // drop, as upstream's transport-failure ladder does: resume, and let the resume
                     // decide — a sync frame if the run is live, a final frame or a 404 if it is not.
                     Diag.w(

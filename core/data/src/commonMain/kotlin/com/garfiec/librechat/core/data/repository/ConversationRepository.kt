@@ -3,9 +3,13 @@ package com.garfiec.librechat.core.data.repository
 import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.Conversation
+import com.garfiec.librechat.core.model.ConversationListFilters
 import com.garfiec.librechat.core.model.ConversationPage
+import com.garfiec.librechat.core.model.response.ForkConversationResponse
 import kotlinx.coroutines.flow.Flow
+import kotlin.time.Instant
 
+@Suppress("TooManyFunctions") // debt: 23 functions
 interface ConversationRepository {
     fun observeConversations(isArchived: Boolean = false): Flow<Result<List<Conversation>>>
     suspend fun loadNextPage(
@@ -75,9 +79,16 @@ interface ConversationRepository {
         option: String? = null,
         splitAtTarget: Boolean? = null,
         latestMessageId: String? = null,
-    ): Result<Conversation>
+        excludeFiles: Boolean? = null,
+    ): Result<ForkConversationResponse>
     suspend fun duplicateConversation(conversationId: String, title: String?): Result<Conversation>
+
+    /**
+     * Imports an export file. A file whose tool calls carry preview markers is refused with
+     * [ToolCallPreviewImportException] before anything is sent: the route stores a file as is.
+     */
     suspend fun importConversation(jsonContent: String): Result<Conversation>
+
     suspend fun deleteAll(): Result<Unit>
 
     /**
@@ -89,4 +100,38 @@ interface ConversationRepository {
     suspend fun archiveAll(): Result<Int>
     suspend fun saveConversation(conversation: Conversation, originAccount: AccountId?)
     suspend fun syncFavoritesFromServer(): Result<Unit>
+
+    /**
+     * A cursor page of the chats matching [filters] (and the server's [search], when given), newest
+     * first (v0.8.9-rc1). Network-direct and never cached: Room can't answer "has files" or
+     * "shared", and a filtered page written into the cache would read as the whole list.
+     */
+    suspend fun getConversationsFiltered(
+        filters: ConversationListFilters,
+        cursor: String? = null,
+        search: String? = null,
+        limit: Int = 25,
+    ): Result<ConversationPage>
+
+    /** The cached row for [id] under the active account, or null while none is cached. */
+    fun observeConversation(id: String): Flow<Conversation?>
+
+    /** One conversation off the server, not written to the cache (the drawer's unlisted running rows). */
+    suspend fun fetchConversationUncached(id: String): Result<Conversation>
+
+    /**
+     * `POST /api/convos/seen` (v0.8.9-rc1) for the reply stamped [lastResponseAt]. True when the
+     * server took it, and the cached row is then caught up. False when a newer reply landed: the row
+     * stays unread and is refreshed, so the newer stamp reaches the cache.
+     */
+    suspend fun markSeen(id: String, lastResponseAt: Instant): Result<Boolean>
+
+    /** `POST /api/convos/unread` (v0.8.9-rc1); the cached row takes the read state it answered with. */
+    suspend fun markUnread(id: String): Result<Unit>
 }
+
+/**
+ * An import file holding tool-call previews (shortened output with `outputTruncated` and its
+ * siblings). Importing it would store the shortened output permanently, so it is refused.
+ */
+class ToolCallPreviewImportException : IllegalArgumentException("The file holds shortened tool output")

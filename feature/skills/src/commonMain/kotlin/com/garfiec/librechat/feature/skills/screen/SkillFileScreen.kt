@@ -40,6 +40,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarMenuSection
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.feature.skills.resources.Res
+import com.garfiec.librechat.feature.skills.resources.skill_error_skill_deleting
 import com.garfiec.librechat.feature.skills.resources.skill_file_binary
 import com.garfiec.librechat.feature.skills.resources.skill_file_conflict
 import com.garfiec.librechat.feature.skills.resources.skill_file_image_description
@@ -202,7 +203,10 @@ private fun SkillFileBanners(state: SkillFileUiState, actions: SkillFileActions)
         }
         if (state.saveFailed) {
             ErrorBanner(
-                message = state.saveError ?: stringResource(Res.string.skill_file_save_failed),
+                message = when {
+                    state.skillDeleting -> stringResource(Res.string.skill_error_skill_deleting)
+                    else -> state.saveError ?: stringResource(Res.string.skill_file_save_failed)
+                },
                 modifier = bannerModifier,
             )
         }

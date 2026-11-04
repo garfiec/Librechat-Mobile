@@ -11,10 +11,10 @@ import kotlinx.serialization.json.JsonPrimitive
 /**
  * Turns a child's activity into the content parts the app already renders.
  *
- * The thread view models user-visible activity in its own four-armed shape rather than as the
+ * The thread view models user-visible activity in its own five-armed shape rather than as the
  * LangChain messages that produced it, so it does NOT arrive as `MessageContentPart` the way
  * `AgentToolCall.subagentContent` does. Every arm has an exact counterpart in the part model
- * though, and the renderers for all four already exist — including the activity-label grouping —
+ * though, and the renderers for all five already exist — including the activity-label grouping —
  * so this converts rather than duplicating them.
  *
  * An arm this client does not recognize is DROPPED, not rendered as an empty row: a future
@@ -24,6 +24,11 @@ import kotlinx.serialization.json.JsonPrimitive
 fun List<SubagentActivityItem>.toContentParts(): List<MessageContentPart> = mapNotNull { it.toPart() }
 
 private fun SubagentActivityItem.toPart(): MessageContentPart? = when (type) {
+    // Same shape as the parent reply's own `steer` part; a blank one has nothing to show.
+    SubagentActivityType.STEER -> steer?.takeIf { it.isNotBlank() }?.let {
+        MessageContentPart(type = ContentType.STEER, steer = JsonPrimitive(it))
+    }
+
     SubagentActivityType.WRITING -> MessageContentPart(
         type = ContentType.TEXT,
         text = text.orEmpty(),

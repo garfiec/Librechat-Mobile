@@ -144,7 +144,7 @@ class LiveReplyCodeOutputTest {
     }
 
     @Test
-    fun `a streamed code output keeps its agent, workspace change, size and ids`() = runTest {
+    fun `a streamed code output keeps its agent, step, workspace change, size and ids`() = runTest {
         val flow = MutableStateFlow(ChatUiState())
         val change = WorkspaceChange(profile = "stateful", operation = "created", path = "report.md")
 
@@ -158,6 +158,7 @@ class LiveReplyCodeOutputTest {
                 messageId = "msg_1",
                 conversationId = "convo_1",
                 agentId = "agent_a",
+                stepId = "step_1",
                 bytes = 512,
                 workspaceChange = change,
             ),
@@ -166,6 +167,7 @@ class LiveReplyCodeOutputTest {
         val att = flow.value.streamingAttachments.single()
         assertThat(att.fileId).isEqualTo("file_1")
         assertThat(att.agentId).isEqualTo("agent_a")
+        assertThat(att.stepId).isEqualTo("step_1")
         assertThat(att.workspaceChange).isEqualTo(change)
         assertThat(att.bytes).isEqualTo(512)
         assertThat(att.messageId).isEqualTo("msg_1")

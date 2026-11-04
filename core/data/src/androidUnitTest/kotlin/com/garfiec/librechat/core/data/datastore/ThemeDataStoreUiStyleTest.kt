@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.garfiec.librechat.core.model.config.DeploymentAccent
 import com.garfiec.librechat.core.model.ui.UiStyle
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CoroutineScope
@@ -89,5 +90,26 @@ class ThemeDataStoreUiStyleTest {
         } finally {
             coldScope.cancel()
         }
+    }
+
+    @Test
+    fun serverAccentRoundTripsAndIsOnUntilTurnedOffForItsServer() = runBlocking {
+        val (_, store) = newStore()
+        assertThat(store.serverAccent.first()).isNull()
+
+        store.setServerAccent("srv1", DeploymentAccent(name = "Acme", seedArgb = 0xFFFAFF69.toInt()))
+        assertThat(store.serverAccent.first()?.activeSeed).isEqualTo(0xFFFAFF69.toInt())
+
+        store.setUseServerAccent("srv1", false)
+        assertThat(store.serverAccent.first()?.activeSeed).isNull()
+        assertThat(store.serverAccent.first()?.enabled).isFalse()
+
+        // Another server's accent is on by default: the switch is per server.
+        store.setServerAccent("srv2", DeploymentAccent(name = "Beta", seedArgb = 0xFF336699.toInt()))
+        assertThat(store.serverAccent.first()?.enabled).isTrue()
+
+        // A withdrawn theme clears it.
+        store.setServerAccent("srv2", null)
+        assertThat(store.serverAccent.first()).isNull()
     }
 }

@@ -52,7 +52,7 @@ class ProjectsViewModelTest {
 
     @Test
     fun `first load asks for latest activity, newest first, with no search`() = runTest(testDispatcher) {
-        val viewModel = ProjectsViewModel(projectRepository)
+        val viewModel = ProjectsViewModel(projectRepository, mockk(relaxed = true))
         advanceUntilIdle()
 
         coVerify(exactly = 1) {
@@ -67,7 +67,7 @@ class ProjectsViewModelTest {
         coEvery { projectRepository.listAllProjectsInCustomOrder(null) } returns Result.Success(
             AllProjects(listOf(ChatProject(id = "id-Beta", name = "Beta"), ChatProject(id = "id-Alpha", name = "Alpha")), true),
         )
-        val viewModel = ProjectsViewModel(projectRepository)
+        val viewModel = ProjectsViewModel(projectRepository, mockk(relaxed = true))
         advanceUntilIdle()
 
         viewModel.setSort(ProjectSort.CUSTOM)
@@ -83,7 +83,7 @@ class ProjectsViewModelTest {
         every { projectRepository.orderRevision } returns orderRevision
         coEvery { projectRepository.listAllProjectsInCustomOrder(null) } returns
             Result.Success(AllProjects(listOf(ChatProject(id = "id-Alpha", name = "Alpha")), true))
-        val viewModel = ProjectsViewModel(projectRepository)
+        val viewModel = ProjectsViewModel(projectRepository, mockk(relaxed = true))
         advanceUntilIdle()
 
         orderRevision.value = 1
@@ -99,7 +99,7 @@ class ProjectsViewModelTest {
 
     @Test
     fun `changing the sort reloads with the new order`() = runTest(testDispatcher) {
-        val viewModel = ProjectsViewModel(projectRepository)
+        val viewModel = ProjectsViewModel(projectRepository, mockk(relaxed = true))
         advanceUntilIdle()
 
         viewModel.setSort(ProjectSort.NAME)
@@ -111,7 +111,7 @@ class ProjectsViewModelTest {
 
     @Test
     fun `typing collapses into one trimmed search after the debounce`() = runTest(testDispatcher) {
-        val viewModel = ProjectsViewModel(projectRepository)
+        val viewModel = ProjectsViewModel(projectRepository, mockk(relaxed = true))
         advanceUntilIdle()
 
         viewModel.onSearchQueryChange("th")
@@ -126,7 +126,7 @@ class ProjectsViewModelTest {
 
     @Test
     fun `clearing the search sends no search parameter`() = runTest(testDispatcher) {
-        val viewModel = ProjectsViewModel(projectRepository)
+        val viewModel = ProjectsViewModel(projectRepository, mockk(relaxed = true))
         advanceUntilIdle()
 
         viewModel.onSearchQueryChange("x")
@@ -141,7 +141,7 @@ class ProjectsViewModelTest {
     fun `the shown search trails the typed one until its results land`() = runTest(testDispatcher) {
         val unfiltered = CompletableDeferred<Result<ProjectListResponse>>()
         coEvery { projectRepository.listProjects(null, any(), any(), "zzz") } returns page()
-        val viewModel = ProjectsViewModel(projectRepository)
+        val viewModel = ProjectsViewModel(projectRepository, mockk(relaxed = true))
         advanceUntilIdle()
         viewModel.onSearchQueryChange("zzz")
         advanceUntilIdle()
@@ -162,7 +162,7 @@ class ProjectsViewModelTest {
 
     @Test
     fun `a sort during the search debounce asks only once`() = runTest(testDispatcher) {
-        val viewModel = ProjectsViewModel(projectRepository)
+        val viewModel = ProjectsViewModel(projectRepository, mockk(relaxed = true))
         advanceUntilIdle()
 
         viewModel.onSearchQueryChange("thesis")
@@ -180,7 +180,7 @@ class ProjectsViewModelTest {
         coEvery { projectRepository.listProjects("c1", any(), any(), null) } coAnswers { slowAppend.await() }
         coEvery { projectRepository.listProjects(null, any(), any(), "zeta") } returns page("Zeta")
 
-        val viewModel = ProjectsViewModel(projectRepository)
+        val viewModel = ProjectsViewModel(projectRepository, mockk(relaxed = true))
         advanceUntilIdle()
 
         // The append is in flight when the user searches; it must not land on the search results.
@@ -199,7 +199,7 @@ class ProjectsViewModelTest {
     fun `a project change made elsewhere reloads the list`() = runTest(testDispatcher) {
         val revision = MutableStateFlow(0L)
         every { projectRepository.revision } returns revision
-        val viewModel = ProjectsViewModel(projectRepository)
+        val viewModel = ProjectsViewModel(projectRepository, mockk(relaxed = true))
         advanceUntilIdle()
         coEvery { projectRepository.listProjects(any(), any(), any(), any()) } returns page("Alpha", "Beta", "Gamma")
 
@@ -214,7 +214,7 @@ class ProjectsViewModelTest {
     fun `creating a project opens it, without a blank description`() = runTest(testDispatcher) {
         coEvery { projectRepository.createProject("Thesis", null) } returns
             Result.Success(ChatProject(id = "id-new", name = "Thesis"))
-        val viewModel = ProjectsViewModel(projectRepository)
+        val viewModel = ProjectsViewModel(projectRepository, mockk(relaxed = true))
         advanceUntilIdle()
         val events = mutableListOf<ProjectsEvent>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.events.collect { events += it } }
@@ -230,7 +230,7 @@ class ProjectsViewModelTest {
     fun `editing sends an emptied description so the server clears it`() = runTest(testDispatcher) {
         coEvery { projectRepository.updateProject(any(), any(), any()) } returns
             Result.Success(ChatProject(id = "id-1", name = "Thesis"))
-        val viewModel = ProjectsViewModel(projectRepository)
+        val viewModel = ProjectsViewModel(projectRepository, mockk(relaxed = true))
         advanceUntilIdle()
 
         viewModel.editProject("id-1", "Thesis", "")
@@ -241,7 +241,7 @@ class ProjectsViewModelTest {
 
     @Test
     fun `setting the current sort again does not reload`() = runTest(testDispatcher) {
-        val viewModel = ProjectsViewModel(projectRepository)
+        val viewModel = ProjectsViewModel(projectRepository, mockk(relaxed = true))
         advanceUntilIdle()
 
         viewModel.setSort(ProjectSort.ACTIVITY)
@@ -252,7 +252,7 @@ class ProjectsViewModelTest {
 
     @Test
     fun `returning to the index reloads it without a spinner`() = runTest(testDispatcher) {
-        val viewModel = ProjectsViewModel(projectRepository)
+        val viewModel = ProjectsViewModel(projectRepository, mockk(relaxed = true))
         advanceUntilIdle()
 
         viewModel.refreshOnReturn()
@@ -266,7 +266,7 @@ class ProjectsViewModelTest {
 
     @Test
     fun `returning while the first load runs asks only once`() = runTest(testDispatcher) {
-        val viewModel = ProjectsViewModel(projectRepository)
+        val viewModel = ProjectsViewModel(projectRepository, mockk(relaxed = true))
 
         viewModel.refreshOnReturn()
         advanceUntilIdle()
@@ -277,7 +277,7 @@ class ProjectsViewModelTest {
     @Test
     fun `a next page asked for during a reload runs from the reloaded list`() = runTest(testDispatcher) {
         coEvery { projectRepository.listProjects(null, any(), any(), null) } returns page("Alpha", next = "c1")
-        val viewModel = ProjectsViewModel(projectRepository)
+        val viewModel = ProjectsViewModel(projectRepository, mockk(relaxed = true))
         advanceUntilIdle()
         val reload = CompletableDeferred<Result<ProjectListResponse>>()
         coEvery { projectRepository.listProjects(null, any(), any(), null) } coAnswers { reload.await() }
@@ -296,7 +296,7 @@ class ProjectsViewModelTest {
     fun `a reload keeps as many projects as were loaded`() = runTest(testDispatcher) {
         coEvery { projectRepository.listProjects(null, any(), any(), null, null) } returns
             page(*Array(30) { "P$it" })
-        val viewModel = ProjectsViewModel(projectRepository)
+        val viewModel = ProjectsViewModel(projectRepository, mockk(relaxed = true))
         advanceUntilIdle()
 
         viewModel.refreshOnReturn()

@@ -74,6 +74,11 @@
     <string name="context_usage_cost">Coût</string>
     <string name="context_usage_cost_branch">Coût (cette branche)</string>
     <string name="context_usage_cost_all">Toutes les branches</string>
+    <string name="context_usage_last_turn">Dernier tour</string>
+    <string name="context_usage_current_turn">Tour en cours (jusqu'ici)</string>
+    <string name="context_usage_waiting">En attente de l'utilisation du modèle…</string>
+    <string name="context_usage_unavailable">Utilisation non disponible pour ce tour</string>
+    <string name="context_usage_this_branch">Cette branche</string>
     <string name="context_usage_tools_all">Outils</string>
     <string name="context_usage_used">Utilisé</string>
     <string name="timestamp_just_now">À l'instant</string>
@@ -181,6 +186,7 @@
     <string name="param_option_xhigh">Très élevé</string>
     <string name="param_option_max">Maximum</string>
     <string name="param_option_auto">Auto</string>
+    <string name="param_option_off">Désactivé</string>
     <string name="param_option_concise">Concis</string>
     <string name="param_option_detailed">Détaillé</string>
     <string name="param_option_standard">Standard</string>
@@ -302,6 +308,9 @@
     <string name="acl_error_not_found">Cet élément a été supprimé, ou vous n'y avez plus accès.</string>
     <string name="acl_error_owner_protected">L'accès du propriétaire ne peut pas être modifié.</string>
     <string name="acl_error_generic">Impossible de mettre à jour l'accès. Réessayez.</string>
+    <string name="acl_error_busy">Une autre modification de cet accès est en cours. Réessayez dans un instant.</string>
+    <string name="acl_error_unavailable">L'accès ne peut pas être modifié pour le moment. Réessayez sous peu.</string>
+    <string name="acl_error_audit_unavailable">L'accès n'a pas été modifié, car le serveur n'a pas pu enregistrer la modification. Réessayez sous peu.</string>
     <string name="acl_error_load">Impossible de charger la liste des personnes ayant accès.</string>
     <string name="bookmarks">Signets</string>
     <string name="bookmark_new">Nouveau signet</string>
@@ -333,4 +342,30 @@
         <item quantity="many">%1$d caractères maximum</item>
         <item quantity="other">%1$d caractères maximum</item>
     </plurals>
+    <string name="mcp_oauth_sign_in_title">Se connecter à %1$s</string>
+    <string name="mcp_oauth_sign_in_close">Fermer la connexion</string>
+    <string name="pull_request">Pull request</string>
+    <string name="merge_request">Merge request</string>
+    <string name="pr_label">PR #%1$d</string>
+    <string name="pr_label_gitlab">MR !%1$d</string>
+    <string name="pr_state_open">Ouverte</string>
+    <string name="pr_state_draft">Brouillon</string>
+    <string name="pr_state_merged">Fusionnée</string>
+    <string name="pr_state_closed">Fermée</string>
+    <string name="pr_state_conflicts">Conflits</string>
+    <string name="pr_checks_passing">Réussies</string>
+    <string name="pr_checks_failing">En échec</string>
+    <string name="pr_checks_running">En cours</string>
+    <string name="pr_checks_none">Aucune</string>
+    <string name="pr_state">État : %1$s</string>
+    <string name="pr_checks">Vérifications : %1$s</string>
+    <string name="pr_menu_subtitle">%1$s · Vérifications : %2$s</string>
+    <string name="pr_menu_subtitle_no_checks">%1$s · Aucune vérification</string>
+    <string name="pr_open_in_github">Ouvrir dans GitHub</string>
+    <string name="pr_open_in_gitlab">Ouvrir dans GitLab</string>
+    <string name="pr_open_in_bitbucket">Ouvrir dans Bitbucket</string>
+    <string name="pr_refresh_failed">Impossible d'actualiser la pull request</string>
+    <string name="pr_retry">Réessayer</string>
+    <string name="pr_additions_cd">%1$d lignes ajoutées</string>
+    <string name="pr_deletions_cd">%1$d lignes supprimées</string>
 </resources>

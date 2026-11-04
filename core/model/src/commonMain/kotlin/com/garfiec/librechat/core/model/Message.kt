@@ -18,6 +18,12 @@ data class Message(
     val sender: String? = null,
     val text: String = "",
     val isCreatedByUser: Boolean = false,
+    /**
+     * True when the whole stored row came from outside the model (v0.8.9-rc1). A host wake-up is
+     * saved as a user message too, so this is what tells a user who typed a wake-up's header from
+     * the host that wrote one. Absent on older servers and older host wake-ups.
+     */
+    val isUserSubmitted: Boolean? = null,
     val error: Boolean = false,
     val unfinished: Boolean = false,
     @SerialName("finish_reason") val finishReason: String? = null,
@@ -43,4 +49,15 @@ data class Message(
     // text"). Persisted UI-metadata; the web client creates them and merges them into
     // the sent text. Mobile renders them on the user bubble (no creation affordance yet).
     val quotes: List<String>? = null,
+    /**
+     * The one-turn reasoning choice this user message was sent with (v0.8.9-rc1). An edit,
+     * regenerate or continue of the turn sends it again, as web does. Never shown on the bubble.
+     */
+    val reasoningOverride: ReasoningOverride? = null,
+    /**
+     * Set on a user turn whose text the server redacted before the model saw it (v0.8.9-rc1, PII
+     * protection): [text] is the filtered version, and the author can read the original through
+     * `POST /api/messages/:conversationId/owner-text`, valid only while this revision matches.
+     */
+    val privacyRevision: String? = null,
 )

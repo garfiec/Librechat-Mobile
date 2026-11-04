@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
+import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.QueueHandle
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedTurnServerState
@@ -157,21 +158,25 @@ class MessageQueueDelegate(
             .distinct()
 
     /**
-     * Pulls a queued item OUT of the queue for editing, returning it with its original index so
-     * the caller can put it back in the same slot on commit/cancel. Does NOT touch the pause flag:
-     * the item is only borrowed, so a paused queue stays paused. Returns null if the id is gone.
+     * A committed queued edit: swaps the row [localId] for [item] in place, or inserts [item] at
+     * [fallbackIndex] when the row has already left (a withdrawal's receipt retires it before the
+     * edit is offered back). Does not touch the pause flag.
      */
-    fun takeForEdit(localId: String): IndexedValue<QueuedMessage>? {
-        val index = handle.state.messageQueue.indexOfFirst { it.localId == localId }
-        if (index < 0) return null
-        val item = handle.state.messageQueue[index]
-        handle.update { queue = queue.copy(messageQueue = queue.messageQueue.filterNot { it.localId == localId }) }
-        return IndexedValue(index, item)
+    fun replace(localId: String, fallbackIndex: Int, item: QueuedMessage) {
+        val present = handle.state.messageQueue.any { it.localId == localId }
+        if (!present) {
+            reinsert(fallbackIndex, item)
+            return
+        }
+        handle.update {
+            queue = queue.copy(messageQueue = queue.messageQueue.map { if (it.localId == localId) item else it })
+        }
+        if (item.attachments.any { it.fileId != null }) startHoldRenewal()
     }
 
     /**
-     * Re-inserts an item at [index] (clamped to the current bounds) — the commit/cancel counterpart
-     * to [takeForEdit], and also how a refused drain puts its item back at the head.
+     * Re-inserts an item at [index] (clamped to the current bounds) — how a refused drain puts its
+     * item back at the head, and how a committed edit returns when its row has already left.
      *
      * Restarts the heartbeat, because none of those paths go through [enqueue]. The loop exits as
      * soon as a tick finds an empty queue, so a drain that empties the queue and is then refused
@@ -253,11 +258,9 @@ class MessageQueueDelegate(
         }
     }
 
-    /** Holds the queue after a Stop / stream-error. No-op when nothing is queued — but an item
-     *  currently pulled out for editing still counts (it will return to the queue), so a Stop
-     *  during the edit of the sole queued item correctly registers the pause. */
+    /** Holds the queue after a Stop / stream-error. No-op when nothing is queued. */
     fun pause() {
-        if (handle.state.messageQueue.isEmpty() && !handle.state.isEditingQueued) return
+        if (handle.state.messageQueue.isEmpty()) return
         handle.update { queue = queue.copy(isQueuePaused = true) }
     }
 
@@ -267,7 +270,7 @@ class MessageQueueDelegate(
      * `SteeringDelegate.holdRefused`). The user decides.
      */
     fun holdForRefusal(localId: String) {
-        if (handle.state.messageQueue.isEmpty() && !handle.state.isEditingQueued) return
+        if (handle.state.messageQueue.isEmpty()) return
         handle.update { queue = queue.copy(isQueuePaused = true, refusedLocalIds = queue.refusedLocalIds + localId) }
     }
 
@@ -307,7 +310,7 @@ class MessageQueueDelegate(
         }
         // Said rather than swallowed: the control is still there, and a tap that visibly does
         // nothing reads as a broken button.
-        if (handle.state.isQueuePaused) handle.setError(SERVER_HOLDS_QUEUED_MESSAGE)
+        if (handle.state.isQueuePaused) handle.setError(ChatNotice.QUEUE_SERVER_HOLDS.marker())
         drainNext(awaitSettle = false)
     }
 
@@ -318,8 +321,8 @@ class MessageQueueDelegate(
      * until the just-finished reply has landed in the tree (see [sendWithSpec]).
      */
     fun drainNext(awaitSettle: Boolean = true, endedGenerationCreatedAt: Long? = null) {
-        // Freeze the queue while a queued item is being edited: draining now would fire an item
-        // out from under the user and shift the slots the edit session's originalIndex points at.
+        // Freeze the queue while a queued item is being edited: draining now could send the item
+        // the user is still changing.
         // The edit's commit/cancel re-kicks draining once it completes.
         if (handle.state.isEditingQueued) return
         // A paused queue must not be mutated: leave every item (foreign ones included) in place until
@@ -466,9 +469,6 @@ class MessageQueueDelegate(
     }
 
     private companion object {
-        const val SERVER_HOLDS_QUEUED_MESSAGE =
-            "The server still holds a queued message. Try again in a moment."
-
         /** Matches upstream's `useQueueDrain` heartbeat. Anything under ~12 h clears the
          *  server's unconditional 24 h hold floor; 30 min leaves headroom if a deployment ever
          *  shortens it, and at one tick per 30 min the 15-minute rate window sees at most one

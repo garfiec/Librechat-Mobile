@@ -28,12 +28,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,13 +45,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,14 +68,17 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.AgentCategory
+import com.garfiec.librechat.core.ui.components.AdaptiveAssistChip
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveCard
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.components.AdaptiveExtendedFloatingActionButton
 import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.InitialTile
 import com.garfiec.librechat.core.ui.components.UnderBarsPullToRefreshBox
@@ -92,6 +100,7 @@ import com.garfiec.librechat.feature.agents.viewmodel.AgentListState
 import com.garfiec.librechat.feature.agents.viewmodel.AgentListWayOut
 import com.garfiec.librechat.feature.agents.viewmodel.AgentMarketplaceUiState
 import com.garfiec.librechat.feature.agents.viewmodel.AgentMarketplaceViewModel
+import com.garfiec.librechat.feature.agents.viewmodel.AgentSort
 import com.garfiec.librechat.feature.agents.viewmodel.failureText
 import com.garfiec.librechat.feature.agents.viewmodel.listState
 import com.garfiec.librechat.feature.agents.viewmodel.showsNewAgentFab
@@ -134,6 +143,8 @@ fun AgentMarketplaceScreen(
             onBack = onBack,
             onSearchQueryChange = viewModel::onSearchQueryChanged,
             onChipSelect = viewModel::onChipSelected,
+            onSortSelect = viewModel::onSortSelected,
+            onMineToggle = viewModel::onMineToggled,
             onRefresh = viewModel::refresh,
             onRetry = viewModel::retry,
             onLoadMore = viewModel::loadMore,
@@ -153,6 +164,8 @@ internal class AgentMarketplaceActions(
     val onBack: (() -> Unit)? = null,
     val onSearchQueryChange: (String) -> Unit = {},
     val onChipSelect: (AgentChip) -> Unit = {},
+    val onSortSelect: (AgentSort) -> Unit = {},
+    val onMineToggle: (Boolean) -> Unit = {},
     val onRefresh: () -> Unit = {},
     val onRetry: () -> Unit = {},
     val onLoadMore: () -> Unit = {},
@@ -279,6 +292,17 @@ internal fun AgentGrid(
                     onSelect = actions.onChipSelect,
                 )
             }
+            // Its own row: "My agents" and the order combine with any chip, and the chip row stays one-of.
+            if (uiState.sortAvailable) {
+                fullWidthItem(key = "sort") {
+                    AgentSortRow(
+                        sort = uiState.sort,
+                        mineOnly = uiState.mineOnly,
+                        onSortSelect = actions.onSortSelect,
+                        onMineToggle = actions.onMineToggle,
+                    )
+                }
+            }
         }
 
         when (listState) {
@@ -298,6 +322,19 @@ internal fun AgentGrid(
 
             AgentListState.ServerEmpty -> fullWidthItem(key = "empty") {
                 ServerEmptyState(canCreate = uiState.agentsCreateEnabled, onCreateAgent = actions.onCreateAgent)
+            }
+
+            AgentListState.MineEmpty -> fullWidthItem(key = "mine_empty") {
+                EmptyState(
+                    title = stringResource(Res.string.agents_mine_empty_title),
+                    icon = Icons.Default.Person,
+                    modifier = emptyStatePadding(),
+                    action = if (uiState.agentsCreateEnabled) {
+                        { NewAgentButton(onClick = actions.onCreateAgent) }
+                    } else {
+                        null
+                    },
+                )
             }
 
             is AgentListState.NoMatches -> fullWidthItem(key = "no_matches") {
@@ -377,6 +414,70 @@ internal fun AgentChipRow(
         }
     }
 }
+
+/** "My agents" at the start, the order menu at the end. */
+@Composable
+internal fun AgentSortRow(
+    sort: AgentSort,
+    mineOnly: Boolean,
+    onSortSelect: (AgentSort) -> Unit,
+    onMineToggle: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+    Row(
+        modifier = modifier.fillMaxWidth().padding(top = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AdaptiveFilterChip(
+            selected = mineOnly,
+            onClick = { onMineToggle(!mineOnly) },
+            label = { Text(stringResource(Res.string.agents_filter_mine), maxLines = 1) },
+            leadingIcon = {
+                Icon(
+                    imageVector = if (mineOnly) Icons.Default.Check else Icons.Default.Person,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+            },
+        )
+        Spacer(Modifier.weight(1f))
+        Box {
+            val sortLabel = stringResource(Res.string.agents_sort_label)
+            AdaptiveAssistChip(
+                onClick = { menuOpen = true },
+                label = { Text(sort.label(), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = sortLabel, modifier = Modifier.size(18.dp)) },
+            )
+            AdaptiveDropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                AgentSort.entries.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option.label()) },
+                        trailingIcon = if (option == sort) {
+                            { Icon(Icons.Default.Check, contentDescription = null) }
+                        } else {
+                            null
+                        },
+                        onClick = {
+                            menuOpen = false
+                            onSortSelect(option)
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgentSort.label(): String = stringResource(
+    when (this) {
+        AgentSort.NEWEST -> Res.string.agents_sort_newest
+        AgentSort.OLDEST -> Res.string.agents_sort_oldest
+        AgentSort.POPULAR -> Res.string.agents_sort_popular
+        AgentSort.AUTHOR -> Res.string.agents_sort_author
+    },
+)
 
 private val AgentChip.key: String
     get() = when (this) {
@@ -474,7 +575,7 @@ private fun LoadMoreFailedRow(onRetry: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        TextButton(onClick = onRetry) { Text(stringResource(Res.string.agents_retry)) }
+        AdaptiveTextButton(onClick = onRetry) { Text(stringResource(Res.string.agents_retry)) }
     }
 }
 

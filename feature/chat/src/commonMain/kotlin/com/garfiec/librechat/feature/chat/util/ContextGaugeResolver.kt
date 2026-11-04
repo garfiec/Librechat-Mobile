@@ -3,7 +3,6 @@ package com.garfiec.librechat.feature.chat.util
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
-import com.garfiec.librechat.core.model.content.AgentToolCall
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.EstimateDetail
@@ -204,8 +203,9 @@ private fun Message.toEntry(): TokenEntry {
     var resultChars = 0
     content?.forEach { part ->
         val call = part.toolCall?.takeIf { part.type == ContentType.TOOL_CALL } ?: return@forEach
-        val output = call.output.orEmpty().length
-        toolChars += call.name.orEmpty().length + call.argsChars() + output
+        // A preview counts at its full lengths: the model sees the stored call, not the preview.
+        val output = call.fullOutputLength()
+        toolChars += call.name.orEmpty().length + call.fullArgsLength() + output
         resultChars += output
     }
     return TokenEntry(
@@ -229,14 +229,9 @@ private fun Message.messageChars(): Int {
 private fun MessageContentPart.textChars(): Int = when (type) {
     ContentType.THINK, ContentType.ERROR -> 0
     ContentType.TOOL_CALL -> toolCall?.let { call ->
-        call.name.orEmpty().length + call.argsChars() + call.output.orEmpty().length
+        call.name.orEmpty().length + call.fullArgsLength() + call.fullOutputLength()
     } ?: 0
     else -> text?.length ?: 0
-}
-
-private fun AgentToolCall.argsChars(): Int {
-    val args = args ?: return 0
-    return if (args is JsonPrimitive && args.isString) args.content.length else args.toString().length
 }
 
 private fun roundQuarter(chars: Int): Int = (chars / 4.0).roundToInt()

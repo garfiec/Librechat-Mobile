@@ -17,6 +17,13 @@ internal sealed interface AgentListState {
      */
     data object ServerEmpty : AgentListState
 
+    /**
+     * "My agents" under All with no search found nothing: the user has authored no agents. Unlike
+     * [ServerEmpty] the search, chips and sort row stay, so "My agents" can be turned off; the
+     * state's own New agent button replaces the FAB.
+     */
+    data object MineEmpty : AgentListState
+
     /** A chip or search found nothing. [chip] is the one that was read; [wayOut] what the state offers. */
     data class NoMatches(val chip: AgentChip, val wayOut: AgentListWayOut) : AgentListState
 
@@ -50,15 +57,19 @@ internal fun AgentMarketplaceUiState.listState(): AgentListState {
     }
 }
 
-/** The New agent FAB: for roles that may create, except over [AgentListState.ServerEmpty], which has its own button. */
+/** The New agent FAB: for roles that may create, except over the empty states that carry their own button. */
 internal val AgentMarketplaceUiState.showsNewAgentFab: Boolean
-    get() = canBrowse && agentsCreateEnabled && listState() != AgentListState.ServerEmpty
+    get() = canBrowse && agentsCreateEnabled && listState().let {
+        it != AgentListState.ServerEmpty && it != AgentListState.MineEmpty
+    }
 
 private fun AgentListQuery.emptyState(): AgentListState {
     val searching = search.isNotEmpty()
     // While searching, Top picks searches everything, like All (AgentListFilter.of).
     val narrowed = chip != AgentChip.All && !(searching && chip == AgentChip.TopPicks)
     return when {
+        // Search is the more specific answer, and a category names itself (web AgentGrid).
+        mine && !narrowed && !searching -> AgentListState.MineEmpty
         !narrowed && !searching -> AgentListState.ServerEmpty
         !narrowed -> AgentListState.NoMatches(chip, AgentListWayOut.ClearSearch)
         searching -> AgentListState.NoMatches(chip, AgentListWayOut.SearchAll)

@@ -281,7 +281,7 @@
         "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
         "symbol": "(whole file -- per-endpoint/provider/variant parameter builders)"
       },
-      "why": "Which generation parameters each endpoint, provider and Bedrock variant exposes, along with their ranges and defaults. Mirrored across the whole Kotlin registry rather than as one table, so the watch is file-level. Includes the model-aware pass (`applyModelAwareDefaults`), whose per-model rules return EARLY and replace the provider rules after them (rc4: Grok 4.7 effort ladder, gpt-6-sol/luna without `minimal`, Opus 5.5 hiding thinking and sampling; v0.8.8: Opus 5.5+/Mythos-class always-on thinking, the Sonnet 5.5+ `between_tools` floor, and the gpt-6 tier read through families.ts `gpt6Tier`). Not mirrored, deliberately: the gpt-6-sol/luna `useResponsesApi` rendered default, which upstream resolves from `/api/endpoints` `responsesApiRouting`.",
+      "why": "Which generation parameters each endpoint, provider and Bedrock variant exposes, along with their ranges and defaults. Mirrored across the whole Kotlin registry rather than as one table, so the watch is file-level. Includes the model-aware pass (`applyModelAwareDefaults`), whose per-model rules return EARLY and replace the provider rules after them (rc4: Grok 4.7 effort ladder, gpt-6-sol/luna without `minimal`, Opus 5.5 hiding thinking and sampling; v0.8.8: Opus 5.5+/Mythos-class always-on thinking, the Sonnet 5.5+ `between_tools` floor, and the gpt-6 tier read through families.ts `gpt6Tier`; v0.8.9-rc1: Haiku 5.5+ keeping the thinking toggle while hiding thinkingBudget and sampling). Not mirrored, deliberately: the gpt-6-sol/luna `useResponsesApi` rendered default, which upstream resolves from `/api/endpoints` `responsesApiRouting`.",
       "failure_mode": "A parameter is offered with a stale range or default, or a newly supported one is missing. Values outside the server's accepted range are rejected at send time."
     },
     {
@@ -358,9 +358,9 @@
       },
       "kotlin": {
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/ActivityGroup.kt",
-        "symbol": "activityGroupFailed (via isFailedMemoryToolCall in ToolCallParsing.kt)"
+        "symbol": "activityGroupOutcome / toolCallOutcome / isSpanFailed (memory verdict via isFailedMemoryToolCall in ToolCallParsing.kt)"
       },
-      "why": "Web's getToolMeta reuses isMemoryFailureOutput plus the memory error-attachment check (outcome.ts at v0.8.8) so an activity-group header does not claim success over a failed memory card. activityGroupFailed ORs the same verdict, isFailedMemoryToolCall (the card's own rule, no second copy of the regexes), into the batch label's failed/partial status. Web's header also counts a run step closed as failed and generic error output on other tools; the mobile header does not yet (not a memory rule).",
+      "why": "Web's getToolMeta decides each call's verdict for anything summarizing calls: the run step's terminal status, memory tools' prose failures and error artifacts (isMemoryFailureOutput), generic error output, an attached-workspace bash_tool's exit trailer, a background-task poll's outcome. ToolCallGroup reads the header as failed only when every call failed (isSpanFailed) or the label says failed, and shows a partial label as a warning only when the counts cannot corroborate it (partialMarkerFallback). toolCallOutcome and ActivityOutcome port those rules; the background_task_status attachment arm is not ported.",
       "failure_mode": "Web changes which memory calls count as failed in its group header and the mobile card keeps the old rule. The card is still drawn; its error state disagrees with web's."
     },
     {
@@ -608,7 +608,21 @@
         "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/datastore/CommonTokenDataStore.kt",
         "symbol": "LIBRECHAT_REFRESH_REJECTIONS"
       },
-      "why": "The response bodies that distinguish LibreChat's own terminal 403 on /api/auth/refresh ('Invalid refresh token', 'Invalid OpenID refresh token', 'No session found') from a 403 minted by a reverse proxy, WAF or IP bouncer. Only the former means the session is dead and the tokens should be dropped. NOTE: this watch is deliberately COARSE — the three literals are inline in a ~150-line controller that also carries the OpenID reuse path, the session lookup and its logging, and upstream does not hoist them into a constant to anchor on. So expect it to report on edits that do not touch the literals, and diff the send() arms specifically rather than skimming the block. 'Invalid refresh token' has been confirmed byte-for-byte against a live v0.8.7 (403, text/html, 21 bytes); the other two arms are code-read only.",
+      "why": "The response bodies that distinguish LibreChat's own terminal 403 on /api/auth/refresh ('Invalid refresh token', 'Invalid OpenID refresh token', 'No session found') from a 403 minted by a reverse proxy, WAF or IP bouncer. Only the former means the session is dead and the tokens should be dropped. Since v0.8.9-rc1 only the OpenID arm ('Invalid OpenID refresh token') is still in refreshController; 'Invalid refresh token' and 'No session found' moved to packages/api/src/auth/localRefresh.ts, watched by refresh-403-rejection-bodies-local. NOTE: this watch is deliberately COARSE — the three literals are inline in a ~150-line controller that also carries the OpenID reuse path, the session lookup and its logging, and upstream does not hoist them into a constant to anchor on. So expect it to report on edits that do not touch the literals, and diff the send() arms specifically rather than skimming the block. 'Invalid refresh token' has been confirmed byte-for-byte against a live v0.8.7 (403, text/html, 21 bytes); the other two arms are code-read only.",
+      "failure_mode": "Upstream rewords an arm and the client stops recognising a dead session: it classifies a real expiry as an intermediary block, keeps the dead tokens and never routes to re-auth. Nothing fails to decode, so a sync's ordinary diff sweep reads it as an inert string edit."
+    },
+    {
+      "id": "refresh-403-rejection-bodies-local",
+      "upstream": {
+        "file": "packages/api/src/auth/localRefresh.ts",
+        "symbol": "createLocalRefreshHandler",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/datastore/CommonTokenDataStore.kt",
+        "symbol": "LIBRECHAT_REFRESH_REJECTIONS"
+      },
+      "why": "The local-session half of refresh-403-rejection-bodies (v0.8.9-rc1+): the 403 'Invalid refresh token' and 'No session found' bodies, beside the 401 expired-refresh and the 200 TWO_FACTOR_ENROLLMENT_REQUIRED arms the token store must also tell apart from a dead session. Coarse like its sibling: the literals are inline in the handler.",
       "failure_mode": "Upstream rewords an arm and the client stops recognising a dead session: it classifies a real expiry as an intermediary block, keeps the dead tokens and never routes to re-auth. Nothing fails to decode, so a sync's ordinary diff sweep reads it as an inert string edit."
     },
     {
@@ -680,6 +694,34 @@
       },
       "why": "Which paused schedules read their MCP outcomes at all (the four disabled reasons that preserve MCP recovery), and that the structured lastRun.mcp wins over the error-string fallback. Consumed by pausedForUnattendedMcpAuth, the mirror of scheduleDisabledMCPLabel in the same file.",
       "failure_mode": "Upstream widens or narrows the reason set, or changes which source wins, and the schedule list names the wrong repair for a paused schedule. Nothing errors."
+    },
+    {
+      "id": "schedule-mcp-failure-reasons",
+      "upstream": {
+        "file": "packages/data-provider/src/types/scheduleConsent.ts",
+        "symbol": "scheduledMCPFailureReasonSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/schedule/Schedule.kt",
+        "symbol": "ScheduleMcpFailureReason / ScheduleMcpRecovery (isKnownShape)"
+      },
+      "why": "The reasons and recovery values an MCP outcome may carry. Upstream's outcome schema rejects any other value, and the client mirrors that: an outcome with an unknown reason fails the shape check, so the structured list falls back to the error string and a run is never named blocked from a value it can't word. The consent reasons decide the 'needs your consent' sentence.",
+      "failure_mode": "Upstream adds a reason or recovery and blocked runs on it stop saying why on mobile while web words them. Nothing errors."
+    },
+    {
+      "id": "schedule-mcp-receipt-projection",
+      "upstream": {
+        "file": "packages/data-provider/src/types/schedules.ts",
+        "symbol": "isScheduleMCPAuthorizationFailure",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/schedule/Schedule.kt",
+        "symbol": "isAuthorizationFailure / blockedRunReceipts / blockedRun"
+      },
+      "why": "Which outcomes are durable denials (unattended-auth detail, or a non-ready status with a reason and automaticReplay false). projectScheduleMCPReceipt turns such a run into status error with error = '<reason>: <JSON>'; the schedule list reads the receipts (structured lastRun.mcp first, that string as the fallback) to say which server blocked the run and what the owner can do, and never shows the string.",
+      "failure_mode": "Upstream changes the predicate or the projection and a blocked run reads as an ordinary failure, or a readiness snapshot reads as a block. Nothing errors."
     },
     {
       "id": "trace-record-kinds",
@@ -794,7 +836,7 @@
     {
       "id": "steer-restaged-quotes",
       "upstream": {
-        "file": "client/src/utils/steer.ts",
+        "file": "packages/chat/src/core/steer/steer.ts",
         "symbol": "mergeRestagedQuotes",
         "mode": "block"
       },
@@ -808,7 +850,7 @@
     {
       "id": "steer-max-quote-count",
       "upstream": {
-        "file": "client/src/utils/steer.ts",
+        "file": "packages/chat/src/core/steer/steer.ts",
         "symbol": "MAX_QUOTE_COUNT",
         "mode": "block"
       },
@@ -906,7 +948,7 @@
     {
       "id": "queued-turn-unsupported-classification",
       "upstream": {
-        "file": "client/src/data-provider/SSE/queuedTurns.ts",
+        "file": "packages/chat/src/core/steer/errors.ts",
         "symbol": "isDefiniteQueuedTurnsUnsupported",
         "mode": "block"
       },
@@ -920,7 +962,7 @@
     {
       "id": "queued-turn-rejection-classification",
       "upstream": {
-        "file": "client/src/data-provider/SSE/queuedTurns.ts",
+        "file": "packages/chat/src/core/steer/errors.ts",
         "symbol": "isDefiniteQueuedTurnRejection",
         "mode": "block"
       },
@@ -1210,6 +1252,20 @@
       "failure_mode": "Same as opus-version-parse: the always-on rule applies to the wrong set of models, silently -- a toggle the server rejects with a 400 stays offered, or one it honours disappears."
     },
     {
+      "id": "adaptive-haiku-thinking",
+      "upstream": {
+        "file": "packages/data-provider/src/bedrock.ts",
+        "symbol": "hasAdaptiveHaikuThinking",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
+        "symbol": "hasAdaptiveHaikuThinking / HAIKU_NAME_FIRST / HAIKU_NUMBER_FIRST"
+      },
+      "why": "Which Haiku ids (5.5 and later, both spellings, via parseHaikuVersion) keep the thinking toggle but lose thinkingBudget, temperature, topP and topK in applyModelAwareDefaults. Lives in bedrock.ts, which parameter-settings does not watch.",
+      "failure_mode": "A new Haiku spelling or version is read wrongly: the panel offers a budget or sampling values the provider rejects with a 400, or hides them from a model that takes them. Nothing errors until the send."
+    },
+    {
       "id": "between-tools-thinking-floor-predicate",
       "upstream": {
         "file": "packages/data-provider/src/bedrock.ts",
@@ -1301,9 +1357,9 @@
       },
       "kotlin": {
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/wakeup/WakeupMessage.kt",
-        "symbol": "WakeupMessage.parse / subagentTask / backgroundTask / MAX_WAKEUP_TEXT_CHARS"
+        "symbol": "WakeupMessage.parse / subagentTask / backgroundTask / MAX_WAKEUP_TEXT_CHARS; the parseWakeupMessage provenance gate is systemEventFor in feature/chat components/SystemEventRow.kt"
       },
-      "why": "The web client's own rules for recognizing a wake-up turn, on top of the server's headers and payload fields watched by the three wakeup-* entries: the length cap, the accepted statuses, and the header-equals-payload status check. A cancelled task is valid for both kinds since v0.8.8 (a background tool the user stopped wakes the parent with a `cancelled` row). The whole file is the parser, so it is watched file-level.",
+      "why": "The web client's own rules for recognizing a wake-up turn, on top of the server's headers and payload fields watched by the three wakeup-* entries: the length cap, the accepted statuses, and the header-equals-payload status check. A cancelled task is valid for both kinds since v0.8.8 (a background tool the user stopped wakes the parent with a `cancelled` row). Since v0.8.9-rc1 a message the server marks `isUserSubmitted` is never a wake-up (parseWakeupMessage), whatever its text. The whole file is the parser, so it is watched file-level.",
       "failure_mode": "The client classifies a turn differently from the web: a wake-up renders as a user bubble of raw prompt JSON, or a user message collapses into a system row."
     },
     {
@@ -1316,7 +1372,7 @@
         "file": "feature/conversations/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/drawer/RunningChats.kt",
         "symbol": "groupWithRunning"
       },
-      "why": "The web sidebar's rule for the Running section: which conversations are lifted out of their date groups (those in GET /api/agents/chat/active), that the group goes first, that emptied date groups are dropped, and which list orderings it applies to. The server serves only the ids; the grouping is client logic. The poll cadence (upstream ACTIVE_JOBS_POLL_MS / ACTIVE_JOBS_SUCCESSOR_GRACE_MS in client/src/data-provider/SSE/queries.ts) is copied into DrawerViewModel and is not watched here.",
+      "why": "The web sidebar's rule for the Running section: which conversations are lifted out of their date groups (those in GET /api/agents/chat/active), that the group goes first, that Finished follows it with the server-stamped unseen replies (isFinishedUnseen, mirrored in core/model Conversation.kt), that running chats no loaded row holds are merged newest-first minus archived and temporary ones, that emptied date groups are dropped, and which list orderings it applies to. The server serves only the ids; the grouping is client logic. The poll cadence (upstream ACTIVE_JOBS_POLL_MS / ACTIVE_JOBS_SUCCESSOR_GRACE_MS in client/src/data-provider/SSE/queries.ts) is copied into DrawerViewModel and is not watched here.",
       "failure_mode": "The drawer orders chats differently from the web sidebar -- a running chat is listed twice or stays buried under its date. Nothing errors."
     },
     {
@@ -1330,7 +1386,7 @@
         "file": "feature/conversations/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/drawer/DrawerViewModel.kt",
         "symbol": "displayConversations"
       },
-      "why": "Which sidebar lists get a Running group is decided at the call site, not in running.ts: upstream passes includePinned: isArchivedView, so the archive keeps its server order while search results (pinned matches included) are still promoted. DrawerViewModel applies withRunningFirst to the grouped list in both the recency and search states. The running-chats-group entry watches only the helper, so a change to these options would read as ok there.",
+      "why": "Which sidebar lists get a Running group is decided at the call site, not in running.ts: upstream passes includePinned: isArchivedView, so the archive keeps its server order while search results (pinned matches included) are still promoted. DrawerViewModel applies withRunningFirst to the grouped list in both the recency and search states, and passes the unlisted running rows only while nothing narrows the list (no query, no filters), as upstream gates them on isUnnarrowed. The running-chats-group entry watches only the helper, so a change to these options would read as ok there.",
       "failure_mode": "The drawer promotes running chats in a list the web no longer does (or stops where the web still does), e.g. during search. Nothing errors."
     },
     {
@@ -1341,9 +1397,9 @@
       },
       "kotlin": {
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/background/BackgroundTaskOutput.kt",
-        "symbol": "BackgroundTaskOutput.parse / outcome, PolledTaskStatus"
+        "symbol": "BackgroundTaskOutput.parse / outcome, PolledTaskStatus, SubagentDigestParser (SubagentDigest.kt)"
       },
-      "why": "The web client's rules for turning a check_background_task result into a card: which shapes are host-shaped (one task, a {tasks[], partial} list, a {status, message} notice), the accepted task statuses and the cancellation_requested -> stopping rewrite, and which outcomes read as failed or cancelled despite a successful run step. The tool output is model-facing JSON; the server serves no display contract. formatBackgroundCodeOutput in the same file is not ported.",
+      "why": "The web client's rules for turning a check_background_task result into a card: which shapes are host-shaped (one task, a {tasks[], partial} list, a {status, message} notice), the accepted task statuses and the cancellation_requested -> stopping rewrite, and which outcomes read as failed or cancelled despite a successful run step. The tool output is model-facing JSON; the server serves no display contract. formatBackgroundCodeOutput in the same file is not ported. Since v0.8.9-rc1 a subagent task also carries subagent_thread_id and an activity digest; parseDigest's strictness (finite non-negative counts, the path grammar, at most 200 nodes, bounded texts, a malformed digest dropped but never the card) is ported in SubagentDigestParser.",
       "failure_mode": "A status or shape upstream adds is refused, so the call falls back to the raw JSON card; or a failed poll reads as a success because the outcome table drifted. Nothing errors."
     },
     {
@@ -1356,7 +1412,7 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/BackgroundTaskGuidance.kt",
         "symbol": "BackgroundTaskGuidance (NOTES / MESSAGES / NOTICES / noticeKey)"
       },
-      "why": "The exact English notes, messages and notice statuses the poll tool emits, matched verbatim to localized copy. backgroundListGuidanceKeys is not ported (the card points at raw details instead).",
+      "why": "The exact English notes, messages (including the v0.8.9-rc1 subagent wake-up and poll guidance) and notice statuses the poll tool emits, matched verbatim to localized copy. backgroundListGuidanceKeys is not ported (the card points at raw details instead).",
       "failure_mode": "A reworded server sentence stops matching and the card says 'More information in raw task details.' instead of the specific guidance. Nothing errors."
     },
     {
@@ -1538,27 +1594,67 @@
     {
       "id": "context-gauge-estimate",
       "upstream": {
-        "file": "client/src/utils/tokens.ts",
+        "file": "packages/chat/src/core/usage/estimate.ts",
         "mode": "file"
       },
       "kotlin": {
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/ContextGaugeResolver.kt",
         "symbol": "estimateContextUsage / deepestPersistedSnapshot"
       },
-      "why": "The context gauge on a v0.8.8+ server, which removed the projection endpoint: the saved-snapshot walk (`findBranchSnapshotAnchor`, stopping at a summary without its own snapshot) and the snapshot-less estimate (`toEntry`'s chars/4 and quoted-turn rules, `sumBranch`'s summary cap, `prunedBranchTokens`' newest-that-fits break).",
+      "why": "The context gauge on a v0.8.8+ server, which removed the projection endpoint: the saved-snapshot walk (`findBranchSnapshotAnchor`, stopping at a summary without its own snapshot) and the snapshot-less estimate (`toEntry`'s chars/4 and quoted-turn rules, `sumBranch`'s summary cap, `prunedBranchTokens`' newest-that-fits break). Since v0.8.9-rc1 this lives in @librechat/chat's core/usage, split across four files: this entry watches estimate.ts (`estimateTokens`, output-char counting); context-gauge-estimate-branch, -registry and -snapshot watch the rest.",
+      "failure_mode": "The gauge disagrees with web for the same branch -- a different percentage, a pre-summary snapshot revived, or an over-window branch pinned at 100% -- with nothing failing."
+    },
+    {
+      "id": "context-gauge-estimate-branch",
+      "upstream": {
+        "file": "packages/chat/src/core/usage/branch.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/ContextGaugeResolver.kt",
+        "symbol": "estimateContextUsage / deepestPersistedSnapshot"
+      },
+      "why": "The branch walks of the context-gauge-estimate entry: `sumBranch` (summary cap, tail counting), `prunedBranchTokens` (newest-that-fits break) and `findBranchSnapshotAnchor` (stop at a summary without its own snapshot).",
+      "failure_mode": "The gauge disagrees with web for the same branch -- a different percentage, a pre-summary snapshot revived, or an over-window branch pinned at 100% -- with nothing failing."
+    },
+    {
+      "id": "context-gauge-estimate-registry",
+      "upstream": {
+        "file": "packages/chat/src/core/usage/registry.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/ContextGaugeResolver.kt",
+        "symbol": "estimateContextUsage / deepestPersistedSnapshot"
+      },
+      "why": "How a message becomes a token entry for the context-gauge-estimate walk: `toEntry`'s chars/4 and quoted-turn rules, tool-call argument and output lengths, and which content parts count as text.",
+      "failure_mode": "The gauge disagrees with web for the same branch -- a different percentage, a pre-summary snapshot revived, or an over-window branch pinned at 100% -- with nothing failing."
+    },
+    {
+      "id": "context-gauge-estimate-snapshot",
+      "upstream": {
+        "file": "packages/chat/src/core/usage/snapshot.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/ContextGaugeResolver.kt",
+        "symbol": "estimateContextUsage / deepestPersistedSnapshot"
+      },
+      "why": "How a persisted context snapshot is read for the context-gauge-estimate walk (the snapshot half of what client/src/utils/tokens.ts held before v0.8.9-rc1).",
       "failure_mode": "The gauge disagrees with web for the same branch -- a different percentage, a pre-summary snapshot revived, or an over-window branch pinned at 100% -- with nothing failing."
     },
     {
       "id": "context-gauge-used-tokens",
       "upstream": {
-        "file": "client/src/hooks/Chat/useTokenUsage.ts",
-        "mode": "file"
+        "file": "packages/chat/src/core/usage/view.ts",
+        "symbol": "deriveTokenUsageView",
+        "mode": "block"
       },
       "kotlin": {
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/usage/ContextUsage.kt",
         "symbol": "ContextUsage.usedTokens / windowTokens (precedence: ContextProjectionDelegate)"
       },
-      "why": "How a snapshot becomes the gauge's numbers (denominator `contextBudget ?? maxContextTokens`, the breakdown floor, the post-snapshot `completedOutputTokens`/`retainedToolTokens` additions) and the live / saved / estimate precedence. The precedence diverges deliberately (the saved snapshot replaces the finished turn's live reading); see the delegate KDoc. The breakdown's Totals and Cost come from the same file's view (branchUsage / totalUsage); see the context-breakdown-rows and usage-totals-folding entries.",
+      "why": "How a snapshot becomes the gauge's numbers (denominator `contextBudget ?? maxContextTokens`, the breakdown floor, the post-snapshot `completedOutputTokens`/`retainedToolTokens` additions) and the live / saved / estimate precedence. The precedence diverges deliberately (the saved snapshot replaces the finished turn's live reading); see the delegate KDoc. The breakdown's Totals and Cost come from the same file's view (branchUsage / totalUsage); see the context-breakdown-rows and usage-totals-folding entries. Since v0.8.9-rc1 the arithmetic is @librechat/chat's `deriveTokenUsageView`; client/src/hooks/Chat/useTokenUsage.ts only feeds it.",
       "failure_mode": "The gauge reads a different percentage from web for the same snapshot, or shows a stale source after a reload."
     },
     {
@@ -1591,7 +1687,7 @@
     {
       "id": "context-overhead-key",
       "upstream": {
-        "file": "client/src/store/usage.ts",
+        "file": "client/src/components/Chat/Input/TokenUsage/store.ts",
         "symbol": "overheadKey",
         "mode": "block"
       },
@@ -1618,14 +1714,15 @@
     {
       "id": "usage-totals-folding",
       "upstream": {
-        "file": "client/src/hooks/SSE/useUsageHandler.ts",
-        "mode": "file"
+        "file": "client/src/hooks/SSE/usage/handlers.ts",
+        "symbol": "createUsageHandlers",
+        "mode": "block"
       },
       "kotlin": {
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/LiveReplyDelegate.kt",
         "symbol": "foldUsage / onFinal / discardPendingUsage (math in util/UsageTotals.kt)"
       },
-      "why": "How live `on_token_usage` events become the breakdown's Totals: every bucket counts, each call once (runId:seq), the run's usage is attributed to its reply at the final frame, and a resume backfill folds through the same dedupe.",
+      "why": "How live `on_token_usage` events become the breakdown's Totals: every bucket counts, each call once (runId:seq), the run's usage is attributed to its reply at the final frame, and a resume backfill folds through the same dedupe. Since v0.8.9-rc1 the handlers live in client/src/hooks/SSE/usage/handlers.ts (`createUsageHandlers`); useUsageHandler.ts only wires them.",
       "failure_mode": "Totals or Cost double-count a reply at completion, drop buckets web counts, or count a replayed call twice after a reconnect."
     },
     {
@@ -1645,7 +1742,7 @@
     {
       "id": "group-tool-tokens",
       "upstream": {
-        "file": "client/src/utils/tokens.ts",
+        "file": "packages/chat/src/core/usage/estimate.ts",
         "symbol": "groupToolTokens",
         "mode": "block"
       },
@@ -1673,14 +1770,14 @@
     {
       "id": "series-palette",
       "upstream": {
-        "file": "client/src/style.css",
+        "file": "packages/client/src/theme/defaults.css",
         "mode": "file"
       },
       "kotlin": {
         "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/theme/SeriesColors.kt",
         "symbol": "SeriesColors"
       },
-      "why": "The categorical `--series-1..8` colours (light and dark blocks) the context meter and its legend use. A CSS property run has no declaration a block anchor can find, so the whole file is watched; only the `--series-*` lines matter.",
+      "why": "The categorical `--series-1..8` colours (light and dark blocks) the context meter and its legend use. A CSS property run has no declaration a block anchor can find, so the whole theme file (packages/client/src/theme/defaults.css since v0.8.9-rc1; client/src/style.css before) is watched; only the `--series-*` lines matter.",
       "failure_mode": "The app's meter colours drift from web's, so the same category reads as a different colour on the two clients."
     },
     {
@@ -1755,12 +1852,12 @@
     {
       "id": "legacy-thinking-block",
       "upstream": {
-        "file": "client/src/components/Chat/Messages/Content/MessageContent.tsx",
+        "file": "packages/data-provider/src/parsers.ts",
         "symbol": "parseThinkingContent",
         "mode": "block"
       },
       "kotlin": {
-        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/mapper/MessageSearchMapper.kt",
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/LegacyThinking.kt",
         "symbol": "LegacyThinking"
       },
       "why": "Messages saved before reasoning had its own content part keep it in `text` as a `:::thinking ... :::` block. The web client splits the first such block off as reasoning; search does the same, so the block is indexed as reasoning (the in-reasoning badge, answers only) and the preview shows the answer without it.",
@@ -1770,7 +1867,7 @@
       "id": "file-config-mb-to-bytes",
       "upstream": {
         "file": "packages/data-provider/src/file-config.ts",
-        "symbol": "mergeFileConfig",
+        "symbol": "buildMergedFileConfig",
         "mode": "block"
       },
       "kotlin": {
@@ -1862,6 +1959,33 @@
       },
       "why": "How the \"Next refill\" date is computed from lastRefill plus the interval. Known divergence, kept on purpose: month-end clamps where JS Date rolls over.",
       "failure_mode": "Upstream changes the rule and the Balance section shows a next-refill date that differs from web's. A wrong date renders exactly like a right one."
+    },
+    {
+      "id": "balance-display-modes",
+      "upstream": {
+        "file": "packages/data-provider/src/balance.ts",
+        "symbol": "BALANCE_DISPLAY_MODES",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/model/AutoRefillInfo.kt",
+        "symbol": "BalanceDisplay / CREDITS_PER_USD"
+      },
+      "why": "How the Balance section shows the reading: raw credits, their currency value (credits / CREDITS_PER_USD through interface.currency), or the share of the allotment spent with no credit figure anywhere. An unknown mode reads as credits, as web's toDisplay.",
+      "failure_mode": "Upstream adds a mode or changes the credits-per-dollar rate and the section shows credits, or the wrong amount of money, where web shows the new reading. Nothing fails to decode."
+    },
+    {
+      "id": "balance-summary",
+      "upstream": {
+        "file": "client/src/utils/balance.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/model/AutoRefillInfo.kt",
+        "symbol": "usedPercent / Balance.allotment; BalanceUiState.presentedFor in viewmodel/AccountSettingsViewModel.kt"
+      },
+      "why": "The share spent (floored, held to 99 while credits remain, 100 once empty) and its allotment (the refill amount under auto-refill, else the config's startBalance), plus the reset-mode wording AutoRefillSettings swaps in for refillMode 'reset'. The server serves only the raw record.",
+      "failure_mode": "Upstream changes the rounding or the allotment and the percent here disagrees with web's for the same account. A wrong percent renders like a right one."
     },
     {
       "id": "preview-poll-interval",
@@ -3997,6 +4121,20 @@
       "failure_mode": "A changed refresh-routing or cookie-rotation contract rejects native sessions after login or refresh."
     },
     {
+      "id": "openid-refresh-cookie-routing-local",
+      "upstream": {
+        "file": "packages/api/src/auth/localRefresh.ts",
+        "symbol": "createLocalRefreshHandler",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/client/CookieHelper.kt",
+        "symbol": "update"
+      },
+      "why": "The non-OpenID refresh refreshController hands off to since v0.8.9-rc1: which arms clear the refreshToken cookie (a retired token's 401, the TWO_FACTOR_ENROLLMENT_REQUIRED 200 that carries no token) and which rotate it. CookieHelper.update reads a cleared refreshToken as a dead session, so the enrollment arm has to be told apart before it.",
+      "failure_mode": "A changed refresh-routing or cookie-rotation contract rejects native sessions after login or refresh. An arm that newly clears the cookie on a 200 lands the session in refresh limbo instead of re-auth."
+    },
+    {
       "id": "openid-bearer-cookie-routing",
       "upstream": {
         "file": "api/server/middleware/requireJwtAuth.js",
@@ -4203,6 +4341,1486 @@
       },
       "why": "The Tailwind build web's artifact iframes load. The client vendors the same pinned Play CDN build; a move to v4 (@tailwindcss/browser) renames utilities model output still uses, so follow it deliberately (see the tailwind entry's pin_reason).",
       "failure_mode": "Artifacts style differently on web and mobile: utilities one build has and the other lacks."
+      },
+    {
+      "id": "two-factor-enrollment-required-code",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "TWO_FACTOR_ENROLLMENT_REQUIRED_CODE",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/ServerErrorCode.kt",
+        "symbol": "TWO_FACTOR_ENROLLMENT_REQUIRED"
+      },
+      "why": "The code on the login 200, the refresh 200 and the authenticated-route 403 that say the account must set up 2FA before going on. The refresh store branches on it before reading the response cookies, and the response validator raises the setup gate on it.",
+      "failure_mode": "Upstream renames the code: a required-enrollment refresh reads as a malformed 2xx again (refresh limbo), the 403 raises nothing and every request fails with no way forward. Nothing fails to decode."
+    },
+    {
+      "id": "two-factor-federated-login-blocked-code",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "TWO_FACTOR_FEDERATED_LOGIN_BLOCKED_CODE",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/ServerErrorCode.kt",
+        "symbol": "TWO_FACTOR_FEDERATED_LOGIN_BLOCKED"
+      },
+      "why": "The 403 code a password sign-in of an identity-provider account gets while 2FA is enforced. LoginViewModel tells it apart from the email-login-disabled 403 so the form is not hidden.",
+      "failure_mode": "Upstream renames it and the sign-in screen tells an SSO user that email login is disabled on the server, and hides the form."
+    },
+    {
+      "id": "terms-not-accepted-code",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "TERMS_NOT_ACCEPTED_CODE",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/ServerErrorCode.kt",
+        "symbol": "TERMS_NOT_ACCEPTED, isTermsNotAccepted"
+      },
+      "why": "The 403 code (flat {code}, or nested {error:{code}} on the remote agent routes; see packages/api/src/middleware/terms.ts) a write gets while the terms are required and not accepted. The validator raises the terms gate on it, which opens the Terms screen.",
+      "failure_mode": "Upstream renames the code or changes the envelope: every write fails with a generic error and the Terms screen never opens."
+    },
+    {
+      "id": "tenant-context-required-code",
+      "upstream": {
+        "file": "packages/api/src/middleware/tenant.ts",
+        "symbol": "TENANT_CONTEXT_REQUIRED",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/ServerErrorCode.kt",
+        "symbol": "TENANT_CONTEXT_REQUIRED"
+      },
+      "why": "The 403 code (and the OAuth callback error= value) a pre-auth route answers under strict tenant isolation when the request names no tenant. The sign-in and SSO screens give it their own explanation instead of 'email login disabled' or a generic failure.",
+      "failure_mode": "Upstream renames it and a tenant refusal reads as email login being disabled, which hides the sign-in form."
+    },
+    {
+      "id": "safe-link-url",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "isSafeLinkUrl",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/SafeLinkUrl.kt",
+        "symbol": "isSafeLinkUrl, LINK_SCHEMES"
+      },
+      "why": "Which configured policy links (privacy policy, terms of service externalUrl) may be opened: http(s), mailto, tel or relative, with the scheme read the way a URL parser reads it. Ported as a hand-written scan, not the regex.",
+      "failure_mode": "Upstream widens or narrows the allowlist and the client opens a link the web refuses (or hides one it shows). Nothing fails to decode."
+    },
+    {
+      "id": "two-factor-policy-providers",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "TWO_FACTOR_POLICY_PROVIDERS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/delegate/TwoFactorSecurityDelegate.kt",
+        "symbol": "TWO_FACTOR_POLICY_PROVIDERS"
+      },
+      "why": "The account providers enforced 2FA applies to (local, ldap). Disable 2FA is hidden only for them while twoFactorAuthenticationRequired is on, because only for them does the server refuse it.",
+      "failure_mode": "Upstream adds a provider: Disable 2FA stays visible for it and fails with a 403 when tapped."
+    },
+    {
+      "id": "mcp-oauth-csrf-cookie",
+      "upstream": {
+        "file": "packages/api/src/oauth/csrf.ts",
+        "symbol": "OAUTH_CSRF_COOKIE",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/api/McpApi.kt",
+        "symbol": "MCP_OAUTH_BINDING_COOKIES"
+      },
+      "why": "One of the two cookies the MCP OAuth callback accepts as browser binding (v0.8.9-rc1). Mobile copies it by name from the bind response into the sign-in WebView's jar.",
+      "failure_mode": "Upstream renames the cookie: bind still answers 200 but the cookie is filtered out, the WebView carries no binding, and every in-app MCP sign-in ends at /oauth/error?error=csrf_validation_failed."
+    },
+    {
+      "id": "mcp-oauth-session-cookie",
+      "upstream": {
+        "file": "packages/api/src/oauth/csrf.ts",
+        "symbol": "OAUTH_SESSION_COOKIE",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/api/McpApi.kt",
+        "symbol": "MCP_OAUTH_BINDING_COOKIES"
+      },
+      "why": "The user-bound cookie the MCP OAuth callback accepts when the per-flow CSRF cookie is missing or was replaced by a later prompt.",
+      "failure_mode": "Upstream renames it: a sign-in whose CSRF cookie lapsed or was overwritten by another prompt fails with csrf_validation_failed instead of falling back to the session binding."
+    },
+    {
+      "id": "mcp-oauth-tool-call-name",
+      "upstream": {
+        "file": "packages/api/src/mcp/utils.ts",
+        "symbol": "buildOAuthToolCallName",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpOAuthLaunch.kt",
+        "symbol": "MCP_OAUTH_TOOL_PREFIX"
+      },
+      "why": "The sign-in prompt's tool call is named oauth_mcp_<normalized server>; mobile reads the server name from it when the authorization URL's redirect_uri names no MCP callback.",
+      "failure_mode": "Upstream changes the prefix: a prompt whose URL has no MCP redirect_uri shows no Sign in action, and the run waits until the prompt expires."
+    },
+    {
+      "id": "mcp-oauth-result-pages",
+      "upstream": {
+        "file": "api/server/routes/mcp.js",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/mcp/McpOAuthNavigationGate.kt",
+        "symbol": "McpOAuthNavigationGate"
+      },
+      "why": "The MCP OAuth callback ends with a redirect to {basePath}/oauth/success or {basePath}/oauth/error?error=; the in-app sign-in WebView stops on those two paths to report the outcome.",
+      "failure_mode": "Upstream moves the result pages: the WebView loads the web app's page and never reports success, so Settings does not reload and the user has to close the page by hand."
+    },
+    {
+      "id": "speech-text",
+      "upstream": {
+        "file": "packages/data-provider/src/parsers.ts",
+        "symbol": "getSpeechText",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/SpeechText.kt",
+        "symbol": "speechTextOf"
+      },
+      "why": "What Read Aloud speaks: the TEXT parts of a reply (parseTextParts with skipReasoning), or its plain text minus a legacy :::thinking block. Reasoning is never spoken.",
+      "failure_mode": "Upstream widens or narrows what is spoken (a new part type, steer text, a different legacy split) and mobile keeps reading the old selection aloud; nothing fails."
+    },
+    {
+      "id": "tts-max-input-chars",
+      "upstream": {
+        "file": "packages/api/src/files/speech.ts",
+        "symbol": "DEFAULT_TTS_MAX_INPUT_CHARS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpeechSegments.kt",
+        "symbol": "SERVER_TTS_MAX_INPUT_CHARS"
+      },
+      "why": "POST /api/files/speech/tts/manual synthesizes only the first speech.tts.maxInputChars characters (default 20,000) and drops the rest without an error. Server read-aloud sends a reply in segments well under it (SERVER_TTS_SEGMENT_CHARS), so a long reply is read to its end.",
+      "failure_mode": "Upstream lowers the default below the segment size: long replies read aloud through the server stop partway again, with no error."
+    },
+    {
+      "id": "speech-separators",
+      "upstream": {
+        "file": "packages/data-provider/src/parsers.ts",
+        "symbol": "SEPARATORS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpeechSegments.kt",
+        "symbol": "SPEECH_SEPARATORS"
+      },
+      "why": "The sentence boundaries a long reply is cut at for read-aloud (server segments and the device engine's 4,000-char utterances), the same ones upstream's streamed speech splits on.",
+      "failure_mode": "Upstream changes its boundaries and mobile keeps cutting at the old ones; a segment may end mid-sentence where web's would not. Nothing fails."
+    },
+    {
+      "id": "opaque-reasoning",
+      "upstream": {
+        "file": "packages/data-provider/src/reasoning.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/OpaqueReasoning.kt",
+        "symbol": "reasoningDisplay"
+      },
+      "why": "Which reasoning text is an encrypted provider payload (an unbroken base64/base64url run of 128+ chars, the persisted <think> wrapper ignored) and how a streaming tail is held until classified. The thinking card, find-in-page, copy and the editor's read-only rule all read it; an all-payload part renders the 'Reasoning (encrypted)' marker.",
+      "failure_mode": "Upstream changes the threshold, the alphabet or the streaming hold, and mobile shows ciphertext as thinking again (or hides prose) with nothing failing."
+    },
+    {
+      "id": "chat-content-filter-block",
+      "upstream": {
+        "file": "packages/api/src/middleware/contentFilter.ts",
+        "symbol": "contentFilterBlockResponse",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/ServerErrorCode.kt",
+        "symbol": "CONTENT_FILTER_BLOCK"
+      },
+      "why": "A chat POST the content filter refused is a 400 {error: 'content_filter_block', message, source, field}, nothing saved. The chat keys contentFilterNotice on that error id: the filter's sentence is shown, or a localized notice when it has none, never the bare code.",
+      "failure_mode": "A renamed error id makes a filtered send read as a generic 400; a body without a message then shows the raw code as the error."
+    },
+    {
+      "id": "invalid-message-id",
+      "upstream": {
+        "file": "packages/api/src/middleware/messageIds.ts",
+        "symbol": "validateChatMessageIds",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/ChatPayloadBuilder.kt",
+        "symbol": "nonBlankId"
+      },
+      "why": "Every /api/agents/chat route 400s INVALID_MESSAGE_ID for a present turn id outside 1-256 chars of [A-Za-z0-9_:.-] (an empty string is present). ChatPayloadBuilder sends blank ids as absent, and ChatPayloadMessageIdTest pins mobile's ids against the rule.",
+      "failure_mode": "Upstream tightens the rule (new fields, a shorter limit, a narrower alphabet) and a send mobile builds starts failing with 400 INVALID_MESSAGE_ID while every test stays green."
+    },
+    {
+      "id": "attached-command-trailer",
+      "upstream": {
+        "file": "packages/data-provider/src/previews.ts",
+        "symbol": "COMMAND_RESULT_TRAILER",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/CommandOutput.kt",
+        "symbol": "parseCommandOutput / attachedCommandFailed / COMMAND_RESULT_TRAILER"
+      },
+      "why": "The attached-workspace bash_tool ends its output with an exit-status trailer ([exit code: N][terminated by SIG][timed out][output truncated]) written by formatCommandResult; the client reads it (as upstream Parts/command.ts parseCommandOutput does) to count a non-zero exit as a failed call in an activity-group header, and to split the code card into stdout, stderr and the exit badge (\"Ran command · exit code 1\"). The server serves no verdict field.",
+      "failure_mode": "The trailer's wording changes and every attached-workspace command reads as succeeded in the group header while its card (on web) shows the failure. Nothing errors."
+    },
+    {
+      "id": "subagent-progress-digest-summary",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/SubagentProgress.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/SubagentProgressBlock.kt",
+        "symbol": "parseDigestSummary / digestParentPath / buildDigestTree / isOnDigestPath"
+      },
+      "why": "The server folds a digest node's children into a model-facing English tally ('bash_tool ×3, text +2 more', '1 turn, 2 tools'); the web client takes it apart with three regexes so every fragment but a tool name is localized, rebuilds the tree from positional paths ('3.2' under '3', '1-14' at the root) and opens the branch holding the active path. None of this is served as structure.",
+      "failure_mode": "The tally's wording or the path scheme changes and the progress card shows raw English fragments, or nests nodes under the wrong turn. Nothing errors."
+    },
+    {
+      "id": "agent-handoff-edge-classification",
+      "upstream": {
+        "file": "client/src/components/SidePanel/Agents/Tools/items/orchestration.ts",
+        "symbol": "isHandoffEdge",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/viewmodel/AgentEditorMappers.kt",
+        "symbol": "isHandoffEdge / parseHandoffEdges"
+      },
+      "why": "Which stored graph edges the handoff editor owns: not edgeType 'direct', and not an untyped, unconditional edge from one source to several destinations, which the agents SDK runs as direct. The rule is the SDK's, copied by the web client; the server serves no classification.",
+      "failure_mode": "The SDK changes its default and the editor lists direct edges as handoffs (or hides real ones); an edit then rewrites the edge's meaning on save. Nothing errors."
+    },
+    {
+      "id": "tool-call-preparing",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/preparation.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/StreamingToolCallCard.kt",
+        "symbol": "preparingToolLabel / MCP_DELIMITER / ACTION_DELIMITER; ActiveToolCall.isPreparing in viewmodel/MessagesState.kt"
+      },
+      "why": "When a live tool call reads 'Preparing {tool}': a preparation marker without a dispatch, result or terminal status (isToolCallPreparing; dispatch and results outrank the marker), and never for an MCP (`_mcp_`) or action (`_action_`, data-provider actionDelimiter) tool, which keeps its integration name. Upstream also reads incomplete arguments as preparing; this client tracks no argument deltas and does not.",
+      "failure_mode": "Upstream changes the precedence or the integration exclusion and live cards say Preparing while a tool runs, or prefix a raw tool_mcp_server string. Nothing errors."
+    },
+    {
+      "id": "permission-update-error-codes",
+      "upstream": {
+        "file": "packages/api/src/acl/accessControlService.ts",
+        "symbol": "APPROVED_ERROR_CODES",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/acl/PermissionUpdateFailure.kt",
+        "symbol": "PermissionUpdateFailure"
+      },
+      "why": "The codes a failed audited permission update carries in its error body (permissionErrorCode), which the access editors word as 'try again' (busy lock, lock store down, audit log down) instead of a generic failure. Web maps the same set in client/src/components/Sharing/errors.ts.",
+      "failure_mode": "Upstream adds or renames a code and the editors fall back to the generic failure for a refusal that would pass on retry. Nothing errors."
+    },
+    {
+      "id": "agent-inference-profiles",
+      "upstream": {
+        "file": "packages/api/src/agents/inference.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/viewmodel/AgentInferenceProfile.kt",
+        "symbol": "keepAcceptedInferenceParameters (profiles, ALIASES, parameterKey, knownFamily, Bedrock envelope hoist)"
+      },
+      "why": "Which model_parameters keys the v0.8.9-rc1+ agent create/update routes accept per provider family (openai, openrouter, anthropic, google, bedrock, bedrock-anthropic, mistral), how aliases map to profile keys, how a custom endpoint picks its family (defaultParamsEndpoint) and admits declared extras, and how a legacy Bedrock additionalModelRequestFields envelope is read. The editor drops every other key before saving, because the route rejects the whole save with a 400 otherwise.",
+      "failure_mode": "Upstream admits a new key and the editor deletes it from every agent it saves; or it stops admitting one and every save of an agent holding it fails with a 400 the user can't clear from mobile."
+    },
+    {
+      "id": "conversation-rename-refusals",
+      "upstream": {
+        "file": "packages/api/src/conversations/rename.ts",
+        "symbol": "createRenameConversationHandler",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/RenameRefusedException.kt",
+        "symbol": "RenameRefusal"
+      },
+      "why": "The rename handler's named refusals: 409 conversation_title_ownership_not_ready while interface.runningChatRename is off and the title is unset or a run is active, and 404 conversation_not_found. The chat and the drawer word each instead of a generic failure.",
+      "failure_mode": "Upstream renames a code or adds a refusal and the rename falls back to 'Failed to rename conversation' with no hint that waiting would help. Nothing errors."
+    },
+    {
+      "id": "conversation-title-ownership-version",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "CONVERSATION_TITLE_OWNERSHIP_VERSION",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/InterfaceConfig.kt",
+        "symbol": "CONVERSATION_TITLE_OWNERSHIP_VERSION"
+      },
+      "why": "The capability version /api/config announces when the server owns a running chat's title. StartupConfig.supportsConversationTitleOwnership compares the served number to this copy, so the copy is the half that is never served. Nothing reads that property yet (the rename refusals come from the server, see conversation-rename-refusals); it is registered so the first caller does not inherit a stale copy.",
+      "failure_mode": "Upstream bumps the version and supportsConversationTitleOwnership reads every new server as lacking title ownership. Inert until something reads it; then it silently withholds whatever that caller gates."
+    },
+    {
+      "id": "conversation-title-ownership-support",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "supportsConversationTitleOwnership",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/StartupConfig.kt",
+        "symbol": "StartupConfig.supportsConversationTitleOwnership"
+      },
+      "why": "Title ownership needs BOTH the announced version and interface.runningChatRename; a replica with the YAML option but no announced version is an older server.",
+      "failure_mode": "Upstream adds or drops a condition and the property answers wrongly for some servers. Inert until something reads it (see conversation-title-ownership-version)."
+    },
+    {
+      "id": "forced-temporary-retention",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "isForcedTemporaryRetention",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/InterfaceConfig.kt",
+        "symbol": "isForcedTemporaryRetention / RETENTION_MODE_EPHEMERAL"
+      },
+      "why": "Which interface.retentionMode makes the server save every new chat temporary (only 'ephemeral'). The client locks the temporary toggle on, latches the flag on the created chat and keeps such chats out of the cache from it.",
+      "failure_mode": "Another mode starts forcing temporary chats and the client shows them as saved, caches them and offers a toggle the server ignores -- or the reverse, a toggle locked on for nothing."
+    },
+    {
+      "id": "retention-mode-values",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "RetentionMode",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/InterfaceConfig.kt",
+        "symbol": "RETENTION_MODE_EPHEMERAL"
+      },
+      "why": "The literal behind RetentionMode.EPHEMERAL, which forced-temporary-retention's predicate names by symbol, so a renamed value would not move that block.",
+      "failure_mode": "The value is renamed and the client never recognises forced retention: every chat looks saved while the server expires it."
+    },
+    {
+      "id": "queued-turn-reconciliation-default",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "DEFAULT_QUEUED_TURN_RECONCILIATION_TIMEOUT_MS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/InterfaceConfig.kt",
+        "symbol": "DEFAULT_QUEUED_TURN_RECONCILIATION_TIMEOUT_MS"
+      },
+      "why": "How long a transport-ambiguous queued turn is reconciled when interface.queuedTurnReconciliationTimeoutMs is absent or invalid. The server serves the configured value, never its default.",
+      "failure_mode": "The default moves and the client gives up reconciling earlier or later than web, re-queuing a turn the server committed (a duplicate) or polling long after web has stopped."
+    },
+    {
+      "id": "steer-arm-confirmation-default",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "DEFAULT_STEER_ARM_CONFIRMATION_TIMEOUT_MS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/InterfaceConfig.kt",
+        "symbol": "DEFAULT_STEER_ARM_CONFIRMATION_TIMEOUT_MS"
+      },
+      "why": "How long \"Interrupt now\" waits for /chat/steer/arm before saying it couldn't confirm, when interface.steerArmConfirmationTimeoutMs is absent or invalid. The server serves the configured value, never its default.",
+      "failure_mode": "The default moves and the client reports \"couldn't confirm\" sooner or later than web. No error either way."
+    },
+    {
+      "id": "steer-interrupted-tool-result",
+      "upstream": {
+        "file": "packages/api/src/agents/steering/tools.ts",
+        "symbol": "INTERRUPTED",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/ToolCallParsing.kt",
+        "symbol": "INTERRUPTED_TOOL_RESULT"
+      },
+      "why": "The error sentence the server writes into a tool an interrupt (\"Interrupt and steer\") cancelled. Module-private and served nowhere; the client matches it to draw the call as \"Interrupted by your message\" and count it as cancelled rather than failed.",
+      "failure_mode": "Upstream rewords the sentence and every interrupted tool goes back to reading as a red failed card, with its group header counting a failure. Nothing errors; the copy is simply wrong."
+    },
+    {
+      "id": "interface-schema-bounds",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "interfaceSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/InterfaceConfig.kt",
+        "symbol": "MAX_INTERFACE_TIMEOUT_MS / landingHeadingIsGreeting"
+      },
+      "why": "The interface timeouts' validity bounds (positive integer, at most 2_147_483_647) the client applies before falling back to the default, and the landingHeading values ('entity' | 'greeting'). COARSE: the whole schema is one declaration, so expect it to report on unrelated interface options; diff the timeout and landingHeading arms.",
+      "failure_mode": "A bound or heading value changes and the client discards a configured timeout the server accepts, or keeps the entity title where web shows the greeting."
+    },
+    {
+      "id": "prompt-group-sources",
+      "upstream": {
+        "file": "packages/data-provider/src/types.ts",
+        "symbol": "PromptGroupSources",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/Prompt.kt",
+        "symbol": "PROMPT_SOURCE_NATIVE / PROMPT_SOURCE_LANGFUSE (PromptGroup.isExternal)"
+      },
+      "why": "Which prompt-group source is LibreChat's own. Any other source stores no text, so the client resolves it live and hides edit and delete, which the server refuses for it.",
+      "failure_mode": "The native value is renamed and every prompt reads as external (read-only, resolved on each open); a new external source is named as Langfuse, or its group shows edit controls the server refuses."
+    },
+    {
+      "id": "skill-deleting-upload",
+      "upstream": {
+        "file": "packages/api/src/skills/upload.ts",
+        "symbol": "createSkillUploadHandler",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/SkillDeletingException.kt",
+        "symbol": "SKILL_DELETING / isSkillDeleting"
+      },
+      "why": "A skill-file upload during a durable skill delete answers 409 { error: 'SKILL_DELETING' }. The client words it as the skill being deleted rather than an edit conflict.",
+      "failure_mode": "The code or status changes and the upload shows the bare code, or the editor reads it as another edit having landed first and offers a retry that can never succeed."
+    },
+    {
+      "id": "skill-deleting-file-delete",
+      "upstream": {
+        "file": "packages/api/src/skills/handlers.ts",
+        "symbol": "deleteFileHandler",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/SkillDeletingException.kt",
+        "symbol": "SKILL_DELETING / isSkillDeleting"
+      },
+      "why": "The skill-file delete's half of skill-deleting-upload: the same 409 { error: 'SKILL_DELETING' } during a durable skill delete.",
+      "failure_mode": "As skill-deleting-upload, for deleting a file."
+    },
+    {
+      "id": "abort-route-codes",
+      "upstream": {
+        "file": "api/server/routes/agents/index.js",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/ChatRepositoryImpl.kt",
+        "symbol": "abortChat retry set (ServerErrorCode.RUN_STILL_ACTIVE / ABORT_PERSISTENCE_FAILED / RUN_ALREADY_SETTLED)"
+      },
+      "why": "The chat abort route's outcome codes on generation protocol v1, which mobile speaks: 409 RUN_STILL_ACTIVE and 409 ABORT_PERSISTENCE_FAILED (Retry-After, run kept) are retried; RUN_ALREADY_SETTLED is final. The route is an anonymous router callback with no declaration to anchor on, so the whole routes file is watched -- COARSE; diff the /chat/abort handler.",
+      "failure_mode": "A code is renamed or a new retryable outcome appears and Stop either gives up on a run the server kept for a retry (the partial is never saved) or retries one that already settled."
+    },
+    {
+      "id": "two-factor-setup-credential-dead",
+      "upstream": {
+        "file": "client/src/components/Auth/TwoFactorSetupScreen.tsx",
+        "symbol": "isExpiredSetupCredential",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/auth/src/commonMain/kotlin/com/garfiec/librechat/feature/auth/viewmodel/TwoFactorSetupViewModel.kt",
+        "symbol": "SETUP_CREDENTIAL_DEAD"
+      },
+      "why": "Which statuses end the required-2FA setup flow (401 expired or retired setup token; 403 via isRetiredSetupFlow for policy or ban) and send the user back to sign in.",
+      "failure_mode": "A status moves and setup either retries a dead credential forever or throws the user back to sign-in on a recoverable error."
+    },
+    {
+      "id": "two-factor-setup-transition-spent",
+      "upstream": {
+        "file": "client/src/components/Auth/TwoFactorSetupScreen.tsx",
+        "symbol": "isSpentTransitionCredential",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/auth/src/commonMain/kotlin/com/garfiec/librechat/feature/auth/viewmodel/TwoFactorSetupViewModel.kt",
+        "symbol": "TRANSITION_CREDENTIAL_SPENT"
+      },
+      "why": "The acknowledgement and finalization nonces are single-use: 400 once consumed, plus the 401/403 of a dead setup credential. These end the flow rather than retrying with the same nonce.",
+      "failure_mode": "A spent nonce is retried indefinitely (the user is stuck on the backup-codes step), or a transient failure ends a setup that could have finished."
+    },
+    {
+      "id": "two-factor-setup-retired-flow",
+      "upstream": {
+        "file": "client/src/components/Auth/TwoFactorSetupScreen.tsx",
+        "symbol": "isRetiredSetupFlow",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/auth/src/commonMain/kotlin/com/garfiec/librechat/feature/auth/viewmodel/TwoFactorSetupViewModel.kt",
+        "symbol": "SETUP_CREDENTIAL_DEAD / TRANSITION_CREDENTIAL_SPENT (the 403 member)"
+      },
+      "why": "The 403 both setup predicates fold in by name, declared outside their blocks.",
+      "failure_mode": "As two-factor-setup-credential-dead."
+    },
+    {
+      "id": "unseen-reply-watermark",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "UNSEEN_REPLY_WATERMARK",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/Conversation.kt",
+        "symbol": "UNSEEN_REPLY_WATERMARK"
+      },
+      "why": "The lastSeenAt value the server stamps beside a real reply. The drawer's Finished group keys on it to tell a reply that finished unseen from a chat marked unread by hand.",
+      "failure_mode": "A changed watermark empties Finished: replies still show their dot, but nothing is lifted to the top. Nothing fails to decode."
+    },
+    {
+      "id": "conversation-unseen-rules",
+      "upstream": {
+        "file": "client/src/utils/convos.ts",
+        "symbol": "isConversationUnseen",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/Conversation.kt",
+        "symbol": "isUnseen"
+      },
+      "why": "When a chat reads as unread: a reply stamp newer than the catch-up, a missing stamp reading as seen.",
+      "failure_mode": "The dot shows on chats the web shows as read, or the reverse; /seen is sent for chats already caught up, or never for one that is not."
+    },
+    {
+      "id": "conversation-list-limits-defaults",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "conversationListConfigSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/ConversationListLimits.kt",
+        "symbol": "DEFAULT_MAX_ENDPOINT_FILTERS / DEFAULT_MAX_ENDPOINT_NAME_LENGTH"
+      },
+      "why": "The endpoint-filter bounds the list route applies when a server does not publish conversationListLimits. The filter sheet stops a selection at them.",
+      "failure_mode": "The sheet lets the user pick more endpoints than the route accepts and the filtered list fails with a 400, or stops them short of what the server would take."
+    },
+    {
+      "id": "conversation-list-facets",
+      "upstream": {
+        "file": "client/src/components/Conversations/facets.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/conversations/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/drawer/DrawerFilters.kt",
+        "symbol": "FilterDateRange / rangeCutoff / selectableEndpoints"
+      },
+      "why": "The web's list-filter windows (Any time, Today, Previous 7/30 days, Previous year as 1/7/30/365 whole days back from local midnight) and which endpoints the filter offers (served names within maxEndpointNameLength, plus any still selected). The drawer's filter sheet copies them.",
+      "failure_mode": "The same filter lists different chats on the phone and the web, or the sheet offers an endpoint name the route refuses with a 400. Nothing fails to decode."
+    },
+    {
+      "id": "tool-approval-constraint",
+      "upstream": {
+        "file": "packages/data-provider/src/approval.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/util/ToolApprovalModes.kt",
+        "symbol": "toolApprovalConstraint / globMatches"
+      },
+      "why": "Which approval modes the agent editor offers per MCP tool: upstream getToolApprovalConstraint's rule order (deny, ask, allow, then dontAsk/bypass) and its '*'-only glob over the agents toolApproval policy.",
+      "failure_mode": "The mode menu offers Always approve or a remembered mode the admin's policy will never honour (it saves and does nothing), or disables modes the policy allows. Nothing fails to decode."
+    },
+    {
+      "id": "tool-approval-modes-revision",
+      "upstream": {
+        "file": "client/src/hooks/Agents/useMCPToolOptions.ts",
+        "symbol": "withApprovalModes",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/util/ToolApprovalModes.kt",
+        "symbol": "withApprovalMode"
+      },
+      "why": "How a mode change is written to tool_options: a fresh approval_revision UUID on every change (or on a remembering mode without a valid one), inherit removing both fields while keeping the tool's other options.",
+      "failure_mode": "A changed mode keeps old grants alive (stale revision), or a remembering mode without a revision is silently ignored by the server. Nothing fails to decode."
+    },
+    {
+      "id": "reasoning-setting-for-target",
+      "upstream": {
+        "file": "packages/data-provider/src/parameterSettings.ts",
+        "symbol": "resolveReasoningSettingForTarget",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/ReasoningSettingResolver.kt",
+        "symbol": "ReasoningSettingResolver.resolve"
+      },
+      "why": "Which reasoning key and values a one-turn reasoningOverride may carry for an endpoint and model. The server runs the same function on the request, so the Thinking chip and the send-time check must agree with it.",
+      "failure_mode": "The chip offers a level the server answers with a 400 invalid-reasoning-override (the send fails), or hides itself for a model that takes one. Nothing fails to decode."
+    },
+    {
+      "id": "reasoning-setting-per-model",
+      "upstream": {
+        "file": "packages/data-provider/src/parameterSettings.ts",
+        "symbol": "resolveReasoningSetting",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/ReasoningSettingResolver.kt",
+        "symbol": "resolveForModel"
+      },
+      "why": "Per-provider model rules for the reasoning key: Gemini budget vs level, adaptive vs manual Claude, the OpenAI reasoning-model regex, Azure needing a declared definition.",
+      "failure_mode": "Same as reasoning-setting-for-target, for one provider's models."
+    },
+    {
+      "id": "reasoning-model-patterns",
+      "upstream": {
+        "file": "packages/data-provider/src/parameterSettings.ts",
+        "symbol": "isKnownOpenAIReasoningModel",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/ReasoningSettingResolver.kt",
+        "symbol": "KNOWN_OPENAI_REASONING_MODEL / MANUAL_CLAUDE_THINKING / GEMINI_THINKING_LEVEL"
+      },
+      "why": "The model-name patterns that decide whether an OpenAI, Claude or Gemini model takes a reasoning override at all (isKnownOpenAIReasoningModel, isManualClaudeThinkingModel, and the gemini-3+/gemma-4+ test).",
+      "failure_mode": "A new reasoning model gets no Thinking chip, or a non-reasoning one gets a chip whose sends 400. Nothing fails to decode."
+    },
+    {
+      "id": "reasoning-known-providers",
+      "upstream": {
+        "file": "packages/data-provider/src/parameterSettings.ts",
+        "symbol": "knownReasoningProviderEndpoints",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/ReasoningSettingResolver.kt",
+        "symbol": "KNOWN_REASONING_PROVIDERS"
+      },
+      "why": "Which defaultParamsEndpoint values count as a reasoning capability for a custom endpoint.",
+      "failure_mode": "A custom endpoint backed by a newly listed provider gets no chip, or one that is no longer listed keeps a chip the server refuses."
+    },
+    {
+      "id": "reasoning-param-settings",
+      "upstream": {
+        "file": "packages/data-provider/src/parameterSettings.ts",
+        "symbol": "paramSettings",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/ReasoningSettingResolver.kt",
+        "symbol": "SETTINGS"
+      },
+      "why": "Only the reasoning keys of each parameter set (and that the set exists), which is what resolveReasoningSettingForTarget picks from. The registry's full lists are not used for this because they differ from upstream's (Bedrock Anthropic's effort key).",
+      "failure_mode": "The chip's key or level list disagrees with what the server resolves, so a send 400s or a level is missing."
+    },
+    {
+      "id": "reasoning-openrouter-narrowing",
+      "upstream": {
+        "file": "packages/data-provider/src/parameterSettings.ts",
+        "symbol": "narrowOpenRouterEfforts",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/ReasoningSettingResolver.kt",
+        "symbol": "applyModelAwareDefaults (catalog part)"
+      },
+      "why": "How OpenRouter's per-model catalog narrows reasoning_effort: Auto kept, unknown levels dropped, none dropped when mandatory, no efforts hides it.",
+      "failure_mode": "The sheet offers a level the provider refuses, or hides one it accepts."
+    },
+    {
+      "id": "reasoning-uses-capabilities",
+      "upstream": {
+        "file": "client/src/hooks/Endpoint/useModelReasoning.ts",
+        "symbol": "usesReasoningCapabilities",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/ReasoningSettingResolver.kt",
+        "symbol": "usesCatalog"
+      },
+      "why": "Which endpoints the client fetches GET /api/endpoints/reasoning-capabilities for (and hides efforts on until it answers).",
+      "failure_mode": "An OpenRouter endpoint offers its generic list unchecked (sends 400 for models without that effort), or a non-catalog endpoint waits forever for a catalog and shows no chip."
+    },
+    {
+      "id": "reasoning-override-schema",
+      "upstream": {
+        "file": "packages/data-provider/src/schemas.ts",
+        "symbol": "reasoningOverrideSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/ReasoningSettingResolver.kt",
+        "symbol": "SCHEMA_VALUES / REASONING_EFFORT_VALUES / ANTHROPIC_EFFORT_VALUES / THINKING_LEVEL_VALUES"
+      },
+      "why": "The values each override key accepts (ReasoningEffort, AnthropicEffort, ThinkingLevel), used to drop declared options an override can never carry.",
+      "failure_mode": "A level upstream added is never offered, or one it removed is offered and 400s."
+    },
+    {
+      "id": "supports-adaptive-thinking",
+      "upstream": {
+        "file": "packages/data-provider/src/bedrock.ts",
+        "symbol": "supportsAdaptiveThinking",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
+        "symbol": "supportsAdaptiveThinking"
+      },
+      "why": "Which Claude models take effort (adaptive) rather than a token budget, for the reasoning override key.",
+      "failure_mode": "A new Claude model resolves to thinkingBudget (chip hidden) or to effort where the server expects a budget (sends 400)."
+    },
+    {
+      "id": "reasoning-manual-claude-pattern",
+      "upstream": {
+        "file": "packages/data-provider/src/parameterSettings.ts",
+        "symbol": "isManualClaudeThinkingModel",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/ReasoningSettingResolver.kt",
+        "symbol": "MANUAL_CLAUDE_THINKING"
+      },
+      "why": "Which Claude models that are not adaptive take a token budget (thinkingBudget) for the reasoning override.",
+      "failure_mode": "A manual-thinking Claude model resolves to no setting, or a non-thinking one to thinkingBudget; a replayed budget then 400s or is dropped. Nothing fails to decode."
+    },
+    {
+      "id": "passkey-name-max-length",
+      "upstream": {
+        "file": "packages/api/src/auth/passkey/handlers.ts",
+        "symbol": "MAX_PASSKEY_NAME_LENGTH",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/auth/Passkey.kt",
+        "symbol": "MAX_PASSKEY_NAME_LENGTH"
+      },
+      "why": "The rename dialog's field stops at the length the server keeps (it truncates past it).",
+      "failure_mode": "Upstream raises the cap: names are cut short in the app for no reason. Lowers it: the server silently truncates a name the dialog accepted."
+    },
+    {
+      "id": "email-change-error-codes",
+      "upstream": {
+        "file": "packages/data-provider/src/types.ts",
+        "symbol": "EmailChangeErrorCode",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/auth/EmailChange.kt",
+        "symbol": "EmailChangeError"
+      },
+      "why": "Each code of POST /api/user/email/change gets its own string and lands under the field it concerns (email, password, or the dialog).",
+      "failure_mode": "A new or renamed code falls through to the generic 'request failed' message, and a field error stops highlighting its field. Nothing fails to decode."
+    },
+    {
+      "id": "email-change-request-schema",
+      "upstream": {
+        "file": "packages/api/src/auth/email.ts",
+        "symbol": "requestSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/auth/EmailChange.kt",
+        "symbol": "MAX_EMAIL_CHANGE_PASSWORD_LENGTH"
+      },
+      "why": "The dialog refuses a current password over the schema's max(128) before sending, as it could never match.",
+      "failure_mode": "Upstream raises the cap: a long valid password is refused locally as incorrect and the user cannot change their email."
+    },
+    {
+      "id": "email-change-limiter-window",
+      "upstream": {
+        "file": "api/server/middleware/limiters/emailChangeLimiter.js",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/auth/EmailChange.kt",
+        "symbol": "EMAIL_CHANGE_COOLDOWN_SECONDS"
+      },
+      "why": "After a 429 without Retry-After, Send stays off for the limiter's default window (EMAIL_CHANGE_USER_WINDOW, 2 minutes).",
+      "failure_mode": "A longer default window: the user retries early and each 429 logs another VERIFY_EMAIL_LIMIT violation toward a ban. Shorter: Send stays off longer than needed."
+    },
+    {
+      "id": "project-instructions-conflict-code",
+      "upstream": {
+        "file": "packages/api/src/projects/handlers.ts",
+        "symbol": "updateProject",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/ProjectContextFailure.kt",
+        "symbol": "CHAT_PROJECT_CONFLICT_CODE"
+      },
+      "why": "An instructions save answered 409 with code CHAT_PROJECT_CONFLICT keeps the draft, reloads the project and offers View theirs; any other refusal is a plain save error.",
+      "failure_mode": "Upstream renames the code: a stale-revision save reads as a generic failure, the project is never reloaded, and every later Save conflicts again until the screen is reopened."
+    },
+    {
+      "id": "project-file-limit-409",
+      "upstream": {
+        "file": "packages/api/src/projects/handlers.ts",
+        "symbol": "addProjectFile",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/ProjectContextFailure.kt",
+        "symbol": "toProjectFileAddFailure"
+      },
+      "why": "On POST /:id/files a 409 (uncoded, { error }) is the project's file limit and is worded with the cap; a 400 is an ineligible file.",
+      "failure_mode": "Upstream gives the route another 409 meaning: it is told the project is full when it isn't."
+    },
+    {
+      "id": "project-file-availability",
+      "upstream": {
+        "file": "packages/data-provider/src/types.ts",
+        "symbol": "TChatProjectFile",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/response/ChatProjectResponses.kt",
+        "symbol": "AVAILABILITY_READY"
+      },
+      "why": "A project file row reads Ready only for availability 'ready'; anything else (including a new value) is Unavailable.",
+      "failure_mode": "Upstream adds a usable state (say 'processing'): the row reads Unavailable although the model can read it."
+    },
+    {
+      "id": "project-name-length",
+      "upstream": {
+        "file": "packages/data-provider/src/limits.ts",
+        "symbol": "MAX_CHAT_PROJECT_NAME_LENGTH",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/ChatProjectsConfig.kt",
+        "symbol": "MAX_NAME_LENGTH"
+      },
+      "why": "The project editor caps the name where the server silently truncates it.",
+      "failure_mode": "Upstream lowers the cap: a saved name comes back shorter than typed. Raises it: names are refused locally that the server would keep."
+    },
+    {
+      "id": "project-turn-start-failures",
+      "upstream": {
+        "file": "packages/api/src/projects/turn.ts",
+        "symbol": "getChatProjectTurnFailure",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/error/ServerErrorCode.kt",
+        "symbol": "PROJECT_RESOURCES_CHANGED"
+      },
+      "why": "A project chat's start POST refused 409 PROJECT_RESOURCES_CHANGED, or 404 with the sentence 'Conversation context unavailable' (PROJECT_CONTEXT_UNAVAILABLE_MESSAGE; upstream CHAT_PROJECT_CONTEXT_UNAVAILABLE_RESPONSE above this block), gets its own copy instead of a generic failure.",
+      "failure_mode": "Upstream renames the code or rewords the 404: the send fails with a generic error that doesn't say the project changed or is gone."
+    },
+    {
+      "id": "attachment-recovery-error-patterns",
+      "upstream": {
+        "file": "client/src/components/Messages/Content/Error/attachments.ts",
+        "symbol": "attachmentErrorPatterns",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/AttachmentRecovery.kt",
+        "symbol": "ATTACHMENT_ERROR_PATTERNS"
+      },
+      "why": "The text patterns that decide a failed reply reads as caused by its branch's files, which leads the recovery card with the cause sentence and offers Retry / Branch without files for failures that are otherwise unclassified.",
+      "failure_mode": "Upstream adds or rewords a pattern: a file-caused failure shows no recovery (or no cause sentence), or a non-file failure is blamed on the files."
+    },
+    {
+      "id": "attachment-recovery-file-agnostic-codes",
+      "upstream": {
+        "file": "client/src/components/Messages/Content/Error/attachments.ts",
+        "symbol": "fileAgnosticErrorCodes",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/AttachmentRecovery.kt",
+        "symbol": "FILE_AGNOSTIC_ERROR_CODES"
+      },
+      "why": "Typed failure codes that say nothing about their cause, so files may still be to blame and the recovery card is offered; any other typed code (a key, a balance, a limit) has its own remedy and hides it. Read through readErrorCode's envelope order, mirrored beside it.",
+      "failure_mode": "Upstream adds a code to the set: that failure shows no recovery here. Upstream removes one: recovery points at files for a failure with its own remedy."
+    },
+    {
+      "id": "attachment-recovery-langchain-codes",
+      "upstream": {
+        "file": "client/src/components/Messages/Content/Error/attachments.ts",
+        "symbol": "remedialLangChainCodes",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/AttachmentRecovery.kt",
+        "symbol": "REMEDIAL_LANGCHAIN_CODES"
+      },
+      "why": "LangChain codes (read from the troubleshooting URL by parseLangChainErrorCode, packages/data-provider/src/langchain.ts, ported beside it) whose remedy is the model, key or rate limit, so no recovery is offered.",
+      "failure_mode": "A new remedial code is offered a pointless files recovery; a removed one hides recovery on a file-caused failure."
+    },
+    {
+      "id": "attachment-recovery-carries-files",
+      "upstream": {
+        "file": "packages/data-provider/src/messages.ts",
+        "symbol": "messageCarriesFiles",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/AttachmentRecovery.kt",
+        "symbol": "messageCarriesFiles"
+      },
+      "why": "Which turns count as carrying files (uploads, file-backed attachments, file locators in content, a steer's files): decides whether Retry and Branch without files are offered, and whether a copy from an older server still has its files.",
+      "failure_mode": "Upstream adds a file locator shape: a branch carrying only that shape offers no recovery, and an older server's copy holding it is announced as clean."
+    },
+    {
+      "id": "agent-marketplace-sort",
+      "upstream": {
+        "file": "packages/api/src/agents/marketplace.ts",
+        "symbol": "AGENT_SORT_OPTIONS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/viewmodel/AgentListFilter.kt",
+        "symbol": "AgentSort"
+      },
+      "why": "The marketplace `sort` values the list route accepts (v0.8.9-rc1), in menu order. The route drops an unknown value silently and answers in its own order.",
+      "failure_mode": "A renamed or removed mode is sent and ignored: the list comes back in the default order under a menu label that says otherwise. A new mode is never offered. Nothing errors."
+    },
+    {
+      "id": "agent-marketplace-cursor-mismatch",
+      "upstream": {
+        "file": "packages/api/src/agents/marketplace.ts",
+        "symbol": "mapMarketplaceListError",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/AgentListFailure.kt",
+        "symbol": "CURSOR_ORDERING_MISMATCH / isCursorOrderingMismatch"
+      },
+      "why": "The 409 `{ error: \"cursor_ordering_mismatch\" }` a cursor read under another order gets. The marketplace restarts the list from page one once per query on it.",
+      "failure_mode": "A changed status or body makes every such page read as an ordinary failure: the footer shows Couldn't load more and Retry repeats the same stale cursor."
+    },
+    {
+      "id": "schedule-mcp-consent-view",
+      "upstream": {
+        "file": "packages/data-provider/src/types/scheduleConsent.ts",
+        "symbol": "ScheduleMCPConsentView",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/schedule/ScheduleMcpConsent.kt",
+        "symbol": "ScheduleMcpConsentView / ScheduleMcpConsentState"
+      },
+      "why": "The consent view's `state` values, each worded in the sheet, and `expiresAtMs` in epoch milliseconds.",
+      "failure_mode": "A new state reads as Authorization required; a renamed one shows the wrong status. A change of the expiry's unit renders a deadline decades off. Nothing fails to decode."
+    },
+    {
+      "id": "schedule-mcp-credential-modes",
+      "upstream": {
+        "file": "packages/data-provider/src/types/scheduleConsent.ts",
+        "symbol": "scheduledMCPResourceSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/schedule/ScheduleMcpConsent.kt",
+        "symbol": "ScheduledMcpCredentialMode"
+      },
+      "why": "The `credentialMode` enum, each value labelled in the consent sheet's target card.",
+      "failure_mode": "A new mode shows as its raw wire value; a renamed one loses its label. The user authorizes without a readable description of how the server signs in."
+    },
+    {
+      "id": "schedule-mcp-consent-confirm-body",
+      "upstream": {
+        "file": "packages/data-provider/src/types/scheduleConsent.ts",
+        "symbol": "confirmScheduleMCPConsentSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/schedule/ScheduleMcpConsent.kt",
+        "symbol": "confirmScheduleMcpConsentBody / RevokeScheduleMcpConsentRequest"
+      },
+      "why": "The strict confirm body: `expectedRevision` is nullable but required, and `lifetimeHours` is 1..8760. Built as a JsonObject so the null survives `explicitNulls = false`.",
+      "failure_mode": "A renamed or added required key makes every Confirm a 400 `consent_invalid`, shown as Authorization could not be updated."
+    },
+    {
+      "id": "deployment-theme-accent",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "themeDefinitionSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/DeploymentTheme.kt",
+        "symbol": "readDeploymentAccent / parseRgbTriplet"
+      },
+      "why": "The inline `interface.theme` shape (version 1, name, modes.light|dark.colors) and its \"R G B\" colour format, read for the `rgb-accent-primary` token only. Bundled names (`bundledThemeNames` in theme.ts: librechat, clickhouse) give no accent on purpose.",
+      "failure_mode": "A new version, a moved token or a changed colour format reads as Invalid: the server's brand accent silently stops painting the app and the user's own shows instead. Nothing errors."
+    },
+    {
+      "id": "code-workspace-routing",
+      "upstream": {
+        "file": "packages/data-provider/src/code/workspace.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/code/CodeWorkspaceRouting.kt",
+        "symbol": "isSelection(s) / resolveCodeEnvironmentSelection / resolveCodeWorkspaceInheritance / isCheckoutAvailable"
+      },
+      "why": "The server routes each agent to a machine with these exact rules (owner, then inherited parent, then default, then a single legacy pick) and validates a decision's ids, checkout and owners the same way. The composer resolves the same rules to know which workspaces a send must carry. Spec tables ported in CodeWorkspaceSelectionTest / CodeWorkspaceInheritanceTest.",
+      "failure_mode": "A changed precedence or validation makes the composer ask for a workspace the server never uses, or send a decision the server refuses as code_workspace_unavailable (invalid/required/locked). Nothing fails to decode."
+    },
+    {
+      "id": "code-workspace-capability-versions",
+      "upstream": {
+        "file": "packages/data-provider/src/code/workspace.ts",
+        "symbol": "CODE_ENVIRONMENT_DECISION_VERSION",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/code/CodeWorkspace.kt",
+        "symbol": "CodeCapabilityVersions"
+      },
+      "why": "Each /api/config capability version is matched with ==, as web does. The decision version is what allows sending a selection-less (\"No workspace\") decision; inheritance lets a subagent skip its own workspace.",
+      "failure_mode": "A bumped version reads as unsupported: the composer stops offering No workspace and holds sends, or asks subagents for workspaces they no longer need. Silent."
+    },
+    {
+      "id": "code-workspace-composer",
+      "upstream": {
+        "file": "client/src/hooks/Agents/useCodeWorkspace.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/code/CodeWorkspaceResolver.kt",
+        "symbol": "CodeWorkspaceResolver.resolve"
+      },
+      "why": "When the workspace control applies, the per-machine state, the pre-selection order (agent default, remembered pick, sole workspace) and what a send carries (resolveSubmission). Two deliberate divergences are documented on the object.",
+      "failure_mode": "A changed rule pre-selects a different workspace than web, or sends a decision web would not, and the chat is sealed on it for good."
+    },
+    {
+      "id": "code-workspace-agent-graph",
+      "upstream": {
+        "file": "client/src/hooks/Agents/useCodeApprovalMode.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/code/CodeWorkspaceAgents.kt",
+        "symbol": "choiceIds / findExecutionEnvironment / collectReachableAgents / resolveReachableInheritance"
+      },
+      "why": "Which agents a chat reaches (agent_ids, edges, enabled subagents and their graphs) and which machine each runs on, including per-chat machine choice from an agent's allowlist.",
+      "failure_mode": "An agent the composer no longer counts gets no workspace and the server refuses the turn as required, or a machine choice is offered that the server refuses."
+    },
+    {
+      "id": "code-workspace-select",
+      "upstream": {
+        "file": "client/src/components/Chat/Input/CodeWorkspaceMenu.tsx",
+        "symbol": "selectWorkspace",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/code/CodeWorkspaceResolver.kt",
+        "symbol": "CodeWorkspaceResolver.selectWorkspace"
+      },
+      "why": "How a pick rewrites the draft decision: which machines it replaces, which fixed machines it keeps, and which agents own a per-chat machine choice (agentIds).",
+      "failure_mode": "A draft that keeps a replaced machine or drops an owner is refused by the server as invalid/required on the first turn."
+    },
+    {
+      "id": "code-workspace-unavailable-reasons",
+      "upstream": {
+        "file": "packages/data-provider/src/code/workspace.ts",
+        "symbol": "CODE_WORKSPACE_SELECTION_ERROR_REASONS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/code/CodeWorkspace.kt",
+        "symbol": "CodeWorkspaceUnavailableReason"
+      },
+      "why": "The six reasons a code_workspace_unavailable rejection carries; each has its own copy (error_code_workspace_*), from translation.json com_error_code_workspace_*.",
+      "failure_mode": "A new reason falls back to the generic message; a renamed one shows the wrong advice."
+    },
+    {
+      "id": "code-workspace-preferences",
+      "upstream": {
+        "file": "client/src/hooks/Agents/workspacePreferences.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/datastore/CodeWorkspacePreferenceStore.kt",
+        "symbol": "CodeWorkspacePreferenceStore"
+      },
+      "why": "Remembered workspace picks: keyed per server, user, agent and machine, most recent first, capped at 100.",
+      "failure_mode": "A different key or cap changes which workspace a new chat pre-selects."
+    },
+    {
+      "id": "tool-call-previews-param",
+      "upstream": {
+        "file": "packages/data-provider/src/previews.ts",
+        "symbol": "TOOL_CALL_PREVIEWS_PARAM",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/ToolCallPreviews.kt",
+        "symbol": "ToolCallPreviews.PARAM"
+      },
+      "why": "The query parameter that opts a message load (and fork, duplicate, shared fork, branch) into tool-call previews.",
+      "failure_mode": "A renamed parameter is ignored by the server: loads silently go back to full payloads."
+    },
+    {
+      "id": "tool-call-previews-version",
+      "upstream": {
+        "file": "packages/data-provider/src/previews.ts",
+        "symbol": "TOOL_CALL_PREVIEWS_VERSION",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/ToolCallPreviews.kt",
+        "symbol": "ToolCallPreviews.VERSION"
+      },
+      "why": "The preview format we understand; the server honours only an exact match.",
+      "failure_mode": "A bumped format makes the server send us full payloads again: safe, but the load-size gain is gone without notice."
+    },
+    {
+      "id": "tool-call-preview-revision",
+      "upstream": {
+        "file": "packages/data-provider/src/previews.ts",
+        "symbol": "getToolCallPreviewRevision",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/AgentToolCall.kt",
+        "symbol": "previewKey"
+      },
+      "why": "Keys a fetched full part to the stored version its preview stands for (previewRevision + FNV-1a of output, args and the three lengths).",
+      "failure_mode": "A key that ignores a changed field shows a stale fetched part after the stored call changed."
+    },
+    {
+      "id": "tool-call-preview-markers",
+      "upstream": {
+        "file": "packages/data-provider/src/previews.ts",
+        "symbol": "hasToolCallPreview",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/AgentToolCall.kt",
+        "symbol": "isPreview"
+      },
+      "why": "Which flags make a call a preview; drives fetching, copy, export and the import refusal.",
+      "failure_mode": "A new marker flag goes unseen: a shortened call is copied, exported or shown as if it were full."
+    },
+    {
+      "id": "tool-call-with-full",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/hydration.tsx",
+        "symbol": "withFullToolCall",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/AgentToolCall.kt",
+        "symbol": "withFull"
+      },
+      "why": "Which fields a fetched full part replaces (only the shortened ones) and which markers it clears.",
+      "failure_mode": "A new shortened field keeps its preview after the fetch, or a fetched copy rolls back a newer cached field."
+    },
+    {
+      "id": "tool-call-lengths",
+      "upstream": {
+        "file": "packages/chat/src/core/usage/registry.ts",
+        "symbol": "toolCallLengths",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/content/AgentToolCall.kt",
+        "symbol": "fullArgsLength"
+      },
+      "why": "The context gauge's estimate counts a preview at its full argsLength/outputLength (ContextGaugeResolver).",
+      "failure_mode": "The gauge drops sharply on every previewed chat."
+    },
+    {
+      "id": "mcp-app-mime-type",
+      "upstream": {
+        "file": "packages/data-provider/src/mcp/appMime.ts",
+        "symbol": "isMcpAppMimeType",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpAppCsp.kt",
+        "symbol": "isMcpAppMimeType"
+      },
+      "why": "Which ui_resources entries are MCP Apps (get an Open app row) rather than legacy MCP-UI HTML.",
+      "failure_mode": "Apps the server attaches show no row, or legacy HTML is run through the App bridge."
+    },
+    {
+      "id": "mcp-app-csp-normalize",
+      "upstream": {
+        "file": "packages/data-provider/src/mcp/csp.ts",
+        "symbol": "normalizeMCPAppCspDeclaration",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpAppCsp.kt",
+        "symbol": "McpAppCspDeclaration.normalize"
+      },
+      "why": "The CSP sources an App's declaration may contribute to its sandbox and its link allowlist.",
+      "failure_mode": "An App runs under a wider or narrower policy than web gives it, or opens links web refuses."
+    },
+    {
+      "id": "mcp-app-csp-source-pattern",
+      "upstream": {
+        "file": "packages/data-provider/src/mcp/csp.ts",
+        "symbol": "MCP_APP_CSP_SOURCE_PATTERN",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpAppCsp.kt",
+        "symbol": "SOURCE_PATTERN"
+      },
+      "why": "The source grammar an App's CSP entries must match to be kept.",
+      "failure_mode": "Raw CSP syntax reaches the policy, or valid sources are dropped."
+    },
+    {
+      "id": "mcp-app-csp-policy",
+      "upstream": {
+        "file": "packages/api/src/mcp/sandbox.ts",
+        "symbol": "buildCspPolicy",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpAppCsp.kt",
+        "symbol": "buildMcpAppCspPolicy"
+      },
+      "why": "The relay page's and the View's Content-Security-Policy, built natively because the app does not load /api/mcp/sandbox.",
+      "failure_mode": "An App gets egress, frames or scripts that web's sandbox denies."
+    },
+    {
+      "id": "mcp-app-link-allowed",
+      "upstream": {
+        "file": "client/src/utils/mcpApps.ts",
+        "symbol": "isAllowedAppLink",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpAppCsp.kt",
+        "symbol": "isAllowedAppLink"
+      },
+      "why": "Which ui/open-link URLs the host opens: only hosts the delivered CSP declared.",
+      "failure_mode": "An App exfiltrates proxied MCP data through a host-opened link, or a declared link is refused."
+    },
+    {
+      "id": "mcp-app-link-host-match",
+      "upstream": {
+        "file": "client/src/utils/mcpApps.ts",
+        "symbol": "urlMatchesDeclaredSource",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpAppCsp.kt",
+        "symbol": "matchesDeclaredSource"
+      },
+      "why": "CSP3 host-source matching for links (scheme, port, wildcard, address literals).",
+      "failure_mode": "Link matching drifts from web's, widening what an App may open."
+    },
+    {
+      "id": "mcp-app-link-host-pattern",
+      "upstream": {
+        "file": "client/src/utils/mcpApps.ts",
+        "symbol": "APP_LINK_HOST_PATTERN",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpAppCsp.kt",
+        "symbol": "APP_LINK_HOST_PATTERN"
+      },
+      "why": "The host-source grammar the link check matches against.",
+      "failure_mode": "Link matching drifts from web's."
+    },
+    {
+      "id": "mcp-app-view-height",
+      "upstream": {
+        "file": "client/src/utils/mcpApps.ts",
+        "symbol": "clampAppViewHeight",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpAppCsp.kt",
+        "symbol": "clampAppViewHeight"
+      },
+      "why": "Bounds on an App's reported size.",
+      "failure_mode": "An App reports a size the host trusts without bound."
+    },
+    {
+      "id": "mcp-app-tool-result",
+      "upstream": {
+        "file": "client/src/utils/mcpApps.ts",
+        "symbol": "buildAppToolResult",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/UiResource.kt",
+        "symbol": "UiResource.appToolResult"
+      },
+      "why": "The tool-result notification an App receives after initialize.",
+      "failure_mode": "Apps that hydrate from structuredContent or _meta render empty."
+    },
+    {
+      "id": "mcp-app-select-resources",
+      "upstream": {
+        "file": "client/src/utils/mcpApps.ts",
+        "symbol": "selectToolCallUIResources",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/UiResource.kt",
+        "symbol": "selectToolCallUiResources"
+      },
+      "why": "Which attachments become App rows, their identity key and ordinal.",
+      "failure_mode": "Rows duplicate or collide when a provider reuses tool-call ids."
+    },
+    {
+      "id": "mcp-app-read-document",
+      "upstream": {
+        "file": "client/src/utils/mcpApps.ts",
+        "symbol": "fetchMCPResourceHtml",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/UiResource.kt",
+        "symbol": "pickAppDocument"
+      },
+      "why": "Which resources/read item is the App document and where its CSP comes from.",
+      "failure_mode": "A URI-only App loads the wrong document or runs under the default policy."
+    },
+    {
+      "id": "mcp-apps-policy",
+      "upstream": {
+        "file": "client/src/Providers/MCPAppsPolicyContext.tsx",
+        "symbol": "getPublishedPolicy",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpAppsPolicy.kt",
+        "symbol": "McpAppsPolicy.resolve"
+      },
+      "why": "When a server's mcpApps policy counts as enabled and which limits apply.",
+      "failure_mode": "Rows show on a server whose policy web treats as off, or limits differ from web's."
+    },
+    {
+      "id": "mcp-app-sandbox-relay",
+      "upstream": {
+        "file": "client/public/mcp-sandbox.html",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/mcpapp/McpAppRelayPage.kt",
+        "symbol": "RELAY_SCRIPT"
+      },
+      "why": "The relay page is a port of the sandbox proxy's inner-frame half: sandbox token allowlist, View CSP meta + nonce heartbeat injection, head injection point, source and attestation checks.",
+      "failure_mode": "An App frame gains a capability or a message path web's sandbox refuses, or a new handshake step never reaches the App and every open times out."
+    },
+    {
+      "id": "mcp-app-bridge-host",
+      "upstream": {
+        "file": "client/src/hooks/MCP/useAppBridge.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/mcpapp/McpAppHost.kt",
+        "symbol": "McpAppHost"
+      },
+      "why": "The host's capabilities, initialize/host context, tool-input-then-result order, what needs approval, the preview-size fail-closed rule and the message overrides.",
+      "failure_mode": "The Kotlin host advertises or allows something web's bridge does not, or an App waiting for a step web sends never gets it."
+    },
+    {
+      "id": "mcp-app-approval-queue",
+      "upstream": {
+        "file": "client/src/hooks/MCP/approval.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/mcpapp/McpAppHost.kt",
+        "symbol": "requestApproval"
+      },
+      "why": "The approval queue bound, cancel-pauses-the-View rule and stop-requests behaviour.",
+      "failure_mode": "An App can queue more actions, or keep asking after the user cancelled."
+    },
+    {
+      "id": "mcp-app-host-style-vars",
+      "upstream": {
+        "file": "client/src/hooks/MCP/useAppBridge.ts",
+        "symbol": "HOST_STYLE_VAR_MAP",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/mcpapp/McpAppHostContext.kt",
+        "symbol": "hostStyleVariables"
+      },
+      "why": "Which spec style variables the host sends an App in its host context (mapped onto Material roles here).",
+      "failure_mode": "Apps theme a different subset than on web, or miss a variable web starts sending."
+    },
+    {
+      "id": "pull-request-is-code-conversation",
+      "upstream": {
+        "file": "client/src/components/Chat/PullRequest/code.ts",
+        "symbol": "isCodeConversation",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/pullrequest/ConversationPullRequest.kt",
+        "symbol": "isCodeConversation"
+      },
+      "why": "Which chats may have a pull request: only those are ever asked, on the chat screen and in the drawer.",
+      "failure_mode": "Code chats show no pull request, or ordinary chats cost lookups."
+    },
+    {
+      "id": "pull-request-presentation",
+      "upstream": {
+        "file": "client/src/components/Chat/PullRequest/status.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/pullrequest/PullRequestPresentation.kt",
+        "symbol": "presentPullRequest"
+      },
+      "why": "State/checks/provider to glyph, tone, CI dot and labels for the overflow item, sheet and drawer mark.",
+      "failure_mode": "The phone colours or words a pull request differently from web (e.g. a dot on a merged PR)."
+    },
+    {
+      "id": "pull-request-refetch-interval",
+      "upstream": {
+        "file": "client/src/data-provider/PullRequest/queries.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/pullrequest/ConversationPullRequest.kt",
+        "symbol": "pullRequestRefetchIntervalMs"
+      },
+      "why": "Chat-screen polling cadence (20 s active, 60 s settled, stop when finished) and the 15 s / 60 s stale times.",
+      "failure_mode": "The chat polls GitHub through the server faster than web, or stops while checks still run."
+    },
+    {
+      "id": "pull-request-batch-limits",
+      "upstream": {
+        "file": "packages/data-provider/src/types/pullRequest.ts",
+        "symbol": "PULL_REQUEST_BATCH_MAX",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/pullrequest/ConversationPullRequest.kt",
+        "symbol": "PULL_REQUEST_BATCH_MAX"
+      },
+      "why": "Batch chunk size (50) and PULL_REQUEST_BATCH_VERSION (1) the drawer gates its batch on.",
+      "failure_mode": "The server 400s an oversized batch, or the drawer asks a replica whose batch version it does not speak."
+    },
+    {
+      "id": "pull-request-error-codes",
+      "upstream": {
+        "file": "packages/api/src/pulls/types.ts",
+        "symbol": "PULL_REQUEST_ERROR_CODES",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/pullrequest/ConversationPullRequest.kt",
+        "symbol": "PullRequestErrorCodes"
+      },
+      "why": "The lookup failure codes the client logs; all read the same to the user.",
+      "failure_mode": "A new code is logged unnamed; behaviour is unchanged."
     }
   ]
 }

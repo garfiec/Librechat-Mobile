@@ -83,6 +83,22 @@ chained status — so a server-rooted `/login` Location is classified terminal i
 absolute portal URL is a gateway's and is not. The 5xx ladder deliberately keeps its older,
 undamped shape.
 
+**A refresh `200` can end the session (v0.8.9-rc1).** A server enforcing 2FA answers an unenrolled
+account's refresh with `{ code: TWO_FACTOR_ENROLLMENT_REQUIRED, tempToken }`, no token, having deleted
+the session and cleared the cookie. `handleSuccess` checks this **before** `CookieHelper.update` (which
+would throw on the cleared cookie and read as Retryable — the old refresh limbo). The slot is dropped,
+the expiry report latched for the active binding (stragglers then settle HardExpired silently), and
+`authGate` set to `AuthGate.TwoFactorSetupRequired`. It returns `Transient`, never `settle()`: an
+expiry fails over to another account. `authGate` is cleared wherever the expiry latch is re-armed.
+The gate is raised only for the active binding, so a **non-active** account's enrollment would leave
+just an empty slot. Every enrollment therefore also writes a persisted marker beside the slot
+(`acct:<id>:two_factor_setup_required`), read through `TokenManager.isTwoFactorSetupRequired` /
+`AccountSwitcher.needsTwoFactorSetup`: the account switcher words that row as needing 2FA setup and
+its tap goes to sign-in, whose login answer runs the setup flow. The sign-in screen names the
+signed-out accounts on its server that carry it (`AccountSwitcher.awaitingTwoFactorSetupOn`).
+Writing it starts no failover and leaves the active pointer alone. A sign-in that re-homes into the slot, a teardown and an account
+removal clear it.
+
 **A kept session that cannot renew is reported, not just kept.** The unattributed-403 arm also
 publishes `TokenManager.sessionHealth = SessionHealth.RenewalBlocked(accountId)`; the nav shell shows
 a banner for the active account with one action, **Sign in again** → `endSessionForReauth`, which
@@ -185,6 +201,15 @@ every write there goes to memory and a test would pass for the wrong reason. It 
 - `BannerRepository` / `BannerRepositoryImpl` — wraps `BannerApi` for fetching server banners
 - `AgentRepository.getAgentsPaginated()` — server-side paginated agent fetch, maps response to `PaginatedAgents` domain model
 - Both bound in `DataModule.kt` via `singleOf`, both use `safeApiCall`, no local caching
+
+### Attached code machines (`CodeEnvironmentRepository`, `CodeWorkspacePreferenceStore`)
+- `CodeEnvironmentRepository` is network-direct: a machine's live status, and a saved chat's recorded
+  code-workspace decision read off the single-conversation GET. The decision is deliberately **not**
+  cached in Room: a decision inferred from anything local can disagree with the server's, which then
+  refuses the turn as `locked`.
+- `CodeWorkspacePreferenceStore` remembers the last workspace picked per agent and machine (web's
+  browser-local `workspacePreferences.ts`), account-scoped so logout sweeps it, most recent first,
+  capped at 100. Hints only; mirrored in `scripts/mirrors.json`.
 
 ### Preference registry and one-time migrations (`AppPreferences`, `PreferenceMigrations`)
 New device-wide preferences are declared in `AppPreferences` and read and written through

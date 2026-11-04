@@ -5,31 +5,40 @@ import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.identity.flatMapAccountOrEmpty
+import com.garfiec.librechat.core.common.result.FailureKind
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.apiCallCatching
 import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.common.result.suspendRunCatching
+import com.garfiec.librechat.core.common.result.toSafeError
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.db.dao.ConversationDao
 import com.garfiec.librechat.core.data.db.dao.MessageDao
 import com.garfiec.librechat.core.data.db.dao.PrefetchWatermarkDao
+import com.garfiec.librechat.core.data.db.dao.withReadStateOf
 import com.garfiec.librechat.core.data.mapper.toEntity
 import com.garfiec.librechat.core.data.mapper.toModel
 import com.garfiec.librechat.core.data.mapper.toModels
 import com.garfiec.librechat.core.data.search.SearchIndexMaintenance
 import com.garfiec.librechat.core.model.Conversation
+import com.garfiec.librechat.core.model.ConversationListFilters
 import com.garfiec.librechat.core.model.ConversationPage
 import com.garfiec.librechat.core.model.SAVED_TAG
+import com.garfiec.librechat.core.model.content.containsToolCallPreviewMarkers
 import com.garfiec.librechat.core.model.request.ForkConversationRequest
+import com.garfiec.librechat.core.model.response.ForkConversationResponse
 import com.garfiec.librechat.core.network.api.ConversationsApi
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 class ConversationRepositoryImpl(
     private val conversationsApi: ConversationsApi,
@@ -176,14 +185,16 @@ class ConversationRepositoryImpl(
                 // The single-conversation GET is the full document, tags included: the server's tags
                 // win over the cached ones. Only the list paths, which omit tags, preserve them.
                 val tags = conversation.tags.filter { it.isNotBlank() }
-                conversationDao.upsert(conversation.copy(tags = tags).toEntity().copy(accountId = accountId))
+                val entity = conversation.copy(tags = tags).toEntity().copy(accountId = accountId)
+                val existing = conversationDao.getByIdForAccount(id, accountId)
+                conversationDao.upsert(existing?.let(entity::withReadStateOf) ?: entity)
             }
             conversation
         }
     }
 
     override suspend fun updateTitle(id: String, title: String): Result<Conversation> {
-        return safeApiCall {
+        return apiCallCatching({
             // Capture identity before the network suspend; skip the local cache update when unresolved
             // rather than running an account-blind by-PK write.
             val accountId = activeAccountProvider.currentAccountId()?.value
@@ -191,7 +202,11 @@ class ConversationRepositoryImpl(
             if (accountId != null) {
                 conversationDao.updateTitle(id, title, Clock.System.now().toEpochMilliseconds(), accountId)
             }
-            updated
+            Result.Success(updated)
+        }) { e ->
+            // v0.8.9-rc1's rename handler names its refusals; the 409 is retryable.
+            renameRefusalOf(e)?.let { Result.Error(RenameRefusedException(it, e), kind = FailureKind.Server) }
+                ?: e.toSafeError()
         }
     }
 
@@ -271,7 +286,8 @@ class ConversationRepositoryImpl(
         option: String?,
         splitAtTarget: Boolean?,
         latestMessageId: String?,
-    ): Result<Conversation> {
+        excludeFiles: Boolean?,
+    ): Result<ForkConversationResponse> {
         return safeApiCall {
             val accountId = activeAccountProvider.currentAccountId()?.value
             val response = conversationsApi.forkConversation(
@@ -281,11 +297,11 @@ class ConversationRepositoryImpl(
                     option = option,
                     splitAtTarget = splitAtTarget,
                     latestMessageId = latestMessageId,
+                    excludeFiles = excludeFiles,
                 ),
             )
-            val conversation = response.conversation
-            cacheOwned(accountId, conversation)
-            conversation
+            cacheOwned(accountId, response.conversation)
+            response
         }
     }
 
@@ -302,6 +318,13 @@ class ConversationRepositoryImpl(
     }
 
     override suspend fun importConversation(jsonContent: String): Result<Conversation> {
+        // The import route has no preview guard: a file holding shortened tool output would be
+        // stored shortened for good. A file that isn't JSON at all is the server's to refuse.
+        val previewed = withContext(dispatcher) {
+            suspendRunCatching { json.parseToJsonElement(jsonContent).containsToolCallPreviewMarkers() }
+                .getOrDefault(false)
+        }
+        if (previewed) return Result.Error(ToolCallPreviewImportException())
         return safeApiCall {
             val accountId = activeAccountProvider.currentAccountId()?.value
             val fileBytes = jsonContent.encodeToByteArray()
@@ -356,6 +379,61 @@ class ConversationRepositoryImpl(
         // the originating account, and skip when unresolved or removed-since-capture.
         val accountId = resolveWriteAccountId(originAccount, activeAccountProvider, roster) ?: return
         conversationDao.upsertPreservingTags(accountId, conversation.toEntity().copy(accountId = accountId))
+    }
+
+    override suspend fun getConversationsFiltered(
+        filters: ConversationListFilters,
+        cursor: String?,
+        search: String?,
+        limit: Int,
+    ): Result<ConversationPage> = safeApiCall {
+        val response = conversationsApi.getConversations(
+            cursor = cursor,
+            limit = limit,
+            search = search?.takeIf { it.isNotBlank() },
+            filters = filters,
+        )
+        ConversationPage(conversations = response.conversations, nextCursor = response.nextCursor)
+    }
+
+    override fun observeConversation(id: String): Flow<Conversation?> =
+        activeAccountProvider.flatMapAccountOrEmpty(null) { account ->
+            conversationDao.observeByIdForAccount(id, account.value).map { it?.toModel() }
+        }.flowOn(dispatcher)
+
+    override suspend fun fetchConversationUncached(id: String): Result<Conversation> =
+        safeApiCall { conversationsApi.getConversation(id) }
+
+    override suspend fun markSeen(id: String, lastResponseAt: Instant): Result<Boolean> {
+        // Captured before the network suspend, so a switch mid-request can't write another account's row.
+        val accountId = activeAccountProvider.currentAccountId()?.value
+        val result = safeApiCall {
+            val response = conversationsApi.markSeen(id, lastResponseAt.toString())
+            if (response.modified && accountId != null) {
+                // Never earlier than the reply acknowledged, as the server stamps it.
+                val now = Clock.System.now()
+                val seenAt = if (lastResponseAt > now) lastResponseAt else now
+                conversationDao.markSeen(id, seenAt.toEpochMilliseconds(), accountId)
+            }
+            response.modified
+        }
+        if (result is Result.Success && !result.data) refreshConversation(id, originAccount = null)
+        return result
+    }
+
+    override suspend fun markUnread(id: String): Result<Unit> = safeApiCall {
+        val accountId = activeAccountProvider.currentAccountId()?.value
+        val response = conversationsApi.markUnread(id)
+        if (accountId != null) {
+            conversationDao.markUnread(
+                id = id,
+                lastResponseAt = response.lastResponseAt?.toEpochMilliseconds(),
+                lastResponseMessageId = response.lastResponseMessageId,
+                lastResponseIsManual = response.lastResponseIsManual,
+                isMarkedUnread = response.isMarkedUnread ?: true,
+                accountId = accountId,
+            )
+        }
     }
 
     private suspend fun updateConversationTagsLocal(id: String, tags: List<String>) {

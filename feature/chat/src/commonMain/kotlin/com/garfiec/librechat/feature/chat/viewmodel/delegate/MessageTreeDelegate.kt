@@ -76,13 +76,16 @@ class MessageTreeDelegate(
         // active the toggle is a read-only indicator — the server already created
         // it temporary, so flipping it off here would be misleading.
         if (handle.state.conversationId != null) return
+        // An administrator forces temporary chats; the toggle is a read-only indicator.
+        if (handle.state.temporaryChatEnforced) return
         handle.update { conversation = conversation.copy(isTemporaryChat = !conversation.isTemporaryChat) }
     }
 
     /**
      * Finalizes a chat's display purely in memory by merging the SSE [event]'s
-     * request/response into the in-memory list (replacing the optimistic user message by id)
-     * and recomputing the display path — no Room access. This keeps the just-streamed reply
+     * request/response into the in-memory list (folding the request over this turn's optimistic
+     * user message, [optimisticUserMessageId], whose id the server replaced; see
+     * [mergeFinalMessagesInMemory]) and recomputing the display path — no Room access. This keeps the just-streamed reply
      * on screen the instant `isStreaming` flips false, instead of round-tripping a network
      * reload. Normal chats follow up with a background Room reconcile (server stays source of
      * truth); temp chats deliberately skip it, since the read-through cache would upsert their
@@ -93,9 +96,8 @@ class MessageTreeDelegate(
      * from the POST-merge state, not the raw event, so the cached rows are the same merged
      * instances the screen shows (caching the frame's skeletal request would diverge disk from
      * display). The request resolves via the response's parentMessageId when the payload omits
-     * it — the server adopts the client-minted id (PR #139), so it matches the optimistic user
-     * message, which was never written to Room during streaming and would otherwise be lost on
-     * reopen. Temp chats ignore the return value.
+     * it. The optimistic user message was never written to Room during streaming, so this is what
+     * keeps it on reopen. Temp chats ignore the return value.
      */
     /**
      * Names the response that is about to take over from the streaming bubble, for the one path
@@ -107,7 +109,7 @@ class MessageTreeDelegate(
         handle.update { content = content.copy(justSettledMessageId = messageId) }
     }
 
-    fun finalizeChatDisplay(event: StreamEvent.Final): List<Message> {
+    fun finalizeChatDisplay(event: StreamEvent.Final, optimisticUserMessageId: String? = null): List<Message> {
         // Defensive: upstream 0.8.7 sets responseMessage.attachments before saving, but the app
         // supports a backend version range. If the Final payload omitted a file that streamed in
         // via `attachment` SSE events, fold it back in (by fileId or filepath) so it survives the reload — the
@@ -123,7 +125,7 @@ class MessageTreeDelegate(
             val mergedMessages = if (finalMessages.isEmpty()) {
                 content.messages
             } else {
-                mergeFinalMessagesInMemory(content.messages, finalMessages)
+                mergeFinalMessagesInMemory(content.messages, finalMessages, optimisticUserMessageId)
             }
             // Retire the streaming bubble and swap in the finalized message in ONE slice copy —
             // all these fields live in `content`, so this stays a single StateFlow emission and

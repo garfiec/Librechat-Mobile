@@ -6,6 +6,14 @@
 ## Sections
 - **Account**: displays user profile from `UserApi.getUser()`
 - **Appearance**: its own page (General → Appearance): theme (System / Light / Dark), interface style, accent colour, wallpaper colours, via `ThemeDataStore`
+  - **Server accent (v0.8.9-rc1 `interface.theme`)**: `DeploymentThemeSync` (`:core:data`) caches the
+    active server's inline-theme accent in `ThemeDataStore.serverAccent`, writing only from a config
+    tagged with the active server (`ConfigRepository.startupConfigForServer`) and clearing another
+    server's cached accent when the active server changes; both app roots paint
+    `serverAccent?.activeSeed ?: accentColor`. "Use server accent" is stored per server (absent = on)
+    and its row shows only while the server sets an accent. While it's on, the Accent row reads
+    "Set by your server (name)", dims, and its picker carries a note; a picked colour is kept for
+    when the switch goes off. Wallpaper colours still win over both.
 - **Server**: shows current server URL from `ServerDataStore`
 - **About**: app version info
 - **Danger Zone**: delete account with confirmation dialog
@@ -72,6 +80,35 @@
 - **Gotcha**: the editor offers `McpServerType` SSE and STREAMABLE_HTTP only; a stored `HTTP` shows as Streamable HTTP and is saved back as-is unless the user changes it
 - **Gotcha**: a memory key can be renamed on edit. `UpdateMemoryRequest.key` is sent only when it changed (the by-id route pattern-checks any key it receives), and a key-route rename is create-then-delete, so `MemoriesViewModel` reloads after any rename failure
 
+### Passkeys (v0.8.9-rc1, management only)
+- `PasskeysScreen` + `PasskeysViewModel` (route `Passkeys`, `PasskeysNavigation.kt`): list, rename, remove
+  through `PasskeyRepository` (`:core:data`, network-direct, never cached: a password reset deletes
+  every passkey). Reached from the Account tab's Passkeys row (between 2FA and API Keys), shown by
+  `isPasskeyManagementAvailable` (`AccountGates.kt`): `passkeyLoginEnabled` and not a tagged build
+  below rc1. The row's count rides the profile load and the resume refresh.
+- **No sign-in and no Add.** Both run a WebAuthn ceremony, and rc1's `normalizeOrigin` turns a native
+  app's origin into `"null"`; iOS would also need a build-time entitlement per server. Where Add would
+  be, the page says to sign in at the server's host in a browser (a link). Don't add a Credential
+  Manager / ASAuthorization path until upstream accepts native origins.
+- Remove asks a local account for its password (`ContentType.Password`, not `SecretTextField`); a
+  non-local one sends none, and a 403 brings the field up (upstream's `serverDemandedPassword`).
+  403 = incorrect password inline, 404 = already gone (reload + snackbar), 429 = wait. Errors render
+  inside the dialog. A list 404 refetches `/api/config`: passkeys were switched off.
+
+### Change email (v0.8.9-rc1)
+- Profile row "Email address" (subtitle = current address) above Sign out, when
+  `isEmailChangeAvailable`: `provider == "local"` (null is NOT local), `emailEnabled`,
+  `allowEmailChange`, and the rc1 floor applied like the passkey gate's (`featureSupport(...).isRuledOut`:
+  hidden only on a server known to predate the route).
+- `EmailChangeDelegate` owns the dialog state in `AccountSettingsUiState` (draft, sending, error,
+  cooldown, one-shot notice). `EmailChangeError` (`:core:model`) maps every `code`; the server's
+  message is never shown. Field codes go under their field, the rest inside the dialog. A wrong
+  password clears only the password. A 429 holds Send off for `Retry-After`, else 2 minutes. Never
+  retried: each attempt mails the old address.
+- The change lands when the link is opened on the web; the Account tab re-reads the profile quietly
+  on every resume after the first (`refreshOnReturn`), which also fixes avatar/name staleness, and
+  says "Email address updated" only when a link was sent in this ViewModel's life.
+
 ### API Keys
 - `ApiKeysScreen` — list/create/delete API keys, own ViewModel (`ApiKeysViewModel`)
 - Route: `ApiKeys` (`@Serializable` data object extending `SettingsRoute`), accessible from Settings → Security section
@@ -131,6 +168,17 @@
   a consent dialog.
 - **Gotcha**: do NOT auto-launch the browser. The redirect hands a third-party provider this
   session, so the launch has to be an explicit user action, not a side effect of tapping reconnect.
+- **Continue binds, then opens in app (v0.8.9-rc1).** The callback now needs the `oauth_csrf` /
+  `oauth_session` cookies, which the system browser never has. `continueOAuth()` asks
+  `McpOAuthLauncher` (`:core:data`, the one version gate, shared with chat): an `InApp` launch
+  (`POST /oauth/bind`'s cookies) renders `McpOAuthSignInDialog` from `:core:ui`; an `External` one
+  (known server before rc1, or any server whose bind sets no binding cookie or 404s: the route is
+  absent before v0.8.3-rc1, where the SPA catch-all answers it 200 HTML with no `Set-Cookie`)
+  opens the system browser as before. The bind is at the tap, not when
+  the prompt appears: the CSRF cookie lives ten minutes.
+- The in-app sign-in fires no ON_RESUME, so `onOAuthOutcome` reloads the servers itself and reports
+  through the `OAUTH_SIGNED_IN_MARKER` / `OAUTH_FAILED_MARKER` sentinels (Retry = reconnect).
+  Closing the page is silent.
 - `connectionDeferred` is a third outcome: the ack landed but the connection is still being made.
   Reported via the `McpViewModel.DEFERRED_MARKER` sentinel, which the screen swaps for a localized
   string (the VM has no access to compose resources).

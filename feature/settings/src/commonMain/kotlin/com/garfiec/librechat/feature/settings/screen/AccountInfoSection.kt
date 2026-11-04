@@ -34,12 +34,13 @@ import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.cd_change_avatar
 import com.garfiec.librechat.feature.settings.resources.cd_loading_profile
 import com.garfiec.librechat.feature.settings.resources.cd_user_avatar
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun AccountInfoSection(
     user: UserDisplayData?,
-    profileLoadError: String?,
+    profileLoadError: StringResource?,
     onAvatarClick: () -> Unit,
     onRetry: () -> Unit,
 ) {
@@ -50,7 +51,7 @@ internal fun AccountInfoSection(
             avatarUrl = user.avatar,
             onAvatarClick = onAvatarClick,
         )
-        profileLoadError != null -> ErrorBanner(message = profileLoadError, onRetry = onRetry)
+        profileLoadError != null -> ErrorBanner(message = stringResource(profileLoadError), onRetry = onRetry)
         else -> {
             val loadingDescription = stringResource(Res.string.cd_loading_profile)
             Row(

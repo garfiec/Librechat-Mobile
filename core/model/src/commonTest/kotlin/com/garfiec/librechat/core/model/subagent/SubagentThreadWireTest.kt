@@ -282,4 +282,34 @@ class SubagentThreadWireTest {
 
         assertTrue(view.controlReceipts != null)
     }
+
+    @Test
+    fun a_steer_item_decodes_and_converts_to_a_steer_part_in_order() {
+        val turn = json.decodeFromString<SubagentThreadTurn>(
+            """
+            {"taskId":"t1","contentRecoveryAvailable":false,"status":"running",
+             "activity":[
+               {"type":"writing","text":"Looking"},
+               {"type":"steer","steer":"Focus on 2025","steerId":"s1","clientSteerId":"c1","createdAt":1790000000000},
+               {"type":"steer","steer":"  "}
+             ],
+             "activityTruncated":false,"messages":[]}
+            """.trimIndent(),
+        )
+        assertEquals(false, turn.contentRecoveryAvailable)
+        val steer = turn.activity[1]
+        assertEquals(SubagentActivityType.STEER, steer.type)
+        assertEquals("s1", steer.steerId)
+        assertEquals(1790000000000L, steer.createdAt)
+
+        val parts = turn.activity.toContentParts()
+        assertEquals(listOf(ContentType.TEXT, ContentType.STEER), parts.map { it.type })
+        assertEquals("\"Focus on 2025\"", parts[1].steer.toString())
+    }
+
+    @Test
+    fun an_older_turn_has_no_recovery_flag() {
+        val turn = json.decodeFromString<SubagentThreadTurn>("""{"taskId":"t1","activity":[],"messages":[]}""")
+        assertNull(turn.contentRecoveryAvailable)
+    }
 }

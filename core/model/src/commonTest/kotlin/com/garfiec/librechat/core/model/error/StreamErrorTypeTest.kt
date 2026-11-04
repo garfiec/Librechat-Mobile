@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.model.error
 
+import com.garfiec.librechat.core.model.code.CodeWorkspaceUnavailableReason
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -161,6 +162,21 @@ class StreamErrorTypeTest {
 
         assertEquals(StreamErrorType.MODEL_STREAM_CLOSED.marker, StreamErrorType.markerOrText(closed))
         assertEquals(StreamErrorType.MODEL_STREAM_STALLED.marker, StreamErrorType.markerOrText(stalled))
+    }
+
+    /** `getChatProjectTurnFailure` (packages/api/src/projects/turn.ts), v0.8.9-rc1. */
+    @Test
+    fun a_start_post_refused_for_project_context_maps_to_its_marker() {
+        val changed =
+            """{"code":"PROJECT_RESOURCES_CHANGED","retryable":true,"error":"Project files changed. Please retry."}"""
+        val gone = """{"error":"Conversation context unavailable"}"""
+
+        assertEquals(StreamErrorType.PROJECT_RESOURCES_CHANGED.marker, StreamErrorType.startFailureMarker(changed, 409))
+        assertEquals(StreamErrorType.PROJECT_CONTEXT_UNAVAILABLE.marker, StreamErrorType.startFailureMarker(gone, 404))
+        // The sentence alone, on another status, is not this failure.
+        assertNull(StreamErrorType.startFailureMarker(gone, 400))
+        assertNull(StreamErrorType.startFailureMarker("""{"error":"Conversation not found"}""", 404))
+        assertNull(StreamErrorType.parse(changed))
     }
 
     /** `getInitializationFailure` + `getAgentErrorMetadata` (api/server/controllers/agents/request.js). */
@@ -332,5 +348,36 @@ class StreamErrorTypeTest {
                     """{"type":"upstream_model_error","message":"no such model"}""",
             ),
         )
+    }
+
+    @Test
+    fun readsTheCodeWorkspaceRejectionReason() {
+        val start = """{"status":409,"code":"code_workspace_unavailable","reason":"locked",""" +
+            """"error":"This conversation already has a different code environment decision."}"""
+        assertEquals(CodeWorkspaceUnavailableReason.LOCKED, StreamErrorType.codeWorkspaceReason(start))
+        for (reason in CodeWorkspaceUnavailableReason.entries) {
+            assertEquals(
+                reason,
+                StreamErrorType.codeWorkspaceReason("""{"code":"code_workspace_unavailable","reason":"${reason.wire}"}"""),
+            )
+        }
+        assertNull(StreamErrorType.codeWorkspaceReason("""{"code":"code_workspace_unavailable","reason":"new"}"""))
+        assertNull(StreamErrorType.codeWorkspaceReason("""{"code":"code_workspace_unavailable"}"""))
+        assertNull(StreamErrorType.codeWorkspaceReason("""{"type":"message_limit","reason":"locked"}"""))
+    }
+
+    @Test
+    fun aCodeWorkspaceMarkerCarriesItsReasonOnEveryPath() {
+        val body = """{"status":409,"code":"code_workspace_unavailable","reason":"missing","error":"gone"}"""
+        val expected = StreamErrorType.CODE_WORKSPACE_UNAVAILABLE.marker + StreamErrorType.ARG_SEPARATOR + "missing"
+        assertEquals(expected, StreamErrorType.markerOrText(body))
+        assertEquals(expected, StreamErrorType.startFailureMarker(body, 409))
+        assertEquals(CodeWorkspaceUnavailableReason.MISSING, StreamErrorType.codeWorkspaceReasonOfMarker(expected))
+        // No known reason: the bare marker, which still localizes to the generic copy.
+        assertEquals(
+            StreamErrorType.CODE_WORKSPACE_UNAVAILABLE.marker,
+            StreamErrorType.markerOrText("""{"code":"code_workspace_unavailable"}"""),
+        )
+        assertNull(StreamErrorType.codeWorkspaceReasonOfMarker(StreamErrorType.CODE_WORKSPACE_UNAVAILABLE.marker))
     }
 }

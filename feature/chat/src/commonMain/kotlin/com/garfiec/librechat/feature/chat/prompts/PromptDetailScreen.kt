@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.LibreChatTopBar
 import com.garfiec.librechat.core.ui.components.topbar.BarAction
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
@@ -44,6 +45,7 @@ fun PromptDetailScreen(
     onEdit: (String) -> Unit,
     modifier: Modifier = Modifier,
     onShare: () -> Unit = {},
+    onRetryText: () -> Unit = {},
     isDeleting: Boolean = false,
 ) {
     AdaptiveScaffold(
@@ -52,29 +54,38 @@ fun PromptDetailScreen(
             LibreChatTopBar(
                 title = group.name,
                 onNavigateBack = onBack,
-                actions = listOf(
-                    BarAction.Icon(
-                        id = "share",
-                        icon = BarIcons.ShareFilled,
-                        label = stringResource(Res.string.cd_share_prompt),
-                        onClick = onShare,
-                    ),
-                    BarAction.Icon(
-                        id = "edit",
-                        icon = BarIcons.EditFilled,
-                        label = stringResource(Res.string.cd_edit_prompt),
-                        onClick = { onEdit(group.id) },
-                    ),
-                    BarAction.Icon(
-                        id = "delete",
-                        icon = BarIcons.DeleteFilled,
-                        label = stringResource(Res.string.cd_delete_prompt),
-                        tint = BarTint.DESTRUCTIVE,
-                        // Disabled while the delete is in flight, so a second tap can't fire it again.
-                        enabled = !isDeleting,
-                        onClick = onDelete,
-                    ),
-                ),
+                actions = buildList {
+                    add(
+                        BarAction.Icon(
+                            id = "share",
+                            icon = BarIcons.ShareFilled,
+                            label = stringResource(Res.string.cd_share_prompt),
+                            onClick = onShare,
+                        ),
+                    )
+                    // An externally managed group is read-only here: the server refuses both.
+                    if (group.external == null) {
+                        add(
+                            BarAction.Icon(
+                                id = "edit",
+                                icon = BarIcons.EditFilled,
+                                label = stringResource(Res.string.cd_edit_prompt),
+                                onClick = { onEdit(group.id) },
+                            ),
+                        )
+                        add(
+                            BarAction.Icon(
+                                id = "delete",
+                                icon = BarIcons.DeleteFilled,
+                                label = stringResource(Res.string.cd_delete_prompt),
+                                tint = BarTint.DESTRUCTIVE,
+                                // Disabled while the delete is in flight, so a second tap can't fire it again.
+                                enabled = !isDeleting,
+                                onClick = onDelete,
+                            ),
+                        )
+                    }
+                },
             )
         },
     ) { innerPadding ->
@@ -114,6 +125,20 @@ fun PromptDetailScreen(
                 }
             }
 
+            group.external?.let { external ->
+                Text(
+                    text = when {
+                        external.isLangfuse && !external.promptName.isNullOrBlank() ->
+                            stringResource(Res.string.prompt_managed_in_langfuse_named, external.promptName)
+                        external.isLangfuse -> stringResource(Res.string.prompt_managed_in_langfuse)
+                        else -> stringResource(Res.string.prompt_managed_externally)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+            }
+
             val oneliner = group.oneliner
             if (!oneliner.isNullOrBlank()) {
                 Text(
@@ -143,6 +168,18 @@ fun PromptDetailScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(12.dp),
                     )
+                }
+            }
+
+            if (group.textUnavailable) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = stringResource(Res.string.prompt_text_unavailable),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                AdaptiveTextButton(onClick = onRetryText, enabled = !group.isRetryingText) {
+                    Text(stringResource(Res.string.retry))
                 }
             }
 

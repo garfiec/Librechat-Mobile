@@ -138,8 +138,9 @@ internal fun BackgroundTaskCallCard(
             }
             AnimatedVisibility(visible = isExpanded, enter = expandVertically(), exit = shrinkVertically()) {
                 Column(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
+                    ToolContentDisclosure(open = isExpanded)
                     when (display) {
-                        is BackgroundTaskDisplay.Task -> PolledTaskBlock(display.task)
+                        is BackgroundTaskDisplay.Task -> PolledTaskBlock(display.task, stateKey)
                         is BackgroundTaskDisplay.TaskList -> {
                             Text(
                                 "${stringResource(Res.string.background_tasks_title)} · ${display.tasks.size}",
@@ -155,7 +156,7 @@ internal fun BackgroundTaskCallCard(
                             }
                             display.tasks.forEachIndexed { index, task ->
                                 if (index > 0) AdaptiveDivider(Modifier.padding(vertical = 8.dp))
-                                PolledTaskBlock(task)
+                                PolledTaskBlock(task, "$stateKey:$index")
                             }
                             if (display.partial || display.warning != null) {
                                 Text(
@@ -189,7 +190,7 @@ internal fun BackgroundTaskCallCard(
 }
 
 @Composable
-private fun PolledTaskBlock(task: PolledTask) {
+private fun PolledTaskBlock(task: PolledTask, stateKey: String) {
     val failed = task.status.isFailure
     val result = task.result?.takeIf { it.isNotBlank() }
     val error = task.error?.takeIf { it.isNotBlank() && it != result }
@@ -240,6 +241,16 @@ private fun PolledTaskBlock(task: PolledTask) {
         }
         noteKey?.let { Hint(stringResource(it)) }
         if (messageKey != null && messageKey != noteKey) Hint(stringResource(messageKey))
+        task.activity?.let { SubagentProgressBlock(it, stateKey = "bgtask:$stateKey:${task.taskId}") }
+        // A subagent task names its durable thread, so this card can open it directly. Only where
+        // a viewer exists, so nothing offers a dead affordance.
+        val threadId = task.threadId.takeIf { task.toolName == SUBAGENT_TOOL }
+        if (threadId != null && LocalSubagentThreadsAvailable.current) {
+            val openThread = LocalOpenSubagentThread.current
+            TextButton(onClick = { openThread(threadId) }, modifier = Modifier.padding(top = 4.dp)) {
+                Text(stringResource(Res.string.background_tasks_view_activity))
+            }
+        }
     }
 }
 

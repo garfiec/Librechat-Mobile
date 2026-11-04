@@ -112,43 +112,35 @@ class MessageQueueDelegateTest {
     }
 
     @Test
-    fun `takeForEdit removes and returns the item with its index`() {
+    fun `replace swaps the row in place`() {
         delegate.enqueue(spec("a"))
         delegate.enqueue(spec("b", text = "hello"))
+        delegate.enqueue(spec("c"))
 
-        val taken = delegate.takeForEdit("b")
+        delegate.replace("b", fallbackIndex = 0, item = spec("b", text = "edited"))
 
-        assertThat(taken?.index).isEqualTo(1)
-        assertThat(taken?.value?.text).isEqualTo("hello")
-        assertThat(queue.map { it.localId }).containsExactly("a")
+        assertThat(queue.map { it.localId }).containsExactly("a", "b", "c").inOrder()
+        assertThat(queue[1].text).isEqualTo("edited")
     }
 
     @Test
-    fun `takeForEdit returns null for an unknown id`() {
-        assertThat(delegate.takeForEdit("missing")).isNull()
+    fun `replace inserts at the fallback index when the row has already left`() {
+        delegate.enqueue(spec("a"))
+        delegate.enqueue(spec("c"))
+
+        delegate.replace("b", fallbackIndex = 1, item = spec("b"))
+
+        assertThat(queue.map { it.localId }).containsExactly("a", "b", "c").inOrder()
     }
 
     @Test
-    fun `takeForEdit leaves the pause flag untouched`() {
+    fun `replace leaves the pause flag untouched`() {
         delegate.enqueue(spec("a"))
         delegate.pause()
 
-        delegate.takeForEdit("a")
+        delegate.replace("a", fallbackIndex = 0, item = spec("a", text = "edited"))
 
-        // The item is only borrowed for editing, so the queue stays paused.
         assertThat(paused).isTrue()
-    }
-
-    @Test
-    fun `reinsert restores an item at the original index`() {
-        delegate.enqueue(spec("a"))
-        delegate.enqueue(spec("c"))
-        val taken = delegate.takeForEdit("a") ?: error("missing")
-        delegate.enqueue(spec("b"))
-
-        delegate.reinsert(taken.index, taken.value)
-
-        assertThat(queue.map { it.localId }).containsExactly("a", "c", "b").inOrder()
     }
 
     @Test
@@ -169,10 +161,7 @@ class MessageQueueDelegateTest {
         delegate.clearPauseIfEmpty()
         assertThat(paused).isTrue()
 
-        // takeForEdit empties the queue but leaves the pause set (item is only borrowed).
-        delegate.takeForEdit("a")
-        assertThat(paused).isTrue()
-
+        stateFlow.value = stateFlow.value.copy(queue = stateFlow.value.queue.copy(messageQueue = emptyList()))
         delegate.clearPauseIfEmpty()
         assertThat(paused).isFalse()
     }
@@ -217,17 +206,6 @@ class MessageQueueDelegateTest {
 
         assertThat(sent).isEmpty()
         assertThat(queue.map { it.localId }).containsExactly("a")
-    }
-
-    @Test
-    fun `pause registers while editing even when the queue is momentarily empty`() {
-        // Mirrors a Stop during the edit of the sole queued item: it's pulled out (queue empty)
-        // but the edit session is active, so the pause must still register.
-        enterEditMode()
-
-        delegate.pause()
-
-        assertThat(paused).isTrue()
     }
 
     @Test

@@ -28,8 +28,11 @@ import com.garfiec.librechat.core.common.extensions.formatLocalizedNumber
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionScope
+import com.garfiec.librechat.core.ui.contextusage.formatCost
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.feature.settings.model.AutoRefillInfo
+import com.garfiec.librechat.feature.settings.model.BalanceDisplay
+import com.garfiec.librechat.feature.settings.model.CREDITS_PER_USD
 import com.garfiec.librechat.feature.settings.model.RefillIntervalUnit
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
@@ -48,18 +51,50 @@ internal fun AdaptiveSectionScope.balanceRows(state: BalanceUiState, onRetry: ()
         BalanceUiState.Loading -> row(key = "balance_credits") { CreditsRow(tokenCredits = null) }
         BalanceUiState.Error -> row(key = "balance_error") { BalanceErrorRow(onRetry) }
         is BalanceUiState.Loaded -> {
-            row(key = "balance_credits") { CreditsRow(tokenCredits = state.tokenCredits) }
-            row(key = "balance_auto_refill") { AutoRefillRow(state.autoRefill) }
+            row(key = "balance_credits") { CreditsRow(tokenCredits = state.tokenCredits, reading = state) }
+            row(key = "balance_auto_refill") { AutoRefillRow(state.autoRefill, state) }
         }
     }
 }
 
-/** [tokenCredits] null while loading. */
+/**
+ * [tokenCredits] null while loading. [reading] carries the deployment's display mode (web's
+ * `Balance/Summary.tsx`): credits as a number, `currency` as money, `percent` as the share used
+ * with no credit figure anywhere.
+ */
 @Composable
-private fun CreditsRow(tokenCredits: Double?, modifier: Modifier = Modifier) {
+private fun CreditsRow(tokenCredits: Double?, modifier: Modifier = Modifier, reading: BalanceUiState.Loaded? = null) {
     val localeTag = LocalDateTimeFormat.current.localeTag
-    val formatted = remember(tokenCredits, localeTag) { tokenCredits?.let { formatLocalizedNumber(it, localeTag) } }
-    val balanceCd = formatted?.let { stringResource(Res.string.cd_token_balance, it) }
+    val display = reading?.display ?: BalanceDisplay.CREDITS
+    val usedPercent = reading?.usedPercent
+    val currency = reading?.currency
+    val percentText = usedPercent?.let { stringResource(Res.string.balance_used, "$it%") }
+    val unavailable = stringResource(Res.string.balance_usage_unavailable)
+    val formatted = remember(tokenCredits, localeTag, display, percentText, currency, unavailable) {
+        tokenCredits?.let {
+            when (display) {
+                BalanceDisplay.CREDITS -> formatLocalizedNumber(it, localeTag)
+                BalanceDisplay.CURRENCY -> formatCost(it / CREDITS_PER_USD, currency, localeTag)
+                BalanceDisplay.PERCENT -> percentText ?: unavailable
+            }
+        }
+    }
+    val title =
+        stringResource(if (display == BalanceDisplay.PERCENT) Res.string.balance_usage_limit else Res.string.token_credits)
+    // The share spent sits under the figure when the figure is not itself the share.
+    val status = when {
+        tokenCredits == null -> null
+        tokenCredits <= 0 -> stringResource(Res.string.balance_out_of_credits)
+        display != BalanceDisplay.PERCENT -> percentText
+        else -> null
+    }
+    val balanceCd = formatted?.let {
+        if (display == BalanceDisplay.CREDITS) {
+            stringResource(Res.string.cd_token_balance, it)
+        } else {
+            stringResource(Res.string.cd_balance_reading, title, it)
+        }
+    }
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -76,14 +111,27 @@ private fun CreditsRow(tokenCredits: Double?, modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = stringResource(Res.string.token_credits),
+                text = title,
                 style = MaterialTheme.typography.bodyLarge,
             )
-            Text(
-                text = stringResource(Res.string.balance_credit_conversion),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (display == BalanceDisplay.CREDITS) {
+                Text(
+                    text = stringResource(Res.string.balance_credit_conversion),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            status?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (tokenCredits != null && tokenCredits <= 0) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+            }
         }
         Spacer(modifier = Modifier.width(12.dp))
         if (formatted == null) {
@@ -125,7 +173,7 @@ private fun BalanceErrorRow(onRetry: () -> Unit, modifier: Modifier = Modifier) 
 }
 
 @Composable
-private fun AutoRefillRow(info: AutoRefillInfo, modifier: Modifier = Modifier) {
+private fun AutoRefillRow(info: AutoRefillInfo, reading: BalanceUiState.Loaded, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -137,33 +185,47 @@ private fun AutoRefillRow(info: AutoRefillInfo, modifier: Modifier = Modifier) {
             AutoRefillInfo.Off -> LabelValue(title, stringResource(Res.string.auto_refill_off), titleStyle = true)
             AutoRefillInfo.Unavailable ->
                 LabelValue(title, stringResource(Res.string.auto_refill_unavailable), titleStyle = true)
-            is AutoRefillInfo.On -> AutoRefillDetails(title, info)
+            is AutoRefillInfo.On -> AutoRefillDetails(info, reading)
         }
     }
     AdaptiveDivider()
 }
 
+/**
+ * Web's `AutoRefillSettings`: a `reset` allowance swaps the refill wording for reset wording, and a
+ * percent-only deployment shows no credit figure, so the amount row is left out.
+ */
 @Composable
-private fun ColumnScope.AutoRefillDetails(title: String, info: AutoRefillInfo.On) {
+private fun ColumnScope.AutoRefillDetails(info: AutoRefillInfo.On, reading: BalanceUiState.Loaded) {
     val dateFormat = LocalDateTimeFormat.current
-    val text = remember(info, dateFormat) {
+    val text = remember(info, dateFormat, reading.display, reading.currency) {
         AutoRefillText(
             lastRefill = dateFormat.formatAbsolute(info.lastRefill),
-            amount = formatLocalizedNumber(info.refillAmount, dateFormat.localeTag),
+            amount = when (reading.display) {
+                BalanceDisplay.CURRENCY ->
+                    formatCost(info.refillAmount / CREDITS_PER_USD, reading.currency, dateFormat.localeTag)
+                else -> formatLocalizedNumber(info.refillAmount, dateFormat.localeTag)
+            },
             intervalValue = formatLocalizedNumber(info.intervalValue, dateFormat.localeTag, maxFractionDigits = 2),
             nextRefill = dateFormat.formatAbsolute(info.nextRefill),
         )
     }
-    Text(text = title, style = MaterialTheme.typography.bodyLarge)
-    LabelValue(stringResource(Res.string.auto_refill_last), text.lastRefill)
-    LabelValue(stringResource(Res.string.auto_refill_amount), text.amount)
+    val reset = info.reset
+    Text(
+        text = stringResource(if (reset) Res.string.auto_reset_title else Res.string.auto_refill_title),
+        style = MaterialTheme.typography.bodyLarge,
+    )
+    LabelValue(stringResource(if (reset) Res.string.auto_reset_last else Res.string.auto_refill_last), text.lastRefill)
+    if (reading.display != BalanceDisplay.PERCENT) {
+        LabelValue(stringResource(if (reset) Res.string.auto_reset_amount else Res.string.auto_refill_amount), text.amount)
+    }
     LabelValue(
         stringResource(Res.string.auto_refill_interval),
         pluralStringResource(info.intervalUnit.everyPlural, info.intervalValue.toInt(), text.intervalValue),
     )
-    LabelValue(stringResource(Res.string.auto_refill_next), text.nextRefill)
+    LabelValue(stringResource(if (reset) Res.string.auto_reset_next else Res.string.auto_refill_next), text.nextRefill)
     Text(
-        text = stringResource(Res.string.auto_refill_next_info),
+        text = stringResource(if (reset) Res.string.auto_reset_next_info else Res.string.auto_refill_next_info),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )

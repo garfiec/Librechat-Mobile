@@ -34,9 +34,11 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Stop
@@ -87,9 +89,11 @@ import com.garfiec.librechat.feature.chat.resources.cd_add_to_queue
 import com.garfiec.librechat.feature.chat.resources.cd_answer_question
 import com.garfiec.librechat.feature.chat.resources.cd_cancel_edit
 import com.garfiec.librechat.feature.chat.resources.cd_cancel_pending_send
+import com.garfiec.librechat.feature.chat.resources.cd_cancel_queued_message
 import com.garfiec.librechat.feature.chat.resources.cd_collapse
 import com.garfiec.librechat.feature.chat.resources.cd_during_run_options
 import com.garfiec.librechat.feature.chat.resources.cd_expand
+import com.garfiec.librechat.feature.chat.resources.cd_interrupt_message
 import com.garfiec.librechat.feature.chat.resources.cd_send_message
 import com.garfiec.librechat.feature.chat.resources.cd_start_voice_recording
 import com.garfiec.librechat.feature.chat.resources.cd_steer_message
@@ -102,6 +106,7 @@ import com.garfiec.librechat.feature.chat.resources.hint_message
 import com.garfiec.librechat.feature.chat.resources.hint_message_model
 import com.garfiec.librechat.feature.chat.resources.queue_held_after_refusal
 import com.garfiec.librechat.feature.chat.resources.recording
+import com.garfiec.librechat.feature.chat.util.ThinkingChip
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
@@ -119,6 +124,8 @@ data class ChatInputState(
     /** Tool keys (already mapped + gated) to surface as inline quick-toggle chips on the
      *  input bar (v0.8.7 `defaultPinnedTools`). Selected state reads from [enabledTools]. */
     val pinnedToolKeys: List<String> = emptyList(),
+    /** The per-turn Thinking chip (v0.8.9-rc1), shown after the pinned tools; null hides it. */
+    val thinking: ThinkingChip? = null,
     val mcpServers: List<McpServerDisplayData>,
     val selectedMcpServerNames: Set<String>,
     val selectedModelDisplay: String?,
@@ -132,6 +139,9 @@ data class ChatInputState(
     /** Whether a mid-stream send could instead be steered into the running reply (v0.8.8).
      *  False leaves the composer with queueing alone and hides the during-run picker. */
     val canSteer: Boolean = false,
+    /** Built-in (provider-hosted) web search is on for this send. Such a run can't be interrupted,
+     *  so the during-run menu says so on its Interrupt row instead of promising to stop it. */
+    val builtInSearchOn: Boolean = false,
     /** Which route the during-run picker marks as the standing default — already degraded to
      *  [DuringRunAction.QUEUE] by the ViewModel when steering is unavailable. This is the
      *  *preference*; it is NOT what the send button does. See [duringRunSendTarget]. */
@@ -200,6 +210,8 @@ fun CommonChatInputCore(
     modifier: Modifier = Modifier,
     /** Toggle a pinned tool from its inline chip (v0.8.7 `defaultPinnedTools`). */
     onToggleTool: (String) -> Unit = {},
+    /** Opens the Thinking sheet from its chip. */
+    onOpenThinking: () -> Unit = {},
     /** Queue a follow-up while streaming. Null (or [ChatInputState.canQueue] false) keeps the
      *  button as plain Stop mid-stream (e.g. on a brand-new conversation). Also the during-run
      *  picker's explicit "add to queue" — never the default-action route. */
@@ -209,8 +221,12 @@ fun CommonChatInputCore(
     onDuringRunSend: () -> Unit = {},
     /** The during-run picker's explicit "steer this one" (v0.8.8). */
     onSteer: () -> Unit = {},
+    /** The during-run picker's explicit "interrupt and steer this one". */
+    onInterrupt: () -> Unit = {},
     /** Withdraw a steer the run has not injected yet. */
     onCancelSteer: (steerId: String) -> Unit = {},
+    /** "Interrupt now" on a waiting steer chip. */
+    onInterruptSteer: (steerId: String) -> Unit = {},
     /** Remove one staged quote chip (v0.8.7 "Add to chat"). */
     onRemoveQuote: (index: Int) -> Unit = {},
     /** Remove one picked skill's chip. */
@@ -303,6 +319,7 @@ fun CommonChatInputCore(
             PendingSteerChipsSection(
                 pendingSteers = state.pendingSteers,
                 onCancel = onCancelSteer,
+                onInterrupt = onInterruptSteer,
                 fontSizeMultiplier = fontSizeMultiplier,
             )
 
@@ -346,13 +363,21 @@ fun CommonChatInputCore(
                 showEphemeralTools = state.gates.showEphemeralTools,
             )
 
+            // The attached machine a coding agent works on (machine, workspace, branch, checkout).
+            LocalCodeWorkspaceComposer.current?.let { codeWorkspace ->
+                CodeWorkspaceRow(codeWorkspace, modifier = Modifier.padding(bottom = 4.dp))
+            }
+
             // Server-pinned tools (v0.8.7 defaultPinnedTools) as inline quick-toggle chips.
-            if (state.pinnedToolKeys.isNotEmpty()) {
+            // The Thinking chip rides the same row, so it shows with no pinned tools too.
+            if (state.pinnedToolKeys.isNotEmpty() || state.thinking != null) {
                 PinnedToolsRow(
                     pinnedToolKeys = state.pinnedToolKeys,
                     enabledTools = state.enabledTools,
                     lockedTools = state.gates.lockedTools,
                     onToggleTool = onToggleTool,
+                    thinking = state.thinking,
+                    onOpenThinking = onOpenThinking,
                     modifier = Modifier.padding(bottom = 4.dp),
                 )
             }
@@ -440,6 +465,7 @@ fun CommonChatInputCore(
                         onStop = onStop,
                         onQueue = onQueue,
                         onSteer = onSteer,
+                        onInterrupt = onInterrupt,
                         onDuringRunSend = onDuringRunSend,
                         onSetDuringRunAction = onSetDuringRunAction,
                         onCommitEdit = onCommitEdit,
@@ -465,6 +491,7 @@ private fun ComposerInputRow(
     onStop: () -> Unit,
     onQueue: (() -> Unit)?,
     onSteer: () -> Unit,
+    onInterrupt: () -> Unit,
     onDuringRunSend: () -> Unit,
     onSetDuringRunAction: (DuringRunAction) -> Unit,
     onCommitEdit: () -> Unit,
@@ -480,7 +507,10 @@ private fun ComposerInputRow(
         // A comparison still choosing its second model has nowhere to send yet. Committing a queued
         // edit sends nothing (the queue is held through setup), so Update stays available.
         val blockedBySetup = state.comparisonHint == ComposerComparisonHint.SETTING_UP && !state.isEditingQueued
-        val hasComposerContent = !blockedBySetup && composerCanSend(
+        // A new turn waits on the workspace row (its lines say why); a mid-run queue does not.
+        val blockedByWorkspace = LocalCodeWorkspaceComposer.current?.state?.holdsSend == true &&
+            !state.isStreaming && !state.isEditingQueued
+        val hasComposerContent = !blockedBySetup && !blockedByWorkspace && composerCanSend(
             inputText = state.inputText,
             hasAttachments = state.attachedFiles.isNotEmpty(),
             arePicksUnsettled = state.arePicksUnsettled,
@@ -494,13 +524,21 @@ private fun ComposerInputRow(
         // from offering a steer/queue choice over a send that will answer the pause.
         val picker = duringRunSend && state.canSteer
         val foldPicker = picker && compact
+        val menuOptions = DuringRunMenuOptions(
+            defaultAction = state.duringRunAction,
+            // Steering is text-only on mobile: a live send with attachments goes to the queue, so
+            // the two live rows would promise something the tap won't do.
+            liveRowsEnabled = state.attachedFiles.isEmpty(),
+            builtInSearchOn = state.builtInSearchOn,
+        )
         // Keyed on the fold, so a menu left open when the run ends, the draft clears or
         // the window widens doesn't pop back open on the next mid-run draft.
         var foldedMenuOpen by remember(foldPicker) { mutableStateOf(false) }
         if (picker && !compact) {
             DuringRunSendMenu(
-                defaultAction = state.duringRunAction,
+                options = menuOptions,
                 onSteerOnce = onSteer,
+                onInterruptOnce = onInterrupt,
                 onQueueOnce = onQueue ?: {},
                 onSetDefault = onSetDuringRunAction,
             )
@@ -523,6 +561,8 @@ private fun ComposerInputRow(
                 // In queued-edit mode the button commits the edit instead of send/stop/queue.
                 isEditingQueued = state.isEditingQueued,
                 onUpdate = onCommitEdit,
+                isQueuedEditEmptied = state.inputText.isBlank() && state.attachedFiles.isEmpty() &&
+                    !state.arePicksUnsettled,
                 // A send waiting on an in-flight upload: spinner, tap to cancel.
                 isAwaitingUploadSend = state.isAwaitingUploadSend,
                 onCancelPendingSend = onCancelPendingSend,
@@ -530,8 +570,9 @@ private fun ComposerInputRow(
             DuringRunSendDropdown(
                 expanded = foldPicker && foldedMenuOpen,
                 onDismiss = { foldedMenuOpen = false },
-                defaultAction = state.duringRunAction,
+                options = menuOptions,
                 onSteerOnce = onSteer,
+                onInterruptOnce = onInterrupt,
                 onQueueOnce = onQueue ?: {},
                 onSetDefault = onSetDuringRunAction,
             )
@@ -545,7 +586,7 @@ private val GlassComposerShape = RoundedCornerShape(28.dp)
 private val COMPACT_COMPOSER_ROW_WIDTH = 336.dp
 
 /** Visual mode of the trailing composer button. */
-internal enum class SendButtonMode { SEND, STOP, QUEUE, STEER, ANSWER, UPDATE, AWAITING }
+internal enum class SendButtonMode { SEND, STOP, QUEUE, STEER, INTERRUPT, ANSWER, UPDATE, REMOVE_QUEUED, AWAITING }
 
 /**
  * Whether the composer holds something the trailing control can act on. Drives both that control's
@@ -579,7 +620,10 @@ internal fun sendButtonModeFor(
     duringRunTarget: DuringRunSendTarget,
     isEditingQueued: Boolean,
     isAwaitingUploadSend: Boolean,
+    isQueuedEditEmptied: Boolean = false,
 ): SendButtonMode = when {
+    // Emptying a queued message and confirming withdraws it, so the button stays enabled.
+    isEditingQueued && isQueuedEditEmptied -> SendButtonMode.REMOVE_QUEUED
     isEditingQueued -> SendButtonMode.UPDATE
     // A send parked behind an in-flight upload only takes over the button when NOT streaming —
     // during a stream the Stop control must stay reachable, so a queued-message send parked
@@ -590,6 +634,7 @@ internal fun sendButtonModeFor(
     canQueue -> when (duringRunTarget) {
         DuringRunSendTarget.ANSWER_PAUSE -> SendButtonMode.ANSWER
         DuringRunSendTarget.STEER -> SendButtonMode.STEER
+        DuringRunSendTarget.INTERRUPT -> SendButtonMode.INTERRUPT
         DuringRunSendTarget.QUEUE -> SendButtonMode.QUEUE
     }
 
@@ -626,6 +671,8 @@ fun SendStopButton(
     duringRunTarget: DuringRunSendTarget = DuringRunSendTarget.QUEUE,
     isEditingQueued: Boolean = false,
     onUpdate: () -> Unit = {},
+    /** In queued-edit mode the composer was emptied: [onUpdate] withdraws the message. */
+    isQueuedEditEmptied: Boolean = false,
     isAwaitingUploadSend: Boolean = false,
     onCancelPendingSend: () -> Unit = {},
     /** A during-run tap opens the steer/queue picker rather than sending: the caret is folded in. */
@@ -637,6 +684,7 @@ fun SendStopButton(
         duringRunTarget = duringRunTarget,
         isEditingQueued = isEditingQueued,
         isAwaitingUploadSend = isAwaitingUploadSend,
+        isQueuedEditEmptied = isQueuedEditEmptied,
     )
     // On the slot, not each button, so a send's bounce survives the swap to Stop.
     val bounce = rememberPressBounce()
@@ -662,6 +710,21 @@ fun SendStopButton(
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = stringResource(Res.string.cd_update_queued_message),
+                )
+            }
+
+            SendButtonMode.REMOVE_QUEUED -> IconButton(
+                onClick = onUpdate,
+                modifier = Modifier.size(56.dp),
+                colors = ChatInputDefaults.sendButtonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError,
+                    glassContentColor = MaterialTheme.colorScheme.error,
+                ),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = stringResource(Res.string.cd_cancel_queued_message),
                 )
             }
 
@@ -730,6 +793,21 @@ fun SendStopButton(
                 DuringRunSendIcon(
                     imageVector = Icons.Default.Bolt,
                     contentDescription = stringResource(Res.string.cd_steer_message),
+                    opensMenu = opensMenu,
+                )
+            }
+
+            SendButtonMode.INTERRUPT -> IconButton(
+                onClick = onQueue,
+                modifier = Modifier.size(56.dp),
+                colors = ChatInputDefaults.sendButtonColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                ),
+            ) {
+                DuringRunSendIcon(
+                    imageVector = Icons.Default.FlashOff,
+                    contentDescription = stringResource(Res.string.cd_interrupt_message),
                     opensMenu = opensMenu,
                 )
             }

@@ -50,4 +50,10 @@ interface PromptRepository {
      * Fire-and-forget — failures are swallowed since this is telemetry only.
      */
     suspend fun recordPromptGroupUse(groupId: String): Result<Unit>
+
+    /**
+     * [group] ready to use: a native group as it is, an externally managed one (v0.8.9-rc1) with
+     * its live text read from `GET /api/prompts/groups/:groupId/resolve`, since it stores none.
+     */
+    suspend fun withResolvedText(group: PromptGroup): Result<PromptGroup>
 }

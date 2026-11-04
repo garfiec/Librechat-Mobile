@@ -3,7 +3,9 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.PendingSteer
+import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.StreamEvent
+import com.garfiec.librechat.core.model.code.CodeWorkspaceSubmission
 import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.request.ChatResumeRequest
 import com.garfiec.librechat.core.model.request.EditedContent
@@ -41,6 +43,9 @@ class RecordingChatRepository : com.garfiec.librechat.core.data.repository.ChatR
         val compact: Boolean? = null,
         val addedConvo: AddedConversation? = null,
         val modelParams: JsonObject? = null,
+        val reasoningOverride: ReasoningOverride? = null,
+        val files: List<FileReference>? = null,
+        val codeWorkspace: CodeWorkspaceSubmission? = null,
     )
 
     val sent = mutableListOf<Sent>()
@@ -74,6 +79,8 @@ class RecordingChatRepository : com.garfiec.librechat.core.data.repository.ChatR
         chatProjectId: String?,
         manualSkills: List<String>?,
         editedContent: EditedContent?,
+        reasoningOverride: ReasoningOverride?,
+        codeWorkspace: CodeWorkspaceSubmission?,
     ): Flow<StreamEvent> {
         sent += Sent(
             text = text,
@@ -90,6 +97,9 @@ class RecordingChatRepository : com.garfiec.librechat.core.data.repository.ChatR
             compact = compact,
             addedConvo = addedConvo,
             modelParams = modelParams,
+            reasoningOverride = reasoningOverride,
+            files = files,
+            codeWorkspace = codeWorkspace,
         )
         return emptyFlow()
     }
@@ -105,6 +115,8 @@ class RecordingChatRepository : com.garfiec.librechat.core.data.repository.ChatR
     override suspend fun steerChat(request: SteerRequest) = unused<Nothing>()
 
     override suspend fun cancelSteer(request: SteerCancelRequest) = unused<Nothing>()
+
+    override suspend fun armSteer(request: com.garfiec.librechat.core.model.request.SteerArmRequest) = unused<Nothing>()
 
     override suspend fun checkStreamStatus(
         conversationId: String,

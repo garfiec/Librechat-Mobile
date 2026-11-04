@@ -44,6 +44,8 @@ class QueueOrchestrationDelegate(
     private val fileHandler: PlatformFileHandler,
     /** `PendingActionDelegate.generationEpoch`: the running turn's epoch, or null when unknown. */
     private val generationEpoch: () -> Long?,
+    /** `StreamingManagerDelegate.queueAnchorFor`: the server's id for a branch tail, or null. */
+    private val queueAnchor: (String) -> String?,
 ) {
 
     fun enqueueNow(text: String) {
@@ -55,6 +57,7 @@ class QueueOrchestrationDelegate(
         val withContext = spec.copy(
             quotes = sendDispatchDelegate.takePendingQuotes(spec.endpoint),
             manualSkills = sendDispatchDelegate.takePendingManualSkills(spec.endpoint),
+            reasoningOverride = sendDispatchDelegate.takePendingReasoningOverride(),
         )
         sendDispatchDelegate.clearComposer()
         enqueueSpec(withContext)
@@ -98,7 +101,9 @@ class QueueOrchestrationDelegate(
      * as a branch anchor rather than a literal parent — it walks forward to the newest assistant
      * message descending from it, which is how a queue of several chains correctly.
      * `displayMessages` is truncated at that leaf for the duration of a stream, so its tail IS
-     * the anchor (the same identity the completion-render keying relies on).
+     * the anchor (the same identity the completion-render keying relies on), named by the server's
+     * id for it: in a run this client started, the tail is the optimistic user message, whose id
+     * the server never stored ([queueAnchor]).
      *
      * `clientRequestId` is minted here and not taken from [QueuedMessage.localId]: localId
      * survives an edit, and reusing an id for different text is a 409.
@@ -116,7 +121,8 @@ class QueueOrchestrationDelegate(
         if (state.modelSpecs.requiresSpec) return spec
         if (state.selectedEndpoint != EndpointConstants.AGENTS) return spec
         if (!state.isStreaming) return spec
-        val parentMessageId = state.displayMessages.lastOrNull()?.message?.messageId ?: return spec
+        val parentMessageId = state.displayMessages.lastOrNull()?.message?.messageId
+            ?.let(queueAnchor) ?: return spec
         val predecessorCreatedAt = generationEpoch() ?: return spec
         return spec.copy(
             server = QueuedTurnServerState(status = QueuedTurnServerState.Status.Sending),
@@ -189,18 +195,23 @@ class QueueOrchestrationDelegate(
     private var withdrawingForEdit: String? = null
 
     /**
-     * Tap a queued ghost bubble: enter queued-edit mode. Stashes the current new-message draft,
-     * pulls the item OUT of the queue, and loads its text + attachments + model/tools/params into
-     * the composer for editing. Commit ([commitQueuedEdit]) or cancel ([cancelQueuedEdit]) puts the
-     * item back in its slot and restores the stashed draft. Ignored if already editing one.
+     * Tap a queued ghost bubble: enter queued-edit mode. Stashes the current new-message draft and
+     * loads the item's text + attachments + model/tools/params into the composer for editing.
+     * Ignored if already editing one.
+     *
+     * The item STAYS in the queue, and on the server, until [commitQueuedEdit] replaces it. Leaving
+     * the chat mid-edit (the ViewModel cleared, the process killed, an account switch) therefore
+     * leaves it queued and unchanged and drops only the unsaved edit, as a cancel would. Withdrawn
+     * here, its only copy would be this ViewModel's composer state. The session names the row by
+     * [QueuedMessage.localId], never by a flag on the row: the reconcile poll rewrites server-owned
+     * rows. The drain is frozen while the session is open ([MessageQueueDelegate.drainNext]), so
+     * this client never sends it mid-edit; the server can still admit a server-owned one at the
+     * run end, which [commitQueuedEdit] detects.
      */
     fun editQueued(localId: String) {
         if (handle.state.isEditingQueued) return
-        // A server-owned edit opens its session only after the withdrawal DELETE returns, so
-        // `isEditingQueued` is still false for the whole round trip. A second tap in that window
-        // — including a legacy one, which opens its session synchronously and would then be
-        // overwritten by the withdrawal landing on top of it — leaves a row out of the queue with
-        // nothing that will put it back.
+        // A withdrawal in flight is about to remove a row, possibly this one, out from under the
+        // session.
         if (withdrawingForEdit != null) {
             reportQueueBusy()
             return
@@ -214,37 +225,21 @@ class QueueOrchestrationDelegate(
             return
         }
         val index = handle.state.messageQueue.indexOfFirst { it.localId == localId }
-        val serverOwned = handle.state.messageQueue.getOrNull(index)?.takeIf { it.server != null }
-        if (serverOwned != null) {
-            withdrawingForEdit = localId
-            // The server holds these words and will run them, so editing in place would leave the
-            // original queued behind the edit. Withdraw it first, and only edit if that succeeded.
-            handle.scope.launch {
-                try {
-                    if (!queuedTurnDelegate.cancel(serverOwned)) {
-                        // Reported for the same reason the × reports it: the tap looks like it
-                        // did nothing, and the row it was aimed at is one the server will still
-                        // run. Silence here reads as a dead bubble.
-                        reportWithdrawRefused()
-                        return@launch
-                    }
-                    // A real DELETE's receipt already retired the row; a refused one never had an
-                    // id to delete and is still sitting there. Take it out either way — leaving it
-                    // would put the edit BESIDE the original and block the drain on a row nothing
-                    // retires. Its server identity is dropped here and a fresh one minted when the
-                    // edit is offered back (see [placeInQueue]). Its slot is re-read here because a
-                    // drain may have shifted it meanwhile.
-                    val taken = queueDelegate.takeForEdit(localId)
-                    beginQueuedEdit(serverOwned.asLegacyRow(), taken?.index ?: index, withdrawnFromServer = true)
-                } finally {
-                    withdrawingForEdit = null
-                }
-            }
+        val item = handle.state.messageQueue.getOrNull(index) ?: return
+        // An edit that changes anything withdraws the server's copy at commit. A row with no
+        // address to withdraw (its POST unanswered or unconfirmed) could never be committed, so it
+        // is refused now rather than after the user has typed. Same refusal the × gives.
+        if (!item.isWithdrawable()) {
+            reportWithdrawRefused()
             return
         }
-        val taken = queueDelegate.takeForEdit(localId) ?: return
-        beginQueuedEdit(taken.value, taken.index)
+        beginQueuedEdit(item, index)
     }
+
+    /** Whether [QueuedTurnDelegate.cancel] can succeed for this row at all: local, addressed, or
+     *  refused with nothing committed. */
+    private fun QueuedMessage.isWithdrawable(): Boolean =
+        server == null || server.id != null || server.status == QueuedTurnServerState.Status.Rejected
 
     /** Drops every trace of server ownership, leaving a row the local drain may send. */
     private fun QueuedMessage.asLegacyRow(): QueuedMessage = copy(
@@ -259,28 +254,30 @@ class QueueOrchestrationDelegate(
      * the item's own picks shown, so a `$` pick during the edit lands on this message and the
      * draft's chips come back untouched when the edit ends.
      */
-    private fun beginQueuedEdit(item: QueuedMessage, index: Int, withdrawnFromServer: Boolean = false) {
+    private fun beginQueuedEdit(item: QueuedMessage, index: Int) {
         val stashed = captureComposer()
         applyComposer(
             item.toComposerSnapshot(),
-            editSession = QueuedEditSession(
-                original = item,
-                originalIndex = index,
-                stashed = stashed,
-                withdrawnFromServer = withdrawnFromServer,
-            ),
+            editSession = QueuedEditSession(original = item, originalIndex = index, stashed = stashed),
         )
     }
 
-    /** "Update" in queued-edit mode: re-queue the edited item at its original slot (or drop it if
-     *  emptied), then restore the stashed new-message draft. Waits for any attachment added during
-     *  the edit to finish uploading (same gate as send/queue) so it isn't silently dropped. */
+    /** "Update" in queued-edit mode: replace the queued item with the edit (or drop it if emptied),
+     *  then restore the stashed new-message draft. Waits for any attachment added during the edit
+     *  to finish uploading (same gate as send/queue) so it isn't silently dropped. */
     fun commitQueuedEdit() {
         val session = handle.state.editingQueuedItem ?: return
+        if (withdrawingForEdit != null) {
+            reportQueueBusy()
+            return
+        }
         uploadIntakeDelegate.withUploadGate(handle.state.inputText.trim()) { text ->
-            // The upload wait is async — bail if the edit was cancelled (or replaced) meanwhile,
-            // so we don't reinsert a duplicate after cancelQueuedEdit already restored the item.
+            // The upload wait is async — bail if the edit was cancelled (or replaced) meanwhile.
             if (handle.state.editingQueuedItem != session) return@withUploadGate
+            if (withdrawingForEdit != null) {
+                reportQueueBusy()
+                return@withUploadGate
+            }
             val edited = sendDispatchDelegate.buildSendSpec(text)?.let { spec ->
                 spec.copy(
                     localId = session.original.localId,
@@ -288,46 +285,125 @@ class QueueOrchestrationDelegate(
                     // The chips on screen during the edit are this item's own (see
                     // [beginQueuedEdit]), so what the user added or removed there is what it sends.
                     manualSkills = sendDispatchDelegate.sendablePendingManualSkills(spec.endpoint),
+                    // On screen during the edit was this item's own choice, like the skill chips.
+                    reasoningOverride = handle.state.composer.pendingReasoningOverride
+                        ?.takeIf { handle.state.acceptsReasoning(it) },
                 )
             }
-            if (edited != null) {
-                restoreQueued(session, edited)
-            } else {
-                // Composer emptied → treat as delete; the item is simply not put back.
-                queueDelegate.clearPauseIfEmpty()
-            }
-            // The composer goes back to the draft below, so a chip the chat can't run is gone
-            // from the item for good: say so.
+            // The composer goes back to the draft when the edit ends, so a chip the chat can't run
+            // is gone from the item for good: say so.
             val removedSkills = edited != null && edited.manualSkills.size < handle.state.pendingManualSkills.size
-            finishQueuedEdit(session)
-            if (removedSkills) handle.setError(ChatNotice.SKILLS_REMOVED_FROM_QUEUED.marker())
+            val current = handle.state.messageQueue.firstOrNull { it.localId == session.original.localId }
+            when {
+                // It left the queue during the edit. Only the server removes a row then: it admitted
+                // the original at the run end, or the row was withdrawn elsewhere. Offering the edit
+                // back now would send these words a second time.
+                current == null -> {
+                    finishQueuedEdit(session)
+                    handle.setError(ChatNotice.QUEUE_EDIT_OVERTAKEN.marker())
+                }
+                current.server == null -> {
+                    if (edited != null) {
+                        queueDelegate.replace(session.original.localId, session.originalIndex, edited)
+                    } else {
+                        // Composer emptied → treat as delete.
+                        queueDelegate.cancel(session.original.localId)
+                    }
+                    finishQueuedEdit(session)
+                    if (removedSkills) handle.setError(ChatNotice.SKILLS_REMOVED_FROM_QUEUED.marker())
+                }
+                // Nothing the server holds would change: keep its copy and its place.
+                edited != null && edited.isSameServerTurnAs(current) -> {
+                    finishQueuedEdit(session)
+                    if (removedSkills) handle.setError(ChatNotice.SKILLS_REMOVED_FROM_QUEUED.marker())
+                }
+                else -> commitServerOwnedEdit(session, current, edited, removedSkills)
+            }
         }
     }
 
-    /** "Cancel edit": discard composer changes, restore the original item to its slot unchanged,
-     *  and bring back the stashed new-message draft. */
+    /**
+     * Withdraws the server's copy of [current] and only then offers [edited] in its place, so the
+     * server never holds both. A refusal (the server is admitting it, or the DELETE's outcome is
+     * unknown) keeps the session open with the edit still in the composer: the user can retry or
+     * cancel, and a row the server then admits leaves the queue, which the next Update reports.
+     */
+    private fun commitServerOwnedEdit(
+        session: QueuedEditSession,
+        current: QueuedMessage,
+        edited: QueuedMessage?,
+        removedSkills: Boolean,
+    ) {
+        val localId = session.original.localId
+        val index = handle.state.messageQueue.indexOfFirst { it.localId == localId }
+        withdrawingForEdit = localId
+        handle.scope.launch {
+            try {
+                if (!queuedTurnDelegate.cancel(current)) {
+                    reportWithdrawRefused()
+                    return@launch
+                }
+                // A withdrawal that landed applied a receipt, which retires the row. One still
+                // listed with a server id was answered "not found": the server already ran it and
+                // let it go, so offering the edit back would send these words twice.
+                if (handle.state.messageQueue.any { it.localId == localId && it.server?.id != null }) {
+                    queueDelegate.cancel(localId)
+                    finishQueuedEdit(session)
+                    handle.setError(ChatNotice.QUEUE_EDIT_OVERTAKEN.marker())
+                    return@launch
+                }
+                if (edited != null) {
+                    // The cancel receipt has usually retired the row already. The edit goes back in
+                    // its slot, with a fresh server identity minted by [placeInQueue].
+                    placeInQueue(edited.asLegacyRow()) { queueDelegate.replace(localId, index, it) }
+                } else {
+                    queueDelegate.cancel(localId)
+                }
+                finishQueuedEdit(session)
+                if (removedSkills) handle.setError(ChatNotice.SKILLS_REMOVED_FROM_QUEUED.marker())
+            } finally {
+                withdrawingForEdit = null
+            }
+        }
+    }
+
+    /** Whether this edit would hand the server exactly what it already holds for [original]. */
+    private fun QueuedMessage.isSameServerTurnAs(original: QueuedMessage): Boolean =
+        text == original.text &&
+            attachments.map { it.fileId } == original.attachments.map { it.fileId } &&
+            quotes == original.quotes &&
+            manualSkills == original.manualSkills &&
+            reasoningOverride == original.reasoningOverride
+
+    /** "Cancel edit": discard composer changes and bring back the stashed new-message draft. The
+     *  item never left the queue, so nothing is put back. */
     fun cancelQueuedEdit() {
         val session = handle.state.editingQueuedItem ?: return
-        restoreQueued(session, session.original)
+        // An Update's withdrawal is in flight; it ends the session itself when it lands.
+        if (withdrawingForEdit != null) {
+            reportQueueBusy()
+            return
+        }
         finishQueuedEdit(session)
     }
 
     /**
-     * Puts an edited (or un-edited) item back into its slot.
-     *
-     * One withdrawn from the server goes back to it while the run is still live. Left local, it
-     * would be overtaken: every follow-up queued after it is server-owned, the server admits those
-     * at the run end, and the drain refuses to send this one until they have all run.
+     * After the server's answer is folded into the queue: if the row being edited has left it, the
+     * server ran (or let go of) the original, so the edit has nothing left to replace. The session
+     * ends at once rather than at the next Update, so the editing bar does not stay up over a
+     * message that already went. A withdrawal of our own is in flight when [withdrawingForEdit] is
+     * set; that path ends the session itself.
      */
-    private fun restoreQueued(session: QueuedEditSession, item: QueuedMessage) {
-        if (session.withdrawnFromServer) {
-            placeInQueue(item) { queueDelegate.reinsert(session.originalIndex, it) }
-        } else {
-            queueDelegate.reinsert(session.originalIndex, item)
-        }
+    fun onQueueReconciled() {
+        val session = handle.state.editingQueuedItem ?: return
+        if (withdrawingForEdit != null) return
+        if (handle.state.messageQueue.any { it.localId == session.original.localId }) return
+        finishQueuedEdit(session)
+        handle.setError(ChatNotice.QUEUE_EDIT_OVERTAKEN.marker())
     }
 
     private fun finishQueuedEdit(session: QueuedEditSession) {
+        if (handle.state.editingQueuedItem != session) return
         applyComposer(session.stashed, editSession = null)
         // Draining was frozen during the edit; resume it now if the queue is idle (a reply may
         // have finished while editing).
@@ -336,12 +412,12 @@ class QueueOrchestrationDelegate(
 
     /** The queue refused a tap because [withdrawingForEdit] holds it; say so. */
     private fun reportQueueBusy() {
-        handle.setError(WITHDRAW_BUSY_MESSAGE)
+        handle.setError(ChatNotice.QUEUE_WITHDRAW_BUSY.marker())
     }
 
     /** A withdrawal the server declined. Shared, so the × and the tap-to-edit read the same. */
     private fun reportWithdrawRefused() {
-        handle.setError(WITHDRAW_REFUSED_MESSAGE)
+        handle.setError(ChatNotice.QUEUE_WITHDRAW_REFUSED.marker())
     }
 
     fun cancelQueued(localId: String) {
@@ -472,6 +548,7 @@ class QueueOrchestrationDelegate(
             modelParameters = state.modelParameters,
             manualSkills = state.pendingManualSkills,
             skillsToggle = state.skillsToggle,
+            reasoningOverride = state.composer.pendingReasoningOverride,
         )
     }
 
@@ -497,6 +574,7 @@ class QueueOrchestrationDelegate(
             specTools = snapshot.specTools
             modelParameters = snapshot.modelParameters
             pendingManualSkills = snapshot.manualSkills
+            pendingReasoningOverride = snapshot.reasoningOverride
             skillsToggle = snapshot.skillsToggle
         }
     }
@@ -519,15 +597,5 @@ class QueueOrchestrationDelegate(
         val eligible = state.selectedEndpoint == EndpointConstants.AGENTS &&
             state.gates.serverQueueSupported
         queuedTurnDelegate.ensurePolling(state.conversationId.takeIf { eligible })
-    }
-
-    private companion object {
-        // Plain strings, like every other message on this `error` channel. `getString(Res.string…)`
-        // is not usable from this layer: compose-resources resolves through
-        // `Resources.getSystem()`, which is null under this module's plain-JVM unit tests.
-        const val WITHDRAW_REFUSED_MESSAGE =
-            "Could not withdraw this message from the server."
-        const val WITHDRAW_BUSY_MESSAGE =
-            "Still finishing the previous withdrawal. Try again in a moment."
     }
 }

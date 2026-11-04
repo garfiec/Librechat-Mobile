@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.feature.chat.components.mcpapp.McpAppRows
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
@@ -59,6 +60,14 @@ fun StreamingToolCallCard(
     /** The reply text's length so far, to tell when the model has moved past a finished search. */
     replyLength: Int = 0,
 ) {
+    // The run is holding this call for an MCP sign-in (delta.auth). Upstream shows the action only
+    // while the step runs; the completion that follows the callback flips isComplete and hides it.
+    val authUrl = toolCall.authUrl
+    if (authUrl != null && !toolCall.isComplete) {
+        McpSignInToolCallCard(serverName = toolCall.authServerName, authUrl = authUrl, modifier = modifier)
+        return
+    }
+
     // Image-gen tool calls render as an ImageGenCard placeholder (matching web): a
     // faux-progress spinner while generating, swapping to the real image the moment
     // its attachment SSE event arrives (linked by toolCallId) — before the final reload.
@@ -165,6 +174,7 @@ fun StreamingToolCallCard(
                 modifier = Modifier.padding(top = 8.dp),
                 live = true,
             )
+            McpAppRows(streamingAttachments, listOf(toolCall.id), Modifier.padding(top = 8.dp))
         }
         return
     }
@@ -281,13 +291,18 @@ private fun GenericStreamingToolCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = toolCall.name,
+                        text = preparingToolLabel(toolCall)?.let { stringResource(Res.string.tool_preparing, it) }
+                            ?: toolCall.name,
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f),
                     )
 
-                    when (toolCallVerdict(toolCall.closedStatus, toolCall.isComplete)) {
+                    // Null: the user's own interrupt cancelled it (see InterruptedToolStatus).
+                    val interrupted = toolCall.isComplete && isInterruptedToolOutput(toolCall.output)
+                    when (if (interrupted) null else toolCallVerdict(toolCall.closedStatus, toolCall.isComplete)) {
+                        null -> InterruptedToolStatus()
+
                         ToolCallVerdict.CANCELLED -> Icon(
                             imageVector = Icons.Default.Block,
                             contentDescription = stringResource(Res.string.cd_tool_cancelled),
@@ -359,8 +374,26 @@ private fun GenericStreamingToolCard(
             modifier = Modifier.padding(top = 8.dp),
             live = true,
         )
+        // An App can be opened mid-reply: its tool has settled once the attachment arrives.
+        McpAppRows(streamingAttachments, listOf(toolCall.id), Modifier.padding(top = 8.dp))
     }
 }
 
 private val EMPTY_CODE_RESULT =
     CodeExecutionResult(language = null, code = null, output = null, error = null, exitCode = null)
+
+/**
+ * The tool name to put in "Preparing {tool}" while the model is still writing the call's
+ * arguments (upstream `ToolPreparation`, #16619), or null when the card shows its ordinary title.
+ * An MCP or action tool keeps its own name: upstream leaves those to the integration card's own
+ * name parsing rather than prefixing a raw `tool_mcp_server` string.
+ */
+internal fun preparingToolLabel(toolCall: ActiveToolCall): String? {
+    if (!toolCall.isPreparing) return null
+    val name = toolCall.name
+    if (name.isBlank() || MCP_DELIMITER in name || ACTION_DELIMITER in name) return null
+    return name
+}
+
+private const val MCP_DELIMITER = "_mcp_"
+private const val ACTION_DELIMITER = "_action_"

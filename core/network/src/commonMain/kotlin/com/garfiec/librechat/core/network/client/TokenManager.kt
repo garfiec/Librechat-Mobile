@@ -16,7 +16,8 @@ import kotlinx.coroutines.flow.StateFlow
  */
 enum class RefreshResult { Refreshed, HardExpired, Transient }
 
-interface TokenManager {
+@Suppress("TooManyFunctions") // debt: 21 functions
+interface TokenManager : AuthGateHolder {
     /** Non-suspend check — returns true when an access token is cached in memory. */
     val isAuthenticated: Boolean
     suspend fun getAccessToken(): String?
@@ -82,6 +83,13 @@ interface TokenManager {
      * must already have keyed tokens.
      */
     suspend fun selectAccount(accountId: String)
+
+    /**
+     * The account the store is bound to (its persisted active mirror), or null for the bare slot. Read
+     * at cold start to find a binding the roster no longer knows. Defaulted to null so test fakes
+     * need not model the binding.
+     */
+    suspend fun boundAccountId(): String? = null
 
     /**
      * Delete [accountId]'s keyed tokens (account removal). When [accountId] is the active account this
@@ -187,8 +195,31 @@ interface TokenManager {
      * and already knows why — and latches the one-shot expiry report, so the requests still in flight
      * on the dropped bearer cannot announce a "session expired" over a sign-out the user chose.
      *
+     * [forTwoFactorSetup] is the server's 2FA enrollment 403 ending it: the account is also recorded
+     * as [isTwoFactorSetupRequired] (a refresh's enrollment answer records it itself), so a restart
+     * before setup is done does not read the empty slot as an expiry.
+     *
      * Null is the bare (pre-account-resolution / legacy) slot. Defaulted to a no-op for the same reason
      * as [sessionHealth].
      */
-    suspend fun endSessionForReauth(accountId: String?) = Unit
+    suspend fun endSessionForReauth(accountId: String?, forTwoFactorSetup: Boolean = false) = Unit
+
+    /**
+     * A user-chosen sign-out of [accountId] (null = the bare slot) is starting. Latches the expiry
+     * report while that account is the active binding, before the logout POST revokes its server
+     * session: a request whose refresh then fails was ended on purpose and must not announce an
+     * expiry. Re-armed by whatever comes next: a sign-in ([setSession]), a switch to another account
+     * ([selectAccount]) or the sign-out's own teardown. Defaulted to a no-op for the same reason as
+     * [sessionHealth].
+     */
+    suspend fun beginSignOut(accountId: String?) = Unit
+
+    /**
+     * True when [accountId]'s session was ended because the server now requires it to set up 2FA
+     * (v0.8.9-rc1) and it has not signed in since. Persisted with the account's token slot, so it
+     * survives a restart and covers an account that was not active when its refresh was refused.
+     * Cleared by the next sign-in that resolves to the account, and by removing it. Defaulted to
+     * false for the same reason as [sessionHealth].
+     */
+    suspend fun isTwoFactorSetupRequired(accountId: String): Boolean = false
 }

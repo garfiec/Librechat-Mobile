@@ -159,6 +159,7 @@
     <string name="skill_error_save">Не удалось сохранить этот навык.</string>
     <string name="skill_error_import">Не удалось импортировать этот навык.</string>
     <string name="skill_error_skill_md_upload">SKILL.md — это содержимое самого навыка. Чтобы изменить его, отредактируйте навык.</string>
+    <string name="skill_error_skill_deleting">Этот навык удаляется, поэтому его файлы нельзя изменить.</string>
     <string name="skill_error_changed_on_server">Этот навык изменили на сервере, и не удалось загрузить его последнюю версию. Ваши правки сохранены: попробуйте сохранить ещё раз.</string>
     <string name="skill_acl_principal_unknown">Неизвестно</string>
     <!-- Skill import failure summaries -->

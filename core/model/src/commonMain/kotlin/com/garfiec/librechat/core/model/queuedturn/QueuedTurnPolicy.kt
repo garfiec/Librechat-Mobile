@@ -103,8 +103,13 @@ private val AgentQueuedTurnReceipt.keepsProjectionAlive: Boolean
  * How long an enqueue whose outcome the transport never revealed stays reconcilable. After this
  * the row is held for manual recovery and never becomes resendable — the outcome is still unknown,
  * it is just no longer worth polling for.
+ *
+ * The default only: a v0.8.9-rc1+ server can set its own window
+ * (`interface.queuedTurnReconciliationTimeoutMs`, read through
+ * [com.garfiec.librechat.core.model.config.queuedTurnReconciliationTimeoutMs]).
  */
-const val QUEUED_TURN_RECONCILIATION_MS: Long = 60_000
+const val QUEUED_TURN_RECONCILIATION_MS: Long =
+    com.garfiec.librechat.core.model.config.DEFAULT_QUEUED_TURN_RECONCILIATION_TIMEOUT_MS
 
 private const val HTTP_BAD_REQUEST = 400
 private const val HTTP_REQUEST_TIMEOUT = 408

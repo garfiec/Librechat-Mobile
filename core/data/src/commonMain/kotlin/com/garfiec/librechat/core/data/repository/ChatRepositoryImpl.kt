@@ -6,17 +6,21 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.PendingSteer
+import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.StreamEvent
+import com.garfiec.librechat.core.model.code.CodeWorkspaceSubmission
 import com.garfiec.librechat.core.model.error.ServerErrorCode
 import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.request.ChatResumeRequest
 import com.garfiec.librechat.core.model.request.EditedContent
 import com.garfiec.librechat.core.model.request.EphemeralAgent
+import com.garfiec.librechat.core.model.request.SteerArmRequest
 import com.garfiec.librechat.core.model.request.SteerCancelRequest
 import com.garfiec.librechat.core.model.request.SteerRequest
 import com.garfiec.librechat.core.model.response.ChatAbortResponse
 import com.garfiec.librechat.core.model.response.ChatResumeResponse
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
+import com.garfiec.librechat.core.model.response.SteerArmResponse
 import com.garfiec.librechat.core.model.response.SteerCancelResponse
 import com.garfiec.librechat.core.model.response.SteerResponse
 import com.garfiec.librechat.core.network.api.ChatApi
@@ -83,6 +87,8 @@ class ChatRepositoryImpl(
         chatProjectId: String?,
         manualSkills: List<String>?,
         editedContent: EditedContent?,
+        reasoningOverride: ReasoningOverride?,
+        codeWorkspace: CodeWorkspaceSubmission?,
     ): Flow<StreamEvent> = flow {
         // Phase 1: POST to start the chat - get back a streamId (= conversationId)
         val request = ChatPayloadBuilder.build(
@@ -112,6 +118,8 @@ class ChatRepositoryImpl(
             chatProjectId = chatProjectId,
             manualSkills = manualSkills,
             editedContent = editedContent,
+            reasoningOverride = reasoningOverride,
+            codeWorkspace = codeWorkspace,
         )
         // A send whose parent response is still being written now 409s ("Cannot submit a
         // follow-up while the selected parent response is still being saved"), which an
@@ -160,11 +168,12 @@ class ChatRepositoryImpl(
         when (
             val result = retryWhile(
                 // The run acknowledged the stop but has not reached a point where it can be
-                // stopped. The server explicitly asks to be asked again (`Retry-After: 1`), so
+                // stopped, or it stopped and saving the partial failed (the run is kept for a
+                // retry). The server asks to be asked again (`Retry-After: 1`) for both, so
                 // reporting a stop failure here would be a lie the user has to act on.
                 retryable = {
                     it.statusCode == HTTP_CONFLICT &&
-                        it.generationErrorCode == ServerErrorCode.RUN_STILL_ACTIVE
+                        it.generationErrorCode in RETRYABLE_ABORT_CODES
                 },
             ) { safeApiCall { chatApi.abortChat(streamId, isTemporary) } }
         ) {
@@ -187,6 +196,10 @@ class ChatRepositoryImpl(
 
     override suspend fun cancelSteer(request: SteerCancelRequest): Result<SteerCancelResponse> = safeApiCall {
         chatApi.cancelSteer(request)
+    }
+
+    override suspend fun armSteer(request: SteerArmRequest): Result<SteerArmResponse> = safeApiCall {
+        chatApi.armSteer(request)
     }
 
     override suspend fun checkStreamStatus(
@@ -286,6 +299,10 @@ class ChatRepositoryImpl(
     private val ApiException.generationErrorCode: String? get() = ServerErrorCode.generationCodeOf(body)
 
     private companion object {
+        val RETRYABLE_ABORT_CODES = setOf(
+            ServerErrorCode.RUN_STILL_ACTIVE,
+            ServerErrorCode.ABORT_PERSISTENCE_FAILED,
+        )
         const val HTTP_CONFLICT = 409
         const val HTTP_SERVICE_UNAVAILABLE = 503
 

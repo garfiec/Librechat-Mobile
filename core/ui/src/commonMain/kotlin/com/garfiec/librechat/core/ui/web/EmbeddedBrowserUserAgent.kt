@@ -1,7 +1,7 @@
-package com.garfiec.librechat.feature.auth.oauth
+package com.garfiec.librechat.core.ui.web
 
 /**
- * Chrome's Android User-Agent, for the SSO WebView only.
+ * Chrome's Android User-Agent, for the sign-in WebViews only (SSO in `:feature:auth`, MCP OAuth here).
  *
  * Deliberately not `LibreChatHttpClient.BROWSER_USER_AGENT`. That constant exists to satisfy the
  * stock server's `ua-parser-js` middleware, which soft-bans the first non-browser agent it sees,

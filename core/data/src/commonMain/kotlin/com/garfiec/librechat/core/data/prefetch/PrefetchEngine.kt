@@ -320,6 +320,10 @@ class PrefetchEngine(
                 val result = messageRepository.refreshMessages(
                     candidate.conversationId,
                     originAccount = accountId,
+                    // Warming exists so chats open fast, and full tool output is the bulk previews
+                    // remove. It also matches what the chat's own load caches, so rows don't flip.
+                    // Cost: a card only ever prefetched can't open its full content offline.
+                    toolPreviews = true,
                 )
                 val elapsed = start.elapsedNow()
 

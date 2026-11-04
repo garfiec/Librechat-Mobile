@@ -27,6 +27,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.extensions.formatLocalizedNumber
@@ -35,6 +36,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
+import com.garfiec.librechat.core.ui.components.rememberDraftField
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.action_cancel
@@ -58,8 +60,9 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The memory sheet for adding, editing and viewing one memory: a stateless view of
- * `MemoriesUiState.editor`, whose draft, validation and save guard live in the ViewModel.
+ * The memory sheet for adding, editing and viewing one memory: a view of `MemoriesUiState.editor`,
+ * whose draft, validation and save guard live in the ViewModel. The fields keep only their caret
+ * (see [rememberDraftField]).
  *
  * While the draft has unsaved changes or a save is in flight, every way out (swipe, scrim, back,
  * Cancel) goes to [onDismiss] with the sheet still up; the ViewModel then raises the discard prompt,
@@ -118,6 +121,11 @@ internal fun MemoryEditSheetContent(
     val keyError = memoryKeyErrorText(editor.keyError)
     val localeTag = LocalDateTimeFormat.current.localeTag
     val focusManager = LocalFocusManager.current
+    val keyField = rememberDraftField(editor.key)
+    val valueField = rememberDraftField(editor.value)
+    // The ViewModel ignores edits while a save is in flight; the fields, which keep their own text,
+    // must ignore them too or they would show what the save never saw.
+    val acceptsEdits = !readOnly && !editor.isSaving
 
     Column(
         modifier = modifier
@@ -141,8 +149,8 @@ internal fun MemoryEditSheetContent(
         // Both fields stay enabled while saving: disabling them drops focus, which closes the
         // keyboard and the sheet with it mid-save. The ViewModel ignores edits until the save answers.
         AdaptiveOutlinedTextField(
-            value = if (hidesKey) stringResource(Res.string.memory_redacted_key) else editor.key,
-            onValueChange = onKeyChange,
+            value = if (hidesKey) TextFieldValue(stringResource(Res.string.memory_redacted_key)) else keyField.value,
+            onValueChange = { if (acceptsEdits) keyField.onValueChange(it, onKeyChange) },
             modifier = Modifier.fillMaxWidth(),
             label = { Text(stringResource(Res.string.memory_key_label)) },
             singleLine = true,
@@ -168,8 +176,8 @@ internal fun MemoryEditSheetContent(
             },
         )
         AdaptiveOutlinedTextField(
-            value = if (hidesValue) redactedValueText(canDelete) else editor.value,
-            onValueChange = onValueChange,
+            value = if (hidesValue) TextFieldValue(redactedValueText(canDelete)) else valueField.value,
+            onValueChange = { if (acceptsEdits) valueField.onValueChange(it, onValueChange) },
             modifier = Modifier.fillMaxWidth(),
             label = { Text(stringResource(Res.string.memory_value_label)) },
             readOnly = readOnly,

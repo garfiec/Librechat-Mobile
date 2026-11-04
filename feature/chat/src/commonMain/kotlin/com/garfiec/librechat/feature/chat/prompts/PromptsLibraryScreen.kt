@@ -92,6 +92,7 @@ fun PromptsLibraryScreen(
             group = selectedGroup,
             onBack = viewModel::clearSelectedGroup,
             onDelete = { viewModel.requestDeleteGroup(selectedGroup.id) },
+            onRetryText = viewModel::retryPromptText,
             onUseInChat = { promptText ->
                 // Only user-fillable variables warrant the dialog. A prompt whose only placeholders
                 // are server-substituted specials ({{current_date}} and friends) goes straight

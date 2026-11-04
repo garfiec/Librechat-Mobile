@@ -19,12 +19,12 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.model.auth.AuthCookies
 import com.garfiec.librechat.core.network.client.CookieHelper
-import com.garfiec.librechat.feature.auth.oauth.SSO_ANDROID_USER_AGENT
+import com.garfiec.librechat.core.ui.web.SSO_ANDROID_USER_AGENT
 import com.garfiec.librechat.feature.auth.oauth.SsoNavigationDecision
 import com.garfiec.librechat.feature.auth.oauth.SsoNavigationGate
 import com.garfiec.librechat.feature.auth.oauth.extractAuthCookies
-import com.garfiec.librechat.feature.auth.oauth.extractQueryParameter
 import com.garfiec.librechat.feature.auth.oauth.extractRefreshTokenFromCookies
+import com.garfiec.librechat.feature.auth.oauth.ssoFailureCode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -111,7 +111,7 @@ actual fun SsoWebView(
                         if (!request.isForMainFrame) return false
                         val url = request.url.toString()
                         if (gate.decide(url) != SsoNavigationDecision.STOP) return false
-                        finish(view, extractQueryParameter(url, "error"))
+                        finish(view, ssoFailureCode(url))
                         return true
                     }
 
@@ -129,7 +129,7 @@ actual fun SsoWebView(
                         super.doUpdateVisitedHistory(view, url, isReload)
                         if (finished || url.startsWith("about:")) return
                         if (gate.decide(url) == SsoNavigationDecision.STOP) {
-                            finish(view, extractQueryParameter(url, "error"))
+                            finish(view, ssoFailureCode(url))
                             return
                         }
                         captureIfTokenPresent(view, url)

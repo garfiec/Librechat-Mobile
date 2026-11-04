@@ -78,7 +78,7 @@ class ChatViewModelFailedTurnRestoreTest {
             every { connectivityObserver.isConnected } returns MutableStateFlow(false)
         }
         stored.value = listOf(user, reply)
-        coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID) } returns
+        coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID, any()) } returns
             Result.Success(listOf(user, reply))
     }
 
@@ -143,7 +143,7 @@ class ChatViewModelFailedTurnRestoreTest {
         )
         advanceUntilIdle()
         // The post-error reload: Room then holds whatever the server kept.
-        coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID) } coAnswers {
+        coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID, any()) } coAnswers {
             stored.value = serverAfterFailure
             Result.Success(serverAfterFailure)
         }
@@ -329,6 +329,44 @@ class ChatViewModelFailedTurnRestoreTest {
                 vm.viewModelScope.cancel()
             }
         }
+
+    /** The 400 the content filter answers a chat POST with (v0.8.9-rc1), as the validator raises it. */
+    private fun contentFilterBlock(message: String?) = ApiException(
+        statusCode = 400,
+        message = message ?: "content_filter_block",
+        body = if (message == null) {
+            """{"error":"content_filter_block","source":"message","field":"text"}"""
+        } else {
+            """{"error":"content_filter_block","message":"$message","source":"message","field":"text"}"""
+        },
+        serverAuthored = true,
+    )
+
+    @Test
+    fun `a content-filter block shows the filter's sentence and hands the text back`() = runTest(testDispatcher) {
+        val sentence = "Submitted content contains a email address. Remove it and try again."
+        val vm = send(flow { throw contentFilterBlock(sentence) }, serverAfterFailure = listOf(user, reply))
+        try {
+            val state = vm.uiState.value
+            assertThat(state.isStreaming).isFalse()
+            assertThat(state.error).isEqualTo(sentence)
+            assertThat(state.inputText).isEqualTo(TYPED)
+            assertThat(state.displayMessages.map { it.message.text }).doesNotContain(TYPED)
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
+
+    @Test
+    fun `a content-filter block with no sentence is a notice, never its code`() = runTest(testDispatcher) {
+        val vm = send(flow { throw contentFilterBlock(null) }, serverAfterFailure = listOf(user, reply))
+        try {
+            assertThat(vm.uiState.value.error).isEqualTo(ChatNotice.CONTENT_BLOCKED.marker())
+            assertThat(vm.uiState.value.inputText).isEqualTo(TYPED)
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
 
     private companion object {
         const val MESSAGE_LIMIT = """{"type":"message_limit","max":40,"limiter":"ip","windowInMinutes":1}"""

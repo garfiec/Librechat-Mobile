@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.util
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.core.model.content.stripOpaqueReasoning
 import com.garfiec.librechat.feature.chat.components.artifact.ArtifactSegment
 import com.garfiec.librechat.feature.chat.components.artifact.detectArtifacts
 
@@ -55,7 +56,10 @@ fun isEditablePart(part: MessageContentPart?): Boolean {
         // prose and keeps its field. A DELIBERATE divergence — upstream's `isEditablePart` tests
         // `tool_call_ids != null` and would hide the field for `[]`.
         ContentType.TEXT -> if (!part.toolCallIds.isNullOrEmpty()) return false else part.text
-        ContentType.THINK -> part.think
+        // Reasoning carrying an encrypted payload stays read-only, as upstream keeps it: the write
+        // replaces the whole value and the payload can't be placed in an edited draft, so any edit
+        // would silently delete it.
+        ContentType.THINK -> part.think?.takeIf { stripOpaqueReasoning(it) == it }
         else -> return false
     } ?: return false
     return !containsArtifact(value)

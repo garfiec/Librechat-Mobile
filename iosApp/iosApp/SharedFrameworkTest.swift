@@ -25,6 +25,7 @@ func verifySharedFrameworkImport() {
         sender: "Assistant",
         text: "Hello from Swift!",
         isCreatedByUser: false,
+        isUserSubmitted: nil,
         error: false,
         unfinished: false,
         finishReason: "stop",
@@ -42,7 +43,9 @@ func verifySharedFrameworkImport() {
         title: nil,
         manualSkills: nil,
         alwaysAppliedSkills: nil,
-        quotes: nil
+        quotes: nil,
+        reasoningOverride: nil,
+        privacyRevision: nil
     )
     assert(message.messageId == "msg-swift-001")
     assert(message.text == "Hello from Swift!")
@@ -73,7 +76,7 @@ func verifySharedFrameworkImport() {
     // reaches Swift. The Gradle framework link stays green when one is added, so without an
     // exhaustive switch here nothing catches it until an iOS build runs.
     case .error, .final, .toolCallStart, .toolCallComplete, .toolCallClosed,
-         .sandboxStarting, .thinkingDelta, .attachmentCreated, .retrying, .sync,
+         .sandboxStarting, .toolCallAuthRequired, .toolCallPreparation, .thinkingDelta, .attachmentCreated, .retrying, .sync,
          .step, .created, .contextSummary, .subagentUpdate,
          .titleUpdate, .tokenUsageUpdate, .contextUsageUpdate,
          .pendingActionRequested, .pendingSteersSynced, .steerApplied,

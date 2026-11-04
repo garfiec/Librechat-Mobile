@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import com.garfiec.librechat.core.common.datetime.DateGroup
 import com.garfiec.librechat.core.common.datetime.TimestampLabel
+import com.garfiec.librechat.core.common.datetime.parseIsoInstantOrNull
 import com.garfiec.librechat.core.ui.resources.Res
 import com.garfiec.librechat.core.ui.resources.date_group_previous_30_days
 import com.garfiec.librechat.core.ui.resources.date_group_previous_7_days
@@ -59,4 +60,16 @@ fun DateGroup.resolve(): String = when (this) {
 fun rememberAbsoluteTimestamp(iso: String): String {
     val format = LocalDateTimeFormat.current
     return remember(iso, format) { format.formatAbsoluteOrNull(iso) ?: iso }
+}
+
+/**
+ * [iso] as a date with its year and no time ("Sep 14, 2026") in the user's format, or [iso] itself
+ * when it doesn't parse.
+ */
+@Composable
+fun rememberAbsoluteDate(iso: String): String {
+    val format = LocalDateTimeFormat.current
+    return remember(iso, format) {
+        parseIsoInstantOrNull(iso)?.let { format.format(it, format.patterns.dateWithYear) } ?: iso
+    }
 }

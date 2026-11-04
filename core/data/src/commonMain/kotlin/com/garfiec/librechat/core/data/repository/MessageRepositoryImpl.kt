@@ -16,9 +16,12 @@ import com.garfiec.librechat.core.data.mapper.toModels
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
+import com.garfiec.librechat.core.model.content.AgentToolCall
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.request.BranchMessageRequest
+import com.garfiec.librechat.core.model.request.OwnerTextRequest
 import com.garfiec.librechat.core.model.request.UpdateMessageRequest
+import com.garfiec.librechat.core.model.response.OwnerText
 import com.garfiec.librechat.core.network.api.MessagesApi
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.NonCancellable
@@ -42,19 +45,38 @@ class MessageRepositoryImpl(
                 .map { entities -> entities.toModels() }
         }.flowOn(dispatcher)
 
-    override suspend fun getMessages(conversationId: String): Result<List<Message>> {
+    override suspend fun getMessages(conversationId: String, toolPreviews: Boolean): Result<List<Message>> {
         val result = safeApiCall {
             // Capture identity before the network suspend so an in-flight account switch can't
             // mis-attribute these rows; skip caching when unresolved rather than stamping a null orphan.
             val accountId = activeAccountProvider.currentAccountId()?.value
-            val messages = messagesApi.getMessages(conversationId)
+            val messages = messagesApi.getMessages(conversationId, toolPreviews)
             if (accountId != null) {
                 messageDao.upsertAllIndexed(messages.entitiesFor(accountId))
             }
             messages
         }
+        return result.orCachedMessages(conversationId)
+    }
 
-        // On network failure, fall back to cached messages for the active account only.
+    override suspend fun fetchMessagesFull(conversationId: String): Result<List<Message>> =
+        safeApiCall { messagesApi.getMessagesOnce(conversationId) }
+            .orCachedMessages(conversationId)
+
+    override suspend fun getToolCallPart(
+        conversationId: String,
+        messageId: String,
+        partIndex: Int,
+        toolCallId: String,
+        stepId: String?,
+        agentId: String?,
+    ): Result<AgentToolCall> = safeApiCall {
+        messagesApi.getToolCallPart(conversationId, messageId, partIndex, toolCallId, stepId, agentId).toolCall
+    }
+
+    /** On a network failure, the active account's cached rows when there are any. */
+    private suspend fun Result<List<Message>>.orCachedMessages(conversationId: String): Result<List<Message>> {
+        val result = this
         if (result is Result.Error) {
             val account = activeAccountProvider.currentAccountId()
             val cached = account
@@ -82,6 +104,7 @@ class MessageRepositoryImpl(
     override suspend fun refreshMessages(
         conversationId: String,
         originAccount: AccountId?,
+        toolPreviews: Boolean,
     ): Result<List<Message>> {
         // Origin-capture: a deferred caller may reach here after a switch. The GET rides the LIVE
         // snapshot, so firing it once the origin is no longer active would carry this conversation id
@@ -99,7 +122,7 @@ class MessageRepositoryImpl(
         }
         return safeApiCall {
             val accountId = resolveWriteAccountId(originAccount, activeAccountProvider, roster)
-            val messages = messagesApi.getMessages(conversationId)
+            val messages = messagesApi.getMessages(conversationId, toolPreviews)
             if (accountId != null) {
                 // Full replace: delete stale cache then insert fresh server data (delete leg scoped
                 // to account). NonCancellable so a cancelled caller cannot abandon the thread between
@@ -174,6 +197,11 @@ class MessageRepositoryImpl(
             }
         }
     }
+
+    override suspend fun getOwnerTexts(conversationId: String, messageIds: List<String>): Result<List<OwnerText>> =
+        safeApiCall {
+            messagesApi.getOwnerTexts(conversationId, OwnerTextRequest(messageIds.take(OWNER_TEXT_BATCH))).messages
+        }
 
     override suspend fun branchMessage(
         conversationId: String,

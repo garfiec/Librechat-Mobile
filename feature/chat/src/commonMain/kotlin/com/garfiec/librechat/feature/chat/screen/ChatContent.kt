@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -17,6 +19,7 @@ import com.garfiec.librechat.core.model.config.labelFor
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.model.media.resolveIconSource
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
+import com.garfiec.librechat.feature.chat.components.ConversationSeenEffect
 import com.garfiec.librechat.feature.chat.components.LandingContent
 import com.garfiec.librechat.feature.chat.components.LandingHeroIcon
 import com.garfiec.librechat.feature.chat.components.MessageList
@@ -99,6 +102,15 @@ internal fun ColumnScope.ChatContent(
     // Pane B's, hoisted for the same reasons: the narrow pager disposes the off-screen pane and the
     // wide/narrow switch rebuilds both, so a pane-local state lost the reader's place on every one.
     val secondaryListState = rememberSaveable(uiState.screenState, saver = LazyListState.Saver) { LazyListState() }
+    // Unread replies (v0.8.9-rc1): the open chat's reply is acknowledged once it is on screen. The
+    // single list reports where it rests; Compare's panes don't, so a comparison acknowledges nothing.
+    var primaryNearBottom by remember(uiState.conversationId) { mutableStateOf(false) }
+    ConversationSeenEffect(
+        conversationId = uiState.conversationId.takeIf { uiState.screenState == ChatScreenState.ACTIVE },
+        displayMessages = uiState.displayMessages,
+        isStreaming = uiState.isStreaming,
+        nearBottom = primaryNearBottom && !uiState.showsComparisonPanes(comparisonWide),
+    )
     val comparisonPanes: @Composable () -> Unit = {
         ComparisonPanes(
             uiState = uiState,
@@ -170,6 +182,7 @@ internal fun ColumnScope.ChatContent(
                     }
                     ChatMessageListPane(
                         listState = primaryListState,
+                        onNearBottomChange = { primaryNearBottom = it },
                         uiState = uiState,
                         viewModel = viewModel,
                         clipboard = clipboard,
@@ -220,10 +233,8 @@ private fun copyMessageToClipboard(
     clipboard: ClipboardWriter,
     messageId: String,
 ) {
-    val text = viewModel.getMessageClipboardText(messageId)
-    if (text.isNotBlank()) {
-        clipboard.copy(text, "Message")
-    }
+    // Asynchronous: a message with tool-call previews fetches their full parts before anything is copied.
+    viewModel.copyMessage(messageId) { text -> clipboard.copy(text, "Message") }
 }
 
 /**
@@ -234,6 +245,7 @@ private fun copyMessageToClipboard(
  */
 @Composable
 private fun ChatMessageListPane(
+    onNearBottomChange: (Boolean) -> Unit,
     uiState: ChatUiState,
     viewModel: ChatViewModel,
     clipboard: ClipboardWriter,
@@ -276,6 +288,15 @@ private fun ChatMessageListPane(
         onFeedback = viewModel::submitFeedback,
         feedbackEnabled = uiState.gates.feedbackEnabled,
         onReadAloud = viewModel::readAloud,
+        // Web's `quotesSupported` rule: everything but the Assistants endpoints, which keep every
+        // file upstream, so neither a retry nor a local copy leaves them behind.
+        recoveryAllowed = uiState.quotesSupportedOnEndpoint,
+        recoveryBranchSupported = uiState.forkExcludeFilesSupported,
+        recoveryBusy = uiState.isForkInProgress,
+        onRetryWithoutFiles = viewModel::retryWithoutFiles,
+        onBranchWithoutFiles = viewModel::branchWithoutFiles,
+        ownerTexts = uiState.ownerTexts,
+        onRetryOwnerTexts = viewModel::retryOwnerTexts,
         onFork = viewModel::showForkOptions,
         currentlyReadingMessageId = uiState.currentlyReadingMessageId,
         editing = uiState.editing,
@@ -307,6 +328,7 @@ private fun ChatMessageListPane(
         bottomContentPadding = bottomContentPadding,
         topContentPadding = topContentPadding,
         pendingAction = uiState.renderablePendingAction,
+        onNearBottomChange = onNearBottomChange,
         modifier = modifier,
     )
 }
@@ -377,6 +399,7 @@ internal data class LandingText(
  * flag, because the landing switches each line as temporary chat's band reaches it. [agentName] is the selected agent's,
  * resolved by the caller; for an agent spec it wins over the spec's label, as on web. An agent not
  * (yet) in the list is captioned [agentFallbackLabel], so the landing still opens the picker.
+ * Under `interface.landingHeading: "greeting"` the greeting stays the title whatever is selected.
  */
 internal fun ChatUiState.landingText(agentName: String?, agentFallbackLabel: String? = null): LandingText {
     val spec = modelSpecs?.list?.find { it.name == selectedSpec }
@@ -388,9 +411,20 @@ internal fun ChatUiState.landingText(agentName: String?, agentFallbackLabel: Str
         else -> null
     }
     val branded = spec?.takeIf { it.showOnLanding == true }
-    val title = agentName ?: branded?.displayLabel
     val description = listOf(selectedAgent()?.description, branded?.description, spec?.preset?.greeting)
         .firstOrNull { !it.isNullOrBlank() }
+    // `interface.landingHeading: "greeting"`: the greeting stays the title, as web's empty `name`.
+    // Web's header selector still names the agent; mobile has no header selector, so the caption
+    // under the greeting names it instead.
+    if (gates.landingGreetingHeading) {
+        return LandingText(
+            description = description,
+            caption = agentName ?: modelLabel,
+            temporaryAgentName = agentName,
+            temporaryCaption = modelLabel,
+        )
+    }
+    val title = agentName ?: branded?.displayLabel
     return LandingText(
         title = title,
         description = description,

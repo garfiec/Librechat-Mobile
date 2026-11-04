@@ -19,6 +19,7 @@ import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.components.ASK_USER_DECLINED_ANSWER
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
+import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
@@ -866,6 +867,51 @@ class PendingActionDelegateTest {
             runCurrent()
 
             assertThat(restored).isEmpty()
+        }
+
+    /**
+     * The resume route's other 403: a decision the policy no longer permits. It names the calls in
+     * `disallowed` and choosing again can pass, so it must not read as the fingerprint mismatch.
+     */
+    @Test
+    fun `a disallowed decision 403 is not reported as a fingerprint rejection`() =
+        runTest(UnconfinedTestDispatcher()) {
+            coEvery { chatRepository.resumeChat(any()) } returns Result.Error(
+                ApiException(
+                    statusCode = 403,
+                    message = "Decision not permitted for one or more tools",
+                    body = """{"error":"Decision not permitted for one or more tools","disallowed":["call-1"]}""",
+                ),
+            )
+            val (delegate, flow) = delegateWith(this)
+
+            delegate.onPendingAction(toolApproval())
+            delegate.submitToolDecisions(
+                listOf(ToolApprovalResolution(toolCallId = "call-1", decision = ToolApprovalDecisions.APPROVE)),
+            )
+
+            assertThat(flow.value.error).isEqualTo(ChatNotice.TOOL_DECISION_NOT_PERMITTED.marker())
+            assertThat(flow.value.pendingAction).isNotNull()
+        }
+
+    @Test
+    fun `a fingerprint 403 body without disallowed keeps the fingerprint copy`() =
+        runTest(UnconfinedTestDispatcher()) {
+            coEvery { chatRepository.resumeChat(any()) } returns Result.Error(
+                ApiException(
+                    statusCode = 403,
+                    message = "Cannot resume with a different agent configuration",
+                    body = """{"error":"Cannot resume with a different agent configuration"}""",
+                ),
+            )
+            val (delegate, flow) = delegateWith(this)
+
+            delegate.onPendingAction(toolApproval())
+            delegate.submitToolDecisions(
+                listOf(ToolApprovalResolution(toolCallId = "call-1", decision = ToolApprovalDecisions.APPROVE)),
+            )
+
+            assertThat(flow.value.error).isEqualTo(FINGERPRINT_REJECTED)
         }
 
     /** Tool decisions carry no prose, so there is nothing to hand back. */

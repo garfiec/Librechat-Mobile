@@ -47,11 +47,14 @@ import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.util.MessageNode
+import com.garfiec.librechat.feature.chat.util.attachmentRecoveries
 import com.garfiec.librechat.feature.chat.util.hasEditablePart
+import com.garfiec.librechat.feature.chat.util.withLiveSubagentFilesAdopted
 import com.garfiec.librechat.feature.chat.util.withPreviews
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import com.garfiec.librechat.feature.chat.viewmodel.JumpFlash
 import com.garfiec.librechat.feature.chat.viewmodel.MessageEditingState
+import com.garfiec.librechat.feature.chat.viewmodel.OwnerTextState
 import com.garfiec.librechat.feature.chat.viewmodel.SearchFocusRequest
 import com.garfiec.librechat.feature.chat.viewmodel.SearchMatch
 import kotlinx.coroutines.delay
@@ -100,6 +103,19 @@ fun MessageList(
     readOnly: Boolean = false,
     onReadAloud: (messageId: String) -> Unit = {},
     onFork: (messageId: String) -> Unit = {},
+    /**
+     * Retry / branch without files under a reply the branch's files may have failed (v0.8.9-rc1).
+     * Off unless the caller allows it (an Assistants chat keeps its files upstream, so neither
+     * leaves them behind). [recoveryBranchSupported] is the server's `excludeFiles` gate.
+     */
+    recoveryAllowed: Boolean = false,
+    recoveryBranchSupported: Boolean = false,
+    recoveryBusy: Boolean = false,
+    onRetryWithoutFiles: (failedReplyId: String) -> Unit = {},
+    onBranchWithoutFiles: (failedReplyId: String) -> Unit = {},
+    /** The originals of redacted user turns (v0.8.9-rc1), for their authors' eyes only. */
+    ownerTexts: Map<String, OwnerTextState> = emptyMap(),
+    onRetryOwnerTexts: () -> Unit = {},
     currentlyReadingMessageId: String? = null,
     /**
      * Which message is being edited, with its drafts and their baselines. One value rather than an
@@ -173,6 +189,8 @@ fun MessageList(
      * read. Automatic scrolls stop short of it (see [scrollToTail]).
      */
     extraEndSpace: Dp = 0.dp,
+    /** Reports whether the list rests near its tail, by the same measure its tail follower uses. */
+    onNearBottomChange: ((Boolean) -> Unit)? = null,
 ) {
     val extraEndPx = with(LocalDensity.current) { extraEndSpace.toPx() }
     val coroutineScope = rememberCoroutineScope()
@@ -218,6 +236,10 @@ fun MessageList(
     var listHasFocus by remember { mutableStateOf(false) }
 
     val isNearBottom = rememberIsNearBottom(listState, extraEndPx)
+    if (onNearBottomChange != null) {
+        val report by rememberUpdatedState(onNearBottomChange)
+        LaunchedEffect(isNearBottom.value) { report(isNearBottom.value) }
+    }
 
     // ── Auto-scroll behavior ──────────────────────────────────────────
     //
@@ -340,13 +362,30 @@ fun MessageList(
     // full-screen artifact route disposes the chat entry); otherwise the initial
     // scroll re-fires on return and overrides the restored scroll position.
     var hasScrolledToBottom by rememberSaveable { mutableStateOf(false) }
+    // Whether the list holds its tail until the reader takes over (see [nextTailPin]). Not saveable:
+    // a list restored on return from another route keeps the place it was left at.
+    var pinnedToTail by remember { mutableStateOf(false) }
+    // A press anywhere on the list hands it to the reader: a tap that expands a card at the end
+    // would otherwise be scrolled out from under their finger as the card grows.
+    val unpinTail = remember { { pinnedToTail = false } }
     LaunchedEffect(displayMessages.size, jumpPending) {
         if (!hasScrolledToBottom && displayMessages.isNotEmpty() && !jumpPending) {
             // A chat opened by a jump to one message starts there, not at the bottom: the jump is
             // waited out, and only one that gave up without a message to focus lands at the bottom,
             // and only if the user hasn't scrolled the list while it waited.
             val untouched = listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
-            if (searchFocusRequest == null && untouched) listState.scrollToTail(totalItemCount - 1, extraEndPx)
+            if (searchFocusRequest == null && untouched) {
+                follower.programmaticScroll = true
+                try {
+                    listState.scrollToTail(totalItemCount - 1, extraEndPx)
+                } finally {
+                    follower.programmaticScroll = false
+                }
+                // The open lands on the tail before the thread and the bottom chrome are done
+                // measuring: messages above the tail settle taller and the composer's rows measure in
+                // a few frames later, each pushing the tail down. The pin keeps it there.
+                pinnedToTail = true
+            }
             hasScrolledToBottom = true
         }
     }
@@ -416,29 +455,79 @@ fun MessageList(
     // Not while a find or jump scroll is placing a match: opening the find bar shrinks the
     // viewport too, and a scroll to the bottom then would interrupt that scroll and cancel it.
     val currentFocusRequest by rememberUpdatedState(searchFocusRequest)
+    //
+    // A list pinned to its tail (see [nextTailPin]) is put back on it whenever anything pushes the
+    // tail down: messages settling taller, the bottom chrome measuring in (code workspace rows, a
+    // wrapped chip row, a taller composer), the keyboard. Not during a run: the follower already
+    // rests the tail against the live bottom padding, and an instant jump here would cut its easing
+    // short. Not while Compare's sync holds this pane level with the other.
+    val currentIsStreaming by rememberUpdatedState(isStreaming)
+    val currentIsNearBottom by rememberUpdatedState(isNearBottom)
+    val currentSyncHold by rememberUpdatedState(syncHold)
     LaunchedEffect(Unit) {
-        var previousViewportEnd = 0
+        var wasScrolling = false
         snapshotFlow {
-            listState.layoutInfo.viewportEndOffset
-        }.collect { viewportEnd ->
-            if (previousViewportEnd > 0 && viewportEnd < previousViewportEnd && !listHasFocus && currentFocusRequest == null) {
-                // Viewport shrank (e.g., keyboard opened). If user was
-                // near the bottom, scroll to keep them there.
+            Triple(
+                follower.isTouching || currentFocusRequest != null,
+                listState.isScrollInProgress && !follower.programmaticScroll,
+                currentIsNearBottom.value,
+            )
+        }.collect { (touching, scrolling, nearTail) ->
+            pinnedToTail = nextTailPin(pinnedToTail, touching, scrolling, wasScrolling, nearTail)
+            wasScrolling = scrolling
+        }
+    }
+    LaunchedEffect(Unit) {
+        var previous: TailRest? = null
+        snapshotFlow {
+            val info = listState.layoutInfo
+            TailRest(
+                viewportEnd = info.viewportEndOffset,
+                restLine = info.viewportEndOffset - info.afterContentPadding,
+                nearTail = currentIsNearBottom.value,
+                overhang = info.tailOverhang(extraEndPx),
+            ) to pinnedToTail
+        }.collect { (rest, pinned) ->
+            if (!listHasFocus && currentFocusRequest == null && !currentIsStreaming && !currentSyncHold()) {
                 val info = listState.layoutInfo
-                val lastVisible = info.visibleItemsInfo.lastOrNull()
+                val lastVisibleIndex = info.visibleItemsInfo.lastOrNull()?.index
                 val itemCount = info.totalItemsCount
-                if (lastVisible != null && itemCount > 0 && lastVisible.index >= itemCount - 2) {
+                if (holdsPinnedTail(pinned, rest) || reanchorsToTail(previous, rest, lastVisibleIndex, itemCount)) {
                     coroutineScope.launch {
-                        listState.scrollToTail(itemCount - 1, extraEndPx)
+                        follower.programmaticScroll = true
+                        try {
+                            listState.scrollToTail(itemCount - 1, extraEndPx)
+                        } finally {
+                            follower.programmaticScroll = false
+                        }
                     }
                 }
             }
-            previousViewportEnd = viewportEnd
+            previous = rest
         }
     }
 
     val pullToRefreshState = rememberPullToRefreshState()
     val resubmit = canResubmit && !readOnly
+    val recoveryViews = remember(displayMessages, resubmit, recoveryAllowed, recoveryBranchSupported) {
+        if (resubmit && recoveryAllowed) {
+            attachmentRecoveries(displayMessages.map { it.message }, recoveryBranchSupported)
+        } else {
+            emptyMap()
+        }
+    }
+    val retryWithoutFiles by rememberUpdatedState(onRetryWithoutFiles)
+    val branchWithoutFiles by rememberUpdatedState(onBranchWithoutFiles)
+    val recoveryHost = remember(recoveryViews, recoveryBusy || isStreaming) {
+        AttachmentRecoveryHost(
+            views = recoveryViews,
+            busy = recoveryBusy || isStreaming,
+            onRetry = { retryWithoutFiles(it) },
+            onBranch = { branchWithoutFiles(it) },
+        )
+    }
+    val retryOwnerTexts by rememberUpdatedState(onRetryOwnerTexts)
+    val ownerTextHost = remember(ownerTexts) { OwnerTextHost(ownerTexts) { retryOwnerTexts() } }
     // Parsed once per list; `contentType` below runs on every measure pass.
     val wakeups = remember(displayMessages) { wakeupsByMessageId(displayMessages) }
 
@@ -460,308 +549,323 @@ fun MessageList(
         },
     ) {
         val previewOverrides = LocalPreviewOverrides.current
-        val liveAttachments = remember(streamingAttachments, previewOverrides) {
-            streamingAttachments.withPreviews(previewOverrides)
+        // A file a subagent's child call saved has no live card of its own (the child calls live
+        // only in the trace), so it goes under the subagent's card rather than nowhere.
+        val subagentTraces = LocalSubagentProgress.current
+        val liveAttachments = remember(streamingAttachments, previewOverrides, activeToolCalls, subagentTraces) {
+            streamingAttachments.withPreviews(previewOverrides).withLiveSubagentFilesAdopted(activeToolCalls, subagentTraces)
         }
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .glassBackdropSource(LocalGlassBackdrop.current.takeIf { recordsGlassBackdrop })
-                .onFocusChanged { listHasFocus = it.hasFocus }
-                .onGloballyPositioned { listCoordinates = it }
-                .tailFollowerTouch(follower),
-            state = listState,
-            // The bottom reserve is the measured bar height PLUS a reading gap. The gap must stay
-            // here rather than in the follower's target: a follower-only gap is reclaimed by the
-            // scroll-to-bottom when the run settles, putting a jump at completion (the #169
-            // flicker class).
-            contentPadding = PaddingValues(
-                top = topContentPadding + 8.dp,
-                bottom = bottomContentPadding + MESSAGE_LIST_BOTTOM_GAP + extraEndSpace,
-            ),
-        ) {
-            itemsIndexed(
-                items = displayMessages,
-                // Key by the conversation SLOT (parent in the active path), not the message's
-                // own server-assigned id: the slot is stable across the streaming→final swap
-                // and regenerate siblings, so the trailing streaming reply (keyed to the same
-                // slot below) and its finalized message stay ONE in-place item and the list
-                // keeps its scroll anchor at completion. Unique within the path (one node/level).
-                key = { _, node -> node.treeParentKey },
-                contentType = { _, node ->
-                    // A wake-up is a user message that renders as a system row; its own type keeps
-                    // slot reuse from handing it a user bubble's composition, or the reverse.
-                    val role = when {
-                        !node.message.isCreatedByUser -> "assistant"
-                        wakeups.wakeupOf(node, isEditing = editing.editingMessageId == node.message.messageId) != null -> "system"
-                        else -> "user"
+        // The rows are what this list records, so glass inside them must not sample it: a surface
+        // drawing its own ancestor's recording recurses until the stack overflows (iOS SIGSEGV in
+        // saveLayer). Cards in the thread draw their flat fallback, as in AdaptiveScaffold's body.
+        val listBackdrop = LocalGlassBackdrop.current.takeIf { recordsGlassBackdrop }
+        CompositionLocalProvider(LocalGlassBackdrop provides null) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .glassBackdropSource(listBackdrop)
+                    .onFocusChanged { listHasFocus = it.hasFocus }
+                    .onGloballyPositioned { listCoordinates = it }
+                    .tailFollowerTouch(follower)
+                    .onEveryPress(unpinTail),
+                state = listState,
+                // The bottom reserve is the measured bar height PLUS a reading gap. The gap must stay
+                // here rather than in the follower's target: a follower-only gap is reclaimed by the
+                // scroll-to-bottom when the run settles, putting a jump at completion (the #169
+                // flicker class).
+                contentPadding = PaddingValues(
+                    top = topContentPadding + 8.dp,
+                    bottom = bottomContentPadding + MESSAGE_LIST_BOTTOM_GAP + extraEndSpace,
+                ),
+            ) {
+                itemsIndexed(
+                    items = displayMessages,
+                    // Key by the conversation SLOT (parent in the active path), not the message's
+                    // own server-assigned id: the slot is stable across the streaming→final swap
+                    // and regenerate siblings, so the trailing streaming reply (keyed to the same
+                    // slot below) and its finalized message stay ONE in-place item and the list
+                    // keeps its scroll anchor at completion. Unique within the path (one node/level).
+                    key = { _, node -> node.treeParentKey },
+                    contentType = { _, node ->
+                        // A wake-up is a user message that renders as a system row; its own type keeps
+                        // slot reuse from handing it a user bubble's composition, or the reverse.
+                        val role = when {
+                            !node.message.isCreatedByUser -> "assistant"
+                            wakeups.wakeupOf(node, isEditing = editing.editingMessageId == node.message.messageId) != null -> "system"
+                            else -> "user"
+                        }
+                        "${chatLayoutStyle}_$role"
+                    },
+                ) { index, node ->
+                    val isMatch = index in searchMatchMessageIndexSet
+                    val isCurrent = currentSearchMatch != null && index == currentSearchMatch.messageIndex
+                    // Which occurrence within this message is focused (-1 when this isn't the current match).
+                    val focusedOccurrenceInMessage = if (isCurrent) currentSearchMatch.occurrenceInMessage else -1
+                    val isJumpTarget = jumpFlash?.messageIndex == index
+                    val flash = rememberJumpFlash(jumpFlash?.takeIf { isJumpTarget && it.fade }?.requestId)
+                    val flashColor = jumpFlashColor()
+                    // Outlined while find-in-page is open on it (closing it clears the target); a target with no
+                    // match to find gets the fading flash instead, so nothing is left drawn on it.
+                    val jumpOutline = if (isJumpTarget && jumpFlash?.fade == false) {
+                        Modifier.jumpTargetOutline(MaterialTheme.colorScheme.primary)
+                    } else {
+                        Modifier
                     }
-                    "${chatLayoutStyle}_$role"
-                },
-            ) { index, node ->
-                val isMatch = index in searchMatchMessageIndexSet
-                val isCurrent = currentSearchMatch != null && index == currentSearchMatch.messageIndex
-                // Which occurrence within this message is focused (-1 when this isn't the current match).
-                val focusedOccurrenceInMessage = if (isCurrent) currentSearchMatch.occurrenceInMessage else -1
-                val isJumpTarget = jumpFlash?.messageIndex == index
-                val flash = rememberJumpFlash(jumpFlash?.takeIf { isJumpTarget && it.fade }?.requestId)
-                val flashColor = jumpFlashColor()
-                // Outlined while find-in-page is open on it (closing it clears the target); a target with no
-                // match to find gets the fading flash instead, so nothing is left drawn on it.
-                val jumpOutline = if (isJumpTarget && jumpFlash?.fade == false) {
-                    Modifier.jumpTargetOutline(MaterialTheme.colorScheme.primary)
-                } else {
-                    Modifier
-                }
 
-                // Last message parses markdown synchronously; see [LocalImmediateMarkdown].
-                // Publish the focus-request nonce only around the current match so a collapsible
-                // block re-arms its auto-expand on every navigation (even back to the same match);
-                // non-current bubbles see 0L and don't recompose on navigation.
-                CompositionLocalProvider(
-                    LocalImmediateMarkdown provides (index == displayMessages.lastIndex),
-                    LocalSearchFocusNonce provides if (isCurrent) searchFocusRequest?.requestId ?: 0L else 0L,
-                    LocalSuppressGroupAutoCollapse provides (node.message.messageId == justSettledMessageId),
-                    LocalFeedbackEnabled provides (!isStreaming && !readOnly),
-                    LocalExpansionScope provides expansionScope(ExpansionPane.PRIMARY, node.message.parentMessageId),
-                ) {
-                // Built here, where the message is in hand: whether a rerun is possible, and
-                // whether the changes can ride it, are both questions about THIS message's parts
-                // and parent. Null on every other row (see MessageEditSession).
-                // Memoized: the artifact check parses markdown, and this subtree recomposes on
-                // every streaming flush. Everything else in this file that scans content parts is
-                // wrapped the same way.
-                val editable = remember(node.message.content, node.message.text) {
-                    hasEditablePart(node.message)
-                }
-                val editSession = if (editing.editingMessageId == node.message.messageId) {
-                    rememberMessageEditSession(
+                    // Last message parses markdown synchronously; see [LocalImmediateMarkdown].
+                    // Publish the focus-request nonce only around the current match so a collapsible
+                    // block re-arms its auto-expand on every navigation (even back to the same match);
+                    // non-current bubbles see 0L and don't recompose on navigation.
+                    CompositionLocalProvider(
+                        LocalImmediateMarkdown provides (index == displayMessages.lastIndex),
+                        LocalSearchFocusNonce provides if (isCurrent) searchFocusRequest?.requestId ?: 0L else 0L,
+                        LocalSuppressGroupAutoCollapse provides (node.message.messageId == justSettledMessageId),
+                        LocalFeedbackEnabled provides (!isStreaming && !readOnly),
+                        LocalExpansionScope provides expansionScope(ExpansionPane.PRIMARY, node.message.parentMessageId),
+                        LocalAttachmentRecovery provides recoveryHost,
+                        LocalOwnerTexts provides ownerTextHost,
+                    ) {
+                    // Built here, where the message is in hand: whether a rerun is possible, and
+                    // whether the changes can ride it, are both questions about THIS message's parts
+                    // and parent. Null on every other row (see MessageEditSession).
+                    // Memoized: the artifact check parses markdown, and this subtree recomposes on
+                    // every streaming flush. Everything else in this file that scans content parts is
+                    // wrapped the same way.
+                    val editable = remember(node.message.content, node.message.text) {
+                        hasEditablePart(node.message)
+                    }
+                    val editSession = if (editing.editingMessageId == node.message.messageId) {
+                        rememberMessageEditSession(
+                            message = node.message,
+                            // The edited message is on the active path, so its parent is too — no need
+                            // for the whole tree to resolve the turn a rerun would replay.
+                            displayed = displayMessages,
+                            editing = editing,
+                            saveAllowed = !isStreaming && !readOnly,
+                            canStartRun = resubmit,
+                            onTextChange = onEditTextChange,
+                            onPartTextChange = onEditPartTextChange,
+                            onSave = onEditSave,
+                            onRerun = onEditRerun,
+                            onCancel = onEditCancel,
+                        )
+                    } else {
+                        null
+                    }
+                    val systemEvent = wakeups.wakeupOf(node, isEditing = editing.editingMessageId == node.message.messageId)
+                    if (systemEvent != null) {
+                        SystemEventRow(
+                            display = systemEvent,
+                            messageId = node.message.messageId,
+                            fontSizeMultiplier = fontSizeMultiplier,
+                            useKatex = useKatex,
+                            siblingIndex = node.siblingIndex,
+                            siblingCount = node.siblingCount,
+                            onSiblingNavigation = { newIndex ->
+                                lastNavigatedParentKey = node.treeParentKey
+                                onSiblingNavigation(node.treeParentKey, newIndex)
+                            },
+                            onCopy = { onCopyMessage(node.message.messageId) },
+                            onEdit = if (resubmit && editable) {
+                                { onEditMessage(node.message.messageId) }
+                            } else {
+                                null
+                            },
+                            onReadAloud = if (readOnly) null else ({ onReadAloud(node.message.messageId) }),
+                            isReading = currentlyReadingMessageId == node.message.messageId,
+                            // A copy of a failed reply would carry the provider's error as an answer.
+                            onFork = if (readOnly || node.message.error) null else ({ onFork(node.message.messageId) }),
+                        )
+                    } else {
+                    MessageBubble(
                         message = node.message,
-                        // The edited message is on the active path, so its parent is too — no need
-                        // for the whole tree to resolve the turn a rerun would replay.
-                        displayed = displayMessages,
-                        editing = editing,
-                        saveAllowed = !isStreaming && !readOnly,
-                        canStartRun = resubmit,
-                        onTextChange = onEditTextChange,
-                        onPartTextChange = onEditPartTextChange,
-                        onSave = onEditSave,
-                        onRerun = onEditRerun,
-                        onCancel = onEditCancel,
-                    )
-                } else {
-                    null
-                }
-                val systemEvent = wakeups.wakeupOf(node, isEditing = editing.editingMessageId == node.message.messageId)
-                if (systemEvent != null) {
-                    SystemEventRow(
-                        display = systemEvent,
-                        messageId = node.message.messageId,
-                        fontSizeMultiplier = fontSizeMultiplier,
-                        useKatex = useKatex,
+                        modifier = jumpOutline.jumpFlashBackground(flash, flashColor),
                         siblingIndex = node.siblingIndex,
                         siblingCount = node.siblingCount,
                         onSiblingNavigation = { newIndex ->
                             lastNavigatedParentKey = node.treeParentKey
                             onSiblingNavigation(node.treeParentKey, newIndex)
                         },
-                        onCopy = { onCopyMessage(node.message.messageId) },
+                        showActionsInitially = lastNavigatedParentKey == node.treeParentKey,
                         onEdit = if (resubmit && editable) {
                             { onEditMessage(node.message.messageId) }
                         } else {
                             null
                         },
+                        onRegenerate = if (resubmit && !node.message.isCreatedByUser) {
+                            { onRegenerateMessage(node.message.messageId) }
+                        } else {
+                            null
+                        },
+                        onCopy = { onCopyMessage(node.message.messageId) },
+                        // A failed reply has no answer to rate or copy into a fork (web's HoverButtons).
+                        onFeedback = if (!node.message.isCreatedByUser && !node.message.error && feedbackEnabled && !readOnly) {
+                            { feedback -> onFeedback(node.message.messageId, feedback) }
+                        } else {
+                            null
+                        },
                         onReadAloud = if (readOnly) null else ({ onReadAloud(node.message.messageId) }),
+                        onFork = if (readOnly || node.message.error) null else ({ onFork(node.message.messageId) }),
+                        baseUrl = baseUrl,
+                        fontSizeMultiplier = fontSizeMultiplier,
                         isReading = currentlyReadingMessageId == node.message.messageId,
-                        onFork = if (readOnly) null else ({ onFork(node.message.messageId) }),
+                        currentFeedback = node.message.feedback?.rating,
+                        editSession = editSession,
+                        userAvatarUrl = userAvatarUrl,
+                        userName = userName,
+                        showImageDescriptions = showImageDescriptions,
+                        chatLayoutStyle = chatLayoutStyle,
+                        showAvatars = showAvatars,
+                        showBubbles = showBubbles,
+                        avatar = node.avatar,
+                        useKatex = useKatex,
+                        searchQuery = searchQuery,
+                        isSearchMatch = isMatch,
+                        isCurrentSearchMatch = isCurrent,
+                        searchFocusedOccurrence = focusedOccurrenceInMessage,
+                        onFocusedOccurrencePosition = if (isCurrent && searchQuery != null) {
+                            { coordinates, matchRect ->
+                                // Only record while a jump is pending; the focused node keeps reporting
+                                // on every later scroll pass, and consuming those would churn state.
+                                if (searchFocusRequest != null) {
+                                    focusedMatchReport = FocusedSearchMatchReport(
+                                        requestId = searchFocusRequest.requestId,
+                                        coordinates = coordinates,
+                                        matchRect = matchRect,
+                                    )
+                                }
+                            }
+                        } else {
+                            null
+                        },
                     )
-                } else {
-                MessageBubble(
-                    message = node.message,
-                    modifier = jumpOutline.jumpFlashBackground(flash, flashColor),
-                    siblingIndex = node.siblingIndex,
-                    siblingCount = node.siblingCount,
-                    onSiblingNavigation = { newIndex ->
-                        lastNavigatedParentKey = node.treeParentKey
-                        onSiblingNavigation(node.treeParentKey, newIndex)
-                    },
-                    showActionsInitially = lastNavigatedParentKey == node.treeParentKey,
-                    onEdit = if (resubmit && editable) {
-                        { onEditMessage(node.message.messageId) }
-                    } else {
-                        null
-                    },
-                    onRegenerate = if (resubmit && !node.message.isCreatedByUser) {
-                        { onRegenerateMessage(node.message.messageId) }
-                    } else {
-                        null
-                    },
-                    onCopy = { onCopyMessage(node.message.messageId) },
-                    onFeedback = if (!node.message.isCreatedByUser && feedbackEnabled && !readOnly) {
-                        { feedback -> onFeedback(node.message.messageId, feedback) }
-                    } else {
-                        null
-                    },
-                    onReadAloud = if (readOnly) null else ({ onReadAloud(node.message.messageId) }),
-                    onFork = if (readOnly) null else ({ onFork(node.message.messageId) }),
-                    baseUrl = baseUrl,
-                    fontSizeMultiplier = fontSizeMultiplier,
-                    isReading = currentlyReadingMessageId == node.message.messageId,
-                    currentFeedback = node.message.feedback?.rating,
-                    editSession = editSession,
-                    userAvatarUrl = userAvatarUrl,
-                    userName = userName,
-                    showImageDescriptions = showImageDescriptions,
-                    chatLayoutStyle = chatLayoutStyle,
-                    showAvatars = showAvatars,
-                    showBubbles = showBubbles,
-                    avatar = node.avatar,
-                    useKatex = useKatex,
-                    searchQuery = searchQuery,
-                    isSearchMatch = isMatch,
-                    isCurrentSearchMatch = isCurrent,
-                    searchFocusedOccurrence = focusedOccurrenceInMessage,
-                    onFocusedOccurrencePosition = if (isCurrent && searchQuery != null) {
-                        { coordinates, matchRect ->
-                            // Only record while a jump is pending; the focused node keeps reporting
-                            // on every later scroll pass, and consuming those would churn state.
-                            if (searchFocusRequest != null) {
-                                focusedMatchReport = FocusedSearchMatchReport(
-                                    requestId = searchFocusRequest.requestId,
-                                    coordinates = coordinates,
-                                    matchRect = matchRect,
+                    if (resubmit && stoppedReply?.messageId == node.message.messageId) {
+                        StoppedReplyFooter(
+                            action = stoppedReply,
+                            modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
+                        )
+                    }
+                    }
+                    }
+                }
+
+                if (isStreaming) {
+                    // Key the reply to the slot its finalized message will occupy: it attaches to
+                    // the last message in the truncated path, whose id is the finalized node's
+                    // treeParentKey (see itemsIndexed key above). Sharing that key makes the swap
+                    // an in-place content update rather than a scroll-resetting remove+add.
+                    val streamingSlotKey = displayMessages.lastOrNull()?.message?.messageId
+                        ?: "streaming_message"
+                    // Workspace changes get their own item; tool cards, office previews and memory
+                    // take the rest. The bubble's markdown images resolve against all of them.
+                    val streamingWorkspace = partitionWorkspaceChanges(liveAttachments)
+                    // The message the reply answers, which its saved message names as its parent.
+                    val replyScope =
+                        expansionScope(ExpansionPane.PRIMARY, displayMessages.lastOrNull()?.message?.messageId)
+                    item(key = streamingSlotKey) {
+                        ProvideMarkdownMedia(liveAttachments, baseUrl) {
+                            StreamingMessageBubble(
+                                streamingContent = streamingContent,
+                                senderName = streamingSenderName,
+                                avatar = streamingAvatar,
+                                fontSizeMultiplier = fontSizeMultiplier,
+                                chatLayoutStyle = chatLayoutStyle,
+                                showAvatars = showAvatars,
+                                showBubbles = showBubbles,
+                                useKatex = useKatex,
+                                streamingThinking = streamingThinking,
+                                // Inside the reply, under its sender row, where the finalized
+                                // message draws the cards that replace them.
+                                pendingSkills = pendingSkills,
+                            )
+                        }
+                    }
+
+                    if (renderedToolCalls.isNotEmpty()) {
+                        items(
+                            items = renderedToolCalls,
+                            key = { "tool_call_${it.id}" },
+                            contentType = { "tool_call" },
+                        ) { toolCall ->
+                            CompositionLocalProvider(LocalExpansionScope provides replyScope) {
+                                StreamingToolCallCard(
+                                    toolCall = toolCall,
+                                    modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
+                                    baseUrl = baseUrl,
+                                    streamingAttachments = streamingWorkspace.inline,
+                                    showImageDescriptions = showImageDescriptions,
+                                    sandboxStarting = toolCall.id in sandboxStartingToolCallIds,
+                                    isLatestStep = toolCall.id == renderedToolCalls.lastOrNull()?.id,
+                                    replyLength = streamingContent.length,
                                 )
                             }
                         }
-                    } else {
-                        null
-                    },
-                )
-                if (resubmit && stoppedReply?.messageId == node.message.messageId) {
-                    StoppedReplyFooter(
-                        action = stoppedReply,
-                        modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
+                    }
+
+                    if (streamingWorkspace.changes.isNotEmpty()) {
+                        item(key = "streaming_workspace_changes", contentType = "workspace_changes") {
+                            CompositionLocalProvider(LocalExpansionScope provides replyScope) {
+                                WorkspaceChangesSection(
+                                    changes = streamingWorkspace.changes,
+                                    baseUrl = baseUrl,
+                                    stateKey = "streaming",
+                                    modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
+                                    live = true,
+                                )
+                            }
+                        }
+                    }
+
+                    // Live office-doc previews (v0.8.6) once ready. Pending and failed ones are rows
+                    // under their tool call, or here when no rendered call claims them; see
+                    // isInlineOfficePreview.
+                    val streamingCallIds = renderedToolCalls.map { it.id }
+                    val officeAttachments = streamingWorkspace.inline.filter(::isInlineOfficePreview)
+                    if (officeAttachments.isNotEmpty() ||
+                        unclaimedOfficePreviewRows(streamingWorkspace.inline, streamingCallIds).isNotEmpty()
+                    ) {
+                        item(key = "streaming_office_previews") {
+                            OfficePreviewAttachments(
+                                attachments = streamingWorkspace.inline,
+                                renderedToolCallIds = streamingCallIds,
+                                baseUrl = baseUrl,
+                                modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
+                                isDarkTheme = isSurfaceDark(),
+                            )
+                        }
+                    }
+
+                    val orphanMemory = collectUnrenderedMemoryArtifacts(
+                        streamingWorkspace.inline,
+                        streamingCallIds,
                     )
-                }
-                }
-                }
-            }
-
-            if (isStreaming) {
-                // Key the reply to the slot its finalized message will occupy: it attaches to
-                // the last message in the truncated path, whose id is the finalized node's
-                // treeParentKey (see itemsIndexed key above). Sharing that key makes the swap
-                // an in-place content update rather than a scroll-resetting remove+add.
-                val streamingSlotKey = displayMessages.lastOrNull()?.message?.messageId
-                    ?: "streaming_message"
-                // Workspace changes get their own item; tool cards, office previews and memory
-                // take the rest. The bubble's markdown images resolve against all of them.
-                val streamingWorkspace = partitionWorkspaceChanges(liveAttachments)
-                // The message the reply answers, which its saved message names as its parent.
-                val replyScope = expansionScope(ExpansionPane.PRIMARY, displayMessages.lastOrNull()?.message?.messageId)
-                item(key = streamingSlotKey) {
-                    ProvideMarkdownMedia(liveAttachments, baseUrl) {
-                        StreamingMessageBubble(
-                            streamingContent = streamingContent,
-                            senderName = streamingSenderName,
-                            avatar = streamingAvatar,
-                            fontSizeMultiplier = fontSizeMultiplier,
-                            chatLayoutStyle = chatLayoutStyle,
-                            showAvatars = showAvatars,
-                            showBubbles = showBubbles,
-                            useKatex = useKatex,
-                            streamingThinking = streamingThinking,
-                            // Inside the reply, under its sender row, where the finalized
-                            // message draws the cards that replace them.
-                            pendingSkills = pendingSkills,
-                        )
-                    }
-                }
-
-                if (renderedToolCalls.isNotEmpty()) {
-                    items(
-                        items = renderedToolCalls,
-                        key = { "tool_call_${it.id}" },
-                        contentType = { "tool_call" },
-                    ) { toolCall ->
-                        CompositionLocalProvider(LocalExpansionScope provides replyScope) {
-                            StreamingToolCallCard(
-                                toolCall = toolCall,
-                                modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
-                                baseUrl = baseUrl,
-                                streamingAttachments = streamingWorkspace.inline,
-                                showImageDescriptions = showImageDescriptions,
-                                sandboxStarting = toolCall.id in sandboxStartingToolCallIds,
-                                isLatestStep = toolCall.id == renderedToolCalls.lastOrNull()?.id,
-                                replyLength = streamingContent.length,
-                            )
+                    if (orphanMemory.isNotEmpty()) {
+                        // Keyed per reply, so the next run's line never restores this one's open state.
+                        item(key = "streaming_memory_artifacts_$streamingSlotKey") {
+                            CompositionLocalProvider(LocalExpansionScope provides replyScope) {
+                                MemoryArtifactsSection(
+                                    artifacts = orphanMemory,
+                                    modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
+                                    stateKey = memoryArtifactsStateKey(streamingWorkspace.inline, fallback = ""),
+                                    onManage = LocalOpenMemories.current,
+                                    live = true,
+                                )
+                            }
                         }
                     }
-                }
 
-                if (streamingWorkspace.changes.isNotEmpty()) {
-                    item(key = "streaming_workspace_changes", contentType = "workspace_changes") {
-                        CompositionLocalProvider(LocalExpansionScope provides replyScope) {
-                            WorkspaceChangesSection(
-                                changes = streamingWorkspace.changes,
-                                baseUrl = baseUrl,
-                                stateKey = "streaming",
-                                modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
-                                live = true,
-                            )
-                        }
-                    }
-                }
-
-                // Live office-doc previews (v0.8.6) once ready. Pending and failed ones are rows
-                // under their tool call, or here when no rendered call claims them; see
-                // isInlineOfficePreview.
-                val streamingCallIds = renderedToolCalls.map { it.id }
-                val officeAttachments = streamingWorkspace.inline.filter(::isInlineOfficePreview)
-                if (officeAttachments.isNotEmpty() ||
-                    unclaimedOfficePreviewRows(streamingWorkspace.inline, streamingCallIds).isNotEmpty()
-                ) {
-                    item(key = "streaming_office_previews") {
-                        OfficePreviewAttachments(
-                            attachments = streamingWorkspace.inline,
-                            renderedToolCallIds = streamingCallIds,
-                            baseUrl = baseUrl,
-                            modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
-                            isDarkTheme = isSurfaceDark(),
-                        )
-                    }
-                }
-
-                val orphanMemory = collectUnrenderedMemoryArtifacts(
-                    streamingWorkspace.inline,
-                    streamingCallIds,
-                )
-                if (orphanMemory.isNotEmpty()) {
-                    // Keyed per reply, so the next run's line never restores this one's open state.
-                    item(key = "streaming_memory_artifacts_$streamingSlotKey") {
-                        CompositionLocalProvider(LocalExpansionScope provides replyScope) {
-                            MemoryArtifactsSection(
-                                artifacts = orphanMemory,
-                                modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
-                                stateKey = memoryArtifactsStateKey(streamingWorkspace.inline, fallback = ""),
-                                onManage = LocalOpenMemories.current,
-                                live = true,
-                            )
-                        }
-                    }
-                }
-
-                // Human-review pause (v0.8.8): the run is waiting on the user, whose controls are
-                // docked by the composer (AskUserQuestionPanel, ToolApprovalPanel). The tail of the
-                // still-unfinished reply keeps a one-line marker so it reads as waiting rather than
-                // stalled; the continuation streams back into the bubble above.
-                if (pendingAction != null) {
-                    item(key = "pending_action_${pendingAction.actionId}") {
-                        val markerModifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                        if (pendingAction.isAskUserQuestion) {
-                            AskUserQuestionWaitingMarker(modifier = markerModifier)
-                        } else {
-                            ToolApprovalWaitingMarker(modifier = markerModifier)
+                    // Human-review pause (v0.8.8): the run is waiting on the user, whose controls are
+                    // docked by the composer (AskUserQuestionPanel, ToolApprovalPanel). The tail of the
+                    // still-unfinished reply keeps a one-line marker so it reads as waiting rather than
+                    // stalled; the continuation streams back into the bubble above.
+                    if (pendingAction != null) {
+                        item(key = "pending_action_${pendingAction.actionId}") {
+                            val markerModifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                            if (pendingAction.isAskUserQuestion) {
+                                AskUserQuestionWaitingMarker(modifier = markerModifier)
+                            } else {
+                                ToolApprovalWaitingMarker(modifier = markerModifier)
+                            }
                         }
                     }
                 }
@@ -772,7 +876,7 @@ fun MessageList(
             listState = listState,
             follower = follower,
             extraEndPx = extraEndPx,
-            backdrop = LocalGlassBackdrop.current.takeIf { recordsGlassBackdrop },
+            backdrop = listBackdrop,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = scrollToBottomPadding ?: scrollToBottomButtonPadding(bottomContentPadding)),

@@ -66,6 +66,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.core.ui.datetime.LocalRelativeTimeReference
+import com.garfiec.librechat.core.ui.datetime.resolve
 import com.garfiec.librechat.feature.chat.components.ChatRoot
 import com.garfiec.librechat.feature.chat.components.LocalOpenFileActions
 import com.garfiec.librechat.feature.chat.components.LocalOpenMessageFile
@@ -74,6 +75,7 @@ import com.garfiec.librechat.feature.chat.components.MessageList
 import com.garfiec.librechat.feature.chat.components.ParsedMarkdownCache
 import com.garfiec.librechat.feature.chat.components.SharedTextFileSheet
 import com.garfiec.librechat.feature.chat.components.artifact.MermaidRenderCache
+import com.garfiec.librechat.feature.chat.components.mcpapp.McpApps
 import com.garfiec.librechat.feature.chat.components.toAttachment
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_back
@@ -227,6 +229,9 @@ fun SharedChatScreen(
         onSiteIconsPromptDismiss = koinInject<SiteIconPromptSession>()::dismiss,
         // The memories shown are the sharer's, not the viewer's: no Manage.
         onOpenMemories = null,
+        mcpSignIn = null,
+        // Public shares omit App attachments; any that remain say Apps don't run here.
+        mcpApps = McpApps.ReadOnly,
     ) {
         ProvideSharedFileOpeners(state, viewModel) {
             SharedChatScaffold(
@@ -317,7 +322,7 @@ internal fun SharedChatScaffold(
                 belowBar = shared?.let { label ->
                     {
                         Text(
-                            text = stringResource(Res.string.shared_chat_subtitle, label),
+                            text = stringResource(Res.string.shared_chat_subtitle, label.resolve()),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,

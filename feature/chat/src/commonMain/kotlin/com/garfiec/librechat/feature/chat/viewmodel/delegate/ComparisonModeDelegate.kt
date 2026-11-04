@@ -60,8 +60,14 @@ class ComparisonModeDelegate(
     private val primaryBuffer = StringBuilder()
     private val secondaryBuffer = StringBuilder()
 
-    /** Accumulated primary-pane text — used as the auto-read source on Final. */
-    fun primaryContent(): String = primaryBuffer.toString()
+    /**
+     * The primary pane's answer deltas only. [primaryBuffer] also carries the reasoning (the pane
+     * renders both), which auto-read must not speak.
+     */
+    private val primaryAnswerBuffer = StringBuilder()
+
+    /** The primary pane's streamed answer, without its reasoning — the auto-read source on Final. */
+    fun primaryAnswerText(): String = primaryAnswerBuffer.toString()
 
     // ── Selection ────────────────────────────────────────────────────
 
@@ -119,6 +125,7 @@ class ComparisonModeDelegate(
     fun stopComparison() {
         if (handle.state.isStreaming) return
         primaryBuffer.clear()
+        primaryAnswerBuffer.clear()
         secondaryBuffer.clear()
         handle.update {
             comparisonState = ComparisonState()
@@ -294,6 +301,7 @@ class ComparisonModeDelegate(
     fun onSendStart() {
         if (!handle.state.comparisonState.isEnabled) return
         primaryBuffer.clear()
+        primaryAnswerBuffer.clear()
         secondaryBuffer.clear()
         handle.update {
             comparisonState = comparisonState.copy(
@@ -331,6 +339,45 @@ class ComparisonModeDelegate(
     }
 
     /**
+     * An MCP sign-in is per user, not per pane, so it goes to whichever pane holds the call, found
+     * as the single stream finds it: a subagent child's prompt lands on the pane's `subagent` call
+     * whose trace holds the child (else [envelopeParentId]).
+     */
+    private fun routeToolCallAuth(event: StreamEvent.ToolCallAuthRequired, envelopeParentId: String? = null) {
+        val traces = handle.state.subagentProgress
+        handle.update {
+            comparisonState = comparisonState.copy(
+                primaryActiveToolCalls = comparisonState.primaryActiveToolCalls.withAuthRequired(event, traces, envelopeParentId),
+                secondaryActiveToolCalls = comparisonState.secondaryActiveToolCalls.withAuthRequired(event, traces, envelopeParentId),
+            )
+        }
+    }
+
+    /** A subagent child call ended, so whichever pane's parent card carried its sign-in drops it. */
+    private fun clearSubagentAuthFor(childToolCallId: String) {
+        val state = handle.state.comparisonState
+        if ((state.primaryActiveToolCalls + state.secondaryActiveToolCalls).none { it.authToolCallId == childToolCallId }) {
+            return
+        }
+        handle.update {
+            comparisonState = comparisonState.copy(
+                primaryActiveToolCalls = comparisonState.primaryActiveToolCalls.withoutSubagentAuthFor(childToolCallId),
+                secondaryActiveToolCalls = comparisonState.secondaryActiveToolCalls.withoutSubagentAuthFor(childToolCallId),
+            )
+        }
+    }
+
+    /** The pane half of a subagent envelope: its sign-in, and the end of the child call that held one. */
+    private fun routeSubagentAuth(event: StreamEvent.SubagentUpdate) {
+        when (val inner = event.inner) {
+            is StreamEvent.ToolCallAuthRequired -> routeToolCallAuth(inner, event.parentToolCallId)
+            is StreamEvent.ToolCallComplete -> clearSubagentAuthFor(inner.toolCallId)
+            is StreamEvent.ToolCallClosed -> clearSubagentAuthFor(inner.toolCallId)
+            else -> Unit
+        }
+    }
+
+    /**
      * Routes a streaming event into the comparison panes. Returns `true` if the event
      * was consumed for comparison mode (so the caller skips its normal handling), `false`
      * otherwise — including when comparison is disabled, leaving the standard path intact.
@@ -338,16 +385,41 @@ class ComparisonModeDelegate(
      * A tool-call event with no branch here falls through to the standard path, which writes the
      * non-comparison `activeToolCalls` the panes never read. That is why the closure needs one:
      * without it an aborted comparison run leaves both panes' cards spinning.
+     *
+     * A `subagent_update` is the one event routed here and still passed on (`false`): the panes take
+     * its MCP sign-in, and the standard path still records the subagent's trace.
      */
     fun routeEvent(event: StreamEvent): Boolean {
         if (!handle.state.comparisonState.isEnabled) return false
         return when (event) {
             // Thinking and content deltas both feed the same pane buffer in comparison mode.
-            is StreamEvent.ContentDelta -> { routeTextDelta(event.agentId, event.chunk); true }
-            is StreamEvent.ThinkingDelta -> { routeTextDelta(event.agentId, event.chunk); true }
+            is StreamEvent.ContentDelta -> { routeTextDelta(event.agentId, event.chunk, isReasoning = false); true }
+            is StreamEvent.ThinkingDelta -> { routeTextDelta(event.agentId, event.chunk, isReasoning = true); true }
             is StreamEvent.ToolCallStart -> { routeToolCallStart(event); true }
-            is StreamEvent.ToolCallComplete -> { routeToolCallComplete(event); clearSandboxStarting(event.toolCallId); true }
-            is StreamEvent.ToolCallClosed -> { routeToolCallClosed(event); clearSandboxStarting(event.toolCallId); true }
+            is StreamEvent.ToolCallComplete -> {
+                routeToolCallComplete(event)
+                clearSandboxStarting(event.toolCallId)
+                clearSubagentAuthFor(event.toolCallId)
+                true
+            }
+            is StreamEvent.ToolCallClosed -> {
+                routeToolCallClosed(event)
+                clearSandboxStarting(event.toolCallId)
+                clearSubagentAuthFor(event.toolCallId)
+                true
+            }
+            is StreamEvent.ToolCallAuthRequired -> { routeToolCallAuth(event); true }
+            is StreamEvent.SubagentUpdate -> { routeSubagentAuth(event); false }
+            // No agent on the marker either; the ids are unique across panes, so both lists take it.
+            is StreamEvent.ToolCallPreparation -> {
+                handle.update {
+                    comparisonState = comparisonState.copy(
+                        primaryActiveToolCalls = comparisonState.primaryActiveToolCalls.preparedBy(event),
+                        secondaryActiveToolCalls = comparisonState.secondaryActiveToolCalls.preparedBy(event),
+                    )
+                }
+                true
+            }
             else -> false
         }
     }
@@ -362,7 +434,7 @@ class ComparisonModeDelegate(
         handle.update { content = content.withoutSandboxStarting(toolCallId) }
     }
 
-    private fun routeTextDelta(agentId: String?, chunk: String) {
+    private fun routeTextDelta(agentId: String?, chunk: String, isReasoning: Boolean) {
         if (isSecondaryEvent(agentId)) {
             secondaryBuffer.append(chunk)
             handle.update {
@@ -374,6 +446,7 @@ class ComparisonModeDelegate(
             }
         } else {
             primaryBuffer.append(chunk)
+            if (!isReasoning) primaryAnswerBuffer.append(chunk)
             handle.update {
                 comparisonState = comparisonState.copy(
                     primaryStreamingContent = primaryBuffer.toString(),
@@ -386,7 +459,12 @@ class ComparisonModeDelegate(
     }
 
     private fun routeToolCallStart(event: StreamEvent.ToolCallStart) {
-        val newToolCall = ActiveToolCall(id = event.toolCallId, name = event.toolName, input = event.input)
+        val newToolCall = ActiveToolCall(
+            id = event.toolCallId,
+            name = event.toolName,
+            input = event.input,
+            preparationStarted = event.preparing,
+        )
         if (isSecondaryEvent(event.agentId)) {
             handle.update {
                 comparisonState = comparisonState.copy(

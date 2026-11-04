@@ -11,6 +11,13 @@ import io.mockk.mockk
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.double
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Test
 import kotlin.time.Instant
 
@@ -39,7 +46,7 @@ class ConversationExporterGoldenTest {
     @Test
     fun timestampsExportAsIsoStringAndExplicitNull() = runTest {
         coEvery { conversationRepository.getConversation("c1", null) } returns Result.Success(conversation)
-        coEvery { messageRepository.getMessages("c1") } returns
+        coEvery { messageRepository.fetchMessagesFull("c1") } returns
             Result.Success(listOf(Message(messageId = "m1", conversationId = "c1", text = "hi")))
 
         val result = exporter(UnconfinedTestDispatcher(testScheduler)).exportAsJson("c1")
@@ -52,7 +59,7 @@ class ConversationExporterGoldenTest {
     @Test
     fun exportRoundTripsThroughTheImporter() = runTest {
         coEvery { conversationRepository.getConversation("c1", null) } returns Result.Success(conversation)
-        coEvery { messageRepository.getMessages("c1") } returns
+        coEvery { messageRepository.fetchMessagesFull("c1") } returns
             Result.Success(listOf(Message(messageId = "m1", conversationId = "c1", text = "hi")))
         val dispatcher = UnconfinedTestDispatcher(testScheduler)
 
@@ -62,6 +69,47 @@ class ConversationExporterGoldenTest {
         val roundTripped = (imported as Result.Success).data.conversation
         assertThat(roundTripped.updatedAt).isEqualTo(Instant.parse("2026-03-28T10:00:00Z"))
         assertThat(roundTripped.createdAt).isNull()
+    }
+
+    /**
+     * The server's import route (`getImporter`, api/server/utils/import/importers.js) takes a
+     * LibreChat file only with a top-level `conversationId` and `messages`; anything else is
+     * "Unsupported import type". `options` is spread into the stored conversation, so it carries
+     * settings and never ids, ownership or tags.
+     */
+    @Test
+    fun exportHasTheShapeTheServerImportRecognises() = runTest {
+        val agentChat = conversation.copy(
+            endpoint = "agents",
+            agentId = "agent_1",
+            model = "gpt-4o",
+            temperature = 0.5,
+            user = "user-1",
+            tags = listOf("work"),
+        )
+        coEvery { conversationRepository.getConversation("c1", null) } returns Result.Success(agentChat)
+        coEvery { messageRepository.fetchMessagesFull("c1") } returns Result.Success(
+            listOf(
+                Message(messageId = "m1", conversationId = "c1", text = "hi", isCreatedByUser = true),
+                Message(messageId = "m2", conversationId = "c1", parentMessageId = "m1", text = "hello"),
+            ),
+        )
+
+        val encoded = (exporter(UnconfinedTestDispatcher(testScheduler)).exportAsJson("c1") as Result.Success).data
+        val root = Json.parseToJsonElement(encoded).jsonObject
+
+        assertThat(root["conversationId"]?.jsonPrimitive?.content).isEqualTo("c1")
+        assertThat(root["endpoint"]?.jsonPrimitive?.content).isEqualTo("agents")
+        assertThat(root["title"]?.jsonPrimitive?.content).isEqualTo("Golden")
+        assertThat(root["recursive"]?.jsonPrimitive?.boolean).isFalse()
+        assertThat(root["messages"]?.jsonArray?.map { it.jsonObject["messageId"]?.jsonPrimitive?.content })
+            .containsExactly("m1", "m2").inOrder()
+        val options = root["options"]!!.jsonObject
+        assertThat(options["agent_id"]?.jsonPrimitive?.content).isEqualTo("agent_1")
+        assertThat(options["model"]?.jsonPrimitive?.content).isEqualTo("gpt-4o")
+        assertThat(options["temperature"]?.jsonPrimitive?.double).isEqualTo(0.5)
+        assertThat(options.keys).containsNoneOf("conversationId", "user", "tags", "createdAt", "updatedAt")
+        assertThat(options.values).doesNotContain(JsonNull)
     }
 
     /** Exports written by pre-Instant app versions must keep importing. */

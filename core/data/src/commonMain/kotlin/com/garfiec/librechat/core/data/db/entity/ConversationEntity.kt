@@ -39,4 +39,19 @@ data class ConversationEntity(
      */
     val accountId: String? = null,
     val spec: String? = null,
+    /**
+     * Read state (v0.8.9-rc1), epoch millis; the unseen-reply watermark is `0`. Null on older
+     * servers and on rows cached before it existed, which read as seen.
+     */
+    val lastResponseAt: Long? = null,
+    val lastResponseMessageId: String? = null,
+    val lastResponseIsManual: Boolean? = null,
+    val isMarkedUnread: Boolean? = null,
+    val lastSeenAt: Long? = null,
+    /**
+     * Whether the chat ran against an attached code workspace, so the drawer may ask for its pull
+     * request (v0.8.9-rc1): set by a full single-conversation read, or false from a list row the
+     * server stamped `codeDecisionListed`. Null = not known, which the drawer asks about.
+     */
+    val isCodeConversation: Boolean? = null,
 )

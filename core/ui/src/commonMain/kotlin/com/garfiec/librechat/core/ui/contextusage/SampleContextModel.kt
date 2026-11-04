@@ -32,6 +32,7 @@ val SampleContextModel = ContextBreakdownModel(
         branch = UsageAmount(input = 143, output = 91_100, cacheRead = 1_300_000, cacheWrite = 134_100, cost = 2.60),
         total = UsageAmount(input = 210, output = 133_000, cacheRead = 1_900_000, cacheWrite = 190_000, cost = 3.89),
         compactionReclaim = 41_000,
+        lastTurn = UsageAmount(input = 12, output = 1_200, cacheRead = 11_800, cost = 0.04),
     ),
     costEnabled = true,
     currency = null,

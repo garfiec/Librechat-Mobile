@@ -47,7 +47,7 @@ class ChatViewModelContextGaugeTest {
         every { fixture.settingsDataStore.enabledTools } returns flowOf(emptySet())
         coEvery { fixture.conversationRepository.getConversation(any(), any()) } returns Result.Error(message = "test")
         every { fixture.messageRepository.observeMessages(any()) } returns room
-        coEvery { fixture.messageRepository.getMessages(any()) } answers { Result.Success(room.value) }
+        coEvery { fixture.messageRepository.getMessages(any(), any()) } answers { Result.Success(room.value) }
     }
 
     @After

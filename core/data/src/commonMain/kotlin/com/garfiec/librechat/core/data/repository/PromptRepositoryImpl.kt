@@ -74,6 +74,12 @@ class PromptRepositoryImpl(
         }
     }
 
+    override suspend fun withResolvedText(group: PromptGroup): Result<PromptGroup> {
+        val id = group.id
+        if (!group.isExternal || id == null) return Result.Success(group)
+        return safeApiCall { group.withResolvedText(promptsApi.resolvePromptGroup(id).prompt) }
+    }
+
     override suspend fun recordPromptGroupUse(groupId: String): Result<Unit> {
         return safeApiCall {
             promptsApi.recordPromptGroupUse(groupId)

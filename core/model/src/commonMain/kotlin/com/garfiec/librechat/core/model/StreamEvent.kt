@@ -18,6 +18,8 @@ sealed interface StreamEvent {
         val input: String,
         val agentId: String? = null,
         val groupId: Int? = null,
+        /** The call's `on_tool_preparation` arrived before this run step announced it. */
+        val preparing: Boolean = false,
     ) : StreamEvent
 
     data class ToolCallComplete(
@@ -70,6 +72,36 @@ sealed interface StreamEvent {
         val runId: String? = null,
     ) : StreamEvent
 
+    /**
+     * The run is waiting on the user to sign in to an MCP server: an `on_run_step_delta` whose
+     * delta carries `auth` (the provider's authorization URL) and `expires_at`. Sent at turn start,
+     * or on the first tool call of a server configured with `oauthPrompt: on_use`. The run resumes
+     * by itself once the callback lands; the step then completes like any tool call.
+     *
+     * [expiresAt] is the server's epoch milliseconds, carried for display only: compared against
+     * the device clock, skew would expire a two-minute prompt early. The server is the judge.
+     */
+    data class ToolCallAuthRequired(
+        val toolCallId: String,
+        val authUrl: String,
+        val serverName: String?,
+        val expiresAt: Long? = null,
+        val agentId: String? = null,
+        val groupId: Int? = null,
+    ) : StreamEvent
+
+    /**
+     * Where a tool call is between its run step and its result (v0.8.9-rc1, upstream #16619):
+     * `on_tool_preparation` (the model has started writing the call's arguments) or
+     * `on_tool_calls_dispatched` ([dispatched]: the SDK handed the calls to execution). Lets a live
+     * card say "Preparing …" while the arguments stream instead of "Running". Like
+     * [SandboxStarting] it carries no agent, and the ids are unique across comparison panes.
+     */
+    data class ToolCallPreparation(
+        val toolCallIds: List<String>,
+        val dispatched: Boolean,
+    ) : StreamEvent
+
     data class ThinkingDelta(
         val chunk: String,
         val agentId: String? = null,
@@ -92,6 +124,9 @@ sealed interface StreamEvent {
         val conversationId: String? = null,
         /** The agent whose tool call produced the file. */
         val agentId: String? = null,
+        /** The run step whose tool call produced it (`ui_resources` and memory attachments carry it
+         *  from v0.8.9-rc1). With [agentId] it tells apart calls that share a provider tool-call id. */
+        val stepId: String? = null,
         /** Epoch millis; only a download fallback sets it (see [Attachment.expiresAt]). */
         val expiresAt: Long? = null,
         val bytes: Long? = null,
@@ -241,6 +276,11 @@ sealed interface StreamEvent {
          * older servers — the resume is then sent unfenced, which stays legal.
          */
         val generationCreatedAt: Long? = null,
+        /**
+         * The user turn's redaction revision (v0.8.9-rc1): the server hid private details from
+         * the model. The live turn shows it as its own message already shows the original text.
+         */
+        val privacyRevision: String? = null,
     ) : StreamEvent
 
     /**
@@ -323,6 +363,12 @@ sealed interface StreamEvent {
         val label: String? = null,
         /** The phase's content pre-mapped to a flat event, or null for lifecycle phases. */
         val inner: StreamEvent? = null,
+        /**
+         * Updates the host folded away before this one while the live stream was unavailable
+         * (`activityDroppedCount`, v0.8.9-rc1). The trace is short by that many; the persisted
+         * transcript is not.
+         */
+        val activityDroppedCount: Int? = null,
     ) : StreamEvent
 }
 
@@ -345,7 +391,7 @@ object StreamErrorCodes {
     /**
      * Client-side, never on the wire: `SseClient` ran out of retries on connections that kept
      * dropping (I/O errors, or bodies that closed without the run's end). That says nothing about
-     * the run itself — with no heartbeat upstream, a live run behind an idle-timing proxy looks
+     * the run itself — with no keepalive (before v0.8.9-rc1, or switched off), a live run behind an idle-timing proxy looks
      * exactly like this while the device is online — so the consumer asks `/chat/status` rather
      * than reporting a network failure: resume if active, refetch if not. Mirrors upstream's
      * retry-ceiling adjudication (`useResumableSSE.ts`, "Max reconnect attempts reached").

@@ -5,6 +5,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.longOrNull
 
 @Serializable
 data class InterfaceConfig(
@@ -36,8 +37,17 @@ data class InterfaceConfig(
     val buildInfo: Boolean? = null,
     /** Whether the web client auto-submits a prompt passed via URL. No mobile counterpart. */
     val autoSubmitFromUrl: Boolean? = null,
-    /** Temp-chat retention mode: `"all"` | `"temporary"`. Cosmetic on mobile (no temp-chat surface). */
+    /**
+     * Retention mode: `"temporary"` (server default) | `"all"` | `"ephemeral"` (v0.8.9-rc1). Only
+     * `"ephemeral"` changes anything here: the server forces every new chat temporary, so the
+     * temporary-chat toggle is locked on. Read it through [isForcedTemporaryRetention].
+     */
     val retentionMode: String? = null,
+    /**
+     * Deployment theme (v0.8.9-rc1): a bundled theme name or an inline definition, applied to every
+     * user. Kept raw; read the accent through [readDeploymentAccent], never by hand.
+     */
+    val theme: JsonElement? = null,
     // --- v0.8.7 detection / gating ---
     /** Whether the context-usage gauge is enabled. Server default is `true`. Gates the
      *  chat-screen context gauge (combined with a `BackendVersion.isCompatibleOrNewer("0.8.7-rc1")` check). */
@@ -92,7 +102,79 @@ data class InterfaceConfig(
      * trustCheckbox }`. Raw like [prompts] / [agents]; read the trust text through [mcpTrustCheckbox].
      */
     val mcpServers: JsonElement? = null,
+    // --- v0.8.9-rc1 ---
+    /**
+     * What heads the new-chat screen when an agent or a branded spec is selected: its name
+     * (`"entity"`, the default) or the time-of-day greeting (`"greeting"`). Read it through
+     * [landingHeadingIsGreeting].
+     */
+    val landingHeading: String? = null,
+    /**
+     * Whether web's welcome screen carries the generic disclaimer and policy links under the
+     * composer. Decoded only: the mobile new-chat screen has no such footer to hide.
+     */
+    val landingFooter: Boolean? = null,
+    /**
+     * Set false during a rolling upgrade, until every API replica supports conversation title
+     * ownership. Server default `true`. Read together with
+     * [StartupConfig.conversationTitleOwnershipVersion] through [supportsConversationTitleOwnership].
+     */
+    val runningChatRename: Boolean? = null,
+    /** Client confirmation window for a steer arm (ms). Raw; read through [steerArmConfirmationTimeoutMs]. */
+    val steerArmConfirmationTimeoutMs: JsonElement? = null,
+    /**
+     * How long a transport-ambiguous queued turn stays reconcilable (ms). Raw like
+     * [agentSelectorLimit]: admin overrides reach the client unvalidated. Read through
+     * [queuedTurnReconciliationTimeoutMs].
+     */
+    val queuedTurnReconciliationTimeoutMs: JsonElement? = null,
+    /** How long a queued send may hold its pane (ms). Decoded only: mobile holds no such lock. */
+    val queuedSendLockTimeoutMs: JsonElement? = null,
 )
+
+/** Upstream `DEFAULT_QUEUED_TURN_RECONCILIATION_TIMEOUT_MS` (`packages/data-provider/src/config.ts`). */
+const val DEFAULT_QUEUED_TURN_RECONCILIATION_TIMEOUT_MS: Long = 60_000
+
+/** Upstream's schema ceiling on the queue/steer timeouts: a positive int no larger than 2^31 - 1. */
+private const val MAX_INTERFACE_TIMEOUT_MS: Long = 2_147_483_647
+
+/**
+ * The effective `interface.queuedTurnReconciliationTimeoutMs`: a positive whole number of
+ * milliseconds up to upstream's ceiling, else [DEFAULT_QUEUED_TURN_RECONCILIATION_TIMEOUT_MS]
+ * (absent, `null`, a string, a fraction or out of range all fall back, as the schema default would).
+ */
+fun InterfaceConfig?.queuedTurnReconciliationTimeoutMs(): Long =
+    interfaceTimeoutMs(this?.queuedTurnReconciliationTimeoutMs, DEFAULT_QUEUED_TURN_RECONCILIATION_TIMEOUT_MS)
+
+/** Upstream `DEFAULT_STEER_ARM_CONFIRMATION_TIMEOUT_MS` (`packages/data-provider/src/config.ts`). */
+const val DEFAULT_STEER_ARM_CONFIRMATION_TIMEOUT_MS: Long = 10_000
+
+/**
+ * The effective `interface.steerArmConfirmationTimeoutMs`: how long the client waits for a
+ * `/chat/steer/arm` reply before saying it couldn't confirm the interrupt. Parsed exactly like
+ * [queuedTurnReconciliationTimeoutMs], else [DEFAULT_STEER_ARM_CONFIRMATION_TIMEOUT_MS].
+ */
+fun InterfaceConfig?.steerArmConfirmationTimeoutMs(): Long =
+    interfaceTimeoutMs(this?.steerArmConfirmationTimeoutMs, DEFAULT_STEER_ARM_CONFIRMATION_TIMEOUT_MS)
+
+private fun interfaceTimeoutMs(raw: JsonElement?, default: Long): Long {
+    val primitive = raw as? JsonPrimitive ?: return default
+    if (primitive.isString) return default
+    val value = primitive.longOrNull ?: return default
+    return value.takeIf { it in 1..MAX_INTERFACE_TIMEOUT_MS } ?: default
+}
+
+/** Upstream `isForcedTemporaryRetention`: only `retentionMode: "ephemeral"` forces every chat temporary. */
+fun isForcedTemporaryRetention(retentionMode: String?): Boolean = retentionMode == RETENTION_MODE_EPHEMERAL
+
+/** Upstream `RetentionMode.EPHEMERAL`. */
+const val RETENTION_MODE_EPHEMERAL: String = "ephemeral"
+
+/** `interface.landingHeading == "greeting"`: the time-of-day greeting heads the new chat whatever is selected. */
+fun InterfaceConfig?.landingHeadingIsGreeting(): Boolean = this?.landingHeading == "greeting"
+
+/** Upstream `CONVERSATION_TITLE_OWNERSHIP_VERSION`. */
+const val CONVERSATION_TITLE_OWNERSHIP_VERSION: Int = 1
 
 /**
  * Whether a skill shared with the user (not owned, not a deployment skill) is active for them until

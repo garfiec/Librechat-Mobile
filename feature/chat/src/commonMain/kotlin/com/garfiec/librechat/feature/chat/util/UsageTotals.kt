@@ -114,9 +114,27 @@ fun Message.persistedUsage(): UsageAmount? {
 }
 
 /**
+ * The usage of the reply at [branch]'s tail, for the breakdown's "Last turn" (upstream
+ * `sumBranch`'s `lastTurnUsage` plus `useTokenUsage`'s in-progress override).
+ *
+ * While [turnInProgress] it is the live run's usage so far, or null before any usage event: the
+ * previous reply must not read as the current turn. Otherwise the tail reply's saved usage; on a
+ * server that saves none, the run's usage once the final frame named this reply as its owner. A
+ * branch ending on a user turn (a failed send) has no last turn.
+ */
+fun lastTurnUsage(branch: List<Message>, pending: PendingUsage, turnInProgress: Boolean): UsageAmount? {
+    if (turnInProgress) return pending.usage.takeUnless { pending.isEmpty }
+    val tail = branch.lastOrNull() ?: return null
+    if (tail.isCreatedByUser) return null
+    tail.persistedUsage()?.let { return it }
+    return pending.usage.takeIf { !pending.isEmpty && pending.anchorResponseId == tail.messageId }
+}
+
+/**
  * Persisted usage summed over [scope], plus [pending] while it is not yet represented there.
  *
- * Pending counts while the run is live ([isStreaming]); once anchored to its reply, only while
+ * Pending counts while the run is live ([isStreaming]: for a branch scope, pass whether the live
+ * turn is on that branch, as upstream merges pending into the branch only while `turnInProgress`); once anchored to its reply, only while
  * that reply lacks its own `metadata.usage` — the final frame usually brings it, so the
  * emission that adds the reply drops pending in the same frame. A reply not yet in [allMessages]
  * at all (the comparison reload gap) still counts; one present but outside [scope] does not.

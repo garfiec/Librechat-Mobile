@@ -156,4 +156,14 @@ class ServerErrorCodeTest {
             ServerErrorCode.codedMessage("""{"error":"MCP_DOMAIN_NOT_ALLOWED","message":"Domain is not allowed"}""", "MCP_"),
         )
     }
+
+    @Test
+    fun content_filter_block_is_read_off_the_error_key() {
+        // contentFilterBlockResponse (packages/api/src/middleware/contentFilter.ts, v0.8.9-rc1).
+        val body = """{"error":"content_filter_block","message":"Submitted content contains a email address. """ +
+            """Remove it and try again.","source":"message","field":"text"}"""
+        kotlin.test.assertTrue(ServerErrorCode.isContentFilterBlock(body))
+        kotlin.test.assertFalse(ServerErrorCode.isContentFilterBlock("""{"error":"Bad request"}"""))
+        kotlin.test.assertFalse(ServerErrorCode.isContentFilterBlock(null))
+    }
 }

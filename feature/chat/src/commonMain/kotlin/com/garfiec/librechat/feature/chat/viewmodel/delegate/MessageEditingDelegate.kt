@@ -8,6 +8,8 @@ import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.ReasoningOverride
+import com.garfiec.librechat.core.model.code.CodeWorkspaceSubmission
 import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.request.EditedContent
 import com.garfiec.librechat.feature.chat.util.MessageEditShape
@@ -70,6 +72,11 @@ class MessageEditingDelegate(
         primaryEndpoint: String?,
         primaryModelParams: JsonObject?,
     ) -> AddedConversation?,
+    /**
+     * `CodeWorkspaceDelegate.submissionForSend`. An edit, regenerate or continue runs in a chat
+     * that has sent before, so a held decision (null) sends nothing and the recorded one applies.
+     */
+    private val codeWorkspace: () -> CodeWorkspaceSubmission? = { CodeWorkspaceSubmission.NONE },
 ) {
 
     /**
@@ -83,8 +90,28 @@ class MessageEditingDelegate(
 
     private fun closeEditor() = handle.update { editing = MessageEditingState() }
 
+    /**
+     * "Retry without files" (v0.8.9-rc1): sends the failed reply's user turn again as a new
+     * version beside it, with none of its files and its quotes, skills and reasoning choice kept
+     * (web's `ask` with `overrideFiles: []`). Earlier turns' files still go, which is what "Branch
+     * without files" is for.
+     */
+    fun retryWithoutFiles(failedReplyId: String) {
+        val state = handle.state
+        if (state.isStreaming) return
+        val reply = state.messages.find { it.messageId == failedReplyId } ?: return
+        if (reply.isCreatedByUser) return
+        val parent = state.messages.find { it.messageId == reply.parentMessageId } ?: return
+        if (!parent.isCreatedByUser || parent.text.isBlank()) return
+        runWhenSendReady({}) { editUserMessage(parent, parent.text, withoutFiles = true) }
+    }
+
     @OptIn(ExperimentalUuidApi::class)
-    private fun editUserMessage(originalMessage: Message, newText: String) {
+    private fun editUserMessage(originalMessage: Message, newText: String, withoutFiles: Boolean = false) {
+        val files = if (withoutFiles) null else originalMessage.files
+        // A retry is a fresh send of the same turn, so it replays the quoted excerpts too; an edit
+        // has never carried them.
+        val quotes = if (withoutFiles) originalMessage.quotes else null
         val parentMessageId = originalMessage.parentMessageId
 
         // Optimistically insert the edited text as a new sibling of the original user
@@ -103,10 +130,12 @@ class MessageEditingDelegate(
             isCreatedByUser = true,
             sender = "User",
             createdAt = Clock.System.now().toString(),
-            files = originalMessage.files,
+            files = files,
+            quotes = quotes,
             // The edited turn keeps its skill pills and primes the same skills (web's
             // `overrideManualSkills: message.manualSkills` on save-and-submit).
             manualSkills = originalMessage.manualSkills,
+            reasoningOverride = originalMessage.reasoningOverride,
         )
         handle.update {
             val updatedMessages = content.messages + optimisticMessage
@@ -120,10 +149,12 @@ class MessageEditingDelegate(
             text = newText,
             parentMessageId = parentMessageId,
             userMessageId = optimisticMessage.messageId,
-            files = originalMessage.files,
+            files = files,
+            quotes = quotes,
             manualSkills = originalMessage.manualSkills,
-            isEdited = true,
-            logLabel = "editUserMessage",
+            reasoningOverride = originalMessage.reasoningOverride,
+            isEdited = !withoutFiles,
+            logLabel = if (withoutFiles) "retryWithoutFiles" else "editUserMessage",
         )
     }
 
@@ -150,6 +181,7 @@ class MessageEditingDelegate(
             files = parentUserMessage.files,
             quotes = parentUserMessage.quotes,
             manualSkills = parentUserMessage.manualSkills,
+            reasoningOverride = parentUserMessage.reasoningOverride,
             isEdited = editedContent != null,
             isRegenerate = true,
             editedContent = editedContent,
@@ -179,6 +211,7 @@ class MessageEditingDelegate(
             files = parentUserMessage.files,
             quotes = parentUserMessage.quotes,
             manualSkills = parentUserMessage.manualSkills,
+            reasoningOverride = parentUserMessage.reasoningOverride,
             isRegenerate = true,
             logLabel = "regenerateMessage",
         )
@@ -239,6 +272,7 @@ class MessageEditingDelegate(
             overrideParentMessageId = parentUserMessage.messageId,
             responseMessageId = lastAiMessage.messageId,
             files = parentUserMessage.files,
+            reasoningOverride = parentUserMessage.reasoningOverride,
             isEdited = true,
             isRegenerate = true,
             isContinued = true,
@@ -261,7 +295,9 @@ class MessageEditingDelegate(
      * them silently drops the quoted context while the chips stay visible. Continue sends
      * none, matching web. Regenerate and both edits likewise replay the user turn's persisted
      * [manualSkills] (web's `overrideManualSkills`), so the new reply is primed with the skills
-     * its pills show; continue and compaction send none.
+     * its pills show; continue and compaction send none. Edit, regenerate and continue replay the
+     * user turn's [reasoningOverride] (web's `overrideReasoning`), not the composer's pending choice,
+     * dropped when the current selection no longer accepts it (the server would 400 it).
      *
      * In a comparison an edit or regenerate carries the second model too ([buildAddedConvo]), so
      * both panes answer again, as on web. Compaction and continue don't; a comparison's panes keep
@@ -286,6 +322,7 @@ class MessageEditingDelegate(
         files: List<FileReference>? = null,
         quotes: List<String>? = null,
         manualSkills: List<String>? = null,
+        reasoningOverride: ReasoningOverride? = null,
         isEdited: Boolean = false,
         isRegenerate: Boolean = false,
         isContinued: Boolean = false,
@@ -344,6 +381,9 @@ class MessageEditingDelegate(
                 modelParams = modelParams,
                 editedContent = editedContent,
                 addedConvo = addedConvo,
+                reasoningOverride = reasoningOverride?.takeIf { state.acceptsReasoning(it) },
+                // A compaction runs no model turn, so it decides nothing.
+                codeWorkspace = if (compact == true) null else codeWorkspace()?.takeUnless { it == CodeWorkspaceSubmission.NONE },
             ),
         )
     }
@@ -357,9 +397,9 @@ class MessageEditingDelegate(
         if (messageId in savesInFlight) return
         val message = handle.state.messages.find { it.messageId == messageId } ?: return
         when (editShapeOf(message)) {
-            // Seeded from the flat text, NOT from `getMessageText`, which concatenates text and
-            // reasoning parts for TTS: that would drop the model's reasoning into the answer field,
-            // and saving it would write the two back as one blob.
+            // Seeded from the flat text, NOT from a content-parts flattening: joining text and
+            // reasoning parts would drop the model's reasoning into the answer field, and saving it
+            // would write the two back as one blob.
             MessageEditShape.PLAIN_TEXT -> handle.update {
                 editing = MessageEditingState(
                     editingMessageId = messageId,

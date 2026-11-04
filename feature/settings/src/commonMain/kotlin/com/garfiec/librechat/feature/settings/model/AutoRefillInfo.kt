@@ -7,6 +7,7 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
+import kotlin.math.floor
 import kotlin.time.Instant
 
 /** Upstream `REFILL_INTERVAL_UNITS` (`packages/data-provider/src/balance.ts`), in upstream order. */
@@ -24,6 +25,46 @@ enum class RefillIntervalUnit(val wire: String, val dateTimeUnit: DateTimeUnit) 
     }
 }
 
+/**
+ * Upstream `BALANCE_DISPLAY_MODES` (`packages/data-provider/src/balance.ts`, v0.8.9-rc1): how the
+ * deployment shows a balance. An unknown or absent mode is [CREDITS], as web's `toDisplay`.
+ */
+enum class BalanceDisplay(val wire: String) {
+    CREDITS("credits"),
+    CURRENCY("currency"),
+    PERCENT("percent"),
+    ;
+
+    companion object {
+        fun fromWire(value: String?): BalanceDisplay = entries.firstOrNull { it.wire == value } ?: CREDITS
+    }
+}
+
+/** Upstream `CREDITS_PER_USD`: transaction rates are USD per million tokens. */
+const val CREDITS_PER_USD: Double = 1_000_000.0
+
+/**
+ * Upstream `getUsedPercent` (`client/src/utils/balance.ts`): the whole percent of [allotment]
+ * spent, floored and held to 99 while credits remain so a nearly drained balance never reads
+ * "100% used"; 100 once credits run out; null with no allotment to measure against.
+ */
+fun usedPercent(credits: Double, allotment: Double?): Int? {
+    if (credits <= 0) return 100
+    val whole = allotment?.takeIf { it.isFinite() && it > 0 } ?: return null
+    val spent = (1 - credits / whole) * 100
+    return floor(spent).toInt().coerceIn(0, MAX_USED_WHILE_CREDITS_REMAIN)
+}
+
+private const val MAX_USED_WHILE_CREDITS_REMAIN = 99
+
+/**
+ * Credits one period grants, upstream `summarizeBalance`'s allotment: the refill amount under
+ * auto-refill (when positive), else the configured starting balance (when positive).
+ */
+fun Balance.allotment(startBalance: Double?): Double? =
+    refillAmount.takeIf { autoRefillEnabled }?.takeIf { it.isFinite() && it > 0 }
+        ?: startBalance?.takeIf { it.isFinite() && it > 0 }
+
 /** What the Balance section shows for auto-refill, mirroring web's `AutoRefill` in `BillingControls.tsx`. */
 @Immutable
 sealed interface AutoRefillInfo {
@@ -33,6 +74,8 @@ sealed interface AutoRefillInfo {
     data object Unavailable : AutoRefillInfo
 
     data class On(
+        /** `refillMode: "reset"`: the allowance replaces the balance rather than topping it up. */
+        val reset: Boolean = false,
         val lastRefill: Instant,
         val refillAmount: Double,
         val intervalValue: Double,
@@ -54,6 +97,7 @@ fun Balance.autoRefillInfo(timeZone: TimeZone = TimeZone.currentSystemDefault())
     val next = runCatching { refillEligibility(last, value, unit, timeZone).also { it.toLocalDateTime(timeZone) } }
         .getOrNull() ?: return AutoRefillInfo.Unavailable
     return AutoRefillInfo.On(
+        reset = refillMode == "reset",
         lastRefill = last,
         refillAmount = amount,
         intervalValue = value,

@@ -4,6 +4,8 @@ import com.garfiec.librechat.core.model.PendingActionPayload
 import com.garfiec.librechat.core.model.PendingActionTypes
 import com.garfiec.librechat.core.model.ToolApprovalDecisions
 import com.garfiec.librechat.core.model.ToolApprovalRequest
+import com.garfiec.librechat.core.model.ToolReviewConfig
+import com.garfiec.librechat.core.model.request.ToolApprovalScopes
 import com.google.common.truth.Truth.assertThat
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Test
@@ -40,6 +42,49 @@ class ToolDecisionDraftsTest {
             .toResolution("b")
         assertThat(responded?.responseText).isEqualTo("use cache")
         assertThat(responded?.toolCallId).isEqualTo("b")
+    }
+
+    @Test
+    fun `always allow sends a session scope only for a call offered it`() {
+        val payload = batch("a", "b").copy(
+            reviewConfigs = listOf(
+                ToolReviewConfig(toolCallId = "a", allowedDecisions = listOf("approve", "reject"), allowAlways = true),
+                // allow_always without approve allowed: not an offer.
+                ToolReviewConfig(toolCallId = "b", allowedDecisions = listOf("reject"), allowAlways = true),
+            ),
+        )
+        val always = approve.copy(allowAlways = true)
+
+        val resolutions = toolBatchResolutions(payload, mapOf("a" to always, "b" to always))!!
+
+        assertThat(resolutions.first { it.toolCallId == "a" }.scope).isEqualTo(ToolApprovalScopes.SESSION)
+        assertThat(resolutions.first { it.toolCallId == "b" }.scope).isNull()
+    }
+
+    @Test
+    fun `a plain approve and a call with no review config never carry a scope`() {
+        val payload = batch("a", "b").copy(
+            reviewConfigs = listOf(
+                ToolReviewConfig(toolCallId = "a", allowedDecisions = listOf("approve"), allowAlways = true),
+            ),
+        )
+
+        val resolutions = toolBatchResolutions(
+            payload,
+            mapOf("a" to approve, "b" to approve.copy(allowAlways = true)),
+        )!!
+
+        assertThat(resolutions.map { it.scope }).containsExactly(null, null)
+    }
+
+    @Test
+    fun `a reject carries its trimmed reason, and a blank one is omitted`() {
+        val reject = ToolDecisionDraft(decision = ToolApprovalDecisions.REJECT)
+
+        assertThat(reject.copy(reason = "  wrong repo ").toResolution("a")?.reason).isEqualTo("wrong repo")
+        assertThat(reject.copy(reason = "   ").toResolution("a")?.reason).isNull()
+        // A reason left over from an earlier Reject does not ride along on an Approve.
+        assertThat(approve.copy(reason = "wrong repo").toResolution("a")?.reason).isNull()
     }
 
     @Test

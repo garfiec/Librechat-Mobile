@@ -156,6 +156,7 @@
     <string name="skill_error_save">Couldn't save this skill.</string>
     <string name="skill_error_import">Couldn't import this skill.</string>
     <string name="skill_error_skill_md_upload">SKILL.md is the skill's own content. Edit the skill to change it.</string>
+    <string name="skill_error_skill_deleting">This skill is being deleted, so its files can't be changed.</string>
     <string name="skill_error_changed_on_server">This skill was changed on the server, and its latest version couldn't be loaded. Your edits are kept: try saving again.</string>
     <string name="skill_acl_principal_unknown">Unknown</string>
     <!-- Skill import failure summaries -->

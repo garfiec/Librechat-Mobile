@@ -79,6 +79,32 @@ class AccountRegistryTest {
         assertThat(token.selected).isNull()
     }
 
+    /** Keychain items that outlived an iOS reinstall: the store binds an account no roster entry names. */
+    @Test
+    fun coldStart_emptyRoster_dropsAStoreBoundToAnAccountItHasNoEntryFor() = runTest(testDispatcher) {
+        val ds = createDataStore("orphan")
+        val provider = InMemoryActiveAccountProvider()
+        val token = FakeTokenManager(bound = accountId.value)
+        registry(ds, provider, serverDataStore(ds), token).awaitReady()
+
+        assertThat(provider.state.value).isEqualTo(Resolved(null))
+        assertThat(token.cleared).isTrue()
+    }
+
+    @Test
+    fun coldStart_noActiveEntry_keepsABindingTheRosterStillLists() = runTest(testDispatcher) {
+        val ds = createDataStore("listed")
+        val server = serverDataStore(ds)
+        server.setServerUrl(serverUrl)
+        val roster = AccountRoster(ds, json)
+        roster.upsertAndActivate(entry())
+        roster.deactivate()
+        val token = FakeTokenManager(bound = accountId.value)
+        registry(ds, InMemoryActiveAccountProvider(), server, token).awaitReady()
+
+        assertThat(token.cleared).isFalse()
+    }
+
     @Test
     fun coldStart_migratesLegacyPointer_publishesAndReconcilesMirror() = runTest(testDispatcher) {
         val ds = createDataStore("legacy")
@@ -136,9 +162,11 @@ class AccountRegistryTest {
     }
 
     /** Records the reconcile calls the seed makes; every other method is an inert stub. */
-    private class FakeTokenManager : TokenManager {
+    private class FakeTokenManager(private val bound: String? = null) : TokenManager {
         var selected: String? = null
         var cleared = false
+
+        override suspend fun boundAccountId(): String? = bound
 
         override val isAuthenticated: Boolean = false
         override suspend fun getAccessToken(): String? = null

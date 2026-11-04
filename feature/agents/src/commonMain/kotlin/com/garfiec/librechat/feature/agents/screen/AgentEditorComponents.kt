@@ -37,6 +37,26 @@ import org.jetbrains.compose.resources.stringResource
  * special variables (`{{current_date}}`, `{{iso_datetime}}`, etc.) at the
  * current cursor position. Mirrors upstream `Instructions.tsx`.
  */
+/**
+ * In place of [InstructionsField] when the agent's instructions come from a linked prompt
+ * (v0.8.9-rc1): the link is managed on the web, and the stored text is not what the agent runs.
+ */
+@Composable
+internal fun LinkedInstructionsNote(modifier: Modifier = Modifier) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(Res.string.agent_instructions_label),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Text(
+            text = stringResource(Res.string.agent_instructions_linked_prompt),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+    }
+}
+
 @Composable
 internal fun InstructionsField(
     value: String,
@@ -139,6 +159,8 @@ internal fun SelectedToolRow(
     toolDescription: String?,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Drawn before the remove button (an MCP tool's approval mode). */
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
@@ -162,6 +184,7 @@ internal fun SelectedToolRow(
                 )
             }
         }
+        trailing?.invoke()
         IconButton(onClick = onRemove) {
             Icon(
                 imageVector = Icons.Default.Close,

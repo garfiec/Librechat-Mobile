@@ -11,6 +11,7 @@ import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
+import io.ktor.client.request.post
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -313,6 +314,27 @@ class AuthInterceptorTest {
     }
 
     @Test
+    fun `an MCP App route's invalid_token after a good refresh does not end the session`() = runTest {
+        // The App routes 401 `{error:"invalid_token"}` when the MCP server's own OpenID token needs
+        // a new sign-in. The LibreChat session is fine, so the refresh succeeds and the retry 401s
+        // again: that must reach the caller as a 401, not sign the user out.
+        val tokenManager = FakeTokenManager(
+            accessToken = "token",
+            refreshOutcome = RefreshResult.Refreshed,
+            refreshedToken = "token-2",
+        )
+        val engine = MockEngine {
+            respond("""{"error":"invalid_token"}""", HttpStatusCode.Unauthorized)
+        }
+        val client = createClient(tokenManager, engine)
+
+        val response = client.post("https://example.com/api/mcp/app-tool-call")
+        assertThat(response.status).isEqualTo(HttpStatusCode.Unauthorized)
+        assertThat(tokenManager.refreshCallCount).isEqualTo(1)
+        assertThat(tokenManager.sessionExpiredCount).isEqualTo(0)
+    }
+
+    @Test
     fun `does not refresh on non-401 errors`() = runTest {
         val tokenManager = FakeTokenManager()
 
@@ -507,6 +529,62 @@ class AuthInterceptorTest {
         val response = client.get("/api/user")
 
         assertThat(response.status).isEqualTo(HttpStatusCode.Unauthorized)
+        assertThat(tokenManager.sessionExpiredCount).isEqualTo(1)
+        assertThat(tokenManager.lastExpiredAccountId).isEqualTo(accountA)
+    }
+
+    /**
+     * Sign-out leaves a screen on the back stack that can fetch once more. With no account, the
+     * request goes out with no bearer, and its 401 must not announce an expiry over the sign-in screen.
+     */
+    @Test
+    fun `a signed-out request's 401 neither refreshes nor expires a session`() = runTest {
+        val tokenManager = FakeTokenManager(accessToken = null, refreshOutcome = RefreshResult.HardExpired)
+        var capturedAuth: String? = "unset"
+        val engine = MockEngine { request ->
+            capturedAuth = request.headers[HttpHeaders.Authorization]
+            respond("Unauthorized", HttpStatusCode.Unauthorized)
+        }
+        val gate = SwitchGate(
+            activeAccountProvider = InMemoryActiveAccountProvider(AccountState.Resolved(null)),
+            serverUrlProvider = FakeServerUrlProvider("https://a.example.com"),
+            tokenManager = tokenManager,
+            accountReadyGate = null,
+        )
+        val client = HttpClient(engine) {
+            install(ContentNegotiation) { json() }
+            install(SwitchBarrierPlugin) { switchGate = gate }
+            install(AuthInterceptorPlugin) { this.tokenManager = tokenManager }
+        }
+
+        val response = client.get("/api/agents/agent_1/expanded")
+
+        assertThat(capturedAuth).isNull()
+        assertThat(response.status).isEqualTo(HttpStatusCode.Unauthorized)
+        assertThat(tokenManager.refreshCallCount).isEqualTo(0)
+        assertThat(tokenManager.sessionExpiredCount).isEqualTo(0)
+    }
+
+    /** The empty slot of a resolved account is a dead session, not a signed-out one: it still reports. */
+    @Test
+    fun `a resolved account with no bearer still reports its expiry`() = runTest {
+        val tokenManager = FakeTokenManager(accessToken = null, refreshOutcome = RefreshResult.HardExpired)
+        val engine = MockEngine { respond("Unauthorized", HttpStatusCode.Unauthorized) }
+        val gate = SwitchGate(
+            activeAccountProvider = InMemoryActiveAccountProvider(AccountState.Resolved(AccountId(accountA))),
+            serverUrlProvider = FakeServerUrlProvider("https://a.example.com"),
+            tokenManager = tokenManager,
+            accountReadyGate = null,
+        )
+        val client = HttpClient(engine) {
+            install(ContentNegotiation) { json() }
+            install(SwitchBarrierPlugin) { switchGate = gate }
+            install(AuthInterceptorPlugin) { this.tokenManager = tokenManager }
+        }
+
+        client.get("/api/user")
+
+        assertThat(tokenManager.refreshCallCount).isEqualTo(1)
         assertThat(tokenManager.sessionExpiredCount).isEqualTo(1)
         assertThat(tokenManager.lastExpiredAccountId).isEqualTo(accountA)
     }

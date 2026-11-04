@@ -12,16 +12,19 @@ import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.hasParameters
+import com.garfiec.librechat.core.model.isCodeConversation
 import com.garfiec.librechat.core.model.parametersStale
 import com.garfiec.librechat.core.model.request.MAX_MANUAL_SKILLS
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.NEW_CHAT_DRAFT_KEY
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
+import com.garfiec.librechat.feature.chat.util.displayPath
 import com.garfiec.librechat.feature.chat.util.hasParallelParts
 import com.garfiec.librechat.feature.chat.util.stabilizeMessageInstances
 import com.garfiec.librechat.feature.chat.util.withoutLivePartial
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationLoadHandle
+import com.garfiec.librechat.feature.chat.viewmodel.isRealTitle
 import com.garfiec.librechat.feature.chat.viewmodel.isServerCopyOf
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
@@ -80,6 +83,12 @@ class ConversationLoadDelegate(
     /** The active account's id, which keys [specBackfillDone]: conversation ids repeat across servers. */
     private val currentAccountId: () -> String?,
     /**
+     * Whether the server looks up pull requests. A cached row that doesn't know whether the chat is
+     * a code chat (cached before that was recorded) is then read once in full, so its pull request
+     * can show.
+     */
+    private val pullRequestsAvailable: () -> Boolean = { false },
+    /**
      * ModelSelectionDelegate.selectionWatches ([SelectionWatches]). The default sees no config
      * rewrites, so it counts a spec drop as the user's change: pass the shared watches.
      */
@@ -87,6 +96,8 @@ class ConversationLoadDelegate(
         SelectionWatches { handle.state.selection.let { it.choice to it.modelParameters } }.watch()
     },
     private val newChatDraftKey: String = NEW_CHAT_DRAFT_KEY,
+    /** SendCompletionDelegate.lastCachedTurn: the turn a stream last finalized and cached. */
+    private val lastCachedTurn: () -> CachedTurn? = { null },
 ) {
     private var roomObserverJob: Job? = null
 
@@ -125,7 +136,17 @@ class ConversationLoadDelegate(
      * repository falls back to cached rows and returns those as `Success`.
      */
     private suspend fun revalidateMessages(conversationId: String) {
-        when (val result = messageRepository.getMessages(conversationId)) {
+        val cachedBefore = lastCachedTurn()
+        val result = messageRepository.getMessages(conversationId, toolPreviews = true)
+        // A turn finalized while the fetch was out: the server answered before it saved that turn,
+        // and the fetch's upsert just overwrote the cached copy (a reply whose stream lost a
+        // subscriber comes back as its `unfinished` partial, shown as stopped). The final frame is
+        // newer than anything the fetch read, so it goes back on top.
+        lastCachedTurn()
+            ?.takeIf { it !== cachedBefore && result is Result.Success }
+            ?.takeIf { turn -> turn.messages.all { it.conversationId == conversationId } }
+            ?.let { turn -> messageRepository.cacheMessages(turn.messages, turn.originAccount) }
+        when (result) {
             is Result.Error -> {
                 Logger.e(result.exception) { "Failed to fetch messages for $conversationId" }
                 handle.update {
@@ -248,11 +269,18 @@ class ConversationLoadDelegate(
                     stabilized.none { it.messageId == seed.messageId || it.isServerCopyOf(seed) }
                 }
                 val merged = retainedPending?.let { stabilized + it } ?: stabilized
+                // An attached run's reply is in the bubble, and may also be in this read as the
+                // partial the server saved when the last subscriber left: keep that copy off the
+                // path, or the reply shows twice until the run ends.
+                val attachedRun = baseline.content.attachedRun?.takeIf { baseline.isStreaming }
                 // A resumed run's saved partial: the streaming bubble shows that text already.
                 val liveReplyId = baseline.content.resumedReplyId.takeIf { baseline.isStreaming }
                 MessagePathEmission(
                     messages = merged,
-                    displayMessages = buildActiveMessagePath(merged, branches).withoutLivePartial(liveReplyId),
+                    displayMessages = (
+                        attachedRun?.displayPath(merged, branches)
+                            ?: buildActiveMessagePath(merged, branches)
+                        ).withoutLivePartial(liveReplyId),
                     retainedPending = retainedPending,
                     revalidated = settled,
                 )
@@ -387,7 +415,9 @@ class ConversationLoadDelegate(
             val wantsParameters = wantsStoredParameters()
             val remembered = if (wantsParameters) rememberedWebSearch(conversationId) else null
             fun apply(loaded: Conversation, restore: Boolean): Boolean {
-                handle.update { conversationTitle = loaded.title }
+                // A handed-off new chat's row is read while its title is still generating: a
+                // placeholder must not replace the title TitleUpdate already showed.
+                handle.update { if (isRealTitle(loaded.title) || !isRealTitle(conversationTitle)) conversationTitle = loaded.title }
                 val applied = applyConversationModel(loaded)
                 // After the model, so the conversation's own parameters are what stays.
                 if (applied && restore) restoreParameters(loaded, remembered)
@@ -401,11 +431,13 @@ class ConversationLoadDelegate(
             // the chat: one that has neither there either would otherwise cost a request every open.
             val cached = conversation
             val backfillKey = currentAccountId()?.let { "$it:$conversationId:${cached?.updatedAt}" }
-            val incomplete = cached != null && (
-                (cached.spec == null && currentModelSpecs()?.enforce == true) ||
-                    (wantsParameters && (!cached.hasParameters || cached.parametersStale))
-                )
-            if (incomplete && backfillKey != null && backfillKey !in conversationBackfillDone) {
+            val selectionIncomplete = cached != null && selectionIncomplete(cached, wantsParameters)
+            // Whether this is a code chat (for its pull request) is learned from the fetch's row write
+            // alone: it re-applies no model or parameters, so a chat opened mid-run keeps the
+            // selection the cached row gave it. The row isn't read by the message observer, so the
+            // write is safe mid-stream (the streaming anchor depends on the messages alone).
+            val codeUnknown = cached != null && cached.isCodeConversation == null && pullRequestsAvailable()
+            if ((selectionIncomplete || codeUnknown) && backfillKey != null && backfillKey !in conversationBackfillDone) {
                 val unchanged = watchSelection()
                 val fetched = conversationRepository.refreshConversation(conversationId, originAccount = null).getOrNull()
                 // A model or parameter set while the fetch was out is the user's and stays.
@@ -414,7 +446,7 @@ class ConversationLoadDelegate(
                     // Only a successful fetch settles it: a failed one is retried on the next open.
                     conversationBackfillDone.add(backfillKey)
                     conversation = it
-                    if (userUnchanged) {
+                    if (selectionIncomplete && userUnchanged) {
                         applied = apply(it, restore = wantsParameters && it.hasParameters)
                     }
                 }
@@ -444,6 +476,11 @@ class ConversationLoadDelegate(
         }
     }
 
+    /** The cached row lacks the spec an enforced server needs, or the parameters a reopen restores. */
+    private fun selectionIncomplete(cached: Conversation, wantsParameters: Boolean): Boolean =
+        (cached.spec == null && currentModelSpecs()?.enforce == true) ||
+            (wantsParameters && (!cached.hasParameters || cached.parametersStale))
+
     fun refreshMessages() {
         val conversationId = handle.state.conversationId ?: return
         // SECURITY: do not remove — temp-chat data-at-rest guard.
@@ -456,7 +493,7 @@ class ConversationLoadDelegate(
         handle.scope.launch {
             // Foreground pull-to-refresh: the user is looking at this conversation now, so entry is
             // land time and the live account is the right one to attribute to.
-            messageRepository.refreshMessages(conversationId, originAccount = null)
+            messageRepository.refreshMessages(conversationId, originAccount = null, toolPreviews = true)
             loadConversation(conversationId)
             handle.update { content = content.copy(isRefreshingMessages = false) }
         }

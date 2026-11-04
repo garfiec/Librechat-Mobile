@@ -11,7 +11,9 @@ import com.garfiec.librechat.core.model.PendingActionPayload
 import com.garfiec.librechat.core.model.PendingActionTypes
 import com.garfiec.librechat.core.model.ToolApprovalDecisions
 import com.garfiec.librechat.core.model.ToolApprovalRequest
+import com.garfiec.librechat.core.model.ToolReviewConfig
 import com.garfiec.librechat.core.model.request.ChatResumeRequest
+import com.garfiec.librechat.core.model.request.ToolApprovalScopes
 import com.garfiec.librechat.core.model.response.ChatResumeResponse
 import com.garfiec.librechat.feature.chat.components.PAUSE_PANEL_AUTO_ADVANCE_DELAY_MS
 import com.garfiec.librechat.feature.chat.components.PausePanelAutoAdvance
@@ -19,6 +21,7 @@ import com.garfiec.librechat.feature.chat.components.PausePanelAutoAdvance.Advan
 import com.garfiec.librechat.feature.chat.components.PausePanelAutoAdvance.NextTab
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
+import com.garfiec.librechat.feature.chat.util.toolBatchResolutions
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
@@ -339,7 +342,7 @@ class PendingActionAutoAdvanceTest {
         ToolDecisionDraft(decision = decision, editedArguments = editedArguments, responseText = responseText)
 
     @Test
-    fun `compact - approve and reject walk the batch, and the last decision submits it`() =
+    fun `compact - approve walks the batch, and the last decision submits it`() =
         runTest(UnconfinedTestDispatcher()) {
             val (delegate, state) = delegate()
             delegate.onPendingAction(toolBatch("call-1", "call-2"))
@@ -351,11 +354,72 @@ class PendingActionAutoAdvanceTest {
             assertThat(state.value.toolActiveCallId).isEqualTo("call-2")
             assertThat(resumes).isEmpty()
 
-            delegate.pickToolDecision("call-2", decide(ToolApprovalDecisions.REJECT), AdvanceOrSubmit)
+            delegate.pickToolDecision("call-2", decide(ToolApprovalDecisions.APPROVE), AdvanceOrSubmit)
             afterTheBeat()
 
             assertThat(resumes.single().decisions?.map { it.decision })
-                .containsExactly(ToolApprovalDecisions.APPROVE, ToolApprovalDecisions.REJECT).inOrder()
+                .containsExactly(ToolApprovalDecisions.APPROVE, ToolApprovalDecisions.APPROVE).inOrder()
+        }
+
+    /**
+     * Reject opens the optional reason field, so it must wait there: moving on after the beat
+     * would submit the batch before a reason could be typed.
+     */
+    @Test
+    fun `reject waits for its reason, which the explicit submit then sends`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val (delegate, state) = delegate()
+            delegate.onPendingAction(toolBatch("call-1"))
+
+            for (advance in PausePanelAutoAdvance.entries) {
+                delegate.pickToolDecision("call-1", decide(ToolApprovalDecisions.REJECT), advance)
+                afterTheBeat()
+            }
+            assertThat(resumes).isEmpty()
+            assertThat(state.value.pendingAction).isNotNull()
+
+            delegate.updateToolDecisionDraft(
+                "call-1",
+                decide(ToolApprovalDecisions.REJECT).copy(reason = " wrong repo "),
+            )
+            delegate.submitToolDecisions(
+                toolBatchResolutions(state.value.pendingAction!!.payload!!, state.value.toolDecisionDrafts)!!,
+            )
+
+            val sent = resumes.single().decisions?.single()
+            assertThat(sent?.decision).isEqualTo(ToolApprovalDecisions.REJECT)
+            assertThat(sent?.reason).isEqualTo("wrong repo")
+        }
+
+    @Test
+    fun `compact - always allow on a single offered call submits it with a session scope`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val (delegate, _) = delegate()
+            val single = toolBatch("call-1")
+            delegate.onPendingAction(
+                single.copy(
+                    payload = single.payload?.copy(
+                        reviewConfigs = listOf(
+                            ToolReviewConfig(
+                                toolCallId = "call-1",
+                                allowedDecisions = listOf(ToolApprovalDecisions.APPROVE, ToolApprovalDecisions.REJECT),
+                                allowAlways = true,
+                            ),
+                        ),
+                    ),
+                ),
+            )
+
+            delegate.pickToolDecision(
+                "call-1",
+                decide(ToolApprovalDecisions.APPROVE).copy(allowAlways = true),
+                AdvanceOrSubmit,
+            )
+            afterTheBeat()
+
+            val sent = resumes.single().decisions?.single()
+            assertThat(sent?.decision).isEqualTo(ToolApprovalDecisions.APPROVE)
+            assertThat(sent?.scope).isEqualTo(ToolApprovalScopes.SESSION)
         }
 
     @Test

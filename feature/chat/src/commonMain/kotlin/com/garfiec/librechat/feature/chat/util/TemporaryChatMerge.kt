@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.util
 
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.feature.chat.viewmodel.isServerCopyOf
 
 /**
  * Merges the final request/response [Message]s from an SSE Final event into the existing
@@ -14,13 +15,29 @@ import com.garfiec.librechat.core.model.Message
  * being pure: they are never persisted to Room (a data-at-rest leak would otherwise survive
  * even though the conversation is hidden from history), so their display is driven entirely
  * from this merge with no `loadConversation` read-through behind it.
+ *
+ * The server does not adopt the id the client minted for a new user message: it persists it under
+ * `overrideUserMessageId ?? overrideParentMessageId ?? randomUUID()` (`resolvePreallocatedUserMessageId`,
+ * `api/server/controllers/agents/request.js`). So the frame's request usually arrives under an id
+ * the list doesn't hold. [optimisticUserMessageId] names this turn's optimistic copy: a request that
+ * is its server copy ([isServerCopyOf]) is folded over it in the same slot and takes the server id,
+ * rather than appended beside it. That matters most for a stopped turn, whose request is skeletal
+ * (no files, skills or `reasoningOverride`): appended, it would be what a Continue replays.
  */
 fun mergeFinalMessagesInMemory(
     existing: List<Message>,
     finalMessages: List<Message>,
+    optimisticUserMessageId: String? = null,
 ): List<Message> {
     val byId = existing.associateBy { it.messageId }.toMutableMap()
     val ordered = existing.map { it.messageId }.toMutableList()
+    val optimistic = optimisticUserMessageId?.let { byId[it] }
+    val request = finalMessages.firstOrNull { it.isCreatedByUser }
+    if (optimistic != null && request != null && request.messageId !in byId && request.isServerCopyOf(optimistic)) {
+        byId.remove(optimistic.messageId)
+        byId[request.messageId] = optimistic.copy(messageId = request.messageId)
+        ordered[ordered.indexOf(optimistic.messageId)] = request.messageId
+    }
     for (msg in finalMessages) {
         val local = byId[msg.messageId]
         if (local == null) ordered.add(msg.messageId)
@@ -49,6 +66,8 @@ fun mergeFinalMessagesInMemory(
  * - [Message.text] / [Message.sender]: non-blank incoming wins; blank keeps local (they are
  *   non-null in the model, so `?:` can't express absence).
  */
+// One `?:` per field: the branches are the field list, not decision logic.
+@Suppress("CyclomaticComplexMethod")
 fun Message.mergedOver(local: Message): Message = copy(
     parentMessageId = parentMessageId ?: local.parentMessageId,
     responseMessageId = responseMessageId ?: local.responseMessageId,
@@ -74,4 +93,6 @@ fun Message.mergedOver(local: Message): Message = copy(
     manualSkills = manualSkills ?: local.manualSkills,
     alwaysAppliedSkills = alwaysAppliedSkills ?: local.alwaysAppliedSkills,
     quotes = quotes ?: local.quotes,
+    isUserSubmitted = isUserSubmitted ?: local.isUserSubmitted,
+    reasoningOverride = reasoningOverride ?: local.reasoningOverride,
 )

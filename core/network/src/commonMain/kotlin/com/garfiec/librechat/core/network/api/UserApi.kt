@@ -1,6 +1,8 @@
 package com.garfiec.librechat.core.network.api
 
 import com.garfiec.librechat.core.model.User
+import com.garfiec.librechat.core.model.auth.EmailChangeResponse
+import com.garfiec.librechat.core.model.auth.RequestEmailChangeRequest
 import com.garfiec.librechat.core.model.request.OtpVerificationRequest
 import com.garfiec.librechat.core.model.request.ResendVerificationRequest
 import com.garfiec.librechat.core.model.request.VerifyEmailRequest
@@ -49,6 +51,17 @@ class UserApi constructor(
             setBody(request)
         }
     }
+
+    /**
+     * `POST /api/user/email/change` (v0.8.9-rc1): sends a confirmation link to the new address. The
+     * change happens only when that link is opened, on the web. Never retried: every attempt that
+     * gets past validation mails the old address, and a 429 counts toward a ban.
+     */
+    suspend fun requestEmailChange(request: RequestEmailChangeRequest): EmailChangeResponse =
+        client.post {
+            url { path("api/user/email/change") }
+            setBody(request)
+        }.body()
 
     suspend fun getTerms(): TermsResponse =
         client.get {

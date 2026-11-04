@@ -24,13 +24,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
@@ -42,20 +44,32 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.PendingAction
 import com.garfiec.librechat.core.model.ToolApprovalDecisions
+import com.garfiec.librechat.core.model.ToolApprovalRememberScopes
+import com.garfiec.librechat.core.model.ToolApprovalRememberUnavailable
 import com.garfiec.librechat.core.model.ToolApprovalRequest
+import com.garfiec.librechat.core.model.ToolReviewConfig
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveCard
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveFilledTonalButton
 import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
+import com.garfiec.librechat.core.ui.components.rememberDraftField
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.DEFAULT_ALLOWED_TOOL_DECISIONS
@@ -63,6 +77,7 @@ import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.util.allowedDecisionsByCallId
 import com.garfiec.librechat.feature.chat.util.nextUndecidedCallIndex
 import com.garfiec.librechat.feature.chat.util.parseToolArgumentsOrNull
+import com.garfiec.librechat.feature.chat.util.reviewConfigsByCallId
 import com.garfiec.librechat.feature.chat.util.toResolution
 import com.garfiec.librechat.feature.chat.util.toolBatchResolutions
 import kotlinx.serialization.json.JsonElement
@@ -80,8 +95,9 @@ import org.jetbrains.compose.resources.stringResource
  *
  * Two layouts, split at the same width as the ask panel:
  * - **Compact** (phones, a folded foldable): the call's tool name heads the card with a
- *   `‹ ● ━ ○ ›` page-dot pager; an Approve or Reject on a call not yet decided moves straight on,
- *   and the decision that completes the batch submits it.
+ *   `‹ ● ━ ○ ›` page-dot pager; an Approve on a call not yet decided moves straight on, and the
+ *   decision that completes the batch submits it. Reject opens its optional reason field and
+ *   waits for Next / Continue, as Edit and Respond do.
  * - **Wide** (tablets, unfolded): one tab per call with explicit Back / Next / Continue, and the
  *   call body pages on a horizontal swipe.
  *
@@ -118,6 +134,7 @@ fun ToolApprovalPanel(
     val calls = payload.actionRequests
     if (calls.isEmpty()) return
     val allowed = remember(payload) { payload.allowedDecisionsByCallId() }
+    val reviewConfigs = remember(payload) { payload.reviewConfigsByCallId() }
     val activeIndex = pausePanelActiveIndex(calls.map { it.toolCallId }, activeCallId)
 
     val submit: (Map<String, ToolDecisionDraft>) -> Unit = { latest ->
@@ -126,6 +143,7 @@ fun ToolApprovalPanel(
     val state = ToolPanelState(
         calls = calls,
         allowed = allowed,
+        reviewConfigs = reviewConfigs,
         drafts = drafts,
         activeIndex = activeIndex,
         isResolving = isResolving,
@@ -136,6 +154,7 @@ fun ToolApprovalPanel(
         onPick = onPickDecision,
         onSelect = { index -> onSelectCall(calls[index].toolCallId) },
         onCollapsedChange = onCollapsedChange,
+        cancelAutoAdvance = onCancelAutoAdvance,
         submit = submit,
         decideAll = { decision ->
             val all = calls.associate { it.toolCallId to ToolDecisionDraft(decision = decision) }
@@ -176,6 +195,7 @@ fun ToolApprovalPanel(
 private data class ToolPanelState(
     val calls: List<ToolApprovalRequest>,
     val allowed: Map<String, List<String>>,
+    val reviewConfigs: Map<String, ToolReviewConfig>,
     val drafts: Map<String, ToolDecisionDraft>,
     val activeIndex: Int,
     val isResolving: Boolean,
@@ -206,6 +226,7 @@ private class ToolPanelActions(
     val onPick: (String, ToolDecisionDraft, PausePanelAutoAdvance) -> Unit,
     val onSelect: (Int) -> Unit,
     val onCollapsedChange: (Boolean) -> Unit,
+    val cancelAutoAdvance: () -> Unit,
     val submit: (Map<String, ToolDecisionDraft>) -> Unit,
     val decideAll: (String) -> Unit,
     val advanceOrSubmit: (fromIndex: Int, drafts: Map<String, ToolDecisionDraft>) -> Unit,
@@ -266,6 +287,7 @@ private fun CompactToolLayout(
                         call = active,
                         showName = false,
                         allowedDecisions = state.allowedFor(active),
+                        reviewConfig = state.reviewConfigs[active.toolCallId],
                         draft = state.activeDraft,
                         isResolving = state.isResolving,
                         bodyMaxHeight = bodyMaxHeight,
@@ -276,8 +298,8 @@ private fun CompactToolLayout(
                     )
                 }
 
-                // Approve and Reject move on by themselves, so the explicit action only appears once
-                // the call holds a decision that doesn't (an Edit or Respond, or a call revisited).
+                // Approve moves on by itself, so the explicit action only appears once the call holds
+                // a decision that doesn't (an Edit, Respond or Reject, or a call revisited).
                 val canProceed = state.isDecided(active.toolCallId)
                 val hasBulk = state.isBulkAllowed(ToolApprovalDecisions.REJECT) ||
                     state.isBulkAllowed(ToolApprovalDecisions.APPROVE)
@@ -369,6 +391,7 @@ private fun WideToolLayout(
                             call = call,
                             showName = state.isBatch,
                             allowedDecisions = state.allowedFor(call),
+                            reviewConfig = state.reviewConfigs[call.toolCallId],
                             draft = state.drafts[call.toolCallId] ?: ToolDecisionDraft(),
                             isResolving = state.isResolving,
                             bodyMaxHeight = bodyMaxHeight,
@@ -383,7 +406,7 @@ private fun WideToolLayout(
                         AdaptiveCircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                     }
                     if (state.activeIndex > 0) {
-                        TextButton(
+                        AdaptiveTextButton(
                             onClick = { actions.onSelect(state.activeIndex - 1) },
                             enabled = !state.isResolving,
                         ) {
@@ -445,16 +468,18 @@ private fun ToolNameIcon(modifier: Modifier = Modifier) {
 }
 
 /**
- * One call: its description and arguments (scrolling within [bodyMaxHeight], so a long payload
- * can't push the decisions off screen), then the decisions its policy allows, then the field an
- * Edit or Respond decision needs. While that field is open the whole body scrolls as one instead,
- * within a larger share of the height, so the field adds to the panel only up to a cap.
+ * One call: its description, what approving it will remember, and its arguments (scrolling within
+ * [bodyMaxHeight], so a long payload can't push the decisions off screen), then the decisions its
+ * policy allows, then the field an Edit, Respond or Reject decision opens. While that field is open
+ * the whole body scrolls as one instead, within a larger share of the height, so the field adds to
+ * the panel only up to a cap.
  */
 @Composable
 private fun ToolCallBody(
     call: ToolApprovalRequest,
     showName: Boolean,
     allowedDecisions: List<String>,
+    reviewConfig: ToolReviewConfig?,
     draft: ToolDecisionDraft,
     isResolving: Boolean,
     bodyMaxHeight: Dp,
@@ -465,7 +490,10 @@ private fun ToolCallBody(
     decisionsModifier: Modifier = Modifier,
 ) {
     val arguments = remember(call.arguments) { call.arguments.asDisplayText() }
-    val fieldOpen = draft.decision == ToolApprovalDecisions.EDIT || draft.decision == ToolApprovalDecisions.RESPOND
+    val fieldOpen = draft.decision == ToolApprovalDecisions.EDIT ||
+        draft.decision == ToolApprovalDecisions.RESPOND ||
+        draft.decision == ToolApprovalDecisions.REJECT
+    val canAllowAlways = reviewConfig?.canAllowAlways == true
     val bodyScroll = rememberScrollState()
     val detailsScroll = rememberScrollState()
     // The field opens below the arguments and decisions, so scroll the body down to it. A frame
@@ -505,6 +533,7 @@ private fun ToolCallBody(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            reviewConfig?.let { RememberNotice(it) }
             if (arguments.isNotBlank()) {
                 Text(
                     text = stringResource(Res.string.tool_approval_arguments),
@@ -527,23 +556,55 @@ private fun ToolCallBody(
             modifier = decisionsModifier,
             allowedDecisions = allowedDecisions,
             selected = draft.decision,
+            allowAlwaysSelected = canAllowAlways && draft.allowAlways && draft.decision == ToolApprovalDecisions.APPROVE,
+            canAllowAlways = canAllowAlways,
             enabled = !isResolving,
             onPick = { decision ->
                 onPick(
                     if (decision == ToolApprovalDecisions.EDIT && draft.editedArguments.isBlank()) {
-                        draft.copy(decision = decision, editedArguments = arguments)
+                        draft.copy(decision = decision, editedArguments = arguments, allowAlways = false)
                     } else {
-                        draft.copy(decision = decision)
+                        draft.copy(decision = decision, allowAlways = false)
                     },
                 )
             },
+            onPickAllowAlways = { onPick(draft.copy(decision = ToolApprovalDecisions.APPROVE, allowAlways = true)) },
         )
+
+        // Shown whenever Always allow is offered, not only once picked: the pick is final and the
+        // beat moves on, so a hint that appeared on selection would flash past unread.
+        if (canAllowAlways) {
+            Text(
+                text = stringResource(Res.string.tool_approval_always_allow_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        if (draft.decision == ToolApprovalDecisions.REJECT) {
+            val reason = rememberDraftField(draft.reason, resetKey = call.toolCallId)
+            AdaptiveOutlinedTextField(
+                value = reason.value,
+                onValueChange = { reason.onValueChange(it) { text -> onDraftChange(draft.copy(reason = text)) } },
+                enabled = !isResolving,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .bringIntoViewRequester(fieldRequester),
+                label = { Text(stringResource(Res.string.tool_approval_reject_reason)) },
+                minLines = 1,
+                maxLines = 4,
+            )
+        }
 
         if (draft.decision == ToolApprovalDecisions.EDIT) {
             val invalid = draft.editedArguments.isNotBlank() && draft.editedArguments.parseToolArgumentsOrNull() == null
+            val editedArguments = rememberDraftField(draft.editedArguments, resetKey = call.toolCallId)
             AdaptiveOutlinedTextField(
-                value = draft.editedArguments,
-                onValueChange = { onDraftChange(draft.copy(editedArguments = it)) },
+                value = editedArguments.value,
+                onValueChange = {
+                    editedArguments.onValueChange(it) { text -> onDraftChange(draft.copy(editedArguments = text)) }
+                },
                 enabled = !isResolving,
                 modifier = Modifier.fillMaxWidth().bringIntoViewRequester(fieldRequester),
                 textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
@@ -560,9 +621,10 @@ private fun ToolCallBody(
         }
 
         if (draft.decision == ToolApprovalDecisions.RESPOND) {
+            val responseText = rememberDraftField(draft.responseText, resetKey = call.toolCallId)
             AdaptiveOutlinedTextField(
-                value = draft.responseText,
-                onValueChange = { onDraftChange(draft.copy(responseText = it)) },
+                value = responseText.value,
+                onValueChange = { responseText.onValueChange(it) { text -> onDraftChange(draft.copy(responseText = text)) } },
                 enabled = !isResolving,
                 modifier = Modifier.fillMaxWidth().bringIntoViewRequester(fieldRequester),
                 label = { Text(stringResource(Res.string.tool_approval_response_text)) },
@@ -575,15 +637,20 @@ private fun ToolCallBody(
 
 /**
  * The decisions one call's policy allows: Edit and Respond as chips, since they open a field
- * rather than finish the call, then Reject and Approve as the two buttons that do. The recorded
- * decision carries a check, so a call revisited from the pager or tabs shows what was chosen.
+ * rather than finish the call, then Reject and Approve as the buttons that do, with Always allow
+ * between them when the call offers it (an approve remembered for the chat, so the two approve
+ * variants sit together and Approve stays last). The recorded decision carries a check, so a call
+ * revisited from the pager or tabs shows what was chosen.
  */
 @Composable
 private fun DecisionRow(
     allowedDecisions: List<String>,
     selected: String?,
+    allowAlwaysSelected: Boolean,
+    canAllowAlways: Boolean,
     enabled: Boolean,
     onPick: (String) -> Unit,
+    onPickAllowAlways: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val ordered = DECISION_ORDER.filter { it in allowedDecisions }
@@ -592,12 +659,31 @@ private fun DecisionRow(
         horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        val check: @Composable () -> Unit = {
+            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+            Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
+        }
         ordered.forEach { decision ->
             val label = stringResource(decision.decisionLabel())
-            val isSelected = selected == decision
-            val check: @Composable () -> Unit = {
-                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
-                Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
+            val isSelected = selected == decision && !(decision == ToolApprovalDecisions.APPROVE && allowAlwaysSelected)
+            if (decision == ToolApprovalDecisions.APPROVE && canAllowAlways) {
+                AdaptiveFilledTonalButton(
+                    onClick = onPickAllowAlways,
+                    enabled = enabled,
+                    contentPadding = DECISION_BUTTON_PADDING,
+                    modifier = Modifier.semantics {
+                        role = Role.Button
+                        this.selected = allowAlwaysSelected
+                    },
+                ) {
+                    if (allowAlwaysSelected) {
+                        check()
+                    } else {
+                        Icon(Icons.Default.DoneAll, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+                        Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
+                    }
+                    Text(stringResource(Res.string.tool_approval_always_allow))
+                }
             }
             when (decision) {
                 ToolApprovalDecisions.APPROVE -> AdaptiveButton(
@@ -625,6 +711,44 @@ private fun DecisionRow(
                 )
             }
         }
+    }
+}
+
+/**
+ * What a plain Approve on this call will remember (the agent's `chat` / `always` mode), or, in the
+ * error colour, why it can't. Read before the decisions, so the consequence is heard first.
+ */
+@Composable
+private fun RememberNotice(config: ToolReviewConfig) {
+    val unavailable = when (config.rememberUnavailable) {
+        ToolApprovalRememberUnavailable.CONNECTION -> Res.string.tool_approval_remember_unavailable_connection
+        ToolApprovalRememberUnavailable.DISABLED -> Res.string.tool_approval_remember_unavailable_disabled
+        ToolApprovalRememberUnavailable.STORAGE -> Res.string.tool_approval_remember_unavailable_storage
+        ToolApprovalRememberUnavailable.BACKGROUND -> Res.string.tool_approval_remember_unavailable_background
+        else -> null
+    }
+    if (unavailable != null) {
+        NoticeLine(icon = Icons.Default.Warning, text = stringResource(unavailable), color = MaterialTheme.colorScheme.error)
+        return
+    }
+    val remember = when (config.rememberScope) {
+        ToolApprovalRememberScopes.CHAT -> Res.string.tool_approval_remember_chat
+        ToolApprovalRememberScopes.ALWAYS -> Res.string.tool_approval_remember_always
+        else -> return
+    }
+    NoticeLine(
+        icon = Icons.Default.History,
+        text = stringResource(remember),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+@Composable
+private fun NoticeLine(icon: ImageVector, text: String, color: Color) {
+    Row(modifier = Modifier.padding(top = 4.dp), verticalAlignment = Alignment.Top) {
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.padding(top = 2.dp).size(NOTICE_ICON_SIZE))
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(text = text, style = MaterialTheme.typography.bodySmall, color = color)
     }
 }
 
@@ -663,12 +787,12 @@ private fun ToolActionRow(
 private fun BulkButtons(state: ToolPanelState, actions: ToolPanelActions, modifier: Modifier = Modifier) {
     FlowRow(modifier = modifier) {
         if (state.isBulkAllowed(ToolApprovalDecisions.REJECT)) {
-            TextButton(onClick = { actions.decideAll(ToolApprovalDecisions.REJECT) }, enabled = !state.isResolving) {
+            AdaptiveTextButton(onClick = { actions.decideAll(ToolApprovalDecisions.REJECT) }, enabled = !state.isResolving) {
                 Text(stringResource(Res.string.tool_approval_reject_all))
             }
         }
         if (state.isBulkAllowed(ToolApprovalDecisions.APPROVE)) {
-            TextButton(onClick = { actions.decideAll(ToolApprovalDecisions.APPROVE) }, enabled = !state.isResolving) {
+            AdaptiveTextButton(onClick = { actions.decideAll(ToolApprovalDecisions.APPROVE) }, enabled = !state.isResolving) {
                 Text(stringResource(Res.string.tool_approval_approve_all))
             }
         }
@@ -736,6 +860,7 @@ private const val BODY_HEIGHT_FRACTION = 0.35f
 private const val OPEN_FIELD_HEIGHT_RATIO = 1.6f
 
 private val TOOL_NAME_ICON_SIZE = 20.dp
+private val NOTICE_ICON_SIZE = 12.dp
 private val TOOL_NAME_ICON_GAP = 8.dp
 private const val TOOL_NAME_MAX_LINES = 2
 private val FALLBACK_BODY_MAX_HEIGHT = 240.dp

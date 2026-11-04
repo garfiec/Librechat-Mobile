@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.model.config
 
+import com.garfiec.librechat.core.model.mcp.McpAppsPolicy
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -105,4 +106,85 @@ data class StartupConfig(
      * ignores, producing an empty turn — so absent is withheld, not defaulted true.
      */
     val compactionEnabled: Boolean? = null,
-)
+    /**
+     * `ENFORCE_TWO_FACTOR_AUTHENTICATION` (v0.8.9-rc1). Every password (local/LDAP) account must have
+     * 2FA, and the server refuses to disable it for them. It hides Disable 2FA; it does not decide
+     * whether setup is required, which the server says per response
+     * (`TWO_FACTOR_ENROLLMENT_REQUIRED`).
+     */
+    val twoFactorAuthenticationRequired: Boolean? = null,
+    /**
+     * Conversation title ownership capability (v0.8.9-rc1): `1` when this replica tracks who set a
+     * title (`titleSetByUser` / `titleRevision`). Absent on older servers and older replicas.
+     */
+    val conversationTitleOwnershipVersion: Int? = null,
+    /**
+     * What one chat-list filter request may name (v0.8.9-rc1, post-login only). Null on older
+     * servers; [ConversationListLimits.DEFAULT] stands in, as upstream's schema defaults do.
+     */
+    val conversationListLimits: ConversationListLimits? = null,
+    /**
+     * `ALLOW_PASSKEY_LOGIN` with at least one origin configured (v0.8.9-rc1). Every
+     * `/api/auth/passkey` route answers 404 while it is off, so absent is off.
+     */
+    val passkeyLoginEnabled: Boolean = false,
+    /**
+     * `passkeys.perUserMax` / `MAX_PASSKEYS_PER_USER` (v0.8.9-rc1, post-login only). Null on older
+     * servers and before sign-in; the server's 409 is the real guard.
+     */
+    val maxPasskeysPerUser: Int? = null,
+    /**
+     * Whether a local account may change its email (v0.8.9-rc1, `emailChange.enabled` /
+     * `ALLOW_EMAIL_CHANGE`). Web reads `=== true`; older servers don't send it, so absent is off.
+     * Only meaningful together with [emailEnabled]: the change needs a mail transport.
+     */
+    val allowEmailChange: Boolean = false,
+    /**
+     * Whether the server has a RAG API (`RAG_API_URL` set; v0.8.9-rc1, post-login only). Project
+     * reference files are searched through it, so web hides a project's Files section without it.
+     * Null before sign-in and on older servers.
+     */
+    val ragEnabled: Boolean? = null,
+    /** The `projects` limits block (v0.8.9-rc1, post-login only). Null stands for upstream's defaults. */
+    val projects: ChatProjectsConfig? = null,
+    /**
+     * Attached-machine capability versions. Each is compared with `==`, as web does
+     * (`CodeCapabilityVersions`): a version this client does not know is unsupported. The decision
+     * version is an env var admins may leave unset, and without it a client must never send a
+     * selection-less ("No workspace") decision. Inheritance is v0.8.9-rc1; the rest are 0.8.8.
+     */
+    val codeEnvironmentDecisionVersion: Int? = null,
+    val codeEnvironmentMoveVersion: Int? = null,
+    val codeEnvironmentTransitionVersion: Int? = null,
+    val codeWorkspaceRecoveryVersion: Int? = null,
+    val codeWorkspaceInheritanceVersion: Int? = null,
+    /**
+     * The MCP Apps policy (v0.8.9-rc1, post-login only). Raw on purpose: read it through
+     * [mcpAppsPolicy], which treats a missing or malformed policy as Apps off, as web does.
+     */
+    val mcpApps: JsonElement? = null,
+    /**
+     * Conversation pull requests (v0.8.9-rc1, post-login only): true when the server looks up the pull
+     * request a code chat opened. The three below come only with it.
+     */
+    val pullRequestsEnabled: Boolean? = null,
+    /** The batch lookup route's version; the drawer asks in batches only when it is 1. */
+    val pullRequestsBatchVersion: Int? = null,
+    /** How many lookups the server runs at once (default 4); bounds the batch chunks in flight. */
+    val pullRequestsMaxConcurrentLookups: Int? = null,
+    /** The provider users may connect their own account to. Decoded only: mobile has no connect setting. */
+    val pullRequestsConnect: String? = null,
+) {
+    /** The resolved MCP Apps policy; [McpAppsPolicy.enabled] is the gate for every App row. */
+    val mcpAppsPolicy: McpAppsPolicy
+        get() = McpAppsPolicy.resolve(mcpApps)
+
+    /**
+     * Upstream `supportsConversationTitleOwnership`: the capability is announced AND
+     * `interface.runningChatRename` is not off. Upstream reads `=== true` off a parsed config whose
+     * schema defaults the flag to true, so an absent flag counts as on here.
+     */
+    val supportsConversationTitleOwnership: Boolean
+        get() = conversationTitleOwnershipVersion == CONVERSATION_TITLE_OWNERSHIP_VERSION &&
+            interfaceConfig?.runningChatRename != false
+}

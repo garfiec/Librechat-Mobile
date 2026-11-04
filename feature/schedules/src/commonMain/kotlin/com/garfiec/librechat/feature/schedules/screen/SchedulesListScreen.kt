@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.schedules.screen
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,14 +17,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -33,19 +33,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.datetime.ResolvedDateTimeFormat
+import com.garfiec.librechat.core.model.schedule.BlockedRunRepair
 import com.garfiec.librechat.core.model.schedule.Schedule
+import com.garfiec.librechat.core.model.schedule.blockedRun
 import com.garfiec.librechat.core.model.schedule.cadenceToCron
 import com.garfiec.librechat.core.model.schedule.pausedForUnattendedMcpAuth
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveCard
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveFloatingActionButton
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
@@ -53,8 +58,10 @@ import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
+import com.garfiec.librechat.feature.schedules.components.blockedRunLabel
 import com.garfiec.librechat.feature.schedules.components.disabledReasonLabel
 import com.garfiec.librechat.feature.schedules.resources.Res
+import com.garfiec.librechat.feature.schedules.resources.schedule_authorize
 import com.garfiec.librechat.feature.schedules.resources.schedule_cancel
 import com.garfiec.librechat.feature.schedules.resources.schedule_delete
 import com.garfiec.librechat.feature.schedules.resources.schedule_delete_confirm_body
@@ -145,11 +152,13 @@ fun SchedulesListScreen(
                         ScheduleCard(
                             schedule = schedule,
                             canManage = uiState.canCreate,
+                            offersConsent = uiState.offersConsent(schedule),
                             isBusy = uiState.busyScheduleId == schedule.id,
                             onClick = { onEdit(schedule.id) },
                             onToggle = { viewModel.setEnabled(schedule, it) },
                             onRunNow = { viewModel.runNow(schedule, onOpenConversation) },
                             onDelete = { pendingDelete = schedule },
+                            onAuthorize = { viewModel.openConsent(schedule) },
                             onOpenConversation = onOpenConversation,
                         )
                     }
@@ -158,19 +167,32 @@ fun SchedulesListScreen(
         }
     }
 
+    uiState.consent?.let { consent ->
+        ScheduleConsentSheet(
+            state = consent,
+            actions = ScheduleConsentActions(
+                onDismiss = viewModel::closeConsent,
+                onHoursChange = viewModel::onConsentHoursChanged,
+                onConfirm = viewModel::confirmConsent,
+                onRevoke = viewModel::revokeConsent,
+                onReload = viewModel::reloadConsent,
+            ),
+        )
+    }
+
     pendingDelete?.let { schedule ->
         AdaptiveAlertDialog(
             onDismissRequest = { pendingDelete = null },
             title = { Text(stringResource(Res.string.schedule_delete_confirm_title)) },
             text = { Text(stringResource(Res.string.schedule_delete_confirm_body)) },
             confirmButton = {
-                TextButton(onClick = {
+                AdaptiveTextButton(onClick = {
                     pendingDelete = null
                     viewModel.delete(schedule)
                 }) { Text(stringResource(Res.string.schedule_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) {
+                AdaptiveTextButton(onClick = { pendingDelete = null }) {
                     Text(stringResource(Res.string.schedule_cancel))
                 }
             },
@@ -225,11 +247,13 @@ internal fun ScheduleCard(
     onRunNow: () -> Unit,
     onDelete: () -> Unit,
     onOpenConversation: (String) -> Unit,
+    offersConsent: Boolean = false,
+    onAuthorize: () -> Unit = {},
 ) {
     // Gated on the same permission as the Switch, Run now and Delete: every write route requires
     // USE **and** CREATE, and the editor itself carries no permission gate — so a USE-only user
     // who can open it gets a fully armed Save that can only ever 403.
-    OutlinedCard(onClick = onClick, enabled = canManage, modifier = Modifier.fillMaxWidth()) {
+    AdaptiveCard(onClick = onClick, enabled = canManage, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -265,6 +289,22 @@ internal fun ScheduleCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            // A run the server refused on an MCP receipt (v0.8.9-rc1) says why and what to do. Not
+            // shown under a pause, whose own sentence already names the repair.
+            schedule.blockedRun()?.takeIf { schedule.disabledReason == null || schedule.enabled }?.let { blocked ->
+                // A run blocked for consent opens the consent sheet from the line that states it.
+                val opensConsent = offersConsent && blocked.repair == BlockedRunRepair.CONSENT
+                Text(
+                    text = blockedRunLabel(blocked),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = if (opensConsent) {
+                        Modifier.clickable(role = Role.Button, onClick = onAuthorize).padding(vertical = 4.dp)
+                    } else {
+                        Modifier
+                    },
+                )
+            }
             // A schedule the SERVER paused always says why: several of these name a different
             // repair, and one that stopped with no reason leaves the user nothing to act on.
             //
@@ -283,21 +323,34 @@ internal fun ScheduleCard(
             // The run rows name the conversation each occurrence is producing, so a chat on its
             // way is reachable before it finishes.
             schedule.inFlight.orEmpty().forEach { run ->
-                TextButton(onClick = { onOpenConversation(run.conversationId) }) {
+                AdaptiveTextButton(onClick = { onOpenConversation(run.conversationId) }) {
                     Text(stringResource(Res.string.schedule_running))
                 }
             }
-            if (canManage) {
+            // Run now and Delete need CREATE; Authorize is open to anyone who can see the schedule
+            // (the sheet withholds Confirm from them instead).
+            if (canManage || offersConsent) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    TextButton(onClick = onRunNow, enabled = !isBusy) {
-                        Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.size(4.dp))
-                        Text(stringResource(Res.string.schedule_run_now))
+                    if (canManage) {
+                        AdaptiveTextButton(onClick = onRunNow, enabled = !isBusy) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.size(4.dp))
+                            Text(stringResource(Res.string.schedule_run_now))
+                        }
                     }
-                    TextButton(onClick = onDelete, enabled = !isBusy) {
-                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.size(4.dp))
-                        Text(stringResource(Res.string.schedule_delete))
+                    if (offersConsent) {
+                        AdaptiveTextButton(onClick = onAuthorize) {
+                            Icon(Icons.Default.Key, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.size(4.dp))
+                            Text(stringResource(Res.string.schedule_authorize))
+                        }
+                    }
+                    if (canManage) {
+                        AdaptiveTextButton(onClick = onDelete, enabled = !isBusy) {
+                            Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.size(4.dp))
+                            Text(stringResource(Res.string.schedule_delete))
+                        }
                     }
                 }
             }

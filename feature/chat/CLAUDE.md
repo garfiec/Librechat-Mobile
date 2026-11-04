@@ -1,12 +1,12 @@
 # feature:chat
 
 ## State Architecture (ChatUiState slices + narrowed handles)
-`ChatUiState` is decomposed into **17 `@Immutable` sub-state slices**, plus two top-level fields: `error`
+`ChatUiState` is decomposed into **18 `@Immutable` sub-state slices**, plus two top-level fields: `error`
 (a shared transient-banner channel) and `mediaPreview`. The slices: `conversation`, `content`
 (message tree + all streaming fields),
 `editing`, `composer`, `selection` (endpoint/model/tools/params), `queue`, `steer`, `search`,
 `presetPrompts`, `voice`, `favorites`, `subagents`, `comparisonState`, `gates`, `account`,
-`actions`, `prefs`.
+`actions`, `prefs`, `codeWorkspace`.
 
 - **Compat accessors.** `ChatUiState` keeps flat `val field get() = slice.field` accessors for
   every former field, so the ~250 UI read sites and test assertions read `uiState.isStreaming`
@@ -36,7 +36,7 @@
   per SSE envelope unthrottled, so subagent-heavy runs still re-execute the chrome — needs a
   separate collection path or a write-side throttle in `SubagentTraceDelegate` (open follow-up).
 
-## One screen, four platform seams
+## One screen, five platform seams
 `ChatScreen` / `NewChatScreen` are a single commonMain composable for both platforms. Where the
 platforms genuinely differ, the screen calls an `expect`, never an `if (platform)`:
 - `ChatComposer` — `ChatInput` on Android, `IosChatInput` on iOS. iOS's clipboard-image paste lives
@@ -44,6 +44,7 @@ platforms genuinely differ, the screen calls an `expect`, never an `if (platform
 - `rememberChatAttachmentActions` — activity-result launchers vs the native iOS pickers.
 - `rememberChatStartRecording` — Android routes API 26–30 through the system recognizer overlay.
 - `Modifier.addToChatSelectionItem` — a no-op on iOS.
+- `McpAppWebView` — the MCP App's web view and its isolated bridge (see "MCP Apps").
 
 Known iOS gaps behind those seams: the document picker ignores the endpoint's MIME allowlist, and
 there is no "Add to chat" selection item. A feature added to the screen reaches both platforms; a
@@ -561,7 +562,7 @@ ported.
 ## Content Rendering
 - `ContentPartRenderer` dispatches by `ContentPart.type`:
   - `text` -> `MarkdownContent` (custom regex parser with LaTeX support)
-  - `think` -> collapsible thinking block
+  - `think` -> collapsible thinking block. Encrypted reasoning (a provider's base64 payload, v0.8.9-rc1) is filtered by `reasoningDisplay` (`:core:model` `content/OpaqueReasoning.kt`): the readable text around it shows, a part with none draws a "Reasoning (encrypted)" row, and find-in-page, copy and the editor (payload-bearing reasoning is read-only) read the same filter. Not applied to the search index.
   - `tool_call` -> `StreamingToolCallCard` (expandable, shows args/output), except `ask_user_question`
     (see below)
   - `image_file` / `image_url` -> inline AsyncImage, tap opens `FullscreenImageViewer`
@@ -701,7 +702,35 @@ haiku wrote only escapes), so everything converts the escape first.
 - Before the first delta there is no insertion point, so the bubble shows `StreamingWaitIndicator`
   instead of a cursor blinking against empty space.
 - Tool calls tracked in `activeToolCalls` list (start -> complete lifecycle)
-- **Stream termination is a chokepoint** for every *event-driven* end — clean/aborted Final, error, failed abort, watchdog, resume-found-expired — which funnel through the single private `endStream(reason)` in `StreamingManagerDelegate` — and so does a flow that ends with neither Final nor Error: `launchStream` ends it as `Reconcile` and `resumeStream` as `ResumeExpired`, unless a Stop is pending (the abort watchdog owns that end). `SseClient` completes a flow that way only when its resume got a **404** (the job is gone, so the reply is on the server) or the account switched. **A body that merely closes is not a finished run**: upstream sends no heartbeat, so a proxy/CDN idle timeout during a long tool call or a human-review pause closes a live stream, and the server's own `res.destroy()` on a publication failure asks for a reconnect — `SseClient` resumes those with `resume=true` on its retry ladder, as upstream's transport-failure path does, keeping the partial and the pause card. Its attempt counter resets on a parsed event, not on bytes, so a 200 that carries no events (a captive portal) still climbs the ladder. **The ladder's ceiling (`RETRY_EXHAUSTED`) is not a network error either**, and neither is a persistent HTTP status such as a proxy's 502 on every resume (`STATUS_RETRY_EXHAUSTED`): neither says anything about the run, so the delegate asks `/chat/status` right away, as upstream does at its ceiling — resume if active (once per run: the flag resets at every attach — a local send, opening a conversation with a live run, foregrounding, network recovery — but not at the ceiling's own re-attach, so an unreachable live run ends instead of looping), the same end as a 404 if not (refetch, no banner). Only when the status read fails too is there an error: a network error after the transport ladder (the case the connectivity observer can recover), the status error itself after a persistent status. 401 stays in-band and is never adjudicated. An account switch also completes the flow, and ends nothing: a reload then would read the conversation with the new account's credentials. The same guard runs after the ceiling's status read, which can take seconds, so a switch during it neither resumes nor reloads. The 404 case is the network-drop recovery: the run finished while offline, and before `launchStream` ended it here the chat froze on the partial. The sealed reason (`Finalized` / `StreamError` / `AbortFallback` / `ResumeExpired` / `Reconcile`) decides job cancel, state write, queue policy, and whether a reload is allowed. A per-session Int counter latches each session to at most ONE end, and stale ends from a previous session are no-ops — do not add teardown steps at call sites; add them to the reason table. Structural invariant this encodes: **nothing reloads on an abort path** — the server emits the aborted frame BEFORE persisting, so any refetch there races the save (and the optimistic user message was never in Room, so a reload can lose it entirely). `Finalized` writes no state: the atomic finalize in `finalizeChatDisplay` owns that (the no-completion-flash invariant)
+- **MCP sign-in mid-run** (`StreamEvent.ToolCallAuthRequired`, from an `on_run_step_delta` carrying
+  `delta.auth`; upstream `oauthPrompt: on_use` sends it on a server's first tool call). It puts
+  `authUrl`/`authServerName` on the live call, and `StreamingToolCallCard` draws
+  `McpSignInToolCallCard` until the call completes. Its Sign in reads `LocalMcpSignIn` (provided by
+  `ChatRoot` from `rememberMcpSignIn` + `McpSignInViewModel`), which binds through `:core:data`'s
+  `McpOAuthLauncher` and opens `:core:ui`'s `McpOAuthSignInDialog` (system browser before
+  v0.8.9-rc1). Nothing launches without the tap. The run resumes on its own once the callback
+  lands, so a success needs no client follow-up. Comparison panes route it too
+  (`ComparisonModeDelegate.routeToolCallAuth`), subagent prompts included (below).
+  - **A reconnect restores it.** The sync frame's `aggregatedContent` carries no auth, and `onSync`
+    replaces the tool calls, so the prompt would be wiped. The server projects the live prompts as
+    `resumeState.pendingOAuthPrompts` (upstream `projectPendingMCPOAuthPrompts`, v0.8.8-rc2+;
+    unexpired, on unfinished steps), and `SseEventMapper` turns each into the same
+    `ToolCallAuthRequired`, after the snapshot, preceded by a `ToolCallStart` only when the
+    snapshot lacks the call (as web's `applyPendingOAuthPrompt`). `runSteps` stay unread.
+    Verified server limit: the projection keeps only `oauth_mcp_*` calls (the synthetic step of a
+    turn-start or reconnect prompt, `buildMCPAuthToolCall`). An `on_use` prompt raised inside a
+    real tool call (`MCP.js` passes that call's own name) is not projected, so a reconnect during
+    it still loses the action, on web too.
+  - **A subagent's prompt shows on the `subagent` call.** Its tools run on the parent's stream, so an
+    `on_use` prompt arrives as a top-level delta naming a call that lives in the subagent's trace,
+    not in `activeToolCalls`. `LiveReplyDelegate.onAuthRequired` puts it on the parent whose trace
+    holds the call (or, for a `subagent_update` `run_step_delta` carrying `auth`, the envelope's
+    parent), recording the child id in `authToolCallId`; the child call's completion or close
+    clears it, since the parent stays running for the rest of the subagent. The lookup is
+    `List<ActiveToolCall>.withAuthRequired` / `withoutSubagentAuthFor`, shared with the comparison
+    panes: `routeEvent` applies a `subagent_update`'s sign-in and child end to the pane lists and
+    returns `false`, so the standard path still records the trace.
+- **Stream termination is a chokepoint** for every *event-driven* end — clean/aborted Final, error, failed abort, watchdog, resume-found-expired — which funnel through the single private `endStream(reason)` in `StreamingManagerDelegate` — and so does a flow that ends with neither Final nor Error: `launchStream` ends it as `Reconcile` and `resumeStream` as `ResumeExpired`, unless a Stop is pending (the abort watchdog owns that end). `SseClient` completes a flow that way only when its resume got a **404** (the job is gone, so the reply is on the server) or the account switched. **A body that merely closes is not a finished run**: servers before v0.8.9-rc1 send no keepalive (rc1's comment every 25 s can be switched off), so a proxy/CDN idle timeout during a long tool call or a human-review pause closes a live stream, and the server's own `res.destroy()` on a publication failure asks for a reconnect — `SseClient` resumes those with `resume=true` on its retry ladder, as upstream's transport-failure path does, keeping the partial and the pause card. Its attempt counter resets on a parsed event, not on bytes, so a 200 that carries no events (a captive portal) still climbs the ladder. **The ladder's ceiling (`RETRY_EXHAUSTED`) is not a network error either**, and neither is a persistent HTTP status such as a proxy's 502 on every resume (`STATUS_RETRY_EXHAUSTED`): neither says anything about the run, so the delegate asks `/chat/status` right away, as upstream does at its ceiling — resume if active (once per run: the flag resets at every attach — a local send, opening a conversation with a live run, foregrounding, network recovery — but not at the ceiling's own re-attach, so an unreachable live run ends instead of looping), the same end as a 404 if not (refetch, no banner). Only when the status read fails too is there an error: a network error after the transport ladder (the case the connectivity observer can recover), the status error itself after a persistent status. 401 stays in-band and is never adjudicated. An account switch also completes the flow, and ends nothing: a reload then would read the conversation with the new account's credentials. The same guard runs after the ceiling's status read, which can take seconds, so a switch during it neither resumes nor reloads. The 404 case is the network-drop recovery: the run finished while offline, and before `launchStream` ended it here the chat froze on the partial. The sealed reason (`Finalized` / `StreamError` / `AbortFallback` / `ResumeExpired` / `Reconcile`) decides job cancel, state write, queue policy, and whether a reload is allowed. A per-session Int counter latches each session to at most ONE end, and stale ends from a previous session are no-ops — do not add teardown steps at call sites; add them to the reason table. Structural invariant this encodes: **nothing reloads on an abort path** — the server emits the aborted frame BEFORE persisting, so any refetch there races the save (and the optimistic user message was never in Room, so a reload can lose it entirely). `Finalized` writes no state: the atomic finalize in `finalizeChatDisplay` owns that (the no-completion-flash invariant)
 - `stopGeneration()` POSTs `chatRepository.abortChat()` and **deliberately does not cancel the stream job.** The abort POST only acks (`{ success, aborted }`); the server ends the run by emitting an ordinary `final` frame flagged `aborted` over the same SSE stream, and *that* frame carries the partial's content parts. Cancelling the collector was the original bug — the stopped reply vanished. `handleFinal` reads `aborted` off the frame, not off local stop state, so a Stop from another client is handled identically. Stop-specific behavior: no auto-TTS, no `gen_title`, no queue drain (the hold is re-asserted). `abortRequested` guards double-taps. Works before the `created` milestone too — a null stream id makes the abort route fall back to one of the caller's active jobs (the *oldest*, and the client can't tell which, since `ChatAbortResponse` drops the returned `aborted` id — so with a second stream live server-side a null-key Stop can hit the wrong job; known gap). An acked abort arms a 15s watchdog; if the frame never lands (dead socket) or the POST fails, `endStream(AbortFallback)` stops locally with the partial preserved and NO reload
 - **Aborted finals follow the server's exact persistence contract** (`applyAbortContract` in `util/FinalMessages.kt`, applied once in `handleFinal` before anything renders or caches). `abortPersistedServerSide()` mirrors the abort route's 4-way save gate — `earlyAbort`, missing `requestMessage`, empty (already-server-filtered) `content`, or the synthesized `"${userMessageId}_"` response id all mean the server saved no response row. Persisted → the missing `text` is rebuilt via the `parseTextParts` port (TEXT + THINK + STEER, like the server's abort call; the port itself is `flattenSearchableText` in `:core:model`, with the server's literal-space join rule) so the cached row equals what a later fetch returns. Not persisted → the response is DROPPED from the frame: merging it would mint a phantom leaf the next send uses as a `parentMessageId` the server has never heard of. `cacheTurn` is then unconditional (the contract already removed anything unsaved, and the request message of a non-early abort IS persisted — caching it is the only write that persists the optimistic user message). Still suppressed: `saveConversation` (the frame's conversation is a stub with a hardcoded `New Chat` title); the title is re-read network-first instead of generated (an `immediate`-mode title that finished before the Stop exists server-side while the cache holds the placeholder) — retried past a fetched `New Chat` and never applied as a downgrade, because the server's title save is gated on the request's unwind and an immediate read races it (the same emit-then-persist race, one layer up). Both `parseTextParts` and the gate are MIRRORED SERVER LOGIC — re-verify on upstream bumps (`/sync-upstream`)
 - **earlyAbort = un-send.** A Stop that lands before `created` persisted nothing — not even the user message — so `handleFinal` asks the ViewModel to un-send the turn (`StreamingHost.unsendTurn`): it removes the minted optimistic message (`MessageTreeDelegate.unsendOptimisticTurn`, single atomic emission) and restores its text to the composer (web parity). The minted id is threaded per-turn through `beginStreaming(isEdit, optimisticUserMessageId)`; it is NULL for regenerate/continue/edit-AI, whose user message is a persisted row the un-send must never remove
@@ -874,6 +903,16 @@ Paging is shared by both panels:
 - **Wide: dragging along the tabs** selects the tab under the finger, ahead of the row's own
   scroll (Initial pass), so an overflowing row scrolls to follow the selection rather than the drag.
 
+**Remembering (v0.8.9-rc1).** A call whose review config has `allow_always` (and allows approve)
+gets an "Always allow" button between Reject and Approve, with a static hint under the row (shown
+whenever offered: the pick is final and the beat moves on, so a selection-only hint would flash
+past). It is `approve` + `scope: session`, and `toolBatchResolutions` strips the scope from any call
+not offered it, because the server 403s the whole batch for one. "Approve all" stays plain. A
+`remember_scope` (the agent's chat/always mode) shows a notice above the arguments; a
+`remember_unavailable` replaces it in the error colour. Reject opens an optional reason field;
+focusing it cancels the beat, so the explicit Next / Continue takes over. A resume 403 whose body
+carries `disallowed` is `ChatNotice.TOOL_DECISION_NOT_PERMITTED`, not the fingerprint copy.
+
 The resume is all-or-nothing (`toolBatchResolutions` returns null until every call is decided and
 complete — the route 400s a partial batch and an edit/respond without its payload). Allowed
 decisions join by `tool_call_id`, never position. Drafts, the active call and the collapse state
@@ -951,7 +990,24 @@ handle's Main-dispatched scope — do not add a `withContext` inside the delegat
 inside a `handle.update { }` block (that is a `MutableStateFlow.update` CAS loop and may re-run).
 
 Steering is text-only on mobile: a during-run send carrying attachments is routed to the queue, where the
-existing upload/usage path already handles them.
+existing upload/usage path already handles them. The during-run menu turns its Steer and Interrupt rows off
+while attachments are staged, so neither promises something the tap won't do.
+
+**Interrupt and steer** (`DuringRunAction.INTERRUPT`, `DuringRunSendTarget.INTERRUPT`) is a steer sent with
+`preempt: true`: every no-loss rule above applies unchanged. Two fallbacks, each stated: to the queue when
+`canSteerNow` is false (silent, like Steer), and to a plain steer when the 202 echoes `preempt != true`
+(announced, `SteerNotice.INTERRUPT_UNAVAILABLE`). It never becomes Stop + send.
+- The chip's interrupting look comes from the server (the 202 echo, an `armed: true`, or a report's
+  `preempt`), never from the request. A reconnect's sync frame carries `preempt` on `pendingSteers`, and a
+  known record takes the server's flag (higher `preemptRevision` wins; v1 sends none, so the latest report).
+- "Interrupt now" on a waiting chip is `SteeringDelegate.arm` → `POST /chat/steer/arm`. One interrupt at a
+  time (any chip interrupting or arming disables the others, it doesn't hide them); one attempt, bounded by
+  `gates.steerArmConfirmationMs`; only `armed: true` changes the chip. Outcomes are `SteerNotice`s on the
+  `steerNotices` one-shot channel, never `error`: the words are queued in every case.
+- `on_steer_updated` is v2-only and never reaches mobile, so a withdrawn interrupt keeps its label.
+- A tool the interrupt cancelled carries the server's `INTERRUPTED` sentence (`isInterruptedToolOutput`,
+  mirror `steer-interrupted-tool-result`). It renders as "Interrupted by your message" in a neutral tone,
+  an interrupted search keeps the generic card, and a group header counts it as cancelled, not failed.
 
 ## Chat Tools
 - The user's own toggles: `enabledTools` and `selectedMcpServerNames` are global (stored in
@@ -1052,6 +1108,56 @@ moves a custom OpenAI-compatible endpoint to a Responses API it may not serve.
     the request still carries the spec's own tools and artifacts, as web sends them.
   - `ephemeralAgent` is read from the body even under `enforce`, so nothing more is locked there.
 
+### Per-turn thinking (v0.8.9-rc1 `reasoningOverride`)
+- **What resolves it.** `ReasoningSettingResolver` (`:core:ui`) ports upstream
+  `resolveReasoningSettingForTarget`, which the server also runs on the request: a key or level the
+  client resolves differently is a 400 `invalid-reasoning-override`. It carries its own reasoning-key
+  table (`SETTINGS`) rather than reading `EndpointParameterRegistry`'s lists, which differ from
+  upstream's (Bedrock Anthropic's effort key). Every mirror is in `scripts/mirrors.json`.
+- **When the chip shows** (`ChatUiState.reasoningSetting` → `thinkingChip`): server ≥ 0.8.9-rc1,
+  `interface.parameters` on, not assistants, not a comparison, a resolved target (a saved agent's
+  provider and model, fetched with its provider), a key an enforced spec's preset doesn't set, and
+  levels only: a `thinkingBudget` model gets no chip. `hideBadgeRow` does not hide it.
+- **OpenRouter catalog.** An endpoint whose efforts come from the catalog (`usesCatalog`) offers
+  none until `ReasoningCatalogDelegate` has it; it refetches at the server's `expiresInMs` and
+  retries failures. A model the catalog doesn't list keeps the generic list.
+- **One message only.** `ComposerState.pendingReasoningOverride` is taken by a fresh send or a
+  composer-origin queue (`takePendingReasoningOverride`, which drops one the selection refuses) and
+  rides the `QueuedMessage` (and the server queue's enqueue body). A staged choice makes a mid-run
+  send queue, never steer (`canSteerNow`). A model switch drops it only once the new setting is
+  known and refuses it. Edit, regenerate and continue send the user message's own
+  `reasoningOverride` (cached in Room, DB 14), not the pending one; nothing shows it on the bubble.
+
+## Code workspace: attached machines (`CodeWorkspaceDelegate`)
+An agent with stateful code sessions can run files and commands on the user's own machine (the
+`librechat-code` worker). The chat's choice of machine and workspace is a **decision the server seals
+with the first coding turn**: a new chat that sends neither `codeEnvironmentMode` nor `codeWorkspaces`
+is sealed "No workspace" for good. The rules are `:core:model` `code/CodeWorkspaceResolver.kt` (web's
+`useCodeWorkspace`, mirrored); the delegate gathers inputs, polls, and keeps the draft; the composer's
+`CodeWorkspaceRow` (provided through `LocalCodeWorkspaceComposer`, so both platform composers draw it)
+only draws `CodeWorkspaceUiState`.
+- **Gate on the fields, never the version** (VERSION_GATES.md): `RUN_CODE.USE`, the agents endpoint's
+  `execute_code` + `stateful_code_sessions` capabilities, an `attached` machine in
+  `statefulCodeSessions.environments`, a reachable agent that routes code there. Capability versions
+  are `==` checks. A plain agents chat sends neither field.
+- **Agents come from the list** (`ModelSelectionState.agents`, the in-memory list cache): only that
+  route projects `code_environment_id(s)`, `tools`, `agent_ids`, `edges` and `subagents`.
+- **What a send carries is `submissionForSend()`**: the resolved decision on a new or undecided chat,
+  nothing on a chat that holds one (the server applies it; resending could only be `locked`), null
+  while the row holds the send. A queued spec snapshots it at queue time. Deliberate divergence: with
+  workspaces to pick and nothing picked the send is held (web sends "No workspace", which the phone
+  cannot undo); with nothing to pick it sends "No workspace" and says so (`CODE_WORKSPACE_SENT_WITHOUT`).
+- **The saved decision is read live** (`CodeEnvironmentRepository.savedDecision`, no Room), only when a
+  coding agent is in the chat, and again whenever a run ends. Read the live value before re-fetching:
+  `combine` can hand the transform a superseded `Pending`, and re-reading on it never settles.
+- **Status polling** every 10 s only while the row is visible and the app is in front (`onPause` /
+  `onResume`), 30 s after a 503/504, never again after a 404. One read is always made when the set of
+  machines changes. The poll target is compared before launching: on an immediate dispatcher the
+  launch runs inline and re-enters `retarget`.
+- **Rejections** (`code_workspace_unavailable`) carry their `reason` in the marker
+  (`StreamErrorType.ARG_SEPARATOR`); `required`/`missing`/`worker_unavailable` also refresh status and
+  tint the workspace chip. Slice 2 (move/attach/detach a saved decision) is not built.
+
 ## Content Cards
 - `ImageGenCard` renders DALL-E / image generation results (spinner while generating, AsyncImage when done)
 - `LogContentCard` renders expandable log output blocks with monospace text
@@ -1107,6 +1213,11 @@ opt-in consent, and a `<script src="https://cdn…">` in a WebView is exactly th
 also why the CSPs in these documents name no remote origin — `img-src https:` is the one
 deliberate exception, because a remote `<img>` in an artifact is content the user asked to
 see rather than code the app chose to run.
+
+**MCP Apps are not covered by this rule and do not change it.** An App is third-party code its MCP
+server supplies at run time, and its declared CSP may let it load more. The app itself bundles
+nothing for it (the relay page loads no script) and keeps it in an opaque sandboxed frame; see
+"MCP Apps". None of the renderers above may take a remote script on the strength of that.
 
 What is vendored, at which version, and why each pin sits where it does is in
 `scripts/web-assets.json`; `scripts/vendor-web-assets.py` moves the bytes and CI runs
@@ -1218,6 +1329,40 @@ can't test this. `scripts/verify-speech-services.py` can: it boots a no-GMS AOSP
 `:testing:speech-fixture` as the default recognizer and TTS engine, and runs the `audio/` speech
 instrumented tests. Those tests skip anywhere else.
 
+## Recovering from a failure the files cause (v0.8.9-rc1)
+A reply that failed (a persisted failed turn, or an `error` part) on a branch carrying files gets a
+card under it (`AttachmentRecoveryActions`, web's `recovery.tsx`): why, then **Retry without files**
+(the failed turn again as a new sibling: no files, its quotes, skills and reasoning choice kept;
+`MessageEditingDelegate.retryWithoutFiles`) and/or **Branch without files** (fork `DIRECT_PATH` at the
+reply before the failed turn with `excludeFiles`, stage the turn's text as the copy's draft, open it;
+`ConversationActionsDelegate.branchWithoutFiles`). The decision is the pure port in
+`util/AttachmentRecovery.kt` (mirrored, see `scripts/mirrors.json`), computed once per displayed
+branch in `MessageList` and read by each bubble through `LocalAttachmentRecovery`.
+- **A copy that still has files is not a recovery.** An older server ignores `excludeFiles`; the
+  response's messages are checked and such a copy is reported, not opened. Branch and the fork sheet's
+  "Leave out files" are gated on rc1 besides (`forkExcludeFilesSupported`, VERSION_GATES.md).
+- The success snackbar is handed to the copy's screen by conversation id (`ChatNoticeHandoff.put(…,
+  conversationId)`): the screen being left could otherwise take it in the instant before it is replaced.
+- Fork and feedback are withheld on `message.error` rows (web's `HoverButtons`): a copy would carry the
+  provider's error as an answer. Fork failures are `ChatNotice.FORK_FAILED` / `FORK_RATE_LIMITED`
+  (429), never the server's text.
+
+## Redacted user turns: the author's original (v0.8.9-rc1)
+A server with PII protection stores a user turn filtered (`text` = `[EMAIL]`…) and stamps
+`privacyRevision`. Its author sees the original (`PrivateTextBody`, web's `PrivateText`), read by
+`OwnerTextDelegate` from `POST /owner-text` once the chat is not streaming, in batches of 50.
+- **The original lives in `MessagesState.ownerTexts` only.** Never Room (only the
+  `privacyRevision` marker is cached, DB 14), never the search index, drafts, exports or share links;
+  Copy, Edit, Regenerate, Read aloud and Fork keep `message.text`. A conversation switch clears it.
+- **Accepted only for the stored turn it was read against**: same revision, same filtered text
+  (`ownerTextStateFor`). An answer with no row for an id is no state (a client-minted id the server
+  never adopted); a failed request or a row without text is Unavailable, with Retry.
+- The live turn is marked from the `created` frame (`StreamEvent.Created.privacyRevision`), in memory,
+  node for node, so it says its details were hidden without breaking the streaming anchor; its text
+  is what was typed. `isServerCopyOf` matches a redacted server copy by author and parent, since its
+  text never equals the typed text.
+- Search counts `message.text`, so the query is not applied while the original is drawn.
+
 ## Feedback: rating + reason tag + comment
 - **Both** thumbs open `FeedbackTagSheet` — the route validates against an object schema whose
   `tag` is REQUIRED, so a bare rating is rejected 400 and there is no one-tap path. Tapping the
@@ -1261,10 +1406,19 @@ tool block. It is pure because this module has no Compose test harness.
   boundary so a later filled label cannot reach back past it. With no label at all the block
   re-splits into the legacy shape (reasoning standalone, runs of ≥2 tools grouped), so a server
   without the feature renders exactly as before.
-- **The header's failed colour is `activityGroupFailed`, joined with attachments at the render
-  site**: the label's `failed`/`partial` status, or a refused memory write in the block judged by
-  the memory card's own rule (`isFailedMemoryToolCall`), as web's `outcome.ts` does. Run-step
-  `failed` and generic error output on other tools are not counted yet.
+- **The header's verdict is `activityGroupOutcome`, joined with attachments at the render site**
+  (web's `outcome.ts`, #16949). Each call is judged by `toolCallOutcome` as its card judges it: the
+  run step's terminal status, a refused memory write (`isFailedMemoryToolCall`), error-shaped output,
+  an attached-workspace `bash_tool` whose trailer reports a non-zero exit (`attachedCommandFailed`,
+  only when the server stamped `executor`), a background-task poll whose task failed or stopped.
+  The header turns red only when **every** call failed or the label says `failed`; mixed outcomes
+  keep it neutral and add "n/N failed" / "n cancelled". A `partial` label is mixed by definition
+  and shows a warning glyph only when the per-call verdicts can't corroborate it. Not counted: a
+  backgrounded call's `background_task_status` error attachment.
+- **Live cards say "Preparing {tool}"** while the model writes a call's arguments
+  (`on_tool_preparation` → `ActiveToolCall.isPreparing`, cleared by `on_tool_calls_dispatched`, a
+  result or a close). Generic card only; MCP and action tools keep their name. Upstream also reads
+  incomplete arguments as preparing; this client doesn't track argument deltas, so it doesn't.
 - **Group identity is anchored to the first TOOL CALL, never the first part.** A label absorbs the
   block's leading `THINK` when its text lands, so `parts[0]` flips at the instant the block becomes
   a group; keying on it remounts the group and drops the user's expansion.
@@ -1304,6 +1458,91 @@ tool block. It is pure because this module has no Compose test harness.
 - Steer text and rendered activity labels are counted by `SearchMatchEnumeration`, so in-conversation
   search can reach them and a collapsed group holding the focused match opens.
 
+## Subagent files with no owner yet (v0.8.9-rc1, slice 1)
+A tool inside a subagent saves its files under the CHILD call's id, which only the subagent's
+transcript names. After a mid-run resume there is no transcript (run steps are not replayed), and the
+live list never draws child calls at all, so such a file matched nothing. `withSubagentFilesAdopted`
+(saved messages, claimed = `outputToolCallIds`) and `withLiveSubagentFilesAdopted` (the streaming
+reply, claimed = the live call ids) rewrite an unclaimed stored file's `toolCallId` to the message's
+`subagent` call: the only one, else the one whose agent stamped the file, else the last. Rewriting
+(rather than a side map) is what keeps `unclaimedOfficePreviewRows` from drawing the same file again.
+Metadata attachments (memory, search) never move. Upstream's `/subagent-calls` lookup (slice 2) is
+not used.
+
+## Tool-call previews (v0.8.9-rc1, `?toolPreviews=1`)
+The chat load asks for bounded previews of settled tool calls; a previewed call carries
+`AgentToolCall.isPreview` and its full lengths. Rules that keep a preview from passing for the whole:
+- **Fetched parts never touch Room.** `ToolPartHydrationDelegate` holds them in memory (cleared on a
+  conversation or account switch, ~4M-char budget that never evicts a part an open card holds). A card
+  can open mid-stream, when no Room write is allowed, and Room keeps only what the server last said.
+- **The overlay runs in `ChatViewModel.uiState`'s combine** (`ToolPartOverlay`), over the built
+  `displayMessages`: never a tree rebuild, never `activeBranches`, never the streaming anchor.
+  Delegates read the backing state, which keeps the previews. The loaded map rides beside the server
+  URL flow so it adds no hop to every state emission.
+- **Cards request from an effect, not the click** (`ToolContentDisclosure`, at the top of every
+  disclosure that reveals args, output or transcript): a card restored open, or carried open from
+  the live reply, asks too. `ToolCallDispatcher` provides the call's `LocalToolPreview`; nested
+  transcript calls get their own. `LocalToolContent` is null outside `ChatScreen` (shared links are
+  never previewed), and cards render as before there.
+- **Never copy a preview.** A `CodeBlock` inside a previewed card disables Copy; the code-execution
+  output pane (visible without a disclosure) fetches first; message Copy fetches every previewed part
+  (8 at a time) and copies nothing on a failure (`COPY_TOOL_CONTENT_FAILED`).
+- A reload that replaces a call held in full with a preview of the same identity and lengths seeds
+  the full call (`seedsFor`) instead of refetching it.
+- A subagent's transcript-less preview routes its child calls' files by `subagentAttachmentCalls`
+  (`omittedTranscriptCalls`, also folded into `outputToolCallIds`).
+
+## MCP Apps (v0.8.9-rc1, `components/mcpapp/`)
+An MCP tool can ship a View (`text/html;profile=mcp-app`) that arrives as a `ui_resources`
+attachment. The chat shows an inert "Open app" row and runs the App in a full-screen panel.
+- **Rows** (`McpAppRows`, from `selectToolCallUiResources`): after the tool card
+  (`ToolCallContentPart`, `StreamingToolCallCard`), or under an activity group in its hoisted slot,
+  never inside a fold. Only while `mcpApps.enabled` (`McpAppsViewModel.policy` → `LocalMcpApps`);
+  a missing binding reads "could not be loaded" with no button; the shared viewer passes
+  `McpApps.ReadOnly`. Subagent and background-task cards show none (slice 2).
+- **No first-open prompt**: "Open app" goes straight to the panel, as on web. Approval is per
+  action (below), not per App.
+- **Panel** (`McpAppPanel`, an `AdaptiveDialog`): full screen, never inline, because a WebView in the
+  thread's lazy list is disposed on scroll, which tears the App down mid-request. One App at a time;
+  closing or leaving the chat tears it down (no in-View state survives). Retry is a new host and a
+  new web view. Android Activity recreation (rotation, fold) keeps the session (`rememberIsRecreatingUi`)
+  and the new web view calls `McpAppHost.pageAttached`, so the App reloads and initializes again.
+  In-thread glass must not sample the list's own backdrop (`MessageList` nulls `LocalGlassBackdrop`
+  for its rows): a surface sampling its ancestor's recording recurses to a stack overflow on iOS.
+- **Host** (`McpAppHost`): the spec `2026-01-26` JSON-RPC in Kotlin, unit-tested without a WebView
+  (`McpAppHostTest`). Every server call is native through `McpAppsRepository`, so no token reaches
+  the page. Tool calls and messages wait on the approval dialog (exact text, never truncated; over
+  `maxActionPreviewChars` refused without asking; queue bounded by `operationLimits.maxActive`;
+  Cancel pauses the App until reopened). Links open only on hosts the delivered CSP declared.
+  An approved message goes through `ChatViewModel.sendAppMessage`: only its text, composer
+  untouched, refused while a reply runs.
+- **Relay page** (`McpAppRelayPage`): a port of `mcp-sandbox.html`'s inner-frame half (mirror
+  `mcp-app-sandbox-relay`). It loads nothing; the App's own CSP may name hosts its frame loads from.
+  The bridge (`McpAppWebView`, the platform seam): Android `WebViewCompat.addWebMessageListener`
+  scoped to `https://mcp-app.switchboard.invalid` — **never `addJavascriptInterface`**, which reaches
+  every frame including the App's; iOS a dedicated `WKContentWorld`, main frame only. Both refuse
+  main-frame navigation and new windows.
+- **Not verified on a device yet:** the dialog-hosted WebView across rotation/fold, whether the
+  relay's loader CSP needs a `frame-src` entry for its `about:srcdoc` child, and that WebKit
+  delivers the inner frame's `message` events to the isolated content world.
+
+## Conversation pull requests (v0.8.9-rc1, slice 1)
+A code chat (one that ran against an attached workspace) can have a pull request; web shows it in the
+header, its small-screen layout in the ⋮ menu, which is where it goes here.
+- **Who is asked** (`PullRequestDelegate`): `pullRequestsAvailable` (rc1 + `pullRequestsEnabled`), a
+  saved chat not on its first streaming turn, and `Conversation.isCodeConversation == true` from the
+  cached row. A row cached before that was known is read once in full on open (the
+  `ConversationLoadDelegate` backfill), which settles it. Nothing else is ever looked up.
+- **In memory only**: `:core:data` `PullRequestRepository`, per account, shared with the drawer's
+  marks so the open chat isn't fetched twice. Never Room. Polls on upstream's interval only while the
+  screen is in front (`onPause`/`onResume`); on return an answer over 15 s old is asked at once.
+- **UI**: `ChatOverflowItem.PULL_REQUEST` leads the conversation section once a lookup found one
+  (absent otherwise; never disabled). Material draws `PullRequestStateIcon` with the CI dot; glass and
+  the native iOS menu get a `BarMenuItem` whose subtitle says the state and checks in words.
+  `PullRequestSheet` opens from it, reads the live state, shows its link only for
+  `ConversationPullRequest.openableUrl()` (absolute http(s) passing `isSafeLinkUrl`), and a Retry row
+  when a refresh failed after a success. Account connection (slice 2) is not built.
+
 ## Tool intent labels (v0.8.8)
 A tool card's title is the model's own `intent` string when present, else the raw tool name.
 **Accepted only when it is the FIRST key of the args object** — the opt-in (capability +
@@ -1335,6 +1574,14 @@ The breakdown (`util/ContextBreakdown.kt`, rendered by `ContextUsageGauge.kt`) p
   `onStreamEnded` runs before the reply is swapped in, so the tail there is the user message;
   anchoring on it makes the reply's own usage never cancel pending, and Totals and Cost double for
   the rest of the session (`ChatViewModelUsageTotalsTest` fails with 2000 instead of 1000).
+
+**Last turn and All branches (v0.8.9-rc1).** Under Totals the breakdown lists, as web's three
+`Usage` panels do: the tail reply's usage (`lastTurnUsage`; "Current turn (so far)" while streaming,
+the live usage only once an event arrived, never the previous reply's), Totals for this branch, and
+All branches when any bucket or a fully priced cost differs (`showsAllBranches`, web's `showTotal`).
+Under the "both" cost scope each block carries its cost in its header and the separate Cost line
+goes. Upstream's `turnInProgress` (live response == viewed tail) is plain `isStreaming` here: the
+live reply always renders after the displayed tail, and `switchBranch` is refused mid-stream.
 
 **Detail levels and the compact suggestion.** The breakdown is always computed in full and filtered
 at render by the user's `ContextDetailSections` (Settings → Chat → Context usage: Simple / Standard /

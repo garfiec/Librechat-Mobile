@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.model.ToolCallType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
 
 @Serializable
 data class AgentToolCall(
@@ -12,6 +13,12 @@ data class AgentToolCall(
     val name: String? = null,
     val args: JsonElement? = null,
     val id: String? = null,
+    /**
+     * The server's run-step identity for this call (v0.8.9-rc1). Unlike a provider's call [id] it is
+     * unique across turns, and the full-part route matches on it exactly: a call that carries one
+     * is only found when it is sent back.
+     */
+    val stepId: String? = null,
     val output: String? = null,
     val auth: String? = null,
     @SerialName("expires_at") val expiresAt: Long? = null,
@@ -61,6 +68,16 @@ data class AgentToolCall(
      * round trip or database time. Same omission rule as [toolPreparationDurationMs].
      */
     val toolExecutionDurationMs: Long? = null,
+    /** First observed argument fragment, epoch ms, while the call is still being prepared (v0.8.9-rc1). */
+    val toolPreparationStartedAt: Long? = null,
+    /** The SDK's handoff to execution, epoch ms (v0.8.9-rc1). Not proof the tool itself started. */
+    val toolDispatchedAt: Long? = null,
+    /**
+     * `attached_workspace` when the call resolved to the attached-workspace `bash_tool` (v0.8.9-rc1),
+     * stamped by the server at run-step completion. The sandbox tool shares the name, so this is
+     * the only sign the output ends in an exit-status trailer; never derive it from the text.
+     */
+    val executor: String? = null,
     /**
      * Stamped when a detached task's final output replaced the dispatch handle in [output]: the
      * only durable signal that the call ran in the background. When set, [runStepDurationMs] is
@@ -70,14 +87,117 @@ data class AgentToolCall(
     val backgrounded: Boolean? = null,
     /** The settled background task behind this call. See [BackgroundToolTask]. */
     val backgroundTask: BackgroundToolTask? = null,
+    /**
+     * Tool-call previews (v0.8.9-rc1, `?toolPreviews=1`): the server sent a bounded [output], and
+     * [outputLength] is the full value's length in UTF-16 units. Sent as `true` or not at all. A call
+     * carrying any preview marker must never be written back, exported or copied as if it were full.
+     */
+    val outputTruncated: Boolean? = null,
+    val outputLength: Int? = null,
+    /** [args] is a preview; [argsLength] is the full serialised length. */
+    val argsTruncated: Boolean? = null,
+    val argsLength: Int? = null,
+    /** [subagentContent] was left out; [subagentContentParts] counts its top-level parts. */
+    val subagentContentOmitted: Boolean? = null,
+    val subagentContentParts: Int? = null,
+    /**
+     * The calls inside the omitted transcript that the message's attachments were saved under, so
+     * those files still route to this card before the transcript loads.
+     */
+    val subagentAttachmentCalls: List<SubagentAttachmentCall>? = null,
+    /** The message's `updatedAt` when the preview was built. Part of [previewKey], never the key alone. */
+    val previewRevision: String? = null,
 ) {
+    /** True when any of this call's content is a preview rather than the stored value (`hasToolCallPreview`). */
+    val isPreview: Boolean
+        get() = outputTruncated == true || argsTruncated == true || subagentContentOmitted == true
+
+    /**
+     * This preview with the stored content in place of what the server shortened (upstream
+     * `withFullToolCall`). Only the shortened fields come from [full], and the seven preview markers
+     * go; everything else stays as this copy has it, so a fetched copy never rolls back a newer field.
+     */
+    fun withFull(full: AgentToolCall): AgentToolCall = copy(
+        args = if (argsTruncated == true && full.args != null) full.args else args,
+        output = if (outputTruncated == true && full.output != null) full.output else output,
+        subagentContent = if (subagentContentOmitted == true && full.subagentContent != null) {
+            full.subagentContent
+        } else {
+            subagentContent
+        },
+        outputTruncated = null,
+        outputLength = null,
+        argsTruncated = null,
+        argsLength = null,
+        subagentContentOmitted = null,
+        subagentContentParts = null,
+        previewRevision = null,
+    )
+
+    /**
+     * Identifies the stored version this preview stands for (upstream `getToolCallPreviewRevision`):
+     * [previewRevision] plus a fingerprint of what the preview carries. [previewRevision] alone is
+     * the MESSAGE's `updatedAt`, not this call's, so it is never the key by itself.
+     */
+    fun previewKey(): String {
+        val content = listOf(
+            output.orEmpty(),
+            serializedArgs(),
+            outputLength?.toString().orEmpty(),
+            argsLength?.toString().orEmpty(),
+            subagentContentParts?.toString().orEmpty(),
+        ).joinToString(PREVIEW_KEY_SEPARATOR)
+        return "${previewRevision.orEmpty()}:${fingerprint(content)}"
+    }
+
+    /** [args] as the server serialises it: a string as is, anything else as compact JSON. */
+    fun serializedArgs(): String {
+        val value = args ?: return "null"
+        return if (value is JsonPrimitive && value.isString) value.content else value.toString()
+    }
+
+    /** Characters the model sees for [args]: the full length when [args] is a preview (upstream `toolCallLengths`). */
+    fun fullArgsLength(): Int = argsLength ?: if (args == null) 0 else serializedArgs().length
+
+    /** Characters the model sees for [output]: the full length when [output] is a preview. */
+    fun fullOutputLength(): Int = outputLength ?: output.orEmpty().length
+
     /**
      * The step's verdict as a card should show it: a background task the user stopped reads as
      * cancelled even though its run step closed cleanly (upstream `Part.tsx`).
      */
     val effectiveRunStepStatus: RunStepStatus?
         get() = if (backgroundTask?.cancelled == true) RunStepStatus.CANCELLED else runStepStatus
+
+    companion object {
+        /** [executor] of the attached-workspace `bash_tool`. */
+        const val EXECUTOR_ATTACHED_WORKSPACE = "attached_workspace"
+
+        private const val PREVIEW_KEY_SEPARATOR = "\u0000"
+    }
 }
+
+/** A call inside an omitted subagent transcript that attachments were saved under (`SubagentAttachmentCall`). */
+@Serializable
+data class SubagentAttachmentCall(
+    val id: String,
+    val agentId: String? = null,
+    val stepId: String? = null,
+)
+
+/** 32-bit FNV-1a over UTF-16 code units in base 36 (upstream `fingerprint`): a cache key, not a security hash. */
+internal fun fingerprint(text: String): String {
+    var hash = FNV_OFFSET
+    for (ch in text) {
+        hash = hash xor ch.code.toUInt()
+        hash *= FNV_PRIME
+    }
+    return hash.toLong().toString(FINGERPRINT_RADIX)
+}
+
+private const val FNV_OFFSET: UInt = 0x811c9dc5u
+private const val FNV_PRIME: UInt = 0x01000193u
+private const val FINGERPRINT_RADIX = 36
 
 /**
  * The result record of a background task, kept beside the call that dispatched it

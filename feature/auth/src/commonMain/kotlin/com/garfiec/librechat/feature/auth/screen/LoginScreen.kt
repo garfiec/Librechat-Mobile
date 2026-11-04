@@ -56,13 +56,25 @@ fun LoginScreen(
     modifier: Modifier = Modifier,
     onNavigateToForgotPassword: () -> Unit = {},
     onNavigateToTwoFactor: (String) -> Unit = {},
+    onNavigateToTwoFactorSetup: (String) -> Unit = {},
     onNavigateToSso: (String) -> Unit = {},
     onBack: (() -> Unit)? = null,
+    /** Opens the switcher on the other signed-in accounts; null hides it. */
+    onUseAnotherAccount: (() -> Unit)? = null,
     viewModel: LoginViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnLoginSuccess by rememberUpdatedState(onLoginSuccess)
     val currentOnNavigateToTwoFactor by rememberUpdatedState(onNavigateToTwoFactor)
+    val currentOnNavigateToTwoFactorSetup by rememberUpdatedState(onNavigateToTwoFactorSetup)
+
+    LaunchedEffect(uiState.twoFactorSetupTempToken) {
+        val tempToken = uiState.twoFactorSetupTempToken
+        if (tempToken != null) {
+            currentOnNavigateToTwoFactorSetup(tempToken)
+            viewModel.consumeTwoFactorSetupNavigation()
+        }
+    }
 
     val currentOnNavigateToSso by rememberUpdatedState(onNavigateToSso)
     LaunchedEffect(uiState.ssoProvider) {
@@ -123,6 +135,17 @@ fun LoginScreen(
                 )
             }
 
+            uiState.twoFactorSetupAccounts?.let { accounts ->
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = stringResource(Res.string.login_two_factor_setup_required, accounts),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.testTag("login_two_factor_setup_notice"),
+                )
+            }
+
             Spacer(modifier = Modifier.height(32.dp))
 
             // The email/password form is hidden when the server disables email login
@@ -160,10 +183,11 @@ fun LoginScreen(
                 )
             }
 
-            if (uiState.error != null) {
+            val errorText = authErrorText(uiState.refusal, uiState.error)
+            if (errorText != null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = uiState.error!!,
+                    text = errorText,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.testTag("login_error"),
@@ -234,6 +258,10 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                 }
             }
+
+            UseAnotherAccountButton(onUseAnotherAccount, modifier = Modifier.padding(top = 8.dp))
+
+            PolicyLinksFooter(uiState.policyLinks, modifier = Modifier.padding(top = 16.dp))
         }
 
         uiState.pendingSsoProvider?.let {

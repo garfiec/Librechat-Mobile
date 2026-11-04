@@ -19,9 +19,29 @@ sealed interface AgentChip {
     data class Category(val value: String) : AgentChip
 }
 
-/** What one list read asks for: a chip and the trimmed search. */
+/**
+ * The marketplace orders (v0.8.9-rc1), in the order the menu offers them. [wire] is the `sort`
+ * value, from upstream `AGENT_SORT_OPTIONS` (`packages/api/src/agents/marketplace.ts`); mirrored by
+ * hand (scripts/mirrors.json: agent-marketplace-sort). The web always sends one, [NEWEST] by default.
+ */
+enum class AgentSort(val wire: String) {
+    NEWEST("newest"),
+    OLDEST("oldest"),
+    POPULAR("popular"),
+    AUTHOR("author"),
+}
+
+/**
+ * What one list read asks for: a chip, the trimmed search, and (v0.8.9-rc1 servers only) the order
+ * and "My agents". [sort] is null, and [mine] false, on a server that predates them.
+ */
 @Immutable
-data class AgentListQuery(val chip: AgentChip, val search: String)
+data class AgentListQuery(
+    val chip: AgentChip,
+    val search: String,
+    val sort: AgentSort? = null,
+    val mine: Boolean = false,
+)
 
 /**
  * The list filter one marketplace chip and search query turn into.

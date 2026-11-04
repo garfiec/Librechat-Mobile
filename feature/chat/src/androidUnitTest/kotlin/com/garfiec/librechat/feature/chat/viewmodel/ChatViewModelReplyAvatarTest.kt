@@ -46,7 +46,7 @@ class ChatViewModelReplyAvatarTest {
             every { settingsDataStore.enabledTools } returns flowOf(emptySet())
             every { configRepository.endpointConfigs } returns endpointConfigs
             every { messageRepository.observeMessages(any()) } returns flowOf(messages)
-            coEvery { messageRepository.getMessages(any()) } returns Result.Success(messages)
+            coEvery { messageRepository.getMessages(any(), any()) } returns Result.Success(messages)
             coEvery { conversationRepository.getConversation(any(), any()) } returns Result.Error(message = "test")
         }
     }

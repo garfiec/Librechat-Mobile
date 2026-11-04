@@ -155,10 +155,11 @@ fun RegisterScreen(
             enabled = !uiState.isLoading,
         )
 
-        if (uiState.error != null) {
+        val errorText = authErrorText(uiState.refusal, uiState.error)
+        if (errorText != null) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = uiState.error!!,
+                text = errorText,
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
             )
@@ -188,5 +189,7 @@ fun RegisterScreen(
         TextButton(onClick = onNavigateToLogin) {
             Text(stringResource(Res.string.have_account_sign_in))
         }
+
+        PolicyLinksFooter(uiState.policyLinks, modifier = Modifier.padding(top = 16.dp))
     }
 }

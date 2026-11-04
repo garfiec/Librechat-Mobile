@@ -18,6 +18,7 @@ import com.garfiec.librechat.core.network.api.AuthApi
 import com.garfiec.librechat.core.network.api.BalanceApi
 import com.garfiec.librechat.core.network.api.BannerApi
 import com.garfiec.librechat.core.network.api.ChatApi
+import com.garfiec.librechat.core.network.api.CodeEnvironmentsApi
 import com.garfiec.librechat.core.network.api.ConfigApi
 import com.garfiec.librechat.core.network.api.ConversationsApi
 import com.garfiec.librechat.core.network.api.EndpointTokenApi
@@ -26,8 +27,10 @@ import com.garfiec.librechat.core.network.api.FilesApi
 import com.garfiec.librechat.core.network.api.FilesExtApi
 import com.garfiec.librechat.core.network.api.KeysApi
 import com.garfiec.librechat.core.network.api.McpApi
+import com.garfiec.librechat.core.network.api.McpAppsApi
 import com.garfiec.librechat.core.network.api.MemoriesApi
 import com.garfiec.librechat.core.network.api.MessagesApi
+import com.garfiec.librechat.core.network.api.PasskeyApi
 import com.garfiec.librechat.core.network.api.PermissionsApi
 import com.garfiec.librechat.core.network.api.PresetsApi
 import com.garfiec.librechat.core.network.api.ProjectsApi
@@ -76,6 +79,7 @@ class DataModuleVerificationTest {
                 SseClient::class,
                 AuthApi::class,
                 UserApi::class,
+                PasskeyApi::class,
                 ChatApi::class,
                 ConversationsApi::class,
                 SearchApi::class,
@@ -103,9 +107,11 @@ class DataModuleVerificationTest {
                 KeysApi::class,
                 ApiKeysApi::class,
                 McpApi::class,
+                McpAppsApi::class,
                 MemoriesApi::class,
                 SpeechApi::class,
                 BannerApi::class,
+                CodeEnvironmentsApi::class,
                 DataStore::class,
                 // AccountSwitcher pulls the switch barrier from :core:network (cross-module).
                 SwitchGate::class,

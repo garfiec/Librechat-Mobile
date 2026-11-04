@@ -1,5 +1,8 @@
 package com.garfiec.librechat.feature.auth.navigation
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.garfiec.librechat.feature.auth.screen.ForgotPasswordScreen
@@ -10,7 +13,9 @@ import com.garfiec.librechat.feature.auth.screen.ServerUrlScreen
 import com.garfiec.librechat.feature.auth.screen.SsoLoginScreen
 import com.garfiec.librechat.feature.auth.screen.TermsScreen
 import com.garfiec.librechat.feature.auth.screen.TwoFactorScreen
+import com.garfiec.librechat.feature.auth.screen.TwoFactorSetupScreen
 import com.garfiec.librechat.feature.auth.screen.VerifyEmailScreen
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
@@ -52,20 +57,49 @@ val NavKey.isAddAccountFlowRoute: Boolean
 
 @Serializable data class TwoFactor(val tempToken: String) : AuthRoute
 
+/**
+ * Required 2FA enrollment (v0.8.9-rc1). [tempToken] is the setup credential a sign-in, a refresh or
+ * a gated request handed out — never a login challenge, so never [TwoFactor]. The later single-use
+ * credentials stay in the ViewModel.
+ */
+@Serializable data class TwoFactorSetup(val tempToken: String) : AuthRoute {
+    override fun toString(): String = "TwoFactorSetup"
+}
+
 @Serializable data class VerifyEmail(val email: String) : AuthRoute
 
 @Serializable data object Terms : AuthRoute
 
 @Serializable data class ResetPassword(val userId: String, val token: String) : AuthRoute
 
+/**
+ * The way from a sign-in screen to another account that is still signed in. [available] is true while
+ * signed out with one; it is read inside the entries, like `termsDeclining`, so the screens see it
+ * change. [open] opens the shell's account switcher on those accounts.
+ */
+class SignInEscape(val available: StateFlow<Boolean>, val open: () -> Unit) {
+    /** [open] while [available], else null, which hides the screen's button. */
+    @Composable
+    internal fun actionOrNull(): (() -> Unit)? {
+        val isAvailable by available.collectAsStateWithLifecycle()
+        return open.takeIf { isAvailable }
+    }
+}
+
 fun EntryProviderScope<NavKey>.authEntries(
     onNavigate: (NavKey) -> Unit,
     onBack: () -> Unit,
     onAuthComplete: () -> Unit,
+    onTermsAccepted: () -> Unit,
+    onTermsDeclined: () -> Unit,
+    /** The shell's decline in flight. A flow read inside the entry, so the screen sees it change. */
+    termsDeclining: StateFlow<Boolean>,
+    signInEscape: SignInEscape,
 ) {
     entry<ServerUrl> {
         ServerUrlScreen(
             onServerValidate = { onNavigate(Login) },
+            onUseAnotherAccount = signInEscape.actionOrNull(),
         )
     }
     entry<AddAccountServerUrl> {
@@ -88,6 +122,7 @@ fun EntryProviderScope<NavKey>.authEntries(
             onNavigateToTwoFactor = { tempToken ->
                 onNavigate(TwoFactor(tempToken = tempToken))
             },
+            onNavigateToTwoFactorSetup = { tempToken -> onNavigate(TwoFactorSetup(tempToken = tempToken)) },
             onNavigateToSso = { provider -> onNavigate(SsoLogin(provider)) },
             onBack = onBack,
         )
@@ -100,7 +135,9 @@ fun EntryProviderScope<NavKey>.authEntries(
             onNavigateToTwoFactor = { tempToken ->
                 onNavigate(TwoFactor(tempToken = tempToken))
             },
+            onNavigateToTwoFactorSetup = { tempToken -> onNavigate(TwoFactorSetup(tempToken = tempToken)) },
             onNavigateToSso = { provider -> onNavigate(SsoLogin(provider)) },
+            onUseAnotherAccount = signInEscape.actionOrNull(),
         )
     }
     entry<SsoLogin> { key ->
@@ -128,6 +165,15 @@ fun EntryProviderScope<NavKey>.authEntries(
             tempToken = key.tempToken,
         )
     }
+    entry<TwoFactorSetup> { key ->
+        TwoFactorSetupScreen(
+            tempToken = key.tempToken,
+            onComplete = onAuthComplete,
+            // Below it is the sign-in screen, which is also where an expired setup starts over.
+            onBack = onBack,
+            onUseAnotherAccount = signInEscape.actionOrNull(),
+        )
+    }
     entry<VerifyEmail> { key ->
         VerifyEmailScreen(
             onVerify = onBack,
@@ -135,10 +181,14 @@ fun EntryProviderScope<NavKey>.authEntries(
             email = key.email,
         )
     }
+    // Pushed over the signed-in stack when the server requires the terms (modalAcceptance), so
+    // accepting just returns to where the user was. Never dismissable: back is a decline.
     entry<Terms> {
+        val declining by termsDeclining.collectAsStateWithLifecycle()
         TermsScreen(
-            onAccept = onAuthComplete,
-            onBack = onBack,
+            onAccept = onTermsAccepted,
+            onDecline = onTermsDeclined,
+            declining = declining,
         )
     }
     entry<ResetPassword> { key ->
@@ -161,6 +211,7 @@ val authSerializersModule = SerializersModule {
         subclass(Register::class, Register.serializer())
         subclass(ForgotPassword::class, ForgotPassword.serializer())
         subclass(TwoFactor::class, TwoFactor.serializer())
+        subclass(TwoFactorSetup::class, TwoFactorSetup.serializer())
         subclass(VerifyEmail::class, VerifyEmail.serializer())
         subclass(Terms::class, Terms.serializer())
         subclass(ResetPassword::class, ResetPassword.serializer())

@@ -283,6 +283,24 @@ class PresetPromptDelegate(
      */
     fun handleSlashCommand(displayData: PromptMentionDisplayData) {
         val group = cachedPromptGroups.find { it.id == displayData.id } ?: return
+        if (group.isExternal) {
+            // An externally managed group (v0.8.9-rc1) stores no text: read it live first.
+            handle.scope.launch {
+                when (val resolved = promptRepository.withResolvedText(group)) {
+                    is Result.Success -> insertSlashCommand(displayData, resolved.data)
+                    is Result.Error -> {
+                        Logger.d(resolved.exception) { "Failed to resolve prompt text: ${resolved.message}" }
+                        handle.setError(resolved.message ?: ChatNotice.PROMPT_RESOLVE_FAILED.marker())
+                    }
+                    is Result.Loading -> { /* no-op */ }
+                }
+            }
+            return
+        }
+        insertSlashCommand(displayData, group)
+    }
+
+    private fun insertSlashCommand(displayData: PromptMentionDisplayData, group: PromptGroup) {
         when (val insertion = resolvePromptInsertion(group)) {
             // Nothing to insert; leave the composer alone rather than writing the group's name.
             null -> return

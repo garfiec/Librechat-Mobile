@@ -70,6 +70,9 @@ class MessageListScrollInstrumentedTest {
     /** Stands in for the Scaffold's imePadding: raising it shrinks the list's viewport. */
     private var keyboardInset by mutableStateOf(0.dp)
 
+    /** The measured bottom chrome the screen passes in; raising it is the code workspace rows appearing. */
+    private var bottomReserve by mutableStateOf(160.dp)
+
     /**
      * The follower runs off `withFrameNanos`, which leaves Compose permanently non-idle for the
      * whole run — every finder call syncs on idle first, so on the automatic clock they all time
@@ -145,6 +148,26 @@ class MessageListScrollInstrumentedTest {
         assertTrue("the keyboard covered the focused field: $after", after.isVisible)
     }
 
+    /**
+     * A chat opened at its end, then the bottom chrome grows over it (the code workspace rows
+     * measured in after the opening scroll): the last reply must stay above the chrome. The
+     * viewport is unchanged, so only the bottom reserve tells the list anything moved.
+     */
+    @Test
+    fun growingBottomChromeKeepsTheLastReplyAboveIt() {
+        isStreaming = false
+        setChat()
+        advanceFrames(SETTLE_FRAMES)
+
+        composeRule.runOnUiThread { bottomReserve = GROWN_RESERVE }
+        advanceFrames(SETTLE_FRAMES)
+
+        val list = composeRule.onNode(hasScrollAction()).fetchSemanticsNode().boundsInRoot
+        val lastBottom = composeRule.onNodeWithText(LAST_TEXT, substring = true).fetchSemanticsNode().boundsInRoot.bottom
+        val chromeTop = list.bottom - with(composeRule.density) { GROWN_RESERVE.toPx() }
+        assertTrue("the last reply ends at $lastBottom, under chrome starting at $chromeTop", lastBottom <= chromeTop)
+    }
+
     // ── harness ───────────────────────────────────────────────────────────────
 
     private fun setChat() {
@@ -163,6 +186,7 @@ class MessageListScrollInstrumentedTest {
                             onEditMessage = {},
                             onRegenerateMessage = {},
                             onCopyMessage = {},
+                            bottomContentPadding = bottomReserve,
                             pendingAction = if (paused) TOOL_PAUSE else null,
                             editing = MessageEditingState(
                                 editingMessageId = editingMessageId,
@@ -310,5 +334,7 @@ class MessageListScrollInstrumentedTest {
         const val MAX_SCROLL_STEPS = 8
 
         val KEYBOARD_HEIGHT: Dp = 340.dp
+        val GROWN_RESERVE: Dp = 400.dp
+        const val LAST_TEXT = "Turn 12 of the conversation"
     }
 }

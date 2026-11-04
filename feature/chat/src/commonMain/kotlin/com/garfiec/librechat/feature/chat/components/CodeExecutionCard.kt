@@ -31,7 +31,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,10 +48,12 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.core.ui.platform.rememberReduceMotion
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.util.ToolPartStatus
 import com.garfiec.librechat.feature.chat.util.rememberClipboardWriter
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.pluralStringResource
@@ -67,6 +68,12 @@ data class CodeExecutionResult(
     val exitCode: Int?,
     /** The model-authored label from the args, which upstream shows in place of "Analyzing". */
     val intent: String? = null,
+    /**
+     * The attached-workspace command's own verdict, read from its exit trailer (`parseCommandOutput`)
+     * when the server stamped the call `attached_workspace`. When set it alone decides failure:
+     * stderr from a command that exited 0 is not an error.
+     */
+    val command: CommandOutputParts? = null,
 )
 
 /**
@@ -93,8 +100,8 @@ internal fun codeExecutionPhase(
     ToolCallVerdict.COMPLETED -> if (result?.indicatesError() == true) CodeExecutionPhase.ERROR else CodeExecutionPhase.FINISHED
 }
 
-internal fun CodeExecutionResult.indicatesError(): Boolean =
-    !error.isNullOrBlank() || (exitCode != null && exitCode != 0) || output.looksLikeError()
+internal fun CodeExecutionResult.indicatesError(): Boolean = command?.failed
+    ?: (!error.isNullOrBlank() || (exitCode != null && exitCode != 0) || output.looksLikeError())
 
 private fun String?.looksLikeError(): Boolean = this != null && ERROR_PATTERN.containsMatchIn(this)
 
@@ -145,11 +152,10 @@ fun CodeExecutionCard(
                 enter = if (reduceMotion) EnterTransition.None else expandVertically(),
                 exit = if (reduceMotion) ExitTransition.None else shrinkVertically(),
             ) {
-                CodeBlock(
-                    code = code,
-                    language = result.language,
-                    modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
-                )
+                Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
+                    ToolContentDisclosure(open = isCodeExpanded)
+                    CodeBlock(code = code, language = result.language)
+                }
             }
         }
         if (settled && (!result.output.isNullOrBlank() || !result.error.isNullOrBlank())) {
@@ -173,10 +179,19 @@ private fun CodeExecutionHeader(
         CodeExecutionPhase.STARTING -> stringResource(Res.string.sandbox_starting)
         CodeExecutionPhase.RUNNING -> result.intent ?: stringResource(Res.string.analyzing)
         CodeExecutionPhase.CANCELLED -> stringResource(Res.string.cd_tool_cancelled)
-        CodeExecutionPhase.FINISHED, CodeExecutionPhase.ERROR ->
-            result.intent ?: stringResource(Res.string.analyzing_finished)
+        CodeExecutionPhase.FINISHED, CodeExecutionPhase.ERROR -> result.intent
+            ?: stringResource(if (result.command != null) Res.string.command_finished else Res.string.analyzing_finished)
     }
-    val subtitle = listOfNotNull(result.language, durationMs?.let { formatTraceDuration(it, localeTag) })
+    // An attached command that failed names how: "exit code 1", "terminated by SIGKILL", "timed out".
+    val verdict = result.command?.takeIf { it.failed }?.let { command ->
+        when {
+            command.timedOut -> stringResource(Res.string.command_timed_out)
+            command.signal != null -> stringResource(Res.string.command_terminated, command.signal)
+            command.exitCode != null -> stringResource(Res.string.command_exit_code, command.exitCode)
+            else -> null
+        }
+    }
+    val subtitle = listOfNotNull(result.language, verdict, durationMs?.let { formatTraceDuration(it, localeTag) })
         .joinToString(" · ")
     val toggleLabel = stringResource(if (expanded) Res.string.cd_collapse_code else Res.string.cd_expand_code)
     val state = stringResource(if (expanded) Res.string.state_expanded else Res.string.state_collapsed)
@@ -278,6 +293,28 @@ private fun CodeExecutionOutput(result: CodeExecutionResult, stateKey: String, l
     val outputLabel = stringResource(Res.string.label_output)
     val lineCount = remember(copyText) { copyText.lines().size }
 
+    // This pane shows without a disclosure, so Copy on a preview fetches the full output first
+    // rather than sitting disabled; a failure reverts the icon and shows the status row.
+    val preview = LocalToolPreview.current
+    val isPreview = preview?.isPreview == true
+    var copyRequested by remember { mutableStateOf(false) }
+    var copyPending by remember { mutableStateOf(false) }
+    LaunchedEffect(copyPending, isPreview, copyText) {
+        if (copyPending && !isPreview) {
+            clipboard.copy(copyText, outputLabel)
+            showCopied = true
+            copyPending = false
+        }
+    }
+    // A retry from a failed fetch still reads the old failure until the new request is seen.
+    var staleFailure by remember { mutableStateOf(false) }
+    LaunchedEffect(copyPending, preview?.status) {
+        when {
+            preview?.status != ToolPartStatus.FAILED -> staleFailure = false
+            copyPending && !staleFailure -> copyPending = false
+        }
+    }
+
     Column(modifier = Modifier.padding(start = 12.dp, end = 4.dp, bottom = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -288,18 +325,31 @@ private fun CodeExecutionOutput(result: CodeExecutionResult, stateKey: String, l
             )
             IconButton(
                 onClick = {
-                    clipboard.copy(copyText, outputLabel)
-                    showCopied = true
+                    if (isPreview) {
+                        staleFailure = preview?.status == ToolPartStatus.FAILED
+                        copyRequested = true
+                        copyPending = true
+                        preview?.key?.let(preview.host::request)
+                    } else {
+                        clipboard.copy(copyText, outputLabel)
+                        showCopied = true
+                    }
                 },
+                enabled = !copyPending,
             ) {
-                Icon(
-                    imageVector = if (showCopied) Icons.Default.Check else Icons.Default.ContentCopy,
-                    contentDescription = stringResource(if (showCopied) Res.string.cd_copied else Res.string.cd_copy_output),
-                    modifier = Modifier.size(18.dp),
-                    tint = if (showCopied) colors.primary else colors.onSurfaceVariant,
-                )
+                if (copyPending) {
+                    AdaptiveCircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                } else {
+                    Icon(
+                        imageVector = if (showCopied) Icons.Default.Check else Icons.Default.ContentCopy,
+                        contentDescription = stringResource(if (showCopied) Res.string.cd_copied else Res.string.cd_copy_output),
+                        modifier = Modifier.size(18.dp),
+                        tint = if (showCopied) colors.primary else colors.onSurfaceVariant,
+                    )
+                }
             }
         }
+        ToolContentDisclosure(open = showAll || copyRequested, modifier = Modifier.padding(end = 8.dp))
         val maxLines = if (showAll) Int.MAX_VALUE else OUTPUT_PREVIEW_LINES
         Column(modifier = Modifier.padding(end = 8.dp)) {
             if (stdout != null) {
@@ -313,17 +363,19 @@ private fun CodeExecutionOutput(result: CodeExecutionResult, stateKey: String, l
             }
             if (stderr != null) {
                 if (stdout != null) Spacer(modifier = Modifier.size(4.dp))
+                // An attached command's stderr is an error only when the command failed (upstream BashCall).
+                val stderrIsError = result.command?.failed ?: true
                 OutputText(
                     text = stderr,
                     maxLines = maxLines,
-                    textColor = colors.onErrorContainer,
-                    background = colors.errorContainer,
+                    textColor = if (stderrIsError) colors.onErrorContainer else colors.onSurfaceVariant,
+                    background = if (stderrIsError) colors.errorContainer else colors.surfaceContainerLow,
                     onClipChange = { stderrClipped = it },
                 )
             }
         }
         if (!showAll && (stdoutClipped || stderrClipped)) {
-            TextButton(onClick = { showAll = true }) {
+            AdaptiveTextButton(onClick = { showAll = true }) {
                 Text(pluralStringResource(Res.plurals.show_all_n_lines, lineCount, lineCount))
             }
         }

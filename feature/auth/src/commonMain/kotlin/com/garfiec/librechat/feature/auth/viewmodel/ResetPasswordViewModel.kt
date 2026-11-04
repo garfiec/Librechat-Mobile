@@ -4,11 +4,15 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.datastore.ServerDataStore
+import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
+import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.feature.auth.diagnostics.offersDiagnosticLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 @Immutable
@@ -19,11 +23,18 @@ data class ResetPasswordUiState(
     val error: String? = null,
     /** [error] came from a failure the diagnostic log can help with; see `offersDiagnosticLog`. */
     val offerDiagnosticLog: Boolean = false,
+    /** A coded refusal ([AuthRefusal]) the screen words itself, in place of [error], while [error] is set. */
+    val refusal: AuthRefusal? = null,
     val isReset: Boolean = false,
+    /** The server's published policy links, as the sign-in footer shows them; null hides each. */
+    val policyLinks: PolicyLinks = PolicyLinks(),
 )
 
 class ResetPasswordViewModel(
     private val authRepository: AuthRepository,
+    configRepository: ConfigRepository,
+    accountSwitcher: AccountSwitcher,
+    serverDataStore: ServerDataStore,
     initialUserId: String? = null,
     initialToken: String? = null,
 ) : ViewModel() {
@@ -34,6 +45,14 @@ class ResetPasswordViewModel(
     private val _uiState = MutableStateFlow(ResetPasswordUiState())
     val uiState: StateFlow<ResetPasswordUiState> = _uiState.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            authServerConfig(configRepository, accountSwitcher, serverDataStore).collect { (config, url) ->
+                _uiState.update { it.copy(policyLinks = PolicyLinks.from(config, url)) }
+            }
+        }
+    }
+
     fun onPasswordChanged(password: String) {
         _uiState.value = _uiState.value.copy(password = password, error = null)
     }
@@ -43,7 +62,7 @@ class ResetPasswordViewModel(
     }
 
     fun resetPassword() {
-        val state = _uiState.value.copy(offerDiagnosticLog = false)
+        val state = _uiState.value.copy(offerDiagnosticLog = false, refusal = null)
 
         if (state.password.isBlank()) {
             _uiState.value = state.copy(error = "Please enter a new password")
@@ -76,6 +95,7 @@ class ResetPasswordViewModel(
                         isLoading = false,
                         error = result.rateLimitMessageOrNull()
                             ?: "Could not reset password. The link may have expired.",
+                        refusal = result.authRefusalOrNull(),
                         offerDiagnosticLog = result.offersDiagnosticLog(),
                     )
                 }

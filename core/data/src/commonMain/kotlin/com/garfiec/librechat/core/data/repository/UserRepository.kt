@@ -16,6 +16,12 @@ interface UserRepository {
      */
     suspend fun uploadAvatar(imageBytes: ByteArray, mimeType: String, fileName: String): Result<String>
 
+    /**
+     * `POST /api/user/email/change` (v0.8.9-rc1). Success means a link went to [newEmail]; the
+     * address changes only when it is opened. A refusal is read with [toEmailChangeError].
+     */
+    suspend fun requestEmailChange(newEmail: String, currentPassword: String): Result<Unit>
+
     suspend fun verifyEmail(token: String): Result<Unit>
     suspend fun resendVerification(email: String): Result<Unit>
     suspend fun getTerms(): Result<TermsResponse>

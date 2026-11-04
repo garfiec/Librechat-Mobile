@@ -12,13 +12,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.HueSlider
 import com.garfiec.librechat.core.ui.components.SaturationValuePanel
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
@@ -60,6 +61,8 @@ internal fun AccentColorDialog(
     onColorSelect: (Int) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Shown above the swatches, e.g. that the server's accent is in use until its switch is off. */
+    note: String? = null,
 ) {
     val initialHsv = remember(currentColor) { Color(currentColor).toHsv() }
     var hue by remember { mutableFloatStateOf(initialHsv.first) }
@@ -89,6 +92,14 @@ internal fun AccentColorDialog(
                     .imePadding()
                     .verticalScroll(rememberScrollState()),
             ) {
+                note?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 12.dp),
+                    )
+                }
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -156,12 +167,12 @@ internal fun AccentColorDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onColorSelect(working.toArgb()) }) {
+            AdaptiveTextButton(onClick = { onColorSelect(working.toArgb()) }) {
                 Text(stringResource(Res.string.action_save))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            AdaptiveTextButton(onClick = onDismiss) {
                 Text(stringResource(Res.string.action_cancel))
             }
         },

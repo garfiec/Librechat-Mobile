@@ -97,6 +97,14 @@ data class MessageContentPart(
     val groupId: Int? = null,
     val stepIndex: Int? = null,
     val siblingIndex: Int? = null,
+    /**
+     * The stored-file references a part can carry, read only to tell whether a turn would resend
+     * files from history (upstream `FileLocatorPart`): a direct `file_id`, a `file` locator, and a
+     * steer's own attached `files`.
+     */
+    @SerialName("file_id") val fileId: String? = null,
+    val file: JsonElement? = null,
+    val files: JsonElement? = null,
 )
 
 @Serializable

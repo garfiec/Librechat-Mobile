@@ -14,7 +14,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,6 +39,7 @@ import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveRadioButton
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -92,6 +92,7 @@ internal fun contextBarPlacementLabel(placement: ContextBarPlacement): String = 
 internal fun duringRunActionLabel(action: DuringRunAction): String = when (action) {
     DuringRunAction.QUEUE -> stringResource(Res.string.during_run_action_queue)
     DuringRunAction.STEER -> stringResource(Res.string.during_run_action_steer)
+    DuringRunAction.INTERRUPT -> stringResource(Res.string.during_run_action_interrupt)
 }
 
 @Composable
@@ -190,12 +191,12 @@ internal fun <T> RadioSelectionDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(current) }) {
+            AdaptiveTextButton(onClick = { onSave(current) }) {
                 Text(stringResource(Res.string.action_save))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            AdaptiveTextButton(onClick = onDismiss) {
                 Text(stringResource(Res.string.action_cancel))
             }
         },
@@ -245,12 +246,12 @@ internal fun ChatHeaderSettingsDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(currentContent, currentAlignment) }) {
+            AdaptiveTextButton(onClick = { onSave(currentContent, currentAlignment) }) {
                 Text(stringResource(Res.string.action_save))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            AdaptiveTextButton(onClick = onDismiss) {
                 Text(stringResource(Res.string.action_cancel))
             }
         },
@@ -320,7 +321,7 @@ internal fun RenderInlineDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            AdaptiveTextButton(onClick = onDismiss) {
                 Text(stringResource(Res.string.action_done))
             }
         },

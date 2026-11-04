@@ -1,6 +1,8 @@
 package com.garfiec.librechat.core.model.request
 
 import com.garfiec.librechat.core.model.FileReference
+import com.garfiec.librechat.core.model.ReasoningOverride
+import com.garfiec.librechat.core.model.code.CodeWorkspaceSelection
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
@@ -117,4 +119,18 @@ data class ChatRequest(
      *  that carries it, so it must only ride the first send: on a later turn it would move the
      *  chat. A project the user does not own is dropped silently server-side (no error). */
     val chatProjectId: String? = null,
+    /**
+     * Reasoning for this turn only (v0.8.9-rc1); see [ReasoningOverride]. A fresh send takes the
+     * composer's pending choice; edit, regenerate and continue replay the user message's own. The
+     * server 400s one the model does not accept, so the caller drops it rather than send it then.
+     */
+    val reasoningOverride: ReasoningOverride? = null,
+    /**
+     * The chat's code-workspace decision (`attached` / `without_attached`) and the workspaces it
+     * selects. Sent only when an agent in the chat runs code on an attached machine; a turn that
+     * sends neither on a chat that already decided keeps the recorded decision, and a NEW chat that
+     * sends neither is sealed "No workspace" for good. Agents endpoint only.
+     */
+    val codeEnvironmentMode: String? = null,
+    val codeWorkspaces: List<CodeWorkspaceSelection>? = null,
 )

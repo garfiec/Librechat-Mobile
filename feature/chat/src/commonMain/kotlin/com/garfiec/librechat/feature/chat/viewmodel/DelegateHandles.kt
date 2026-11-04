@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 import com.garfiec.librechat.core.model.PendingAction
+import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.ContextUsageTotals
@@ -145,6 +146,25 @@ class SkillsToggleHandle(root: ChatStateHandle) : DelegateHandle(root) {
         root.update { SkillsToggleWrites(this).apply(block).applyTo(this) }
 }
 
+// ── ReasoningCatalogDelegate ──────────────────────────────────────────────
+// Owns the selection's reasoning catalog, and on the composer only drops a staged Thinking choice
+// the selection no longer accepts.
+class ReasoningWrites internal constructor(state: ChatUiState) {
+    var reasoningCatalog: ReasoningCatalogState? = state.selection.reasoningCatalog
+    var pendingReasoningOverride: ReasoningOverride? = state.composer.pendingReasoningOverride
+    internal fun applyTo(s: ChatUiState) = s.copy(
+        selection = s.selection.copy(reasoningCatalog = reasoningCatalog),
+        composer = s.composer.copy(pendingReasoningOverride = pendingReasoningOverride),
+    )
+}
+
+class ReasoningHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    /** Read-only observation of the full state (the target and its resolved setting). */
+    val stateFlow: StateFlow<ChatUiState> get() = root.stateFlow
+    fun update(block: ReasoningWrites.() -> Unit) =
+        root.update { ReasoningWrites(this).apply(block).applyTo(this) }
+}
+
 // ── EndpointKeyStatusDelegate ─────────────────────────────────────────────
 // Narrower than ModelSelectionHandle on purpose: this delegate owns only the
 // per-endpoint key-state map, so it may not touch the rest of the selection slice.
@@ -158,6 +178,34 @@ class EndpointKeyWrites internal constructor(state: ChatUiState) {
 class EndpointKeyHandle(root: ChatStateHandle) : DelegateHandle(root) {
     fun update(block: EndpointKeyWrites.() -> Unit) =
         root.update { EndpointKeyWrites(this).apply(block).applyTo(this) }
+}
+
+// ── CodeWorkspaceDelegate ─────────────────────────────────────────────────
+class CodeWorkspaceWrites internal constructor(state: ChatUiState) {
+    var codeWorkspace: CodeWorkspaceUiState = state.codeWorkspace
+    var error: String? = state.error
+    internal fun applyTo(s: ChatUiState) = s.copy(codeWorkspace = codeWorkspace, error = error)
+}
+
+class CodeWorkspaceHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    /** Read-only observation of the full state (agent, agents list, endpoints config, chat id). */
+    val stateFlow: StateFlow<ChatUiState> get() = root.stateFlow
+    fun update(block: CodeWorkspaceWrites.() -> Unit) =
+        root.update { CodeWorkspaceWrites(this).apply(block).applyTo(this) }
+}
+
+// ── PullRequestDelegate ──────────────────────────────────────────────────
+class PullRequestWrites internal constructor(state: ChatUiState) {
+    var pullRequest: PullRequestUiState = state.pullRequest
+    var error: String? = state.error
+    internal fun applyTo(s: ChatUiState) = s.copy(pullRequest = pullRequest, error = error)
+}
+
+class PullRequestHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    /** Read-only observation of the full state (chat id, first-turn streaming). */
+    val stateFlow: StateFlow<ChatUiState> get() = root.stateFlow
+    fun update(block: PullRequestWrites.() -> Unit) =
+        root.update { PullRequestWrites(this).apply(block).applyTo(this) }
 }
 
 // ── PresetPromptDelegate ──────────────────────────────────────────────────
@@ -174,9 +222,14 @@ class PresetPromptWrites internal constructor(state: ChatUiState) {
     )
 }
 
-class PresetPromptHandle(root: ChatStateHandle) : DelegateHandle(root) {
-    fun update(block: PresetPromptWrites.() -> Unit) =
-        root.update { PresetPromptWrites(this).apply(block).applyTo(this) }
+/**
+ * Composer text written here is the user's (an inserted or filled-in prompt), so a change to it is
+ * saved as the chat's draft through [persistDraft], as typing is.
+ */
+class PresetPromptHandle(root: ChatStateHandle, private val persistDraft: (String) -> Unit) : DelegateHandle(root) {
+    fun update(block: PresetPromptWrites.() -> Unit) = root.updatePersistingDraft(persistDraft) {
+        PresetPromptWrites(this).apply(block).applyTo(this)
+    }
 }
 
 // ── SkillPickerDelegate ───────────────────────────────────────────────────
@@ -467,6 +520,7 @@ class SendDispatchWrites internal constructor(state: ChatUiState) {
     var inputText: String = state.composer.inputText
     var pendingQuotes: List<String> = state.composer.pendingQuotes
     var pendingManualSkills: List<String> = state.composer.pendingManualSkills
+    var pendingReasoningOverride: ReasoningOverride? = state.composer.pendingReasoningOverride
     var pendingUploadRouting: PendingUploadRouting? = state.composer.pendingUploadRouting
     var error: String? = state.error
     internal fun applyTo(s: ChatUiState) = s.copy(
@@ -475,6 +529,7 @@ class SendDispatchWrites internal constructor(state: ChatUiState) {
             inputText = inputText,
             pendingQuotes = pendingQuotes,
             pendingManualSkills = pendingManualSkills,
+            pendingReasoningOverride = pendingReasoningOverride,
             pendingUploadRouting = pendingUploadRouting,
         ),
         error = error,
@@ -498,6 +553,7 @@ class QueueOrchestrationWrites internal constructor(state: ChatUiState) {
     var pendingUploadRouting: PendingUploadRouting? = state.composer.pendingUploadRouting
     var editingQueuedItem: QueuedEditSession? = state.composer.editingQueuedItem
     var pendingManualSkills: List<String> = state.composer.pendingManualSkills
+    var pendingReasoningOverride: ReasoningOverride? = state.composer.pendingReasoningOverride
     var choice: ModelChoice = state.selection.choice
     var enabledTools: Set<String> = state.selection.enabledTools
     var selectedMcpServerNames: Set<String> = state.selection.selectedMcpServerNames
@@ -511,6 +567,7 @@ class QueueOrchestrationWrites internal constructor(state: ChatUiState) {
             pendingUploadRouting = pendingUploadRouting,
             editingQueuedItem = editingQueuedItem,
             pendingManualSkills = pendingManualSkills,
+            pendingReasoningOverride = pendingReasoningOverride,
         ),
         selection = s.selection.copy(
             choice = choice,
@@ -537,9 +594,25 @@ class VoiceWrites internal constructor(state: ChatUiState) {
     internal fun applyTo(s: ChatUiState) = s.copy(voice = voice, composer = composer, error = error)
 }
 
-class VoiceHandle(root: ChatStateHandle) : DelegateHandle(root) {
-    fun update(block: VoiceWrites.() -> Unit) =
-        root.update { VoiceWrites(this).apply(block).applyTo(this) }
+/** Dictated composer text is saved as the chat's draft through [persistDraft], as typing is. */
+class VoiceHandle(root: ChatStateHandle, private val persistDraft: (String) -> Unit) : DelegateHandle(root) {
+    fun update(block: VoiceWrites.() -> Unit) = root.updatePersistingDraft(persistDraft) {
+        VoiceWrites(this).apply(block).applyTo(this)
+    }
+}
+
+/** Applies [transform] and hands the composer text to [persistDraft] when the write changed it. */
+private fun ChatStateHandle.updatePersistingDraft(
+    persistDraft: (String) -> Unit,
+    transform: ChatUiState.() -> ChatUiState,
+) {
+    var written: String? = null
+    update {
+        val next = transform()
+        written = next.composer.inputText.takeIf { it != composer.inputText }
+        next
+    }
+    written?.let(persistDraft)
 }
 
 // ── Platform TTS (TextToSpeechDelegate / IosTts) ──────────────────────────
@@ -557,3 +630,17 @@ class TtsHandle(root: ChatStateHandle) : DelegateHandle(root) {
 // ── Error-only (FileAttachmentDelegate / IosFileHandler) ──────────────────
 /** For delegates that keep their real data in a separate flow and only surface errors here. */
 class ErrorOnlyHandle(root: ChatStateHandle) : DelegateHandle(root)
+
+// ── OwnerTextDelegate ─────────────────────────────────────────────────────
+// Narrow on purpose: it writes the owner texts and nothing else on the content slice.
+class OwnerTextWrites internal constructor(state: ChatUiState) {
+    var ownerTexts: Map<String, OwnerTextState> = state.content.ownerTexts
+    var error: String? = state.error
+    internal fun applyTo(s: ChatUiState) = s.copy(content = s.content.copy(ownerTexts = ownerTexts), error = error)
+}
+
+class OwnerTextHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    val stateFlow: StateFlow<ChatUiState> get() = root.stateFlow
+    fun update(block: OwnerTextWrites.() -> Unit) =
+        root.update { OwnerTextWrites(this).apply(block).applyTo(this) }
+}

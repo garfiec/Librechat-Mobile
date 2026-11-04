@@ -4,6 +4,7 @@ import co.touchlab.kermit.LogWriter
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
 import com.garfiec.librechat.core.common.AppInfo
+import com.garfiec.librechat.core.data.datastore.resetKeychainLeftByPreviousInstall
 import com.garfiec.librechat.core.logging.PersistentLogWriter
 import com.garfiec.librechat.core.logging.PlatformInfo
 import com.garfiec.librechat.core.logging.logStartupHeader
@@ -47,6 +48,10 @@ fun startIosKoin() {
     // phase of launch) still surfaces a readable NSException + Kotlin stack instead of an opaque
     // SIGABRT. It's upgraded with the persistent writer once Koin can supply it (below).
     runCatching { installCrashReporting() }
+
+    // Before Koin: the token store's cache warm (created at start) is the first Keychain read, and it
+    // must not see the sessions an uninstalled copy of the app left there.
+    resetKeychainLeftByPreviousInstall()
 
     val app = startKoin {
         modules(iosSharedModule)

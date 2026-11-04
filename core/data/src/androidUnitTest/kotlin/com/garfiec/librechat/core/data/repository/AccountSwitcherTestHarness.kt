@@ -34,6 +34,11 @@ internal class RecordingTokenManager : TokenManager {
     /** Accounts whose keyed slot a hard expiry has emptied. Every other account holds a session. */
     val expiredAccounts = mutableSetOf<String>()
 
+    /** Accounts carrying the required-2FA-setup marker. */
+    val twoFactorSetupAccounts = mutableSetOf<String>()
+
+    override suspend fun isTwoFactorSetupRequired(accountId: String): Boolean = accountId in twoFactorSetupAccounts
+
     override val isAuthenticated: Boolean = true
     override suspend fun getAccessToken(): String? = null
     override suspend fun setTokens(accessToken: String, refreshToken: String) {

@@ -39,6 +39,13 @@
     <string name="agents_chip_top_picks">Лучшее</string>
     <string name="agents_chip_all">Все</string>
     <string name="agents_chip_editable">Редактируемые</string>
+    <string name="agents_filter_mine">Мои агенты</string>
+    <string name="agents_sort_label">Сортировка</string>
+    <string name="agents_sort_newest">Сначала новые</string>
+    <string name="agents_sort_oldest">Сначала старые</string>
+    <string name="agents_sort_popular">Популярные</string>
+    <string name="agents_sort_author">По имени автора</string>
+    <string name="agents_mine_empty_title">Вы ещё не создали ни одного агента</string>
     <string name="agents_top_pick">Рекомендуемый</string>
     <string name="agents_new_agent">Новый агент</string>
     <string name="agent_unnamed">Агент без названия</string>
@@ -79,6 +86,7 @@
     <string name="agent_description_label">Описание</string>
     <string name="agent_description_placeholder">Необязательно: опишите вашего агента здесь</string>
     <string name="agent_instructions_label">Инструкции</string>
+    <string name="agent_instructions_linked_prompt">Этот агент использует сохранённый промпт в качестве инструкций. Измените или отвяжите его в веб-версии; правки здесь не изменят то, что выполняет агент.</string>
     <string name="agent_instructions_placeholder">Системные инструкции, которые использует агент</string>
     <string name="insert_variable">Вставить переменную</string>
     <string name="cd_insert_variable">Вставить переменную</string>
@@ -357,4 +365,16 @@
         <item quantity="many">Можно закрепить не более %1$d избранных.</item>
         <item quantity="other">Можно закрепить не более %1$d избранного.</item>
     </plurals>
+    <string name="tool_approval_mode_cd">Режим одобрения инструментов: %1$s</string>
+    <string name="tool_approval_inherit">Использовать унаследованную политику</string>
+    <string name="tool_approval_ask">Всегда спрашивать</string>
+    <string name="tool_approval_allow">Всегда одобрять</string>
+    <string name="tool_approval_chat">Спрашивать один раз за чат</string>
+    <string name="tool_approval_always">Спросить один раз, затем всегда одобрять</string>
+    <string name="tool_approval_admin_ask">Политика администратора требует одобрения.</string>
+    <string name="tool_approval_admin_deny">Политика администратора блокирует этот инструмент.</string>
+    <string name="tool_approval_reset">Сбросить мои запомненные одобрения</string>
+    <string name="tool_approval_reset_success">Ваши запомненные одобрения сброшены.</string>
+    <string name="tool_approval_reset_error">Не удалось сбросить запомненные одобрения. Повторите попытку.</string>
+    <string name="tool_approval_reset_forbidden">Вы не можете сбросить одобрения для этого агента.</string>
 </resources>

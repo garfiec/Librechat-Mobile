@@ -4,7 +4,6 @@ import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.model.queuedturn.AgentQueuedTurnReceipt
 import com.garfiec.librechat.core.model.queuedturn.EnqueueQueuedTurnRequest
 import com.garfiec.librechat.core.model.queuedturn.MAX_QUEUED_TURN_LIST_IDS
-import com.garfiec.librechat.core.model.queuedturn.QUEUED_TURN_RECONCILIATION_MS
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnFileRef
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnReceiptSource
@@ -59,6 +58,8 @@ class QueuedTurnDelegate(
      * to drain, and nothing else re-kicks the drain for the local rows behind it.
      */
     private val onServerRowsCleared: () -> Unit = {},
+    /** Called after every projection is folded in: a row being edited may have just left. */
+    private val onReceiptsApplied: () -> Unit = {},
     private val nowMillis: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
 
@@ -102,6 +103,7 @@ class QueuedTurnDelegate(
                     }.ifEmpty { null },
                     quotes = spec.quotes.ifEmpty { null },
                     manualSkills = spec.manualSkills.ifEmpty { null },
+                    reasoningOverride = spec.reasoningOverride,
                     expectedPredecessorCreatedAt = spec.expectedPredecessorCreatedAt,
                 ),
             )
@@ -200,6 +202,7 @@ class QueuedTurnDelegate(
         } else {
             announcedOwed + announced
         }
+        onReceiptsApplied()
         if (hadServerRows && !hasServerRows()) onServerRowsCleared()
     }
 
@@ -340,9 +343,10 @@ class QueuedTurnDelegate(
     private fun shouldKeepPolling(): Boolean {
         val state = handle.state
         val owned = state.messageQueue.mapNotNull { it.server }
+        val window = state.gates.queuedTurnReconciliationMs
         val reconcileUntil = owned.mapNotNull { server ->
             server.uncertainSince?.takeIf { !server.reconciliationExpired }
-                ?.plus(QUEUED_TURN_RECONCILIATION_MS)
+                ?.plus(window)
         }.maxOrNull()
         // `expectsReceipts`: a snapshot taken while an enqueue is still committing comes back
         // empty, and stopping on that answer would leave a fast successor unnoticed until the
@@ -370,12 +374,13 @@ class QueuedTurnDelegate(
      */
     private fun expireStaleUncertainty() {
         val now = nowMillis()
+        val window = handle.state.gates.queuedTurnReconciliationMs
         val expired = handle.state.messageQueue.any { item ->
             val server = item.server ?: return@any false
             server.status == QueuedTurnServerState.Status.Uncertain &&
                 !server.reconciliationExpired &&
                 server.uncertainSince != null &&
-                server.uncertainSince + QUEUED_TURN_RECONCILIATION_MS <= now
+                server.uncertainSince + window <= now
         }
         if (!expired) return
         handle.update {
@@ -385,7 +390,7 @@ class QueuedTurnDelegate(
                     if (server.status != QueuedTurnServerState.Status.Uncertain ||
                         server.reconciliationExpired ||
                         server.uncertainSince == null ||
-                        server.uncertainSince + QUEUED_TURN_RECONCILIATION_MS > now
+                        server.uncertainSince + window > now
                     ) {
                         item
                     } else {

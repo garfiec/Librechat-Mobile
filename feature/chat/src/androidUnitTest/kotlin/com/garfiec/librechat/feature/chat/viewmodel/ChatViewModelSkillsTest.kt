@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.LastUsedSelection
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
+import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.Preset
@@ -19,6 +20,7 @@ import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecSkills
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
@@ -654,6 +656,47 @@ class ChatViewModelSkillsTest {
         runCurrent()
         assertThat(sent.single { it.isContinued }.manualSkills).isNull()
     }
+
+    /**
+     * A stopped turn's frame names the user message by the id the server minted and carries none of
+     * its picks. The live turn must keep them: a regenerate right after Stop replays what the frame
+     * left out (the same path carries the turn's files and reasoning choice).
+     */
+    @Test
+    fun `regenerate right after Stop replays the stopped turn's picks`() =
+        skillsTest(conversationId = "conv-1") { vm ->
+            vm.addPendingManualSkill("pdf-tools")
+            send(vm, "summarize")
+            streams.single().emit(
+                StreamEvent.Final(
+                    aborted = true,
+                    requestMessage = Message(
+                        messageId = "server-u1",
+                        conversationId = "conv-1",
+                        text = "summarize",
+                        isCreatedByUser = true,
+                    ),
+                    responseMessage = Message(
+                        messageId = "a1",
+                        conversationId = "conv-1",
+                        parentMessageId = "server-u1",
+                        text = "",
+                        content = listOf(MessageContentPart(type = ContentType.TEXT, text = "partial")),
+                        unfinished = true,
+                    ),
+                    conversation = null,
+                ),
+            )
+            runCurrent()
+            assertThat(vm.uiState.value.isStreaming).isFalse()
+            assertThat(vm.uiState.value.messages.filter { it.isCreatedByUser }.map { it.messageId })
+                .containsExactly("server-u1")
+
+            vm.regenerateMessage("a1")
+            runCurrent()
+            assertThat(sent.last().isRegenerate).isTrue()
+            assertThat(sent.last().manualSkills).containsExactly("pdf-tools")
+        }
 
     // ─── helpers ─────────────────────────────────────────────────────
 

@@ -130,7 +130,13 @@ interface ConversationDao {
             val existing = getByIdForAccount(entity.conversationId, accountId)
             // The list route sends no parameters either: keep the ones a full read cached.
             val toUpsert = if (existing != null) {
-                entity.copy(tags = existing.tags, modelParams = entity.modelParams ?: existing.modelParams)
+                entity.copy(
+                    tags = existing.tags,
+                    modelParams = entity.modelParams ?: existing.modelParams,
+                    // A list row from an older replica (or a stream's stub) doesn't say; keep what a
+                    // full read learned.
+                    isCodeConversation = entity.isCodeConversation ?: existing.isCodeConversation,
+                ).withReadStateOf(existing)
             } else {
                 entity
             }
@@ -142,6 +148,32 @@ interface ConversationDao {
     suspend fun upsertPreservingTags(accountId: String, entity: ConversationEntity) {
         upsertPreservingTags(accountId, listOf(entity))
     }
+
+    /**
+     * The user caught up (`POST /api/convos/seen` answered). Does NOT touch `updatedAt`: reading a
+     * chat is not activity, and the server writes with `timestamps: false` for the same reason.
+     */
+    @Query(
+        "UPDATE conversations SET lastSeenAt = :lastSeenAt, isMarkedUnread = NULL " +
+            "WHERE conversationId = :id AND accountId = :accountId",
+    )
+    suspend fun markSeen(id: String, lastSeenAt: Long, accountId: String)
+
+    /** The read state `POST /api/convos/unread` answered with. Leaves `updatedAt` alone, as [markSeen]. */
+    @Query(
+        "UPDATE conversations SET lastResponseAt = COALESCE(:lastResponseAt, lastResponseAt), " +
+            "lastResponseMessageId = :lastResponseMessageId, lastResponseIsManual = :lastResponseIsManual, " +
+            "isMarkedUnread = :isMarkedUnread, lastSeenAt = NULL " +
+            "WHERE conversationId = :id AND accountId = :accountId",
+    )
+    suspend fun markUnread(
+        id: String,
+        lastResponseAt: Long?,
+        lastResponseMessageId: String?,
+        lastResponseIsManual: Boolean?,
+        isMarkedUnread: Boolean?,
+        accountId: String,
+    )
 
     @Query("DELETE FROM conversations WHERE conversationId = :id AND accountId = :accountId")
     suspend fun deleteById(id: String, accountId: String)
@@ -192,3 +224,20 @@ interface ConversationDao {
     @Query("DELETE FROM conversations WHERE accountId = :accountId")
     suspend fun deleteAllForAccount(accountId: String)
 }
+
+/**
+ * Read state travels as one group: a payload that carries none of it (an older server, or a write
+ * path whose response omits it) keeps what the cache knew rather than reading the chat as seen.
+ */
+internal fun ConversationEntity.withReadStateOf(existing: ConversationEntity): ConversationEntity =
+    if (lastResponseAt != null || lastSeenAt != null || isMarkedUnread != null) {
+        this
+    } else {
+        copy(
+            lastResponseAt = existing.lastResponseAt,
+            lastResponseMessageId = existing.lastResponseMessageId,
+            lastResponseIsManual = existing.lastResponseIsManual,
+            isMarkedUnread = existing.isMarkedUnread,
+            lastSeenAt = existing.lastSeenAt,
+        )
+    }

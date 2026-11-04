@@ -21,6 +21,7 @@ constants change when upstream moves, and upstream only moves at a sync.
     scripts/check-mirrors.py --to v0.8.8           # synced commit -> a target tag
     scripts/check-mirrors.py --from v0.8.6 --to v0.8.7
     scripts/check-mirrors.py --diff                # show what actually changed
+    scripts/check-mirrors.py --from X --to X       # check every anchor resolves at X
     scripts/check-mirrors.py --list                # print the registry, check nothing
     scripts/check-mirrors.py --self-test           # check the extractor, needs no submodule
 
@@ -438,13 +439,13 @@ def extract_block(text: str, symbol: str) -> str | None:
     """The full declaration of `symbol`, from its keyword to its closing delimiter.
 
     Handles `export const X = [...]`, `= new Set([...])`, `= {...}`, `export enum X {}`,
-    `export function X(...) {}` (optionally `async`) and a function assigned to a binding
+    `export function X(...) {}` (optionally `async` or `export default`) and a function assigned to a binding
     (`const X = (a) => {...}`, `const X = function (a) {...}`).
     Returns None when the symbol is not declared here -- upstream renamed or moved it,
     which the caller reports as MISSING rather than passing over.
     """
     anchor = re.compile(
-        rf"^[ \t]*(?:export\s+)?(?:async\s+)?(?P<kw>const|let|var|enum|type|interface|function)"
+        rf"^[ \t]*(?:export\s+(?:default\s+)?)?(?:async\s+)?(?P<kw>const|let|var|enum|type|interface|function)"
         rf"\s+{re.escape(symbol)}\b",
         re.MULTILINE,
     )
@@ -627,6 +628,14 @@ export async function handleAgentQueuedTurnCancel(req: Request, res: Response): 
 """, 4),
     # The first `{` after the parameter list is the return type's, not the body's; counted from
     # there the block is the signature line alone (packages/data-provider/src/bedrock.ts).
+    # packages/data-provider/src/createPayload.ts. Without `default` in the anchor the symbol is
+    # never found and the entry reports `??` at every revision.
+    ("default-exported function declaration", """
+export default function createPayload(submission: t.TSubmission) {
+  const { conversation } = submission;
+  return { conversation };
+}
+""", 4),
     ("function declaration with an object return type", """
 function parseOpusVersion(model: string): { major: number; minor: number } | null {
   const nameFirst = model.match(/claude-opus[-.]?(\\d+)/);
@@ -774,11 +783,13 @@ def main() -> int:
         return 2
 
     if rev_from == rev_to:
-        print(f"Both revisions are {rev_from[:12]} — nothing to compare.")
-        print("Point --to at the sync target, or fetch the submodule first.")
-        return 0
-
-    print(f"upstream {rev_from[:12]} -> {rev_to[:12]}   ({len(entries)} mirrors)\n")
+        # Nothing can drift, but every anchor can still fail to resolve. Checking that here is
+        # how a sync proves the registry was repointed at the new pin: a `??` row means an entry
+        # still names a file or symbol that does not exist there.
+        print(f"Both revisions are {rev_from[:12]} — checking that every mirror resolves.")
+        print("Point --to at the sync target to compare two revisions.\n")
+    else:
+        print(f"upstream {rev_from[:12]} -> {rev_to[:12]}   ({len(entries)} mirrors)\n")
 
     results = [check(e, args.upstream, rev_from, rev_to) for e in entries]
     changed = [r for r in results if r.status == CHANGED]
@@ -801,7 +812,10 @@ def main() -> int:
 
     print()
     if not changed and not missing:
-        print(f"All {len(results)} mirrors unchanged across this range.")
+        if rev_from == rev_to:
+            print(f"All {len(results)} mirrors resolve at this revision.")
+        else:
+            print(f"All {len(results)} mirrors unchanged across this range.")
         return 0
 
     if changed:

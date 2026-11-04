@@ -152,10 +152,11 @@ fun ResetPasswordScreen(
                     enabled = !uiState.isLoading,
                 )
 
-                if (uiState.error != null) {
+                val errorText = authErrorText(uiState.refusal, uiState.error)
+                if (errorText != null) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = uiState.error!!,
+                        text = errorText,
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -179,6 +180,8 @@ fun ResetPasswordScreen(
                         Text(stringResource(Res.string.reset_password_button))
                     }
                 }
+
+                PolicyLinksFooter(uiState.policyLinks, modifier = Modifier.padding(top = 16.dp))
             }
         }
     }

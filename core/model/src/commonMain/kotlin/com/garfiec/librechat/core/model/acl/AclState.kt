@@ -78,5 +78,10 @@ enum class AclError {
 
     /** The server refuses any change to the owner's own access. */
     OWNER_PROTECTED,
+
+    /** Retryable refusals of an audited update (v0.8.9-rc1); see [PermissionUpdateFailure]. */
+    BUSY,
+    UNAVAILABLE,
+    AUDIT_UNAVAILABLE,
     GENERIC,
 }

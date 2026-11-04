@@ -32,6 +32,8 @@ data class SubagentTrace(
     val parentToolCallId: String,
     val subagentRunId: String? = null,
     val subagentType: String? = null,
+    /** The agent running the subagent, which stamps its id on the files its tools save. */
+    val subagentAgentId: String? = null,
     /** Latest phase label for the live ticker (e.g. the agent's display name). */
     val label: String? = null,
     /** Latest lifecycle/content phase reported by the server. */
@@ -39,4 +41,6 @@ data class SubagentTrace(
     val parts: List<MessageContentPart> = emptyList(),
     /** True once the server reports a terminal phase (`stop`/`error`). */
     val isComplete: Boolean = false,
+    /** Updates the host omitted while the live stream was unavailable (`activityDroppedCount`). */
+    val droppedUpdates: Int = 0,
 )

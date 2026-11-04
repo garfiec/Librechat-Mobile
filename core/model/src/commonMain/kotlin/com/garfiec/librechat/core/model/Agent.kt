@@ -87,6 +87,13 @@ data class Agent(
      */
     @SerialName("additional_instructions") val additionalInstructions: String? = null,
     /**
+     * The prompt group whose text the agent runs as its instructions (v0.8.9-rc1):
+     * `{ source: "native", groupId, selection }`, or `{ source, restricted: true }` for an editor
+     * without VIEW on the group. Raw: mobile only reads whether a link exists, and never sends the
+     * field, which leaves the link as it is (the update route reads absent as "no change").
+     */
+    val instructionsPrompt: JsonElement? = null,
+    /**
      * Runtime-supplied per-tool kwargs. The upstream Mongoose schema
      * (`packages/data-schemas/src/schema/agent.ts:47-49`) declares this as
      * `[{ type: Mixed }]` (an array of mixed values), so consumers must
@@ -128,6 +135,17 @@ data class Agent(
     @SerialName("git_identity") val gitIdentity: AgentGitIdentity? = null,
     /** The persistent code workspace this agent's sandbox attaches to (v0.8.8-rc2). Round-tripped. */
     @SerialName("code_workspace_id") val codeWorkspaceId: String? = null,
+    /**
+     * The attached machine this agent runs code on; absent means the deployment's default. Read,
+     * never written, like [gitIdentity]: the update route changes it only when the key is present.
+     * Served by the LIST route only (`GET /api/agents`), not by `GET /api/agents/:id`.
+     */
+    @SerialName("code_environment_id") val codeEnvironmentId: String? = null,
+    /**
+     * Machines the agent's author allows a chat to pick instead of [codeEnvironmentId] (v0.8.9-rc1).
+     * Read only, LIST route only, as above.
+     */
+    @SerialName("code_environment_ids") val codeEnvironmentIds: List<String>? = null,
     /**
      * Which skills the agent is exposed to while skills are enabled (v0.8.8-rc2). A missing value
      * preserves the legacy semantics server-side, which is exactly why this is a raw String and

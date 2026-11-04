@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.ContextUsageTotals
 import com.garfiec.librechat.core.model.usage.UsageAmount
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
+import com.garfiec.librechat.feature.chat.util.AttachedRun
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.PendingUsage
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
@@ -67,6 +68,14 @@ data class MessagesState(
      */
     val resumedReplyId: String? = null,
     val isStreaming: Boolean = false,
+    /**
+     * The run this screen attached to rather than started, while it streams. The server saves that
+     * run's reply as an `unfinished` partial whenever its last subscriber leaves, so a reopened chat
+     * reads the partial into the tree beside the live bubble. While [isStreaming], every rebuild cuts
+     * the path at the message the run answers (`AttachedRun.anchorIn`), so the reply shows once.
+     * Cleared when this screen starts a turn of its own.
+     */
+    val attachedRun: AttachedRun? = null,
     /**
      * A manual compaction this client submitted is still running (v0.8.8-rc3). Distinct from
      * [isStreaming], which a compaction also sets: the compact action needs to label ITSELF as
@@ -130,6 +139,12 @@ data class MessagesState(
     val sessionSubagentUsage: UsageAmount = UsageAmount.EMPTY,
     /** The breakdown's branch-wide figures, derived by `ContextProjectionDelegate`. */
     val contextUsageTotals: ContextUsageTotals = ContextUsageTotals(),
+    /**
+     * The author's original text of redacted user turns, by message id (v0.8.9-rc1), read by
+     * `OwnerTextDelegate`. Memory only, for display only: never written to Room, the search
+     * index, drafts, exports or share links, and never used by copy, edit, retry or read aloud.
+     */
+    val ownerTexts: Map<String, OwnerTextState> = emptyMap(),
     /**
      * The live human-review pause blocking this run, or null when nothing is awaiting the user
      * (v0.8.8 HITL). Set from `on_pending_action`, from `resumeState.pendingAction` on a
@@ -216,4 +231,34 @@ data class ActiveToolCall(
     val durationMs: Long? = null,
     /** The server rejected the call's arguments against the tool's schema, so it never ran. */
     val inputValidationError: Boolean = false,
-)
+    /**
+     * The run is waiting on an MCP sign-in (`on_run_step_delta` with `delta.auth`): the provider's
+     * authorization URL. The card offers Sign in while the call is not complete.
+     */
+    val authUrl: String? = null,
+    /** The MCP server [authUrl] signs in to; null when neither the URL nor the call names one. */
+    val authServerName: String? = null,
+    /** Server epoch ms the prompt expires at. Display only; never compared to the device clock. */
+    val authExpiresAt: Long? = null,
+    /**
+     * Set when this is a `subagent` call surfacing a sign-in one of its child's calls is held on
+     * (that call lives in the trace, not in the active list): the child call's id. Its completion
+     * clears the prompt, since this parent call stays running for the rest of the subagent's run.
+     */
+    val authToolCallId: String? = null,
+    /** The model has started writing this call's arguments (`on_tool_preparation`, v0.8.9-rc1). */
+    val preparationStarted: Boolean = false,
+    /** The SDK handed the call to execution (`on_tool_calls_dispatched`). */
+    val dispatched: Boolean = false,
+) {
+    /**
+     * Upstream `isToolCallPreparing`: arguments are still being written. Dispatch, a result or a
+     * terminal status outranks a preparation marker, whichever order they arrived in.
+     *
+     * Upstream also counts incomplete arguments as preparing, for servers that emit no marker.
+     * This client does not track argument deltas (the start carries the empty announcement and only
+     * the completion has the whole call), so that rule would read every running call as preparing.
+     */
+    val isPreparing: Boolean
+        get() = preparationStarted && !dispatched && !isComplete && closedStatus == null && output.isNullOrEmpty()
+}

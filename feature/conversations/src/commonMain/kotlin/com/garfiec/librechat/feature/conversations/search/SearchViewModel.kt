@@ -8,7 +8,6 @@ import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
-import com.garfiec.librechat.core.data.mapper.LegacyThinking
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
@@ -31,6 +30,7 @@ import com.garfiec.librechat.core.data.search.TitleMatch
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.content.LegacyThinking
 import com.garfiec.librechat.core.model.content.flattenSearchableText
 import com.garfiec.librechat.core.model.content.stripCitations
 import com.garfiec.librechat.feature.conversations.drawer.DrawerSearchSources

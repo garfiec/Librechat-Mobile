@@ -11,4 +11,11 @@ data class BalanceConfig(
     val refillIntervalValue: Double? = null,
     val refillIntervalUnit: String? = null,
     val refillAmount: Double? = null,
+    /** Upstream `BALANCE_REFILL_MODES` (v0.8.9-rc1): `add` (default) or `reset`. Kept raw. */
+    val refillMode: String? = null,
+    /**
+     * How the balance is shown (v0.8.9-rc1): `credits` (default), `currency` or `percent`. Kept raw:
+     * admin overrides reach the client unvalidated, and an unknown mode reads as `credits`.
+     */
+    val display: String? = null,
 )

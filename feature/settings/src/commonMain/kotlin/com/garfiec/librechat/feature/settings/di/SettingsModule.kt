@@ -14,6 +14,7 @@ import com.garfiec.librechat.feature.settings.viewmodel.GeneralSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.McpServerEditorViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.McpViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.MemoriesViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.PasskeysViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.PrefetchActivityViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.PrefetchSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.PresetManagerViewModel
@@ -51,6 +52,7 @@ val settingsModule = module {
             serverDataStore = get(),
             keyRepository = get(),
             roleRepository = get(),
+            passkeyRepository = get(),
             ioDispatcher = get(KoinQualifiers.IO),
         )
     }
@@ -85,6 +87,7 @@ val settingsModule = module {
     viewModelOf(::McpViewModel)
     // viewModelOf can't read parametersOf: the editor takes the server it edits, or null to add one.
     viewModel { params -> McpServerEditorViewModel(get(), get(), params.getOrNull()) }
+    viewModelOf(::PasskeysViewModel)
     viewModelOf(::PresetManagerViewModel)
     // Explicit block for the same reason as AccountSettingsViewModel: the IO dispatcher is resolved by
     // qualifier, which the constructor DSL cannot express.

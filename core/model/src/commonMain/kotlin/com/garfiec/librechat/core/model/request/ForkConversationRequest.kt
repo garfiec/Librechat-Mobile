@@ -9,6 +9,11 @@ data class ForkConversationRequest(
     val option: String? = null,
     val splitAtTarget: Boolean? = null,
     val latestMessageId: String? = null,
+    /**
+     * Copy the messages without their attached or generated files (v0.8.9-rc1). An older server
+     * ignores it and returns an ordinary copy, so callers check the returned messages.
+     */
+    val excludeFiles: Boolean? = null,
 )
 
 /**

@@ -1,9 +1,17 @@
 package com.garfiec.librechat.feature.schedules.components
 
 import androidx.compose.runtime.Composable
+import com.garfiec.librechat.core.model.schedule.BlockedRun
+import com.garfiec.librechat.core.model.schedule.BlockedRunRepair
 import com.garfiec.librechat.core.model.schedule.ScheduleDisabledReason
 import com.garfiec.librechat.core.model.schedule.ScheduleFrequency
 import com.garfiec.librechat.feature.schedules.resources.Res
+import com.garfiec.librechat.feature.schedules.resources.schedule_blocked_access
+import com.garfiec.librechat.feature.schedules.resources.schedule_blocked_administrator
+import com.garfiec.librechat.feature.schedules.resources.schedule_blocked_consent
+import com.garfiec.librechat.feature.schedules.resources.schedule_blocked_retry_later
+import com.garfiec.librechat.feature.schedules.resources.schedule_blocked_sign_in
+import com.garfiec.librechat.feature.schedules.resources.schedule_blocked_unknown
 import com.garfiec.librechat.feature.schedules.resources.schedule_disabled_agent
 import com.garfiec.librechat.feature.schedules.resources.schedule_disabled_balance
 import com.garfiec.librechat.feature.schedules.resources.schedule_disabled_failures
@@ -61,6 +69,20 @@ private fun serverPauseLabel(reason: String?): String = when (reason) {
     ScheduleDisabledReason.PROJECT_REQUIRED -> stringResource(Res.string.schedule_disabled_project_required)
     else -> stringResource(Res.string.schedule_disabled_unknown)
 }
+
+/** Why the last run was blocked and what to do, naming the MCP server; never the raw `lastRun.error`. */
+@Composable
+fun blockedRunLabel(blocked: BlockedRun): String = stringResource(
+    when (blocked.repair) {
+        BlockedRunRepair.SIGN_IN -> Res.string.schedule_blocked_sign_in
+        BlockedRunRepair.CONSENT -> Res.string.schedule_blocked_consent
+        BlockedRunRepair.ADMINISTRATOR -> Res.string.schedule_blocked_administrator
+        BlockedRunRepair.ACCESS -> Res.string.schedule_blocked_access
+        BlockedRunRepair.RETRY_LATER -> Res.string.schedule_blocked_retry_later
+        BlockedRunRepair.UNKNOWN -> Res.string.schedule_blocked_unknown
+    },
+    blocked.server,
+)
 
 @Composable
 fun frequencyLabel(frequency: String): String = when (frequency) {

@@ -12,6 +12,10 @@ import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.repository.WebSearchReadinessRepository
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.config.InterfaceConfig
+import com.garfiec.librechat.core.model.config.isForcedTemporaryRetention
+import com.garfiec.librechat.core.model.config.landingHeadingIsGreeting
+import com.garfiec.librechat.core.model.config.queuedTurnReconciliationTimeoutMs
+import com.garfiec.librechat.core.model.config.steerArmConfirmationTimeoutMs
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
@@ -153,6 +157,10 @@ class ChatConfigDelegate(
                         mcpServersEnabled = role.hasAccessOrPermissive(PermissionType.MCP_SERVERS, Permission.USE),
                         multiConvoEnabled = gate(PermissionType.MULTI_CONVO, Permission.USE) { it.multiConvo },
                         temporaryChatEnabled = gate(PermissionType.TEMPORARY_CHAT, Permission.USE) { it.temporaryChat },
+                        temporaryChatEnforced = isForcedTemporaryRetention(iface?.retentionMode),
+                        landingGreetingHeading = iface.landingHeadingIsGreeting(),
+                        queuedTurnReconciliationMs = iface.queuedTurnReconciliationTimeoutMs(),
+                        steerArmConfirmationMs = iface.steerArmConfirmationTimeoutMs(),
                         webSearchEnabled = librechatSearchAllowed(role, iface),
                         webSearchPermitted = role.hasAccessOrPermissive(PermissionType.WEB_SEARCH, Permission.USE),
                         runCodeEnabled = gate(PermissionType.RUN_CODE, Permission.USE) { it.runCode },

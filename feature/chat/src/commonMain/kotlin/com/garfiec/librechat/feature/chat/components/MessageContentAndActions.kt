@@ -60,6 +60,7 @@ import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
+import com.garfiec.librechat.feature.chat.components.mcpapp.McpAppRows
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.ContentGroup
@@ -71,6 +72,7 @@ import com.garfiec.librechat.feature.chat.util.groupedToolCallIds
 import com.garfiec.librechat.feature.chat.util.hasParallelGroupIds
 import com.garfiec.librechat.feature.chat.util.steerText
 import com.garfiec.librechat.feature.chat.util.withPreviews
+import com.garfiec.librechat.feature.chat.util.withSubagentFilesAdopted
 import org.jetbrains.compose.resources.stringResource
 
 /** Material 3's disabled content alpha. */
@@ -360,7 +362,10 @@ internal fun MessageContentAndActions(
         // Workspace changes render once, in their own section, so every other reader takes the
         // inline rest. Markdown images still resolve against all of them, as on web.
         val workspace = remember(effectiveAttachments) { partitionWorkspaceChanges(effectiveAttachments) }
-        val inlineAttachments = workspace.inline
+        // A subagent child's file whose call no transcript names yet goes under the subagent card.
+        val inlineAttachments = remember(workspace.inline, message.content) {
+            workspace.inline.withSubagentFilesAdopted(message.content)
+        }
         ProvideMarkdownMedia(effectiveAttachments, baseUrl) {
             // Unwrapped while the parts editor is open: it puts a text field in place of each
             // editable part, and a text field must never sit inside a SelectionContainer (the
@@ -559,8 +564,8 @@ internal fun MessageContentAndActions(
                                                             group.groupedToolCallIds(),
                                                         )
                                                     }
-                                                    val groupFailed = remember(inlineAttachments, group) {
-                                                        activityGroupFailed(group, inlineAttachments)
+                                                    val groupOutcome = remember(inlineAttachments, group) {
+                                                        activityGroupOutcome(group, inlineAttachments)
                                                     }
                                                     // A field the user cannot reach is worse than
                                                     // no field: a reply whose only editable part is
@@ -581,7 +586,7 @@ internal fun MessageContentAndActions(
                                                     }
                                                     ActivityGroup(
                                                         group = group,
-                                                        failed = groupFailed,
+                                                        outcome = groupOutcome,
                                                         stateKey = "${message.messageId}:${group.key}",
                                                         autoExpand = group.key == focusedGroupKey || holdsEditedPart,
                                                         autoExpandKey = LocalSearchFocusNonce.current,
@@ -599,6 +604,13 @@ internal fun MessageContentAndActions(
                                                                 SearchVerticalsSection(
                                                                     verticals = groupVerticals,
                                                                     stateKey = "${message.messageId}:${group.key}",
+                                                                    modifier = Modifier.padding(top = 8.dp),
+                                                                )
+                                                                // Never inside the fold: an App row stays
+                                                                // reachable with the group collapsed.
+                                                                McpAppRows(
+                                                                    attachments = inlineAttachments,
+                                                                    toolCallIds = group.groupedToolCallIds(),
                                                                     modifier = Modifier.padding(top = 8.dp),
                                                                 )
                                                             }
@@ -621,6 +633,16 @@ internal fun MessageContentAndActions(
                     } else {
                         if (isPersistedTurnError(message)) {
                             StreamErrorPart(raw = message.text)
+                        } else if (isUser && !message.privacyRevision.isNullOrEmpty()) {
+                            // A turn the server redacted: its author sees what they typed, with why.
+                            PrivateTextBody(
+                                message = message,
+                                fontSizeMultiplier = fontSizeMultiplier,
+                                useKatex = useKatex,
+                                searchQuery = if (isSearchMatch) searchQuery else null,
+                                searchFocusedOccurrence = if (isCurrentSearchMatch) searchFocusedOccurrence else -1,
+                                onFocusedOccurrencePosition = if (isCurrentSearchMatch) onFocusedOccurrencePosition else null,
+                            )
                         } else if (message.text.isNotBlank()) {
                             val query = if (isSearchMatch) searchQuery else null
                             val focused = if (isCurrentSearchMatch) searchFocusedOccurrence else -1
@@ -666,6 +688,11 @@ internal fun MessageContentAndActions(
                                 )
                             }
                         }
+                    }
+
+                    // Under the failure, when the files the branch carries may be its cause.
+                    if (!isUser) {
+                        DisableSelection { AttachmentRecoveryFor(message.messageId) }
                     }
 
                     DisableSelection {

@@ -188,7 +188,8 @@ class SearchSourcesParityTest {
         key = "g",
         entries = parts.mapIndexed { i, p -> IndexedContentPart(i, p) },
         labelText = label,
-        failed = false,
+        labelFailed = false,
+        labelPartial = false,
         toolCount = parts.size,
         completed = true,
     )

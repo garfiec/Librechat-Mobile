@@ -51,6 +51,10 @@ data class PolledTask(
     val resultClaimed: Boolean = false,
     /** `pending` | `failed` | `delivered`, or null. */
     val delivery: String? = null,
+    /** A subagent task's durable child thread (`subagent_thread_id`, v0.8.9-rc1), for opening its activity. */
+    val threadId: String? = null,
+    /** A subagent task's folded progress tree (`activity`, v0.8.9-rc1); null when absent or malformed. */
+    val activity: SubagentDigest? = null,
 )
 
 sealed interface BackgroundTaskDisplay {
@@ -152,6 +156,9 @@ object BackgroundTaskOutput {
             resultAvailable = obj.bool("result_available") == true,
             resultClaimed = obj.bool("result_claimed") == true,
             delivery = (delivery as? JsonPrimitive)?.content,
+            threadId = obj.string("subagent_thread_id")?.takeIf { it.isNotEmpty() },
+            // Never a reason to refuse the card: a malformed digest is simply not drawn.
+            activity = obj["activity"]?.takeUnless { it is JsonNull }?.let(SubagentDigestParser::parse),
         )
     }
 

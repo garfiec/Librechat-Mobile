@@ -71,7 +71,10 @@ Both platforms derive from the same `versionName`, so they stay in lockstep:
 | iOS | `CFBundleShortVersionString` | `CFBundleVersion` (same YYYYMMPP) | *Stamp Version* Xcode build phase reads `version.properties` at build |
 
 > The "Stamp Version from version.properties" run-script phase runs after Info.plist is in
-> the bundle and before codesign, so the committed `Info.plist` literals (and the unused
+> the bundle and before codesign. It, like "Stamp Git SHA", declares the processed Info.plist
+> (`$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)`) as an input: that is what orders it after
+> `ProcessInfoPlistFile`, which otherwise can run later on an incremental build and re-copy the
+> committed plist over the stamp. So the committed `Info.plist` literals (and the unused
 > `MARKETING_VERSION`/`CURRENT_PROJECT_VERSION` build settings) are just a fallback snapshot —
 > the build always reflects `version.properties`. The same stamp drives the published iOS IPA
 > (see *Cutting a release* below), so both platforms' assets carry the identical calver.

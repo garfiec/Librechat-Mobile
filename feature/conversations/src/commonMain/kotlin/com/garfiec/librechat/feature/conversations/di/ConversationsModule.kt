@@ -12,6 +12,7 @@ import com.garfiec.librechat.feature.conversations.viewmodel.ArchivedConversatio
 import com.garfiec.librechat.feature.conversations.viewmodel.BookmarkChatsViewModel
 import com.garfiec.librechat.feature.conversations.viewmodel.BookmarksViewModel
 import com.garfiec.librechat.feature.conversations.viewmodel.ProjectChatsViewModel
+import com.garfiec.librechat.feature.conversations.viewmodel.ProjectInstructionsViewModel
 import com.garfiec.librechat.feature.conversations.viewmodel.ProjectsViewModel
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModel
@@ -64,6 +65,15 @@ val conversationsModule = module {
             roleRepository = get(),
             configRepository = get(),
             projectRepository = get(),
+            fileRepository = get(),
+        )
+    }
+    // The instructions editor's projectId arrives from the navigation layer via parametersOf.
+    viewModel { params ->
+        ProjectInstructionsViewModel(
+            projectId = params.get(),
+            projectRepository = get(),
+            configRepository = get(),
         )
     }
     // The bookmark's name arrives from the navigation layer via parametersOf.

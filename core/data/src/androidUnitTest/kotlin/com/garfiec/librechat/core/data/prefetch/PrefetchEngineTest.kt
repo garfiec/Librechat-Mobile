@@ -131,7 +131,7 @@ class PrefetchEngineTest {
     fun `a list refresh completed moments ago is not repeated`() = runTest {
         coEvery { settingsDataStore.prefetchListRefreshedAt(any()) } returns currentTime
         stubRecent("a")
-        coEvery { messageRepository.refreshMessages(any(), any()) } returns Result.Success(emptyList())
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } returns Result.Success(emptyList())
 
         engine().run(account)
 
@@ -143,7 +143,7 @@ class PrefetchEngineTest {
         coEvery { settingsDataStore.prefetchListRefreshedAt(any()) } returns
             currentTime - 1.hours.inWholeMilliseconds
         stubRecent("a")
-        coEvery { messageRepository.refreshMessages(any(), any()) } returns Result.Success(emptyList())
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } returns Result.Success(emptyList())
 
         engine().run(account)
 
@@ -160,7 +160,7 @@ class PrefetchEngineTest {
         coEvery { conversationRepository.loadNextPage(any(), any(), any(), any(), any(), any()) } returns
             Result.Error(exception = ApiException(statusCode = 500, message = "boom"))
         stubRecent("a")
-        coEvery { messageRepository.refreshMessages(any(), any()) } returns Result.Success(emptyList())
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } returns Result.Success(emptyList())
 
         engine().run(account)
 
@@ -171,7 +171,7 @@ class PrefetchEngineTest {
     fun `a completed list refresh is recorded`() = runTest {
         coEvery { settingsDataStore.prefetchListRefreshedAt(any()) } returns null
         stubRecent("a")
-        coEvery { messageRepository.refreshMessages(any(), any()) } returns Result.Success(emptyList())
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } returns Result.Success(emptyList())
 
         engine().run(account)
 
@@ -182,7 +182,7 @@ class PrefetchEngineTest {
     fun `pacing waits five times the observed latency between requests`() = runTest {
         stubRecent("a", "b")
         val callTimes = mutableListOf<Long>()
-        coEvery { messageRepository.refreshMessages(any(), any()) } coAnswers {
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } coAnswers {
             callTimes += currentTime
             delay(REQUEST_MILLIS)
             Result.Success(emptyList<Message>())
@@ -205,7 +205,7 @@ class PrefetchEngineTest {
         foregroundSignal.set(false)
         stubRecent("a", "b")
         val callTimes = mutableListOf<Long>()
-        coEvery { messageRepository.refreshMessages(any(), any()) } coAnswers {
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } coAnswers {
             callTimes += currentTime
             delay(REQUEST_MILLIS)
             Result.Success(emptyList<Message>())
@@ -226,7 +226,7 @@ class PrefetchEngineTest {
         foregroundSignal.set(false)
         stubRecent("a", "b", "c")
         val callTimes = mutableListOf<Long>()
-        coEvery { messageRepository.refreshMessages(any(), any()) } coAnswers {
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } coAnswers {
             callTimes += currentTime
             // The user comes back while the first request is in flight.
             if (callTimes.size == 1) foregroundSignal.set(true)
@@ -285,13 +285,24 @@ class PrefetchEngineTest {
         override suspend fun refreshMessages(
             conversationId: String,
             originAccount: AccountId?,
+            toolPreviews: Boolean,
         ): Result<List<Message>> {
             sawMarker = coroutineContext.isPrefetch()
             return Result.Success(emptyList())
         }
 
         override fun observeMessages(conversationId: String) = throw UnsupportedOperationException()
-        override suspend fun getMessages(conversationId: String) = throw UnsupportedOperationException()
+        override suspend fun getMessages(conversationId: String, toolPreviews: Boolean) =
+            throw UnsupportedOperationException()
+        override suspend fun fetchMessagesFull(conversationId: String) = throw UnsupportedOperationException()
+        override suspend fun getToolCallPart(
+            conversationId: String,
+            messageId: String,
+            partIndex: Int,
+            toolCallId: String,
+            stepId: String?,
+            agentId: String?,
+        ) = throw UnsupportedOperationException()
         override suspend fun cacheMessages(messages: List<Message>, originAccount: AccountId?) = Unit
         override suspend fun updateFeedback(
             conversationId: String,
@@ -311,6 +322,9 @@ class PrefetchEngineTest {
 
         override suspend fun branchMessage(conversationId: String, messageId: String, agentId: String?) =
             throw UnsupportedOperationException()
+
+        override suspend fun getOwnerTexts(conversationId: String, messageIds: List<String>) =
+            throw UnsupportedOperationException()
     }
 
     /** A 429 means "slower", not "broken": the server is answering, it is just asking us to wait. */
@@ -319,7 +333,7 @@ class PrefetchEngineTest {
         stubRecent("a", "b")
         val callTimes = mutableListOf<Long>()
         var first = true
-        coEvery { messageRepository.refreshMessages(any(), any()) } coAnswers {
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } coAnswers {
             callTimes += currentTime
             if (first) {
                 first = false
@@ -343,7 +357,7 @@ class PrefetchEngineTest {
     fun `repeated rate limits never trip the breaker`() = runTest {
         stubRecent("a", "b", "c", "d")
         var calls = 0
-        coEvery { messageRepository.refreshMessages(any(), any()) } coAnswers {
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } coAnswers {
             calls++
             rateLimited(retryAfterSeconds = 1)
         }
@@ -357,7 +371,7 @@ class PrefetchEngineTest {
     fun `the pass stops after three consecutive failures`() = runTest {
         stubRecent("a", "b", "c", "d", "e")
         var calls = 0
-        coEvery { messageRepository.refreshMessages(any(), any()) } coAnswers {
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } coAnswers {
             calls++
             Result.Error(exception = ApiException(statusCode = 500, message = "boom"))
         }
@@ -372,7 +386,7 @@ class PrefetchEngineTest {
     fun `a success resets the failure count`() = runTest {
         stubRecent("a", "b", "c", "d", "e")
         var calls = 0
-        coEvery { messageRepository.refreshMessages(any(), any()) } coAnswers {
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } coAnswers {
             calls++
             // fail, fail, succeed, fail, fail — never three in a row.
             if (calls == 3) Result.Success(emptyList<Message>()) else Result.Error(exception = ApiException(500, "boom"))
@@ -391,7 +405,7 @@ class PrefetchEngineTest {
     fun `a tripped breaker holds for its account and not for another`() = runTest {
         stubRecent("a", "b", "c", "d")
         var calls = 0
-        coEvery { messageRepository.refreshMessages(any(), any()) } coAnswers {
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } coAnswers {
             calls++
             Result.Error(exception = ApiException(statusCode = 500, message = "boom"))
         }
@@ -412,7 +426,7 @@ class PrefetchEngineTest {
     fun `a warmed conversation records the version it was warmed against`() = runTest {
         coEvery { conversationDao.recentForPrefetch(any(), any()) } returns
             listOf(PrefetchCandidate("a", updatedAt = 4_242L, pinned = false))
-        coEvery { messageRepository.refreshMessages(any(), any()) } returns Result.Success(emptyList())
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } returns Result.Success(emptyList())
 
         val watermark = slot<PrefetchWatermarkEntity>()
         coEvery { watermarkDao.upsert(capture(watermark)) } returns Unit
@@ -428,7 +442,7 @@ class PrefetchEngineTest {
     @Test
     fun `pruning drops stale message rows together with their watermarks`() = runTest {
         stubRecent("recent")
-        coEvery { messageRepository.refreshMessages(any(), any()) } returns Result.Success(emptyList())
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } returns Result.Success(emptyList())
         coEvery { conversationDao.conversationIdsOlderThan(any(), any()) } returns listOf("ancient")
 
         engine().run(account)
@@ -442,7 +456,7 @@ class PrefetchEngineTest {
     fun `pruning spares the open conversation and everything still eligible`() = runTest {
         stubRecent("eligible")
         openConversationRegistry.set("open")
-        coEvery { messageRepository.refreshMessages(any(), any()) } returns Result.Success(emptyList())
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } returns Result.Success(emptyList())
         coEvery { conversationDao.conversationIdsOlderThan(any(), any()) } returns
             listOf("eligible", "open", "genuinely-stale")
 
@@ -458,7 +472,7 @@ class PrefetchEngineTest {
         stubRecent("a", "b")
         val observed = mutableListOf<PrefetchRunState>()
         val engine = engine()
-        coEvery { messageRepository.refreshMessages(any(), any()) } coAnswers {
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } coAnswers {
             observed += engine.runState.value.state
             Result.Success(emptyList())
         }
@@ -525,7 +539,7 @@ class PrefetchEngineTest {
     @Test
     fun `the breaker tripping is published and outlives the pass`() = runTest {
         stubRecent("a", "b", "c", "d")
-        coEvery { messageRepository.refreshMessages(any(), any()) } returns
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } returns
             Result.Error(exception = ApiException(statusCode = 500, message = "boom"))
         val engine = engine()
 
@@ -541,7 +555,7 @@ class PrefetchEngineTest {
     @Test
     fun `a manual reset lets a later pass run again`() = runTest {
         stubRecent("a", "b", "c")
-        coEvery { messageRepository.refreshMessages(any(), any()) } returns
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } returns
             Result.Error(exception = ApiException(statusCode = 500, message = "boom"))
         val engine = engine()
         engine.run(account)
@@ -549,7 +563,7 @@ class PrefetchEngineTest {
         engine.resetForManualRun(account)
         assertThat(engine.runState.value.state).isEqualTo(PrefetchRunState.Idle)
 
-        coEvery { messageRepository.refreshMessages(any(), any()) } returns Result.Success(emptyList())
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } returns Result.Success(emptyList())
         engine.run(account)
 
         coVerify(atLeast = 1) { watermarkDao.upsert(any()) }
@@ -559,7 +573,7 @@ class PrefetchEngineTest {
     @Test
     fun `a manual reset is scoped to one account`() = runTest {
         stubRecent("a", "b", "c")
-        coEvery { messageRepository.refreshMessages(any(), any()) } returns
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } returns
             Result.Error(exception = ApiException(statusCode = 500, message = "boom"))
         val engine = engine()
         engine.run(account)
@@ -577,7 +591,7 @@ class PrefetchEngineTest {
     @Test
     fun `run state is tagged with the account it describes`() = runTest {
         stubRecent("a", "b", "c", "d")
-        coEvery { messageRepository.refreshMessages(any(), any()) } returns
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } returns
             Result.Error(exception = ApiException(statusCode = 500, message = "boom"))
         val engine = engine()
 

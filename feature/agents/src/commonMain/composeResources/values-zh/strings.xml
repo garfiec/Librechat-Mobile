@@ -39,6 +39,13 @@
     <string name="agents_chip_top_picks">精选</string>
     <string name="agents_chip_all">全部</string>
     <string name="agents_chip_editable">可编辑</string>
+    <string name="agents_filter_mine">我的智能体</string>
+    <string name="agents_sort_label">排序方式</string>
+    <string name="agents_sort_newest">最新优先</string>
+    <string name="agents_sort_oldest">最早优先</string>
+    <string name="agents_sort_popular">热门</string>
+    <string name="agents_sort_author">按创建者名称</string>
+    <string name="agents_mine_empty_title">你还没有创建任何智能体</string>
     <string name="agents_top_pick">精选</string>
     <string name="agents_new_agent">新建智能体</string>
     <string name="agent_unnamed">未命名智能体</string>
@@ -79,6 +86,7 @@
     <string name="agent_description_label">描述</string>
     <string name="agent_description_placeholder">可选：在此描述你的智能体</string>
     <string name="agent_instructions_label">指令</string>
+    <string name="agent_instructions_linked_prompt">此智能体使用已保存的提示词作为指令。请在网页端更改或取消关联；在此处编辑不会改变智能体实际运行的内容。</string>
     <string name="agent_instructions_placeholder">智能体使用的系统指令</string>
     <string name="insert_variable">插入变量</string>
     <string name="cd_insert_variable">插入变量</string>
@@ -354,4 +362,16 @@
     <plurals name="agent_pin_limit">
         <item quantity="other">最多可固定 %1$d 个收藏。</item>
     </plurals>
+    <string name="tool_approval_mode_cd">工具审批模式：%1$s</string>
+    <string name="tool_approval_inherit">使用继承的策略</string>
+    <string name="tool_approval_ask">始终询问</string>
+    <string name="tool_approval_allow">始终批准</string>
+    <string name="tool_approval_chat">每个对话询问一次</string>
+    <string name="tool_approval_always">询问一次，之后始终批准</string>
+    <string name="tool_approval_admin_ask">管理员策略要求审批。</string>
+    <string name="tool_approval_admin_deny">管理员策略禁止使用此工具。</string>
+    <string name="tool_approval_reset">重置我记住的审批</string>
+    <string name="tool_approval_reset_success">已重置你记住的审批。</string>
+    <string name="tool_approval_reset_error">无法重置记住的审批，请重试。</string>
+    <string name="tool_approval_reset_forbidden">你无法重置此智能体的审批。</string>
 </resources>

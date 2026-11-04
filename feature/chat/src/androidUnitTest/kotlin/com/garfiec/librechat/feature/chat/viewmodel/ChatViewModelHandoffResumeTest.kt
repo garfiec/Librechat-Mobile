@@ -7,11 +7,16 @@ import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
+import com.garfiec.librechat.core.model.ContentType
+import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.StreamEvent
+import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.response.ChatAbortResponse
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
+import com.garfiec.librechat.core.model.response.StatusResumeState
+import com.garfiec.librechat.core.model.response.StatusResumeUserMessage
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -20,6 +25,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
@@ -98,7 +104,7 @@ class ChatViewModelHandoffResumeTest {
             every { platformDelegateFactory.createFileHandler(any()) } returns fileHandler
             every { fileHandler.attachedFiles } returns MutableStateFlow(emptyList())
             every { messageRepository.observeMessages(CONVERSATION_ID) } returns stored
-            coEvery { messageRepository.getMessages(CONVERSATION_ID) } coAnswers {
+            coEvery { messageRepository.getMessages(CONVERSATION_ID, any()) } coAnswers {
                 stored.value = onServer
                 Result.Success(onServer)
             }
@@ -141,6 +147,302 @@ class ChatViewModelHandoffResumeTest {
         }
     }
 
+    @Test
+    fun `a handed-off first turn sent without a workspace says so on the chat it opens`() = runTest(testDispatcher) {
+        coEvery { fixture.chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } coAnswers {
+            onServer = listOf(user, reply)
+            ChatStatusResponse(active = true)
+        }
+        every { fixture.chatRepository.resumeStream(CONVERSATION_ID) } returns emptyFlow()
+        fixture.selectionHandoff.put(
+            conversationId = CONVERSATION_ID,
+            choice = ModelChoice.Raw(ENDPOINT, MODEL),
+            optimisticUserMessage = user.copy(messageId = "client-minted-1", conversationId = ""),
+            sentWithoutWorkspaceNotice = true,
+        )
+        // Relaxed, these answer an error that would stand in for the notice.
+        coEvery { fixture.configRepository.fetchEndpoints() } returns Result.Success(mapOf(ENDPOINT to EndpointConfig()))
+        coEvery { fixture.configRepository.fetchModels() } returns Result.Success(mapOf(ENDPOINT to listOf(MODEL)))
+        val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
+        try {
+            advanceUntilIdle()
+
+            assertThat(vm.uiState.value.error).isEqualTo(ChatNotice.CODE_WORKSPACE_SENT_WITHOUT.marker())
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
+
+    /**
+     * New-chat handoff where the landing screen's stream dropped mid-reply: the server saved what
+     * had streamed as an `unfinished` partial. The resumed stream finalizes the full reply, but the
+     * open's message fetch was still out and answers with that partial (the server emits the final
+     * frame before it saves the reply). The partial must not replace the finished reply, which
+     * would show it cut off, as stopped, until the chat is reopened.
+     */
+    @Test
+    fun `a fetch that answers after the resumed reply finalized cannot put its partial back`() =
+        runTest(testDispatcher) {
+            val partial = reply.copy(text = "Kap", unfinished = true)
+            val fetchAnswers = CompletableDeferred<Unit>()
+            coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID, any()) } coAnswers {
+                fetchAnswers.await()
+                stored.value = listOf(user, partial)
+                Result.Success(listOf(user, partial))
+            }
+            coEvery { fixture.messageRepository.cacheMessages(any(), any()) } coAnswers {
+                val written = firstArg<List<Message>>().associateBy { it.messageId }
+                stored.value = stored.value.map { written[it.messageId] ?: it } +
+                    written.values.filter { w -> stored.value.none { it.messageId == w.messageId } }
+            }
+            coEvery { fixture.chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } returns
+                ChatStatusResponse(active = true)
+            every { fixture.chatRepository.resumeStream(CONVERSATION_ID) } returns
+                flowOf(StreamEvent.Final(requestMessage = user, responseMessage = reply))
+            fixture.selectionHandoff.put(
+                conversationId = CONVERSATION_ID,
+                choice = ModelChoice.Raw(ENDPOINT, MODEL),
+                optimisticUserMessage = user.copy(messageId = "client-minted-1", conversationId = ""),
+            )
+            val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
+            try {
+                advanceUntilIdle()
+                assertThat(vm.uiState.value.isStreaming).isFalse()
+
+                fetchAnswers.complete(Unit)
+                advanceUntilIdle()
+
+                val shown = vm.uiState.value.displayMessages.last().message
+                assertThat(shown.text).isEqualTo("Kappa")
+                assertThat(shown.unfinished).isFalse()
+                assertThat(vm.uiState.value.continuableReplyId).isNull()
+            } finally {
+                vm.viewModelScope.cancel()
+            }
+        }
+
+    /**
+     * New-chat handoff whose reply arrives through the resumed stream: the title event lands
+     * mid-reply, then the final frame carries the conversation with the placeholder title (the
+     * row as the reply's write returned it), and the row cached at `created` still has the
+     * placeholder too. Neither may take the generated title off the top bar or out of Room.
+     */
+    @Test
+    fun `a resumed final with the placeholder title keeps the generated title`() = runTest(testDispatcher) {
+        val saved = mutableListOf<Conversation>()
+        // Stands in for the conversation row: cached at `created`, before the title existed.
+        coEvery { fixture.conversationRepository.getConversation(CONVERSATION_ID, any()) } coAnswers {
+            Result.Success(saved.lastOrNull() ?: Conversation(conversationId = CONVERSATION_ID, title = "New Chat"))
+        }
+        coEvery { fixture.conversationRepository.saveConversation(any(), any()) } coAnswers {
+            saved += firstArg<Conversation>()
+        }
+        coEvery { fixture.chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } returns
+            ChatStatusResponse(active = true)
+        every { fixture.chatRepository.resumeStream(CONVERSATION_ID) } returns flowOf(
+            StreamEvent.TitleUpdate(conversationId = CONVERSATION_ID, title = GENERATED_TITLE),
+            StreamEvent.Final(
+                conversation = Conversation(conversationId = CONVERSATION_ID, title = "New Chat"),
+                requestMessage = user,
+                responseMessage = reply,
+            ),
+        )
+        fixture.selectionHandoff.put(
+            conversationId = CONVERSATION_ID,
+            choice = ModelChoice.Raw(ENDPOINT, MODEL),
+            optimisticUserMessage = user.copy(messageId = "client-minted-1", conversationId = ""),
+        )
+        val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
+        try {
+            advanceUntilIdle()
+
+            assertThat(vm.uiState.value.isStreaming).isFalse()
+            assertThat(vm.uiState.value.conversationTitle).isEqualTo(GENERATED_TITLE)
+            assertThat(saved.map { it.title }).containsExactly(GENERATED_TITLE)
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
+
+    /**
+     * The open's status check times out (the server stalled) while the handed-off run is alive and
+     * waiting: the check is retried and the run attached, rather than the chat showing only the
+     * user's message.
+     */
+    @Test
+    fun `a status check that times out on open is retried, and the live run attached`() =
+        runTest(testDispatcher) {
+            var checks = 0
+            coEvery { fixture.chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } coAnswers {
+                checks++
+                if (checks == 1) throw java.io.IOException("Request timeout has expired")
+                ChatStatusResponse(active = true)
+            }
+            every { fixture.chatRepository.resumeStream(CONVERSATION_ID) } returns
+                flowOf(StreamEvent.Final(requestMessage = user, responseMessage = reply))
+            fixture.selectionHandoff.put(
+                conversationId = CONVERSATION_ID,
+                choice = ModelChoice.Raw(ENDPOINT, MODEL),
+                optimisticUserMessage = user.copy(messageId = "client-minted-1", conversationId = ""),
+            )
+            val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
+            try {
+                advanceTimeBy(SETTLE_MS)
+                runCurrent()
+
+                assertThat(checks).isEqualTo(2)
+                assertThat(displayedIds(vm)).containsExactly("user-1", "assistant-1").inOrder()
+            } finally {
+                vm.viewModelScope.cancel()
+            }
+        }
+
+    /** A status check the server answered (a server without the route) is not asked again. */
+    @Test
+    fun `a status check the server refused on open is not retried`() = runTest(testDispatcher) {
+        var checks = 0
+        coEvery { fixture.chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } coAnswers {
+            checks++
+            throw com.garfiec.librechat.core.common.result.ApiException(statusCode = 404, message = "Not found")
+        }
+        val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
+        try {
+            advanceTimeBy(SETTLE_MS * 4)
+            runCurrent()
+
+            assertThat(checks).isEqualTo(1)
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
+
+    /**
+     * Reopening a chat whose reply is still running. Leaving it dropped the last subscriber, so the
+     * server saved what had streamed as an `unfinished` partial under the reply's id; the open reads
+     * that partial and attaches to the run, whose bubble streams the same reply. It must show once,
+     * also after a later read writes the partial again (the open's fetch, or the prefetcher).
+     */
+    @Test
+    fun `a reopened chat shows its running reply once, not its saved partial beside it`() =
+        runTest(testDispatcher) {
+            val partial = reply.copy(text = "Kap", unfinished = true)
+            stored.value = listOf(user, partial)
+            val fetchAnswers = CompletableDeferred<Unit>()
+            coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID, any()) } coAnswers {
+                fetchAnswers.await()
+                stored.value = listOf(user, partial.copy(text = "Kapp"))
+                Result.Success(stored.value)
+            }
+            coEvery { fixture.chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } returns
+                ChatStatusResponse(
+                    active = true,
+                    resumeState = StatusResumeState(
+                        userMessage = StatusResumeUserMessage(messageId = "user-1"),
+                        responseMessageId = "assistant-1",
+                    ),
+                )
+            every { fixture.chatRepository.resumeStream(CONVERSATION_ID) } returns flow {
+                emit(StreamEvent.Sync(aggregatedContent = listOf(MessageContentPart(type = ContentType.TEXT, text = "Kapp"))))
+                awaitCancellation()
+            }
+            val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
+            try {
+                advanceTimeBy(SETTLE_MS)
+                runCurrent()
+
+                assertThat(vm.uiState.value.isStreaming).isTrue()
+                assertThat(displayedIds(vm)).containsExactly("user-1")
+                assertThat(vm.uiState.value.continuableReplyId).isNull()
+
+                fetchAnswers.complete(Unit)
+                advanceTimeBy(SETTLE_MS)
+                runCurrent()
+
+                assertThat(vm.uiState.value.isStreaming).isTrue()
+                assertThat(displayedIds(vm)).containsExactly("user-1")
+            } finally {
+                vm.viewModelScope.cancel()
+            }
+        }
+
+    /**
+     * A cold start: the app was killed mid-run on a chat's first turn, and the prefetcher cached
+     * what the server held before the chat was reopened. The server saved the request under an id of
+     * its own, so the partial it wrote when the kill dropped the subscriber hangs from an id the tree
+     * does not hold and reads as a root of its own. The cache emits before the status check answers,
+     * and the partial must still not show beside the live reply, nor take the path over from the
+     * request.
+     */
+    @Test
+    fun `a cold-start reopen whose partial hangs from an unsaved request id shows the running reply once`() =
+        runTest(testDispatcher) {
+            val partial = reply.copy(text = "Kap", unfinished = true, parentMessageId = "client-sent-1")
+            stored.value = listOf(user, partial)
+            onServer = listOf(user, partial)
+            val statusAnswers = CompletableDeferred<Unit>()
+            coEvery { fixture.chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } coAnswers {
+                statusAnswers.await()
+                ChatStatusResponse(
+                    active = true,
+                    resumeState = StatusResumeState(
+                        userMessage = StatusResumeUserMessage(messageId = "client-sent-1"),
+                        responseMessageId = "assistant-1",
+                    ),
+                )
+            }
+            every { fixture.chatRepository.resumeStream(CONVERSATION_ID) } returns flow {
+                emit(StreamEvent.Sync(aggregatedContent = listOf(MessageContentPart(type = ContentType.TEXT, text = "Kapp"))))
+                awaitCancellation()
+            }
+            val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
+            try {
+                advanceTimeBy(STEP_MS)
+                runCurrent()
+                assertThat(vm.uiState.value.isStreaming).isFalse()
+                assertThat(displayedIds(vm)).isNotEmpty()
+
+                statusAnswers.complete(Unit)
+                advanceTimeBy(SETTLE_MS)
+                runCurrent()
+
+                assertThat(vm.uiState.value.isStreaming).isTrue()
+                assertThat(displayedIds(vm)).containsExactly("user-1")
+
+                // A later read (the open's revalidate, or the prefetcher) writes the partial again.
+                stored.value = listOf(user, partial.copy(text = "Kapp"))
+                advanceTimeBy(SETTLE_MS)
+                runCurrent()
+                assertThat(displayedIds(vm)).containsExactly("user-1")
+            } finally {
+                vm.viewModelScope.cancel()
+            }
+        }
+
+    /** The same on a server whose status carries no snapshot: the partial at the tail is the reply. */
+    @Test
+    fun `a reopened chat without the status snapshot still hides the running reply's partial`() =
+        runTest(testDispatcher) {
+            val partial = reply.copy(text = "Kap", unfinished = true)
+            stored.value = listOf(user, partial)
+            onServer = listOf(user, partial)
+            coEvery { fixture.chatRepository.checkStreamStatus(eq(CONVERSATION_ID), any()) } returns
+                ChatStatusResponse(active = true)
+            every { fixture.chatRepository.resumeStream(CONVERSATION_ID) } returns flow {
+                emit(StreamEvent.Sync(aggregatedContent = listOf(MessageContentPart(type = ContentType.TEXT, text = "Kapp"))))
+                awaitCancellation()
+            }
+            val vm = fixture.build(defaultDispatcher = testDispatcher, initialConversationId = CONVERSATION_ID)
+            try {
+                advanceTimeBy(SETTLE_MS)
+                runCurrent()
+
+                assertThat(vm.uiState.value.isStreaming).isTrue()
+                assertThat(displayedIds(vm)).containsExactly("user-1")
+            } finally {
+                vm.viewModelScope.cancel()
+            }
+        }
+
     /**
      * Existing conversation, network drop mid-reply: the SSE client retries on its own, the
      * reconnect's resume 404s because the run finished while offline, and the send's flow ends with
@@ -168,7 +470,7 @@ class ChatViewModelHandoffResumeTest {
 
             // While offline, the server persists the new turn: the user's message under the id the
             // client minted, and the full reply under it.
-            coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID) } coAnswers {
+            coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID, any()) } coAnswers {
                 val sent = vm.uiState.value.messages.last { it.isCreatedByUser }
                 // Persisted under the server's own id, not the one the client minted.
                 val persisted = sent.copy(messageId = "server-user-2", conversationId = CONVERSATION_ID)
@@ -234,7 +536,7 @@ class ChatViewModelHandoffResumeTest {
         try {
             advanceUntilIdle()
             var fetchesAfterSend = 0
-            coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID) } coAnswers {
+            coEvery { fixture.messageRepository.getMessages(CONVERSATION_ID, any()) } coAnswers {
                 fetchesAfterSend++
                 Result.Success(onServer)
             }
@@ -271,7 +573,7 @@ class ChatViewModelHandoffResumeTest {
         coEvery { fixture.chatRepository.abortChat(any(), any(), any()) } returns
             Result.Success(ChatAbortResponse())
         var fetches = 0
-        coEvery { fixture.messageRepository.getMessages(NEW_CONVERSATION_ID) } coAnswers {
+        coEvery { fixture.messageRepository.getMessages(NEW_CONVERSATION_ID, any()) } coAnswers {
             fetches++
             Result.Success(emptyList())
         }
@@ -320,6 +622,7 @@ class ChatViewModelHandoffResumeTest {
         const val MODEL = "claude-haiku-4-5"
         const val SETTLE_MS = 5_000L
         const val STEP_MS = 1_000L
+        const val GENERATED_TITLE = "The Slow Burning Final Smoke"
         const val NO_PARENT = "00000000-0000-0000-0000-000000000000"
     }
 }

@@ -51,6 +51,7 @@ import com.garfiec.librechat.feature.chat.resources.subagent_threads_open
 import com.garfiec.librechat.feature.chat.resources.subagent_threads_title
 import com.garfiec.librechat.feature.chat.resources.subagent_threads_truncated
 import com.garfiec.librechat.feature.chat.resources.subagent_threads_unavailable
+import com.garfiec.librechat.feature.chat.util.steerText
 import com.garfiec.librechat.feature.chat.viewmodel.SubagentThreadsViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -73,13 +74,14 @@ internal fun SubagentThreadsSheet(
     focusParentToolCallId: String?,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    focusThreadId: String? = null,
     viewModel: SubagentThreadsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    LaunchedEffect(parentConversationId, focusParentToolCallId) {
-        viewModel.openFor(parentConversationId, focusParentToolCallId)
+    LaunchedEffect(parentConversationId, focusParentToolCallId, focusThreadId) {
+        viewModel.openFor(parentConversationId, focusParentToolCallId, focusThreadId)
     }
 
     AdaptiveModalBottomSheet(
@@ -265,6 +267,9 @@ private fun ThreadBody(
         ) { (key, part) ->
             if (part.type == ContentType.ACTIVITY_LABEL) {
                 OrphanActivityLabel(part.activityLabel.orEmpty())
+            } else if (part.type == ContentType.STEER) {
+                // The dispatcher draws no steer, so without this branch the guidance vanishes.
+                part.steerText()?.let { SubagentGuidancePart(it) }
             } else {
                 ContentPartDispatcher(
                     part = part,
@@ -312,6 +317,7 @@ private fun List<MessageContentPart>.withStableKeys(): List<KeyedThreadPart> {
             ?: part.activityLabel?.takeIf { it.isNotEmpty() }
             ?: part.text?.takeIf { it.isNotEmpty() }
             ?: part.think?.takeIf { it.isNotEmpty() }
+            ?: part.steerText()
             ?: part.toolCall?.name?.takeIf { it.isNotEmpty() }
             ?: ""
         val base = "${part.type}:${identity.hashCode()}"

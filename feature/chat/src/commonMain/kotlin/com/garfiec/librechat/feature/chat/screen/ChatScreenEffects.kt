@@ -9,6 +9,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.ui.resources.snackbar_dismiss
 import com.garfiec.librechat.feature.chat.components.localizedStreamError
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -18,6 +20,9 @@ import com.garfiec.librechat.feature.chat.resources.jump_message_not_found
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNoticeHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.NOTICE_TAG
+import com.garfiec.librechat.feature.chat.viewmodel.noticeLabel
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
@@ -64,6 +69,9 @@ internal fun ChatScreenEffects(
     val dismissLabel = stringResource(CoreUiRes.string.snackbar_dismiss)
     LaunchedEffect(errorMessage) {
         if (errorMessage != null) {
+            Diag.d(tag = NOTICE_TAG, attrs = mapOf("notice" to noticeLabel(uiState.error))) {
+                "snackbar shown on ${uiState.conversationId ?: "landing"}"
+            }
             snackbarHostState.showSnackbar(
                 message = errorMessage,
                 actionLabel = dismissLabel,
@@ -77,11 +85,17 @@ internal fun ChatScreenEffects(
     // confirmation lands here instead of on the closed screen.
     // Cleared before it shows, so a re-entry can't repeat it; the collector, not a keyed effect,
     // so clearing it doesn't cancel the snackbar it is showing.
+    // A notice aimed at one conversation (a fork's copy) waits for that chat.
     val noticeHandoff = koinInject<ChatNoticeHandoff>()
+    val currentConversationId by rememberUpdatedState(uiState.conversationId)
     LaunchedEffect(noticeHandoff) {
-        noticeHandoff.pending.filterNotNull().collect { message ->
-            noticeHandoff.consume(message)
-            snackbarHostState.showSnackbar(message = getString(message))
+        // `pending` itself, not filtered: once consumed it reads null, so a later id change can't
+        // replay the last notice.
+        combine(noticeHandoff.pending, snapshotFlow { currentConversationId }) { notice, id ->
+            notice?.takeIf { it.conversationId == null || it.conversationId == id }
+        }.filterNotNull().collect { notice ->
+            noticeHandoff.consume(notice)
+            snackbarHostState.showSnackbar(message = getString(notice.message))
         }
     }
 

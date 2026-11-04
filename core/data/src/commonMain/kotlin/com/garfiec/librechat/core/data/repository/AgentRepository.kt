@@ -31,7 +31,9 @@ interface AgentRepository {
 
     /**
      * One page of the agent list. [cursor] is the previous page's [PaginatedAgents.nextCursor]
-     * (null for the first page); [promoted] narrows to Top picks. See `AgentsApi.getAgentsPaginated`.
+     * (null for the first page); [promoted] narrows to Top picks; [sort] and [mine] are v0.8.9-rc1.
+     * See `AgentsApi.getAgentsPaginated`, and [isCursorOrderingMismatch] for the 409 a stale
+     * cursor gets under a changed order.
      */
     suspend fun getAgentsPaginated(
         limit: Int,
@@ -40,6 +42,8 @@ interface AgentRepository {
         category: String? = null,
         promoted: Boolean = false,
         requiredPermission: Int? = null,
+        sort: String? = null,
+        mine: Boolean = false,
     ): Result<PaginatedAgents>
     suspend fun getAgent(id: String): Result<Agent>
 
@@ -105,4 +109,10 @@ interface AgentRepository {
 
     // Tools
     suspend fun getAvailableTools(): Result<List<AgentTool>>
+
+    /**
+     * Forgets the caller's remembered tool approvals for [agentId], or only for [toolName] (the
+     * full MCP id) when given (v0.8.9-rc1). Touches no agent data, so no cache is invalidated.
+     */
+    suspend fun resetToolApprovals(agentId: String, toolName: String? = null): Result<Unit>
 }

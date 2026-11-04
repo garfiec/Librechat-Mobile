@@ -47,7 +47,7 @@ import com.garfiec.librechat.core.data.db.entity.ServerEntity
         MessageSearchFtsEntity::class,
         ProjectOrderEntity::class,
     ],
-    version = 13,
+    version = 14,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -74,6 +74,16 @@ import com.garfiec.librechat.core.data.db.entity.ServerEntity
         AutoMigration(from = 11, to = 12),
         // 12 -> 13 adds the account-scoped project_order table (Switchboard-only drawer folder order).
         AutoMigration(from = 12, to = 13),
+        // 13 -> 14 adds every nullable v0.8.9-rc1 column in one hop (none shipped as a released DB
+        // version). On messages: `isUserSubmitted`, so a user's own text that quotes a wake-up header
+        // stays a user bubble when the chat opens from the cache; `reasoningOverride`, so an edit or
+        // regenerate of a cached turn sends the one-turn reasoning choice it was sent with; and
+        // `privacyRevision`, so a redacted turn opened from the cache still says its private details
+        // were hidden and fetches the original (only the marker: the original text is never stored).
+        // On conversations: the five read-state columns (unseen replies); rows cached before it read
+        // as seen until the next list page restamps them. And `isCodeConversation` (null = not known),
+        // so the drawer asks for pull requests only for code chats from a cold start.
+        AutoMigration(from = 13, to = 14),
     ],
 )
 @TypeConverters(Converters::class)

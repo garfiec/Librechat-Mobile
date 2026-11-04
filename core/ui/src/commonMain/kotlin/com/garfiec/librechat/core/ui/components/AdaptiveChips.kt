@@ -176,3 +176,22 @@ private fun glassSelectableChipColors(isDefault: Boolean, colors: SelectableChip
 @Composable
 private fun glassChipColors(isDefault: Boolean, colors: ChipColors): ChipColors =
     if (isDefault) colors.copy(containerColor = GlassControlColors.fill, disabledContainerColor = GlassControlColors.fill) else colors
+
+object AdaptiveChipDefaults {
+    /**
+     * Colours for an [AdaptiveAssistChip] drawn over scrolling content (the chat composer's chip rows),
+     * with [tint] (null = none) on its label and icons in both styles. Material fills it with
+     * `surfaceContainerHigh`, since M3's outline-only chip would show the content through its label;
+     * glass keeps its secondary fill.
+     */
+    @Composable
+    fun overlayAssistChipColors(tint: Color? = null): ChipColors {
+        val container = if (isLiquidGlass) GlassControlColors.fill else MaterialTheme.colorScheme.surfaceContainerHigh
+        val colors = AssistChipDefaults.assistChipColors(containerColor = container, disabledContainerColor = container)
+        return if (tint == null) {
+            colors
+        } else {
+            colors.copy(labelColor = tint, leadingIconContentColor = tint, trailingIconContentColor = tint)
+        }
+    }
+}

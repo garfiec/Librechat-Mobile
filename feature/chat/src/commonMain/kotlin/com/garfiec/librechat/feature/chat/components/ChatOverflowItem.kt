@@ -16,6 +16,9 @@ internal enum class ChatOverflowItem {
 
     /** "Compact conversation…": only while a compact suggestion is due, and only in this placement. */
     COMPACT,
+
+    /** "PR #482": the chat's pull request, only once a lookup found one. Opens the sheet. */
+    PULL_REQUEST,
     SHARE,
     BOOKMARKS,
     RENAME,
@@ -48,6 +51,8 @@ internal data class ChatOverflowGates(
     /** BOOKMARKS USE and `interface.bookmarks`. */
     val bookmarksEnabled: Boolean = false,
     val isTemporaryChat: Boolean = false,
+    /** A lookup found the chat's pull request. Absent, not disabled, until then. */
+    val hasPullRequest: Boolean = false,
 )
 
 internal fun chatOverflowSections(gates: ChatOverflowGates): List<List<ChatOverflowItem>> = with(gates) {
@@ -79,6 +84,8 @@ internal fun chatOverflowSections(gates: ChatOverflowGates): List<List<ChatOverf
         emptyList()
     } else {
         buildList {
+            // Upstream's small-screen header puts the pull request in the overflow, first.
+            if (hasPullRequest) add(ChatOverflowItem.PULL_REQUEST)
             if (sharedLinksEnabled && !firstTurnStreaming) add(ChatOverflowItem.SHARE)
             // A temporary chat is never listed or kept, and a first turn's chat isn't saved yet:
             // the server has nothing to put a bookmark on in either.

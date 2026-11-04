@@ -5,7 +5,9 @@ import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.model.PendingSteer
+import com.garfiec.librechat.core.model.config.DEFAULT_STEER_ARM_CONFIRMATION_TIMEOUT_MS
 import com.garfiec.librechat.core.model.error.StreamErrorType
+import com.garfiec.librechat.core.model.request.SteerArmRequest
 import com.garfiec.librechat.core.model.request.SteerCancelRequest
 import com.garfiec.librechat.core.model.request.SteerRequest
 import com.garfiec.librechat.core.model.response.SteerResponse
@@ -15,10 +17,12 @@ import com.garfiec.librechat.core.network.api.chatRefusalText
 import com.garfiec.librechat.feature.chat.viewmodel.PendingSteerChip
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import com.garfiec.librechat.feature.chat.viewmodel.SteerChipStatus
+import com.garfiec.librechat.feature.chat.viewmodel.SteerNotice
 import com.garfiec.librechat.feature.chat.viewmodel.SteerState
 import com.garfiec.librechat.feature.chat.viewmodel.SteeringHandle
 import com.garfiec.librechat.feature.chat.viewmodel.refusalErrorMarker
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -89,6 +93,13 @@ class SteeringDelegate(
      * see [restageDroppedQuotes].
      */
     private val restageQuotes: (List<String>) -> Unit,
+    /**
+     * One-shot notices about an interrupt that did not happen as asked (see [SteerNotice]). Never
+     * the error channel: the words are safe in every case, only the timing changed.
+     */
+    private val onSteerNotice: (SteerNotice) -> Unit = {},
+    /** How long [arm] waits for the server before saying it couldn't confirm (`interface.steerArmConfirmationTimeoutMs`). */
+    private val armTimeoutMs: () -> Long = { DEFAULT_STEER_ARM_CONFIRMATION_TIMEOUT_MS },
 ) {
 
     /**
@@ -140,6 +151,18 @@ class SteeringDelegate(
         val reportedQuotes: List<String> = emptyList(),
         /** The turn this steer was sent into; see [turnEpoch]. */
         val turnEpoch: Int,
+        /**
+         * The server holds it as an interrupt: the 202 echoed `preempt: true`, an arm answered
+         * `armed: true`, or a report carried the flag. Never set from the request alone — a run
+         * that can't be interrupted keeps the steer plain.
+         */
+        val preempt: Boolean = false,
+        /** Server revision of [preempt]; the higher one wins when reports disagree. */
+        val preemptRevision: Int = 0,
+        /** This steer was SENT as an interrupt, so a `preempt != true` echo must be announced. */
+        val requestedPreempt: Boolean = false,
+        /** A `/chat/steer/arm` for it is in flight. */
+        val arming: Boolean = false,
     ) {
         enum class Status {
             /** The POST is in flight; the key is a client-minted placeholder. */
@@ -167,9 +190,13 @@ class SteeringDelegate(
      * Optimistic: the chip appears immediately under a client-minted id and swaps to the
      * server's id when the 202 lands. The caller has already decided steering is available; this
      * does not re-check, it only degrades when the server disagrees.
+     *
+     * [interrupt] sends it with `preempt: true` ("Interrupt and steer"). It is still a steer in
+     * every other respect — the same chip, the same no-loss re-homing. Whether the run took the
+     * interrupt is the 202's echo; when it didn't, the steer stays plain and [onSteerNotice] says so.
      */
     @OptIn(ExperimentalUuidApi::class)
-    fun steer(conversationId: String, fallback: QueuedMessage) {
+    fun steer(conversationId: String, fallback: QueuedMessage, interrupt: Boolean = false) {
         val trimmed = fallback.text.trim()
         if (trimmed.isEmpty()) return
         val localId = "local-${Uuid.random()}"
@@ -177,7 +204,14 @@ class SteeringDelegate(
         // sent them, not by how long each round-trip took, or a steer sent first can end up
         // displayed behind one sent after it.
         val createdAt = Clock.System.now().toEpochMilliseconds()
-        records[localId] = SteerRecord(trimmed, createdAt, SteerRecord.Status.SENDING, fallback, turnEpoch = turnEpoch)
+        records[localId] = SteerRecord(
+            trimmed,
+            createdAt,
+            SteerRecord.Status.SENDING,
+            fallback,
+            turnEpoch = turnEpoch,
+            requestedPreempt = interrupt,
+        )
         publishChips()
 
         handle.scope.launch {
@@ -190,6 +224,7 @@ class SteeringDelegate(
                     // the words on every route out of here.
                     quotes = fallback.quotes.takeIf { it.isNotEmpty() },
                     clientSteerId = localId,
+                    preempt = true.takeIf { interrupt },
                 ),
             )
             val record = records[localId] ?: return@launch
@@ -341,8 +376,78 @@ class SteeringDelegate(
             record.spec?.let(::queueAsFollowUp)
             return
         }
-        records[serverId] = record.copy(status = SteerRecord.Status.PENDING)
+        // The chip's interrupting look comes from the echo, never the request: a run with
+        // provider-hosted tools (or OpenRouter's `web` plugin) keeps the steer plain, and the user
+        // is told it will wait for the next step instead.
+        val interrupting = ack.preempt == true
+        records[serverId] = record.copy(
+            status = SteerRecord.Status.PENDING,
+            preempt = interrupting || existing?.preempt == true,
+            preemptRevision = maxOf(ack.preemptRevision ?: 0, existing?.preemptRevision ?: 0),
+        )
         publishChips()
+        if (record.requestedPreempt && !interrupting) onSteerNotice(SteerNotice.INTERRUPT_UNAVAILABLE)
+    }
+
+    /**
+     * Upgrades a waiting steer to an interrupt in place (`POST /chat/steer/arm`), keeping its place
+     * in line.
+     *
+     * One interrupt at a time, as on web: refused while any chip is interrupting or another arm is
+     * in flight. One attempt, no retry (web retries only on generation protocol v2; mobile is v1).
+     * The chip only changes on `armed: true`; every other outcome leaves it to the events and says
+     * what happened, because the steer itself is never at stake.
+     */
+    fun arm(steerId: String) {
+        val record = records[steerId]
+            ?.takeIf { it.status == SteerRecord.Status.PENDING && it.turnEpoch == turnEpoch && !it.preempt && !it.arming }
+            ?: return
+        if (isInterruptPending()) return
+        val conversationId = handle.state.conversationId ?: return
+        records[steerId] = record.copy(arming = true)
+        publishChips()
+        handle.scope.launch {
+            val result = withTimeoutOrNull(armTimeoutMs()) {
+                chatRepository.armSteer(SteerArmRequest(conversationId = conversationId, steerId = steerId))
+            }
+            val current = records[steerId]
+            val armed = (result as? Result.Success)?.data
+            if (current != null) {
+                records[steerId] = if (armed?.armed == true && current.isLive) {
+                    current.copy(
+                        arming = false,
+                        preempt = true,
+                        preemptRevision = maxOf(current.preemptRevision, armed.preemptRevision ?: 0),
+                    )
+                } else {
+                    current.copy(arming = false)
+                }
+            }
+            publishChips()
+            val notice = when (result) {
+                null -> SteerNotice.ARM_UNCONFIRMED
+                is Result.Success -> when {
+                    result.data.armed -> null
+                    result.data.isPreemptUnsupported -> SteerNotice.INTERRUPT_UNAVAILABLE
+                    else -> SteerNotice.ARM_FAILED
+                }
+                // A status the server answered (400/403/409/5xx, or a limiter refusal) is a "no";
+                // a request that never got an answer can't say either way.
+                is Result.Error -> if (result.exception is ApiException) {
+                    SteerNotice.ARM_FAILED
+                } else {
+                    SteerNotice.ARM_UNCONFIRMED
+                }
+                is Result.Loading -> null
+            }
+            if (result is Result.Error) Logger.d(result.exception) { "Steer arm failed: ${result.message}" }
+            notice?.let(onSteerNotice)
+        }
+    }
+
+    /** Whether an interrupt is already open in this turn: one chip interrupting, or an arm in flight. */
+    private fun isInterruptPending(): Boolean = records.values.any {
+        it.isLive && it.turnEpoch == turnEpoch && (it.preempt || it.arming)
     }
 
     /**
@@ -410,7 +515,17 @@ class SteeringDelegate(
         }
         // A steer this client already knows keeps its own record — including the spec it was
         // composed with, which a server report cannot carry. Only genuinely new ones are added.
-        reported.forEach { (id, incoming) -> records.getOrPut(id) { incoming } }
+        // Its interrupt flag is the server's, though (last writer by revision), so a chip re-seeded
+        // after a reconnect keeps — or loses — its interrupting look as the server holds it.
+        reported.forEach { (id, incoming) ->
+            val existing = records[id]
+            records[id] = when {
+                existing == null -> incoming
+                existing.isLive && incoming.preemptRevision >= existing.preemptRevision ->
+                    existing.copy(preempt = incoming.preempt, preemptRevision = incoming.preemptRevision)
+                else -> existing
+            }
+        }
         publishChips()
     }
 
@@ -490,7 +605,11 @@ class SteeringDelegate(
         val local = records[localId] ?: return
         if (local.isLive) {
             records.remove(localId)
-            records[id] = local.copy(status = SteerRecord.Status.PENDING)
+            records[id] = local.copy(
+                status = SteerRecord.Status.PENDING,
+                preempt = steer.preempt ?: local.preempt,
+                preemptRevision = steer.preemptRevision ?: local.preemptRevision,
+            )
         } else {
             records[id] = local
         }
@@ -635,6 +754,8 @@ class SteeringDelegate(
                         SteerChipStatus.PENDING
                     },
                     createdAt = record.createdAt,
+                    isInterrupting = record.preempt,
+                    isArming = record.arming,
                 )
             }
             .sortedBy { it.createdAt }
@@ -656,6 +777,8 @@ class SteeringDelegate(
             spec = null,
             reportedQuotes = quotes,
             turnEpoch = turnEpoch,
+            preempt = preempt == true,
+            preemptRevision = preemptRevision ?: 0,
         )
     }
 

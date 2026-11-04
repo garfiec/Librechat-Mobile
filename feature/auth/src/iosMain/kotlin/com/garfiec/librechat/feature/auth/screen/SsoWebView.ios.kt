@@ -9,13 +9,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.UIKitView
 import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.model.auth.AuthCookies
+import com.garfiec.librechat.core.ui.web.safariApplicationName
 import com.garfiec.librechat.feature.auth.oauth.SsoNavigationDecision
 import com.garfiec.librechat.feature.auth.oauth.SsoNavigationGate
 import com.garfiec.librechat.feature.auth.oauth.cookieAppliesTo
 import com.garfiec.librechat.feature.auth.oauth.cookiePathAppliesTo
 import com.garfiec.librechat.feature.auth.oauth.extractAuthCookies
-import com.garfiec.librechat.feature.auth.oauth.extractQueryParameter
-import com.garfiec.librechat.feature.auth.oauth.safariApplicationName
+import com.garfiec.librechat.feature.auth.oauth.ssoFailureCode
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.ObjCSignatureOverride
 import kotlinx.cinterop.cValue
@@ -106,7 +106,7 @@ private class SsoNavigationDelegate(
         // Cancelling here means the post-callback page is never fetched, so the web app's
         // silentRefresh() cannot rotate the token out from under us.
         decisionHandler(WKNavigationActionPolicy.WKNavigationActionPolicyCancel)
-        finish(webView, extractQueryParameter(url, "error"))
+        finish(webView, ssoFailureCode(url))
     }
 
     @ObjCSignatureOverride

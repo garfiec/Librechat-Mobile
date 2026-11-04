@@ -4,10 +4,12 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
+import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.FavoritesRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.model.AgentCategory
@@ -24,6 +26,8 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -52,6 +56,14 @@ data class AgentDetailUiState(
     val isDuplicating: Boolean = false,
     /** A Delete, Duplicate or pin that failed. Shown once as a snackbar; the page stays. */
     val actionError: AgentActionError? = null,
+    /**
+     * The server enables agent tool approval modes (v0.8.9-rc1+ and `agents.toolApproval.agentModes`),
+     * so "Reset my remembered approvals" is offered. VIEW access is enough for it, so every viewer gets it.
+     */
+    val canResetApprovals: Boolean = false,
+    val isResettingApprovals: Boolean = false,
+    /** How the last reset ended; shown once as a snackbar. */
+    val approvalResetNotice: ApprovalResetNotice? = null,
 ) {
     /** The duplicate route needs AGENTS.CREATE and EDIT on the source (upstream routes/agents/v1.js). */
     val canDuplicate: Boolean get() = canEdit && canCreate
@@ -100,6 +112,7 @@ class AgentDetailViewModel(
     private val serverDataStore: ServerDataStore,
     private val favoritesRepository: FavoritesRepository,
     private val roleRepository: RoleRepository,
+    private val configRepository: ConfigRepository,
     initialAgentId: String? = null,
 ) : ViewModel() {
 
@@ -124,6 +137,7 @@ class AgentDetailViewModel(
         loadAgent()
         observeRole()
         observePins()
+        observeApprovalModes()
         viewModelScope.launch { refreshFavorites() }
         // Saving in the editor pops back to this page rather than opening a fresh copy of it.
         viewModelScope.launch {
@@ -144,6 +158,36 @@ class AgentDetailViewModel(
                 }
             }
         }
+    }
+
+    /** Same gate as the editor's mode picker; see VERSION_GATES.md. */
+    private fun observeApprovalModes() {
+        viewModelScope.launch {
+            combine(configRepository.detectedBackendVersion, configRepository.endpointConfigs) { version, configs ->
+                version != null &&
+                    BackendVersion.isCompatibleOrNewer(version, "0.8.9-rc1") &&
+                    configs["agents"]?.toolApproval?.agentModes == true
+            }.distinctUntilChanged().collect { available ->
+                _uiState.update { it.copy(canResetApprovals = available) }
+            }
+        }
+    }
+
+    /** Forgets the user's own remembered tool approvals for this agent (every tool, every chat). */
+    fun resetApprovals() {
+        val state = _uiState.value
+        if (!state.canResetApprovals || state.isResettingApprovals) return
+        _uiState.update { it.copy(isResettingApprovals = true) }
+        viewModelScope.launch {
+            val result = agentRepository.resetToolApprovals(agentId)
+            _uiState.update {
+                it.copy(isResettingApprovals = false, approvalResetNotice = result.toApprovalResetNotice())
+            }
+        }
+    }
+
+    fun dismissApprovalResetNotice() {
+        _uiState.update { it.copy(approvalResetNotice = null) }
     }
 
     /** Pins made anywhere (the chat model menu, Settings) show here, since all read one list. */

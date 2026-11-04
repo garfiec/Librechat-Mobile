@@ -24,17 +24,14 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
+import com.garfiec.librechat.core.ui.components.rememberDraftField
 import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.model.PickerSkill
@@ -42,6 +39,7 @@ import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_attach_file
 import com.garfiec.librechat.feature.chat.resources.cd_paste_image
+import com.garfiec.librechat.feature.chat.util.ThinkingChip
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
@@ -66,11 +64,14 @@ fun IosChatInput(
     canQueue: Boolean = false,
     onDuringRunSend: () -> Unit = {},
     onSteer: () -> Unit = {},
+    onInterrupt: () -> Unit = {},
     canSteer: Boolean = false,
+    builtInSearchOn: Boolean = false,
     duringRunAction: DuringRunAction = DuringRunAction.STEER,
     duringRunSendTarget: DuringRunSendTarget = DuringRunSendTarget.QUEUE,
     pendingSteers: List<PendingSteerChip> = emptyList(),
     onCancelSteer: (steerId: String) -> Unit = {},
+    onInterruptSteer: (steerId: String) -> Unit = {},
     pendingQuotes: List<String> = emptyList(),
     onRemoveQuote: (index: Int) -> Unit = {},
     pendingManualSkills: List<String> = emptyList(),
@@ -96,6 +97,8 @@ fun IosChatInput(
     enabledTools: Set<String> = emptySet(),
     pinnedToolKeys: List<String> = emptyList(),
     onToggleTool: (String) -> Unit = {},
+    thinking: ThinkingChip? = null,
+    onOpenThinking: () -> Unit = {},
     mcpServers: List<McpServerDisplayData> = emptyList(),
     selectedMcpServerNames: Set<String> = emptySet(),
     isRecording: Boolean = false,
@@ -134,6 +137,7 @@ fun IosChatInput(
         isTranscribing = isTranscribing,
         enabledTools = enabledTools,
         pinnedToolKeys = pinnedToolKeys,
+        thinking = thinking,
         mcpServers = mcpServers,
         selectedMcpServerNames = selectedMcpServerNames,
         selectedModelDisplay = selectedModelDisplay,
@@ -142,6 +146,7 @@ fun IosChatInput(
         gates = gates,
         canQueue = canQueue,
         canSteer = canSteer,
+        builtInSearchOn = builtInSearchOn,
         duringRunAction = duringRunAction,
         duringRunSendTarget = duringRunSendTarget,
         pendingSteers = pendingSteers,
@@ -169,10 +174,13 @@ fun IosChatInput(
         onStop = onStop,
         onSelectPickerItem = onPickerSelect,
         onToggleTool = onToggleTool,
+        onOpenThinking = onOpenThinking,
         onQueue = onQueue,
         onDuringRunSend = onDuringRunSend,
         onSteer = onSteer,
+        onInterrupt = onInterrupt,
         onCancelSteer = onCancelSteer,
+        onInterruptSteer = onInterruptSteer,
         onRemoveQuote = onRemoveQuote,
         onRemoveManualSkill = onRemoveManualSkill,
         onRetrySkills = onRetrySkills,
@@ -240,24 +248,16 @@ fun IosChatInput(
             Box(
                 modifier = Modifier.weight(1f),
             ) {
-                // When inputText changes externally (STT result, prompt insertion), put the cursor at
-                // the end of the new text, as Android's ChatInput does.
-                var textFieldValue by remember {
-                    mutableStateOf(TextFieldValue(inputText, selection = TextRange(inputText.length)))
-                }
-                if (textFieldValue.text != inputText) {
-                    textFieldValue = TextFieldValue(inputText, selection = TextRange(inputText.length))
-                }
+                // inputText reaches here a frame or more after each keystroke; the field keeps its own
+                // text and takes only the ViewModel's own writes (STT, prompt insertion, the clear on send).
+                val field = rememberDraftField(inputText)
                 val compactComparison = comparison?.takeIf { it.compact }
-                val comparisonCollapsed = compactComparison?.collapsedFor(inputText) == true
+                val comparisonCollapsed = compactComparison?.collapsedFor(field.value.text) == true
                 val comparisonCollapse by animateComposerComparisonCollapse(comparisonCollapsed)
                 // The composer draws its own field (ChatInputDefaults), glass included; not the adaptive one.
                 OutlinedTextField(
-                    value = textFieldValue,
-                    onValueChange = { newValue ->
-                        textFieldValue = newValue
-                        onInputChange(newValue.text)
-                    },
+                    value = field.value,
+                    onValueChange = { field.onValueChange(it, onInputChange) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 48.dp, max = 160.dp),

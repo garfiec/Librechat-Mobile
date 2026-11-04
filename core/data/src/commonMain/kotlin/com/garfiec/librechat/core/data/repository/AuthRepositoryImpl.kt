@@ -17,13 +17,16 @@ import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.VerifyTwoFactorOutcome
 import com.garfiec.librechat.core.model.auth.AuthCookies
 import com.garfiec.librechat.core.model.auth.SessionCredentials
+import com.garfiec.librechat.core.model.error.ServerErrorCode
 import com.garfiec.librechat.core.model.response.BackupCodesResponse
+import com.garfiec.librechat.core.model.response.TwoFactorSetupConfirmResponse
 import com.garfiec.librechat.core.model.response.TwoFactorSetupResponse
 import com.garfiec.librechat.core.network.api.AuthApi
 import com.garfiec.librechat.core.network.api.UserApi
 import com.garfiec.librechat.core.network.api.dto.LoginResult
 import com.garfiec.librechat.core.network.client.PendingRequestIdentity
 import com.garfiec.librechat.core.network.client.RequestIdentity
+import com.garfiec.librechat.core.network.client.SessionEndReason
 import com.garfiec.librechat.core.network.client.SwitchGate
 import com.garfiec.librechat.core.network.client.TokenManager
 import io.ktor.serialization.ContentConvertException
@@ -32,6 +35,8 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 
 /** Surfaced when a 2xx auth response yields no usable session (missing fields or unparseable). */
+private const val HTTP_FORBIDDEN = 403
+
 internal const val INCOMPLETE_AUTH_MESSAGE = "The server's sign-in response was incomplete. Please try again."
 
 @Suppress("LongParameterList") // debt: constructor dependencies
@@ -147,7 +152,14 @@ class AuthRepositoryImpl(
         return safeApiCall {
             withAuthIdentity(pending) {
                 val result = authApi.login(email, password)
-                if (result.response.twoFAPending) {
+                // Before twoFAPending, which the enrollment answer also sets: its tempToken is a setup
+                // credential, and verify-temp refuses it with a 401.
+                if (result.response.isTwoFactorSetupRequired) {
+                    LoginOutcome.TwoFactorSetupRequired(
+                        result.response.tempToken
+                            ?: throw IllegalStateException("Server required 2FA setup but tempToken was null"),
+                    )
+                } else if (result.response.twoFAPending) {
                     LoginOutcome.TwoFactorRequired(
                         result.response.tempToken
                             ?: throw IllegalStateException("Server indicated 2FA required but tempToken was null"),
@@ -171,7 +183,12 @@ class AuthRepositoryImpl(
         return safeApiCall {
             withAuthIdentity(pending) {
                 val result = authApi.refresh(cookies)
-                tokenManager.setSession(SessionCredentials(result.response.token, result.cookies))
+                // Only password (local/LDAP) accounts are subject to enforced 2FA, so an SSO capture
+                // should never see the enrollment answer; if a server sends it anyway there is no
+                // session to store.
+                val token = result.response.token?.takeUnless { result.response.isTwoFactorSetupRequired }
+                    ?: throw incompleteAuthResponse("token")
+                tokenManager.setSession(SessionCredentials(token, result.cookies))
                 // Fetch the user profile, then establish identity before session tasks fire.
                 val user = fetchAuthenticatedUser(pending)
                 establishSession(pending, user)
@@ -180,7 +197,6 @@ class AuthRepositoryImpl(
         }.fireSessionTasksIfLoggedIn(previousAccountId)
     }
 
-    @Suppress("TooGenericExceptionCaught") // any commit failure must roll back the staged session
     override suspend fun verifyTwoFactor(tempToken: String, code: String, isBackupCode: Boolean): VerifyTwoFactorOutcome {
         val pending = accountSwitcher.pendingAdd
         val previousAccountId = activeAccountProvider.currentAccountId()
@@ -209,22 +225,75 @@ class AuthRepositoryImpl(
         // established. A fault here is NOT a wire verdict: the code is already spent, so it maps to
         // SessionIncomplete (clear the entry, honest message) — never a connectivity lie or a doomed
         // retry of a consumed code.
-        return try {
+        return when (val committed = commitAcceptedSession(pending, previousAccountId, loginResult)) {
+            is Result.Success -> VerifyTwoFactorOutcome.Success(committed.data)
+            else -> VerifyTwoFactorOutcome.SessionIncomplete(INCOMPLETE_AUTH_MESSAGE)
+        }
+    }
+
+    /**
+     * Phase 2 of a 2FA sign-in (verify or setup finalize): the server has already spent the
+     * credential and minted a session, so commit it atomically under NonCancellable. A fault here is
+     * not a wire verdict; it rolls the staged pair back and reports [INCOMPLETE_AUTH_MESSAGE].
+     */
+    @Suppress("TooGenericExceptionCaught") // any commit failure must roll back the staged session
+    private suspend fun commitAcceptedSession(
+        pending: PendingAddSession?,
+        previousAccountId: AccountId?,
+        loginResult: LoginResult,
+    ): Result<User> =
+        try {
             val user = withContext(NonCancellable) {
                 val user = stageAuthenticatedSession(loginResult)
                 establishSession(pending, user)
                 user
             }
             Result.Success(user).fireSessionTasksIfLoggedIn(previousAccountId)
-            VerifyTwoFactorOutcome.Success(user)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Logger.w(e) { "2FA code accepted but session commit failed" }
+            Logger.w(e) { "2FA accepted but session commit failed" }
             // stageAuthenticatedSession already wrote the token pair; roll it back so a failed commit
             // can't leave an orphaned session behind (see rollbackStagedSession).
             rollbackStagedSession(pending)
-            VerifyTwoFactorOutcome.SessionIncomplete(INCOMPLETE_AUTH_MESSAGE)
+            Result.Error(IllegalStateException(INCOMPLETE_AUTH_MESSAGE), INCOMPLETE_AUTH_MESSAGE)
+        }
+
+    override suspend fun startTwoFactorSetup(tempToken: String): Result<TwoFactorSetupResponse> =
+        safeApiCall {
+            withAuthIdentity(accountSwitcher.pendingAdd) { authApi.startTwoFactorSetup(tempToken) }
+        }
+
+    override suspend fun confirmTwoFactorSetup(tempToken: String, code: String): Result<TwoFactorSetupConfirmResponse> =
+        safeApiCall {
+            withAuthIdentity(accountSwitcher.pendingAdd) {
+                val response = authApi.confirmTwoFactorSetup(tempToken, code)
+                if (response.acknowledgementToken.isNullOrBlank() || response.backupCodes.isEmpty()) {
+                    throw incompleteAuthResponse("acknowledgementToken")
+                }
+                response
+            }
+        }
+
+    override suspend fun acknowledgeTwoFactorSetup(acknowledgementToken: String): Result<String> =
+        safeApiCall {
+            withAuthIdentity(accountSwitcher.pendingAdd) {
+                authApi.acknowledgeTwoFactorSetup(acknowledgementToken).finalizationToken
+                    ?.takeIf { it.isNotBlank() }
+                    ?: throw incompleteAuthResponse("finalizationToken")
+            }
+        }
+
+    override suspend fun finalizeTwoFactorSetup(finalizationToken: String): Result<User> {
+        val pending = accountSwitcher.pendingAdd
+        val previousAccountId = activeAccountProvider.currentAccountId()
+        val wire = safeApiCall {
+            withAuthIdentity(pending) { authApi.finalizeTwoFactorSetup(finalizationToken) }
+        }
+        return when (wire) {
+            is Result.Success -> commitAcceptedSession(pending, previousAccountId, wire.data)
+            is Result.Error -> wire
+            is Result.Loading -> error("safeApiCall never returns Loading")
         }
     }
 
@@ -280,6 +349,9 @@ class AuthRepositoryImpl(
 
     private suspend fun signOut(snapshot: RequestIdentity) {
         val account = snapshot.accountId?.let { AccountId(it) }
+        // Before the revocation: once the server drops the session, a request whose refresh fails
+        // would otherwise announce an expiry the user didn't have.
+        tokenManager.beginSignOut(snapshot.accountId)
         try {
             serverSessionRevoker.revoke(snapshot)
         } finally {
@@ -311,11 +383,22 @@ class AuthRepositoryImpl(
                     // handled inside remove(): it reaps just that account without touching the live one.
                     accountSwitcher.remove(account.value)
                 } else {
-                    // Unresolved identity (should not happen after awaitReady) — no account to reap;
-                    // clear the account-blind file caches so nothing is left behind.
+                    // No account resolved, but the token store can still hold a session no roster
+                    // entry names (Keychain items that outlived a reinstall, a crash mid-sign-in).
+                    // Sign out must still sign out: drop it, clear the account-blind file caches, and
+                    // route to sign-in, which no account transition will do here.
+                    tokenManager.onAccountCleared()
                     sessionCacheCleaner.clearFileCaches()
+                    tokenManager.emitSessionExpired(reason = SessionEndReason.SIGNED_OUT)
                 }
             }
+        }
+    }
+
+    override suspend fun revokeActiveSession() {
+        accountRegistry.awaitReady()
+        apiCallCatching({ serverSessionRevoker.revoke(switchGate.captureSnapshot()) }) {
+            Logger.w(it) { "Server-side revocation failed for the active account" }
         }
     }
 
@@ -432,6 +515,9 @@ internal fun classifyVerifyFailure(e: Throwable?): VerifyTwoFactorOutcome = when
     // and falls to ConnectionFailure — an HTML 200 usually means the request never reached the backend.
     e is ContentConvertException -> VerifyTwoFactorOutcome.SessionIncomplete(INCOMPLETE_AUTH_MESSAGE)
     e is ApiException && e.statusCode == 401 -> VerifyTwoFactorOutcome.CodeRejected(e.message)
-    e is ApiException -> VerifyTwoFactorOutcome.NotEvaluated(e.message)
+    e is ApiException -> VerifyTwoFactorOutcome.NotEvaluated(
+        e.message,
+        code = if (e.statusCode == HTTP_FORBIDDEN) ServerErrorCode.from(e.body) else null,
+    )
     else -> VerifyTwoFactorOutcome.ConnectionFailure
 }

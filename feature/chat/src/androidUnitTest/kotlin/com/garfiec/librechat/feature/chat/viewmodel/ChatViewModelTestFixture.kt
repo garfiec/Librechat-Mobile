@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
+import com.garfiec.librechat.core.data.datastore.CodeWorkspacePreferenceStore
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
@@ -22,6 +23,7 @@ import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.AgentToolsRepository
 import com.garfiec.librechat.core.data.repository.ChatRepository
+import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.DraftRepository
@@ -34,9 +36,13 @@ import com.garfiec.librechat.core.data.repository.MemoryRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
+import com.garfiec.librechat.core.data.repository.PullRequestEntry
+import com.garfiec.librechat.core.data.repository.PullRequestRepository
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
+import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
+import com.garfiec.librechat.core.data.repository.SavedCodeDecision
 import com.garfiec.librechat.core.data.repository.ShareRepository
 import com.garfiec.librechat.core.data.repository.SkillsRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
@@ -47,6 +53,7 @@ import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.model.ToolAuthResult
 import com.garfiec.librechat.core.model.User
+import com.garfiec.librechat.core.model.code.CodeEnvironmentStatus
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnOutcome
 import com.garfiec.librechat.core.model.usage.ContextDetailPreset
 import com.garfiec.librechat.core.model.usage.DEFAULT_COMPACT_NUDGE_THRESHOLD
@@ -88,7 +95,11 @@ internal class ChatViewModelTestFixture {
     val configRepository = mockk<ConfigRepository>(relaxed = true)
     val conversationRepository = mockk<ConversationRepository>(relaxed = true)
     val endpointTokenRepository = mockk<EndpointTokenRepository>(relaxed = true)
+    val reasoningCapabilitiesRepository = mockk<ReasoningCapabilitiesRepository>(relaxed = true)
     val draftRepository = mockk<DraftRepository>(relaxed = true)
+
+    /** Shared by every ViewModel this fixture builds, as the app-scoped single is. */
+    val localQueueStash = LocalQueueStash()
     val favoritesRepository = mockk<FavoritesRepository>(relaxed = true)
     val keyRepository = mockk<KeyRepository>(relaxed = true)
     val presetRepository = mockk<PresetRepository>(relaxed = true)
@@ -123,6 +134,23 @@ internal class ChatViewModelTestFixture {
     /** Each conversation's remembered web-search switch; nothing stored unless a test says so. */
     val conversationWebSearchStore = mockk<ConversationWebSearchStore>(relaxed = true)
 
+    /** Attached code machines: none answer unless a test says so. */
+    var codeEnvironmentRepository: CodeEnvironmentRepository = object : CodeEnvironmentRepository {
+        override suspend fun status(environmentId: String): Result<CodeEnvironmentStatus> = Result.Error()
+        override suspend fun savedDecision(conversationId: String): Result<SavedCodeDecision> =
+            Result.Success(SavedCodeDecision(mode = null, workspaces = null))
+    }
+    val codeWorkspacePreferenceStore = mockk<CodeWorkspacePreferenceStore>(relaxed = true).also {
+        coEvery { it.snapshot() } returns emptyMap()
+    }
+
+    /** Pull requests: none known, and no lookup answers unless a test says so. */
+    var pullRequestRepository: PullRequestRepository = object : PullRequestRepository {
+        override val entries = MutableStateFlow<Map<String, PullRequestEntry>>(emptyMap())
+        override suspend fun refresh(conversationId: String) = Unit
+        override suspend fun refreshBatch(conversationIds: List<String>, maxConcurrent: Int?) = Unit
+    }
+
     /** Shared by every ViewModel this fixture builds, like the app's single, so its cache carries over. */
     private var webSearchReadiness: WebSearchReadinessRepository? = null
 
@@ -156,6 +184,8 @@ internal class ChatViewModelTestFixture {
     val promptRevision = MutableStateFlow(0L)
 
     fun stubDefaults() {
+        // No catalog: a relaxed mock's Result would read as a failure and retry forever.
+        coEvery { reasoningCapabilitiesRepository.catalog(any()) } returns null
         every { configRepository.startupConfig } returns MutableStateFlow(null)
         every { configRepository.detectedBackendVersion } returns MutableStateFlow("0.8.7")
         every { configRepository.detectedBackend } returns MutableStateFlow(null)
@@ -246,7 +276,9 @@ internal class ChatViewModelTestFixture {
         configRepository = configRepository,
         conversationRepository = conversationRepository,
         endpointTokenRepository = endpointTokenRepository,
+        reasoningCapabilitiesRepository = reasoningCapabilitiesRepository,
         draftRepository = draftRepository,
+        localQueueStash = localQueueStash,
         favoritesRepository = favoritesRepository,
         keyRepository = keyRepository,
         presetRepository = presetRepository,
@@ -264,6 +296,9 @@ internal class ChatViewModelTestFixture {
         webSearchReadiness = webSearchReadiness
             ?: WebSearchReadinessRepository(agentToolsRepository, activeAccountProvider).also { webSearchReadiness = it },
         conversationWebSearchStore = conversationWebSearchStore,
+        codeEnvironmentRepository = codeEnvironmentRepository,
+        codeWorkspacePreferenceStore = codeWorkspacePreferenceStore,
+        pullRequestRepository = pullRequestRepository,
         permissionGate = permissionGate,
         connectivityObserver = connectivityObserver,
         serverDataStore = serverDataStore,

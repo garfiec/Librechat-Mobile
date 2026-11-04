@@ -27,6 +27,7 @@ val agentsModule = module {
             serverDataStore = get(),
             favoritesRepository = get(),
             roleRepository = get(),
+            configRepository = get(),
             initialAgentId = params.getOrNull(),
         )
     }

@@ -17,6 +17,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ContextUsageSource
 import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.garfiec.librechat.feature.chat.viewmodel.RetryInfo
 import com.garfiec.librechat.feature.chat.viewmodel.StreamingHandle
+import com.garfiec.librechat.feature.chat.viewmodel.SubagentTrace
 
 /**
  * Projects the stream events that only describe the reply in progress — tool calls, attachments,
@@ -97,13 +98,19 @@ class LiveReplyDelegate(
                 content = content.copy(retryInfo = RetryInfo(attempt = event.attempt, maxAttempts = event.maxAttempts))
             }
             is StreamEvent.ToolCallStart -> {
-                val newToolCall = ActiveToolCall(id = event.toolCallId, name = event.toolName, input = event.input)
+                val newToolCall = ActiveToolCall(
+                    id = event.toolCallId,
+                    name = event.toolName,
+                    input = event.input,
+                    preparationStarted = event.preparing,
+                )
                 handle.update { content = content.copy(activeToolCalls = content.activeToolCalls + newToolCall) }
             }
             is StreamEvent.ToolCallComplete -> {
                 handle.update {
                     content = content.updateToolCall(event.toolCallId) { it.completedBy(event) }
                         .withoutSandboxStarting(event.toolCallId)
+                        .withoutSubagentAuthFor(event.toolCallId)
                 }
                 // If this was a `subagent` tool_call, freeze its live trace —
                 // the child run is done; stop accumulating for that key.
@@ -113,17 +120,22 @@ class LiveReplyDelegate(
                 handle.update {
                     content = content.updateToolCall(event.toolCallId) { it.closedBy(event) }
                         .withoutSandboxStarting(event.toolCallId)
+                        .withoutSubagentAuthFor(event.toolCallId)
                 }
                 // An aborted run closes its steps without ever completing them, so this is also
                 // where a subagent trace stops accumulating on that path.
                 subagentTraceDelegate.onParentToolCallResolved(event.toolCallId)
+            }
+            is StreamEvent.ToolCallAuthRequired -> onAuthRequired(event, parentToolCallId = null)
+            is StreamEvent.ToolCallPreparation -> handle.update {
+                content = content.copy(activeToolCalls = content.activeToolCalls.preparedBy(event))
             }
             is StreamEvent.SandboxStarting -> handle.update {
                 content = content.copy(sandboxStartingToolCallIds = content.sandboxStartingToolCallIds + event.toolCallId)
             }
             is StreamEvent.AttachmentCreated -> onAttachment(event.toAttachment())
             is StreamEvent.Sync -> onSync(event)
-            is StreamEvent.SubagentUpdate -> subagentTraceDelegate.onUpdate(event)
+            is StreamEvent.SubagentUpdate -> onSubagentUpdate(event)
             is StreamEvent.TitleUpdate -> onTitleUpdate(event)
             is StreamEvent.ContextUsageUpdate -> onContextUsage(event.usage)
             // Every billed call counts toward the breakdown's Totals, buckets included (summary
@@ -215,6 +227,34 @@ class LiveReplyDelegate(
         }
     }
 
+    private fun onSubagentUpdate(event: StreamEvent.SubagentUpdate) {
+        subagentTraceDelegate.onUpdate(event)
+        when (val inner = event.inner) {
+            is StreamEvent.ToolCallAuthRequired -> onAuthRequired(inner, event.parentToolCallId)
+            is StreamEvent.ToolCallComplete -> clearSubagentAuthFor(inner.toolCallId)
+            is StreamEvent.ToolCallClosed -> clearSubagentAuthFor(inner.toolCallId)
+            else -> Unit
+        }
+    }
+
+    /**
+     * Puts an MCP sign-in on the call it holds. A subagent's tool runs with the parent's stream, so
+     * its prompt arrives naming a call that lives in the subagent's trace, not in [ActiveToolCall]s:
+     * then it goes on the `subagent` call whose trace holds it (else the envelope's parent), which
+     * is the card the user sees; otherwise the run would wait on a prompt nobody is shown.
+     */
+    private fun onAuthRequired(event: StreamEvent.ToolCallAuthRequired, parentToolCallId: String?) {
+        val state = handle.state
+        val updated = state.activeToolCalls.withAuthRequired(event, state.subagentProgress, parentToolCallId)
+        if (updated === state.activeToolCalls) return
+        handle.update { content = content.copy(activeToolCalls = updated) }
+    }
+
+    private fun clearSubagentAuthFor(childToolCallId: String) {
+        if (handle.state.activeToolCalls.none { it.authToolCallId == childToolCallId }) return
+        handle.update { content = content.withoutSubagentAuthFor(childToolCallId) }
+    }
+
     /**
      * Eager mid-stream title reveal (v0.8.7 `titleTiming: immediate`). Updates the
      * in-memory title only — writing to Room mid-stream would re-emit the
@@ -224,6 +264,7 @@ class LiveReplyDelegate(
     private fun onTitleUpdate(event: StreamEvent.TitleUpdate) {
         val current = handle.state.conversationId
         if (current != null && current != event.conversationId) return
+        if (handle.state.conversation.titleSetByUser) return
         handle.update { conversation = conversation.copy(conversationTitle = event.title) }
     }
 }
@@ -239,6 +280,7 @@ internal fun MessagesState.resetLiveReply(
     thinking: String = "",
 ): MessagesState = copy(
     isStreaming = isStreaming,
+    attachedRun = null,
     streamingContent = text,
     streamingThinking = thinking,
     activeToolCalls = emptyList(),
@@ -248,6 +290,52 @@ internal fun MessagesState.resetLiveReply(
 
 private fun MessagesState.updateToolCall(id: String, transform: (ActiveToolCall) -> ActiveToolCall) =
     copy(activeToolCalls = activeToolCalls.map { if (it.id == id) transform(it) else it })
+
+/** A subagent's child call finished, so the parent card stops offering its sign-in. */
+private fun MessagesState.withoutSubagentAuthFor(childToolCallId: String): MessagesState {
+    val updated = activeToolCalls.withoutSubagentAuthFor(childToolCallId)
+    return if (updated === activeToolCalls) this else copy(activeToolCalls = updated)
+}
+
+/**
+ * Puts an MCP sign-in on the call in this list that holds it: the call it names, else the
+ * `subagent` call whose trace in [subagentProgress] holds that call (else [envelopeParentId], the
+ * `subagent_update` envelope's parent), recording the child's id in `authToolCallId`. A subagent's
+ * tool runs with the parent's stream, so its prompt names a call that is only in the trace. Returns
+ * this same list when no call here holds it. Shared with the comparison panes, which hold the calls
+ * in their own lists.
+ */
+internal fun List<ActiveToolCall>.withAuthRequired(
+    event: StreamEvent.ToolCallAuthRequired,
+    subagentProgress: Map<String, SubagentTrace>,
+    envelopeParentId: String?,
+): List<ActiveToolCall> {
+    if (any { it.id == event.toolCallId }) {
+        return map { if (it.id == event.toolCallId) it.authRequiredBy(event) else it }
+    }
+    val parentId = subagentProgress.entries.firstOrNull { (_, trace) ->
+        trace.parts.any { it.toolCall?.id == event.toolCallId }
+    }?.key ?: envelopeParentId ?: return this
+    if (none { it.id == parentId }) return this
+    return map { if (it.id == parentId) it.authRequiredBy(event).copy(authToolCallId = event.toolCallId) else it }
+}
+
+/**
+ * Takes a subagent child's sign-in off its parent card once the child call ends. Returns this same
+ * list when no card carries it. Shared with the comparison panes.
+ */
+internal fun List<ActiveToolCall>.withoutSubagentAuthFor(childToolCallId: String): List<ActiveToolCall> =
+    if (none { it.authToolCallId == childToolCallId }) {
+        this
+    } else {
+        map {
+            if (it.authToolCallId == childToolCallId) {
+                it.copy(authUrl = null, authServerName = null, authExpiresAt = null, authToolCallId = null)
+            } else {
+                it
+            }
+        }
+    }
 
 /** A completed or closed call is past its sandbox boot. Shared with the comparison panes. */
 internal fun MessagesState.withoutSandboxStarting(toolCallId: String): MessagesState =
@@ -266,6 +354,22 @@ internal fun ActiveToolCall.completedBy(event: StreamEvent.ToolCallComplete) =
         inputValidationError = event.inputValidationError,
     )
 
+/** A preparation marker or a dispatch, applied to the calls it names. Shared with the comparison panes. */
+internal fun List<ActiveToolCall>.preparedBy(event: StreamEvent.ToolCallPreparation): List<ActiveToolCall> {
+    if (none { it.id in event.toolCallIds }) return this
+    return map { call ->
+        when {
+            call.id !in event.toolCallIds -> call
+            event.dispatched -> call.copy(dispatched = true)
+            else -> call.copy(preparationStarted = true)
+        }
+    }
+}
+
+/** The run is waiting on the user to sign in to an MCP server. Shared with the comparison panes. */
+internal fun ActiveToolCall.authRequiredBy(event: StreamEvent.ToolCallAuthRequired) =
+    copy(authUrl = event.authUrl, authServerName = event.serverName, authExpiresAt = event.expiresAt, authToolCallId = null)
+
 internal fun ActiveToolCall.closedBy(event: StreamEvent.ToolCallClosed) =
     copy(isComplete = true, closedStatus = event.status, durationMs = event.durationMs ?: durationMs)
 
@@ -279,6 +383,7 @@ private fun StreamEvent.AttachmentCreated.toAttachment() = Attachment(
     toolCallId = toolCallId,
     expiresAt = expiresAt,
     agentId = agentId,
+    stepId = stepId,
     workspaceChange = workspaceChange,
     bytes = bytes,
     width = width,

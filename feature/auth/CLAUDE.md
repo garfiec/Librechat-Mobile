@@ -50,7 +50,8 @@
   `authRepository.loginWithOAuthToken`. It reports an error *type*; the screen owns the wording.
 - `LoginViewModel` shows a one-time warning before the first social sign-in — the flow works only
   because the WebView sends a browser User-Agent, which providers can stop honouring at any time.
-- That agent is `SSO_ANDROID_USER_AGENT` / `safariApplicationName`, **not**
+- That agent is `SSO_ANDROID_USER_AGENT` / `safariApplicationName` (in `:core:ui` `web/`, shared
+  with the MCP OAuth sign-in WebView), **not**
   `LibreChatHttpClient.BROWSER_USER_AGENT`. The API constant answers the server's `ua-parser-js`
   soft-ban; this one answers a provider's embedded-browser detection, and the two are free to
   diverge. Android uses Chrome's reduced form with the device segment frozen at `Android 10; K`,
@@ -61,6 +62,27 @@
   `Sec-CH-UA` client hints, which need `androidx.webkit`'s `setUserAgentMetadata` to stay
   consistent with an overridden agent.
 - Supported providers configured by server: Google, GitHub, Discord, Facebook, Apple, OpenID
+
+## Coded refusals (v0.8.9-rc1)
+- `AuthRefusal` (`viewmodel/AuthRefusal.kt`) is the one mapping for the coded 403s of the pre-auth
+  routes: `TENANT_CONTEXT_REQUIRED` (strict tenant isolation; every `/api/auth` route and `/oauth`)
+  and `TWO_FACTOR_FEDERATED_LOGIN_BLOCKED`. Keyed on the body's code, never the status, so the UA
+  soft-ban, a ban, `terms_not_accepted` and a proxy 403 keep their own handling.
+- Login, Register, ForgotPassword, ResetPassword and TwoFactor set `refusal` from it (TwoFactor via
+  `VerifyTwoFactorOutcome.NotEvaluated.code`); each screen shows `authErrorText(refusal, error)`, the
+  app's wording while `error` is set. SSO words the callback's `code` with the same string. Required
+  2FA setup does not: a 403 there ends the setup credential and sends the user to sign-in, whose own
+  refusal then says why.
+
+## Policy links
+- The footer (`PolicyLinksFooter`) on Login, Register, ForgotPassword and ResetPassword shows the
+  deployment's privacy policy and terms of service links, as upstream's `Auth/Footer.tsx` does on
+  every `AuthLayout` screen. Each ViewModel maps them from `authServerConfig` (the pending
+  add-account server while one is pending, else the live one). Upstream's register-page
+  `LegalConsent` sentence is deliberately not ported. `PolicyLinks.from` maps them at the top from
+  the config's `safeExternalUrl` only (blank or unsafe-scheme URLs are dropped; see `isSafeLinkUrl`)
+  and resolves a relative one against the server (`absoluteLinkUrl`). Read `safeExternalUrl`, never
+  `externalUrl`, in any new consumer. Opened through `LocalUriHandler`.
 
 ## Diagnostic log
 - `DiagnosticLogLink` ("Export diagnostic logs", the same label as Settings) offers the log under a
@@ -118,7 +140,43 @@
 - Route: `Terms` data object (part of `AuthRoute` sealed interface) in `AuthNavigation.kt`
 - Loads terms text via `UserRepository`, posts acceptance on confirm
 - `TermsViewModel.consumeAccepted()` resets navigation trigger
-- **Gotcha**: Terms check should happen after login if `startupConfig.requireTerms` is true
+- Pushed over the signed-in stack by the shell (`Navigator.showTerms`): after sign-in, on cold start
+  and on account switch when `interface.termsOfService.modalAcceptance` is on and `GET /api/user/terms`
+  says not accepted, and whenever a write answers `403 terms_not_accepted` (v0.8.9-rc1 enforces it
+  server-side; the validator raises `AuthGate.TermsNotAccepted`).
+- Required means not dismissable: Accept pops; Decline, the top-bar arrow, system back and predictive
+  back all decline, which (as upstream's decline-logs-out) revokes this account's server session
+  best-effort and ends its local session for sign-in — this account only, no failover.
+- The screen stays up through the revoke call. `TermsRequirementStateHolder.decline` runs once at a
+  time (`declining`); while it or an accept is in flight, Decline and Accept are disabled and back
+  is consumed and ignored (`declineUnlessBusy`) — never a disabled `BackHandler`, which would let
+  the system pop the screen. The local end is skipped if the session already ended or a failover
+  moved off the declining account during the revoke.
+- The shell keeps the requirement as state (`TermsRequirementStateHolder`), not a route event, and
+  opens the screen whenever it is required, signed in, out of the sign-in flow and not already on the
+  stack: a requirement learned while the stack is still on sign-in is kept until it reaches chat.
+
+### Required 2FA setup (v0.8.9-rc1)
+- `TwoFactorSetup(tempToken)` route + `TwoFactorSetupScreen`/`TwoFactorSetupViewModel`: start →
+  authenticator (open `otpauth://`, setup key, QR) → verify code → backup codes (save to file or
+  confirm) → acknowledge + finalize, which commits a session like a 2FA verify.
+- Reached two ways. Login returns `LoginOutcome.TwoFactorSetupRequired` (the setup token must never
+  go to `TwoFactor`/verify-temp, which 401s it). Mid-session, a refresh or any request reports
+  `AuthGate.TwoFactorSetupRequired`; `NavHostViewModel` ends the session for re-auth (no failover, no
+  expiry dialog) and the navigator stacks `ServerUrl, Login, TwoFactorSetup`.
+- A background account whose refresh hit enrollment has no gate, only the token store's marker; its
+  switcher row leads to sign-in. `LoginViewModel` names the signed-out accounts on the screen's server
+  (pending add server, else the live one) that carry the marker, as a one-line notice
+  (`twoFactorSetupAccounts`). The finalize commits through `setSession` + re-home, which clears it.
+- **Escape to another account**: whenever the app parks an account at sign-in with no failover (this
+  setup, "sign in again", declined terms) other accounts may still be signed in. ServerUrl, Login and
+  the setup screen (Start phase / expired) then show "Use another account" (`SignInEscape`, passed to
+  `authEntries`), which opens the drawer's `AccountSwitcherSheet` in `:shared` on those accounts only
+  (no add/remove). The switch is `NavHostViewModel.switchAccount`, the drawer's own path, which also
+  enters the app when made signed out (`AccountSwitchStateHolder`). Hidden while signed in, so never in
+  add-account mode.
+- Ack/finalization credentials live only in the ViewModel. 401/403 = start over at sign-in; 400 on
+  ack/finalize = spent; a failed finalize retries with the same finalization token.
 - **Note**: `VerifyEmailScreen` already existed pre-Round 2
 
 ### Localization
@@ -135,6 +193,8 @@
   session open.
 - **iOS** takes its roles from `KeyboardOptions.withIosTextContentType()` (`:core:ui`): `.username`
   on the email fields, `.newPassword` on Register/Reset, `.oneTimeCode` on the 2FA input.
+  `.password` and `.emailAddress` exist too (Settings' change-email and passkey dialogs use them);
+  the Login password field still sets no iOS role.
 - Fields holding other secrets (API keys, gateway tokens, PDF passwords) use
   `Modifier.excludeFromAutofill()` so a password manager doesn't offer or save the login there.
 - Limits, all outside the app's control:

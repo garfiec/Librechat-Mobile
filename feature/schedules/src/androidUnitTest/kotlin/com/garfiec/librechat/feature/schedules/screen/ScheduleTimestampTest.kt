@@ -53,4 +53,13 @@ class ScheduleTimestampTest {
         assertEquals("not-a-timestamp", "not-a-timestamp".asScheduleTimestamp(format))
         assertEquals("", "".asScheduleTimestamp(format))
     }
+
+    /** The consent view's `expiresAtMs` is epoch ms: it renders as a date, never as the number. */
+    @Test
+    fun `a consent deadline in epoch milliseconds is formatted as a date`() {
+        val ms = 1_793_000_000_000L
+        val shown = ms.asConsentDeadline(format)
+        assertFalse(shown.contains(ms.toString()), "the raw number must not reach the sheet: $shown")
+        assertTrue(shown.startsWith("2026-"), "epoch ms, not seconds: $shown")
+    }
 }

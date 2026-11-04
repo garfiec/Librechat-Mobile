@@ -43,6 +43,8 @@ object SubagentOrigin {
 }
 
 object SubagentActivityType {
+    /** v0.8.9-rc1: guidance that entered the child run, in the order it went in. */
+    const val STEER = "steer"
     const val WRITING = "writing"
     const val REASONING = "reasoning"
     const val ACTIVITY_LABEL = "activity_label"
@@ -95,7 +97,7 @@ data class SubagentIndex(
 /**
  * One item of a child's user-visible activity.
  *
- * Flattened from upstream's four-armed discriminated union for the same reason as
+ * Flattened from upstream's five-armed discriminated union for the same reason as
  * `ScheduleCadence`: a sealed hierarchy needs a discriminator serializer that throws on a value a
  * newer server added, which would fail the whole list for one row. [type] is REQUIRED and has no
  * default — the arms share nothing else, so a row without it is unreadable rather than
@@ -104,6 +106,12 @@ data class SubagentIndex(
 @Serializable
 data class SubagentActivityItem(
     val type: String,
+    // steer
+    val steer: String? = null,
+    val steerId: String? = null,
+    val clientSteerId: String? = null,
+    /** Epoch ms (a number here, unlike the thread's ISO timestamps). */
+    val createdAt: Long? = null,
     // writing / reasoning
     val text: String? = null,
     val textTruncated: Boolean? = null,
@@ -168,6 +176,11 @@ data class SubagentTrigger(
 @Serializable
 data class SubagentThreadTurn(
     val taskId: String = "",
+    /**
+     * Whether this task's full content can be recovered from the task-content route (v0.8.9-rc1);
+     * absent on older servers. Decoded only: this client reads the bounded activity projection.
+     */
+    val contentRecoveryAvailable: Boolean? = null,
     val trigger: SubagentTrigger? = null,
     val status: String? = null,
     val activity: List<SubagentActivityItem> = emptyList(),

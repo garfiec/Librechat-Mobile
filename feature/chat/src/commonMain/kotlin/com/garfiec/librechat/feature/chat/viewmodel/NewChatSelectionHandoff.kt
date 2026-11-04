@@ -63,6 +63,12 @@ class NewChatSelectionHandoff {
         /** The landing was showing the "skills not sent" notice for [stagedManualSkills]. */
         val skillsNotSentNotice: Boolean = false,
         /**
+         * The first turn went out "No workspace" because there was no workspace to pick, and the
+         * landing was about to say so. The landing is reset at navigation, so the chat it opens
+         * shows the notice instead.
+         */
+        val sentWithoutWorkspaceNotice: Boolean = false,
+        /**
          * The parameters the first turn was sent with (a spec's preset, the user's tweaks), so the
          * follow-ups send them too. Null when nothing was staged.
          */
@@ -80,6 +86,7 @@ class NewChatSelectionHandoff {
         skillsToggle: Boolean? = null,
         stagedManualSkills: List<String> = emptyList(),
         skillsNotSentNotice: Boolean = false,
+        sentWithoutWorkspaceNotice: Boolean = false,
         modelParameters: ModelParameters? = null,
         specTools: SpecTools? = null,
     ) {
@@ -90,6 +97,7 @@ class NewChatSelectionHandoff {
             skillsToggle = skillsToggle,
             stagedManualSkills = stagedManualSkills,
             skillsNotSentNotice = skillsNotSentNotice,
+            sentWithoutWorkspaceNotice = sentWithoutWorkspaceNotice,
             modelParameters = modelParameters,
             specTools = specTools,
         )
@@ -114,11 +122,12 @@ class NewChatSelectionHandoff {
  * server's copy. A run that ends without one — a resume that finds the job already gone — would leave
  * the seed in the list as a second root sibling, and the path's newest-sibling default would then show
  * it alone, hiding the persisted turn beside it. Matched on what the server keeps from the request:
- * the author, the parent, and the text.
+ * the author, the parent, and the text. A turn the server redacted (`privacyRevision`, v0.8.9-rc1)
+ * keeps the filtered text, never what was typed, so for it the author and parent decide.
  */
 internal fun Message.isServerCopyOf(seed: Message): Boolean =
     isCreatedByUser && seed.isCreatedByUser &&
-        text == seed.text &&
+        (text == seed.text || privacyRevision != null) &&
         parentMessageId.orNoParent() == seed.parentMessageId.orNoParent()
 
 private fun String?.orNoParent(): String = this?.takeIf { it.isNotBlank() } ?: NO_PARENT

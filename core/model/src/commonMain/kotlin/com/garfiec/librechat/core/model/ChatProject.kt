@@ -18,6 +18,23 @@ data class ChatProject(
     val lastConversationId: String? = null,
     val createdAt: String? = null,
     val updatedAt: String? = null,
+    /**
+     * The project's standing brief for the model (v0.8.9-rc1). Only the detail route
+     * (`GET /api/projects/:id`) sends it; the list leaves it out and sends [hasInstructions].
+     */
+    val instructions: String? = null,
+    /**
+     * Bumped by the server on every instructions, file add or file remove change (v0.8.9-rc1). An
+     * instructions save sends back the value it was based on; a stale one is refused with 409
+     * `CHAT_PROJECT_CONFLICT`.
+     */
+    val contextRevision: Int? = null,
+    /** The attached reference files' ids, in order (detail route only, v0.8.9-rc1). */
+    @SerialName("file_ids") val fileIds: List<String>? = null,
+    /** List route only (v0.8.9-rc1). */
+    val hasInstructions: Boolean? = null,
+    /** List route only (v0.8.9-rc1). */
+    val fileCount: Int? = null,
 ) {
     companion object {
         /**

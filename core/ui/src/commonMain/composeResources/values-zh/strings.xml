@@ -74,6 +74,11 @@
     <string name="context_usage_cost">费用</string>
     <string name="context_usage_cost_branch">费用（此分支）</string>
     <string name="context_usage_cost_all">所有分支</string>
+    <string name="context_usage_last_turn">上一轮</string>
+    <string name="context_usage_current_turn">当前轮次（截至目前）</string>
+    <string name="context_usage_waiting">正在等待模型用量…</string>
+    <string name="context_usage_unavailable">此轮次的用量不可用</string>
+    <string name="context_usage_this_branch">此分支</string>
     <string name="context_usage_tools_all">工具</string>
     <string name="context_usage_used">已使用</string>
     <string name="timestamp_just_now">刚刚</string>
@@ -173,6 +178,7 @@
     <string name="param_option_xhigh">极高</string>
     <string name="param_option_max">最高</string>
     <string name="param_option_auto">自动</string>
+    <string name="param_option_off">关闭</string>
     <string name="param_option_concise">简洁</string>
     <string name="param_option_detailed">详细</string>
     <string name="param_option_standard">标准</string>
@@ -294,6 +300,9 @@
     <string name="acl_error_not_found">此项已被删除，或你已无权访问。</string>
     <string name="acl_error_owner_protected">无法更改所有者的访问权限。</string>
     <string name="acl_error_generic">无法更新访问权限，请重试。</string>
+    <string name="acl_error_busy">此访问权限的另一项更改正在进行中。请稍后重试。</string>
+    <string name="acl_error_unavailable">目前无法更改访问权限。请稍后重试。</string>
+    <string name="acl_error_audit_unavailable">由于服务器无法记录此更改，访问权限未更改。请稍后重试。</string>
     <string name="acl_error_load">无法加载有访问权限的人。</string>
     <string name="bookmarks">书签</string>
     <string name="bookmark_new">新建书签</string>
@@ -321,4 +330,30 @@
     <plurals name="bookmark_error_too_long">
         <item quantity="other">最多 %1$d 个字符</item>
     </plurals>
+    <string name="mcp_oauth_sign_in_title">登录 %1$s</string>
+    <string name="mcp_oauth_sign_in_close">关闭登录</string>
+    <string name="pull_request">拉取请求</string>
+    <string name="merge_request">合并请求</string>
+    <string name="pr_label">PR #%1$d</string>
+    <string name="pr_label_gitlab">MR !%1$d</string>
+    <string name="pr_state_open">打开</string>
+    <string name="pr_state_draft">草稿</string>
+    <string name="pr_state_merged">已合并</string>
+    <string name="pr_state_closed">已关闭</string>
+    <string name="pr_state_conflicts">有冲突</string>
+    <string name="pr_checks_passing">通过</string>
+    <string name="pr_checks_failing">失败</string>
+    <string name="pr_checks_running">运行中</string>
+    <string name="pr_checks_none">无</string>
+    <string name="pr_state">状态：%1$s</string>
+    <string name="pr_checks">检查：%1$s</string>
+    <string name="pr_menu_subtitle">%1$s · 检查%2$s</string>
+    <string name="pr_menu_subtitle_no_checks">%1$s · 无检查</string>
+    <string name="pr_open_in_github">在 GitHub 中打开</string>
+    <string name="pr_open_in_gitlab">在 GitLab 中打开</string>
+    <string name="pr_open_in_bitbucket">在 Bitbucket 中打开</string>
+    <string name="pr_refresh_failed">无法刷新拉取请求</string>
+    <string name="pr_retry">重试</string>
+    <string name="pr_additions_cd">新增 %1$d 行</string>
+    <string name="pr_deletions_cd">删除 %1$d 行</string>
 </resources>

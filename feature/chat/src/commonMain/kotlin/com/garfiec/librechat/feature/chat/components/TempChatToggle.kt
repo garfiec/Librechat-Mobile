@@ -19,6 +19,7 @@ import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_temporary_chat
+import com.garfiec.librechat.feature.chat.resources.temporary_chat_enforced
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -33,8 +34,11 @@ fun TempChatToggle(
     modifier: Modifier = Modifier,
     /** What the icon shows, which trails [isTemporary] while the temporary-chat band sweeps back in. */
     showsTemporary: Boolean = isTemporary,
+    /** An administrator forces temporary chats: the toggle stays on and says so. */
+    enforced: Boolean = false,
 ) {
-    val temporaryChatCd = stringResource(Res.string.cd_temporary_chat)
+    val temporaryChatCd =
+        stringResource(if (enforced) Res.string.temporary_chat_enforced else Res.string.cd_temporary_chat)
     val tint by animateColorAsState(
         targetValue = if (showsTemporary) {
             ChatInputDefaults.temporaryAccent

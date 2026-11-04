@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.common.network.ConnectivityObserver
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.bookmarks.BookmarkPickerController
 import com.garfiec.librechat.core.data.datastore.AppPreferences
+import com.garfiec.librechat.core.data.datastore.CodeWorkspacePreferenceStore
 import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
@@ -20,6 +21,7 @@ import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ChatRepository
+import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.DraftRepository
@@ -32,7 +34,9 @@ import com.garfiec.librechat.core.data.repository.MemoryRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
+import com.garfiec.librechat.core.data.repository.PullRequestRepository
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
+import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ShareRepository
@@ -51,11 +55,13 @@ import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.isTraceViewerEnabled
+import com.garfiec.librechat.core.model.content.speechTextOf
 import com.garfiec.librechat.core.model.content.stripCitations
 import com.garfiec.librechat.core.model.error.UserKeyError
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
+import com.garfiec.librechat.core.model.pullrequest.pullRequestsAvailable
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
 import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.core.ui.components.ModelParameters
@@ -71,10 +77,14 @@ import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.ReplyAvatarMemo
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
+import com.garfiec.librechat.feature.chat.util.ToolPartIdentity
+import com.garfiec.librechat.feature.chat.util.ToolPartKey
+import com.garfiec.librechat.feature.chat.util.ToolPartStatus
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.extractBranchMedia
 import com.garfiec.librechat.feature.chat.util.isAddedAgentId
 import com.garfiec.librechat.feature.chat.util.newChatDraftKey
+import com.garfiec.librechat.feature.chat.util.overrideFor
 import com.garfiec.librechat.feature.chat.util.parametersFor
 import com.garfiec.librechat.feature.chat.util.reopenedParameters
 import com.garfiec.librechat.feature.chat.util.restore
@@ -84,6 +94,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.AttachmentPreviewDe
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.BranchSwitch
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ChatBookmarksDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ChatConfigDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.CodeWorkspaceDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ComparisonModeDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ContextProjectionDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ConversationActionsDelegate
@@ -93,16 +104,20 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.FavoritesDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.InConversationSearchDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.JumpToMessageDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.LiveReplyDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.LocalQueueContinuityDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageEditingDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageQueueDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageTreeDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ModelSelectionDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.OwnerTextDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PdfPasswordPrompt
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PendingActionDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformDelegateFactory
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PresetPromptDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.PullRequestDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.QueueOrchestrationDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.QueuedTurnDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.ReasoningCatalogDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SendCompletionDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SendDispatchDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SendReadinessDelegate
@@ -113,6 +128,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.SteeringDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.StreamingHost
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.StreamingManagerDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SubagentTraceDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.ToolPartHydrationDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.UploadIntakeDelegate
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.NonCancellable
@@ -165,7 +181,9 @@ class ChatViewModel(
     private val configRepository: ConfigRepository,
     private val conversationRepository: ConversationRepository,
     private val endpointTokenRepository: EndpointTokenRepository,
+    reasoningCapabilitiesRepository: ReasoningCapabilitiesRepository,
     private val draftRepository: DraftRepository,
+    localQueueStash: LocalQueueStash,
     favoritesRepository: FavoritesRepository,
     private val keyRepository: KeyRepository,
     presetRepository: PresetRepository,
@@ -182,6 +200,9 @@ class ChatViewModel(
     memoryRepository: MemoryRepository,
     webSearchReadiness: WebSearchReadinessRepository,
     private val conversationWebSearchStore: ConversationWebSearchStore,
+    codeEnvironmentRepository: CodeEnvironmentRepository,
+    codeWorkspacePreferenceStore: CodeWorkspacePreferenceStore,
+    pullRequestRepository: PullRequestRepository,
     private val permissionGate: PermissionGate,
     private val connectivityObserver: ConnectivityObserver,
     private val activeAccountProvider: ActiveAccountProvider,
@@ -223,8 +244,9 @@ class ChatViewModel(
     private val fileDelegate = platformDelegateFactory.createFileHandler(ErrorOnlyHandle(stateHandle))
 
     // Spoken without citation markers: "turn zero search zero" is not part of the reply.
-    private val ttsDelegate = platformDelegateFactory.createTts(TtsHandle(stateHandle)) { stripCitations(getMessageText(it)) }
-    private val voiceDelegate = platformDelegateFactory.createVoiceInput(VoiceHandle(stateHandle), ::sendMessage)
+    private val ttsDelegate = platformDelegateFactory.createTts(TtsHandle(stateHandle)) { stripCitations(getSpeechText(it)) }
+    private val voiceDelegate =
+        platformDelegateFactory.createVoiceInput(VoiceHandle(stateHandle, ::persistComposerDraft), ::sendMessage)
     private val shareConsumer = platformDelegateFactory.createShareConsumer()
 
     // --- Delegates (each gets a narrowed handle that can write only its own slices) ---
@@ -243,6 +265,16 @@ class ChatViewModel(
         agentRepository,
         endpointTokenRepository,
     )
+    private val ownerTextDelegate = OwnerTextDelegate(OwnerTextHandle(stateHandle), messageRepository)
+    private val toolPartDelegate = ToolPartHydrationDelegate(
+        scope = viewModelScope,
+        messageRepository = messageRepository,
+        currentConversationId = { _uiState.value.conversationId },
+        currentMessages = { _uiState.value.messages },
+        currentAccountId = { activeAccountProvider.currentAccountId()?.value },
+        defaultDispatcher = defaultDispatcher,
+    )
+    private val toolPartOverlay = ToolPartOverlay()
     private val searchDelegate = InConversationSearchDelegate(SearchHandle(stateHandle))
     private val jumpDelegate = JumpToMessageDelegate(JumpHandle(stateHandle), defaultDispatcher)
 
@@ -260,10 +292,15 @@ class ChatViewModel(
             conversationRepository = conversationRepository,
             shareRepository = shareRepository,
             shareLink = shareLinkControllerFactory.create(viewModelScope),
+            draftRepository = draftRepository,
         )
     private val bookmarksDelegate = ChatBookmarksDelegate(BookmarksHandle(stateHandle), tagRepository)
     private val presetPromptDelegate =
-        PresetPromptDelegate(PresetPromptHandle(stateHandle), presetRepository, promptRepository)
+        PresetPromptDelegate(
+            PresetPromptHandle(stateHandle, ::persistComposerDraft),
+            presetRepository,
+            promptRepository,
+        )
     private val skillPickerDelegate = SkillPickerDelegate(
         handle = SkillPickerHandle(stateHandle),
         skillsRepository = skillsRepository,
@@ -286,6 +323,28 @@ class ChatViewModel(
         initialSpec = initialSpec,
     )
     private val skillsToggleDelegate = SkillsToggleDelegate(SkillsToggleHandle(stateHandle), settingsDataStore)
+
+    // The attached-machine workspace a chat's coding agents run on, and what each send carries.
+    private val codeWorkspaceDelegate = CodeWorkspaceDelegate(
+        handle = CodeWorkspaceHandle(stateHandle),
+        configRepository = configRepository,
+        roleRepository = roleRepository,
+        environments = codeEnvironmentRepository,
+        preferences = codeWorkspacePreferenceStore,
+    )
+
+    // The chat's pull request (a code chat started elsewhere): looked up, polled while in front.
+    private val pullRequestDelegate = PullRequestDelegate(
+        handle = PullRequestHandle(stateHandle),
+        configRepository = configRepository,
+        conversationRepository = conversationRepository,
+        repository = pullRequestRepository,
+    )
+
+    private val reasoningCatalogDelegate = ReasoningCatalogDelegate(
+        handle = ReasoningHandle(stateHandle),
+        repository = reasoningCapabilitiesRepository,
+    )
     private val keyStatusDelegate = EndpointKeyStatusDelegate(
         handle = EndpointKeyHandle(stateHandle),
         keyRepository = keyRepository,
@@ -295,7 +354,7 @@ class ChatViewModel(
     private val attachmentPreviewDelegate =
         AttachmentPreviewDelegate(AttachmentPreviewHandle(stateHandle), fileRepository)
     private val newChatDraftKey = newChatDraftKey(initialChatProjectId)
-    private val completionDelegate = SendCompletionDelegate(
+    private val completionDelegate: SendCompletionDelegate = SendCompletionDelegate(
         handle = SendCompletionHandle(stateHandle),
         conversationRepository = conversationRepository,
         messageRepository = messageRepository,
@@ -321,6 +380,10 @@ class ChatViewModel(
     // reply (it finished first, or the run could not take them). Surfaced as a snackbar.
     private val _steersQueuedAsFollowUp = Channel<Int>(Channel.BUFFERED)
     val steersQueuedAsFollowUp: Flow<Int> = _steersQueuedAsFollowUp.receiveAsFlow()
+
+    /** An interrupt that didn't go as asked (one-shot, like [steersQueuedAsFollowUp]; never `error`). */
+    private val _steerNotices = Channel<SteerNotice>(Channel.BUFFERED)
+    val steerNotices: Flow<SteerNotice> = _steerNotices.receiveAsFlow()
 
     // Explicitly typed: inference cannot close the loop through sendDispatchDelegate.
     private val queueDelegate: MessageQueueDelegate = MessageQueueDelegate(
@@ -360,6 +423,7 @@ class ChatViewModel(
         onSuccessorOwed = { streamingManager.attachToServerStartedRun() },
         projectOrphan = { receipt -> queueOrchestrationDelegate.projectOrphanQueuedTurn(receipt) },
         onServerRowsCleared = { queueOrchestrationDelegate.tryResumeDrain() },
+        onReceiptsApplied = { queueOrchestrationDelegate.onQueueReconciled() },
     )
 
     // --- Delegate-owned flows exposed to the UI ---
@@ -494,12 +558,16 @@ class ChatViewModel(
 
     val uiState: StateFlow<ChatUiState> = combine(
         _uiState,
-        serverDataStore.currentUrlFlow,
+        // Paired off the backing-state path, so a fetched tool part adds no hop to every state emission.
+        combine(serverDataStore.currentUrlFlow, toolPartDelegate.loaded, ::Pair),
         settingsDataStore.chatFontSize,
         settingsDataStore.starredModelsDisplay,
         chatDisplayPrefs,
-    ) { state, url, fontSize, starredDisplay, displayPrefs ->
-        state.copy(
+    ) { state, (url, loadedToolParts), fontSize, starredDisplay, displayPrefs ->
+        // Fetched full tool calls go over the display path here, after it is built and before the
+        // UI collects it: a fetch landing never rebuilds the tree or touches the streaming anchor,
+        // and delegates keep reading the backing state's previews.
+        toolPartOverlay.apply(state, loadedToolParts).copy(
             prefs = ChatPrefsState(
                 serverUrl = url,
                 chatFontSize = fontSize,
@@ -570,7 +638,11 @@ class ChatViewModel(
         onMessagesSettled = attachmentPreviewDelegate::onMessagesSettled,
         currentModelSpecs = { configRepository.startupConfig.value?.modelSpecs },
         currentAccountId = { activeAccountProvider.currentAccountId()?.value },
+        pullRequestsAvailable = {
+            pullRequestsAvailable(configRepository.startupConfig.value, configRepository.detectedBackendVersion.value)
+        },
         watchSelection = modelDelegate.selectionWatches::watch,
+        lastCachedTurn = { completionDelegate.lastCachedTurn },
     )
 
     private val uploadIntakeDelegate = UploadIntakeDelegate(
@@ -630,6 +702,8 @@ class ChatViewModel(
         },
         isStreaming = { _uiState.value.isStreaming },
         restageQuotes = { quotes -> sendDispatchDelegate.restagePendingQuotes(quotes) },
+        onSteerNotice = { notice -> _steerNotices.trySend(notice) },
+        armTimeoutMs = { _uiState.value.gates.steerArmConfirmationMs },
     )
 
     private val streamingManager = StreamingManagerDelegate(
@@ -700,6 +774,8 @@ class ChatViewModel(
         newChatDraftKey = newChatDraftKey,
         turnSkillsOn = skillsToggleDelegate::turnOn,
         loadSkillCatalog = { skillPickerDelegate.ensureLoaded(newTrigger = true) },
+        codeWorkspace = codeWorkspaceDelegate::submissionForSend,
+        sendsWithoutWorkspace = codeWorkspaceDelegate::sendsWithoutWorkspace,
     )
 
     private val queueOrchestrationDelegate = QueueOrchestrationDelegate(
@@ -712,7 +788,29 @@ class ChatViewModel(
         activeAccountProvider = activeAccountProvider,
         fileHandler = fileDelegate,
         generationEpoch = { pendingActionDelegate.generationEpoch },
+        queueAnchor = streamingManager::queueAnchorFor,
     )
+
+    private val localQueueContinuity = LocalQueueContinuityDelegate(
+        handle = QueueHandle(stateHandle),
+        queueStates = _uiState.map { it.queue },
+        stash = localQueueStash,
+        draftRepository = draftRepository,
+        activeAccountProvider = activeAccountProvider,
+        isTemporary = { _uiState.value.isTemporaryChat },
+        putBackInComposer = ::putBackInComposer,
+    )
+
+    /** Recovered text goes after the chat's saved draft (read first, so it is not shadowed). */
+    private suspend fun putBackInComposer(text: String) {
+        val draft = _uiState.value.conversationId?.let { draftRepository.awaitDraft(it) }.orEmpty()
+        _uiState.update {
+            val base = it.composer.inputText.ifBlank { draft }
+            val merged = listOf(base, text).filter { part -> part.isNotBlank() }.joinToString("\n\n")
+            it.copy(composer = it.composer.copy(inputText = merged))
+        }
+        persistComposerDraft(_uiState.value.inputText)
+    }
 
     private val editingDelegate = MessageEditingDelegate(
         handle = MessageEditingHandle(stateHandle),
@@ -724,6 +822,7 @@ class ChatViewModel(
         runWhenSendReady = sendReadinessDelegate::runWhenSendReady,
         onComparisonSendStart = comparisonDelegate::onSendStart,
         buildAddedConvo = comparisonDelegate::buildAddedConvo,
+        codeWorkspace = codeWorkspaceDelegate::submissionForSend,
     )
 
     /** True when this ViewModel was opened for a brand-new chat (no conversationId from navigation). */
@@ -774,7 +873,11 @@ class ChatViewModel(
             if (handoff != null) {
                 Diag.d(
                     tag = "ModelSel",
-                    attrs = mapOf("endpoint" to handoff.choice.endpoint, "model" to (handoff.choice.model ?: "null")),
+                    attrs = mapOf(
+                        "endpoint" to handoff.choice.endpoint,
+                        "model" to (handoff.choice.model ?: "null"),
+                        "sentWithoutWorkspaceNotice" to handoff.sentWithoutWorkspaceNotice.toString(),
+                    ),
                 ) { "handoff applied for $conversationId" }
                 modelDelegate.applyResolvedConversationModel(handoff.choice.endpoint, handoff.choice.model, handoff.choice.spec)
                 handoff.modelParameters?.let { modelDelegate.updateModelParameters(it, restoring = true) }
@@ -784,6 +887,9 @@ class ChatViewModel(
                     }
                 }
                 handoff.skillsToggle?.let { skillsToggleDelegate.seed(conversationId, it) }
+                if (handoff.sentWithoutWorkspaceNotice) {
+                    _uiState.update { it.copy(error = ChatNotice.CODE_WORKSPACE_SENT_WITHOUT.marker()) }
+                }
                 // Chips the first send held back stay staged here, still saying why.
                 if (handoff.stagedManualSkills.isNotEmpty()) {
                     sendDispatchDelegate.stageHeldBackManualSkills(
@@ -819,10 +925,13 @@ class ChatViewModel(
             initialTargetMessageId?.let { jumpDelegate.start(it, initialHighlightQuery, initialTargetInReasoning) }
             conversationLoadDelegate.loadConversationModel(conversationId)
             conversationLoadDelegate.restoreDraft(conversationId)
+            // Before the attach below, so follow-ups queued before the chat was left are back in
+            // the queue when the run they wait on is found still going.
+            localQueueContinuity.start(conversationId)
             // Check if there's an active stream for this conversation (e.g. when
             // navigating here from NewChat immediately after sending). If so,
             // resume it so the user sees streaming content on this screen.
-            streamingManager.resumeActiveStreamIfNeeded(conversationId)
+            streamingManager.resumeOnOpen(conversationId, onAttached = localQueueContinuity::onRunAttached)
         } else {
             isHandedOffNewChat = false
             // For new chats, mark conversationModelLoaded so refilterModels
@@ -850,8 +959,14 @@ class ChatViewModel(
 
         // Seed/refresh the context-usage gauge for a loaded or snapshot-less branch (v0.8.7).
         contextProjectionDelegate.start()
+        ownerTextDelegate.start()
+        toolPartDelegate.start(_uiState.map { it.conversationId to it.messages })
         // The Skills toggle follows the slot this chat maps to (conversation, new chat, temp, spec).
         skillsToggleDelegate.start()
+        codeWorkspaceDelegate.start()
+        pullRequestDelegate.start()
+        // The Thinking chip's catalog, and dropping a staged choice the selection stops accepting.
+        reasoningCatalogDelegate.start()
         loadSkillCatalogWhenPickerOpens()
         clearCompactNudgeSnoozeWhenBelowThreshold()
 
@@ -1074,6 +1189,16 @@ class ChatViewModel(
         if (pickerWasOpen && canPickSkills && parsePickerQuery(text, canPickSkills) != null) {
             skillPickerDelegate.ensureLoaded(newTrigger = false)
         }
+        persistComposerDraft(text)
+    }
+
+    /**
+     * Saves composer text as this chat's draft. Every write of the user's own text goes through
+     * here (typing, an inserted prompt, dictation, a share), so reopening the chat brings back what
+     * was on screen. Writes that only stage text for an immediate send, or swap in a queued item for
+     * editing, deliberately skip it.
+     */
+    private fun persistComposerDraft(text: String) {
         // While editing a queued item the composer holds that item, not the persisted draft —
         // don't overwrite the on-disk new-message draft (it's restored on commit/cancel).
         if (_uiState.value.isEditingQueued) return
@@ -1113,6 +1238,7 @@ class ChatViewModel(
                 val merged = if (existing.isBlank()) shareData.text else "$existing\n${shareData.text}"
                 it.copy(composer = it.composer.copy(inputText = merged))
             }
+            persistComposerDraft(_uiState.value.inputText)
         }
 
         if (shareData.fileRefs.isNotEmpty()) {
@@ -1150,6 +1276,17 @@ class ChatViewModel(
         uploadIntakeDelegate.withUploadGate(text) {
             sendReadinessDelegate.runWhenSendReady { sendDispatchDelegate.sendNow(it) }
         }
+    }
+
+    /**
+     * An MCP App's approved `ui/message`: sends only [text] as a new user turn and leaves the
+     * composer as it is. Refused (false) while a reply runs, or before a run can start, as web's
+     * `ask` refuses; once it returns true the turn is the chat's and a later App abort can't undo it.
+     */
+    fun sendAppMessage(text: String): Boolean {
+        val state = _uiState.value
+        if (state.isStreaming || !state.canStartRun || state.isEditingQueued) return false
+        return sendDispatchDelegate.sendAppText(text.trim())
     }
 
     /**
@@ -1204,6 +1341,7 @@ class ChatViewModel(
             }
 
             DuringRunSendTarget.STEER -> steerMessage()
+            DuringRunSendTarget.INTERRUPT -> steerMessage(interrupt = true)
             DuringRunSendTarget.QUEUE -> queueMessage()
         }
     }
@@ -1215,8 +1353,12 @@ class ChatViewModel(
      * Attachments send it to the queue instead: mobile steering is text-only, and silently
      * dropping the files the user attached would be worse than delivering the message a turn
      * later with them intact.
+     *
+     * [interrupt] is "Interrupt and steer": the same steer, sent with `preempt` so the run stops
+     * its current tool or thinking step. It falls back exactly like a steer (to the queue when the
+     * run can't take a steer, to a plain steer when it can't be interrupted), never to Stop + send.
      */
-    fun steerMessage() {
+    fun steerMessage(interrupt: Boolean = false) {
         val state = _uiState.value
         if (!state.isStreaming || !state.canSteerNow) return
         val conversationId = state.conversationId ?: return
@@ -1241,11 +1383,17 @@ class ChatViewModel(
             ?.let { it.copy(quotes = sendDispatchDelegate.takePendingQuotes(it.endpoint)) }
             ?: return
         sendDispatchDelegate.clearComposer()
-        steeringDelegate.steer(conversationId, spec)
+        steeringDelegate.steer(conversationId, spec, interrupt = interrupt)
     }
+
+    /** The during-run menu's explicit "Interrupt and steer" for this one message. */
+    fun interruptMessage() = steerMessage(interrupt = true)
 
     /** Withdraws a steer that has not been injected into the running reply yet. */
     fun cancelSteer(steerId: String) = steeringDelegate.cancel(steerId)
+
+    /** "Interrupt now" on a waiting steer chip: upgrades it to an interrupt in place. */
+    fun armSteer(steerId: String) = steeringDelegate.arm(steerId)
 
     /** The website-icons prompt's answer; also what stops it asking again. */
     fun setShowSiteIcons(show: Boolean) {
@@ -1263,7 +1411,7 @@ class ChatViewModel(
     /** The website-icons prompt was closed without a choice: stay quiet until the next launch. */
     fun dismissSiteIconPrompt() = siteIconPromptSession.dismiss()
 
-    /** Settings/composer-menu write for the default during-run action (steer vs queue). */
+    /** Settings/composer-menu write for the default during-run action (steer, interrupt or queue). */
     fun setDuringRunAction(action: DuringRunAction) {
         viewModelScope.launch { settingsDataStore.setDuringRunAction(action) }
     }
@@ -1273,29 +1421,63 @@ class ChatViewModel(
         editingDelegate.regenerateMessage(messageId)
     }
 
+    /** "Retry without files" under a failed reply: its user turn again, as a new version, with no files. */
+    fun retryWithoutFiles(failedReplyId: String) {
+        if (_uiState.value.isEditingQueued) return
+        editingDelegate.retryWithoutFiles(failedReplyId)
+    }
+
+    /** "Retry loading original" under a redacted user turn. */
+    fun retryOwnerTexts() = ownerTextDelegate.retry()
+
+    /** "Branch without files" under a failed reply; see [ConversationActionsDelegate.branchWithoutFiles]. */
+    fun branchWithoutFiles(failedReplyId: String) = conversationActionsDelegate.branchWithoutFiles(failedReplyId)
+
     /**
-     * Text-parts extraction for TTS and the edit prefill. NOT the copy path — whole-message copy
-     * goes through [getMessageClipboardText], which serializes every part.
+     * What Read Aloud speaks for a message: its answer, never its reasoning (upstream
+     * `getSpeechText`, see [speechTextOf]). NOT the copy path — whole-message copy goes through
+     * [getMessageClipboardText], which serializes every part.
      */
-    fun getMessageText(messageId: String): String {
+    fun getSpeechText(messageId: String): String {
         val message = _uiState.value.messages.find { it.messageId == messageId } ?: return ""
-        val contentParts = message.content
-        if (!contentParts.isNullOrEmpty()) {
-            return contentParts.mapNotNull { part ->
-                part.text ?: part.think
-            }.joinToString("")
-        }
-        return message.text
+        return speechTextOf(message)
     }
 
     /**
      * The clipboard serialization of a whole message — tool calls, reasoning and media parts as
      * labeled blocks, not just its text. Mirrors web `serializeMessageForClipboard`.
      */
-    fun getMessageClipboardText(messageId: String): String {
-        val message = _uiState.value.messages.find { it.messageId == messageId } ?: return ""
-        return serializeMessageForClipboard(message)
+    fun copyMessage(messageId: String, write: (String) -> Unit) {
+        viewModelScope.launch {
+            val text = getMessageClipboardText(messageId)
+            if (text.isNotBlank()) write(text)
+        }
     }
+
+    internal suspend fun getMessageClipboardText(messageId: String): String {
+        val message = _uiState.value.messages.find { it.messageId == messageId } ?: return ""
+        if (message.content.orEmpty().none { it.toolCall?.isPreview == true }) {
+            return serializeMessageForClipboard(message)
+        }
+        // A previewed call would copy shortened output: fetch the full parts first, or copy nothing.
+        val full = toolPartDelegate.fullMessage(messageId)
+        if (full == null) {
+            stateHandle.update { copy(error = ChatNotice.COPY_TOOL_CONTENT_FAILED.marker()) }
+            return ""
+        }
+        return serializeMessageForClipboard(full)
+    }
+
+    /** Tool-call previews: what each card whose full content is not in place shows. */
+    val toolPartStatuses: StateFlow<Map<ToolPartKey, ToolPartStatus>> get() = toolPartDelegate.statuses
+
+    /** A card that shows a preview's content opened: fetch its full part (a retry from failed). */
+    fun requestToolPart(key: ToolPartKey) = toolPartDelegate.request(key)
+
+    /** An open card holds its fetched part against eviction until [releaseToolPart]. */
+    fun retainToolPart(identity: ToolPartIdentity) = toolPartDelegate.retain(identity)
+
+    fun releaseToolPart(identity: ToolPartIdentity) = toolPartDelegate.release(identity)
 
     fun stopGeneration() = streamingManager.stopGeneration()
 
@@ -1393,11 +1575,15 @@ class ChatViewModel(
 
     fun onPause() {
         streamingManager.onPause()
+        codeWorkspaceDelegate.onForeground(false)
+        pullRequestDelegate.onForeground(false)
         queuedTurnDelegate.stopPolling()
     }
 
     fun onResume() {
         streamingManager.onResume()
+        codeWorkspaceDelegate.onForeground(true)
+        pullRequestDelegate.onForeground(true)
         // A foreground is a reconciliation point, not just a stream resume: the server may have
         // admitted, dropped or added a queued turn while the app was away, and there is nothing
         // to hear it from.
@@ -1470,6 +1656,8 @@ class ChatViewModel(
         modelDelegate.rearmModelSpecDefault()
         // …and with Skills as the new-chat slot has them, not as a pick on the last one left them.
         skillsToggleDelegate.resetNewChat()
+        // The next new chat decides its workspace afresh.
+        codeWorkspaceDelegate.reset()
         // The reset below ends any Compare setup without Cancel or Start, so nothing would release
         // its hold; the queue it held is cleared with it.
         queueOrchestrationDelegate.clearCompareSetupHold()
@@ -1486,6 +1674,10 @@ class ChatViewModel(
                     // picked.
                     selectedAgentProvider = current.selection.selectedAgentProvider,
                     selectedAgentStarters = current.selection.selectedAgentStarters,
+                    selectedAgentModel = current.selection.selectedAgentModel,
+                    selectedAgentReasoning = current.selection.selectedAgentReasoning,
+                    // Per endpoint, not per chat; the fetcher only refetches when the endpoint changes.
+                    reasoningCatalog = current.selection.reasoningCatalog,
                     modelSpecs = current.selection.modelSpecs,
                     availableModels = current.availableModels,
                     endpointConfigs = current.endpointConfigs,
@@ -1610,8 +1802,31 @@ class ChatViewModel(
     suspend fun downloadFileBytes(attachment: Attachment): ByteArray? = chatConfigDelegate.downloadFileBytes(attachment)
 
     fun dismissError() {
+        Diag.d(tag = NOTICE_TAG, attrs = mapOf("notice" to noticeLabel(_uiState.value.error))) {
+            "dismissError on ${_uiState.value.conversationId ?: "landing"}"
+        }
         _uiState.update { it.copy(error = null) }
     }
+
+    // ── Code workspace row (attached machines) ──────────────────────────────
+
+    /** Opens the workspace sheet; [machineId] is a machine picked from the machine chip. */
+    fun openCodeWorkspaceSheet(machineId: String? = null) = codeWorkspaceDelegate.openSheet(machineId)
+
+    fun dismissCodeWorkspaceSheet() = codeWorkspaceDelegate.dismissSheet()
+
+    fun selectCodeWorkspace(environmentId: String, workspaceId: String) =
+        codeWorkspaceDelegate.selectWorkspace(environmentId, workspaceId)
+
+    fun setCodeCheckout(environmentId: String, mode: CodeCheckoutMode) =
+        codeWorkspaceDelegate.setCheckout(environmentId, mode)
+
+    fun selectNoCodeWorkspace() = codeWorkspaceDelegate.selectNoWorkspace()
+
+    fun refreshCodeWorkspaces() = codeWorkspaceDelegate.refresh()
+
+    /** The pull request sheet's Retry, after a refresh failed. */
+    fun retryPullRequest() = pullRequestDelegate.retry()
 
     fun dismissSendBlockReason() {
         _uiState.update { it.copy(composer = it.composer.copy(sendBlockReason = null)) }
@@ -1681,8 +1896,8 @@ class ChatViewModel(
     fun closeShareSheet() = conversationActionsDelegate.closeShareSheet()
     fun showForkOptions(messageId: String) = conversationActionsDelegate.showForkOptions(messageId)
     fun dismissForkOptions() = conversationActionsDelegate.dismissForkOptions()
-    fun forkFromMessage(messageId: String, option: String, splitAtTarget: Boolean = false) =
-        conversationActionsDelegate.forkFromMessage(messageId, option, splitAtTarget)
+    fun forkFromMessage(messageId: String, option: String, splitAtTarget: Boolean = false, excludeFiles: Boolean = false) =
+        conversationActionsDelegate.forkFromMessage(messageId, option, splitAtTarget, excludeFiles)
     fun onForkedConversationHandled() = conversationActionsDelegate.onForkedConversationHandled()
 
     // TTS
@@ -1716,6 +1931,15 @@ class ChatViewModel(
         if (sendDispatchDelegate.addPendingManualSkill(name)) skillsToggleDelegate.turnOn()
     }
     fun removePendingManualSkill(name: String) = sendDispatchDelegate.removePendingManualSkill(name)
+
+    /**
+     * Stages [value] from the Thinking sheet for the next message only (v0.8.9-rc1). Picking the
+     * chat's own setting clears the choice instead.
+     */
+    fun selectThinkingLevel(value: String) {
+        val chip = _uiState.value.thinkingChip ?: return
+        _uiState.update { it.copy(composer = it.composer.copy(pendingReasoningOverride = chip.overrideFor(value))) }
+    }
 
     // Queue
     fun editQueued(localId: String) = queueOrchestrationDelegate.editQueued(localId)
@@ -1762,12 +1986,12 @@ class ChatViewModel(
      * Sends a new-chat starter through the composer, so the upload gate, the send preflight and a
      * failed send's restore all treat it as typed text. Refused over a non-blank composer, which
      * the starters are never shown over, so a draft is never replaced. The text skips
-     * [onInputChanged]'s draft save: that would race the send's draft delete and could bring the
+     * [persistComposerDraft]: that would race the send's draft delete and could bring the
      * starter back as the next new chat's draft.
      */
     fun sendStarter(text: String) {
         if (_uiState.value.inputText.isNotBlank()) return
-        presetPromptDelegate.insertPromptText(text)
+        sendDispatchDelegate.stageForSend(text)
         sendMessage()
     }
 

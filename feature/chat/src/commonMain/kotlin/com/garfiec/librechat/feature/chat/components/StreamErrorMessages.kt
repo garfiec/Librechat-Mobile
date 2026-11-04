@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.code.CodeWorkspaceUnavailableReason
 import com.garfiec.librechat.core.model.error.StreamErrorType
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -30,7 +31,8 @@ import org.jetbrains.compose.resources.stringResource
 internal fun localizedStreamError(raw: String): String {
     ChatNotice.parse(raw)?.let { return localizedNotice(it) }
     if (!raw.startsWith(StreamErrorType.MARKER_PREFIX)) return raw
-    val wire = raw.removePrefix(StreamErrorType.MARKER_PREFIX)
+    // A marker may carry an argument after the separator (a code-workspace rejection's reason).
+    val wire = raw.removePrefix(StreamErrorType.MARKER_PREFIX).substringBefore(StreamErrorType.ARG_SEPARATOR)
     // Matched on the enum rather than on the marker string so a code removed from the enum stops
     // resolving here too, instead of leaving a branch that can never be reached.
     val type = StreamErrorType.entries.firstOrNull { it.wire == wire } ?: return raw
@@ -60,13 +62,24 @@ internal fun localizedStreamError(raw: String): String {
         StreamErrorType.STREAM_EXPIRED -> stringResource(Res.string.error_stream_expired)
         StreamErrorType.UPSTREAM_MODEL_ERROR -> stringResource(Res.string.error_upstream_model_error)
         StreamErrorType.EMPTY_MESSAGES -> stringResource(Res.string.error_empty_messages)
-        StreamErrorType.CODE_WORKSPACE_UNAVAILABLE ->
-            stringResource(Res.string.error_code_workspace_unavailable)
+        StreamErrorType.CODE_WORKSPACE_UNAVAILABLE -> stringResource(
+            when (StreamErrorType.codeWorkspaceReasonOfMarker(raw)) {
+                CodeWorkspaceUnavailableReason.REQUIRED -> Res.string.error_code_workspace_required
+                CodeWorkspaceUnavailableReason.INVALID -> Res.string.error_code_workspace_invalid
+                CodeWorkspaceUnavailableReason.WORKER_UNAVAILABLE -> Res.string.error_code_workspace_worker_unavailable
+                CodeWorkspaceUnavailableReason.UNSUPPORTED -> Res.string.error_code_workspace_unsupported
+                CodeWorkspaceUnavailableReason.MISSING -> Res.string.error_code_workspace_missing
+                CodeWorkspaceUnavailableReason.LOCKED -> Res.string.error_code_workspace_locked
+                null -> Res.string.error_code_workspace_unavailable
+            },
+        )
         StreamErrorType.STATEFUL_CODE_ENVIRONMENT_NOT_ALLOWED ->
             stringResource(Res.string.error_stateful_code_environment_not_allowed)
         StreamErrorType.MCP_AUTHENTICATION_REJECTED -> stringResource(Res.string.error_mcp_authentication_rejected)
         StreamErrorType.MCP_AUTHENTICATION_REFRESH_FAILED ->
             stringResource(Res.string.error_mcp_authentication_refresh_failed)
+        StreamErrorType.PROJECT_RESOURCES_CHANGED -> stringResource(Res.string.error_project_resources_changed)
+        StreamErrorType.PROJECT_CONTEXT_UNAVAILABLE -> stringResource(Res.string.error_project_context_unavailable)
     }
 }
 
@@ -77,12 +90,15 @@ private fun localizedNotice(parsed: ChatNotice.Parsed): String {
     }
     val res = when (parsed.notice) {
         ChatNotice.RENAME_FAILED -> Res.string.notice_rename_failed
+        ChatNotice.RENAME_NOT_READY -> Res.string.notice_rename_not_ready
+        ChatNotice.RENAME_NOT_FOUND -> Res.string.notice_rename_not_found
         ChatNotice.DELETE_FAILED -> Res.string.notice_delete_failed
         ChatNotice.ARCHIVE_FAILED -> Res.string.notice_archive_failed
         ChatNotice.DUPLICATE_FAILED -> Res.string.notice_duplicate_failed
         ChatNotice.PRESET_SAVE_FAILED -> Res.string.notice_preset_save_failed
         ChatNotice.PRESET_DELETE_FAILED -> Res.string.notice_preset_delete_failed
         ChatNotice.PRESET_UPDATE_FAILED -> Res.string.notice_preset_update_failed
+        ChatNotice.PROMPT_RESOLVE_FAILED -> Res.string.notice_prompt_resolve_failed
         ChatNotice.CONTINUE_RESPONSE_FAILED -> Res.string.notice_continue_response_failed
         ChatNotice.MESSAGE_SAVE_FAILED -> Res.string.notice_message_save_failed
         ChatNotice.FAVORITES_LIMIT -> Res.string.notice_favorites_limit
@@ -97,8 +113,20 @@ private fun localizedNotice(parsed: ChatNotice.Parsed): String {
         ChatNotice.SPEECH_PERMISSION_DENIED -> Res.string.notice_speech_permission_denied
         ChatNotice.SPEECH_UNAVAILABLE -> Res.string.notice_speech_unavailable
         ChatNotice.SEND_REFUSED -> Res.string.notice_send_refused
+        ChatNotice.CONTENT_BLOCKED -> Res.string.notice_content_blocked
         ChatNotice.SKILLS_NOT_SENT -> Res.string.notice_skills_not_sent
         ChatNotice.SKILLS_REMOVED_FROM_QUEUED -> Res.string.notice_skills_removed_from_queued
+        ChatNotice.TOOL_DECISION_NOT_PERMITTED -> Res.string.notice_tool_decision_not_permitted
+        ChatNotice.FORK_FAILED -> Res.string.notice_fork_failed
+        ChatNotice.FORK_RATE_LIMITED -> Res.string.notice_fork_rate_limited
+        ChatNotice.BRANCH_WITHOUT_FILES_UNSUPPORTED -> Res.string.notice_branch_without_files_unsupported
+        ChatNotice.CODE_WORKSPACE_SENT_WITHOUT -> Res.string.code_workspace_sent_without
+        ChatNotice.COPY_TOOL_CONTENT_FAILED -> Res.string.notice_copy_tool_content_failed
+        ChatNotice.QUEUE_WITHDRAW_REFUSED -> Res.string.notice_queue_withdraw_refused
+        ChatNotice.QUEUE_WITHDRAW_BUSY -> Res.string.notice_queue_withdraw_busy
+        ChatNotice.QUEUE_EDIT_OVERTAKEN -> Res.string.notice_queue_edit_overtaken
+        ChatNotice.QUEUE_SERVER_HOLDS -> Res.string.notice_queue_server_holds
+        ChatNotice.QUEUE_RESTORED_TO_COMPOSER -> Res.string.notice_queue_restored_to_composer
         // Reached only with an unreadable argument; the generic message-limit copy still applies.
         ChatNotice.MESSAGE_LIMIT_RETRY -> Res.string.error_message_limit
     }

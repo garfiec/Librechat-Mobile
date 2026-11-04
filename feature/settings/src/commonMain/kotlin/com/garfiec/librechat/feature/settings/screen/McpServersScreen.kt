@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.garfiec.librechat.core.model.mcp.McpOAuthLaunch
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveExtendedFloatingActionButton
@@ -53,6 +54,7 @@ import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.ErrorBanner
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.core.ui.components.UnderBarsPullToRefreshBox
+import com.garfiec.librechat.core.ui.components.rememberDraftField
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarAction
@@ -60,6 +62,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
+import com.garfiec.librechat.core.ui.mcp.McpOAuthSignInDialog
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.MCP_SEARCH_THRESHOLD
@@ -86,6 +89,7 @@ fun McpServersScreen(
     val fabExpanded by remember { derivedStateOf { gridState.firstVisibleItemIndex == 0 } }
     var pendingDelete by remember { mutableStateOf<McpServerRow?>(null) }
 
+    val oauthFailedMessage = stringResource(Res.string.mcp_oauth_failed)
     LaunchedEffect(uiState.error) {
         val error = uiState.error ?: return@LaunchedEffect
         // With nothing listed, the error banner owns the error; clearing it here would leave the
@@ -93,7 +97,7 @@ fun McpServersScreen(
         if (uiState.servers.isEmpty()) return@LaunchedEffect
         val retry = uiState.errorRetry
         val result = snackbarHostState.showSnackbar(
-            message = error,
+            message = if (error == McpViewModel.OAUTH_FAILED_MARKER) oauthFailedMessage else error,
             actionLabel = retryLabel,
         )
         viewModel.dismissError()
@@ -103,10 +107,15 @@ fun McpServersScreen(
     }
 
     val deferredMessage = stringResource(Res.string.mcp_connection_deferred)
+    val signedInMessage = stringResource(Res.string.mcp_oauth_signed_in)
     LaunchedEffect(uiState.successMessage) {
         val message = uiState.successMessage ?: return@LaunchedEffect
         snackbarHostState.showSnackbar(
-            message = if (message == McpViewModel.DEFERRED_MARKER) deferredMessage else message,
+            message = when (message) {
+                McpViewModel.DEFERRED_MARKER -> deferredMessage
+                McpViewModel.OAUTH_SIGNED_IN_MARKER -> signedInMessage
+                else -> message
+            },
         )
         viewModel.dismissSuccessMessage()
     }
@@ -229,17 +238,14 @@ fun McpServersScreen(
     // has to be the user's decision, not a side effect of tapping reconnect.
     val pendingOAuth = uiState.pendingOAuth
     if (pendingOAuth != null) {
-        val uriHandler = LocalUriHandler.current
         AdaptiveAlertDialog(
             onDismissRequest = viewModel::dismissOAuthPrompt,
             title = { Text(stringResource(Res.string.mcp_oauth_title, pendingOAuth.serverName)) },
             text = { Text(stringResource(Res.string.mcp_oauth_message)) },
             confirmButton = {
                 TextButton(
-                    onClick = {
-                        uriHandler.openUri(pendingOAuth.authorizationUrl)
-                        viewModel.onOAuthLaunched()
-                    },
+                    onClick = viewModel::continueOAuth,
+                    enabled = !uiState.isPreparingOAuth,
                 ) {
                     Text(stringResource(Res.string.mcp_oauth_continue))
                 }
@@ -250,6 +256,20 @@ fun McpServersScreen(
                 }
             },
         )
+    }
+
+    // From v0.8.9-rc1 the callback needs the binding cookies, so the sign-in runs in app; an older
+    // server keeps the system browser (McpOAuthLauncher decides).
+    when (val launch = uiState.oauthLaunch) {
+        is McpOAuthLaunch.InApp -> McpOAuthSignInDialog(launch = launch, onOutcome = viewModel::onOAuthOutcome)
+        is McpOAuthLaunch.External -> {
+            val uriHandler = LocalUriHandler.current
+            LaunchedEffect(launch) {
+                runCatching { uriHandler.openUri(launch.authorizationUrl) }
+                viewModel.onOAuthLaunched()
+            }
+        }
+        null -> Unit
     }
 
     uiState.selectedRow?.let { row ->
@@ -283,9 +303,10 @@ private fun LazyGridScope.listHeader(
 ) {
     if (uiState.allRows.size >= MCP_SEARCH_THRESHOLD || uiState.searchQuery.isNotEmpty()) {
         item(key = "search", span = { GridItemSpan(maxLineSpan) }, contentType = "search") {
+            val query = rememberDraftField(uiState.searchQuery)
             AdaptiveOutlinedTextField(
-                value = uiState.searchQuery,
-                onValueChange = onQueryChange,
+                value = query.value,
+                onValueChange = { query.onValueChange(it, onQueryChange) },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text(stringResource(Res.string.mcp_search_hint)) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },

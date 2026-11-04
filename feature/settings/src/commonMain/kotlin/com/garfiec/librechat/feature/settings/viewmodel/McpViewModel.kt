@@ -6,10 +6,13 @@ import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
+import com.garfiec.librechat.core.data.repository.McpOAuthLauncher
 import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.model.ResourceType
+import com.garfiec.librechat.core.model.mcp.McpOAuthLaunch
+import com.garfiec.librechat.core.model.mcp.McpOAuthOutcome
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerDiscovery
 import com.garfiec.librechat.core.model.mcp.McpServerStatus
@@ -52,6 +55,13 @@ data class McpUiState(
      * session without anyone having agreed to it.
      */
     val pendingOAuth: McpOAuthPrompt? = null,
+    /** The consent was given and the sign-in is being bound (`POST /oauth/bind`). */
+    val isPreparingOAuth: Boolean = false,
+    /**
+     * A sign-in the user agreed to, ready to open: [McpOAuthLaunch.InApp] as the sign-in dialog,
+     * [McpOAuthLaunch.External] in the system browser (servers before v0.8.9-rc1).
+     */
+    val oauthLaunch: McpOAuthLaunch? = null,
     /**
      * The user's permission bits per server `dbId`, or null while unknown (not loaded, or the
      * fetch failed). Read it through [mcpServerAccess], never directly.
@@ -93,6 +103,7 @@ class McpViewModel(
     roleRepository: RoleRepository,
     private val permissionsRepository: PermissionsRepository,
     serverDataStore: ServerDataStore,
+    private val oauthLauncher: McpOAuthLauncher,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(McpUiState())
@@ -303,17 +314,65 @@ class McpViewModel(
 
     /** Dismisses the consent prompt without authorizing. The server stays unconnected. */
     fun dismissOAuthPrompt() {
-        _uiState.value = _uiState.value.copy(pendingOAuth = null)
+        // Also withdraws a bind still in flight, so the sign-in does not open after the user left.
+        _uiState.value = _uiState.value.copy(pendingOAuth = null, isPreparingOAuth = false)
     }
 
     /**
-     * The user agreed: clear the prompt so returning from the browser does not find it still up.
-     *
-     * The connection is not re-checked here — the authorization happens out of process and can
-     * take as long as the provider takes, so the user reconnects when they are back.
+     * The user agreed. Binds the browser to the flow (see [McpOAuthLauncher]) and hands the screen
+     * what to open. The bind happens here, at the tap, because its CSRF cookie lives ten minutes.
+     */
+    fun continueOAuth() {
+        val prompt = _uiState.value.pendingOAuth ?: return
+        if (_uiState.value.isPreparingOAuth) return
+        _uiState.value = _uiState.value.copy(isPreparingOAuth = true)
+        viewModelScope.launch {
+            val result = oauthLauncher.prepare(prompt.serverName, prompt.authorizationUrl)
+            if (!_uiState.value.isPreparingOAuth) return@launch
+            when (result) {
+                is Result.Success -> _uiState.value = _uiState.value.copy(
+                    pendingOAuth = null,
+                    isPreparingOAuth = false,
+                    oauthLaunch = result.data,
+                )
+                is Result.Error -> _uiState.value = _uiState.value.copy(
+                    pendingOAuth = null,
+                    isPreparingOAuth = false,
+                    error = result.message ?: OAUTH_FAILED_MARKER,
+                    errorRetry = McpRetry.Reconnect(prompt.serverName),
+                )
+                Result.Loading -> Unit
+            }
+        }
+    }
+
+    /**
+     * The system browser was opened (an [McpOAuthLaunch.External] sign-in). The connection is not
+     * re-checked here: the authorization happens out of process, and the screen's ON_RESUME reload
+     * picks it up when the user is back.
      */
     fun onOAuthLaunched() {
-        _uiState.value = _uiState.value.copy(pendingOAuth = null)
+        _uiState.value = _uiState.value.copy(oauthLaunch = null)
+    }
+
+    /**
+     * The in-app sign-in ended. It fires no ON_RESUME, so the reload happens here: a server that
+     * just authorized shows connected with its tools.
+     */
+    fun onOAuthOutcome(outcome: McpOAuthOutcome) {
+        val launch = _uiState.value.oauthLaunch ?: return
+        _uiState.value = when (outcome) {
+            McpOAuthOutcome.Success -> _uiState.value.copy(oauthLaunch = null, successMessage = OAUTH_SIGNED_IN_MARKER)
+            is McpOAuthOutcome.Error -> _uiState.value.copy(
+                oauthLaunch = null,
+                error = OAUTH_FAILED_MARKER,
+                errorRetry = McpRetry.Reconnect(launch.serverName),
+            )
+            McpOAuthOutcome.Abandoned -> _uiState.value.copy(oauthLaunch = null)
+        }
+        loadServers()
+        loadConnectionStatus()
+        loadTools()
     }
 
     fun showToolsSheet() {
@@ -364,5 +423,11 @@ class McpViewModel(
          * reinitialize outcome whose wording is ours rather than the server's.
          */
         const val DEFERRED_MARKER = "mcp_connection_deferred"
+
+        /** [McpUiState.successMessage] sentinel: the in-app sign-in reached the server's success page. */
+        const val OAUTH_SIGNED_IN_MARKER = "mcp_oauth_signed_in"
+
+        /** [McpUiState.error] sentinel: the sign-in could not be bound, or the server refused its callback. */
+        const val OAUTH_FAILED_MARKER = "mcp_oauth_failed"
     }
 }

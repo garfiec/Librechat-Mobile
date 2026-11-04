@@ -1,6 +1,8 @@
 package com.garfiec.librechat.core.network.api
 
 import com.garfiec.librechat.core.model.Conversation
+import com.garfiec.librechat.core.model.ConversationListFilters
+import com.garfiec.librechat.core.model.asFullDocument
 import com.garfiec.librechat.core.model.background.BackgroundTaskCancelRequest
 import com.garfiec.librechat.core.model.background.BackgroundTaskCancelResponse
 import com.garfiec.librechat.core.model.background.BackgroundTaskIndex
@@ -10,16 +12,23 @@ import com.garfiec.librechat.core.model.request.ConvoDeleteArg
 import com.garfiec.librechat.core.model.request.ConvoDeleteBody
 import com.garfiec.librechat.core.model.request.ConvoPinArg
 import com.garfiec.librechat.core.model.request.ConvoPinBody
+import com.garfiec.librechat.core.model.request.ConvoSeenArg
+import com.garfiec.librechat.core.model.request.ConvoSeenBody
+import com.garfiec.librechat.core.model.request.ConvoUnreadArg
+import com.garfiec.librechat.core.model.request.ConvoUnreadBody
 import com.garfiec.librechat.core.model.request.ConvoUpdateArg
 import com.garfiec.librechat.core.model.request.ConvoUpdateBody
 import com.garfiec.librechat.core.model.request.DuplicateConversationRequest
 import com.garfiec.librechat.core.model.request.ForkConversationRequest
 import com.garfiec.librechat.core.model.response.ArchiveAllConversationsResponse
 import com.garfiec.librechat.core.model.response.ConversationListResponse
+import com.garfiec.librechat.core.model.response.ConvoSeenResponse
+import com.garfiec.librechat.core.model.response.ConvoUnreadResponse
 import com.garfiec.librechat.core.model.response.ForkConversationResponse
 import com.garfiec.librechat.core.model.response.GenerateTitleResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.delete
 import io.ktor.client.request.forms.formData
 import io.ktor.client.request.forms.submitFormWithBinaryData
@@ -44,6 +53,7 @@ class ConversationsApi constructor(
         sortBy: String? = null,
         sortDirection: String? = null,
         projectId: String? = null,
+        filters: ConversationListFilters = ConversationListFilters.None,
     ): ConversationListResponse =
         client.get {
             url { path("api/convos") }
@@ -58,12 +68,48 @@ class ConversationsApi constructor(
             search?.let { parameter("search", it) }
             sortBy?.let { parameter("sortBy", it) }
             sortDirection?.let { parameter("sortDirection", it) }
+            appendFilters(filters)
         }.body()
 
+    /**
+     * v0.8.9-rc1 list facets. Dates go as ISO 8601 instants; `endpoints` repeats like `tags`; the
+     * two flags are sent only when on, since an explicit `false` filters nothing. Filter [tags]
+     * join any caller-supplied ones.
+     */
+    private fun HttpRequestBuilder.appendFilters(filters: ConversationListFilters) {
+        filters.updatedAfter?.let { parameter("updatedAfter", it.toString()) }
+        filters.createdAfter?.let { parameter("createdAfter", it.toString()) }
+        filters.endpoints.forEach { parameter("endpoints", it) }
+        if (filters.hasFiles) parameter("hasFiles", "true")
+        if (filters.sharedOnly) parameter("sharedOnly", "true")
+        filters.tags.forEach { parameter("tags", it) }
+    }
+
+    /**
+     * `POST /api/convos/seen` (v0.8.9-rc1): the user caught up with the reply stamped
+     * [lastResponseAt]. Server-stamped and idempotent; it never touches `updatedAt`.
+     */
+    suspend fun markSeen(conversationId: String, lastResponseAt: String): ConvoSeenResponse =
+        client.post {
+            url { path("api/convos/seen") }
+            setBody(ConvoSeenBody(arg = ConvoSeenArg(conversationId = conversationId, lastResponseAt = lastResponseAt)))
+        }.body()
+
+    /** `POST /api/convos/unread` (v0.8.9-rc1): flags the chat unread again for this user. */
+    suspend fun markUnread(conversationId: String): ConvoUnreadResponse =
+        client.post {
+            url { path("api/convos/unread") }
+            setBody(ConvoUnreadBody(arg = ConvoUnreadArg(conversationId = conversationId)))
+        }.body()
+
+    /**
+     * The full conversation document. Stamped [asFullDocument], since only here does a missing code
+     * field mean "none" rather than "not projected".
+     */
     suspend fun getConversation(conversationId: String): Conversation =
         client.get {
             url { path("api/convos/$conversationId") }
-        }.body()
+        }.body<Conversation>().asFullDocument()
 
     suspend fun updateTitle(conversationId: String, title: String): Conversation =
         client.post {
@@ -156,12 +202,14 @@ class ConversationsApi constructor(
     suspend fun forkConversation(request: ForkConversationRequest): ForkConversationResponse =
         client.post {
             url { path("api/convos/fork") }
+            withToolCallPreviews()
             setBody(request)
         }.body()
 
     suspend fun duplicateConversation(conversationId: String, title: String?): Conversation =
         client.post {
             url { path("api/convos/duplicate") }
+            withToolCallPreviews()
             setBody(DuplicateConversationRequest(conversationId = conversationId, title = title))
         }.body()
 

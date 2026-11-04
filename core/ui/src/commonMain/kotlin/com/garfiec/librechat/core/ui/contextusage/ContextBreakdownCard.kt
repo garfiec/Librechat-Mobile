@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -45,6 +46,8 @@ import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.ContextUsageTotals
 import com.garfiec.librechat.core.model.usage.CostRows
 import com.garfiec.librechat.core.model.usage.EstimateDetail
+import com.garfiec.librechat.core.model.usage.LastTurnUsage
+import com.garfiec.librechat.core.model.usage.UsageAmount
 import com.garfiec.librechat.core.model.usage.VisibleBreakdown
 import com.garfiec.librechat.core.model.usage.buildContextBreakdown
 import com.garfiec.librechat.core.model.usage.contextPressure
@@ -65,12 +68,14 @@ import com.garfiec.librechat.core.ui.resources.context_usage_cached
 import com.garfiec.librechat.core.ui.resources.context_usage_cost
 import com.garfiec.librechat.core.ui.resources.context_usage_cost_all
 import com.garfiec.librechat.core.ui.resources.context_usage_cost_branch
+import com.garfiec.librechat.core.ui.resources.context_usage_current_turn
 import com.garfiec.librechat.core.ui.resources.context_usage_estimated
 import com.garfiec.librechat.core.ui.resources.context_usage_estimated_row
 import com.garfiec.librechat.core.ui.resources.context_usage_free
 import com.garfiec.librechat.core.ui.resources.context_usage_input
 import com.garfiec.librechat.core.ui.resources.context_usage_insights
 import com.garfiec.librechat.core.ui.resources.context_usage_largest_tool
+import com.garfiec.librechat.core.ui.resources.context_usage_last_turn
 import com.garfiec.librechat.core.ui.resources.context_usage_messages
 import com.garfiec.librechat.core.ui.resources.context_usage_output
 import com.garfiec.librechat.core.ui.resources.context_usage_pressure_danger
@@ -81,6 +86,7 @@ import com.garfiec.librechat.core.ui.resources.context_usage_subagents
 import com.garfiec.librechat.core.ui.resources.context_usage_subagents_all
 import com.garfiec.librechat.core.ui.resources.context_usage_summary
 import com.garfiec.librechat.core.ui.resources.context_usage_system
+import com.garfiec.librechat.core.ui.resources.context_usage_this_branch
 import com.garfiec.librechat.core.ui.resources.context_usage_tool_calls
 import com.garfiec.librechat.core.ui.resources.context_usage_tools
 import com.garfiec.librechat.core.ui.resources.context_usage_tools_all
@@ -89,7 +95,9 @@ import com.garfiec.librechat.core.ui.resources.context_usage_tools_mcp_deferred
 import com.garfiec.librechat.core.ui.resources.context_usage_tools_system
 import com.garfiec.librechat.core.ui.resources.context_usage_tools_system_deferred
 import com.garfiec.librechat.core.ui.resources.context_usage_totals
+import com.garfiec.librechat.core.ui.resources.context_usage_unavailable
 import com.garfiec.librechat.core.ui.resources.context_usage_used
+import com.garfiec.librechat.core.ui.resources.context_usage_waiting
 import com.garfiec.librechat.core.ui.resources.context_usage_window
 import com.garfiec.librechat.core.ui.theme.LocalAppLocale
 import com.garfiec.librechat.core.ui.theme.SeriesColors
@@ -123,8 +131,9 @@ fun pressureColor(roundedPercent: Int): Color? = when (contextPressure(roundedPe
 
 /**
  * The context breakdown, mirroring the web client's `Breakdown.tsx` (v0.8.8) and filtered to
- * [sections]: a `used / window` header, a meter whose segments are the rows below, then Totals
- * and Cost. [onCompact] adds the Compact button; null hides it (and the Settings preview passes
+ * [sections]: a `used / window` header, a meter whose segments are the rows below, then Last
+ * turn, Totals and All branches (each with its cost in the header under the "both" cost scope) or
+ * a separate Cost line. [onCompact] adds the Compact button; null hides it (and the Settings preview passes
  * null).
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -179,23 +188,33 @@ fun ContextBreakdownCard(
             }
         }
 
-        visible.totals?.let { branch ->
+        if (visible.lastTurn != null || visible.totals != null) {
             AdaptiveDivider()
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = stringResource(Res.string.context_usage_totals).uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                UsageRow(stringResource(Res.string.context_usage_input), branch.input)
-                UsageRow(stringResource(Res.string.context_usage_output), branch.output)
-                if (branch.cacheRead > 0) UsageRow(stringResource(Res.string.context_usage_cache_read), branch.cacheRead)
-                if (branch.cacheWrite > 0) UsageRow(stringResource(Res.string.context_usage_cache_write), branch.cacheWrite)
-                // Subagent calls aren't attributed to a reply, so they can't be scoped to this
-                // branch like the rows above; labelled as spanning all branches instead.
-                if (visible.subagentTokens > 0) {
-                    UsageRow(stringResource(Res.string.context_usage_subagents_all), visible.subagentTokens)
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                visible.lastTurn?.let { LastTurnBlock(it, model.currency) }
+                visible.totals?.let { branch ->
+                    UsageBlock(
+                        title = stringResource(Res.string.context_usage_totals),
+                        subtitle = stringResource(Res.string.context_usage_this_branch),
+                        cost = visible.totalsCost,
+                        currency = model.currency,
+                    ) {
+                        UsageRows(branch)
+                        // Subagent calls aren't attributed to a reply, so they can't be scoped to
+                        // this branch like the rows above; labelled as spanning all branches instead.
+                        if (visible.subagentTokens > 0) {
+                            UsageRow(stringResource(Res.string.context_usage_subagents_all), visible.subagentTokens)
+                        }
+                    }
+                }
+                visible.allBranches?.let { all ->
+                    UsageBlock(
+                        title = stringResource(Res.string.context_usage_cost_all),
+                        cost = all.cost,
+                        currency = model.currency,
+                    ) {
+                        UsageRows(all.usage)
+                    }
                 }
             }
         }
@@ -221,6 +240,76 @@ fun ContextBreakdownCard(
             }
         }
     }
+}
+
+/** The reply at the tail: its usage, or a line saying why there is none yet or at all. */
+@Composable
+private fun LastTurnBlock(turn: LastTurnUsage, currency: CurrencyConfig?) {
+    UsageBlock(
+        title = stringResource(if (turn.inProgress) Res.string.context_usage_current_turn else Res.string.context_usage_last_turn),
+        cost = turn.cost,
+        currency = currency,
+    ) {
+        val usage = turn.usage
+        if (usage != null) {
+            UsageRows(usage)
+        } else {
+            Text(
+                text = stringResource(if (turn.inProgress) Res.string.context_usage_waiting else Res.string.context_usage_unavailable),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** A titled usage block (Last turn, Totals, All branches), its cost at the right of the header. */
+@Composable
+private fun UsageBlock(
+    title: String,
+    cost: Double?,
+    currency: CurrencyConfig?,
+    subtitle: String? = null,
+    rows: @Composable ColumnScope.() -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (subtitle != null) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            if (cost != null) {
+                Text(
+                    text = formatCost(cost, currency, LocalAppLocale.current),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    softWrap = false,
+                    modifier = Modifier.padding(start = VALUE_GAP),
+                )
+            }
+        }
+        rows()
+    }
+}
+
+/** Input and output always; the cache rows only when they hold something. */
+@Composable
+private fun ColumnScope.UsageRows(usage: UsageAmount) {
+    UsageRow(stringResource(Res.string.context_usage_input), usage.input)
+    UsageRow(stringResource(Res.string.context_usage_output), usage.output)
+    if (usage.cacheRead > 0) UsageRow(stringResource(Res.string.context_usage_cache_read), usage.cacheRead)
+    if (usage.cacheWrite > 0) UsageRow(stringResource(Res.string.context_usage_cache_write), usage.cacheWrite)
 }
 
 /** The pressure warning, and an ⓘ that reveals the insights inline (there is no hover on touch). */

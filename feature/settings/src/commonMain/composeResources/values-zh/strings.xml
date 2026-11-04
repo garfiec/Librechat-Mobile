@@ -35,6 +35,7 @@
     <string name="memory_redacted_value">此服务器的内容策略隐藏了此处存储的内容。你仍可以将其删除。</string>
     <string name="memory_redacted_value_no_delete">此服务器的内容策略隐藏了此处存储的内容。</string>
     <string name="cd_loading_profile">正在加载个人资料</string>
+    <string name="account_profile_load_failed">无法加载你的个人资料。</string>
     <string name="cd_make_private">设为私有</string>
     <string name="cd_make_public">设为公开</string>
     <string name="cd_preview_voice">试听语音</string>
@@ -162,6 +163,10 @@
     <string name="accent_color_hex">十六进制</string>
     <string name="use_wallpaper_colors">使用壁纸取色</string>
     <string name="use_wallpaper_colors_desc">让应用强调色与系统壁纸保持一致（Material You）</string>
+    <string name="use_server_accent">使用服务器强调色</string>
+    <string name="use_server_accent_desc">你的服务器为所有人设定了此强调色。关闭后可使用你自己的。</string>
+    <string name="accent_set_by_server">由服务器设定（%1$s）</string>
+    <string name="accent_set_by_server_note">关闭“使用服务器强调色”即可选择你自己的强调色。</string>
 
     <!-- Settings rows -->
     <string name="language">语言</string>
@@ -237,6 +242,16 @@
     <string name="auto_refill_interval">间隔</string>
     <string name="auto_refill_next">下次充值</string>
     <string name="auto_refill_next_info">只有在此时间之后，且发送消息会使余额低于零时，才会充值。</string>
+    <string name="balance_usage_limit">用量上限</string>
+    <string name="balance_used">已用 %1$s</string>
+    <string name="balance_usage_unavailable">无法获取用量</string>
+    <string name="balance_out_of_credits">额度已用完</string>
+    <string name="cd_balance_reading">%1$s：%2$s</string>
+    <string name="auto_reset_title">自动重置</string>
+    <string name="auto_reset_last">上次重置</string>
+    <string name="auto_reset_amount">重置额度</string>
+    <string name="auto_reset_next">下次重置</string>
+    <string name="auto_reset_next_info">间隔到期后，查看余额或发送请求时，余额会被替换为重置额度。未用完的额度不会结转，进行中的请求仍会从中扣除。</string>
     <plurals name="auto_refill_every_seconds">
         <item quantity="other">每 %1$s 秒</item>
     </plurals>
@@ -358,6 +373,7 @@
     <string name="enable_two_factor">启用两步验证</string>
     <string name="disable_two_factor">禁用两步验证</string>
     <string name="regenerate_backup_codes">重新生成备用码</string>
+    <string name="two_factor_required_by_server">此服务器要求启用两步验证，因此无法关闭。</string>
 
     <!-- 2FA setup dialog -->
     <string name="dialog_title_enable_2fa">启用两步验证</string>
@@ -734,6 +750,8 @@
     <string name="during_run_action_queue_desc">在回复完成后作为下一条消息发送。</string>
     <string name="during_run_action_steer">引导回复</string>
     <string name="during_run_action_steer_desc">将消息插入正在生成的回复，让助手调整方向。需要服务器支持引导；否则将加入队列。</string>
+    <string name="during_run_action_interrupt">中断并引导</string>
+    <string name="during_run_action_interrupt_desc">停止当前的工具或思考步骤，保留已写出的内容，并接着你的消息继续。工具已执行的操作无法撤销。如果回复无法中断，则改为普通引导。</string>
     <string name="upload_routing_title">附件</string>
     <string name="upload_routing_desc">文件可以原样发送给模型，也可以在服务器上读取后以文本形式发送。并非每个模型都支持所有文件类型。</string>
     <string name="upload_routing_auto">自动选择</string>
@@ -743,6 +761,8 @@
     <string name="mcp_oauth_title">登录 %1$s</string>
     <string name="mcp_oauth_message">此服务器需要你的授权才能使用。你将被转到提供方进行授权，之后可以返回并重新连接。</string>
     <string name="mcp_oauth_continue">继续</string>
+    <string name="mcp_oauth_signed_in">已登录。正在连接…</string>
+    <string name="mcp_oauth_failed">登录未完成。请重新连接以重试。</string>
     <string name="mcp_connection_deferred">正在后台连接 — 就绪后将显示工具。</string>
     <string name="show_site_icons">显示网站图标</string>
     <string name="show_site_icons_desc">从 Google 和其他网站加载网页搜索结果的图标</string>
@@ -883,4 +903,59 @@
     <string name="shared_chats_no_match">没有与“%1$s”匹配的链接</string>
     <string name="shared_chats_refresh_failed">无法刷新已分享的对话</string>
     <string name="shared_chats_delete_failed">无法删除链接</string>
+    <string name="passkeys_title">通行密钥</string>
+    <string name="passkeys_row_subtitle">使用屏幕锁定或安全密钥登录</string>
+    <plurals name="passkeys_row_count">
+        <item quantity="other">%1$d 个通行密钥</item>
+    </plurals>
+    <string name="passkeys_description">使用设备的屏幕锁定或安全密钥，无需密码即可登录。</string>
+    <string name="passkeys_empty">你还没有添加任何通行密钥</string>
+    <string name="passkeys_load_failed">无法加载你的通行密钥。</string>
+    <string name="passkeys_add_in_browser">如需添加通行密钥，请在浏览器中登录 %1$s。</string>
+    <string name="passkeys_synced">已同步</string>
+    <string name="passkeys_dates">%1$s · %2$s</string>
+    <string name="passkeys_added_on">添加于 %1$s</string>
+    <string name="passkeys_last_used_on">上次使用于 %1$s</string>
+    <string name="passkeys_never_used">从未使用</string>
+    <string name="passkeys_row_description_synced">%1$s，已同步，%2$s</string>
+    <string name="passkeys_row_description">%1$s，%2$s</string>
+    <string name="passkeys_more_options">%1$s 的更多选项</string>
+    <string name="passkeys_action_rename">重命名</string>
+    <string name="passkeys_action_remove">移除</string>
+    <string name="passkeys_rename_title">重命名通行密钥</string>
+    <string name="passkeys_name_label">通行密钥名称</string>
+    <string name="passkeys_rename_failed">无法重命名通行密钥</string>
+    <string name="passkeys_remove_title">移除“%1$s”？</string>
+    <string name="passkeys_remove_message">此通行密钥将无法再用于登录。</string>
+    <string name="passkeys_confirm_password">确认你的密码</string>
+    <string name="passkeys_incorrect_password">密码错误，请重试。</string>
+    <string name="passkeys_remove_failed">无法移除通行密钥</string>
+    <string name="passkeys_already_removed">该通行密钥已被移除。</string>
+    <string name="passkeys_too_many_attempts">尝试次数过多，请几分钟后再试。</string>
+    <string name="email_change_row_title">电子邮件地址</string>
+    <string name="email_change_title">更改电子邮件地址</string>
+    <string name="email_change_body">输入新的电子邮件地址和当前密码。我们会向新地址发送一个链接。打开该链接后更改即生效。</string>
+    <string name="email_change_current">当前：%1$s</string>
+    <string name="email_change_new_email">新电子邮件地址</string>
+    <string name="email_change_current_password">当前密码</string>
+    <string name="email_change_show_password">显示密码</string>
+    <string name="email_change_hide_password">隐藏密码</string>
+    <string name="email_change_send">发送链接</string>
+    <string name="email_change_sending">正在发送…</string>
+    <string name="email_change_link_sent">请查看 %1$s 中的验证链接。</string>
+    <string name="email_change_updated">电子邮件地址已更新。</string>
+    <string name="email_change_error_invalid_request">请输入有效的电子邮件地址和当前密码。</string>
+    <string name="email_change_error_same_email">新电子邮件地址必须与当前地址不同。</string>
+    <string name="email_change_error_disabled">你的服务器管理员已关闭电子邮件地址更改功能。</string>
+    <string name="email_change_error_local_account_required">只有使用电子邮件和密码登录的账号才能在此更改电子邮件地址。</string>
+    <string name="email_change_error_password_invalid">当前密码不正确。</string>
+    <string name="email_change_error_domain_not_allowed">此服务器不接受该域名的地址。</string>
+    <string name="email_change_error_email_in_use">该电子邮件地址已关联到另一个账号。</string>
+    <string name="email_change_error_account_modified">发送期间你的账号发生了变更。请重试。</string>
+    <string name="email_change_error_request_in_progress">另一个电子邮件更改请求已先完成。请使用那封邮件中的链接，或重试。</string>
+    <string name="email_change_error_delivery_failed">无法发送验证邮件。请重试。</string>
+    <string name="email_change_error_service_unavailable">此服务器目前无法发送邮件，因此无法更改地址。</string>
+    <string name="email_change_error_rate_limited">尝试次数过多，请几分钟后再试。</string>
+    <string name="email_change_error_network">无法连接到服务器。请检查网络连接后重试。</string>
+    <string name="email_change_error_unknown">电子邮件更改请求失败。请重试。</string>
 </resources>

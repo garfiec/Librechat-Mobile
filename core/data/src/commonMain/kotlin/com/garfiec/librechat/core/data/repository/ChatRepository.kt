@@ -3,16 +3,20 @@ package com.garfiec.librechat.core.data.repository
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.PendingSteer
+import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.StreamEvent
+import com.garfiec.librechat.core.model.code.CodeWorkspaceSubmission
 import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.request.ChatResumeRequest
 import com.garfiec.librechat.core.model.request.EditedContent
 import com.garfiec.librechat.core.model.request.EphemeralAgent
+import com.garfiec.librechat.core.model.request.SteerArmRequest
 import com.garfiec.librechat.core.model.request.SteerCancelRequest
 import com.garfiec.librechat.core.model.request.SteerRequest
 import com.garfiec.librechat.core.model.response.ChatAbortResponse
 import com.garfiec.librechat.core.model.response.ChatResumeResponse
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
+import com.garfiec.librechat.core.model.response.SteerArmResponse
 import com.garfiec.librechat.core.model.response.SteerCancelResponse
 import com.garfiec.librechat.core.model.response.SteerResponse
 import kotlinx.coroutines.flow.Flow
@@ -54,6 +58,13 @@ interface ChatRepository {
          * [responseMessageId] = the edited message's id; see `EditedContent`.
          */
         editedContent: EditedContent? = null,
+        /** Reasoning for this turn only; see `ChatRequest.reasoningOverride`. */
+        reasoningOverride: ReasoningOverride? = null,
+        /**
+         * The chat's code-workspace decision for this turn; null or [CodeWorkspaceSubmission.NONE]
+         * sends neither field. Agents endpoint only.
+         */
+        codeWorkspace: CodeWorkspaceSubmission? = null,
     ): Flow<StreamEvent>
 
     /**
@@ -103,6 +114,13 @@ interface ChatRepository {
      * the cancel lost its race, which is not an error — the steer is already in the reply.
      */
     suspend fun cancelSteer(request: SteerCancelRequest): Result<SteerCancelResponse>
+
+    /**
+     * Upgrades a queued steer to an interrupt in place. `armed = false` is a success: the steer
+     * already went in, was cancelled, the run ended, or (`PREEMPT_UNSUPPORTED`) it can't be
+     * interrupted. The words are never at stake — the steer stays queued either way.
+     */
+    suspend fun armSteer(request: SteerArmRequest): Result<SteerArmResponse>
 
     /**
      * Reads the server's view of the run on [conversationId].

@@ -298,9 +298,19 @@ class ContentSegmentsTest {
 
     @Test
     fun aFailedBatchIsFlagged() {
+        val group = onlySegment(listOf(tool("t1"), label("Tried to search", status = "failed")))
+            .groups.single() as ContentGroup.Activity
+        assertTrue(group.labelFailed)
+        assertTrue(!group.labelPartial)
+    }
+
+    // #16949: a partial batch has mixed outcomes; its label alone must not turn the header red.
+    @Test
+    fun aPartialBatchIsNotAFailedOne() {
         val group = onlySegment(listOf(tool("t1"), label("Tried to search", status = "partial")))
             .groups.single() as ContentGroup.Activity
-        assertTrue(group.failed)
+        assertTrue(group.labelPartial)
+        assertTrue(!group.labelFailed)
     }
 
     // Image-gen calls group like any other tool, matching `groupToolCalls.ts`. Generated images

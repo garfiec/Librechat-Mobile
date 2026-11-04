@@ -39,6 +39,13 @@
     <string name="agents_chip_top_picks">추천</string>
     <string name="agents_chip_all">전체</string>
     <string name="agents_chip_editable">편집 가능</string>
+    <string name="agents_filter_mine">내 에이전트</string>
+    <string name="agents_sort_label">정렬 기준</string>
+    <string name="agents_sort_newest">최신순</string>
+    <string name="agents_sort_oldest">오래된순</string>
+    <string name="agents_sort_popular">인기순</string>
+    <string name="agents_sort_author">작성자 이름순</string>
+    <string name="agents_mine_empty_title">아직 만든 에이전트가 없습니다</string>
     <string name="agents_top_pick">추천</string>
     <string name="agents_new_agent">새 에이전트</string>
     <string name="agent_unnamed">이름 없는 에이전트</string>
@@ -79,6 +86,7 @@
     <string name="agent_description_label">설명</string>
     <string name="agent_description_placeholder">선택 사항: 여기에 에이전트를 설명하세요</string>
     <string name="agent_instructions_label">지침</string>
+    <string name="agent_instructions_linked_prompt">이 에이전트는 저장된 프롬프트를 지침으로 사용합니다. 웹에서 변경하거나 연결을 해제하세요. 여기서 편집해도 에이전트가 실행하는 내용은 바뀌지 않습니다.</string>
     <string name="agent_instructions_placeholder">에이전트가 사용하는 시스템 지침</string>
     <string name="insert_variable">변수 삽입</string>
     <string name="cd_insert_variable">변수 삽입</string>
@@ -354,4 +362,16 @@
     <plurals name="agent_pin_limit">
         <item quantity="other">즐겨찾기는 최대 %1$d개까지 고정할 수 있습니다.</item>
     </plurals>
+    <string name="tool_approval_mode_cd">도구 승인 모드: %1$s</string>
+    <string name="tool_approval_inherit">상속된 정책 사용</string>
+    <string name="tool_approval_ask">항상 묻기</string>
+    <string name="tool_approval_allow">항상 승인</string>
+    <string name="tool_approval_chat">채팅마다 한 번 묻기</string>
+    <string name="tool_approval_always">한 번 묻고 이후 항상 승인</string>
+    <string name="tool_approval_admin_ask">관리자 정책에 따라 승인이 필요합니다.</string>
+    <string name="tool_approval_admin_deny">관리자 정책에 따라 이 도구가 차단되었습니다.</string>
+    <string name="tool_approval_reset">기억된 승인 재설정</string>
+    <string name="tool_approval_reset_success">기억된 승인이 재설정되었습니다.</string>
+    <string name="tool_approval_reset_error">기억된 승인을 재설정하지 못했습니다. 다시 시도하세요.</string>
+    <string name="tool_approval_reset_forbidden">이 에이전트의 승인은 재설정할 수 없습니다.</string>
 </resources>

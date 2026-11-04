@@ -1,7 +1,9 @@
 package com.garfiec.librechat.feature.conversations.export
 
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.repository.ToolCallPreviewImportException
 import com.garfiec.librechat.core.model.ConversationExport
+import com.garfiec.librechat.core.model.content.containsToolCallPreview
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -24,6 +26,10 @@ class ConversationImporter(
             }
             if (export.messages.isEmpty()) {
                 return Result.Error(message = "Invalid export: no messages found")
+            }
+            // The server would store shortened tool output as is, for good.
+            if (export.messages.containsToolCallPreview()) {
+                return Result.Error(ToolCallPreviewImportException())
             }
             Result.Success(export)
         } catch (e: IllegalArgumentException) {

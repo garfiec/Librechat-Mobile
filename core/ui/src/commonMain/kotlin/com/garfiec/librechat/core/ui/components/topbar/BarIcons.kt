@@ -45,6 +45,7 @@ import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.SaveAs
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Timeline
+import com.garfiec.librechat.core.ui.components.pullrequest.PullRequestGlyphs
 
 /**
  * Every icon a top bar may show, paired with its SF Symbol. Adding an icon here is the only way to
@@ -71,6 +72,10 @@ object BarIcons {
     val Duplicate = BarIcon(Icons.Outlined.ContentCopy, "doc.on.doc")
     val Archive = BarIcon(Icons.Outlined.Archive, "archivebox")
     val Delete = BarIcon(Icons.Outlined.DeleteOutline, "trash")
+
+    // A conversation's pull request: open, draft and closed share the pull glyph; merged has its own.
+    val PullRequest = BarIcon(PullRequestGlyphs.Open, "arrow.triangle.pull")
+    val PullRequestMerged = BarIcon(PullRequestGlyphs.Merged, "arrow.triangle.merge")
 
     // Filled variants: screens that used the filled Material glyph keep it, so Material mode is unchanged.
     val EditFilled = BarIcon(Icons.Default.Edit, "square.and.pencil")
@@ -110,6 +115,6 @@ object BarIcons {
         Compare, Trace, ContextUsage, Compact, Share, Edit, Duplicate, Archive, Delete,
         EditFilled, DuplicateFilled, DeleteFilled, ShareFilled, History, Sort, NewFolder, Tools, Import,
         SelectAll, GridView, ListView, Filter, Source, Rendered, Link, Star, StarFilled, OpenInBrowser,
-        Bookmark, BookmarkFilled, Confirm, Attach, ClearAll,
+        Bookmark, BookmarkFilled, Confirm, Attach, ClearAll, PullRequest, PullRequestMerged,
     )
 }

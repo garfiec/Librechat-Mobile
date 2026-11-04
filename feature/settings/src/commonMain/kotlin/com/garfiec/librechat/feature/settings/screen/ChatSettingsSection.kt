@@ -128,6 +128,12 @@ internal fun ChatSettingsSection(
                     checked = dismissKeyboardOnSend,
                     onChange = onDismissKeyboardOnSendChange,
                 )
+
+                SelectorRow(
+                    title = stringResource(Res.string.during_run_action_title),
+                    value = duringRunActionLabel(duringRunAction),
+                    onClick = { onOpenDialog(ChatSettingDialog.DURING_RUN_ACTION) },
+                )
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -147,12 +153,6 @@ internal fun ChatSettingsSection(
                     title = stringResource(Res.string.context_bar_title),
                     value = contextUsageSummary,
                     onClick = onOpenContextUsage,
-                )
-
-                SelectorRow(
-                    title = stringResource(Res.string.during_run_action_title),
-                    value = duringRunActionLabel(duringRunAction),
-                    onClick = { onOpenDialog(ChatSettingDialog.DURING_RUN_ACTION) },
                 )
 
                 SelectorRow(

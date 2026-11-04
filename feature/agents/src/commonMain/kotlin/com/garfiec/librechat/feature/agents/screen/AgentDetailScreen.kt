@@ -23,13 +23,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.RemoveModerator
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,12 +57,14 @@ import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveCard
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.ErrorBanner
 import com.garfiec.librechat.core.ui.components.InitialTile
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarAction
+import com.garfiec.librechat.core.ui.components.topbar.BarIcon
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarMenuItem
 import com.garfiec.librechat.core.ui.components.topbar.BarMenuSection
@@ -74,6 +76,7 @@ import com.garfiec.librechat.core.ui.datetime.LocalRelativeTimeReference
 import com.garfiec.librechat.core.ui.datetime.resolve
 import com.garfiec.librechat.feature.agents.AgentDetailDisplayData
 import com.garfiec.librechat.feature.agents.components.agentCategoryLabel
+import com.garfiec.librechat.feature.agents.components.approvalResetText
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
 import com.garfiec.librechat.feature.agents.util.htmlDescriptionToAnnotatedString
@@ -137,6 +140,8 @@ fun AgentDetailScreen(
             onDismissDelete = viewModel::dismissDeleteConfirmation,
             onRetry = viewModel::loadAgent,
             onDismissActionError = viewModel::dismissActionError,
+            onResetApprovals = viewModel::resetApprovals,
+            onDismissApprovalReset = viewModel::dismissApprovalResetNotice,
         ),
         modifier = modifier,
     )
@@ -154,6 +159,8 @@ internal class AgentDetailActions(
     val onDelete: () -> Unit = {},
     val onConfirmDelete: () -> Unit = {},
     val onDismissDelete: () -> Unit = {},
+    val onResetApprovals: () -> Unit = {},
+    val onDismissApprovalReset: () -> Unit = {},
     val onRetry: () -> Unit = {},
     val onDismissActionError: () -> Unit = {},
 )
@@ -176,6 +183,14 @@ internal fun AgentDetailContent(
         if (actionError == null || actionErrorText == null) return@LaunchedEffect
         snackbarHostState.showSnackbar(actionErrorText)
         currentActions.onDismissActionError()
+    }
+
+    val resetNotice = uiState.approvalResetNotice
+    val resetText = resetNotice?.let { approvalResetText(it) }
+    LaunchedEffect(resetNotice) {
+        if (resetText == null) return@LaunchedEffect
+        snackbarHostState.showSnackbar(resetText)
+        currentActions.onDismissApprovalReset()
     }
 
     if (uiState.showDeleteDialog) {
@@ -252,15 +267,27 @@ private fun agentBarActions(
         onCheckedChange = { actions.onTogglePin() },
     )
     val moreLabel = stringResource(Res.string.cd_more_actions)
-    if (uiState.isDuplicating || uiState.isDeleting) {
+    if (uiState.isDuplicating || uiState.isDeleting || uiState.isResettingApprovals) {
         return listOf(pin, BarAction.Icon(id = "more", icon = BarIcons.More, label = moreLabel, busy = true, onClick = {}))
     }
     val copyLink = stringResource(Res.string.agent_copy_link)
     val edit = stringResource(Res.string.edit)
     val duplicate = stringResource(Res.string.duplicate)
     val delete = stringResource(Res.string.delete)
+    val resetApprovals = stringResource(Res.string.tool_approval_reset)
     val items = buildList {
         add(BarMenuItem(id = "copy_link", label = copyLink, icon = BarIcons.Link, onClick = onCopyLink))
+        // VIEW access is enough to forget one's own remembered approvals, so not gated on edit.
+        if (uiState.canResetApprovals) {
+            add(
+                BarMenuItem(
+                    id = "reset_approvals",
+                    label = resetApprovals,
+                    icon = ResetApprovalsIcon,
+                    onClick = actions.onResetApprovals,
+                ),
+            )
+        }
         if (uiState.canOpenEditor) {
             add(BarMenuItem(id = "edit", label = edit, icon = BarIcons.EditFilled, onClick = { actions.onEdit(agentId) }))
         }
@@ -282,6 +309,8 @@ private fun agentBarActions(
     return listOf(pin, BarAction.Menu(id = "more", icon = BarIcons.More, label = moreLabel, sections = listOf(BarMenuSection(items))))
 }
 
+private val ResetApprovalsIcon = BarIcon(Icons.Outlined.RemoveModerator, "shield.slash")
+
 @Composable
 private fun actionErrorText(error: AgentActionError): String = when (error) {
     is AgentActionError.Delete -> failureText(stringResource(Res.string.agent_delete_failed), error.serverMessage)
@@ -299,7 +328,7 @@ private fun DeleteAgentDialog(name: String?, actions: AgentDetailActions) {
             Text(stringResource(Res.string.delete_agent_confirm, name ?: stringResource(Res.string.delete_this_agent)))
         },
         confirmButton = {
-            TextButton(
+            AdaptiveTextButton(
                 onClick = actions.onConfirmDelete,
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
             ) {
@@ -307,7 +336,7 @@ private fun DeleteAgentDialog(name: String?, actions: AgentDetailActions) {
             }
         },
         dismissButton = {
-            TextButton(onClick = actions.onDismissDelete) { Text(stringResource(Res.string.cancel)) }
+            AdaptiveTextButton(onClick = actions.onDismissDelete) { Text(stringResource(Res.string.cancel)) }
         },
     )
 }

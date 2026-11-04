@@ -5,8 +5,12 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.ui.media.AvatarImagePreparer
+import com.garfiec.librechat.feature.settings.model.allotment
 import com.garfiec.librechat.feature.settings.model.autoRefillInfo
+import com.garfiec.librechat.feature.settings.resources.Res
+import com.garfiec.librechat.feature.settings.resources.account_profile_load_failed
 import com.garfiec.librechat.feature.settings.util.ContentReader
 import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.BalanceUiState
@@ -42,28 +46,53 @@ class AccountDelegate(
         loadUserJob = stateHandle.scope.launch {
             stateHandle.update { copy(profileLoadError = null) }
             when (val result = userRepository.getUser()) {
+                is Result.Success -> applyUser(result.data)
+                is Result.Error -> {
+                    Logger.w(result.exception) { "Profile load failed: ${result.message}" }
+                    stateHandle.update { copy(profileLoadError = Res.string.account_profile_load_failed) }
+                }
+                is Result.Loading -> { /* no-op */ }
+            }
+        }
+    }
+
+    /**
+     * Re-reads the profile on a return to the tab, so an avatar, name or email changed on the web
+     * shows up. Quiet: no error banner and the shown profile kept when it fails, unless there is no
+     * profile yet. Skipped while a load is already running. [onRefreshed] gets the email before and
+     * after, for the "Email address updated" notice.
+     */
+    fun refreshQuietly(onRefreshed: (previousEmail: String?, email: String) -> Unit = { _, _ -> }) {
+        if (loadUserJob?.isActive == true) return
+        loadUserJob = stateHandle.scope.launch {
+            when (val result = userRepository.getUser()) {
                 is Result.Success -> {
-                    stateHandle.update {
-                        copy(
-                            user = result.data.toDisplayData(),
-                            profileLoadError = null,
-                            isTwoFactorEnabled = result.data.twoFactorEnabled,
-                            // Fail-CLOSED admin gate: the role-skills admin row shows
-                            // only for the ADMIN system role (mirrors the server's
-                            // manageRoles middleware). Server also 403s non-admins.
-                            isAdmin = result.data.role == ADMIN_ROLE,
-                        )
-                    }
+                    val previousEmail = stateHandle.state.user?.email
+                    applyUser(result.data)
+                    onRefreshed(previousEmail, result.data.email)
                 }
                 is Result.Error -> {
-                    stateHandle.update {
-                        copy(
-                            profileLoadError = result.message ?: "Failed to load user profile",
-                        )
+                    Logger.w(result.exception) { "Profile refresh failed: ${result.message}" }
+                    if (stateHandle.state.user == null) {
+                        stateHandle.update { copy(profileLoadError = Res.string.account_profile_load_failed) }
                     }
                 }
                 is Result.Loading -> { /* no-op */ }
             }
+        }
+    }
+
+    private fun applyUser(user: User) {
+        stateHandle.update {
+            copy(
+                user = user.toDisplayData(),
+                profileLoadError = null,
+                isTwoFactorEnabled = user.twoFactorEnabled,
+                // Fail-CLOSED admin gate: the role-skills admin row shows
+                // only for the ADMIN system role (mirrors the server's
+                // manageRoles middleware). Server also 403s non-admins.
+                isAdmin = user.role == ADMIN_ROLE,
+            )
         }
     }
 
@@ -77,7 +106,11 @@ class AccountDelegate(
             stateHandle.update { copy(balance = BalanceUiState.Loading) }
             when (val result = balanceRepository.getBalance()) {
                 is Result.Success -> {
-                    val loaded = BalanceUiState.Loaded(result.data.tokenCredits, result.data.autoRefillInfo())
+                    val loaded = BalanceUiState.Loaded(
+                        tokenCredits = result.data.tokenCredits,
+                        autoRefill = result.data.autoRefillInfo(),
+                        allotmentFromRefill = result.data.allotment(startBalance = null),
+                    )
                     stateHandle.update { copy(balance = loaded) }
                 }
                 is Result.Error -> {

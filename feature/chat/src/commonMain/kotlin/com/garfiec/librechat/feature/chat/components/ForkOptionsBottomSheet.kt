@@ -45,11 +45,16 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun ForkOptionsBottomSheet(
     onDismiss: () -> Unit,
-    onFork: (option: String, splitAtTarget: Boolean) -> Unit,
+    onFork: (option: String, splitAtTarget: Boolean, excludeFiles: Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    /** The server can copy without files (v0.8.9-rc1); hides "Leave out files" otherwise. */
+    excludeFilesSupported: Boolean = false,
 ) {
     val sheetState = rememberModalBottomSheetState()
     var splitAtTarget by remember { mutableStateOf(false) }
+    // Never remembered across sheets, as on web: each fork decides afresh.
+    var excludeFiles by remember { mutableStateOf(false) }
+    val leaveOutFiles = excludeFiles && excludeFilesSupported
 
     AdaptiveModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -75,7 +80,7 @@ fun ForkOptionsBottomSheet(
                 icon = Icons.Default.LinearScale,
                 label = stringResource(Res.string.fork_visible_messages),
                 description = stringResource(Res.string.fork_visible_messages_desc),
-                onClick = { onFork(ForkOption.DIRECT_PATH, splitAtTarget) },
+                onClick = { onFork(ForkOption.DIRECT_PATH, splitAtTarget, leaveOutFiles) },
                 dragSelection = dragSelection,
             )
 
@@ -83,7 +88,7 @@ fun ForkOptionsBottomSheet(
                 icon = Icons.AutoMirrored.Filled.CallSplit,
                 label = stringResource(Res.string.fork_include_branches),
                 description = stringResource(Res.string.fork_include_branches_desc),
-                onClick = { onFork(ForkOption.INCLUDE_BRANCHES, splitAtTarget) },
+                onClick = { onFork(ForkOption.INCLUDE_BRANCHES, splitAtTarget, leaveOutFiles) },
                 dragSelection = dragSelection,
             )
 
@@ -91,37 +96,61 @@ fun ForkOptionsBottomSheet(
                 icon = Icons.Default.AccountTree,
                 label = stringResource(Res.string.fork_all_to_target),
                 description = stringResource(Res.string.fork_all_to_target_desc),
-                onClick = { onFork(ForkOption.TARGET_LEVEL, splitAtTarget) },
+                onClick = { onFork(ForkOption.TARGET_LEVEL, splitAtTarget, leaveOutFiles) },
                 dragSelection = dragSelection,
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .dragSelectRow(dragSelection) { splitAtTarget = !splitAtTarget }
-                    .padding(horizontal = 24.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                AdaptiveCheckbox(
-                    checked = splitAtTarget,
-                    onCheckedChange = { splitAtTarget = it },
-                    modifier = Modifier.dragSelectRowIcon(),
+            ForkCheckboxRow(
+                checked = splitAtTarget,
+                onCheckedChange = { splitAtTarget = it },
+                label = stringResource(Res.string.fork_start_new),
+                description = stringResource(Res.string.fork_start_new_desc),
+                dragSelection = dragSelection,
+            )
+
+            if (excludeFilesSupported) {
+                ForkCheckboxRow(
+                    checked = excludeFiles,
+                    onCheckedChange = { excludeFiles = it },
+                    label = stringResource(Res.string.fork_exclude_files),
+                    description = stringResource(Res.string.fork_exclude_files_desc),
+                    dragSelection = dragSelection,
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text(
-                        text = stringResource(Res.string.fork_start_new),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        text = stringResource(Res.string.fork_start_new_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
+        }
+    }
+}
+
+@Composable
+private fun ForkCheckboxRow(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    label: String,
+    description: String,
+    dragSelection: ListDragSelection,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .dragSelectRow(dragSelection) { onCheckedChange(!checked) }
+            .padding(horizontal = 24.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AdaptiveCheckbox(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            modifier = Modifier.dragSelectRowIcon(),
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Column {
+            Text(text = label, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

@@ -1,9 +1,16 @@
 package com.garfiec.librechat.feature.auth.viewmodel
 
+import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.datastore.ServerDataStore
+import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
+import com.garfiec.librechat.core.data.repository.PendingAddSession
+import com.garfiec.librechat.core.model.config.InterfaceConfig
+import com.garfiec.librechat.core.model.config.PrivacyPolicyConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.model.config.TermsOfServiceConfig
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -28,6 +35,10 @@ class RegisterViewModelTest {
 
     private val authRepository = mockk<AuthRepository>(relaxed = true)
     private val configRepository = mockk<ConfigRepository>(relaxed = true)
+    private val accountSwitcher = mockk<AccountSwitcher>(relaxed = true)
+    private val serverDataStore = mockk<ServerDataStore>(relaxed = true) {
+        every { currentUrlFlow } returns MutableStateFlow("https://chat.example.com")
+    }
 
     private val configFlow = MutableStateFlow<StartupConfig?>(null)
 
@@ -37,6 +48,7 @@ class RegisterViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         every { configRepository.startupConfig } returns configFlow
+        every { accountSwitcher.pendingAdd } returns null
     }
 
     @After
@@ -47,7 +59,46 @@ class RegisterViewModelTest {
     private fun createViewModel() = RegisterViewModel(
         authRepository = authRepository,
         configRepository = configRepository,
+        accountSwitcher = accountSwitcher,
+        serverDataStore = serverDataStore,
     )
+
+    @Test
+    fun `the server's policy links reach the register footer, resolved against the server`() = runTest {
+        configFlow.value = StartupConfig(
+            interfaceConfig = InterfaceConfig(
+                privacyPolicy = PrivacyPolicyConfig(externalUrl = "javascript:alert(1)"),
+                termsOfService = TermsOfServiceConfig(externalUrl = "/terms"),
+            ),
+        )
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.policyLinks)
+            .isEqualTo(PolicyLinks(termsOfServiceUrl = "https://chat.example.com/terms"))
+    }
+
+    @Test
+    fun `an add-account register shows the pending server's links and password rule`() = runTest {
+        configFlow.value = StartupConfig(
+            minPasswordLength = 20,
+            interfaceConfig = InterfaceConfig(termsOfService = TermsOfServiceConfig(externalUrl = "/live-terms")),
+        )
+        val pending = mockk<PendingAddSession>(relaxed = true)
+        every { pending.serverUrl } returns "https://pending.example.com"
+        every { pending.startupConfig } returns MutableStateFlow(
+            StartupConfig(
+                minPasswordLength = 12,
+                interfaceConfig = InterfaceConfig(termsOfService = TermsOfServiceConfig(externalUrl = "/terms")),
+            ),
+        )
+        every { accountSwitcher.pendingAdd } returns pending
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.policyLinks.termsOfServiceUrl).isEqualTo("https://pending.example.com/terms")
+        assertThat(viewModel.uiState.value.minPasswordLength).isEqualTo(12)
+    }
 
     private fun fillValidFields() {
         viewModel.onNameChanged("Test User")
@@ -55,6 +106,27 @@ class RegisterViewModelTest {
         viewModel.onUsernameChanged("testuser")
         viewModel.onPasswordChanged("password123")
         viewModel.onConfirmPasswordChanged("password123")
+    }
+
+    @Test
+    fun `a tenant-required 403 is worded as a refusal, and a later local error drops it`() = runTest {
+        coEvery { authRepository.register(any(), any(), any(), any()) } returns Result.Error(
+            exception = ApiException(403, "server message", body = TENANT_BODY, serverAuthored = true),
+            message = "server message",
+        )
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        fillValidFields()
+        viewModel.register()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.refusal).isEqualTo(AuthRefusal.TenantRequired)
+        assertThat(viewModel.uiState.value.error).isNotNull()
+
+        viewModel.onConfirmPasswordChanged("mismatch")
+        viewModel.register()
+        assertThat(viewModel.uiState.value.refusal).isNull()
+        assertThat(viewModel.uiState.value.error).isEqualTo("Passwords do not match")
     }
 
     @Test
@@ -263,5 +335,9 @@ class RegisterViewModelTest {
 
         viewModel.onNameChanged("Test")
         assertThat(viewModel.uiState.value.error).isNull()
+    }
+
+    private companion object {
+        const val TENANT_BODY = """{"message":"Tenant context required in strict isolation mode","code":"TENANT_CONTEXT_REQUIRED"}"""
     }
 }

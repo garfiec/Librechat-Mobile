@@ -13,6 +13,7 @@ import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
+import com.garfiec.librechat.feature.chat.util.ThinkingChip
 import com.garfiec.librechat.feature.chat.util.clipboardHasImage
 import com.garfiec.librechat.feature.chat.util.readClipboardImage
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
@@ -36,7 +37,9 @@ internal actual fun ChatComposer(
     onQueue: () -> Unit,
     canQueue: Boolean,
     onSteer: () -> Unit,
+    onInterrupt: () -> Unit,
     canSteer: Boolean,
+    builtInSearchOn: Boolean,
     duringRunAction: DuringRunAction,
     duringRunSendTarget: DuringRunSendTarget,
     pendingSteers: List<PendingSteerChip>,
@@ -45,6 +48,7 @@ internal actual fun ChatComposer(
     pendingManualSkills: List<String>,
     onRemoveManualSkill: (name: String) -> Unit,
     onCancelSteer: (steerId: String) -> Unit,
+    onInterruptSteer: (steerId: String) -> Unit,
     onSetDuringRunAction: (DuringRunAction) -> Unit,
     attachedFiles: List<AttachedFile>,
     onRemoveFile: (AttachedFile) -> Unit,
@@ -64,6 +68,8 @@ internal actual fun ChatComposer(
     enabledTools: Set<String>,
     pinnedToolKeys: List<String>,
     onToggleTool: (String) -> Unit,
+    thinking: ThinkingChip?,
+    onOpenThinking: () -> Unit,
     mcpServers: List<McpServerDisplayData>,
     selectedMcpServerNames: Set<String>,
     selectedModelDisplay: String?,
@@ -109,7 +115,9 @@ internal actual fun ChatComposer(
         onQueue = onQueue,
         canQueue = canQueue,
         onSteer = onSteer,
+        onInterrupt = onInterrupt,
         canSteer = canSteer,
+        builtInSearchOn = builtInSearchOn,
         duringRunAction = duringRunAction,
         duringRunSendTarget = duringRunSendTarget,
         pendingSteers = pendingSteers,
@@ -118,6 +126,7 @@ internal actual fun ChatComposer(
         pendingManualSkills = pendingManualSkills,
         onRemoveManualSkill = onRemoveManualSkill,
         onCancelSteer = onCancelSteer,
+        onInterruptSteer = onInterruptSteer,
         onSetDuringRunAction = onSetDuringRunAction,
         attachedFiles = attachedFiles,
         onRemoveFile = onRemoveFile,
@@ -135,6 +144,8 @@ internal actual fun ChatComposer(
         enabledTools = enabledTools,
         pinnedToolKeys = pinnedToolKeys,
         onToggleTool = onToggleTool,
+        thinking = thinking,
+        onOpenThinking = onOpenThinking,
         mcpServers = mcpServers,
         selectedMcpServerNames = selectedMcpServerNames,
         selectedModelDisplay = selectedModelDisplay,

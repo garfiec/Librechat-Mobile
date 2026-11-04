@@ -56,6 +56,7 @@ fun TabbedSettingsScreen(
     onNavigateToContextUsage: () -> Unit,
     onNavigateToChatLayout: () -> Unit,
     onNavigateToApiKeys: () -> Unit,
+    onNavigateToPasskeys: () -> Unit,
     onNavigateToFavorites: () -> Unit,
     onNavigateToProviderKeys: () -> Unit,
     onNavigateToRoleSkillsAdmin: () -> Unit,
@@ -145,6 +146,7 @@ fun TabbedSettingsScreen(
                 2 -> AccountSettingsContent(
                     onLogout = onLogout,
                     onNavigateToApiKeys = onNavigateToApiKeys,
+                    onNavigateToPasskeys = onNavigateToPasskeys,
                     onNavigateToFavorites = onNavigateToFavorites,
                     onNavigateToProviderKeys = onNavigateToProviderKeys,
                     onNavigateToRoleSkillsAdmin = onNavigateToRoleSkillsAdmin,

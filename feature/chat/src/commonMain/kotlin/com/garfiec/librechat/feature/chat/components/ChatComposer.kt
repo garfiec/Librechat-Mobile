@@ -8,6 +8,7 @@ import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
+import com.garfiec.librechat.feature.chat.util.ThinkingChip
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
@@ -34,7 +35,9 @@ internal expect fun ChatComposer(
     onQueue: () -> Unit,
     canQueue: Boolean,
     onSteer: () -> Unit,
+    onInterrupt: () -> Unit,
     canSteer: Boolean,
+    builtInSearchOn: Boolean,
     duringRunAction: DuringRunAction,
     duringRunSendTarget: DuringRunSendTarget,
     pendingSteers: List<PendingSteerChip>,
@@ -43,6 +46,7 @@ internal expect fun ChatComposer(
     pendingManualSkills: List<String>,
     onRemoveManualSkill: (name: String) -> Unit,
     onCancelSteer: (steerId: String) -> Unit,
+    onInterruptSteer: (steerId: String) -> Unit,
     onSetDuringRunAction: (DuringRunAction) -> Unit,
     attachedFiles: List<AttachedFile>,
     onRemoveFile: (AttachedFile) -> Unit,
@@ -62,6 +66,8 @@ internal expect fun ChatComposer(
     enabledTools: Set<String>,
     pinnedToolKeys: List<String>,
     onToggleTool: (String) -> Unit,
+    thinking: ThinkingChip?,
+    onOpenThinking: () -> Unit,
     mcpServers: List<McpServerDisplayData>,
     selectedMcpServerNames: Set<String>,
     selectedModelDisplay: String?,

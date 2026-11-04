@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.network.api
 
+import com.garfiec.librechat.core.model.reasoning.ReasoningCapabilitiesResponse
 import com.garfiec.librechat.core.model.request.ContextProjectionRequest
 import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.ModelTokenomics
@@ -7,6 +8,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.call.body
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.path
@@ -24,6 +26,10 @@ import io.ktor.http.path
  * the gauge is now computed client-side / seeded from the `on_context_usage` SSE).
  * `EndpointTokenRepositoryImpl` version-gates the call so it is never issued against a
  * server that would 404 it; this method stays for older (< 0.8.8) backends.
+ *
+ * - `GET /api/endpoints/reasoning-capabilities?endpoint=` (v0.8.9-rc1) → the reasoning efforts each
+ *   model of one OpenRouter endpoint accepts. 400 `endpoint_required`, 503
+ *   `reasoning_catalog_unavailable` (retry; never cache it), 500 `reasoning_capabilities_failed`.
  */
 class EndpointTokenApi(
     private val client: HttpClient,
@@ -31,6 +37,12 @@ class EndpointTokenApi(
     suspend fun getTokenConfig(): Map<String, Map<String, ModelTokenomics>> =
         client.get {
             url { path("api/endpoints/token-config") }
+        }.body()
+
+    suspend fun getReasoningCapabilities(endpoint: String): ReasoningCapabilitiesResponse =
+        client.get {
+            url { path("api/endpoints/reasoning-capabilities") }
+            parameter("endpoint", endpoint)
         }.body()
 
     suspend fun getContextProjection(request: ContextProjectionRequest): ContextUsage? =

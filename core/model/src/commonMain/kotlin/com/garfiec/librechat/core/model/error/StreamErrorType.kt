@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.model.error
 
+import com.garfiec.librechat.core.model.code.CodeWorkspaceUnavailableReason
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -145,7 +146,10 @@ enum class StreamErrorType(
      */
     EMPTY_MESSAGES("empty_messages"),
 
-    /** The code-interpreter workspace the turn selected could not be reached. */
+    /**
+     * The chat's attached-machine workspace decision was refused; the payload's `reason` says why
+     * ([codeWorkspaceReason]). On the start POST's 409 and in-band on the stream.
+     */
     CODE_WORKSPACE_UNAVAILABLE("code_workspace_unavailable"),
 
     /** A stateful code environment was asked for on a deployment that does not permit one. */
@@ -160,22 +164,44 @@ enum class StreamErrorType(
 
     /** The start POST's 503 counterpart: the MCP credential could not be refreshed. Retryable. */
     MCP_AUTHENTICATION_REFRESH_FAILED(ServerErrorCode.MCP_AUTHENTICATION_REFRESH_FAILED, classifiesPayload = false),
+
+    /**
+     * The chat start POST was refused 409 because a project chat's files changed while the turn was
+     * starting (v0.8.9-rc1). Retryable. Classified only from the start POST — see [startFailureMarker].
+     */
+    PROJECT_RESOURCES_CHANGED(ServerErrorCode.PROJECT_RESOURCES_CHANGED, classifiesPayload = false),
+
+    /**
+     * The chat start POST was refused 404 because the chat's project could not be resolved
+     * (v0.8.9-rc1): deleted, or not this user's. Classified only from the start POST.
+     */
+    PROJECT_CONTEXT_UNAVAILABLE("project_context_unavailable", classifiesPayload = false),
     ;
 
     companion object {
         private val byWire = entries.filter { it.classifiesPayload }.associateBy { it.wire }
 
         /**
-         * The marker for a chat start POST that failed up front with an MCP authentication code,
-         * or null for any other start failure. [body] is the raw error-response body; the code is
-         * read with [ServerErrorCode.generationCodeOf], since that route's `error` key is prose.
+         * The marker for a chat start POST that failed up front with an MCP authentication code, a
+         * project context failure or a refused code-workspace decision (with its reason), or null
+         * for any other start failure. [body] is the raw
+         * error-response body; the code is read with [ServerErrorCode.generationCodeOf], since that
+         * route's `error` key is prose. The one uncoded case, the project-context 404, is matched on
+         * [status] and the server's exact sentence together.
          */
-        fun startFailureMarker(body: String?): String? =
+        fun startFailureMarker(body: String?, status: Int? = null): String? =
             when (ServerErrorCode.generationCodeOf(body)) {
+                CODE_WORKSPACE_UNAVAILABLE.wire -> body?.let { markerFor(CODE_WORKSPACE_UNAVAILABLE, it) }
                 ServerErrorCode.MCP_AUTHENTICATION_REJECTED -> MCP_AUTHENTICATION_REJECTED.marker
                 ServerErrorCode.MCP_AUTHENTICATION_REFRESH_FAILED -> MCP_AUTHENTICATION_REFRESH_FAILED.marker
+                ServerErrorCode.PROJECT_RESOURCES_CHANGED -> PROJECT_RESOURCES_CHANGED.marker
+                null -> PROJECT_CONTEXT_UNAVAILABLE.marker.takeIf {
+                    status == HTTP_NOT_FOUND && ServerErrorCode.from(body) == ServerErrorCode.PROJECT_CONTEXT_UNAVAILABLE_MESSAGE
+                }
                 else -> null
             }
+
+        private const val HTTP_NOT_FOUND = 404
 
         /**
          * The marker for a generation POST the server's middleware refused, or null when the
@@ -185,7 +211,7 @@ enum class StreamErrorType(
          * The refusal's own text is passed rather than the frame it rode in: the payload is a JSON
          * *string* inside that frame, which [parse]'s brace walk skips over.
          */
-        fun refusalMarker(refusalText: String): String? = parse(refusalText)?.marker
+        fun refusalMarker(refusalText: String): String? = parse(refusalText)?.let { markerFor(it, refusalText) }
 
         /**
          * The typed error in a raw stream-error message, or null.
@@ -241,6 +267,18 @@ enum class StreamErrorType(
                     ?.content
                     ?.takeIf { it.isNotBlank() },
             )
+        }
+
+        /**
+         * Why a [CODE_WORKSPACE_UNAVAILABLE] rejection refused the chat's workspace decision, or
+         * null for any other message or a `reason` this client does not know. The rejection is
+         * `{ code: "code_workspace_unavailable", reason }` (`packages/api/src/code/errors.ts`), on
+         * the start POST's 409 body and in-band on the stream alike.
+         */
+        fun codeWorkspaceReason(rawMessage: String): CodeWorkspaceUnavailableReason? {
+            if (parse(rawMessage) != CODE_WORKSPACE_UNAVAILABLE) return null
+            val (payload, _) = identifiedPayload(rawMessage) ?: return null
+            return CodeWorkspaceUnavailableReason.of((payload["reason"] as? JsonPrimitive)?.contentOrNull)
         }
 
         /**
@@ -375,7 +413,29 @@ enum class StreamErrorType(
          *
          * Keeping the server's text on no match is the contract, not a fallback: see [parse].
          */
-        fun markerOrText(rawMessage: String): String = parse(rawMessage)?.marker ?: rawMessage
+        fun markerOrText(rawMessage: String): String = parse(rawMessage)?.let { markerFor(it, rawMessage) } ?: rawMessage
+
+        /**
+         * [type]'s marker, carrying what the localized copy needs from the payload: a
+         * [CODE_WORKSPACE_UNAVAILABLE] marker carries its reason after [ARG_SEPARATOR], read back
+         * with [codeWorkspaceReasonOfMarker]. Without a known reason it is the bare marker.
+         */
+        private fun markerFor(type: StreamErrorType, rawMessage: String): String =
+            if (type == CODE_WORKSPACE_UNAVAILABLE) {
+                codeWorkspaceReason(rawMessage)?.let { "${type.marker}$ARG_SEPARATOR${it.wire}" } ?: type.marker
+            } else {
+                type.marker
+            }
+
+        /** The reason a [CODE_WORKSPACE_UNAVAILABLE] marker carries, or null for any other value. */
+        fun codeWorkspaceReasonOfMarker(value: String): CodeWorkspaceUnavailableReason? {
+            val prefix = CODE_WORKSPACE_UNAVAILABLE.marker + ARG_SEPARATOR
+            if (!value.startsWith(prefix)) return null
+            return CodeWorkspaceUnavailableReason.of(value.removePrefix(prefix))
+        }
+
+        /** U+001F, as `ChatNotice` uses: no wire code or reason carries a control character. */
+        const val ARG_SEPARATOR = "\u001F"
 
         /**
          * LEGACY fallback for servers at or below v0.8.8-rc1, which have no typed code for

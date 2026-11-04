@@ -114,7 +114,7 @@ fun ForgotPasswordScreen(
                         autoCorrectEnabled = false,
                     ),
                     isError = uiState.error != null,
-                    supportingText = uiState.error?.let { error ->
+                    supportingText = authErrorText(uiState.refusal, uiState.error)?.let { error ->
                         { Text(text = error, color = MaterialTheme.colorScheme.error) }
                     },
                     enabled = !uiState.isLoading,
@@ -142,6 +142,8 @@ fun ForgotPasswordScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     DiagnosticLogLink()
                 }
+
+                PolicyLinksFooter(uiState.policyLinks, modifier = Modifier.padding(top = 16.dp))
             }
         }
     }

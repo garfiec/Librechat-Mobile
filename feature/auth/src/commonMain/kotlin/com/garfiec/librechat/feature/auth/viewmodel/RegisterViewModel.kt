@@ -4,6 +4,8 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.datastore.ServerDataStore
+import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.feature.auth.diagnostics.offersDiagnosticLog
@@ -23,13 +25,19 @@ data class RegisterUiState(
     val error: String? = null,
     /** [error] came from a failure the diagnostic log can help with; see `offersDiagnosticLog`. */
     val offerDiagnosticLog: Boolean = false,
+    /** A coded refusal ([AuthRefusal]) the screen words itself, in place of [error], while [error] is set. */
+    val refusal: AuthRefusal? = null,
     val isRegistered: Boolean = false,
     val minPasswordLength: Int = 8,
+    /** The server's published policy links, as the sign-in footer shows them; null hides each. */
+    val policyLinks: PolicyLinks = PolicyLinks(),
 )
 
 class RegisterViewModel(
     private val authRepository: AuthRepository,
-    private val configRepository: ConfigRepository,
+    configRepository: ConfigRepository,
+    accountSwitcher: AccountSwitcher,
+    serverDataStore: ServerDataStore,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RegisterUiState())
@@ -37,12 +45,12 @@ class RegisterViewModel(
 
     init {
         viewModelScope.launch {
-            configRepository.startupConfig.collect { config ->
-                if (config != null) {
-                    _uiState.value = _uiState.value.copy(
-                        minPasswordLength = config.minPasswordLength ?: 8,
-                    )
-                }
+            // The add-account flow's server when one is pending, not the live account's.
+            authServerConfig(configRepository, accountSwitcher, serverDataStore).collect { (config, url) ->
+                _uiState.value = _uiState.value.copy(
+                    minPasswordLength = config.minPasswordLength ?: 8,
+                    policyLinks = PolicyLinks.from(config, url),
+                )
             }
         }
     }
@@ -68,7 +76,7 @@ class RegisterViewModel(
     }
 
     fun register() {
-        val state = _uiState.value.copy(offerDiagnosticLog = false)
+        val state = _uiState.value.copy(offerDiagnosticLog = false, refusal = null)
 
         if (state.name.isBlank() || state.email.isBlank() || state.username.isBlank() || state.password.isBlank()) {
             _uiState.value = state.copy(error = "All fields are required")
@@ -97,6 +105,7 @@ class RegisterViewModel(
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = result.message ?: "Registration failed",
+                        refusal = result.authRefusalOrNull(),
                         offerDiagnosticLog = result.offersDiagnosticLog(),
                     )
                 }

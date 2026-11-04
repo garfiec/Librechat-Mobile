@@ -87,6 +87,7 @@ private fun projectReceipt(
         expectedPredecessorCreatedAt = receipt.expectedPredecessorCreatedAt,
         quotes = receipt.quotes ?: base.quotes,
         manualSkills = receipt.manualSkills ?: base.manualSkills,
+        reasoningOverride = receipt.reasoningOverride ?: base.reasoningOverride,
         server = QueuedTurnServerState(
             status = status,
             id = receipt.queuedTurnId,

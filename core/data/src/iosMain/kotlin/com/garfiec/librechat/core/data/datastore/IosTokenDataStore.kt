@@ -170,5 +170,28 @@ class IosTokenDataStore(
     companion object {
         private const val SERVICE_NAME = "com.garfiec.librechat.tokens"
         private const val KEY_SERVER_URL = "server_url"
+
+        /**
+         * Deletes every item this store keeps (all accounts' tokens, the active binding, markers, the
+         * server URL fallback). For [resetKeychainLeftByPreviousInstall] only: it runs before any
+         * instance exists, so no cache can disagree with it.
+         */
+        @OptIn(ExperimentalForeignApi::class)
+        internal fun deleteAllKeychainItems() {
+            val cfService = CFBridgingRetain(SERVICE_NAME as NSString)
+            val query = CFDictionaryCreateMutable(null, 2, null, null) ?: return
+            try {
+                CFDictionaryAddValue(query, kSecClass, kSecClassGenericPassword)
+                CFDictionaryAddValue(query, kSecAttrService, cfService)
+                // Without kSecMatchLimit, SecItemDelete removes every match on iOS.
+                val status = SecItemDelete(query)
+                check(status == errSecSuccess || status == errSecItemNotFound) {
+                    "Keychain reset failed with status=$status"
+                }
+            } finally {
+                CFRelease(query)
+                cfService?.let { CFRelease(it) }
+            }
+        }
     }
 }

@@ -1,9 +1,12 @@
 package com.garfiec.librechat.feature.conversations.viewmodel
 
+import com.garfiec.librechat.core.common.BackendBuildClass
+import com.garfiec.librechat.core.common.DetectedBackend
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.bookmarks.BookmarkPickerFailure
 import com.garfiec.librechat.core.data.repository.ConversationRepository
+import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.TagRepository
 import com.garfiec.librechat.core.model.ChatProject
@@ -11,9 +14,11 @@ import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationPage
 import com.garfiec.librechat.core.model.ConversationTag
 import com.garfiec.librechat.core.model.SAVED_TAG
+import com.garfiec.librechat.core.model.config.ChatProjectsConfig
 import com.garfiec.librechat.core.model.config.InterfaceConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
+import com.garfiec.librechat.core.model.response.ChatProjectFile
 import com.garfiec.librechat.feature.conversations.resources.Res
 import com.garfiec.librechat.feature.conversations.resources.bookmarks_load_failed
 import com.google.common.truth.Truth.assertThat
@@ -53,6 +58,8 @@ class ProjectChatsViewModelTest {
     }
     private val userPermissions = MutableStateFlow<UserRolePermissions?>(null)
     private val startupConfig = MutableStateFlow<StartupConfig?>(StartupConfig(sharedLinksEnabled = true))
+    private val detectedBackend = MutableStateFlow<DetectedBackend?>(null)
+    private val fileRepository = mockk<FileRepository>(relaxed = true)
 
     private fun page(vararg ids: String, next: String? = null) =
         Result.Success(ConversationPage(ids.map { Conversation(conversationId = it) }, next))
@@ -73,8 +80,10 @@ class ProjectChatsViewModelTest {
             every { endpointConfigs } returns MutableStateFlow(emptyMap())
             every { startupConfig } returns this@ProjectChatsViewModelTest.startupConfig
             every { serverUrl } returns flowOf("https://srv")
+            every { detectedBackend } returns this@ProjectChatsViewModelTest.detectedBackend
         },
         projectRepository = projectRepository,
+        fileRepository = fileRepository,
         dayBoundaries = emptyFlow(),
     )
 
@@ -340,5 +349,83 @@ class ProjectChatsViewModelTest {
         assertThat(vm.bookmarkPicker.state.value.isOpen).isFalse()
         assertThat(events).containsExactly(ConversationListEvent.ShowErrorRes(Res.string.bookmarks_load_failed))
         job.cancel()
+    }
+
+    @Test
+    fun `the context cards stay hidden on a server without the feature`() = runTest(testDispatcher) {
+        detectedBackend.value = DetectedBackend("0.8.8", BackendBuildClass.OFFICIAL)
+        startupConfig.value = StartupConfig(ragEnabled = true)
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        assertThat(vm.projectContext.value).isNull()
+        coVerify(exactly = 0) { projectRepository.listProjectFiles(any()) }
+    }
+
+    @Test
+    fun `instructions show on rc1 and files load only with a RAG API`() = runTest(testDispatcher) {
+        detectedBackend.value = DetectedBackend("0.8.9-rc1", BackendBuildClass.RC)
+        coEvery { projectRepository.getProject("p1") } returns
+            Result.Success(ChatProject(id = "p1", name = "Thesis", instructions = "Be brief", contextRevision = 2))
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        assertThat(vm.projectContext.value?.instructions).isEqualTo("Be brief")
+        assertThat(vm.projectContext.value?.files).isNull()
+        coVerify(exactly = 0) { projectRepository.listProjectFiles(any()) }
+
+        startupConfig.value = StartupConfig(ragEnabled = true)
+        advanceUntilIdle()
+        assertThat(vm.projectContext.value?.files).isNotNull()
+        coVerify(exactly = 1) { projectRepository.listProjectFiles("p1") }
+    }
+
+    @Test
+    fun `a file change replaces the held project so the next save carries its revision`() = runTest(testDispatcher) {
+        detectedBackend.value = DetectedBackend("0.8.9-rc1", BackendBuildClass.RC)
+        startupConfig.value = StartupConfig(ragEnabled = true)
+        coEvery { projectRepository.listProjectFiles("p1") } returns
+            Result.Success(listOf(ChatProjectFile("f1", "a.pdf", availability = "ready")))
+        coEvery { projectRepository.removeProjectFile("p1", "f1") } returns
+            Result.Success(ChatProject(id = "p1", name = "Thesis", contextRevision = 9))
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.projectFiles.remove("f1")
+        advanceUntilIdle()
+
+        assertThat(vm.uiState.value.project?.contextRevision).isEqualTo(9)
+    }
+
+    @Test
+    fun `the unassigned filter never shows the context cards`() = runTest(testDispatcher) {
+        detectedBackend.value = DetectedBackend("0.8.9-rc1", BackendBuildClass.RC)
+        val vm = ProjectChatsViewModel(
+            projectId = ChatProject.UNASSIGNED,
+            conversationRepository = conversationRepository,
+            tagRepository = tagRepository,
+            shareLinkControllerFactory = mockk(relaxed = true),
+            conversationExporter = mockk(relaxed = true),
+            roleRepository = mockk(relaxed = true) { every { userPermissions } returns this@ProjectChatsViewModelTest.userPermissions },
+            configRepository = mockk(relaxed = true) {
+                every { endpointConfigs } returns MutableStateFlow(emptyMap())
+                every { startupConfig } returns this@ProjectChatsViewModelTest.startupConfig
+                every { serverUrl } returns flowOf("https://srv")
+                every { detectedBackend } returns this@ProjectChatsViewModelTest.detectedBackend
+            },
+            projectRepository = projectRepository,
+            fileRepository = fileRepository,
+            dayBoundaries = emptyFlow(),
+        )
+        advanceUntilIdle()
+        assertThat(vm.projectContext.value).isNull()
+    }
+
+    @Test
+    fun `the edit sheet's description cap follows the projects block`() = runTest(testDispatcher) {
+        startupConfig.value = StartupConfig(projects = ChatProjectsConfig(maxDescriptionLength = 300))
+        val vm = viewModel()
+        advanceUntilIdle()
+        assertThat(vm.uiState.value.descriptionLimit).isEqualTo(300)
     }
 }

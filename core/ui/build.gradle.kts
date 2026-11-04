@@ -40,6 +40,10 @@ kotlin {
         iosMain.dependencies {
             implementation(libs.kermit)
         }
+        commonTest.dependencies {
+            // Builds the raw `customParams.paramDefinitions` the reasoning resolver reads.
+            implementation(libs.kotlinx.serialization.json)
+        }
         iosTest.dependencies {
             implementation(libs.compose.multiplatform.ui.test)
         }

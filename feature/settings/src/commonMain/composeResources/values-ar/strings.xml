@@ -35,6 +35,7 @@
     <string name="memory_redacted_value">تُخفي سياسة المحتوى في هذا الخادم ما هو مخزّن هنا. لا يزال بإمكانك حذفه.</string>
     <string name="memory_redacted_value_no_delete">تُخفي سياسة المحتوى في هذا الخادم ما هو مخزّن هنا.</string>
     <string name="cd_loading_profile">جارٍ تحميل الملف الشخصي</string>
+    <string name="account_profile_load_failed">تعذّر تحميل ملفك الشخصي.</string>
     <string name="cd_make_private">جعله خاصًا</string>
     <string name="cd_make_public">جعله عامًا</string>
     <string name="cd_preview_voice">معاينة الصوت</string>
@@ -162,6 +163,10 @@
     <string name="accent_color_hex">سداسي عشري</string>
     <string name="use_wallpaper_colors">استخدام ألوان الخلفية</string>
     <string name="use_wallpaper_colors_desc">مطابقة لون التطبيق المميز مع خلفية نظامك (Material You)</string>
+    <string name="use_server_accent">استخدام لون الخادم المميز</string>
+    <string name="use_server_accent_desc">يحدد خادمك هذا اللون المميز للجميع. أوقف هذا الخيار لاستخدام لونك الخاص.</string>
+    <string name="accent_set_by_server">محدد من خادمك (%1$s)</string>
+    <string name="accent_set_by_server_note">أوقف «استخدام لون الخادم المميز» لاختيار لونك الخاص.</string>
 
     <!-- Settings rows -->
     <string name="language">اللغة</string>
@@ -237,6 +242,16 @@
     <string name="auto_refill_interval">الفاصل الزمني</string>
     <string name="auto_refill_next">إعادة التعبئة التالية</string>
     <string name="auto_refill_next_info">لا تتم إعادة التعبئة إلا بعد هذا الوقت، وفقط عندما تؤدي رسالة إلى نزول رصيدك تحت الصفر.</string>
+    <string name="balance_usage_limit">حد الاستخدام</string>
+    <string name="balance_used">المستخدم: %1$s</string>
+    <string name="balance_usage_unavailable">الاستخدام غير متاح</string>
+    <string name="balance_out_of_credits">نفد الرصيد</string>
+    <string name="cd_balance_reading">%1$s: %2$s</string>
+    <string name="auto_reset_title">إعادة التعيين التلقائية</string>
+    <string name="auto_reset_last">آخر إعادة تعيين</string>
+    <string name="auto_reset_amount">مخصص إعادة التعيين</string>
+    <string name="auto_reset_next">إعادة التعيين التالية</string>
+    <string name="auto_reset_next_info">بعد انقضاء الفترة، يُستبدل رصيدك بالمخصص عند الاطلاع عليه أو عند إرسال طلب. لا يُرحَّل الرصيد غير المستخدم، وتظل الطلبات الجارية تُحتسب منه.</string>
     <plurals name="auto_refill_every_seconds">
         <item quantity="zero">كل %1$s ثانية</item>
         <item quantity="one">كل %1$s ثانية</item>
@@ -388,6 +403,7 @@
     <string name="enable_two_factor">تفعيل المصادقة الثنائية</string>
     <string name="disable_two_factor">تعطيل المصادقة الثنائية</string>
     <string name="regenerate_backup_codes">إعادة إنشاء رموز النسخ الاحتياطي</string>
+    <string name="two_factor_required_by_server">يتطلب هذا الخادم المصادقة الثنائية، لذا لا يمكن تعطيلها.</string>
 
     <!-- 2FA setup dialog -->
     <string name="dialog_title_enable_2fa">تفعيل المصادقة الثنائية</string>
@@ -799,6 +815,8 @@
     <string name="during_run_action_queue_desc">إرسالها كرسالة تالية بعد انتهاء الرد.</string>
     <string name="during_run_action_steer">توجيه الرد</string>
     <string name="during_run_action_steer_desc">إدخالها في الرد الجاري كتابته ليغيّر المساعد مساره. يتطلب خادمًا يدعم التوجيه؛ وإلا فستُضاف إلى قائمة الانتظار.</string>
+    <string name="during_run_action_interrupt">المقاطعة والتوجيه</string>
+    <string name="during_run_action_interrupt_desc">يوقف الأداة الحالية أو خطوة التفكير الحالية، ويحتفظ بما كُتب، ثم يتابع برسالتك. لا يمكن التراجع عن الإجراءات التي نفّذتها أداة بالفعل. إذا تعذّرت مقاطعة الرد، يُكتفى بتوجيهه.</string>
     <string name="upload_routing_title">المرفقات</string>
     <string name="upload_routing_desc">يمكن إرسال الملفات إلى النموذج كما هي، أو قراءتها على الخادم وإرسالها كنص. لا يقبل كل نموذج كل أنواع الملفات.</string>
     <string name="upload_routing_auto">اختر نيابة عني</string>
@@ -808,6 +826,8 @@
     <string name="mcp_oauth_title">تسجيل الدخول إلى %1$s</string>
     <string name="mcp_oauth_message">يحتاج هذا الخادم إلى إذنك قبل استخدامه. ستُنقل إلى المزوّد لتفويض الوصول، ثم يمكنك العودة وإعادة الاتصال.</string>
     <string name="mcp_oauth_continue">متابعة</string>
+    <string name="mcp_oauth_signed_in">تم تسجيل الدخول. جارٍ الاتصال…</string>
+    <string name="mcp_oauth_failed">لم يكتمل تسجيل الدخول. أعد الاتصال للمحاولة مرة أخرى.</string>
     <string name="mcp_connection_deferred">جارٍ الاتصال في الخلفية — ستظهر الأدوات عندما يصبح جاهزًا.</string>
     <string name="show_site_icons">إظهار أيقونات المواقع</string>
     <string name="show_site_icons_desc">تحميل أيقونات نتائج البحث على الويب من Google ومواقع أخرى</string>
@@ -963,4 +983,64 @@
     <string name="shared_chats_no_match">لا توجد روابط تطابق "%1$s"</string>
     <string name="shared_chats_refresh_failed">تعذّر تحديث محادثاتك المشتركة</string>
     <string name="shared_chats_delete_failed">تعذّر حذف الرابط</string>
+    <string name="passkeys_title">مفاتيح المرور</string>
+    <string name="passkeys_row_subtitle">سجّل الدخول بقفل الشاشة أو بمفتاح أمان</string>
+    <plurals name="passkeys_row_count">
+        <item quantity="zero">لا توجد مفاتيح مرور</item>
+        <item quantity="one">مفتاح مرور واحد</item>
+        <item quantity="two">مفتاحا مرور</item>
+        <item quantity="few">%1$d مفاتيح مرور</item>
+        <item quantity="many">%1$d مفتاح مرور</item>
+        <item quantity="other">%1$d مفتاح مرور</item>
+    </plurals>
+    <string name="passkeys_description">سجّل الدخول دون كلمة مرور باستخدام قفل شاشة جهازك أو مفتاح أمان.</string>
+    <string name="passkeys_empty">لم تُضف أي مفاتيح مرور بعد</string>
+    <string name="passkeys_load_failed">تعذّر تحميل مفاتيح المرور.</string>
+    <string name="passkeys_add_in_browser">لإضافة مفتاح مرور، سجّل الدخول إلى %1$s في متصفح.</string>
+    <string name="passkeys_synced">متزامن</string>
+    <string name="passkeys_dates">%1$s · %2$s</string>
+    <string name="passkeys_added_on">أُضيف في %1$s</string>
+    <string name="passkeys_last_used_on">آخر استخدام في %1$s</string>
+    <string name="passkeys_never_used">لم يُستخدم قط</string>
+    <string name="passkeys_row_description_synced">%1$s، متزامن، %2$s</string>
+    <string name="passkeys_row_description">%1$s، %2$s</string>
+    <string name="passkeys_more_options">خيارات إضافية لـ %1$s</string>
+    <string name="passkeys_action_rename">إعادة التسمية</string>
+    <string name="passkeys_action_remove">إزالة</string>
+    <string name="passkeys_rename_title">إعادة تسمية مفتاح المرور</string>
+    <string name="passkeys_name_label">اسم مفتاح المرور</string>
+    <string name="passkeys_rename_failed">تعذّرت إعادة تسمية مفتاح المرور</string>
+    <string name="passkeys_remove_title">إزالة «%1$s»؟</string>
+    <string name="passkeys_remove_message">لن يعود مفتاح المرور هذا متاحًا لتسجيل الدخول.</string>
+    <string name="passkeys_confirm_password">أكّد كلمة المرور</string>
+    <string name="passkeys_incorrect_password">كلمة المرور غير صحيحة. يُرجى المحاولة مرة أخرى.</string>
+    <string name="passkeys_remove_failed">تعذّرت إزالة مفتاح المرور</string>
+    <string name="passkeys_already_removed">تمت إزالة مفتاح المرور هذا بالفعل.</string>
+    <string name="passkeys_too_many_attempts">محاولات كثيرة جدًا. حاول مرة أخرى بعد بضع دقائق.</string>
+    <string name="email_change_row_title">عنوان البريد الإلكتروني</string>
+    <string name="email_change_title">تغيير عنوان البريد الإلكتروني</string>
+    <string name="email_change_body">أدخل عنوان بريدك الإلكتروني الجديد وكلمة المرور الحالية. سنرسل رابطًا إلى العنوان الجديد. يسري التغيير عند فتح ذلك الرابط.</string>
+    <string name="email_change_current">الحالي: %1$s</string>
+    <string name="email_change_new_email">عنوان البريد الإلكتروني الجديد</string>
+    <string name="email_change_current_password">كلمة المرور الحالية</string>
+    <string name="email_change_show_password">إظهار كلمة المرور</string>
+    <string name="email_change_hide_password">إخفاء كلمة المرور</string>
+    <string name="email_change_send">إرسال الرابط</string>
+    <string name="email_change_sending">جارٍ الإرسال…</string>
+    <string name="email_change_link_sent">تحقق من %1$s بحثًا عن رابط التحقق.</string>
+    <string name="email_change_updated">تم تحديث عنوان البريد الإلكتروني.</string>
+    <string name="email_change_error_invalid_request">أدخل عنوان بريد إلكتروني صالحًا وكلمة المرور الحالية.</string>
+    <string name="email_change_error_same_email">يجب أن يختلف عنوان البريد الإلكتروني الجديد عن العنوان الحالي.</string>
+    <string name="email_change_error_disabled">أوقف مسؤول خادمك تغيير عناوين البريد الإلكتروني.</string>
+    <string name="email_change_error_local_account_required">لا يمكن تغيير البريد الإلكتروني هنا إلا للحسابات التي تسجّل الدخول بالبريد الإلكتروني وكلمة المرور.</string>
+    <string name="email_change_error_password_invalid">كلمة المرور الحالية غير صحيحة.</string>
+    <string name="email_change_error_domain_not_allowed">لا يقبل هذا الخادم عناوين من هذا النطاق.</string>
+    <string name="email_change_error_email_in_use">عنوان البريد الإلكتروني هذا مرتبط بالفعل بحساب آخر.</string>
+    <string name="email_change_error_account_modified">تغيّر حسابك أثناء الإرسال. حاول مرة أخرى.</string>
+    <string name="email_change_error_request_in_progress">اكتمل طلب آخر لتغيير البريد الإلكتروني أولًا. استخدم الرابط الوارد في تلك الرسالة، أو حاول مرة أخرى.</string>
+    <string name="email_change_error_delivery_failed">تعذّر إرسال رسالة التحقق. حاول مرة أخرى.</string>
+    <string name="email_change_error_service_unavailable">لا يستطيع هذا الخادم إرسال رسائل البريد الإلكتروني حاليًا، لذا لا يمكن تغيير العنوان.</string>
+    <string name="email_change_error_rate_limited">محاولات كثيرة جدًا. حاول مرة أخرى بعد بضع دقائق.</string>
+    <string name="email_change_error_network">تعذّر الوصول إلى الخادم. تحقق من اتصالك وحاول مرة أخرى.</string>
+    <string name="email_change_error_unknown">فشل طلب تغيير البريد الإلكتروني. حاول مرة أخرى.</string>
 </resources>

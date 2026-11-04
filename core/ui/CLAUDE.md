@@ -39,8 +39,9 @@ Material 3 theme and shared Compose components used across all feature modules. 
 - `DiscardChangesDialog` - "Discard changes?" for leaving an editor with unsaved edits. Every
   full-screen editor (agent, skill, schedule, prompt, role skills) uses it the same way: the ViewModel
   owns `onBackRequested()` and the dialog flag, `PlatformBackHandler` is enabled only while dirty (a
-  clean form keeps predictive back), and the top bar's back goes through the same check, since the
-  handler never fires on iOS. Dirty = what Save would send differs from what was loaded.
+  clean form keeps predictive back), and the top bar's back goes through the same check. On iOS
+  the start-edge swipe reaches the handler (CMP's edge-pan recognizer, or the phone shell's
+  `edgeSwipeBack` fallback in `:shared`). Dirty = what Save would send differs from what was loaded.
   A sheet editor (the memory sheet) uses the `AdaptiveModalBottomSheet(interceptDismiss = dirty)`
   overload instead: while it is true, swipe, scrim, handle tap and back leave the sheet up and call
   `onDismissRequest`, which raises the dialog; the sheet closes when the caller drops it.
@@ -65,7 +66,8 @@ Material 3 theme and shared Compose components used across all feature modules. 
   `onRevealedChange`) so the caller can re-mask on ON_PAUSE and knows when a secret is on screen. Use
   it rather than a new reveal toggle; the PDF password and gateway-header value fields do.
 - `KeyboardOptions.withIosTextContentType()` (`components/IosTextContentType.kt`): iOS
-  `textContentType` roles (`.username`, `.newPassword`, `.oneTimeCode`); a no-op on Android.
+  `textContentType` roles (`.username`, `.password`, `.newPassword`, `.oneTimeCode`, `.emailAddress`);
+  a no-op on Android.
 
 ### Keyboard dismissal (`components/ClearFocusOnTap.kt`)
 `Modifier.clearFocusOnTap()` clears focus — dismissing the keyboard — on a tap nothing else handled.
@@ -243,7 +245,7 @@ the controls bullet below.
   toggle in Material, like the drawer's Chats/Projects switch, for a few short options; the
   liquid segmented control in glass), `AdaptiveFloatingActionButton` (`small` for the M3
   small FAB), `AdaptiveExtendedFloatingActionButton` (labelled; collapse it with `expanded` on scroll), `AdaptiveSectionHeader`, the four
-  `Adaptive*Chip`s (pills), `AdaptiveSnackbarHost` (a glass capsule toast that samples the
+  `Adaptive*Chip`s (pills; `AdaptiveChipDefaults.overlayAssistChipColors(tint)` for a chip over scrolling content, tinted in both styles), `AdaptiveSnackbarHost` (a glass capsule toast that samples the
   `AdaptiveScaffold` backdrop), `AdaptiveCircularProgressIndicator` (iOS activity indicator when
   indeterminate) and `AdaptiveLinearProgressIndicator` (determinate only: an iOS capsule progress
   bar in glass; progress clamped to 0..1, NaN as 0; its raw M3 bar isn't banned yet, see Known gaps). Each mirrors the M3 signature and passes straight through in Material, and detekt
@@ -274,6 +276,19 @@ renderer lives here. It takes a `ContextBreakdownModel` and the user's `ContextD
 row math and filtering are pure and live in `:core:model` (`usage/ContextBreakdown.kt`,
 `usage/ContextDetail.kt`). Also here: `SegmentedMeter`, `pressureColor` (amber at a rounded 80%, error
 at 95%), `formatCost` with its platform currency actuals, and `SampleContextModel` for previews.
+
+### MCP OAuth sign-in (`mcp/`, v0.8.9-rc1)
+`McpOAuthSignInDialog` is the one sign-in page for an MCP server's provider, used by Settings and by
+the chat's Sign in action (features can't share it otherwise). It takes an `McpOAuthLaunch.InApp`
+(`:core:model`) and reports one `McpOAuthOutcome`; the bind that produced it is the caller's.
+- `McpOAuthWebView` (expect/actual) seeds the bind's `Set-Cookie` values for every origin in
+  `mcpOAuthCookieOrigins` (the `redirect_uri`'s and the app's server) **before** loading the
+  provider URL. Android wipes the jar and chains each `setCookie` callback into the next, loading from
+  the last; iOS uses a fresh `nonPersistentDataStore` and awaits every `setCookie` completion. A load
+  issued earlier can reach the callback without its binding.
+- `McpOAuthNavigationGate` (pure, commonTest) cancels the redirect to `/oauth/success` or
+  `/oauth/error` on either server host and ends the flow there.
+- The User-Agent is `web/EmbeddedBrowserUserAgent.kt`, which SSO uses too.
 
 ### Date & time (`datetime/`, #445)
 - `ProvideDateTimeFormat` sits once inside `AppLocale` in `LibreChatNavHost`. It sits there rather than at the

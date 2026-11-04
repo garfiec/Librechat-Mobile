@@ -36,6 +36,7 @@
     <string name="unknown_error">An unknown error occurred</string>
     <string name="conversation_exported">Conversation exported</string>
     <string name="imported_title">Imported: %1$s</string>
+    <string name="import_error_tool_previews">This file holds shortened tool output and can't be imported.</string>
     <string name="copy_of">Copy of %1$s</string>
 
     <!-- Conversation actions -->
@@ -75,6 +76,8 @@
     <string name="projects_no_match">No projects match "%1$s"</string>
     <string name="rename_conversation">Rename conversation</string>
     <string name="rename_dialog_message">Enter a new title for this conversation.</string>
+    <string name="rename_not_ready">This chat can't be renamed until its title is ready. Try again once the reply has finished.</string>
+    <string name="rename_not_found">This chat no longer exists, so it can't be renamed.</string>
     <string name="title_label">Title</string>
     <string name="delete_conversation">Delete conversation</string>
     <string name="delete_confirmation_message">Are you sure you want to delete "%1$s"? This action cannot be undone.</string>
@@ -200,6 +203,7 @@
     <string name="remove">Remove</string>
     <string name="remove_account">Remove account</string>
     <string name="account_signed_out">Signed out · %1$s</string>
+    <string name="account_two_factor_setup_required">Sign in to set up 2FA, now required · %1$s</string>
     <string name="remove_account_message">%1$s and its data will be removed from this device. The account on the server is not affected.</string>
     <string name="remove_account_title">Remove account?</string>
     <string name="drawer_running_chats">Running</string>
@@ -286,4 +290,103 @@
     <string name="workspace_pin">Pin %1$s to the drawer</string>
     <string name="workspace_unpin">Unpin %1$s from the drawer</string>
     <string name="workspace_reorder">Drag to reorder</string>
+    <!-- Unread replies (v0.8.9-rc1) -->
+    <string name="drawer_finished_chats">Finished</string>
+    <string name="mark_as_unread">Mark as unread</string>
+    <string name="mark_as_read">Mark as read</string>
+    <string name="mark_read_failed">Couldn't mark the chat as read</string>
+    <string name="mark_unread_failed">Couldn't mark the chat as unread</string>
+    <string name="cd_unread_reply">Unread reply</string>
+    <!-- Drawer list filters (v0.8.9-rc1) -->
+    <string name="cd_filter_chats">Filter chats</string>
+    <string name="drawer_filters_on">Filters on</string>
+    <string name="drawer_filter_title">Filter chats</string>
+    <string name="drawer_filter_updated">Updated</string>
+    <string name="drawer_filter_created">Created</string>
+    <string name="drawer_filter_any_time">Any time</string>
+    <string name="drawer_filter_today">Today</string>
+    <string name="drawer_filter_previous_7_days">Previous 7 days</string>
+    <string name="drawer_filter_previous_30_days">Previous 30 days</string>
+    <string name="drawer_filter_previous_year">Previous year</string>
+    <string name="drawer_filter_created_chip">Created: %1$s</string>
+    <string name="drawer_filter_endpoint">Endpoint</string>
+    <string name="drawer_filter_endpoint_limit">Endpoint limit reached (%1$d)</string>
+    <string name="drawer_filter_has_attachments">Has attachments</string>
+    <string name="drawer_filter_shared_only">Shared only</string>
+    <string name="drawer_filter_bookmarks">Bookmarks</string>
+    <string name="drawer_filter_reset">Reset</string>
+    <string name="drawer_filter_apply">Apply</string>
+    <string name="drawer_filter_offline">You're offline. Filters need the server, so they apply once you're back online.</string>
+    <string name="drawer_filter_no_match_title">No chats match your filters</string>
+    <string name="drawer_filter_no_match_body">Try a longer date range or fewer filters.</string>
+    <string name="drawer_filter_clear">Clear filters</string>
+    <string name="drawer_filter_load_failed">Couldn't load the filtered chats. Pull down to try again.</string>
+    <string name="drawer_filter_messages_note">Message results aren't filtered.</string>
+    <string name="cd_remove_named_filter">Remove filter %1$s</string>
+    <!-- Project errors -->
+    <string name="project_move_failed">Couldn't move the chat</string>
+    <string name="project_create_failed">Couldn't create the project</string>
+    <string name="project_update_failed">Couldn't update the project</string>
+    <string name="project_delete_failed">Couldn't delete the project</string>
+    <string name="project_length_counter">%1$s / %2$s</string>
+    <!-- Project context: instructions and reference files (v0.8.9-rc1) -->
+    <string name="project_instructions_title">Instructions</string>
+    <string name="project_instructions_edit">Edit</string>
+    <string name="project_instructions_edit_cd">Edit instructions</string>
+    <string name="project_instructions_empty">Add preferences or background for chats in this project.</string>
+    <string name="project_instructions_footer">Used for new messages in this project. Changes won't rewrite earlier messages.</string>
+    <string name="project_instructions_close">Close</string>
+    <string name="project_instructions_save">Save</string>
+    <string name="project_instructions_label">Workspace instructions</string>
+    <string name="project_instructions_about_cd">About project instructions</string>
+    <string name="project_instructions_about">Set the tone, goals, or background for chats in this project. Platform and safety rules still apply.</string>
+    <string name="project_instructions_ok">OK</string>
+    <string name="project_instructions_conflict">This project was changed on another device. Your text is kept. Save again to replace it.</string>
+    <string name="project_instructions_view_theirs">View theirs</string>
+    <string name="project_instructions_saved_title">Saved instructions</string>
+    <string name="project_instructions_saved_none">No instructions are saved.</string>
+    <string name="project_instructions_use_theirs">Use theirs</string>
+    <string name="project_instructions_keep_mine">Keep mine</string>
+    <string name="project_instructions_save_failed">Couldn't save project instructions</string>
+    <string name="project_instructions_load_failed">Couldn't load this project</string>
+    <string name="project_instructions_retry">Retry</string>
+    <string name="project_files_title">Files</string>
+    <string name="project_files_count">%1$d of %2$d</string>
+    <plurals name="project_files_summary">
+        <item quantity="one">%1$d file</item>
+        <item quantity="other">%1$d files</item>
+    </plurals>
+    <string name="project_files_summary_unavailable">%1$s · %2$d unavailable</string>
+    <string name="project_files_summary_none">No files yet</string>
+    <string name="project_files_show_cd">Show files</string>
+    <string name="project_files_hide_cd">Hide files</string>
+    <string name="project_files_add">Add files</string>
+    <string name="project_files_upload">Upload from device</string>
+    <string name="project_files_choose">Choose from your files</string>
+    <string name="project_files_footer">When File Search is on, chats can use relevant excerpts rather than whole files. Removing a file affects future messages, not chat history.</string>
+    <string name="project_files_at_limit">This project can use up to %1$d reference files.</string>
+    <string name="project_files_load_failed">Couldn't load project files</string>
+    <string name="project_files_retry">Retry</string>
+    <string name="project_file_ready">Ready</string>
+    <string name="project_file_unavailable">Unavailable</string>
+    <string name="project_file_processing">Processing</string>
+    <string name="project_file_unnamed">Unavailable file</string>
+    <string name="project_file_row_cd">%1$s, %2$s</string>
+    <string name="project_file_remove_cd">Remove %1$s from project</string>
+    <string name="project_file_dismiss_cd">Dismiss %1$s</string>
+    <string name="project_file_retry">Retry</string>
+    <string name="project_file_added">File added</string>
+    <string name="project_file_removed">File removed</string>
+    <string name="project_file_attach_failed">Couldn't add this file to the project</string>
+    <string name="project_file_remove_failed">Couldn't remove this file from the project</string>
+    <string name="project_file_upload_failed">Couldn't upload this file</string>
+    <string name="project_file_unreadable">Couldn't read this file</string>
+    <string name="project_file_not_searchable">This file can't be searched, so it can't be added</string>
+    <plurals name="project_files_excess">
+        <item quantity="one">Couldn't add %1$d file: the project is at its file limit.</item>
+        <item quantity="other">Couldn't add %1$d files: the project is at its file limit.</item>
+    </plurals>
+    <string name="project_available_search">Search your files</string>
+    <string name="project_available_empty">No searchable files available. Upload a file to add it here.</string>
+    <string name="project_available_load_failed">Couldn't load your files</string>
 </resources>

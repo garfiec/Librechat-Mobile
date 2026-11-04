@@ -24,8 +24,8 @@ sealed interface BearerResult {
  * account, preserving legacy behavior.
  *
  * Maps the refresh [RefreshResult] to a [BearerResult]: only a genuine [RefreshResult.HardExpired]
- * (or a refreshed-but-empty slot, meaning a logout/removal raced the refresh) becomes [Expired] and
- * logs the user out; a [RefreshResult.Transient] becomes [Transient] and keeps the session.
+ * becomes [Expired] and logs the user out; a [RefreshResult.Transient] becomes [Transient] and keeps
+ * the session. A signed-out request (no account, no bearer) is [Transient] without a refresh.
  *
  * The snapshot's bearer is handed to the refresh as `usedAccessToken`: it is exactly what this request
  * put on the wire (the attach phase reads the snapshot, never the live cache), so a cold-start fan-out
@@ -33,6 +33,12 @@ sealed interface BearerResult {
  * and skips its own.
  */
 suspend fun TokenManager.refreshBearerFor(identity: RequestIdentity?): BearerResult {
+    // Signed out: no account and no bearer, so the request went out unauthenticated and its 401 says
+    // nothing about any session. Most often a screen still on the back stack fetching right after a
+    // sign-out; reporting it as an expiry puts a "session expired" dialog over the sign-in screen.
+    // A resolved account with an empty slot is different (its session really did die), and so is a
+    // staged bare bearer (a sign-in in progress): both still refresh.
+    if (identity != null && identity.accountId == null && identity.bearer == null) return BearerResult.Transient
     val account = identity?.accountId
     val result = if (account != null) {
         refreshAccessTokenFor(account, identity.baseUrl, usedAccessToken = identity.bearer)
@@ -45,6 +51,12 @@ suspend fun TokenManager.refreshBearerFor(identity: RequestIdentity?): BearerRes
             // The refresh succeeded but the slot read back empty — a teardown (logout/removal) raced
             // between the commit and this read. That teardown owns the routing, so treat it as
             // Transient here rather than emitting a second session-expired over it.
+            //
+            // A no-account request against a store bound to an account reads empty here too, and is
+            // left Transient on purpose: a sign-in passes through that state (token re-home before
+            // the roster publish), and ending the session there would sign out a login that just
+            // succeeded. The lasting form of it, a binding the roster doesn't know, is dropped at
+            // cold start by `AccountRegistry`.
             auth.bearer?.let { BearerResult.Refreshed(it, auth.openId) } ?: BearerResult.Transient
         }
         RefreshResult.HardExpired -> BearerResult.Expired

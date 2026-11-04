@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.settings.viewmodel
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.garfiec.librechat.core.data.datastore.ServerAccent
 import com.garfiec.librechat.core.data.datastore.ThemeDataStore
 import com.garfiec.librechat.core.data.datastore.ThemeMode
 import com.garfiec.librechat.core.model.ui.GlassCapability
@@ -26,7 +27,15 @@ data class AppearanceSettingsUiState(
     val dynamicColorSupported: Boolean = false,
     /** Drives the note under the style selector when Liquid Glass renders reduced here. */
     val glassCapability: GlassCapability = GlassCapability.FLAT,
-)
+    /** The active server's accent (v0.8.9-rc1 `interface.theme`); null when it sets none. */
+    val serverAccent: ServerAccent? = null,
+) {
+    /** The server picks the accent: it has one and "Use server accent" is on. */
+    val accentSetByServer: Boolean get() = serverAccent?.enabled == true
+
+    /** The accent the app is painted with, wallpaper colours aside: the server's while it sets it, else the user's. */
+    val shownAccentColor: Int get() = serverAccent?.activeSeed ?: accentColor
+}
 
 /**
  * Backs the Appearance page and the General tab's summary row of it: theme, interface style,
@@ -46,7 +55,8 @@ class AppearanceSettingsViewModel(
         themeDataStore.uiStyle,
         themeDataStore.accentColor,
         themeDataStore.useDynamicColor,
-    ) { themeMode, uiStyle, accent, dynamic ->
+        themeDataStore.serverAccent,
+    ) { themeMode, uiStyle, accent, dynamic, serverAccent ->
         AppearanceSettingsUiState(
             themeMode = themeMode,
             uiStyle = uiStyle ?: platformDefaultUiStyle(),
@@ -54,6 +64,7 @@ class AppearanceSettingsViewModel(
             useDynamicColor = dynamic,
             dynamicColorSupported = dynamicColorSupported,
             glassCapability = glassCapability,
+            serverAccent = serverAccent,
         )
     }.stateIn(
         viewModelScope,
@@ -71,6 +82,12 @@ class AppearanceSettingsViewModel(
 
     fun setAccentColor(argb: Int) {
         viewModelScope.launch { themeDataStore.setAccentColor(argb) }
+    }
+
+    /** "Use server accent" for the server whose accent is shown; nothing when it sets none. */
+    fun setUseServerAccent(enabled: Boolean) {
+        val serverId = uiState.value.serverAccent?.serverId ?: return
+        viewModelScope.launch { themeDataStore.setUseServerAccent(serverId, enabled) }
     }
 
     fun setUseDynamicColor(enabled: Boolean) {

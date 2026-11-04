@@ -156,6 +156,7 @@
     <string name="skill_error_save">No se pudo guardar esta habilidad.</string>
     <string name="skill_error_import">No se pudo importar esta habilidad.</string>
     <string name="skill_error_skill_md_upload">SKILL.md es el contenido de la propia habilidad. Edita la habilidad para cambiarlo.</string>
+    <string name="skill_error_skill_deleting">Esta habilidad se está eliminando, así que sus archivos no se pueden cambiar.</string>
     <string name="skill_error_changed_on_server">Esta habilidad cambió en el servidor y no se pudo cargar su versión más reciente. Tus cambios se conservan: intenta guardar de nuevo.</string>
     <string name="skill_acl_principal_unknown">Desconocido</string>
     <!-- Skill import failure summaries -->

@@ -107,7 +107,7 @@ class ChatViewModelKeepAndContinueTest {
         coEvery { fixture.conversationRepository.getConversation(any(), any()) } returns Result.Error(message = "test")
 
         every { messageRepository.observeMessages(CONVERSATION_ID) } returns room
-        coEvery { messageRepository.getMessages(CONVERSATION_ID) } coAnswers {
+        coEvery { messageRepository.getMessages(CONVERSATION_ID, any()) } coAnswers {
             room.value = server
             Result.Success(server)
         }
@@ -162,7 +162,7 @@ class ChatViewModelKeepAndContinueTest {
             assertThat(vm.uiState.value.comparisonState.isEnabled).isFalse()
             // The temp-chat guard: nothing about this chat reaches Room.
             coVerify(exactly = 0) { messageRepository.cacheMessages(any(), any()) }
-            coVerify(exactly = 0) { messageRepository.getMessages(any()) }
+            coVerify(exactly = 0) { messageRepository.getMessages(any(), any()) }
         }
 
     @Test
@@ -203,7 +203,7 @@ class ChatViewModelKeepAndContinueTest {
         vmTest(seed = listOf(USER, PARALLEL)) { vm ->
             assertThat(vm.uiState.value.comparisonState.parallelMessageId).isEqualTo(PARALLEL_ID)
             val reload = CompletableDeferred<Unit>()
-            coEvery { messageRepository.getMessages(CONVERSATION_ID) } coAnswers {
+            coEvery { messageRepository.getMessages(CONVERSATION_ID, any()) } coAnswers {
                 reload.await()
                 room.value = server
                 Result.Success(server)

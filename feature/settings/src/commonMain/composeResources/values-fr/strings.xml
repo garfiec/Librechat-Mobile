@@ -35,6 +35,7 @@
     <string name="memory_redacted_value">La politique de contenu de ce serveur masque ce qui est stocké ici. Vous pouvez tout de même la supprimer.</string>
     <string name="memory_redacted_value_no_delete">La politique de contenu de ce serveur masque ce qui est stocké ici.</string>
     <string name="cd_loading_profile">Chargement du profil</string>
+    <string name="account_profile_load_failed">Impossible de charger votre profil.</string>
     <string name="cd_make_private">Rendre privé</string>
     <string name="cd_make_public">Rendre public</string>
     <string name="cd_preview_voice">Aperçu de la voix</string>
@@ -162,6 +163,10 @@
     <string name="accent_color_hex">Hex</string>
     <string name="use_wallpaper_colors">Utiliser les couleurs du fond d'écran</string>
     <string name="use_wallpaper_colors_desc">Adapter l'accentuation de l'application au fond d'écran du système (Material You)</string>
+    <string name="use_server_accent">Utiliser l'accentuation du serveur</string>
+    <string name="use_server_accent_desc">Votre serveur choisit cette accentuation pour tout le monde. Désactivez cette option pour utiliser la vôtre.</string>
+    <string name="accent_set_by_server">Définie par votre serveur (%1$s)</string>
+    <string name="accent_set_by_server_note">Désactivez « Utiliser l'accentuation du serveur » pour choisir la vôtre.</string>
 
     <!-- Settings rows -->
     <string name="language">Langue</string>
@@ -237,6 +242,16 @@
     <string name="auto_refill_interval">Intervalle</string>
     <string name="auto_refill_next">Prochaine recharge</string>
     <string name="auto_refill_next_info">La recharge n'a lieu qu'après cette date, et seulement si un message ferait passer votre solde sous zéro.</string>
+    <string name="balance_usage_limit">Limite d'utilisation</string>
+    <string name="balance_used">%1$s utilisé</string>
+    <string name="balance_usage_unavailable">Utilisation indisponible</string>
+    <string name="balance_out_of_credits">Plus de crédits</string>
+    <string name="cd_balance_reading">%1$s : %2$s</string>
+    <string name="auto_reset_title">Réinitialisation automatique</string>
+    <string name="auto_reset_last">Dernière réinitialisation</string>
+    <string name="auto_reset_amount">Allocation de réinitialisation</string>
+    <string name="auto_reset_next">Prochaine réinitialisation</string>
+    <string name="auto_reset_next_info">Une fois l'intervalle écoulé, consulter votre solde ou envoyer une requête le remplace par l'allocation. Les crédits inutilisés ne sont pas reportés, et les requêtes en cours sont toujours décomptées.</string>
     <plurals name="auto_refill_every_seconds">
         <item quantity="one">Toutes les %1$s seconde</item>
         <item quantity="other">Toutes les %1$s secondes</item>
@@ -364,6 +379,7 @@
     <string name="enable_two_factor">Activer l'authentification à deux facteurs</string>
     <string name="disable_two_factor">Désactiver l'authentification à deux facteurs</string>
     <string name="regenerate_backup_codes">Régénérer les codes de secours</string>
+    <string name="two_factor_required_by_server">Ce serveur exige l'authentification à deux facteurs, elle ne peut donc pas être désactivée.</string>
 
     <!-- 2FA setup dialog -->
     <string name="dialog_title_enable_2fa">Activer l'authentification à deux facteurs</string>
@@ -747,6 +763,8 @@
     <string name="during_run_action_queue_desc">L'envoyer comme message suivant une fois la réponse terminée.</string>
     <string name="during_run_action_steer">Réorienter la réponse</string>
     <string name="during_run_action_steer_desc">L'injecter dans la réponse en cours pour que l'assistant change de cap. Nécessite un serveur compatible ; sinon, le message est mis en file d'attente.</string>
+    <string name="during_run_action_interrupt">Interrompre et réorienter</string>
+    <string name="during_run_action_interrupt_desc">Arrête l'outil ou l'étape de réflexion en cours, conserve ce qui est déjà écrit et continue avec votre message. Les actions déjà effectuées par un outil ne peuvent pas être annulées. Si une réponse ne peut pas être interrompue, elle est simplement réorientée.</string>
     <string name="upload_routing_title">Pièces jointes</string>
     <string name="upload_routing_desc">Les fichiers peuvent être envoyés tels quels au modèle, ou lus sur le serveur et envoyés sous forme de texte. Tous les modèles n'acceptent pas tous les types de fichiers.</string>
     <string name="upload_routing_auto">Choisir pour moi</string>
@@ -756,6 +774,8 @@
     <string name="mcp_oauth_title">Se connecter à %1$s</string>
     <string name="mcp_oauth_message">Ce serveur a besoin de votre autorisation avant de pouvoir être utilisé. Vous serez redirigé vers le fournisseur pour autoriser l'accès, puis vous pourrez revenir et vous reconnecter.</string>
     <string name="mcp_oauth_continue">Continuer</string>
+    <string name="mcp_oauth_signed_in">Connecté. Connexion en cours…</string>
+    <string name="mcp_oauth_failed">La connexion n'a pas abouti. Reconnectez-vous pour réessayer.</string>
     <string name="mcp_connection_deferred">Connexion en arrière-plan — les outils apparaîtront une fois prête.</string>
     <string name="show_site_icons">Afficher les icônes des sites</string>
     <string name="show_site_icons_desc">Charger les icônes des résultats de recherche web depuis Google et d'autres sites</string>
@@ -899,4 +919,61 @@
     <string name="shared_chats_no_match">Aucun lien ne correspond à « %1$s »</string>
     <string name="shared_chats_refresh_failed">Impossible d'actualiser vos discussions partagées</string>
     <string name="shared_chats_delete_failed">Impossible de supprimer le lien</string>
+    <string name="passkeys_title">Clés d'accès</string>
+    <string name="passkeys_row_subtitle">Connectez-vous avec le verrouillage de l'écran ou une clé de sécurité</string>
+    <plurals name="passkeys_row_count">
+        <item quantity="one">%1$d clé d'accès</item>
+        <item quantity="many">%1$d de clés d'accès</item>
+        <item quantity="other">%1$d clés d'accès</item>
+    </plurals>
+    <string name="passkeys_description">Connectez-vous sans mot de passe avec le verrouillage de l'écran de votre appareil ou une clé de sécurité.</string>
+    <string name="passkeys_empty">Vous n'avez encore ajouté aucune clé d'accès</string>
+    <string name="passkeys_load_failed">Impossible de charger vos clés d'accès.</string>
+    <string name="passkeys_add_in_browser">Pour ajouter une clé d'accès, connectez-vous à %1$s dans un navigateur.</string>
+    <string name="passkeys_synced">Synchronisée</string>
+    <string name="passkeys_dates">%1$s · %2$s</string>
+    <string name="passkeys_added_on">Ajoutée le %1$s</string>
+    <string name="passkeys_last_used_on">Dernière utilisation : %1$s</string>
+    <string name="passkeys_never_used">Jamais utilisée</string>
+    <string name="passkeys_row_description_synced">%1$s, synchronisée, %2$s</string>
+    <string name="passkeys_row_description">%1$s, %2$s</string>
+    <string name="passkeys_more_options">Plus d'options pour %1$s</string>
+    <string name="passkeys_action_rename">Renommer</string>
+    <string name="passkeys_action_remove">Supprimer</string>
+    <string name="passkeys_rename_title">Renommer la clé d'accès</string>
+    <string name="passkeys_name_label">Nom de la clé d'accès</string>
+    <string name="passkeys_rename_failed">Impossible de renommer la clé d'accès</string>
+    <string name="passkeys_remove_title">Supprimer « %1$s » ?</string>
+    <string name="passkeys_remove_message">Cette clé d'accès ne pourra plus être utilisée pour vous connecter.</string>
+    <string name="passkeys_confirm_password">Confirmez votre mot de passe</string>
+    <string name="passkeys_incorrect_password">Mot de passe incorrect. Veuillez réessayer.</string>
+    <string name="passkeys_remove_failed">Impossible de supprimer la clé d'accès</string>
+    <string name="passkeys_already_removed">Cette clé d'accès a déjà été supprimée.</string>
+    <string name="passkeys_too_many_attempts">Trop de tentatives. Réessayez dans quelques minutes.</string>
+    <string name="email_change_row_title">Adresse e-mail</string>
+    <string name="email_change_title">Changer d'adresse e-mail</string>
+    <string name="email_change_body">Saisissez votre nouvelle adresse e-mail et votre mot de passe actuel. Nous enverrons un lien à la nouvelle adresse. Le changement prend effet lorsque vous ouvrez ce lien.</string>
+    <string name="email_change_current">Actuelle : %1$s</string>
+    <string name="email_change_new_email">Nouvelle adresse e-mail</string>
+    <string name="email_change_current_password">Mot de passe actuel</string>
+    <string name="email_change_show_password">Afficher le mot de passe</string>
+    <string name="email_change_hide_password">Masquer le mot de passe</string>
+    <string name="email_change_send">Envoyer le lien</string>
+    <string name="email_change_sending">Envoi…</string>
+    <string name="email_change_link_sent">Consultez %1$s pour trouver un lien de vérification.</string>
+    <string name="email_change_updated">Adresse e-mail mise à jour.</string>
+    <string name="email_change_error_invalid_request">Saisissez une adresse e-mail valide et votre mot de passe actuel.</string>
+    <string name="email_change_error_same_email">La nouvelle adresse e-mail doit être différente de l'actuelle.</string>
+    <string name="email_change_error_disabled">L'administrateur de votre serveur a désactivé le changement d'adresse e-mail.</string>
+    <string name="email_change_error_local_account_required">Seuls les comptes qui se connectent par e-mail et mot de passe peuvent changer leur adresse e-mail ici.</string>
+    <string name="email_change_error_password_invalid">Votre mot de passe actuel est incorrect.</string>
+    <string name="email_change_error_domain_not_allowed">Ce serveur n'accepte pas les adresses de ce domaine.</string>
+    <string name="email_change_error_email_in_use">Cette adresse e-mail est déjà associée à un autre compte.</string>
+    <string name="email_change_error_account_modified">Votre compte a été modifié pendant l'envoi. Réessayez.</string>
+    <string name="email_change_error_request_in_progress">Une autre demande de changement d'adresse e-mail a abouti en premier. Utilisez le lien de cet e-mail ou réessayez.</string>
+    <string name="email_change_error_delivery_failed">Impossible d'envoyer l'e-mail de vérification. Réessayez.</string>
+    <string name="email_change_error_service_unavailable">Ce serveur ne peut pas envoyer d'e-mails pour le moment, l'adresse ne peut donc pas être changée.</string>
+    <string name="email_change_error_rate_limited">Trop de tentatives. Réessayez dans quelques minutes.</string>
+    <string name="email_change_error_network">Impossible de joindre le serveur. Vérifiez votre connexion et réessayez.</string>
+    <string name="email_change_error_unknown">La demande de changement d'adresse e-mail a échoué. Réessayez.</string>
 </resources>

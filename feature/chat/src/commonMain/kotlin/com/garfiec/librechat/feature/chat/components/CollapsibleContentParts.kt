@@ -20,6 +20,7 @@ import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material3.Icon
@@ -44,6 +45,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.model.content.reasoningDisplay
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import org.jetbrains.compose.resources.StringResource
@@ -167,11 +169,19 @@ internal fun ThinkingContentPart(
     // into the settled-markdown cache (see MarkdownContent / CachedMarkdown).
     streaming: Boolean = false,
 ) {
+    // Encrypted reasoning (a provider's base64 payload in the THINK stream) is never shown as
+    // thinking: the readable text around it is, and a part with none gets the marker row.
+    val display = remember(thinkingText, streaming) { reasoningDisplay(thinkingText, streaming) }
+    if (display.encrypted) {
+        EncryptedReasoningRow(modifier)
+        return
+    }
+    val readableText = display.text
     // The focused occurrence index is already rebased to this part; when it falls
     // inside the thinking text, pop the card open so the match can be scrolled to.
-    val containsFocusedMatch = remember(thinkingText, searchQuery, searchFocusedOccurrence) {
+    val containsFocusedMatch = remember(readableText, searchQuery, searchFocusedOccurrence) {
         searchFocusedOccurrence >= 0 && !searchQuery.isNullOrBlank() &&
-            searchFocusedOccurrence < countMarkdownOccurrences(thinkingText, searchQuery)
+            searchFocusedOccurrence < countMarkdownOccurrences(readableText, searchQuery)
     }
     CollapsibleDisclosureCard(
         leadingIcon = Icons.Default.Psychology,
@@ -190,7 +200,7 @@ internal fun ThinkingContentPart(
         autoExpandKey = LocalSearchFocusNonce.current,
     ) {
         MarkdownContent(
-            thinkingText,
+            readableText,
             fontSizeMultiplier = fontSizeMultiplier,
             useKatex = useKatex,
             searchQuery = searchQuery,
@@ -198,6 +208,40 @@ internal fun ThinkingContentPart(
             onFocusedOccurrencePosition = onFocusedOccurrencePosition,
             streaming = streaming,
         )
+    }
+}
+
+/**
+ * Reasoning the model returned encrypted, so there is nothing to show: the thinking card's header
+ * without a disclosure (upstream `ReasoningMarker encrypted`).
+ */
+@Composable
+private fun EncryptedReasoningRow(modifier: Modifier = Modifier) {
+    val description = stringResource(Res.string.cd_reasoning_encrypted)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .heightIn(min = 48.dp)
+            .padding(12.dp)
+            .semantics(mergeDescendants = true) { contentDescription = description },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.Default.Lock,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        DisableSelection {
+            Text(
+                stringResource(Res.string.label_reasoning_encrypted),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

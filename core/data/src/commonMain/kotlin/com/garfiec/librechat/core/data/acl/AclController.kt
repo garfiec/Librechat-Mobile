@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.common.result.FailureKind
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
+import com.garfiec.librechat.core.data.repository.permissionUpdateFailure
 import com.garfiec.librechat.core.model.AccessRole
 import com.garfiec.librechat.core.model.AccessRoleIds
 import com.garfiec.librechat.core.model.Principal
@@ -15,6 +16,7 @@ import com.garfiec.librechat.core.model.acl.AclEntry
 import com.garfiec.librechat.core.model.acl.AclError
 import com.garfiec.librechat.core.model.acl.AclSearch
 import com.garfiec.librechat.core.model.acl.AclState
+import com.garfiec.librechat.core.model.acl.PermissionUpdateFailure
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
@@ -340,6 +342,12 @@ internal fun Result.Error.toAclError(): AclError {
     val api = exception as? ApiException
     val bodyMessage = api?.body?.let { text ->
         runCatching { errorJson.decodeFromString(AclErrorBody.serializer(), text) }.getOrNull()?.message
+    }
+    when (permissionUpdateFailure()) {
+        PermissionUpdateFailure.BUSY -> return AclError.BUSY
+        PermissionUpdateFailure.UNAVAILABLE -> return AclError.UNAVAILABLE
+        PermissionUpdateFailure.AUDIT_UNAVAILABLE -> return AclError.AUDIT_UNAVAILABLE
+        null -> Unit
     }
     return when {
         api?.statusCode == HTTP_BAD_REQUEST && bodyMessage == OWNER_PROTECTED_MESSAGE -> AclError.OWNER_PROTECTED

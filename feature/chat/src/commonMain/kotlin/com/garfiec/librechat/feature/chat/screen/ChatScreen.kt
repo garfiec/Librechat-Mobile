@@ -22,6 +22,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,16 +44,23 @@ import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.feature.chat.components.AskUserQuestionPanel
 import com.garfiec.librechat.feature.chat.components.ChatComposer
 import com.garfiec.librechat.feature.chat.components.ChatFloatingTopBar
+import com.garfiec.librechat.feature.chat.components.ChatOptionsPage
 import com.garfiec.librechat.feature.chat.components.ChatRoot
+import com.garfiec.librechat.feature.chat.components.CodeWorkspaceComposer
 import com.garfiec.librechat.feature.chat.components.ComposerComparison
 import com.garfiec.librechat.feature.chat.components.ComposerComparisonHint
 import com.garfiec.librechat.feature.chat.components.LandingStarters
+import com.garfiec.librechat.feature.chat.components.LocalCodeWorkspaceComposer
+import com.garfiec.librechat.feature.chat.components.ThinkingSheet
 import com.garfiec.librechat.feature.chat.components.ToolApprovalPanel
+import com.garfiec.librechat.feature.chat.components.ToolContentHost
 import com.garfiec.librechat.feature.chat.components.UpdateAvailableBanner
 import com.garfiec.librechat.feature.chat.components.UploadRoutingSheet
 import com.garfiec.librechat.feature.chat.components.addToChatSelectionItem
+import com.garfiec.librechat.feature.chat.components.mcpapp.rememberMcpApps
 import com.garfiec.librechat.feature.chat.components.rememberChatAttachmentActions
 import com.garfiec.librechat.feature.chat.components.rememberChatOptionsSheetController
+import com.garfiec.librechat.feature.chat.components.rememberMcpSignIn
 import com.garfiec.librechat.feature.chat.components.veil.COMPOSER_SWELL
 import com.garfiec.librechat.feature.chat.components.veil.LocalComposerFlare
 import com.garfiec.librechat.feature.chat.components.veil.LocalModeVeil
@@ -61,7 +69,10 @@ import com.garfiec.librechat.feature.chat.components.veil.rememberModeVeilModifi
 import com.garfiec.librechat.feature.chat.components.veil.rememberModeVeilState
 import com.garfiec.librechat.feature.chat.components.veil.rememberVeilTarget
 import com.garfiec.librechat.feature.chat.prompts.components.VariableInputDialog
+import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.McpAppsViewModel
+import com.garfiec.librechat.feature.chat.viewmodel.McpSignInViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.UpdateBannerViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.asString
 import com.garfiec.librechat.feature.chat.viewmodel.isEmptyLanding
@@ -165,6 +176,7 @@ fun ChatScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var showPresetPicker by remember { mutableStateOf(false) }
+    var showThinkingSheet by rememberSaveable { mutableStateOf(false) }
     var showSavePresetDialog by remember { mutableStateOf(false) }
     var showSecondaryModelSheet by remember { mutableStateOf(false) }
     var activeComparisonTab by remember { mutableIntStateOf(0) }
@@ -208,6 +220,7 @@ fun ChatScreen(
     // and the pull-up, hence the controller. Independent of uiState.showModelSheet (the standalone
     // selector), which keeps dismissing straight to the chat.
     val optionsController = rememberChatOptionsSheetController()
+    val thinkingChip = uiState.thinkingChip
     // On a phone's comparison tab 1 the composer edits the secondary model, so the selector page and
     // label both follow the active tab. Side by side there is no current tab (the remembered index
     // can be stale from before an unfold), so it is never the secondary one.
@@ -314,6 +327,26 @@ fun ChatScreen(
 
     val sendBlockMessage = uiState.sendBlockReason?.asString()
 
+    // MCP sign-in mid-run (delta.auth): the card's action binds and opens the sign-in here. The run
+    // resumes by itself once the server's callback lands, so success needs nothing further.
+    val mcpSignInViewModel: McpSignInViewModel = koinViewModel()
+    val mcpSignIn = rememberMcpSignIn(mcpSignInViewModel, snackbarHostState)
+
+    // MCP Apps: the panel and its approval dialogs live here; rows read the result.
+    val mcpAppsViewModel: McpAppsViewModel = koinViewModel()
+    val mcpApps = rememberMcpApps(mcpAppsViewModel, snackbarHostState, onSendMessage = viewModel::sendAppMessage)
+
+    // Collected apart from uiState: it changes only when a preview's fetch starts, lands or fails.
+    val toolPartStatuses by viewModel.toolPartStatuses.collectAsStateWithLifecycle()
+    val toolContent = remember(toolPartStatuses, viewModel) {
+        ToolContentHost(
+            statuses = toolPartStatuses,
+            onRequest = viewModel::requestToolPart,
+            onRetain = viewModel::retainToolPart,
+            onRelease = viewModel::releaseToolPart,
+        )
+    }
+
     ChatRoot(
         inlineArtifactPrefs = prefs.inlineArtifactPrefs,
         mermaidRenderCache = viewModel.mermaidRenderCache,
@@ -338,7 +371,10 @@ fun ChatScreen(
         onSiteIconsChoice = viewModel::setShowSiteIcons,
         onSiteIconsPromptDismiss = viewModel::dismissSiteIconPrompt,
         onOpenMemories = onOpenMemories?.takeIf { uiState.gates.memoriesPageEnabled },
+        mcpSignIn = mcpSignIn,
+        mcpApps = mcpApps,
         thinkingOpenByDefault = prefs.thinkingOpenByDefault,
+        toolContent = toolContent,
     ) {
     Scaffold(
         modifier = modifier
@@ -517,7 +553,22 @@ fun ChatScreen(
                                     swell = COMPOSER_SWELL,
                                 )
                                 Box(composerVeil.modifier) {
-                                    CompositionLocalProvider(LocalComposerFlare provides composerVeil.flare) {
+                                    val codeWorkspace = uiState.codeWorkspace
+                                    val codeWorkspaceComposer = remember(codeWorkspace, viewModel) {
+                                        CodeWorkspaceComposer(
+                                            state = codeWorkspace,
+                                            onOpenSheet = viewModel::openCodeWorkspaceSheet,
+                                            onDismissSheet = viewModel::dismissCodeWorkspaceSheet,
+                                            onSelectWorkspace = viewModel::selectCodeWorkspace,
+                                            onSetCheckout = viewModel::setCodeCheckout,
+                                            onSelectNoWorkspace = viewModel::selectNoCodeWorkspace,
+                                            onRefresh = viewModel::refreshCodeWorkspaces,
+                                        )
+                                    }
+                                    CompositionLocalProvider(
+                                        LocalComposerFlare provides composerVeil.flare,
+                                        LocalCodeWorkspaceComposer provides codeWorkspaceComposer,
+                                    ) {
                                         ChatComposer(
                                             inputText = uiState.inputText,
                                             isStreaming = isAnyStreaming,
@@ -554,7 +605,16 @@ fun ChatScreen(
                                                     keyboardController?.hide()
                                                 }
                                             },
+                                            onInterrupt = {
+                                                viewModel.interruptMessage()
+                                                if (dismissKeyboardOnSend) {
+                                                    keyboardController?.hide()
+                                                }
+                                            },
                                             canSteer = uiState.canSteerNow,
+                                            // Built-in search can't be interrupted (provider-hosted tool), so the
+                                            // menu says so instead of promising to stop it.
+                                            builtInSearchOn = uiState.webSearchRoute == WebSearchRoute.BUILT_IN,
                                             duringRunAction = uiState.effectiveDuringRunAction,
                                             duringRunSendTarget = uiState.duringRunSendTarget,
                                             pendingSteers = uiState.pendingSteers,
@@ -563,6 +623,7 @@ fun ChatScreen(
                                             pendingManualSkills = uiState.pendingManualSkills,
                                             onRemoveManualSkill = viewModel::removePendingManualSkill,
                                             onCancelSteer = viewModel::cancelSteer,
+                                            onInterruptSteer = viewModel::armSteer,
                                             onSetDuringRunAction = viewModel::setDuringRunAction,
                                             attachedFiles = attachedFiles,
                                             onRemoveFile = viewModel::removeFile,
@@ -582,6 +643,8 @@ fun ChatScreen(
                                             enabledTools = uiState.effectiveEnabledTools,
                                             pinnedToolKeys = uiState.pinnedToolChips,
                                             onToggleTool = viewModel::toggleTool,
+                                            thinking = thinkingChip,
+                                            onOpenThinking = { showThinkingSheet = true },
                                             mcpServers = uiState.mcpServers,
                                             selectedMcpServerNames = uiState.effectiveMcpServerNames,
                                             selectedModelDisplay = effectiveSelectedModelDisplay,
@@ -607,7 +670,7 @@ fun ChatScreen(
                                             comparison = composerComparison,
                                             comparisonHint = composerComparisonHint,
                                             onCancelPendingSend = viewModel::cancelPendingUploadSend,
-                                            queuedMessages = uiState.messageQueue,
+                                            queuedMessages = uiState.displayedMessageQueue,
                                             onEditQueuedMessage = viewModel::editQueued,
                                             onCancelQueuedMessage = viewModel::cancelQueued,
                                             onReorderQueuedMessages = viewModel::reorderQueue,
@@ -684,6 +747,19 @@ fun ChatScreen(
         onShowSavePresetDialog = { showSavePresetDialog = true },
         compareSetupPick = compareSetupPick,
     )
+
+    // Closes itself when the chip goes away (a model switch, a spec, a comparison).
+    if (showThinkingSheet && thinkingChip != null) {
+        ThinkingSheet(
+            chip = thinkingChip,
+            onSelect = viewModel::selectThinkingLevel,
+            onOpenChatSetting = {
+                showThinkingSheet = false
+                optionsController.open(ChatOptionsPage.ModelParameters)
+            },
+            onDismiss = { showThinkingSheet = false },
+        )
+    }
 
     ChatScreenDialogs(
         uiState = uiState,

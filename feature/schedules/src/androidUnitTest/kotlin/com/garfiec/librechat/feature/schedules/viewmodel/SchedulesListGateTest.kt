@@ -113,6 +113,7 @@ class SchedulesListGateTest {
         ),
     ): SchedulesListViewModel {
         every { roleRepository.userPermissions } returns MutableStateFlow(permissions)
+        every { configRepository.detectedBackendVersion } returns MutableStateFlow(null)
         every { configRepository.startupConfig } returns MutableStateFlow(
             StartupConfig(interfaceConfig = InterfaceConfig(schedules = schedules)),
         )

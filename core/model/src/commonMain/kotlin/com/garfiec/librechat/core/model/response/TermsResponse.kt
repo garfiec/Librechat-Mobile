@@ -2,10 +2,12 @@ package com.garfiec.librechat.core.model.response
 
 import kotlinx.serialization.Serializable
 
+/**
+ * Response of `GET /api/user/terms`: the acceptance state only. The terms text is in the startup
+ * config (`interface.termsOfService.modalContent`).
+ */
 @Serializable
 data class TermsResponse(
-    val termsOfService: String? = null,
-    val privacyPolicy: String? = null,
     /** Whether this user has accepted the current terms. */
     val termsAccepted: Boolean = false,
     /** ISO-8601 timestamp of acceptance, or null if never accepted. */

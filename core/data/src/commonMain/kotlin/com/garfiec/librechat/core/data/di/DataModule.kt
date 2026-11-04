@@ -8,9 +8,11 @@ import com.garfiec.librechat.core.data.datastore.AccountRegistry
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.AccountScopedPrefsPurger
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore
+import com.garfiec.librechat.core.data.datastore.CodeWorkspacePreferenceStore
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
+import com.garfiec.librechat.core.data.datastore.DeploymentThemeSync
 import com.garfiec.librechat.core.data.datastore.DrawerPinsStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.RoleCacheDataStore
@@ -50,6 +52,8 @@ import com.garfiec.librechat.core.data.repository.BannerRepositoryImpl
 import com.garfiec.librechat.core.data.repository.BookmarksGate
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.ChatRepositoryImpl
+import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepository
+import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepositoryImpl
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepositoryImpl
 import com.garfiec.librechat.core.data.repository.ConversationRepository
@@ -64,12 +68,17 @@ import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.FileRepositoryImpl
 import com.garfiec.librechat.core.data.repository.KeyRepository
 import com.garfiec.librechat.core.data.repository.KeyRepositoryImpl
+import com.garfiec.librechat.core.data.repository.McpAppsRepository
+import com.garfiec.librechat.core.data.repository.McpAppsRepositoryImpl
+import com.garfiec.librechat.core.data.repository.McpOAuthLauncher
 import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.repository.McpRepositoryImpl
 import com.garfiec.librechat.core.data.repository.MemoryRepository
 import com.garfiec.librechat.core.data.repository.MemoryRepositoryImpl
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.MessageRepositoryImpl
+import com.garfiec.librechat.core.data.repository.PasskeyRepository
+import com.garfiec.librechat.core.data.repository.PasskeyRepositoryImpl
 import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.PermissionsRepositoryImpl
 import com.garfiec.librechat.core.data.repository.PresetRepository
@@ -79,8 +88,12 @@ import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepositoryImpl
 import com.garfiec.librechat.core.data.repository.PromptRepository
 import com.garfiec.librechat.core.data.repository.PromptRepositoryImpl
+import com.garfiec.librechat.core.data.repository.PullRequestRepository
+import com.garfiec.librechat.core.data.repository.PullRequestRepositoryImpl
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepositoryImpl
+import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
+import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepositoryImpl
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.RoleRepositoryImpl
@@ -298,6 +311,16 @@ val dataModule = module {
             ioDispatcher = get(KoinQualifiers.IO),
         )
     }
+    // Eager: nothing asks for it, and it must be running before the first config lands to cache the
+    // server's accent for the next cold start.
+    single(createdAtStart = true) {
+        DeploymentThemeSync(
+            configRepository = get(),
+            serverDataStore = get(),
+            themeDataStore = get(),
+            appScope = get<CoroutineScope>(KoinQualifiers.ApplicationScope),
+        )
+    }
     // Eager because the warm gate blocks the first HTTP request: starting the seed read at Koin start
     // overlaps the database open it forces with the rest of cold start, instead of serializing it
     // after whichever client resolves this first.
@@ -312,6 +335,7 @@ val dataModule = module {
     singleOf(::ConfigCacheDataStore)
     singleOf(::RoleCacheDataStore)
     singleOf(::ConversationWebSearchStore)
+    singleOf(::CodeWorkspacePreferenceStore)
     single {
         DateTimePrefsStore(
             dataStore = get(),
@@ -580,6 +604,8 @@ val dataModule = module {
     singleOf(::KeyRepositoryImpl) bind KeyRepository::class
     singleOf(::ApiKeyRepositoryImpl) bind ApiKeyRepository::class
     singleOf(::McpRepositoryImpl) bind McpRepository::class
+    factoryOf(::McpOAuthLauncher)
+    singleOf(::McpAppsRepositoryImpl) bind McpAppsRepository::class
     single<MemoryRepository> {
         MemoryRepositoryImpl(
             memoriesApi = get(),
@@ -591,6 +617,13 @@ val dataModule = module {
     }
     singleOf(::PermissionsRepositoryImpl) bind PermissionsRepository::class
     singleOf(::EndpointTokenRepositoryImpl) bind EndpointTokenRepository::class
+    single<ReasoningCapabilitiesRepository> {
+        ReasoningCapabilitiesRepositoryImpl(
+            endpointTokenApi = get(),
+            configRepository = get(),
+            activeAccountProvider = get(),
+        )
+    }
     singleOf(::PresetRepositoryImpl) bind PresetRepository::class
     singleOf(::ProjectChangeSignal)
     singleOf(::ProjectRepositoryImpl) bind ProjectRepository::class
@@ -604,8 +637,11 @@ val dataModule = module {
     singleOf(::SubagentRepositoryImpl) bind SubagentRepository::class
     singleOf(::BackgroundTaskRepositoryImpl) bind BackgroundTaskRepository::class
     singleOf(::SpeechRepositoryImpl) bind SpeechRepository::class
+    singleOf(::PasskeyRepositoryImpl) bind PasskeyRepository::class
     singleOf(::UserRepositoryImpl) bind UserRepository::class
     singleOf(::BannerRepositoryImpl) bind BannerRepository::class
+    singleOf(::CodeEnvironmentRepositoryImpl) bind CodeEnvironmentRepository::class
+    single<PullRequestRepository> { PullRequestRepositoryImpl(api = get(), activeAccountProvider = get()) }
     single<FavoritesRepository> {
         FavoritesRepositoryImpl(
             favoritesApi = get(),

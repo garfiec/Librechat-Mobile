@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.auth.viewmodel
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.suspendRunCatching
@@ -12,6 +13,8 @@ import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.model.LoginOutcome
+import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.model.config.absoluteLinkUrl
 import com.garfiec.librechat.core.network.client.CertificateAuthority
 import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
 import com.garfiec.librechat.feature.auth.diagnostics.offersDiagnosticLog
@@ -19,9 +22,11 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -35,6 +40,10 @@ data class LoginUiState(
     val offerDiagnosticLog: Boolean = false,
     val isLoggedIn: Boolean = false,
     val twoFactorTempToken: String? = null,
+    /** Setup credential when the server requires 2FA enrollment; consumed by navigation. */
+    val twoFactorSetupTempToken: String? = null,
+    /** A coded sign-in refusal the screen words itself; shown instead of [error] when set. */
+    val refusal: AuthRefusal? = null,
     val registrationEnabled: Boolean = false,
     val socialLoginEnabled: Boolean = false,
     val socialLogins: List<String> = emptyList(),
@@ -46,7 +55,36 @@ data class LoginUiState(
     val pendingSsoProvider: String? = null,
     val ssoProvider: String? = null,
     val trustedViaUserCa: Boolean = false,
+    /** The server's published policy links, absolute and safe to open; null hides each. */
+    val policyLinks: PolicyLinks = PolicyLinks(),
+    /**
+     * The accounts on this server that are signed out because it now requires 2FA setup, joined
+     * for the notice; null when there are none. Signing in to one runs the setup flow.
+     */
+    val twoFactorSetupAccounts: String? = null,
 )
+
+/**
+ * The privacy policy and terms of service a deployment publishes (`interface.privacyPolicy` /
+ * `termsOfService.externalUrl`), as the auth footer shows them. Only a non-blank URL with a safe
+ * scheme (see `isSafeLinkUrl`) is kept, resolved against the server so a relative one opens.
+ */
+@Immutable
+data class PolicyLinks(
+    val privacyPolicyUrl: String? = null,
+    val termsOfServiceUrl: String? = null,
+) {
+    companion object {
+        fun from(config: StartupConfig, serverUrl: String?): PolicyLinks {
+            val root = serverUrl?.takeIf { it.isNotBlank() }?.let(::cleanServerUrl) ?: return PolicyLinks()
+            val interfaceConfig = config.interfaceConfig ?: return PolicyLinks()
+            return PolicyLinks(
+                privacyPolicyUrl = interfaceConfig.privacyPolicy?.safeExternalUrl?.let { absoluteLinkUrl(it, root) },
+                termsOfServiceUrl = interfaceConfig.termsOfService?.safeExternalUrl?.let { absoluteLinkUrl(it, root) },
+            )
+        }
+    }
+}
 
 class LoginViewModel(
     private val authRepository: AuthRepository,
@@ -65,20 +103,38 @@ class LoginViewModel(
         // live, so its feature flags (registration, social logins) must come from the pending
         // session's probed config — the global startupConfig still describes the live server. The
         // repository layer routes the sign-in calls themselves via the same pending session.
-        val configSource = accountSwitcher.pendingAdd?.startupConfig ?: configRepository.startupConfig
         viewModelScope.launch {
-            configSource.collect { config ->
-                if (config != null) {
-                    _uiState.value = _uiState.value.copy(
-                        registrationEnabled = config.registrationEnabled,
-                        socialLoginEnabled = config.socialLoginEnabled,
-                        socialLogins = config.socialLogins.orEmpty(),
-                        emailLoginEnabled = config.emailLoginEnabled,
-                    )
-                }
+            authServerConfig(configRepository, accountSwitcher, serverDataStore).collect { (config, url) ->
+                _uiState.value = _uiState.value.copy(
+                    registrationEnabled = config.registrationEnabled,
+                    socialLoginEnabled = config.socialLoginEnabled,
+                    socialLogins = config.socialLogins.orEmpty(),
+                    emailLoginEnabled = config.emailLoginEnabled,
+                    policyLinks = PolicyLinks.from(config, url),
+                )
             }
         }
         observeCertificateTrust(serverDataStore, certificateTrust)
+        observeTwoFactorSetupMarkers(serverDataStore)
+    }
+
+    /**
+     * Names the accounts on this server whose session ended because the server now requires 2FA
+     * setup (the marker the token store keeps), so a user who tapped one in the account switcher
+     * learns why they are here. Read once per server: the marker changes only with a sign-in, which
+     * leaves this screen.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun observeTwoFactorSetupMarkers(serverDataStore: ServerDataStore) {
+        val serverUrl = accountSwitcher.pendingAdd?.serverUrl?.let(::flowOf) ?: serverDataStore.currentUrlFlow
+        viewModelScope.launch {
+            serverUrl.distinctUntilChanged().mapLatest { url ->
+                suspendRunCatching { accountSwitcher.awaitingTwoFactorSetupOn(url) }.getOrDefault(emptyList())
+                    .map { it.displayLabel }
+                    .takeIf { it.isNotEmpty() }
+                    ?.joinToString(", ")
+            }.collect { labels -> _uiState.update { it.copy(twoFactorSetupAccounts = labels) } }
+        }
     }
 
     /** The server screen's probe has just connected, so this is known by the time the screen shows. */
@@ -143,11 +199,11 @@ class LoginViewModel(
     }
 
     fun onEmailChanged(email: String) {
-        _uiState.value = _uiState.value.copy(email = email, error = null)
+        _uiState.value = _uiState.value.copy(email = email, error = null, refusal = null)
     }
 
     fun onPasswordChanged(password: String) {
-        _uiState.value = _uiState.value.copy(password = password, error = null)
+        _uiState.value = _uiState.value.copy(password = password, error = null, refusal = null)
     }
 
     fun login() {
@@ -158,7 +214,7 @@ class LoginViewModel(
         }
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null, offerDiagnosticLog = false)
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null, refusal = null, offerDiagnosticLog = false)
 
             when (val result = authRepository.login(state.email, state.password)) {
                 is Result.Success -> {
@@ -173,6 +229,12 @@ class LoginViewModel(
                             _uiState.value = _uiState.value.copy(
                                 isLoading = false,
                                 twoFactorTempToken = outcome.tempToken,
+                            )
+                        }
+                        is LoginOutcome.TwoFactorSetupRequired -> {
+                            _uiState.value = _uiState.value.copy(
+                                isLoading = false,
+                                twoFactorSetupTempToken = outcome.tempToken,
                             )
                         }
                     }
@@ -191,7 +253,11 @@ class LoginViewModel(
                     // transient network block would hide the form for a condition the user can simply
                     // wait out. Only LibreChat's own JSON envelope sets that flag.
                     val apiException = result.exception as? ApiException
-                    val isEmailLoginDisabled = apiException?.statusCode == 403 &&
+                    // Two more server-authored 403s on this route (v0.8.9-rc1) say nothing about
+                    // email login, and hiding the form over them would strand the user.
+                    val refusal = result.authRefusalOrNull()
+                    val isEmailLoginDisabled = refusal == null &&
+                        apiException?.statusCode == 403 &&
                         apiException.serverAuthored &&
                         !apiException.isBanned
                     _uiState.value = _uiState.value.copy(
@@ -201,6 +267,7 @@ class LoginViewModel(
                         } else {
                             result.message ?: "Login failed"
                         },
+                        refusal = refusal,
                         offerDiagnosticLog = result.offersDiagnosticLog(),
                         emailLoginEnabled = if (isEmailLoginDisabled) false else _uiState.value.emailLoginEnabled,
                     )
@@ -212,5 +279,9 @@ class LoginViewModel(
 
     fun consumeTwoFactorNavigation() {
         _uiState.value = _uiState.value.copy(twoFactorTempToken = null)
+    }
+
+    fun consumeTwoFactorSetupNavigation() {
+        _uiState.value = _uiState.value.copy(twoFactorSetupTempToken = null)
     }
 }

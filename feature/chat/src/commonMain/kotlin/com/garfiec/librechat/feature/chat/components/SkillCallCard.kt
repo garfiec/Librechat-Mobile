@@ -190,6 +190,7 @@ internal fun SkillCallCard(
             exit = if (reduceMotion) ExitTransition.None else shrinkVertically(),
         ) {
             Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
+                ToolContentDisclosure(open = isExpanded)
                 Text(
                     text = stringResource(Res.string.tool_call_output),
                     style = MaterialTheme.typography.labelSmall,

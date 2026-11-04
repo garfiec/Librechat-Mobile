@@ -35,6 +35,7 @@
     <string name="memory_redacted_value">This server's content policy hides what's stored here. You can still delete it.</string>
     <string name="memory_redacted_value_no_delete">This server's content policy hides what's stored here.</string>
     <string name="cd_loading_profile">Loading profile</string>
+    <string name="account_profile_load_failed">Couldn't load your profile.</string>
     <string name="cd_make_private">Make private</string>
     <string name="cd_make_public">Make public</string>
     <string name="cd_preview_voice">Preview voice</string>
@@ -165,6 +166,10 @@
     <string name="accent_color_hex">Hex</string>
     <string name="use_wallpaper_colors">Use wallpaper colors</string>
     <string name="use_wallpaper_colors_desc">Match the app accent to your system wallpaper (Material You)</string>
+    <string name="use_server_accent">Use server accent</string>
+    <string name="use_server_accent_desc">Your server picks this accent for everyone. Turn off to use your own.</string>
+    <string name="accent_set_by_server">Set by your server (%1$s)</string>
+    <string name="accent_set_by_server_note">Turn off Use server accent to pick your own.</string>
     <string name="ui_style">Interface style</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
@@ -246,6 +251,16 @@
     <string name="auto_refill_interval">Interval</string>
     <string name="auto_refill_next">Next refill</string>
     <string name="auto_refill_next_info">A refill happens only after this time, and only when a message would take your balance below zero.</string>
+    <string name="balance_usage_limit">Usage limit</string>
+    <string name="balance_used">%1$s used</string>
+    <string name="balance_usage_unavailable">Usage unavailable</string>
+    <string name="balance_out_of_credits">Out of credits</string>
+    <string name="cd_balance_reading">%1$s: %2$s</string>
+    <string name="auto_reset_title">Automatic reset</string>
+    <string name="auto_reset_last">Last reset</string>
+    <string name="auto_reset_amount">Reset allowance</string>
+    <string name="auto_reset_next">Next reset</string>
+    <string name="auto_reset_next_info">Once the interval has passed, reading your balance or sending a request replaces it with the allowance. Unused credits don't carry over, and requests in progress still count against it.</string>
     <plurals name="auto_refill_every_seconds">
         <item quantity="one">Every %1$s second</item>
         <item quantity="other">Every %1$s seconds</item>
@@ -373,6 +388,7 @@
     <string name="enable_two_factor">Enable Two-Factor Authentication</string>
     <string name="disable_two_factor">Disable Two-Factor Authentication</string>
     <string name="regenerate_backup_codes">Regenerate backup codes</string>
+    <string name="two_factor_required_by_server">This server requires two-factor authentication, so it can't be turned off.</string>
 
     <!-- 2FA setup dialog -->
     <string name="dialog_title_enable_2fa">Enable Two-Factor Authentication</string>
@@ -755,11 +771,13 @@
 
     <!-- Mid-run steering (v0.8.8): what send does while a reply is still generating -->
     <string name="during_run_action_title">While generating</string>
-    <string name="during_run_action_desc">What sending a message does while a reply is still being written. The composer can override this per message.</string>
+    <string name="during_run_action_desc">What sending a message does while a reply is still being written. The send menu can override this per message.</string>
     <string name="during_run_action_queue">Add to queue</string>
     <string name="during_run_action_queue_desc">Send it as the next message once the reply finishes.</string>
     <string name="during_run_action_steer">Steer the reply</string>
-    <string name="during_run_action_steer_desc">Push it into the reply being written so the assistant changes course. Needs a server that supports steering; otherwise it queues.</string>
+    <string name="during_run_action_steer_desc">Joins the reply after the current step finishes, so the assistant changes course without starting over. Needs a server that supports steering; otherwise it queues.</string>
+    <string name="during_run_action_interrupt">Interrupt and steer</string>
+    <string name="during_run_action_interrupt_desc">Stops the current tool or thinking step, keeps what’s written, and continues with your message. Actions a tool already took can’t be undone. Falls back to steering when a reply can’t be interrupted.</string>
     <string name="upload_routing_title">Attachments</string>
     <string name="upload_routing_desc">Files can be sent to the model as-is, or read on the server and sent as text. Not every model accepts every file type.</string>
     <string name="upload_routing_auto">Choose for me</string>
@@ -771,6 +789,10 @@
     <string name="mcp_oauth_title">Sign in to %1$s</string>
     <string name="mcp_oauth_message">This server needs your permission before it can be used. You will be sent to the provider to authorize access, then you can come back and reconnect.</string>
     <string name="mcp_oauth_continue">Continue</string>
+    <!-- Snackbar after the in-app MCP sign-in reached the server's success page -->
+    <string name="mcp_oauth_signed_in">Signed in. Connecting…</string>
+    <!-- Snackbar when an MCP sign-in could not start or the server refused it; Retry reconnects -->
+    <string name="mcp_oauth_failed">Sign-in didn't complete. Reconnect to try again.</string>
     <string name="mcp_connection_deferred">Connecting in the background \u2014 tools appear once it is ready.</string>
     <string name="show_site_icons">Show website icons</string>
     <string name="show_site_icons_desc">Load icons for web search results from Google and other websites</string>
@@ -905,4 +927,64 @@
     <string name="shared_chats_no_match">No links match "%1$s"</string>
     <string name="shared_chats_refresh_failed">Couldn't refresh your shared chats</string>
     <string name="shared_chats_delete_failed">Couldn't delete the link</string>
+
+    <!-- Passkeys (v0.8.9-rc1, management only) -->
+    <string name="passkeys_title">Passkeys</string>
+    <string name="passkeys_row_subtitle">Sign in with your screen lock or a security key</string>
+    <plurals name="passkeys_row_count">
+        <item quantity="one">%1$d passkey</item>
+        <item quantity="other">%1$d passkeys</item>
+    </plurals>
+    <string name="passkeys_description">Sign in without a password using your device screen lock or a security key.</string>
+    <string name="passkeys_empty">You have not added any passkeys yet</string>
+    <string name="passkeys_load_failed">Your passkeys could not be loaded.</string>
+    <string name="passkeys_add_in_browser">To add a passkey, sign in at %1$s in a browser.</string>
+    <string name="passkeys_synced">Synced</string>
+    <string name="passkeys_dates">%1$s · %2$s</string>
+    <string name="passkeys_added_on">Added %1$s</string>
+    <string name="passkeys_last_used_on">Last used %1$s</string>
+    <string name="passkeys_never_used">Never used</string>
+    <string name="passkeys_row_description_synced">%1$s, synced, %2$s</string>
+    <string name="passkeys_row_description">%1$s, %2$s</string>
+    <string name="passkeys_more_options">More options for %1$s</string>
+    <string name="passkeys_action_rename">Rename</string>
+    <string name="passkeys_action_remove">Remove</string>
+    <string name="passkeys_rename_title">Rename passkey</string>
+    <string name="passkeys_name_label">Passkey name</string>
+    <string name="passkeys_rename_failed">Could not rename the passkey</string>
+    <string name="passkeys_remove_title">Remove “%1$s”?</string>
+    <string name="passkeys_remove_message">This passkey will no longer be available for sign-in.</string>
+    <string name="passkeys_confirm_password">Confirm your password</string>
+    <string name="passkeys_incorrect_password">Incorrect password. Please try again.</string>
+    <string name="passkeys_remove_failed">Could not remove the passkey</string>
+    <string name="passkeys_already_removed">That passkey was already removed.</string>
+    <string name="passkeys_too_many_attempts">Too many attempts. Try again in a few minutes.</string>
+
+    <!-- Change email (v0.8.9-rc1) -->
+    <string name="email_change_row_title">Email address</string>
+    <string name="email_change_title">Change email address</string>
+    <string name="email_change_body">Enter your new email address and your current password. We'll send a link to the new address. The change takes effect when you open that link.</string>
+    <string name="email_change_current">Current: %1$s</string>
+    <string name="email_change_new_email">New email address</string>
+    <string name="email_change_current_password">Current password</string>
+    <string name="email_change_show_password">Show password</string>
+    <string name="email_change_hide_password">Hide password</string>
+    <string name="email_change_send">Send link</string>
+    <string name="email_change_sending">Sending…</string>
+    <string name="email_change_link_sent">Check %1$s for a verification link.</string>
+    <string name="email_change_updated">Email address updated.</string>
+    <string name="email_change_error_invalid_request">Enter a valid email address and your current password.</string>
+    <string name="email_change_error_same_email">The new email address must be different from your current one.</string>
+    <string name="email_change_error_disabled">Your server's administrator has turned off email changes.</string>
+    <string name="email_change_error_local_account_required">Only accounts that sign in with email and password can change their email here.</string>
+    <string name="email_change_error_password_invalid">Your current password is incorrect.</string>
+    <string name="email_change_error_domain_not_allowed">This server doesn't accept addresses from that domain.</string>
+    <string name="email_change_error_email_in_use">That email address is already linked to another account.</string>
+    <string name="email_change_error_account_modified">Your account changed while this was sending. Try again.</string>
+    <string name="email_change_error_request_in_progress">Another email change request finished first. Use the link from that email, or try again.</string>
+    <string name="email_change_error_delivery_failed">The verification email couldn't be sent. Try again.</string>
+    <string name="email_change_error_service_unavailable">This server can't send email right now, so the address can't be changed.</string>
+    <string name="email_change_error_rate_limited">Too many attempts. Try again in a few minutes.</string>
+    <string name="email_change_error_network">Couldn't reach the server. Check your connection and try again.</string>
+    <string name="email_change_error_unknown">The email change request failed. Try again.</string>
 </resources>

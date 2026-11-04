@@ -8,6 +8,7 @@ import com.garfiec.librechat.feature.auth.viewmodel.ResetPasswordViewModel
 import com.garfiec.librechat.feature.auth.viewmodel.ServerUrlViewModel
 import com.garfiec.librechat.feature.auth.viewmodel.SsoLoginViewModel
 import com.garfiec.librechat.feature.auth.viewmodel.TermsViewModel
+import com.garfiec.librechat.feature.auth.viewmodel.TwoFactorSetupViewModel
 import com.garfiec.librechat.feature.auth.viewmodel.TwoFactorViewModel
 import com.garfiec.librechat.feature.auth.viewmodel.VerifyEmailViewModel
 import org.koin.core.module.dsl.viewModel
@@ -46,6 +47,9 @@ val authModule = module {
     viewModel { params ->
         ResetPasswordViewModel(
             authRepository = get(),
+            configRepository = get(),
+            accountSwitcher = get(),
+            serverDataStore = get(),
             initialUserId = params.getOrNull(),
             initialToken = params.getOrNull(),
         )
@@ -54,6 +58,12 @@ val authModule = module {
         TwoFactorViewModel(
             authRepository = get(),
             initialTempToken = params.getOrNull(),
+        )
+    }
+    viewModel { params ->
+        TwoFactorSetupViewModel(
+            authRepository = get(),
+            tempToken = params.get(),
         )
     }
     viewModelOf(::TermsViewModel)

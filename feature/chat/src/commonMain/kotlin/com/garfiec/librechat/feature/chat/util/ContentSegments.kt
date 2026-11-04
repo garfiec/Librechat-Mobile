@@ -133,8 +133,13 @@ sealed interface ContentGroup {
         override val entries: List<IndexedContentPart>,
         /** The model-written summary, or empty for an unlabeled block. */
         val labelText: String,
-        /** The batch reported `failed` or `partial`. */
-        val failed: Boolean,
+        /** The batch label reported `failed`: every call in it failed, so the header reads failed. */
+        val labelFailed: Boolean,
+        /**
+         * The batch label reported `partial`: outcomes were mixed. NOT a failed header (upstream
+         * #16949); the failed rows and the "n/N failed" count say what went wrong.
+         */
+        val labelPartial: Boolean,
         /** Tool calls in the block. Absorbed reasoning parts are not counted. */
         val toolCount: Int,
         /** Every tool returned, or the label settled (which only happens after they all do). */
@@ -180,6 +185,8 @@ fun outputToolCallIds(parts: List<MessageContentPart>): List<String> {
             val call = part.toolCall ?: return@forEach
             call.id?.takeIf(String::isNotEmpty)?.let(ids::add)
             call.subagentContent?.let(::walk)
+            // A previewed subagent call left its transcript out; its file-bearing child calls ride along.
+            omittedTranscriptCalls(call).forEach { ids.add(it.id) }
         }
     }
     walk(parts)
@@ -335,7 +342,8 @@ private fun activityGroup(entries: List<IndexedContentPart>, label: MessageConte
         key = activityGroupKey(entries),
         entries = entries,
         labelText = labelText,
-        failed = label?.status == "failed" || label?.status == "partial",
+        labelFailed = label?.status == "failed",
+        labelPartial = label?.status == "partial",
         toolCount = tools.size,
         completed = labelSettled || tools.all { it.part.toolCall?.output?.isNotEmpty() == true },
     )

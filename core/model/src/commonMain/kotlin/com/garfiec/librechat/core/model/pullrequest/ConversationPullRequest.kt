@@ -1,0 +1,99 @@
+package com.garfiec.librechat.core.model.pullrequest
+
+import kotlinx.serialization.Serializable
+
+/**
+ * The pull request a conversation's attached code workspace opened (v0.8.9-rc1,
+ * `TConversationPullRequest`). The enumerated fields stay raw strings so a value a newer server adds
+ * never fails the decode; read them through [presentPullRequest].
+ */
+@Serializable
+data class ConversationPullRequest(
+    val number: Int,
+    val title: String = "",
+    /** The pull request's page on its provider (a merge request on GitLab). */
+    val url: String = "",
+    /** `github` | `gitlab` | `bitbucket`; absent from a server that predates providers (GitHub). */
+    val provider: String? = null,
+    val additions: Int = 0,
+    val deletions: Int = 0,
+    /** `open` | `closed` | `merged`. */
+    val state: String = "open",
+    val isDraft: Boolean = false,
+    /** `clean` | `conflicting` | `unknown` (still computing, and for closed or merged). */
+    val mergeable: String = "unknown",
+    /** Rollup of the head commit's checks: `passing` | `failing` | `running` | `none`. */
+    val checks: String = "none",
+)
+
+/** `GET /api/convos/:id/pull-request`. A null [pullRequest] means the chat has none, not an error. */
+@Serializable
+data class ConversationPullRequestResponse(val pullRequest: ConversationPullRequest? = null)
+
+/** `POST /api/convos/pull-requests`. A bare body, not `arg`-wrapped; at most [PULL_REQUEST_BATCH_MAX] ids. */
+@Serializable
+data class ConversationPullRequestsRequest(val conversationIds: List<String>)
+
+@Serializable
+data class ConversationPullRequestsResponse(val results: List<ConversationPullRequestsEntry> = emptyList())
+
+/** One conversation's answer: its pull request (null when none), or a stable failure [error] code. */
+@Serializable
+data class ConversationPullRequestsEntry(
+    val conversationId: String,
+    val pullRequest: ConversationPullRequest? = null,
+    val error: PullRequestError? = null,
+)
+
+/** A lookup failure. [code] is one of [PullRequestErrorCodes]; it never carries provider text. */
+@Serializable
+data class PullRequestError(val code: String? = null)
+
+/**
+ * MIRRORED from upstream `packages/data-provider/src/types/pullRequest.ts` (registered in
+ * `scripts/mirrors.json`): the most ids one batch lookup may name.
+ */
+const val PULL_REQUEST_BATCH_MAX = 50
+
+/** MIRRORED from upstream `PULL_REQUEST_BATCH_VERSION`: the batch route version a client may ask. */
+const val PULL_REQUEST_BATCH_VERSION = 1
+
+/** Upstream's default for `pullRequestsMaxConcurrentLookups` when the config omits it. */
+const val PULL_REQUEST_DEFAULT_CONCURRENCY = 4
+
+/** MIRRORED from upstream `packages/api/src/pulls/types.ts`. Logged only; all read the same to the user. */
+object PullRequestErrorCodes {
+    const val NOT_CONFIGURED = "NOT_CONFIGURED"
+    const val RATE_LIMITED = "RATE_LIMITED"
+    const val UPSTREAM_ERROR = "UPSTREAM_ERROR"
+    const val CREDENTIAL_REJECTED = "CREDENTIAL_REJECTED"
+}
+
+/**
+ * MIRRORED from upstream `client/src/components/Chat/PullRequest/code.ts` (`isCodeConversation`): only
+ * a chat that ran against an attached code workspace can have a pull request.
+ */
+fun isCodeConversation(codeEnvironmentMode: String?, codeWorkspaceCount: Int): Boolean =
+    codeEnvironmentMode == "attached" || codeWorkspaceCount > 0
+
+private const val SETTLED_REFRESH_MS = 60_000L
+private const val ACTIVE_REFRESH_MS = 20_000L
+
+/**
+ * MIRRORED from upstream `pullRequestRefetchInterval` (`client/src/data-provider/PullRequest/queries.ts`):
+ * how long to wait before asking again, or null to stop. Fast while checks run or mergeability is
+ * still being computed; a closed or merged pull request whose checks finished stops; a chat with no
+ * pull request is asked again slowly.
+ */
+fun pullRequestRefetchIntervalMs(pullRequest: ConversationPullRequest?): Long? {
+    val pr = pullRequest ?: return SETTLED_REFRESH_MS
+    if (pr.checks == "running") return ACTIVE_REFRESH_MS
+    if (pr.state != "open") return null
+    return if (pr.mergeable == "unknown") ACTIVE_REFRESH_MS else SETTLED_REFRESH_MS
+}
+
+/** The drawer re-asks a row whose answer is older than this (upstream's row `staleTime`). */
+const val PULL_REQUEST_ROW_STALE_MS = SETTLED_REFRESH_MS
+
+/** The chat screen re-asks on return when its answer is older than this (upstream's `staleTime`). */
+const val PULL_REQUEST_CHAT_STALE_MS = 15_000L

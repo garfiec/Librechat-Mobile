@@ -56,6 +56,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.core.ui.components.InitialTile
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
+import com.garfiec.librechat.core.ui.components.acl.permissionUpdateFailureText
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.skills.isAuthor
 import com.garfiec.librechat.feature.skills.principalKey
@@ -185,7 +186,9 @@ private fun ShareSheetErrors(state: SkillAclUiState, actions: SkillShareActions)
         }
         if (state.updateFailed) {
             SheetErrorRow(
-                message = state.errorMessage?.takeIf { it.isNotBlank() } ?: stringResource(Res.string.skill_acl_update_failed),
+                message = state.updateFailure?.let { permissionUpdateFailureText(it) }
+                    ?: state.errorMessage?.takeIf { it.isNotBlank() }
+                    ?: stringResource(Res.string.skill_acl_update_failed),
                 actionLabel = stringResource(Res.string.skill_acl_dismiss),
                 onAction = actions.onDismissError,
             )

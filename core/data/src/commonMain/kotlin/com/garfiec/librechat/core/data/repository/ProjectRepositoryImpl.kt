@@ -8,6 +8,8 @@ import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.data.db.dao.ConversationDao
 import com.garfiec.librechat.core.data.db.dao.ProjectOrderDao
 import com.garfiec.librechat.core.model.ChatProject
+import com.garfiec.librechat.core.model.response.AvailableProjectFilesResponse
+import com.garfiec.librechat.core.model.response.ChatProjectFile
 import com.garfiec.librechat.core.model.response.ProjectListResponse
 import com.garfiec.librechat.core.network.api.ProjectsApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -107,6 +109,30 @@ class ProjectRepositoryImpl(
         description: String?,
     ): Result<ChatProject> =
         safeApiCall { projectsApi.updateProject(projectId, name, description) }.bumpOnSuccess()
+
+    override suspend fun updateInstructions(
+        projectId: String,
+        instructions: String,
+        contextRevision: Int?,
+    ): Result<ChatProject> =
+        safeApiCall { projectsApi.updateInstructions(projectId, instructions, contextRevision) }.bumpOnSuccess()
+
+    override suspend fun listProjectFiles(projectId: String): Result<List<ChatProjectFile>> =
+        safeApiCall { projectsApi.listProjectFiles(projectId) }
+
+    override suspend fun listAvailableProjectFiles(
+        projectId: String,
+        cursor: String?,
+        search: String?,
+        limit: Int?,
+    ): Result<AvailableProjectFilesResponse> =
+        safeApiCall { projectsApi.listAvailableProjectFiles(projectId, cursor = cursor, limit = limit, search = search) }
+
+    override suspend fun addProjectFile(projectId: String, fileId: String): Result<ChatProject> =
+        safeApiCall { projectsApi.addProjectFile(projectId, fileId) }.bumpOnSuccess()
+
+    override suspend fun removeProjectFile(projectId: String, fileId: String): Result<ChatProject> =
+        safeApiCall { projectsApi.removeProjectFile(projectId, fileId) }.bumpOnSuccess()
 
     override suspend fun deleteProject(projectId: String): Result<Unit> {
         val accountId = activeAccountProvider.currentAccountId()?.value

@@ -389,6 +389,16 @@ class SseEventMapperTest {
         )
         val result = mapper.map(event) as StreamEvent.Created
         assertThat(result.conversationId).isEqualTo("c1")
+        assertThat(result.privacyRevision).isNull()
+    }
+
+    @Test
+    fun `maps a redacted turn's privacy revision from the created message`() {
+        val event = SseEvent(
+            event = "",
+            data = """{"created":true,"message":{"conversationId":"c1","messageId":"m1","parentMessageId":"m0","privacyRevision":"r1","text":"[EMAIL]"}}""",
+        )
+        assertThat((mapper.map(event) as StreamEvent.Created).privacyRevision).isEqualTo("r1")
     }
 
     @Test
@@ -851,6 +861,28 @@ class SseEventMapperTest {
         val result = mapper.map(event) as StreamEvent.AttachmentCreated
         assertThat(result.type).isEqualTo("ui_resources")
         assertThat(result.uiResources).isNotNull()
+    }
+
+    @Test
+    fun `keeps the attachment's step id, which rc1 stamps beside the agent id`() {
+        val event = SseEvent(
+            event = "attachment",
+            data = """{"type":"ui_resources","toolCallId":"call_ui","agentId":"agent_1","stepId":"step_9","ui_resources":[]}""",
+        )
+        val result = mapper.map(event) as StreamEvent.AttachmentCreated
+        assertThat(result.agentId).isEqualTo("agent_1")
+        assertThat(result.stepId).isEqualTo("step_9")
+    }
+
+    @Test
+    fun `a step id of the wrong shape drops only that field`() {
+        val event = SseEvent(
+            event = "attachment",
+            data = """{"type":"ui_resources","toolCallId":"call_ui","stepId":{"x":1},"ui_resources":[]}""",
+        )
+        val result = mapper.map(event) as StreamEvent.AttachmentCreated
+        assertThat(result.stepId).isNull()
+        assertThat(result.toolCallId).isEqualTo("call_ui")
     }
 
     @Test

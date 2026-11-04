@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.model.auth.AuthCookies
 import com.garfiec.librechat.core.model.auth.RequestAuth
 import com.garfiec.librechat.core.model.auth.SessionCredentials
 import com.garfiec.librechat.core.model.response.RefreshResponse
+import com.garfiec.librechat.core.network.client.AuthGate
 import com.garfiec.librechat.core.network.client.CookieHelper
 import com.garfiec.librechat.core.network.client.PinnedServerBaseUrlKey
 import com.garfiec.librechat.core.network.client.RefreshCookieCredentials
@@ -77,7 +78,7 @@ import kotlin.time.Clock
  * if it changed, so a refresh that races a teardown can never resurrect the cleared session even
  * though the POST holds no lock — while another account's changes leave it valid.
  */
-@Suppress("TooManyFunctions") // debt: 51 functions
+@Suppress("TooManyFunctions", "LargeClass") // debt: 51 functions; over 600 lines since the v0.8.9 enrollment arm
 abstract class CommonTokenDataStore(
     private val refreshClient: Lazy<HttpClient>,
     private val ioDispatcher: CoroutineDispatcher,
@@ -192,6 +193,9 @@ abstract class CommonTokenDataStore(
     private val _sessionHealth = MutableStateFlow<SessionHealth>(SessionHealth.Healthy)
     override val sessionHealth: StateFlow<SessionHealth> = _sessionHealth.asStateFlow()
 
+    private val authGates = AuthGateState()
+    override val authGate: StateFlow<AuthGate?> = authGates.gate
+
     @Volatile
     private var sessionExpiryReported = false
 
@@ -303,6 +307,8 @@ abstract class CommonTokenDataStore(
             // Same as [setTokens]: the keyed slot is being overwritten with a freshly-issued pair.
             clearRejectedRefresh(slotKey(accountId))
             sessions.writeSession(accountId, checkNotNull(staged))
+            // A fresh sign-in got past whatever the server required: setup is done.
+            removeValue(twoFactorSetupKey(accountId))
         }
         writeValue(KEY_ACTIVE_ACCOUNT, accountId)
         activeAccountKey = accountId
@@ -332,6 +338,9 @@ abstract class CommonTokenDataStore(
         clearRejectedRefresh(slotKey(activeAccountKey))
         clearRejectedRefresh(slotKey(null))
         sessions.removeSession(activeAccountKey)
+        // The 2FA setup marker stays: this teardown also starts a new sign-in (Connect on the server
+        // screen), which keeps the roster entry, so the account still owes setup. A sign-in to it
+        // ([onAccountResolved]) or its removal ([removeAccount]) is what clears the marker.
         if (activeAccountKey != null) {
             // The active slot is keyed, so the bare keys can only hold a stale staged pair — purge it
             // so a killed login can't be cold-started back into an apparently-authenticated state.
@@ -364,6 +373,13 @@ abstract class CommonTokenDataStore(
         if (activeAccountKey == null) cachedAuth = RequestAuth(null)
     }
 
+    override suspend fun boundAccountId(): String? = stateMutex.withLock {
+        // Loads rather than reading storage around the cache: a teardown that follows keys off
+        // [activeAccountKey], and before the warm it would miss the bound account's slot.
+        if (!tokenInitialized) loadCacheFromStorage()
+        activeAccountKey
+    }
+
     override suspend fun selectAccount(accountId: String) = stateMutex.withLock {
         if (activeAccountKey == accountId) return@withLock
         // Non-destructive switch: repoint the active binding + mirror + cached bearer to an already-keyed
@@ -380,6 +396,7 @@ abstract class CommonTokenDataStore(
         resetSessionExpiryLatch()
         bumpEpoch(accountId)
         sessions.removeSession(accountId)
+        removeValue(twoFactorSetupKey(accountId))
         // Evict the account's single-flight lock so [flights] doesn't retain a Mutex per removed
         // account. Safe: removeAccount bumps the epoch, so any in-flight refresh of this account
         // discards its result on commit regardless.
@@ -862,6 +879,13 @@ abstract class CommonTokenDataStore(
                         recordIntermediaryBlock(slotKey(accountKey))
                         return RefreshResult.Transient
                     }
+                    // Terminal for the slot but never `settle()`: that is the expiry path, and an
+                    // expiry fails over to another account. Transient leaves the routing to the
+                    // shell's [authGate]; see [endSessionForTwoFactorSetup].
+                    is RefreshAttempt.TwoFactorSetupRequired -> {
+                        endSessionForTwoFactorSetup(accountKey, epochAtStart, outcome.tempToken)
+                        return RefreshResult.Transient
+                    }
                     RefreshAttempt.Retryable -> retryBackoffMillis(attempt)
                     is RefreshAttempt.RateLimited -> {
                         val wait = outcome.retryAfterMillis
@@ -1104,6 +1128,16 @@ abstract class CommonTokenDataStore(
             ) { "Refresh response body not parseable" }
             return RefreshAttempt.Retryable
         }
+        // Must be decided before the cookies are read: the enrollment 200 clears the refreshToken
+        // cookie, so CookieHelper.update throws, and read as Retryable that re-POSTs a deleted session
+        // under the flight lock and keeps the dead slot — the refresh limbo.
+        // An enrollment answer without its setup token still means the session is gone.
+        if (body.isTwoFactorSetupRequired) {
+            return body.tempToken?.takeIf { it.isNotBlank() }?.let(RefreshAttempt::TwoFactorSetupRequired)
+                ?: RefreshAttempt.AuthRejectedTerminal
+        }
+        // A 2xx carrying no token at all is malformed: recoverable, like an unparseable body.
+        val accessToken = body.token?.takeIf { it.isNotBlank() } ?: return RefreshAttempt.Retryable
         // The backend rotates the refresh token on every successful refresh and returns the new one
         // via Set-Cookie; persist it. A 2xx without a rotated cookie means the server didn't rotate
         // (reuse path) — the stored token stays valid, so retain it rather than dropping the slot.
@@ -1113,7 +1147,7 @@ abstract class CommonTokenDataStore(
             Logger.w { "Refresh response had incomplete session cookies" }
             return RefreshAttempt.Retryable
         }
-        return if (commitRefresh(accountKey, epochAtStart, SessionCredentials(body.token, cookies))) {
+        return if (commitRefresh(accountKey, epochAtStart, SessionCredentials(accessToken, cookies))) {
             RefreshAttempt.Success
         } else {
             RefreshAttempt.Discarded
@@ -1171,9 +1205,10 @@ abstract class CommonTokenDataStore(
         if (accountKey == activeAccountKey) cachedAuth = RequestAuth(null)
     }
 
-    override suspend fun endSessionForReauth(accountId: String?) {
+    override suspend fun endSessionForReauth(accountId: String?, forTwoFactorSetup: Boolean) {
         stateMutex.withLock {
             dropSlotLocked(accountId)
+            if (forTwoFactorSetup && accountId != null) writeValue(twoFactorSetupKey(accountId), MARKER_SET)
             // Also clears the health banner this sign-out was chosen from.
             clearRejectedRefresh(slotKey(accountId))
             // Latch the one-shot expiry report (see [TokenManager.endSessionForReauth]); [setTokens]
@@ -1185,6 +1220,13 @@ abstract class CommonTokenDataStore(
             origin = LogOrigin.CLIENT,
             attrs = mapOf("event" to "session_ended_for_reauth"),
         ) { "User chose to sign in again after a blocked renewal" }
+    }
+
+    // Under [stateMutex] so a switch can't land between the active-binding check and the latch, which
+    // would latch the incoming account's report instead.
+    override suspend fun beginSignOut(accountId: String?) = stateMutex.withLock {
+        if (!tokenInitialized) loadCacheFromStorage()
+        if (accountId == activeAccountKey) sessionExpiryReported = true
     }
 
     private suspend fun flightFor(accountKey: String?): Mutex = flightMutex.withLock {
@@ -1240,6 +1282,58 @@ abstract class CommonTokenDataStore(
      */
     private fun resetSessionExpiryLatch() {
         sessionExpiryReported = false
+        // A required step belongs to the session that raised it; every path that re-arms the latch
+        // establishes, switches or tears one down, after which it no longer applies.
+        authGates.clear()
+    }
+
+    // Same scoping, and the same read-through-when-unwarmed reasoning, as [emitSessionExpired]. An
+    // enrollment report latches the expiry report at once, not only when the shell ends the session:
+    // a 401 landing in between would otherwise announce an expiry, fail over to another account and
+    // replace the setup route.
+    override fun reportAuthGate(gate: AuthGate) {
+        val recorded = authGates.report(gate, if (tokenInitialized) activeAccountKey else readValue(KEY_ACTIVE_ACCOUNT))
+        if (recorded && gate is AuthGate.TwoFactorSetupRequired) sessionExpiryReported = true
+    }
+
+    override fun consumeAuthGate(gate: AuthGate) = authGates.consume(gate)
+
+    override suspend fun isTwoFactorSetupRequired(accountId: String): Boolean =
+        stateMutex.withLock { readValue(twoFactorSetupKey(accountId)) != null }
+
+    private fun twoFactorSetupKey(accountId: String): String = accountScopedName(accountId, KEY_TWO_FACTOR_SETUP_REQUIRED)
+
+    /**
+     * A refresh answered the enrollment 200: the server enforces 2FA, this account has none, and it
+     * has already deleted the session and cleared the `refreshToken` cookie. So the slot goes, as on
+     * a hard rejection — but this is **not** an expiry and must never be routed as one: an expiry
+     * fails over to another signed-in account, and the user would be moved off the account whose
+     * setup they have to finish. The shell routes on [authGate] instead.
+     *
+     * The expiry report is latched for the active binding (exactly as [endSessionForReauth] does), so
+     * the requests still in flight on the dropped bearer — each of which now finds an empty slot and
+     * settles HardExpired — cannot announce an expiry or start a failover behind the setup screen.
+     * [setTokens] re-arms it once setup signs the user in.
+     */
+    private suspend fun endSessionForTwoFactorSetup(accountKey: String?, epochAtStart: Int, tempToken: String) {
+        stateMutex.withLock {
+            if (epochOf(accountKey) != epochAtStart) return@withLock
+            dropSlotLocked(accountKey)
+            clearRenewalBlocked(slotKey(accountKey))
+            // Persisted for every account, active or not: a non-active account gets no gate (the shell
+            // must not leave the account the user is on), so this marker is the only record of why
+            // its slot is empty, and it outlives a restart that drops the in-memory gate too.
+            if (accountKey != null) writeValue(twoFactorSetupKey(accountKey), MARKER_SET)
+            if (accountKey == activeAccountKey) {
+                sessionExpiryReported = true
+                authGates.report(AuthGate.TwoFactorSetupRequired(accountKey, tempToken), activeAccountKey)
+            }
+        }
+        Diag.w(
+            "Auth",
+            origin = LogOrigin.SERVER,
+            attrs = mapOf("event" to "refresh_enrollment_required"),
+        ) { "Server requires 2FA setup before this session can continue" }
     }
 
     // --- RefreshCookieCredentials ---
@@ -1307,6 +1401,14 @@ abstract class CommonTokenDataStore(
         /** A received 5xx / malformed-2xx response. Retried with local backoff. */
         data object Retryable : RefreshAttempt
 
+        /**
+         * The enrollment 200 (v0.8.9-rc1): the server deleted the session because the account must
+         * set up 2FA first. Terminal for the slot, never an expiry — see `endSessionForTwoFactorSetup`.
+         */
+        data class TwoFactorSetupRequired(val tempToken: String) : RefreshAttempt {
+            override fun toString(): String = "TwoFactorSetupRequired"
+        }
+
         /** 429 with the server's requested delay (ms), when present. Retried honoring it. */
         data class RateLimited(val retryAfterMillis: Long?) : RefreshAttempt
 
@@ -1331,6 +1433,8 @@ abstract class CommonTokenDataStore(
         const val KEY_ACCESS_TOKEN = "access_token"
         const val KEY_REFRESH_TOKEN = "refresh_token"
         private const val KEY_ACTIVE_ACCOUNT = "active_account_id"
+        private const val KEY_TWO_FACTOR_SETUP_REQUIRED = "two_factor_setup_required"
+        private const val MARKER_SET = "1"
         private const val REFRESH_PATH = "/api/auth/refresh"
 
         /** [flights] key for the bare (null-account) refresh path. */

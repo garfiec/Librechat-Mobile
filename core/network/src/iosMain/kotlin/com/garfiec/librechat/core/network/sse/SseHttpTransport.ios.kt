@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.network.client.TokenManager
 import com.garfiec.librechat.core.network.client.refreshBearerFor
 import com.garfiec.librechat.core.network.client.sseCustomHeaderLines
 import com.garfiec.librechat.core.network.sse.nwparams.librechat_make_default_tls_tcp_parameters
+import com.garfiec.librechat.core.network.sse.nwparams.librechat_nw_connection_receive
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
@@ -31,7 +32,6 @@ import platform.Foundation.NSURL
 import platform.Network.nw_connection_cancel
 import platform.Network.nw_connection_create
 import platform.Network.nw_connection_force_cancel
-import platform.Network.nw_connection_receive
 import platform.Network.nw_connection_send
 import platform.Network.nw_connection_set_queue
 import platform.Network.nw_connection_set_state_changed_handler
@@ -256,20 +256,25 @@ actual class SseHttpTransport(
             }
         }
 
-        // Recursive receive loop. Each call to nw_connection_receive arms a
-        // single-shot callback; we re-arm inside the callback until isComplete
-        // or an error fires.
+        // Recursive receive loop. Each call arms a single-shot callback; we re-arm
+        // inside the callback until isComplete or an error fires. A minimum of one
+        // byte is what delivers v0.8.9-rc1's 3-byte keepalive (`:\n\n`) as it
+        // arrives, so it restarts the shared line parser's stall timeout on iOS as
+        // it does on Android. Goes through the C shim, never
+        // platform.Network.nw_connection_receive: the completion's content context
+        // can be one of Network.framework's predefined contexts, which Kotlin/Native
+        // mistakes for a block and throws on (see the shim).
         fun armReceive() {
-            nw_connection_receive(
+            librechat_nw_connection_receive(
                 connection = connection,
                 minimum_incomplete_length = 1u,
                 maximum_length = RECEIVE_MAX_LENGTH.toUInt(),
-            ) { data, _, isComplete, error ->
-                if (handled) return@nw_connection_receive
+            ) { data, isComplete, error ->
+                if (handled) return@librechat_nw_connection_receive
 
                 if (error != null) {
                     handleError(mapNwError(error))
-                    return@nw_connection_receive
+                    return@librechat_nw_connection_receive
                 }
 
                 if (data != null) {
@@ -285,11 +290,11 @@ actual class SseHttpTransport(
                                     // Parser headers are lower-cased.
                                     if (AccessGatewaySignal.isGatewayChallenge(event.headers["www-authenticate"])) {
                                         handleError(AccessGatewayException())
-                                        return@nw_connection_receive
+                                        return@librechat_nw_connection_receive
                                     }
                                     if (event.statusCode !in SUCCESS_LOW..SUCCESS_HIGH) {
                                         handleError(SseHttpStatusException(event.statusCode))
-                                        return@nw_connection_receive
+                                        return@librechat_nw_connection_receive
                                     }
                                 }
 
@@ -299,12 +304,12 @@ actual class SseHttpTransport(
 
                                 HttpResponseParser.ParseEvent.EndOfStream -> {
                                     handleCompletion()
-                                    return@nw_connection_receive
+                                    return@librechat_nw_connection_receive
                                 }
 
                                 is HttpResponseParser.ParseEvent.Error -> {
                                     handleError(SseStreamException("parser: ${event.message}"))
-                                    return@nw_connection_receive
+                                    return@librechat_nw_connection_receive
                                 }
                             }
                         }
@@ -313,7 +318,7 @@ actual class SseHttpTransport(
 
                 if (isComplete) {
                     handleCompletion()
-                    return@nw_connection_receive
+                    return@librechat_nw_connection_receive
                 }
 
                 armReceive()
@@ -494,6 +499,9 @@ actual class SseHttpTransport(
         // link time; for our one-shot request we can pass null and let the
         // default-message context apply automatically (Apple docs confirm
         // null is equivalent to default-message for the send path).
+        // Don't swap in platform.Network.NW_CONNECTION_DEFAULT_MESSAGE_CONTEXT:
+        // reading it from Kotlin throws the same block-conversion NSException as
+        // the receive context (see librechat_nw_connection_receive).
         val NW_CONTENT_CONTEXT_DEFAULT_MESSAGE: nw_content_context_t? = null
     }
 }

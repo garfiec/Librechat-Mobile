@@ -39,6 +39,13 @@
     <string name="agents_chip_top_picks">Destacados</string>
     <string name="agents_chip_all">Todos</string>
     <string name="agents_chip_editable">Editables</string>
+    <string name="agents_filter_mine">Mis agentes</string>
+    <string name="agents_sort_label">Ordenar por</string>
+    <string name="agents_sort_newest">Más recientes primero</string>
+    <string name="agents_sort_oldest">Más antiguos primero</string>
+    <string name="agents_sort_popular">Populares</string>
+    <string name="agents_sort_author">Por nombre del creador</string>
+    <string name="agents_mine_empty_title">Aún no has creado ningún agente</string>
     <string name="agents_top_pick">Destacado</string>
     <string name="agents_new_agent">Nuevo agente</string>
     <string name="agent_unnamed">Agente sin nombre</string>
@@ -79,6 +86,7 @@
     <string name="agent_description_label">Descripción</string>
     <string name="agent_description_placeholder">Opcional: describe tu agente aquí</string>
     <string name="agent_instructions_label">Instrucciones</string>
+    <string name="agent_instructions_linked_prompt">Este agente usa un prompt guardado como instrucciones. Cámbialo o desvincúlalo en la web; las ediciones aquí no cambiarían lo que ejecuta el agente.</string>
     <string name="agent_instructions_placeholder">Las instrucciones de sistema que usa el agente</string>
     <string name="insert_variable">Insertar variable</string>
     <string name="cd_insert_variable">Insertar variable</string>
@@ -355,4 +363,16 @@
         <item quantity="one">Puedes fijar hasta %1$d favorito.</item>
         <item quantity="other">Puedes fijar hasta %1$d favoritos.</item>
     </plurals>
+    <string name="tool_approval_mode_cd">Modo de aprobación de herramientas: %1$s</string>
+    <string name="tool_approval_inherit">Usar la política heredada</string>
+    <string name="tool_approval_ask">Preguntar siempre</string>
+    <string name="tool_approval_allow">Aprobar siempre</string>
+    <string name="tool_approval_chat">Preguntar una vez por chat</string>
+    <string name="tool_approval_always">Preguntar una vez y luego aprobar siempre</string>
+    <string name="tool_approval_admin_ask">La política del administrador exige aprobación.</string>
+    <string name="tool_approval_admin_deny">La política del administrador bloquea esta herramienta.</string>
+    <string name="tool_approval_reset">Restablecer mis aprobaciones recordadas</string>
+    <string name="tool_approval_reset_success">Se restablecieron tus aprobaciones recordadas.</string>
+    <string name="tool_approval_reset_error">No se pudieron restablecer las aprobaciones recordadas. Inténtalo de nuevo.</string>
+    <string name="tool_approval_reset_forbidden">No puedes restablecer las aprobaciones de este agente.</string>
 </resources>

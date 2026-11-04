@@ -20,24 +20,24 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveInputChip
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.ErrorBanner
 import com.garfiec.librechat.feature.agents.components.AgentAclSharingSection
 import com.garfiec.librechat.feature.agents.components.AgentActionsPanel
@@ -57,6 +57,7 @@ import com.garfiec.librechat.feature.agents.components.AgentSkillsSection
 import com.garfiec.librechat.feature.agents.components.AgentSubagentsSection
 import com.garfiec.librechat.feature.agents.components.AgentSupportContactSection
 import com.garfiec.librechat.feature.agents.components.AgentWebSearchSection
+import com.garfiec.librechat.feature.agents.components.ToolApprovalModeButton
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
 import com.garfiec.librechat.feature.agents.viewmodel.AgentAclViewModel
@@ -95,12 +96,12 @@ internal fun AgentEditorForm(
             },
             text = { Text(stringResource(Res.string.agent_file_remove_confirm_message)) },
             confirmButton = {
-                TextButton(onClick = viewModel::confirmAgentFileRemoval) {
+                AdaptiveTextButton(onClick = viewModel::confirmAgentFileRemoval) {
                     Text(stringResource(Res.string.remove))
                 }
             },
             dismissButton = {
-                TextButton(onClick = viewModel::dismissAgentFileRemoval) { Text(stringResource(Res.string.cancel)) }
+                AdaptiveTextButton(onClick = viewModel::dismissAgentFileRemoval) { Text(stringResource(Res.string.cancel)) }
             },
         )
     }
@@ -136,7 +137,7 @@ internal fun AgentEditorForm(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (uiState.isEditMode && !uiState.avatarUrl.isNullOrBlank()) {
-                TextButton(onClick = viewModel::resetAvatar) {
+                AdaptiveTextButton(onClick = viewModel::resetAvatar) {
                     Text(stringResource(Res.string.remove_avatar))
                 }
             }
@@ -192,10 +193,14 @@ internal fun AgentEditorForm(
         Spacer(modifier = Modifier.height(12.dp))
 
         // 5. Instructions field (multi-line) + Insert-variable menu
-        InstructionsField(
-            value = uiState.instructions,
-            onValueChange = viewModel::onInstructionsChanged,
-        )
+        if (uiState.instructionsLinkedToPrompt) {
+            LinkedInstructionsNote()
+        } else {
+            InstructionsField(
+                value = uiState.instructions,
+                onValueChange = viewModel::onInstructionsChanged,
+            )
+        }
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -345,20 +350,29 @@ internal fun AgentEditorForm(
         // MCP tools sit in the same selected list as plugin tools: which server a capability was
         // installed from is a detail of its plumbing, not of what the agent can do. Only the ones
         // actually on the agent are listed — browsing the rest is the picker's job.
-        if (uiState.selectedMcpTools.isNotEmpty()) {
-            val mcpByName = remember(uiState.mcpTools) { uiState.mcpTools.associateBy { it.name } }
+        // A tool whose server has since gone away still renders, by raw name, so it can be removed
+        // rather than sitting invisibly on the agent. The approval mode button shows only on a
+        // tool with a known server, and only when the server enables agent approval modes.
+        val mcpRows by viewModel.mcpToolRows.collectAsStateWithLifecycle()
+        if (mcpRows.isNotEmpty()) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                uiState.selectedMcpTools.forEach { toolName ->
-                    // A tool whose server has since gone away still renders, by raw name, so it
-                    // can be removed rather than sitting invisibly on the agent.
-                    val mcpTool = mcpByName[toolName]
+                mcpRows.forEach { row ->
                     SelectedToolRow(
-                        toolName = toolName,
-                        toolDescription = mcpTool?.serverName ?: mcpTool?.description,
-                        onRemove = { viewModel.onMcpToolToggled(toolName) },
+                        toolName = row.name,
+                        toolDescription = row.subtitle,
+                        onRemove = { viewModel.onMcpToolToggled(row.selectionKey) },
+                        trailing = row.approval?.let { approval ->
+                            {
+                                ToolApprovalModeButton(
+                                    approval = approval,
+                                    onModeChange = { mode -> viewModel.onToolApprovalModeChanged(approval.toolId, mode) },
+                                    onReset = { viewModel.resetToolApprovals(approval.toolId) },
+                                )
+                            }
+                        },
                     )
                 }
             }

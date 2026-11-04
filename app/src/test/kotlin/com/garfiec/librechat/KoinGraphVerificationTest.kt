@@ -16,6 +16,7 @@ import com.garfiec.librechat.core.common.network.RequestActivityTracker
 import com.garfiec.librechat.core.common.power.PowerStateObserver
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore
+import com.garfiec.librechat.core.data.datastore.CodeWorkspacePreferenceStore
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
@@ -38,6 +39,7 @@ import com.garfiec.librechat.core.data.repository.BalanceRepository
 import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.BookmarksGate
 import com.garfiec.librechat.core.data.repository.ChatRepository
+import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.DraftRepository
@@ -45,14 +47,19 @@ import com.garfiec.librechat.core.data.repository.EndpointTokenRepository
 import com.garfiec.librechat.core.data.repository.FavoritesRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.KeyRepository
+import com.garfiec.librechat.core.data.repository.McpAppsRepository
+import com.garfiec.librechat.core.data.repository.McpOAuthLauncher
 import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.repository.MemoryRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
+import com.garfiec.librechat.core.data.repository.PasskeyRepository
 import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
+import com.garfiec.librechat.core.data.repository.PullRequestRepository
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
+import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
 import com.garfiec.librechat.core.data.repository.ResumePinStore
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.ScheduleRepository
@@ -83,6 +90,7 @@ import com.garfiec.librechat.core.network.api.AuthApi
 import com.garfiec.librechat.core.network.api.BalanceApi
 import com.garfiec.librechat.core.network.api.BannerApi
 import com.garfiec.librechat.core.network.api.ChatApi
+import com.garfiec.librechat.core.network.api.CodeEnvironmentsApi
 import com.garfiec.librechat.core.network.api.ConfigApi
 import com.garfiec.librechat.core.network.api.ConversationsApi
 import com.garfiec.librechat.core.network.api.EndpointTokenApi
@@ -91,8 +99,10 @@ import com.garfiec.librechat.core.network.api.FilesApi
 import com.garfiec.librechat.core.network.api.FilesExtApi
 import com.garfiec.librechat.core.network.api.KeysApi
 import com.garfiec.librechat.core.network.api.McpApi
+import com.garfiec.librechat.core.network.api.McpAppsApi
 import com.garfiec.librechat.core.network.api.MemoriesApi
 import com.garfiec.librechat.core.network.api.MessagesApi
+import com.garfiec.librechat.core.network.api.PasskeyApi
 import com.garfiec.librechat.core.network.api.PermissionsApi
 import com.garfiec.librechat.core.network.api.PresetsApi
 import com.garfiec.librechat.core.network.api.ProjectsApi
@@ -180,6 +190,7 @@ class KoinGraphVerificationTest {
             AuthApi::class,
             BalanceApi::class,
             BannerApi::class,
+            CodeEnvironmentsApi::class,
             ChatApi::class,
             ConfigApi::class,
             ConversationsApi::class,
@@ -190,6 +201,7 @@ class KoinGraphVerificationTest {
             FilesExtApi::class,
             KeysApi::class,
             McpApi::class,
+            McpAppsApi::class,
             MemoriesApi::class,
             MessagesApi::class,
             PermissionsApi::class,
@@ -205,6 +217,7 @@ class KoinGraphVerificationTest {
             TagsApi::class,
             TracesApi::class,
             UserApi::class,
+            PasskeyApi::class,
             // core:data provides
             ConfigCacheDataStore::class,
             ServerDataStore::class,
@@ -219,12 +232,14 @@ class KoinGraphVerificationTest {
             SsoRiskDataStore::class,
             ThemeDataStore::class,
             ConversationWebSearchStore::class,
+            CodeWorkspacePreferenceStore::class,
             AgentRepository::class,
             AgentToolsRepository::class,
             ApiKeyRepository::class,
             AuthRepository::class,
             BalanceRepository::class,
             BannerRepository::class,
+            CodeEnvironmentRepository::class,
             BackgroundTaskRepository::class,
             ChatRepository::class,
             ConfigRepository::class,
@@ -235,6 +250,8 @@ class KoinGraphVerificationTest {
             FileRepository::class,
             KeyRepository::class,
             McpRepository::class,
+            McpAppsRepository::class,
+            McpOAuthLauncher::class,
             MemoryRepository::class,
             MessageRepository::class,
             PermissionsRepository::class,
@@ -242,9 +259,12 @@ class KoinGraphVerificationTest {
             ResumePinStore::class,
             ProjectRepository::class,
             PromptRepository::class,
+            PullRequestRepository::class,
             QueuedTurnRepository::class,
+            ReasoningCapabilitiesRepository::class,
             RoleRepository::class,
             ScheduleRepository::class,
+            PasskeyRepository::class,
             SearchRepository::class,
             MessageSearchRepository::class,
             SearchCapabilityRepository::class,

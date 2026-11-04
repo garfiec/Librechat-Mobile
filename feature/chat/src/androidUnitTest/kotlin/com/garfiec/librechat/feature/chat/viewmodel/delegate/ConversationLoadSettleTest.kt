@@ -35,7 +35,7 @@ class ConversationLoadSettleTest {
         val fetches = ArrayDeque<CompletableDeferred<Unit>>()
         val messageRepository = mockk<MessageRepository>(relaxed = true)
         every { messageRepository.observeMessages(CONVERSATION_ID) } returns MutableStateFlow(emptyList<Message>())
-        coEvery { messageRepository.getMessages(CONVERSATION_ID) } coAnswers {
+        coEvery { messageRepository.getMessages(CONVERSATION_ID, any()) } coAnswers {
             CompletableDeferred<Unit>().also(fetches::addLast).await()
             Result.Success(emptyList())
         }

@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- RecognitionService checks its own RECORD_AUDIO before delivering results on API 31+. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- It also checks the caller's RECORD_AUDIO, which fails as "caller without permission" unless
          it can see the caller: the system binds the recognizer, so no implicit visibility is granted.
-         Whisper+ declares this for the same reason. -->
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+         Whisper+ declares this for the same reason. The caller's package (flavor and build-type
+         suffixes vary) isn't fixed, so a <queries> entry can't name it; this APK never ships. -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
 
     <application android:label="Speech fixture">
         <!-- Declared the way Whisper+ declares its recognizer. -->

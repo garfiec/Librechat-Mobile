@@ -84,5 +84,17 @@ data class ToolApprovalResolution(
     val decision: String,
     val editedArguments: JsonObject? = null,
     val responseText: String? = null,
+    /** Optional note on a `reject`, passed to the agent with the rejection. */
     val reason: String? = null,
+    /**
+     * [ToolApprovalScopes.SESSION] on an `approve` remembers the tool for the rest of the
+     * conversation; omitted means once. Legal only when the call's review config sets
+     * `allow_always` (403 otherwise); upstream rejects `always` outright.
+     */
+    val scope: String? = null,
 )
+
+/** Wire values of [ToolApprovalResolution.scope]. `always` is reserved upstream and never sent. */
+object ToolApprovalScopes {
+    const val SESSION = "session"
+}

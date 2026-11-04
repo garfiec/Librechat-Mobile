@@ -5,10 +5,13 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.toSafeError
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
+import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.FavoritesRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.AgentCategory
+import com.garfiec.librechat.core.model.EndpointConfig
+import com.garfiec.librechat.core.model.EndpointToolApproval
 import com.garfiec.librechat.core.model.FavoritesLimits
 import com.garfiec.librechat.core.model.UserFavorite
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
@@ -43,6 +46,12 @@ class AgentDetailViewModelTest {
     private val favoritesRepository = mockk<FavoritesRepository>(relaxed = true)
     private val role = MutableStateFlow<UserRolePermissions?>(null)
     private val roleRepository = mockk<RoleRepository>(relaxed = true)
+    private val backendVersion = MutableStateFlow<String?>("0.8.9-rc1")
+    private val endpointConfigs = MutableStateFlow<Map<String, EndpointConfig>>(emptyMap())
+    private val configRepository = mockk<ConfigRepository>(relaxed = true) {
+        every { detectedBackendVersion } returns backendVersion
+        every { endpointConfigs } returns this@AgentDetailViewModelTest.endpointConfigs
+    }
 
     private val agent = Agent(id = "agent-1", name = "Coding Assistant")
 
@@ -82,8 +91,55 @@ class AgentDetailViewModelTest {
         serverDataStore = serverDataStore,
         favoritesRepository = favoritesRepository,
         roleRepository = roleRepository,
+        configRepository = configRepository,
         initialAgentId = "agent-1",
     )
+
+    private fun agentModes(on: Boolean) = mapOf(
+        "agents" to EndpointConfig(toolApproval = EndpointToolApproval(enabled = true, agentModes = on)),
+    )
+
+    @Test
+    fun `reset approvals is offered only when the server enables agent approval modes`() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.canResetApprovals).isFalse()
+
+        endpointConfigs.value = agentModes(on = true)
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.canResetApprovals).isTrue()
+
+        backendVersion.value = "0.8.8"
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.canResetApprovals).isFalse()
+    }
+
+    @Test
+    fun `reset approvals resets every tool of the agent and reports how it ended`() = runTest(testDispatcher) {
+        endpointConfigs.value = agentModes(on = true)
+        coEvery { agentRepository.resetToolApprovals("agent-1", null) } returns Result.Success(Unit)
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.resetApprovals()
+        assertThat(viewModel.uiState.value.isResettingApprovals).isTrue()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { agentRepository.resetToolApprovals("agent-1", null) }
+        assertThat(viewModel.uiState.value.isResettingApprovals).isFalse()
+        assertThat(viewModel.uiState.value.approvalResetNotice).isEqualTo(ApprovalResetNotice.SUCCESS)
+
+        coEvery { agentRepository.resetToolApprovals("agent-1", null) } returns forbidden()
+        viewModel.resetApprovals()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.approvalResetNotice).isEqualTo(ApprovalResetNotice.FORBIDDEN)
+
+        coEvery { agentRepository.resetToolApprovals("agent-1", null) } returns
+            Result.Error(exception = ApiException(statusCode = 503, message = "APPROVAL_RESET_FAILED"))
+        viewModel.resetApprovals()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.approvalResetNotice).isEqualTo(ApprovalResetNotice.FAILED)
+    }
 
     @Test
     fun `canEdit is true when the edit-gated expanded fetch succeeds`() = runTest(testDispatcher) {

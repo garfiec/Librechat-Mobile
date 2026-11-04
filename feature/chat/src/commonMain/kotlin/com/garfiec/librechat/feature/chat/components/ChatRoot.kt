@@ -27,6 +27,8 @@ import com.garfiec.librechat.core.ui.resources.open_in
 import com.garfiec.librechat.feature.chat.components.artifact.LocalInlineArtifactPrefs
 import com.garfiec.librechat.feature.chat.components.artifact.LocalMermaidRenderCache
 import com.garfiec.librechat.feature.chat.components.artifact.MermaidRenderCache
+import com.garfiec.librechat.feature.chat.components.mcpapp.LocalMcpApps
+import com.garfiec.librechat.feature.chat.components.mcpapp.McpApps
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.attachment_fallback
 import com.garfiec.librechat.feature.chat.resources.cd_close
@@ -78,8 +80,17 @@ fun ChatRoot(
      * defaulted, so neither platform's `ChatScreen` can quietly drop the wiring.
      */
     onOpenMemories: (() -> Unit)?,
+    /** Backs [LocalMcpSignIn]; null where nothing can sign in (the shared-chat viewer). */
+    mcpSignIn: McpSignIn?,
+    /**
+     * Backs [LocalMcpApps]: the chat's App rows and panel, or [McpApps.ReadOnly] in the shared-chat
+     * viewer. Required, not defaulted, so a screen cannot quietly hide every App row.
+     */
+    mcpApps: McpApps?,
     /** Required, not defaulted, so a screen cannot quietly leave the setting unread again (#586). */
     thinkingOpenByDefault: Boolean,
+    /** Backs [LocalToolContent]: fetches previewed tool calls in full. Null where nothing is previewed. */
+    toolContent: ToolContentHost? = null,
     content: @Composable () -> Unit,
 ) {
     // Driven from the chat screen's composition rather than a ViewModel collector, which defers the
@@ -95,9 +106,18 @@ fun ChatRoot(
     // both carry a null tool call.
     var subagentSheetOpen by rememberSaveable { mutableStateOf(false) }
     var subagentFocusToolCallId by rememberSaveable { mutableStateOf<String?>(null) }
+    var subagentFocusThreadId by rememberSaveable { mutableStateOf<String?>(null) }
     val openSubagentThreads = remember {
         { parentToolCallId: String? ->
             subagentFocusToolCallId = parentToolCallId
+            subagentFocusThreadId = null
+            subagentSheetOpen = true
+        }
+    }
+    val openSubagentThread = remember {
+        { threadId: String ->
+            subagentFocusToolCallId = null
+            subagentFocusThreadId = threadId
             subagentSheetOpen = true
         }
     }
@@ -123,6 +143,7 @@ fun ChatRoot(
         LocalMermaidRenderCache provides mermaidRenderCache,
         LocalParsedMarkdownCache provides parsedMarkdownCache,
         LocalSubagentProgress provides subagentProgress,
+        LocalToolContent provides toolContent,
         LocalPreviewOverrides provides previewOverrides,
         LocalExpansionStates provides rememberExpansionStates(),
         LocalChatMediaViewer provides onOpenMedia,
@@ -130,12 +151,15 @@ fun ChatRoot(
         LocalFileNotice provides onFileNotice,
         LocalOpenFileActions provides openFileActions,
         LocalSubagentThreads provides openSubagentThreads,
+        LocalOpenSubagentThread provides openSubagentThread,
         // Both halves: a conversation to read children from, and a server that can serve them.
         // The repository asks the version question again before it issues a request — this one
         // decides whether the affordance is drawn at all.
         LocalSubagentThreadsAvailable provides (conversationId != null && subagentThreadsSupported),
         LocalSiteIcons provides siteIconsLocal,
         LocalOpenMemories provides onOpenMemories,
+        LocalMcpSignIn provides mcpSignIn,
+        LocalMcpApps provides mcpApps,
         LocalThinkingOpenByDefault provides thinkingOpenByDefault,
     ) {
         PdfOverlayHost(onDownload = onDownloadAttachment) {
@@ -193,6 +217,7 @@ fun ChatRoot(
                 SubagentThreadsSheet(
                     parentConversationId = conversationId,
                     focusParentToolCallId = subagentFocusToolCallId,
+                    focusThreadId = subagentFocusThreadId,
                     onDismiss = { subagentSheetOpen = false },
                 )
             }

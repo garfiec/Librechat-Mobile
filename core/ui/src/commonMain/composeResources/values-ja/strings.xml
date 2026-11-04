@@ -74,6 +74,11 @@
     <string name="context_usage_cost">コスト</string>
     <string name="context_usage_cost_branch">コスト（このブランチ）</string>
     <string name="context_usage_cost_all">全ブランチ</string>
+    <string name="context_usage_last_turn">前回のターン</string>
+    <string name="context_usage_current_turn">現在のターン（途中）</string>
+    <string name="context_usage_waiting">モデルの使用量を待機中…</string>
+    <string name="context_usage_unavailable">このターンの使用量は利用できません</string>
+    <string name="context_usage_this_branch">このブランチ</string>
     <string name="context_usage_tools_all">ツール</string>
     <string name="context_usage_used">使用済み</string>
     <string name="timestamp_just_now">たった今</string>
@@ -173,6 +178,7 @@
     <string name="param_option_xhigh">非常に高い</string>
     <string name="param_option_max">最大</string>
     <string name="param_option_auto">自動</string>
+    <string name="param_option_off">オフ</string>
     <string name="param_option_concise">簡潔</string>
     <string name="param_option_detailed">詳細</string>
     <string name="param_option_standard">標準</string>
@@ -294,6 +300,9 @@
     <string name="acl_error_not_found">削除されたか、アクセス権がなくなりました。</string>
     <string name="acl_error_owner_protected">オーナーのアクセス権は変更できません。</string>
     <string name="acl_error_generic">アクセス権を更新できませんでした。もう一度お試しください。</string>
+    <string name="acl_error_busy">このアクセスに対する別の変更を処理中です。しばらくしてからもう一度お試しください。</string>
+    <string name="acl_error_unavailable">現在アクセスを変更できません。しばらくしてからもう一度お試しください。</string>
+    <string name="acl_error_audit_unavailable">サーバーが変更を記録できなかったため、アクセスは変更されませんでした。しばらくしてからもう一度お試しください。</string>
     <string name="acl_error_load">アクセスできるユーザーを読み込めませんでした。</string>
     <string name="bookmarks">ブックマーク</string>
     <string name="bookmark_new">新しいブックマーク</string>
@@ -321,4 +330,30 @@
     <plurals name="bookmark_error_too_long">
         <item quantity="other">%1$d 文字以内で入力してください</item>
     </plurals>
+    <string name="mcp_oauth_sign_in_title">%1$s にサインイン</string>
+    <string name="mcp_oauth_sign_in_close">サインインを閉じる</string>
+    <string name="pull_request">プルリクエスト</string>
+    <string name="merge_request">マージリクエスト</string>
+    <string name="pr_label">PR #%1$d</string>
+    <string name="pr_label_gitlab">MR !%1$d</string>
+    <string name="pr_state_open">オープン</string>
+    <string name="pr_state_draft">ドラフト</string>
+    <string name="pr_state_merged">マージ済み</string>
+    <string name="pr_state_closed">クローズ</string>
+    <string name="pr_state_conflicts">競合あり</string>
+    <string name="pr_checks_passing">成功</string>
+    <string name="pr_checks_failing">失敗</string>
+    <string name="pr_checks_running">実行中</string>
+    <string name="pr_checks_none">なし</string>
+    <string name="pr_state">状態: %1$s</string>
+    <string name="pr_checks">チェック: %1$s</string>
+    <string name="pr_menu_subtitle">%1$s · チェック%2$s</string>
+    <string name="pr_menu_subtitle_no_checks">%1$s · チェックなし</string>
+    <string name="pr_open_in_github">GitHub で開く</string>
+    <string name="pr_open_in_gitlab">GitLab で開く</string>
+    <string name="pr_open_in_bitbucket">Bitbucket で開く</string>
+    <string name="pr_refresh_failed">プルリクエストを更新できませんでした</string>
+    <string name="pr_retry">再試行</string>
+    <string name="pr_additions_cd">%1$d 行追加</string>
+    <string name="pr_deletions_cd">%1$d 行削除</string>
 </resources>

@@ -1,6 +1,9 @@
 package com.garfiec.librechat.core.data.repository
 
+import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.model.FileReference
+import com.garfiec.librechat.core.model.ReasoningOverride
+import com.garfiec.librechat.core.model.code.CodeWorkspaceSubmission
 import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.request.ChatRequest
 import com.garfiec.librechat.core.model.request.EditedContent
@@ -18,6 +21,8 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 object ChatPayloadBuilder {
+
+    private fun String?.nonBlankId(): String? = this?.takeIf { it.isNotBlank() }
 
     @OptIn(ExperimentalUuidApi::class)
     fun build(
@@ -47,19 +52,26 @@ object ChatPayloadBuilder {
         chatProjectId: String? = null,
         manualSkills: List<String>? = null,
         editedContent: EditedContent? = null,
+        reasoningOverride: ReasoningOverride? = null,
+        codeWorkspace: CodeWorkspaceSubmission? = null,
     ): ChatRequest {
-        val resolvedParentMessageId = parentMessageId ?: NO_PARENT
+        // v0.8.9-rc1 400s (`INVALID_MESSAGE_ID`) any turn id that is present but not 1-256 chars of
+        // `[A-Za-z0-9_:.-]`, and an empty string counts as present. Older servers read a blank id as
+        // absent, so a blank one is sent as absent here (a blank parent as a new root).
+        val resolvedParentMessageId = parentMessageId.nonBlankId() ?: NO_PARENT
         // Assistants take none (upstream createPayload strips them there). Otherwise deduped and
         // capped the way the server resolves them.
         val sentSkills = if (manualSkillsSupportedOn(endpoint)) normalizeManualSkills(manualSkills) else emptyList()
         // A non-agent turn that names skills sends the ephemeral skills flag; the resume pin
         // applies the same rule so the two fingerprints match.
         val resolvedEphemeralAgent = ephemeralAgent.withManualSkillsFlag(endpoint, sentSkills)
+        // Only the agents endpoint runs attached machines; anything else sends neither field.
+        val sentWorkspace = codeWorkspace?.takeIf { endpoint == EndpointConstants.AGENTS }
 
         return ChatRequest(
             text = text,
             conversationId = conversationId,
-            messageId = userMessageId,
+            messageId = userMessageId.nonBlankId(),
             parentMessageId = resolvedParentMessageId,
             endpoint = endpoint,
             endpointType = endpointType,
@@ -68,8 +80,8 @@ object ChatPayloadBuilder {
             model = model,
             spec = spec,
             agentId = agentId,
-            overrideParentMessageId = overrideParentMessageId,
-            responseMessageId = responseMessageId,
+            overrideParentMessageId = overrideParentMessageId.nonBlankId(),
+            responseMessageId = responseMessageId.nonBlankId(),
             isEdited = isEdited,
             // A compaction borrows the regenerate SHAPE client-side — no user message is minted —
             // but the server must see it as a compaction and nothing else: rc3's
@@ -102,6 +114,10 @@ object ChatPayloadBuilder {
             clientRequestId = Uuid.random().toString(),
             chatProjectId = chatProjectId,
             editedContent = if (compact == true) null else editedContent,
+            // A compaction runs no model turn, so it carries no reasoning choice.
+            reasoningOverride = if (compact == true) null else reasoningOverride,
+            codeEnvironmentMode = sentWorkspace?.mode,
+            codeWorkspaces = sentWorkspace?.workspaces,
         )
     }
 

@@ -1,6 +1,8 @@
 package com.garfiec.librechat.feature.auth.oauth
 
 import com.garfiec.librechat.core.network.client.LibreChatHttpClient
+import com.garfiec.librechat.core.ui.web.SSO_ANDROID_USER_AGENT
+import com.garfiec.librechat.core.ui.web.safariApplicationName
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 

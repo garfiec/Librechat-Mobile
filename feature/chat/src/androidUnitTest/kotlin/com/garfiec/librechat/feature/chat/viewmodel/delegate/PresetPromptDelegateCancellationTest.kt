@@ -28,7 +28,7 @@ class PresetPromptDelegateCancellationTest {
         val flow = MutableStateFlow(ChatUiState())
         val scope = CoroutineScope(StandardTestDispatcher(testScheduler) + Job())
         val delegate = PresetPromptDelegate(
-            handle = PresetPromptHandle(ChatStateHandle(flow, scope)),
+            handle = PresetPromptHandle(ChatStateHandle(flow, scope), persistDraft = {}),
             presetRepository = presetRepository,
             promptRepository = mockk<PromptRepository>(relaxed = true),
         )

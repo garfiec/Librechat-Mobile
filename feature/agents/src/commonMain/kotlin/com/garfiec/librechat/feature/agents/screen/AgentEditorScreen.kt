@@ -17,6 +17,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
+import com.garfiec.librechat.feature.agents.components.approvalResetText
 import com.garfiec.librechat.feature.agents.components.rememberAgentFilePicker
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
@@ -99,6 +100,14 @@ fun AgentEditorScreen(
             snackbarHostState.showSnackbar(localized)
             viewModel.dismissError()
         }
+    }
+
+    val resetText = uiState.approvalResetNotice?.let { approvalResetText(it) }
+    LaunchedEffect(uiState.approvalResetNotice) {
+        val text = resetText ?: return@LaunchedEffect
+        // Shown first: dismissing changes this effect's key, which would cancel the snackbar.
+        snackbarHostState.showSnackbar(text)
+        viewModel.dismissApprovalResetNotice()
     }
 
     LaunchedEffect(Unit) {

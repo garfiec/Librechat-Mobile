@@ -54,6 +54,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicato
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
+import com.garfiec.librechat.core.ui.components.acl.permissionUpdateFailureText
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.core.ui.sharing.accessRoleLabel
 import com.garfiec.librechat.core.ui.sharing.defaultAccessRoleId
@@ -223,7 +224,8 @@ fun AgentAclSharingSection(
                     Text(stringResource(Res.string.acl_add_principal))
                 }
 
-                uiState.error?.let { err ->
+                val failureText = uiState.updateFailure?.let { permissionUpdateFailureText(it) }
+                (failureText ?: uiState.error)?.let { err ->
                     Text(
                         text = err,
                         style = MaterialTheme.typography.bodySmall,

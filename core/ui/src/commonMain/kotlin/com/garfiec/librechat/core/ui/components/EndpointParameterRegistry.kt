@@ -175,6 +175,8 @@ object EndpointParameterRegistry {
                     if (def.key == "thinking") def.copy(description = BETWEEN_TOOLS_THINKING_DESCRIPTION) else def
                 }
         }
+        // Haiku 5.5+ keeps the toggle ("off" sends `disabled`) but rejects budgets and sampling.
+        if (hasAdaptiveHaikuThinking(model)) return definitions.filterNot { it.key in BETWEEN_TOOLS_HIDDEN_KEYS }
         val adjusted = if (settingsKey == "google") {
             val bounds = googleThinkingBudgetBounds(model)
             if (bounds == null) {
@@ -223,7 +225,14 @@ object EndpointParameterRegistry {
         isAtLeast(claudeVersion(model, SONNET_NAME_FIRST, SONNET_NUMBER_FIRST), 5, 5)
 
     /**
-     * MIRRORED from upstream `parseOpusVersion` / `parseSonnetVersion`. Both spellings: name-first
+     * MIRRORED from upstream `hasAdaptiveHaikuThinking` (v0.8.9-rc1): Haiku 5.5 and later run adaptive
+     * thinking and reject budgets and sampling, but still accept an explicit `disabled`.
+     */
+    private fun hasAdaptiveHaikuThinking(model: String): Boolean =
+        isAtLeast(claudeVersion(model, HAIKU_NAME_FIRST, HAIKU_NUMBER_FIRST), 5, 5)
+
+    /**
+     * MIRRORED from upstream `parseOpusVersion` / `parseSonnetVersion` / `parseHaikuVersion`. Both spellings: name-first
      * (`claude-opus-5-5`, `claude-opus-5.5`) and number-first (`claude-5-5-opus`). A missing minor
      * reads as 0, and the lookahead keeps a date suffix (`claude-opus-5-20260101`) from being read
      * as a minor.
@@ -242,6 +251,8 @@ object EndpointParameterRegistry {
     private val OPUS_NUMBER_FIRST = Regex("""claude-(\d+)(?:[-.](\d{1,2})(?!\d))?-opus""")
     private val SONNET_NAME_FIRST = Regex("""claude-sonnet[-.]?(\d+)(?:[-.](\d{1,2})(?!\d))?""")
     private val SONNET_NUMBER_FIRST = Regex("""claude-(\d+)(?:[-.](\d{1,2})(?!\d))?-sonnet""")
+    private val HAIKU_NAME_FIRST = Regex("""claude-haiku[-.]?(\d+)(?:[-.](\d{1,2})(?!\d))?""")
+    private val HAIKU_NUMBER_FIRST = Regex("""claude-(\d+)(?:[-.](\d{1,2})(?!\d))?-haiku""")
 
     // MYTHOS_CLASS_FAMILIES — new top-level Claude classes, peers of opus/sonnet/haiku.
     private val MYTHOS_CLASS = Regex("""claude-(?:fable|mythos)[-.]?\d""")
@@ -255,6 +266,26 @@ object EndpointParameterRegistry {
     )
 
     private data class ThinkingBudgetBounds(val min: Int, val max: Int)
+
+    /**
+     * MIRRORED from upstream `supportsAdaptiveThinking` (`packages/data-provider/src/bedrock.ts`): Opus
+     * and Sonnet 4.6+, Haiku 5.5+ and the Mythos class take `effort` rather than a token budget.
+     */
+    internal fun supportsAdaptiveThinking(model: String): Boolean =
+        isAtLeast(claudeVersion(model, OPUS_NAME_FIRST, OPUS_NUMBER_FIRST), 4, 6) ||
+            isAtLeast(claudeVersion(model, SONNET_NAME_FIRST, SONNET_NUMBER_FIRST), 4, 6) ||
+            hasAdaptiveHaikuThinking(model) ||
+            MYTHOS_CLASS.containsMatchIn(model)
+
+    /** Whether a Gemini model takes a token budget (upstream `getGoogleThinkingBudgetBounds != null`). */
+    internal fun hasGoogleThinkingBudget(model: String): Boolean = googleThinkingBudgetBounds(model) != null
+
+    /** The Grok 4.7 per-model effort list, matched as [applyModelAwareDefaults] does; null for other models. */
+    internal fun grok47Efforts(model: String): List<String>? =
+        GROK_4_7_EFFORT.takeIf { GROK_4_7.containsMatchIn(model.substringAfterLast('/')) }
+
+    /** gpt-6-sol / gpt-6-luna, which take no `minimal` effort. */
+    internal fun isGpt6SolOrLuna(model: String): Boolean = GPT_6_SOL_LUNA.containsMatchIn(model)
 
     /**
      * MIRRORED from upstream `getGoogleThinkingBudgetBounds` (`packages/data-provider/src/schemas.ts`).

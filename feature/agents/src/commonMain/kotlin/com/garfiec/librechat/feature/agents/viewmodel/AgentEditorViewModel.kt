@@ -4,6 +4,8 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.ToolConstants
+import com.garfiec.librechat.core.common.result.ApiException
+import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.AgentToolsRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
@@ -17,6 +19,7 @@ import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.AgentCategory
 import com.garfiec.librechat.core.model.AgentFile
 import com.garfiec.librechat.core.model.EndpointConfig
+import com.garfiec.librechat.core.model.EndpointToolApproval
 import com.garfiec.librechat.core.model.HandoffEdge
 import com.garfiec.librechat.core.model.SkillSummary
 import com.garfiec.librechat.core.model.config.paramSettingsKey
@@ -35,6 +38,8 @@ import com.garfiec.librechat.feature.agents.components.model.AgentVersionBasis
 import com.garfiec.librechat.feature.agents.components.model.MarketplaceItem
 import com.garfiec.librechat.feature.agents.components.model.SupportContactState
 import com.garfiec.librechat.feature.agents.util.ContentReader
+import com.garfiec.librechat.feature.agents.util.ToolApprovalMode
+import com.garfiec.librechat.feature.agents.util.withApprovalMode
 import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentActionsDelegate
 import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentCapabilitiesDelegate
 import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentFilesDelegate
@@ -171,6 +176,14 @@ data class AgentEditorUiState(
      * user's file everywhere. False until the version is known, so an unplaced server refuses.
      */
     val isAgentFileUnlinkAvailable: Boolean = false,
+    /** The server is v0.8.9-rc1+, the line agent tool approval modes landed on. */
+    val isToolApprovalVersionSupported: Boolean = false,
+    /** The agents entry's `toolApproval` policy from `/api/endpoints`; null on older servers. */
+    val toolApprovalPolicy: EndpointToolApproval? = null,
+    /** The MCP tool id whose remembered approvals are being reset, so its menu item can't fire twice. */
+    val resettingApprovalToolId: String? = null,
+    /** How the last per-tool reset ended; shown once as a snackbar. */
+    val approvalResetNotice: ApprovalResetNotice? = null,
     /**
      * Whether removing a file from this agent can destroy it (v0.8.8-rc4, landed 2026-09-17).
      * From rc4 the route runs the full delete — bytes and embeddings — for a file the caller owns
@@ -188,6 +201,20 @@ data class AgentEditorUiState(
     val dropParamsMap: Map<String, JsonElement>? = null,
     /** `/api/endpoints`, for [parameterProvider]. */
     val endpointConfigs: Map<String, EndpointConfig> = emptyMap(),
+    /**
+     * Whether a save keeps `model_parameters` to the inference parameters the server accepts for
+     * the agent's provider (v0.8.9-rc1+, which 400s on any other key). False until the server is
+     * known to carry the check, so an older server keeps every key it stored. See VERSION_GATES.md.
+     */
+    val filtersInferenceParameters: Boolean = false,
+    /**
+     * The loaded agent's instructions come from a linked prompt group (v0.8.9-rc1+). The field is
+     * then read-only here: mobile cannot change the link, and editing the text would change
+     * nothing the agent runs.
+     */
+    val instructionsLinkedToPrompt: Boolean = false,
+    /** Each endpoint's `customParams` as the agent inference filter reads it, keyed by endpoint name. */
+    val inferenceEndpoints: Map<String, AgentInferenceEndpoint> = emptyMap(),
     // Skills (v0.8.6) — agent-editor skills selector.
     /** Whether the agent `skills_enabled` master toggle is on. */
     val skillsEnabled: Boolean = false,
@@ -238,10 +265,10 @@ data class AgentEditorUiState(
     val chainAgentIds: List<String> = emptyList(),
     // Handoffs (graph edges) — saved as edges; v0.8.5+ only
     val handoffEdges: List<HandoffEdge> = emptyList(),
-    /** Raw edge payloads that failed to decode into [HandoffEdge] on load
-     *  (e.g. upstream added a field the mobile model doesn't know about).
-     *  Re-emitted as-is on save so we don't clobber server-side edges with
-     *  an empty list just because one was unparseable. */
+    /** Raw edge payloads the handoff editor does not own: ones that failed to decode into
+     *  [HandoffEdge] on load (e.g. upstream added a field the mobile model doesn't know about), and
+     *  edges that are not handoffs at all (direct edges, see `isHandoffEdge`). Re-emitted as-is on
+     *  save so we don't clobber server-side edges with an empty list. */
     val unparsedHandoffEdges: List<JsonElement> = emptyList(),
     val allAgents: List<AgentHandoffDisplayData> = emptyList(),
     // Support contact
@@ -257,12 +284,10 @@ data class AgentEditorUiState(
     val uploadingSlots: Set<AgentFileSlot> = emptySet(),
     /** A picked PDF needs its password before it can be uploaded; the screen asks for it. */
     val pdfPasswordPrompt: PdfPasswordPromptUi? = null,
-    /** Per-tool MCP options (`{ tool_name: { defer_loading: bool, programmatic:
-     *  bool }, … }`). Round-tripped on every save so values set via the web
-     *  client (deferred / programmatic flags) survive a mobile edit. The
-     *  save path prunes this map to the agent's current tool selection so
-     *  deselecting an MCP tool also drops its options. Mobile has no UI that
-     *  edits it yet. */
+    /** Per-tool options (`{ <tool>_mcp_<server>: { defer_loading, approval_mode, … }, … }`), keyed
+     *  by the full tool id. Round-tripped on every save so values set via the web client survive a
+     *  mobile edit; the save path prunes it to the agent's current tools (`pruneToolOptions`).
+     *  Mobile edits only `approval_mode` / `approval_revision` (the mode picker). */
     val toolOptions: JsonObject? = null,
     /** Agent runtime `additional_instructions`. See [Agent.additionalInstructions]
      *  for the wire-level caveat: round-trip is a no-op against the current
@@ -284,7 +309,17 @@ data class AgentEditorUiState(
      * `customParams.defaultParamsEndpoint`, not the generic one its name falls through to.
      */
     val parameterProvider: String get() = paramSettingsKey(provider, endpointConfigs)
+
+    /**
+     * The per-tool approval mode picker and its reset (v0.8.9-rc1). `agentModes` is already ANDed
+     * with `enabled` by the server, and is off unless the admin opted in. See VERSION_GATES.md.
+     */
+    val isToolApprovalModesAvailable: Boolean
+        get() = isToolApprovalVersionSupported && toolApprovalPolicy?.agentModes == true
 }
+
+/** How a reset of remembered tool approvals ended. Worded by the screen. */
+enum class ApprovalResetNotice { SUCCESS, FORBIDDEN, FAILED }
 
 /**
  * Per-tool authentication state derived from `GET /agents/tools/:id/auth`.
@@ -345,6 +380,12 @@ class AgentEditorViewModel(
         .flowOn(ioDispatcher)
         .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    /** The MCP rows of "Tools & Actions", approval mode resolved; see [selectedMcpToolRows]. */
+    val mcpToolRows: StateFlow<List<McpToolRowDisplay>> = _uiState
+        .map { it.selectedMcpToolRows() }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _events = MutableSharedFlow<AgentEditorEvent>()
     val events: SharedFlow<AgentEditorEvent> = _events.asSharedFlow()
@@ -506,6 +547,35 @@ class AgentEditorViewModel(
         stateHandle.update {
             copy(selectedMcpTools = if (toolName in selectedMcpTools) selectedMcpTools - toolName else selectedMcpTools + toolName)
         }
+    }
+
+    // --- Tool approval modes (v0.8.9-rc1) ---
+
+    /** Sets [toolId]'s mode in the form (null = inherit). Saved with the agent, like any field. */
+    fun onToolApprovalModeChanged(toolId: String, mode: ToolApprovalMode?) {
+        if (!uiState.value.isToolApprovalModesAvailable) return
+        stateHandle.update { copy(toolOptions = toolOptions.withApprovalMode(toolId, mode)) }
+    }
+
+    /**
+     * Forgets the user's remembered approvals for one tool of this saved agent. The server checks
+     * the SAVED mode, so the screen offers this only when that one is chat/always.
+     */
+    fun resetToolApprovals(toolId: String) {
+        val state = uiState.value
+        val agentId = state.agentId ?: return
+        if (!state.isToolApprovalModesAvailable || state.resettingApprovalToolId != null) return
+        stateHandle.update { copy(resettingApprovalToolId = toolId) }
+        viewModelScope.launch {
+            val result = agentRepository.resetToolApprovals(agentId, toolId)
+            stateHandle.update {
+                copy(resettingApprovalToolId = null, approvalResetNotice = result.toApprovalResetNotice())
+            }
+        }
+    }
+
+    fun dismissApprovalResetNotice() {
+        stateHandle.update { copy(approvalResetNotice = null) }
     }
 
     // --- Capability toggles ---
@@ -686,3 +756,16 @@ class AgentEditorViewModel(
         const val AGENT_FILE_REMOVE_FAILED_MARKER = "agent_file_remove_failed"
     }
 }
+
+/** 403 is "not allowed for this agent or tool"; anything else (503, 429, offline) is worth a retry. */
+internal fun Result<Unit>.toApprovalResetNotice(): ApprovalResetNotice? = when (this) {
+    is Result.Success -> ApprovalResetNotice.SUCCESS
+    is Result.Error -> if ((exception as? ApiException)?.statusCode == HTTP_FORBIDDEN) {
+        ApprovalResetNotice.FORBIDDEN
+    } else {
+        ApprovalResetNotice.FAILED
+    }
+    is Result.Loading -> null
+}
+
+private const val HTTP_FORBIDDEN = 403

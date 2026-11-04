@@ -73,7 +73,7 @@ class ConversationMediaViewModel(
     private fun load() {
         viewModelScope.launch {
             baseUrl = serverDataStore.awaitBaseUrl()
-            when (val result = messageRepository.getMessages(conversationId)) {
+            when (val result = messageRepository.getMessages(conversationId, toolPreviews = true)) {
                 is Result.Success -> {
                     allMessages = result.data
                     recompute()

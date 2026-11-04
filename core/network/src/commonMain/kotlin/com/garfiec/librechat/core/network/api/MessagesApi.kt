@@ -4,23 +4,70 @@ import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.request.BranchMessageRequest
 import com.garfiec.librechat.core.model.request.FeedbackRequest
+import com.garfiec.librechat.core.model.request.OwnerTextRequest
 import com.garfiec.librechat.core.model.request.UpdateMessageRequest
 import com.garfiec.librechat.core.model.response.MessageSearchResponse
+import com.garfiec.librechat.core.model.response.OwnerTextResponse
+import com.garfiec.librechat.core.model.response.ToolCallPartResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.retry
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
+import io.ktor.http.appendPathSegments
 import io.ktor.http.path
 
 class MessagesApi constructor(
     private val client: HttpClient,
 ) {
-    suspend fun getMessages(conversationId: String): List<Message> =
+    /**
+     * A conversation's messages. With [toolPreviews] a v0.8.9-rc1 server shortens settled tool calls
+     * and marks them (`AgentToolCall.isPreview`); a server without the feature, or with it turned
+     * off, ignores the parameter and sends everything in full with no markers.
+     */
+    suspend fun getMessages(conversationId: String, toolPreviews: Boolean): List<Message> =
         client.get {
             url { path("api/messages/$conversationId") }
+            if (toolPreviews) withToolCallPreviews()
+        }.body()
+
+    /**
+     * A conversation's messages in full, tried once: an export the user is waiting on. Its caller
+     * falls back to the cache on failure, and the client's retry backoff would only hold that answer
+     * back (several seconds offline) after the user has moved on.
+     */
+    suspend fun getMessagesOnce(conversationId: String): List<Message> =
+        client.get {
+            url { path("api/messages/$conversationId") }
+            retry { noRetry() }
+        }.body()
+
+    /**
+     * One stored tool call in full (v0.8.9-rc1), found by its identity: [toolCallId], plus [stepId]
+     * and [agentId] when the call has them (an absent one only matches a call that has none).
+     * [partIndex] is the raw index into `Message.content`, which the server only echoes. Every id
+     * is an encoded path segment or query value: provider call ids can carry `|` and the like.
+     */
+    suspend fun getToolCallPart(
+        conversationId: String,
+        messageId: String,
+        partIndex: Int,
+        toolCallId: String,
+        stepId: String?,
+        agentId: String?,
+    ): ToolCallPartResponse =
+        client.get {
+            url {
+                path("api/messages")
+                appendPathSegments(listOf(conversationId, messageId), encodeSlash = true)
+                appendPathSegments("parts", partIndex.toString())
+            }
+            parameter("toolCallId", toolCallId)
+            stepId?.takeIf { it.isNotEmpty() }?.let { parameter("stepId", it) }
+            agentId?.takeIf { it.isNotEmpty() }?.let { parameter("agentId", it) }
         }.body()
 
     /**
@@ -46,9 +93,21 @@ class MessagesApi constructor(
             setBody(request)
         }.body()
 
+    /**
+     * The author's original text of redacted user turns (v0.8.9-rc1). At most 50 ids per call; a
+     * 503 means the server can't open them now.
+     */
+    suspend fun getOwnerTexts(conversationId: String, request: OwnerTextRequest): OwnerTextResponse =
+        client.post {
+            url { path("api/messages/$conversationId/owner-text") }
+            setBody(request)
+        }.body()
+
+    /** Only the response is shaped by the preview opt-in; the copy is made server-side, in full. */
     suspend fun branchMessage(request: BranchMessageRequest): Message =
         client.post {
             url { path("api/messages/branch") }
+            withToolCallPreviews()
             setBody(request)
         }.body()
 

@@ -47,6 +47,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -66,6 +67,7 @@ import com.garfiec.librechat.core.ui.components.EmptyState
 import com.garfiec.librechat.core.ui.components.ErrorBanner
 import com.garfiec.librechat.core.ui.components.UnderBarsPullToRefreshBox
 import com.garfiec.librechat.core.ui.components.UpToTwoColumns
+import com.garfiec.librechat.core.ui.components.rememberDraftField
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
@@ -307,17 +309,18 @@ private fun LazyGridScope.memoriesHeader(
     }
     if (uiState.showSearch) {
         fullWidthItem(key = "search") {
+            val query = rememberDraftField(uiState.query)
             AdaptiveOutlinedTextField(
-                value = uiState.query,
-                onValueChange = onQueryChange,
+                value = query.value,
+                onValueChange = { query.onValueChange(it, onQueryChange) },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = {
                     Text(stringResource(Res.string.memories_search_hint), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                trailingIcon = if (uiState.query.isNotEmpty()) {
+                trailingIcon = if (query.value.text.isNotEmpty()) {
                     {
-                        IconButton(onClick = { onQueryChange("") }) {
+                        IconButton(onClick = { query.onValueChange(TextFieldValue(), onQueryChange) }) {
                             Icon(Icons.Default.Close, contentDescription = stringResource(Res.string.action_clear))
                         }
                     }

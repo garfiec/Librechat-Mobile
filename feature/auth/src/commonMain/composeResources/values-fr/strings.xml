@@ -68,7 +68,11 @@
 
     <!-- Terms -->
     <string name="terms_title">Conditions d'utilisation</string>
+    <string name="terms_no_content">Ce serveur n'a pas fourni le texte de ses conditions d'utilisation.</string>
     <string name="i_accept">J'accepte</string>
+    <string name="terms_decline">Refuser</string>
+    <string name="privacy_policy">Politique de confidentialité</string>
+    <string name="terms_of_service">Conditions d'utilisation</string>
     <string name="retry">Réessayer</string>
 
     <!-- Common -->
@@ -85,4 +89,34 @@
     <string name="diagnostic_log_failed">Impossible d'exporter le journal.</string>
     <string name="user_ca_notice">Le certificat de ce serveur est approuvé par une autorité de certification installée sur cet appareil, et non par une autorité intégrée à Android. Ne continuez que si vous ou votre organisation l'avez installée.</string>
     <string name="continue_with_provider">Continuer avec %1$s</string>
+    <string name="two_factor_setup_title">Configurer l'authentification à deux facteurs</string>
+    <string name="two_factor_setup_required_description">Ce serveur exige l'authentification à deux facteurs. Configurez-la pour continuer.</string>
+    <string name="two_factor_setup_begin">Commencer la configuration</string>
+    <string name="two_factor_setup_authenticator_heading">Ajoutez ce compte à votre application d'authentification</string>
+    <string name="two_factor_setup_authenticator_body">Ouvrez-le dans votre application d'authentification, saisissez la clé de configuration ou scannez le code QR depuis un autre appareil.</string>
+    <string name="two_factor_setup_open_authenticator">Ouvrir l'application d'authentification</string>
+    <string name="two_factor_setup_no_authenticator">Aucune application d'authentification sur cet appareil n'a pu ouvrir le lien. Saisissez plutôt la clé de configuration.</string>
+    <string name="two_factor_setup_key">Clé de configuration</string>
+    <string name="two_factor_setup_show_qr">Afficher le code QR</string>
+    <string name="two_factor_setup_hide_qr">Masquer le code QR</string>
+    <string name="two_factor_setup_qr_description">Code QR pour votre application d'authentification</string>
+    <string name="two_factor_setup_next">Suivant</string>
+    <string name="two_factor_setup_verify_heading">Saisissez le code de votre application d'authentification</string>
+    <string name="two_factor_setup_backup_heading">Enregistrez vos codes de secours</string>
+    <string name="two_factor_setup_backup_body">Chaque code vous permet de vous connecter une fois si vous perdez votre application d'authentification. Conservez-les en lieu sûr ; ils ne seront plus affichés.</string>
+    <string name="two_factor_setup_save_codes">Enregistrer dans un fichier</string>
+    <string name="two_factor_setup_codes_saved">Codes de secours enregistrés.</string>
+    <string name="two_factor_setup_codes_acknowledged">J'ai enregistré ces codes</string>
+    <string name="two_factor_setup_complete">Terminer la configuration</string>
+    <string name="two_factor_setup_expired">Votre session de configuration a expiré. Reconnectez-vous pour continuer.</string>
+    <string name="two_factor_setup_back_to_sign_in">Retour à la connexion</string>
+    <string name="two_factor_setup_error_start">Impossible de démarrer la configuration. Réessayez.</string>
+    <string name="two_factor_setup_error_invalid">Ce code ne correspond pas. Saisissez le code actuel de votre application d'authentification.</string>
+    <string name="two_factor_setup_error_rate_limited">Trop de tentatives. Patientez un instant, puis réessayez.</string>
+    <string name="two_factor_setup_error_finalize">Impossible de terminer la configuration. Réessayez.</string>
+    <string name="two_factor_setup_error_connection">Impossible de joindre le serveur. Vérifiez votre connexion et réessayez.</string>
+    <string name="login_error_federated_blocked">Ce compte se connecte via son fournisseur d'identité. Utilisez plutôt cette option de connexion.</string>
+    <string name="auth_error_tenant_required">Ce serveur doit savoir à quelle organisation vous appartenez. Utilisez l'adresse de votre organisation pour ce serveur.</string>
+    <string name="login_two_factor_setup_required">Ce serveur exige désormais l'authentification à deux facteurs pour %1$s. Connectez-vous pour la configurer.</string>
+    <string name="use_another_account">Utiliser un autre compte</string>
 </resources>

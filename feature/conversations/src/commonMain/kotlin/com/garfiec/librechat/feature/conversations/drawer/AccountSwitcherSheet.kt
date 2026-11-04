@@ -64,6 +64,7 @@ import com.garfiec.librechat.core.ui.components.rememberListDragSelection
 import com.garfiec.librechat.core.ui.components.testTagsAsResourceIdSubtree
 import com.garfiec.librechat.feature.conversations.resources.Res
 import com.garfiec.librechat.feature.conversations.resources.account_signed_out
+import com.garfiec.librechat.feature.conversations.resources.account_two_factor_setup_required
 import com.garfiec.librechat.feature.conversations.resources.accounts
 import com.garfiec.librechat.feature.conversations.resources.add_account
 import com.garfiec.librechat.feature.conversations.resources.cancel
@@ -217,15 +218,17 @@ internal fun adjacentAccountId(accounts: List<AccountUiModel>, delta: Int): Stri
 
 /**
  * The roster bottom sheet: every signed-in account (active first), tap to switch, per-row remove
- * (confirmed by [RemoveAccountDialog], hoisted by the caller), and an add-account entry.
+ * (confirmed by [RemoveAccountDialog], hoisted by the caller), and an add-account entry. A null
+ * [onRemoveAccountRequest] or [onAddAccount] leaves that action out, for a sheet that only switches
+ * (a sign-in screen's way to another signed-in account).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountSwitcherSheet(
     accounts: List<AccountUiModel>,
     onSwitchAccount: (String) -> Unit,
-    onRemoveAccountRequest: (AccountUiModel) -> Unit,
-    onAddAccount: () -> Unit,
+    onRemoveAccountRequest: ((AccountUiModel) -> Unit)?,
+    onAddAccount: (() -> Unit)?,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -253,38 +256,15 @@ fun AccountSwitcherSheet(
                     onClick = {
                         when {
                             account.isActive -> Unit
-                            account.needsSignIn -> onAddAccount()
+                            account.needsSignIn -> onAddAccount?.invoke()
                             else -> onSwitchAccount(account.accountId)
                         }
                     },
-                    onRemoveRequest = { onRemoveAccountRequest(account) },
+                    onRemoveRequest = onRemoveAccountRequest?.let { remove -> { remove(account) } },
                     dragSelection = dragSelection,
                 )
             }
-            AdaptiveDivider(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                color = MaterialTheme.colorScheme.outlineVariant,
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("account_add")
-                    .dragSelectRow(dragSelection, onClick = onAddAccount)
-                    .padding(horizontal = 24.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp).dragSelectRowIcon(),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Text(
-                    text = stringResource(Res.string.add_account),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            }
+            if (onAddAccount != null) AddAccountRow(onAddAccount, dragSelection)
             Spacer(modifier = Modifier.height(8.dp))
         }
     }
@@ -294,7 +274,7 @@ fun AccountSwitcherSheet(
 private fun AccountRow(
     account: AccountUiModel,
     onClick: () -> Unit,
-    onRemoveRequest: () -> Unit,
+    onRemoveRequest: (() -> Unit)?,
     dragSelection: ListDragSelection,
 ) {
     Row(
@@ -321,10 +301,11 @@ private fun AccountRow(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = if (account.needsSignIn) {
-                    stringResource(Res.string.account_signed_out, account.serverHost)
-                } else {
-                    account.serverHost
+                text = when {
+                    account.needsTwoFactorSetup ->
+                        stringResource(Res.string.account_two_factor_setup_required, account.serverHost)
+                    account.needsSignIn -> stringResource(Res.string.account_signed_out, account.serverHost)
+                    else -> account.serverHost
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = if (account.needsSignIn) {
@@ -345,6 +326,11 @@ private fun AccountRow(
             )
             Spacer(modifier = Modifier.width(12.dp))
         }
+        if (onRemoveRequest == null) {
+            // The remove button's own inset, so the text ends where the add row's does.
+            Spacer(modifier = Modifier.width(16.dp))
+            return@Row
+        }
         IconButton(onClick = onRemoveRequest, modifier = Modifier.dragSelectExclude(dragSelection)) {
             Icon(
                 imageVector = Icons.Outlined.Delete,
@@ -353,6 +339,34 @@ private fun AccountRow(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+@Composable
+private fun AddAccountRow(onAddAccount: () -> Unit, dragSelection: ListDragSelection) = Column {
+    AdaptiveDivider(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        color = MaterialTheme.colorScheme.outlineVariant,
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("account_add")
+            .dragSelectRow(dragSelection, onClick = onAddAccount)
+            .padding(horizontal = 24.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Default.Add,
+            contentDescription = null,
+            modifier = Modifier.size(24.dp).dragSelectRowIcon(),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            text = stringResource(Res.string.add_account),
+            style = MaterialTheme.typography.bodyLarge,
+        )
     }
 }
 

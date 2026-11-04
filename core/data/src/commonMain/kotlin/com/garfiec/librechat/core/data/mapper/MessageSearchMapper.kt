@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.data.mapper
 import com.garfiec.librechat.core.data.db.entity.MessageEntity
 import com.garfiec.librechat.core.data.db.entity.MessageSearchEntity
 import com.garfiec.librechat.core.model.ContentType
+import com.garfiec.librechat.core.model.content.LegacyThinking
 import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.content.flattenSearchableText
 import com.garfiec.librechat.core.model.content.stripCitations
@@ -61,27 +62,6 @@ private fun legacyIndexedText(raw: String?): IndexedText {
     val combined = (if (split.answer.isBlank()) split.reasoning else split.answer + REASONING_SEPARATOR + split.reasoning).capForIndex()
     val visibleLength = if (split.answer.isBlank()) 0 else minOf(split.answer.length, combined.length)
     return IndexedText(combined, visibleLength)
-}
-
-/**
- * Reasoning saved inside a message's text, from before reasoning had its own content part:
- * `:::thinking\n…\n:::` and then the answer. The web client splits it the same way
- * (`parseThinkingContent`, `MessageContent.tsx`): the first such block is the reasoning, and the
- * text without it, trimmed, is the answer.
- */
-object LegacyThinking {
-    private val BLOCK = Regex(":::thinking([\\s\\S]*?):::")
-
-    class Split(val answer: String, val reasoning: String)
-
-    /** The answer and the reasoning, or null when [text] holds no thinking block. */
-    fun split(text: String): Split? {
-        if (!text.contains(MARKER)) return null
-        val match = BLOCK.find(text) ?: return null
-        return Split(answer = text.removeRange(match.range).trim(), reasoning = match.groupValues[1].trim())
-    }
-
-    private const val MARKER = ":::thinking"
 }
 
 /** Joins the visible text to the reasoning, so a phrase can't run across the two. */

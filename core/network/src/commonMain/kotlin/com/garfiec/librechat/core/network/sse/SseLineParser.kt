@@ -36,7 +36,9 @@ class SseLineParser(
                 } ?: break
 
                 when {
-                    // Comment lines (keepalive pings)
+                    // Comment lines: v0.8.9-rc1's keepalive (`:\n\n` after 25 s of quiet,
+                    // packages/api/src/stream/keepalive.ts). Skipped, but the read itself restarts
+                    // the stall timeout below, which is what keeps a silent run attached.
                     line.startsWith(":") -> continue
 
                     // Event type
@@ -90,7 +92,11 @@ class SseLineParser(
     }
 
     companion object {
-        /** Default timeout: 120 seconds to accommodate long AI thinking/agent blocks. */
+        /**
+         * Default timeout: 120 seconds to accommodate long AI thinking/agent blocks. Not lowered for
+         * v0.8.9-rc1's 25 s keepalive: older servers send nothing while a run is quiet, and an
+         * operator can set `endpoints.agents.streamKeepaliveIntervalMs` to 0 or past this window.
+         */
         const val DEFAULT_LINE_READ_TIMEOUT_MS = 120_000L
     }
 }

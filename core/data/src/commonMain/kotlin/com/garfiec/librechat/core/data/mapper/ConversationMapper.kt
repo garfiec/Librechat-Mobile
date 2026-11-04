@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.data.mapper
 import com.garfiec.librechat.core.data.db.entity.ConversationEntity
 import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.Preset
+import com.garfiec.librechat.core.model.isCodeConversation
 import com.garfiec.librechat.core.model.parameterPreset
 import com.garfiec.librechat.core.model.withParameters
 import kotlinx.serialization.Serializable
@@ -40,6 +41,12 @@ fun Conversation.toEntity(): ConversationEntity {
         },
         createdAt = createdAt?.toEpochMilliseconds() ?: now,
         updatedAt = updatedAt?.toEpochMilliseconds() ?: now,
+        lastResponseAt = lastResponseAt?.toEpochMilliseconds(),
+        lastResponseMessageId = lastResponseMessageId,
+        lastResponseIsManual = lastResponseIsManual,
+        isMarkedUnread = isMarkedUnread,
+        lastSeenAt = lastSeenAt?.toEpochMilliseconds(),
+        isCodeConversation = isCodeConversation,
     )
 }
 
@@ -68,6 +75,12 @@ fun ConversationEntity.toModel(): Conversation = Conversation(
     greeting = greeting,
     createdAt = Instant.fromEpochMilliseconds(createdAt),
     updatedAt = Instant.fromEpochMilliseconds(updatedAt),
+    lastResponseAt = lastResponseAt?.let(Instant::fromEpochMilliseconds),
+    lastResponseMessageId = lastResponseMessageId,
+    lastResponseIsManual = lastResponseIsManual,
+    isMarkedUnread = isMarkedUnread,
+    lastSeenAt = lastSeenAt?.let(Instant::fromEpochMilliseconds),
+    cachedIsCodeConversation = isCodeConversation,
 ).let { conversation ->
     decodeParams(modelParams)?.let {
         conversation.withParameters(it.params).copy(parametersAsOf = Instant.fromEpochMilliseconds(it.asOf))
