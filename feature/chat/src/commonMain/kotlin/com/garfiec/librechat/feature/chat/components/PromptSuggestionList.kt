@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -118,7 +118,7 @@ private fun PickerRow(
             typeLabel = stringResource(Res.string.picker_type_prompt)
         }
         is ComposerPickerItem.Skill -> {
-            icon = Icons.Default.Extension
+            icon = Icons.Default.AutoAwesome
             title = row.skill.title
             description = row.skill.description
             typeLabel = stringResource(Res.string.picker_type_skill)

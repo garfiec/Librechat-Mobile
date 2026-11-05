@@ -1,11 +1,11 @@
 package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.FindInPage
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -34,8 +34,9 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * Single source of truth for the icon + label + description of the ephemeral chat tools,
- * shared by the tools bottom sheet ([ChatToolsSheetContent]) and the input-bar pinned-tool
- * chips ([PinnedToolsRow]) so the two surfaces can't drift. Returns null for keys mobile
+ * shared by the tools bottom sheet ([ChatToolsSheetContent]) and the composer's settings line
+ * ([ComposerSettingsLine]) so the two surfaces can't drift. Memory's glyph is not the brain, which
+ * means Thinking (the settings line's Thinking chip, the reasoning block). Returns null for keys mobile
  * doesn't surface as a toggle (e.g. `artifacts`, `mcp`, MCP server names).
  */
 internal data class EphemeralToolMeta(
@@ -54,7 +55,7 @@ internal fun ephemeralToolMeta(toolKey: String): EphemeralToolMeta? = when (tool
     ToolConstants.CODE_INTERPRETER ->
         EphemeralToolMeta(Icons.Default.Code, Res.string.tool_code, Res.string.tool_code_desc)
     ToolConstants.MEMORY ->
-        EphemeralToolMeta(Icons.Default.Psychology, Res.string.tool_memory, Res.string.tool_memory_desc)
+        EphemeralToolMeta(Icons.Default.AutoStories, Res.string.tool_memory, Res.string.tool_memory_desc)
     ToolConstants.SKILLS ->
         EphemeralToolMeta(Icons.Default.Extension, Res.string.tool_skills, Res.string.tool_skills_desc)
     else -> null

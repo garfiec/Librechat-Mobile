@@ -1057,7 +1057,7 @@ while attachments are staged, so neither promises something the tap won't do.
 
 ## Composer chrome (what sits around the field)
 Everything the composer draws around its field (above it: pull request, steers, the queue and its
-banners, tool chips, the code workspace, pinned tools, the context gauge; in it: the attachment
+banners, the code workspace, the settings line with its context ring; in it: the attachment
 stack) and the "+" button's dots is **one view-data holder, `ComposerChrome`**, built in `ChatScreen` and threaded
 once through the `ChatComposer` expect, both actuals, `ChatInput` / `IosChatInput` and
 `ChatInputState.chrome`. A new row adds a field there, never a parameter to those five signatures:
@@ -1136,8 +1136,36 @@ first, then images, files, skills, quotes.
   this device left it (`ConversationWebSearchStore`, next section). The Skills toggle is per
   conversation (`SkillsToggleDelegate`).
 - Tool toggles and MCP servers live in the paged "+" options sheet (`ChatToolsSheetContent`),
-  reached from the composer's `onOpenTools`, plus the server's pinned chips (`PinnedToolsRow`, in
-  the composer chrome above).
+  reached from the composer's `onOpenTools`. What is on shows on the composer's settings line (next).
+- **The settings line** (`ComposerSettingsLine`, above the field): one chip per thing, on one line
+  that scrolls sideways (end fade) and never wraps. Order: a leading slot (for the code workspace's
+  chips; nothing fills it yet), the tools in the "+" sheet's order, the selected MCP servers in list order, Thinking,
+  and the context ring pinned at the end. Hidden when it would hold nothing.
+  - **Mapped once, as view data**: `settingChipsOf` (`util/SettingChips.kt`, pure) over
+    `ChatUiState.settingChipInputs`, in the ViewModel's `uiState` combine (`SettingChipsMemo`), onto
+    `ChatUiState.settingChips`. Tools come from the tools in use (`effectiveEnabledTools`) and the
+    server's `defaultPinnedTools`, and a tool shows only where its own gate is open
+    (`ChatUiState.toolGateOpen`, the gates the sheet offers its rows on), so a stored flag the server
+    can't run (URL context on a non-Google model, memory without the capability) never appears.
+    MCP servers need `MCP_SERVERS.USE` unless the spec adds them. Without the tool controls
+    (`toolbarShown` false: an agent, a `hideBadgeRow` spec) only Thinking and the workspace stay.
+  - **States** (`SettingChipState`): on = filled; pinned but off = outlined (an opaque fill and the
+    M3 border in Material, glass's resting fill in glass, `AdaptiveChipDefaults.overlayFilterChipColors`);
+    locked by the spec (`lockedTools`, `lockedMcpServers`) = filled with a lock.
+  - **Taps** (`SettingChips.tapFor`, handled by `rememberSettingChipTap` in `ChatScreen`): a locked
+    chip says "Set by <spec label>" in a snackbar; a pinned tool switches and stays; anything else
+    switches off, leaves the line and offers Undo, which switches it back on unless the sheet already
+    did (`ChatViewModel.turnSettingChipBackOn`). The switches are the sheet's: code, file search,
+    memory and MCP are global, so the copy says "<tool> turned off", not "for this chat".
+  - MCP chips carry a status dot from `isConnected` (connected = `statusColors().success`, else
+    neutral). Thinking uses the brain glyph (Memory uses `AutoStories`, here and in the drawer),
+    tints tertiary while a one-turn choice is staged, in both styles, and states it. Picked skills use
+    the sparkle (`AutoAwesome`) on the stack, the `$` picker, the sent bubble and the skill card.
+  - **The context ring** (`ContextRing`, only with the above-the-field placement): a 24dp ring with
+    the percentage inside, `pressureColor`, a tertiary dot while the compact suggestion is due. A tap
+    opens `ContextUsageSheet`, or `CompactConfirmDialog` while the suggestion is due, which keeps
+    "Not now" (`snoozeCompactNudge`). It replaces the centred gauge pill row; the sheet and menu
+    placements are unchanged.
 - URL context shows only on a Google parameter set and a model the server runs it on
   (`urlContextProviderGate`, `supportsUrlContext`: Gemini 2.5+, not image/live/TTS/audio). The server
   skips it elsewhere with only a debug log. Web shows it on every Google model; the divergence is deliberate.
@@ -1889,10 +1917,10 @@ ported from upstream `tokens.ts`; registered in `scripts/mirrors.json`). Two rul
   carries over a reading that replaced it. Otherwise a run that reported nothing pins the previous
   run's value.
 
-The breakdown (`util/ContextBreakdown.kt`, rendered by `ContextUsageGauge.kt`) ports web's
+The breakdown (`util/ContextBreakdown.kt`, rendered by `ContextBreakdownCard` from `ContextUsageGauge.kt`'s sheet and gauges) ports web's
 `Breakdown.tsx`; Totals and Cost come from `util/UsageTotals.kt`. The percentage is written by
 `percentLabel`, from the localized `context_percent` / `context_percent_estimate` (`42 %` in German
-and French), for the gauge and the ⋮ menu's subtitle alike. One more load-bearing rule:
+and French), for the gauge, the composer's context ring and the ⋮ menu's subtitle alike. One more load-bearing rule:
 - **Live usage is attributed to the Final frame's response id, never the tail.** `LiveReplyDelegate`
   folds every `on_token_usage` (buckets included, deduped by `runId:seq`, plus the resume frame's
   `collectedUsage`) into `pendingUsage`, which counts until its reply carries `metadata.usage`.

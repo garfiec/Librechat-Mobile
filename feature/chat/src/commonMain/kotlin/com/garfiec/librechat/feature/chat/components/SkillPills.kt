@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -55,7 +55,7 @@ internal fun SkillPills(
             SkillPill(name = name, icon = Icons.Default.PushPin, cd = stringResource(Res.string.cd_skill_always_applied, name))
         }
         manual.forEach { name ->
-            SkillPill(name = name, icon = Icons.Default.Extension, cd = stringResource(Res.string.cd_skill_used, name))
+            SkillPill(name = name, icon = Icons.Default.AutoAwesome, cd = stringResource(Res.string.cd_skill_used, name))
         }
     }
 }
