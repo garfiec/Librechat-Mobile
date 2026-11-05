@@ -254,16 +254,11 @@
     <string name="tool_mcp_desc">Model Context Protocolサーバー</string>
     <string name="cd_web_search_enabled">ウェブ検索が有効</string>
     <string name="cd_quoted_excerpt">引用された抜粋</string>
-    <string name="cd_remove_quote">引用を削除</string>
     <string name="selection_add_to_chat">チャットに追加</string>
     <string name="cd_code_enabled">コードインタープリターが有効</string>
     <string name="cd_file_search_enabled">ファイル検索が有効</string>
 
     <!-- Attachments -->
-    <string name="files_count">ファイル（%1$d）</string>
-    <string name="files_count_with_text">ファイル (%1$d) · %2$d 件はテキスト</string>
-    <string name="cd_files_attached">%1$d 件のファイルが添付されています。タップしてプレビュー</string>
-    <string name="cd_files_attached_with_text">%1$d 件のファイルが添付され、%2$d 件はテキストとして送信されます。タップしてプレビュー</string>
     <string name="upload_routing_sheet_title">これらをどのように送信しますか？</string>
     <string name="upload_routing_sheet_title_single">これをどのように送信しますか？</string>
     <string name="upload_routing_option_provider">モデルへ直接</string>
@@ -275,8 +270,6 @@
     <string name="upload_routing_apply_all">すべてに適用</string>
     <string name="upload_routing_attach">添付</string>
     <string name="cd_upload_route_text">抽出したテキストとして送信</string>
-    <string name="cd_attached_file">添付ファイル: %1$s</string>
-    <string name="cd_preview_file">%1$s のプレビュー</string>
     <string name="cd_remove_file">%1$s を削除</string>
 
     <!-- Agent handoff -->
@@ -649,7 +642,6 @@
     <string name="picker_no_matches">一致するものはありません</string>
     <string name="picker_loading_skills">スキルを読み込み中…</string>
     <string name="picker_skills_failed">スキルを読み込めませんでした</string>
-    <string name="cd_pending_skills">次のメッセージで使うスキル</string>
     <string name="cd_remove_skill">スキル %1$s を削除</string>
     <string name="cd_skill_always_applied">常に適用されるスキル: %1$s</string>
     <string name="cd_skill_used">使用したスキル: %1$s</string>
@@ -1158,4 +1150,28 @@
     <string name="cd_run_code_previous">前の実行</string>
     <string name="cd_run_code_next">次の実行</string>
     <string name="notice_run_code_failed">このコードを実行できませんでした。</string>
+    <!-- Composer attachment stack and list -->
+    <string name="draft_row_uploading">アップロード中…</string>
+    <string name="draft_row_failed">アップロードできませんでした · タップして再試行</string>
+    <string name="draft_row_skill">スキル</string>
+    <string name="draft_row_quote">引用</string>
+    <string name="draft_subtitle_join">%1$s · %2$s</string>
+    <string name="cd_cancel_upload">%1$s のアップロードをキャンセル</string>
+    <string name="cd_remove_quote_named">引用を削除: %1$s</string>
+    <string name="cd_retry_upload">%1$s のアップロードを再試行</string>
+    <string name="draft_item_removed">%1$s を削除しました</string>
+    <string name="draft_quote_removed">引用を削除しました</string>
+    <string name="action_undo">元に戻す</string>
+    <plurals name="cd_draft_stack">
+        <item quantity="other">このメッセージに %1$d 件</item>
+    </plurals>
+    <plurals name="draft_item_attached_announcement">
+        <item quantity="other">%1$s を添付しました。%2$d 件</item>
+    </plurals>
+    <plurals name="draft_list_header">
+        <item quantity="other">このメッセージと一緒に · %1$d</item>
+    </plurals>
+    <plurals name="draft_uploads_failed">
+        <item quantity="other">%1$d 件のファイルをアップロードできませんでした。リストでタップして再試行するか、削除してください。</item>
+    </plurals>
 </resources>

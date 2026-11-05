@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
@@ -27,6 +28,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
@@ -40,6 +43,7 @@ import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.model.response.pickerMimeTypes
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
+import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.feature.chat.components.AskUserQuestionPanel
 import com.garfiec.librechat.feature.chat.components.ChatComposer
@@ -50,6 +54,7 @@ import com.garfiec.librechat.feature.chat.components.CodeWorkspaceComposer
 import com.garfiec.librechat.feature.chat.components.ComposerChrome
 import com.garfiec.librechat.feature.chat.components.ComposerComparison
 import com.garfiec.librechat.feature.chat.components.ComposerComparisonHint
+import com.garfiec.librechat.feature.chat.components.ComposerDraftListPanel
 import com.garfiec.librechat.feature.chat.components.LandingStarters
 import com.garfiec.librechat.feature.chat.components.LocalCodeRunHost
 import com.garfiec.librechat.feature.chat.components.LocalCodeWorkspaceComposer
@@ -77,6 +82,7 @@ import com.garfiec.librechat.feature.chat.components.veil.rememberModeVeilState
 import com.garfiec.librechat.feature.chat.components.veil.rememberVeilTarget
 import com.garfiec.librechat.feature.chat.prompts.components.VariableInputDialog
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
+import com.garfiec.librechat.feature.chat.util.draftItemsOf
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.McpAppsViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.McpSignInViewModel
@@ -165,6 +171,16 @@ fun ChatScreen(
     val updateBannerViewModel: UpdateBannerViewModel = koinViewModel()
     val updateBanner by updateBannerViewModel.pendingUpdate.collectAsStateWithLifecycle()
     val attachedFiles by viewModel.attachedFiles.collectAsStateWithLifecycle()
+    // What goes with the message, for the composer's attachment stack and list. The files are their
+    // own flow, so this is mapped here rather than in the uiState combine.
+    val draftItems = remember(attachedFiles, uiState.pendingManualSkills, uiState.pendingQuotes, uiState.serverUrl) {
+        draftItemsOf(attachedFiles, uiState.pendingManualSkills, uiState.pendingQuotes, uiState.serverUrl)
+    }
+    var draftListOpen by rememberSaveable { mutableStateOf(false) }
+    var draftListBounds by remember { mutableStateOf(Rect.Zero) }
+    var composerBounds by remember { mutableStateOf(Rect.Zero) }
+    LaunchedEffect(draftItems.isEmpty) { if (draftItems.isEmpty) draftListOpen = false }
+    PlatformBackHandler(enabled = draftListOpen) { draftListOpen = false }
     val prefs by viewModel.chatPreferences.collectAsStateWithLifecycle()
     val promptLibraryRevision by viewModel.promptLibraryRevision.collectAsStateWithLifecycle()
     val showImageDescriptions = prefs.showImageDescriptions
@@ -319,6 +335,13 @@ fun ChatScreen(
     )
     val onAttachToCode = attachmentActions.onAttachToCode.takeIf { uiState.codeUploadOffered }
 
+    DraftUndoSnackbarEffect(
+        undo = uiState.pendingDraftUndo,
+        snackbarHostState = snackbarHostState,
+        onUndo = viewModel::undoDraftRemoval,
+        onDrop = viewModel::dropDraftUndo,
+    )
+
     ChatScreenEffects(
         uiState = uiState,
         viewModel = viewModel,
@@ -452,7 +475,14 @@ fun ChatScreen(
                     Modifier
                         .fillMaxSize()
                         .glassBackdropSource(pullUp.backdrop.takeIf { pullUp.visible })
-                        .then(rememberModeVeilModifier(modeVeil)),
+                        .then(rememberModeVeilModifier(modeVeil))
+                        // A tap outside the open attachment list and the composer closes the list;
+                        // the tap still reaches what it landed on, and a scroll doesn't close it.
+                        .closeOnTapOutside(
+                            enabled = draftListOpen,
+                            keep = { draftListBounds.contains(it) || composerBounds.contains(it) },
+                            onClose = { draftListOpen = false },
+                        ),
                 ) {
                     Column(
                         // "Add to chat" on the selection toolbar (v0.8.7 quotes), contributed from above
@@ -501,13 +531,65 @@ fun ChatScreen(
                     // Everything here is measured together so the list's bottom inset clears it.
                     val askPause = uiState.renderablePendingAction?.takeIf { it.isAskUserQuestion }
                     val toolPause = uiState.renderablePendingAction?.takeIf { it.isToolApproval }
+                    // A pause panel takes the space above the composer: the attachment list gives way.
+                    val pausePanelUp = askPause != null || toolPause != null
+                    LaunchedEffect(pausePanelUp) { if (pausePanelUp) draftListOpen = false }
+                    val composerChrome = ComposerChrome(
+                        pendingSteers = uiState.pendingSteers,
+                        onCancelSteer = viewModel::cancelSteer,
+                        onInterruptSteer = viewModel::armSteer,
+                        queuedMessages = uiState.displayedMessageQueue,
+                        onEditQueuedMessage = viewModel::editQueued,
+                        onCancelQueuedMessage = viewModel::cancelQueued,
+                        onReorderQueuedMessages = viewModel::reorderQueue,
+                        draftItems = draftItems,
+                        isDraftListOpen = draftListOpen,
+                        onToggleDraftList = { draftListOpen = !draftListOpen },
+                        onRemoveDraftItem = viewModel::removeDraftItem,
+                        onRetryUpload = viewModel::retryUpload,
+                        onUndoRemove = viewModel::undoDraftRemoval,
+                        onFieldFocused = { draftListOpen = false },
+                        enabledTools = uiState.effectiveEnabledTools,
+                        pinnedToolKeys = uiState.pinnedToolChips,
+                        onToggleTool = viewModel::toggleTool,
+                        thinking = thinkingChip,
+                        onOpenThinking = { showThinkingSheet = true },
+                        mcpServers = uiState.mcpServers,
+                        selectedMcpServerNames = uiState.effectiveMcpServerNames,
+                        contextGauge = uiState.contextGaugeDetails,
+                        contextUsageEnabled = uiState.contextUsageEnabled,
+                        onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
+                        onSnoozeCompact = viewModel::snoozeCompactNudge,
+                        compactSuggested = uiState.compactNudgeOnToolsButton,
+                        contextBarPlacement = uiState.contextBarPlacement,
+                    )
+                    // The attachment list, over the thread just above the composer. Outside the
+                    // measured box below, so opening it doesn't move the thread's bottom inset, and
+                    // drawn before it, so a tool-approval panel there stays on top.
+                    if (draftListOpen && !draftItems.isEmpty) {
+                        ComposerDraftListPanel(
+                            items = draftItems,
+                            onRemove = composerChrome.onRemoveDraftItem,
+                            onRetry = composerChrome.onRetryUpload,
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(
+                                    start = 12.dp,
+                                    end = 12.dp,
+                                    bottom = with(LocalDensity.current) { inputBarHeightPx.toDp() } + 4.dp,
+                                )
+                                .widthIn(max = DraftListMaxWidth)
+                                .onGloballyPositioned { draftListBounds = it.boundsInParent() },
+                        )
+                    }
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             // The panels size their caps from the height they are given: only what the
                             // floating top bar leaves visible. Before onSizeChanged, which measures content.
                             .padding(top = topContentPadding)
-                            .onSizeChanged { inputBarHeightPx = it.height },
+                            .onSizeChanged { inputBarHeightPx = it.height }
+                            .onGloballyPositioned { composerBounds = it.boundsInParent() },
                     ) {
                         Column {
                             if (uiState.isEmptyLanding()) {
@@ -633,6 +715,7 @@ fun ChatScreen(
                                             isStreaming = isAnyStreaming,
                                             onInputChange = viewModel::onInputChanged,
                                             onSend = {
+                                                draftListOpen = false
                                                 viewModel.sendMessage()
                                                 if (dismissKeyboardOnSend) {
                                                     keyboardController?.hide()
@@ -644,12 +727,14 @@ fun ChatScreen(
                                             // user's preference and what this run can actually take, so the composer never
                                             // has to. `onQueue` stays the picker's explicit "add to queue".
                                             onDuringRunSend = {
+                                                draftListOpen = false
                                                 viewModel.sendDuringRun()
                                                 if (dismissKeyboardOnSend) {
                                                     keyboardController?.hide()
                                                 }
                                             },
                                             onQueue = {
+                                                draftListOpen = false
                                                 viewModel.queueMessage()
                                                 if (dismissKeyboardOnSend) {
                                                     keyboardController?.hide()
@@ -659,12 +744,14 @@ fun ChatScreen(
                                             // Explicit "steer this one", from the during-run picker or the send button when
                                             // steering is the standing default.
                                             onSteer = {
+                                                draftListOpen = false
                                                 viewModel.steerMessage()
                                                 if (dismissKeyboardOnSend) {
                                                     keyboardController?.hide()
                                                 }
                                             },
                                             onInterrupt = {
+                                                draftListOpen = false
                                                 viewModel.interruptMessage()
                                                 if (dismissKeyboardOnSend) {
                                                     keyboardController?.hide()
@@ -676,34 +763,7 @@ fun ChatScreen(
                                             builtInSearchOn = uiState.webSearchRoute == WebSearchRoute.BUILT_IN,
                                             duringRunAction = uiState.effectiveDuringRunAction,
                                             duringRunSendTarget = uiState.duringRunSendTarget,
-                                            chrome = ComposerChrome(
-                                                pendingSteers = uiState.pendingSteers,
-                                                onCancelSteer = viewModel::cancelSteer,
-                                                onInterruptSteer = viewModel::armSteer,
-                                                queuedMessages = uiState.displayedMessageQueue,
-                                                onEditQueuedMessage = viewModel::editQueued,
-                                                onCancelQueuedMessage = viewModel::cancelQueued,
-                                                onReorderQueuedMessages = viewModel::reorderQueue,
-                                                pendingQuotes = uiState.pendingQuotes,
-                                                onRemoveQuote = viewModel::removePendingQuote,
-                                                pendingManualSkills = uiState.pendingManualSkills,
-                                                onRemoveManualSkill = viewModel::removePendingManualSkill,
-                                                attachedFiles = attachedFiles,
-                                                onRemoveFile = viewModel::removeFile,
-                                                enabledTools = uiState.effectiveEnabledTools,
-                                                pinnedToolKeys = uiState.pinnedToolChips,
-                                                onToggleTool = viewModel::toggleTool,
-                                                thinking = thinkingChip,
-                                                onOpenThinking = { showThinkingSheet = true },
-                                                mcpServers = uiState.mcpServers,
-                                                selectedMcpServerNames = uiState.effectiveMcpServerNames,
-                                                contextGauge = uiState.contextGaugeDetails,
-                                                contextUsageEnabled = uiState.contextUsageEnabled,
-                                                onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
-                                                onSnoozeCompact = viewModel::snoozeCompactNudge,
-                                                compactSuggested = uiState.compactNudgeOnToolsButton,
-                                                contextBarPlacement = uiState.contextBarPlacement,
-                                            ),
+                                            chrome = composerChrome,
                                             onSetDuringRunAction = viewModel::setDuringRunAction,
                                             onPasteFiles = viewModel::onFilesSelected,
                                             pasteScope = coroutineScope,
@@ -728,7 +788,10 @@ fun ChatScreen(
                                             isTemporaryChat = composerVeil.crossed,
                                             onSendQueuedMessages = viewModel::sendQueuedNow,
                                             isEditingQueued = uiState.isEditingQueued,
-                                            onCommitEdit = viewModel::commitQueuedEdit,
+                                            onCommitEdit = {
+                                                draftListOpen = false
+                                                viewModel.commitQueuedEdit()
+                                            },
                                             onCancelEdit = viewModel::cancelQueuedEdit,
                                             isAwaitingUploadSend = uiState.isAwaitingUploadSend,
                                             arePicksUnsettled = uiState.arePicksUnsettled,
@@ -917,6 +980,9 @@ fun NewChatScreen(
         onOpenMemories = onOpenMemories,
     )
 }
+
+/** The attachment list keeps to a phone's width on a wide pane, under the stack it opened from. */
+private val DraftListMaxWidth = 480.dp
 
 /** The native iOS bar's toggle centre, from the bar's bottom-end corner: before the ⋯ button. */
 private val NativeToggleFromEnd = 82.dp

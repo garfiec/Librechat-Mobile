@@ -70,6 +70,7 @@ import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -106,6 +107,7 @@ import com.garfiec.librechat.feature.chat.resources.cd_stop_generation
 import com.garfiec.librechat.feature.chat.resources.cd_update_queued_message
 import com.garfiec.librechat.feature.chat.resources.compare_message_both
 import com.garfiec.librechat.feature.chat.resources.compare_pick_to_send
+import com.garfiec.librechat.feature.chat.resources.draft_uploads_failed
 import com.garfiec.librechat.feature.chat.resources.editing_queued_message
 import com.garfiec.librechat.feature.chat.resources.hint_message
 import com.garfiec.librechat.feature.chat.resources.hint_message_model
@@ -113,6 +115,7 @@ import com.garfiec.librechat.feature.chat.resources.queue_held_after_refusal
 import com.garfiec.librechat.feature.chat.resources.recording
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 @Immutable
@@ -220,7 +223,8 @@ fun CommonChatInputCore(
     leadingButtons: @Composable RowScope.(compact: Boolean) -> Unit = {},
     trailingSpacer: @Composable RowScope.(compact: Boolean) -> Unit = {},
     bottomContent: @Composable BoxScope.() -> Unit = {},
-    textFieldContent: @Composable RowScope.() -> Unit,
+    /** The field. [compact] as for [leadingButtons]: the attachment stack draws its narrow form then. */
+    textFieldContent: @Composable RowScope.(compact: Boolean) -> Unit,
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface
     // The fade keeps temporary chat's retone (see ModeVeil) rather than painting plain surface over it.
@@ -333,14 +337,16 @@ fun CommonChatInputCore(
                     )
                 }
             }
+            FailedUploadsLine(chrome = state.chrome)
         }
         bottomContent()
     }
 }
 
 /**
- * Everything above the field: the pull request, quotes, picked skills, the steer and queue region,
- * the queue's banners, attachments, the code workspace, pinned tools and the context gauge. A
+ * Everything above the field: the pull request, the steer and queue region, the queue's banners,
+ * the tool chips, the code workspace, pinned tools and the context gauge. Files, picked skills and
+ * quotes are in the field's leading slot instead ([ComposerAttachmentStack]). A
  * vertical drag that starts anywhere on it scrolls the thread ([passVerticalDragsToThread]); rows
  * keep only their horizontal scrolls and the queue's long-press reorder.
  */
@@ -361,18 +367,6 @@ private fun ComposerChromeStack(
         PullRequestComposerRow(
             isEditingQueued = state.isEditingQueued,
             modifier = Modifier.padding(bottom = 4.dp),
-        )
-
-        PendingQuoteChipsSection(
-            pendingQuotes = chrome.pendingQuotes,
-            onRemove = chrome.onRemoveQuote,
-            fontSizeMultiplier = fontSizeMultiplier,
-        )
-
-        // Picked skills attach to the message being composed, like the quotes above.
-        PendingSkillChipsSection(
-            skills = chrome.pendingManualSkills,
-            onRemove = chrome.onRemoveManualSkill,
         )
 
         SteerAndQueueRegion(chrome = chrome, fontSizeMultiplier = fontSizeMultiplier)
@@ -401,9 +395,7 @@ private fun ComposerChromeStack(
         }
 
         AttachmentChipsRow(
-            attachedFiles = chrome.attachedFiles,
             enabledTools = chrome.enabledTools,
-            onRemoveFile = chrome.onRemoveFile,
             mcpServers = chrome.mcpServers,
             selectedMcpServerNames = chrome.selectedMcpServerNames,
             showEphemeralTools = state.gates.showEphemeralTools,
@@ -507,6 +499,32 @@ internal fun SteerAndQueueColumn(
     )
 }
 
+/**
+ * Why Send is held while a file failed to upload, under the field. A tap opens the attachment list,
+ * where the failed row retries.
+ */
+@Composable
+private fun FailedUploadsLine(chrome: ComposerChrome) {
+    val failed = chrome.draftItems.failedCount
+    if (failed == 0) return
+    Text(
+        text = pluralStringResource(Res.plurals.draft_uploads_failed, failed, failed),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.error,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .then(
+                if (chrome.isDraftListOpen) {
+                    Modifier
+                } else {
+                    Modifier.clickable(role = Role.Button, onClick = chrome.onToggleDraftList)
+                },
+            )
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+    )
+}
+
 /** About two and a half steer or queue rows. */
 internal val STEER_AND_QUEUE_MAX_HEIGHT = 168.dp
 
@@ -517,7 +535,7 @@ private fun ComposerInputRow(
     state: ChatInputState,
     compact: Boolean,
     leadingButtons: @Composable RowScope.(compact: Boolean) -> Unit,
-    textFieldContent: @Composable RowScope.() -> Unit,
+    textFieldContent: @Composable RowScope.(compact: Boolean) -> Unit,
     trailingSpacer: @Composable RowScope.(compact: Boolean) -> Unit,
     onSend: () -> Unit,
     onStop: () -> Unit,
@@ -534,7 +552,7 @@ private fun ComposerInputRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         leadingButtons(compact)
-        textFieldContent()
+        textFieldContent(compact)
         trailingSpacer(compact)
         // A comparison still choosing its second model has nowhere to send yet. Committing a queued
         // edit sends nothing (the queue is held through setup), so Update stays available.
@@ -542,12 +560,15 @@ private fun ComposerInputRow(
         // A new turn waits on the workspace row (its lines say why); a mid-run queue does not.
         val blockedByWorkspace = LocalCodeWorkspaceComposer.current?.state?.holdsSend == true &&
             !state.isStreaming && !state.isEditingQueued
+        val draft = state.chrome.draftItems
         val hasComposerContent = !blockedBySetup && !blockedByWorkspace && composerCanSend(
             inputText = state.inputText,
-            hasAttachments = state.chrome.attachedFiles.isNotEmpty(),
+            hasAttachments = draft.hasFiles,
             arePicksUnsettled = state.arePicksUnsettled,
+            hasFailedUploads = draft.hasFailedUploads,
         )
-        // Mid-stream + typed content + queueing allowed → morph Stop into a during-run send.
+        // Mid-stream + typed content + queueing allowed → morph Stop into a during-run send. A failed
+        // upload keeps Stop: every during-run send would be held (`UploadIntakeDelegate.withUploadGate`).
         val duringRunSend = state.canQueue && hasComposerContent && onQueue != null &&
             !state.isEditingQueued
         // The picker only earns its space when both routes are open; with steering
@@ -560,7 +581,7 @@ private fun ComposerInputRow(
             defaultAction = state.duringRunAction,
             // Steering is text-only on mobile: a live send with attachments goes to the queue, so
             // the two live rows would promise something the tap won't do.
-            liveRowsEnabled = state.chrome.attachedFiles.isEmpty(),
+            liveRowsEnabled = !draft.hasFiles,
             builtInSearchOn = state.builtInSearchOn,
         )
         // Keyed on the fold, so a menu left open when the run ends, the draft clears or
@@ -593,7 +614,7 @@ private fun ComposerInputRow(
                 // In queued-edit mode the button commits the edit instead of send/stop/queue.
                 isEditingQueued = state.isEditingQueued,
                 onUpdate = onCommitEdit,
-                isQueuedEditEmptied = state.inputText.isBlank() && state.chrome.attachedFiles.isEmpty() &&
+                isQueuedEditEmptied = state.inputText.isBlank() && !draft.hasFiles &&
                     !state.arePicksUnsettled,
                 // A send waiting on an in-flight upload: spinner, tap to cancel.
                 isAwaitingUploadSend = state.isAwaitingUploadSend,
@@ -614,6 +635,32 @@ private fun ComposerInputRow(
 
 private val GlassComposerShape = RoundedCornerShape(28.dp)
 
+/**
+ * The field's leading slot: the wide Compare badges, then the attachment stack. Null when it holds
+ * neither, so an empty composer keeps M3's plain start padding (the slot holds 48dp or more
+ * whatever it draws). Both platform composers read it, so the field starts the same on both.
+ */
+internal fun composerFieldLeadingIcon(
+    comparison: ComposerComparison?,
+    chrome: ComposerChrome,
+    compact: Boolean,
+): (@Composable () -> Unit)? {
+    val badges = comparison?.takeUnless { it.compact }
+    val draft = chrome.draftItems
+    if (badges == null && draft.isEmpty) return null
+    return {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            badges?.let { ComposerComparisonBadges(it) }
+            ComposerAttachmentStack(
+                items = draft,
+                expanded = chrome.isDraftListOpen,
+                compact = compact,
+                onClick = chrome.onToggleDraftList,
+            )
+        }
+    }
+}
+
 /** The input row's width on a 360dp phone, inside the bar's 12dp side padding. */
 private val COMPACT_COMPOSER_ROW_WIDTH = 336.dp
 
@@ -623,6 +670,9 @@ internal enum class SendButtonMode { SEND, STOP, QUEUE, STEER, INTERRUPT, ANSWER
 /**
  * Whether the composer holds something the trailing control can act on. Drives both that control's
  * enabled state and whether a mid-stream tap morphs Stop into a during-run send.
+ *
+ * A file that failed to upload holds every send until it is retried or removed, so it disables the
+ * control too; the line under the field says why ([FailedUploadsLine]).
  *
  * Files that have been picked but not settled deliberately do NOT count, even though the user can
  * see them coming: every send path refuses while a pick is in flight or staged for the routing
@@ -637,7 +687,8 @@ internal fun composerCanSend(
     inputText: String,
     hasAttachments: Boolean,
     arePicksUnsettled: Boolean,
-): Boolean = !arePicksUnsettled && (inputText.isNotBlank() || hasAttachments)
+    hasFailedUploads: Boolean = false,
+): Boolean = !arePicksUnsettled && !hasFailedUploads && (inputText.isNotBlank() || hasAttachments)
 
 /**
  * Which face the composer's trailing button shows. Pulled out of the composable so the mapping

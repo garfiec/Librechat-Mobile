@@ -3,7 +3,10 @@ package com.garfiec.librechat.feature.chat.components
 import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
+import com.garfiec.librechat.feature.chat.util.DraftItem
+import com.garfiec.librechat.feature.chat.util.DraftItems
 import com.garfiec.librechat.feature.chat.util.ThinkingChip
+import com.garfiec.librechat.feature.chat.util.draftItemsOf
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import com.garfiec.librechat.feature.chat.viewmodel.PendingSteerChip
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
@@ -28,14 +31,23 @@ data class ComposerChrome(
     val onEditQueuedMessage: (localId: String) -> Unit = {},
     val onCancelQueuedMessage: (localId: String) -> Unit = {},
     val onReorderQueuedMessages: (fromIndex: Int, toIndex: Int) -> Unit = { _, _ -> },
-    /** Staged "Add to chat" excerpts (v0.8.7 quotes). */
-    val pendingQuotes: List<String> = emptyList(),
-    val onRemoveQuote: (index: Int) -> Unit = {},
-    /** Skills picked for the next message. */
-    val pendingManualSkills: List<String> = emptyList(),
-    val onRemoveManualSkill: (name: String) -> Unit = {},
-    val attachedFiles: List<AttachedFile> = emptyList(),
-    val onRemoveFile: (AttachedFile) -> Unit = {},
+    /**
+     * What goes with the message being composed (files, picked skills, staged quotes), mapped once
+     * by the screen ([draftItemsOf]). The field's leading stack draws it; the list panel opens from it.
+     */
+    val draftItems: DraftItems = DraftItems.EMPTY,
+    /** The attachment list panel is open (the screen draws it, above the composer). */
+    val isDraftListOpen: Boolean = false,
+    /** The stack's tap: open the list, or close it when open. */
+    val onToggleDraftList: () -> Unit = {},
+    /** A list row's ×: cancels a file still uploading, else removes the item with an Undo. */
+    val onRemoveDraftItem: (DraftItem) -> Unit = {},
+    /** A failed file's row tap. */
+    val onRetryUpload: (AttachedFile) -> Unit = {},
+    /** The Undo snackbar's action, for the removal its id names. */
+    val onUndoRemove: (undoId: Long) -> Unit = {},
+    /** The message field gained focus; the list panel closes then. */
+    val onFieldFocused: () -> Unit = {},
     val enabledTools: Set<String> = emptySet(),
     /** Tool keys (already mapped + gated) shown as quick-toggle chips (v0.8.7 `defaultPinnedTools`).
      *  Selected state reads from [enabledTools]. */

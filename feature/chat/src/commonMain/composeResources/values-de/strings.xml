@@ -255,16 +255,11 @@
     <string name="tool_mcp_desc">Model-Context-Protocol-Server</string>
     <string name="cd_web_search_enabled">Websuche aktiviert</string>
     <string name="cd_quoted_excerpt">Zitierter Auszug</string>
-    <string name="cd_remove_quote">Zitat entfernen</string>
     <string name="selection_add_to_chat">Zum Chat hinzufügen</string>
     <string name="cd_code_enabled">Code-Interpreter aktiviert</string>
     <string name="cd_file_search_enabled">Dateisuche aktiviert</string>
 
     <!-- Attachments -->
-    <string name="files_count">Dateien (%1$d)</string>
-    <string name="files_count_with_text">Dateien (%1$d) · %2$d als Text</string>
-    <string name="cd_files_attached">%1$d Dateien angehängt, tippen für Vorschau</string>
-    <string name="cd_files_attached_with_text">%1$d Dateien angehängt, %2$d als Text gesendet, tippen für Vorschau</string>
     <string name="upload_routing_sheet_title">Wie sollen diese gesendet werden?</string>
     <string name="upload_routing_sheet_title_single">Wie soll dies gesendet werden?</string>
     <string name="upload_routing_option_provider">An das Modell</string>
@@ -276,8 +271,6 @@
     <string name="upload_routing_apply_all">Für alle verwenden</string>
     <string name="upload_routing_attach">Anhängen</string>
     <string name="cd_upload_route_text">Als extrahierter Text gesendet</string>
-    <string name="cd_attached_file">Angehängte Datei: %1$s</string>
-    <string name="cd_preview_file">Vorschau von %1$s</string>
     <string name="cd_remove_file">%1$s entfernen</string>
 
     <!-- Agent handoff -->
@@ -655,7 +648,6 @@
     <string name="picker_no_matches">Keine Treffer</string>
     <string name="picker_loading_skills">Skills werden geladen…</string>
     <string name="picker_skills_failed">Skills konnten nicht geladen werden</string>
-    <string name="cd_pending_skills">Skills für die nächste Nachricht</string>
     <string name="cd_remove_skill">Skill %1$s entfernen</string>
     <string name="cd_skill_always_applied">Immer angewendeter Skill: %1$s</string>
     <string name="cd_skill_used">Verwendeter Skill: %1$s</string>
@@ -1178,4 +1170,32 @@
     <string name="cd_run_code_previous">Vorherige Ausführung</string>
     <string name="cd_run_code_next">Nächste Ausführung</string>
     <string name="notice_run_code_failed">Dieser Code konnte nicht ausgeführt werden.</string>
+    <!-- Composer attachment stack and list -->
+    <string name="draft_row_uploading">Wird hochgeladen…</string>
+    <string name="draft_row_failed">Nicht hochgeladen · Zum Wiederholen tippen</string>
+    <string name="draft_row_skill">Skill</string>
+    <string name="draft_row_quote">Zitat</string>
+    <string name="draft_subtitle_join">%1$s · %2$s</string>
+    <string name="cd_cancel_upload">Hochladen von %1$s abbrechen</string>
+    <string name="cd_remove_quote_named">Zitat entfernen: %1$s</string>
+    <string name="cd_retry_upload">Hochladen von %1$s wiederholen</string>
+    <string name="draft_item_removed">%1$s entfernt</string>
+    <string name="draft_quote_removed">Zitat entfernt</string>
+    <string name="action_undo">Rückgängig</string>
+    <plurals name="cd_draft_stack">
+        <item quantity="one">%1$d Element mit dieser Nachricht</item>
+        <item quantity="other">%1$d Elemente mit dieser Nachricht</item>
+    </plurals>
+    <plurals name="draft_item_attached_announcement">
+        <item quantity="one">%1$s angehängt, %2$d Element</item>
+        <item quantity="other">%1$s angehängt, %2$d Elemente</item>
+    </plurals>
+    <plurals name="draft_list_header">
+        <item quantity="one">Mit dieser Nachricht · %1$d</item>
+        <item quantity="other">Mit dieser Nachricht · %1$d</item>
+    </plurals>
+    <plurals name="draft_uploads_failed">
+        <item quantity="one">%1$d Datei wurde nicht hochgeladen. Tippe sie in der Liste an, um es erneut zu versuchen, oder entferne sie.</item>
+        <item quantity="other">%1$d Dateien wurden nicht hochgeladen. Tippe sie in der Liste an, um es erneut zu versuchen, oder entferne sie.</item>
+    </plurals>
 </resources>

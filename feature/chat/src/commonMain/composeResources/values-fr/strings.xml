@@ -256,16 +256,11 @@
     <string name="tool_mcp_desc">Serveurs Model Context Protocol</string>
     <string name="cd_web_search_enabled">Recherche web activée</string>
     <string name="cd_quoted_excerpt">Extrait cité</string>
-    <string name="cd_remove_quote">Supprimer la citation</string>
     <string name="selection_add_to_chat">Ajouter à la discussion</string>
     <string name="cd_code_enabled">Interpréteur de code activé</string>
     <string name="cd_file_search_enabled">Recherche de fichiers activée</string>
 
     <!-- Attachments -->
-    <string name="files_count">Fichiers (%1$d)</string>
-    <string name="files_count_with_text">Fichiers (%1$d) · %2$d en texte</string>
-    <string name="cd_files_attached">%1$d fichiers joints, appuyez pour afficher l'aperçu</string>
-    <string name="cd_files_attached_with_text">%1$d fichiers joints, %2$d envoyés en texte, appuyez pour afficher l'aperçu</string>
     <string name="upload_routing_sheet_title">Comment les envoyer ?</string>
     <string name="upload_routing_sheet_title_single">Comment l'envoyer ?</string>
     <string name="upload_routing_option_provider">Au modèle</string>
@@ -277,8 +272,6 @@
     <string name="upload_routing_apply_all">Utiliser pour tous</string>
     <string name="upload_routing_attach">Joindre</string>
     <string name="cd_upload_route_text">Envoyé sous forme de texte extrait</string>
-    <string name="cd_attached_file">Fichier joint : %1$s</string>
-    <string name="cd_preview_file">Aperçu de %1$s</string>
     <string name="cd_remove_file">Supprimer %1$s</string>
 
     <!-- Agent handoff -->
@@ -658,7 +651,6 @@
     <string name="picker_no_matches">Aucun résultat</string>
     <string name="picker_loading_skills">Chargement des compétences…</string>
     <string name="picker_skills_failed">Impossible de charger les compétences</string>
-    <string name="cd_pending_skills">Compétences pour le prochain message</string>
     <string name="cd_remove_skill">Retirer la compétence %1$s</string>
     <string name="cd_skill_always_applied">Compétence toujours appliquée : %1$s</string>
     <string name="cd_skill_used">Compétence utilisée : %1$s</string>
@@ -1191,4 +1183,32 @@
     <string name="cd_run_code_previous">Exécution précédente</string>
     <string name="cd_run_code_next">Exécution suivante</string>
     <string name="notice_run_code_failed">Impossible d’exécuter ce code.</string>
+    <!-- Composer attachment stack and list -->
+    <string name="draft_row_uploading">Envoi…</string>
+    <string name="draft_row_failed">Non envoyé · Touchez pour réessayer</string>
+    <string name="draft_row_skill">Compétence</string>
+    <string name="draft_row_quote">Citation</string>
+    <string name="draft_subtitle_join">%1$s · %2$s</string>
+    <string name="cd_cancel_upload">Annuler l'envoi de %1$s</string>
+    <string name="cd_remove_quote_named">Retirer la citation : %1$s</string>
+    <string name="cd_retry_upload">Réessayer l'envoi de %1$s</string>
+    <string name="draft_item_removed">%1$s retiré</string>
+    <string name="draft_quote_removed">Citation retirée</string>
+    <string name="action_undo">Annuler</string>
+    <plurals name="cd_draft_stack">
+        <item quantity="one">%1$d élément avec ce message</item>
+        <item quantity="other">%1$d éléments avec ce message</item>
+    </plurals>
+    <plurals name="draft_item_attached_announcement">
+        <item quantity="one">%1$s joint, %2$d élément</item>
+        <item quantity="other">%1$s joint, %2$d éléments</item>
+    </plurals>
+    <plurals name="draft_list_header">
+        <item quantity="one">Avec ce message · %1$d</item>
+        <item quantity="other">Avec ce message · %1$d</item>
+    </plurals>
+    <plurals name="draft_uploads_failed">
+        <item quantity="one">%1$d fichier n'a pas été envoyé. Touchez-le dans la liste pour réessayer, ou retirez-le.</item>
+        <item quantity="other">%1$d fichiers n'ont pas été envoyés. Touchez-les dans la liste pour réessayer, ou retirez-les.</item>
+    </plurals>
 </resources>

@@ -259,16 +259,11 @@
     <string name="tool_mcp_desc">خوادم بروتوكول سياق النموذج (MCP)</string>
     <string name="cd_web_search_enabled">البحث على الويب مُفعّل</string>
     <string name="cd_quoted_excerpt">مقتطف مقتبس</string>
-    <string name="cd_remove_quote">إزالة الاقتباس</string>
     <string name="selection_add_to_chat">إضافة إلى المحادثة</string>
     <string name="cd_code_enabled">مفسّر الكود مُفعّل</string>
     <string name="cd_file_search_enabled">البحث في الملفات مُفعّل</string>
 
     <!-- Attachments -->
-    <string name="files_count">الملفات (%1$d)</string>
-    <string name="files_count_with_text">الملفات (%1$d) · %2$d كنص</string>
-    <string name="cd_files_attached">الملفات المرفقة: %1$d، اضغط للمعاينة</string>
-    <string name="cd_files_attached_with_text">الملفات المرفقة: %1$d، منها %2$d أُرسلت كنص، اضغط للمعاينة</string>
     <string name="upload_routing_sheet_title">كيف تريد إرسال هذه الملفات؟</string>
     <string name="upload_routing_sheet_title_single">كيف تريد إرسال هذا الملف؟</string>
     <string name="upload_routing_option_provider">إلى النموذج</string>
@@ -280,8 +275,6 @@
     <string name="upload_routing_apply_all">استخدام للكل</string>
     <string name="upload_routing_attach">إرفاق</string>
     <string name="cd_upload_route_text">أُرسل كنص مستخرج</string>
-    <string name="cd_attached_file">ملف مرفق: %1$s</string>
-    <string name="cd_preview_file">معاينة %1$s</string>
     <string name="cd_remove_file">إزالة %1$s</string>
 
     <!-- Agent handoff -->
@@ -679,7 +672,6 @@
     <string name="picker_no_matches">لا توجد نتائج مطابقة</string>
     <string name="picker_loading_skills">جارٍ تحميل المهارات…</string>
     <string name="picker_skills_failed">تعذّر تحميل المهارات</string>
-    <string name="cd_pending_skills">مهارات للرسالة التالية</string>
     <string name="cd_remove_skill">إزالة المهارة %1$s</string>
     <string name="cd_skill_always_applied">مهارة مطبّقة دائمًا: %1$s</string>
     <string name="cd_skill_used">المهارة المستخدمة: %1$s</string>
@@ -1258,4 +1250,48 @@
     <string name="cd_run_code_previous">التشغيل السابق</string>
     <string name="cd_run_code_next">التشغيل التالي</string>
     <string name="notice_run_code_failed">تعذّر تشغيل هذه الشيفرة.</string>
+    <!-- Composer attachment stack and list -->
+    <string name="draft_row_uploading">جارٍ الرفع…</string>
+    <string name="draft_row_failed">لم يُرفع · انقر لإعادة المحاولة</string>
+    <string name="draft_row_skill">مهارة</string>
+    <string name="draft_row_quote">اقتباس</string>
+    <string name="draft_subtitle_join">%1$s · %2$s</string>
+    <string name="cd_cancel_upload">إلغاء رفع %1$s</string>
+    <string name="cd_remove_quote_named">إزالة الاقتباس: %1$s</string>
+    <string name="cd_retry_upload">إعادة محاولة رفع %1$s</string>
+    <string name="draft_item_removed">أُزيل %1$s</string>
+    <string name="draft_quote_removed">أُزيل الاقتباس</string>
+    <string name="action_undo">تراجع</string>
+    <plurals name="cd_draft_stack">
+        <item quantity="zero">لا عناصر مع هذه الرسالة</item>
+        <item quantity="one">عنصر واحد مع هذه الرسالة</item>
+        <item quantity="two">عنصران مع هذه الرسالة</item>
+        <item quantity="few">%1$d عناصر مع هذه الرسالة</item>
+        <item quantity="many">%1$d عنصرًا مع هذه الرسالة</item>
+        <item quantity="other">%1$d عنصر مع هذه الرسالة</item>
+    </plurals>
+    <plurals name="draft_item_attached_announcement">
+        <item quantity="zero">أُرفق %1$s، لا عناصر</item>
+        <item quantity="one">أُرفق %1$s، عنصر واحد</item>
+        <item quantity="two">أُرفق %1$s، عنصران</item>
+        <item quantity="few">أُرفق %1$s، %2$d عناصر</item>
+        <item quantity="many">أُرفق %1$s، %2$d عنصرًا</item>
+        <item quantity="other">أُرفق %1$s، %2$d عنصر</item>
+    </plurals>
+    <plurals name="draft_list_header">
+        <item quantity="zero">مع هذه الرسالة · %1$d</item>
+        <item quantity="one">مع هذه الرسالة · %1$d</item>
+        <item quantity="two">مع هذه الرسالة · %1$d</item>
+        <item quantity="few">مع هذه الرسالة · %1$d</item>
+        <item quantity="many">مع هذه الرسالة · %1$d</item>
+        <item quantity="other">مع هذه الرسالة · %1$d</item>
+    </plurals>
+    <plurals name="draft_uploads_failed">
+        <item quantity="zero">لم يُرفع أي ملف.</item>
+        <item quantity="one">لم يُرفع ملف واحد. انقر عليه في القائمة لإعادة المحاولة، أو أزله.</item>
+        <item quantity="two">لم يُرفع ملفان. انقر عليهما في القائمة لإعادة المحاولة، أو أزلهما.</item>
+        <item quantity="few">لم تُرفع %1$d ملفات. انقر عليها في القائمة لإعادة المحاولة، أو أزلها.</item>
+        <item quantity="many">لم يُرفع %1$d ملفًا. انقر عليها في القائمة لإعادة المحاولة، أو أزلها.</item>
+        <item quantity="other">لم يُرفع %1$d ملف. انقر عليها في القائمة لإعادة المحاولة، أو أزلها.</item>
+    </plurals>
 </resources>

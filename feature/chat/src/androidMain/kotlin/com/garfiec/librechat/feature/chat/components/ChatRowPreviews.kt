@@ -46,7 +46,7 @@ private fun AskRecordPreview() = RowsPreviewSurface(UiStyle.MATERIAL) { AskRecor
 
 @PreviewNarrowScreens
 @Composable
-private fun AttachmentTilePreview() = RowsPreviewSurface(UiStyle.MATERIAL) { AttachmentTileHost() }
+private fun ToolChipsRowPreview() = RowsPreviewSurface(UiStyle.MATERIAL) { ToolChipsRowHost() }
 
 @PreviewNarrowScreens
 @Composable
@@ -152,15 +152,8 @@ private fun AskRecordHost() = ThreadContent {
 }
 
 @Composable
-private fun AttachmentTileHost() {
-    AttachmentChipsRow(
-        attachedFiles = listOf(
-            AttachedFile(uri = "file://report", name = "quarterly-report.pdf", fileId = "f1"),
-            AttachedFile(uri = "file://notes", name = "notes.txt", fileId = "f2"),
-        ),
-        enabledTools = setOf(ToolConstants.SKILLS),
-        onRemoveFile = {},
-    )
+private fun ToolChipsRowHost() {
+    AttachmentChipsRow(enabledTools = setOf(ToolConstants.SKILLS, ToolConstants.WEB_SEARCH))
 }
 
 @Composable

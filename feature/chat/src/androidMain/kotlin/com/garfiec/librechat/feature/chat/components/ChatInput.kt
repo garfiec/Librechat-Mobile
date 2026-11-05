@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -203,11 +204,13 @@ fun ChatInput(
 
             if (!compact) Spacer(modifier = Modifier.width(8.dp))
         },
-        textFieldContent = {
+        textFieldContent = { compact ->
             Box(modifier = Modifier.weight(1f)) {
                 val compactComparison = comparison?.takeIf { it.compact }
                 val comparisonCollapsed = compactComparison?.collapsedFor(field.value.text) == true
                 val comparisonCollapse by animateComposerComparisonCollapse(comparisonCollapsed)
+                // The stack takes the leading slot, so the phone's A·B pill moves past it.
+                val afterStack = !chrome.draftItems.isEmpty
                 // The composer draws its own field (ChatInputDefaults), glass included; not the adaptive one.
                 OutlinedTextField(
                     value = field.value,
@@ -216,6 +219,7 @@ fun ChatInput(
                         .fillMaxWidth()
                         .heightIn(min = 48.dp, max = 160.dp)
                         .focusRequester(focusRequester)
+                        .onFocusChanged { if (it.isFocused) chrome.onFieldFocused() }
                         .semantics {
                             contentDescription = cdMessageInput
                         },
@@ -226,10 +230,10 @@ fun ChatInput(
                             comparisonHint = comparisonHint,
                         )
                     },
-                    leadingIcon = comparison?.takeUnless { it.compact }?.let { comparison ->
-                        { ComposerComparisonBadges(comparison) }
+                    leadingIcon = composerFieldLeadingIcon(comparison, chrome, compact),
+                    prefix = compactComparison?.let {
+                        { ComposerComparisonReserve(collapse = { comparisonCollapse }, afterStack = afterStack) }
                     },
-                    prefix = compactComparison?.let { { ComposerComparisonReserve { comparisonCollapse } } },
                     suffix = { ComposerAffixAnchor() },
                     textStyle = MaterialTheme.typography.bodyLarge,
                     shape = ChatInputDefaults.shape,
@@ -273,6 +277,7 @@ fun ChatInput(
                         collapsed = comparisonCollapsed,
                         collapse = { comparisonCollapse },
                         modifier = Modifier.align(Alignment.TopStart),
+                        afterStack = afterStack,
                     )
                 }
             }

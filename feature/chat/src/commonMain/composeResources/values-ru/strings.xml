@@ -257,16 +257,11 @@
     <string name="tool_mcp_desc">Серверы Model Context Protocol</string>
     <string name="cd_web_search_enabled">Веб-поиск включён</string>
     <string name="cd_quoted_excerpt">Цитируемый фрагмент</string>
-    <string name="cd_remove_quote">Убрать цитату</string>
     <string name="selection_add_to_chat">Добавить в чат</string>
     <string name="cd_code_enabled">Интерпретатор кода включён</string>
     <string name="cd_file_search_enabled">Поиск по файлам включён</string>
 
     <!-- Attachments -->
-    <string name="files_count">Файлы (%1$d)</string>
-    <string name="files_count_with_text">Файлы (%1$d) · %2$d как текст</string>
-    <string name="cd_files_attached">Прикреплено файлов: %1$d. Нажмите для предпросмотра</string>
-    <string name="cd_files_attached_with_text">Прикреплено файлов: %1$d, отправлено как текст: %2$d. Нажмите для предпросмотра</string>
     <string name="upload_routing_sheet_title">Как отправить эти файлы?</string>
     <string name="upload_routing_sheet_title_single">Как отправить этот файл?</string>
     <string name="upload_routing_option_provider">В модель</string>
@@ -278,8 +273,6 @@
     <string name="upload_routing_apply_all">Для всех</string>
     <string name="upload_routing_attach">Прикрепить</string>
     <string name="cd_upload_route_text">Отправлено как извлечённый текст</string>
-    <string name="cd_attached_file">Прикреплённый файл: %1$s</string>
-    <string name="cd_preview_file">Предпросмотр %1$s</string>
     <string name="cd_remove_file">Удалить %1$s</string>
 
     <!-- Agent handoff -->
@@ -667,7 +660,6 @@
     <string name="picker_no_matches">Нет совпадений</string>
     <string name="picker_loading_skills">Загрузка навыков…</string>
     <string name="picker_skills_failed">Не удалось загрузить навыки</string>
-    <string name="cd_pending_skills">Навыки для следующего сообщения</string>
     <string name="cd_remove_skill">Убрать навык %1$s</string>
     <string name="cd_skill_always_applied">Всегда применяемый навык: %1$s</string>
     <string name="cd_skill_used">Использован навык: %1$s</string>
@@ -1218,4 +1210,40 @@
     <string name="cd_run_code_previous">Предыдущий запуск</string>
     <string name="cd_run_code_next">Следующий запуск</string>
     <string name="notice_run_code_failed">Не удалось выполнить этот код.</string>
+    <!-- Composer attachment stack and list -->
+    <string name="draft_row_uploading">Загрузка…</string>
+    <string name="draft_row_failed">Не загружено · Нажмите, чтобы повторить</string>
+    <string name="draft_row_skill">Навык</string>
+    <string name="draft_row_quote">Цитата</string>
+    <string name="draft_subtitle_join">%1$s · %2$s</string>
+    <string name="cd_cancel_upload">Отменить загрузку %1$s</string>
+    <string name="cd_remove_quote_named">Удалить цитату: %1$s</string>
+    <string name="cd_retry_upload">Повторить загрузку %1$s</string>
+    <string name="draft_item_removed">%1$s удалено</string>
+    <string name="draft_quote_removed">Цитата удалена</string>
+    <string name="action_undo">Отменить</string>
+    <plurals name="cd_draft_stack">
+        <item quantity="one">%1$d элемент с этим сообщением</item>
+        <item quantity="few">%1$d элемента с этим сообщением</item>
+        <item quantity="many">%1$d элементов с этим сообщением</item>
+        <item quantity="other">%1$d элемента с этим сообщением</item>
+    </plurals>
+    <plurals name="draft_item_attached_announcement">
+        <item quantity="one">%1$s прикреплено, %2$d элемент</item>
+        <item quantity="few">%1$s прикреплено, %2$d элемента</item>
+        <item quantity="many">%1$s прикреплено, %2$d элементов</item>
+        <item quantity="other">%1$s прикреплено, %2$d элемента</item>
+    </plurals>
+    <plurals name="draft_list_header">
+        <item quantity="one">С этим сообщением · %1$d</item>
+        <item quantity="few">С этим сообщением · %1$d</item>
+        <item quantity="many">С этим сообщением · %1$d</item>
+        <item quantity="other">С этим сообщением · %1$d</item>
+    </plurals>
+    <plurals name="draft_uploads_failed">
+        <item quantity="one">%1$d файл не загружен. Нажмите на него в списке, чтобы повторить, или удалите его.</item>
+        <item quantity="few">%1$d файла не загружены. Нажмите на них в списке, чтобы повторить, или удалите их.</item>
+        <item quantity="many">%1$d файлов не загружено. Нажмите на них в списке, чтобы повторить, или удалите их.</item>
+        <item quantity="other">%1$d файла не загружено. Нажмите на них в списке, чтобы повторить, или удалите их.</item>
+    </plurals>
 </resources>

@@ -1056,9 +1056,9 @@ while attachments are staged, so neither promises something the tap won't do.
   an interrupted search keeps the generic card, and a group header counts it as cancelled, not failed.
 
 ## Composer chrome (what sits around the field)
-Everything the composer draws above its field (pull request, quotes, picked skills, steers, the
-queue and its banners, attachments, the code workspace, pinned tools, the context gauge) and the
-"+" button's dots is **one view-data holder, `ComposerChrome`**, built in `ChatScreen` and threaded
+Everything the composer draws around its field (above it: pull request, steers, the queue and its
+banners, tool chips, the code workspace, pinned tools, the context gauge; in it: the attachment
+stack) and the "+" button's dots is **one view-data holder, `ComposerChrome`**, built in `ChatScreen` and threaded
 once through the `ChatComposer` expect, both actuals, `ChatInput` / `IosChatInput` and
 `ChatInputState.chrome`. A new row adds a field there, never a parameter to those five signatures:
 the iOS ones are not compiled on a Linux host, so a signature change there is only caught by CI.
@@ -1088,6 +1088,45 @@ the iOS ones are not compiled on a Linux host, so a signature change there is on
 - Over the composer's transparent top, Material fills are opaque: steer cards, the pull request chip
   and the code chips (`AdaptiveChipDefaults.overlayAssistChipColors`). A code chip with nothing to
   pick is a label: not clickable, read as text.
+
+### Attachment stack and list (files, picked skills, quotes)
+What goes with the message is **one list, `DraftItems`**, mapped by the pure `draftItemsOf`
+(`util/DraftItems.kt`) in a `remember` in `ChatScreen` (the files are their own flow,
+`ChatViewModel.attachedFiles`), and carried on `ComposerChrome.draftItems`. Order: failed files
+first, then images, files, skills, quotes.
+- **The stack** (`ComposerAttachmentStack`) is the field's M3 `leadingIcon`, through
+  `composerFieldLeadingIcon` on both composers: up to two tiles (one when the row is compact, below
+  336dp, which `textFieldContent` is now told) and a count, a progress ring while anything uploads,
+  a red "!" on a failure, a pop when something is added, a polite live region. M3 holds that slot at
+  48dp whatever it draws, so the slot is left out (null) while the list is empty rather than kept
+  non-null: an always-present slot would take 36dp from every empty composer. Wide Compare badges
+  draw first in the same slot; on a phone the A·B morph and its prefix reserve move past the stack
+  (`afterStack`).
+- **The list** (`ComposerDraftListPanel`) is drawn by `ChatScreen` outside the measured bottom box,
+  so opening it doesn't move the thread's inset, and before it, so `ToolApprovalPanel` stays on top.
+  It closes on a tap outside it and the composer (`closeOnTapOutside`, which only watches), a send
+  of any kind, the field gaining focus, the list emptying, a pause panel appearing, or back
+  (`PlatformBackHandler`, the iOS edge swipe included). Only a failed row is tappable (retry); a
+  local preview of a picked image is a follow-up (the media viewer knows conversation media only).
+- **× and Undo** (`DraftItemsDelegate`, `ComposerState.pendingDraftUndo`): an uploaded or failed
+  file, a skill or a quote comes off with an Undo snackbar (`DraftUndoSnackbarEffect`) that puts it
+  back at its index (`PlatformFileHandler.insertAt`, which leaves PDF password prompts alone;
+  `SendDispatchDelegate.restorePendingManualSkill` / `restorePendingQuote`). A file still uploading
+  is cancelled instead (each handler keeps its upload jobs), with no Undo. One Undo is pending at a
+  time; `clearComposer` (every send), `applyComposer` (the queued-edit swap) and the landing reset
+  (conversation switch) drop it inside their own writes.
+- **A failed upload holds Send.** The hold is `UploadIntakeDelegate.withUploadGate`, checked before
+  and after the upload wait (the wait treats a failure as settled), so it covers send, voice
+  auto-send, starters, queue (a steer with files goes there) and saving a queued edit. Not
+  `SendBlockReason` (that opens the model sheet) and not `buildSendSpec` (a steer's re-home and an
+  MCP App's message build there and must not be held). `composerCanSend` and the during-run morph
+  take `hasFailedUploads`, and `FailedUploadsLine` under the field says why.
+- **Retry keeps the file's place and route** on both platforms. iOS keeps each entry's picked
+  `IosImageData` / `IosFileData` (`IosFileHandler.picked`) and uploads it again; an image's thumbnail
+  is its retained bytes (`AttachedFile.localPreview`). A thumbnail prefers the device's copy, then
+  the server's `filepath`.
+- **Queued edits carry their quotes** like their skills: `ComposerSnapshot.quotes`, captured and
+  applied by the swap, and the commit sends the quotes on screen.
 
 ## Chat Tools
 - The user's own toggles: `enabledTools` and `selectedMcpServerNames` are global (stored in

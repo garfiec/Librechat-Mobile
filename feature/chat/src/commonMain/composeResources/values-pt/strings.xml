@@ -256,16 +256,11 @@
     <string name="tool_mcp_desc">Servidores Model Context Protocol</string>
     <string name="cd_web_search_enabled">Busca na web ativada</string>
     <string name="cd_quoted_excerpt">Trecho citado</string>
-    <string name="cd_remove_quote">Remover citação</string>
     <string name="selection_add_to_chat">Adicionar à conversa</string>
     <string name="cd_code_enabled">Interpretador de código ativado</string>
     <string name="cd_file_search_enabled">Busca em arquivos ativada</string>
 
     <!-- Attachments -->
-    <string name="files_count">Arquivos (%1$d)</string>
-    <string name="files_count_with_text">Arquivos (%1$d) · %2$d como texto</string>
-    <string name="cd_files_attached">%1$d arquivos anexados, toque para visualizar</string>
-    <string name="cd_files_attached_with_text">%1$d arquivos anexados, %2$d enviados como texto, toque para visualizar</string>
     <string name="upload_routing_sheet_title">Como estes devem ser enviados?</string>
     <string name="upload_routing_sheet_title_single">Como este deve ser enviado?</string>
     <string name="upload_routing_option_provider">Para o modelo</string>
@@ -277,8 +272,6 @@
     <string name="upload_routing_apply_all">Usar para todos</string>
     <string name="upload_routing_attach">Anexar</string>
     <string name="cd_upload_route_text">Enviado como texto extraído</string>
-    <string name="cd_attached_file">Arquivo anexado: %1$s</string>
-    <string name="cd_preview_file">Visualização de %1$s</string>
     <string name="cd_remove_file">Remover %1$s</string>
 
     <!-- Agent handoff -->
@@ -658,7 +651,6 @@
     <string name="picker_no_matches">Nenhum resultado</string>
     <string name="picker_loading_skills">Carregando habilidades…</string>
     <string name="picker_skills_failed">Não foi possível carregar as habilidades</string>
-    <string name="cd_pending_skills">Habilidades para a próxima mensagem</string>
     <string name="cd_remove_skill">Remover a habilidade %1$s</string>
     <string name="cd_skill_always_applied">Habilidade sempre aplicada: %1$s</string>
     <string name="cd_skill_used">Habilidade usada: %1$s</string>
@@ -1191,4 +1183,32 @@
     <string name="cd_run_code_previous">Execução anterior</string>
     <string name="cd_run_code_next">Próxima execução</string>
     <string name="notice_run_code_failed">Não foi possível executar este código.</string>
+    <!-- Composer attachment stack and list -->
+    <string name="draft_row_uploading">Enviando…</string>
+    <string name="draft_row_failed">Não foi enviado · Toque para tentar de novo</string>
+    <string name="draft_row_skill">Habilidade</string>
+    <string name="draft_row_quote">Citação</string>
+    <string name="draft_subtitle_join">%1$s · %2$s</string>
+    <string name="cd_cancel_upload">Cancelar o envio de %1$s</string>
+    <string name="cd_remove_quote_named">Remover citação: %1$s</string>
+    <string name="cd_retry_upload">Tentar enviar %1$s de novo</string>
+    <string name="draft_item_removed">%1$s removido</string>
+    <string name="draft_quote_removed">Citação removida</string>
+    <string name="action_undo">Desfazer</string>
+    <plurals name="cd_draft_stack">
+        <item quantity="one">%1$d item com esta mensagem</item>
+        <item quantity="other">%1$d itens com esta mensagem</item>
+    </plurals>
+    <plurals name="draft_item_attached_announcement">
+        <item quantity="one">%1$s anexado, %2$d item</item>
+        <item quantity="other">%1$s anexado, %2$d itens</item>
+    </plurals>
+    <plurals name="draft_list_header">
+        <item quantity="one">Com esta mensagem · %1$d</item>
+        <item quantity="other">Com esta mensagem · %1$d</item>
+    </plurals>
+    <plurals name="draft_uploads_failed">
+        <item quantity="one">%1$d arquivo não foi enviado. Toque nele na lista para tentar de novo ou remova-o.</item>
+        <item quantity="other">%1$d arquivos não foram enviados. Toque neles na lista para tentar de novo ou remova-os.</item>
+    </plurals>
 </resources>

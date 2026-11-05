@@ -15,10 +15,11 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.ChatLayoutConstants
 import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
+import com.garfiec.librechat.feature.chat.util.draftItemsOf
 
-// The chat side of skills under stress: the picker when the catalog failed to load, the chip
-// section at the server's cap, and the streaming reply's "Running X" rows in each layout. Hosts
-// are shared with SkillsChatPreviews.kt.
+// The chat side of skills under stress: the picker when the catalog failed to load, the field's
+// stack and the attachment list at the server's cap, and the streaming reply's "Running X" rows in
+// each layout. Hosts are shared with SkillsChatPreviews.kt.
 
 @PreviewNarrowScreens
 @Composable
@@ -32,7 +33,7 @@ private fun SkillPickerFailedGlassPreview() = SkillsSurface(UiStyle.LIQUID_GLASS
     PickerHost("\$pd", skills = emptyList(), failed = true)
 }
 
-/** Ten long names (the server's cap): the chips scroll inside a bounded section. */
+/** Ten long names (the server's cap): the field's stack counts them. */
 @PreviewNarrowScreens
 @Composable
 private fun SkillChipsAtCapMaterialPreview() = SkillsSurface(UiStyle.MATERIAL) {
@@ -48,16 +49,16 @@ private fun SkillChipsAtCapGlassPreview() = SkillsSurface(UiStyle.LIQUID_GLASS) 
 private val tenLongChips = (1..10).map { "quarterly-report-formatting-house-style-$it" }
 
 /**
- * The chips over scrolled message text, as they sit in the chat: the composer overlays the list
- * and is transparent where the chips draw, so each chip needs its own fill to stay legible.
+ * The attachment list over scrolled message text, as it sits in the chat: it draws over the thread,
+ * so it needs its own fill to stay legible. Ten long skill names: it scrolls past four and a half rows.
  */
 @PreviewNarrowScreens
 @Composable
-private fun SkillChipsOverTextMaterialPreview() = SkillsSurface(UiStyle.MATERIAL) { ChipsOverTextHost() }
+private fun SkillDraftListOverTextMaterialPreview() = SkillsSurface(UiStyle.MATERIAL) { ChipsOverTextHost() }
 
 @PreviewNarrowScreens
 @Composable
-private fun SkillChipsOverTextGlassPreview() = SkillsSurface(UiStyle.LIQUID_GLASS) { ChipsOverTextHost() }
+private fun SkillDraftListOverTextGlassPreview() = SkillsSurface(UiStyle.LIQUID_GLASS) { ChipsOverTextHost() }
 
 @Composable
 private fun ChipsOverTextHost() {
@@ -72,10 +73,13 @@ private fun ChipsOverTextHost() {
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
-        PendingSkillChipsSection(
-            skills = listOf("pdf-tools", "pdf-redaction-and-sanitizing-for-legal-review"),
+        ComposerDraftListPanel(
+            items = draftItemsOf(emptyList(), tenLongChips, emptyList(), serverUrl = ""),
             onRemove = {},
-            modifier = Modifier.align(Alignment.Center),
+            onRetry = {},
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(horizontal = 12.dp),
         )
     }
 }

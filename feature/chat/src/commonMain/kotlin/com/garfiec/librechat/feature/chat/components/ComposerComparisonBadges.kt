@@ -151,13 +151,19 @@ internal fun animateComposerComparisonCollapse(collapsed: Boolean): State<Float>
 /**
  * The field's `prefix` on a phone: room for the badges, shrinking to nothing as they become dots, so
  * the draft slides over rather than jumping. A prefix, not the leading icon, because M3 holds the
- * icon slot at 48dp or more and the prefix can reach zero.
+ * icon slot at 48dp or more and the prefix can reach zero. [afterStack]: the attachment stack holds
+ * the leading slot, so the badges sit past it and the dots keep a gap before the text.
  */
 @Composable
-internal fun ComposerComparisonReserve(collapse: () -> Float) {
+internal fun ComposerComparisonReserve(collapse: () -> Float, afterStack: Boolean = false) {
     Spacer(
         Modifier.layout { measurable, constraints ->
-            val width = constraints.constrainWidth((CompactReserve * (1f - collapse())).roundToPx())
+            val reserve = if (afterStack) {
+                StackedReserveCollapsed + (StackedReserve - StackedReserveCollapsed) * (1f - collapse())
+            } else {
+                CompactReserve * (1f - collapse())
+            }
+            val width = constraints.constrainWidth(reserve.roundToPx())
             val placeable = measurable.measure(Constraints.fixed(width, 0))
             layout(width, 0) { placeable.place(0, 0) }
         },
@@ -184,7 +190,8 @@ internal fun ComposerAffixAnchor() {
  * model page changes either.
  *
  * Centred on the draft's first line rather than the field, so a long draft doesn't carry the pair
- * down to its middle.
+ * down to its middle. With [afterStack] the attachment stack holds the field's leading slot, so the
+ * pill starts past it and the dots gather in the gap between the stack and the text, never under it.
  */
 @Composable
 internal fun ComposerComparisonMorph(
@@ -192,7 +199,10 @@ internal fun ComposerComparisonMorph(
     collapsed: Boolean,
     collapse: () -> Float,
     modifier: Modifier = Modifier,
+    afterStack: Boolean = false,
 ) {
+    val pillStart = if (afterStack) StackedPillStart else PillStart
+    val dotCentreX = if (afterStack) StackedDotCentreX else DotCentreX
     var menuOpen by remember { mutableStateOf(false) }
     val description = stringResource(Res.string.cd_change_compared_models)
     val pill = MaterialTheme.colorScheme.surfaceContainerHighest
@@ -201,7 +211,7 @@ internal fun ComposerComparisonMorph(
     }
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val interaction = remember { MutableInteractionSource() }
-    Box(modifier.padding(start = PillStart, top = firstLineCentre - PillHeight / 2)) {
+    Box(modifier.padding(start = pillStart, top = firstLineCentre - PillHeight / 2)) {
         Box(
             Modifier
                 .size(PillWidth, PillHeight)
@@ -230,8 +240,8 @@ internal fun ComposerComparisonMorph(
                     .graphicsLayer {
                         val progress = collapse()
                         // From the badge's centre to its dot's, in the field's start padding.
-                        val badgeCentre = PillStart + PillInset + CompactBadge / 2 + BadgeStep * index
-                        val dx = (DotCentreX - badgeCentre).toPx() * progress
+                        val badgeCentre = pillStart + PillInset + CompactBadge / 2 + BadgeStep * index
+                        val dx = (dotCentreX - badgeCentre).toPx() * progress
                         translationX = if (rtl) -dx else dx
                         translationY = (if (index == 0) -DotSpread else DotSpread).toPx() * progress
                         val scale = 1f - (1f - DotSize / CompactBadge) * progress
@@ -326,3 +336,12 @@ private val DotSpread = 4.dp
 // The text starts 4dp past the pill. The prefix already sits after the field's start padding and
 // before M3's 2dp prefix gap, so the reserve is what's left.
 private val CompactReserve = PillStart + PillWidth + 4.dp - FieldPadding - 2.dp
+
+// After the attachment stack: M3's leading slot (STACK_SLOT) is followed by a 4dp start padding
+// (16dp less its 12dp icon padding), so the text's origin is 52dp. The pill starts where the slot
+// ends; the dots gather 4dp past it and the text keeps 8dp clear of them.
+private val StackedTextOrigin = STACK_SLOT + 4.dp
+private val StackedPillStart = STACK_SLOT
+private val StackedReserve = StackedPillStart + PillWidth + 4.dp - StackedTextOrigin - 2.dp
+private val StackedReserveCollapsed = 8.dp
+private val StackedDotCentreX = STACK_SLOT + 4.dp
