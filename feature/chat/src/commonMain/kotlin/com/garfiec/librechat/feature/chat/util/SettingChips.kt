@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.util
 
 import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.common.ToolConstants
+import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 
 /**
@@ -20,13 +21,16 @@ sealed interface SettingChip {
     /** A tool from the "+" sheet; [pinned] when the server pins it, so turning it off keeps it on the line. */
     data class Tool(val key: String, override val state: SettingChipState, val pinned: Boolean) : SettingChip
 
-    /** A selected MCP server. [connected] is its last reported connection. */
+    /** A selected MCP server, with its last reported [status]. */
     data class Mcp(
         val name: String,
         val label: String,
         override val state: SettingChipState,
-        val connected: Boolean,
-    ) : SettingChip
+        val status: McpDisplayStatus,
+    ) : SettingChip {
+        /** Drawn with "· sign in", and a tap starts the sign-in rather than turning it off. */
+        val needsSignIn: Boolean get() = status == McpDisplayStatus.NEEDS_SIGN_IN
+    }
 
     /** The per-turn Thinking control; a tap opens its sheet. */
     data class Thinking(val chip: ThinkingChip) : SettingChip {
@@ -103,7 +107,7 @@ fun settingChipsOf(inputs: SettingChipInputs): SettingChips {
                         name = server.name,
                         label = server.title?.takeIf { it.isNotBlank() } ?: server.name,
                         state = if (locked) SettingChipState.LOCKED else SettingChipState.ON,
-                        connected = server.isConnected,
+                        status = server.status,
                     ),
                 )
             }
@@ -161,12 +165,19 @@ sealed interface SettingChipTap {
     data object TurnOffWithUndo : SettingChipTap
 
     data object OpenThinking : SettingChipTap
+
+    /** An MCP server that needs the user to sign in: start it ([serverName] is its stored name). */
+    data class SignIn(val serverName: String) : SettingChipTap
 }
 
-/** The tap rule for [chip] on this line. */
+/**
+ * The tap rule for [chip] on this line. A server that needs sign-in signs in even when the spec
+ * locks it on: the lock only says why it is there, and signing in is what makes it work.
+ */
 fun SettingChips.tapFor(chip: SettingChip): SettingChipTap {
     val state = chip.state ?: return SettingChipTap.OpenThinking
     return when {
+        chip is SettingChip.Mcp && chip.needsSignIn -> SettingChipTap.SignIn(chip.name)
         state == SettingChipState.LOCKED -> SettingChipTap.ExplainLock(lockedBy)
         chip is SettingChip.Tool && chip.pinned -> SettingChipTap.Toggle
         else -> SettingChipTap.TurnOffWithUndo

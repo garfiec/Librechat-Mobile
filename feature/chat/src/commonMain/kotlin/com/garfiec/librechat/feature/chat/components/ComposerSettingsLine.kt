@@ -59,14 +59,12 @@ import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
 import com.garfiec.librechat.core.ui.components.CornerStatusDot
 import com.garfiec.librechat.core.ui.components.reasoningLevelLabel
 import com.garfiec.librechat.core.ui.contextusage.pressureColor
-import com.garfiec.librechat.core.ui.theme.statusColors
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_context_ring
 import com.garfiec.librechat.feature.chat.resources.cd_thinking_chip
 import com.garfiec.librechat.feature.chat.resources.compact_nudge_action
-import com.garfiec.librechat.feature.chat.resources.setting_chip_connected
-import com.garfiec.librechat.feature.chat.resources.setting_chip_not_connected
 import com.garfiec.librechat.feature.chat.resources.setting_chip_set_by
+import com.garfiec.librechat.feature.chat.resources.setting_chip_sign_in
 import com.garfiec.librechat.feature.chat.resources.thinking_chat_setting
 import com.garfiec.librechat.feature.chat.resources.thinking_chip_next_message
 import com.garfiec.librechat.feature.chat.resources.thinking_chip_state_next
@@ -161,15 +159,22 @@ private fun ToolSettingChip(chip: SettingChip.Tool, lockedBy: String?, onClick: 
 @Composable
 private fun McpSettingChip(chip: SettingChip.Mcp, lockedBy: String?, onClick: () -> Unit) {
     val locked = chip.state == SettingChipState.LOCKED
-    val connection = stringResource(
-        if (chip.connected) Res.string.setting_chip_connected else Res.string.setting_chip_not_connected,
-    )
+    val connection = stringResource(mcpStatusLabel(chip.status))
     val state = if (locked) "$connection, ${lockDescription(lockedBy)}" else connection
-    val dotColor = if (chip.connected) statusColors().success else statusColors().neutral
+    val dotColor = mcpStatusColor(chip.status)
     AdaptiveFilterChip(
         selected = true,
         onClick = onClick,
-        label = { Text(chip.label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        label = {
+            if (chip.needsSignIn) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(chip.label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    Text(stringResource(Res.string.setting_chip_sign_in), maxLines = 1)
+                }
+            } else {
+                Text(chip.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        },
         modifier = Modifier.semantics { stateDescription = state },
         colors = AdaptiveChipDefaults.overlayFilterChipColors(),
         leadingIcon = {

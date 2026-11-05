@@ -21,16 +21,25 @@ data class McpSignInUiState(
     val launch: McpOAuthLaunch? = null,
     /** The last attempt failed; the screen shows it once and calls [McpSignInViewModel.dismissFailure]. */
     val failed: Boolean = false,
+    /** The sign-in went to the system browser; the next return to the app ends it ([McpSignInViewModel.onReturned]). */
+    val awaitingReturn: Boolean = false,
+    /**
+     * A sign-in ended (signed in, cancelled, refused or failed to bind), so the chat re-reads its MCP
+     * statuses; the screen acts on it once and calls [McpSignInViewModel.consumeEnded].
+     */
+    val ended: Boolean = false,
 )
 
 /**
  * Drives the Sign in action on a live tool call that is waiting on an MCP OAuth
- * (`on_run_step_delta` with `delta.auth`; upstream `oauthPrompt: on_use` makes this mid-run).
+ * (`on_run_step_delta` with `delta.auth`; upstream `oauthPrompt: on_use` makes this mid-run), and on
+ * a settings chip whose server needs sign-in (the chat's reconnect hands it the link).
  *
- * Kept out of `ChatViewModel`: it owns nothing of the conversation. The run resumes by itself once
- * the server's callback lands, and the step then completes like any other tool call, so a success
- * needs no follow-up here. The bind goes through [McpOAuthLauncher], the same gate Settings uses,
- * and happens at the tap: the CSRF cookie lives ten minutes and a later prompt replaces it.
+ * Kept out of `ChatViewModel`: it owns nothing of the conversation. A mid-run sign-in's run resumes
+ * by itself once the server's callback lands; [McpSignInUiState.ended] is only so the chat's server
+ * statuses (the settings chips' dots) catch up. The bind goes through [McpOAuthLauncher], the same
+ * gate Settings uses, and happens at the tap: the CSRF cookie lives ten minutes and a later prompt
+ * replaces it.
  */
 class McpSignInViewModel(
     private val launcher: McpOAuthLauncher,
@@ -40,28 +49,43 @@ class McpSignInViewModel(
     val uiState: StateFlow<McpSignInUiState> = _uiState.asStateFlow()
 
     fun signIn(serverName: String, authorizationUrl: String) {
+        // The one in progress ends with its own [ended], which re-reads every status.
         if (_uiState.value.preparingServer != null || _uiState.value.launch != null) return
-        _uiState.update { it.copy(preparingServer = serverName, failed = false) }
+        _uiState.update { it.copy(preparingServer = serverName, failed = false, awaitingReturn = false) }
         viewModelScope.launch {
             when (val result = launcher.prepare(serverName, authorizationUrl)) {
                 is Result.Success -> _uiState.update { it.copy(preparingServer = null, launch = result.data) }
-                is Result.Error -> _uiState.update { it.copy(preparingServer = null, failed = true) }
+                is Result.Error -> _uiState.update { it.copy(preparingServer = null, failed = true, ended = true) }
                 Result.Loading -> Unit
             }
         }
     }
 
-    /** The system browser was opened for an [McpOAuthLaunch.External] sign-in. */
-    fun onLaunched() {
-        _uiState.update { it.copy(launch = null) }
+    /**
+     * The system browser was asked to open an [McpOAuthLaunch.External] sign-in. The authorization
+     * happens out of process, so it ends when the user is back ([onReturned]); a browser that never
+     * opened ends it now.
+     */
+    fun onLaunched(opened: Boolean = true) {
+        _uiState.update { it.copy(launch = null, awaitingReturn = opened, ended = it.ended || !opened) }
+    }
+
+    /** The app is in front again after a browser sign-in. */
+    fun onReturned() {
+        if (!_uiState.value.awaitingReturn) return
+        _uiState.update { it.copy(awaitingReturn = false, ended = true) }
     }
 
     /** The in-app sign-in ended. A refused callback is reported; closing the page is not. */
     fun onOutcome(outcome: McpOAuthOutcome) {
-        _uiState.update { it.copy(launch = null, failed = outcome is McpOAuthOutcome.Error) }
+        _uiState.update { it.copy(launch = null, failed = outcome is McpOAuthOutcome.Error, ended = true) }
     }
 
     fun dismissFailure() {
         _uiState.update { it.copy(failed = false) }
+    }
+
+    fun consumeEnded() {
+        _uiState.update { it.copy(ended = false) }
     }
 }

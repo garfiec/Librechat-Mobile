@@ -81,6 +81,8 @@ import com.garfiec.librechat.feature.chat.components.veil.rememberModeVeilModifi
 import com.garfiec.librechat.feature.chat.components.veil.rememberModeVeilState
 import com.garfiec.librechat.feature.chat.components.veil.rememberVeilTarget
 import com.garfiec.librechat.feature.chat.prompts.components.VariableInputDialog
+import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.mcp_sign_in_failed
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.util.draftItemsOf
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
@@ -94,6 +96,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.neutralizeStreamingChurn
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -245,12 +248,30 @@ fun ChatScreen(
     // selector), which keeps dismissing straight to the chat.
     val optionsController = rememberChatOptionsSheetController()
     val thinkingChip = uiState.thinkingChip
+    // MCP sign-in: a tool call's card (mid-run, delta.auth) and a settings chip both bind and open it
+    // here. A paused run resumes by itself once the server's callback lands; whichever way a sign-in
+    // ends, the chat re-reads its servers' statuses so the chips' dots catch up.
+    val mcpSignInViewModel: McpSignInViewModel = koinViewModel()
+    val mcpSignIn = rememberMcpSignIn(mcpSignInViewModel, snackbarHostState, onSignInEnd = viewModel::onMcpSignInEnded)
+    val mcpSignInFailed = stringResource(Res.string.mcp_sign_in_failed)
     val onSettingChipTap = rememberSettingChipTap(
         chips = uiState.settingChips,
         snackbarHostState = snackbarHostState,
         onToggle = viewModel::toggleSettingChip,
         onTurnBackOn = viewModel::turnSettingChipBackOn,
         onOpenThinking = { showThinkingSheet = true },
+        onSignIn = { serverName ->
+            viewModel.signInMcpServer(
+                serverName = serverName,
+                openSignIn = mcpSignIn.signIn,
+                onFailed = {
+                    coroutineScope.launch {
+                        snackbarHostState.currentSnackbarData?.dismiss()
+                        snackbarHostState.showSnackbar(mcpSignInFailed)
+                    }
+                },
+            )
+        },
     )
     // On a phone's comparison tab 1 the composer edits the secondary model, so the selector page and
     // label both follow the active tab. Side by side there is no current tab (the remembered index
@@ -366,11 +387,6 @@ fun ChatScreen(
     )
 
     val sendBlockMessage = uiState.sendBlockReason?.asString()
-
-    // MCP sign-in mid-run (delta.auth): the card's action binds and opens the sign-in here. The run
-    // resumes by itself once the server's callback lands, so success needs nothing further.
-    val mcpSignInViewModel: McpSignInViewModel = koinViewModel()
-    val mcpSignIn = rememberMcpSignIn(mcpSignInViewModel, snackbarHostState)
 
     // MCP Apps: the panel and its approval dialogs live here; rows read the result.
     val mcpAppsViewModel: McpAppsViewModel = koinViewModel()

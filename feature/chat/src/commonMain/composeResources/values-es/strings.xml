@@ -909,7 +909,7 @@
     <string name="mcp_sign_in_needed_unnamed">Una herramienta necesita que inicies sesión</string>
     <string name="mcp_sign_in_resumes">La respuesta continuará cuando hayas iniciado sesión.</string>
     <string name="mcp_sign_in_action">Iniciar sesión</string>
-    <string name="mcp_sign_in_failed">No se completó el inicio de sesión. Inténtalo de nuevo desde la llamada a la herramienta.</string>
+    <string name="mcp_sign_in_failed">No se completó el inicio de sesión. Inténtalo de nuevo.</string>
     <string name="prompt_filter_title">Filtrar y ordenar</string>
     <string name="prompt_sort_recent">Recientes</string>
     <string name="prompt_sort_popular">Populares</string>
@@ -1193,6 +1193,12 @@
     <string name="setting_chip_turned_off">%1$s desactivado</string>
     <string name="setting_chip_connected">Conectado</string>
     <string name="setting_chip_not_connected">No conectado</string>
+    <string name="setting_chip_connecting">Conectando…</string>
+    <string name="setting_chip_needs_sign_in">Requiere iniciar sesión</string>
+    <string name="setting_chip_needs_setup">Configúralo en la web</string>
+    <string name="setting_chip_on_demand">Se conecta cuando chateas</string>
+    <string name="setting_chip_failed">No se puede conectar</string>
+    <string name="setting_chip_sign_in">· iniciar sesión</string>
     <string name="thinking_chip_state_next">Solo el próximo mensaje</string>
     <string name="cd_context_ring">Contexto usado: %1$s</string>
     <string name="draft_quote_removed">Se quitó la cita</string>

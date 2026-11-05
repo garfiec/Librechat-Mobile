@@ -899,7 +899,7 @@
     <string name="mcp_sign_in_needed_unnamed">Ein Tool erfordert deine Anmeldung</string>
     <string name="mcp_sign_in_resumes">Die Antwort wird fortgesetzt, sobald du angemeldet bist.</string>
     <string name="mcp_sign_in_action">Anmelden</string>
-    <string name="mcp_sign_in_failed">Die Anmeldung wurde nicht abgeschlossen. Versuche es erneut über den Tool-Aufruf.</string>
+    <string name="mcp_sign_in_failed">Die Anmeldung wurde nicht abgeschlossen. Versuche es erneut.</string>
     <string name="prompt_filter_title">Filtern &amp; sortieren</string>
     <string name="prompt_sort_recent">Neueste</string>
     <string name="prompt_sort_popular">Beliebt</string>
@@ -1180,6 +1180,12 @@
     <string name="setting_chip_turned_off">%1$s ausgeschaltet</string>
     <string name="setting_chip_connected">Verbunden</string>
     <string name="setting_chip_not_connected">Nicht verbunden</string>
+    <string name="setting_chip_connecting">Verbindung wird hergestellt…</string>
+    <string name="setting_chip_needs_sign_in">Anmeldung erforderlich</string>
+    <string name="setting_chip_needs_setup">Im Web einrichten</string>
+    <string name="setting_chip_on_demand">Verbindet sich beim Chatten</string>
+    <string name="setting_chip_failed">Keine Verbindung möglich</string>
+    <string name="setting_chip_sign_in">· anmelden</string>
     <string name="thinking_chip_state_next">Nur nächste Nachricht</string>
     <string name="cd_context_ring">Kontext belegt: %1$s</string>
     <string name="draft_quote_removed">Zitat entfernt</string>

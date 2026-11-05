@@ -951,7 +951,7 @@
     <!-- Button on that row that opens the sign-in page -->
     <string name="mcp_sign_in_action">Sign in</string>
     <!-- Snackbar when an MCP sign-in from the chat could not start or the server refused it -->
-    <string name="mcp_sign_in_failed">Sign-in didn't complete. Try again from the tool call.</string>
+    <string name="mcp_sign_in_failed">Sign-in didn't complete. Try again.</string>
     <string name="prompt_filter_title">Filter &amp; Sort</string>
     <string name="prompt_sort_recent">Recent</string>
     <string name="prompt_sort_popular">Popular</string>
@@ -1234,6 +1234,13 @@
     <string name="setting_chip_turned_off">%1$s turned off</string>
     <string name="setting_chip_connected">Connected</string>
     <string name="setting_chip_not_connected">Not connected</string>
+    <string name="setting_chip_connecting">Connecting…</string>
+    <string name="setting_chip_needs_sign_in">Sign-in needed</string>
+    <string name="setting_chip_needs_setup">Set up on the web</string>
+    <string name="setting_chip_on_demand">Connects when you chat</string>
+    <string name="setting_chip_failed">Can't connect</string>
+    <!-- After an MCP server's name on its settings chip when it needs the user to sign in; a tap starts the sign-in -->
+    <string name="setting_chip_sign_in">· sign in</string>
     <string name="thinking_chip_state_next">Next message only</string>
     <string name="cd_context_ring">Context used: %1$s</string>
     <string name="draft_quote_removed">Quote removed</string>

@@ -955,7 +955,7 @@
     <string name="mcp_sign_in_needed_unnamed">تحتاج أداة إلى تسجيل دخولك</string>
     <string name="mcp_sign_in_resumes">يستمر الرد بمجرد تسجيل دخولك.</string>
     <string name="mcp_sign_in_action">تسجيل الدخول</string>
-    <string name="mcp_sign_in_failed">لم يكتمل تسجيل الدخول. حاول مرة أخرى من استدعاء الأداة.</string>
+    <string name="mcp_sign_in_failed">لم يكتمل تسجيل الدخول. حاول مرة أخرى.</string>
     <string name="prompt_filter_title">التصفية والفرز</string>
     <string name="prompt_sort_recent">الأحدث</string>
     <string name="prompt_sort_popular">الأكثر شيوعًا</string>
@@ -1260,6 +1260,12 @@
     <string name="setting_chip_turned_off">أُوقف %1$s</string>
     <string name="setting_chip_connected">متصل</string>
     <string name="setting_chip_not_connected">غير متصل</string>
+    <string name="setting_chip_connecting">جارٍ الاتصال…</string>
+    <string name="setting_chip_needs_sign_in">يلزم تسجيل الدخول</string>
+    <string name="setting_chip_needs_setup">أكمل الإعداد على الويب</string>
+    <string name="setting_chip_on_demand">يتصل عند الدردشة</string>
+    <string name="setting_chip_failed">تعذّر الاتصال</string>
+    <string name="setting_chip_sign_in">· سجّل الدخول</string>
     <string name="thinking_chip_state_next">للرسالة التالية فقط</string>
     <string name="cd_context_ring">السياق المستخدم: %1$s</string>
     <string name="draft_quote_removed">أُزيل الاقتباس</string>

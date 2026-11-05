@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -552,19 +553,14 @@ private fun McpServerToggleRow(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Connection status indicator
+        // The connection, as the settings chip and the MCP servers page show it.
+        val statusLabel = stringResource(mcpStatusLabel(server.status))
         Box(
             modifier = Modifier
                 .size(8.dp)
                 .dragSelectRowIcon()
-                .background(
-                    color = if (server.isConnected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.error
-                    },
-                    shape = CircleShape,
-                ),
+                .background(color = mcpStatusColor(server.status), shape = CircleShape)
+                .semantics { contentDescription = statusLabel },
         )
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {

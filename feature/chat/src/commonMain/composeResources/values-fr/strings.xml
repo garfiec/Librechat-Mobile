@@ -909,7 +909,7 @@
     <string name="mcp_sign_in_needed_unnamed">Un outil nécessite que vous vous connectiez</string>
     <string name="mcp_sign_in_resumes">La réponse reprendra une fois que vous serez connecté.</string>
     <string name="mcp_sign_in_action">Se connecter</string>
-    <string name="mcp_sign_in_failed">La connexion n'a pas abouti. Réessayez depuis l'appel d'outil.</string>
+    <string name="mcp_sign_in_failed">La connexion n'a pas abouti. Réessayez.</string>
     <string name="prompt_filter_title">Filtrer et trier</string>
     <string name="prompt_sort_recent">Récents</string>
     <string name="prompt_sort_popular">Populaires</string>
@@ -1193,6 +1193,12 @@
     <string name="setting_chip_turned_off">%1$s désactivé</string>
     <string name="setting_chip_connected">Connecté</string>
     <string name="setting_chip_not_connected">Non connecté</string>
+    <string name="setting_chip_connecting">Connexion…</string>
+    <string name="setting_chip_needs_sign_in">Connexion requise</string>
+    <string name="setting_chip_needs_setup">À configurer sur le web</string>
+    <string name="setting_chip_on_demand">Se connecte pendant vos chats</string>
+    <string name="setting_chip_failed">Connexion impossible</string>
+    <string name="setting_chip_sign_in">· se connecter</string>
     <string name="thinking_chip_state_next">Prochain message uniquement</string>
     <string name="cd_context_ring">Contexte utilisé : %1$s</string>
     <string name="draft_quote_removed">Citation retirée</string>

@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.util
 
 import com.garfiec.librechat.core.common.ToolConstants
+import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
@@ -23,8 +24,10 @@ class SettingChipsTest {
         pending = null,
         unsetIsOff = false,
     )
-    private val linear = McpServerDisplayData(name = "linear", title = "Linear", description = null, isConnected = true)
-    private val docs = McpServerDisplayData(name = "docs", title = null, description = null, isConnected = false)
+    private val linear =
+        McpServerDisplayData(name = "linear", title = "Linear", description = null, status = McpDisplayStatus.CONNECTED)
+    private val docs =
+        McpServerDisplayData(name = "docs", title = null, description = null, status = McpDisplayStatus.NEEDS_SIGN_IN)
 
     private fun inputs(
         toolbarShown: Boolean = true,
@@ -106,8 +109,8 @@ class SettingChipsTest {
             listOf<SettingChip>(
                 SettingChip.Tool(ToolConstants.WEB_SEARCH, SettingChipState.LOCKED, pinned = false),
                 SettingChip.Tool(ToolConstants.FILE_SEARCH, SettingChipState.ON, pinned = false),
-                SettingChip.Mcp("linear", "Linear", SettingChipState.ON, connected = true),
-                SettingChip.Mcp("docs", "docs", SettingChipState.LOCKED, connected = false),
+                SettingChip.Mcp("linear", "Linear", SettingChipState.ON, McpDisplayStatus.CONNECTED),
+                SettingChip.Mcp("docs", "docs", SettingChipState.LOCKED, McpDisplayStatus.NEEDS_SIGN_IN),
             ),
             line.chips,
         )
@@ -200,6 +203,38 @@ class SettingChipsTest {
         assertEquals(SettingChipTap.TurnOffWithUndo, line.tapFor(byKey.getValue(ToolConstants.MEMORY)))
         assertEquals(SettingChipTap.TurnOffWithUndo, line.tapFor(byKey.getValue("linear")))
         assertEquals(SettingChipTap.OpenThinking, line.tapFor(byKey.getValue("thinking")))
+    }
+
+    @Test
+    fun anMcpServerThatNeedsSignInSignsInOnTapEvenWhenLocked() {
+        val failed =
+            McpServerDisplayData(name = "sentry", title = "Sentry", description = null, status = McpDisplayStatus.FAILED)
+        val setup =
+            McpServerDisplayData(name = "jira", title = "Jira", description = null, status = McpDisplayStatus.NEEDS_SETUP)
+        val line = settingChipsOf(
+            inputs(
+                mcpServers = listOf(linear, docs, failed, setup),
+                mcpOn = setOf("linear", "docs", "sentry", "jira"),
+                lockedMcpServers = setOf("docs"),
+                specLabel = "Research",
+            ),
+        )
+        val byName = line.chips.filterIsInstance<SettingChip.Mcp>().associateBy { it.name }
+
+        assertEquals(
+            mapOf(
+                "linear" to McpDisplayStatus.CONNECTED,
+                "docs" to McpDisplayStatus.NEEDS_SIGN_IN,
+                "sentry" to McpDisplayStatus.FAILED,
+                "jira" to McpDisplayStatus.NEEDS_SETUP,
+            ),
+            byName.mapValues { it.value.status },
+        )
+        assertEquals(SettingChipTap.SignIn("docs"), line.tapFor(byName.getValue("docs")))
+        // Only sign-in is something a tap here can fix; setup is on the web, a failure on the server.
+        assertEquals(SettingChipTap.TurnOffWithUndo, line.tapFor(byName.getValue("sentry")))
+        assertEquals(SettingChipTap.TurnOffWithUndo, line.tapFor(byName.getValue("jira")))
+        assertEquals(SettingChipTap.TurnOffWithUndo, line.tapFor(byName.getValue("linear")))
     }
 
     @Test

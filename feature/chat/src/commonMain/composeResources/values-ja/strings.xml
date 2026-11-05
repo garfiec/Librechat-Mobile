@@ -885,7 +885,7 @@
     <string name="mcp_sign_in_needed_unnamed">ツールへのサインインが必要です</string>
     <string name="mcp_sign_in_resumes">サインインすると応答が続きます。</string>
     <string name="mcp_sign_in_action">サインイン</string>
-    <string name="mcp_sign_in_failed">サインインが完了しませんでした。ツール呼び出しからもう一度お試しください。</string>
+    <string name="mcp_sign_in_failed">サインインが完了しませんでした。もう一度お試しください。</string>
     <string name="prompt_filter_title">絞り込みと並べ替え</string>
     <string name="prompt_sort_recent">新しい順</string>
     <string name="prompt_sort_popular">人気順</string>
@@ -1160,6 +1160,12 @@
     <string name="setting_chip_turned_off">%1$s をオフにしました</string>
     <string name="setting_chip_connected">接続済み</string>
     <string name="setting_chip_not_connected">未接続</string>
+    <string name="setting_chip_connecting">接続中…</string>
+    <string name="setting_chip_needs_sign_in">サインインが必要</string>
+    <string name="setting_chip_needs_setup">Webで設定してください</string>
+    <string name="setting_chip_on_demand">チャット時に接続</string>
+    <string name="setting_chip_failed">接続できません</string>
+    <string name="setting_chip_sign_in">· サインイン</string>
     <string name="thinking_chip_state_next">次のメッセージのみ</string>
     <string name="cd_context_ring">使用中のコンテキスト: %1$s</string>
     <string name="draft_quote_removed">引用を削除しました</string>

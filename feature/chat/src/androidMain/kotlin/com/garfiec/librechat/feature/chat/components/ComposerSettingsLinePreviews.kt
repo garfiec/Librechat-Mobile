@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.ToolConstants
+import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
 import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.model.usage.ContextDetailPreset
 import com.garfiec.librechat.core.model.usage.ContextUsage
@@ -28,8 +29,8 @@ import com.garfiec.librechat.feature.chat.viewmodel.CompactNudge
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 
 // The composer's settings line over scrolled thread text (the composer's top is transparent):
-// tools on, pinned and off, locked by a spec; MCP servers; Thinking idle and staged; the context
-// ring at a normal reading and with a compact suggestion due.
+// tools on, pinned and off, locked by a spec; MCP servers in each status; Thinking idle and staged;
+// the context ring at a normal reading and with a compact suggestion due.
 
 @PreviewNarrowScreens
 @Composable
@@ -67,8 +68,8 @@ private fun SettingsLineStates() {
                     SettingChip.Tool(ToolConstants.WEB_SEARCH, SettingChipState.ON, pinned = true),
                     SettingChip.Tool(ToolConstants.CODE_INTERPRETER, SettingChipState.PINNED_OFF, pinned = true),
                     SettingChip.Tool(ToolConstants.MEMORY, SettingChipState.ON, pinned = false),
-                    SettingChip.Mcp("linear", "Linear", SettingChipState.ON, connected = true),
-                    SettingChip.Mcp("github", "GitHub Enterprise (internal mirror)", SettingChipState.ON, connected = false),
+                    SettingChip.Mcp("linear", "Linear", SettingChipState.ON, McpDisplayStatus.CONNECTED),
+                    SettingChip.Mcp("github", "GitHub Enterprise (internal mirror)", SettingChipState.ON, McpDisplayStatus.DISCONNECTED),
                     SettingChip.Thinking(thinking(pending = null)),
                 ),
             ),
@@ -80,7 +81,7 @@ private fun SettingsLineStates() {
             chips = SettingChips(
                 listOf(
                     SettingChip.Tool(ToolConstants.FILE_SEARCH, SettingChipState.LOCKED, pinned = false),
-                    SettingChip.Mcp("docs", "Docs", SettingChipState.LOCKED, connected = true),
+                    SettingChip.Mcp("docs", "Docs", SettingChipState.LOCKED, McpDisplayStatus.CONNECTED),
                     SettingChip.Thinking(thinking(pending = "high")),
                 ),
                 lockedBy = "Research assistant",
@@ -91,6 +92,23 @@ private fun SettingsLineStates() {
                 onCompact = {},
                 onSnoozeCompact = {},
             ),
+        )
+        // MCP servers by status: needs sign-in (amber, "· sign in", a long name and a locked one),
+        // connecting while that sign-in starts, needs setup on the web (amber), failed (error),
+        // and on demand.
+        ComposerSettingsLine(
+            chips = SettingChips(
+                listOf(
+                    SettingChip.Mcp("github", "GitHub Enterprise (internal mirror)", SettingChipState.ON, McpDisplayStatus.NEEDS_SIGN_IN),
+                    SettingChip.Mcp("docs", "Docs", SettingChipState.LOCKED, McpDisplayStatus.NEEDS_SIGN_IN),
+                    SettingChip.Mcp("linear", "Linear", SettingChipState.ON, McpDisplayStatus.CONNECTING),
+                    SettingChip.Mcp("jira", "Jira", SettingChipState.ON, McpDisplayStatus.NEEDS_SETUP),
+                    SettingChip.Mcp("sentry", "Sentry", SettingChipState.ON, McpDisplayStatus.FAILED),
+                    SettingChip.Mcp("notes", "Notes", SettingChipState.ON, McpDisplayStatus.ON_DEMAND),
+                ),
+                lockedBy = "Research assistant",
+            ),
+            onChipTap = {},
         )
         // Nothing on but the ring.
         ComposerSettingsLine(

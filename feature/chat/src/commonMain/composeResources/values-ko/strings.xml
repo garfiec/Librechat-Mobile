@@ -885,7 +885,7 @@
     <string name="mcp_sign_in_needed_unnamed">도구에 로그인해야 합니다</string>
     <string name="mcp_sign_in_resumes">로그인하면 응답이 계속됩니다.</string>
     <string name="mcp_sign_in_action">로그인</string>
-    <string name="mcp_sign_in_failed">로그인이 완료되지 않았습니다. 도구 호출에서 다시 시도하세요.</string>
+    <string name="mcp_sign_in_failed">로그인이 완료되지 않았습니다. 다시 시도하세요.</string>
     <string name="prompt_filter_title">필터 및 정렬</string>
     <string name="prompt_sort_recent">최근</string>
     <string name="prompt_sort_popular">인기</string>
@@ -1160,6 +1160,12 @@
     <string name="setting_chip_turned_off">%1$s 꺼짐</string>
     <string name="setting_chip_connected">연결됨</string>
     <string name="setting_chip_not_connected">연결 안 됨</string>
+    <string name="setting_chip_connecting">연결 중…</string>
+    <string name="setting_chip_needs_sign_in">로그인 필요</string>
+    <string name="setting_chip_needs_setup">웹에서 설정하세요</string>
+    <string name="setting_chip_on_demand">채팅할 때 연결됨</string>
+    <string name="setting_chip_failed">연결할 수 없음</string>
+    <string name="setting_chip_sign_in">· 로그인</string>
     <string name="thinking_chip_state_next">다음 메시지에만</string>
     <string name="cd_context_ring">사용한 컨텍스트: %1$s</string>
     <string name="draft_quote_removed">인용 삭제됨</string>

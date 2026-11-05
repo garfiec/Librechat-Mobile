@@ -885,7 +885,7 @@
     <string name="mcp_sign_in_needed_unnamed">某个工具需要你登录</string>
     <string name="mcp_sign_in_resumes">登录后回复将继续。</string>
     <string name="mcp_sign_in_action">登录</string>
-    <string name="mcp_sign_in_failed">登录未完成。请从工具调用处重试。</string>
+    <string name="mcp_sign_in_failed">登录未完成。请重试。</string>
     <string name="prompt_filter_title">筛选和排序</string>
     <string name="prompt_sort_recent">最近</string>
     <string name="prompt_sort_popular">热门</string>
@@ -1160,6 +1160,12 @@
     <string name="setting_chip_turned_off">已关闭 %1$s</string>
     <string name="setting_chip_connected">已连接</string>
     <string name="setting_chip_not_connected">未连接</string>
+    <string name="setting_chip_connecting">正在连接…</string>
+    <string name="setting_chip_needs_sign_in">需要登录</string>
+    <string name="setting_chip_needs_setup">请在网页版中设置</string>
+    <string name="setting_chip_on_demand">聊天时连接</string>
+    <string name="setting_chip_failed">无法连接</string>
+    <string name="setting_chip_sign_in">· 登录</string>
     <string name="thinking_chip_state_next">仅限下一条消息</string>
     <string name="cd_context_ring">已用上下文：%1$s</string>
     <string name="draft_quote_removed">已移除引用</string>

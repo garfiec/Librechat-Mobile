@@ -909,7 +909,7 @@
     <string name="mcp_sign_in_needed_unnamed">Uma ferramenta precisa que você entre</string>
     <string name="mcp_sign_in_resumes">A resposta continua assim que você entrar.</string>
     <string name="mcp_sign_in_action">Entrar</string>
-    <string name="mcp_sign_in_failed">O login não foi concluído. Tente novamente pela chamada da ferramenta.</string>
+    <string name="mcp_sign_in_failed">O login não foi concluído. Tente novamente.</string>
     <string name="prompt_filter_title">Filtrar e ordenar</string>
     <string name="prompt_sort_recent">Recentes</string>
     <string name="prompt_sort_popular">Populares</string>
@@ -1193,6 +1193,12 @@
     <string name="setting_chip_turned_off">%1$s desativado</string>
     <string name="setting_chip_connected">Conectado</string>
     <string name="setting_chip_not_connected">Não conectado</string>
+    <string name="setting_chip_connecting">Conectando…</string>
+    <string name="setting_chip_needs_sign_in">Login necessário</string>
+    <string name="setting_chip_needs_setup">Configure na web</string>
+    <string name="setting_chip_on_demand">Conecta quando você conversa</string>
+    <string name="setting_chip_failed">Não foi possível conectar</string>
+    <string name="setting_chip_sign_in">· fazer login</string>
     <string name="thinking_chip_state_next">Só na próxima mensagem</string>
     <string name="cd_context_ring">Contexto usado: %1$s</string>
     <string name="draft_quote_removed">Citação removida</string>

@@ -112,6 +112,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.InConversationSearc
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.JumpToMessageDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.LiveReplyDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.LocalQueueContinuityDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.McpServersDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageEditingDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageQueueDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageTreeDelegate
@@ -328,7 +329,6 @@ class ChatViewModel(
         handle = ModelSelectionHandle(stateHandle),
         configRepository = configRepository,
         agentRepository = agentRepository,
-        mcpRepository = mcpRepository,
         settingsDataStore = settingsDataStore,
         permissionGate = permissionGate,
         connectivityObserver = connectivityObserver,
@@ -338,6 +338,7 @@ class ChatViewModel(
         initialModel = initialModel,
         initialSpec = initialSpec,
     )
+    private val mcpServersDelegate = McpServersDelegate(ModelSelectionHandle(stateHandle), mcpRepository)
     private val skillsToggleDelegate = SkillsToggleDelegate(SkillsToggleHandle(stateHandle), settingsDataStore)
 
     // The attached-machine workspace a chat's coding agents run on, and what each send carries.
@@ -1222,7 +1223,7 @@ class ChatViewModel(
                 promptsUseAllowed = true
             }
             if (role?.hasAccess(PermissionType.MCP_SERVERS, Permission.USE) != false) {
-                modelDelegate.loadMcpServers()
+                mcpServersDelegate.load()
             }
             // Always call loadAgents — it self-gates on the AGENTS.USE permission and
             // flips its agentsLoaded flag on every path (including denial). Skipping it
@@ -2144,6 +2145,16 @@ class ChatViewModel(
 
     fun setSecondaryModel(endpoint: String, model: String) = comparisonDelegate.setSecondaryModel(endpoint, model)
     fun toggleMcpServer(serverName: String) = modelDelegate.toggleMcpServer(serverName)
+
+    /** A settings chip's "sign in": see [McpServersDelegate.signIn]. */
+    fun signInMcpServer(
+        serverName: String,
+        openSignIn: (serverName: String, authorizationUrl: String) -> Unit,
+        onFailed: () -> Unit,
+    ) = mcpServersDelegate.signIn(serverName, openSignIn, onFailed)
+
+    /** An MCP sign-in ended: re-read the servers' statuses. */
+    fun onMcpSignInEnded() = mcpServersDelegate.onSignInEnded()
     fun toggleTool(toolName: String) {
         // Per conversation, so it never goes through the global enabled-tools store.
         if (toolName == ToolConstants.SKILLS) skillsToggleDelegate.toggle() else modelDelegate.toggleTool(toolName)

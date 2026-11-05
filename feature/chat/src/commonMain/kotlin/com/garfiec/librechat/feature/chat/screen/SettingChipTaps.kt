@@ -26,7 +26,8 @@ import org.jetbrains.compose.resources.getString
  * a pinned tool switches and stays; anything else switches off, leaves the line and offers Undo,
  * which switches it back on through the same toggle ([onTurnBackOn]). The toggles are the "+"
  * sheet's, so a global one (code, file search, memory, MCP) is off in every chat, as the snackbar
- * says, and a spec chat's additions are this chat's.
+ * says, and a spec chat's additions are this chat's. An MCP server that needs sign-in signs in
+ * instead ([onSignIn], with its stored name).
  */
 @Composable
 internal fun rememberSettingChipTap(
@@ -35,16 +36,19 @@ internal fun rememberSettingChipTap(
     onToggle: (SettingChip) -> Unit,
     onTurnBackOn: (SettingChip) -> Unit,
     onOpenThinking: () -> Unit,
+    onSignIn: (serverName: String) -> Unit,
 ): (SettingChip) -> Unit {
     val scope = rememberCoroutineScope()
     val currentChips by rememberUpdatedState(chips)
     val toggle by rememberUpdatedState(onToggle)
     val turnBackOn by rememberUpdatedState(onTurnBackOn)
     val openThinking by rememberUpdatedState(onOpenThinking)
+    val signIn by rememberUpdatedState(onSignIn)
     return remember(scope, snackbarHostState) {
         { chip ->
             when (val tap = currentChips.tapFor(chip)) {
                 SettingChipTap.OpenThinking -> openThinking()
+                is SettingChipTap.SignIn -> signIn(tap.serverName)
                 SettingChipTap.Toggle -> toggle(chip)
                 is SettingChipTap.ExplainLock -> scope.launch {
                     val message = tap.specLabel?.let { getString(Res.string.setting_chip_set_by, it) }

@@ -5,7 +5,6 @@ import com.garfiec.librechat.core.data.datastore.LastUsedSelection
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
-import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Preset
@@ -87,7 +86,6 @@ class SpecPresetParametersTest {
         handle = ModelSelectionHandle(handle),
         configRepository = configRepository,
         agentRepository = agentRepository,
-        mcpRepository = mockk<McpRepository>(relaxed = true),
         settingsDataStore = settingsDataStore,
         permissionGate = mockk<PermissionGate>(relaxed = true),
         connectivityObserver = connectivityObserver,

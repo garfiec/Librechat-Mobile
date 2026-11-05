@@ -927,7 +927,7 @@
     <string name="mcp_sign_in_needed_unnamed">Инструмент требует входа</string>
     <string name="mcp_sign_in_resumes">Ответ продолжится, как только вы войдёте.</string>
     <string name="mcp_sign_in_action">Войти</string>
-    <string name="mcp_sign_in_failed">Вход не завершён. Попробуйте снова из вызова инструмента.</string>
+    <string name="mcp_sign_in_failed">Вход не завершён. Попробуйте снова.</string>
     <string name="prompt_filter_title">Фильтр и сортировка</string>
     <string name="prompt_sort_recent">Недавние</string>
     <string name="prompt_sort_popular">Популярные</string>
@@ -1220,6 +1220,12 @@
     <string name="setting_chip_turned_off">%1$s: выключено</string>
     <string name="setting_chip_connected">Подключено</string>
     <string name="setting_chip_not_connected">Не подключено</string>
+    <string name="setting_chip_connecting">Подключение…</string>
+    <string name="setting_chip_needs_sign_in">Нужен вход</string>
+    <string name="setting_chip_needs_setup">Настройте в веб-версии</string>
+    <string name="setting_chip_on_demand">Подключается во время чата</string>
+    <string name="setting_chip_failed">Не удаётся подключиться</string>
+    <string name="setting_chip_sign_in">· войти</string>
     <string name="thinking_chip_state_next">Только следующее сообщение</string>
     <string name="cd_context_ring">Использовано контекста: %1$s</string>
     <string name="draft_quote_removed">Цитата удалена</string>
