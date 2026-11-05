@@ -576,6 +576,8 @@
     <string name="media_empty_links">لا توجد روابط في هذه المحادثة</string>
     <string name="media_empty_artifacts">لا توجد عناصر تفاعلية في هذه المحادثة</string>
     <string name="context_usage_label">السياق</string>
+    <string name="context_percent">%1$d%</string>
+    <string name="context_percent_estimate">~%1$d%</string>
     <string name="tool_approval_title">مطلوب موافقة</string>
     <string name="tool_approval_arguments">الوسائط</string>
     <string name="tool_approval_approve">موافقة</string>
@@ -685,7 +687,7 @@
     <string name="skill_call_finished">تم تشغيل %1$s</string>
     <string name="skill_call_fallback_name">مهارة</string>
     <string name="cd_steer_message">توجيه هذا الرد</string>
-    <string name="cd_cancel_steer">إلغاء التوجيه</string>
+    <string name="cd_cancel_steer">إلغاء التوجيه: %1$s</string>
     <string name="cd_during_run_options">اختر ما يفعله الإرسال الآن</string>
     <string name="during_run_steer">توجيه هذا الرد</string>
     <string name="during_run_queue">إضافة إلى قائمة الانتظار</string>

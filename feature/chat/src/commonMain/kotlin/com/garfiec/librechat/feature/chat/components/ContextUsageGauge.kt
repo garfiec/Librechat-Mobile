@@ -51,6 +51,8 @@ import com.garfiec.librechat.feature.chat.resources.compact_confirm_not_now
 import com.garfiec.librechat.feature.chat.resources.compact_confirm_title
 import com.garfiec.librechat.feature.chat.resources.compact_nudge_action
 import com.garfiec.librechat.feature.chat.resources.compact_nudge_short
+import com.garfiec.librechat.feature.chat.resources.context_percent
+import com.garfiec.librechat.feature.chat.resources.context_percent_estimate
 import com.garfiec.librechat.feature.chat.resources.context_usage_label
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import org.jetbrains.compose.resources.stringResource
@@ -264,7 +266,7 @@ private fun ContextGaugePill(
     Row(
         modifier = Modifier
             .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -346,6 +348,10 @@ internal fun CompactConfirmDialog(
 private val GAUGE_BAR_WIDTH = 72.dp
 private val GAUGE_BAR_MIN_WIDTH = 24.dp
 
-/** A computed estimate reads as approximate (`~42%`), matching the breakdown's `~used` header. */
+/**
+ * The used percentage as the locale writes it (`42 %` in German and French). A computed estimate
+ * reads as approximate (`~42%`), matching the breakdown's `~used` header.
+ */
+@Composable
 internal fun percentLabel(percent: Int, isEstimate: Boolean): String =
-    if (isEstimate) "~$percent%" else "$percent%"
+    stringResource(if (isEstimate) Res.string.context_percent_estimate else Res.string.context_percent, percent)

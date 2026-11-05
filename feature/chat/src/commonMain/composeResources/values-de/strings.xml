@@ -552,6 +552,8 @@
     <string name="media_empty_links">Keine Links in dieser Unterhaltung</string>
     <string name="media_empty_artifacts">Keine Artefakte in dieser Unterhaltung</string>
     <string name="context_usage_label">Kontext</string>
+    <string name="context_percent">%1$d %</string>
+    <string name="context_percent_estimate">~%1$d %</string>
     <string name="tool_approval_title">Genehmigung erforderlich</string>
     <string name="tool_approval_arguments">Argumente</string>
     <string name="tool_approval_approve">Genehmigen</string>
@@ -661,7 +663,7 @@
     <string name="skill_call_finished">%1$s ausgeführt</string>
     <string name="skill_call_fallback_name">Skill</string>
     <string name="cd_steer_message">Diese Antwort lenken</string>
-    <string name="cd_cancel_steer">Lenken abbrechen</string>
+    <string name="cd_cancel_steer">Lenken abbrechen: %1$s</string>
     <string name="cd_during_run_options">Festlegen, was Senden jetzt bewirkt</string>
     <string name="during_run_steer">Diese Antwort lenken</string>
     <string name="during_run_queue">Zur Warteschlange hinzufügen</string>

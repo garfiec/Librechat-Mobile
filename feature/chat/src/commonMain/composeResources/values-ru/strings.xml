@@ -564,6 +564,8 @@
     <string name="media_empty_links">В этой беседе нет ссылок</string>
     <string name="media_empty_artifacts">В этой беседе нет артефактов</string>
     <string name="context_usage_label">Контекст</string>
+    <string name="context_percent">%1$d %</string>
+    <string name="context_percent_estimate">~%1$d %</string>
     <string name="tool_approval_title">Требуется одобрение</string>
     <string name="tool_approval_arguments">Аргументы</string>
     <string name="tool_approval_approve">Одобрить</string>
@@ -673,7 +675,7 @@
     <string name="skill_call_finished">Выполнен %1$s</string>
     <string name="skill_call_fallback_name">навык</string>
     <string name="cd_steer_message">Скорректировать этот ответ</string>
-    <string name="cd_cancel_steer">Отменить корректировку</string>
+    <string name="cd_cancel_steer">Отменить корректировку: %1$s</string>
     <string name="cd_during_run_options">Выберите действие при отправке сейчас</string>
     <string name="during_run_steer">Скорректировать этот ответ</string>
     <string name="during_run_queue">Добавить в очередь</string>

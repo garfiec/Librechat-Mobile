@@ -21,6 +21,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -98,6 +100,8 @@ internal fun ApprovalChip(approval: CodeApprovalChip, onSelect: (CodeApprovalOpt
                         expanded = false
                         onSelect(option)
                     },
+                    // The check alone says nothing to a screen reader.
+                    modifier = Modifier.semantics { selected = option == approval.selected },
                 )
             }
         }

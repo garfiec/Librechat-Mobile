@@ -1055,6 +1055,40 @@ while attachments are staged, so neither promises something the tap won't do.
   mirror `steer-interrupted-tool-result`). It renders as "Interrupted by your message" in a neutral tone,
   an interrupted search keeps the generic card, and a group header counts it as cancelled, not failed.
 
+## Composer chrome (what sits around the field)
+Everything the composer draws above its field (pull request, quotes, picked skills, steers, the
+queue and its banners, attachments, the code workspace, pinned tools, the context gauge) and the
+"+" button's dots is **one view-data holder, `ComposerChrome`**, built in `ChatScreen` and threaded
+once through the `ChatComposer` expect, both actuals, `ChatInput` / `IosChatInput` and
+`ChatInputState.chrome`. A new row adds a field there, never a parameter to those five signatures:
+the iOS ones are not compiled on a Linux host, so a signature change there is only caught by CI.
+- **Vertical drags pass through to the thread.** `ComposerChromeStack` (in `CommonChatInputCore`)
+  carries `Modifier.passVerticalDragsToThread()`: past touch slop, a mostly vertical drag that no
+  child consumed goes to `LocalThreadScrollHandle`, fling included. It watches on the Main pass, so a
+  child that claims the gesture keeps it (a horizontal chip row past its slop, the queue's long-press
+  reorder once it fired, the steer and queue region's own scroll). The decision is the pure
+  `PassThroughDrag`. The field and the `/` `$` picker are outside the stack. Trade-off: the stack's
+  area no longer passes taps through to the thread behind it.
+- **`ThreadScrollHandle`** is created in `ChatScreen` (above both the thread and the composer) and
+  bound by `ChatContent`, which owns the `LazyListState`s, to the list the composer covers
+  (`threadScrollTarget`: the single list; in Compare the tab on screen on a phone, pane A side by
+  side). A drag is ONE `scroll(MutatePriority.UserInput) { scrollBy }` session from first delta to
+  fling, so `isScrollInProgress` holds for the whole drag and `TailFollower` reads it as the user
+  scrolling away mid-reply. A finger on the list takes the session over, like any user scroll.
+- **Steers and the queue share one region capped at 168dp** (`SteerAndQueueRegion`, about two and a
+  half rows), resting on its bottom (`reverseScrolling`), the end nearest the field. Its scroll is
+  enabled only while it overflows; until then the stack's pass-through takes the drag. Past the cap,
+  a drag that reaches the region's edge goes on to the thread and so does a fling it can't use
+  (`ThreadHandOffConnection`, nested scroll). The queue's long-press reorder keeps its gesture, and
+  holding a row near the region's edge auto-scrolls it (`ReorderScrollRegion`,
+  `reorderAutoScrollStep`).
+- **The "+" dots are shared** (`ToolsButtonDots`, `showsActiveToolsDot`): tools on (primary, top)
+  and a compact suggestion due under the options-sheet placement (tertiary, bottom), on both
+  platforms; both name the button "Open tools menu".
+- Over the composer's transparent top, Material fills are opaque: steer cards, the pull request chip
+  and the code chips (`AdaptiveChipDefaults.overlayAssistChipColors`). A code chip with nothing to
+  pick is a label: not clickable, read as text.
+
 ## Chat Tools
 - The user's own toggles: `enabledTools` and `selectedMcpServerNames` are global (stored in
   `SettingsDataStore`, carried into every chat). Web search and URL context are
@@ -1063,7 +1097,8 @@ while attachments are staged, so neither promises something the tap won't do.
   this device left it (`ConversationWebSearchStore`, next section). The Skills toggle is per
   conversation (`SkillsToggleDelegate`).
 - Tool toggles and MCP servers live in the paged "+" options sheet (`ChatToolsSheetContent`),
-  reached from `ChatInput`'s `onOpenTools`, plus the server's pinned chips (`PinnedToolsRow`).
+  reached from the composer's `onOpenTools`, plus the server's pinned chips (`PinnedToolsRow`, in
+  the composer chrome above).
 - URL context shows only on a Google parameter set and a model the server runs it on
   (`urlContextProviderGate`, `supportsUrlContext`: Gemini 2.5+, not image/live/TTS/audio). The server
   skips it elsewhere with only a debug log. Web shows it on every Google model; the divergence is deliberate.
@@ -1816,7 +1851,9 @@ ported from upstream `tokens.ts`; registered in `scripts/mirrors.json`). Two rul
   run's value.
 
 The breakdown (`util/ContextBreakdown.kt`, rendered by `ContextUsageGauge.kt`) ports web's
-`Breakdown.tsx`; Totals and Cost come from `util/UsageTotals.kt`. One more load-bearing rule:
+`Breakdown.tsx`; Totals and Cost come from `util/UsageTotals.kt`. The percentage is written by
+`percentLabel`, from the localized `context_percent` / `context_percent_estimate` (`42 %` in German
+and French), for the gauge and the ⋮ menu's subtitle alike. One more load-bearing rule:
 - **Live usage is attributed to the Final frame's response id, never the tail.** `LiveReplyDelegate`
   folds every `on_token_usage` (buckets included, deduped by `runId:seq`, plus the resume frame's
   `collectedUsage`) into `pendingUsage`, which counts until its reply carries `metadata.usage`.

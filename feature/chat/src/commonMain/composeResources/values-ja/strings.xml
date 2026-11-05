@@ -546,6 +546,8 @@
     <string name="media_empty_links">この会話にリンクはありません</string>
     <string name="media_empty_artifacts">この会話にアーティファクトはありません</string>
     <string name="context_usage_label">コンテキスト</string>
+    <string name="context_percent">%1$d%</string>
+    <string name="context_percent_estimate">約%1$d%</string>
     <string name="tool_approval_title">承認が必要です</string>
     <string name="tool_approval_arguments">引数</string>
     <string name="tool_approval_approve">承認</string>
@@ -655,7 +657,7 @@
     <string name="skill_call_finished">%1$s を実行しました</string>
     <string name="skill_call_fallback_name">スキル</string>
     <string name="cd_steer_message">この応答を軌道修正</string>
-    <string name="cd_cancel_steer">軌道修正をキャンセル</string>
+    <string name="cd_cancel_steer">軌道修正をキャンセル：%1$s</string>
     <string name="cd_during_run_options">送信時の動作を選択</string>
     <string name="during_run_steer">この応答を軌道修正</string>
     <string name="during_run_queue">キューに追加</string>

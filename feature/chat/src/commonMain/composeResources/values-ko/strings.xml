@@ -546,6 +546,8 @@
     <string name="media_empty_links">이 대화에 링크가 없습니다</string>
     <string name="media_empty_artifacts">이 대화에 아티팩트가 없습니다</string>
     <string name="context_usage_label">컨텍스트</string>
+    <string name="context_percent">%1$d%</string>
+    <string name="context_percent_estimate">약 %1$d%</string>
     <string name="tool_approval_title">승인 필요</string>
     <string name="tool_approval_arguments">인수</string>
     <string name="tool_approval_approve">승인</string>
@@ -655,7 +657,7 @@
     <string name="skill_call_finished">%1$s 실행함</string>
     <string name="skill_call_fallback_name">스킬</string>
     <string name="cd_steer_message">이 응답의 방향 조정</string>
-    <string name="cd_cancel_steer">방향 조정 취소</string>
+    <string name="cd_cancel_steer">방향 조정 취소: %1$s</string>
     <string name="cd_during_run_options">지금 보낼 때의 동작 선택</string>
     <string name="during_run_steer">이 응답의 방향 조정</string>
     <string name="during_run_queue">대기열에 추가</string>

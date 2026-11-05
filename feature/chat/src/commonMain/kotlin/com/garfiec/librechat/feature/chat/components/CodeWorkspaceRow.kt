@@ -47,9 +47,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -309,6 +311,8 @@ private fun MachineChip(
                         expanded = false
                         composer.onOpenSheet(choice.id)
                     },
+                    // The check alone says nothing to a screen reader.
+                    modifier = Modifier.semantics { selected = choice.selected },
                 )
             }
         }
@@ -396,8 +400,13 @@ internal fun CodeChip(
     trailing: ImageVector? = null,
     tint: androidx.compose.ui.graphics.Color? = null,
 ) {
+    // The composer overlays the list, so the chip needs a container; the tint shows in both styles.
+    val overlay = AdaptiveChipDefaults.overlayAssistChipColors(tint)
     AdaptiveAssistChip(
         onClick = onClick ?: {},
+        // With nothing to pick, the chip is a label: no ripple, and announced as text rather than a
+        // button a double-tap does nothing with. Drawn in its enabled colours.
+        enabled = onClick != null,
         label = {
             Text(
                 text = label,
@@ -406,12 +415,19 @@ internal fun CodeChip(
                 modifier = if (isName) Modifier.widthIn(max = CHIP_NAME_MAX_WIDTH) else Modifier,
             )
         },
-        modifier = Modifier.semantics {
-            contentDescription = description
-            role = Role.Button
+        modifier = if (onClick != null) {
+            Modifier.semantics {
+                contentDescription = description
+                role = Role.Button
+            }
+        } else {
+            Modifier.clearAndSetSemantics { contentDescription = description }
         },
-        // The composer overlays the list, so the chip needs a container; the tint shows in both styles.
-        colors = AdaptiveChipDefaults.overlayAssistChipColors(tint),
+        colors = overlay.copy(
+            disabledLabelColor = overlay.labelColor,
+            disabledLeadingIconContentColor = overlay.leadingIconContentColor,
+            disabledTrailingIconContentColor = overlay.trailingIconContentColor,
+        ),
         leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize)) },
         trailingIcon = when {
             trailing != null -> {

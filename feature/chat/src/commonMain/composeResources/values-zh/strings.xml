@@ -546,6 +546,8 @@
     <string name="media_empty_links">此对话中没有链接</string>
     <string name="media_empty_artifacts">此对话中没有 artifact</string>
     <string name="context_usage_label">上下文</string>
+    <string name="context_percent">%1$d%</string>
+    <string name="context_percent_estimate">约 %1$d%</string>
     <string name="tool_approval_title">需要批准</string>
     <string name="tool_approval_arguments">参数</string>
     <string name="tool_approval_approve">批准</string>
@@ -655,7 +657,7 @@
     <string name="skill_call_finished">已运行 %1$s</string>
     <string name="skill_call_fallback_name">技能</string>
     <string name="cd_steer_message">引导此回复</string>
-    <string name="cd_cancel_steer">取消引导</string>
+    <string name="cd_cancel_steer">取消引导：%1$s</string>
     <string name="cd_during_run_options">选择现在发送的方式</string>
     <string name="during_run_steer">引导此回复</string>
     <string name="during_run_queue">加入队列</string>

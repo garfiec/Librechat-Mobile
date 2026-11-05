@@ -123,10 +123,12 @@ private fun PendingSteerRow(
     val container = if (interrupting) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.primaryContainer
     val content = if (interrupting) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onPrimaryContainer
     // A glass panel under Liquid Glass (the tint is Material only); the content keeps its colour.
+    // Opaque in Material: the composer's top is transparent, so a translucent card showed the thread
+    // through the steer.
     AdaptiveCard(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = container.copy(alpha = 0.55f), contentColor = content),
+        colors = CardDefaults.cardColors(containerColor = container, contentColor = content),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -207,7 +209,7 @@ private fun PendingSteerRow(
             IconButton(onClick = onCancel, modifier = Modifier.alpha(0.8f)) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = stringResource(Res.string.cd_cancel_steer),
+                    contentDescription = stringResource(Res.string.cd_cancel_steer, chip.text.take(INTERRUPT_CD_MAX_CHARS)),
                     tint = content,
                     modifier = Modifier.size(18.dp),
                 )
@@ -216,5 +218,5 @@ private fun PendingSteerRow(
     }
 }
 
-/** The chip's "Interrupt now" names the message, like web: its first 80 characters. */
+/** The chip's "Interrupt now" and × name the message, like web: its first 80 characters. */
 private const val INTERRUPT_CD_MAX_CHARS = 80

@@ -555,6 +555,8 @@
     <string name="media_empty_links">Nenhum link nesta conversa</string>
     <string name="media_empty_artifacts">Nenhum artefato nesta conversa</string>
     <string name="context_usage_label">Contexto</string>
+    <string name="context_percent">%1$d%</string>
+    <string name="context_percent_estimate">~%1$d%</string>
     <string name="tool_approval_title">Aprovação necessária</string>
     <string name="tool_approval_arguments">Argumentos</string>
     <string name="tool_approval_approve">Aprovar</string>
@@ -664,7 +666,7 @@
     <string name="skill_call_finished">%1$s executada</string>
     <string name="skill_call_fallback_name">habilidade</string>
     <string name="cd_steer_message">Direcionar esta resposta</string>
-    <string name="cd_cancel_steer">Cancelar direcionamento</string>
+    <string name="cd_cancel_steer">Cancelar direcionamento: %1$s</string>
     <string name="cd_during_run_options">Escolha o que o envio faz agora</string>
     <string name="during_run_steer">Direcionar esta resposta</string>
     <string name="during_run_queue">Adicionar à fila</string>

@@ -574,6 +574,8 @@
 
     <!-- Context usage gauge (v0.8.7) -->
     <string name="context_usage_label">Context</string>
+    <string name="context_percent">%1$d%</string>
+    <string name="context_percent_estimate">~%1$d%</string>
 
     <!-- Human-in-the-loop pauses (v0.8.8): tool approval + ask_user_question -->
     <string name="tool_approval_title">Approval needed</string>
@@ -690,7 +692,7 @@
 
     <!-- Mid-run steering (v0.8.8): send into the reply that is still being written -->
     <string name="cd_steer_message">Steer this reply</string>
-    <string name="cd_cancel_steer">Cancel steer</string>
+    <string name="cd_cancel_steer">Cancel steer: %1$s</string>
     <string name="cd_during_run_options">Choose what sending does now</string>
     <string name="during_run_steer">Steer this reply</string>
     <string name="during_run_queue">Add to queue</string>
