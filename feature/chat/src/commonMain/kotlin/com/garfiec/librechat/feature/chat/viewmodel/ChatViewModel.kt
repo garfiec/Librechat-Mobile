@@ -77,6 +77,7 @@ import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
+import com.garfiec.librechat.feature.chat.util.DraftItem
 import com.garfiec.librechat.feature.chat.util.ReplyAvatarMemo
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.util.ToolPartIdentity
@@ -102,6 +103,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.ComparisonModeDeleg
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ContextProjectionDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ConversationActionsDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ConversationLoadDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.DraftItemsDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.EndpointKeyStatusDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.FavoritesDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.InConversationSearchDelegate
@@ -808,6 +810,12 @@ class ChatViewModel(
         loadSkillCatalog = { skillPickerDelegate.ensureLoaded(newTrigger = true) },
         codeWorkspace = codeWorkspaceDelegate::submissionForSend,
         sendsWithoutWorkspace = codeWorkspaceDelegate::sendsWithoutWorkspace,
+    )
+
+    private val draftItemsDelegate = DraftItemsDelegate(
+        handle = DraftItemsHandle(stateHandle),
+        fileHandler = fileDelegate,
+        sendDispatchDelegate = sendDispatchDelegate,
     )
 
     private val queueOrchestrationDelegate = QueueOrchestrationDelegate(
@@ -2009,7 +2017,14 @@ class ChatViewModel(
     fun addPendingManualSkill(name: String) {
         if (sendDispatchDelegate.addPendingManualSkill(name)) skillsToggleDelegate.turnOn()
     }
-    fun removePendingManualSkill(name: String) = sendDispatchDelegate.removePendingManualSkill(name)
+    fun removePendingManualSkill(name: String) {
+        sendDispatchDelegate.removePendingManualSkill(name)
+    }
+
+    // The composer's attachment list (files, picked skills, quotes): × removes, a finished removal can be undone.
+    fun removeDraftItem(item: DraftItem) = draftItemsDelegate.remove(item)
+    fun undoDraftRemoval(id: Long) = draftItemsDelegate.undo(id)
+    fun dropDraftUndo(id: Long) = draftItemsDelegate.dropUndo(id)
 
     /**
      * Stages [value] from the Thinking sheet for the next message only (v0.8.9-rc1). Picking the

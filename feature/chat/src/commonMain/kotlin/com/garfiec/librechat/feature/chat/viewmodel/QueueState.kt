@@ -223,4 +223,5 @@ fun QueuedMessage.toComposerSnapshot(): ComposerSnapshot = ComposerSnapshot(
     manualSkills = manualSkills,
     skillsToggle = ephemeralAgent?.skills == true,
     reasoningOverride = reasoningOverride,
+    quotes = quotes,
 )

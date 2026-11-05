@@ -19,6 +19,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.QueueOrchestrationHandle
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedEditSession
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedTurnServerState
+import com.garfiec.librechat.feature.chat.viewmodel.quotesSupportedOn
 import com.garfiec.librechat.feature.chat.viewmodel.toComposerSnapshot
 import kotlinx.coroutines.launch
 import kotlin.uuid.Uuid
@@ -255,9 +256,9 @@ class QueueOrchestrationDelegate(
     )
 
     /**
-     * Swaps the composer over to [item]. The skill chips go with it: the draft's are stashed and
-     * the item's own picks shown, so a `$` pick during the edit lands on this message and the
-     * draft's chips come back untouched when the edit ends.
+     * Swaps the composer over to [item]. The skill and quote chips go with it: the draft's are
+     * stashed and the item's own shown, so a `$` pick or an "Add to chat" during the edit lands on
+     * this message and the draft's chips come back untouched when the edit ends.
      */
     private fun beginQueuedEdit(item: QueuedMessage, index: Int) {
         val stashed = captureComposer()
@@ -286,7 +287,8 @@ class QueueOrchestrationDelegate(
             val edited = sendDispatchDelegate.buildSendSpec(text)?.let { spec ->
                 spec.copy(
                     localId = session.original.localId,
-                    quotes = session.original.quotes,
+                    // The quote chips on screen during the edit are this item's own, like the skills.
+                    quotes = handle.state.pendingQuotes.takeIf { quotesSupportedOn(spec.endpoint) }.orEmpty(),
                     // The chips on screen during the edit are this item's own (see
                     // [beginQueuedEdit]), so what the user added or removed there is what it sends.
                     manualSkills = sendDispatchDelegate.sendablePendingManualSkills(spec.endpoint),
@@ -554,11 +556,12 @@ class QueueOrchestrationDelegate(
             manualSkills = state.pendingManualSkills,
             skillsToggle = state.skillsToggle,
             reasoningOverride = state.composer.pendingReasoningOverride,
+            quotes = state.pendingQuotes,
         )
     }
 
     /** Writes a [ComposerSnapshot] back onto the composer (text, attachments, model, tools, params,
-     *  skill chips, Skills toggle) and starts or ends the queued edit ([editSession]) in the same
+     *  skill and quote chips, Skills toggle) and starts or ends the queued edit ([editSession]) in the same
      *  emission. The toggle is set in memory only. Because the edit flag flips in the emission that
      *  swaps the spec, `SkillsToggleDelegate` reads it as a swap rather than a spec pick and keeps
      *  the value. The stashed value is still the conversation's own: nothing toggled or picked
@@ -579,6 +582,9 @@ class QueueOrchestrationDelegate(
             specTools = snapshot.specTools
             modelParameters = snapshot.modelParameters
             pendingManualSkills = snapshot.manualSkills
+            pendingQuotes = snapshot.quotes
+            // An Undo pending from before the swap would restore into the other draft.
+            pendingDraftUndo = null
             pendingReasoningOverride = snapshot.reasoningOverride
             skillsToggle = snapshot.skillsToggle
         }

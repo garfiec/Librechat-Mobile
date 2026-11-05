@@ -12,15 +12,18 @@ import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ComposerState
+import com.garfiec.librechat.feature.chat.viewmodel.DraftUndo
 import com.garfiec.librechat.feature.chat.viewmodel.FeatureGatesState
 import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
+import com.garfiec.librechat.feature.chat.viewmodel.RemovedDraftItem
 import com.garfiec.librechat.feature.chat.viewmodel.SendDispatchHandle
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coVerify
@@ -111,6 +114,45 @@ class SendDispatchDelegateTest {
             assertThat(recorder.skillsTurnedOn).isEqualTo(0)
             assertThat(flow.value.error).isNull()
         }
+
+    /**
+     * The failed-upload hold sits in the upload gate only. A steer's spec (re-homed to the queue when
+     * it can't be injected) and an MCP App's message are built here and must still be built.
+     */
+    @Test
+    fun `a failed upload in the tray doesn't stop a spec from being built`() =
+        dispatchTest(streaming = false) { _, delegate, _ ->
+            val uploaded = AttachedFile(uri = "a", name = "a.pdf", fileId = "a", uploadProgress = 1f)
+            val failed = AttachedFile(uri = "b", name = "b.pdf", uploadFailed = true)
+            every { fileHandler.attachedFiles } returns MutableStateFlow(listOf(uploaded, failed))
+
+            val spec = delegate.buildSendSpec("hello")
+
+            assertThat(spec).isNotNull()
+            assertThat(spec!!.attachments).containsExactly(uploaded)
+        }
+
+    @Test
+    fun `restoring a skill puts it back at its index unless it is staged again`() =
+        dispatchTest(streaming = false) { flow, delegate, _ ->
+            delegate.restorePendingManualSkill(0, "translator", heldBack = false)
+            delegate.restorePendingManualSkill(5, "pdf-tools", heldBack = false)
+
+            assertThat(flow.value.pendingManualSkills).containsExactly("translator", "pdf-tools").inOrder()
+        }
+
+    @Test
+    fun `a send clears a pending undo`() = dispatchTest(streaming = false) { flow, delegate, _ ->
+        flow.value = flow.value.copy(
+            composer = flow.value.composer.copy(
+                pendingDraftUndo = DraftUndo(id = 1, removed = RemovedDraftItem.Quote("gone", 0)),
+            ),
+        )
+
+        delegate.sendNow("hello")
+
+        assertThat(flow.value.pendingDraftUndo).isNull()
+    }
 
     @Test
     fun `a committed send takes the chips and turns Skills on`() =
