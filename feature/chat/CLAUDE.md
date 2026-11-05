@@ -739,7 +739,8 @@ haiku wrote only escapes), so everything converts the escape first.
   `ChatRoot` from `rememberMcpSignIn` + `McpSignInViewModel`), which binds through `:core:data`'s
   `McpOAuthLauncher` and opens `:core:ui`'s `McpOAuthSignInDialog` (system browser before
   v0.8.9-rc1). Nothing launches without the tap. The run resumes on its own once the callback
-  lands, so a success needs no client follow-up. Comparison panes route it too
+  lands, so a success needs no follow-up beyond the status reload every sign-in end triggers
+  (`McpSignInUiState.ended`, for the settings chips' dots). Comparison panes route it too
   (`ComparisonModeDelegate.routeToolCallAuth`), subagent prompts included (below).
   - **A reconnect restores it.** The sync frame's `aggregatedContent` carries no auth, and `onSync`
     replaces the tool calls, so the prompt would be wiped. The server projects the live prompts as
@@ -1157,8 +1158,18 @@ first, then images, files, skills, quotes.
     switches off, leaves the line and offers Undo, which switches it back on unless the sheet already
     did (`ChatViewModel.turnSettingChipBackOn`). The switches are the sheet's: code, file search,
     memory and MCP are global, so the copy says "<tool> turned off", not "for this chat".
-  - MCP chips carry a status dot from `isConnected` (connected = `statusColors().success`, else
-    neutral). Thinking uses the brain glyph (Memory uses `AutoStories`, here and in the drawer),
+  - **MCP chips carry the MCP servers page's status** (`McpServerDisplayData.status`, mapped in
+    `ModelSelectionDelegate.loadMcpServers` with `:core:model`'s `mcpDisplayStatus`, the
+    `mcp-status-badge` mirror). The dot is `mcpStatusColor` (`McpStatusPresentation.kt`, from
+    `statusColors()`): connected green, connecting info, needs sign-in or setup amber, failed error,
+    the rest neutral; the "+" sheet's rows use the same dot and label. A chip that needs sign-in reads
+    "· sign in", and a tap (`SettingChipTap.SignIn`, even on a spec-locked chip) runs
+    `signInMcpServer`: `McpRepository.reinitialize` → its `oauthUrl` → `LocalMcpSignIn`'s sign-in,
+    with the chip connecting meanwhile. Every end reloads the statuses: the delegate's own when no
+    sign-in opens (connected, deferred, refused, failed, the last two with `mcp_sign_in_failed`), and
+    `McpSignInUiState.ended` once an opened one succeeds, is cancelled or fails (a browser sign-in
+    ends on the next ON_RESUME). Needs-setup and failed chips keep the ordinary tap (off with Undo):
+    setup is on the web, a failure on the server. Thinking uses the brain glyph (Memory uses `AutoStories`, here and in the drawer),
     tints tertiary while a one-turn choice is staged, in both styles, and states it. Picked skills use
     the sparkle (`AutoAwesome`) on the stack, the `$` picker, the sent bubble and the skill card.
   - **The context ring** (`ContextRing`, only with the above-the-field placement): a 24dp ring with
