@@ -267,7 +267,6 @@
     <string name="cd_file_search_enabled">File Search enabled</string>
 
     <!-- Attachments -->
-    <string name="cd_attach_file">Attach file</string>
     <string name="files_count">Files (%1$d)</string>
     <string name="files_count_with_text">Files (%1$d) · %2$d as text</string>
     <string name="cd_files_attached">%1$d files attached, tap to preview</string>

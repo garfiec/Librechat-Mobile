@@ -262,7 +262,6 @@
     <string name="cd_file_search_enabled">Busca em arquivos ativada</string>
 
     <!-- Attachments -->
-    <string name="cd_attach_file">Anexar arquivo</string>
     <string name="files_count">Arquivos (%1$d)</string>
     <string name="files_count_with_text">Arquivos (%1$d) · %2$d como texto</string>
     <string name="cd_files_attached">%1$d arquivos anexados, toque para visualizar</string>

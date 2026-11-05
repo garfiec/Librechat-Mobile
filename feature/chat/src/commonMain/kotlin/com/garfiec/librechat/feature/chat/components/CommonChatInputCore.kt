@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,16 +19,20 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -64,6 +69,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -81,7 +87,6 @@ import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.feature.chat.components.veil.LocalComposerFlare
 import com.garfiec.librechat.feature.chat.components.veil.retonedSurface
 import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
-import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -106,12 +111,8 @@ import com.garfiec.librechat.feature.chat.resources.hint_message
 import com.garfiec.librechat.feature.chat.resources.hint_message_model
 import com.garfiec.librechat.feature.chat.resources.queue_held_after_refusal
 import com.garfiec.librechat.feature.chat.resources.recording
-import com.garfiec.librechat.feature.chat.util.ThinkingChip
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
-import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
-import com.garfiec.librechat.feature.chat.viewmodel.PendingSteerChip
-import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import org.jetbrains.compose.resources.stringResource
 
 @Immutable
@@ -120,17 +121,10 @@ data class ChatInputState(
     val isStreaming: Boolean,
     val isRecording: Boolean,
     val isTranscribing: Boolean,
-    val enabledTools: Set<String>,
-    /** Tool keys (already mapped + gated) to surface as inline quick-toggle chips on the
-     *  input bar (v0.8.7 `defaultPinnedTools`). Selected state reads from [enabledTools]. */
-    val pinnedToolKeys: List<String> = emptyList(),
-    /** The per-turn Thinking chip (v0.8.9-rc1), shown after the pinned tools; null hides it. */
-    val thinking: ThinkingChip? = null,
-    val mcpServers: List<McpServerDisplayData>,
-    val selectedMcpServerNames: Set<String>,
+    /** The rows around the field and the callbacks they fire (see [ComposerChrome]). */
+    val chrome: ComposerChrome,
     val selectedModelDisplay: String?,
     val isCodeInterpreterAvailable: Boolean,
-    val attachedFiles: List<AttachedFile>,
     /** Ephemeral-tools gate drives local chip display; remaining gates are threaded to the sheet. */
     val gates: ChatInputGates = ChatInputGates(),
     /** Whether queueing a follow-up mid-stream is allowed (existing conversation only). When
@@ -151,12 +145,6 @@ data class ChatInputState(
      *  button must name THIS — reading the preference instead is what once labelled an answer
      *  as "add to queue". */
     val duringRunSendTarget: DuringRunSendTarget = DuringRunSendTarget.QUEUE,
-    /** Steers accepted by the running turn but not yet injected; rendered above the queue. */
-    val pendingSteers: List<PendingSteerChip> = emptyList(),
-    /** Staged "Add to chat" excerpts (v0.8.7 quotes); chips above the composer. */
-    val pendingQuotes: List<String> = emptyList(),
-    /** Skills picked for the next message; removable chips above the composer. */
-    val pendingManualSkills: List<String> = emptyList(),
     /** True while the composer is editing a queued item (queued-edit mode): the send button
      *  becomes "Update" and an editing banner shows above the input. */
     val isEditingQueued: Boolean = false,
@@ -167,17 +155,6 @@ data class ChatInputState(
      *  choice ([ChatUiState.arePicksUnsettled]). Every send path refuses in that window, so the
      *  send/update control is disabled rather than left looking live over a tap that does nothing. */
     val arePicksUnsettled: Boolean = false,
-    /** The context gauge's reading and breakdown; drives the context bar above the composer. */
-    val contextGauge: ContextGaugeDetails? = null,
-    /** Server/version gate for the context gauge (`interface.contextUsage` AND backend ≥ 0.8.7). */
-    val contextUsageEnabled: Boolean = false,
-    /** Null when the server does not offer compaction, or nothing can be compacted right now. */
-    val onCompact: (() -> Unit)? = null,
-    /** "Not now" on a compact suggestion. */
-    val onSnoozeCompact: () -> Unit = {},
-    /** User preference (Settings → Chat) for where the context gauge is surfaced. The composer
-     *  only renders it when this is [ContextBarPlacement.ABOVE_INPUT]. */
-    val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     /** Prompt groups the `/` and `$` picker lists. Filtering happens here, off [inputText]. */
     val promptSuggestions: List<PromptMentionDisplayData> = emptyList(),
     /** Skills the picker may offer here, already narrowed (`ChatUiState.pickerSkills`). */
@@ -194,7 +171,8 @@ data class ChatInputState(
 
 /**
  * Shared container for the chat input area. Renders the gradient background,
- * attachment chips row, and a slot-based input row with a shared send/stop button.
+ * the chrome above the field ([ChatInputState.chrome]), and a slot-based input row with a shared
+ * send/stop button.
  *
  * Platform wrappers fill in [leadingButtons] (e.g. "+" button, paste button)
  * and [textFieldContent] (platform-specific text field with mic placement). [leadingButtons] and
@@ -206,12 +184,7 @@ fun CommonChatInputCore(
     state: ChatInputState,
     onSend: () -> Unit,
     onStop: () -> Unit,
-    onRemoveFile: (AttachedFile) -> Unit,
     modifier: Modifier = Modifier,
-    /** Toggle a pinned tool from its inline chip (v0.8.7 `defaultPinnedTools`). */
-    onToggleTool: (String) -> Unit = {},
-    /** Opens the Thinking sheet from its chip. */
-    onOpenThinking: () -> Unit = {},
     /** Queue a follow-up while streaming. Null (or [ChatInputState.canQueue] false) keeps the
      *  button as plain Stop mid-stream (e.g. on a brand-new conversation). Also the during-run
      *  picker's explicit "add to queue" — never the default-action route. */
@@ -223,14 +196,6 @@ fun CommonChatInputCore(
     onSteer: () -> Unit = {},
     /** The during-run picker's explicit "interrupt and steer this one". */
     onInterrupt: () -> Unit = {},
-    /** Withdraw a steer the run has not injected yet. */
-    onCancelSteer: (steerId: String) -> Unit = {},
-    /** "Interrupt now" on a waiting steer chip. */
-    onInterruptSteer: (steerId: String) -> Unit = {},
-    /** Remove one staged quote chip (v0.8.7 "Add to chat"). */
-    onRemoveQuote: (index: Int) -> Unit = {},
-    /** Remove one picked skill's chip. */
-    onRemoveManualSkill: (name: String) -> Unit = {},
     /** Retry the picker's failed skill catalog load. */
     onRetrySkills: () -> Unit = {},
     /** Persist a new default for what a mid-stream send does. */
@@ -249,13 +214,6 @@ fun CommonChatInputCore(
     onCancelEdit: () -> Unit = {},
     /** Cancel a send parked behind an in-flight upload (see [ChatInputState.isAwaitingUploadSend]). */
     onCancelPendingSend: () -> Unit = {},
-    /** Queued follow-ups (ghost rows), pinned just above the composer. Hosted here — rather than
-     *  in the scrolling message list — so the list's auto-scroll-to-bottom can't make the ghosts
-     *  bounce as the reply streams. Empty list renders nothing. */
-    queuedMessages: List<QueuedMessage> = emptyList(),
-    onEditQueuedMessage: (localId: String) -> Unit = {},
-    onCancelQueuedMessage: (localId: String) -> Unit = {},
-    onReorderQueuedMessages: (fromIndex: Int, toIndex: Int) -> Unit = { _, _ -> },
     fontSizeMultiplier: Float = 1f,
     /** A row picked from the `/` and `$` list: a prompt or a skill. */
     onSelectPickerItem: (ComposerPickerItem) -> Unit = {},
@@ -299,119 +257,14 @@ fun CommonChatInputCore(
                 .navigationBarsPadding()
                 .padding(horizontal = 12.dp, vertical = 8.dp),
         ) {
-            // The chat's pull request on a narrow pane: the least urgent row, so it sits furthest
-            // from the text field.
-            PullRequestComposerRow(
-                isEditingQueued = state.isEditingQueued,
-                modifier = Modifier.padding(bottom = 4.dp),
-            )
-
-            // Ghost queue, pinned directly above the composer. No scroll wrapper: the input bar is
-            // bottom-anchored so the queue grows upward (the text field stays put), and a nested
-            // vertical scroll here would fight the long-press drag-reorder. Self-hides when empty.
-            // Steers first, then the queue: the order they will reach the model. A steer lands in
-            // the reply being written right now; a queued message becomes a later turn.
-            PendingQuoteChipsSection(
-                pendingQuotes = state.pendingQuotes,
-                onRemove = onRemoveQuote,
+            ComposerChromeStack(
+                state = state,
+                queuedPausedCount = queuedPausedCount,
+                queueHeldForRefusal = queueHeldForRefusal,
+                onSendQueuedMessages = onSendQueuedMessages,
+                onCancelEdit = onCancelEdit,
                 fontSizeMultiplier = fontSizeMultiplier,
             )
-
-            // Picked skills attach to the message being composed, like the quotes above.
-            PendingSkillChipsSection(
-                skills = state.pendingManualSkills,
-                onRemove = onRemoveManualSkill,
-            )
-
-            PendingSteerChipsSection(
-                pendingSteers = state.pendingSteers,
-                onCancel = onCancelSteer,
-                onInterrupt = onInterruptSteer,
-                fontSizeMultiplier = fontSizeMultiplier,
-            )
-
-            QueuedMessagesSection(
-                queuedMessages = queuedMessages,
-                onEdit = onEditQueuedMessage,
-                onCancel = onCancelQueuedMessage,
-                onReorder = onReorderQueuedMessages,
-                fontSizeMultiplier = fontSizeMultiplier,
-            )
-
-            // Edit-mode banner takes priority over the paused-queue banner.
-            if (state.isEditingQueued) {
-                EditingQueuedBanner(
-                    onCancel = onCancelEdit,
-                    modifier = Modifier.padding(bottom = 6.dp),
-                )
-            } else {
-                // Not gated on isStreaming, unlike the button: a refusal usually lands mid-run,
-                // which is exactly when a held queue looks like one waiting on the run to finish.
-                if (queueHeldForRefusal) QueueHeldNotice(modifier = Modifier.padding(bottom = 6.dp))
-                if (queuedPausedCount > 0 && !state.isStreaming) {
-                    // Gated on !isStreaming: resume() lifts the pause and POPS the head, but
-                    // doSendWithSpec early-returns while a run is live, so the message would be
-                    // removed from the queue and never sent. A HITL pause is the long-lived
-                    // isStreaming window where the composer stays fully interactive.
-                    SendQueuedBanner(
-                        count = queuedPausedCount,
-                        onClick = onSendQueuedMessages,
-                        modifier = Modifier.padding(bottom = 6.dp),
-                    )
-                }
-            }
-
-            AttachmentChipsRow(
-                attachedFiles = state.attachedFiles,
-                enabledTools = state.enabledTools,
-                onRemoveFile = onRemoveFile,
-                mcpServers = state.mcpServers,
-                selectedMcpServerNames = state.selectedMcpServerNames,
-                showEphemeralTools = state.gates.showEphemeralTools,
-            )
-
-            // The attached machine a coding agent works on (machine, workspace, branch, checkout).
-            LocalCodeWorkspaceComposer.current?.let { codeWorkspace ->
-                CodeWorkspaceRow(codeWorkspace, modifier = Modifier.padding(bottom = 4.dp))
-            }
-
-            // Server-pinned tools (v0.8.7 defaultPinnedTools) as inline quick-toggle chips.
-            // The Thinking chip rides the same row, so it shows with no pinned tools too.
-            if (state.pinnedToolKeys.isNotEmpty() || state.thinking != null) {
-                PinnedToolsRow(
-                    pinnedToolKeys = state.pinnedToolKeys,
-                    enabledTools = state.enabledTools,
-                    lockedTools = state.gates.lockedTools,
-                    onToggleTool = onToggleTool,
-                    thinking = state.thinking,
-                    onOpenThinking = onOpenThinking,
-                    modifier = Modifier.padding(bottom = 4.dp),
-                )
-            }
-
-            // Context-usage bar, between the chips and the composer row. Gated on the placement
-            // preference (ABOVE_INPUT here), the server/version support flag, and a snapshot with
-            // real usage. Other placements render in the "+" sheet / overflow menu instead.
-            val contextGauge = state.contextGauge
-            if (state.contextBarPlacement == ContextBarPlacement.ABOVE_INPUT &&
-                state.contextUsageEnabled &&
-                contextGauge != null &&
-                contextGauge.usage.usedTokens > 0
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 6.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    ContextUsageGauge(
-                        details = contextGauge,
-                        onCompact = state.onCompact,
-                        onSnoozeCompact = state.onSnoozeCompact,
-                    )
-                }
-            }
 
             // Prompt and skill picker, above the input and below the chips/gauge.
             val pickerQuery = remember(state.inputText, state.canPickSkills) {
@@ -485,6 +338,178 @@ fun CommonChatInputCore(
     }
 }
 
+/**
+ * Everything above the field: the pull request, quotes, picked skills, the steer and queue region,
+ * the queue's banners, attachments, the code workspace, pinned tools and the context gauge. A
+ * vertical drag that starts anywhere on it scrolls the thread ([passVerticalDragsToThread]); rows
+ * keep only their horizontal scrolls and the queue's long-press reorder.
+ */
+@Suppress("LongParameterList")
+@Composable
+private fun ComposerChromeStack(
+    state: ChatInputState,
+    queuedPausedCount: Int,
+    queueHeldForRefusal: Boolean,
+    onSendQueuedMessages: () -> Unit,
+    onCancelEdit: () -> Unit,
+    fontSizeMultiplier: Float,
+) {
+    val chrome = state.chrome
+    Column(modifier = Modifier.fillMaxWidth().passVerticalDragsToThread()) {
+        // The chat's pull request on a narrow pane: the least urgent row, so it sits furthest
+        // from the text field.
+        PullRequestComposerRow(
+            isEditingQueued = state.isEditingQueued,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+
+        PendingQuoteChipsSection(
+            pendingQuotes = chrome.pendingQuotes,
+            onRemove = chrome.onRemoveQuote,
+            fontSizeMultiplier = fontSizeMultiplier,
+        )
+
+        // Picked skills attach to the message being composed, like the quotes above.
+        PendingSkillChipsSection(
+            skills = chrome.pendingManualSkills,
+            onRemove = chrome.onRemoveManualSkill,
+        )
+
+        SteerAndQueueRegion(chrome = chrome, fontSizeMultiplier = fontSizeMultiplier)
+
+        // Edit-mode banner takes priority over the paused-queue banner.
+        if (state.isEditingQueued) {
+            EditingQueuedBanner(
+                onCancel = onCancelEdit,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+        } else {
+            // Not gated on isStreaming, unlike the button: a refusal usually lands mid-run,
+            // which is exactly when a held queue looks like one waiting on the run to finish.
+            if (queueHeldForRefusal) QueueHeldNotice(modifier = Modifier.padding(bottom = 8.dp))
+            if (queuedPausedCount > 0 && !state.isStreaming) {
+                // Gated on !isStreaming: resume() lifts the pause and POPS the head, but
+                // doSendWithSpec early-returns while a run is live, so the message would be
+                // removed from the queue and never sent. A HITL pause is the long-lived
+                // isStreaming window where the composer stays fully interactive.
+                SendQueuedBanner(
+                    count = queuedPausedCount,
+                    onClick = onSendQueuedMessages,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+            }
+        }
+
+        AttachmentChipsRow(
+            attachedFiles = chrome.attachedFiles,
+            enabledTools = chrome.enabledTools,
+            onRemoveFile = chrome.onRemoveFile,
+            mcpServers = chrome.mcpServers,
+            selectedMcpServerNames = chrome.selectedMcpServerNames,
+            showEphemeralTools = state.gates.showEphemeralTools,
+        )
+
+        // The attached machine a coding agent works on (machine, workspace, branch, checkout).
+        LocalCodeWorkspaceComposer.current?.let { codeWorkspace ->
+            CodeWorkspaceRow(codeWorkspace, modifier = Modifier.padding(bottom = 4.dp))
+        }
+
+        // Server-pinned tools (v0.8.7 defaultPinnedTools) as inline quick-toggle chips.
+        // The Thinking chip rides the same row, so it shows with no pinned tools too.
+        if (chrome.pinnedToolKeys.isNotEmpty() || chrome.thinking != null) {
+            PinnedToolsRow(
+                pinnedToolKeys = chrome.pinnedToolKeys,
+                enabledTools = chrome.enabledTools,
+                lockedTools = state.gates.lockedTools,
+                onToggleTool = chrome.onToggleTool,
+                thinking = chrome.thinking,
+                onOpenThinking = chrome.onOpenThinking,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+        }
+
+        // Context-usage bar, between the chips and the composer row. Gated on the placement
+        // preference (ABOVE_INPUT here), the server/version support flag, and a snapshot with
+        // real usage. Other placements render in the "+" sheet / overflow menu instead.
+        val contextGauge = chrome.contextGauge
+        if (chrome.contextBarPlacement == ContextBarPlacement.ABOVE_INPUT &&
+            chrome.contextUsageEnabled &&
+            contextGauge != null &&
+            contextGauge.usage.usedTokens > 0
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 6.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ContextUsageGauge(
+                    details = contextGauge,
+                    onCompact = chrome.onCompact,
+                    onSnoozeCompact = chrome.onSnoozeCompact,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Steers, then the queue: the order they will reach the model. A steer lands in the reply being
+ * written right now; a queued message becomes a later turn. One region, capped at
+ * [STEER_AND_QUEUE_MAX_HEIGHT] (about two and a half rows) and resting on its bottom, the end
+ * nearest the field; past the cap it scrolls, and a drag that reaches its edge goes on to scroll
+ * the thread ([ThreadHandOffConnection]). The scroll is off while everything fits, so the stack's
+ * own pass-through takes the drag. The queue's long-press reorder keeps its gesture and scrolls the
+ * region at its edges ([QueuedMessagesSection]).
+ */
+@Composable
+private fun SteerAndQueueRegion(chrome: ComposerChrome, fontSizeMultiplier: Float) {
+    if (chrome.pendingSteers.isEmpty() && chrome.queuedMessages.isEmpty()) return
+    val scroll = rememberScrollState()
+    val threadDrags = LocalThreadScrollHandle.current
+    val handOff = remember(threadDrags) { ThreadHandOffConnection { threadDrags } }
+    val reorderScroll = remember(scroll) { ReorderScrollRegion(scroll, reversed = true) }
+    SteerAndQueueColumn(
+        scroll = scroll,
+        modifier = Modifier.nestedScroll(handOff),
+    ) {
+        PendingSteerChipsSection(
+            pendingSteers = chrome.pendingSteers,
+            onCancel = chrome.onCancelSteer,
+            onInterrupt = chrome.onInterruptSteer,
+            fontSizeMultiplier = fontSizeMultiplier,
+        )
+        QueuedMessagesSection(
+            queuedMessages = chrome.queuedMessages,
+            onEdit = chrome.onEditQueuedMessage,
+            onCancel = chrome.onCancelQueuedMessage,
+            onReorder = chrome.onReorderQueuedMessages,
+            fontSizeMultiplier = fontSizeMultiplier,
+            reorderScroll = reorderScroll,
+        )
+    }
+}
+
+/** The capped, bottom-resting column of [SteerAndQueueRegion]. */
+@Composable
+internal fun SteerAndQueueColumn(
+    scroll: ScrollState,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(max = STEER_AND_QUEUE_MAX_HEIGHT)
+            .verticalScroll(scroll, enabled = scroll.maxValue > 0, reverseScrolling = true),
+        content = content,
+    )
+}
+
+/** About two and a half steer or queue rows. */
+internal val STEER_AND_QUEUE_MAX_HEIGHT = 168.dp
+
 /** The field and its trailing send/stop control: the part of the composer the glass capsule wraps. */
 @Suppress("LongParameterList")
 @Composable
@@ -519,7 +544,7 @@ private fun ComposerInputRow(
             !state.isStreaming && !state.isEditingQueued
         val hasComposerContent = !blockedBySetup && !blockedByWorkspace && composerCanSend(
             inputText = state.inputText,
-            hasAttachments = state.attachedFiles.isNotEmpty(),
+            hasAttachments = state.chrome.attachedFiles.isNotEmpty(),
             arePicksUnsettled = state.arePicksUnsettled,
         )
         // Mid-stream + typed content + queueing allowed → morph Stop into a during-run send.
@@ -535,7 +560,7 @@ private fun ComposerInputRow(
             defaultAction = state.duringRunAction,
             // Steering is text-only on mobile: a live send with attachments goes to the queue, so
             // the two live rows would promise something the tap won't do.
-            liveRowsEnabled = state.attachedFiles.isEmpty(),
+            liveRowsEnabled = state.chrome.attachedFiles.isEmpty(),
             builtInSearchOn = state.builtInSearchOn,
         )
         // Keyed on the fold, so a menu left open when the run ends, the draft clears or
@@ -568,7 +593,7 @@ private fun ComposerInputRow(
                 // In queued-edit mode the button commits the edit instead of send/stop/queue.
                 isEditingQueued = state.isEditingQueued,
                 onUpdate = onCommitEdit,
-                isQueuedEditEmptied = state.inputText.isBlank() && state.attachedFiles.isEmpty() &&
+                isQueuedEditEmptied = state.inputText.isBlank() && state.chrome.attachedFiles.isEmpty() &&
                     !state.arePicksUnsettled,
                 // A send waiting on an in-flight upload: spinner, tap to cancel.
                 isAwaitingUploadSend = state.isAwaitingUploadSend,

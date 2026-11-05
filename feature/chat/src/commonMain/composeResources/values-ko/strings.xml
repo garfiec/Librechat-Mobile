@@ -260,7 +260,6 @@
     <string name="cd_file_search_enabled">파일 검색 사용</string>
 
     <!-- Attachments -->
-    <string name="cd_attach_file">파일 첨부</string>
     <string name="files_count">파일 (%1$d)</string>
     <string name="files_count_with_text">파일 (%1$d) · %2$d개 텍스트</string>
     <string name="cd_files_attached">파일 %1$d개 첨부됨, 탭하여 미리보기</string>

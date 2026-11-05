@@ -262,7 +262,6 @@
     <string name="cd_file_search_enabled">Recherche de fichiers activée</string>
 
     <!-- Attachments -->
-    <string name="cd_attach_file">Joindre un fichier</string>
     <string name="files_count">Fichiers (%1$d)</string>
     <string name="files_count_with_text">Fichiers (%1$d) · %2$d en texte</string>
     <string name="cd_files_attached">%1$d fichiers joints, appuyez pour afficher l'aperçu</string>

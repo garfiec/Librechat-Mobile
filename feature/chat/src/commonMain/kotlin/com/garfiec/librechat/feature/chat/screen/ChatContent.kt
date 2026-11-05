@@ -19,12 +19,15 @@ import com.garfiec.librechat.core.model.config.labelFor
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.model.media.resolveIconSource
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
+import com.garfiec.librechat.feature.chat.components.BindThreadScroll
 import com.garfiec.librechat.feature.chat.components.ConversationSeenEffect
 import com.garfiec.librechat.feature.chat.components.LandingContent
 import com.garfiec.librechat.feature.chat.components.LandingHeroIcon
 import com.garfiec.librechat.feature.chat.components.MessageList
 import com.garfiec.librechat.feature.chat.components.MessagesUnavailable
 import com.garfiec.librechat.feature.chat.components.StoppedReplyAction
+import com.garfiec.librechat.feature.chat.components.ThreadScrollTarget
+import com.garfiec.librechat.feature.chat.components.threadScrollTarget
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.action_continue_reply
 import com.garfiec.librechat.feature.chat.resources.chat_agent_fallback_label
@@ -67,6 +70,8 @@ internal fun ColumnScope.ChatContent(
     topContentPadding: Dp,
     onShowSecondaryModelSheet: () -> Unit,
     onComparisonTabChange: (Int) -> Unit,
+    /** The phone pager's tab on screen while comparing (0 = A): the list the composer's drags scroll. */
+    activeComparisonTab: Int,
     comparisonWide: Boolean,
     compareSetupPick: CompareSetupPick,
     onBrowseAllModels: () -> Unit,
@@ -140,9 +145,15 @@ internal fun ColumnScope.ChatContent(
         )
     }
     val messagesUnavailable = uiState.messagesUnavailable
+    // The composer's chrome scrolls the list it covers (see ThreadScrollHandle).
+    val comparing = uiState.showsComparisonPanes(comparisonWide)
+    if (comparing || (uiState.screenState == ChatScreenState.ACTIVE && !messagesUnavailable)) {
+        val target = threadScrollTarget(comparing = comparing, wide = comparisonWide, activeTab = activeComparisonTab)
+        BindThreadScroll(if (target == ThreadScrollTarget.SECONDARY) secondaryListState else primaryListState)
+    }
     // One call site for the panes in both LANDING and ACTIVE: Start on a wide landing turns one into
     // the other, and a second call site would rebuild the panes (pane A's list included) right then.
-    if (uiState.showsComparisonPanes(comparisonWide)) {
+    if (comparing) {
         comparisonPanes()
     } else {
         when (uiState.screenState) {

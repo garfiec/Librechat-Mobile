@@ -265,7 +265,6 @@
     <string name="cd_file_search_enabled">البحث في الملفات مُفعّل</string>
 
     <!-- Attachments -->
-    <string name="cd_attach_file">إرفاق ملف</string>
     <string name="files_count">الملفات (%1$d)</string>
     <string name="files_count_with_text">الملفات (%1$d) · %2$d كنص</string>
     <string name="cd_files_attached">الملفات المرفقة: %1$d، اضغط للمعاينة</string>

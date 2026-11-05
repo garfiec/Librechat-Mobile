@@ -263,7 +263,6 @@
     <string name="cd_file_search_enabled">Поиск по файлам включён</string>
 
     <!-- Attachments -->
-    <string name="cd_attach_file">Прикрепить файл</string>
     <string name="files_count">Файлы (%1$d)</string>
     <string name="files_count_with_text">Файлы (%1$d) · %2$d как текст</string>
     <string name="cd_files_attached">Прикреплено файлов: %1$d. Нажмите для предпросмотра</string>

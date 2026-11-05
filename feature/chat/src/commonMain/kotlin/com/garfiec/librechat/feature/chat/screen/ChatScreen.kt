@@ -47,12 +47,14 @@ import com.garfiec.librechat.feature.chat.components.ChatFloatingTopBar
 import com.garfiec.librechat.feature.chat.components.ChatOptionsPage
 import com.garfiec.librechat.feature.chat.components.ChatRoot
 import com.garfiec.librechat.feature.chat.components.CodeWorkspaceComposer
+import com.garfiec.librechat.feature.chat.components.ComposerChrome
 import com.garfiec.librechat.feature.chat.components.ComposerComparison
 import com.garfiec.librechat.feature.chat.components.ComposerComparisonHint
 import com.garfiec.librechat.feature.chat.components.LandingStarters
 import com.garfiec.librechat.feature.chat.components.LocalCodeRunHost
 import com.garfiec.librechat.feature.chat.components.LocalCodeWorkspaceComposer
 import com.garfiec.librechat.feature.chat.components.LocalPullRequestComposer
+import com.garfiec.librechat.feature.chat.components.LocalThreadScrollHandle
 import com.garfiec.librechat.feature.chat.components.PullRequestComposer
 import com.garfiec.librechat.feature.chat.components.ThinkingSheet
 import com.garfiec.librechat.feature.chat.components.ToolApprovalPanel
@@ -65,6 +67,7 @@ import com.garfiec.librechat.feature.chat.components.mcpapp.rememberMcpApps
 import com.garfiec.librechat.feature.chat.components.rememberChatAttachmentActions
 import com.garfiec.librechat.feature.chat.components.rememberChatOptionsSheetController
 import com.garfiec.librechat.feature.chat.components.rememberMcpSignIn
+import com.garfiec.librechat.feature.chat.components.rememberThreadScrollHandle
 import com.garfiec.librechat.feature.chat.components.veil.COMPOSER_SWELL
 import com.garfiec.librechat.feature.chat.components.veil.LocalComposerFlare
 import com.garfiec.librechat.feature.chat.components.veil.LocalModeVeil
@@ -436,8 +439,12 @@ fun ChatScreen(
             // Temporary chat's transition: the band and (Material) the retone draw over and behind
             // the landing, the composer and the top bar, which all react to it through LocalModeVeil.
             val modeVeil = rememberModeVeilState(uiState.isTemporaryChat)
+            // Created here, above both the thread and the composer: the composer's chrome hands its
+            // vertical drags to whichever list ChatContent binds.
+            val threadScroll = rememberThreadScrollHandle()
             CompositionLocalProvider(
                 LocalModeVeil provides modeVeil,
+                LocalThreadScrollHandle provides threadScroll,
                 // Run Code on reply fences, behind RUN_CODE.USE (web `MarkdownComponents` `canRunCode`).
                 LocalCodeRunHost provides viewModel.codeRunHost.takeIf { uiState.runCodeEnabled },
             ) {
@@ -475,6 +482,7 @@ fun ChatScreen(
                             topContentPadding = topContentPadding,
                             onShowSecondaryModelSheet = { showSecondaryModelSheet = true },
                             onComparisonTabChange = { activeComparisonTab = it },
+                            activeComparisonTab = activeComparisonTab,
                             projectName = chatProjectName,
                             comparisonWide = comparisonWide,
                             compareSetupPick = compareSetupPick,
@@ -668,16 +676,35 @@ fun ChatScreen(
                                             builtInSearchOn = uiState.webSearchRoute == WebSearchRoute.BUILT_IN,
                                             duringRunAction = uiState.effectiveDuringRunAction,
                                             duringRunSendTarget = uiState.duringRunSendTarget,
-                                            pendingSteers = uiState.pendingSteers,
-                                            pendingQuotes = uiState.pendingQuotes,
-                                            onRemoveQuote = viewModel::removePendingQuote,
-                                            pendingManualSkills = uiState.pendingManualSkills,
-                                            onRemoveManualSkill = viewModel::removePendingManualSkill,
-                                            onCancelSteer = viewModel::cancelSteer,
-                                            onInterruptSteer = viewModel::armSteer,
+                                            chrome = ComposerChrome(
+                                                pendingSteers = uiState.pendingSteers,
+                                                onCancelSteer = viewModel::cancelSteer,
+                                                onInterruptSteer = viewModel::armSteer,
+                                                queuedMessages = uiState.displayedMessageQueue,
+                                                onEditQueuedMessage = viewModel::editQueued,
+                                                onCancelQueuedMessage = viewModel::cancelQueued,
+                                                onReorderQueuedMessages = viewModel::reorderQueue,
+                                                pendingQuotes = uiState.pendingQuotes,
+                                                onRemoveQuote = viewModel::removePendingQuote,
+                                                pendingManualSkills = uiState.pendingManualSkills,
+                                                onRemoveManualSkill = viewModel::removePendingManualSkill,
+                                                attachedFiles = attachedFiles,
+                                                onRemoveFile = viewModel::removeFile,
+                                                enabledTools = uiState.effectiveEnabledTools,
+                                                pinnedToolKeys = uiState.pinnedToolChips,
+                                                onToggleTool = viewModel::toggleTool,
+                                                thinking = thinkingChip,
+                                                onOpenThinking = { showThinkingSheet = true },
+                                                mcpServers = uiState.mcpServers,
+                                                selectedMcpServerNames = uiState.effectiveMcpServerNames,
+                                                contextGauge = uiState.contextGaugeDetails,
+                                                contextUsageEnabled = uiState.contextUsageEnabled,
+                                                onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
+                                                onSnoozeCompact = viewModel::snoozeCompactNudge,
+                                                compactSuggested = uiState.compactNudgeOnToolsButton,
+                                                contextBarPlacement = uiState.contextBarPlacement,
+                                            ),
                                             onSetDuringRunAction = viewModel::setDuringRunAction,
-                                            attachedFiles = attachedFiles,
-                                            onRemoveFile = viewModel::removeFile,
                                             onPasteFiles = viewModel::onFilesSelected,
                                             pasteScope = coroutineScope,
                                             promptSuggestions = uiState.availablePrompts,
@@ -691,22 +718,9 @@ fun ChatScreen(
                                             isTranscribing = uiState.isTranscribing,
                                             onStartRecording = onStartRecordingWithPermission,
                                             onStopRecording = viewModel::stopRecording,
-                                            enabledTools = uiState.effectiveEnabledTools,
-                                            pinnedToolKeys = uiState.pinnedToolChips,
-                                            onToggleTool = viewModel::toggleTool,
-                                            thinking = thinkingChip,
-                                            onOpenThinking = { showThinkingSheet = true },
-                                            mcpServers = uiState.mcpServers,
-                                            selectedMcpServerNames = uiState.effectiveMcpServerNames,
                                             selectedModelDisplay = effectiveSelectedModelDisplay,
                                             isCodeInterpreterAvailable = uiState.isCodeInterpreterAvailable,
                                             gates = uiState.chatInputGates,
-                                            contextGauge = uiState.contextGaugeDetails,
-                                            contextUsageEnabled = uiState.contextUsageEnabled,
-                                            onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
-                                            onSnoozeCompact = viewModel::snoozeCompactNudge,
-                                            compactSuggested = uiState.compactNudgeOnToolsButton,
-                                            contextBarPlacement = uiState.contextBarPlacement,
                                             // After a Stop/error pause, the queue waits for an explicit nudge.
                                             queuedPausedCount = uiState.pausedQueueCount,
                                             queueHeldForRefusal = uiState.isQueueHeldForRefusal,
@@ -721,10 +735,6 @@ fun ChatScreen(
                                             comparison = composerComparison,
                                             comparisonHint = composerComparisonHint,
                                             onCancelPendingSend = viewModel::cancelPendingUploadSend,
-                                            queuedMessages = uiState.displayedMessageQueue,
-                                            onEditQueuedMessage = viewModel::editQueued,
-                                            onCancelQueuedMessage = viewModel::cancelQueued,
-                                            onReorderQueuedMessages = viewModel::reorderQueue,
                                             fontSizeMultiplier = fontSizeMultiplier,
                                         )
                                     }

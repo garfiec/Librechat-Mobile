@@ -109,7 +109,7 @@ internal fun PickerHost(
         onSend = {},
         onStop = {},
         onOpenTools = {},
-        pendingManualSkills = chips,
+        chrome = ComposerChrome(pendingManualSkills = chips),
         promptSuggestions = previewPrompts,
         skillSuggestions = skills,
         isLoadingSkills = loading,

@@ -260,7 +260,6 @@
     <string name="cd_file_search_enabled">ファイル検索が有効</string>
 
     <!-- Attachments -->
-    <string name="cd_attach_file">ファイルを添付</string>
     <string name="files_count">ファイル（%1$d）</string>
     <string name="files_count_with_text">ファイル (%1$d) · %2$d 件はテキスト</string>
     <string name="cd_files_attached">%1$d 件のファイルが添付されています。タップしてプレビュー</string>

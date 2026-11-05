@@ -129,7 +129,7 @@ private fun QueueHeldComposerHost() {
         onStop = {},
         onOpenTools = {},
         queueHeldForRefusal = true,
-        queuedMessages = listOf(queuedRefused),
+        chrome = ComposerChrome(queuedMessages = listOf(queuedRefused)),
     )
 }
 
@@ -178,10 +178,12 @@ private fun ContextPillComposerHost() {
         onSend = {},
         onStop = {},
         onOpenTools = {},
-        contextGauge = gaugeWithNudge,
-        contextUsageEnabled = true,
-        onCompact = {},
-        contextBarPlacement = ContextBarPlacement.ABOVE_INPUT,
+        chrome = ComposerChrome(
+            contextGauge = gaugeWithNudge,
+            contextUsageEnabled = true,
+            onCompact = {},
+            contextBarPlacement = ContextBarPlacement.ABOVE_INPUT,
+        ),
     )
 }
 
