@@ -186,7 +186,7 @@ object AdaptiveChipDefaults {
      */
     @Composable
     fun overlayAssistChipColors(tint: Color? = null): ChipColors {
-        val container = if (isLiquidGlass) GlassControlColors.fill else MaterialTheme.colorScheme.surfaceContainerHigh
+        val container = overlayContainerColor()
         val colors = AssistChipDefaults.assistChipColors(containerColor = container, disabledContainerColor = container)
         return if (tint == null) {
             colors
@@ -194,4 +194,24 @@ object AdaptiveChipDefaults {
             colors.copy(labelColor = tint, leadingIconContentColor = tint, trailingIconContentColor = tint)
         }
     }
+
+    /**
+     * Colours for an [AdaptiveFilterChip] drawn over scrolling content (the composer's settings line).
+     * Material fills the unselected chip with `surfaceContainerHigh` and keeps M3's outline, so an off
+     * chip reads as off without showing the content through it; glass keeps its own resting and
+     * selected fills.
+     */
+    @Composable
+    fun overlayFilterChipColors(): SelectableChipColors =
+        if (isLiquidGlass) {
+            FilterChipDefaults.filterChipColors()
+        } else {
+            val container = MaterialTheme.colorScheme.surfaceContainerHigh
+            FilterChipDefaults.filterChipColors(containerColor = container, disabledContainerColor = container)
+        }
+
+    /** The opaque fill a control over scrolling content sits on: glass's secondary fill, else `surfaceContainerHigh`. */
+    @Composable
+    fun overlayContainerColor(): Color =
+        if (isLiquidGlass) GlassControlColors.fill else MaterialTheme.colorScheme.surfaceContainerHigh
 }
