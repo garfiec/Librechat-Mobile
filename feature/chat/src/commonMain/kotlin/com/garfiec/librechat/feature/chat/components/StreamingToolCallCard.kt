@@ -40,6 +40,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicato
 import com.garfiec.librechat.feature.chat.components.mcpapp.McpAppRows
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.util.outputToolCallIds
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import org.jetbrains.compose.resources.stringResource
 
@@ -152,11 +153,40 @@ fun StreamingToolCallCard(
         return
     }
 
+    // The card the reload draws. While the call runs its args are usually still unknown (this client
+    // does not follow argument deltas), so it reads "Reading file" until the completion names it.
+    val fileToolKind = FileToolKind.of(toolCall.name)
+    if (fileToolKind != null) {
+        val intent = remember(toolCall.input) { parseToolIntent(toolCall.input) }
+        val view = remember(fileToolKind, toolCall.input, toolCall.output, intent) {
+            fileToolView(fileToolKind, toolCall.input, toolCall.output, intent)
+        }
+        Column(modifier = modifier.fillMaxWidth()) {
+            FileToolCallCard(
+                view = view,
+                verdict = toolCallVerdict(toolCall.closedStatus, toolCall.isComplete),
+                outputFailed = isToolErrorOutput(toolCall.output),
+                durationMs = toolCall.durationMs,
+                stateKey = toolCall.id,
+                live = true,
+            )
+            ToolCallAttachments(
+                attachments = streamingAttachments,
+                toolCallId = toolCall.id,
+                baseUrl = baseUrl,
+                modifier = Modifier.padding(top = 8.dp),
+                live = true,
+            )
+        }
+        return
+    }
+
     // Status only while the step runs — the wire carries no args at step start and no progressive
     // output — then the code and output the completion reports, in the card the reload renders.
     if (isCodeExecutionToolCall(toolCall.name.lowercase())) {
-        val result = remember(toolCall.name, toolCall.input, toolCall.output) {
+        val result = remember(toolCall.name, toolCall.input, toolCall.output, toolCall.executor) {
             parseCodeExecution(toolCall.name, toolCall.input, toolCall.output)
+                ?.withAttachedCommand(toolCall.executor, toolCall.output)
         }
         val verdict = toolCallVerdict(toolCall.closedStatus, toolCall.isComplete)
         Column(modifier = modifier.fillMaxWidth()) {
@@ -166,6 +196,7 @@ fun StreamingToolCallCard(
                 durationMs = toolCall.durationMs,
                 stateKey = toolCall.id,
                 live = true,
+                toolCallId = toolCall.id,
             )
             ToolCallAttachments(
                 attachments = streamingAttachments,
@@ -374,8 +405,13 @@ private fun GenericStreamingToolCard(
             modifier = Modifier.padding(top = 8.dp),
             live = true,
         )
-        // An App can be opened mid-reply: its tool has settled once the attachment arrives.
-        McpAppRows(streamingAttachments, listOf(toolCall.id), Modifier.padding(top = 8.dp))
+        // An App can be opened mid-reply: its tool has settled once the attachment arrives. A live
+        // subagent's child calls exist only in its trace, so their Apps go under this card.
+        val trace = LocalSubagentProgress.current[toolCall.id]
+        val appOwnerIds = remember(toolCall.id, trace) {
+            listOf(toolCall.id) + outputToolCallIds(trace?.parts.orEmpty())
+        }
+        McpAppRows(streamingAttachments, appOwnerIds, Modifier.padding(top = 8.dp))
     }
 }
 
@@ -391,9 +427,8 @@ private val EMPTY_CODE_RESULT =
 internal fun preparingToolLabel(toolCall: ActiveToolCall): String? {
     if (!toolCall.isPreparing) return null
     val name = toolCall.name
-    if (name.isBlank() || MCP_DELIMITER in name || ACTION_DELIMITER in name) return null
+    if (name.isBlank() || MCP_TOOL_DELIMITER in name || ACTION_DELIMITER in name) return null
     return name
 }
 
-private const val MCP_DELIMITER = "_mcp_"
 private const val ACTION_DELIMITER = "_action_"

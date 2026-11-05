@@ -90,7 +90,7 @@ class ToolPartHydrationTest {
             message("m1", toolPart(full)),
             message("m2", MessageContentPart(type = ContentType.TEXT, text = "t"), toolPart(preview)),
         )
-        assertEquals("m2" to 1, locate(messages, requireNotNull(ToolPartKey.of(preview, null))))
+        assertEquals("m2" to 1, locate(messages, requireNotNull(ToolPartKey.of(preview, null)))?.let { it.message.messageId to it.index })
         val changed = requireNotNull(ToolPartKey.of(preview.copy(previewRevision = "rev-2"), null))
         assertNull(locate(messages, changed))
     }
@@ -131,6 +131,35 @@ class ToolPartHydrationTest {
     }
 
     @Test
+    fun a_changed_call_of_the_same_length_is_not_a_full_copy() {
+        val output = "head-" + "x".repeat(2000) + "-tail"
+        val stored = AgentToolCall(id = "c", output = output)
+        val shown =
+            AgentToolCall(id = "c", output = "head-xx\n…\nxx-tail", outputTruncated = true, outputLength = output.length)
+        assertTrue(isFullCopyOf(stored, shown))
+        assertFalse(isFullCopyOf(stored.copy(output = output.replace("head-", "HEAD-")), shown))
+        assertFalse(isFullCopyOf(stored.copy(output = output.replace("-tail", "-TAIL")), shown))
+
+        val args = "{\"path\":\"a.txt\",\"body\":\"" + "y".repeat(500) + "\"}"
+        val argsShown = AgentToolCall(
+            id = "c",
+            args = JsonPrimitive("{\"path\":\"a.txt\",\"body\":\"yyy…\"}"),
+            argsTruncated = true,
+            argsLength = args.length,
+        )
+        assertTrue(isFullCopyOf(AgentToolCall(id = "c", args = JsonPrimitive(args)), argsShown))
+        assertFalse(isFullCopyOf(AgentToolCall(id = "c", args = JsonPrimitive(args.replace("a.txt", "b.txt"))), argsShown))
+    }
+
+    @Test
+    fun a_pretty_printed_full_matches_its_compact_preview() {
+        val output = "{\n  \"result\": \"" + "z".repeat(800) + "\"\n}"
+        val shown =
+            AgentToolCall(id = "c", output = "{\"result\":\"zzz…\"}", outputTruncated = true, outputLength = output.length)
+        assertTrue(isFullCopyOf(AgentToolCall(id = "c", output = output), shown))
+    }
+
+    @Test
     fun hydrated_chars_count_output_args_and_transcript() {
         assertEquals(fullOutput.length.toLong(), hydratedChars(full))
         assertTrue(hydratedChars(full.copy(args = JsonPrimitive("abc"))) == fullOutput.length + 3L)
@@ -168,5 +197,27 @@ class ToolPartHydrationTest {
         assertEquals(listOf(mine, unscoped, unrelated), kept)
         // An id another walk claims is never dropped.
         assertEquals(listOf(otherRun), attachmentsOwnedByHints(listOf(otherRun), hints, otherIds = listOf("child")))
+    }
+
+    @Test
+    fun an_attached_command_preview_cut_mid_line_matches_its_stored_output() {
+        // The shape the server sends for a long attached-workspace command: the cut falls inside one
+        // long stdout line and the marker sits on its own line, so the preview has more lines than
+        // the output it stands for.
+        val line = "LONGWORDXYZ-".repeat(80)
+        val output = "[starting directory: \"workspace/\"]\nstdout:\n$line\nstderr:\nyes: stdout: Broken pipe\n\n[exit code: 0]"
+        val shown = AgentToolCall(
+            id = "toolu_1",
+            stepId = "step_1",
+            name = "bash_tool",
+            output = output.take(254) + "\n\u2026\n" + output.takeLast(255),
+            outputTruncated = true,
+            outputLength = output.length,
+            previewRevision = "1793840539025",
+        )
+        val stored = AgentToolCall(id = "toolu_1", stepId = "step_1", name = "bash_tool", output = output)
+
+        assertTrue(isFullCopyOf(stored, shown))
+        assertFalse(isFullCopyOf(stored.copy(output = output.replace("[exit code: 0]", "[exit code: 1]")), shown))
     }
 }

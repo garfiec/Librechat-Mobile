@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.pdf.PdfPasswordProtectedException
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.model.response.UploadRoute
+import com.garfiec.librechat.core.model.response.clientImageResize
 import com.garfiec.librechat.core.model.response.effectiveFileSizeLimit
 import com.garfiec.librechat.core.model.response.toolResource
 import com.garfiec.librechat.feature.chat.components.AttachedFile
@@ -34,6 +35,8 @@ class FileAttachmentDelegate(
     private val appContext: Context,
     private val fileRepository: FileRepository,
     private val ioDispatcher: CoroutineDispatcher,
+    /** Settings › Chat "Resize images before upload"; an admin's `clientImageResize.enabled` wins. */
+    private val clientImageResize: StateFlow<Boolean> = MutableStateFlow(true),
 ) {
 
     private val _attachedFiles = MutableStateFlow<List<AttachedFile>>(emptyList())
@@ -146,7 +149,8 @@ class FileAttachmentDelegate(
                 var imageHeight: Int? = null
                 val actualIsImage = mimeType.startsWith("image/")
                 if (actualIsImage) {
-                    val processed = processImageForUpload(bytes, mimeType, maxEncodedBytes = sizeLimit)
+                    val resize = state.fileUploadConfig.clientImageResize(clientImageResize.value).limits
+                    val processed = processImageForUpload(bytes, mimeType, maxEncodedBytes = sizeLimit, resize = resize)
                     if (processed != null) {
                         if (processed.reEncoded) {
                             Logger.d {
@@ -184,7 +188,8 @@ class FileAttachmentDelegate(
                 // bytes revealed an image, force the provider path: the text path stamps
                 // `source: text`, and the server's attachment pass short-circuits on that BEFORE
                 // its image branch, so the model would receive no image at all.
-                val effectiveRoute = if (actualIsImage) UploadRoute.PROVIDER else route
+                // The code environment takes an image as a file, as picked.
+                val effectiveRoute = if (actualIsImage && route != UploadRoute.CODE) UploadRoute.PROVIDER else route
 
                 val needsTypeUpdate = mimeType != preliminaryMimeType
                 val needsNameUpdate = uploadFilename != filename
@@ -332,7 +337,8 @@ class FileAttachmentDelegate(
         // because the first attempt failed. Replaying it would send a route decided under the old
         // provider — e.g. a PDF chosen as native under Bedrock, retried against a provider that
         // cannot read PDFs, silently ignored.
-        val route = handle.state.uploadRouteFor(file.type)
+        // A code-environment upload was the user's destination, not a routing decision: keep it.
+        val route = if (file.route == UploadRoute.CODE) UploadRoute.CODE else handle.state.uploadRouteFor(file.type)
         uploadFile(PickedFile(ref = file.uri, name = file.name, mimeType = file.type), route)
     }
 

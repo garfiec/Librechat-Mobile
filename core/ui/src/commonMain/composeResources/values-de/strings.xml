@@ -338,6 +338,8 @@
     </plurals>
     <string name="mcp_oauth_sign_in_title">Bei %1$s anmelden</string>
     <string name="mcp_oauth_sign_in_close">Anmeldung schließen</string>
+    <string name="mcp_oauth_connection_secure">Sichere Verbindung</string>
+    <string name="mcp_oauth_connection_not_secure">Nicht sicher</string>
     <string name="pull_request">Pull-Request</string>
     <string name="merge_request">Merge-Request</string>
     <string name="pr_label">PR #%1$d</string>

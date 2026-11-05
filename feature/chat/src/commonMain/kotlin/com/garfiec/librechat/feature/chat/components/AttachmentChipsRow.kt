@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.FindInPage
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Icon
@@ -417,29 +418,36 @@ private fun FilePreviewItem(
             }
         }
 
-        // Text-route badge, bottom-start so it can't collide with the remove X at top-end. Only
-        // the text route is marked: the provider route is what every attachment has always done,
-        // so labelling it would be noise on every file.
+        // Route badge, bottom-start so it can't collide with the remove X at top-end. Only the
+        // text and code routes are marked: the provider route is what every attachment has always
+        // done, so labelling it would be noise on every file.
         //
         // A corner glyph rather than the word, sized to match that X: this tile is 56dp and its
         // non-image face already fills it with a centred icon + filename, so anything wider runs
         // straight through the name.
         //
-        // Only ever reached on a non-image tile: images always resolve to the provider, and a
-        // file whose bytes turn out to be an image has its route forced back there before upload.
-        if (file.route == UploadRoute.TEXT) {
-            val textRouteCd = stringResource(Res.string.cd_upload_route_text)
+        // Text is only ever on a non-image tile: images resolve to the provider, and a file whose
+        // bytes turn out to be an image has its route forced back there before upload. Code is
+        // the user's pick and can be on any tile.
+        val routeBadge = when (file.route) {
+            UploadRoute.TEXT -> Icons.AutoMirrored.Filled.Notes to Res.string.cd_upload_route_text
+            UploadRoute.CODE -> Icons.Default.Terminal to Res.string.cd_upload_route_code
+            UploadRoute.PROVIDER, null -> null
+        }
+        if (routeBadge != null) {
+            val (badgeIcon, badgeCd) = routeBadge
+            val routeCd = stringResource(badgeCd)
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .size(16.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.tertiary)
-                    .semantics { contentDescription = textRouteCd },
+                    .semantics { contentDescription = routeCd },
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Notes,
+                    imageVector = badgeIcon,
                     contentDescription = null,
                     modifier = Modifier.size(10.dp),
                     tint = MaterialTheme.colorScheme.onTertiary,

@@ -6,6 +6,10 @@ import com.garfiec.librechat.core.data.repository.PullRequestEntry
 import com.garfiec.librechat.core.data.repository.PullRequestRepository
 import com.garfiec.librechat.core.model.isCodeConversation
 import com.garfiec.librechat.core.model.pullrequest.PULL_REQUEST_CHAT_STALE_MS
+import com.garfiec.librechat.core.model.pullrequest.PullRequestChecksLabel
+import com.garfiec.librechat.core.model.pullrequest.PullRequestPresentation
+import com.garfiec.librechat.core.model.pullrequest.PullRequestStateLabel
+import com.garfiec.librechat.core.model.pullrequest.presentPullRequest
 import com.garfiec.librechat.core.model.pullrequest.pullRequestRefetchIntervalMs
 import com.garfiec.librechat.core.model.pullrequest.pullRequestsAvailable
 import com.garfiec.librechat.feature.chat.viewmodel.PullRequestHandle
@@ -25,6 +29,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
@@ -40,6 +45,11 @@ import kotlin.time.Duration.Companion.milliseconds
  *   ([onForeground]). On return, an answer older than 15 s is asked again at once. No retries.
  * - **State** lives in [PullRequestRepository] (memory only, per account) and is mirrored here for
  *   the chat on screen; a refresh that fails after a success keeps the value and flags it.
+ * - **A change of credential** (an account connected or disconnected, [PullRequestRepository.revision])
+ *   restarts polling, which asks again at once: the repository has marked every answer stale.
+ * - **Seen**: the composer chip spells out a state until the user has seen it (the sheet opened, or
+ *   the chip stayed on screen, [markSeen]). Remembered per chat, state and checks, in memory only:
+ *   after process death a state shows expanded once more, which is harmless.
  */
 class PullRequestDelegate(
     private val handle: PullRequestHandle,
@@ -50,6 +60,16 @@ class PullRequestDelegate(
 ) {
     private val foreground = MutableStateFlow(true)
     private var started = false
+
+    /** What the user has seen of a chat's pull request: its state and checks, as the chip says them. */
+    private data class SeenKey(
+        val conversationId: String,
+        val state: PullRequestStateLabel,
+        val checks: PullRequestChecksLabel,
+    )
+
+    private val seen = MutableStateFlow<Set<SeenKey>>(emptySet())
+    private val sheetOpen = MutableStateFlow(false)
 
     private lateinit var entries: StateFlow<Map<String, PullRequestEntry>>
 
@@ -81,23 +101,54 @@ class PullRequestDelegate(
             .stateIn(handle.scope, SharingStarted.Eagerly, emptyMap())
         val eligible = eligibleConversation().stateIn(handle.scope, SharingStarted.Eagerly, null)
 
+        // A sheet left open on one chat must not reappear over the next one's pull request.
+        handle.scope.launch { eligible.collect { sheetOpen.value = false } }
+
         handle.scope.launch {
-            combine(eligible, entries) { id, all -> id?.let(all::get) }
-                .map { entry ->
-                    PullRequestUiState(
-                        pullRequest = entry?.pullRequest,
-                        refreshFailed = entry?.refreshFailed == true && entry.pullRequest != null,
-                    )
-                }
+            combine(eligible, entries, seen, sheetOpen) { id, all, seenKeys, sheet ->
+                val entry = id?.let(all::get)
+                val pr = entry?.pullRequest
+                val presentation = pr?.let(::presentPullRequest)
+                PullRequestUiState(
+                    pullRequest = pr,
+                    presentation = presentation,
+                    refreshFailed = entry?.refreshFailed == true && pr != null,
+                    unseen = id != null && presentation != null && seenKeyOf(id, presentation) !in seenKeys,
+                    sheetOpen = sheet && pr != null,
+                )
+            }
                 .distinctUntilChanged()
                 .collect { ui -> handle.update { pullRequest = ui } }
         }
 
         handle.scope.launch {
-            combine(eligible, foreground) { id, front -> id.takeIf { front } }
+            combine(eligible, foreground, repository.revision) { id, front, revision ->
+                id?.takeIf { front }?.let { it to revision }
+            }
                 .distinctUntilChanged()
-                .collectLatest { id -> if (id != null) poll(id) }
+                .collectLatest { target -> if (target != null) poll(target.first) }
         }
+    }
+
+    private fun seenKeyOf(conversationId: String, presentation: PullRequestPresentation) =
+        SeenKey(conversationId, presentation.state, presentation.checks)
+
+    /** The user has seen the chat's pull request as it stands now; the composer chip folds to its glyph. */
+    fun markSeen() {
+        val id = handle.state.conversationId ?: return
+        val presentation = handle.state.pullRequest.presentation ?: return
+        seen.update { it + seenKeyOf(id, presentation) }
+    }
+
+    /** Opens the pull request sheet, which also counts as seeing it. */
+    fun openSheet() {
+        if (handle.state.pullRequest.pullRequest == null) return
+        markSeen()
+        sheetOpen.value = true
+    }
+
+    fun dismissSheet() {
+        sheetOpen.value = false
     }
 
     private suspend fun poll(conversationId: String) {

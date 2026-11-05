@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import java.util.Collections
+import kotlin.time.Instant
 
 class PullRequestRepositoryTest {
 
@@ -152,5 +153,53 @@ class PullRequestRepositoryTest {
         repository.refresh("c1")
         accountState.value = AccountState.Resolved(AccountId("b"))
         assertThat(repository.entries.first()).isEmpty()
+    }
+
+    @Test
+    fun anAnswerThatLandsAfterAnAccountSwitchIsDropped() = runTest {
+        val repository = repo {
+            accountState.value = AccountState.Resolved(AccountId("b"))
+            json("""{"pullRequest":${pr(7)}}""")
+        }
+        repository.refresh("c1")
+        assertThat(repository.entries.first()).isEmpty()
+        accountState.value = AccountState.Resolved(AccountId("a"))
+        assertThat(repository.entries.first()).isEmpty()
+    }
+
+    @Test
+    fun anAnswerThatLandsAfterACredentialChangeIsDropped() = runTest {
+        lateinit var repository: PullRequestRepositoryImpl
+        var invalidateWhileOut = false
+        repository = repo { request ->
+            if (invalidateWhileOut) repository.invalidate()
+            if (request.method == HttpMethod.Post) {
+                json("""{"results":[{"conversationId":"c1","pullRequest":${pr(7)}}]}""")
+            } else {
+                json("""{"pullRequest":${pr(7)}}""")
+            }
+        }
+        invalidateWhileOut = true
+        repository.refresh("c1")
+        repository.refreshBatch(listOf("c1"), maxConcurrent = null)
+        assertThat(repository.entries.first()).isEmpty()
+
+        invalidateWhileOut = false
+        repository.refresh("c1")
+        assertThat(repository.entries.first()["c1"]?.pullRequest?.number).isEqualTo(7)
+    }
+
+    @Test
+    fun invalidateKeepsTheValuesButMarksThemStaleAndBumpsTheRevision() = runTest {
+        val repository = repo { json("""{"pullRequest":${pr(7)}}""") }
+        repository.refresh("c1")
+        val before = repository.revision.value
+
+        repository.invalidate()
+
+        val entry = repository.entries.first()["c1"]!!
+        assertThat(entry.pullRequest?.number).isEqualTo(7)
+        assertThat(entry.fetchedAt).isEqualTo(Instant.DISTANT_PAST)
+        assertThat(repository.revision.value).isEqualTo(before + 1)
     }
 }

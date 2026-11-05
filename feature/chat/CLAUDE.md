@@ -44,7 +44,8 @@ platforms genuinely differ, the screen calls an `expect`, never an `if (platform
 - `rememberChatAttachmentActions` — activity-result launchers vs the native iOS pickers.
 - `rememberChatStartRecording` — Android routes API 26–30 through the system recognizer overlay.
 - `Modifier.addToChatSelectionItem` — a no-op on iOS.
-- `McpAppWebView` — the MCP App's web view and its isolated bridge (see "MCP Apps").
+- `McpAppWebView` / `rememberMcpAppViewPool` — the MCP Apps' pooled web views and their isolated
+  bridge (see "MCP Apps").
 
 Known iOS gaps behind those seams: the document picker ignores the endpoint's MIME allowlist, and
 there is no "Add to chat" selection item. A feature added to the screen reaches both platforms; a
@@ -443,7 +444,8 @@ listed in `ModelSpec`'s KDoc.
 | Private: `promptPrefix`, `instructions`, `additional_instructions`, `system` | yes | server | Never served (`sanitizeModelSpecs`), so always null here; the server fills them in when the request names the spec (`mergeModelSpecPreset`). Decoded for user presets |
 | Private: `context`, `examples` | no | server | Never served; the server fills them in the same way |
 | `artifacts` (preset level) | no | | The server reads artifacts only from `ephemeralAgent`; the spec's top-level `artifacts` is what counts |
-| `codeApprovalMode`, `codeEnvironmentMode`, `codeWorkspaces` | no | | No mobile feature |
+| `codeApprovalMode` | yes | yes | A new (undecided) chat's starting approval mode, ahead of the remembered pick and within the modes policy offers (`requestedApprovalMode` → `CodeApproval.resolve`). A pick in the chat or a saved decision's mode wins; never remembered. A non-`ask` mode keeps a follow-up in the local queue, as any non-`ask` pick does |
+| `codeEnvironmentMode`, `codeWorkspaces` | no | | The chat sends both from its own workspace choice (`ChatPayloadBuilder`); a spec preset's values are ignored |
 | `tools` | no | | Legacy plugins |
 | `additionalModelRequestFields` | no | | No mobile feature (Bedrock passthrough) |
 | `assistant_id` | no | | Assistants endpoint unsupported (below) |
@@ -576,6 +578,23 @@ ported.
   exactly as Ktor parses it.
   - `error` -> red-styled error display
 - `CodeBlock` renders fenced code with syntax highlighting, language badge, and copy button (3s checkmark)
+- **Run Code** (web `RunCode.tsx`, `MarkdownComponents` `code`): a saved reply's fence whose language
+  `CodeRunLanguages` knows (c, cpp, d, f90, go, java, js, php, py, rs, ts and their aliases) gets a Run
+  button beside Copy, behind RUN_CODE.USE (`LocalCodeRunHost`, provided by `ChatScreen` only: no shared
+  links, tool cards or artifact panel). States Run → Running → Complete (1.5 s) / Failed (2 s, plus
+  `ChatNotice.RUN_CODE_FAILED`); a block already running ignores taps. Output sits under the code
+  ("Output", the latest run, its files through `ToolCallAttachments`, a switcher through earlier runs).
+  - **Block index is web's**: per content part, counting fences that aren't `math`, `mermaid` or empty
+    (`MarkdownSegment.CodeBlock.fenceIndex`, `webCodeBlockCount`; `latex`/`tex` count though drawn as
+    math). A part split by artifacts or `\ui` markers threads each chunk's base (`ProvideCodeRunBase`).
+    The part is the raw content index (null for a reply with no parts); results key as web's
+    `mapToolCalls`. Both are mirrored (`run-code-block`, `run-code-languages`).
+  - `CodeRunDelegate` (its own flow, not `ChatUiState`): `POST /api/agents/tools/execute_code/call`, and
+    the stored runs (`GET /api/agents/tools/calls`) read once per conversation when a runnable block first
+    shows (web reads them on every open). A new run appends to its block's list.
+  - Not on the live bubble (`streaming`): the reply isn't saved yet, so the server would 404, and the
+    target is computed only for settled text. Not on user turns, Compare lanes (filtered parts) or
+    while a turn is edited. Web's 1 s leading debounce is the Running state's disabled button here.
 - LaTeX: `LatexBlock` (block math) and `LatexInline` (inline math) via AndroidMath native rendering
   - Supports `$$...$$`, `\[...\]` (block) and `$...$`, `\(...\)` (inline)
   - `$...$` follows Pandoc's `tex_math_dollars` neighbour rules (`scanInlineLatex()` in
@@ -584,6 +603,17 @@ ported.
     spans are skipped and an open fence stops the scan (code wins, as on the web). While streaming,
     a closer at the very end of the buffer is deferred so `US$5 to US$` + `10` never flashes as math
   - Falls back to monospace text if AndroidMath can't parse the expression
+
+### Long user messages collapse (web's `collapseLongUserMessages`, v0.8.9-rc1)
+`CollapsibleUserText` wraps a user turn's text (not its quotes, skill pills or files) in
+`MessageContentAndActions`: taller than 256dp × the chat font multiplier (web: 256px × rem), it
+clamps with a bottom fade and a Show more / Show less button; the 8dp tolerance only decides whether
+the toggle shows. The clamp is decided in the measuring layout pass, so the first frame is already
+clamped. Visual only: the text stays composed, selectable and readable by screen readers. The
+focused in-conversation search match forces it open. Off while editing. Setting: Settings › Chat
+"Collapse long user messages" (`AppPreferences.CollapseLongUserMessages`, default on), provided as
+`LocalCollapseLongUserMessages` by `ChatRoot` (chat and shared viewer). Web also collapses steer
+parts; ours renders steers through `SteerContentPart` without the clamp.
 
 ## Inline citations (web_search / file_search)
 The tools make the model write anchors after the claims they cite: `turn0search0`, a group
@@ -648,7 +678,7 @@ haiku wrote only escapes), so everything converts the escape first.
 - **`StreamingManagerDelegate` owns the session lifecycle only** (dispatch, `endStream`, resume, reconnect).
   Text and reasoning deltas accumulate in `StreamTextBuffer` (50ms throttled flush); events that only
   describe the reply in progress — tool calls, attachments, usage, title, retry progress, subagent
-  traces — are projected onto state by `LiveReplyDelegate`; the ViewModel-owned operations (reload,
+  and PTC traces — are projected onto state by `LiveReplyDelegate`; the ViewModel-owned operations (reload,
   un-send, key-error channel) come through `StreamingHost`. A new lifecycle event belongs in the
   manager; a new "describes the reply" event belongs in `LiveReplyDelegate`
 - **Reasoning streams into its own buffer** (`StreamTextBuffer` → `MessagesState.streamingThinking`),
@@ -913,6 +943,22 @@ not offered it, because the server 403s the whole batch for one. "Approve all" s
 focusing it cancels the beat, so the explicit Next / Continue takes over. A resume 403 whose body
 carries `disallowed` is `ChatNotice.TOOL_DECISION_NOT_PERMITTED`, not the fingerprint copy.
 
+**Code-action previews (v0.8.9-rc1).** A request whose `source` is `librechat_code` (the server's
+own code tools; never inferred from the name, which an MCP tool can share) reviews as the action:
+`bash_tool` → "Run command" + the command (generic when the args have an `environmentAction` key,
+even a null one), `create_file` → "Create <path>" + the contents, `edit_file` → "Edit <path>" + the
+`edits` (or the whole args). The port is `core/model` `approval/ApprovalPreview.kt` (web
+`approval/preview.ts`, mirrored as `approval-preview`): the batch is built once at the top of
+`ToolApprovalPanel` because it shares one 64K budget (16K and 200 lines per call, name 256,
+description and path 1024 each, in that order), and the cap is applied after the reveal, so it can
+cut a `\uXXXX` short, as web does. **The reveal is exactly web's two sets**: bodies spell out C0
+except tab/LF/CR, DEL and C1, U+061C, U+200E/F, U+202A–E and U+2066–206F; labels (name, description,
+path) also spell out tab/LF/CR. Zero-width spaces/joiners, the BOM and the soft hyphen are NOT
+revealed, upstream or here; don't widen it in one place. Every other tool keeps its raw arguments.
+Edit seeds its field from the raw arguments, never the bounded body. Divergence: the truncation
+note drops web's "use the timeline tool card" clause, since the live card of a paused call has no
+arguments on mobile (no argument deltas).
+
 The resume is all-or-nothing (`toolBatchResolutions` returns null until every call is decided and
 complete — the route 400s a partial batch and an edit/respond without its payload). Allowed
 decisions join by `tool_call_id`, never position. Drafts, the active call and the collapse state
@@ -1156,9 +1202,64 @@ only draws `CodeWorkspaceUiState`.
   launch runs inline and re-enters `retarget`.
 - **Rejections** (`code_workspace_unavailable`) carry their `reason` in the marker
   (`StreamErrorType.ARG_SEPARATOR`); `required`/`missing`/`worker_unavailable` also refresh status and
-  tint the workspace chip. Slice 2 (move/attach/detach a saved decision) is not built.
+  tint the workspace chip.
+- **Transitions** (web's move / attach / detach / recover, `Resolution.transition`): a locked chat's
+  workspace chip opens the transition sheet instead of refreshing. Picks only draft the change
+  (`TransitionDraft`, per chat); Confirm or "Continue without workspace" writes it
+  (`PATCH …/decision`, `CodeEnvironmentRepository.moveDecision`), and the answer becomes the saved
+  decision. While it is in flight the send waits (web's `replacingDecision`). A `locked` refusal or an
+  unknown outcome re-reads the decision; busy and other refusals only say so (`ChatNotice`
+  `CODE_WORKSPACE_MOVE_*`). With the transition version a healthy saved chat is visible (for Detach),
+  as on web.
+- **Reconcile after a failed turn**: a send that carried a decision and ended in an error (a `ChatNotice`
+  marker is not one; the flag clears when the run ends either way) re-reads the
+  saved decision with Send held and "Confirming this chat's workspace decision…" (`CodeConfirming`);
+  a failed read offers Retry (`refresh`) and keeps holding, rather than sending nothing (which could
+  seal a chat the server never saved). A 404 on that read means the chat was never saved: undecided.
+- **Several machines**: per-chat machine choice can put different agents on different machines; each
+  pick on an agent's alternative carries its `agentIds` (`selectWorkspace`). The chips then read
+  "{n} machines" / "{n} code workspaces", explicit checkouts get a line each, and picks that leave an
+  agent uncovered show web's `graph_selection_conflict` line. "Linked worktrees" shows for a
+  `git_linked_worktree` workspace that is not isolated (Auto on a worktree-capable one isolates).
+- **Code approval mode** (`CodeApproval` in `:core:model`): the chip shows with the row, or on its own
+  for a healthy saved chat. `submissionForSend()` adds `approvalMode` to the submission, so the mode
+  rides every send path the decision does; `ask` without a workspace. The mode asked for is this
+  chat's pick, else the saved decision's, else (no decision yet) the spec preset's `codeApprovalMode`,
+  else the device's last pick (`requestedApprovalMode`, web's `conversation.codeApprovalMode ?? preference`). A follow-up whose mode is not
+  `ask` stays in the local queue (`QueueOrchestrationDelegate.serverOwnedSpec`): the v1 queued-turn
+  route refuses a mode.
 
 ## Content Cards
+- **File tools** (`FileToolCalls.kt` + `FileToolCallCard.kt`, web `ReadFileCall` / `FileAuthoringCall`
+  / `DiffView`): `read_file`, `create_file`, `edit_file`, routed by EXACT name in both
+  `ToolCallDispatcher` and `StreamingToolCallCard` ahead of the `contains` branches. Titles "Reading /
+  Read <name>", "Creating / Created" ("Updated" when the output opens `Updated `), "Editing / Edited";
+  the model's `intent` wins, a call without a path reads as the tool's name. Behind the chevron: the
+  output highlighted by `langFromPath` (read), the authored contents (create), or a diff — the
+  output's own unified diff when `hasDiff` finds a header after a line break (numbered from its hunk
+  headers; file headers before the first hunk dropped), else `edits[].old_text/new_text` from the
+  args as removals then additions with a rule between edits. Only output is ever parsed as diff text.
+  The tool's summary follows when it differs from what the pane shows. Live, the args are usually
+  unknown until the completion (no argument deltas), so the card names the file only then; a resumed
+  or reopened running call has them. The partial-JSON reader (`parseJsonField`, web's) is ported for
+  snapshots that carry cut args. Tool cards are outside `SearchMatchEnumeration`, so nothing here
+  counts toward find-in-page.
+- **Code card extras (v0.8.9-rc1).** The completion's `executor` rides `ToolCallComplete`, so the live
+  card reads an attached command's exit trailer as the saved one does (`withAttachedCommand`). The
+  trailer shows dimmed after the output; after a timeout it hides behind Details / Hide under "Time
+  limit reached. Output may be incomplete." (web `BashCall`), carried across the live → saved handoff.
+- **PTC trace** (`PtcToolTrace.kt`, web `PtcToolTrace` + `common/ptc.ts`): the inner calls of a
+  programmatic tool-calling program, `on_ptc_tool_call` → `StreamEvent.PtcToolCall` →
+  `MessagesState.ptcTraces` (folded in `LiveReplyDelegate`, `util/PtcTrace.kt`: running appends,
+  a settle updates its row by `call_id`, a settle without its row is dropped, 100 rows + a dropped
+  count; a resume marks running rows interrupted). Never persisted by the server, so it is read
+  through `LocalPtcTraces` by the live and the saved code card alike, and outlives the stream. It is
+  cleared when the next turn starts (web keeps it until the conversation changes, keyed by message +
+  call id); clearing per turn is what keeps a provider's reused `call_0` from drawing an earlier
+  program's rows under a later card. Visible on the card, not behind the code chevron, since the
+  running card has no code to expand. Names go through `parseToolName` (`ToolLabels.kt`, web
+  `toolLabels.ts`): `server · tool` for MCP (split at the last `_mcp_`; no server list), else the
+  friendly name.
 - `ImageGenCard` renders DALL-E / image generation results (spinner while generating, AsyncImage when done)
 - `LogContentCard` renders expandable log output blocks with monospace text
 - Both dispatched from `ContentPartRenderer` — tool calls with name containing `dall` route to ImageGenCard
@@ -1329,6 +1430,18 @@ can't test this. `scripts/verify-speech-services.py` can: it boots a no-GMS AOSP
 `:testing:speech-fixture` as the default recognizer and TTS engine, and runs the `audio/` speech
 instrumented tests. Those tests skip anywhere else.
 
+## Upload to Code Environment (legacy upload UX)
+A deployment with `fileConfig.legacyFileUploadUX: true` (global or per endpoint, resolved by
+`resolveEndpointFileConfig` for `fileConfigEndpoint`) keeps web's destination chooser, where web
+offers "Upload to Code Environment" (`useAttachItems`). Mobile adds one attach card, Code
+(`ChatUiState.codeUploadOffered`): that flag, the `execute_code` capability, RUN_CODE.USE (web leaves it
+to the server, which refuses the upload without it), and either ephemeral tools or a saved agent
+whose `tools` include `execute_code`. Its picker takes any type; every pick goes as
+`UploadRoute.CODE` (`tool_resource=execute_code`) with no routing sheet, images included, and a retry
+keeps it. On a chat with ephemeral tools the pick also turns the code interpreter on (web sets
+`ephemeralAgent.execute_code`; mobile's toggle is the global one). The routing sheet never offers CODE.
+Not ported: web's file search destination and the rest of the legacy chooser. iOS: wired, unverified.
+
 ## Recovering from a failure the files cause (v0.8.9-rc1)
 A reply that failed (a persisted failed turn, or an `error` part) on a branch carrying files gets a
 card under it (`AttachmentRecoveryActions`, web's `recovery.tsx`): why, then **Retry without files**
@@ -1464,21 +1577,50 @@ transcript names. After a mid-run resume there is no transcript (run steps are n
 live list never draws child calls at all, so such a file matched nothing. `withSubagentFilesAdopted`
 (saved messages, claimed = `outputToolCallIds`) and `withLiveSubagentFilesAdopted` (the streaming
 reply, claimed = the live call ids) rewrite an unclaimed stored file's `toolCallId` to the message's
-`subagent` call: the only one, else the one whose agent stamped the file, else the last. Rewriting
+`subagent` call: the only one, else the one whose agent stamped the file (a saved call's agent is
+its `subagentIdentity.subagentAgentId`; a live one's comes from its trace), else the last. Rewriting
 (rather than a side map) is what keeps `unclaimedOfficePreviewRows` from drawing the same file again.
-Metadata attachments (memory, search) never move. Upstream's `/subagent-calls` lookup (slice 2) is
-not used.
+Metadata attachments (memory, search) never move.
+
+**Slice 2 (`GET …/subagent-calls`, web's `useStoredSubagentHints`).** For a displayed saved message
+holding a previewed subagent call (`subagentContentOmitted`) and stored tool files no call claims
+(`subagentFilesInDoubt`), `SubagentHintsDelegate` asks the server which child call each was saved
+under (batches of 32, once per file set, in memory only). `ToolPartOverlay` adds the answer to the
+matching call's `subagentAttachmentCalls` (`withStoredSubagentHints`, after hydration), so the file
+is claimed by the exact subagent and slice 1 never sees it. A failed lookup keeps slice 1's placement
+and is asked again on an offline → online transition (3 attempts). No version gate: only an rc1+
+server previews, so the route exists whenever the condition holds; a pre-rc1 server sends full
+transcripts and needs no lookup.
 
 ## Tool-call previews (v0.8.9-rc1, `?toolPreviews=1`)
 The chat load asks for bounded previews of settled tool calls; a previewed call carries
 `AgentToolCall.isPreview` and its full lengths. Rules that keep a preview from passing for the whole:
-- **Fetched parts never touch Room.** `ToolPartHydrationDelegate` holds them in memory (cleared on a
-  conversation or account switch, ~4M-char budget that never evicts a part an open card holds). A card
-  can open mid-stream, when no Room write is allowed, and Room keeps only what the server last said.
+- **Fetched parts never touch the message rows.** `ToolPartHydrationDelegate` holds them in memory
+  (cleared on a conversation or account switch, ~4M-char budget that never evicts a part an open card
+  holds) and keeps those of **finished** messages in the `tool_call_parts` side table
+  (`MessageRepository.storeToolCallParts`; see `core/data/CLAUDE.md`). The message row stays what the
+  server last said, markers included.
+- **Room is the first tier of `request`**, and a stored call applies only while `isFullCopyOf` the
+  preview the message carries now (same identity and full lengths, and the full text starts and ends
+  with what the preview kept around its cuts, whitespace aside). So a refresh that re-previews an
+  unchanged call keeps it; a call the server changed fails the check, is fetched, and its row is
+  overwritten. `previewRevision` is deliberately not compared: it is the message's `updatedAt`, which
+  a feedback or title-unrelated edit moves.
+- **No Room write while streaming** (the streaming-anchor invariant, user decision "write after
+  Final"): a part landing mid-stream waits in `pendingWrites` and is written when `isStreaming` goes
+  false; a conversation switch while it waits drops it. A part of an `unfinished` message is never
+  written. Seeds (a reload previewing a call held in full) are kept the same way.
+- **Reconnect retry.** When `ConnectivityObserver` goes offline → online, each `Failed` part whose
+  identity an open card pins (`retain`) is loaded again, at most `MAX_AUTO_RETRIES` (3) times per
+  part; the user's Retry resets the count. Unpinned failures wait for the card to reopen.
 - **The overlay runs in `ChatViewModel.uiState`'s combine** (`ToolPartOverlay`), over the built
   `displayMessages`: never a tree rebuild, never `activeBranches`, never the streaming anchor.
   Delegates read the backing state, which keeps the previews. The loaded map rides beside the server
-  URL flow so it adds no hop to every state emission.
+  URL flow so it adds no hop to every state emission. Every later field in that combine (the reply
+  avatars) builds on the overlaid state; one copied from the backing state puts the previews back.
+- **An open preview never sits on "Loading" with nothing in flight**: the disclosure asks again
+  whenever its preview has no status. A previewed command's Show all reads "Show full output",
+  since a preview's line count is not the output's.
 - **Cards request from an effect, not the click** (`ToolContentDisclosure`, at the top of every
   disclosure that reveals args, output or transcript): a card restored open, or carried open from
   the live reply, asks too. `ToolCallDispatcher` provides the call's `LocalToolPreview`; nested
@@ -1494,37 +1636,130 @@ The chat load asks for bounded previews of settled tool calls; a previewed call 
 
 ## MCP Apps (v0.8.9-rc1, `components/mcpapp/`)
 An MCP tool can ship a View (`text/html;profile=mcp-app`) that arrives as a `ui_resources`
-attachment. The chat shows an inert "Open app" row and runs the App in a full-screen panel.
+attachment. The chat shows an inert "Open app" row; a tap runs the App inline in that row's card,
+with Expand to a full-screen panel.
 - **Rows** (`McpAppRows`, from `selectToolCallUiResources`): after the tool card
   (`ToolCallContentPart`, `StreamingToolCallCard`), or under an activity group in its hoisted slot,
   never inside a fold. Only while `mcpApps.enabled` (`McpAppsViewModel.policy` → `LocalMcpApps`);
   a missing binding reads "could not be loaded" with no button; the shared viewer passes
-  `McpApps.ReadOnly`. Subagent and background-task cards show none (slice 2).
+  `McpApps.ReadOnly`. A subagent card's rows cover its child calls too (`outputToolCallIds`, plus
+  the omitted-transcript hints), saved and live (the live trace's parts); a background-task card
+  gets its own call's rows like any tool card.
 - **No first-open prompt**: "Open app" goes straight to the panel, as on web. Approval is per
   action (below), not per App.
-- **Panel** (`McpAppPanel`, an `AdaptiveDialog`): full screen, never inline, because a WebView in the
-  thread's lazy list is disposed on scroll, which tears the App down mid-request. One App at a time;
-  closing or leaving the chat tears it down (no in-View state survives). Retry is a new host and a
-  new web view. Android Activity recreation (rotation, fold) keeps the session (`rememberIsRecreatingUi`)
-  and the new web view calls `McpAppHost.pageAttached`, so the App reloads and initializes again.
+- **Web views live in a pool, not in the list** (`McpAppViewPool`, remembered by `rememberMcpApps` above
+  `MessageList`). A lazy item only attaches its session's view: Android returns a `FrameLayout`
+  container from `AndroidView.factory` and moves the pooled `WebView` into it in `update`
+  (`onReset`/`onRelease` only detach, never destroy), because the lazy list reuses the node; iOS moves
+  the `WKWebView` between `UIKitView` containers. So scrolling a card away, the streaming→final swap
+  and Expand only reparent the live App: `host.pageAttached()` runs once per **new** view, never on a
+  reattach (it would drop the App's queue and grants), and `host.send` stays wired while detached. A
+  view is destroyed only when its session closes (`retain`, keyed by session id) or the pool leaves
+  composition (leaving the chat, Android recreation: each App then reloads in a new view and
+  initializes again). Views are built with the Activity's context, never the panel dialog's.
+  **Android views are software-rendered, panel included** (`configureLazyListWebView`): a detach on
+  scroll is exactly the recycle that SIGSEGVs the GL functor path. `onRenderProcessGone` returns true
+  and fails that App with Retry (`McpAppHost.close(viewLost = true)`), or the whole app would die.
+- **Inline card** (`McpAppInlineCard`): header (tool · server · dot when waiting · Expand · Close) over
+  the App at 320dp until it reports, then its first reported height clamped to 80dp..min(4000, 60% of
+  the window) (`McpAppSessionRules.inlineHeightDp`) and **frozen** in `McpAppsState.inlineHeights` (the
+  card leaves composition on scroll, so not `remember`): a slot that resized would jump the list.
+  Later `size-changed` only toggles a 40dp fade + Expand. While its App is in the panel the card shows
+  "Return to app" (one view, one parent). Nothing here writes Room, `activeBranches` or item keys.
   In-thread glass must not sample the list's own backdrop (`MessageList` nulls `LocalGlassBackdrop`
   for its rows): a surface sampling its ancestor's recording recurses to a stack overflow on iOS.
+- **Several at once** (`McpAppsViewModel.state`): up to `min(maxActiveViews, 3)`, 1 on a low-RAM
+  Android device (`McpAppSessionRules.viewCap`); another "Open app" is refused with upstream's
+  capacity line and "Show apps". The panel (`McpAppPanel`, an `AdaptiveDialog`) shows one App, with a
+  tab per open App at 2+ (dot = waiting); **Back minimizes** (every App back to its card, still
+  running), Close X tears that App down (the panel moves to the last-used other tab), leaving the chat
+  tears all down (`closeAll`). While Apps run minimized, the chat ⋮ menu starts with "Open apps (n)"
+  (`ChatOverflowItem.OPEN_APPS`, count read from `LocalMcpApps` in `ChatFloatingTopBar`), which opens
+  the panel on the last-used App (`showApps`). An approved message minimizes rather than closes, so the App can follow
+  up. Retry replaces the session with a new id (new host, new view). `displayMode` is `inline` in a
+  card and `fullscreen` in the panel (`availableDisplayModes` both; inline sends `maxHeight`, as web);
+  `ui/request-display-mode` fullscreen expands an App on screen, inline from the panel minimizes,
+  anything else answers the current mode.
+- **Only a foreground App shows its question** (`McpAppSessionRules.foreground` / `presented`): the
+  panel's App while it is up, else an inline card in the viewport (`onGloballyPositioned` bounds, so a
+  prefetched, unplaced item is not foreground). One dialog at a time, drawn by `rememberMcpApps`
+  (inside the panel's window while it is up). Others wait in their own queue with a dot and a
+  "<server> wants to run a tool" snackbar whose Show **expands** that App (a divergence from the
+  spec's scroll-to-card: the list has no scroll-to-attachment seam). Grants (`autoRunTools`) and the
+  location question are per session: a second App's location request while one is open is refused,
+  and closing an App refuses only its own.
+- **Eviction** (`onMemoryPressure`: Android critical trim / `onLowMemory`): every App not in the
+  foreground and waiting on nothing is torn down; its card keeps the picture taken when it last
+  detached, dimmed, with "Tap to resume" (a reload). An App awaiting approval is never evicted. iOS has
+  no memory hook or picture yet.
 - **Host** (`McpAppHost`): the spec `2026-01-26` JSON-RPC in Kotlin, unit-tested without a WebView
   (`McpAppHostTest`). Every server call is native through `McpAppsRepository`, so no token reaches
   the page. Tool calls and messages wait on the approval dialog (exact text, never truncated; over
   `maxActionPreviewChars` refused without asking; queue bounded by `operationLimits.maxActive`;
-  Cancel pauses the App until reopened). Links open only on hosts the delivered CSP declared.
+  Cancel pauses the App until reopened). Approve settles only the action its dialog drew (each
+  queued action has its own `id`), and arms 500ms after the dialog appears, so a double tap never
+  approves the next one unseen. Links open only on hosts the delivered CSP declared.
+- **"Don't ask again for <tool> until I close this app"** (mobile-only; web confirms every action):
+  a checkbox on tool-call dialogs only, under the same arm delay, recorded only when "Run tool"
+  settles that dialog's own action. Per tool, any arguments, in `McpAppHost.autoRunTools` only
+  (never persisted). Never for messages, over-limit requests or while paused. Revoked by Cancel,
+  Stop, Close, Retry (a new host), a page reload (`pageAttached`), "Ask again" (the panel subtitle
+  menu, which reads "server · Auto-running tool" meanwhile), and a `BUSY` answer (429/502-504) to
+  an auto-run call. Auto-run calls count against `maxPendingActions` with the waiting queue.
   An approved message goes through `ChatViewModel.sendAppMessage`: only its text, composer
   untouched, refused while a reply runs.
 - **Relay page** (`McpAppRelayPage`): a port of `mcp-sandbox.html`'s inner-frame half (mirror
   `mcp-app-sandbox-relay`). It loads nothing; the App's own CSP may name hosts its frame loads from.
-  The bridge (`McpAppWebView`, the platform seam): Android `WebViewCompat.addWebMessageListener`
-  scoped to `https://mcp-app.switchboard.invalid` — **never `addJavascriptInterface`**, which reaches
-  every frame including the App's; iOS a dedicated `WKContentWorld`, main frame only. Both refuse
-  main-frame navigation and new windows.
-- **Not verified on a device yet:** the dialog-hosted WebView across rotation/fold, whether the
-  relay's loader CSP needs a `frame-src` entry for its `about:srcdoc` child, and that WebKit
-  delivers the inner frame's `message` events to the isolated content world.
+  The bridge (`McpAppWebView`, the platform seam): Android `RelayBridge` —
+  `WebViewCompat.addWebMessageListener` scoped to `https://mcp-app.switchboard.invalid`, main frame
+  only; on a WebView without `WEB_MESSAGE_LISTENER` (pre-83, un-updated or Play-less devices) a
+  fallback `addJavascriptInterface` object with **one** method, `postMessage(token, json)`, that
+  forwards only calls carrying a 256-bit per-page token held in the relay's own closure. That object
+  is injected into every frame, the App's included, and native can't see which frame called, so the
+  token is what confines it to the relay (the App's opaque frame can't read the relay's globals or
+  source). Never add a second method to it, and never hand the token to the App. Replies go by
+  `evaluateJavascript` (top document only). The fallback adds nothing where the listener exists.
+  iOS a dedicated `WKContentWorld`, main frame only. Both refuse main-frame navigation and new
+  windows.
+- **Permissions** (`McpAppPermissions`): geolocation and clipboard-write only, from the resource or the
+  read content's `_meta.ui.permissions`, into the frame's `allow`. Location is Android-only
+  (`mcpAppLocationSupported`; WebKit refuses opaque origins) and decided natively per MCP server:
+  `McpAppHostCallbacks.mayOfferLocation` drops `geolocation` from `allow` for a refused server, the
+  WebView's `onGeolocationPermissionsShowPrompt` goes to `McpAppHost.onLocationPrompt` →
+  `McpAppsViewModel` (consent dialog when never asked, then `ACCESS_COARSE_LOCATION` through
+  `rememberCoarseLocationRequester`). Every path must answer the WebView's callback, including Close
+  (`answerLocation(false)`) and the WebView withdrawing its prompt (`onGeolocationPermissionsHidePrompt`
+  → the `LocationPromptWithdrawal` `onLocationPrompt` returned), or the App's request hangs. The consent dialog's Allow arms
+  500ms after each request appears (`requestId`), like the action dialogs. Answers live in `:core:data`
+  `McpAppLocationConsentStore`, which Settings' server sheet also edits.
+- **Not verified on a device yet:** reparenting the pooled WebView into the panel's dialog window and
+  back, scroll detach/reattach and the eviction picture, touch handling of an inline WebView in the
+  list (no gesture arbitration is done: no 8dp claim, no drawer exclusion), rotation/fold reloads, the
+  iOS pool as a whole, whether the relay's loader CSP needs a `frame-src` entry for its `about:srcdoc`
+  child, and that WebKit delivers the inner frame's `message` events to the isolated content world.
+
+## Legacy MCP-UI resources and `\ui{…}` markers (v0.8.9-rc1)
+Plain `text/html` `ui_resources` entries the model places with `\ui{id}` / `\ui{a,b,c}` in its reply.
+- **Markers never show.** `TextContentPart` runs every artifact-free text run through
+  `UiMarkedMarkdownContent` (`splitUiResourceMarkers`: fenced code and inline code spans are left
+  alone; markdown escapes resolve as web's text nodes see them). While streaming, a half-written
+  marker at the end is hidden (`withoutTrailingPartialUiMarker`). In-chat search counts text the
+  same way (`countUiMarkedOccurrences`, clause 2 of the `SearchMatchEnumeration` contract): keep the
+  two sides on that one function.
+- **Rendering** (`LegacyUiResourceBlock`, only while `legacyHtmlEnabled`): the conversation's resources
+  by id come from `conversationUiResources` (ChatScreen, off the main thread, rebuilt only when the
+  shown messages or the live attachments change) through `LocalLegacyUiResources`. A placeholder
+  while streaming; then an inline web view (`LegacyUiResourceWebView`: shell at
+  `https://mcp-ui.switchboard.invalid`, resource in an `allow-scripts`-only srcdoc frame, Android
+  software layer, same `RelayBridge` / content-world bridge as Apps) sized by `ui-size-change`.
+  Several ids = a horizontal carousel. A single unknown id shows web's "UI Resource not found
+  (index: …)" chip once the reply settles (after a 300ms grace, since the resource map is rebuilt off
+  the main thread just after the messages), whatever `legacyHtmlEnabled` says, as web checks it first;
+  unknown ids in a carousel and non-legacy resources draw nothing.
+- **Actions** (`LegacyUiFrameHost`): `tool`/`intent`/`prompt` become upstream's `handleUIAction` text and
+  wait on "Send message from app?" (`McpAppsViewModel.requestLegacyMessage`, dialog hosted by
+  `rememberLegacyUiResources` so it survives the row scrolling away); refused while a reply runs.
+  `link`/`notify` are ignored, as on web.
 
 ## Conversation pull requests (v0.8.9-rc1, slice 1)
 A code chat (one that ran against an attached workspace) can have a pull request; web shows it in the
@@ -1541,7 +1776,21 @@ header, its small-screen layout in the ⋮ menu, which is where it goes here.
   the native iOS menu get a `BarMenuItem` whose subtitle says the state and checks in words.
   `PullRequestSheet` opens from it, reads the live state, shows its link only for
   `ConversationPullRequest.openableUrl()` (absolute http(s) passing `isSafeLinkUrl`), and a Retry row
-  when a refresh failed after a success. Account connection (slice 2) is not built.
+  when a refresh failed after a success.
+- **Where it shows depends on the chat pane's width** (600dp, `comparisonWide`, not the window), so
+  exactly one of these exists: on a wide pane a bar chip (`PullRequestBarChip` in Material, a
+  `BarAction.Text` with `leadingIcon`/`iconTint`/`badgeTint` in glass and the native iOS bar, which
+  draws no dot and reads the summary as its accessibility label) and no ⋮ item; on a narrow pane the ⋮
+  item plus a composer row (`PullRequestComposerRow`, provided through `LocalPullRequestComposer` so
+  both platform composers draw it, first row of the composer card). The composer chip spells out
+  "PR #482 · Checks running" while `PullRequestUiState.unseen`, then folds to the glyph; seen = the
+  sheet opened, or 8 s on screen with the keyboard down (`markPullRequestSeen`), remembered per
+  (chat, state, checks) in the delegate only. It is folded during a run and hidden during a tool
+  approval, while a queued message is edited, and behind the keyboard on panes under 480dp tall.
+- **The sheet's visibility is delegate state** (`PullRequestUiState.sheetOpen`, `openPullRequestSheet`),
+  so all three surfaces open the one sheet `ChatFloatingTopBar` hosts; a chat switch closes it.
+- **A change of credential** (`PullRequestRepository.revision`, after an account connect or
+  disconnect in Settings) restarts polling, which asks at once.
 
 ## Tool intent labels (v0.8.8)
 A tool card's title is the model's own `intent` string when present, else the raw tool name.

@@ -14,13 +14,13 @@ import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.ButtonDefaults
@@ -50,6 +50,9 @@ import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -68,6 +71,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicato
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.CornerStatusDot
 import com.garfiec.librechat.core.ui.components.LocalInSeparateWindow
 import com.garfiec.librechat.core.ui.components.MenuDragSelection
 import com.garfiec.librechat.core.ui.components.consumeUnhandledTouches
@@ -82,6 +86,11 @@ import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
 import com.garfiec.librechat.core.ui.theme.LocalGlassLevel
 
 private val ControlSize = 44.dp
+
+/** A text action's leading status glyph, its gap to the label, and the dot on its corner. */
+private val TextActionIconSize = 16.dp
+private val TextActionIconGap = 4.dp
+private val TextActionBadgeSize = 6.dp
 
 /**
  * An M3 `TopAppBar` in Material, the system glass bar on iOS 26+, a simulated glass bar elsewhere.
@@ -254,13 +263,40 @@ private fun BarActionButton(action: BarAction, colors: BarActionColors) {
             }
         }
 
-        is BarAction.Text -> TextButton(onClick = action.onClick, enabled = action.enabled) {
+        is BarAction.Text -> TextButton(
+            onClick = action.onClick,
+            enabled = action.enabled,
+            modifier = action.accessibilityLabel?.let { description ->
+                Modifier.semantics { contentDescription = description }
+            } ?: Modifier,
+        ) {
+            action.leadingIcon?.let { icon ->
+                Box(modifier = Modifier.size(TextActionIconSize)) {
+                    Icon(
+                        imageVector = icon.vector,
+                        contentDescription = null,
+                        tint = action.iconTint ?: LocalContentColor.current,
+                        modifier = Modifier.size(TextActionIconSize),
+                    )
+                    action.badgeTint?.let { badge ->
+                        CornerStatusDot(
+                            color = badge,
+                            size = TextActionBadgeSize,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .offset(x = TextActionBadgeSize / 4, y = TextActionBadgeSize / 4),
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(TextActionIconGap))
+            }
             // Glass labels its text actions in the accent, as iOS does; Material keeps TextButton's own.
             Text(
                 text = action.label,
                 color = if (colors.glass && action.enabled) colors.accent else Color.Unspecified,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = if (action.accessibilityLabel != null) Modifier.clearAndSetSemantics {} else Modifier,
             )
         }
 
@@ -323,7 +359,6 @@ private fun BarMenu(
     AdaptiveDropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
-        shape = BarMenuShape,
         offset = BarMenuOffset,
         dragSelection = drag,
     ) {
@@ -381,7 +416,6 @@ private fun BarDropdownItem(item: BarMenuItem, onSelect: () -> Unit, checkTint: 
 }
 
 // The chat bar's menu measures, so every bar menu looks the same.
-private val BarMenuShape = RoundedCornerShape(16.dp)
 private val BarMenuOffset = DpOffset(x = 0.dp, y = 8.dp)
 
 /** The UIKit bar on iOS; never reached on Android, whose actual forwards to the simulated bar. */
@@ -598,7 +632,10 @@ private fun labelsSqueezeTitle(
     }
     val actions = spec.actions.fold(0.dp) { sum, action ->
         sum + when (action) {
-            is BarAction.Text -> maxOf(metrics.textActionMinWidth, width(action.label, metrics.labelStyle) + metrics.textActionPadding)
+            is BarAction.Text -> {
+                val icon = if (action.leadingIcon != null) TextActionIconSize + TextActionIconGap else 0.dp
+                maxOf(metrics.textActionMinWidth, width(action.label, metrics.labelStyle) + icon + metrics.textActionPadding)
+            }
             else -> metrics.iconAction
         }
     }
@@ -614,7 +651,7 @@ internal fun AdaptiveTopBarSpec.withCompactTextActions() = copy(
             BarAction.Icon(
                 id = action.id,
                 icon = action.compactIcon,
-                label = action.label,
+                label = action.accessibilityLabel ?: action.label,
                 enabled = action.enabled,
                 onClick = action.onClick,
             )

@@ -350,6 +350,8 @@
     </plurals>
     <string name="mcp_oauth_sign_in_title">Вход в %1$s</string>
     <string name="mcp_oauth_sign_in_close">Закрыть вход</string>
+    <string name="mcp_oauth_connection_secure">Безопасное соединение</string>
+    <string name="mcp_oauth_connection_not_secure">Не защищено</string>
     <string name="pull_request">Pull request</string>
     <string name="merge_request">Merge request</string>
     <string name="pr_label">PR #%1$d</string>

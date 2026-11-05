@@ -1,7 +1,9 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
+import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.MessageRepository
+import com.garfiec.librechat.core.data.repository.ToolCallPartRef
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.content.AgentToolCall
@@ -23,11 +25,14 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import org.junit.Before
 import org.junit.Test
 
 /**
- * Tool-call preview hydration: fetches land in memory only, a failure is retried by the user, a
- * switch drops everything, the budget never evicts an open card, and a copy never takes a preview.
+ * Tool-call preview hydration: fetches land in memory and, for finished messages and never mid-stream,
+ * in the stored-part table; a stored part is reused only while it is a full copy of the current
+ * preview; a failure is retried by the user or on reconnect for an open card; a switch drops memory,
+ * the budget never evicts an open card, and a copy never takes a preview.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ToolPartHydrationDelegateTest {
@@ -35,6 +40,13 @@ class ToolPartHydrationDelegateTest {
     private val repository = mockk<MessageRepository>(relaxed = true)
     private val conversationId = MutableStateFlow<String?>("c1")
     private val account = MutableStateFlow<String?>("acct-a")
+    private val streaming = MutableStateFlow(false)
+    private val connected = MutableStateFlow(true)
+
+    @Before
+    fun noStoredParts() {
+        coEvery { repository.storedToolCallParts(any(), any()) } returns emptyMap()
+    }
 
     private fun preview(id: String, output: String = "head\n…\ntail", length: Int = 5000) = AgentToolCall(
         id = id,
@@ -69,10 +81,15 @@ class ToolPartHydrationDelegateTest {
             currentMessages = { messages.value },
             currentAccountId = { account.value },
             defaultDispatcher = StandardTestDispatcher(testScheduler),
+            isStreaming = { streaming.value },
             budgetChars = budget,
         )
 
-    private fun full(id: String, length: Int = 5000) = AgentToolCall(id = id, stepId = "step-$id", output = "f".repeat(length))
+    private fun ref(id: String) = ToolCallPartRef("m1", id, "step-$id", null)
+
+    /** The call [preview] stands for: its kept head and tail around the cut-out middle. */
+    private fun full(id: String, length: Int = 5000) =
+        AgentToolCall(id = id, stepId = "step-$id", output = "head" + "f".repeat(length - 8) + "tail")
 
     @Test
     fun `a request fetches the part by its identity and raw index, once`() = runTest {
@@ -90,8 +107,11 @@ class ToolPartHydrationDelegateTest {
         delegate.request(key("b"))
         advanceUntilIdle()
         coVerify(exactly = 1) { repository.getToolCallPart(any(), any(), any(), any(), any(), any()) }
-        // Memory only: nothing reaches the cache.
+        // Never the message rows: the full call goes to the stored-part table only.
         coVerify(exactly = 0) { repository.cacheMessages(any(), any()) }
+        coVerify(exactly = 1) {
+            repository.storeToolCallParts("c1", match { it.keys == setOf(ref("b")) }, AccountId("acct-a"))
+        }
     }
 
     @Test
@@ -231,5 +251,153 @@ class ToolPartHydrationDelegateTest {
 
         assertThat(delegate.loaded.value[key("a")]?.output).hasLength(5000)
         coVerify(exactly = 0) { repository.getToolCallPart(any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `a stored full copy of the current preview opens without a fetch`() = runTest {
+        coEvery { repository.storedToolCallParts("c1", listOf(ref("a"))) } returns mapOf(ref("a") to full("a"))
+        val delegate = delegate()
+
+        delegate.request(key("a"))
+        advanceUntilIdle()
+
+        assertThat(delegate.loaded.value[key("a")]?.output).hasLength(5000)
+        coVerify(exactly = 0) { repository.getToolCallPart(any(), any(), any(), any(), any(), any()) }
+        // Read from the table, so nothing is written back.
+        coVerify(exactly = 0) { repository.storeToolCallParts(any(), any(), any()) }
+    }
+
+    @Test
+    fun `a stored call the server has since changed is fetched again and replaced`() = runTest {
+        // The preview now says 5000 characters; the stored copy has 4000, so it stands for an older call.
+        coEvery { repository.storedToolCallParts(any(), any()) } returns mapOf(ref("a") to full("a", 4000))
+        coEvery { repository.getToolCallPart(any(), any(), any(), "a", any(), any()) } returns Result.Success(full("a"))
+        val delegate = delegate()
+
+        delegate.request(key("a"))
+        advanceUntilIdle()
+
+        assertThat(delegate.loaded.value[key("a")]?.output).hasLength(5000)
+        coVerify(exactly = 1) { repository.getToolCallPart(any(), any(), any(), "a", any(), any()) }
+        coVerify(exactly = 1) { repository.storeToolCallParts("c1", match { it[ref("a")]?.output?.length == 5000 }, any()) }
+    }
+
+    @Test
+    fun `a part fetched while streaming is written only once the stream ends`() = runTest {
+        coEvery { repository.getToolCallPart(any(), any(), any(), any(), any(), any()) } returns Result.Success(full("a"))
+        val delegate = delegate()
+        delegate.start(MutableStateFlow(conversationId.value to messages.value), streaming = streaming)
+        streaming.value = true
+        advanceUntilIdle()
+
+        delegate.request(key("a"))
+        advanceUntilIdle()
+        assertThat(delegate.loaded.value).containsKey(key("a"))
+        coVerify(exactly = 0) { repository.storeToolCallParts(any(), any(), any()) }
+
+        streaming.value = false
+        advanceUntilIdle()
+        coVerify(exactly = 1) { repository.storeToolCallParts("c1", match { it.keys == setOf(ref("a")) }, any()) }
+    }
+
+    @Test
+    fun `a part of an unfinished message is never written`() = runTest {
+        messages.value = messages.value.map { it.copy(unfinished = true) }
+        coEvery { repository.getToolCallPart(any(), any(), any(), any(), any(), any()) } returns Result.Success(full("a"))
+        val delegate = delegate()
+
+        delegate.request(key("a"))
+        advanceUntilIdle()
+
+        assertThat(delegate.loaded.value).containsKey(key("a"))
+        coVerify(exactly = 0) { repository.storeToolCallParts(any(), any(), any()) }
+    }
+
+    @Test
+    fun `reconnecting retries failed parts open cards hold, a bounded number of times`() = runTest {
+        coEvery { repository.getToolCallPart(any(), any(), any(), any(), any(), any()) } returns Result.Error(message = "offline")
+        val delegate = delegate()
+        delegate.start(MutableStateFlow(conversationId.value to messages.value), connectivity = connected)
+        advanceUntilIdle()
+        delegate.retain(key("a").identity)
+        delegate.request(key("a"))
+        delegate.request(key("b")) // failed too, but no card holds it
+        advanceUntilIdle()
+        coVerify(exactly = 1) { repository.getToolCallPart(any(), any(), any(), "a", any(), any()) }
+
+        repeat(ToolPartHydrationDelegate.MAX_AUTO_RETRIES + 2) {
+            connected.value = false
+            advanceUntilIdle()
+            connected.value = true
+            advanceUntilIdle()
+        }
+
+        coVerify(exactly = 1 + ToolPartHydrationDelegate.MAX_AUTO_RETRIES) {
+            repository.getToolCallPart(any(), any(), any(), "a", any(), any())
+        }
+        coVerify(exactly = 1) { repository.getToolCallPart(any(), any(), any(), "b", any(), any()) }
+    }
+
+    @Test
+    fun `a reconnect retry that lands shows the part`() = runTest {
+        coEvery { repository.getToolCallPart(any(), any(), any(), any(), any(), any()) } returns
+            Result.Error(message = "offline") andThen Result.Success(full("a"))
+        val delegate = delegate()
+        connected.value = false
+        delegate.start(MutableStateFlow(conversationId.value to messages.value), connectivity = connected)
+        advanceUntilIdle()
+        delegate.retain(key("a").identity)
+        delegate.request(key("a"))
+        advanceUntilIdle()
+        assertThat(delegate.statuses.value[key("a")]).isEqualTo(ToolPartStatus.FAILED)
+
+        connected.value = true
+        advanceUntilIdle()
+
+        assertThat(delegate.loaded.value).containsKey(key("a"))
+    }
+
+    @Test
+    fun `offline with nothing stored, the card fails with retry and reconnect loads it`() = runTest {
+        coEvery { repository.getToolCallPart(any(), any(), any(), any(), any(), any()) } returns
+            Result.Error(message = "Network unavailable") andThen Result.Success(full("a"))
+        val delegate = delegate()
+        connected.value = false
+        delegate.start(MutableStateFlow(conversationId.value to messages.value), connectivity = connected)
+        advanceUntilIdle()
+        delegate.retain(key("a").identity)
+
+        delegate.request(key("a"))
+        advanceUntilIdle()
+        assertThat(delegate.statuses.value[key("a")]).isEqualTo(ToolPartStatus.FAILED)
+
+        connected.value = true
+        advanceUntilIdle()
+        assertThat(delegate.statuses.value).isEmpty()
+        assertThat(delegate.loaded.value).containsKey(key("a"))
+    }
+
+    @Test
+    fun `an unreadable stored table falls through to the fetch, and its failure shows`() = runTest {
+        coEvery { repository.storedToolCallParts(any(), any()) } throws IllegalStateException("disk I/O error")
+        coEvery { repository.getToolCallPart(any(), any(), any(), any(), any(), any()) } returns Result.Error(message = "offline")
+        val delegate = delegate()
+
+        delegate.request(key("a"))
+        advanceUntilIdle()
+
+        assertThat(delegate.statuses.value[key("a")]).isEqualTo(ToolPartStatus.FAILED)
+        coVerify(exactly = 1) { repository.getToolCallPart(any(), any(), any(), "a", any(), any()) }
+    }
+
+    @Test
+    fun `a request with no conversation fails rather than leaving the card loading`() = runTest {
+        val delegate = delegate()
+        conversationId.value = null
+
+        delegate.request(key("a"))
+        advanceUntilIdle()
+
+        assertThat(delegate.statuses.value[key("a")]).isEqualTo(ToolPartStatus.FAILED)
     }
 }

@@ -14,10 +14,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.garfiec.librechat.core.ui.components.AdaptiveCard
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_cancel_steer
@@ -77,7 +78,7 @@ fun PendingSteerChipsSection(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.End,
     ) {
         val interruptPending = pendingSteers.interruptPending
@@ -121,15 +122,16 @@ private fun PendingSteerRow(
     val interrupting = chip.isInterrupting
     val container = if (interrupting) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.primaryContainer
     val content = if (interrupting) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onPrimaryContainer
-    Surface(
+    // A glass panel under Liquid Glass (the tint is Material only); the content keeps its colour.
+    AdaptiveCard(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        color = container.copy(alpha = 0.55f),
+        colors = CardDefaults.cardColors(containerColor = container.copy(alpha = 0.55f), contentColor = content),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .padding(start = 10.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+                .padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
         ) {
             // The POST is still out, so the row shows a spinner instead of the bolt: until the
             // server accepts it there is nothing to cancel server-side and nothing to inject.
@@ -162,7 +164,7 @@ private fun PendingSteerRow(
                     overflow = TextOverflow.Ellipsis,
                     color = content,
                     fontSize = 14.sp * fontSizeMultiplier,
-                    modifier = Modifier.padding(vertical = 2.dp),
+                    modifier = Modifier.padding(vertical = 4.dp),
                 )
                 if (interrupting) {
                     Text(

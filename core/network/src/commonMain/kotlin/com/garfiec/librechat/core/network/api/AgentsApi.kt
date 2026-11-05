@@ -5,6 +5,9 @@ import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.AgentAction
 import com.garfiec.librechat.core.model.AgentCategory
 import com.garfiec.librechat.core.model.AgentTool
+import com.garfiec.librechat.core.model.code.CodeRunRequest
+import com.garfiec.librechat.core.model.code.CodeRunResponse
+import com.garfiec.librechat.core.model.code.ToolCallRecord
 import com.garfiec.librechat.core.model.request.CreateActionRequest
 import com.garfiec.librechat.core.model.request.CreateAgentRequest
 import com.garfiec.librechat.core.model.request.ResetToolApprovalsRequest
@@ -218,4 +221,22 @@ class AgentsApi constructor(
             setBody(request)
         }
     }
+
+    /**
+     * Runs a fenced code block of a saved reply (web `RunCode.tsx`). `404` the message is not the
+     * caller's or has expired, `403` no RUN_CODE.USE, `429` the tool-call limiter, `500` the sandbox
+     * failed. A POST, so the shared retry never replays it.
+     */
+    suspend fun runCode(request: CodeRunRequest): CodeRunResponse =
+        client.post {
+            url { path("api/agents/tools/execute_code/call") }
+            setBody(request)
+        }.body()
+
+    /** Every stored code run of [conversationId] (`GET /api/agents/tools/calls`), oldest first. */
+    suspend fun getToolCalls(conversationId: String): List<ToolCallRecord> =
+        client.get {
+            url { path("api/agents/tools/calls") }
+            parameter("conversationId", conversationId)
+        }.body()
 }

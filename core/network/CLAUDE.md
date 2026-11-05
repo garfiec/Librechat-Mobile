@@ -5,6 +5,11 @@ Ktor HttpClient, API service classes, SSE streaming client, auth interceptor. Al
 ## What This Module Provides
 
 - **Ktor HttpClient factory** (`di/NetworkModule.kt`): Provides singleton `HttpClient(OkHttp)` with ContentNegotiation, Logging, HttpTimeout, HttpRequestRetry, and AuthInterceptorPlugin via Koin module.
+- **Shared retry** (`configureRetryPolicy`, `client/LibreChatHttpClient.kt`): a GET/HEAD/OPTIONS is re-sent twice
+  on a transient 5xx (not 501/505) or a transport failure. A caller that owns its own 5xx backoff opts out
+  with `noServerErrorRetry()` on the request builder (an attribute both predicates read, so subpath URLs
+  don't matter): today only `CodeEnvironmentsApi.status`, whose delegate already waits 30 s after a
+  503/504, so one 503 costs one request. A transport failure on it still retries.
 - **AuthInterceptorPlugin** (`client/AuthInterceptor.kt`): Custom Ktor plugin that injects `Authorization: Bearer` on outgoing requests and retries on 401 after refreshing tokens. Skips auth endpoints (`auth/login`, `auth/register`, `auth/refresh`, etc.).
 - **TokenManager interface** (`client/TokenManager.kt`): `getAccessToken()`, `setTokens()`, `refreshAccessToken()` (single-flighted, epoch-guarded), `clearTokens()`, `sessionExpiredFlow`, plus the account-keyed `getAccessTokenFor()` / `selectAccount()` / `removeAccount()` / `refreshAccessTokenFor()`. Implemented in `:core:data`.
 - **ServerUrlProvider interface** (`client/ServerUrlProvider.kt`): Resolves the user-configured base URL. Implemented in `:core:data`.

@@ -306,6 +306,7 @@
     <string name="drawer_filter_has_attachments">添付ファイルあり</string>
     <string name="drawer_filter_shared_only">共有のみ</string>
     <string name="drawer_filter_bookmarks">ブックマーク</string>
+    <string name="drawer_filter_any_bookmark">任意のブックマーク</string>
     <string name="drawer_filter_reset">リセット</string>
     <string name="drawer_filter_apply">適用</string>
     <string name="drawer_filter_offline">オフラインです。フィルターにはサーバーが必要なため、オンラインに戻ると適用されます。</string>

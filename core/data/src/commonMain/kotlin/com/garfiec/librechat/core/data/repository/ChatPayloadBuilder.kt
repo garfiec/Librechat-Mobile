@@ -118,6 +118,7 @@ object ChatPayloadBuilder {
             reasoningOverride = if (compact == true) null else reasoningOverride,
             codeEnvironmentMode = sentWorkspace?.mode,
             codeWorkspaces = sentWorkspace?.workspaces,
+            codeApprovalMode = sentWorkspace?.approvalMode,
         )
     }
 

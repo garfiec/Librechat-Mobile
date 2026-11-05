@@ -56,6 +56,8 @@ class AppPreferencesTest {
             "web_search_first" to everyChannel(WebSearchPreference.LIBRECHAT_FIRST),
             "drawer_pinned_destinations" to everyChannel(emptyList<String>()),
             "artifact_library_answers" to everyChannel(emptyList<String>()),
+            "collapse_long_user_messages" to everyChannel(true),
+            "client_image_resize" to everyChannel(true),
         )
         assertEquals(expected, actual)
     }

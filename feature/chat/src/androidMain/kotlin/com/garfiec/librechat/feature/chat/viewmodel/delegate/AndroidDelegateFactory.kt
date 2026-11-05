@@ -1,6 +1,8 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import android.content.Context
+import com.garfiec.librechat.core.data.datastore.AppPreferences
+import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.SpeechRepository
@@ -16,6 +18,7 @@ class AndroidDelegateFactory(
     private val fileRepository: FileRepository,
     private val speechRepository: SpeechRepository,
     private val settingsDataStore: SettingsDataStore,
+    private val preferenceStore: PreferenceStore,
     private val ioDispatcher: CoroutineDispatcher,
 ) : PlatformDelegateFactory {
 
@@ -26,6 +29,8 @@ class AndroidDelegateFactory(
                 appContext = appContext,
                 fileRepository = fileRepository,
                 ioDispatcher = ioDispatcher,
+                clientImageResize = preferenceStore.observe(AppPreferences.ClientImageResize)
+                    .stateIn(handle.scope, SharingStarted.Eagerly, preferenceStore.initial(AppPreferences.ClientImageResize)),
             ),
         )
     }

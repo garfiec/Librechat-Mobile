@@ -76,6 +76,12 @@ data class ChatSettingsUiState(
     val preferLastUsedModel: Boolean = false,
     // Mobile-only: which web search the chat's one web-search control tries first
     val webSearchFirst: WebSearchPreference = WebSearchPreference.LIBRECHAT_FIRST,
+    /** Long user messages render collapsed with Show more (web's `collapseLongUserMessages`). */
+    val collapseLongUserMessages: Boolean = true,
+    /** Settings › Chat "Resize images before upload", as the user set it. */
+    val clientImageResizePreference: Boolean = true,
+    /** The admin's `clientImageResize.enabled` when set (the user's choice is then ignored); null otherwise. */
+    val clientImageResizeAdmin: Boolean? = null,
     // Mobile-only: what the chat floating top bar shows + how its bubble is aligned
     val chatHeaderContent: ChatHeaderContent = ChatHeaderContent.TITLE,
     val chatHeaderAlignment: ChatHeaderAlignment = ChatHeaderAlignment.LEFT,

@@ -35,6 +35,7 @@ import com.garfiec.librechat.core.network.api.PermissionsApi
 import com.garfiec.librechat.core.network.api.PresetsApi
 import com.garfiec.librechat.core.network.api.ProjectsApi
 import com.garfiec.librechat.core.network.api.PromptsApi
+import com.garfiec.librechat.core.network.api.PullRequestsApi
 import com.garfiec.librechat.core.network.api.QueuedTurnsApi
 import com.garfiec.librechat.core.network.api.RolesApi
 import com.garfiec.librechat.core.network.api.SchedulesApi
@@ -80,6 +81,7 @@ class DataModuleVerificationTest {
                 AuthApi::class,
                 UserApi::class,
                 PasskeyApi::class,
+                PullRequestsApi::class,
                 ChatApi::class,
                 ConversationsApi::class,
                 SearchApi::class,

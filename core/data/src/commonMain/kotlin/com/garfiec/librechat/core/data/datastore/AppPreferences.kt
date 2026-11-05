@@ -82,6 +82,18 @@ object AppPreferences {
      */
     val ArtifactLibraryAnswers = stringListPreference("artifact_library_answers")
 
+    /**
+     * Whether a long user message renders collapsed to a preview with Show more (web's
+     * `collapseLongUserMessages`, Settings › Chat, on by default as on web).
+     */
+    val CollapseLongUserMessages = boolPreference("collapse_long_user_messages", default = always(true))
+
+    /**
+     * Whether large images are scaled down before upload (web's `clientImageResize`, on by default as
+     * on web). An admin's `fileConfig.clientImageResize.enabled` overrides it either way.
+     */
+    val ClientImageResize = boolPreference("client_image_resize", default = always(true))
+
     val all: List<PreferenceSpec<*, *>> =
         listOf(
             SiteIcons,
@@ -95,5 +107,7 @@ object AppPreferences {
             WebSearchFirst,
             DrawerPinned,
             ArtifactLibraryAnswers,
+            CollapseLongUserMessages,
+            ClientImageResize,
         )
 }

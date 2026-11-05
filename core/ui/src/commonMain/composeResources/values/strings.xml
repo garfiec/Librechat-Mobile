@@ -358,6 +358,10 @@
     <string name="mcp_oauth_sign_in_title">Sign in to %1$s</string>
     <!-- Accessibility label for the button that closes the MCP sign-in page without finishing -->
     <string name="mcp_oauth_sign_in_close">Close sign-in</string>
+    <!-- Accessibility label for the lock beside the MCP sign-in page's address: the page arrived over HTTPS -->
+    <string name="mcp_oauth_connection_secure">Secure connection</string>
+    <!-- Accessibility label for the warning beside the MCP sign-in page's address: the page arrived over plain HTTP -->
+    <string name="mcp_oauth_connection_not_secure">Not secure</string>
     <!-- Conversation pull requests: the pull request a code chat opened on its repository host -->
     <!-- Noun for a pull request (GitHub, Bitbucket), as in the sheet title -->
     <string name="pull_request">Pull request</string>

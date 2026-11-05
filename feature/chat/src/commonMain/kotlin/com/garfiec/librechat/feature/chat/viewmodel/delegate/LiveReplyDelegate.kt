@@ -10,7 +10,9 @@ import com.garfiec.librechat.core.model.usage.ContextUsage
 import com.garfiec.librechat.core.model.usage.TokenUsage
 import com.garfiec.librechat.core.model.usage.UsageAmount
 import com.garfiec.librechat.feature.chat.util.PendingUsage
+import com.garfiec.librechat.feature.chat.util.PtcTrace
 import com.garfiec.librechat.feature.chat.util.fold
+import com.garfiec.librechat.feature.chat.util.interrupted
 import com.garfiec.librechat.feature.chat.util.withoutLivePartial
 import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import com.garfiec.librechat.feature.chat.viewmodel.ContextUsageSource
@@ -38,6 +40,9 @@ class LiveReplyDelegate(
      */
     fun onTurnStarted() {
         subagentTraceDelegate.reset()
+        if (handle.state.ptcTraces.isNotEmpty()) {
+            handle.update { content = content.copy(ptcTraces = emptyMap()) }
+        }
         // Its own emission, after the atomic begin-stream reset: safe, because on v0.8.8 the
         // previous turn's pending usage is already represented by its reply's metadata.usage, so
         // dropping it changes no total (older servers lose that share; see ContextProjectionDelegate).
@@ -133,6 +138,7 @@ class LiveReplyDelegate(
             is StreamEvent.SandboxStarting -> handle.update {
                 content = content.copy(sandboxStartingToolCallIds = content.sandboxStartingToolCallIds + event.toolCallId)
             }
+            is StreamEvent.PtcToolCall -> onPtcToolCall(event)
             is StreamEvent.AttachmentCreated -> onAttachment(event.toAttachment())
             is StreamEvent.Sync -> onSync(event)
             is StreamEvent.SubagentUpdate -> onSubagentUpdate(event)
@@ -210,6 +216,7 @@ class LiveReplyDelegate(
                     isComplete = !tc.output.isNullOrBlank(),
                     output = tc.output,
                     inputValidationError = tc.inputValidationError == true,
+                    executor = tc.executor,
                 )
             }
         // A boot flag survives only on a call the snapshot still shows running: the snapshot
@@ -223,8 +230,19 @@ class LiveReplyDelegate(
                 displayMessages = content.displayMessages.withoutLivePartial(event.responseMessageId),
                 activeToolCalls = syncedToolCalls,
                 sandboxStartingToolCallIds = content.sandboxStartingToolCallIds.filterTo(HashSet()) { it in running },
+                // Inner calls are not content parts, so the snapshot cannot rebuild them and a
+                // settle lost in the gap is never replayed: what was running reads as interrupted.
+                ptcTraces = content.ptcTraces.mapValues { (_, trace) -> trace.interrupted() },
             )
         }
+    }
+
+    private fun onPtcToolCall(event: StreamEvent.PtcToolCall) {
+        val traces = handle.state.ptcTraces
+        val current = traces[event.toolCallId] ?: PtcTrace.EMPTY
+        val next = current.fold(event)
+        if (next === current) return
+        handle.update { content = content.copy(ptcTraces = content.ptcTraces + (event.toolCallId to next)) }
     }
 
     private fun onSubagentUpdate(event: StreamEvent.SubagentUpdate) {
@@ -352,6 +370,7 @@ internal fun ActiveToolCall.completedBy(event: StreamEvent.ToolCallComplete) =
         output = event.output,
         input = event.input ?: input,
         inputValidationError = event.inputValidationError,
+        executor = event.executor ?: executor,
     )
 
 /** A preparation marker or a dispatch, applied to the calls it names. Shared with the comparison panes. */

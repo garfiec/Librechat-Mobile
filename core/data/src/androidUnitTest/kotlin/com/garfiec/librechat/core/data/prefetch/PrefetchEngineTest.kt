@@ -14,11 +14,16 @@ import com.garfiec.librechat.core.data.db.dao.MessageDao
 import com.garfiec.librechat.core.data.db.dao.PrefetchCandidate
 import com.garfiec.librechat.core.data.db.dao.PrefetchWatermarkDao
 import com.garfiec.librechat.core.data.db.entity.PrefetchWatermarkEntity
+import com.garfiec.librechat.core.data.mapper.toEntity
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.MessageRepository
+import com.garfiec.librechat.core.data.repository.ToolCallPartRef
+import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.content.AgentToolCall
+import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -278,6 +283,228 @@ class PrefetchEngineTest {
         assertThat(recordingRepository.sawMarker).isTrue()
     }
 
+    private fun previewedMessage(
+        id: String,
+        createdAt: String,
+        vararg calls: AgentToolCall,
+        unfinished: Boolean = false,
+    ) = Message(
+        messageId = id,
+        conversationId = "a",
+        createdAt = createdAt,
+        unfinished = unfinished,
+        content = calls.map { MessageContentPart(type = ContentType.TOOL_CALL, toolCall = it) },
+    )
+
+    private fun previewCall(id: String, outputLength: Int = 5_000) =
+        AgentToolCall(id = id, output = "cut", outputTruncated = true, outputLength = outputLength)
+
+    @Test
+    fun `a warmed chat's previewed calls are fetched in full and stored, newest first, skipping what is held`() = runTest {
+        stubRecent("a")
+        val messages = listOf(
+            previewedMessage("old", "2026-01-01", previewCall("o1")),
+            previewedMessage(
+                "new",
+                "2026-02-01",
+                previewCall("n1"),
+                previewCall("held"),
+                previewCall("huge", outputLength = 900_000),
+            ),
+            previewedMessage("live", "2026-03-01", previewCall("l1"), unfinished = true),
+        )
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } returns Result.Success(messages)
+        coEvery { messageRepository.storedToolCallPartSizes("a", account) } returns
+            mapOf(ToolCallPartRef("new", "held", null, null) to 10L)
+        val fetched = mutableListOf<String>()
+        coEvery { messageRepository.getToolCallPart("a", any(), any(), any(), any(), any()) } coAnswers {
+            fetched += arg<String>(3)
+            Result.Success(AgentToolCall(id = arg(3), output = "full"))
+        }
+        coEvery { messageRepository.storeToolCallParts(any(), any(), any()) } returns Unit
+
+        engine().run(account)
+
+        assertThat(fetched).containsExactly("n1", "o1").inOrder()
+        coVerify(exactly = 1) {
+            messageRepository.storeToolCallParts(
+                "a",
+                mapOf(ToolCallPartRef("new", "n1", null, null) to AgentToolCall(id = "n1", output = "full")),
+                account,
+            )
+        }
+        coVerify(exactly = 0) { messageRepository.getToolCallPart(any(), "new", 2, any(), any(), any()) }
+    }
+
+    @Test
+    fun `a chat with many previewed calls fetches only its share`() = runTest {
+        stubRecent("a")
+        val calls = (1..30).map { previewCall("c$it") }.toTypedArray()
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } returns
+            Result.Success(listOf(previewedMessage("m", "2026-01-01", *calls)))
+        coEvery { messageRepository.storedToolCallPartSizes(any(), any()) } returns emptyMap()
+        coEvery { messageRepository.getToolCallPart(any(), any(), any(), any(), any(), any()) } returns
+            Result.Success(AgentToolCall(id = "x", output = "full"))
+        coEvery { messageRepository.storeToolCallParts(any(), any(), any()) } returns Unit
+
+        engine().run(account)
+
+        coVerify(exactly = 12) { messageRepository.getToolCallPart(any(), any(), any(), any(), any(), any()) }
+    }
+
+    /** Watermarks "a" as warmed against the version [stubRecent] gives it, so it is not stale. */
+    private fun stubWarm(vararg ids: String) {
+        coEvery { watermarkDao.allForAccount(any()) } returns ids.map {
+            PrefetchWatermarkEntity(account.value, it, warmedConversationUpdatedAt = 100L, warmedAt = 0L)
+        }
+    }
+
+    private fun fetchedCallIds(): MutableList<String> {
+        val fetched = mutableListOf<String>()
+        coEvery { messageRepository.getToolCallPart(any(), any(), any(), any(), any(), any()) } coAnswers {
+            fetched += arg<String>(3)
+            Result.Success(AgentToolCall(id = arg(3), output = "full"))
+        }
+        coEvery { messageRepository.storedToolCallPartSizes(any(), any()) } returns emptyMap()
+        coEvery { messageRepository.storeToolCallParts(any(), any(), any()) } returns Unit
+        return fetched
+    }
+
+    @Test
+    fun `a chat cut short by the budget is watermarked and its calls finish from the cache next pass`() = runTest {
+        stubRecent("a")
+        val calls = (1..20).map { previewCall("c$it") }.toTypedArray()
+        val messages = listOf(previewedMessage("m", "2026-01-01", *calls))
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } returns Result.Success(messages)
+        val fetched = fetchedCallIds()
+        val engine = engine()
+
+        engine.run(account)
+        assertThat(fetched).hasSize(12)
+        // The messages are cached, so the chat is marked warm despite the calls left over.
+        coVerify(exactly = 1) { watermarkDao.upsert(any()) }
+
+        // Not stale any more: the next pass reads the cached messages instead of downloading them.
+        stubWarm("a")
+        coEvery { messageDao.messagesForAccount("a", account.value) } returns messages.map { it.toEntity() }
+        engine.run(account)
+        coVerify(exactly = 1) { messageRepository.refreshMessages(any(), any(), any()) }
+        assertThat(fetched).hasSize(20)
+        assertThat(fetched.toSet()).hasSize(20)
+
+        // Done: a third pass touches neither the cache nor the server.
+        engine.run(account)
+        coVerify(exactly = 1) { messageDao.messagesForAccount(any(), any()) }
+        assertThat(fetched).hasSize(20)
+    }
+
+    @Test
+    fun `left-over calls go before a stale chat's`() = runTest {
+        stubRecent("a")
+        val callsA = (1..20).map { previewCall("a$it") }.toTypedArray()
+        val messagesA = listOf(previewedMessage("ma", "2026-01-01", *callsA))
+        coEvery { messageRepository.refreshMessages("a", any(), any()) } returns Result.Success(messagesA)
+        coEvery { messageRepository.refreshMessages("b", any(), any()) } returns
+            Result.Success(listOf(previewedMessage("mb", "2026-01-01", previewCall("b1"))))
+        val fetched = fetchedCallIds()
+        val engine = engine()
+        engine.run(account)
+
+        // "a" is warm with calls pending; "b" is new.
+        stubRecent("a", "b")
+        stubWarm("a")
+        coEvery { messageDao.messagesForAccount("a", account.value) } returns messagesA.map { it.toEntity() }
+        fetched.clear()
+        engine.run(account)
+
+        assertThat(fetched).hasSize(9)
+        assertThat(fetched.take(8).all { it.startsWith("a") }).isTrue()
+        assertThat(fetched.last()).isEqualTo("b1")
+        coVerify(exactly = 1) { messageRepository.refreshMessages("a", any(), any()) }
+    }
+
+    @Test
+    fun `a pending chat that changed again is downloaded afresh, not read from the cache`() = runTest {
+        stubRecent("a")
+        val calls = (1..20).map { previewCall("c$it") }.toTypedArray()
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } returns
+            Result.Success(listOf(previewedMessage("m", "2026-01-01", *calls)))
+        val fetched = fetchedCallIds()
+        val engine = engine()
+
+        // No watermark matches on either pass: the chat is stale both times.
+        engine.run(account)
+        engine.run(account)
+
+        coVerify(exactly = 2) { messageRepository.refreshMessages("a", any(), any()) }
+        coVerify(exactly = 0) { messageDao.messagesForAccount(any(), any()) }
+        assertThat(fetched.toSet()).hasSize(20)
+    }
+
+    @Test
+    fun `the open chat's left-over calls wait until it is closed`() = runTest {
+        stubRecent("a")
+        val calls = (1..20).map { previewCall("c$it") }.toTypedArray()
+        val messages = listOf(previewedMessage("m", "2026-01-01", *calls))
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } returns Result.Success(messages)
+        coEvery { messageDao.messagesForAccount("a", account.value) } returns messages.map { it.toEntity() }
+        val fetched = fetchedCallIds()
+        val engine = engine()
+        engine.run(account)
+        stubWarm("a")
+
+        openConversationRegistry.set("a")
+        engine.run(account)
+        assertThat(fetched).hasSize(12)
+
+        openConversationRegistry.set(null)
+        engine.run(account)
+        assertThat(fetched).hasSize(20)
+    }
+
+    @Test
+    fun `a pending chat that left the warm set is let go`() = runTest {
+        stubRecent("a")
+        val calls = (1..20).map { previewCall("c$it") }.toTypedArray()
+        val messages = listOf(previewedMessage("m", "2026-01-01", *calls))
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } returns Result.Success(messages)
+        val fetched = fetchedCallIds()
+        val engine = engine()
+        engine.run(account)
+
+        stubRecent("other")
+        stubWarm("other")
+        engine.run(account)
+        stubRecent("a")
+        stubWarm("a")
+        engine.run(account)
+
+        coVerify(exactly = 0) { messageDao.messagesForAccount(any(), any()) }
+        assertThat(fetched).hasSize(12)
+    }
+
+    @Test
+    fun `a call that was not kept is not asked again, and an omitted transcript is never asked`() = runTest {
+        stubRecent("a")
+        val transcript = AgentToolCall(id = "sub", subagentContentOmitted = true, subagentContentParts = 400)
+        coEvery { messageRepository.refreshMessages(any(), any(), any()) } returns
+            Result.Success(listOf(previewedMessage("m", "2026-01-01", previewCall("big"), transcript)))
+        // Nothing is ever kept: the call is over the per-call cap, say.
+        coEvery { messageRepository.storedToolCallPartSizes(any(), any()) } returns emptyMap()
+        val fetched = mutableListOf<String>()
+        coEvery { messageRepository.getToolCallPart(any(), any(), any(), any(), any(), any()) } coAnswers {
+            fetched += arg<String>(3)
+            Result.Success(AgentToolCall(id = arg(3), output = "full"))
+        }
+        coEvery { messageRepository.storeToolCallParts(any(), any(), any()) } returns Unit
+
+        val engine = engine()
+        engine.run(account)
+        engine.run(account)
+
+        assertThat(fetched).containsExactly("big")
+    }
+
     private class MarkerRecordingMessageRepository : MessageRepository {
         var sawMarker: Boolean = false
             private set
@@ -303,6 +530,20 @@ class PrefetchEngineTest {
             stepId: String?,
             agentId: String?,
         ) = throw UnsupportedOperationException()
+        override suspend fun getSubagentAttachmentCalls(
+            conversationId: String,
+            messageId: String,
+            files: List<com.garfiec.librechat.core.model.response.SubagentAttachmentFile>,
+        ) = throw UnsupportedOperationException()
+        override suspend fun storedToolCallParts(conversationId: String, refs: List<ToolCallPartRef>) =
+            emptyMap<ToolCallPartRef, AgentToolCall>()
+        override suspend fun storeToolCallParts(
+            conversationId: String,
+            parts: Map<ToolCallPartRef, AgentToolCall>,
+            originAccount: AccountId?,
+        ) = Unit
+        override suspend fun storedToolCallPartSizes(conversationId: String, originAccount: AccountId?) =
+            emptyMap<ToolCallPartRef, Long>()
         override suspend fun cacheMessages(messages: List<Message>, originAccount: AccountId?) = Unit
         override suspend fun updateFeedback(
             conversationId: String,

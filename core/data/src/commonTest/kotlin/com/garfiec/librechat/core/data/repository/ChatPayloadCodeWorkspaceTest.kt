@@ -63,4 +63,16 @@ class ChatPayloadCodeWorkspaceTest {
             assertFalse("codeWorkspaces" in wire)
         }
     }
+
+    @Test
+    fun theApprovalModeRidesBesideAHeldDecision() {
+        val wire = body(
+            ChatPayloadBuilder.build(
+                text = "hi", conversationId = "c", endpoint = "agents", model = null,
+                codeWorkspace = CodeWorkspaceSubmission(approvalMode = "acceptEdits"),
+            ),
+        )
+        assertEquals("acceptEdits", wire["codeApprovalMode"]!!.jsonPrimitive.content)
+        assertFalse("codeEnvironmentMode" in wire)
+    }
 }

@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Archive
@@ -312,7 +311,6 @@ private fun WorkspaceRow(
                     .onPlaced { trayFrame.value = it },
                 offset = DpOffset(x = 0.dp, y = if (isLiquidGlass) TrayGap else -TrayGap),
                 scrollState = scroll,
-                shape = RoundedCornerShape(16.dp),
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 dragSelection = drag,
             ) {

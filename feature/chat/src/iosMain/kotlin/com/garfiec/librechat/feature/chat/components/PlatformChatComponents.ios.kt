@@ -573,6 +573,7 @@ actual fun MarkdownContent(
                             searchFocusedOccurrence = focusedInSegment,
                             onFocusedMatchPosition = onFocusedOccurrencePosition,
                             streaming = streaming,
+                            run = rememberCodeRunTarget(segment, streaming),
                         )
                     }
                     if (index < segments.lastIndex) Spacer(modifier = Modifier.height(8.dp))

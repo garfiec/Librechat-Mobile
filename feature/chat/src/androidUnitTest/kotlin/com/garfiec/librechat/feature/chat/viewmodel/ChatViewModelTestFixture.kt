@@ -23,7 +23,9 @@ import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.AgentToolsRepository
 import com.garfiec.librechat.core.data.repository.ChatRepository
+import com.garfiec.librechat.core.data.repository.CodeDecisionMove
 import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepository
+import com.garfiec.librechat.core.data.repository.CodeRunRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.DraftRepository
@@ -139,6 +141,11 @@ internal class ChatViewModelTestFixture {
         override suspend fun status(environmentId: String): Result<CodeEnvironmentStatus> = Result.Error()
         override suspend fun savedDecision(conversationId: String): Result<SavedCodeDecision> =
             Result.Success(SavedCodeDecision(mode = null, workspaces = null))
+        override suspend fun moveDecision(
+            conversationId: String,
+            from: List<com.garfiec.librechat.core.model.code.CodeWorkspaceSelection>,
+            to: List<com.garfiec.librechat.core.model.code.CodeWorkspaceSelection>,
+        ): CodeDecisionMove = CodeDecisionMove.Failed(unknownOutcome = false)
     }
     val codeWorkspacePreferenceStore = mockk<CodeWorkspacePreferenceStore>(relaxed = true).also {
         coEvery { it.snapshot() } returns emptyMap()
@@ -149,7 +156,12 @@ internal class ChatViewModelTestFixture {
         override val entries = MutableStateFlow<Map<String, PullRequestEntry>>(emptyMap())
         override suspend fun refresh(conversationId: String) = Unit
         override suspend fun refreshBatch(conversationIds: List<String>, maxConcurrent: Int?) = Unit
+        override val revision = MutableStateFlow(0L)
+        override fun invalidate() = Unit
     }
+
+    /** Run Code: no stored runs, and a run answers nothing unless a test says so. */
+    var codeRunRepository: CodeRunRepository = mockk(relaxed = true)
 
     /** Shared by every ViewModel this fixture builds, like the app's single, so its cache carries over. */
     private var webSearchReadiness: WebSearchReadinessRepository? = null
@@ -208,6 +220,8 @@ internal class ChatViewModelTestFixture {
         every { agentRepository.revision } returns MutableStateFlow(0L)
         every { promptRepository.revision } returns promptRevision
         every { messageRepository.observeMessages(any()) } returns emptyFlow()
+        coEvery { messageRepository.storedToolCallParts(any(), any()) } returns emptyMap()
+        coEvery { messageRepository.getSubagentAttachmentCalls(any(), any(), any()) } returns Result.Success(emptyList())
         // A v0.8.8+ server: no projection, and no token-config unless a test supplies one.
         coEvery { endpointTokenRepository.getContextProjection(any()) } returns Result.Success(null)
         coEvery { endpointTokenRepository.getTokenConfig() } returns Result.Success(emptyMap())
@@ -237,6 +251,7 @@ internal class ChatViewModelTestFixture {
         every { settingsDataStore.compactNudgeSnoozes } returns MutableStateFlow(emptyMap())
         every { preferenceStore.observe(AppPreferences.SiteIcons) } returns MutableStateFlow(null)
         every { preferenceStore.observe(AppPreferences.PreferLastUsedModel) } returns MutableStateFlow(false)
+        every { preferenceStore.observe(AppPreferences.CollapseLongUserMessages) } returns MutableStateFlow(true)
         every { preferenceStore.initial(AppPreferences.SiteIcons) } returns null
         every { preferenceStore.observe(AppPreferences.WebSearchFirst) } returns webSearchFirst
         coEvery { conversationWebSearchStore.get(any()) } returns null
@@ -299,6 +314,7 @@ internal class ChatViewModelTestFixture {
         codeEnvironmentRepository = codeEnvironmentRepository,
         codeWorkspacePreferenceStore = codeWorkspacePreferenceStore,
         pullRequestRepository = pullRequestRepository,
+        codeRunRepository = codeRunRepository,
         permissionGate = permissionGate,
         connectivityObserver = connectivityObserver,
         serverDataStore = serverDataStore,

@@ -306,6 +306,7 @@
     <string name="drawer_filter_has_attachments">包含附件</string>
     <string name="drawer_filter_shared_only">仅已共享</string>
     <string name="drawer_filter_bookmarks">书签</string>
+    <string name="drawer_filter_any_bookmark">任意书签</string>
     <string name="drawer_filter_reset">重置</string>
     <string name="drawer_filter_apply">应用</string>
     <string name="drawer_filter_offline">你当前处于离线状态。筛选需要服务器，恢复联网后才会生效。</string>

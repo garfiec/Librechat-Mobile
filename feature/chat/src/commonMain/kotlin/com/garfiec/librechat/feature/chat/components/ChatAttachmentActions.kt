@@ -12,6 +12,8 @@ class ChatAttachmentActions(
     val onAttachFiles: () -> Unit,
     val onTakePhoto: () -> Unit,
     val onPickPhotos: () -> Unit,
+    /** The file picker for "Upload to Code Environment"; its picks go to `onCodeFilesSelect`. */
+    val onAttachToCode: () -> Unit,
 )
 
 /**
@@ -29,4 +31,5 @@ class ChatAttachmentActions(
 expect fun rememberChatAttachmentActions(
     onFilesSelect: (List<Any>) -> Unit,
     filePickerMimeTypes: List<String> = emptyList(),
+    onCodeFilesSelect: (List<Any>) -> Unit = {},
 ): ChatAttachmentActions

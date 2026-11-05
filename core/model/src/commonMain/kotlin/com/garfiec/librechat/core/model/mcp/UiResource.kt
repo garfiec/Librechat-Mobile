@@ -36,6 +36,8 @@ data class UiResource(
     val resultMeta: JsonElement?,
     /** The raw `csp` declaration; normalize it with [McpAppCspDeclaration.normalize]. */
     val csp: JsonElement?,
+    /** The raw `permissions` declaration; read it with [McpAppPermissions.supported]. */
+    val permissions: JsonElement? = null,
 ) {
     /** Upstream `getResourceKey`. */
     val key: String get() = resourceId?.takeIf { it.isNotEmpty() } ?: uri.orEmpty()
@@ -86,6 +88,7 @@ data class UiResource(
                 isError = (obj["isError"] as? JsonPrimitive)?.takeIf { !it.isString }?.content == "true",
                 resultMeta = obj["resultMeta"],
                 csp = obj["csp"],
+                permissions = obj["permissions"],
             )
         }
     }
@@ -131,13 +134,13 @@ fun selectToolCallUiResources(attachments: List<Attachment>): List<McpAppOccurre
 
 const val UI_RESOURCES_TYPE = "ui_resources"
 
-/** An App document ready to run: its HTML and the CSP declaration that came with it. */
-data class McpAppDocument(val html: String, val csp: JsonElement?)
+/** An App document ready to run: its HTML and the CSP and permissions declarations that came with it. */
+data class McpAppDocument(val html: String, val csp: JsonElement?, val permissions: JsonElement? = null)
 
 /**
  * Upstream `fetchMCPResourceHtml`'s pick from a `resources/read` result: the `contents[]` item with
  * the same [uri] and an App media type, its `text` or UTF-8 `blob`, and its content-level
- * `_meta.ui.csp`. Null when no item matches or it carries no HTML.
+ * `_meta.ui.csp` and `_meta.ui.permissions`. Null when no item matches or it carries no HTML.
  */
 @OptIn(ExperimentalEncodingApi::class)
 fun pickAppDocument(readResult: JsonElement?, uri: String): McpAppDocument? {
@@ -154,5 +157,44 @@ fun pickAppDocument(readResult: JsonElement?, uri: String): McpAppDocument? {
         }
     if (html.isNullOrEmpty()) return null
     val ui = ((item["_meta"] as? JsonObject)?.get("ui")) as? JsonObject
-    return McpAppDocument(html = html, csp = ui?.get("csp"))
+    return McpAppDocument(html = html, csp = ui?.get("csp"), permissions = ui?.get("permissions"))
+}
+
+/**
+ * The browser capabilities an App declared that the app's opaque App frame can delegate (upstream
+ * `getSupportedMCPAppPermissions`, `client/src/utils/mcpApps.ts`): geolocation and clipboard-write.
+ * Camera and microphone are never delegated. A key counts when its value is truthy, as upstream
+ * reads it (`permissions.geolocation` is normally `{}`).
+ */
+data class McpAppPermissions(val geolocation: Boolean = false, val clipboardWrite: Boolean = false) {
+    /** The `allow` attribute tokens for the App frame, upstream `mcp-sandbox.html`'s `allowParts`. */
+    fun allowTokens(): List<String> = buildList {
+        if (geolocation) add("geolocation")
+        if (clipboardWrite) add("clipboard-write")
+    }
+
+    /** As the sandbox-resource-ready `permissions` param: `{"geolocation":{}, "clipboardWrite":{}}`. */
+    fun toJson(): JsonObject = buildJsonObject {
+        if (geolocation) put("geolocation", JsonObject(emptyMap()))
+        if (clipboardWrite) put("clipboardWrite", JsonObject(emptyMap()))
+    }
+
+    companion object {
+        val NONE = McpAppPermissions()
+
+        fun supported(raw: JsonElement?): McpAppPermissions {
+            val obj = raw as? JsonObject ?: return NONE
+            return McpAppPermissions(
+                geolocation = obj["geolocation"].isTruthy(),
+                clipboardWrite = obj["clipboardWrite"].isTruthy(),
+            )
+        }
+
+        /** JavaScript truthiness for a JSON value. */
+        private fun JsonElement?.isTruthy(): Boolean = when (this) {
+            null, JsonNull -> false
+            is JsonPrimitive -> if (isString) content.isNotEmpty() else content != "false" && content.toDoubleOrNull() != 0.0
+            else -> true
+        }
+    }
 }

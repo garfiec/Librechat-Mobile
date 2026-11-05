@@ -49,6 +49,7 @@ class MessageRepositoryRefreshProvenanceTest {
         repository = MessageRepositoryImpl(
             messagesApi = messagesApi,
             messageDao = messageDao,
+            toolCallPartDao = io.mockk.mockk(relaxed = true),
             activeAccountProvider = activeAccountProvider,
             roster = roster,
             dispatcher = UnconfinedTestDispatcher(),

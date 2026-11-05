@@ -5,7 +5,9 @@ import com.garfiec.librechat.feature.agents.viewmodel.AgentAclViewModel
 import com.garfiec.librechat.feature.agents.viewmodel.AgentDetailViewModel
 import com.garfiec.librechat.feature.agents.viewmodel.AgentEditorViewModel
 import com.garfiec.librechat.feature.agents.viewmodel.AgentMarketplaceViewModel
+import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentCodeSources
 import org.koin.core.module.Module
+import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
@@ -15,6 +17,7 @@ expect val agentsPlatformModule: Module
 val agentsModule = module {
     includes(agentsPlatformModule)
 
+    factoryOf(::AgentCodeSources)
     viewModelOf(::AgentMarketplaceViewModel)
     viewModelOf(::AgentAclViewModel)
     // Koin's constructor-DSL (`viewModelOf`) wires every argument via `get()` and cannot read
@@ -41,6 +44,7 @@ val agentsModule = module {
             skillsRepository = get(),
             roleRepository = get(),
             toolFavoritesRepository = get(),
+            codeSources = get(),
             contentReader = get(),
             ioDispatcher = get(KoinQualifiers.IO),
             initialAgentId = params.getOrNull(),

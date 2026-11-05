@@ -133,7 +133,18 @@ data class ToolApprovalRequest(
     val arguments: JsonElement? = null,
     @SerialName("tool_call_id") val toolCallId: String = "",
     val description: String? = null,
-)
+    /**
+     * Server-authored provenance (v0.8.9-rc1): [SOURCE_LIBRECHAT_CODE] for the server's own code
+     * tools (`bash_tool`, `create_file`, `edit_file`), absent for user, MCP and action tools and for
+     * older servers. Only this field, never the name, lets the review show "Run command" or "Edit
+     * file": an MCP tool can be called `bash_tool` too. See `approval/ApprovalPreview.kt`.
+     */
+    val source: String? = null,
+) {
+    companion object {
+        const val SOURCE_LIBRECHAT_CODE = "librechat_code"
+    }
+}
 
 /**
  * Which decisions the policy permits for one paused call.

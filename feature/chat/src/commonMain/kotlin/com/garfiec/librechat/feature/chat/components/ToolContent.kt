@@ -94,7 +94,10 @@ internal fun toolContentIsPreview(): Boolean = LocalToolPreview.current?.isPrevi
 @Composable
 internal fun ToolContentDisclosure(open: Boolean, modifier: Modifier = Modifier) {
     val scope = LocalToolPreview.current ?: return
-    LaunchedEffect(open, scope.identity, scope.key) {
+    // A preview with no status is one the delegate isn't loading (its memory was reset under the
+    // open card, say), so asking again whenever that holds keeps the row below from spinning for good.
+    val untracked = scope.key != null && scope.status == null
+    LaunchedEffect(open, scope.identity, scope.key, untracked) {
         if (!open) return@LaunchedEffect
         scope.host.retain(scope.identity)
         try {

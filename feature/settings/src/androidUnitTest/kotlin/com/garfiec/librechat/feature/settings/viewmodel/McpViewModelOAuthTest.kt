@@ -46,6 +46,7 @@ class McpViewModelOAuthTest {
         mockk<PermissionsRepository> { coEvery { getAllEffectivePermissions(any()) } returns Result.Success(emptyMap()) },
         mockk<ServerDataStore> { every { currentUrlFlow } returns flowOf("https://chat") },
         launcher,
+        noLocationAnswers(),
     ).also { it.reinitializeServer("github") }
 
     @Before

@@ -23,6 +23,10 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE conversationId = :conversationId AND accountId = :accountId ORDER BY createdAt ASC")
     fun observeMessagesForAccount(conversationId: String, accountId: String): Flow<List<MessageEntity>>
 
+    /** One-shot [observeMessagesForAccount], for the prefetcher's warm of a cached thread's tool calls. */
+    @Query("SELECT * FROM messages WHERE conversationId = :conversationId AND accountId = :accountId ORDER BY createdAt ASC")
+    suspend fun messagesForAccount(conversationId: String, accountId: String): List<MessageEntity>
+
     @Query("SELECT * FROM messages WHERE messageId = :messageId AND accountId = :accountId")
     suspend fun getByIdForAccount(messageId: String, accountId: String): MessageEntity?
 

@@ -18,6 +18,8 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
@@ -58,6 +60,19 @@ interface PullRequestRepository {
      * a time with the same bound, as upstream's `createBatchFetcher` falls back.
      */
     suspend fun refreshBatch(conversationIds: List<String>, maxConcurrent: Int?)
+
+    /**
+     * Bumped when the active account's answers stop counting: the credential the server looks pull
+     * requests up with changed (an account connected or disconnected). The chat and the drawer ask
+     * again when it moves.
+     */
+    val revision: StateFlow<Long>
+
+    /**
+     * Marks the active account's answers stale (each value is kept until its re-ask lands) and bumps
+     * [revision]. Upstream refetches every cached pull request on a change of credential.
+     */
+    fun invalidate()
 }
 
 class PullRequestRepositoryImpl(
@@ -68,22 +83,44 @@ class PullRequestRepositoryImpl(
 
     private val byAccount = MutableStateFlow<Map<String, Map<String, PullRequestEntry>>>(emptyMap())
 
+    private val _revision = MutableStateFlow(0L)
+    override val revision: StateFlow<Long> = _revision.asStateFlow()
+
+    override fun invalidate() {
+        val account = activeAccountProvider.currentAccountId()?.value ?: return
+        byAccount.update { all ->
+            val current = all[account] ?: return@update all
+            all + (account to current.mapValues { (_, entry) -> entry.copy(fetchedAt = Instant.DISTANT_PAST) })
+        }
+        _revision.update { it + 1 }
+    }
+
     override val entries: Flow<Map<String, PullRequestEntry>> =
         activeAccountProvider.flatMapAccountOrEmpty(emptyMap()) { account ->
             byAccount.map { it[account.value].orEmpty() }.distinctUntilChanged()
         }
 
     override suspend fun refresh(conversationId: String) {
-        val account = activeAccountProvider.currentAccountId()?.value ?: return
+        val asker = currentAsker() ?: return
+        refresh(asker, conversationId)
+    }
+
+    private suspend fun refresh(asker: Asker, conversationId: String) {
         when (val result = safeApiCall { api.pullRequest(conversationId) }) {
-            is Result.Success -> record(account, conversationId, Answer.Found(result.data.pullRequest))
-            is Result.Error -> record(account, conversationId, failureOf(result))
+            is Result.Success -> record(asker, conversationId, Answer.Found(result.data.pullRequest))
+            is Result.Error -> record(asker, conversationId, failureOf(result))
             Result.Loading -> Unit
         }
     }
 
+    /** Who a lookup was sent for: the account, and the credential revision it went out under. */
+    private data class Asker(val account: String, val revision: Long)
+
+    private fun currentAsker(): Asker? =
+        activeAccountProvider.currentAccountId()?.value?.let { Asker(it, _revision.value) }
+
     override suspend fun refreshBatch(conversationIds: List<String>, maxConcurrent: Int?) {
-        val account = activeAccountProvider.currentAccountId()?.value ?: return
+        val asker = currentAsker() ?: return
         val ids = conversationIds.distinct().filter { it.isNotBlank() }
         if (ids.isEmpty()) return
         val gate = Semaphore((maxConcurrent ?: PULL_REQUEST_DEFAULT_CONCURRENCY).coerceAtLeast(1))
@@ -93,7 +130,7 @@ class PullRequestRepositoryImpl(
                 async {
                     when (val result = gate.withPermit { safeApiCall { api.pullRequests(chunk) } }) {
                         is Result.Success -> {
-                            recordBatch(account, chunk, result.data.results)
+                            recordBatch(asker, chunk, result.data.results)
                             emptyList()
                         }
                         is Result.Error ->
@@ -101,7 +138,7 @@ class PullRequestRepositoryImpl(
                                 chunk
                             } else {
                                 val failure = failureOf(result)
-                                chunk.forEach { record(account, it, failure) }
+                                chunk.forEach { record(asker, it, failure) }
                                 emptyList()
                             }
                         Result.Loading -> emptyList()
@@ -111,12 +148,12 @@ class PullRequestRepositoryImpl(
         }
         if (unrouted.isNotEmpty()) {
             coroutineScope {
-                unrouted.map { id -> async { gate.withPermit { refresh(id) } } }.awaitAll()
+                unrouted.map { id -> async { gate.withPermit { refresh(asker, id) } } }.awaitAll()
             }
         }
     }
 
-    private fun recordBatch(account: String, asked: List<String>, results: List<ConversationPullRequestsEntry>) {
+    private fun recordBatch(asker: Asker, asked: List<String>, results: List<ConversationPullRequestsEntry>) {
         val answered = results.associateBy { it.conversationId }
         asked.forEach { id ->
             val entry = answered[id]
@@ -128,7 +165,7 @@ class PullRequestRepositoryImpl(
                 }
                 else -> Answer.Found(entry.pullRequest)
             }
-            record(account, id, answer)
+            record(asker, id, answer)
         }
     }
 
@@ -147,8 +184,14 @@ class PullRequestRepositoryImpl(
         return Answer.Failed
     }
 
-    private fun record(account: String, conversationId: String, answer: Answer) {
+    private fun record(asker: Asker, conversationId: String, answer: Answer) {
         if (answer == Answer.Offline) return
+        val account = asker.account
+        // An account switched while the request was out: the answer went out with one account's
+        // token and would be filed under the other, so it is dropped rather than cached. Likewise
+        // a change of credential: the answer was looked up under the old one, and the re-ask the
+        // change started must not be overwritten by it.
+        if (activeAccountProvider.currentAccountId()?.value != account || _revision.value != asker.revision) return
         val now = clock.now()
         byAccount.update { all ->
             val current = all[account].orEmpty()

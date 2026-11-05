@@ -34,6 +34,7 @@ import com.garfiec.librechat.feature.chat.components.artifact.mermaidCacheKey
 import com.garfiec.librechat.feature.chat.components.artifact.selectInlineArtifactStrategy
 import com.garfiec.librechat.feature.chat.components.artifact.shouldRenderInlineArtifact
 import com.garfiec.librechat.feature.chat.components.artifact.usesWebGl
+import com.garfiec.librechat.feature.chat.util.withoutTrailingPartialUiMarker
 
 // ─── TextContentPart ────────────────────────────────────────────────
 
@@ -57,20 +58,22 @@ internal fun TextContentPart(
 ) {
     if (text.isBlank()) return
 
-    val segments = remember(text) { detectArtifacts(text) }
+    // A marker still being written (`\ui{ab`) would flash as text until its brace arrives.
+    val shown = if (streaming) withoutTrailingPartialUiMarker(text) else text
+    val segments = remember(shown) { detectArtifacts(shown) }
     val hasArtifacts = remember(segments) { segments.any { it is ArtifactSegment.ArtifactReference } }
 
     if (!hasArtifacts) {
-        MarkdownContent(
-            text,
-            modifier,
-            fontSizeMultiplier,
-            useKatex,
-            searchQuery,
-            searchFocusedOccurrence,
-            onFocusedOccurrencePosition,
+        UiMarkedMarkdownContent(
+            text = shown,
+            fontSizeMultiplier = fontSizeMultiplier,
+            useKatex = useKatex,
+            searchQuery = searchQuery,
+            searchFocusedOccurrence = searchFocusedOccurrence,
+            onFocusedOccurrencePosition = onFocusedOccurrencePosition,
             streaming = streaming,
             trailingCursor = trailingCursor,
+            modifier = modifier,
         )
     } else {
         val versionMap = remember(segments) { groupArtifactVersions(segments) }
@@ -90,7 +93,7 @@ internal fun TextContentPart(
                     segments.forEachIndexed { i, segment ->
                         offsets[i] = acc
                         acc += when (segment) {
-                            is ArtifactSegment.Text -> countMarkdownOccurrences(segment.text, searchQuery)
+                            is ArtifactSegment.Text -> countUiMarkedOccurrences(segment.text, searchQuery)
                             is ArtifactSegment.ArtifactReference ->
                                 countArtifactOccurrences(segment.artifact, searchQuery)
                         }
@@ -99,94 +102,99 @@ internal fun TextContentPart(
             }
         }
         val tailIsText = segments.lastOrNull() is ArtifactSegment.Text
+        // An artifact's own fences aren't reply code blocks (web renders the artifact, not them).
+        val runBases = rememberCodeRunBases(segments) { segments.map { (it as? ArtifactSegment.Text)?.text } }
         Column(modifier = modifier) {
             segments.forEachIndexed { index, segment ->
                 when (segment) {
-                    is ArtifactSegment.Text -> {
-                        MarkdownContent(
-                            segment.text,
-                            Modifier.fillMaxWidth(),
-                            fontSizeMultiplier,
-                            useKatex,
-                            searchQuery,
-                            searchFocusedOccurrence - textOffsets[index],
-                            onFocusedOccurrencePosition,
+                    is ArtifactSegment.Text -> ProvideCodeRunBase(runBases, index) {
+                        UiMarkedMarkdownContent(
+                            text = segment.text,
+                            fontSizeMultiplier = fontSizeMultiplier,
+                            useKatex = useKatex,
+                            searchQuery = searchQuery,
+                            searchFocusedOccurrence = searchFocusedOccurrence - textOffsets[index],
+                            onFocusedOccurrencePosition = onFocusedOccurrencePosition,
                             streaming = streaming,
                             trailingCursor = trailingCursor && index == segments.lastIndex,
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
                     is ArtifactSegment.ArtifactReference -> {
-                        val versions = versionMap[segment.artifact.identifier] ?: listOf(segment.artifact)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        if (!segment.artifact.isComplete) {
-                            // Truncated or still streaming: show source, never a collapsed button and
-                            // never a WebView. See IncompleteArtifact's KDoc for why this outranks
-                            // the inline preference. That source is message text like any other
-                            // fenced block, so it stays selectable.
-                            IncompleteArtifact(
-                                artifact = segment.artifact,
-                                onTap = { openArtifact?.invoke(segment.artifact, versions) },
-                                modifier = Modifier.fillMaxWidth(),
-                                searchQuery = searchQuery,
-                                searchFocusedOccurrence = searchFocusedOccurrence - textOffsets[index],
-                                onFocusedOccurrencePosition = onFocusedOccurrencePosition,
-                                streaming = streaming,
-                            )
-                        } else {
-                            // A finished artifact renders as a tap-to-open card, not message prose,
-                            // so it is chrome — unlike the incomplete branch above.
-                            DisableSelection {
-                                val content = segment.artifact.content
-                                val drawable = inlineArtifactDrawsWebGl || !remember(content) { usesWebGl(content) }
-                                if (drawable && shouldRenderInlineArtifact(inlinePrefs, segment.artifact.type, streaming)) {
-                                    val type = ArtifactType.from(segment.artifact.type)
-                                    val cachedSvg = rememberCachedMermaidSvg(segment.artifact.content, type)
-                                    val strategy =
-                                        selectInlineArtifactStrategy(type, segment.artifact.content, cachedSvg)
-                                    when (strategy) {
-                                        is InlineArtifactStrategy.CachedMermaidSvg -> InlineSvgSurface(
-                                            svg = strategy.svg,
-                                            onTap = { openArtifact?.invoke(segment.artifact, versions) },
-                                            modifier = Modifier.fillMaxWidth(),
-                                            contentPadding = 4.dp,
-                                        )
-                                        InlineArtifactStrategy.NativeMarkdown -> InlineMarkdownArtifact(
-                                            artifact = segment.artifact,
-                                            onTap = { openArtifact?.invoke(segment.artifact, versions) },
-                                            modifier = Modifier.fillMaxWidth(),
-                                            fontSizeMultiplier = fontSizeMultiplier,
-                                            searchQuery = searchQuery,
-                                        )
-                                        InlineArtifactStrategy.IntrinsicSvg -> InlineSvgArtifact(
-                                            artifact = segment.artifact,
-                                            onTap = { openArtifact?.invoke(segment.artifact, versions) },
-                                            modifier = Modifier.fillMaxWidth(),
-                                        )
-                                        InlineArtifactStrategy.WebViewSlot -> ArtifactLibraryGate(
-                                            content = segment.artifact.content,
-                                            type = segment.artifact.type,
-                                            modifier = Modifier.fillMaxWidth(),
-                                            onOpen = { openArtifact?.invoke(segment.artifact, versions) },
-                                        ) { allowed, previewModifier ->
-                                            InlineArtifactView(
+                        // An artifact's own fences are not reply code blocks: no Run, no index.
+                        ProvideCodeRunPart(part = null) {
+                            val versions = versionMap[segment.artifact.identifier] ?: listOf(segment.artifact)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            if (!segment.artifact.isComplete) {
+                                // Truncated or still streaming: show source, never a collapsed button and
+                                // never a WebView. See IncompleteArtifact's KDoc for why this outranks
+                                // the inline preference. That source is message text like any other
+                                // fenced block, so it stays selectable.
+                                IncompleteArtifact(
+                                    artifact = segment.artifact,
+                                    onTap = { openArtifact?.invoke(segment.artifact, versions) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    searchQuery = searchQuery,
+                                    searchFocusedOccurrence = searchFocusedOccurrence - textOffsets[index],
+                                    onFocusedOccurrencePosition = onFocusedOccurrencePosition,
+                                    streaming = streaming,
+                                )
+                            } else {
+                                // A finished artifact renders as a tap-to-open card, not message prose,
+                                // so it is chrome — unlike the incomplete branch above.
+                                DisableSelection {
+                                    val content = segment.artifact.content
+                                    val drawable = inlineArtifactDrawsWebGl || !remember(content) { usesWebGl(content) }
+                                    if (drawable && shouldRenderInlineArtifact(inlinePrefs, segment.artifact.type, streaming)) {
+                                        val type = ArtifactType.from(segment.artifact.type)
+                                        val cachedSvg = rememberCachedMermaidSvg(segment.artifact.content, type)
+                                        val strategy =
+                                            selectInlineArtifactStrategy(type, segment.artifact.content, cachedSvg)
+                                        when (strategy) {
+                                            is InlineArtifactStrategy.CachedMermaidSvg -> InlineSvgSurface(
+                                                svg = strategy.svg,
+                                                onTap = { openArtifact?.invoke(segment.artifact, versions) },
+                                                modifier = Modifier.fillMaxWidth(),
+                                                contentPadding = 4.dp,
+                                            )
+                                            InlineArtifactStrategy.NativeMarkdown -> InlineMarkdownArtifact(
                                                 artifact = segment.artifact,
                                                 onTap = { openArtifact?.invoke(segment.artifact, versions) },
-                                                modifier = previewModifier,
-                                                allowedLibraries = allowed,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                fontSizeMultiplier = fontSizeMultiplier,
+                                                searchQuery = searchQuery,
                                             )
+                                            InlineArtifactStrategy.IntrinsicSvg -> InlineSvgArtifact(
+                                                artifact = segment.artifact,
+                                                onTap = { openArtifact?.invoke(segment.artifact, versions) },
+                                                modifier = Modifier.fillMaxWidth(),
+                                            )
+                                            InlineArtifactStrategy.WebViewSlot -> ArtifactLibraryGate(
+                                                content = segment.artifact.content,
+                                                type = segment.artifact.type,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                onOpen = { openArtifact?.invoke(segment.artifact, versions) },
+                                            ) { allowed, previewModifier ->
+                                                InlineArtifactView(
+                                                    artifact = segment.artifact,
+                                                    onTap = { openArtifact?.invoke(segment.artifact, versions) },
+                                                    modifier = previewModifier,
+                                                    allowedLibraries = allowed,
+                                                )
+                                            }
                                         }
+                                    } else {
+                                        ArtifactButton(
+                                            artifact = segment.artifact,
+                                            onClick = { openArtifact?.invoke(segment.artifact, versions) },
+                                            versionCount = versions.size,
+                                            onAddToHomeScreen = addToHomeScreen?.let { add -> { add(segment.artifact) } },
+                                        )
                                     }
-                                } else {
-                                    ArtifactButton(
-                                        artifact = segment.artifact,
-                                        onClick = { openArtifact?.invoke(segment.artifact, versions) },
-                                        versionCount = versions.size,
-                                        onAddToHomeScreen = addToHomeScreen?.let { add -> { add(segment.artifact) } },
-                                    )
                                 }
                             }
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
             }

@@ -1,9 +1,11 @@
 package com.garfiec.librechat.shared.navigation
 
 import androidx.navigation3.runtime.NavKey
+import com.garfiec.librechat.core.model.code.CodeSetupAttempt
 import com.garfiec.librechat.feature.chat.navigation.ArtifactShortcutViewer
 import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.NewChat
+import com.garfiec.librechat.feature.settings.navigation.CodeSetup
 
 /**
  * Platform-neutral view of an incoming `librechat://` URI, so [DeepLinks.resolve] — the routing
@@ -93,6 +95,14 @@ object DeepLinks {
                 DeepLinkResolution.None
             }
         }
+
+        // A machine's setup request (librechat://code-setup/<attemptId>), the app's form of the
+        // worker's `<server>/code/setup/<attemptId>` link. The id is 43 base64url characters; the
+        // page loads it for the active account, which must be the one that started the setup.
+        "code-setup" -> uri.pathSegments.firstOrNull()
+            ?.let(CodeSetupAttempt::idFrom)
+            ?.let { DeepLinkResolution.Route(CodeSetup(it), requiresAuth = true) }
+            ?: DeepLinkResolution.None
 
         // OAuth redirect (librechat://oauth): token comes back via cookie, not the URI — see [Consumed].
         "oauth" -> DeepLinkResolution.Consumed

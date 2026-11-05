@@ -4341,7 +4341,7 @@
       },
       "why": "The Tailwind build web's artifact iframes load. The client vendors the same pinned Play CDN build; a move to v4 (@tailwindcss/browser) renames utilities model output still uses, so follow it deliberately (see the tailwind entry's pin_reason).",
       "failure_mode": "Artifacts style differently on web and mobile: utilities one build has and the other lacks."
-      },
+    },
     {
       "id": "two-factor-enrollment-required-code",
       "upstream": {
@@ -5642,7 +5642,7 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpAppCsp.kt",
         "symbol": "clampAppViewHeight"
       },
-      "why": "Bounds on an App's reported size.",
+      "why": "Bounds on an App's reported size (McpAppHost.reportedHeight); the inline slot's floor and ceiling (McpAppSessionRules) reuse them.",
       "failure_mode": "An App reports a size the host trusts without bound."
     },
     {
@@ -5755,6 +5755,128 @@
       "failure_mode": "Apps theme a different subset than on web, or miss a variable web starts sending."
     },
     {
+      "id": "mcp-app-supported-permissions",
+      "upstream": {
+        "file": "client/src/utils/mcpApps.ts",
+        "symbol": "getSupportedMCPAppPermissions",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/UiResource.kt",
+        "symbol": "McpAppPermissions.supported"
+      },
+      "why": "Which declared App permissions reach the opaque App frame's `allow` attribute: geolocation and clipboardWrite only. The relay page's own `allow` port is covered by mcp-app-sandbox-relay; this is the filter native applies before sending `permissions` in sandbox-resource-ready.",
+      "failure_mode": "Upstream delegates a new capability (or drops one) and mobile Apps silently keep the old set: a feature that works on web fails the App's feature detection here, or one web withdrew is still granted. Nothing errors."
+    },
+    {
+      "id": "mcp-ui-marker-plugin",
+      "upstream": {
+        "file": "client/src/components/MCPUIResource/plugin.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/UiResourceMarkers.kt",
+        "symbol": "splitUiResourceMarkers"
+      },
+      "why": "The server tells the model to write `\\ui{id}` / `\\ui{a,b}` into its reply; the marker grammar (UI_RESOURCE_PATTERN), that it is matched only in markdown text nodes (never code), and single-id vs carousel are client-side rules the server never serves.",
+      "failure_mode": "Upstream changes the marker syntax or the id alphabet and mobile replies show raw `\\ui{…}` text (or swallow text web shows). Nothing errors."
+    },
+    {
+      "id": "mcp-ui-supported-resource",
+      "upstream": {
+        "file": "client/src/components/MCPUIResource/Renderer.tsx",
+        "symbol": "isSupportedUIResource",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/LegacyUiResources.kt",
+        "symbol": "UiResource.isLegacyHtml"
+      },
+      "why": "Which UI resources a marker may render: HTML media type (an omitted type counts as text/html) that is not the MCP App profile, and only while legacyHtmlEnabled.",
+      "failure_mode": "Upstream widens or narrows the renderable set and mobile draws resources web refuses, or leaves out ones web draws. Nothing errors."
+    },
+    {
+      "id": "mcp-ui-mime-resolution",
+      "upstream": {
+        "file": "packages/data-provider/src/mcp/appMime.ts",
+        "symbol": "resolveMCPUIResourceMimeType",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/LegacyUiResources.kt",
+        "symbol": "resolveMcpUiResourceMimeType / isHtmlMediaType"
+      },
+      "why": "The legacy convention that a missing mimeType means inline HTML, and how a media type is compared (case-insensitive, parameters ignored). isHtmlMediaType sits in the same file and is watched through it.",
+      "failure_mode": "A resource web renders is skipped on mobile, or the reverse. Nothing errors."
+    },
+    {
+      "id": "mcp-ui-conversation-resources",
+      "upstream": {
+        "file": "client/src/hooks/Messages/useConversationUIResources.ts",
+        "symbol": "useConversationUIResources",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/LegacyUiResources.kt",
+        "symbol": "collectConversationUiResources"
+      },
+      "why": "Markers resolve against every ui_resources entry in the conversation by resourceId, later ones winning, so a reply can place a resource from an earlier turn.",
+      "failure_mode": "Upstream scopes resolution differently (per message, first wins) and a marker resolves to a different resource than web's, or to none. Nothing errors."
+    },
+    {
+      "id": "mcp-ui-action-message",
+      "upstream": {
+        "file": "client/src/utils/index.ts",
+        "symbol": "handleUIAction",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/mcpapp/LegacyUiResources.kt",
+        "symbol": "legacyUiActionMessage"
+      },
+      "why": "The chat message a legacy resource's tool / intent / prompt action becomes, worded for the model, and which action types are ignored (link, notify). Mobile asks before sending (web sends at once).",
+      "failure_mode": "Upstream rewords the message or handles another action type and the model gets different instructions from mobile than from web. Nothing errors."
+    },
+    {
+      "id": "mcp-ui-carousel-layout",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/UIResourceCarousel.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/mcpapp/LegacyUiResourceBlock.kt",
+        "symbol": "LegacyUiResourceBlock (CAROUSEL_CARD_WIDTH, CAROUSEL_CARD_MIN_HEIGHT)"
+      },
+      "why": "A multi-id marker is a horizontal carousel of 230x360 cards; one supported resource in it renders alone; none renders nothing.",
+      "failure_mode": "Upstream changes the carousel's sizing or single-item rule and mobile lays resources out differently. Nothing errors."
+    },
+    {
+      "id": "mcp-ui-resource-not-found",
+      "upstream": {
+        "file": "client/src/components/MCPUIResource/MCPUIResource.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/mcpapp/LegacyUiResourceBlock.kt",
+        "symbol": "UiResourceNotFoundChip"
+      },
+      "why": "A single \\ui{id} the conversation doesn't hold shows com_ui_ui_resource_not_found, checked before the legacyHtmlEnabled gate; a known but unsupported resource draws nothing.",
+      "failure_mode": "Upstream drops or rewords the chip, or moves it behind the policy gate, and mobile shows a chip web doesn't (or the reverse). Nothing errors."
+    },
+    {
+      "id": "mcp-app-capacity",
+      "upstream": {
+        "file": "client/src/components/MCPUIResource/MCPAppViews.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/McpAppSessionRules.kt",
+        "symbol": "viewCap"
+      },
+      "why": "At most maxActiveViews Apps open (mobile also caps at 3, 1 on low-RAM); opening another is refused with com_ui_mcp_app_at_capacity rather than closing one.",
+      "failure_mode": "Upstream changes the cap or starts closing the oldest App, and mobile refuses where web opens (or the reverse). Nothing errors."
+    },
+    {
       "id": "pull-request-is-code-conversation",
       "upstream": {
         "file": "client/src/components/Chat/PullRequest/code.ts",
@@ -5809,6 +5931,47 @@
       "failure_mode": "The server 400s an oversized batch, or the drawer asks a replica whose batch version it does not speak."
     },
     {
+      "id": "pull-request-account-row",
+      "upstream": {
+        "file": "client/src/components/Nav/Settings/context.tsx",
+        "symbol": "hasPullRequestConnect",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/pullrequest/ConversationPullRequest.kt",
+        "symbol": "showsPullRequestAccount"
+      },
+      "why": "When Settings shows the pull request account row: a grant to remove, or an app to connect whose status hasn't said it is gone.",
+      "failure_mode": "A stale grant can't be removed from the phone, or the row offers a connect the server refuses."
+    },
+    {
+      "id": "pull-request-credential-sync",
+      "upstream": {
+        "file": "client/src/data-provider/PullRequest/connection.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/PullRequestConnectionRepository.kt",
+        "symbol": "credentialOf"
+      },
+      "why": "Which status changes count as a change of credential (connect, disconnect, a new grant) and so re-ask every cached lookup.",
+      "failure_mode": "Pull request marks and the chat's PR stay as the old token saw them after connecting, or are re-asked on every status read."
+    },
+    {
+      "id": "pull-request-connect-names",
+      "upstream": {
+        "file": "packages/api/src/pulls/connect.ts",
+        "symbol": "PROVIDER_NAMES",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/PullRequestAccountViewModel.kt",
+        "symbol": "displayName"
+      },
+      "why": "The provider names the account row and sign-in title use, the ones the server's success page names.",
+      "failure_mode": "A new provider shows as GitHub."
+    },
+    {
       "id": "pull-request-error-codes",
       "upstream": {
         "file": "packages/api/src/pulls/types.ts",
@@ -5821,6 +5984,415 @@
       },
       "why": "The lookup failure codes the client logs; all read the same to the user.",
       "failure_mode": "A new code is logged unnamed; behaviour is unchanged."
+    },
+    {
+      "id": "code-workspace-transitions",
+      "upstream": {
+        "file": "client/src/components/Chat/Input/CodeWorkspaceMenu.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/code/CodeWorkspaceResolver.kt",
+        "symbol": "CodeWorkspaceResolver.proposeTransition / Transition (and feature/chat CodeWorkspaceView transitionView)"
+      },
+      "why": "A saved chat's move/attach/detach/recover: which machines a transition targets, how a target's pick inherits the replaced checkout and carries its owners' agentIds, when Confirm is ready, and which label and explanation (describeTransition) the change gets.",
+      "failure_mode": "A transition the server refuses as invalid/locked, or one whose label says Attach for a Move. Nothing fails to decode."
+    },
+    {
+      "id": "code-decision-reconcile",
+      "upstream": {
+        "file": "client/src/hooks/Agents/codeDecision.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/CodeWorkspaceDelegate.kt",
+        "symbol": "reconcileAfterFailedTurn / CodeApproval.submitted"
+      },
+      "why": "Which failed turns re-read the chat's recorded decision before the next send (getFailedCodeDecisionRequest), and which approval mode a turn carries (resolveSubmittedCodeApprovalMode: ask without a workspace).",
+      "failure_mode": "A send after a failed first turn goes out without a decision and seals the chat, or a turn carries a mode web would not send."
+    },
+    {
+      "id": "code-approval-modes",
+      "upstream": {
+        "file": "packages/data-provider/src/code/approval.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/code/CodeApproval.kt",
+        "symbol": "CodeApprovalMode / CodeApproval.allowedModes"
+      },
+      "why": "The three approval modes and which a machine's permissions allow (a mode needing allow needs the machine to offer allow and not deny it).",
+      "failure_mode": "The picker offers a mode the server refuses (CODE_APPROVAL_MODE_NOT_ALLOWED) or hides one it would accept."
+    },
+    {
+      "id": "code-approval-picker",
+      "upstream": {
+        "file": "client/src/hooks/Agents/useCodeApprovalMode.ts",
+        "symbol": "useCodeApprovalMode",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/code/CodeApproval.kt",
+        "symbol": "CodeApproval.resolve"
+      },
+      "why": "When the approval-mode picker shows (approvals on, ask offered, an attached machine in reach), the modes it intersects across machines, and the fallback to ask. The requested mode's order (conversation's, i.e. a spec preset's on a new chat, then the remembered pick) is CodeWorkspaceDelegate's requestedApprovalMode.",
+      "failure_mode": "The chip shows on chats where web hides it, or offers Full access on a graph web restricts."
+    },
+    {
+      "id": "queued-turn-approval-mode",
+      "upstream": {
+        "file": "packages/api/src/agents/queuedTurnHttp.ts",
+        "symbol": "handleAgentQueuedTurnEnqueue",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/QueueOrchestrationDelegate.kt",
+        "symbol": "serverOwnedSpec"
+      },
+      "why": "The v1 queued-turn route 409s a turn carrying codeApprovalMode, so a follow-up picked to do more than ask stays in the local queue.",
+      "failure_mode": "If v1 starts accepting the mode, local queueing is merely conservative; if the rule widens, server-queued follow-ups 409."
+    },
+    {
+      "id": "code-worker-setup-command",
+      "upstream": {
+        "file": "packages/data-provider/src/code/worker.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/code/CodeEnvironmentManagement.kt",
+        "symbol": "CodeWorkerCommand.setup"
+      },
+      "why": "The one-time command Settings shows after pairing: the pair and run invocations, their flags and the shell quoting.",
+      "failure_mode": "A user copies a command the current worker no longer understands; pairing fails on their machine with no hint from the app."
+    },
+    {
+      "id": "stateful-code-scopes",
+      "upstream": {
+        "file": "packages/data-provider/src/stateful-code.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/code/CodeWorkspace.kt",
+        "symbol": "StatefulCodeScope"
+      },
+      "why": "The workspace scopes (user, agent-user, conversation), their UI order, and the fallback to the first allowed one, used by Settings' default and the agent editor.",
+      "failure_mode": "A new or renamed scope is not offered, or a preference the server refuses (400/403) is sent."
+    },
+    {
+      "id": "code-setup-attempt-token",
+      "upstream": {
+        "file": "vendor/code/browser-enrollment-protocol.js",
+        "symbol": "isBrowserEnrollmentToken",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/code/CodeEnvironmentManagement.kt",
+        "symbol": "CodeSetupAttempt.idFrom"
+      },
+      "why": "A setup link's attempt id is 43 base64url characters; the paste field and librechat://code-setup links accept only that.",
+      "failure_mode": "A valid link is refused as not a setup link, or a malformed id reaches the server (404)."
+    },
+    {
+      "id": "code-pairing-limit-message",
+      "upstream": {
+        "file": "packages/api/src/code/environments.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/data/src/commonMain/kotlin/com/garfiec/librechat/core/data/repository/CodeMachinesRepository.kt",
+        "symbol": "LIMIT_REACHED_TEXT"
+      },
+      "why": "The pairing route's 409s carry no code; only this message tells the machine limit apart from the other refusals.",
+      "failure_mode": "A reworded message shows the generic pairing error instead of telling the user to remove a machine."
+    },
+    {
+      "id": "agent-git-identity",
+      "upstream": {
+        "file": "packages/data-provider/src/types/agents.ts",
+        "symbol": "agentGitIdentitySchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/viewmodel/AgentCodeSettings.kt",
+        "symbol": "isGitIdentityValid"
+      },
+      "why": "The editor blocks Save on a Git identity the server would refuse: both blank, or a 1-128 character name and a valid email (GitHub bot addresses included).",
+      "failure_mode": "Save fails with a server 400 the editor can't place, or a valid identity is refused locally."
+    },
+    {
+      "id": "collapse-long-user-messages-height",
+      "upstream": {
+        "file": "packages/chat/src/components/CollapsibleText.tsx",
+        "symbol": "COLLAPSED_MAX_HEIGHT",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/CollapsibleUserText.kt",
+        "symbol": "COLLAPSED_MAX_HEIGHT_DP"
+      },
+      "why": "A user message taller than this (256, scaled with the chat font size) renders clamped with Show more, as web's collapseLongUserMessages does.",
+      "failure_mode": "Messages collapse at a different height than on web, or not at all."
+    },
+    {
+      "id": "collapse-long-user-messages-tolerance",
+      "upstream": {
+        "file": "packages/chat/src/components/CollapsibleText.tsx",
+        "symbol": "OVERFLOW_TOLERANCE",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/CollapsibleUserText.kt",
+        "symbol": "OVERFLOW_TOLERANCE_DP"
+      },
+      "why": "How far past the clamp height a message may run before the Show more toggle appears.",
+      "failure_mode": "A message that barely overflows gets a pointless toggle, or a clipped one gets none."
+    },
+    {
+      "id": "client-image-resize-defaults",
+      "upstream": {
+        "file": "packages/data-provider/src/file-config.ts",
+        "symbol": "fileConfig",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/response/FileUploadConfig.kt",
+        "symbol": "CLIENT_RESIZE_DEFAULT_MAX_EDGE"
+      },
+      "why": "The box (1900 x 1900) and quality (0.92) an image is resized to when the admin's clientImageResize leaves them out.",
+      "failure_mode": "Uploads are resized to a different size than web's for the same server."
+    },
+    {
+      "id": "client-image-resize-merge",
+      "upstream": {
+        "file": "packages/data-provider/src/file-config.ts",
+        "symbol": "mergeFileConfig",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/response/FileUploadConfig.kt",
+        "symbol": "clientImageResize"
+      },
+      "why": "An admin-provided clientImageResize.enabled overrides the user's setting (enforced); sizes alone do not.",
+      "failure_mode": "An admin who forced resizing is ignored, or the user's switch is locked when it shouldn't be."
+    },
+    {
+      "id": "client-image-resize-formats",
+      "upstream": {
+        "file": "client/src/utils/imageResize.ts",
+        "symbol": "RESIZE_FORMAT_BY_MIME_TYPE",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/androidMain/kotlin/com/garfiec/librechat/feature/chat/util/FileUtils.kt",
+        "symbol": "CLIENT_RESIZABLE_TYPES"
+      },
+      "why": "Only these image formats are resized before upload.",
+      "failure_mode": "A format web resizes is uploaded full size, or one web leaves alone (GIF) is resized."
+    },
+    {
+      "id": "drawer-selectable-bookmarks",
+      "upstream": {
+        "file": "client/src/components/Conversations/chatFilters.ts",
+        "symbol": "selectableBookmarks",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/conversations/src/commonMain/kotlin/com/garfiec/librechat/feature/conversations/drawer/DrawerFilters.kt",
+        "symbol": "selectableBookmarks"
+      },
+      "why": "Which bookmarks the drawer filter sheet offers: those some chat carries, plus every picked one.",
+      "failure_mode": "The sheet offers bookmarks that filter to nothing, or hides a picked one so it can't be turned off."
+    },
+    {
+      "id": "subagent-calls-batch",
+      "upstream": {
+        "file": "packages/api/src/messages/parts.ts",
+        "symbol": "MAX_ATTACHMENT_CALL_QUERIES",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/api/MessagesApi.kt",
+        "symbol": "SUBAGENT_CALLS_BATCH"
+      },
+      "why": "Files per subagent-calls request; the route answers 400 past it.",
+      "failure_mode": "A message with many late files gets a 400 and its files stay where slice 1 guessed."
+    },
+    {
+      "id": "approval-preview",
+      "upstream": {
+        "file": "client/src/components/Chat/approval/preview.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/approval/ApprovalPreview.kt",
+        "symbol": "buildApprovalPreview / buildApprovalPreviews / boundApprovalLabel"
+      },
+      "why": "How a paused server code tool (source librechat_code) reads in the approval review: which name and args make it a command, a create or an edit, the two hidden-character sets spelled out as \\uXXXX (bodies keep tab/LF/CR, labels reveal them), and the per-call, per-label and per-batch caps with their order. The whole file is the rule, so it is watched file-level.",
+      "failure_mode": "A proposal reads differently on the phone than on the web: a bidi override or line break upstream started revealing stays hidden in a command or file name the user approves, or a cap drifts so a long proposal truncates elsewhere. Nothing errors."
+    },
+    {
+      "id": "approval-preview-titles",
+      "upstream": {
+        "file": "client/src/components/Chat/approval/Review.tsx",
+        "symbol": "previewTitle",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/ToolApprovalPanel.kt",
+        "symbol": "approvalTitle / CodeActionPreview"
+      },
+      "why": "The review heading per preview kind (Run command, Create/Edit <path> or the generic variant, else the tool name) and the KIND_LABELS subtitle beside it.",
+      "failure_mode": "A heading upstream changed keeps the old wording or a kind gains a title the phone never shows."
+    },
+    {
+      "id": "read-file-language-map",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/Parts/ReadFileCall.tsx",
+        "symbol": "LANG_MAP",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/FileToolCalls.kt",
+        "symbol": "EXTENSION_LANGUAGES / FILENAME_LANGUAGES / langFromPath"
+      },
+      "why": "Which highlighter language a read or created file gets from its name and extension; FILENAME_MAP and langFromPath sit right after LANG_MAP in the same file.",
+      "failure_mode": "A file type upstream added renders as plain text on the phone. Cosmetic, silent."
+    },
+    {
+      "id": "file-authoring-preview",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/Parts/FileAuthoringCall.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/FileToolCalls.kt",
+        "symbol": "fileToolView / hasDiff / buildEditArgsPreview"
+      },
+      "why": "What a create_file/edit_file card shows: when the output counts as a diff (hasDiff), the 'Updated ' overwrite rule, the edits/old_text/new_text arg shapes, which pane supersedes which, and when the raw output is repeated below. The rules are spread across the component, so it is watched file-level.",
+      "failure_mode": "A create that overwrote a file reads as Created, an edit's diff is drawn twice or not at all, or a new arg shape shows an empty card. Nothing errors."
+    },
+    {
+      "id": "diff-view-parser",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/Parts/DiffView.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/FileToolCalls.kt",
+        "symbol": "parseUnifiedDiff / buildEditPreviewDiff / diffPreviewText / ParsedDiff.visibleLines"
+      },
+      "why": "How a tool's unified diff becomes rows (file headers only before the first hunk, line numbers from hunk headers, a bare @@ resetting them) and how an edit's args become a preview diff without a text round trip.",
+      "failure_mode": "A diff upstream learned to read differently miscounts additions, mislabels a changed line as a header, or numbers lines wrong."
+    },
+    {
+      "id": "parse-json-field",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/Parts/parseJsonField.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/FileToolCalls.kt",
+        "symbol": "parseJsonField / parseJsonFieldOccurrences / unescapeJsonString"
+      },
+      "why": "Reading a string field out of tool-call args that may be partial JSON: the field regex, the escape set, and the stream-edge hold-backs (dangling backslash, partial \\u, split surrogate).",
+      "failure_mode": "A cut snapshot's file path or edit text shows escape debris or loses its tail."
+    },
+    {
+      "id": "tool-friendly-names",
+      "upstream": {
+        "file": "client/src/utils/toolLabels.ts",
+        "symbol": "TOOL_FRIENDLY_NAME_KEYS",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/ToolLabels.kt",
+        "symbol": "TOOL_FRIENDLY_NAMES / parseToolName"
+      },
+      "why": "The user-readable names native tools get in the PTC trace and as a file card's fallback title. The Kotlin side splits MCP ids at the last _mcp_ without a server list.",
+      "failure_mode": "A native tool upstream named shows its raw id."
+    },
+    {
+      "id": "ptc-trace-fold",
+      "upstream": {
+        "file": "client/src/hooks/SSE/useStepHandler.ts",
+        "symbol": "applyPtcToolCall",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/PtcTrace.kt",
+        "symbol": "PtcTrace.fold / interrupted / PTC_TRACE_MAX_ENTRIES"
+      },
+      "why": "How on_ptc_tool_call envelopes become a trace: append on running, update by call_id, drop a settle without its row, the 100-row cap with a dropped count. prunePtcTraces (running -> interrupted on resume) is in the same file, and PTC_TRACE_MAX_ENTRIES in hooks/SSE/ptc.ts.",
+      "failure_mode": "Rows duplicate, reorder or spin forever after a reconnect; the cap drifts. Nothing errors."
+    },
+    {
+      "id": "ptc-trace-render",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/Parts/PtcToolTrace.tsx",
+        "symbol": "STATUS_GLYPH",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/PtcToolTrace.kt",
+        "symbol": "STATUS_GLYPHS / PtcTraceLine"
+      },
+      "why": "The trace line's glyph per status and what a row shows (server · tool, args, duration or 'running', the failure under it).",
+      "failure_mode": "A status upstream adds renders without a glyph, or the line drops a field web shows."
+    },
+    {
+      "id": "bash-timeout-details",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/Parts/BashCall.tsx",
+        "symbol": "BashCall",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/CodeExecutionCard.kt",
+        "symbol": "CodeExecutionOutput (trailer, timeout note, Details toggle)"
+      },
+      "why": "An attached command's trailer is shown dimmed, except after a timeout where it hides behind Details under the time-limit note; the verdict wording (exit code / terminated / timed out) is in the same component.",
+      "failure_mode": "A timed-out command's trailer shows or hides differently from the web, or a new verdict is never named."
+    },
+    {
+      "id": "command-output-trailer",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/Parts/command.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/CommandOutput.kt",
+        "symbol": "parseCommandOutput / COMMAND_RESULT_TRAILER"
+      },
+      "why": "How the attached-workspace bash_tool's output splits into stdout, stderr and the [exit code][terminated by][timed out][output truncated] trailer. COMMAND_RESULT_TRAILER itself lives in packages/data-provider/src/previews.ts.",
+      "failure_mode": "A command's failure reads as success, or its trailer is drawn as stdout."
+    },
+    {
+      "id": "run-code-languages",
+      "upstream": {
+        "file": "client/src/utils/languages.ts",
+        "symbol": "languageAliases",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/code/CodeRun.kt",
+        "symbol": "CodeRunLanguages"
+      },
+      "why": "Which fence languages get a Run button and what `lang` the execute_code call sends for each spelling.",
+      "failure_mode": "A language web runs shows no Run button here, or a run sends a lang the tool rejects."
+    },
+    {
+      "id": "run-code-block",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/Content/MarkdownComponents.tsx",
+        "symbol": "code",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/MarkdownParsing.kt",
+        "symbol": "isWebCodeBlock / webCodeBlockCount (+ codeRunKey in core/model code/CodeRun.kt)"
+      },
+      "why": "Which fences take a block index (not math, mermaid or single-line) and the `${messageId}_${partIndex ?? 0}_${blockIndex ?? 0}_${toolId}` key (client/src/utils/map.ts mapToolCalls) stored runs are matched by.",
+      "failure_mode": "A run's output shows under a different block than on web, or a block's stored runs never show."
     }
   ]
 }

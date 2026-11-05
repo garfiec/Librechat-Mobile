@@ -5,6 +5,7 @@ import android.content.Context
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.AgentToolsRepository
+import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.FavoritesRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
@@ -28,6 +29,7 @@ class AgentsModuleVerificationTest {
                 Application::class,
                 AgentRepository::class,
                 AgentToolsRepository::class,
+                CodeEnvironmentRepository::class,
                 ConfigRepository::class,
                 FavoritesRepository::class,
                 FileRepository::class,

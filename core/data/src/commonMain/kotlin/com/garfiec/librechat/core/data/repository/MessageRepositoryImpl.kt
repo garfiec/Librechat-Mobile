@@ -7,8 +7,11 @@ import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.identity.flatMapAccountOrEmpty
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.safeApiCall
+import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.db.dao.MessageDao
+import com.garfiec.librechat.core.data.db.dao.ToolCallPartDao
+import com.garfiec.librechat.core.data.db.entity.ToolCallPartEntity
 import com.garfiec.librechat.core.data.mapper.feedbackColumnValue
 import com.garfiec.librechat.core.data.mapper.toEntity
 import com.garfiec.librechat.core.data.mapper.toModel
@@ -22,7 +25,10 @@ import com.garfiec.librechat.core.model.request.BranchMessageRequest
 import com.garfiec.librechat.core.model.request.OwnerTextRequest
 import com.garfiec.librechat.core.model.request.UpdateMessageRequest
 import com.garfiec.librechat.core.model.response.OwnerText
+import com.garfiec.librechat.core.model.response.SubagentAttachmentCallsEntry
+import com.garfiec.librechat.core.model.response.SubagentAttachmentFile
 import com.garfiec.librechat.core.network.api.MessagesApi
+import com.garfiec.librechat.core.network.api.SUBAGENT_CALLS_BATCH
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
@@ -30,10 +36,13 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import kotlin.time.Clock
 
 class MessageRepositoryImpl(
     private val messagesApi: MessagesApi,
     private val messageDao: MessageDao,
+    private val toolCallPartDao: ToolCallPartDao,
     private val activeAccountProvider: ActiveAccountProvider,
     private val roster: AccountRoster,
     private val dispatcher: CoroutineDispatcher,
@@ -72,6 +81,78 @@ class MessageRepositoryImpl(
         agentId: String?,
     ): Result<AgentToolCall> = safeApiCall {
         messagesApi.getToolCallPart(conversationId, messageId, partIndex, toolCallId, stepId, agentId).toolCall
+    }
+
+    override suspend fun getSubagentAttachmentCalls(
+        conversationId: String,
+        messageId: String,
+        files: List<SubagentAttachmentFile>,
+    ): Result<List<SubagentAttachmentCallsEntry>> = safeApiCall {
+        files.distinct().chunked(SUBAGENT_CALLS_BATCH).flatMap { batch ->
+            messagesApi.getSubagentAttachmentCalls(conversationId, messageId, batch).parts
+        }
+    }
+
+    override suspend fun storedToolCallParts(
+        conversationId: String,
+        refs: List<ToolCallPartRef>,
+    ): Map<ToolCallPartRef, AgentToolCall> {
+        if (refs.isEmpty()) return emptyMap()
+        val accountId = activeAccountProvider.currentAccountId()?.value ?: return emptyMap()
+        val wanted = refs.mapTo(HashSet()) { it.normalized() }
+        val rows = wanted.map { it.messageId }.distinct().chunked(STORED_PART_CHUNK).flatMap { ids ->
+            toolCallPartDao.forMessages(accountId, conversationId, ids)
+        }
+        return withContext(dispatcher) {
+            rows.mapNotNull { row ->
+                val ref = row.ref()
+                if (ref !in wanted) return@mapNotNull null
+                val call = runCatching { partJson.decodeFromString(AgentToolCall.serializer(), row.toolCall) }
+                    .onFailure { Logger.w(it) { "Dropping an unreadable stored tool call (${row.toolCallId})" } }
+                    .getOrNull() ?: return@mapNotNull null
+                // Only full calls are ever written; a preview here would pass for the whole.
+                if (call.isPreview) null else ref to call
+            }.toMap()
+        }
+    }
+
+    override suspend fun storeToolCallParts(
+        conversationId: String,
+        parts: Map<ToolCallPartRef, AgentToolCall>,
+        originAccount: AccountId?,
+    ) {
+        if (parts.isEmpty()) return
+        val accountId = resolveWriteAccountId(originAccount, activeAccountProvider, roster) ?: return
+        val now = Clock.System.now().toEpochMilliseconds()
+        val rows = withContext(dispatcher) {
+            parts.mapNotNull { (ref, call) ->
+                if (call.isPreview) return@mapNotNull null
+                val normalized = ref.normalized()
+                val encoded = partJson.encodeToString(AgentToolCall.serializer(), call)
+                if (encoded.length > MAX_STORED_PART_CHARS) return@mapNotNull null
+                ToolCallPartEntity(
+                    messageId = normalized.messageId,
+                    toolCallId = normalized.toolCallId,
+                    stepId = normalized.stepId.orEmpty(),
+                    agentId = normalized.agentId.orEmpty(),
+                    accountId = accountId,
+                    conversationId = conversationId,
+                    toolCall = encoded,
+                    chars = encoded.length.toLong(),
+                    storedAt = now,
+                )
+            }
+        }
+        if (rows.isEmpty()) return
+        suspendRunCatching { withContext(NonCancellable) { toolCallPartDao.storeWithinBudget(rows, MAX_STORED_CHARS_PER_ACCOUNT) } }
+            .onFailure { Logger.w(it) { "Failed to keep ${rows.size} full tool call(s) for $conversationId" } }
+    }
+
+    override suspend fun storedToolCallPartSizes(conversationId: String, originAccount: AccountId?): Map<ToolCallPartRef, Long> {
+        val accountId = resolveWriteAccountId(originAccount, activeAccountProvider, roster) ?: return emptyMap()
+        return toolCallPartDao.sizesForConversation(accountId, conversationId).associate { size ->
+            ToolCallPartRef(size.messageId, size.toolCallId, size.stepId, size.agentId).normalized() to size.chars
+        }
     }
 
     /** On a network failure, the active account's cached rows when there are any. */
@@ -242,4 +323,23 @@ class MessageRepositoryImpl(
                 else -> part.copy(text = text)
             }
         }
+
+    private fun ToolCallPartEntity.ref() = ToolCallPartRef(messageId, toolCallId, stepId, agentId).normalized()
+
+    private companion object {
+        /** Messages per stored-part read, under SQLite's bind limit. */
+        const val STORED_PART_CHUNK = 400
+
+        /**
+         * What stored full tool calls may cost one account, in characters; the oldest go first.
+         * Previews exist to keep this bulk out of the cache, so this is a bounded convenience, not a
+         * mirror of every card ever opened.
+         */
+        const val MAX_STORED_CHARS_PER_ACCOUNT = 16_000_000L
+
+        /** A call larger than this is held in memory for the session but never stored. */
+        const val MAX_STORED_PART_CHARS = 2_000_000
+    }
 }
+
+private val partJson = Json { ignoreUnknownKeys = true }

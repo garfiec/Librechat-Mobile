@@ -315,6 +315,7 @@
     <string name="drawer_filter_has_attachments">Avec pièces jointes</string>
     <string name="drawer_filter_shared_only">Partagées uniquement</string>
     <string name="drawer_filter_bookmarks">Signets</string>
+    <string name="drawer_filter_any_bookmark">N’importe quel signet</string>
     <string name="drawer_filter_reset">Réinitialiser</string>
     <string name="drawer_filter_apply">Appliquer</string>
     <string name="drawer_filter_offline">Vous êtes hors ligne. Les filtres nécessitent le serveur et s'appliqueront dès votre retour en ligne.</string>

@@ -416,210 +416,241 @@ internal fun MessageContentAndActions(
                         }
                     }
 
-                    val contentParts = message.content
-                    if (!contentParts.isNullOrEmpty()) {
-                        // Occurrence indices are message-wide (SearchMatchEnumeration): rebase them
-                        // per part so each part resolves the focused occurrence within itself. The focused
-                        // message contains the query by definition, so the fast-path bail never triggers —
-                        // compute each part's starting offset once (not on every recomposition, which would
-                        // re-parse every part's markdown each animateScrollBy frame).
-                        val partOffsets = remember(contentParts, searchQuery, isCurrentSearchMatch) {
-                            val offsets = IntArray(contentParts.size)
-                            if (isCurrentSearchMatch && !searchQuery.isNullOrBlank()) {
-                                // Lockstep with countMessageOccurrences: a late batch label a
-                                // finalized phase consumed is not drawn, so it contributes no offset.
-                                val consumed = findLateBatchLabelsConsumedByPhase(contentParts)
-                                var acc = 0
-                                contentParts.forEachIndexed { i, part ->
-                                    offsets[i] = acc
-                                    acc += countPartOccurrences(
-                                        part,
-                                        searchQuery,
-                                        consumedLateBatchLabel = i in consumed,
-                                    )
-                                }
-                            }
-                            offsets
-                        }
-                        // Segment + group the parts ONCE, not while emitting them: a group's header has to
-                        // be written before its members, which a Column cannot express without knowing the
-                        // group's extent up front. Pure, so the boundaries are unit-testable.
-                        val segments = remember(contentParts) {
-                            groupContentParts(
-                                contentParts,
-                                groupActivity = !hasParallelGroupIds(contentParts),
-                            )
-                        }
-
-                        // A collapsed group would swallow the match the user just navigated to, so the
-                        // one holding it opens. Resolved once per focus rather than per group per frame.
-                        val focusedGroupKey = remember(
-                            segments, partOffsets, searchQuery, searchFocusedOccurrence, isCurrentSearchMatch,
-                        ) {
-                            if (!isCurrentSearchMatch || searchQuery.isNullOrBlank() || searchFocusedOccurrence < 0) {
-                                null
-                            } else {
-                                segments.asSequence()
-                                    .flatMap { it.groups.asSequence() }
-                                    .filterIsInstance<ContentGroup.Activity>()
-                                    .firstOrNull { group ->
-                                        group.entries.any { entry ->
-                                            val start = partOffsets[entry.index]
-                                            val count = countPartOccurrences(entry.part, searchQuery)
-                                            searchFocusedOccurrence in start until (start + count)
-                                        }
-                                    }?.key
-                            }
-                        }
-
-                        @Composable
-                        fun PartContent(entry: IndexedContentPart, hideAttachments: Boolean = false) {
-                            val part = entry.part
-                            // An editable part under an open editor becomes a field in place. The
-                            // drafts are keyed by this same raw content index, which is what the
-                            // server's indexed write addresses.
-                            val session = if (editingParts) editSession else null
-                            val draft = session?.partDrafts?.get(entry.index)
-                            if (session != null && draft != null) {
-                                MessageEditField(
-                                    value = draft,
-                                    onValueChange = { session.onPartTextChange(entry.index, it) },
-                                    enabled = !session.saving,
-                                    label = if (part.type == ContentType.THINK) {
-                                        Res.string.edit_part_thoughts
-                                    } else {
-                                        Res.string.edit_part_response
-                                    },
-                                    modifier = Modifier.padding(vertical = 4.dp),
-                                )
-                                return
-                            }
-                            val focusedInPart =
-                                if (isCurrentSearchMatch) searchFocusedOccurrence - partOffsets[entry.index] else -1
-                            when (part.type) {
-                                // Handled here rather than in the shared dispatcher because both need the
-                                // viewer's identity, which a single-part renderer has no business knowing.
-                                ContentType.STEER -> part.steerText()?.let { steered ->
-                                    SteerContentPart(
-                                        text = steered,
-                                        userName = userName,
-                                        userAvatarUrl = userAvatarUrl,
-                                        fontSizeMultiplier = fontSizeMultiplier,
-                                        useKatex = useKatex,
-                                    )
-                                }
-                                ContentType.ACTIVITY_LABEL -> OrphanActivityLabel(part.activityLabelText())
-                                else -> ContentPartRenderer(
-                                    part = part,
-                                    baseUrl = baseUrl,
-                                    fontSizeMultiplier = fontSizeMultiplier,
-                                    useKatex = useKatex,
-                                    attachments = inlineAttachments,
-                                    showImageDescriptions = showImageDescriptions,
-                                    searchQuery = if (isSearchMatch) searchQuery else null,
-                                    searchFocusedOccurrence = focusedInPart,
-                                    onFocusedOccurrencePosition = if (isCurrentSearchMatch) onFocusedOccurrencePosition else null,
-                                    stateKey = "${message.messageId}:${entry.index}",
-                                    hideAttachments = hideAttachments,
-                                    modifier = Modifier.padding(vertical = 2.dp),
-                                )
-                            }
-                        }
-
-                        // A multi-agent reply gathers its sources in one panel ahead of the lanes, as
-                        // upstream's ParallelContent does; each Compare pane has its own lane's.
-                        if (hasParallelGroupIds(contentParts)) {
-                            DisableSelection {
-                                SourcesPanel(
-                                    attachments = inlineAttachments,
-                                    stateKey = message.messageId,
-                                    modifier = Modifier.padding(bottom = 8.dp),
-                                )
-                            }
-                        }
-                        segments.forEach { segment ->
-                            key(segment.key) {
-                                // A traversal group so the attribution header is read immediately before
-                                // its own content instead of segments interleaving. It is not implicit:
-                                // a plain Column does not set one.
-                                Column(modifier = Modifier.semantics { isTraversalGroup = true }) {
-                                    segment.author?.let { author ->
-                                        SegmentAuthorHeader(
-                                            author = author,
-                                            messageSender = message.sender,
-                                            messageAvatar = avatar,
+                    // A saved reply's fences can run (web `MarkdownComponents` `code`), keyed by the part's
+                    // raw content index. Not a user turn, not while edited, not a Compare lane (its
+                    // parts are filtered, so the index would not be the stored message's).
+                    val parallel = remember(message.content) { hasParallelGroupIds(message.content.orEmpty()) }
+                    val runsCode = !isUser && editSession == null && LocalCodeRunHost.current != null && !parallel
+                    // Web wraps the message text, not its files or quotes, so those stay in view.
+                    CollapsibleUserText(
+                        enabled = isUser && LocalCollapseLongUserMessages.current && editSession == null,
+                        stateKey = message.messageId,
+                        fontSizeMultiplier = fontSizeMultiplier,
+                        forceExpanded = isCurrentSearchMatch,
+                    ) {
+                        val contentParts = message.content
+                        if (!contentParts.isNullOrEmpty()) {
+                            // Occurrence indices are message-wide (SearchMatchEnumeration): rebase them
+                            // per part so each part resolves the focused occurrence within itself. The focused
+                            // message contains the query by definition, so the fast-path bail never triggers —
+                            // compute each part's starting offset once (not on every recomposition, which would
+                            // re-parse every part's markdown each animateScrollBy frame).
+                            val partOffsets = remember(contentParts, searchQuery, isCurrentSearchMatch) {
+                                val offsets = IntArray(contentParts.size)
+                                if (isCurrentSearchMatch && !searchQuery.isNullOrBlank()) {
+                                    // Lockstep with countMessageOccurrences: a late batch label a
+                                    // finalized phase consumed is not drawn, so it contributes no offset.
+                                    val consumed = findLateBatchLabelsConsumedByPhase(contentParts)
+                                    var acc = 0
+                                    contentParts.forEachIndexed { i, part ->
+                                        offsets[i] = acc
+                                        acc += countPartOccurrences(
+                                            part,
+                                            searchQuery,
+                                            consumedLateBatchLabel = i in consumed,
                                         )
                                     }
-                                    segment.groups.forEach { group ->
-                                        // Keyed, so per-part state (an expanded thinking block) follows its
-                                        // part when grouping shifts it under a wrapper instead of staying
-                                        // with whatever now occupies that position.
-                                        key(group.key) {
-                                            when (group) {
-                                                is ContentGroup.Single -> PartContent(group.entry)
-                                                is ContentGroup.Activity -> {
-                                                    val hoisted = remember(inlineAttachments, group) {
-                                                        collectGroupAttachments(
-                                                            inlineAttachments,
-                                                            group.groupedToolCallIds(),
-                                                        )
-                                                    }
-                                                    val groupOutcome = remember(inlineAttachments, group) {
-                                                        activityGroupOutcome(group, inlineAttachments)
-                                                    }
-                                                    // A field the user cannot reach is worse than
-                                                    // no field: a reply whose only editable part is
-                                                    // its reasoning would otherwise open the editor
-                                                    // on a collapsed group and show just a footer.
-                                                    val holdsEditedPart = editingParts &&
-                                                        group.entries.any { it.index in editSession.partDrafts }
-                                                    val searchHeader = remember(group, inlineAttachments) {
-                                                        searchGroupHeader(group, inlineAttachments)
-                                                    }
-                                                    // The searches' image, shopping and place results,
-                                                    // which their cards leave out inside a group.
-                                                    val groupVerticals = remember(group, inlineAttachments) {
-                                                        val ids = group.groupedToolCallIds().toSet()
-                                                        collectAttachmentSearchVerticals(
-                                                            inlineAttachments.filter { it.toolCallId in ids },
-                                                        )
-                                                    }
-                                                    ActivityGroup(
-                                                        group = group,
-                                                        outcome = groupOutcome,
-                                                        stateKey = "${message.messageId}:${group.key}",
-                                                        autoExpand = group.key == focusedGroupKey || holdsEditedPart,
-                                                        autoExpandKey = LocalSearchFocusNonce.current,
-                                                        hoistedAttachments = {
-                                                            // Required: the inline path gets this from
-                                                            // the dispatcher, the hoisted one sits
-                                                            // outside it and would otherwise leak
-                                                            // filenames into "Select all".
-                                                            DisableSelection {
-                                                                ToolAttachmentBuckets(
-                                                                    buckets = hoisted,
-                                                                    baseUrl = baseUrl,
-                                                                    modifier = Modifier.padding(top = 4.dp),
-                                                                )
-                                                                SearchVerticalsSection(
-                                                                    verticals = groupVerticals,
-                                                                    stateKey = "${message.messageId}:${group.key}",
-                                                                    modifier = Modifier.padding(top = 8.dp),
-                                                                )
-                                                                // Never inside the fold: an App row stays
-                                                                // reachable with the group collapsed.
-                                                                McpAppRows(
-                                                                    attachments = inlineAttachments,
-                                                                    toolCallIds = group.groupedToolCallIds(),
-                                                                    modifier = Modifier.padding(top = 8.dp),
-                                                                )
-                                                            }
-                                                        },
-                                                        searchHeader = searchHeader,
-                                                    ) {
-                                                        group.entries.forEach { entry ->
-                                                            key(entry.index) {
-                                                                PartContent(entry, hideAttachments = true)
+                                }
+                                offsets
+                            }
+                            // Segment + group the parts ONCE, not while emitting them: a group's header has to
+                            // be written before its members, which a Column cannot express without knowing the
+                            // group's extent up front. Pure, so the boundaries are unit-testable.
+                            val segments = remember(contentParts) {
+                                groupContentParts(
+                                    contentParts,
+                                    groupActivity = !hasParallelGroupIds(contentParts),
+                                )
+                            }
+
+                            // A collapsed group would swallow the match the user just navigated to, so the
+                            // one holding it opens. Resolved once per focus rather than per group per frame.
+                            val focusedGroupKey = remember(
+                                segments, partOffsets, searchQuery, searchFocusedOccurrence, isCurrentSearchMatch,
+                            ) {
+                                if (!isCurrentSearchMatch || searchQuery.isNullOrBlank() || searchFocusedOccurrence < 0) {
+                                    null
+                                } else {
+                                    segments.asSequence()
+                                        .flatMap { it.groups.asSequence() }
+                                        .filterIsInstance<ContentGroup.Activity>()
+                                        .firstOrNull { group ->
+                                            group.entries.any { entry ->
+                                                val start = partOffsets[entry.index]
+                                                val count = countPartOccurrences(entry.part, searchQuery)
+                                                searchFocusedOccurrence in start until (start + count)
+                                            }
+                                        }?.key
+                                }
+                            }
+
+                            @Composable
+                            fun PartContent(entry: IndexedContentPart, hideAttachments: Boolean = false) {
+                                val part = entry.part
+                                // An editable part under an open editor becomes a field in place. The
+                                // drafts are keyed by this same raw content index, which is what the
+                                // server's indexed write addresses.
+                                val session = if (editingParts) editSession else null
+                                val draft = session?.partDrafts?.get(entry.index)
+                                if (session != null && draft != null) {
+                                    MessageEditField(
+                                        value = draft,
+                                        onValueChange = { session.onPartTextChange(entry.index, it) },
+                                        enabled = !session.saving,
+                                        label = if (part.type == ContentType.THINK) {
+                                            Res.string.edit_part_thoughts
+                                        } else {
+                                            Res.string.edit_part_response
+                                        },
+                                        modifier = Modifier.padding(vertical = 4.dp),
+                                    )
+                                    return
+                                }
+                                val focusedInPart =
+                                    if (isCurrentSearchMatch) searchFocusedOccurrence - partOffsets[entry.index] else -1
+                                when (part.type) {
+                                    // Handled here rather than in the shared dispatcher because both need the
+                                    // viewer's identity, which a single-part renderer has no business knowing.
+                                    ContentType.STEER -> part.steerText()?.let { steered ->
+                                        SteerContentPart(
+                                            text = steered,
+                                            userName = userName,
+                                            userAvatarUrl = userAvatarUrl,
+                                            fontSizeMultiplier = fontSizeMultiplier,
+                                            useKatex = useKatex,
+                                        )
+                                    }
+                                    ContentType.ACTIVITY_LABEL -> OrphanActivityLabel(part.activityLabelText())
+                                    ContentType.TEXT -> ProvideCodeRunPart(
+                                        part = CodeRunPart(message.messageId, entry.index).takeIf { runsCode },
+                                    ) {
+                                        ContentPartRenderer(
+                                            part = part,
+                                            baseUrl = baseUrl,
+                                            fontSizeMultiplier = fontSizeMultiplier,
+                                            useKatex = useKatex,
+                                            attachments = inlineAttachments,
+                                            showImageDescriptions = showImageDescriptions,
+                                            searchQuery = if (isSearchMatch) searchQuery else null,
+                                            searchFocusedOccurrence = focusedInPart,
+                                            onFocusedOccurrencePosition = if (isCurrentSearchMatch) onFocusedOccurrencePosition else null,
+                                            stateKey = "${message.messageId}:${entry.index}",
+                                            hideAttachments = hideAttachments,
+                                            modifier = Modifier.padding(vertical = 2.dp),
+                                        )
+                                    }
+                                    else -> ContentPartRenderer(
+                                        part = part,
+                                        baseUrl = baseUrl,
+                                        fontSizeMultiplier = fontSizeMultiplier,
+                                        useKatex = useKatex,
+                                        attachments = inlineAttachments,
+                                        showImageDescriptions = showImageDescriptions,
+                                        searchQuery = if (isSearchMatch) searchQuery else null,
+                                        searchFocusedOccurrence = focusedInPart,
+                                        onFocusedOccurrencePosition = if (isCurrentSearchMatch) onFocusedOccurrencePosition else null,
+                                        stateKey = "${message.messageId}:${entry.index}",
+                                        hideAttachments = hideAttachments,
+                                        modifier = Modifier.padding(vertical = 2.dp),
+                                    )
+                                }
+                            }
+
+                            // A multi-agent reply gathers its sources in one panel ahead of the lanes, as
+                            // upstream's ParallelContent does; each Compare pane has its own lane's.
+                            if (hasParallelGroupIds(contentParts)) {
+                                DisableSelection {
+                                    SourcesPanel(
+                                        attachments = inlineAttachments,
+                                        stateKey = message.messageId,
+                                        modifier = Modifier.padding(bottom = 8.dp),
+                                    )
+                                }
+                            }
+                            segments.forEach { segment ->
+                                key(segment.key) {
+                                    // A traversal group so the attribution header is read immediately before
+                                    // its own content instead of segments interleaving. It is not implicit:
+                                    // a plain Column does not set one.
+                                    Column(modifier = Modifier.semantics { isTraversalGroup = true }) {
+                                        segment.author?.let { author ->
+                                            SegmentAuthorHeader(
+                                                author = author,
+                                                messageSender = message.sender,
+                                                messageAvatar = avatar,
+                                            )
+                                        }
+                                        segment.groups.forEach { group ->
+                                            // Keyed, so per-part state (an expanded thinking block) follows its
+                                            // part when grouping shifts it under a wrapper instead of staying
+                                            // with whatever now occupies that position.
+                                            key(group.key) {
+                                                when (group) {
+                                                    is ContentGroup.Single -> PartContent(group.entry)
+                                                    is ContentGroup.Activity -> {
+                                                        val hoisted = remember(inlineAttachments, group) {
+                                                            collectGroupAttachments(
+                                                                inlineAttachments,
+                                                                group.groupedToolCallIds(),
+                                                            )
+                                                        }
+                                                        val groupOutcome = remember(inlineAttachments, group) {
+                                                            activityGroupOutcome(group, inlineAttachments)
+                                                        }
+                                                        // A field the user cannot reach is worse than
+                                                        // no field: a reply whose only editable part is
+                                                        // its reasoning would otherwise open the editor
+                                                        // on a collapsed group and show just a footer.
+                                                        val holdsEditedPart = editingParts &&
+                                                            group.entries.any { it.index in editSession.partDrafts }
+                                                        val searchHeader = remember(group, inlineAttachments) {
+                                                            searchGroupHeader(group, inlineAttachments)
+                                                        }
+                                                        // The searches' image, shopping and place results,
+                                                        // which their cards leave out inside a group.
+                                                        val groupVerticals = remember(group, inlineAttachments) {
+                                                            val ids = group.groupedToolCallIds().toSet()
+                                                            collectAttachmentSearchVerticals(
+                                                                inlineAttachments.filter { it.toolCallId in ids },
+                                                            )
+                                                        }
+                                                        ActivityGroup(
+                                                            group = group,
+                                                            outcome = groupOutcome,
+                                                            stateKey = "${message.messageId}:${group.key}",
+                                                            autoExpand = group.key == focusedGroupKey || holdsEditedPart,
+                                                            autoExpandKey = LocalSearchFocusNonce.current,
+                                                            hoistedAttachments = {
+                                                                // Required: the inline path gets this from
+                                                                // the dispatcher, the hoisted one sits
+                                                                // outside it and would otherwise leak
+                                                                // filenames into "Select all".
+                                                                DisableSelection {
+                                                                    ToolAttachmentBuckets(
+                                                                        buckets = hoisted,
+                                                                        baseUrl = baseUrl,
+                                                                        modifier = Modifier.padding(top = 4.dp),
+                                                                    )
+                                                                    SearchVerticalsSection(
+                                                                        verticals = groupVerticals,
+                                                                        stateKey = "${message.messageId}:${group.key}",
+                                                                        modifier = Modifier.padding(top = 8.dp),
+                                                                    )
+                                                                    // Never inside the fold: an App row stays
+                                                                    // reachable with the group collapsed.
+                                                                    McpAppRows(
+                                                                        attachments = inlineAttachments,
+                                                                        toolCallIds = group.groupedToolCallIds(),
+                                                                        modifier = Modifier.padding(top = 8.dp),
+                                                                    )
+                                                                }
+                                                            },
+                                                            searchHeader = searchHeader,
+                                                        ) {
+                                                            group.entries.forEach { entry ->
+                                                                key(entry.index) {
+                                                                    PartContent(entry, hideAttachments = true)
+                                                                }
                                                             }
                                                         }
                                                     }
@@ -629,63 +660,68 @@ internal fun MessageContentAndActions(
                                     }
                                 }
                             }
-                        }
-                    } else {
-                        if (isPersistedTurnError(message)) {
-                            StreamErrorPart(raw = message.text)
-                        } else if (isUser && !message.privacyRevision.isNullOrEmpty()) {
-                            // A turn the server redacted: its author sees what they typed, with why.
-                            PrivateTextBody(
-                                message = message,
-                                fontSizeMultiplier = fontSizeMultiplier,
-                                useKatex = useKatex,
-                                searchQuery = if (isSearchMatch) searchQuery else null,
-                                searchFocusedOccurrence = if (isCurrentSearchMatch) searchFocusedOccurrence else -1,
-                                onFocusedOccurrencePosition = if (isCurrentSearchMatch) onFocusedOccurrencePosition else null,
-                            )
-                        } else if (message.text.isNotBlank()) {
-                            val query = if (isSearchMatch) searchQuery else null
-                            val focused = if (isCurrentSearchMatch) searchFocusedOccurrence else -1
-                            val onFocused = if (isCurrentSearchMatch) onFocusedOccurrencePosition else null
-                            // Reasoning saved inside the text (`:::thinking`) renders as a reasoning
-                            // block ahead of the reply, as on web; its matches are numbered first.
-                            val runs = remember(message.text) { message.legacyTextRuns() }
-                            val reasoningMatches = remember(runs, query) {
-                                if (query.isNullOrBlank()) 0 else countMarkdownOccurrences(runs.reasoning.orEmpty(), query)
-                            }
-                            runs.reasoning?.let { reasoning ->
-                                ThinkingContentPart(
-                                    thinkingText = reasoning,
-                                    modifier = Modifier.padding(bottom = 8.dp),
+                        } else {
+                            if (isPersistedTurnError(message)) {
+                                StreamErrorPart(raw = message.text)
+                            } else if (isUser && !message.privacyRevision.isNullOrEmpty()) {
+                                // A turn the server redacted: its author sees what they typed, with why.
+                                PrivateTextBody(
+                                    message = message,
                                     fontSizeMultiplier = fontSizeMultiplier,
                                     useKatex = useKatex,
-                                    searchQuery = query,
-                                    searchFocusedOccurrence = if (focused < reasoningMatches) focused else -1,
-                                    onFocusedOccurrencePosition = onFocused,
-                                    stateKey = "${message.messageId}:legacy",
+                                    searchQuery = if (isSearchMatch) searchQuery else null,
+                                    searchFocusedOccurrence = if (isCurrentSearchMatch) searchFocusedOccurrence else -1,
+                                    onFocusedOccurrencePosition = if (isCurrentSearchMatch) onFocusedOccurrencePosition else null,
                                 )
-                            }
-                            val answerFocused = if (focused >= reasoningMatches) focused - reasoningMatches else -1
-                            if (runs.answer.isBlank()) {
-                                // Reasoning only: nothing else to draw.
-                            } else if (message.textFallbackSplitsArtifacts()) {
-                                TextContentPart(
-                                    text = runs.answer,
-                                    fontSizeMultiplier = fontSizeMultiplier,
-                                    useKatex = useKatex,
-                                    searchQuery = query,
-                                    searchFocusedOccurrence = answerFocused,
-                                    onFocusedOccurrencePosition = onFocused,
-                                )
-                            } else {
-                                MarkdownContent(
-                                    text = runs.answer,
-                                    fontSizeMultiplier = fontSizeMultiplier,
-                                    useKatex = useKatex,
-                                    searchQuery = query,
-                                    searchFocusedOccurrence = answerFocused,
-                                    onFocusedOccurrencePosition = onFocused,
-                                )
+                            } else if (message.text.isNotBlank()) {
+                                val query = if (isSearchMatch) searchQuery else null
+                                val focused = if (isCurrentSearchMatch) searchFocusedOccurrence else -1
+                                val onFocused = if (isCurrentSearchMatch) onFocusedOccurrencePosition else null
+                                // Reasoning saved inside the text (`:::thinking`) renders as a reasoning
+                                // block ahead of the reply, as on web; its matches are numbered first.
+                                val runs = remember(message.text) { message.legacyTextRuns() }
+                                val reasoningMatches = remember(runs, query) {
+                                    if (query.isNullOrBlank()) 0 else countMarkdownOccurrences(runs.reasoning.orEmpty(), query)
+                                }
+                                runs.reasoning?.let { reasoning ->
+                                    ThinkingContentPart(
+                                        thinkingText = reasoning,
+                                        modifier = Modifier.padding(bottom = 8.dp),
+                                        fontSizeMultiplier = fontSizeMultiplier,
+                                        useKatex = useKatex,
+                                        searchQuery = query,
+                                        searchFocusedOccurrence = if (focused < reasoningMatches) focused else -1,
+                                        onFocusedOccurrencePosition = onFocused,
+                                        stateKey = "${message.messageId}:legacy",
+                                    )
+                                }
+                                val answerFocused = if (focused >= reasoningMatches) focused - reasoningMatches else -1
+                                if (runs.answer.isBlank()) {
+                                    // Reasoning only: nothing else to draw.
+                                } else {
+                                    // A reply with no parts: web sends no partIndex for its blocks.
+                                    ProvideCodeRunPart(part = CodeRunPart(message.messageId, null).takeIf { runsCode }) {
+                                        if (message.textFallbackSplitsArtifacts()) {
+                                            TextContentPart(
+                                                text = runs.answer,
+                                                fontSizeMultiplier = fontSizeMultiplier,
+                                                useKatex = useKatex,
+                                                searchQuery = query,
+                                                searchFocusedOccurrence = answerFocused,
+                                                onFocusedOccurrencePosition = onFocused,
+                                            )
+                                        } else {
+                                            MarkdownContent(
+                                                text = runs.answer,
+                                                fontSizeMultiplier = fontSizeMultiplier,
+                                                useKatex = useKatex,
+                                                searchQuery = query,
+                                                searchFocusedOccurrence = answerFocused,
+                                                onFocusedOccurrencePosition = onFocused,
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

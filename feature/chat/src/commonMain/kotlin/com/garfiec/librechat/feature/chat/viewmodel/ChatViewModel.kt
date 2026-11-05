@@ -22,6 +22,7 @@ import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepository
+import com.garfiec.librechat.core.data.repository.CodeRunRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.DraftRepository
@@ -68,6 +69,7 @@ import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.core.ui.media.MediaItem
 import com.garfiec.librechat.core.ui.media.MediaPreviewState
 import com.garfiec.librechat.feature.chat.components.AttachedFile
+import com.garfiec.librechat.feature.chat.components.CodeRunHost
 import com.garfiec.librechat.feature.chat.components.ParsedMarkdownCache
 import com.garfiec.librechat.feature.chat.components.PausePanelAutoAdvance
 import com.garfiec.librechat.feature.chat.components.parsePickerQuery
@@ -94,6 +96,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.AttachmentPreviewDe
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.BranchSwitch
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ChatBookmarksDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ChatConfigDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.CodeRunDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.CodeWorkspaceDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ComparisonModeDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ContextProjectionDelegate
@@ -127,6 +130,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.SkillsToggleDelegat
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SteeringDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.StreamingHost
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.StreamingManagerDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.SubagentHintsDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.SubagentTraceDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ToolPartHydrationDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.UploadIntakeDelegate
@@ -203,6 +207,7 @@ class ChatViewModel(
     codeEnvironmentRepository: CodeEnvironmentRepository,
     codeWorkspacePreferenceStore: CodeWorkspacePreferenceStore,
     pullRequestRepository: PullRequestRepository,
+    codeRunRepository: CodeRunRepository,
     private val permissionGate: PermissionGate,
     private val connectivityObserver: ConnectivityObserver,
     private val activeAccountProvider: ActiveAccountProvider,
@@ -273,6 +278,13 @@ class ChatViewModel(
         currentMessages = { _uiState.value.messages },
         currentAccountId = { activeAccountProvider.currentAccountId()?.value },
         defaultDispatcher = defaultDispatcher,
+        isStreaming = { _uiState.value.isStreaming },
+    )
+    private val subagentHintsDelegate = SubagentHintsDelegate(
+        scope = viewModelScope,
+        messageRepository = messageRepository,
+        currentAccountId = { activeAccountProvider.currentAccountId()?.value },
+        defaultDispatcher = defaultDispatcher,
     )
     private val toolPartOverlay = ToolPartOverlay()
     private val searchDelegate = InConversationSearchDelegate(SearchHandle(stateHandle))
@@ -339,6 +351,22 @@ class ChatViewModel(
         configRepository = configRepository,
         conversationRepository = conversationRepository,
         repository = pullRequestRepository,
+    )
+
+    // Run Code on a reply's fenced blocks; its own flow, read by the code blocks only.
+    private val codeRunDelegate = CodeRunDelegate(
+        scope = viewModelScope,
+        repository = codeRunRepository,
+        conversationId = { _uiState.value.conversationId },
+        isTemporary = { _uiState.value.isTemporaryChat },
+        onRunFailed = { _uiState.update { it.copy(error = ChatNotice.RUN_CODE_FAILED.marker()) } },
+    )
+
+    /** What the chat screen lends its replies' code blocks (`LocalCodeRunHost`), behind RUN_CODE. */
+    val codeRunHost = CodeRunHost(
+        runs = codeRunDelegate.state,
+        onRun = codeRunDelegate::run,
+        onShown = codeRunDelegate::ensureLoaded,
     )
 
     private val reasoningCatalogDelegate = ReasoningCatalogDelegate(
@@ -498,7 +526,8 @@ class ChatViewModel(
         sttAndRendererPrefs,
         siteIconsState,
         settingsDataStore.thinkingOpenByDefault,
-    ) { base, sttRenderer, siteIcons, thinkingOpen ->
+        preferenceStore.observe(AppPreferences.CollapseLongUserMessages),
+    ) { base, sttRenderer, siteIcons, thinkingOpen, collapseLong ->
         ChatPreferences(
             showImageDescriptions = base.showImageDescriptions,
             dismissKeyboardOnSend = base.dismissKeyboardOnSend,
@@ -511,6 +540,7 @@ class ChatViewModel(
             sttLanguage = sttRenderer.sttLanguage,
             inlineArtifactPrefs = sttRenderer.inlineArtifactPrefs,
             thinkingOpenByDefault = thinkingOpen,
+            collapseLongUserMessages = collapseLong,
             siteIcons = siteIcons,
         )
     }.stateIn(
@@ -559,15 +589,17 @@ class ChatViewModel(
     val uiState: StateFlow<ChatUiState> = combine(
         _uiState,
         // Paired off the backing-state path, so a fetched tool part adds no hop to every state emission.
-        combine(serverDataStore.currentUrlFlow, toolPartDelegate.loaded, ::Pair),
+        combine(serverDataStore.currentUrlFlow, toolPartDelegate.loaded, subagentHintsDelegate.hints, ::Triple),
         settingsDataStore.chatFontSize,
         settingsDataStore.starredModelsDisplay,
         chatDisplayPrefs,
-    ) { state, (url, loadedToolParts), fontSize, starredDisplay, displayPrefs ->
+    ) { state, (url, loadedToolParts, subagentHints), fontSize, starredDisplay, displayPrefs ->
         // Fetched full tool calls go over the display path here, after it is built and before the
         // UI collects it: a fetch landing never rebuilds the tree or touches the streaming anchor,
-        // and delegates keep reading the backing state's previews.
-        toolPartOverlay.apply(state, loadedToolParts).copy(
+        // and delegates keep reading the backing state's previews. Everything below builds on
+        // `hydrated`: a field copied from `state` would put the previews back.
+        val hydrated = toolPartOverlay.apply(state, loadedToolParts, subagentHints)
+        hydrated.copy(
             prefs = ChatPrefsState(
                 serverUrl = url,
                 chatFontSize = fontSize,
@@ -592,9 +624,9 @@ class ChatViewModel(
             ),
             // Reply avatars, resolved here for the same reason: the URL and the endpoint configs
             // (a custom endpoint's served providerId) each arrive on their own flow.
-            content = state.content.copy(
+            content = hydrated.content.copy(
                 displayMessages = replyAvatarMemo.resolve(
-                    state.content.displayMessages,
+                    hydrated.content.displayMessages,
                     state.selectedEndpoint,
                     url,
                     state.endpointConfigs,
@@ -960,7 +992,19 @@ class ChatViewModel(
         // Seed/refresh the context-usage gauge for a loaded or snapshot-less branch (v0.8.7).
         contextProjectionDelegate.start()
         ownerTextDelegate.start()
-        toolPartDelegate.start(_uiState.map { it.conversationId to it.messages })
+        toolPartDelegate.start(
+            messages = _uiState.map { it.conversationId to it.messages },
+            streaming = _uiState.map { it.isStreaming },
+            connectivity = connectivityObserver.isConnected,
+        )
+        // Asked for what is on screen: the display path, not every stored branch.
+        subagentHintsDelegate.start(
+            messages = _uiState
+                .map { it.conversationId to it.content.displayMessages }
+                .distinctUntilChanged { a, b -> a.first == b.first && a.second === b.second }
+                .map { (id, nodes) -> id to nodes.map { it.message } },
+            connectivity = connectivityObserver.isConnected,
+        )
         // The Skills toggle follows the slot this chat maps to (conversation, new chat, temp, spec).
         skillsToggleDelegate.start()
         codeWorkspaceDelegate.start()
@@ -1825,8 +1869,29 @@ class ChatViewModel(
 
     fun refreshCodeWorkspaces() = codeWorkspaceDelegate.refresh()
 
+    fun selectTransitionCodeWorkspace(environmentId: String, workspaceId: String) =
+        codeWorkspaceDelegate.selectTransitionWorkspace(environmentId, workspaceId)
+
+    fun setTransitionCodeCheckout(environmentId: String, mode: CodeCheckoutMode) =
+        codeWorkspaceDelegate.setTransitionCheckout(environmentId, mode)
+
+    fun confirmCodeWorkspaceTransition() = codeWorkspaceDelegate.confirmTransition()
+
+    fun detachCodeWorkspace() = codeWorkspaceDelegate.detach()
+
+    fun retryCodeWorkspaceCheck() = codeWorkspaceDelegate.refresh()
+
+    fun selectCodeApprovalMode(option: CodeApprovalOption) = codeWorkspaceDelegate.selectApprovalMode(option)
+
     /** The pull request sheet's Retry, after a refresh failed. */
     fun retryPullRequest() = pullRequestDelegate.retry()
+
+    fun openPullRequestSheet() = pullRequestDelegate.openSheet()
+
+    fun dismissPullRequestSheet() = pullRequestDelegate.dismissSheet()
+
+    /** The composer chip has been on screen long enough to count as read. */
+    fun markPullRequestSeen() = pullRequestDelegate.markSeen()
 
     fun dismissSendBlockReason() {
         _uiState.update { it.copy(composer = it.composer.copy(sendBlockReason = null)) }
@@ -1912,6 +1977,20 @@ class ChatViewModel(
 
     // File attachments
     fun onFilesSelected(platformRefs: List<Any>) = uploadIntakeDelegate.intakePickedFiles(platformRefs, prompt = true)
+
+    /**
+     * "Upload to Code Environment" picks ([ChatUiState.codeUploadOffered]). Like web, this also turns
+     * the code interpreter on for a chat with ephemeral tools, or the file would reach a run with
+     * no tool to read it (a saved agent already has it: that is what offers the row).
+     */
+    fun onCodeFilesSelected(platformRefs: List<Any>) {
+        val state = _uiState.value
+        if (!state.codeUploadOffered) return
+        if (state.toolbarShown && ToolConstants.CODE_INTERPRETER !in state.selection.effectiveTools) {
+            modelDelegate.toggleTool(ToolConstants.CODE_INTERPRETER)
+        }
+        uploadIntakeDelegate.intakeCodeFiles(platformRefs)
+    }
     fun setPendingUploadRoute(index: Int, route: UploadRoute) = uploadIntakeDelegate.setPendingUploadRoute(index, route)
     fun setAllPendingUploadRoutes(route: UploadRoute) = uploadIntakeDelegate.setAllPendingUploadRoutes(route)
     fun confirmPendingUploadRouting() = uploadIntakeDelegate.confirmPendingUploadRouting()

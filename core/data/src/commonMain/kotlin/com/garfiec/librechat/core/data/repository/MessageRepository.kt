@@ -6,6 +6,8 @@ import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
 import com.garfiec.librechat.core.model.content.AgentToolCall
 import com.garfiec.librechat.core.model.response.OwnerText
+import com.garfiec.librechat.core.model.response.SubagentAttachmentCallsEntry
+import com.garfiec.librechat.core.model.response.SubagentAttachmentFile
 import kotlinx.coroutines.flow.Flow
 
 interface MessageRepository {
@@ -27,8 +29,9 @@ interface MessageRepository {
     suspend fun fetchMessagesFull(conversationId: String): Result<List<Message>>
 
     /**
-     * One stored tool call in full (`GET …/parts/:partIndex`), network-direct and never cached: the
-     * caller holds it in memory only. [partIndex] is the raw index into `Message.content`.
+     * One stored tool call in full (`GET …/parts/:partIndex`), network-direct: nothing is written.
+     * A caller that wants it kept stores it with [storeToolCallParts]. [partIndex] is the raw index
+     * into `Message.content`.
      */
     suspend fun getToolCallPart(
         conversationId: String,
@@ -38,6 +41,36 @@ interface MessageRepository {
         stepId: String?,
         agentId: String?,
     ): Result<AgentToolCall>
+
+    /**
+     * Full tool calls stored for [refs] in [conversationId], for the active account. Rows are
+     * returned as stored: whether one still stands for the preview the message now carries is the
+     * caller's check (same full lengths), since only it holds the preview.
+     */
+    /**
+     * Which child calls of [messageId]'s stored subagent transcripts [files] were saved under
+     * (`GET …/subagent-calls`, v0.8.9-rc1), asked in batches of 32. Network-direct, never cached.
+     * Only meaningful for a message holding a previewed subagent call (`subagentContentOmitted`),
+     * which only an rc1+ server sends, so the route exists whenever a caller asks.
+     */
+    suspend fun getSubagentAttachmentCalls(
+        conversationId: String,
+        messageId: String,
+        files: List<SubagentAttachmentFile>,
+    ): Result<List<SubagentAttachmentCallsEntry>>
+
+    suspend fun storedToolCallParts(conversationId: String, refs: List<ToolCallPartRef>): Map<ToolCallPartRef, AgentToolCall>
+
+    /**
+     * Keeps fetched full tool calls of **finished** messages, beside (never inside) the message rows,
+     * so the next session opens them without a fetch. Rows whose message is not cached for the
+     * account are skipped. [originAccount] follows the [cacheMessages] contract. Callers must not
+     * call this while their conversation is streaming (the no-Room-write-mid-stream invariant).
+     */
+    suspend fun storeToolCallParts(conversationId: String, parts: Map<ToolCallPartRef, AgentToolCall>, originAccount: AccountId?)
+
+    /** The refs of every full tool call stored for [conversationId], with what each costs in characters. */
+    suspend fun storedToolCallPartSizes(conversationId: String, originAccount: AccountId?): Map<ToolCallPartRef, Long>
 
     /**
      * Persists [messages] to the local cache only — no network call. Records what a completed
@@ -102,3 +135,17 @@ interface MessageRepository {
 
 /** The owner-text route's per-request cap. */
 const val OWNER_TEXT_BATCH = 50
+
+/**
+ * Who a stored tool call is: its message plus the full-part route's identity (`id + stepId +
+ * part.agentId`). Blank [stepId] / [agentId] mean absent.
+ */
+data class ToolCallPartRef(
+    val messageId: String,
+    val toolCallId: String,
+    val stepId: String?,
+    val agentId: String?,
+) {
+    /** The same ref with blanks read as absent, so `""` and null never name two different rows. */
+    fun normalized(): ToolCallPartRef = copy(stepId = stepId?.ifEmpty { null }, agentId = agentId?.ifEmpty { null })
+}

@@ -175,6 +175,8 @@ internal fun AgentEditorUiState.applyAgentData(agent: Agent): AgentEditorUiState
         conversationStarters = agent.conversationStarters,
         avatarUrl = agent.avatarUrl,
         codeInterpreterEnabled = ToolConstants.EXECUTE_CODE in capabilityTools,
+        code = AgentCodeSettings.of(agent),
+        codeGitIdentityError = false,
         fileSearchEnabled = ToolConstants.FILE_SEARCH in capabilityTools,
         webSearchEnabled = ToolConstants.WEB_SEARCH in capabilityTools,
         fileContextEnabled = "context" in capabilityTools,

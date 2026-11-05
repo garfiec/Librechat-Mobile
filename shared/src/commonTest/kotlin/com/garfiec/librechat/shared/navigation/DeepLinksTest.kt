@@ -3,6 +3,7 @@ package com.garfiec.librechat.shared.navigation
 import com.garfiec.librechat.feature.chat.navigation.ArtifactShortcutViewer
 import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.NewChat
+import com.garfiec.librechat.feature.settings.navigation.CodeSetup
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -97,5 +98,15 @@ class DeepLinksTest {
             DeepLinkResolution.None,
             DeepLinks.resolve(DeepLinkUri(host = null, pathSegments = emptyList(), query = emptyMap())),
         )
+    }
+
+    @Test
+    fun codeSetup_routesAValidAttemptRequiringAuth() {
+        val id = "a".repeat(42) + "-"
+        assertEquals(
+            DeepLinkResolution.Route(CodeSetup(id), requiresAuth = true),
+            DeepLinks.resolve(uri("code-setup", id)),
+        )
+        assertEquals(DeepLinkResolution.None, DeepLinks.resolve(uri("code-setup", "too-short")))
     }
 }

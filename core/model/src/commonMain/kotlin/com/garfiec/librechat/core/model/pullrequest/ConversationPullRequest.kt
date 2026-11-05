@@ -1,5 +1,7 @@
 package com.garfiec.librechat.core.model.pullrequest
 
+import com.garfiec.librechat.core.common.BackendVersion
+import com.garfiec.librechat.core.model.config.StartupConfig
 import kotlinx.serialization.Serializable
 
 /**
@@ -95,5 +97,54 @@ fun pullRequestRefetchIntervalMs(pullRequest: ConversationPullRequest?): Long? {
 /** The drawer re-asks a row whose answer is older than this (upstream's row `staleTime`). */
 const val PULL_REQUEST_ROW_STALE_MS = SETTLED_REFRESH_MS
 
+/**
+ * The drawer's pull-to-refresh re-asks a row only when its answer is older than this, so a burst of
+ * pulls sends one batch. Mobile-only: upstream's sidebar has no pull-to-refresh.
+ */
+const val PULL_REQUEST_ROW_FORCE_MS = 15_000L
+
 /** The chat screen re-asks on return when its answer is older than this (upstream's `staleTime`). */
 const val PULL_REQUEST_CHAT_STALE_MS = 15_000L
+
+/**
+ * `GET /api/pull-requests/oauth/status` (upstream `TPullRequestConnection`): whether the user has
+ * connected their own account for pull request lookups. [connected] can be true while [configured]
+ * is false: a grant whose app the server no longer has, which can still be removed.
+ */
+@Serializable
+data class PullRequestConnection(
+    val configured: Boolean = false,
+    /** `github` | `gitlab` | `bitbucket`; absent while nothing is configured. */
+    val provider: String? = null,
+    val connected: Boolean = false,
+    /** The sign-in that produced the grant, when the server names it. */
+    val flowId: String? = null,
+)
+
+/**
+ * `GET /api/pull-requests/oauth/connect` (upstream `TPullRequestConnectStart`): the provider page to
+ * open. The same response sets the `oauth_csrf` and `oauth_session` cookies the callback checks.
+ */
+@Serializable
+data class PullRequestConnectStart(
+    val url: String,
+    val expiresInSeconds: Int? = null,
+    val flowId: String? = null,
+)
+
+/**
+ * MIRRORED from upstream `hasPullRequestConnect` (`client/src/components/Nav/Settings/context.tsx`):
+ * the account row shows while a grant exists (so it can be removed), or while the deployment offers
+ * an account to connect and the status hasn't said its app is gone.
+ */
+fun showsPullRequestAccount(connectProvider: String?, connection: PullRequestConnection?): Boolean =
+    connection?.connected == true || (connectProvider != null && connection?.configured != false)
+
+/**
+ * Whether asking for the connection can find anything (upstream `isConnectionKnowable`): pull
+ * requests on, or an app to connect. A grant made before the app was turned off must still be found.
+ */
+fun pullRequestConnectionKnowable(config: StartupConfig?, backendVersion: String?): Boolean =
+    (config?.pullRequestsEnabled == true || config?.pullRequestsConnect != null) &&
+        backendVersion != null &&
+        BackendVersion.isCompatibleOrNewer(backendVersion, PULL_REQUESTS_MIN_VERSION)

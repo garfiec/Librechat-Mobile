@@ -51,6 +51,7 @@ import com.garfiec.librechat.feature.chat.util.CatalogSkill
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.ParameterTarget
 import com.garfiec.librechat.feature.chat.util.PendingUsage
+import com.garfiec.librechat.feature.chat.util.PtcTrace
 import com.garfiec.librechat.feature.chat.util.SkillPickRules
 import com.garfiec.librechat.feature.chat.util.ThinkingChip
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
@@ -446,6 +447,7 @@ data class ChatUiState(
     val streamingThinking: String get() = content.streamingThinking
     val activeToolCalls: List<ActiveToolCall> get() = content.activeToolCalls
     val sandboxStartingToolCallIds: Set<String> get() = content.sandboxStartingToolCallIds
+    val ptcTraces: Map<String, PtcTrace> get() = content.ptcTraces
     val streamingAttachments: List<Attachment> get() = content.streamingAttachments
     val previewOverrides: Map<String, FilePreviewResponse> get() = content.previewOverrides
     val retryInfo: RetryInfo? get() = content.retryInfo
@@ -902,6 +904,24 @@ data class ChatUiState(
             if (selectedEndpoint != EndpointConstants.AGENTS) return true
             val capabilities = endpointConfigs[EndpointConstants.AGENTS]?.capabilities ?: return true
             return capabilities.isEmpty() || FILE_CONTEXT_CAPABILITY in capabilities
+        }
+
+    /**
+     * Whether the attach sheet offers "Upload to Code Environment" (web `useAttachItems`, legacy
+     * upload UX only): the deployment kept the destination chooser (`legacyFileUploadUX`, resolved
+     * for [fileConfigEndpoint]; a config that hasn't loaded reads as unified, so nothing shows), the
+     * code interpreter capability, and a selection that can read the file: not a saved agent, or one
+     * whose tools include `execute_code`. Also RUN_CODE.USE, which web leaves to the server; the
+     * upload route refuses `execute_code` without it.
+     */
+    val codeUploadOffered: Boolean
+        get() {
+            val config = fileUploadConfig ?: return false
+            if (!fileUploadEnabled || !isCodeInterpreterAvailable || !runCodeEnabled) return false
+            if (!config.resolveEndpointFileConfig(fileConfigEndpoint).legacyFileUploadUX) return false
+            if (selectedEndpoint != EndpointConstants.AGENTS) return true
+            val agent = selection.agents.firstOrNull { it.id == selectedModel } ?: return false
+            return agent.tools?.contains(ToolConstants.EXECUTE_CODE) == true
         }
 
     /**

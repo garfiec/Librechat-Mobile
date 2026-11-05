@@ -70,6 +70,24 @@ class McpAppHostTest {
             closes++
             onClose()
         }
+        var minimizes = 0
+        override fun minimize() {
+            minimizes++
+        }
+        val modeRequests = mutableListOf<String>()
+        var modeAnswer = McpAppHost.DISPLAY_MODE_INLINE
+        override fun requestDisplayMode(mode: String): String {
+            modeRequests += mode
+            return modeAnswer
+        }
+        var offerLocation = false
+        val locationAsks = mutableListOf<String>()
+        var locationAnswer = true
+        override suspend fun mayOfferLocation(serverName: String) = offerLocation
+        override fun requestLocation(serverName: String, reply: (Boolean) -> Unit) {
+            locationAsks += serverName
+            reply(locationAnswer)
+        }
     }
 
     private val inlineApp = UiResource.from(
@@ -173,11 +191,39 @@ class McpAppHostTest {
         assertThat(pending.argumentsText).isEqualTo("""{"city":"Seattle","units":"metric"}""")
         assertThat(h.repository.toolCalls).isEmpty()
 
-        h.host.approve()
+        h.host.approve(h.host.pendingAction.value!!)
         runCurrent()
         assertThat(h.repository.toolCalls.single().first).isEqualTo("refresh_forecast")
         assertThat(h.reply(7)["result"]!!.jsonObject["content"].toString()).contains("ok")
         assertThat(h.host.pendingAction.value).isNull()
+    }
+
+    @Test
+    fun `approval settles only the action the dialog drew, never the next one`() = runTest {
+        val h = loaded()
+        val request = """{"jsonrpc":"2.0","id":%d,"method":"tools/call","params":{"name":"t","arguments":{}}}"""
+        h.app(request.format(7))
+        h.app(request.format(8))
+        runCurrent()
+        val first = h.host.pendingAction.value!!
+
+        h.host.approve(first)
+        runCurrent()
+        val second = h.host.pendingAction.value!!
+        // Identical requests are still two actions.
+        assertThat(second).isNotEqualTo(first)
+
+        // A second tap on the first dialog lands after it settled.
+        h.host.approve(first)
+        runCurrent()
+        assertThat(h.repository.toolCalls).hasSize(1)
+        assertThat(h.host.pendingAction.value).isEqualTo(second)
+        assertThat(h.out.none { (it["id"] as? JsonPrimitive)?.content == "8" }).isTrue()
+
+        h.host.approve(second)
+        runCurrent()
+        assertThat(h.repository.toolCalls).hasSize(2)
+        assertThat(h.reply(8)["result"]!!.jsonObject["content"].toString()).contains("ok")
     }
 
     @Test
@@ -216,21 +262,63 @@ class McpAppHostTest {
     }
 
     @Test
-    fun `a message is sent as text only after approval, and closes the panel`() = runTest {
+    fun `a message is sent as text only after approval, then gets out of the way without closing`() = runTest {
         val h = loaded()
-        // As the real screen does: closing the panel closes the host.
-        h.callbacks.onClose = { h.host.close() }
         h.app(
             """{"jsonrpc":"2.0","id":9,"method":"ui/message","params":{"role":"user",""" +
                 """"content":[{"type":"text","text":"Plan a hike"},{"type":"image","data":"x"}]}}""",
         )
         runCurrent()
         assertThat((h.host.pendingAction.value as McpAppAction.Message).text).isEqualTo("Plan a hike")
-        h.host.approve()
+        h.host.approve(h.host.pendingAction.value!!)
         runCurrent()
         assertThat(h.callbacks.sent).containsExactly("Plan a hike")
         assertThat(h.reply(9)["result"]!!.jsonObject).isEmpty()
-        assertThat(h.callbacks.closes).isEqualTo(1)
+        assertThat(h.callbacks.minimizes).isEqualTo(1)
+        assertThat(h.callbacks.closes).isEqualTo(0)
+        // Still running: it can ask again after the reply.
+        h.app("""{"jsonrpc":"2.0","id":10,"method":"ui/message","params":{"role":"user","content":[{"type":"text","text":"More"}]}}""")
+        runCurrent()
+        assertThat((h.host.pendingAction.value as McpAppAction.Message).text).isEqualTo("More")
+    }
+
+    @Test
+    fun `a display mode request is answered with the mode the screen settled on`() = runTest {
+        val h = loaded()
+        h.callbacks.modeAnswer = McpAppHost.DISPLAY_MODE_FULLSCREEN
+        h.app("""{"jsonrpc":"2.0","id":11,"method":"ui/request-display-mode","params":{"mode":"fullscreen"}}""")
+        assertThat(h.callbacks.modeRequests).containsExactly("fullscreen")
+        assertThat(h.reply(11)["result"]!!.jsonObject["mode"]!!.jsonPrimitive.content).isEqualTo("fullscreen")
+
+        h.callbacks.modeAnswer = McpAppHost.DISPLAY_MODE_INLINE
+        h.app("""{"jsonrpc":"2.0","id":12,"method":"ui/request-display-mode","params":{"mode":"pip"}}""")
+        assertThat(h.reply(12)["result"]!!.jsonObject["mode"]!!.jsonPrimitive.content).isEqualTo("inline")
+    }
+
+    @Test
+    fun `the app's reported height is kept, and a malformed one is ignored`() = runTest {
+        val h = loaded()
+        assertThat(h.host.reportedHeight.value).isNull()
+        h.app("""{"jsonrpc":"2.0","method":"ui/notifications/size-changed","params":{"width":360,"height":412.6}}""")
+        assertThat(h.host.reportedHeight.value).isEqualTo(413)
+        h.app("""{"jsonrpc":"2.0","method":"ui/notifications/size-changed","params":{"height":"tall"}}""")
+        h.app("""{"jsonrpc":"2.0","method":"ui/notifications/size-changed","params":{"height":-5}}""")
+        assertThat(h.host.reportedHeight.value).isEqualTo(413)
+    }
+
+    @Test
+    fun `a lost web view refuses what waited and fails with retry`() = runTest {
+        val h = loaded()
+        h.app("""{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"refresh_forecast","arguments":{}}}""")
+        runCurrent()
+        val action = h.host.pendingAction.value!!
+        h.host.close(viewLost = true)
+        runCurrent()
+        assertThat(h.host.pendingAction.value).isNull()
+        assertThat(h.host.state.value).isEqualTo(McpAppViewState.Failed(McpAppLoadFailure.COULD_NOT_LOAD))
+        h.host.approve(action)
+        runCurrent()
+        assertThat(h.repository.toolCalls).isEmpty()
     }
 
     @Test
@@ -239,7 +327,7 @@ class McpAppHostTest {
         h.callbacks.acceptMessage = false
         h.app("""{"jsonrpc":"2.0","id":9,"method":"ui/message","params":{"role":"user","content":[{"type":"text","text":"hi"}]}}""")
         runCurrent()
-        h.host.approve()
+        h.host.approve(h.host.pendingAction.value!!)
         runCurrent()
         assertThat(h.reply(9)["result"]!!.jsonObject["isError"]!!.jsonPrimitive.content).isEqualTo("true")
         assertThat(h.callbacks.closes).isEqualTo(0)
@@ -367,7 +455,7 @@ class McpAppHostTest {
         // Not a pause: the new page's App can still ask.
         h.app("""{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"t","arguments":{}}}""")
         runCurrent()
-        h.host.approve()
+        h.host.approve(h.host.pendingAction.value!!)
         runCurrent()
         assertThat(h.repository.toolCalls).hasSize(1)
         assertThat(h.reply(7)["result"]!!.jsonObject["content"].toString()).contains("ok")
@@ -381,5 +469,186 @@ class McpAppHostTest {
         h.host.pageAttached()
         h.app("""{"jsonrpc":"2.0","method":"ui/notifications/sandbox-proxy-ready","params":{}}""")
         assertThat(h.methods()).containsExactly(McpAppProtocol.SANDBOX_RESOURCE_READY)
+    }
+
+    // --- "Don't ask again" for one tool, this App session only ---
+
+    private fun Harness.call(id: Int, tool: String, args: String = "{}") =
+        app("""{"jsonrpc":"2.0","id":$id,"method":"tools/call","params":{"name":"$tool","arguments":$args}}""")
+
+    private fun Harness.isError(id: Int) = reply(id)["result"]!!.jsonObject["isError"]?.jsonPrimitive?.content == "true"
+
+    private fun TestScope.granted(tool: String = "refresh"): Harness {
+        val h = loaded()
+        h.call(1, tool, """{"units":"metric"}""")
+        runCurrent()
+        h.host.approve(h.host.pendingAction.value!!, dontAskAgain = true)
+        runCurrent()
+        assertThat(h.host.autoRunTools.value).containsExactly(tool)
+        return h
+    }
+
+    @Test
+    fun `a granted tool runs again with any arguments without asking`() = runTest {
+        val h = granted()
+        h.call(2, "refresh", """{"units":"imperial"}""")
+        runCurrent()
+        assertThat(h.host.pendingAction.value).isNull()
+        assertThat(h.repository.toolCalls.map { it.first }).containsExactly("refresh", "refresh")
+        assertThat(h.reply(2)["result"]!!.jsonObject["content"].toString()).contains("ok")
+    }
+
+    @Test
+    fun `approving without the box grants nothing`() = runTest {
+        val h = loaded()
+        h.call(1, "refresh")
+        runCurrent()
+        h.host.approve(h.host.pendingAction.value!!)
+        runCurrent()
+        h.call(2, "refresh")
+        runCurrent()
+        assertThat(h.host.autoRunTools.value).isEmpty()
+        assertThat(h.host.pendingAction.value).isNotNull()
+    }
+
+    @Test
+    fun `another tool and every message still ask`() = runTest {
+        val h = granted()
+        h.call(2, "delete")
+        runCurrent()
+        assertThat((h.host.pendingAction.value as McpAppAction.ToolCall).toolName).isEqualTo("delete")
+        h.host.approve(h.host.pendingAction.value!!)
+        runCurrent()
+        h.app("""{"jsonrpc":"2.0","id":3,"method":"ui/message","params":{"role":"user","content":[{"type":"text","text":"hi"}]}}""")
+        runCurrent()
+        assertThat(h.host.pendingAction.value).isInstanceOf(McpAppAction.Message::class.java)
+        assertThat(h.callbacks.sent).isEmpty()
+    }
+
+    @Test
+    fun `a stale tap with the box checked grants nothing for the next action`() = runTest {
+        val h = loaded()
+        h.call(1, "a")
+        h.call(2, "b")
+        runCurrent()
+        val first = h.host.pendingAction.value!!
+        h.host.approve(first)
+        runCurrent()
+        // The second tap lands on the dialog that already settled.
+        h.host.approve(first, dontAskAgain = true)
+        runCurrent()
+        assertThat(h.host.autoRunTools.value).isEmpty()
+        assertThat((h.host.pendingAction.value as McpAppAction.ToolCall).toolName).isEqualTo("b")
+    }
+
+    @Test
+    fun `arguments over the preview limit fail closed even for a granted tool`() = runTest {
+        val h = loaded(McpAppsPolicy(enabled = true, legacyHtmlEnabled = true, maxActionPreviewChars = 12))
+        h.call(1, "t")
+        runCurrent()
+        h.host.approve(h.host.pendingAction.value!!, dontAskAgain = true)
+        runCurrent()
+        h.call(2, "t", """{"long":"0123456789"}""")
+        runCurrent()
+        assertThat(h.isError(2)).isTrue()
+        assertThat(h.repository.toolCalls).hasSize(1)
+    }
+
+    @Test
+    fun `ask again revokes one tool`() = runTest {
+        val h = granted()
+        h.host.revokeAutoRun("refresh")
+        h.call(2, "refresh")
+        runCurrent()
+        assertThat(h.host.pendingAction.value).isNotNull()
+    }
+
+    @Test
+    fun `cancel revokes every grant and pauses`() = runTest {
+        val h = granted()
+        h.call(2, "other")
+        runCurrent()
+        h.host.cancelAction()
+        runCurrent()
+        assertThat(h.host.autoRunTools.value).isEmpty()
+        h.call(3, "refresh")
+        runCurrent()
+        assertThat(h.isError(3)).isTrue()
+        assertThat(h.repository.toolCalls).hasSize(1)
+    }
+
+    @Test
+    fun `a reload of the page drops the grants`() = runTest {
+        val h = granted()
+        h.host.pageAttached()
+        assertThat(h.host.autoRunTools.value).isEmpty()
+    }
+
+    @Test
+    fun `a busy server answering an auto-run call revokes its grant`() = runTest {
+        val h = granted()
+        h.repository.tool = McpAppResult.Failure(McpAppFailure.BUSY)
+        h.call(2, "refresh")
+        runCurrent()
+        assertThat(h.isError(2)).isTrue()
+        assertThat(h.callbacks.notices).contains(McpAppNotice.BUSY)
+        assertThat(h.host.autoRunTools.value).isEmpty()
+        h.call(3, "refresh")
+        runCurrent()
+        assertThat(h.host.pendingAction.value).isNotNull()
+    }
+
+    @Test
+    fun `close revokes the grants`() = runTest {
+        val h = granted()
+        h.host.close()
+        assertThat(h.host.autoRunTools.value).isEmpty()
+    }
+
+    // --- permission delegation (geolocation, clipboard-write) ---
+
+    private fun TestScope.withPermissions(offerLocation: Boolean): Harness {
+        val app = inlineApp.copy(
+            permissions = Json.parseToJsonElement("""{"geolocation":{},"clipboardWrite":{},"camera":{}}"""),
+        )
+        val h = Harness(backgroundScope, app)
+        h.callbacks.offerLocation = offerLocation
+        h.host.start()
+        runCurrent()
+        h.app("""{"jsonrpc":"2.0","method":"ui/notifications/sandbox-proxy-ready","params":{}}""")
+        return h
+    }
+
+    private fun Harness.deliveredPermissions() =
+        out.single { it["method"]?.jsonPrimitive?.content == McpAppProtocol.SANDBOX_RESOURCE_READY }
+            .getValue("params").jsonObject["permissions"]?.jsonObject?.keys
+
+    @Test
+    fun `declared geolocation and clipboard-write reach the frame, camera never`() = runTest {
+        val h = withPermissions(offerLocation = true)
+        assertThat(h.deliveredPermissions()).containsExactly("geolocation", "clipboardWrite")
+        var answer: Boolean? = null
+        h.host.onLocationPrompt { answer = it }
+        assertThat(h.callbacks.locationAsks).containsExactly("weather")
+        assertThat(answer).isTrue()
+    }
+
+    @Test
+    fun `geolocation is left out where it can't be offered, and its prompt is refused unasked`() = runTest {
+        val h = withPermissions(offerLocation = false)
+        assertThat(h.deliveredPermissions()).containsExactly("clipboardWrite")
+        var answer: Boolean? = null
+        h.host.onLocationPrompt { answer = it }
+        assertThat(answer).isFalse()
+        assertThat(h.callbacks.locationAsks).isEmpty()
+    }
+
+    @Test
+    fun `an App that declared nothing gets no permissions`() = runTest {
+        val h = loaded()
+        assertThat(h.deliveredPermissions()).isNull()
+        var answer: Boolean? = null
+        h.host.onLocationPrompt { answer = it }
+        assertThat(answer).isFalse()
     }
 }

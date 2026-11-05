@@ -7,6 +7,8 @@ import com.garfiec.librechat.feature.settings.viewmodel.ApiKeysViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.AppearanceSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ChatLayoutSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.CodeExecutionViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.CodeSetupViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ContextUsageSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.DataSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.FavoritesViewModel
@@ -18,6 +20,7 @@ import com.garfiec.librechat.feature.settings.viewmodel.PasskeysViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.PrefetchActivityViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.PrefetchSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.PresetManagerViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.PullRequestAccountViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ReleaseNotesViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.RoleMemoriesAdminViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.RoleSkillsAdminViewModel
@@ -75,6 +78,7 @@ val settingsModule = module {
             preferenceStore = get(),
             speechSettingsFactory = get(),
             libraryConsent = get(),
+            fileRepository = get(),
         )
     }
     viewModelOf(::ApiKeysViewModel)
@@ -88,6 +92,10 @@ val settingsModule = module {
     // viewModelOf can't read parametersOf: the editor takes the server it edits, or null to add one.
     viewModel { params -> McpServerEditorViewModel(get(), get(), params.getOrNull()) }
     viewModelOf(::PasskeysViewModel)
+    viewModelOf(::PullRequestAccountViewModel)
+    viewModel { CodeExecutionViewModel(get(), get(), get(), get()) }
+    // viewModelOf can't read parametersOf: the page takes the attempt it approves.
+    viewModel { params -> CodeSetupViewModel(params.get(), get(), get()) }
     viewModelOf(::PresetManagerViewModel)
     // Explicit block for the same reason as AccountSettingsViewModel: the IO dispatcher is resolved by
     // qualifier, which the constructor DSL cannot express.

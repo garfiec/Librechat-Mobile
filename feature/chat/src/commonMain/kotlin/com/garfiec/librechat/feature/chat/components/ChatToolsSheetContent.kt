@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -135,6 +136,8 @@ fun ChatToolsSheetContent(
     onMcpExpandedChange: (Boolean) -> Unit = {},
     /** Scroll position, hoisted for the same reason as [mcpExpanded]. Defaulted for hosts that keep it composed. */
     scrollState: ScrollState = rememberScrollState(),
+    /** "Upload to Code Environment" (legacy upload UX); null hides the card. */
+    onAttachToCode: (() -> Unit)? = null,
 ) {
     val dragSelection = rememberListDragSelection()
     Column(
@@ -155,6 +158,7 @@ fun ChatToolsSheetContent(
                 onPickPhotos = onPickPhotos,
                 onAttachFiles = onAttachFiles,
                 onAttachFromServer = onAttachFromServer,
+                onAttachToCode = onAttachToCode,
                 onDismiss = onDismiss,
             )
 
@@ -432,8 +436,9 @@ private fun ToolToggleRow(
 }
 
 /**
- * Camera, Photos, Files and Server: one row of four, or two rows of two below a 360dp sheet, where a
- * quarter of the width leaves a translated label (Appareil photo, Kamera) only its first letters.
+ * Camera, Photos, Files and Server (and Code, with [onAttachToCode]): one row of four, or two rows of
+ * two below a 360dp sheet, where a quarter of the width leaves a translated label (Appareil photo,
+ * Kamera) only its first letters. Five cards take rows of three.
  */
 @Composable
 private fun AttachmentOptionCards(
@@ -441,16 +446,22 @@ private fun AttachmentOptionCards(
     onPickPhotos: () -> Unit,
     onAttachFiles: () -> Unit,
     onAttachFromServer: () -> Unit,
+    onAttachToCode: (() -> Unit)?,
     onDismiss: () -> Unit,
 ) {
-    val options = listOf(
+    val options = listOfNotNull(
         Triple(Icons.Default.PhotoCamera, Res.string.tool_camera, onTakePhoto),
         Triple(Icons.Default.PhotoLibrary, Res.string.tool_photos, onPickPhotos),
         Triple(Icons.Default.AttachFile, Res.string.tool_files, onAttachFiles),
         Triple(Icons.Default.CloudDownload, Res.string.tool_server_files, onAttachFromServer),
+        onAttachToCode?.let { Triple(Icons.Default.Terminal, Res.string.tool_code_environment, it) },
     )
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val perRow = if (maxWidth < ATTACH_CARDS_ONE_ROW_MIN_WIDTH) 2 else options.size
+        val perRow = when {
+            maxWidth < ATTACH_CARDS_ONE_ROW_MIN_WIDTH -> 2
+            options.size > ATTACH_CARDS_MAX_PER_ROW -> ATTACH_CARDS_WRAPPED_PER_ROW
+            else -> options.size
+        }
         Column(
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -468,6 +479,8 @@ private fun AttachmentOptionCards(
                             modifier = Modifier.weight(1f),
                         )
                     }
+                    // A short last row keeps the others' card width.
+                    repeat(perRow - row.size) { Spacer(modifier = Modifier.weight(1f)) }
                 }
             }
         }
@@ -475,6 +488,8 @@ private fun AttachmentOptionCards(
 }
 
 private val ATTACH_CARDS_ONE_ROW_MIN_WIDTH = 360.dp
+private const val ATTACH_CARDS_MAX_PER_ROW = 4
+private const val ATTACH_CARDS_WRAPPED_PER_ROW = 3
 
 @Composable
 private fun AttachmentOptionCard(

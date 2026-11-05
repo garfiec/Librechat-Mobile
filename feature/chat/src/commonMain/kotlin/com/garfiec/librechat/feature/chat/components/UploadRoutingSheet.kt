@@ -151,14 +151,12 @@ private fun UploadRoutingRow(
             overflow = TextOverflow.Ellipsis,
         )
         AdaptiveSegmentedChoice(
-            options = UploadRoute.entries.map { route ->
-                when (route) {
-                    UploadRoute.PROVIDER -> stringResource(Res.string.upload_routing_option_provider)
-                    UploadRoute.TEXT -> stringResource(Res.string.upload_routing_option_text)
-                }
-            },
-            selectedIndex = staged.route.ordinal,
-            onSelect = { onRouteChange(UploadRoute.entries[it]) },
+            options = listOf(
+                stringResource(Res.string.upload_routing_option_provider),
+                stringResource(Res.string.upload_routing_option_text),
+            ),
+            selectedIndex = SHEET_ROUTES.indexOf(staged.route).coerceAtLeast(0),
+            onSelect = { onRouteChange(SHEET_ROUTES[it]) },
             modifier = Modifier.fillMaxWidth(),
             enabled = staged.choosable,
         )
@@ -179,3 +177,6 @@ private fun routeExplanation(staged: PendingUploadFile): String = when {
     staged.route == UploadRoute.PROVIDER -> stringResource(Res.string.upload_routing_why_provider)
     else -> stringResource(Res.string.upload_routing_why_text)
 }
+
+/** The two routes the sheet chooses between; [UploadRoute.CODE] is only ever an explicit pick. */
+private val SHEET_ROUTES = listOf(UploadRoute.PROVIDER, UploadRoute.TEXT)

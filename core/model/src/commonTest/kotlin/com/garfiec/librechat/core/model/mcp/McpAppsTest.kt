@@ -194,11 +194,63 @@ class McpAppsTest {
             """{"contents":[{"uri":"ui://other","mimeType":"text/html;profile=mcp-app","text":"no"},
             {"uri":"ui://x","mimeType":"text/html","text":"legacy"},
             {"uri":"ui://x","mimeType":"text/html;profile=mcp-app","text":"<p>app</p>",
-             "_meta":{"ui":{"csp":{"connectDomains":["https://api.x"]}}}}]}""",
+             "_meta":{"ui":{"csp":{"connectDomains":["https://api.x"]},"permissions":{"clipboardWrite":{}}}}}]}""",
         )
         val doc = pickAppDocument(read, "ui://x")!!
         assertEquals("<p>app</p>", doc.html)
         assertEquals(listOf("https://api.x"), McpAppCspDeclaration.normalize(doc.csp).connectDomains)
+        assertEquals(McpAppPermissions(clipboardWrite = true), McpAppPermissions.supported(doc.permissions))
         assertNull(pickAppDocument(read, "ui://missing"))
+    }
+
+    @Test
+    fun `only geolocation and clipboard-write are delegated and each only when truthy`() {
+        val all = McpAppPermissions.supported(
+            json("""{"geolocation":{},"clipboardWrite":true,"camera":{},"microphone":{}}"""),
+        )
+        assertEquals(McpAppPermissions(geolocation = true, clipboardWrite = true), all)
+        assertEquals(listOf("geolocation", "clipboard-write"), all.allowTokens())
+        assertEquals("""{"geolocation":{},"clipboardWrite":{}}""", all.toJson().toString())
+        assertEquals(
+            McpAppPermissions.NONE,
+            McpAppPermissions.supported(json("""{"geolocation":false,"clipboardWrite":null,"camera":{}}""")),
+        )
+        assertEquals(McpAppPermissions.NONE, McpAppPermissions.supported(null))
+        assertEquals(McpAppPermissions.NONE, McpAppPermissions.supported(json("""["geolocation"]""")))
+        assertTrue(McpAppPermissions.NONE.allowTokens().isEmpty())
+    }
+
+    @Test
+    fun `legacy html is text html that is not an App and an omitted type counts as html`() {
+        fun res(mime: String?) = UiResource.from(
+            json(if (mime == null) """{"uri":"ui://a"}""" else """{"uri":"ui://a","mimeType":"$mime"}"""),
+        )!!
+        assertTrue(res(null).isLegacyHtml)
+        assertTrue(res("text/html").isLegacyHtml)
+        assertTrue(res("TEXT/HTML; charset=utf-8").isLegacyHtml)
+        assertFalse(res("text/html;profile=mcp-app").isLegacyHtml)
+        assertFalse(res("text/uri-list").isLegacyHtml)
+        assertFalse(res("application/vnd.mcp-ui.remote-dom").isLegacyHtml)
+    }
+
+    @Test
+    fun `conversation resources are indexed by id and the later one wins`() {
+        fun att(json: String) = Attachment(type = "ui_resources", uiResources = json(json))
+        val map = collectConversationUiResources(
+            sequenceOf(
+                att("""[{"resourceId":"a","uri":"ui://1","text":"one"},{"uri":"ui://no-id","text":"x"}]"""),
+                Attachment(type = "file", fileId = "f"),
+                att("""{"0":{"resourceId":"skip","uri":"ui://2"}}"""),
+                att("""[{"resourceId":"a","uri":"ui://3","text":"three"},{"resourceId":"b","uri":"ui://4"}]"""),
+            ),
+        )
+        assertEquals(listOf("a", "b"), map.keys.toList())
+        assertEquals("three", map.getValue("a").text)
+    }
+
+    @Test
+    fun `a resource carries its permissions declaration`() {
+        val resource = UiResource.from(json("""{"uri":"ui://a","permissions":{"geolocation":{}}}"""))!!
+        assertTrue(McpAppPermissions.supported(resource.permissions).geolocation)
     }
 }

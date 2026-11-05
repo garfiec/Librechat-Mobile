@@ -86,6 +86,8 @@ data class DataSettingsUiState(
     // hides its row entirely. The memory count needs READ as well; without it the row has no count.
     val mcpServersEnabled: Boolean = true,
     val serverMemoriesEnabled: Boolean = true,
+    /** `agents.capabilities` has `stateful_code_sessions`, web's gate for Code execution. */
+    val codeExecutionEnabled: Boolean = false,
 )
 
 /** Backs the Data tab: conversations, cache, keys, diagnostic logs, and the Memories / MCP summary rows. */
@@ -125,8 +127,10 @@ class DataSettingsViewModel(
         roleRepository.userPermissions,
         configRepository.detectedBackend,
         memoryRepository.memoriesEnabled,
-    ) { state, role, backend, memoriesEnabled ->
+        configRepository.endpointConfigs,
+    ) { state, role, backend, memoriesEnabled, endpoints ->
         state.copy(
+            codeExecutionEnabled = endpoints["agents"]?.capabilities?.contains(STATEFUL_CODE_SESSIONS) == true,
             memoriesEnabled = memoriesEnabled,
             mcpServersEnabled = role.hasAccessOrPermissive(PermissionType.MCP_SERVERS, Permission.USE),
             serverMemoriesEnabled = role.canReachMemoriesSettings(),
@@ -206,3 +210,5 @@ class DataSettingsViewModel(
     fun clearLogs() = dataDelegate.clearLogs()
     fun consumeLogsExport() = dataDelegate.consumeLogsExport()
 }
+
+private const val STATEFUL_CODE_SESSIONS = "stateful_code_sessions"

@@ -55,7 +55,14 @@ class McpViewModelServerSheetTest {
         every { currentUrlFlow } returns flowOf("https://chat.example.test")
     }
 
-    private fun vm() = McpViewModel(mcpRepository, roleRepository, permissionsRepository, serverDataStore, mockk(relaxed = true))
+    private fun vm() = McpViewModel(
+        mcpRepository,
+        roleRepository,
+        permissionsRepository,
+        serverDataStore,
+        mockk(relaxed = true),
+        noLocationAnswers(),
+    )
 
     @Before
     fun setUp() {

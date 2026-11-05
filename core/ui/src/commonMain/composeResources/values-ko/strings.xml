@@ -332,6 +332,8 @@
     </plurals>
     <string name="mcp_oauth_sign_in_title">%1$s에 로그인</string>
     <string name="mcp_oauth_sign_in_close">로그인 닫기</string>
+    <string name="mcp_oauth_connection_secure">보안 연결</string>
+    <string name="mcp_oauth_connection_not_secure">안전하지 않음</string>
     <string name="pull_request">풀 리퀘스트</string>
     <string name="merge_request">머지 리퀘스트</string>
     <string name="pr_label">PR #%1$d</string>

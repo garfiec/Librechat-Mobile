@@ -89,7 +89,10 @@ class DrawerBookmarksTest {
             pins = mockk<DrawerPinsStore> { every { pinned } returns MutableStateFlow(emptyList()) },
         ),
         chatRepository = mockk(relaxed = true),
-        pullRequestRepository = mockk<PullRequestRepository> { every { entries } returns flowOf(emptyMap()) },
+        pullRequestRepository = mockk<PullRequestRepository> {
+            every { entries } returns flowOf(emptyMap())
+            every { revision } returns MutableStateFlow(0L)
+        },
         search = mockk<DrawerSearchSources>(relaxed = true) {
             every { messageSearch(any(), any()) } returns flowOf(DrawerMessageSearch.Idle)
         },

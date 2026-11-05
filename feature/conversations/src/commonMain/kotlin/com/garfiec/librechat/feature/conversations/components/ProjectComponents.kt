@@ -98,7 +98,6 @@ fun ProjectActionsMenu(
     AdaptiveDropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(16.dp),
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = modifier,
         offset = offset,

@@ -314,6 +314,7 @@
     <string name="drawer_filter_has_attachments">Has attachments</string>
     <string name="drawer_filter_shared_only">Shared only</string>
     <string name="drawer_filter_bookmarks">Bookmarks</string>
+    <string name="drawer_filter_any_bookmark">Any bookmark</string>
     <string name="drawer_filter_reset">Reset</string>
     <string name="drawer_filter_apply">Apply</string>
     <string name="drawer_filter_offline">You're offline. Filters need the server, so they apply once you're back online.</string>

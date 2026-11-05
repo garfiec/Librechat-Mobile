@@ -71,7 +71,17 @@ fun CodeBlock(
     // While streaming, [code] grows every flush and the highlight re-runs from scratch, so it is
     // computed off the main thread with the previous result retained.
     streaming: Boolean = false,
+    /**
+     * Wrap long lines to the block's width instead of scrolling sideways. Tool input and output
+     * wrap, as web's `whitespace-pre-wrap break-words` does: a single long line (a file listing,
+     * a JSON result) is otherwise read through a sideways scroll inside a vertically scrolling
+     * chat, which on a phone reads as text running off the screen.
+     */
+    wrap: Boolean = false,
+    /** A reply's fence the chat can run ([rememberCodeRunTarget]); null draws no Run button. */
+    run: CodeRunTarget? = null,
 ) {
+    val runHost = LocalCodeRunHost.current.takeIf { run != null }
     val clipboard = rememberClipboardWriter()
     var showCopied by remember { mutableStateOf(false) }
 
@@ -113,6 +123,7 @@ fun CodeBlock(
                 )
             }
             Spacer(modifier = Modifier.weight(1f))
+            if (run != null && runHost != null) RunCodeButton(run, runHost)
             // Inside a tool card whose content is still a preview, Copy would copy shortened text:
             // it waits (disabled, keeping its label) until the full part lands.
             val copyEnabled = !toolContentIsPreview()
@@ -146,7 +157,7 @@ fun CodeBlock(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
+                .then(if (wrap) Modifier else Modifier.horizontalScroll(rememberScrollState()))
                 .padding(12.dp),
         ) {
             val isDarkTheme = isSystemInDarkTheme()
@@ -173,6 +184,7 @@ fun CodeBlock(
                 modifier = Modifier.reportFocusedMatchPosition(layoutResult, focusedRange, onFocusedMatchPosition),
             )
         }
+        if (run != null && runHost != null) CodeRunOutput(run, runHost)
     }
 }
 

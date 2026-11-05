@@ -114,4 +114,23 @@ class ToolCallPreviewsApiTest {
         api.branchMessage(BranchMessageRequest(conversationId = "c", messageId = "m", agentId = "a"))
         assertThat(requests.single().url.parameters["toolPreviews"]).isEqualTo("1")
     }
+
+    @Test
+    fun `the subagent-calls lookup sends the files as a JSON array without blank scopes`() = runTest {
+        val api = MessagesApi(
+            client("""{"parts":[{"toolCallId":"sub-1","agentId":"agent_a","calls":[{"id":"child-1","agentId":"agent_child"}]}]}"""),
+        )
+        val response = api.getSubagentAttachmentCalls(
+            conversationId = "c/1",
+            messageId = "m1",
+            files = listOf(
+                com.garfiec.librechat.core.model.response.SubagentAttachmentFile("child-1", agentId = "agent_child", stepId = ""),
+            ),
+        )
+
+        assertThat(requests.single().url.encodedPath).isEqualTo("/api/messages/c%2F1/m1/subagent-calls")
+        assertThat(requests.single().url.parameters["files"]).isEqualTo("""[{"toolCallId":"child-1","agentId":"agent_child"}]""")
+        assertThat(response.parts.single().calls.single().id).isEqualTo("child-1")
+        assertThat(response.parts.single().agentId).isEqualTo("agent_a")
+    }
 }

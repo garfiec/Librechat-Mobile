@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.glass.GlassControlColors
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
@@ -101,11 +102,17 @@ fun AdaptiveGroupedPage(
 /**
  * The title above an [adaptiveSection], aligned with the cell text: an accent `titleSmall` in
  * Material, the iOS grouped header (small, upper-case, secondary colour) in Liquid Glass.
+ * [horizontalInset] is the text's start and end inset; outside a grouped list (a sheet whose
+ * rows sit at another inset) pass that inset so the header lines up with them.
  */
 @Composable
-fun AdaptiveSectionHeader(title: String, modifier: Modifier = Modifier) {
+fun AdaptiveSectionHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+    horizontalInset: Dp = GroupInset * 2,
+) {
     if (isLiquidGlass) {
-        GlassSectionHeader(title, modifier)
+        GlassSectionHeader(title, horizontalInset, modifier)
         return
     }
     Text(
@@ -114,7 +121,7 @@ fun AdaptiveSectionHeader(title: String, modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.primary,
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = GroupInset * 2, end = GroupInset * 2, top = 24.dp, bottom = 8.dp)
+            .padding(start = horizontalInset, end = horizontalInset, top = 24.dp, bottom = 8.dp)
             .semantics { heading() },
     )
 }
@@ -122,6 +129,7 @@ fun AdaptiveSectionHeader(title: String, modifier: Modifier = Modifier) {
 @Composable
 private fun GlassSectionHeader(
     title: String,
+    horizontalInset: Dp,
     modifier: Modifier = Modifier,
 ) {
     BasicText(
@@ -129,7 +137,7 @@ private fun GlassSectionHeader(
         style = MaterialTheme.typography.bodySmall.copy(color = GlassControlColors.secondaryLabel),
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = GroupInset * 2, end = GroupInset * 2, top = 24.dp, bottom = 8.dp)
+            .padding(start = horizontalInset, end = horizontalInset, top = 24.dp, bottom = 8.dp)
             .semantics { heading() },
     )
 }

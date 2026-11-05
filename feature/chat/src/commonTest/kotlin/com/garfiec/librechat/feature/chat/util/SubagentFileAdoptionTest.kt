@@ -68,4 +68,21 @@ class SubagentFileAdoptionTest {
         val upload = listOf(file("f1", callId = null))
         assertSame(upload, adoptUnclaimedSubagentFiles(upload, emptySet(), listOf(SubagentOwner("sub", null))))
     }
+
+    @Test
+    fun a_saved_message_routes_by_the_agent_each_subagent_ran_not_always_to_the_last() {
+        fun subagent(id: String, agent: String) = com.garfiec.librechat.core.model.content.MessageContentPart(
+            type = com.garfiec.librechat.core.model.ContentType.TOOL_CALL,
+            toolCall = com.garfiec.librechat.core.model.content.AgentToolCall(
+                id = id,
+                name = "subagent",
+                subagentIdentity = com.garfiec.librechat.core.model.content.SubagentIdentity(subagentAgentId = agent),
+            ),
+        )
+
+        val adopted = listOf(file("f1", "child", agentId = "agent_a"))
+            .withSubagentFilesAdopted(listOf(subagent("sub_a", "agent_a"), subagent("sub_b", "agent_b")))
+
+        assertEquals("sub_a", adopted.single().toolCallId)
+    }
 }

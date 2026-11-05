@@ -38,6 +38,12 @@ sealed interface StreamEvent {
          * validation error text, not a result.
          */
         val inputValidationError: Boolean = false,
+        /**
+         * Server-stamped provenance (`result.tool_call.executor`): `attached_workspace` for a
+         * `bash_tool` that ran on the user's attached machine, whose [output] ends in the exit
+         * trailer. Null for every other call.
+         */
+        val executor: String? = null,
         val attachments: List<Attachment>? = null,
         val agentId: String? = null,
         val groupId: Int? = null,
@@ -71,6 +77,33 @@ sealed interface StreamEvent {
         val toolCallId: String,
         val runId: String? = null,
     ) : StreamEvent
+
+    /**
+     * One tool call a programmatic tool-calling program made from inside the sandbox
+     * (`on_ptc_tool_call`, v0.8.9-rc1): sent once as `running` and again as `success` or `error`
+     * with the same [callId]. Those inner calls open no run step and are never saved on the
+     * message, so this live trace is all a client ever learns of them. [toolCallId] is the code
+     * card's own call; like [SandboxStarting] it carries no agent.
+     */
+    data class PtcToolCall(
+        val toolCallId: String,
+        val callId: String,
+        /** Inner tool id, e.g. `search_code_mcp_github`. */
+        val name: String,
+        /** `running`, `success` or `error`; a String so an unknown value still decodes. */
+        val status: String,
+        /** `key=value` preview of the call's input; start event only. */
+        val args: String? = null,
+        /** Truncated failure message; `error` only. */
+        val error: String? = null,
+        val durationMs: Long? = null,
+    ) : StreamEvent {
+        companion object {
+            const val STATUS_RUNNING = "running"
+            const val STATUS_SUCCESS = "success"
+            const val STATUS_ERROR = "error"
+        }
+    }
 
     /**
      * The run is waiting on the user to sign in to an MCP server: an `on_run_step_delta` whose

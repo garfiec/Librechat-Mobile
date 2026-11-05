@@ -56,6 +56,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
@@ -68,6 +69,7 @@ import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
 import com.garfiec.librechat.core.ui.components.rememberPressBounce
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
+import com.garfiec.librechat.feature.chat.components.mcpapp.LocalMcpApps
 import com.garfiec.librechat.feature.chat.components.veil.LocalModeVeil
 import com.garfiec.librechat.feature.chat.components.veil.modeVeilOrigin
 import com.garfiec.librechat.feature.chat.components.veil.rememberVeilTarget
@@ -100,6 +102,9 @@ import org.jetbrains.compose.resources.stringResource
  *
  * Most actions are wired straight to [viewModel]; only the triggers whose dialog hosting differs by
  * platform (preset load/save, rename) and the navigation callbacks are passed in.
+ *
+ * On a [widePane] (the chat pane, not the window, at least 600dp) the chat's pull request is a chip
+ * in the bar and leaves the ⋮ menu; on a narrow one it stays in the menu (and above the composer).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -113,11 +118,13 @@ internal fun ChatFloatingTopBar(
     onOpenDrawer: (() -> Unit)? = null,
     onShowAllMedia: (() -> Unit)? = null,
     onOpenPromptsLibrary: (() -> Unit)? = null,
+    widePane: Boolean = false,
 ) {
     var showContextSheet by remember { mutableStateOf(false) }
     var showCompactConfirm by remember { mutableStateOf(false) }
     var showTraceViewer by remember { mutableStateOf(false) }
-    var showPullRequestSheet by remember { mutableStateOf(false) }
+    // Exactly one of the bar chip and the ⋮ item exists at a time.
+    val showPullRequestChip = widePane && uiState.pullRequest.pullRequest != null
     val conversationId = uiState.conversationId
     val conversationTitle = uiState.conversationTitle
     // Interactive on the new-chat landing; once a temporary chat is active it stays visible (ON) as
@@ -127,6 +134,10 @@ internal fun ChatFloatingTopBar(
         (uiState.temporaryChatEnabled || uiState.temporaryChatEnforced)
 
     // Equal gates across streamed tokens, so the menu's item lists are rebuilt only when a gate moves.
+    // Apps live beside the chat state (McpAppsViewModel), so the count is read here, once.
+    val mcpAppsViewModel = LocalMcpApps.current?.controller?.viewModel
+    val openApps = mcpAppsViewModel?.state?.collectAsStateWithLifecycle()?.value
+        ?.let { state -> if (state.panelId == null) state.sessions.size else 0 } ?: 0
     val overflowGates = ChatOverflowGates(
         conversationId = conversationId,
         hasShowAllMedia = onShowAllMedia != null,
@@ -144,11 +155,13 @@ internal fun ChatFloatingTopBar(
         firstTurnStreaming = uiState.isFirstTurnStreaming,
         bookmarksEnabled = uiState.bookmarksEnabled,
         isTemporaryChat = uiState.isTemporaryChat,
-        hasPullRequest = uiState.pullRequest.pullRequest != null,
+        hasPullRequest = uiState.pullRequest.pullRequest != null && !showPullRequestChip,
+        openApps = openApps,
     )
     val overflowSections = remember(overflowGates) { chatOverflowSections(overflowGates) }
     val onOverflowItem: (ChatOverflowItem) -> Unit = { item ->
         when (item) {
+            ChatOverflowItem.OPEN_APPS -> mcpAppsViewModel?.showApps()
             ChatOverflowItem.SEARCH -> viewModel.openSearch()
             ChatOverflowItem.SHOW_ALL_MEDIA -> onShowAllMedia?.invoke()
             ChatOverflowItem.LOAD_PRESET -> onLoadPreset()
@@ -162,7 +175,7 @@ internal fun ChatFloatingTopBar(
             ChatOverflowItem.TRACE -> showTraceViewer = true
             ChatOverflowItem.CONTEXT_USAGE -> showContextSheet = true
             ChatOverflowItem.COMPACT -> showCompactConfirm = true
-            ChatOverflowItem.PULL_REQUEST -> showPullRequestSheet = true
+            ChatOverflowItem.PULL_REQUEST -> viewModel.openPullRequestSheet()
             ChatOverflowItem.SHARE -> viewModel.shareConversation()
             ChatOverflowItem.BOOKMARKS -> viewModel.openBookmarks()
             ChatOverflowItem.RENAME -> onRename()
@@ -195,6 +208,7 @@ internal fun ChatFloatingTopBar(
             onPreviousMatch = viewModel::previousSearchMatch,
             onNextMatch = viewModel::nextSearchMatch,
             onCloseSearch = viewModel::closeSearch,
+            onOpenPullRequest = viewModel::openPullRequestSheet,
         )
     }
 
@@ -214,6 +228,8 @@ internal fun ChatFloatingTopBar(
             onItem = onOverflowItem,
             onOpenDrawer = onOpenDrawer,
             showTempChatToggle = showTempChatToggle,
+            showPullRequestChip = showPullRequestChip,
+            openApps = openApps,
             modifier = modifier,
         )
     } else {
@@ -224,6 +240,8 @@ internal fun ChatFloatingTopBar(
             onItem = onOverflowItem,
             onOpenDrawer = onOpenDrawer,
             showTempChatToggle = showTempChatToggle,
+            showPullRequestChip = showPullRequestChip,
+            openApps = openApps,
             modifier = modifier,
         )
     }
@@ -257,15 +275,16 @@ internal fun ChatFloatingTopBar(
         )
     }
 
-    // Hosted here like the context sheet. It reads the live state, so a poll that turns the checks
-    // green updates it in place; it closes on its own if the pull request goes away (a chat switch).
+    // Hosted here like the context sheet, whichever surface opened it (the ⋮ item, the bar chip, the
+    // composer chip). It reads the live state, so a poll that turns the checks green updates it in
+    // place; it closes on its own if the pull request goes away (a chat switch).
     val pullRequest = uiState.pullRequest.pullRequest
-    if (showPullRequestSheet && pullRequest != null) {
+    if (uiState.pullRequest.sheetOpen && pullRequest != null) {
         PullRequestSheet(
             pullRequest = pullRequest,
             refreshFailed = uiState.pullRequest.refreshFailed,
             onRetry = viewModel::retryPullRequest,
-            onDismiss = { showPullRequestSheet = false },
+            onDismiss = viewModel::dismissPullRequestSheet,
         )
     }
 
@@ -289,6 +308,8 @@ private fun GlassChatTopBar(
     onItem: (ChatOverflowItem) -> Unit,
     onOpenDrawer: (() -> Unit)?,
     showTempChatToggle: Boolean,
+    showPullRequestChip: Boolean,
+    openApps: Int,
     modifier: Modifier = Modifier,
 ) {
     val spec = rememberChatTopBarSpec(
@@ -298,6 +319,8 @@ private fun GlassChatTopBar(
         onItem = onItem,
         onOpenDrawer = onOpenDrawer,
         showTempChatToggle = showTempChatToggle,
+        showPullRequestChip = showPullRequestChip,
+        openApps = openApps,
     )
     AdaptiveTopBar(
         spec = spec,
@@ -331,6 +354,8 @@ private fun MaterialChatTopBar(
     onItem: (ChatOverflowItem) -> Unit,
     onOpenDrawer: (() -> Unit)?,
     showTempChatToggle: Boolean,
+    showPullRequestChip: Boolean,
+    openApps: Int,
     modifier: Modifier = Modifier,
 ) {
     var showOverflowMenu by remember { mutableStateOf(false) }
@@ -403,6 +428,17 @@ private fun MaterialChatTopBar(
             }
             Spacer(modifier = Modifier.width(8.dp))
 
+            val pullRequest = uiState.pullRequest.pullRequest
+            val presentation = uiState.pullRequest.presentation
+            if (showPullRequestChip && pullRequest != null && presentation != null) {
+                PullRequestBarChip(
+                    pullRequest = pullRequest,
+                    presentation = presentation,
+                    onClick = actions.onOpenPullRequest,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+
             // Temporary chats are never persisted, so they have no server-side task list.
             if (!uiState.isTemporaryChat) {
                 BackgroundTasksChip(conversationId = conversationId, isStreaming = uiState.isStreaming)
@@ -461,6 +497,7 @@ private fun MaterialChatTopBar(
                     shareLinkActive = uiState.shareLinkActive,
                     hasBookmark = uiState.hasBookmark,
                     pullRequest = uiState.pullRequest.pullRequest,
+                    openApps = openApps,
                     onItem = onItem,
                     dragSelection = overflowDrag.takeIf { !isLiquidGlass },
                 )
@@ -660,4 +697,5 @@ internal class ChatTopBarActions(
     val onPreviousMatch: () -> Unit,
     val onNextMatch: () -> Unit,
     val onCloseSearch: () -> Unit,
+    val onOpenPullRequest: () -> Unit,
 )

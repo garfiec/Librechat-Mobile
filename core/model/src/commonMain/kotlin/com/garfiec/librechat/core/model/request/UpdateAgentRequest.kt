@@ -1,6 +1,5 @@
 package com.garfiec.librechat.core.model.request
 
-import com.garfiec.librechat.core.model.AgentGitIdentity
 import com.garfiec.librechat.core.model.AgentSubagentsConfig
 import com.garfiec.librechat.core.model.SupportContact
 import kotlinx.serialization.SerialName
@@ -45,8 +44,18 @@ data class UpdateAgentRequest(
     val skills: List<String>? = null,
     @SerialName("skills_enabled") val skillsEnabled: Boolean? = null,
     val subagents: AgentSubagentsConfig? = null,
-    /** Never set by the editor, so it is omitted — see [com.garfiec.librechat.core.model.Agent.gitIdentity]. */
-    @SerialName("git_identity") val gitIdentity: AgentGitIdentity? = null,
+    /**
+     * The Code section's fields. The editor sends each only when the user changed it, so a value
+     * set on the web survives a save that never touched it. [codeEnvironmentId] and [gitIdentity]
+     * are raw JSON so that "back to the default" can be sent as an explicit `null`, which this
+     * client's `explicitNulls = false` would otherwise drop.
+     */
+    @SerialName("git_identity") val gitIdentity: JsonElement? = null,
     @SerialName("code_workspace_id") val codeWorkspaceId: String? = null,
+    @SerialName("stateful_code_sessions") val statefulCodeSessions: Boolean? = null,
+    @SerialName("stateful_code_environment") val statefulCodeEnvironment: String? = null,
+    @SerialName("code_environment_id") val codeEnvironmentId: JsonElement? = null,
+    @SerialName("code_environment_ids") val codeEnvironmentIds: List<String>? = null,
+    val repositoryInstructions: String? = null,
     @SerialName("skills_scope") val skillsScope: String? = null,
 )

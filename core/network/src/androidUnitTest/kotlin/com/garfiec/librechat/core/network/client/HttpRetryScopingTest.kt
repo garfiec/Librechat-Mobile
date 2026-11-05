@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.network.client
 
+import com.garfiec.librechat.core.network.api.CodeEnvironmentsApi
 import com.google.common.truth.Truth.assertThat
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
@@ -121,6 +122,45 @@ class HttpRetryScopingTest {
 
         assertThat(responseAttempts).isEqualTo(SAFE_ATTEMPTS)
         assertThat(thrownAttempts).isEqualTo(SAFE_ATTEMPTS)
+    }
+
+    @Test
+    fun `sends a machine status read once on 503, as a response or as an ApiException`() = runTest {
+        var responseAttempts = 0
+        val responding = countingClient(
+            MockEngine {
+                responseAttempts++
+                respond("busy", HttpStatusCode.ServiceUnavailable)
+            },
+        )
+        var thrownAttempts = 0
+        val throwing = countingClient(
+            MockEngine {
+                thrownAttempts++
+                throw ApiException(statusCode = 503, message = "busy")
+            },
+        )
+
+        runCatching { CodeEnvironmentsApi(responding).status("env-1") }
+        runCatching { CodeEnvironmentsApi(throwing).status("env-1") }
+
+        assertThat(responseAttempts).isEqualTo(1)
+        assertThat(thrownAttempts).isEqualTo(1)
+    }
+
+    @Test
+    fun `still retries a machine status read that failed in transport`() = runTest {
+        var attempts = 0
+        val client = countingClient(
+            MockEngine {
+                attempts++
+                throw IOException("connection reset")
+            },
+        )
+
+        runCatching { CodeEnvironmentsApi(client).status("env-1") }
+
+        assertThat(attempts).isEqualTo(SAFE_ATTEMPTS)
     }
 
     @Test

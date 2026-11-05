@@ -19,6 +19,7 @@ import com.garfiec.librechat.core.data.db.dao.PrefetchWatermarkDao
 import com.garfiec.librechat.core.data.db.dao.PresetDao
 import com.garfiec.librechat.core.data.db.dao.ProjectOrderDao
 import com.garfiec.librechat.core.data.db.dao.ServerDao
+import com.garfiec.librechat.core.data.db.dao.ToolCallPartDao
 import com.garfiec.librechat.core.data.db.entity.AgentEntity
 import com.garfiec.librechat.core.data.db.entity.ArtifactShortcutEntity
 import com.garfiec.librechat.core.data.db.entity.ConversationEntity
@@ -31,6 +32,7 @@ import com.garfiec.librechat.core.data.db.entity.PrefetchWatermarkEntity
 import com.garfiec.librechat.core.data.db.entity.PresetEntity
 import com.garfiec.librechat.core.data.db.entity.ProjectOrderEntity
 import com.garfiec.librechat.core.data.db.entity.ServerEntity
+import com.garfiec.librechat.core.data.db.entity.ToolCallPartEntity
 
 @Database(
     entities = [
@@ -46,8 +48,9 @@ import com.garfiec.librechat.core.data.db.entity.ServerEntity
         MessageSearchEntity::class,
         MessageSearchFtsEntity::class,
         ProjectOrderEntity::class,
+        ToolCallPartEntity::class,
     ],
-    version = 14,
+    version = 15,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -84,6 +87,9 @@ import com.garfiec.librechat.core.data.db.entity.ServerEntity
         // as seen until the next list page restamps them. And `isCodeConversation` (null = not known),
         // so the drawer asks for pull requests only for code chats from a cold start.
         AutoMigration(from = 13, to = 14),
+        // 14 -> 15 adds the account-scoped tool_call_parts table: full tool calls fetched for previewed
+        // cards of finished messages, so a later or offline session opens them without a refetch.
+        AutoMigration(from = 14, to = 15),
     ],
 )
 @TypeConverters(Converters::class)
@@ -101,6 +107,7 @@ abstract class LibreChatDatabase : RoomDatabase() {
     abstract fun prefetchWatermarkDao(): PrefetchWatermarkDao
     abstract fun messageSearchDao(): MessageSearchDao
     abstract fun projectOrderDao(): ProjectOrderDao
+    abstract fun toolCallPartDao(): ToolCallPartDao
 }
 
 // Room KSP auto-generates the actual implementations for each platform

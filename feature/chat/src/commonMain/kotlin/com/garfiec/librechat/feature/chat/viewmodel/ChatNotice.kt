@@ -89,6 +89,9 @@ enum class ChatNotice(val wire: String) {
     /** A fork the server refused, or one that failed in transit. */
     FORK_FAILED("fork_failed"),
 
+    /** Run Code on a reply's fenced block failed: refused (403/404/429) or the sandbox failed. */
+    RUN_CODE_FAILED("run_code_failed"),
+
     /** A fork the server's rate limiter refused (429). */
     FORK_RATE_LIMITED("fork_rate_limited"),
 
@@ -103,6 +106,15 @@ enum class ChatNotice(val wire: String) {
      * (offline, or a worker too old for workspaces): the chat is now sealed without files or commands.
      */
     CODE_WORKSPACE_SENT_WITHOUT("code_workspace_sent_without"),
+
+    /** A workspace move/attach/detach refused as `locked`: the chat's decision changed elsewhere. */
+    CODE_WORKSPACE_MOVE_STALE("code_workspace_move_stale"),
+
+    /** A workspace change refused while a response is still running (409 without a `code`). */
+    CODE_WORKSPACE_MOVE_BUSY("code_workspace_move_busy"),
+
+    /** A workspace change that failed for any other reason. */
+    CODE_WORKSPACE_MOVE_FAILED("code_workspace_move_failed"),
 
     /**
      * A message copy whose tool-call previews could not be fetched in full. Nothing was copied:

@@ -47,6 +47,7 @@ private class McpOAuthNavigationDelegate(
     private val gate: McpOAuthNavigationGate,
     private val serverHosts: Set<String>,
     private val onOutcome: State<(McpOAuthOutcome) -> Unit>,
+    private val onLocationChange: State<(McpOAuthPageLocation) -> Unit>,
 ) : NSObject(), WKNavigationDelegateProtocol {
 
     private var finished = false
@@ -81,6 +82,13 @@ private class McpOAuthNavigationDelegate(
     }
 
     @ObjCSignatureOverride
+    override fun webView(webView: WKWebView, didCommitNavigation: WKNavigation?) {
+        if (finished) return
+        val location = webView.URL?.absoluteString?.let(::mcpOAuthPageLocation) ?: return
+        onLocationChange.value(location)
+    }
+
+    @ObjCSignatureOverride
     override fun webView(webView: WKWebView, didFailProvisionalNavigation: WKNavigation?, withError: NSError) {
         if (withError.code != NSURL_ERROR_CANCELLED) finish(webView, McpOAuthOutcome.Abandoned)
     }
@@ -110,9 +118,11 @@ private fun cookiesFor(origin: String, setCookie: String): List<NSHTTPCookie> {
 internal actual fun McpOAuthWebView(
     launch: McpOAuthLaunch.InApp,
     onOutcome: (McpOAuthOutcome) -> Unit,
+    onLocationChange: (McpOAuthPageLocation) -> Unit,
     modifier: Modifier,
 ) {
     val currentOnOutcome = rememberUpdatedState(onOutcome)
+    val currentOnLocationChange = rememberUpdatedState(onLocationChange)
     val scope: CoroutineScope = rememberCoroutineScope()
     val origins = remember(launch) { mcpOAuthCookieOrigins(launch.serverUrl, launch.authorizationUrl) }
     val delegate = remember(launch) {
@@ -120,6 +130,7 @@ internal actual fun McpOAuthWebView(
             gate = McpOAuthNavigationGate(launch.serverUrl, launch.authorizationUrl),
             serverHosts = origins.mapNotNull { NSURL.URLWithString(it)?.host?.lowercase() }.toSet(),
             onOutcome = currentOnOutcome,
+            onLocationChange = currentOnLocationChange,
         )
     }
 

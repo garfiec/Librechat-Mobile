@@ -407,6 +407,7 @@ internal fun BoxScope.ChatPullUpSheetOverlay(
     onTakePhoto: () -> Unit,
     onPickPhotos: () -> Unit,
     onAttachFromServer: () -> Unit,
+    onAttachToCode: (() -> Unit)?,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val hide: () -> Unit = { coroutineScope.launch { state.hide() } }
@@ -492,6 +493,7 @@ internal fun BoxScope.ChatPullUpSheetOverlay(
                 onTakePhoto = onTakePhoto,
                 onPickPhotos = onPickPhotos,
                 onAttachFromServer = onAttachFromServer,
+                onAttachToCode = onAttachToCode,
                 onOpenModelParameters = {
                     optionsController.open(ChatOptionsPage.ModelParameters)
                     hide()

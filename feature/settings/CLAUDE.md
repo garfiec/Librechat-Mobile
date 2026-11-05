@@ -80,6 +80,24 @@
 - **Gotcha**: the editor offers `McpServerType` SSE and STREAMABLE_HTTP only; a stored `HTTP` shows as Streamable HTTP and is saved back as-is unless the user changes it
 - **Gotcha**: a memory key can be renamed on edit. `UpdateMemoryRequest.key` is sent only when it changed (the by-id route pattern-checks any key it receives), and a key-route rename is create-then-delete, so `MemoriesViewModel` reloads after any rename failure
 
+### Code execution (Data tab)
+- `CodeExecutionScreen` + `CodeExecutionViewModel` (route `CodeExecution`, `CodeExecutionNavigation.kt`),
+  web's Data controls › Code execution (`StatefulWorkspaceDefault` + `CodeEnvironments`). The Data row
+  shows when `agents.capabilities` has `stateful_code_sessions` (`codeExecutionEnabled`).
+- Default stateful workspace: read from the profile's `personalization.statefulCodeEnvironment`,
+  written with `PATCH /api/user/preferences`; optimistic, put back if refused. A saved scope the
+  deployment no longer allows is listed disabled.
+- Machines (`CodeMachinesRepository`, network-direct): status polled every 10 s while the page is
+  resumed; File changes / Commands and code only when the machine offers permissions and `canEdit`;
+  Delete only with `canDelete`. Connect VM only when the list has `controlPlanes`; the one-time
+  command (`CodeWorkerCommand`, posix or PowerShell) is shown until the code expires. Every change
+  refreshes `/api/endpoints` so the chat composer's machine list follows.
+- Setup approval: `CodeSetupScreen` + `CodeSetupViewModel` (route `CodeSetup(attemptId)`), from the
+  setup link pasted on the page or `librechat://code-setup/<id>` (`DeepLinks`). Polls every 2 s while
+  the attempt can move; nothing is approved until a control plane is picked and Approve is tapped.
+  The approve/deny routes run `requireSameOrigin`, which passes because the app sends no `Origin` or
+  `Sec-Fetch-Site`: don't add either.
+
 ### Passkeys (v0.8.9-rc1, management only)
 - `PasskeysScreen` + `PasskeysViewModel` (route `Passkeys`, `PasskeysNavigation.kt`): list, rename, remove
   through `PasskeyRepository` (`:core:data`, network-direct, never cached: a password reset deletes
@@ -94,6 +112,21 @@
   non-local one sends none, and a 403 brings the field up (upstream's `serverDemandedPassword`).
   403 = incorrect password inline, 404 = already gone (reload + snackbar), 429 = wait. Errors render
   inside the dialog. A list 404 refetches `/api/config`: passkeys were switched off.
+
+### Pull request account (v0.8.9-rc1)
+- Account tab › **Connected accounts** (web's own section, after Security) › one row
+  (`PullRequestAccountRow`), from `PullRequestAccountViewModel` over `:core:data`
+  `PullRequestConnectionRepository`. Shown when `pullRequestConnectionKnowable` and
+  `showsPullRequestAccount` (upstream `hasPullRequestConnect`: a grant exists, or `pullRequestsConnect`
+  is set and the status hasn't said `configured: false`). Status read when the gate opens and on each
+  return to the tab. States: Checking / Not connected (tap = Connect) / Connected or Not in use (tap =
+  Disconnect, asks first) / Couldn't check (tap = Retry).
+- Connect calls `GET /oauth/connect` and opens `McpOAuthSignInDialog` with the cookies that response
+  set: no bind step, no system browser fallback (the callback refuses a browser without them). Success
+  or a closed page re-reads the status; an error page or a failed start is a snackbar. A 404 hides the
+  row for the session ("Connecting an account isn't available on this server.").
+- Disconnect failure stays in the dialog; the status is re-read, and if the grant is gone the dialog
+  closes as on success. Every credential change re-asks cached pull request lookups (repository side).
 
 ### Change email (v0.8.9-rc1)
 - Profile row "Email address" (subtitle = current address) above Sign out, when

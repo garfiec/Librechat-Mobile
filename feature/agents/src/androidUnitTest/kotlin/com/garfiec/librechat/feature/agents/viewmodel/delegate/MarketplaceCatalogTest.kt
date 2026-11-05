@@ -46,6 +46,24 @@ class MarketplaceCatalogTest {
     }
 
     @Test
+    fun `builtins the role may not use are not listed`() {
+        val catalog = state()
+            .copy(canUseRunCode = false, canUseWebSearch = false, canUseFileSearch = false)
+            .marketplaceCatalog()
+
+        val builtinIds = catalog.filter { it.kind == MarketplaceKind.BUILTIN }.map { it.id }
+        assertThat(builtinIds).containsNoneOf(ToolConstants.EXECUTE_CODE, ToolConstants.WEB_SEARCH, ToolConstants.FILE_SEARCH)
+    }
+
+    @Test
+    fun `file search follows its capability`() {
+        val builtinIds = state().copy(isFileSearchAvailable = false).marketplaceCatalog()
+            .filter { it.kind == MarketplaceKind.BUILTIN }.map { it.id }
+
+        assertThat(builtinIds).doesNotContain(ToolConstants.FILE_SEARCH)
+    }
+
+    @Test
     fun `capabilities the server does not offer are not listed`() {
         val catalog = state()
             .copy(isCodeInterpreterAvailable = false, isWebSearchAvailable = false)

@@ -4,9 +4,9 @@ import com.garfiec.librechat.core.model.Agent
 
 /**
  * What the composer knows about a chat's code workspace, as web's `useCodeWorkspace`
- * (`client/src/hooks/Agents/useCodeWorkspace.ts`) computes it, minus moving,
- * attaching, detaching or recovering a saved chat's decision. Pure, so every rule is unit-tested
- * here rather than through a ViewModel. Registered in `scripts/mirrors.json`.
+ * (`client/src/hooks/Agents/useCodeWorkspace.ts`) computes it, including the [Transition] that
+ * moves, attaches, detaches or recovers a saved chat's decision. Pure, so every rule is
+ * unit-tested here rather than through a ViewModel. Registered in `scripts/mirrors.json`.
  *
  * Two deliberate divergences:
  * - **An incomplete agent graph does not by itself require a workspace.** Web counts a linked agent
@@ -19,7 +19,7 @@ import com.garfiec.librechat.core.model.Agent
  */
 object CodeWorkspaceResolver {
 
-    enum class State { NOT_REQUIRED, WITHOUT_ATTACHED, LOADING, CHOOSE, READY, MISSING, UNAVAILABLE, UNSUPPORTED }
+    enum class State { NOT_REQUIRED, WITHOUT_ATTACHED, LOADING, CHOOSE, RELOCATABLE, READY, MISSING, UNAVAILABLE, UNSUPPORTED }
 
     /** One machine's status poll. */
     sealed interface StatusResult {
@@ -37,9 +37,18 @@ object CodeWorkspaceResolver {
         val statefulCodeSessions: StatefulCodeSessionsConfig?,
         val decisionVersion: Int?,
         val inheritanceVersion: Int?,
+        val moveVersion: Int? = null,
+        val transitionVersion: Int? = null,
+        val recoveryVersion: Int? = null,
     ) {
         val supportsDecisions: Boolean get() = decisionVersion == CodeCapabilityVersions.DECISION
         val supportsInheritance: Boolean get() = inheritanceVersion == CodeCapabilityVersions.INHERITANCE
+        val supportsMoves: Boolean get() = moveVersion == CodeCapabilityVersions.MOVE
+
+        /** Attach and detach ride beside the move version, and need the decision protocol too. */
+        val supportsTransitions: Boolean
+            get() = supportsDecisions && transitionVersion == CodeCapabilityVersions.TRANSITION
+        val supportsRecovery: Boolean get() = supportsMoves && recoveryVersion == CodeCapabilityVersions.RECOVERY
         val codeEnabled: Boolean
             get() = canRunCode && CodeWorkspaceAgents.EXECUTE_CODE in agentsCapabilities &&
                 STATEFUL_CODE_SESSIONS in agentsCapabilities
@@ -73,12 +82,49 @@ object CodeWorkspaceResolver {
          * machine is offline or no longer lists the workspace, so the row can still name its checkout.
          */
         val recorded: CodeWorkspaceSelection? = null,
+        /** Agents choosing this machine per chat; a transition's pick here carries them as `agentIds`. */
+        val selectionOwners: List<String> = emptyList(),
     ) {
         val allowCheckoutSelection: Boolean
             get() = environment.configSchema?.workspaces?.allowCheckoutSelection == true
     }
 
     data class MachineChoiceOwner(val agentId: String, val environmentIds: List<String>)
+
+    enum class TransitionKind { MOVE, ATTACH, DETACH }
+
+    /** A machine the recorded decision covered that the agents no longer use. */
+    data class PreviousMachine(val id: String, val name: String?) {
+        val displayName: String get() = name?.takeIf { it.isNotBlank() } ?: id
+    }
+
+    /**
+     * Web's `CodeWorkspaceTransition`: an explicit change of a saved chat's recorded decision. It
+     * replaces the decision whole and never touches messages or copies files between machines.
+     * - [TransitionKind.MOVE]: the decision no longer covers every machine the agents use (an
+     *   agent was pointed elsewhere, or its saved workspace disappeared: then it is a recovery).
+     * - [TransitionKind.ATTACH]: the chat runs without a workspace and can now take one.
+     * - [TransitionKind.DETACH]: the workspace is healthy, but its owner wants plain chat.
+     */
+    data class Transition(
+        val kind: TransitionKind,
+        /** Exactly what the chat stores; empty for a chat running without a workspace. */
+        val from: List<CodeWorkspaceSelection>,
+        val previous: List<PreviousMachine>,
+        /** Recorded picks the agents still use, carried over unchanged. */
+        val retained: List<CodeWorkspaceSelection>,
+        /** Machines needing a new pick, including ones whose workspace disappeared. */
+        val targets: List<EnvironmentResult>,
+        /** "Continue without workspace" is on offer. */
+        val detachable: Boolean,
+    ) {
+        /** A target lost its recorded workspace: web labels the whole transition "Recover". */
+        val isRecovery: Boolean get() = targets.any { it.state == State.MISSING }
+
+        /** A move or attach has something to confirm; otherwise only the detach is offered. */
+        val offersMove: Boolean
+            get() = kind != TransitionKind.DETACH && (targets.isNotEmpty() || retained.isNotEmpty())
+    }
 
     data class Resolution(
         val required: Boolean,
@@ -107,6 +153,7 @@ object CodeWorkspaceResolver {
         val submission: CodeWorkspaceSubmission?,
         /** The submission sends "No workspace" because there was nothing to pick. */
         val sendsWithoutWorkspaceForLackOfChoice: Boolean,
+        val transition: Transition? = null,
     ) {
         companion object {
             val NOT_REQUIRED = Resolution(
@@ -204,7 +251,32 @@ object CodeWorkspaceResolver {
         val attachedEnvironments = unique.values.sortedBy { it.id }
         formerEnvironmentIds.removeAll(unique.keys)
         val required = attachedEnvironments.isNotEmpty() || !complete
-        if (!required) return Resolution.NOT_REQUIRED.copy(supportsDecisions = supportsDecisions)
+        if (!required) {
+            // Dropping the last coding agent makes plain chat sendable but leaves the attached seal
+            // on the chat; web keeps the explicit detach on offer for it.
+            val sealed = locked && CodeEnvironmentMode.of(chat.mode) != CodeEnvironmentMode.WITHOUT_ATTACHED &&
+                storedSelections.orEmpty().isNotEmpty()
+            val detach = if (capabilities.supportsMoves && capabilities.supportsTransitions && sealed &&
+                !chat.isNewChat
+            ) {
+                Transition(
+                    kind = TransitionKind.MOVE,
+                    from = storedSelections.orEmpty(),
+                    previous = previousMachines(storedSelections.orEmpty(), emptySet(), environmentsConfig),
+                    retained = emptyList(),
+                    targets = emptyList(),
+                    detachable = true,
+                )
+            } else {
+                null
+            }
+            return Resolution.NOT_REQUIRED.copy(
+                supportsDecisions = supportsDecisions,
+                locked = locked,
+                visible = detach != null,
+                transition = detach,
+            )
+        }
 
         val attachedIds = attachedEnvironments.map { it.id }.toSet()
         val hasForeignStoredSelection = storedSelections?.any {
@@ -295,6 +367,9 @@ object CodeWorkspaceResolver {
             EnvironmentResult(
                 environment, state, workspaces, selected, requiredBy[environment.id].orEmpty(),
                 recorded = if (locked) storedSelections?.firstOrNull { it.environmentId == environment.id } else null,
+                selectionOwners = requiredBy[environment.id].orEmpty()
+                    .map { it.id }
+                    .filter { id -> machineChoiceOwners.any { it.agentId == id } },
             )
         }
 
@@ -397,11 +472,50 @@ object CodeWorkspaceResolver {
             implicitWithout && !nothingToPick -> null
             else -> web
         }
-        val visible = !locked || !canSubmit || inferredMode == CodeEnvironmentMode.WITHOUT_ATTACHED
         // A saved chat that never decided is not attached by a suggestion (web infers "No
         // workspace" there). Its send is held, so show it as choosing, not as a pick it isn't.
         val unconsented = implicitWithout && !nothingToPick && !chat.isNewChat &&
             environmentResults.any { it.state == State.READY }
+        var finalState = if (unconsented && state == State.READY) State.CHOOSE else state
+        var transition: Transition? = null
+        if (capabilities.supportsMoves && locked && complete && finalState != State.LOADING && !chat.isNewChat) {
+            val from = storedSelections.orEmpty()
+            val retained = environmentResults.mapNotNull { if (it.state == State.READY) it.selected else null }
+            val targets = environmentResults.filter {
+                it.state == State.CHOOSE || (capabilities.supportsRecovery && it.state == State.MISSING)
+            }
+            // A transition replaces the decision whole: one that cannot name every machine the
+            // agents use would seal a decision the next turn refuses. Detaching stays the escape.
+            val coversEveryEnvironment = retained.size + targets.size == environmentResults.size
+            val previous = previousMachines(from, attachedIds, environmentsConfig)
+            if (capabilities.supportsTransitions && finalState == State.WITHOUT_ATTACHED &&
+                explicitMode == CodeEnvironmentMode.WITHOUT_ATTACHED && targets.isNotEmpty() && coversEveryEnvironment
+            ) {
+                transition = Transition(TransitionKind.ATTACH, from, previous, retained, targets, detachable = false)
+            } else if (inferredMode == CodeEnvironmentMode.ATTACHED && from.isNotEmpty() &&
+                (finalState == State.CHOOSE || web == null)
+            ) {
+                val move = Transition(
+                    TransitionKind.MOVE, from, previous,
+                    retained = if (coversEveryEnvironment) retained else emptyList(),
+                    targets = if (coversEveryEnvironment) targets else emptyList(),
+                    detachable = capabilities.supportsTransitions,
+                )
+                if (move.targets.isNotEmpty() || move.retained.isNotEmpty() || move.detachable) {
+                    transition = move
+                    if (finalState == State.CHOOSE ||
+                        (capabilities.supportsRecovery && finalState == State.MISSING && coversEveryEnvironment)
+                    ) {
+                        finalState = State.RELOCATABLE
+                    }
+                }
+            } else if (capabilities.supportsTransitions && inferredMode == CodeEnvironmentMode.ATTACHED &&
+                from.isNotEmpty() && finalState == State.READY
+            ) {
+                transition = Transition(TransitionKind.DETACH, from, previous, retained, targets, detachable = true)
+            }
+        }
+        val visible = transition != null || !locked || !canSubmit || inferredMode == CodeEnvironmentMode.WITHOUT_ATTACHED
         val shownResults = if (unconsented) {
             environmentResults.map { if (it.state == State.READY) it.copy(state = State.CHOOSE, selected = null) else it }
         } else {
@@ -412,7 +526,7 @@ object CodeWorkspaceResolver {
             supportsDecisions = supportsDecisions,
             locked = locked,
             mode = inferredMode,
-            state = if (unconsented && state == State.READY) State.CHOOSE else state,
+            state = finalState,
             canSubmit = submission != null,
             visible = visible,
             environments = shownResults,
@@ -424,7 +538,16 @@ object CodeWorkspaceResolver {
             preferenceAgentIds = preferenceAgentIds,
             submission = submission,
             sendsWithoutWorkspaceForLackOfChoice = implicitWithout && nothingToPick && submission != null,
+            transition = transition,
         )
+    }
+
+    private fun previousMachines(
+        from: List<CodeWorkspaceSelection>,
+        usedIds: Set<String>,
+        environments: List<PublicCodeEnvironment>?,
+    ): List<PreviousMachine> = from.filter { it.environmentId !in usedIds }.map { selection ->
+        PreviousMachine(selection.environmentId, environments?.firstOrNull { it.id == selection.environmentId }?.name)
     }
 
     private fun aggregateState(
@@ -438,6 +561,54 @@ object CodeWorkspaceResolver {
         environments.any { it.state == State.LOADING } -> State.LOADING
         selections == null -> State.CHOOSE
         else -> State.READY
+    }
+
+    /** What a transition would write: the picks for its targets, and the whole decision. */
+    data class TransitionProposal(
+        val chosen: List<CodeWorkspaceSelection>,
+        val to: List<CodeWorkspaceSelection>,
+        /** Every target has a pick whose checkout the machine allows, and the decision names one. */
+        val ready: Boolean,
+    )
+
+    /**
+     * Web's move draft (`CodeWorkspaceMenu.tsx`, `chosenTargets` / `moveReady`). A target's sole
+     * workspace counts as chosen. A pick inherits the checkout the replaced decision used there,
+     * or its owners used elsewhere; when those disagree the reader must choose one. Picks carry
+     * the target's per-chat machine owners as `agentIds`.
+     */
+    fun proposeTransition(
+        transition: Transition,
+        choices: Map<String, CodeWorkspaceSelection>,
+    ): TransitionProposal {
+        val chosen = transition.targets.mapNotNull { target ->
+            val id = target.environment.id
+            val choice = choices[id]
+            val workspaceId = choice?.workspaceId?.takeIf { picked -> target.workspaces.any { it.id == picked } }
+                ?: target.workspaces.singleOrNull()?.id
+                ?: return@mapNotNull null
+            val previous = transition.from.filter { selection ->
+                selection.environmentId == id || selection.agentIds?.any { it in target.selectionOwners } == true
+            }
+            val priorModes = previous.ifEmpty { transition.from }.map { it.checkout }.toSet()
+            if (priorModes.size > 1 && choice?.checkout == null) return@mapNotNull null
+            CodeWorkspaceSelection(
+                environmentId = id,
+                workspaceId = workspaceId,
+                checkout = choice?.checkout ?: priorModes.singleOrNull(),
+                agentIds = target.selectionOwners.takeIf { it.isNotEmpty() },
+            )
+        }
+        val to = transition.retained + chosen
+        val ready = chosen.size == transition.targets.size && to.isNotEmpty() && chosen.all { selection ->
+            val target = transition.targets.first { it.environment.id == selection.environmentId }
+            CodeWorkspaceRouting.isCheckoutAvailable(
+                selection,
+                target.workspaces.firstOrNull { it.id == selection.workspaceId },
+                target.allowCheckoutSelection,
+            )
+        }
+        return TransitionProposal(chosen, to, ready)
     }
 
     /**

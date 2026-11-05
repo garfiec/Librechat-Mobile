@@ -11,8 +11,9 @@ data class SubagentOwner(val toolCallId: String, val agentId: String?)
 
 /**
  * Hands each tool file no rendered call claims to the message's `subagent` call, by rewriting its
- * `toolCallId` to that call's (upstream web's subagent attachment routing, without its
- * `/subagent-calls` lookup).
+ * `toolCallId` to that call's (upstream web's subagent attachment routing). The fallback: for a
+ * previewed saved message the server's `/subagent-calls` answer places files first
+ * ([withStoredSubagentHints]), and this guesses only what that leaves.
  *
  * A tool inside a subagent run saves its files under the CHILD call's id, which appears only in
  * the subagent's transcript. After a mid-run resume there is no transcript yet (run steps are not
@@ -45,7 +46,7 @@ fun adoptUnclaimedSubagentFiles(
 }
 
 /** A file the tool produced: a stored one, or a code output's download fallback (a `filepath`, no id). */
-private fun Attachment.isStoredToolFile(): Boolean =
+internal fun Attachment.isStoredToolFile(): Boolean =
     (!fileId.isNullOrBlank() || !filepath.isNullOrBlank()) &&
         memory == null && webSearch == null && fileSearch == null && uiResources == null
 
@@ -59,7 +60,8 @@ fun List<Attachment>.withSubagentFilesAdopted(parts: List<MessageContentPart>?):
         val call = part.toolCall ?: return@mapNotNull null
         val name = call.name ?: call.function?.name
         call.id?.takeIf { it.isNotEmpty() && name.equals(ToolConstants.SUBAGENT, ignoreCase = true) }
-            ?.let { SubagentOwner(it, agentId = null) }
+            // The agent that ran it, so a file is matched to the right one of several subagents.
+            ?.let { SubagentOwner(it, agentId = call.subagentIdentity?.subagentAgentId?.ifEmpty { null }) }
     }
     if (subagents.isEmpty()) return this
     return adoptUnclaimedSubagentFiles(this, outputToolCallIds(parts).toSet(), subagents)

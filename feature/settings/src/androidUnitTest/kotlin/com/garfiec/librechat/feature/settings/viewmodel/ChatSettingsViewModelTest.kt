@@ -82,6 +82,8 @@ class ChatSettingsViewModelTest {
         coEvery { preferenceStore.set(AppPreferences.PreferLastUsedModel, any()) } answers { preferLastUsedFlow.value = secondArg() }
         every { preferenceStore.observe(AppPreferences.WebSearchFirst) } returns webSearchFirstFlow
         coEvery { preferenceStore.set(AppPreferences.WebSearchFirst, any()) } answers { webSearchFirstFlow.value = secondArg() }
+        every { preferenceStore.observe(AppPreferences.CollapseLongUserMessages) } returns MutableStateFlow(true)
+        every { preferenceStore.observe(AppPreferences.ClientImageResize) } returns MutableStateFlow(true)
         every { preferenceStore.initial(AppPreferences.SiteIcons) } returns null
         coEvery { preferenceStore.set(AppPreferences.SiteIcons, any()) } answers { siteIconsChoiceFlow.value = secondArg() }
         every { settingsDataStore.latexRenderer } returns MutableStateFlow(LatexRenderer.KATEX)
@@ -103,6 +105,7 @@ class ChatSettingsViewModelTest {
         preferenceStore = preferenceStore,
         speechSettingsFactory = SpeechSettingsFactory { speechSettingsContract },
         libraryConsent = libraryConsent,
+        fileRepository = io.mockk.mockk(relaxed = true),
     )
 
     @Test

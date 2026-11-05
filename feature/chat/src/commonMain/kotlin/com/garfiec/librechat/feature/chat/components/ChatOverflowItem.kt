@@ -5,6 +5,8 @@ import com.garfiec.librechat.core.model.usage.ContextUsage
 
 /** One entry of the chat overflow menu. Labels and icons are resolved by each renderer. */
 internal enum class ChatOverflowItem {
+    /** "Open apps (n)": MCP Apps still running while the panel is down. Opens it on the last-used one. */
+    OPEN_APPS,
     SEARCH,
     SHOW_ALL_MEDIA,
     LOAD_PRESET,
@@ -53,10 +55,14 @@ internal data class ChatOverflowGates(
     val isTemporaryChat: Boolean = false,
     /** A lookup found the chat's pull request. Absent, not disabled, until then. */
     val hasPullRequest: Boolean = false,
+    /** MCP Apps running minimized (the panel is down). */
+    val openApps: Int = 0,
 )
 
 internal fun chatOverflowSections(gates: ChatOverflowGates): List<List<ChatOverflowItem>> = with(gates) {
     val tools = buildList {
+        // At the top: the way back to Apps whose cards may have scrolled far away.
+        if (openApps > 0) add(ChatOverflowItem.OPEN_APPS)
         if (conversationId != null) add(ChatOverflowItem.SEARCH)
         if (hasShowAllMedia) add(ChatOverflowItem.SHOW_ALL_MEDIA)
         // Hidden when the server disables `interface.presets` (or `interface.modelSelect`), matching

@@ -282,7 +282,6 @@ internal fun MemoryMenuButton(
         AdaptiveDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            shape = RoundedCornerShape(16.dp),
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             // The same gap below the icon whatever the button's size.
             offset = DpOffset(0.dp, (MenuGapBelowIcon - (buttonSize - MenuIconSize) / 2).coerceAtLeast(0.dp)),
