@@ -60,6 +60,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
             onNavigateToPrefetchSettings = { onNavigate(PrefetchSettings) },
             onNavigateToMemories = { onNavigate(Memories) },
             onNavigateToMcpServers = { onNavigate(McpServers) },
+            onNavigateToCodeExecution = { onNavigate(CodeExecution) },
             onNavigateToPresets = { onNavigate(PresetManager) },
             onNavigateToContextUsage = { onNavigate(ContextUsageSettings) },
             onNavigateToChatLayout = { onNavigate(ChatLayoutSettings) },
@@ -100,6 +101,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
     roleMemoriesAdminEntry(onBack = onBack)
     artifactShortcutsEntry(onBack = onBack)
     prefetchEntries(onNavigate = onNavigate, onBack = onBack)
+    codeExecutionEntries(onNavigate = onNavigate, onBack = onBack)
     contextUsageSettingsEntry(onBack = onBack)
     chatLayoutSettingsEntry(onBack = onBack)
     appearanceSettingsEntry(onBack = onBack)
@@ -124,6 +126,8 @@ val settingsSerializersModule = SerializersModule {
         subclass(ArtifactShortcuts::class, ArtifactShortcuts.serializer())
         subclass(PrefetchSettings::class, PrefetchSettings.serializer())
         subclass(PrefetchActivity::class, PrefetchActivity.serializer())
+        subclass(CodeExecution::class, CodeExecution.serializer())
+        subclass(CodeSetup::class, CodeSetup.serializer())
         subclass(ContextUsageSettings::class, ContextUsageSettings.serializer())
         subclass(ChatLayoutSettings::class, ChatLayoutSettings.serializer())
         subclass(AppearanceSettings::class, AppearanceSettings.serializer())

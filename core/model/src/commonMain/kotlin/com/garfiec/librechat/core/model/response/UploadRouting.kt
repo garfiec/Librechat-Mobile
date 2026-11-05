@@ -15,6 +15,13 @@ enum class UploadRoute {
 
     /** `tool_resource=context` — the server extracts the document to text and injects it each turn. */
     TEXT,
+
+    /**
+     * `tool_resource=execute_code` — the file goes to the code environment, not the model. Only ever
+     * the user's explicit pick ("Upload to Code Environment", legacy upload UX); never chosen by
+     * [resolveUploadRoute] and never offered by the per-file routing sheet.
+     */
+    CODE,
 }
 
 /**
@@ -24,6 +31,7 @@ enum class UploadRoute {
 fun UploadRoute.toolResource(): String? = when (this) {
     UploadRoute.PROVIDER -> null
     UploadRoute.TEXT -> "context"
+    UploadRoute.CODE -> "execute_code"
 }
 
 /**

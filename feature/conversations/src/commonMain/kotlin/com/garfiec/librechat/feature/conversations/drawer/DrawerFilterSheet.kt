@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -43,6 +44,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
@@ -56,6 +58,7 @@ import com.garfiec.librechat.core.ui.components.EndpointIcon
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.feature.conversations.resources.Res
 import com.garfiec.librechat.feature.conversations.resources.cd_remove_named_filter
+import com.garfiec.librechat.feature.conversations.resources.drawer_filter_any_bookmark
 import com.garfiec.librechat.feature.conversations.resources.drawer_filter_any_time
 import com.garfiec.librechat.feature.conversations.resources.drawer_filter_apply
 import com.garfiec.librechat.feature.conversations.resources.drawer_filter_bookmarks
@@ -90,7 +93,8 @@ internal fun FilterDateRange.label(): StringResource = when (this) {
 
 /**
  * The drawer's filter sheet: one date window (radio rows, with the Updated/Created pill), endpoints
- * (checkbox-role chips, stopped at the server's limit), and switches. Choices are a draft until
+ * (checkbox-role chips, stopped at the server's limit), switches, and the bookmarks to pick from
+ * (any one matches; "Any bookmark" and picked bookmarks exclude each other). Choices are a draft until
  * Apply; Reset clears the draft. Apply waits for a connection, since a filtered list is the server's.
  */
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
@@ -184,10 +188,11 @@ internal fun DrawerFilterSheet(
                     draft = draft.copy(sharedOnly = it)
                 }
             }
-            if (options.bookmarksAvailable || draft.bookmarked) {
-                FilterSwitchRow(Icons.Default.Bookmark, stringResource(Res.string.drawer_filter_bookmarks), draft.bookmarked) {
-                    draft = draft.copy(bookmarked = it)
+            if (options.bookmarksAvailable || draft.bookmarked || draft.tags.isNotEmpty()) {
+                FilterSwitchRow(Icons.Default.Bookmark, stringResource(Res.string.drawer_filter_any_bookmark), draft.bookmarked) {
+                    draft = draft.withAnyBookmark(it)
                 }
+                BookmarkChoices(options.bookmarks, draft.tags) { draft = draft.withTagToggled(it) }
             }
 
             if (!options.isOnline) {
@@ -204,6 +209,38 @@ internal fun DrawerFilterSheet(
                 AdaptiveButton(onClick = { onApply(draft) }, enabled = options.isOnline) {
                     Text(stringResource(Res.string.drawer_filter_apply))
                 }
+            }
+        }
+    }
+}
+
+/** One chip per bookmark (web's bookmark submenu): any picked one matches, with each one's chat count. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun BookmarkChoices(bookmarks: List<FilterBookmarkOption>, selected: List<String>, onToggle: (String) -> Unit) {
+    if (bookmarks.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = stringResource(Res.string.drawer_filter_bookmarks),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            bookmarks.forEach { bookmark ->
+                AdaptiveFilterChip(
+                    selected = bookmark.tag in selected,
+                    onClick = { onToggle(bookmark.tag) },
+                    label = { Text(bookmark.tag, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    leadingIcon = { Icon(Icons.Default.Bookmark, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                    trailingIcon = {
+                        Text(
+                            text = bookmark.count.toString(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                    modifier = Modifier.widthIn(max = 240.dp),
+                )
             }
         }
     }
@@ -246,7 +283,10 @@ private fun appliedFilters(filters: DrawerFilters, options: DrawerFilterOptions)
     }
     if (filters.hasFiles) applied += AppliedFilter(stringResource(Res.string.drawer_filter_has_attachments), filters.copy(hasFiles = false))
     if (filters.sharedOnly) applied += AppliedFilter(stringResource(Res.string.drawer_filter_shared_only), filters.copy(sharedOnly = false))
-    if (filters.bookmarked) applied += AppliedFilter(stringResource(Res.string.drawer_filter_bookmarks), filters.copy(bookmarked = false))
+    if (filters.bookmarked) {
+        applied += AppliedFilter(stringResource(Res.string.drawer_filter_any_bookmark), filters.copy(bookmarked = false))
+    }
+    filters.tags.forEach { tag -> applied += AppliedFilter(tag, filters.copy(tags = filters.tags - tag)) }
     return applied
 }
 

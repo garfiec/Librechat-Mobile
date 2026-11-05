@@ -127,23 +127,22 @@ data class Agent(
     /** Subagent spawning configuration — isolated-context child agents. Forward-compat (v0.8.6). */
     val subagents: AgentSubagentsConfig? = null,
     /**
-     * Commit author identity the sandbox's tooling uses (v0.8.8-rc2). Read, never written: the
-     * editor leaves it out of every save, and the update route applies `git_identity` only when
-     * the key is present, so an identity an admin set on the web survives a mobile save. Keep it
-     * absent rather than null — an explicit `null` UNSETS it.
+     * Commit author identity the agent's Git commands use on an attached machine (v0.8.8-rc2).
+     * The editor's Code section writes it only when the user changed it (an explicit `null`
+     * UNSETS it), so an identity set on the web survives a save that never touched it.
      */
     @SerialName("git_identity") val gitIdentity: AgentGitIdentity? = null,
-    /** The persistent code workspace this agent's sandbox attaches to (v0.8.8-rc2). Round-tripped. */
+    /** The default workspace new chats use on the agent's machine; `""` = the last one used (v0.8.8-rc2). */
     @SerialName("code_workspace_id") val codeWorkspaceId: String? = null,
     /**
-     * The attached machine this agent runs code on; absent means the deployment's default. Read,
-     * never written, like [gitIdentity]: the update route changes it only when the key is present.
-     * Served by the LIST route only (`GET /api/agents`), not by `GET /api/agents/:id`.
+     * The machine this agent runs code on; absent means the deployment's default. Served by the
+     * LIST route and `/expanded`, not by `GET /api/agents/:id`. The editor writes it only when the
+     * user changed it: the update route changes it only when the key is present.
      */
     @SerialName("code_environment_id") val codeEnvironmentId: String? = null,
     /**
      * Machines the agent's author allows a chat to pick instead of [codeEnvironmentId] (v0.8.9-rc1).
-     * Read only, LIST route only, as above.
+     * LIST route and `/expanded` only, written like [codeEnvironmentId].
      */
     @SerialName("code_environment_ids") val codeEnvironmentIds: List<String>? = null,
     /**
@@ -153,12 +152,15 @@ data class Agent(
      */
     @SerialName("skills_scope") val skillsScope: String? = null,
     /**
-     * Keeps the code-interpreter sandbox alive between tool calls in a run instead of
-     * booting a fresh one each time. Gated server-side by the `stateful_code_sessions`
-     * agent capability. Mobile has no editor toggle yet — round-tripped so an agent
-     * edited on mobile doesn't lose the flag an admin set on web.
+     * Runs code on the stateful Code API (a persistent workspace, or an attached machine) instead
+     * of the stateless sandbox. Gated by the `stateful_code_sessions` agent capability; edited in
+     * the editor's Code section.
      */
     @SerialName("stateful_code_sessions") val statefulCodeSessions: Boolean? = null,
+    /** Who shares the stateful workspace: `user`, `agent-user` or `conversation` ([StatefulCodeScope]). */
+    @SerialName("stateful_code_environment") val statefulCodeEnvironment: String? = null,
+    /** Whether the workspace's AGENTS.md / CLAUDE.md is loaded: `prefer`, `defer` or `off`. */
+    val repositoryInstructions: String? = null,
     /**
      * Memory partition for this agent: `"agent"` isolates memories per (user, agent),
      * `"user"`/null uses the shared personal pool. Round-tripped only — mobile surfaces

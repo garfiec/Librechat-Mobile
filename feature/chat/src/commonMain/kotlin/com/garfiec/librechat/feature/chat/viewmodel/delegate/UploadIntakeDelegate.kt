@@ -140,6 +140,15 @@ class UploadIntakeDelegate(
         }
     }
 
+    /**
+     * "Upload to Code Environment" (legacy upload UX): every pick goes to the code environment as
+     * picked, with no routing and no sheet; the user chose the destination.
+     */
+    fun intakeCodeFiles(platformRefs: List<Any>) {
+        val routed = fileHandler.describe(platformRefs).map { RoutedFile(it, UploadRoute.CODE) }
+        if (routed.isNotEmpty()) fileHandler.onFilesSelected(routed)
+    }
+
     private fun changeResolvingPicks(delta: Int) {
         handle.update { resolvingPickCount = (resolvingPickCount + delta).coerceAtLeast(0) }
     }

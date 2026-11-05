@@ -50,6 +50,11 @@ internal fun ChatSettingsSection(
     starredModelsDisplay: StarredModelsDisplay,
     preferLastUsedModel: Boolean,
     webSearchFirst: WebSearchPreference,
+    collapseLongUserMessages: Boolean,
+    clientImageResize: Boolean,
+    clientImageResizeEnforced: Boolean,
+    onClientImageResizeChange: (Boolean) -> Unit,
+    onCollapseLongUserMessagesChange: (Boolean) -> Unit,
     chatHeaderContent: ChatHeaderContent,
     chatHeaderAlignment: ChatHeaderAlignment,
     onAutoScrollChange: (Boolean) -> Unit,
@@ -109,6 +114,13 @@ internal fun ChatSettingsSection(
                 )
 
                 ToggleRow(
+                    title = stringResource(Res.string.collapse_long_user_messages),
+                    description = stringResource(Res.string.collapse_long_user_messages_desc),
+                    checked = collapseLongUserMessages,
+                    onChange = onCollapseLongUserMessagesChange,
+                )
+
+                ToggleRow(
                     title = stringResource(Res.string.show_image_descriptions),
                     description = stringResource(Res.string.show_image_descriptions_desc),
                     checked = showImageDescriptions,
@@ -120,6 +132,16 @@ internal fun ChatSettingsSection(
                     description = stringResource(Res.string.show_site_icons_desc),
                     checked = showSiteIcons,
                     onChange = onShowSiteIconsChange,
+                )
+
+                ToggleRow(
+                    title = stringResource(Res.string.client_image_resize),
+                    description = stringResource(
+                        if (clientImageResizeEnforced) Res.string.client_image_resize_enforced else Res.string.client_image_resize_desc,
+                    ),
+                    checked = clientImageResize,
+                    onChange = onClientImageResizeChange,
+                    enabled = !clientImageResizeEnforced,
                 )
 
                 ToggleRow(

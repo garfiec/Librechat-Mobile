@@ -14,6 +14,7 @@ import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.DeploymentThemeSync
 import com.garfiec.librechat.core.data.datastore.DrawerPinsStore
+import com.garfiec.librechat.core.data.datastore.McpAppLocationConsentStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.RoleCacheDataStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
@@ -54,6 +55,10 @@ import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.ChatRepositoryImpl
 import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepository
 import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepositoryImpl
+import com.garfiec.librechat.core.data.repository.CodeMachinesRepository
+import com.garfiec.librechat.core.data.repository.CodeMachinesRepositoryImpl
+import com.garfiec.librechat.core.data.repository.CodeRunRepository
+import com.garfiec.librechat.core.data.repository.CodeRunRepositoryImpl
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepositoryImpl
 import com.garfiec.librechat.core.data.repository.ConversationRepository
@@ -88,6 +93,7 @@ import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepositoryImpl
 import com.garfiec.librechat.core.data.repository.PromptRepository
 import com.garfiec.librechat.core.data.repository.PromptRepositoryImpl
+import com.garfiec.librechat.core.data.repository.PullRequestConnectionRepository
 import com.garfiec.librechat.core.data.repository.PullRequestRepository
 import com.garfiec.librechat.core.data.repository.PullRequestRepositoryImpl
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
@@ -176,6 +182,7 @@ val dataModule = module {
     single { get<LibreChatDatabase>().serverDao() }
     single { get<LibreChatDatabase>().prefetchWatermarkDao() }
     single { get<LibreChatDatabase>().projectOrderDao() }
+    single { get<LibreChatDatabase>().toolCallPartDao() }
 
     // --- Message search index ---
     single { SearchIndexState(get()) }
@@ -335,6 +342,7 @@ val dataModule = module {
     singleOf(::ConfigCacheDataStore)
     singleOf(::RoleCacheDataStore)
     singleOf(::ConversationWebSearchStore)
+    singleOf(::McpAppLocationConsentStore)
     singleOf(::CodeWorkspacePreferenceStore)
     single {
         DateTimePrefsStore(
@@ -551,6 +559,7 @@ val dataModule = module {
         MessageRepositoryImpl(
             messagesApi = get(),
             messageDao = get(),
+            toolCallPartDao = get(),
             activeAccountProvider = get(),
             roster = get(),
             dispatcher = get(KoinQualifiers.Default),
@@ -641,7 +650,10 @@ val dataModule = module {
     singleOf(::UserRepositoryImpl) bind UserRepository::class
     singleOf(::BannerRepositoryImpl) bind BannerRepository::class
     singleOf(::CodeEnvironmentRepositoryImpl) bind CodeEnvironmentRepository::class
+    singleOf(::CodeMachinesRepositoryImpl) bind CodeMachinesRepository::class
+    singleOf(::CodeRunRepositoryImpl) bind CodeRunRepository::class
     single<PullRequestRepository> { PullRequestRepositoryImpl(api = get(), activeAccountProvider = get()) }
+    singleOf(::PullRequestConnectionRepository)
     single<FavoritesRepository> {
         FavoritesRepositoryImpl(
             favoritesApi = get(),

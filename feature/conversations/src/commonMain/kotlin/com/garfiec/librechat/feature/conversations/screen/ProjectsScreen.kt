@@ -371,7 +371,6 @@ private fun SortRow(uiState: ProjectsUiState, onSortChange: (ProjectSort) -> Uni
             AdaptiveDropdownMenu(
                 expanded = menuOpen,
                 onDismissRequest = { menuOpen = false },
-                shape = RoundedCornerShape(16.dp),
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             ) {
                 ProjectSort.entries.forEach { sort ->

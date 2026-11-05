@@ -199,6 +199,8 @@ data class DrawerFilterOptions(
     val sharedOnlyAvailable: Boolean = false,
     /** Bookmarks are on for this role and server. */
     val bookmarksAvailable: Boolean = false,
+    /** The bookmarks to pick from ([selectableBookmarks]), in the user's order. */
+    val bookmarks: List<FilterBookmarkOption> = emptyList(),
     /** Applying asks the server, so it waits for a connection. */
     val isOnline: Boolean = true,
 )

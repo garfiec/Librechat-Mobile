@@ -64,6 +64,7 @@ fun DataSettingsScreen(
     onNavigateToPrefetchSettings: () -> Unit,
     onNavigateToMemories: () -> Unit,
     onNavigateToMcpServers: () -> Unit,
+    onNavigateToCodeExecution: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -88,6 +89,7 @@ fun DataSettingsScreen(
             onNavigateToPrefetchSettings = onNavigateToPrefetchSettings,
             onNavigateToMemories = onNavigateToMemories,
             onNavigateToMcpServers = onNavigateToMcpServers,
+            onNavigateToCodeExecution = onNavigateToCodeExecution,
             snackbarHostState = snackbarHostState,
             modifier = Modifier
                 .fillMaxSize()
@@ -108,6 +110,7 @@ fun DataSettingsContent(
     onNavigateToPrefetchSettings: () -> Unit,
     onNavigateToMemories: () -> Unit,
     onNavigateToMcpServers: () -> Unit,
+    onNavigateToCodeExecution: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
@@ -260,6 +263,23 @@ fun DataSettingsContent(
                             title = stringResource(Res.string.section_memories),
                             value = memoriesSummary(uiState.memoriesEnabled, uiState.memoryCount),
                             onClick = onNavigateToMemories,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        )
+                    }
+                }
+            }
+
+            // Web's Data controls › Code execution: the default workspace scope and the user's machines.
+            if (uiState.codeExecutionEnabled) {
+                item(key = "code_execution_header") {
+                    AdaptiveSectionHeader(stringResource(Res.string.code_execution_title))
+                }
+                adaptiveSection {
+                    row(key = "code_execution_row") {
+                        SelectorRow(
+                            title = stringResource(Res.string.code_environments),
+                            value = stringResource(Res.string.code_execution_summary),
+                            onClick = onNavigateToCodeExecution,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         )
                     }

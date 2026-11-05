@@ -332,6 +332,8 @@
     </plurals>
     <string name="mcp_oauth_sign_in_title">登录 %1$s</string>
     <string name="mcp_oauth_sign_in_close">关闭登录</string>
+    <string name="mcp_oauth_connection_secure">安全连接</string>
+    <string name="mcp_oauth_connection_not_secure">不安全</string>
     <string name="pull_request">拉取请求</string>
     <string name="merge_request">合并请求</string>
     <string name="pr_label">PR #%1$d</string>

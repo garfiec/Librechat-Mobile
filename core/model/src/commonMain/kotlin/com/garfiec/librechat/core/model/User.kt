@@ -39,4 +39,9 @@ data class User(
 data class UserPersonalization(
     /** Server default is true; false means the user opted out of memory entirely. */
     val memories: Boolean = true,
+    /**
+     * The stateful workspace scope new agents get ([com.garfiec.librechat.core.model.code.StatefulCodeScope]),
+     * set in Settings › Code execution with `PATCH /api/user/preferences`.
+     */
+    val statefulCodeEnvironment: String? = null,
 )

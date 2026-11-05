@@ -11,6 +11,7 @@ internal fun ChatUiState.neutralizeStreamingChurn(): ChatUiState = copy(
         streamingThinking = "",
         activeToolCalls = emptyList(),
         sandboxStartingToolCallIds = emptySet(),
+        ptcTraces = emptyMap(),
         streamingAttachments = emptyList(),
     ),
     comparisonState = comparisonState.copy(

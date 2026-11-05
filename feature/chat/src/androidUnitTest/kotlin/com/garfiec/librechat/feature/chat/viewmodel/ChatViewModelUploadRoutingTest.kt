@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.viewmodel
 
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.EndpointConstants
+import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
@@ -12,6 +13,7 @@ import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.EndpointConfig
+import com.garfiec.librechat.core.model.response.FileUploadConfig
 import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PdfPasswordPrompt
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PickedFile
@@ -586,6 +588,46 @@ class ChatViewModelUploadRoutingTest {
             io.mockk.verify(exactly = 1) { fileHandler.retryUpload(any()) }
         }
     }
+
+    @Test
+    fun `a code-environment pick goes as picked and turns the code interpreter on`() {
+        coEvery { fixture.fileRepository.getFileConfig() } returns
+            Result.Success(FileUploadConfig(legacyFileUploadUX = true))
+        routingTest(
+            endpoint = "anthropic",
+            mode = UploadRoutingMode.MANUAL,
+            configs = mapOf(
+                "anthropic" to EndpointConfig(),
+                EndpointConstants.AGENTS to EndpointConfig(capabilities = listOf("execute_code")),
+            ),
+        ) { vm ->
+            assertThat(vm.uiState.value.codeUploadOffered).isTrue()
+            val picked = listOf(
+                PickedFile(ref = "photo.png", name = "photo.png", mimeType = "image/png"),
+                PickedFile(ref = "notes.docx", name = "notes.docx", mimeType = DOCX),
+            )
+            every { fileHandler.describe(any()) } returns picked
+            val captured = slot<List<RoutedFile>>()
+            every { fileHandler.onFilesSelected(capture(captured)) } returns Unit
+
+            vm.onCodeFilesSelected(picked.map { it.ref })
+            runCurrent()
+
+            // No routing sheet even in Manual mode: the destination was the pick.
+            assertThat(vm.uiState.value.composer.pendingUploadRouting).isNull()
+            assertThat(captured.captured.map { it.route }).containsExactly(UploadRoute.CODE, UploadRoute.CODE)
+            assertThat(vm.uiState.value.selection.effectiveTools).contains(ToolConstants.CODE_INTERPRETER)
+        }
+    }
+
+    @Test
+    fun `a code-environment pick is ignored where the option isn't offered`() =
+        routingTest(endpoint = "anthropic") { vm ->
+            vm.onCodeFilesSelected(listOf("a.py"))
+            runCurrent()
+
+            verify(exactly = 0) { fileHandler.onFilesSelected(any()) }
+        }
 
     /** Picks files in manual mode and leaves the batch staged. */
     private fun stage(vm: ChatViewModel, vararg files: Pair<String, String>) {

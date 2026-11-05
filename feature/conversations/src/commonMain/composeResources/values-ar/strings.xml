@@ -331,6 +331,7 @@
     <string name="drawer_filter_has_attachments">تحتوي على مرفقات</string>
     <string name="drawer_filter_shared_only">المشتركة فقط</string>
     <string name="drawer_filter_bookmarks">الإشارات المرجعية</string>
+    <string name="drawer_filter_any_bookmark">أي إشارة مرجعية</string>
     <string name="drawer_filter_reset">إعادة تعيين</string>
     <string name="drawer_filter_apply">تطبيق</string>
     <string name="drawer_filter_offline">أنت غير متصل. تحتاج عوامل التصفية إلى الخادم، لذا ستُطبَّق عند عودتك إلى الاتصال.</string>

@@ -124,6 +124,8 @@ fun CodeExecutionCard(
     stateKey: String = "",
     // Part of the reply still streaming: hands its state to the saved card when the reply ends.
     live: Boolean = false,
+    // Finds this call's programmatic tool-calling trace in [LocalPtcTraces].
+    toolCallId: String? = null,
 ) {
     val reduceMotion = rememberReduceMotion()
     val codeExecCd = stringResource(Res.string.cd_code_execution_result)
@@ -157,6 +159,10 @@ fun CodeExecutionCard(
                     CodeBlock(code = code, language = result.language)
                 }
             }
+        }
+        val ptcTrace = toolCallId?.let { LocalPtcTraces.current[it] }
+        if (ptcTrace != null) {
+            PtcToolTrace(trace = ptcTrace, modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp))
         }
         if (settled && (!result.output.isNullOrBlank() || !result.error.isNullOrBlank())) {
             CodeExecutionOutput(result = result, stateKey = stateKey, live = live)
@@ -289,9 +295,13 @@ private fun CodeExecutionOutput(result: CodeExecutionResult, stateKey: String, l
     val stderr = result.error?.takeIf { it.isNotBlank() }
     var stdoutClipped by remember(stdout) { mutableStateOf(false) }
     var stderrClipped by remember(stderr) { mutableStateOf(false) }
-    val copyText = listOfNotNull(stdout, stderr).joinToString("\n")
+    // An attached command's `[exit code: N]…` trailer: shown dimmed after the output, except after a
+    // timeout, where it sits behind Details (upstream BashCall) under the "Time limit reached" note.
+    val command = result.command
+    val trailer = command?.trailer?.trim()?.ifEmpty { null }
+    var showTimeoutDetails by rememberCarriedExpansion("codeexec-trailer", stateKey, live)
+    val copyText = listOfNotNull(stdout, stderr, trailer).joinToString("\n")
     val outputLabel = stringResource(Res.string.label_output)
-    val lineCount = remember(copyText) { copyText.lines().size }
 
     // This pane shows without a disclosure, so Copy on a preview fetches the full output first
     // rather than sitting disabled; a failure reverts the icon and shows the status row.
@@ -373,10 +383,52 @@ private fun CodeExecutionOutput(result: CodeExecutionResult, stateKey: String, l
                     onClipChange = { stderrClipped = it },
                 )
             }
+            if (trailer != null && (!command.timedOut || showTimeoutDetails)) {
+                Text(
+                    text = trailer,
+                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                    color = colors.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                )
+            }
+            if (command?.timedOut == true) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(Res.string.command_timeout_note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (trailer != null) {
+                        val detailsState =
+                            stringResource(if (showTimeoutDetails) Res.string.state_expanded else Res.string.state_collapsed)
+                        AdaptiveTextButton(
+                            onClick = { showTimeoutDetails = !showTimeoutDetails },
+                            modifier = Modifier.semantics { stateDescription = detailsState },
+                        ) {
+                            Text(
+                                stringResource(
+                                    if (showTimeoutDetails) Res.string.command_timeout_hide else Res.string.command_timeout_details,
+                                ),
+                            )
+                        }
+                    }
+                }
+            }
         }
         if (!showAll && (stdoutClipped || stderrClipped)) {
             AdaptiveTextButton(onClick = { showAll = true }) {
-                Text(pluralStringResource(Res.plurals.show_all_n_lines, lineCount, lineCount))
+                val count = remember(copyText, isPreview) { outputLineCount(copyText, isPreview) }
+                Text(
+                    if (count == null) {
+                        stringResource(Res.string.show_full_output)
+                    } else {
+                        pluralStringResource(Res.plurals.show_all_n_lines, count, count)
+                    },
+                )
             }
         }
     }
@@ -403,6 +455,12 @@ private fun OutputText(
             .padding(8.dp),
     )
 }
+
+/**
+ * The line count "Show all" may name, or null for a server preview: its cut drops a middle that
+ * can hold any number of lines and adds the marker's own, so its count is not the output's.
+ */
+internal fun outputLineCount(shownText: String, isPreview: Boolean): Int? = if (isPreview) null else shownText.lines().size
 
 private const val OUTPUT_PREVIEW_LINES = 6
 private val CARD_SHAPE = RoundedCornerShape(8.dp)

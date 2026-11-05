@@ -4,8 +4,10 @@ import android.app.Application
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import com.garfiec.librechat.core.common.AppInfo
+import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
+import com.garfiec.librechat.core.data.datastore.McpAppLocationConsentStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
@@ -16,9 +18,12 @@ import com.garfiec.librechat.core.data.prefetch.PrefetchStatusReporter
 import com.garfiec.librechat.core.data.repository.ApiKeyRepository
 import com.garfiec.librechat.core.data.repository.AuthRepository
 import com.garfiec.librechat.core.data.repository.BalanceRepository
+import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepository
+import com.garfiec.librechat.core.data.repository.CodeMachinesRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.FavoritesRepository
+import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.KeyRepository
 import com.garfiec.librechat.core.data.repository.McpOAuthLauncher
 import com.garfiec.librechat.core.data.repository.McpRepository
@@ -26,6 +31,7 @@ import com.garfiec.librechat.core.data.repository.MemoryRepository
 import com.garfiec.librechat.core.data.repository.PasskeyRepository
 import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
+import com.garfiec.librechat.core.data.repository.PullRequestConnectionRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.SearchCapabilityRepository
 import com.garfiec.librechat.core.data.repository.ServerRepository
@@ -44,6 +50,7 @@ import com.garfiec.librechat.feature.settings.viewmodel.delegate.SpeechSettingsF
 import kotlinx.coroutines.CoroutineDispatcher
 import org.junit.Test
 import org.koin.test.verify.verify
+import kotlin.time.Clock
 
 class SettingsModuleVerificationTest {
     @Test
@@ -56,12 +63,18 @@ class SettingsModuleVerificationTest {
                 SavedStateHandle::class,
                 AppInfo::class,
                 ArtifactLibraryConsentStore::class,
+                McpAppLocationConsentStore::class,
                 UserRepository::class,
                 PasskeyRepository::class,
+                PullRequestConnectionRepository::class,
+                ActiveAccountProvider::class,
+                CodeMachinesRepository::class,
+                CodeEnvironmentRepository::class,
                 AuthRepository::class,
                 ConfigRepository::class,
                 CertificateTrustRegistry::class,
                 ConversationRepository::class,
+                FileRepository::class,
                 FavoritesRepository::class,
                 McpRepository::class,
                 McpOAuthLauncher::class,
@@ -94,6 +107,9 @@ class SettingsModuleVerificationTest {
                 AppInstallSource::class,
                 // Provided by core:common CommonModule via KoinQualifiers.IO.
                 CoroutineDispatcher::class,
+                // Constructor defaults the explicit `viewModel {}` blocks never pass, and a route argument.
+                Clock::class,
+                String::class,
             ),
         )
     }

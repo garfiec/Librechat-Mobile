@@ -272,9 +272,12 @@ fun McpServersScreen(
         null -> Unit
     }
 
+    val appLocationConsents by viewModel.appLocationConsents.collectAsStateWithLifecycle()
     uiState.selectedRow?.let { row ->
         McpServerSheet(
             row = row,
+            appLocation = appLocationConsents[row.name],
+            onAppLocationChange = { viewModel.setAppLocationAllowed(row.name, it) },
             tools = uiState.selectedTools,
             onDismiss = viewModel::dismissServer,
             onReconnect = { viewModel.reinitializeServer(row.name) },

@@ -115,6 +115,53 @@ class SseEventMapperTest {
         assertThat(tc.inputValidationError).isTrue()
     }
 
+    // --- on_ptc_tool_call (v0.8.9-rc1, upstream `PtcToolCallEvent` / `createPtcProgressEmitter`) ---
+
+    @Test
+    fun `an inner programmatic tool call maps start and settle`() {
+        val start = mapper.map(
+            SseEvent(
+                event = "",
+                data = """{"event":"on_ptc_tool_call","data":{"tool_call_id":"call_9","call_id":"c1","name":"search_code_mcp_github","status":"running","args":"q=foo","runId":"r1"}}""",
+            ),
+        ) as StreamEvent.PtcToolCall
+        assertThat(start.toolCallId).isEqualTo("call_9")
+        assertThat(start.callId).isEqualTo("c1")
+        assertThat(start.name).isEqualTo("search_code_mcp_github")
+        assertThat(start.status).isEqualTo(StreamEvent.PtcToolCall.STATUS_RUNNING)
+        assertThat(start.args).isEqualTo("q=foo")
+
+        val settle = mapper.map(
+            SseEvent(
+                event = "",
+                data = """{"event":"on_ptc_tool_call","data":{"tool_call_id":"call_9","call_id":"c1","name":"search_code_mcp_github","status":"error","error":"rate limited","durationMs":412.7}}""",
+            ),
+        ) as StreamEvent.PtcToolCall
+        assertThat(settle.status).isEqualTo(StreamEvent.PtcToolCall.STATUS_ERROR)
+        assertThat(settle.error).isEqualTo("rate limited")
+        assertThat(settle.durationMs).isEqualTo(412L)
+        assertThat(settle.args).isNull()
+    }
+
+    @Test
+    fun `an inner call without its ids is dropped`() {
+        val event = SseEvent(
+            event = "",
+            data = """{"event":"on_ptc_tool_call","data":{"tool_call_id":"call_9","name":"x","status":"running"}}""",
+        )
+        assertThat(mapper.map(event)).isNull()
+    }
+
+    @Test
+    fun `a completion stamped attached_workspace carries its executor`() {
+        val event = SseEvent(
+            event = "",
+            data = """{"event":"on_run_step_completed","data":{"result":{"id":"step_1","tool_call":{"id":"call_1","name":"bash_tool","output":"stdout:\\nok\\n[exit code: 0]","executor":"attached_workspace"}}}}""",
+        )
+        val tc = mapper.map(event) as StreamEvent.ToolCallComplete
+        assertThat(tc.executor).isEqualTo("attached_workspace")
+    }
+
     // --- on_steer_applied quotes (v0.8.8-rc2) ---
 
     @Test

@@ -1,8 +1,8 @@
 package com.garfiec.librechat.core.ui.glass
 
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.AdaptiveMenuShape
 
 internal object GlassDefaults {
     /** How far a disabled control fades (iOS dims rather than greys). */
@@ -10,7 +10,7 @@ internal object GlassDefaults {
 
     val Hairline = 0.5.dp
 
-    val MenuShape = RoundedCornerShape(16.dp)
+    val MenuShape = AdaptiveMenuShape
 
     /** Extra wash for a panel of text (sheet, menu), so rows stay legible over a busy screen. */
     fun panelThickening(surface: Color, dark: Boolean): Color =

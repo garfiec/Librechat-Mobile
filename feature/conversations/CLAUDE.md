@@ -25,6 +25,16 @@ The conversation list lives in the drawer (`drawer/DrawerContent.kt`, `DrawerVie
 - Tags observed via `TagRepository.observeTags()` (Room-backed Flow); `SAVED_TAG` and `count == 0` tags are filtered out in the ViewModel
 - `toggleTag()` / `clearTagFilter()` reload conversations with new filter
 
+## Drawer filter sheet: bookmarks (v0.8.9-rc1 list facets)
+- `DrawerFilters.tags` are picked bookmarks, sent as `tags` on `GET /api/convos` and OR-matched by the
+  server (web's `chatFilterTagsAtom` + `BookmarkChoices`). The sheet offers `selectableBookmarks`
+  (web's): bookmarks some chat carries, plus every picked one, so a deleted bookmark can still be
+  turned off. Each picked tag is its own chip in the applied-filter row.
+- "Any bookmark" (`bookmarked`, Switchboard-only: web has no such switch) sends every bookmark the
+  user has. It and picked tags exclude each other (`withTagToggled` / `withAnyBookmark`), so the
+  request never mixes the two.
+- Persisted with the other filters (saved-state JSON, until a cold start), like web's session scope.
+
 ## CRUD Actions (via `ConversationActions` component)
 | Action | API | Notes |
 |--------|-----|-------|
@@ -79,7 +89,12 @@ The conversation list lives in the drawer (`drawer/DrawerContent.kt`, `DrawerVie
 ## Pull request marks (v0.8.9-rc1)
 - `drawer/DrawerPullRequests.kt`: while the drawer is open, the shown rows that may be code chats
   (`Conversation.isCodeConversation != false`) and aren't running are asked through the batch route
-  (all of them, chunked by 50 with `pullRequestsMaxConcurrentLookups` in flight), re-asked once their answer is a minute old. Rows never poll. Gate:
+  (all of them, chunked by 50 with `pullRequestsMaxConcurrentLookups` in flight), re-asked once their answer is a minute old. Rows never poll: a
+  pull-to-refresh (`DrawerViewModel.refreshConversations` → `refreshNow`) re-asks shown rows older than
+  15 s (`PULL_REQUEST_ROW_FORCE_MS`, so repeated pulls send nothing), and a change of credential
+  (`PullRequestRepository.revision`) cancels lookups still out and re-asks every shown row while open or
+  at the next open; the repository drops an answer asked under an older revision. An account
+  switch cancels lookups still out; the repository drops any answer that lands after it. Gate:
   `pullRequestBatchAvailable` (rc1 + `pullRequestsEnabled` + `pullRequestsBatchVersion == 1`).
 - The mark (`PullRequestStateIcon`, 16dp) sits before the star, is decorative (the row still opens the
   chat, whose ⋮ has the detail) and silent; the row carries "PR #482, Open, Checks: Running" as its

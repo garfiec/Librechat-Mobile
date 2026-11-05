@@ -8,6 +8,8 @@ import com.garfiec.librechat.core.model.request.OwnerTextRequest
 import com.garfiec.librechat.core.model.request.UpdateMessageRequest
 import com.garfiec.librechat.core.model.response.MessageSearchResponse
 import com.garfiec.librechat.core.model.response.OwnerTextResponse
+import com.garfiec.librechat.core.model.response.SubagentAttachmentCallsResponse
+import com.garfiec.librechat.core.model.response.SubagentAttachmentFile
 import com.garfiec.librechat.core.model.response.ToolCallPartResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -68,6 +70,26 @@ class MessagesApi constructor(
             parameter("toolCallId", toolCallId)
             stepId?.takeIf { it.isNotEmpty() }?.let { parameter("stepId", it) }
             agentId?.takeIf { it.isNotEmpty() }?.let { parameter("agentId", it) }
+        }.body()
+
+    /**
+     * `GET /api/messages/:conversationId/:messageId/subagent-calls?files=[…]` (v0.8.9-rc1): which
+     * child calls of the stored message's subagent transcripts [files] were saved under. [files] is
+     * sent as a JSON array (at most [SUBAGENT_CALLS_BATCH]; upstream answers 400 past 32), with blank
+     * scopes left out. Ids are encoded path segments.
+     */
+    suspend fun getSubagentAttachmentCalls(
+        conversationId: String,
+        messageId: String,
+        files: List<SubagentAttachmentFile>,
+    ): SubagentAttachmentCallsResponse =
+        client.get {
+            url {
+                path("api/messages")
+                appendPathSegments(listOf(conversationId, messageId), encodeSlash = true)
+                appendPathSegments("subagent-calls")
+            }
+            parameter("files", encodeAttachmentFiles(files))
         }.body()
 
     /**
@@ -135,3 +157,20 @@ class MessagesApi constructor(
         const val SERVER_DEFAULT_PAGE_SIZE: Int = 20
     }
 }
+
+/** Files per `subagent-calls` request: upstream `MAX_ATTACHMENT_CALL_QUERIES` / `SUBAGENT_ATTACHMENT_CALLS_BATCH`. */
+const val SUBAGENT_CALLS_BATCH: Int = 32
+
+/** [files] as the route's `files` query: a JSON array of `{toolCallId, agentId?, stepId?}`, blanks left out. */
+internal fun encodeAttachmentFiles(files: List<SubagentAttachmentFile>): String =
+    kotlinx.serialization.json.buildJsonArray {
+        files.forEach { file ->
+            add(
+                kotlinx.serialization.json.buildJsonObject {
+                    put("toolCallId", kotlinx.serialization.json.JsonPrimitive(file.toolCallId))
+                    file.agentId?.takeIf { it.isNotEmpty() }?.let { put("agentId", kotlinx.serialization.json.JsonPrimitive(it)) }
+                    file.stepId?.takeIf { it.isNotEmpty() }?.let { put("stepId", kotlinx.serialization.json.JsonPrimitive(it)) }
+                },
+            )
+        }
+    }.toString()

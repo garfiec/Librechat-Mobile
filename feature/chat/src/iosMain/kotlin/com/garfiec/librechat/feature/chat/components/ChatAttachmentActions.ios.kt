@@ -13,14 +13,18 @@ import com.garfiec.librechat.feature.chat.util.openPhotoPicker
 actual fun rememberChatAttachmentActions(
     onFilesSelect: (List<Any>) -> Unit,
     @Suppress("UnusedParameter") filePickerMimeTypes: List<String>,
+    onCodeFilesSelect: (List<Any>) -> Unit,
 ): ChatAttachmentActions {
     val currentOnFilesSelect by rememberUpdatedState(onFilesSelect)
+    val currentOnCodeFilesSelect by rememberUpdatedState(onCodeFilesSelect)
     return remember {
         val deliver: (List<Any>) -> Unit = { files -> if (files.isNotEmpty()) currentOnFilesSelect(files) }
+        val deliverToCode: (List<Any>) -> Unit = { files -> if (files.isNotEmpty()) currentOnCodeFilesSelect(files) }
         ChatAttachmentActions(
             onAttachFiles = { openDocumentPicker(deliver) },
             onTakePhoto = { openCamera(deliver) },
             onPickPhotos = { openPhotoPicker(deliver) },
+            onAttachToCode = { openDocumentPicker(deliverToCode) },
         )
     }
 }

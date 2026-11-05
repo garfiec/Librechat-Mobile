@@ -397,4 +397,51 @@ class CodeWorkspaceResolverTest {
         assertEquals(listOf(vm.id), after.environments.map { it.environment.id })
         assertEquals(draft, after.submission?.workspaces)
     }
+
+    @Test
+    fun twoAgentsChooseTheirOwnMachinesInOneChat() {
+        val gpu = PublicCodeEnvironment(id = "gpu-box", name = "gpu-box", type = "attached")
+        val ops = Agent(
+            id = "agent_ops",
+            name = "Ops",
+            tools = listOf("execute_code"),
+            statefulCodeSessions = true,
+            codeEnvironmentId = vm.id,
+            codeEnvironmentIds = listOf(gpu.id),
+        )
+        val lead = dev.copy(codeEnvironmentIds = listOf(vm.id), agentIds = listOf(ops.id))
+        val caps = capabilities(allowSelection = true).copy(
+            statefulCodeSessions = StatefulCodeSessionsConfig(
+                environments = listOf(managed, mbp, vm, gpu),
+                allowEnvironmentSelection = true,
+            ),
+        )
+        val agents = mapOf(lead.id to lead, ops.id to ops)
+        val statuses = mapOf(
+            mbp.id to ready(mbp.id, switchboard),
+            vm.id to ready(vm.id, scratch),
+            gpu.id to ready(gpu.id, librechat),
+        )
+        val before = CodeWorkspaceResolver.resolve(caps, newChat(agentId = lead.id), agents, statuses)
+        assertEquals(listOf(vm.id, mbp.id), before.environments.map { it.environment.id })
+
+        // Ops moves to its alternative machine; the lead keeps its own.
+        val draft = CodeWorkspaceResolver.selectWorkspace(before, null, CodeWorkspaceSelection(gpu.id, "librechat"))
+        assertEquals(
+            listOf(
+                CodeWorkspaceSelection(mbp.id, "switchboard"),
+                CodeWorkspaceSelection(gpu.id, "librechat", agentIds = listOf(ops.id)),
+            ),
+            draft,
+        )
+        val after = CodeWorkspaceResolver.resolve(
+            caps,
+            newChat(agentId = lead.id, mode = CodeEnvironmentMode.ATTACHED, selections = draft),
+            agents,
+            statuses,
+        )
+        assertEquals(State.READY, after.state)
+        assertEquals(listOf(mbp.id, gpu.id), after.environments.map { it.environment.id })
+        assertEquals(draft, after.submission?.workspaces)
+    }
 }

@@ -16,11 +16,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DriveFileMove
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Computer
+import androidx.compose.material.icons.filled.ForkRight
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.CopyAll
@@ -73,12 +75,16 @@ import com.garfiec.librechat.feature.chat.resources.code_checkout_registered_chi
 import com.garfiec.librechat.feature.chat.resources.code_checkout_registered_info
 import com.garfiec.librechat.feature.chat.resources.code_checkout_worktree
 import com.garfiec.librechat.feature.chat.resources.code_checkout_worktree_info
+import com.garfiec.librechat.feature.chat.resources.code_linked_worktrees
+import com.garfiec.librechat.feature.chat.resources.code_linked_worktrees_info
 import com.garfiec.librechat.feature.chat.resources.code_machine
 import com.garfiec.librechat.feature.chat.resources.code_machine_choose
+import com.garfiec.librechat.feature.chat.resources.code_machines_selected
 import com.garfiec.librechat.feature.chat.resources.code_workspace
 import com.garfiec.librechat.feature.chat.resources.code_workspace_agent_status
 import com.garfiec.librechat.feature.chat.resources.code_workspace_choose
 import com.garfiec.librechat.feature.chat.resources.code_workspace_graph_requirement
+import com.garfiec.librechat.feature.chat.resources.code_workspace_graph_selection_conflict
 import com.garfiec.librechat.feature.chat.resources.code_workspace_loading
 import com.garfiec.librechat.feature.chat.resources.code_workspace_locked_recovery
 import com.garfiec.librechat.feature.chat.resources.code_workspace_missing
@@ -89,6 +95,9 @@ import com.garfiec.librechat.feature.chat.resources.code_workspace_unsupported
 import com.garfiec.librechat.feature.chat.resources.code_workspace_used_by
 import com.garfiec.librechat.feature.chat.resources.code_workspace_without
 import com.garfiec.librechat.feature.chat.resources.code_workspace_without_info
+import com.garfiec.librechat.feature.chat.resources.code_workspaces_selected
+import com.garfiec.librechat.feature.chat.viewmodel.CodeApprovalChip
+import com.garfiec.librechat.feature.chat.viewmodel.CodeApprovalOption
 import com.garfiec.librechat.feature.chat.viewmodel.CodeCheckoutMode
 import com.garfiec.librechat.feature.chat.viewmodel.CodeFootnote
 import com.garfiec.librechat.feature.chat.viewmodel.CodeMachineSection
@@ -99,6 +108,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceChipLabel
 import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceRowView
 import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceUiState
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** What the composer's code-workspace row draws and does. */
@@ -111,6 +121,12 @@ class CodeWorkspaceComposer(
     val onSetCheckout: (environmentId: String, mode: CodeCheckoutMode) -> Unit,
     val onSelectNoWorkspace: () -> Unit,
     val onRefresh: () -> Unit,
+    val onSelectTransitionWorkspace: (environmentId: String, workspaceId: String) -> Unit = { _, _ -> },
+    val onSetTransitionCheckout: (environmentId: String, mode: CodeCheckoutMode) -> Unit = { _, _ -> },
+    val onConfirmTransition: () -> Unit = {},
+    val onDetach: () -> Unit = {},
+    val onRetryReconcile: () -> Unit = {},
+    val onSelectApprovalMode: (CodeApprovalOption) -> Unit = {},
 )
 
 /**
@@ -127,19 +143,45 @@ private val CHIP_NAME_MAX_WIDTH = 192.dp
  * chips, and the lines that say what a held send is waiting on. Draws [CodeWorkspaceComposer.state]
  * and nothing more; every decision is the delegate's.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun CodeWorkspaceRow(composer: CodeWorkspaceComposer, modifier: Modifier = Modifier) {
     val state = composer.state
-    if (!state.visible) return
+    val confirming = state.confirming
+    when {
+        // A healthy saved chat hides its workspace chips; the approval mode still applies to it.
+        !state.visible -> ApprovalOnlyRow(state.approval, composer.onSelectApprovalMode, modifier)
+        confirming != null -> ConfirmingRow(confirming, composer.onRetryReconcile, modifier = modifier)
+        else -> WorkspaceRowContent(composer, modifier)
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ApprovalOnlyRow(approval: CodeApprovalChip?, onSelect: (CodeApprovalOption) -> Unit, modifier: Modifier = Modifier) {
+    if (approval == null) return
+    FlowRow(modifier = modifier.fillMaxWidth()) { ApprovalChip(approval, onSelect) }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun WorkspaceRowContent(composer: CodeWorkspaceComposer, modifier: Modifier = Modifier) {
+    val state = composer.state
     Column(modifier = modifier.fillMaxWidth()) {
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            state.machine?.let { machine -> MachineChip(machine.name, machine.choices, composer) }
+            state.machine?.let { machine -> MachineChip(machine.name, machine.count, machine.choices, composer) }
             WorkspaceChip(state, composer)
-            state.branch?.let { BranchChip(it) }
+            state.branch?.let { branch ->
+                InfoChip(
+                    icon = Icons.Default.AccountTree,
+                    label = branch,
+                    description = stringResource(Res.string.cd_code_chip, stringResource(Res.string.code_branch), branch),
+                    info = stringResource(Res.string.code_branch_info),
+                    isName = true,
+                )
+            }
             state.checkout?.let { checkout ->
                 val label = stringResource(
                     when (checkout.mode) {
@@ -158,10 +200,32 @@ internal fun CodeWorkspaceRow(composer: CodeWorkspaceComposer, modifier: Modifie
                     onClick = if (checkout.pickable) ({ composer.onOpenSheet(null) }) else null,
                 )
             }
+            state.approval?.let { ApprovalChip(it, composer.onSelectApprovalMode) }
+            if (state.linkedWorktrees) {
+                val label = stringResource(Res.string.code_linked_worktrees)
+                InfoChip(
+                    icon = Icons.Default.ForkRight,
+                    label = label,
+                    description = label,
+                    info = stringResource(Res.string.code_linked_worktrees_info),
+                    isName = false,
+                )
+            }
         }
         val lines = buildList {
             if (state.graphRequirement) add(stringResource(Res.string.code_workspace_graph_requirement))
             state.requirements.forEach { add(requirementText(it)) }
+            if (state.selectionConflict) add(stringResource(Res.string.code_workspace_graph_selection_conflict))
+            state.checkoutSummaries.forEach { summary ->
+                val mode = stringResource(
+                    if (summary.mode == CodeCheckoutMode.WORKTREE) {
+                        Res.string.code_checkout_worktree
+                    } else {
+                        Res.string.code_checkout_registered_chip
+                    },
+                )
+                add(listOf(summary.machine, summary.workspace, mode).joinToString(" · "))
+            }
             when (state.footnote) {
                 CodeFootnote.LOCKED_RECOVERY -> add(stringResource(Res.string.code_workspace_locked_recovery))
                 CodeFootnote.WITHOUT_WORKSPACE -> add(stringResource(Res.string.code_workspace_without_info))
@@ -178,8 +242,12 @@ internal fun CodeWorkspaceRow(composer: CodeWorkspaceComposer, modifier: Modifie
                     .semantics { liveRegion = LiveRegionMode.Polite },
             )
         }
+        // The sheet is a window of its own; placed here so the row stays one emitter.
+        if (state.sheetOpen) {
+            val transition = state.transition
+            if (transition != null) TransitionSheet(transition, composer) else CodeWorkspaceSheet(composer)
+        }
     }
-    if (state.sheetOpen) CodeWorkspaceSheet(composer)
 }
 
 @Composable
@@ -201,11 +269,16 @@ private fun requirementText(requirement: CodeRequirement): String =
 @Composable
 private fun MachineChip(
     name: String?,
+    count: Int,
     choices: List<com.garfiec.librechat.feature.chat.viewmodel.CodeMachineChoice>,
     composer: CodeWorkspaceComposer,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val label = name ?: stringResource(Res.string.code_machine_choose)
+    val label = when {
+        name != null -> name
+        count > 1 -> pluralStringResource(Res.plurals.code_machines_selected, count, count)
+        else -> stringResource(Res.string.code_machine_choose)
+    }
     val description = stringResource(Res.string.cd_code_chip, stringResource(Res.string.code_machine), label)
     Box {
         CodeChip(
@@ -245,18 +318,26 @@ private fun MachineChip(
 @Composable
 private fun WorkspaceChip(state: CodeWorkspaceUiState, composer: CodeWorkspaceComposer) {
     val chip = state.workspace
-    val label = when (chip.label) {
-        CodeWorkspaceChipLabel.NAME -> chip.name.orEmpty()
-        CodeWorkspaceChipLabel.CHOOSE -> stringResource(Res.string.code_workspace_choose)
-        CodeWorkspaceChipLabel.NONE -> stringResource(Res.string.code_workspace_without)
-        CodeWorkspaceChipLabel.LOADING -> stringResource(Res.string.code_workspace_loading)
-        CodeWorkspaceChipLabel.MISSING -> stringResource(Res.string.code_workspace_missing)
-        CodeWorkspaceChipLabel.UNAVAILABLE -> stringResource(Res.string.code_workspace_unavailable)
-        CodeWorkspaceChipLabel.UNSUPPORTED -> stringResource(Res.string.code_workspace_unsupported)
+    val transition = state.transition?.takeIf { it.renamesChip }
+    val label = when {
+        transition != null -> transitionLabel(transition)
+        else -> when (chip.label) {
+            CodeWorkspaceChipLabel.NAME -> chip.name.orEmpty()
+            CodeWorkspaceChipLabel.COUNT -> pluralStringResource(Res.plurals.code_workspaces_selected, chip.count, chip.count)
+            CodeWorkspaceChipLabel.CHOOSE -> stringResource(Res.string.code_workspace_choose)
+            CodeWorkspaceChipLabel.NONE -> stringResource(Res.string.code_workspace_without)
+            CodeWorkspaceChipLabel.LOADING -> stringResource(Res.string.code_workspace_loading)
+            CodeWorkspaceChipLabel.MISSING -> stringResource(Res.string.code_workspace_missing)
+            CodeWorkspaceChipLabel.UNAVAILABLE -> stringResource(Res.string.code_workspace_unavailable)
+            CodeWorkspaceChipLabel.UNSUPPORTED -> stringResource(Res.string.code_workspace_unsupported)
+            CodeWorkspaceChipLabel.GENERIC -> stringResource(Res.string.code_workspace)
+        }
     }
-    val icon = when (chip.label) {
-        CodeWorkspaceChipLabel.NONE, CodeWorkspaceChipLabel.MISSING,
-        CodeWorkspaceChipLabel.UNAVAILABLE, CodeWorkspaceChipLabel.CHOOSE -> Icons.Outlined.FolderOff
+    val icon = when {
+        transition != null -> Icons.AutoMirrored.Filled.DriveFileMove
+        chip.label == CodeWorkspaceChipLabel.NONE || chip.label == CodeWorkspaceChipLabel.MISSING ||
+            chip.label == CodeWorkspaceChipLabel.UNAVAILABLE || chip.label == CodeWorkspaceChipLabel.CHOOSE ->
+            Icons.Outlined.FolderOff
         else -> Icons.Outlined.Folder
     }
     val description = stringResource(Res.string.cd_code_chip, stringResource(Res.string.code_workspace), label)
@@ -278,23 +359,22 @@ private fun WorkspaceChip(state: CodeWorkspaceUiState, composer: CodeWorkspaceCo
     )
 }
 
+/** A read-only chip whose tap explains it, as web's tooltip does on hover. */
 @Composable
-private fun BranchChip(branch: String) {
+private fun InfoChip(icon: ImageVector, label: String, description: String, info: String, isName: Boolean) {
     var expanded by remember { mutableStateOf(false) }
-    val description = stringResource(Res.string.cd_code_chip, stringResource(Res.string.code_branch), branch)
     Box {
         CodeChip(
-            icon = Icons.Default.AccountTree,
-            label = branch,
+            icon = icon,
+            label = label,
             description = description,
             caret = false,
-            isName = true,
-            // Read only: the tap only explains why the branch can't be changed.
+            isName = isName,
             onClick = { expanded = true },
         )
         AdaptiveDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             Text(
-                text = stringResource(Res.string.code_branch_info),
+                text = info,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier
                     .widthIn(max = 280.dp)
@@ -305,7 +385,7 @@ private fun BranchChip(branch: String) {
 }
 
 @Composable
-private fun CodeChip(
+internal fun CodeChip(
     icon: ImageVector,
     label: String,
     description: String,
@@ -368,7 +448,9 @@ private fun CodeWorkspaceSheet(composer: CodeWorkspaceComposer) {
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
             )
-            sheet.sections.forEach { section -> MachineSection(section, composer) }
+            sheet.sections.forEach { section ->
+                MachineSection(section, onSelect = composer.onSelectWorkspace, onSetCheckout = composer.onSetCheckout)
+            }
             if (sheet.offersNoWorkspace) {
                 AdaptiveDivider(modifier = Modifier.padding(vertical = 8.dp))
                 RadioRow(
@@ -391,9 +473,13 @@ private fun CodeWorkspaceSheet(composer: CodeWorkspaceComposer) {
 }
 
 @Composable
-private fun MachineSection(section: CodeMachineSection, composer: CodeWorkspaceComposer) {
+internal fun MachineSection(
+    section: CodeMachineSection,
+    onSelect: (environmentId: String, workspaceId: String) -> Unit,
+    onSetCheckout: (environmentId: String, mode: CodeCheckoutMode) -> Unit,
+) {
     Column {
-        AdaptiveSectionHeader(section.name)
+        AdaptiveSectionHeader(section.name, horizontalInset = 24.dp)
         section.usedBy?.let {
             Text(
                 text = stringResource(Res.string.code_workspace_used_by, it),
@@ -403,7 +489,7 @@ private fun MachineSection(section: CodeMachineSection, composer: CodeWorkspaceC
             )
         }
         when (section.status) {
-            CodeMachineStatus.READY -> section.rows.forEach { row -> WorkspaceRow(section.id, row, composer) }
+            CodeMachineStatus.READY -> section.rows.forEach { row -> WorkspaceRow(section.id, row, onSelect, onSetCheckout) }
             else -> {
                 val text: StringResource = when (section.status) {
                     CodeMachineStatus.LOADING -> Res.string.code_workspace_loading
@@ -433,13 +519,18 @@ private fun MachineSection(section: CodeMachineSection, composer: CodeWorkspaceC
 }
 
 @Composable
-private fun WorkspaceRow(environmentId: String, row: CodeWorkspaceRowView, composer: CodeWorkspaceComposer) {
+private fun WorkspaceRow(
+    environmentId: String,
+    row: CodeWorkspaceRowView,
+    onSelect: (environmentId: String, workspaceId: String) -> Unit,
+    onSetCheckout: (environmentId: String, mode: CodeCheckoutMode) -> Unit,
+) {
     Column {
         RadioRow(
             title = row.name,
             subtitle = row.subtitle,
             selected = row.selected,
-            onClick = { composer.onSelectWorkspace(environmentId, row.id) },
+            onClick = { onSelect(environmentId, row.id) },
         )
         val checkout = row.checkout ?: return@Column
         val modes = buildList {
@@ -465,7 +556,7 @@ private fun WorkspaceRow(environmentId: String, row: CodeWorkspaceRowView, compo
             AdaptiveSegmentedChoice(
                 options = labels,
                 selectedIndex = modes.indexOf(checkout.selected).coerceAtLeast(0),
-                onSelect = { index -> composer.onSetCheckout(environmentId, modes[index]) },
+                onSelect = { index -> onSetCheckout(environmentId, modes[index]) },
                 modifier = Modifier.fillMaxWidth(),
             )
             Text(

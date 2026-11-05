@@ -73,4 +73,17 @@ class ChatViewModelThinkingOpenByDefaultTest {
         advanceUntilIdle()
         assertThat(viewModel.chatPreferences.value.thinkingOpenByDefault).isFalse()
     }
+
+    @Test
+    fun `collapse long user messages is on until the setting turns it off`() = runTest(testDispatcher) {
+        val collapse = MutableStateFlow(true)
+        every { fixture.preferenceStore.observe(AppPreferences.CollapseLongUserMessages) } returns collapse
+        val viewModel = fixture.build(testDispatcher)
+        advanceUntilIdle()
+        assertThat(viewModel.chatPreferences.value.collapseLongUserMessages).isTrue()
+
+        collapse.value = false
+        advanceUntilIdle()
+        assertThat(viewModel.chatPreferences.value.collapseLongUserMessages).isFalse()
+    }
 }

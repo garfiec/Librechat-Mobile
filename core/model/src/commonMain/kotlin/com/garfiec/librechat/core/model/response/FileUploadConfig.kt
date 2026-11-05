@@ -27,6 +27,14 @@ data class FileUploadConfig(
      * backends — callers fail open.
      */
     val endpoints: Map<String, EndpointFileConfig> = emptyMap(),
+    /** The admin's `fileConfig.clientImageResize` (v0.8.9-rc1); see [clientImageResize]. */
+    val clientImageResize: ClientImageResizeConfig? = null,
+    /**
+     * `fileConfig.legacyFileUploadUX`: the deployment keeps web's destination chooser (upload to the
+     * provider, as text, to file search or to the code environment) instead of routing by file.
+     * An endpoint entry overrides it; see [ResolvedEndpointFileConfig.legacyFileUploadUX].
+     */
+    val legacyFileUploadUX: Boolean? = null,
 ) {
     val fileSizeLimitBytes: Long? get() = fileSizeLimitMb?.mbToBytes()
     val serverFileSizeLimitBytes: Long? get() = serverFileSizeLimitMb?.mbToBytes()
@@ -43,6 +51,7 @@ data class EndpointFileConfig(
     @SerialName("fileSizeLimit") val fileSizeLimitMb: Double? = null,
     @SerialName("totalSizeLimit") val totalSizeLimitMb: Double? = null,
     val supportedMimeTypes: List<String> = emptyList(),
+    val legacyFileUploadUX: Boolean? = null,
 ) {
     /** Like `mergeFileConfig`, a disabled endpoint's limits read as 0 whatever the admin wrote. */
     val totalSizeLimitBytes: Long? get() = if (disabled == true) 0L else totalSizeLimitMb?.mbToBytes()
@@ -55,11 +64,14 @@ data class EndpointFileConfig(
  *   512 MB applies, 0 when the endpoint is disabled. Not yet capped by `serverFileSizeLimit`; see
  *   [effectiveFileSizeLimit].
  * @property supportedMimeTypes the regex allowlist; empty when the server's built-in list applies.
+ * @property legacyFileUploadUX the matched entry's flag, else `"default"`'s, else the top-level one
+ *   (`mergeWithDefault`, and `getEndpointFileConfig`'s global default); off when none is set.
  */
 data class ResolvedEndpointFileConfig(
     val disabled: Boolean,
     val fileSizeLimitBytes: Long?,
     val supportedMimeTypes: List<String>,
+    val legacyFileUploadUX: Boolean = false,
 )
 
 /**
@@ -90,6 +102,7 @@ fun FileUploadConfig.resolveEndpointFileConfig(endpoint: String?): ResolvedEndpo
         disabled = adminDefault?.disabled ?: disabled,
         fileSizeLimitBytes = adminDefault?.fileSizeLimitMb?.mbToBytes() ?: fileSizeLimitBytes,
         supportedMimeTypes = adminDefault?.supportedMimeTypes?.ifEmpty { null } ?: supportedMimeTypes,
+        legacyFileUploadUX = (adminDefault?.legacyFileUploadUX ?: legacyFileUploadUX) == true,
     ).zeroedIfDisabled()
 
     if (endpoint.isNullOrEmpty()) return default
@@ -149,6 +162,8 @@ private fun mergeWithDefault(
             isBase || isDocumentSupportedProvider(docKey) -> emptyList()
             else -> default.supportedMimeTypes
         },
+        // Inherited by every entry, base entries included: upstream's base config sets none.
+        legacyFileUploadUX = entry?.legacyFileUploadUX ?: default.legacyFileUploadUX,
     ).zeroedIfDisabled()
 }
 
@@ -172,3 +187,51 @@ private const val BYTES_PER_MB = 1024L * 1024L
 
 /** Catch-all key in [FileUploadConfig.endpoints] the server uses for endpoints without an override. */
 internal const val DEFAULT_ENDPOINT_KEY = "default"
+
+/**
+ * `fileConfig.clientImageResize` as the admin wrote it (upstream `file-config.ts`). Any field may be
+ * absent; [enabled] being present at all is what makes the choice the admin's ([ClientImageResize.enforced]).
+ */
+@Serializable
+data class ClientImageResizeConfig(
+    val enabled: Boolean? = null,
+    val maxWidth: Double? = null,
+    val maxHeight: Double? = null,
+    val quality: Double? = null,
+)
+
+/** The box an image is scaled down to fit (never up) before upload, and the encoder quality (0..1). */
+data class ImageResizeLimits(val maxWidth: Int, val maxHeight: Int, val quality: Double)
+
+/**
+ * Whether images are resized before upload and to what. [enforced]: the admin set `enabled`, so the
+ * user's setting is ignored (and shown locked). [limits] is null when nothing is resized.
+ */
+data class ClientImageResize(val enforced: Boolean, val enabledByAdmin: Boolean?, val limits: ImageResizeLimits?) {
+    val isEnabled: Boolean get() = limits != null
+}
+
+/**
+ * Upstream `useClientResize` + `mergeFileConfig`: admin config, then the user's setting, then off.
+ * Off until the file config is known (a null receiver), as web waits for it. Dimensions and quality
+ * fall back to upstream's defaults (1900 x 1900, 0.92); a non-positive dimension turns it off.
+ */
+fun FileUploadConfig?.clientImageResize(userPreference: Boolean): ClientImageResize {
+    val admin = this?.clientImageResize
+    val enforced = admin?.enabled != null
+    if (this == null) return ClientImageResize(enforced = false, enabledByAdmin = null, limits = null)
+    val maxWidth = admin?.maxWidth ?: CLIENT_RESIZE_DEFAULT_MAX_EDGE
+    val maxHeight = admin?.maxHeight ?: CLIENT_RESIZE_DEFAULT_MAX_EDGE
+    val quality = (admin?.quality ?: CLIENT_RESIZE_DEFAULT_QUALITY).coerceIn(0.0, 1.0)
+    val validDimensions = maxWidth.isFinite() && maxHeight.isFinite() && maxWidth >= 1 && maxHeight >= 1
+    val on = validDimensions && if (enforced) admin.enabled == true else userPreference
+    return ClientImageResize(
+        enforced = enforced,
+        enabledByAdmin = admin?.enabled,
+        limits = if (on) ImageResizeLimits(maxWidth.toInt(), maxHeight.toInt(), quality) else null,
+    )
+}
+
+/** MIRRORED from upstream `defaultFileConfig.clientImageResize` (`file-config.ts`). */
+const val CLIENT_RESIZE_DEFAULT_MAX_EDGE: Double = 1900.0
+const val CLIENT_RESIZE_DEFAULT_QUALITY: Double = 0.92

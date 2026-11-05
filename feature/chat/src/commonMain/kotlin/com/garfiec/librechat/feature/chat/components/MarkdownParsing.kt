@@ -6,7 +6,14 @@ import com.garfiec.librechat.core.model.content.codeSpanEnd
 
 internal sealed interface MarkdownSegment {
     data class TextBlock(val text: String) : MarkdownSegment
-    data class CodeBlock(val code: String, val language: String?) : MarkdownSegment
+
+    /**
+     * [fenceIndex] is this fence's place among the chunk's web code blocks ([isWebCodeBlock]), the
+     * count web's `CodeBlockContext` keeps, so a Run result keys to the same block on both clients;
+     * null for a block that isn't one (mermaid, an HTML block lifted out of prose).
+     */
+    data class CodeBlock(val code: String, val language: String?, val fenceIndex: Int? = null) : MarkdownSegment
+
     data class LatexBlock(val latex: String) : MarkdownSegment
     data class InlineLatexText(val segments: List<InlineSegment>) : MarkdownSegment
     data class Table(
@@ -289,7 +296,9 @@ internal fun parseMarkdownSegments(text: String, streaming: Boolean = false): Li
     val afterCodeBlocks = mutableListOf<MarkdownSegment>()
     var lastIndex = 0
 
+    var fences = 0
     CODE_BLOCK_REGEX.findAll(text).forEach { match ->
+        val fenceIndex = if (isWebCodeBlock(match.groupValues[1], match.groupValues[2])) fences++ else null
         if (match.range.first > lastIndex) {
             val textBefore = text.substring(lastIndex, match.range.first).trim()
             if (textBefore.isNotEmpty()) {
@@ -302,7 +311,7 @@ internal fun parseMarkdownSegments(text: String, streaming: Boolean = false): Li
         if (langLower == "latex" || langLower == "tex" || langLower == "math") {
             afterCodeBlocks.add(MarkdownSegment.TextBlock(code))
         } else {
-            afterCodeBlocks.add(MarkdownSegment.CodeBlock(code, language))
+            afterCodeBlocks.add(MarkdownSegment.CodeBlock(code, language, fenceIndex))
         }
         lastIndex = match.range.last + 1
     }
@@ -458,3 +467,17 @@ internal fun parseAlignments(separatorLine: String, columnCount: Int): List<Tabl
         }
     }
 }
+
+/**
+ * Whether web renders a fence as a `CodeBlock` that takes a block index (`MarkdownComponents.tsx`
+ * `code`): not `math`, not `mermaid`, not empty (a single-line value). `latex`/`tex` count, though
+ * this client draws them as math, and so does a `Mermaid` fence this client draws as a diagram.
+ * MIRRORED (`scripts/mirrors.json` `run-code-block`).
+ */
+private fun isWebCodeBlock(language: String, rawCode: String): Boolean =
+    // Case-sensitive, as web's `lang === 'math'` is.
+    rawCode.isNotEmpty() && language != "math" && language != "mermaid"
+
+/** How many web code blocks [text] holds; the block index base of the chunk after it. */
+internal fun webCodeBlockCount(text: String): Int =
+    CODE_BLOCK_REGEX.findAll(text).count { isWebCodeBlock(it.groupValues[1], it.groupValues[2]) }

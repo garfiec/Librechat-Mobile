@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -60,6 +62,8 @@ import com.garfiec.librechat.core.model.ToolApprovalRememberScopes
 import com.garfiec.librechat.core.model.ToolApprovalRememberUnavailable
 import com.garfiec.librechat.core.model.ToolApprovalRequest
 import com.garfiec.librechat.core.model.ToolReviewConfig
+import com.garfiec.librechat.core.model.approval.ApprovalPreview
+import com.garfiec.librechat.core.model.approval.buildApprovalPreviews
 import com.garfiec.librechat.core.model.request.ToolApprovalResolution
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveCard
@@ -135,6 +139,10 @@ fun ToolApprovalPanel(
     if (calls.isEmpty()) return
     val allowed = remember(payload) { payload.allowedDecisionsByCallId() }
     val reviewConfigs = remember(payload) { payload.reviewConfigsByCallId() }
+    // One budget across the batch (upstream `buildApprovalPreviews`), so built for all calls at once.
+    val previews = remember(calls) {
+        calls.zip(buildApprovalPreviews(calls)).associate { (call, preview) -> call.toolCallId to preview }
+    }
     val activeIndex = pausePanelActiveIndex(calls.map { it.toolCallId }, activeCallId)
 
     val submit: (Map<String, ToolDecisionDraft>) -> Unit = { latest ->
@@ -144,6 +152,7 @@ fun ToolApprovalPanel(
         calls = calls,
         allowed = allowed,
         reviewConfigs = reviewConfigs,
+        previews = previews,
         drafts = drafts,
         activeIndex = activeIndex,
         isResolving = isResolving,
@@ -196,6 +205,7 @@ private data class ToolPanelState(
     val calls: List<ToolApprovalRequest>,
     val allowed: Map<String, List<String>>,
     val reviewConfigs: Map<String, ToolReviewConfig>,
+    val previews: Map<String, ApprovalPreview>,
     val drafts: Map<String, ToolDecisionDraft>,
     val activeIndex: Int,
     val isResolving: Boolean,
@@ -209,6 +219,8 @@ private data class ToolPanelState(
     val allDecided: Boolean get() = decidedCount == calls.size
 
     fun isDecided(toolCallId: String): Boolean = drafts[toolCallId]?.toResolution(toolCallId) != null
+
+    fun previewFor(call: ToolApprovalRequest): ApprovalPreview? = previews[call.toolCallId]
 
     fun allowedFor(call: ToolApprovalRequest): List<String> =
         allowed[call.toolCallId] ?: DEFAULT_ALLOWED_TOOL_DECISIONS
@@ -249,7 +261,7 @@ private fun CompactToolLayout(
                 .animateContentSize(),
         ) {
             PausePanelCompactHeader(
-                title = active.name.ifBlank { stringResource(Res.string.tool_approval_title) },
+                title = approvalTitle(state.previewFor(active)).ifBlank { stringResource(Res.string.tool_approval_title) },
                 collapsed = state.collapsed,
                 expandedTitleMaxLines = TOOL_NAME_MAX_LINES,
                 leadingIcon = { ToolNameIcon(modifier = Modifier.padding(end = TOOL_NAME_ICON_GAP)) },
@@ -285,6 +297,7 @@ private fun CompactToolLayout(
                     ToolCallBody(
                         modifier = Modifier.weight(1f, fill = false),
                         call = active,
+                        preview = state.previewFor(active),
                         showName = false,
                         allowedDecisions = state.allowedFor(active),
                         reviewConfig = state.reviewConfigs[active.toolCallId],
@@ -353,7 +366,8 @@ private fun WideToolLayout(
                 if (state.isBatch) {
                     PausePanelTabs(
                         labels = state.calls.mapIndexed { index, call ->
-                            call.name.ifBlank { stringResource(Res.string.tool_approval_tab_fallback, index + 1) }
+                            approvalTitle(state.previewFor(call))
+                                .ifBlank { stringResource(Res.string.tool_approval_tab_fallback, index + 1) }
                         },
                         done = state.calls.map { state.isDecided(it.toolCallId) },
                         activeIndex = state.activeIndex,
@@ -363,7 +377,11 @@ private fun WideToolLayout(
                         modifier = Modifier.weight(1f),
                     )
                 } else {
-                    ToolNameTitle(name = active.name, collapsed = state.collapsed, modifier = Modifier.weight(1f))
+                    ToolNameTitle(
+                        name = approvalTitle(state.previewFor(active)),
+                        collapsed = state.collapsed,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
                 CollapseToggle(collapsed = state.collapsed, onCollapsedChange = actions.onCollapsedChange)
             }
@@ -389,6 +407,7 @@ private fun WideToolLayout(
                         ToolCallBody(
                             decisionsModifier = swipeHandle,
                             call = call,
+                            preview = state.previewFor(call),
                             showName = state.isBatch,
                             allowedDecisions = state.allowedFor(call),
                             reviewConfig = state.reviewConfigs[call.toolCallId],
@@ -477,6 +496,7 @@ private fun ToolNameIcon(modifier: Modifier = Modifier) {
 @Composable
 private fun ToolCallBody(
     call: ToolApprovalRequest,
+    preview: ApprovalPreview?,
     showName: Boolean,
     allowedDecisions: List<String>,
     reviewConfig: ToolReviewConfig?,
@@ -523,10 +543,11 @@ private fun ToolCallBody(
             },
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            if (showName && call.name.isNotBlank()) {
-                Text(text = call.name, style = MaterialTheme.typography.titleSmall)
+            val title = approvalTitle(preview)
+            if (showName && title.isNotBlank()) {
+                Text(text = title, style = MaterialTheme.typography.titleSmall)
             }
-            call.description?.takeIf { it.isNotBlank() }?.let { description ->
+            (preview?.description ?: call.description)?.takeIf { it.isNotBlank() }?.let { description ->
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
@@ -534,7 +555,9 @@ private fun ToolCallBody(
                 )
             }
             reviewConfig?.let { RememberNotice(it) }
-            if (arguments.isNotBlank()) {
+            if (preview != null && preview.kind != ApprovalPreview.Kind.GENERIC) {
+                CodeActionPreview(preview)
+            } else if (arguments.isNotBlank()) {
                 Text(
                     text = stringResource(Res.string.tool_approval_arguments),
                     style = MaterialTheme.typography.labelSmall,
@@ -826,6 +849,65 @@ fun ToolApprovalWaitingMarker(modifier: Modifier = Modifier) {
         modifier = modifier,
     )
 }
+
+/**
+ * What the review heads a call with (upstream `previewTitle`): the action a server code tool takes,
+ * else the tool's name, with its hidden controls spelled out. Blank when the call has no name.
+ */
+@Composable
+private fun approvalTitle(preview: ApprovalPreview?): String = when (preview?.kind) {
+    null -> ""
+    ApprovalPreview.Kind.COMMAND -> stringResource(Res.string.tool_approval_review_run_command)
+    ApprovalPreview.Kind.CREATE -> preview.target?.let { stringResource(Res.string.tool_approval_review_create_file, it) }
+        ?: stringResource(Res.string.tool_approval_review_create_file_generic)
+    ApprovalPreview.Kind.EDIT -> preview.target?.let { stringResource(Res.string.tool_approval_review_edit_file, it) }
+        ?: stringResource(Res.string.tool_approval_review_edit_file_generic)
+    ApprovalPreview.Kind.GENERIC -> preview.toolName
+}
+
+/**
+ * A server code tool's proposal as the action it takes: the command, the new file's contents or
+ * the edit's replacements, bounded and with hidden controls revealed ([ApprovalPreview]). Wrapped,
+ * as web's `pre-wrap`: a command scrolled sideways can hide its tail past the edge.
+ */
+@Composable
+private fun CodeActionPreview(preview: ApprovalPreview, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    Column(
+        modifier = modifier.fillMaxWidth().padding(top = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = stringResource(
+                when (preview.kind) {
+                    ApprovalPreview.Kind.COMMAND -> Res.string.tool_approval_proposed_command
+                    ApprovalPreview.Kind.CREATE -> Res.string.tool_approval_proposed_contents
+                    else -> Res.string.tool_approval_proposed_replacements
+                },
+            ),
+            style = MaterialTheme.typography.labelSmall,
+            color = colors.onSurfaceVariant,
+        )
+        Text(
+            text = preview.body.ifEmpty { stringResource(Res.string.tool_approval_no_arguments) },
+            style = MaterialTheme.typography.bodySmall,
+            fontFamily = FontFamily.Monospace,
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.surfaceContainerHighest, PREVIEW_SHAPE)
+                .padding(8.dp),
+        )
+        if (preview.truncated) {
+            Text(
+                text = stringResource(Res.string.tool_approval_preview_truncated),
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+private val PREVIEW_SHAPE = RoundedCornerShape(8.dp)
 
 /** Renders `string | object` tool arguments without assuming either shape. */
 private fun JsonElement?.asDisplayText(): String = when (this) {

@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.agents.viewmodel
 
+import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.AgentSubagentsConfig
 import com.garfiec.librechat.core.model.SupportContact
@@ -29,6 +30,8 @@ private val EMPTY_AGENT = Agent(id = "")
 
 internal fun AgentEditorUiState.toUpdateAgentRequest(): UpdateAgentRequest {
     val fields = writeFields()
+    val loadedCode = loadedAgent?.let(AgentCodeSettings::of) ?: AgentCodeSettings()
+    val code = code.updateFields(loadedCode, codeInterpreterEnabled && isCodeInterpreterAvailable)
     return UpdateAgentRequest(
         name = name,
         description = description.ifBlank { null },
@@ -54,11 +57,20 @@ internal fun AgentEditorUiState.toUpdateAgentRequest(): UpdateAgentRequest {
         skills = fields.skills,
         skillsEnabled = fields.skillsEnabled,
         subagents = fields.subagents,
+        statefulCodeSessions = code.statefulSessions,
+        statefulCodeEnvironment = code.scope,
+        codeEnvironmentId = code.environmentId,
+        codeEnvironmentIds = code.extraEnvironmentIds,
+        codeWorkspaceId = code.workspaceId,
+        repositoryInstructions = code.repositoryInstructions,
+        gitIdentity = code.gitIdentity,
     )
 }
 
 internal fun AgentEditorUiState.toCreateAgentRequest(): CreateAgentRequest {
     val fields = writeFields()
+    val codeEnabled = codeInterpreterEnabled && isCodeInterpreterAvailable
+    val code = code.createFields(codeEnabled)
     return CreateAgentRequest(
         name = name,
         description = description.ifBlank { null },
@@ -84,6 +96,13 @@ internal fun AgentEditorUiState.toCreateAgentRequest(): CreateAgentRequest {
         skills = fields.skills,
         skillsEnabled = fields.skillsEnabled,
         subagents = fields.subagents,
+        statefulCodeSessions = code.statefulSessions,
+        statefulCodeEnvironment = code.scope,
+        codeEnvironmentId = this.code.environmentId,
+        codeEnvironmentIds = code.extraEnvironmentIds,
+        codeWorkspaceId = code.workspaceId,
+        repositoryInstructions = code.repositoryInstructions,
+        gitIdentity = this.code.createGitIdentity(),
     )
 }
 
@@ -263,7 +282,8 @@ private fun AgentEditorUiState.writeFields(): AgentWriteFields {
  * be this client deleting what it doesn't own.
  *
  * Without the prune, a tool removed here would keep its options and they would come back the next
- * time the tool is added.
+ * time the tool is added. `bash_tool` follows `execute_code`: kept while the code interpreter is
+ * saved, dropped with it (web keeps both even with code off).
  */
 internal fun pruneToolOptions(
     options: JsonObject?,
@@ -277,6 +297,9 @@ internal fun pruneToolOptions(
         .map { MCP_DELIMITER + it.removePrefix(MCP_SERVER_MARKER_PREFIX) }
     val kept = options.filterKeys { key ->
         key in savedToolSet ||
+            // The sandbox pair shares the code interpreter's switches (`withCodeBackground`), and
+            // `bash_tool` is never an `agent.tools` entry.
+            (key == ToolConstants.BASH_TOOL && ToolConstants.EXECUTE_CODE in savedToolSet) ||
             key in selectedMcpTools ||
             // A selected tool whose catalog entry hasn't loaded is saved under the wrong key
             // (a server marker), so its full-id options are kept rather than lost as well.

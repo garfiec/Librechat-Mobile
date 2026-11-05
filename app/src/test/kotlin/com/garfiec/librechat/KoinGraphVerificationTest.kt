@@ -21,6 +21,7 @@ import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.data.datastore.ConversationWebSearchStore
 import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.DrawerPinsStore
+import com.garfiec.librechat.core.data.datastore.McpAppLocationConsentStore
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
@@ -40,6 +41,8 @@ import com.garfiec.librechat.core.data.repository.BannerRepository
 import com.garfiec.librechat.core.data.repository.BookmarksGate
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepository
+import com.garfiec.librechat.core.data.repository.CodeMachinesRepository
+import com.garfiec.librechat.core.data.repository.CodeRunRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.DraftRepository
@@ -57,6 +60,7 @@ import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
+import com.garfiec.librechat.core.data.repository.PullRequestConnectionRepository
 import com.garfiec.librechat.core.data.repository.PullRequestRepository
 import com.garfiec.librechat.core.data.repository.QueuedTurnRepository
 import com.garfiec.librechat.core.data.repository.ReasoningCapabilitiesRepository
@@ -107,6 +111,7 @@ import com.garfiec.librechat.core.network.api.PermissionsApi
 import com.garfiec.librechat.core.network.api.PresetsApi
 import com.garfiec.librechat.core.network.api.ProjectsApi
 import com.garfiec.librechat.core.network.api.PromptsApi
+import com.garfiec.librechat.core.network.api.PullRequestsApi
 import com.garfiec.librechat.core.network.api.QueuedTurnsApi
 import com.garfiec.librechat.core.network.api.SchedulesApi
 import com.garfiec.librechat.core.network.api.SearchApi
@@ -208,6 +213,7 @@ class KoinGraphVerificationTest {
             PresetsApi::class,
             ProjectsApi::class,
             PromptsApi::class,
+            PullRequestsApi::class,
             QueuedTurnsApi::class,
             SchedulesApi::class,
             ShareApi::class,
@@ -232,6 +238,7 @@ class KoinGraphVerificationTest {
             SsoRiskDataStore::class,
             ThemeDataStore::class,
             ConversationWebSearchStore::class,
+            McpAppLocationConsentStore::class,
             CodeWorkspacePreferenceStore::class,
             AgentRepository::class,
             AgentToolsRepository::class,
@@ -240,6 +247,7 @@ class KoinGraphVerificationTest {
             BalanceRepository::class,
             BannerRepository::class,
             CodeEnvironmentRepository::class,
+            CodeMachinesRepository::class,
             BackgroundTaskRepository::class,
             ChatRepository::class,
             ConfigRepository::class,
@@ -259,7 +267,9 @@ class KoinGraphVerificationTest {
             ResumePinStore::class,
             ProjectRepository::class,
             PromptRepository::class,
+            PullRequestConnectionRepository::class,
             PullRequestRepository::class,
+            CodeRunRepository::class,
             QueuedTurnRepository::class,
             ReasoningCapabilitiesRepository::class,
             RoleRepository::class,

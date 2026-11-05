@@ -50,13 +50,17 @@ import com.garfiec.librechat.feature.chat.components.CodeWorkspaceComposer
 import com.garfiec.librechat.feature.chat.components.ComposerComparison
 import com.garfiec.librechat.feature.chat.components.ComposerComparisonHint
 import com.garfiec.librechat.feature.chat.components.LandingStarters
+import com.garfiec.librechat.feature.chat.components.LocalCodeRunHost
 import com.garfiec.librechat.feature.chat.components.LocalCodeWorkspaceComposer
+import com.garfiec.librechat.feature.chat.components.LocalPullRequestComposer
+import com.garfiec.librechat.feature.chat.components.PullRequestComposer
 import com.garfiec.librechat.feature.chat.components.ThinkingSheet
 import com.garfiec.librechat.feature.chat.components.ToolApprovalPanel
 import com.garfiec.librechat.feature.chat.components.ToolContentHost
 import com.garfiec.librechat.feature.chat.components.UpdateAvailableBanner
 import com.garfiec.librechat.feature.chat.components.UploadRoutingSheet
 import com.garfiec.librechat.feature.chat.components.addToChatSelectionItem
+import com.garfiec.librechat.feature.chat.components.mcpapp.rememberLegacyUiResources
 import com.garfiec.librechat.feature.chat.components.mcpapp.rememberMcpApps
 import com.garfiec.librechat.feature.chat.components.rememberChatAttachmentActions
 import com.garfiec.librechat.feature.chat.components.rememberChatOptionsSheetController
@@ -75,6 +79,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.McpAppsViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.McpSignInViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.UpdateBannerViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.asString
+import com.garfiec.librechat.feature.chat.viewmodel.conversationUiResources
 import com.garfiec.librechat.feature.chat.viewmodel.isEmptyLanding
 import com.garfiec.librechat.feature.chat.viewmodel.neutralizeStreamingChurn
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -307,7 +312,9 @@ fun ChatScreen(
     val attachmentActions = rememberChatAttachmentActions(
         onFilesSelect = viewModel::onFilesSelected,
         filePickerMimeTypes = filePickerMimeTypes,
+        onCodeFilesSelect = viewModel::onCodeFilesSelected,
     )
+    val onAttachToCode = attachmentActions.onAttachToCode.takeIf { uiState.codeUploadOffered }
 
     ChatScreenEffects(
         uiState = uiState,
@@ -335,6 +342,10 @@ fun ChatScreen(
     // MCP Apps: the panel and its approval dialogs live here; rows read the result.
     val mcpAppsViewModel: McpAppsViewModel = koinViewModel()
     val mcpApps = rememberMcpApps(mcpAppsViewModel, snackbarHostState, onSendMessage = viewModel::sendAppMessage)
+    // Legacy MCP-UI resources the reply's markers name, from every shown message and the live reply.
+    val conversationUiResources by remember(viewModel) { conversationUiResources(viewModel.uiState) }
+        .collectAsStateWithLifecycle(emptyMap())
+    val legacyUiResources = rememberLegacyUiResources(mcpAppsViewModel, conversationUiResources)
 
     // Collected apart from uiState: it changes only when a preview's fetch starts, lands or fails.
     val toolPartStatuses by viewModel.toolPartStatuses.collectAsStateWithLifecycle()
@@ -352,6 +363,7 @@ fun ChatScreen(
         mermaidRenderCache = viewModel.mermaidRenderCache,
         parsedMarkdownCache = viewModel.parsedMarkdownCache,
         subagentProgress = uiState.subagentProgress,
+        ptcTraces = uiState.ptcTraces,
         previewOverrides = uiState.previewOverrides,
         conversationId = uiState.conversationId,
         subagentThreadsSupported = uiState.gates.subagentThreadsSupported,
@@ -373,7 +385,9 @@ fun ChatScreen(
         onOpenMemories = onOpenMemories?.takeIf { uiState.gates.memoriesPageEnabled },
         mcpSignIn = mcpSignIn,
         mcpApps = mcpApps,
+        legacyUiResources = legacyUiResources,
         thinkingOpenByDefault = prefs.thinkingOpenByDefault,
+        collapseLongUserMessages = prefs.collapseLongUserMessages,
         toolContent = toolContent,
     ) {
     Scaffold(
@@ -422,7 +436,11 @@ fun ChatScreen(
             // Temporary chat's transition: the band and (Material) the retone draw over and behind
             // the landing, the composer and the top bar, which all react to it through LocalModeVeil.
             val modeVeil = rememberModeVeilState(uiState.isTemporaryChat)
-            CompositionLocalProvider(LocalModeVeil provides modeVeil) {
+            CompositionLocalProvider(
+                LocalModeVeil provides modeVeil,
+                // Run Code on reply fences, behind RUN_CODE.USE (web `MarkdownComponents` `canRunCode`).
+                LocalCodeRunHost provides viewModel.codeRunHost.takeIf { uiState.runCodeEnabled },
+            ) {
                 Box(
                     Modifier
                         .fillMaxSize()
@@ -563,11 +581,44 @@ fun ChatScreen(
                                             onSetCheckout = viewModel::setCodeCheckout,
                                             onSelectNoWorkspace = viewModel::selectNoCodeWorkspace,
                                             onRefresh = viewModel::refreshCodeWorkspaces,
+                                            onSelectTransitionWorkspace = viewModel::selectTransitionCodeWorkspace,
+                                            onSetTransitionCheckout = viewModel::setTransitionCodeCheckout,
+                                            onConfirmTransition = viewModel::confirmCodeWorkspaceTransition,
+                                            onDetach = viewModel::detachCodeWorkspace,
+                                            onRetryReconcile = viewModel::retryCodeWorkspaceCheck,
+                                            onSelectApprovalMode = viewModel::selectCodeApprovalMode,
                                         )
+                                    }
+                                    // The pull request row: narrow panes only (a wide one has the bar chip),
+                                    // out of the way of a tool-approval pause, and folded to its glyph
+                                    // while a run streams.
+                                    val pullRequestState = uiState.pullRequest
+                                    val toolPausePending = toolPause != null
+                                    val pullRequestComposer = remember(
+                                        pullRequestState,
+                                        comparisonWide,
+                                        toolPausePending,
+                                        isAnyStreaming,
+                                        viewModel,
+                                    ) {
+                                        val pr = pullRequestState.pullRequest
+                                        val presentation = pullRequestState.presentation
+                                        if (comparisonWide || toolPausePending || pr == null || presentation == null) {
+                                            null
+                                        } else {
+                                            PullRequestComposer(
+                                                pullRequest = pr,
+                                                presentation = presentation,
+                                                expanded = pullRequestState.unseen && !isAnyStreaming,
+                                                onOpen = viewModel::openPullRequestSheet,
+                                                onSeen = viewModel::markPullRequestSeen,
+                                            )
+                                        }
                                     }
                                     CompositionLocalProvider(
                                         LocalComposerFlare provides composerVeil.flare,
                                         LocalCodeWorkspaceComposer provides codeWorkspaceComposer,
+                                        LocalPullRequestComposer provides pullRequestComposer,
                                     ) {
                                         ChatComposer(
                                             inputText = uiState.inputText,
@@ -693,6 +744,8 @@ fun ChatScreen(
                         onOpenDrawer = onOpenDrawer,
                         onShowAllMedia = onShowAllMedia,
                         onOpenPromptsLibrary = onNavigateToPromptsLibrary,
+                        // The same 600dp of chat pane that splits Compare and the pause panels.
+                        widePane = comparisonWide,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .onSizeChanged { topBarHeightPx = it.height }
@@ -718,6 +771,7 @@ fun ChatScreen(
                 onTakePhoto = attachmentActions.onTakePhoto,
                 onPickPhotos = attachmentActions.onPickPhotos,
                 onAttachFromServer = onAttachFromServer,
+                onAttachToCode = onAttachToCode,
             )
 
             val pendingRouting = uiState.composer.pendingUploadRouting
@@ -743,6 +797,7 @@ fun ChatScreen(
         onTakePhoto = attachmentActions.onTakePhoto,
         onPickPhotos = attachmentActions.onPickPhotos,
         onAttachFromServer = onAttachFromServer,
+        onAttachToCode = onAttachToCode,
         onNavigateToProviderKeys = onNavigateToProviderKeys,
         onShowSavePresetDialog = { showSavePresetDialog = true },
         compareSetupPick = compareSetupPick,

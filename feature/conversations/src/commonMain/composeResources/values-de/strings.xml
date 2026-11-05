@@ -311,6 +311,7 @@
     <string name="drawer_filter_has_attachments">Mit Anhängen</string>
     <string name="drawer_filter_shared_only">Nur geteilte</string>
     <string name="drawer_filter_bookmarks">Lesezeichen</string>
+    <string name="drawer_filter_any_bookmark">Beliebiges Lesezeichen</string>
     <string name="drawer_filter_reset">Zurücksetzen</string>
     <string name="drawer_filter_apply">Anwenden</string>
     <string name="drawer_filter_offline">Du bist offline. Filter benötigen den Server und werden angewendet, sobald du wieder online bist.</string>

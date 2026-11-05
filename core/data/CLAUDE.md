@@ -329,6 +329,39 @@ LibreChat stores no project order, so the drawer's drag-to-reorder order lives h
 - If upstream ships ordering, drop the table with an `@DeleteTable` AutoMigrationSpec and read the
   server's order; nothing else references it.
 
+### Stored full tool calls (`tool_call_parts`, v0.8.9-rc1 previews)
+The full content of previewed tool calls (`?toolPreviews=1`) fetched for finished messages, written by
+the chat screen (`ToolPartHydrationDelegate`) and the prefetcher, so later and offline sessions open a
+card without refetching.
+- **Beside the message rows, never merged into them.** A merged row would be indistinguishable from
+  the server's answer and the next refresh would flip it back; here `messages` stays exactly what the
+  server sent, so `refreshMessages` / `replaceAllForConversation` need no merge.
+- **FK to `messages.messageId` with CASCADE**, like `message_search`: every message delete path
+  (conversation delete, delete-all, prefetch prune, account purge, a refresh dropping a message) takes
+  the parts with it. Safe only because `messages` is never written with REPLACE. A row is written only
+  when its message is cached for the same account (`storeWithinBudget` checks), so a temporary or
+  uncached chat stores nothing.
+- Identity columns hold `""` for an absent `stepId` / `agentId`; `ToolCallPartRef.normalized()` maps
+  blanks to null on the way out.
+- **Bounded:** 16M chars per account (oldest `storedAt` first), a single call over 2M chars is never
+  stored. A row decoded as a preview is never returned.
+- Whether a stored row still stands for the current preview is the caller's check (`isFullCopyOf`),
+  since only it holds the preview. Export never reads this table (`fetchMessagesFull`).
+- **The prefetcher fills it** (`PrefetchEngine.warmToolParts`), right after a conversation is
+  re-warmed with previews: newest finished messages first, skipping calls already stored and calls
+  whose preview declares over 256k chars, at most 12 per conversation, 48 and ~4M chars per pass,
+  paced and breaker-counted like every other request. So the bytes are bounded by the caps rather
+  than by the thread; what the cap leaves out is fetched online when its card opens. It skips by
+  identity without re-checking lengths: the chat screen does that check on open. Subagent calls
+  whose transcript was omitted are never prefetched (their size is undeclared). A call asked once
+  is not asked again in that process, whether or not the table kept it (over 2M, pruned, refused).
+  The conversation's watermark is written as soon as its messages are cached. One whose calls were
+  cut short by a budget, the time or a rate limit is remembered as pending (in memory, per process)
+  and the next pass finishes its calls from the cached messages first, without downloading the
+  messages again; a pending one that left the warm set is dropped, and the open chat's wait for its
+  screen to close. After a restart the leftovers wait
+  for their cards, or for the conversation to change.
+
 ### Message search index (`message_search` + `messages_fts`)
 Offline full-text search over cached messages. FTS4 + `unicode61` (the only full-text setup both
 drivers have; no FTS5 on Android's framework SQLite), external-content over a narrow side table.

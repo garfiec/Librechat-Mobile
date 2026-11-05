@@ -133,4 +133,10 @@ data class ChatRequest(
      */
     val codeEnvironmentMode: String? = null,
     val codeWorkspaces: List<CodeWorkspaceSelection>? = null,
+    /**
+     * How much an attached-machine coding agent may do without asking (`ask`, `acceptEdits`,
+     * `fullAccess`). Sent on every agents turn while the server's approvals are on, as web does;
+     * the server re-checks it against the machine's policy and stores it on the chat.
+     */
+    val codeApprovalMode: String? = null,
 )

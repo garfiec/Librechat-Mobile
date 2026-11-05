@@ -57,6 +57,13 @@ class PullRequestDelegateTest {
         }
 
         override suspend fun refreshBatch(conversationIds: List<String>, maxConcurrent: Int?) = Unit
+
+        override val revision = MutableStateFlow(0L)
+
+        override fun invalidate() {
+            entries.update { all -> all.mapValues { it.value.copy(fetchedAt = Instant.DISTANT_PAST) } }
+            revision.update { it + 1 }
+        }
     }
 
     private class Harness(
@@ -176,6 +183,73 @@ class PullRequestDelegateTest {
             assertThat(repository.asked).hasSize(4)
             h.scope.advanceTimeBy(120_000)
             assertThat(repository.asked).hasSize(4)
+        } finally {
+            h.scope.cancel()
+        }
+    }
+
+    @Test
+    fun `a change of credential asks again at once instead of waiting out the interval`() {
+        val repository = FakeRepository { running.copy(checks = "passing") }
+        val h = harness(repository)
+        try {
+            assertThat(repository.asked).hasSize(1)
+            // Passing checks on a clean open PR poll every minute; a connect must not wait that long.
+            h.scope.advanceTimeBy(5_000)
+            repository.invalidate()
+            h.scope.runCurrent()
+            assertThat(repository.asked).hasSize(2)
+        } finally {
+            h.scope.cancel()
+        }
+    }
+
+    @Test
+    fun `the composer chip spells a state out until it is seen, and again when the checks change`() {
+        var answer = running
+        val repository = FakeRepository { answer }
+        val h = harness(repository)
+        try {
+            assertThat(h.state.value.pullRequest.unseen).isTrue()
+            h.delegate.markSeen()
+            h.scope.runCurrent()
+            assertThat(h.state.value.pullRequest.unseen).isFalse()
+
+            answer = running.copy(checks = "failing")
+            h.scope.advanceTimeBy(20_001)
+            assertThat(h.state.value.pullRequest.unseen).isTrue()
+        } finally {
+            h.scope.cancel()
+        }
+    }
+
+    @Test
+    fun `opening the sheet counts as seeing it, and a chat switch closes it`() {
+        val repository = FakeRepository { running }
+        val h = harness(repository)
+        try {
+            h.delegate.openSheet()
+            h.scope.runCurrent()
+            assertThat(h.state.value.pullRequest.sheetOpen).isTrue()
+            assertThat(h.state.value.pullRequest.unseen).isFalse()
+
+            h.state.update { it.copy(conversation = ConversationMetaState(conversationId = "c2")) }
+            h.scope.runCurrent()
+            assertThat(h.state.value.pullRequest.sheetOpen).isFalse()
+        } finally {
+            h.scope.cancel()
+        }
+    }
+
+    @Test
+    fun `nothing to open while no pull request is known`() {
+        val repository = FakeRepository { null }
+        val h = harness(repository)
+        try {
+            h.delegate.openSheet()
+            h.scope.runCurrent()
+            assertThat(h.state.value.pullRequest.sheetOpen).isFalse()
+            assertThat(h.state.value.pullRequest.unseen).isFalse()
         } finally {
             h.scope.cancel()
         }

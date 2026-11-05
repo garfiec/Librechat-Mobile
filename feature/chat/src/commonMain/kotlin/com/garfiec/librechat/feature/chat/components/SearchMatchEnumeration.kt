@@ -27,7 +27,8 @@ import com.garfiec.librechat.feature.chat.util.steerText
 //     (as reasoning, see [legacyTextRuns]), then the rest of message.text as one TEXT part
 //     (clause 2) when [textFallbackSplitsArtifacts], else via MarkdownContent directly.
 //  2. TEXT parts split on artifact directives first (TextContentPart). Plain Text segments are
-//     enumerated. Artifact segments depend on Artifact.isComplete:
+//     enumerated, less their legacy MCP-UI `\ui{…}` markers (UiMarkedMarkdownContent): a marker
+//     contributes 0, the text either side of it is counted in order. Artifact segments depend on Artifact.isComplete:
 //       - complete   -> contributes 0. Content is highlighted but not navigable, because whether it
 //                       renders inline at all depends on a UI preference the ViewModel cannot see.
 //       - incomplete -> contributes its content's occurrences. An incomplete artifact always renders
@@ -103,7 +104,7 @@ internal fun countTextPartOccurrences(text: String, query: String): Int {
     if (cannotMatch(text, query)) return 0
     return detectArtifacts(text).sumOf { segment ->
         when (segment) {
-            is ArtifactSegment.Text -> countMarkdownOccurrences(segment.text, query)
+            is ArtifactSegment.Text -> countUiMarkedOccurrences(segment.text, query)
             is ArtifactSegment.ArtifactReference -> countArtifactOccurrences(segment.artifact, query)
         }
     }

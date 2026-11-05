@@ -40,16 +40,27 @@ data class DrawerFilters(
     val endpoints: List<String> = emptyList(),
     val hasFiles: Boolean = false,
     val sharedOnly: Boolean = false,
-    /** Only chats carrying a bookmark. */
+    /** Only chats carrying any bookmark. Off whenever [tags] names some. */
     val bookmarked: Boolean = false,
+    /** Only chats carrying one of these bookmarks (OR-matched by the server, web's `chatFilterTagsAtom`). */
+    val tags: List<String> = emptyList(),
 ) {
     val isActive: Boolean
-        get() = dateRange != FilterDateRange.ANY || endpoints.isNotEmpty() || hasFiles || sharedOnly || bookmarked
+        get() = dateRange != FilterDateRange.ANY || endpoints.isNotEmpty() || hasFiles || sharedOnly || bookmarked ||
+            tags.isNotEmpty()
+
+    /** [tag] picked or dropped. Picking one turns "any bookmark" off: the two never narrow at once. */
+    fun withTagToggled(tag: String): DrawerFilters =
+        if (tag in tags) copy(tags = tags - tag) else copy(tags = tags + tag, bookmarked = false)
+
+    /** "Any bookmark" switched; on, it replaces the picked bookmarks. */
+    fun withAnyBookmark(on: Boolean): DrawerFilters = copy(bookmarked = on, tags = if (on) emptyList() else tags)
 
     /**
      * The request for these choices. The date cutoff is anchored to local midnight, as upstream
-     * does, so it is stable through the day. [bookmarkTags] are the user's bookmarks; with
-     * [bookmarked] on and none known, the request names the reserved `Saved` tag so it still narrows.
+     * does, so it is stable through the day. Picked [tags] are sent as they are. Otherwise, with
+     * [bookmarked] on, [bookmarkTags] (the user's bookmarks) are; with none known, the request names
+     * the reserved `Saved` tag so it still narrows.
      */
     fun toListFilters(now: Instant, zone: TimeZone, bookmarkTags: List<String>): ConversationListFilters {
         val cutoff = rangeCutoff(dateRange, now, zone)
@@ -59,7 +70,11 @@ data class DrawerFilters(
             endpoints = endpoints,
             hasFiles = hasFiles,
             sharedOnly = sharedOnly,
-            tags = if (bookmarked) bookmarkTags.ifEmpty { listOf(com.garfiec.librechat.core.model.SAVED_TAG) } else emptyList(),
+            tags = when {
+                tags.isNotEmpty() -> tags
+                bookmarked -> bookmarkTags.ifEmpty { listOf(com.garfiec.librechat.core.model.SAVED_TAG) }
+                else -> emptyList()
+            },
         )
     }
 
@@ -84,4 +99,18 @@ fun selectableEndpoints(served: List<String>, selected: List<String>, maxNameLen
     val listed = served.filter { it.length <= maxNameLength }
     val known = listed.toSet()
     return listed + selected.filterNot { it in known }
+}
+
+/** A bookmark the sheet offers as a filter, with how many chats carry it. */
+data class FilterBookmarkOption(val tag: String, val count: Int)
+
+/**
+ * Upstream `selectableBookmarks` (`client/src/components/Conversations/chatFilters.ts`): bookmarks
+ * some chat carries (one no chat carries filters the list to nothing), plus every selected one, even
+ * one no chat carries any more or that was deleted, so a chosen bookmark can always be turned off.
+ */
+fun selectableBookmarks(bookmarks: List<FilterBookmarkOption>, selected: List<String>): List<FilterBookmarkOption> {
+    val known = bookmarks.mapTo(HashSet()) { it.tag }
+    val listed = bookmarks.filter { it.count > 0 || it.tag in selected }
+    return listed + selected.filterNot { it in known }.map { FilterBookmarkOption(it, 0) }
 }

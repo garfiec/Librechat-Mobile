@@ -321,6 +321,7 @@
     <string name="drawer_filter_has_attachments">С вложениями</string>
     <string name="drawer_filter_shared_only">Только общие</string>
     <string name="drawer_filter_bookmarks">Закладки</string>
+    <string name="drawer_filter_any_bookmark">Любая закладка</string>
     <string name="drawer_filter_reset">Сбросить</string>
     <string name="drawer_filter_apply">Применить</string>
     <string name="drawer_filter_offline">Нет подключения к сети. Фильтрам нужен сервер, поэтому они применятся, когда вы снова будете в сети.</string>

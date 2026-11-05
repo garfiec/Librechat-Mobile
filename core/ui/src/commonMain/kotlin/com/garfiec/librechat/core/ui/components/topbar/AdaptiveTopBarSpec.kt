@@ -46,6 +46,10 @@ sealed interface BarAction {
      * A labelled button. Where the label would leave the title too little room (a narrow screen, a
      * large font, a long translation), the bar draws [compactIcon] instead, with the label as its
      * content description.
+     *
+     * A status label (the chat's pull request chip) adds a [leadingIcon] before the label, tinted
+     * [iconTint], with a dot of [badgeTint] on its corner. The native iOS bar draws the glyph and the
+     * label but no dot, so [accessibilityLabel] must say in words whatever the tints say.
      */
     @Immutable
     data class Text(
@@ -53,6 +57,11 @@ sealed interface BarAction {
         override val label: String,
         val compactIcon: BarIcon,
         val enabled: Boolean = true,
+        val leadingIcon: BarIcon? = null,
+        val iconTint: Color? = null,
+        val badgeTint: Color? = null,
+        /** Read in place of [label] by screen readers; null reads the label. */
+        val accessibilityLabel: String? = null,
         val onClick: () -> Unit,
     ) : BarAction
 

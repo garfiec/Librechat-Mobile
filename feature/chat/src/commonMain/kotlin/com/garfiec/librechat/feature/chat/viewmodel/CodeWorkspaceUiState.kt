@@ -21,33 +21,102 @@ data class CodeWorkspaceUiState(
     /** The selected workspace's branch, as the worker reports it. Read only. */
     val branch: String? = null,
     val checkout: CodeCheckoutChip? = null,
+    /**
+     * "Linked worktrees": commands under `.worktrees/<name>` run in that worktree's lane. Shown for
+     * a workspace that advertises `git_linked_worktree` when the chat is not isolated in its own.
+     */
+    val linkedWorktrees: Boolean = false,
     val requirements: List<CodeRequirement> = emptyList(),
     /** "Every coding agent in this chat needs a workspace, including subagents." */
     val graphRequirement: Boolean = false,
+    /**
+     * Each machine has a pick, but they don't add up to what every agent needs (web's
+     * `graph_selection_conflict`): an agent's machine choice left another agent without one.
+     */
+    val selectionConflict: Boolean = false,
+    /** With several machines, each pick's explicit checkout, one line per machine. */
+    val checkoutSummaries: List<CodeCheckoutSummary> = emptyList(),
     val footnote: CodeFootnote? = null,
     /** A rejection named the workspace: tint its chip until the state changes. */
     val attention: Boolean = false,
     val sheetOpen: Boolean = false,
     val sheet: CodeWorkspaceSheet = CodeWorkspaceSheet(),
+    /**
+     * The chat is confirming its decision (after a failed turn, or a change whose outcome is
+     * unknown). While set, the row shows only this line, and Send waits.
+     */
+    val confirming: CodeConfirming? = null,
+    /** A change of the saved chat's decision on offer; the workspace chip opens its sheet. */
+    val transition: CodeTransitionView? = null,
+    /**
+     * The code approval mode picker. Independent of [visible]: a healthy saved chat hides its
+     * workspace chips but still picks how much its agent may do without asking.
+     */
+    val approval: CodeApprovalChip? = null,
+)
+
+enum class CodeApprovalOption { ASK, ACCEPT_EDITS, FULL_ACCESS }
+
+@Immutable
+data class CodeApprovalChip(val selected: CodeApprovalOption, val options: List<CodeApprovalOption>)
+
+enum class CodeConfirming { PENDING, FAILED }
+
+enum class CodeTransitionAction { MOVE, ATTACH, RECOVER, DETACH }
+
+/** What a transition's explanation says; the names it needs are on [CodeTransitionView]. */
+enum class CodeTransitionInfo { MOVE, MOVE_REMOVED, MOVE_ADDED, DETACH_PROMPT, ATTACH, RECOVER, DETACH }
+
+/** Web's transition menu: a heading, an explanation, a section per target, Confirm and Detach. */
+@Immutable
+data class CodeTransitionView(
+    val action: CodeTransitionAction,
+    /** The target machines' names, joined. With [singleTarget] the label names it ("Move chat to …"). */
+    val targetNames: String,
+    val singleTarget: Boolean,
+    /** Machines the recorded decision used that the agents no longer do, joined. */
+    val previousNames: String,
+    val info: CodeTransitionInfo,
+    val sections: List<CodeMachineSection>,
+    /** A move, attach or recovery to confirm (else only "Continue without workspace"). */
+    val offersConfirm: Boolean,
+    val canConfirm: Boolean,
+    val detachable: Boolean,
+    /** The change is being written; nothing here can be tapped. */
+    val busy: Boolean,
+    /** The workspace chip names the move instead of the chat's state, as web's rail does. */
+    val renamesChip: Boolean,
 )
 
 @Immutable
 data class CodeMachineChip(
+    /** The one machine the chat runs on; null with none (or several, see [count]). */
     val name: String?,
     val choices: List<CodeMachineChoice>,
+    /** Machines the decision uses when it is more than one: "{n} machines". */
+    val count: Int = 0,
 )
+
+@Immutable
+data class CodeCheckoutSummary(val machine: String, val workspace: String, val mode: CodeCheckoutMode)
 
 @Immutable
 data class CodeMachineChoice(val id: String, val name: String, val selected: Boolean)
 
-enum class CodeWorkspaceChipLabel { NAME, CHOOSE, NONE, LOADING, MISSING, UNAVAILABLE, UNSUPPORTED }
+/** [COUNT]: several machines each have their pick ("{n} code workspaces"). */
+enum class CodeWorkspaceChipLabel { NAME, COUNT, CHOOSE, NONE, LOADING, MISSING, UNAVAILABLE, UNSUPPORTED, GENERIC }
 
 @Immutable
 data class CodeWorkspaceChip(
     val label: CodeWorkspaceChipLabel = CodeWorkspaceChipLabel.CHOOSE,
     /** The workspace's name for [CodeWorkspaceChipLabel.NAME]. */
     val name: String? = null,
-    /** False on a locked chat, where a tap refreshes the machine's status instead. */
+    /** The number of picks for [CodeWorkspaceChipLabel.COUNT]. */
+    val count: Int = 0,
+    /**
+     * False on a locked chat with nothing to change, where a tap refreshes the machine's status
+     * instead. A locked chat with a transition on offer opens the transition sheet.
+     */
     val opensSheet: Boolean = true,
 )
 

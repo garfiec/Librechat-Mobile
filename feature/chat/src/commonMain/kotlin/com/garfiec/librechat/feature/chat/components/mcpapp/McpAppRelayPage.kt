@@ -83,7 +83,8 @@ internal object McpAppRelayPage {
     /**
      * The relay. `__sb_post(msg)` (platform prelude) reaches native; native calls
      * `__sb_fromHost(json)`. Everything else is `mcp-sandbox.html`'s logic with the parent window
-     * replaced by native and the permission delegation left out (none is granted).
+     * replaced by native. Permission delegation (`allow`) is what native put in the resource-ready
+     * `permissions`: the declared ones it can grant, never camera or microphone.
      */
     private val RELAY_SCRIPT = """
 (function () {
@@ -232,6 +233,13 @@ internal object McpAppRelayPage {
     var requested = String(params.sandbox || DEFAULT_SANDBOX).split(/\s+/).filter(Boolean);
     var granted = ALLOWED_SANDBOX_TOKENS.filter(function (t) { return requested.indexOf(t) !== -1; });
     innerFrame.setAttribute('sandbox', granted.length > 0 ? granted.join(' ') : DEFAULT_SANDBOX);
+    var allowParts = [];
+    var permissions = params.permissions;
+    if (permissions && typeof permissions === 'object') {
+      if (permissions.geolocation) allowParts.push('geolocation');
+      if (permissions.clipboardWrite) allowParts.push('clipboard-write');
+    }
+    if (allowParts.length > 0) { innerFrame.setAttribute('allow', allowParts.join('; ')); }
     innerFrame.srcdoc = injectIntoHead(params.html, buildViewInjection(attestNonce));
     innerFrame.style.cssText = 'width:100%;height:100%;border:none;display:block';
     frame.addEventListener('load', function () {

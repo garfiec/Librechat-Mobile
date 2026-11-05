@@ -115,15 +115,17 @@ enum class MarketplaceFilter {
  * The full catalog, derived from reference data the editor already holds.
  *
  * Built in the UI state rather than stored, so it can never go stale against the lists it is
- * derived from. Only capabilities the server actually offers are listed — an agent cannot be
- * given a capability this deployment does not have, so offering it would be a dead row.
+ * derived from. Only builtins the server offers and the role may use are listed (web's
+ * `BUILTIN_ROLE_PERMISSIONS`) — offering one the server drops would be a dead row.
  */
 fun AgentEditorUiState.marketplaceCatalog(): List<MarketplaceItem> = buildList {
-    if (isCodeInterpreterAvailable) {
+    if (isCodeInterpreterOffered) {
         add(builtin(ToolConstants.EXECUTE_CODE, MarketplaceBuiltinLabel.CODE_INTERPRETER))
     }
-    add(builtin(ToolConstants.FILE_SEARCH, MarketplaceBuiltinLabel.FILE_SEARCH))
-    if (isWebSearchAvailable) {
+    if (isFileSearchOffered) {
+        add(builtin(ToolConstants.FILE_SEARCH, MarketplaceBuiltinLabel.FILE_SEARCH))
+    }
+    if (isWebSearchOffered) {
         add(builtin(ToolConstants.WEB_SEARCH, MarketplaceBuiltinLabel.WEB_SEARCH))
     }
     add(builtin(FILE_CONTEXT, MarketplaceBuiltinLabel.FILE_CONTEXT))

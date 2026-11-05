@@ -367,13 +367,17 @@ class DrawerViewModel(
      */
     val viewMemory = DrawerViewMemory()
 
+    private val bookmarkOptions: Flow<List<FilterBookmarkOption>> = tagRepository.observeTags()
+        .map { tags -> tags.mapNotNull { tag -> tag.tag?.takeIf(String::isNotBlank)?.let { FilterBookmarkOption(it, tag.count) } } }
+        .distinctUntilChanged()
+
     private val filterOptions: Flow<DrawerFilterOptions> = combine(
-        configRepository.endpointConfigs,
-        configRepository.serverUrl,
+        combine(configRepository.endpointConfigs, configRepository.serverUrl, ::Pair),
         drawerActionMenuState,
         _drawerFilters,
         isOnline,
-    ) { endpoints, serverUrl, actionMenu, filters, online ->
+        bookmarkOptions,
+    ) { (endpoints, serverUrl), actionMenu, filters, online, bookmarks ->
         DrawerFilterOptions(
             endpoints = selectableEndpoints(endpoints.keys.toList(), filters.endpoints, actionMenu.maxEndpointNameLength)
                 .map { name ->
@@ -387,6 +391,7 @@ class DrawerViewModel(
             maxEndpoints = actionMenu.maxEndpointFilters,
             sharedOnlyAvailable = actionMenu.sharedLinksConfigured,
             bookmarksAvailable = actionMenu.bookmarksEnabled,
+            bookmarks = if (actionMenu.bookmarksEnabled) selectableBookmarks(bookmarks, filters.tags) else emptyList(),
             isOnline = online,
         )
     }.distinctUntilChanged()
@@ -679,7 +684,7 @@ class DrawerViewModel(
             conversationListStateHolder.setFilters(null)
             return
         }
-        val tags = if (applied.bookmarked) {
+        val tags = if (applied.bookmarked && applied.tags.isEmpty()) {
             tagRepository.observeTags().first().filter { it.count > 0 }.mapNotNull { it.tag?.takeIf(String::isNotBlank) }
         } else {
             emptyList()
@@ -727,12 +732,14 @@ class DrawerViewModel(
             ?: _fetchedUnlisted.value[id]
 
     /**
-     * Pull-to-refresh: refreshes the drawer conversation list + favorites + tags. The explicit tag
-     * refresh is wanted here because a manual refresh has no session-task machinery behind it. Not
-     * while bookmarks are off: the tags route answers 403 to a role without BOOKMARKS USE.
+     * Pull-to-refresh: refreshes the drawer conversation list + favorites + tags, and the shown rows'
+     * pull request marks. The explicit tag refresh is wanted here because a manual refresh has no
+     * session-task machinery behind it. Not while bookmarks are off: the tags route answers 403 to a
+     * role without BOOKMARKS USE.
      */
     fun refreshConversations() {
         conversationListStateHolder.refreshConversations()
+        pullRequests.refreshNow()
         // Read at the source, not from the drawer's WhileSubscribed state, which is permissive until collected.
         val enabled =
             bookmarksEnabled(roleRepository.userPermissions.value, configRepository.startupConfig.value?.interfaceConfig)

@@ -306,6 +306,7 @@
     <string name="drawer_filter_has_attachments">첨부 파일 있음</string>
     <string name="drawer_filter_shared_only">공유된 항목만</string>
     <string name="drawer_filter_bookmarks">북마크</string>
+    <string name="drawer_filter_any_bookmark">모든 북마크</string>
     <string name="drawer_filter_reset">초기화</string>
     <string name="drawer_filter_apply">적용</string>
     <string name="drawer_filter_offline">오프라인 상태입니다. 필터는 서버가 필요하므로 다시 온라인이 되면 적용됩니다.</string>

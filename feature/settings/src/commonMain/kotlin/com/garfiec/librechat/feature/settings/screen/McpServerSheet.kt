@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
@@ -28,16 +29,19 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.data.datastore.McpAppLocationConsent
 import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
 import com.garfiec.librechat.core.model.mcp.McpTool
 import com.garfiec.librechat.core.ui.components.AdaptiveFilledTonalButton
 import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.core.ui.components.InitialTile
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.TileStatusDot
@@ -46,6 +50,9 @@ import com.garfiec.librechat.core.ui.platform.rememberReduceMotion
 import com.garfiec.librechat.core.ui.theme.statusColors
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
+import com.garfiec.librechat.feature.settings.resources.mcp_app_location_allowed
+import com.garfiec.librechat.feature.settings.resources.mcp_app_location_not_allowed
+import com.garfiec.librechat.feature.settings.resources.mcp_app_location_setting
 import com.garfiec.librechat.feature.settings.viewmodel.McpServerRow
 import org.jetbrains.compose.resources.stringResource
 
@@ -64,6 +71,8 @@ internal fun McpServerSheet(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    appLocation: McpAppLocationConsent? = null,
+    onAppLocationChange: (allowed: Boolean) -> Unit = {},
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var query by rememberSaveable(row.name) { mutableStateOf("") }
@@ -86,6 +95,16 @@ internal fun McpServerSheet(
         LazyColumn(Modifier.fillMaxWidth()) {
             item(key = "header", contentType = "header") {
                 McpServerSheetHeader(row, onReconnect = onReconnect, onEdit = onEdit, onDelete = onDelete)
+            }
+            // Only once an App of this server asked; never asked has nothing to change.
+            if (appLocation != null && appLocation != McpAppLocationConsent.NOT_ASKED) {
+                item(key = "app_location", contentType = "app_location") {
+                    McpAppLocationRow(
+                        allowed = appLocation == McpAppLocationConsent.ALLOWED,
+                        onChange = onAppLocationChange,
+                        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp),
+                    )
+                }
             }
             if (row.status == McpDisplayStatus.CONNECTED || tools.isNotEmpty()) {
                 item(key = "tools_title", contentType = "tools_title") {
@@ -230,3 +249,27 @@ internal fun McpServerSheetHeader(
 
 /** Past this many tools a filter field earns its space; fewer fit on a screen or two. */
 private const val TOOL_FILTER_THRESHOLD = 8
+
+/** "Location: Allowed" for this server's MCP Apps, with the switch that changes it. */
+@Composable
+private fun McpAppLocationRow(allowed: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .toggleable(value = allowed, role = Role.Switch, onValueChange = onChange),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(stringResource(Res.string.mcp_app_location_setting), style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = stringResource(
+                    if (allowed) Res.string.mcp_app_location_allowed else Res.string.mcp_app_location_not_allowed,
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        AdaptiveSwitch(checked = allowed, onCheckedChange = null)
+    }
+}

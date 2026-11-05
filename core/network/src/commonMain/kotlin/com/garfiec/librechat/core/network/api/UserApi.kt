@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.model.auth.EmailChangeResponse
 import com.garfiec.librechat.core.model.auth.RequestEmailChangeRequest
 import com.garfiec.librechat.core.model.request.OtpVerificationRequest
 import com.garfiec.librechat.core.model.request.ResendVerificationRequest
+import com.garfiec.librechat.core.model.request.UserPreferencesRequest
 import com.garfiec.librechat.core.model.request.VerifyEmailRequest
 import com.garfiec.librechat.core.model.response.AvatarUploadResponse
 import com.garfiec.librechat.core.model.response.TermsAcceptResponse
@@ -15,6 +16,7 @@ import io.ktor.client.request.delete
 import io.ktor.client.request.forms.formData
 import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.request.get
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.Headers
@@ -62,6 +64,17 @@ class UserApi constructor(
             url { path("api/user/email/change") }
             setBody(request)
         }.body()
+
+    /**
+     * `PATCH /api/user/preferences` (v0.8.9-rc1): the default stateful workspace scope new agents
+     * get. `400` an unknown value, `403` one this deployment doesn't allow.
+     */
+    suspend fun updatePreferences(request: UserPreferencesRequest) {
+        client.patch {
+            url { path("api/user/preferences") }
+            setBody(request)
+        }
+    }
 
     suspend fun getTerms(): TermsResponse =
         client.get {

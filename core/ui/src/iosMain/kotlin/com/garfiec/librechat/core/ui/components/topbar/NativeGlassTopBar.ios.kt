@@ -86,6 +86,9 @@ private const val UNREPORTED_HEIGHT = -1.0
 /** The system navigation title's size, which it keeps at every Dynamic Type setting. */
 private const val TITLE_POINT_SIZE = 17.0
 
+/** Between a text action's leading glyph and its label. */
+private const val TEXT_ACTION_IMAGE_PADDING = 4.0
+
 /** ObjC superclass of CMP's `InteropWrappingView`, the view that owns an interop view's touches. */
 private const val INTEROP_WRAPPER_CLASS = "CMPInteropWrappingView"
 private const val INTEROP_WRAPPER_MAX_DEPTH = 4
@@ -137,6 +140,9 @@ internal data class ActionSnapshot(
     val enabled: Boolean,
     val busy: Boolean = false,
     val checkedTint: Color? = null,
+    /** A text action's leading glyph colour ([BarAction.Text.iconTint]). */
+    val iconTint: Color? = null,
+    val accessibilityLabel: String? = null,
 )
 
 internal fun AdaptiveTopBarSpec.snapshot() = BarSnapshot(
@@ -152,7 +158,11 @@ internal fun AdaptiveTopBarSpec.snapshot() = BarSnapshot(
                 action.id, "icon", action.icon.sfSymbol, action.label, false, action.tint, action.enabled && !action.busy,
                 busy = action.busy,
             )
-            is BarAction.Text -> ActionSnapshot(action.id, "text", "", action.label, false, BarTint.DEFAULT, action.enabled)
+            is BarAction.Text -> ActionSnapshot(
+                action.id, "text", action.leadingIcon?.sfSymbol.orEmpty(), action.label, false, BarTint.DEFAULT, action.enabled,
+                iconTint = action.iconTint,
+                accessibilityLabel = action.accessibilityLabel,
+            )
             is BarAction.Toggle -> ActionSnapshot(
                 action.id, "toggle",
                 if (action.checked) action.iconOn.sfSymbol else action.iconOff.sfSymbol,
@@ -322,6 +332,7 @@ private class NativeBarContainer(
     private fun barButton(action: ActionSnapshot): UIBarButtonItem {
         if (action.busy) return busyBarButton(action.label, bar.tintColor)
         val image = if (action.symbol.isEmpty()) null else UIImage.systemImageNamed(action.symbol)
+        if (action.kind == "text" && image != null) return labelledGlyphButton(action, image)
         return when (action.kind) {
             "menu" -> UIBarButtonItem(
                 image = image,
@@ -357,6 +368,38 @@ private class NativeBarContainer(
                 }
             }
         }
+    }
+
+    /**
+     * A text action with a leading glyph (the chat's pull request chip). A bar item shows an image or
+     * a title, never both, so this one is a button. UIKit can't draw the corner dot, so the
+     * accessibility label carries what the tints say.
+     */
+    private fun labelledGlyphButton(action: ActionSnapshot, image: UIImage): UIBarButtonItem {
+        val font = UIFont.systemFontOfSize(TITLE_POINT_SIZE)
+        val glyphTint = action.iconTint?.toUIColor()
+        val configuration = UIButtonConfiguration.plainButtonConfiguration().apply {
+            title = action.label
+            titleLineBreakMode = NSLineBreakByTruncatingTail
+            titleTextAttributesTransformer = { attributes ->
+                HashMap<Any?, Any?>(attributes ?: emptyMap<Any?, Any?>()).apply { put(NSFontAttributeName, font) }
+            }
+            this.image = image
+            preferredSymbolConfigurationForImage = UIImageSymbolConfiguration.configurationWithFont(font)
+            imagePadding = TEXT_ACTION_IMAGE_PADDING
+            baseForegroundColor = UIColor.labelColor
+            if (glyphTint != null) imageColorTransformer = { _ -> glyphTint }
+        }
+        val label = action.accessibilityLabel ?: action.label
+        val button = UIButton.buttonWithConfiguration(configuration, primaryAction = null)
+        button.maximumContentSizeCategory = UIContentSizeCategoryLarge
+        button.enabled = action.enabled
+        button.accessibilityLabel = label
+        button.addAction(
+            UIAction.actionWithTitle(title = action.label, image = null, identifier = null) { _ -> invokeAction(action.id) },
+            forControlEvents = UIControlEventTouchUpInside,
+        )
+        return UIBarButtonItem(customView = button).apply { accessibilityLabel = label }
     }
 
     private fun invokeAction(id: String) {

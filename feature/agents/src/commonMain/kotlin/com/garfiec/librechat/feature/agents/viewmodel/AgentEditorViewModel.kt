@@ -22,6 +22,7 @@ import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.EndpointToolApproval
 import com.garfiec.librechat.core.model.HandoffEdge
 import com.garfiec.librechat.core.model.SkillSummary
+import com.garfiec.librechat.core.model.code.StatefulCodeSessionsConfig
 import com.garfiec.librechat.core.model.config.paramSettingsKey
 import com.garfiec.librechat.core.model.mcp.McpTool
 import com.garfiec.librechat.core.model.request.FunctionTool
@@ -39,9 +40,14 @@ import com.garfiec.librechat.feature.agents.components.model.MarketplaceItem
 import com.garfiec.librechat.feature.agents.components.model.SupportContactState
 import com.garfiec.librechat.feature.agents.util.ContentReader
 import com.garfiec.librechat.feature.agents.util.ToolApprovalMode
+import com.garfiec.librechat.feature.agents.util.codeBackgroundEnabled
 import com.garfiec.librechat.feature.agents.util.withApprovalMode
+import com.garfiec.librechat.feature.agents.util.withCodeBackground
 import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentActionsDelegate
 import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentCapabilitiesDelegate
+import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentCodeEvent
+import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentCodeSettingsDelegate
+import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentCodeSources
 import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentFilesDelegate
 import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentLoaderDelegate
 import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentSaveDelegate
@@ -145,6 +151,18 @@ data class AgentEditorUiState(
     val selectedMcpTools: Set<String> = emptySet(),
     // Capabilities toggles
     val codeInterpreterEnabled: Boolean = false,
+    /** The Code section's draft (stateful sessions, machines, workspace, Git identity). */
+    val code: AgentCodeSettings = AgentCodeSettings(),
+    /** `agents.capabilities` has `stateful_code_sessions`: the Code section shows. */
+    val isStatefulCodeAvailable: Boolean = false,
+    /** `agents.capabilities` has `run_in_background` (opt-in, no fail-open): see [codeBackground]. */
+    val isCodeBackgroundAvailable: Boolean = false,
+    /** `agents.statefulCodeSessions` from `/api/endpoints`: machines, choice limits, scopes. */
+    val statefulCodeConfig: StatefulCodeSessionsConfig? = null,
+    /** The status read for the default-workspace picker's machine. */
+    val codeMachineStatus: AgentCodeMachineStatus? = null,
+    /** Save found a half-filled or malformed Git identity. */
+    val codeGitIdentityError: Boolean = false,
     val fileSearchEnabled: Boolean = false,
     val webSearchEnabled: Boolean = false,
     val fileContextEnabled: Boolean = false,
@@ -164,6 +182,15 @@ data class AgentEditorUiState(
     val isAskUserQuestionAvailable: Boolean = true,
     /** Whether web search is configured on this server (startupConfig.webSearch != null). */
     val isWebSearchAvailable: Boolean = false,
+    /** The agents endpoint's `file_search` capability, fail-open on an empty list. */
+    val isFileSearchAvailable: Boolean = true,
+    /**
+     * The role's RUN_CODE / WEB_SEARCH / FILE_SEARCH `USE` (fail-open on an unknown role). They
+     * hide a builtin's row and section ([isCodeInterpreterOffered] and siblings), never its save.
+     */
+    val canUseRunCode: Boolean = true,
+    val canUseWebSearch: Boolean = true,
+    val canUseFileSearch: Boolean = true,
     /** Whether chain (sequential multi-agent) is enabled in the agents endpoint capabilities. */
     val isChainAvailable: Boolean = false,
     /** Whether the handoffs graph feature is supported (v0.8.5+). */
@@ -316,6 +343,24 @@ data class AgentEditorUiState(
      */
     val isToolApprovalModesAvailable: Boolean
         get() = isToolApprovalVersionSupported && toolApprovalPolicy?.agentModes == true
+
+    /**
+     * Whether the editor shows a builtin: the server's capability AND the role's grant, as web's
+     * catalog lists it. A hidden builtin the agent already has is still saved: the save reads
+     * [isCodeInterpreterAvailable] / [isWebSearchAvailable], never these.
+     */
+    val isCodeInterpreterOffered: Boolean get() = isCodeInterpreterAvailable && canUseRunCode
+    val isWebSearchOffered: Boolean get() = isWebSearchAvailable && canUseWebSearch
+    val isFileSearchOffered: Boolean get() = isFileSearchAvailable && canUseFileSearch
+
+    /**
+     * The code interpreter's "Background execution" switch (web `Code/Background.tsx`): whether its
+     * commands may run in the background, or null when the switch isn't shown (the server lacks
+     * `run_in_background`, or the code interpreter is off).
+     */
+    val codeBackground: Boolean?
+        get() = toolOptions.codeBackgroundEnabled()
+            .takeIf { isCodeBackgroundAvailable && codeInterpreterEnabled && isCodeInterpreterOffered }
 }
 
 /** How a reset of remembered tool approvals ended. Worded by the screen. */
@@ -356,6 +401,7 @@ class AgentEditorViewModel(
     private val skillsRepository: SkillsRepository,
     private val roleRepository: RoleRepository,
     private val toolFavoritesRepository: ToolFavoritesRepository,
+    codeSources: AgentCodeSources,
     private val contentReader: ContentReader,
     private val ioDispatcher: CoroutineDispatcher,
     initialAgentId: String? = null,
@@ -409,6 +455,25 @@ class AgentEditorViewModel(
         editAgentId = editAgentId,
     )
 
+    private val codeSettingsDelegate = AgentCodeSettingsDelegate(stateHandle, codeSources)
+
+    /** The Code section, mapped from the form and config; null hides it. */
+    val codeSection: StateFlow<AgentCodeSectionView?> = _uiState
+        .map { state ->
+            agentCodeSection(
+                settings = state.code,
+                config = state.statefulCodeConfig,
+                available = state.isStatefulCodeAvailable,
+                codeEnabled = state.codeInterpreterEnabled && state.isCodeInterpreterAvailable,
+                status = state.codeMachineStatus,
+                gitIdentityError = state.codeGitIdentityError,
+            )
+        }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    fun onCodeSettingsEvent(event: AgentCodeEvent) = codeSettingsDelegate.onEvent(event)
+
     private val codeAuthDelegate = CodeToolAuthDelegate(
         stateHandle = stateHandle,
         agentToolsRepository = agentToolsRepository,
@@ -456,6 +521,7 @@ class AgentEditorViewModel(
     init {
         loaderDelegate.loadReferenceData()
         capabilitiesDelegate.observeAvailability()
+        codeSettingsDelegate.start()
         codeAuthDelegate.verifyCodeToolAuth()
         if (editAgentId != null) {
             loaderDelegate.loadAgent(editAgentId)
@@ -587,6 +653,12 @@ class AgentEditorViewModel(
     fun submitCodeToolApiKey(apiKey: String) = codeAuthDelegate.submitCodeToolApiKey(apiKey)
 
     fun revokeCodeToolApiKey() = codeAuthDelegate.revokeCodeToolApiKey()
+
+    /** The code interpreter's "Background execution" switch; edits the form's `tool_options` only. */
+    fun onCodeBackgroundToggled(enabled: Boolean) {
+        if (uiState.value.codeBackground == null) return
+        stateHandle.update { copy(toolOptions = toolOptions.withCodeBackground(enabled)) }
+    }
 
     fun onFileSearchToggled(enabled: Boolean) {
         stateHandle.update { copy(fileSearchEnabled = enabled) }

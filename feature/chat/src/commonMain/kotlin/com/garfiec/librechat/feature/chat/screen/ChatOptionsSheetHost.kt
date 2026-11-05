@@ -34,6 +34,7 @@ internal fun ChatOptionsSheetHost(
     onTakePhoto: () -> Unit,
     onPickPhotos: () -> Unit,
     onAttachFromServer: () -> Unit,
+    onAttachToCode: (() -> Unit)?,
     onNavigateToProviderKeys: (endpointName: String?) -> Unit,
     onShowSavePresetDialog: () -> Unit,
     /** Compare setup's staged picks: during setup the Model page stages into them. */
@@ -79,6 +80,7 @@ internal fun ChatOptionsSheetHost(
             onTakePhoto = onTakePhoto,
             onPickPhotos = onPickPhotos,
             onAttachFromServer = onAttachFromServer,
+            onAttachToCode = onAttachToCode,
             selectedModelDisplay = selectedModelDisplay,
             comparisonModels = comparisonModelLabels(uiState),
             isCodeInterpreterAvailable = uiState.isCodeInterpreterAvailable,

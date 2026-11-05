@@ -67,6 +67,12 @@ data class Preset(
     val instructions: String? = null,
     @SerialName("additional_instructions") val additionalInstructions: String? = null,
     @SerialName("append_current_datetime") val appendCurrentDatetime: Boolean? = null,
+    /**
+     * A model spec preset's starting code approval mode (`ask` / `acceptEdits` / `fullAccess`,
+     * v0.8.9-rc1), which a new chat on the spec opens with, within the modes policy offers
+     * (`CodeWorkspaceDelegate`). Read from spec presets only; nothing writes it.
+     */
+    val codeApprovalMode: String? = null,
     val createdAt: String? = null,
     val updatedAt: String? = null,
 )

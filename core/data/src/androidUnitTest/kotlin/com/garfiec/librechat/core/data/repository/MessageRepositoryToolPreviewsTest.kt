@@ -6,7 +6,9 @@ import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.data.db.dao.MessageDao
+import com.garfiec.librechat.core.data.db.dao.ToolCallPartDao
 import com.garfiec.librechat.core.data.db.entity.MessageEntity
+import com.garfiec.librechat.core.data.db.entity.ToolCallPartEntity
 import com.garfiec.librechat.core.model.ContentType
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.content.AgentToolCall
@@ -32,6 +34,7 @@ class MessageRepositoryToolPreviewsTest {
     private val messagesApi = mockk<MessagesApi>(relaxed = true)
     private val messageDao = mockk<MessageDao>(relaxed = true)
     private val roster = mockk<AccountRoster>(relaxed = true)
+    private val toolCallPartDao = mockk<ToolCallPartDao>(relaxed = true)
     private val account = AccountId("srv:user-a")
     private lateinit var repository: MessageRepositoryImpl
 
@@ -47,6 +50,7 @@ class MessageRepositoryToolPreviewsTest {
         repository = MessageRepositoryImpl(
             messagesApi = messagesApi,
             messageDao = messageDao,
+            toolCallPartDao = toolCallPartDao,
             activeAccountProvider = InMemoryActiveAccountProvider(AccountState.Resolved(account)),
             roster = roster,
             dispatcher = UnconfinedTestDispatcher(),
@@ -95,5 +99,48 @@ class MessageRepositoryToolPreviewsTest {
 
         assertThat((result as Result.Success).data.output).isEqualTo("full")
         coVerify(exactly = 0) { messageDao.upsertAllIndexed(any()) }
+    }
+
+    @Test
+    fun `only full calls are stored, under the account that fetched them, with blanks as absent`() = runTest {
+        val rows = slot<List<ToolCallPartEntity>>()
+        coEvery { toolCallPartDao.storeWithinBudget(capture(rows), any()) } returns 1
+        val full = AgentToolCall(id = "c1", output = "x".repeat(9000))
+
+        repository.storeToolCallParts(
+            "conv-1",
+            mapOf(
+                ToolCallPartRef("m1", "c1", stepId = null, agentId = "") to full,
+                ToolCallPartRef("m1", "c2", stepId = "s", agentId = null) to preview,
+            ),
+            originAccount = null,
+        )
+
+        val row = rows.captured.single()
+        assertThat(row.toolCallId).isEqualTo("c1")
+        assertThat(row.stepId).isEmpty()
+        assertThat(row.agentId).isEmpty()
+        assertThat(row.accountId).isEqualTo(account.value)
+        coVerify(exactly = 0) { messageDao.upsertAllIndexed(any()) }
+    }
+
+    @Test
+    fun `a stored row reads back by its ref, and a stored preview never does`() = runTest {
+        fun row(id: String, json: String) = ToolCallPartEntity(
+            messageId = "m1", toolCallId = id, stepId = "", agentId = "", accountId = account.value,
+            conversationId = "conv-1", toolCall = json, chars = 1, storedAt = 1,
+        )
+        coEvery { toolCallPartDao.forMessages(account.value, "conv-1", listOf("m1")) } returns listOf(
+            row("c1", """{"id":"c1","output":"full"}"""),
+            row("c2", """{"id":"c2","output":"cut","outputTruncated":true}"""),
+        )
+
+        val stored = repository.storedToolCallParts(
+            "conv-1",
+            listOf(ToolCallPartRef("m1", "c1", null, null), ToolCallPartRef("m1", "c2", "", "")),
+        )
+
+        assertThat(stored.keys).containsExactly(ToolCallPartRef("m1", "c1", null, null))
+        assertThat(stored.values.single().output).isEqualTo("full")
     }
 }

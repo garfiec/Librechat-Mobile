@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.datastore.McpAppLocationConsent
+import com.garfiec.librechat.core.data.datastore.McpAppLocationConsentStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.McpOAuthLauncher
 import com.garfiec.librechat.core.data.repository.McpRepository
@@ -104,7 +106,25 @@ class McpViewModel(
     private val permissionsRepository: PermissionsRepository,
     serverDataStore: ServerDataStore,
     private val oauthLauncher: McpOAuthLauncher,
+    private val appLocationConsent: McpAppLocationConsentStore,
 ) : ViewModel() {
+
+    /**
+     * Each server's answer about its MCP Apps using the device's approximate location; a server
+     * never asked has none, and its sheet shows no row.
+     */
+    val appLocationConsents: StateFlow<Map<String, McpAppLocationConsent>> = appLocationConsent.consents
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    /** The server sheet's Location switch. */
+    fun setAppLocationAllowed(serverName: String, allowed: Boolean) {
+        viewModelScope.launch {
+            appLocationConsent.set(
+                serverName,
+                if (allowed) McpAppLocationConsent.ALLOWED else McpAppLocationConsent.REFUSED,
+            )
+        }
+    }
 
     private val _uiState = MutableStateFlow(McpUiState())
 

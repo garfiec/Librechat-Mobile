@@ -12,17 +12,26 @@ import com.garfiec.librechat.core.model.mcp.McpOAuthOutcome
  * address the app was given. Either host counts. `basePath` comes from `DOMAIN_CLIENT`, so the
  * match is on the path's tail, not a fixed prefix. A provider page on its own host with the same
  * path never matches. Loading that page would boot the web app for nothing, so it is cancelled.
+ *
+ * A main-frame `http://` page is refused, ending the flow with [INSECURE_CONNECTION], unless it is
+ * on one of those servers' own origins (scheme, host and port: the user accepted plain HTTP for
+ * their server when they added it, not for every port of an HTTPS server's host) or on a loopback
+ * host. A provider's sign-in page over plain HTTP would expose the password typed in it.
  */
 class McpOAuthNavigationGate(serverUrl: String, authorizationUrl: String) {
 
-    private val hosts: Set<String> = setOfNotNull(
-        hostOf(serverUrl),
-        queryParameter(authorizationUrl, "redirect_uri")?.let(::hostOf),
-    )
+    private val redirectUri = queryParameter(authorizationUrl, "redirect_uri")
+
+    private val hosts: Set<String> = setOfNotNull(hostOf(serverUrl), redirectUri?.let(::hostOf))
+
+    private val origins: Set<String> = setOfNotNull(originOf(serverUrl), redirectUri?.let(::originOf))
 
     /** Null to let the navigation proceed; an outcome to cancel it and finish. */
     fun decide(url: String): McpOAuthOutcome? {
         val host = hostOf(url) ?: return null
+        if (isPlainHttp(url) && originOf(url) !in origins && !isLoopback(host)) {
+            return McpOAuthOutcome.Error(INSECURE_CONNECTION)
+        }
         if (host !in hosts) return null
         val path = pathOf(url).trimEnd('/')
         return when {
@@ -32,11 +41,34 @@ class McpOAuthNavigationGate(serverUrl: String, authorizationUrl: String) {
         }
     }
 
-    private companion object {
-        const val SUCCESS_PATH = "/oauth/success"
-        const val ERROR_PATH = "/oauth/error"
+    companion object {
+        /** The [McpOAuthOutcome.Error] code for a refused plain-HTTP page. */
+        const val INSECURE_CONNECTION = "insecure_connection"
+
+        private const val SUCCESS_PATH = "/oauth/success"
+        private const val ERROR_PATH = "/oauth/error"
     }
 }
+
+/** Where the sign-in page is, for the bar: its host, and whether it arrived over HTTPS. */
+data class McpOAuthPageLocation(val host: String, val secure: Boolean)
+
+/** The location to show for [url]; null for a page with no host (`about:blank`). */
+fun mcpOAuthPageLocation(url: String): McpOAuthPageLocation? {
+    val host = hostOf(url) ?: return null
+    return McpOAuthPageLocation(host, secure = url.startsWith("https://", ignoreCase = true))
+}
+
+private fun isPlainHttp(url: String): Boolean = url.startsWith("http://", ignoreCase = true)
+
+private fun isLoopback(host: String): Boolean {
+    if (host == "localhost" || host.endsWith(".localhost") || host == "[::1]") return true
+    val octets = host.split('.')
+    return octets.size == IPV4_OCTETS && octets[0] == "127" && octets.all { it.toIntOrNull() in 0..MAX_OCTET }
+}
+
+private const val IPV4_OCTETS = 4
+private const val MAX_OCTET = 255
 
 private fun authorityOf(url: String): String? {
     val schemeEnd = url.indexOf("://")
@@ -45,6 +77,18 @@ private fun authorityOf(url: String): String? {
     val end = rest.indexOfFirst { it == '/' || it == '?' || it == '#' }.let { if (it < 0) rest.length else it }
     return rest.substring(0, end)
 }
+
+/** `scheme://host[:port]`, lowercased, with the scheme's default port left out. */
+private fun originOf(url: String): String? {
+    val host = hostOf(url) ?: return null
+    val scheme = url.substringBefore("://").lowercase()
+    val authority = authorityOf(url)?.substringAfterLast('@').orEmpty()
+    val afterHost = if (authority.startsWith("[")) authority.substringAfter(']', "") else authority.substringAfter(':', "")
+    val port = afterHost.removePrefix(":").takeIf { it.isNotEmpty() && it != DEFAULT_PORTS[scheme] }
+    return "$scheme://$host" + (port?.let { ":$it" } ?: "")
+}
+
+private val DEFAULT_PORTS = mapOf("http" to "80", "https" to "443")
 
 private fun hostOf(url: String): String? {
     val authority = authorityOf(url)?.substringAfterLast('@') ?: return null

@@ -139,4 +139,60 @@ class CodeWorkspaceViewTest {
         assertEquals(CodeCheckoutMode.REGISTERED, ui.checkout?.mode)
         assertFalse(ui.checkout?.pickable == true)
     }
+
+    @Test
+    fun linkedWorktreesShowOnlyWhileTheChatSharesTheRegisteredCheckout() {
+        val linked = switchboard.copy(workspaceScopes = listOf("git_linked_worktree"))
+        fun ui(checkout: String?, schema: PublicCodeEnvironment = mbp) = codeWorkspaceUiState(
+            CodeWorkspaceResolver.resolve(
+                capabilities.copy(statefulCodeSessions = StatefulCodeSessionsConfig(environments = listOf(schema))),
+                chat(CodeEnvironmentMode.ATTACHED, listOf(CodeWorkspaceSelection(mbp.id, "switchboard", checkout))),
+                mapOf(dev.id to dev),
+                mapOf(mbp.id to StatusResult.Loaded(CodeEnvironmentStatus(mbp.id, "ready", listOf(linked, librechat)))),
+            ),
+            CodeEnvironmentMode.ATTACHED, null, null, sheetOpen = false, attention = false,
+        )
+        // Auto on a workspace that offers worktrees isolates the chat in its own.
+        assertFalse(ui(null).linkedWorktrees)
+        assertFalse(ui("isolated").linkedWorktrees)
+        assertTrue(ui("source").linkedWorktrees)
+        val off = mbp.copy(
+            configSchema = CodeEnvironmentConfigSchema(
+                CodeEnvironmentWorkspacesSchema(allowCheckoutSelection = true, linkedWorktrees = false),
+            ),
+        )
+        assertFalse(ui("source", off).linkedWorktrees)
+    }
+
+    @Test
+    fun twoMachinesCountTheirPicksAndSummariseExplicitCheckouts() {
+        val vm = PublicCodeEnvironment(
+            id = "build-vm",
+            type = "attached",
+            configSchema = CodeEnvironmentConfigSchema(CodeEnvironmentWorkspacesSchema(allowCheckoutSelection = true)),
+        )
+        val ops = dev.copy(id = "agent_ops", name = "Ops", codeEnvironmentId = vm.id)
+        val lead = dev.copy(agentIds = listOf(ops.id))
+        val selections = listOf(
+            CodeWorkspaceSelection(vm.id, "scratch", "source"),
+            CodeWorkspaceSelection(mbp.id, "switchboard"),
+        )
+        val resolution = CodeWorkspaceResolver.resolve(
+            capabilities.copy(statefulCodeSessions = StatefulCodeSessionsConfig(environments = listOf(mbp, vm))),
+            chat(CodeEnvironmentMode.ATTACHED, selections),
+            mapOf(lead.id to lead, ops.id to ops),
+            mapOf(
+                mbp.id to StatusResult.Loaded(CodeEnvironmentStatus(mbp.id, "ready", listOf(switchboard))),
+                vm.id to StatusResult.Loaded(CodeEnvironmentStatus(vm.id, "ready", listOf(CodeWorkspaceDescriptor(id = "scratch")))),
+            ),
+        )
+        val ui = codeWorkspaceUiState(
+            resolution, CodeEnvironmentMode.ATTACHED, null, null, sheetOpen = false, attention = false,
+        )
+        assertEquals(CodeWorkspaceChipLabel.COUNT, ui.workspace.label)
+        assertEquals(2, ui.workspace.count)
+        assertEquals(listOf("build-vm"), ui.checkoutSummaries.map { it.machine })
+        assertEquals(CodeCheckoutMode.REGISTERED, ui.checkoutSummaries.single().mode)
+        assertFalse(ui.selectionConflict)
+    }
 }

@@ -12,11 +12,10 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -36,6 +35,8 @@ import com.garfiec.librechat.core.common.speech.sttEngineSelectsRecognizer
 import com.garfiec.librechat.core.common.speech.sttSupportsLiveRecognition
 import com.garfiec.librechat.core.model.speech.SttEngine
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
+import com.garfiec.librechat.core.ui.components.AdaptiveExposedDropdownMenu
+import com.garfiec.librechat.core.ui.components.AdaptiveExposedDropdownMenuBox
 import com.garfiec.librechat.core.ui.components.AdaptiveFilledTonalButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
@@ -86,7 +87,7 @@ internal fun SttDetailDialog(
                     text = stringResource(Res.string.stt_engine_label),
                     style = MaterialTheme.typography.labelMedium,
                 )
-                ExposedDropdownMenuBox(
+                AdaptiveExposedDropdownMenuBox(
                     expanded = engineExpanded,
                     onExpandedChange = { engineExpanded = it },
                 ) {
@@ -99,9 +100,9 @@ internal fun SttDetailDialog(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                     )
-                    ExposedDropdownMenu(
+                    AdaptiveExposedDropdownMenu(
                         expanded = engineExpanded,
                         onDismissRequest = { engineExpanded = false },
                     ) {
@@ -189,7 +190,7 @@ internal fun SttDetailDialog(
                     text = stringResource(Res.string.stt_language_label),
                     style = MaterialTheme.typography.labelMedium,
                 )
-                ExposedDropdownMenuBox(
+                AdaptiveExposedDropdownMenuBox(
                     expanded = languageExpanded,
                     onExpandedChange = { languageExpanded = it },
                 ) {
@@ -202,9 +203,9 @@ internal fun SttDetailDialog(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                     )
-                    ExposedDropdownMenu(
+                    AdaptiveExposedDropdownMenu(
                         expanded = languageExpanded,
                         onDismissRequest = { languageExpanded = false },
                     ) {
@@ -303,7 +304,7 @@ internal fun TtsDetailDialog(
                     text = stringResource(Res.string.tts_source_label),
                     style = MaterialTheme.typography.labelMedium,
                 )
-                ExposedDropdownMenuBox(
+                AdaptiveExposedDropdownMenuBox(
                     expanded = sourceExpanded,
                     onExpandedChange = { sourceExpanded = it },
                 ) {
@@ -316,9 +317,9 @@ internal fun TtsDetailDialog(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                     )
-                    ExposedDropdownMenu(
+                    AdaptiveExposedDropdownMenu(
                         expanded = sourceExpanded,
                         onDismissRequest = { sourceExpanded = false },
                     ) {
@@ -345,7 +346,7 @@ internal fun TtsDetailDialog(
                             .find { it.name == currentDeviceVoice }
                             ?.let { "${it.name} (${it.locale})" }
                             ?: stringResource(Res.string.tts_system_default)
-                        ExposedDropdownMenuBox(
+                        AdaptiveExposedDropdownMenuBox(
                             expanded = deviceVoiceExpanded,
                             onExpandedChange = { deviceVoiceExpanded = it },
                         ) {
@@ -358,9 +359,9 @@ internal fun TtsDetailDialog(
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                             )
-                            ExposedDropdownMenu(
+                            AdaptiveExposedDropdownMenu(
                                 expanded = deviceVoiceExpanded,
                                 onDismissRequest = { deviceVoiceExpanded = false },
                             ) {
@@ -429,7 +430,7 @@ internal fun TtsDetailDialog(
                         text = stringResource(Res.string.stt_engine_label),
                         style = MaterialTheme.typography.labelMedium,
                     )
-                    ExposedDropdownMenuBox(
+                    AdaptiveExposedDropdownMenuBox(
                         expanded = engineExpanded,
                         onExpandedChange = { engineExpanded = it },
                     ) {
@@ -442,9 +443,9 @@ internal fun TtsDetailDialog(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                         )
-                        ExposedDropdownMenu(
+                        AdaptiveExposedDropdownMenu(
                             expanded = engineExpanded,
                             onDismissRequest = { engineExpanded = false },
                         ) {
@@ -466,7 +467,7 @@ internal fun TtsDetailDialog(
                             text = stringResource(Res.string.tts_voice_label),
                             style = MaterialTheme.typography.labelMedium,
                         )
-                        ExposedDropdownMenuBox(
+                        AdaptiveExposedDropdownMenuBox(
                             expanded = voiceExpanded,
                             onExpandedChange = { voiceExpanded = it },
                         ) {
@@ -479,9 +480,9 @@ internal fun TtsDetailDialog(
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                             )
-                            ExposedDropdownMenu(
+                            AdaptiveExposedDropdownMenu(
                                 expanded = voiceExpanded,
                                 onDismissRequest = { voiceExpanded = false },
                             ) {

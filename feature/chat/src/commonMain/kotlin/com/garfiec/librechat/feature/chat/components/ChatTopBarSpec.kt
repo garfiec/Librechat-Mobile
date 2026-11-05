@@ -6,10 +6,11 @@ import androidx.compose.ui.geometry.Rect
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.model.pullrequest.PullRequestIcon
-import com.garfiec.librechat.core.model.pullrequest.presentPullRequest
 import com.garfiec.librechat.core.model.usage.percentOf
 import com.garfiec.librechat.core.ui.components.pullrequest.pullRequestLabel
 import com.garfiec.librechat.core.ui.components.pullrequest.pullRequestMenuSubtitle
+import com.garfiec.librechat.core.ui.components.pullrequest.pullRequestSummary
+import com.garfiec.librechat.core.ui.components.pullrequest.pullRequestToneColor
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarAction
 import com.garfiec.librechat.core.ui.components.topbar.BarIcon
@@ -41,6 +42,7 @@ import com.garfiec.librechat.feature.chat.resources.context_usage_label
 import com.garfiec.librechat.feature.chat.resources.delete
 import com.garfiec.librechat.feature.chat.resources.dialog_title_rename
 import com.garfiec.librechat.feature.chat.resources.load_preset
+import com.garfiec.librechat.feature.chat.resources.mcp_app_open_apps
 import com.garfiec.librechat.feature.chat.resources.prompts_library
 import com.garfiec.librechat.feature.chat.resources.save_as_preset
 import com.garfiec.librechat.feature.chat.resources.select_model
@@ -53,8 +55,9 @@ import com.garfiec.librechat.core.ui.resources.Res as CoreRes
 
 /**
  * The chat top bar as data, for the Liquid Glass renderers. Mirrors the Material bar's chips: the
- * drawer button, the configurable title/model bubble, the temporary-chat toggle and the overflow menu
- * (from the same [chatOverflowSections] list the Material dropdown renders).
+ * drawer button, the configurable title/model bubble, the pull request chip on a wide pane
+ * ([showPullRequestChip]), the temporary-chat toggle and the overflow menu (from the same
+ * [chatOverflowSections] list the Material dropdown renders).
  */
 @Composable
 internal fun rememberChatTopBarSpec(
@@ -64,6 +67,8 @@ internal fun rememberChatTopBarSpec(
     onItem: (ChatOverflowItem) -> Unit,
     onOpenDrawer: (() -> Unit)?,
     showTempChatToggle: Boolean,
+    showPullRequestChip: Boolean = false,
+    openApps: Int = 0,
 ): AdaptiveTopBarSpec {
     // The actions capsule holds the toggle, so the band crosses it where it starts.
     val veil = LocalModeVeil.current
@@ -123,10 +128,30 @@ internal fun rememberChatTopBarSpec(
     }
 
     val menuSections = sections.map { section ->
-        BarMenuSection(section.mapNotNull { item -> overflowMenuItem(item, uiState) { onItem(item) } })
+        BarMenuSection(section.mapNotNull { item -> overflowMenuItem(item, uiState, openApps) { onItem(item) } })
+    }
+
+    val pullRequest = uiState.pullRequest.pullRequest
+    val pullRequestLook = uiState.pullRequest.presentation
+    val pullRequestChip = if (showPullRequestChip && pullRequest != null && pullRequestLook != null) {
+        val glyph = BarIcons.pullRequest(pullRequestLook.icon)
+        BarAction.Text(
+            id = "pull_request",
+            label = pullRequestNumberLabel(pullRequest, pullRequestLook),
+            compactIcon = glyph,
+            leadingIcon = glyph,
+            iconTint = pullRequestToneColor(pullRequestLook.iconTone),
+            badgeTint = pullRequestLook.dotTone?.let { pullRequestToneColor(it) },
+            // The native bar draws no dot: the summary says the state and checks in words.
+            accessibilityLabel = pullRequestSummary(pullRequest, pullRequestLook),
+            onClick = actions.onOpenPullRequest,
+        )
+    } else {
+        null
     }
 
     val actions = buildList {
+        pullRequestChip?.let(::add)
         if (showTempChatToggle) {
             add(
                 BarAction.Toggle(
@@ -157,7 +182,7 @@ internal fun rememberChatTopBarSpec(
 }
 
 @Composable
-private fun overflowMenuItem(item: ChatOverflowItem, uiState: ChatUiState, onClick: () -> Unit): BarMenuItem? {
+private fun overflowMenuItem(item: ChatOverflowItem, uiState: ChatUiState, openApps: Int, onClick: () -> Unit): BarMenuItem? {
     fun entry(
         label: String,
         icon: BarIcon,
@@ -168,6 +193,7 @@ private fun overflowMenuItem(item: ChatOverflowItem, uiState: ChatUiState, onCli
     ) = BarMenuItem(item.name, label, icon, onClick, checked = checked, destructive = destructive, enabled = enabled, subtitle = subtitle)
 
     return when (item) {
+        ChatOverflowItem.OPEN_APPS -> entry(stringResource(Res.string.mcp_app_open_apps, openApps), BarIcons.Apps)
         ChatOverflowItem.SEARCH -> entry(stringResource(Res.string.action_search), BarIcons.Search)
         ChatOverflowItem.SHOW_ALL_MEDIA -> entry(stringResource(Res.string.action_show_all_media), BarIcons.Media)
         ChatOverflowItem.LOAD_PRESET -> entry(stringResource(Res.string.load_preset), BarIcons.LoadPreset)
@@ -192,7 +218,7 @@ private fun overflowMenuItem(item: ChatOverflowItem, uiState: ChatUiState, onCli
         ChatOverflowItem.COMPACT -> entry(stringResource(Res.string.compact_nudge_menu), BarIcons.Compact)
         // The native menu draws no CI dot: the subtitle says the state and checks in words.
         ChatOverflowItem.PULL_REQUEST -> uiState.pullRequest.pullRequest?.let { pr ->
-            val presentation = remember(pr) { presentPullRequest(pr) }
+            val presentation = uiState.pullRequest.presentation ?: return null
             entry(
                 pullRequestLabel(pr, presentation),
                 if (presentation.icon == PullRequestIcon.MERGED) BarIcons.PullRequestMerged else BarIcons.PullRequest,

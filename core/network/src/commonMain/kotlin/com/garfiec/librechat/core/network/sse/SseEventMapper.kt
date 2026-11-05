@@ -21,6 +21,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -442,6 +443,7 @@ class SseEventMapper(private val json: Json) {
             // handler, so this never reached the wire before.
             "on_run_step_closed" -> mapRunStepClosed(data, agentId, groupId)
             "on_sandbox_starting" -> mapSandboxStarting(data)
+            "on_ptc_tool_call" -> mapPtcToolCall(data)
             "on_chat_model_end" -> null
             "on_agent_update" -> null
             "on_summarize_start" -> null // Lifecycle only; no useful payload to surface
@@ -698,17 +700,9 @@ class SseEventMapper(private val json: Json) {
             // whole copy. A JSON null or a missing key keeps the start's input.
             input = toolCall["args"]?.toStringValue(),
             inputValidationError = (toolCall["inputValidationError"] as? JsonPrimitive)?.booleanOrNull == true,
+            executor = (toolCall["executor"] as? JsonPrimitive)?.takeIf { it.isString }?.content,
             agentId = agentId,
             groupId = groupId,
-        )
-    }
-
-    /** Maps `on_sandbox_starting`: `{tool_call_id, runId}`, emitted per code-session tool call. */
-    private fun mapSandboxStarting(data: JsonObject): StreamEvent? {
-        val toolCallId = (data["tool_call_id"] as? JsonPrimitive)?.contentOrNull ?: return null
-        return StreamEvent.SandboxStarting(
-            toolCallId = toolCallId,
-            runId = (data["runId"] as? JsonPrimitive)?.contentOrNull,
         )
     }
 
@@ -947,4 +941,34 @@ class SseEventMapper(private val json: Json) {
         const val GENERATION_RECONCILE_MESSAGE =
             "Generation state changed; reconnect to load the saved response."
     }
+}
+
+/**
+ * Maps `on_ptc_tool_call` (upstream `PtcToolCallEvent`): one inner call of a programmatic
+ * tool-calling program. Dropped without the card's id or the call's own id, which the settle
+ * event needs to find its row.
+ */
+private fun mapPtcToolCall(data: JsonObject): StreamEvent? {
+    fun text(key: String) = (data[key] as? JsonPrimitive)?.takeIf { it.isString }?.content
+    val toolCallId = text("tool_call_id")?.takeIf { it.isNotEmpty() } ?: return null
+    val callId = text("call_id")?.takeIf { it.isNotEmpty() } ?: return null
+    val duration = (data["durationMs"] as? JsonPrimitive)?.takeIf { !it.isString }
+    return StreamEvent.PtcToolCall(
+        toolCallId = toolCallId,
+        callId = callId,
+        name = text("name").orEmpty(),
+        status = text("status") ?: return null,
+        args = text("args")?.takeIf { it.isNotEmpty() },
+        error = text("error")?.takeIf { it.isNotEmpty() },
+        durationMs = duration?.longOrNull ?: duration?.doubleOrNull?.toLong(),
+    )
+}
+
+/** Maps `on_sandbox_starting`: `{tool_call_id, runId}`, emitted per code-session tool call. */
+private fun mapSandboxStarting(data: JsonObject): StreamEvent? {
+    val toolCallId = (data["tool_call_id"] as? JsonPrimitive)?.contentOrNull ?: return null
+    return StreamEvent.SandboxStarting(
+        toolCallId = toolCallId,
+        runId = (data["runId"] as? JsonPrimitive)?.contentOrNull,
+    )
 }

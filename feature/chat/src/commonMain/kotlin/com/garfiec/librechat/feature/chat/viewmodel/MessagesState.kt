@@ -13,6 +13,7 @@ import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.AttachedRun
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.PendingUsage
+import com.garfiec.librechat.feature.chat.util.PtcTrace
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 
 enum class ChatScreenState { LANDING, LOADING, ACTIVE }
@@ -99,6 +100,14 @@ data class MessagesState(
      * list, and ids are unique across both. Cleared with it everywhere.
      */
     val sandboxStartingToolCallIds: Set<String> = emptySet(),
+    /**
+     * Live traces of the tool calls programmatic tool-calling programs make from inside the
+     * sandbox (`on_ptc_tool_call`), keyed by the code card's tool_call id. Never saved on the
+     * message, so unlike [activeToolCalls] they outlive the stream: the saved card reads them too,
+     * until the next turn starts (which is also what keeps a provider's reused `call_0` from
+     * showing an earlier program's rows under a later card).
+     */
+    val ptcTraces: Map<String, PtcTrace> = emptyMap(),
     /** Attachments received during SSE streaming (e.g., tool-generated images). Cleared when
      *  streaming ends. */
     val streamingAttachments: List<Attachment> = emptyList(),
@@ -231,6 +240,8 @@ data class ActiveToolCall(
     val durationMs: Long? = null,
     /** The server rejected the call's arguments against the tool's schema, so it never ran. */
     val inputValidationError: Boolean = false,
+    /** `attached_workspace` when the completion says the call ran on the user's machine. */
+    val executor: String? = null,
     /**
      * The run is waiting on an MCP sign-in (`on_run_step_delta` with `delta.auth`): the provider's
      * authorization URL. The card offers Sign in while the call is not complete.

@@ -118,9 +118,13 @@ private fun localizedNotice(parsed: ChatNotice.Parsed): String {
         ChatNotice.SKILLS_REMOVED_FROM_QUEUED -> Res.string.notice_skills_removed_from_queued
         ChatNotice.TOOL_DECISION_NOT_PERMITTED -> Res.string.notice_tool_decision_not_permitted
         ChatNotice.FORK_FAILED -> Res.string.notice_fork_failed
+        ChatNotice.RUN_CODE_FAILED -> Res.string.notice_run_code_failed
         ChatNotice.FORK_RATE_LIMITED -> Res.string.notice_fork_rate_limited
         ChatNotice.BRANCH_WITHOUT_FILES_UNSUPPORTED -> Res.string.notice_branch_without_files_unsupported
         ChatNotice.CODE_WORKSPACE_SENT_WITHOUT -> Res.string.code_workspace_sent_without
+        ChatNotice.CODE_WORKSPACE_MOVE_STALE -> Res.string.code_workspace_move_stale
+        ChatNotice.CODE_WORKSPACE_MOVE_BUSY -> Res.string.code_workspace_move_busy
+        ChatNotice.CODE_WORKSPACE_MOVE_FAILED -> Res.string.code_workspace_move_error
         ChatNotice.COPY_TOOL_CONTENT_FAILED -> Res.string.notice_copy_tool_content_failed
         ChatNotice.QUEUE_WITHDRAW_REFUSED -> Res.string.notice_queue_withdraw_refused
         ChatNotice.QUEUE_WITHDRAW_BUSY -> Res.string.notice_queue_withdraw_busy

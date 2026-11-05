@@ -24,6 +24,9 @@ interface UserRepository {
 
     suspend fun verifyEmail(token: String): Result<Unit>
     suspend fun resendVerification(email: String): Result<Unit>
+
+    /** The default stateful workspace scope new agents get (Settings › Code execution). */
+    suspend fun setStatefulCodeEnvironment(scope: String): Result<Unit>
     suspend fun getTerms(): Result<TermsResponse>
     suspend fun acceptTerms(): Result<TermsAcceptResponse>
 }

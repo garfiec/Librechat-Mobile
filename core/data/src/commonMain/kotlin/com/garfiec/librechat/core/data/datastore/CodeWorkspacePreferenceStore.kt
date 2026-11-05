@@ -52,6 +52,30 @@ class CodeWorkspacePreferenceStore(
         }
     }
 
+    /**
+     * The code approval mode last picked on this device, which a chat that carries none opens on
+     * (web keeps it per browser). A preference, not a grant: the picker still gates it on policy.
+     */
+    suspend fun lastApprovalMode(): String? {
+        val accountId = activeAccountProvider.currentAccountId()?.value ?: return null
+        return bestEffortCache({
+            Logger.w(it) { "Failed to read the last code approval mode" }
+            null
+        }) {
+            dataStore.data.first()[accountScopedKey(accountId, APPROVAL_MODE)]
+        }
+    }
+
+    suspend fun rememberApprovalMode(mode: String) {
+        val accountId = activeAccountProvider.currentAccountId()?.value ?: return
+        val key = accountScopedKey(accountId, APPROVAL_MODE)
+        withContext(NonCancellable) {
+            bestEffortCache({ Logger.w(it) { "Failed to remember the code approval mode" } }) {
+                dataStore.edit { prefs -> prefs[key] = mode }
+            }
+        }
+    }
+
     private fun decode(raw: String?): List<Entry> =
         raw?.let { runCatching { json.decodeFromString<List<Entry>>(it) }.getOrNull() } ?: emptyList()
 
@@ -60,6 +84,7 @@ class CodeWorkspacePreferenceStore(
 
     internal companion object {
         const val BASE = "code_workspace_preferences"
+        const val APPROVAL_MODE = "code_approval_mode"
         const val MAX_ENTRIES = 100
         val json = Json { ignoreUnknownKeys = true }
 

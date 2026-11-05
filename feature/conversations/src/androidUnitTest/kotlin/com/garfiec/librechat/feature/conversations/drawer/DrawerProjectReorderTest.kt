@@ -66,7 +66,10 @@ class DrawerProjectReorderTest {
             pins = mockk<DrawerPinsStore> { every { pinned } returns MutableStateFlow(emptyList()) },
         ),
         chatRepository = mockk(relaxed = true),
-        pullRequestRepository = mockk<PullRequestRepository> { every { entries } returns flowOf(emptyMap()) },
+        pullRequestRepository = mockk<PullRequestRepository> {
+            every { entries } returns flowOf(emptyMap())
+            every { revision } returns MutableStateFlow(0L)
+        },
         search = mockk(relaxed = true),
         connectivityObserver = mockk<ConnectivityObserver> { every { isConnected } returns flowOf(true) },
         savedStateHandle = SavedStateHandle(),

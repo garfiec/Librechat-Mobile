@@ -1,6 +1,5 @@
 package com.garfiec.librechat.feature.conversations.components
 
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Bookmark
@@ -26,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.DpOffset
-import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.components.MenuDragSelection
 import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
@@ -43,7 +41,6 @@ enum class ReadStateAction { MarkUnread, MarkRead }
 
 // Rounded to match the app's other surfaces (dialogs/sheets) rather than the menu default's
 // near-square corners.
-private val MenuShape = RoundedCornerShape(16.dp)
 
 /**
  * Anchored dropdown variant of [ConversationActions]. Same action set, but presented as a
@@ -92,7 +89,6 @@ fun ConversationActionsMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
         offset = offset,
-        shape = MenuShape,
         // A step above the drawer's surfaceContainerLow so the menu reads as a distinct surface
         // floating over it instead of blending into the panel.
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,

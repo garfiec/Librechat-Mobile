@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.data.datastore.AccountRoster
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.auth.RequestEmailChangeRequest
 import com.garfiec.librechat.core.model.request.ResendVerificationRequest
+import com.garfiec.librechat.core.model.request.UserPreferencesRequest
 import com.garfiec.librechat.core.model.request.VerifyEmailRequest
 import com.garfiec.librechat.core.model.response.TermsAcceptResponse
 import com.garfiec.librechat.core.model.response.TermsResponse
@@ -56,6 +57,10 @@ class UserRepositoryImpl(
 
     override suspend fun getTerms(): Result<TermsResponse> = safeApiCall {
         userApi.getTerms()
+    }
+
+    override suspend fun setStatefulCodeEnvironment(scope: String): Result<Unit> = safeApiCall {
+        userApi.updatePreferences(UserPreferencesRequest(statefulCodeEnvironment = scope))
     }
 
     override suspend fun acceptTerms(): Result<TermsAcceptResponse> = safeApiCall {

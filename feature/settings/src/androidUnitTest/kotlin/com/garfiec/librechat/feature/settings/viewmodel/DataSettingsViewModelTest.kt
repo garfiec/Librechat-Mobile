@@ -74,6 +74,7 @@ class DataSettingsViewModelTest {
         // uiState combines these, so a relaxed (never-emitting) stub would stall it.
         every { configRepository.detectedBackendVersion } returns MutableStateFlow(null)
         every { configRepository.detectedBackend } returns MutableStateFlow(null)
+        every { configRepository.endpointConfigs } returns MutableStateFlow(emptyMap())
     }
 
     @After

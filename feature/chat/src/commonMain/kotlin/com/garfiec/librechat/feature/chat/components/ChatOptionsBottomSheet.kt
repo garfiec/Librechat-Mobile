@@ -77,6 +77,8 @@ data class ChatToolsPageParams(
     val onTakePhoto: () -> Unit,
     val onPickPhotos: () -> Unit,
     val onAttachFromServer: () -> Unit,
+    /** "Upload to Code Environment" (legacy upload UX); null hides it. */
+    val onAttachToCode: (() -> Unit)? = null,
     val selectedModelDisplay: String?,
     /** Both models while comparing; the Model row then names A and B. */
     val comparisonModels: ComparisonModelLabels? = null,
@@ -253,6 +255,7 @@ fun ChatOptionsBottomSheet(
                         onTakePhoto = tools.onTakePhoto,
                         onPickPhotos = tools.onPickPhotos,
                         onAttachFromServer = tools.onAttachFromServer,
+                        onAttachToCode = tools.onAttachToCode,
                         onOpenModelParameters = { goTo(ChatOptionsPage.ModelParameters) },
                         onOpenModelSelector = { goTo(ChatOptionsPage.ModelSelector) },
                         selectedModelDisplay = tools.selectedModelDisplay,

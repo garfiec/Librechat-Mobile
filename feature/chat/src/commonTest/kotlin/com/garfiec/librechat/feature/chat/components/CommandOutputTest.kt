@@ -75,4 +75,15 @@ class CommandOutputTest {
         val sandbox = parseCodeExecution(AgentToolCall(name = "bash_tool", output = output))!!
         assertNull(sandbox.command)
     }
+
+    @Test
+    fun the_live_card_reads_the_trailer_from_the_completions_executor() {
+        val output = "stdout:\nslow\n[exit code: 124][timed out]\nCommand reached timeoutMs: 30000"
+        val parsed = parseCodeExecution("bash_tool", """{"command":"make build"}""", output)!!
+        val live = parsed.withAttachedCommand(AgentToolCall.EXECUTOR_ATTACHED_WORKSPACE, output)
+        assertEquals(true, live.command?.timedOut)
+        assertEquals("[exit code: 124][timed out]\nCommand reached timeoutMs: 30000", live.command?.trailer)
+        assertEquals("stdout:\nslow", live.output)
+        assertNull(parsed.withAttachedCommand(null, output).command)
+    }
 }

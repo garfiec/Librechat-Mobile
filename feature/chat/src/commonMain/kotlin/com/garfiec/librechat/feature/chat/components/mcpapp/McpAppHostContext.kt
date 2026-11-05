@@ -4,6 +4,7 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -30,13 +31,15 @@ internal fun hostStyleVariables(scheme: ColorScheme): Map<String, Color> = linke
 )
 
 /**
- * The `hostContext` an App receives on initialize and on each change. The panel is full screen,
- * so the App is told `fullscreen` and that it is the only mode, with the panel's size.
+ * The `hostContext` an App receives on initialize and on each change, for where it is drawn now:
+ * `inline` in the thread (a width and the most height it may take, as web sends) or `fullscreen` in
+ * the panel (the panel's size). Both modes are offered; the App may ask to switch.
  */
 internal fun buildHostContext(
     dark: Boolean,
     locale: String,
     timeZone: String,
+    displayMode: String,
     widthDp: Int,
     heightDp: Int,
     styles: Map<String, Color>,
@@ -45,11 +48,17 @@ internal fun buildHostContext(
     put("platform", "mobile")
     put("locale", locale)
     put("timeZone", timeZone)
-    put("displayMode", McpAppHost.DISPLAY_MODE)
-    put("availableDisplayModes", buildJsonArray { add(kotlinx.serialization.json.JsonPrimitive(McpAppHost.DISPLAY_MODE)) })
+    put("displayMode", displayMode)
+    put(
+        "availableDisplayModes",
+        buildJsonArray {
+            add(JsonPrimitive(McpAppHost.DISPLAY_MODE_INLINE))
+            add(JsonPrimitive(McpAppHost.DISPLAY_MODE_FULLSCREEN))
+        },
+    )
     putJsonObject("containerDimensions") {
         put("width", widthDp)
-        put("height", heightDp)
+        put(if (displayMode == McpAppHost.DISPLAY_MODE_INLINE) "maxHeight" else "height", heightDp)
     }
     putJsonObject("deviceCapabilities") {
         put("touch", true)

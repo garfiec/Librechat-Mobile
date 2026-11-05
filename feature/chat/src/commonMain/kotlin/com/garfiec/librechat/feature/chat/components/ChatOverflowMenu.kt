@@ -6,12 +6,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Compare
@@ -62,6 +62,7 @@ import com.garfiec.librechat.feature.chat.resources.compact_nudge_menu
 import com.garfiec.librechat.feature.chat.resources.compare_models
 import com.garfiec.librechat.feature.chat.resources.delete
 import com.garfiec.librechat.feature.chat.resources.load_preset
+import com.garfiec.librechat.feature.chat.resources.mcp_app_open_apps
 import com.garfiec.librechat.feature.chat.resources.prompts_library
 import com.garfiec.librechat.feature.chat.resources.save_as_preset
 import com.garfiec.librechat.feature.chat.resources.trace_open
@@ -92,11 +93,12 @@ internal fun ChatOverflowMenu(
     canToggleComparison: Boolean = true,
     /** The chat's pull request, for its item's label, glyph and state line. */
     pullRequest: ConversationPullRequest? = null,
+    /** How many MCP Apps run minimized, for "Open apps (n)". */
+    openApps: Int = 0,
 ) {
     AdaptiveDropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(16.dp),
         offset = DpOffset(x = 0.dp, y = 8.dp),
         dragSelection = dragSelection,
     ) {
@@ -112,6 +114,8 @@ internal fun ChatOverflowMenu(
                 }
                 val dragTarget = Modifier.menuDragTarget(dragSelection, select)
                 when (item) {
+                    ChatOverflowItem.OPEN_APPS ->
+                        OverflowItem(stringResource(Res.string.mcp_app_open_apps, openApps), Icons.Outlined.Apps, select, dragTarget)
                     ChatOverflowItem.SEARCH ->
                         OverflowItem(stringResource(Res.string.action_search), Icons.Default.Search, select, dragTarget)
                     ChatOverflowItem.SHOW_ALL_MEDIA ->

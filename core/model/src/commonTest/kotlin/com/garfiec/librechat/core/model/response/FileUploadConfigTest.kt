@@ -31,6 +31,27 @@ class FileUploadConfigTest {
     }
 
     @Test
+    fun legacyUploadUxIsOffUnlessSet() {
+        assertEquals(false, decode("{}").resolveEndpointFileConfig("agents").legacyFileUploadUX)
+    }
+
+    @Test
+    fun legacyUploadUxInheritsGlobalThenDefaultAndAnEntryOverrides() {
+        val global = decode("""{"legacyFileUploadUX":true}""")
+        assertEquals(true, global.resolveEndpointFileConfig("agents").legacyFileUploadUX)
+        assertEquals(true, global.resolveEndpointFileConfig("openAI").legacyFileUploadUX)
+
+        val viaDefault = decode("""{"endpoints":{"default":{"legacyFileUploadUX":true}}}""")
+        assertEquals(true, viaDefault.resolveEndpointFileConfig("anthropic").legacyFileUploadUX)
+
+        val overridden = decode(
+            """{"legacyFileUploadUX":true,"endpoints":{"agents":{"legacyFileUploadUX":false}}}""",
+        )
+        assertEquals(false, overridden.resolveEndpointFileConfig("agents").legacyFileUploadUX)
+        assertEquals(true, overridden.resolveEndpointFileConfig("google").legacyFileUploadUX)
+    }
+
+    @Test
     fun decodesFractionalMegabytes() {
         // A Long field would reject 0.5 and fail the whole response.
         val config = decode("""{"endpoints":{"default":{"fileSizeLimit":0.5}}}""")
@@ -199,5 +220,33 @@ class FileUploadConfigTest {
 
     private companion object {
         const val MB = 1024L * 1024L
+    }
+
+    @Test
+    fun clientResizeFollowsTheUserUnlessTheAdminSetEnabled() {
+        val unset = decode("""{"fileLimit": 5}""")
+        assertEquals(ImageResizeLimits(1900, 1900, 0.92), unset.clientImageResize(userPreference = true).limits)
+        assertNull(unset.clientImageResize(userPreference = false).limits)
+
+        val forcedOn =
+            decode("""{"clientImageResize": {"enabled": true, "maxWidth": 1024, "maxHeight": 768, "quality": 0.8}}""")
+        val on = forcedOn.clientImageResize(userPreference = false)
+        assertEquals(true, on.enforced)
+        assertEquals(ImageResizeLimits(1024, 768, 0.8), on.limits)
+
+        val forcedOff = decode("""{"clientImageResize": {"enabled": false}}""")
+        assertNull(forcedOff.clientImageResize(userPreference = true).limits)
+        assertEquals(true, forcedOff.clientImageResize(userPreference = true).enforced)
+
+        // Sizes alone don't take the choice from the user.
+        val sized = decode("""{"clientImageResize": {"maxWidth": 800}}""")
+        assertEquals(false, sized.clientImageResize(userPreference = true).enforced)
+        assertEquals(ImageResizeLimits(800, 1900, 0.92), sized.clientImageResize(userPreference = true).limits)
+    }
+
+    @Test
+    fun clientResizeIsOffUntilTheConfigIsKnown() {
+        val none: FileUploadConfig? = null
+        assertNull(none.clientImageResize(userPreference = true).limits)
     }
 }

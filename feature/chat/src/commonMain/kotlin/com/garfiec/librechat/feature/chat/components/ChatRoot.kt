@@ -27,6 +27,8 @@ import com.garfiec.librechat.core.ui.resources.open_in
 import com.garfiec.librechat.feature.chat.components.artifact.LocalInlineArtifactPrefs
 import com.garfiec.librechat.feature.chat.components.artifact.LocalMermaidRenderCache
 import com.garfiec.librechat.feature.chat.components.artifact.MermaidRenderCache
+import com.garfiec.librechat.feature.chat.components.mcpapp.LegacyUiResources
+import com.garfiec.librechat.feature.chat.components.mcpapp.LocalLegacyUiResources
 import com.garfiec.librechat.feature.chat.components.mcpapp.LocalMcpApps
 import com.garfiec.librechat.feature.chat.components.mcpapp.McpApps
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -35,6 +37,7 @@ import com.garfiec.librechat.feature.chat.resources.cd_close
 import com.garfiec.librechat.feature.chat.resources.cd_image
 import com.garfiec.librechat.feature.chat.resources.cd_save_to_device
 import com.garfiec.librechat.feature.chat.resources.cd_share_image
+import com.garfiec.librechat.feature.chat.util.PtcTrace
 import com.garfiec.librechat.feature.chat.viewmodel.SiteIconsState
 import com.garfiec.librechat.feature.chat.viewmodel.SubagentTrace
 import org.jetbrains.compose.resources.stringResource
@@ -51,6 +54,8 @@ fun ChatRoot(
     mermaidRenderCache: MermaidRenderCache,
     parsedMarkdownCache: ParsedMarkdownCache,
     subagentProgress: Map<String, SubagentTrace>,
+    /** Backs [LocalPtcTraces]. Required, so neither screen can drop the live code-card trace. */
+    ptcTraces: Map<String, PtcTrace>,
     /** Deferred-preview results by `file_id`; see [LocalPreviewOverrides]. */
     previewOverrides: Map<String, FilePreviewResponse>,
     /** The conversation the child-thread viewer reads from. Null on the landing screen. */
@@ -87,8 +92,15 @@ fun ChatRoot(
      * viewer. Required, not defaulted, so a screen cannot quietly hide every App row.
      */
     mcpApps: McpApps?,
+    /**
+     * Backs [LocalLegacyUiResources]: what reply `\ui{…}` markers draw. Null where nothing can (the
+     * shared viewer, whose config never carries the policy): the markers are stripped all the same.
+     */
+    legacyUiResources: LegacyUiResources?,
     /** Required, not defaulted, so a screen cannot quietly leave the setting unread again (#586). */
     thinkingOpenByDefault: Boolean,
+    /** Backs [LocalCollapseLongUserMessages]. Required for the same reason as [thinkingOpenByDefault]. */
+    collapseLongUserMessages: Boolean,
     /** Backs [LocalToolContent]: fetches previewed tool calls in full. Null where nothing is previewed. */
     toolContent: ToolContentHost? = null,
     content: @Composable () -> Unit,
@@ -143,6 +155,7 @@ fun ChatRoot(
         LocalMermaidRenderCache provides mermaidRenderCache,
         LocalParsedMarkdownCache provides parsedMarkdownCache,
         LocalSubagentProgress provides subagentProgress,
+        LocalPtcTraces provides ptcTraces,
         LocalToolContent provides toolContent,
         LocalPreviewOverrides provides previewOverrides,
         LocalExpansionStates provides rememberExpansionStates(),
@@ -160,7 +173,9 @@ fun ChatRoot(
         LocalOpenMemories provides onOpenMemories,
         LocalMcpSignIn provides mcpSignIn,
         LocalMcpApps provides mcpApps,
+        LocalLegacyUiResources provides legacyUiResources,
         LocalThinkingOpenByDefault provides thinkingOpenByDefault,
+        LocalCollapseLongUserMessages provides collapseLongUserMessages,
     ) {
         PdfOverlayHost(onDownload = onDownloadAttachment) {
             // Remembered outside the viewer so the save/share coroutine scope (and the permission

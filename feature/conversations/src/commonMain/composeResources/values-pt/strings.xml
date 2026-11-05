@@ -315,6 +315,7 @@
     <string name="drawer_filter_has_attachments">Com anexos</string>
     <string name="drawer_filter_shared_only">Somente compartilhados</string>
     <string name="drawer_filter_bookmarks">Marcadores</string>
+    <string name="drawer_filter_any_bookmark">Qualquer marcador</string>
     <string name="drawer_filter_reset">Redefinir</string>
     <string name="drawer_filter_apply">Aplicar</string>
     <string name="drawer_filter_offline">Você está offline. Os filtros precisam do servidor e serão aplicados quando você voltar a ficar online.</string>

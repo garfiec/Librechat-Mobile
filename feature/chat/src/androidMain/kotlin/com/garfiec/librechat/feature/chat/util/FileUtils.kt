@@ -3,13 +3,18 @@ package com.garfiec.librechat.feature.chat.util
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.media.detectImageMimeType
 import com.garfiec.librechat.core.common.media.imageExtensionForMimeType
+import com.garfiec.librechat.core.model.response.ImageResizeLimits
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.IOException
 
 /**
  * Resolves a human-readable filename from a content URI using the ContentResolver.
@@ -137,23 +142,8 @@ private const val MAX_IMAGE_DIMENSION = 2048
 private const val MIN_IMAGE_DIMENSION = 512
 
 /**
- * Computes the power-of-two [BitmapFactory.Options.inSampleSize] that keeps the decoded image's
- * longest edge at or below [maxDimension]. Returns 1 (no downsampling) when the source already
- * fits or its dimensions are unknown. BitmapFactory only honors power-of-two sample sizes, so
- * the result is always a power of two.
- */
-internal fun computeInSampleSize(srcWidth: Int, srcHeight: Int, maxDimension: Int): Int {
-    if (srcWidth <= 0 || srcHeight <= 0 || maxDimension <= 0) return 1
-    var sampleSize = 1
-    while (srcWidth / sampleSize > maxDimension || srcHeight / sampleSize > maxDimension) {
-        sampleSize *= 2
-    }
-    return sampleSize
-}
-
-/**
- * Prepares an image for upload: re-encodes it to PNG (unless it is already a PNG within the
- * dimension budget) and reports the bytes, MIME type, and dimensions to send.
+ * Prepares an image for upload: re-encodes it to PNG (unless it is already a PNG that needs no
+ * change) and reports the bytes, MIME type, and dimensions to send.
  *
  * **Why re-encode to PNG at all.** The LibreChat server has a bug in processAgentFileUpload: it
  * converts uploaded images to its configured imageOutputType (default: PNG) using sharp, but stores
@@ -164,15 +154,20 @@ internal fun computeInSampleSize(srcWidth: Int, srcHeight: Int, maxDimension: In
  * skips conversion when the file extension matches its imageOutputType, so we always send PNG bytes
  * with a `.png` extension and the server leaves them untouched.
  *
- * **Sizing.** An image that is already PNG and already within [maxEncodedBytes] is uploaded
- * untouched at full resolution — no dimension cap — since it needs no re-encode and full detail is
- * more useful to the model (this matches the web client's default). Downsampling applies only when
- * the pixels must be touched anyway: a lossless PNG of a JPEG photo would inflate a 4-12 MB photo to
- * tens of MB, so a re-encoded bitmap is downsampled to [MAX_IMAGE_DIMENSION] on its longest edge
- * before encoding (this also bounds peak decode memory). When [maxEncodedBytes] is given and the PNG
- * still exceeds it, the image is downsampled further (halving each pass) until it fits or the longest
- * edge would drop below [MIN_IMAGE_DIMENSION] — so a detailed photo lands under the server's limit at
- * production time instead of being rejected after the fact. If even the floor doesn't fit, the
+ * **Orientation.** A camera JPEG is usually stored sideways with an EXIF orientation tag, which a
+ * re-encode drops; the pixels are rotated upright before encoding, as a browser decodes them.
+ *
+ * **Client resize ([resize], `fileConfig.clientImageResize`).** When on, a JPEG, PNG or WebP larger
+ * than the box is scaled down to fit it, keeping its aspect ratio and never scaling up (upstream
+ * `calculateDimensions`). Other formats are left to the rules below, as web leaves them. Web keeps
+ * the source format and applies `quality`; this pipeline always writes lossless PNG (above), so
+ * `quality` has no effect here.
+ *
+ * **Sizing.** An image that is already PNG, within [maxEncodedBytes] and within the resize box is
+ * uploaded untouched at full resolution. Otherwise the re-encoded bitmap is capped at
+ * [MAX_IMAGE_DIMENSION] on its longest edge (a lossless PNG of a 12 MP photo would be tens of MB),
+ * and, when [maxEncodedBytes] is given and the PNG still exceeds it, halved each pass until it fits
+ * or the longest edge would drop below [MIN_IMAGE_DIMENSION]. If even the floor doesn't fit, the
  * smallest result is returned and the caller's size pre-check rejects it.
  *
  * Returns null only when the bytes cannot be decoded as an image at all (caller should upload the
@@ -182,6 +177,7 @@ internal fun processImageForUpload(
     bytes: ByteArray,
     mimeType: String,
     maxEncodedBytes: Long? = null,
+    resize: ImageResizeLimits? = null,
 ): ProcessedImage? {
     return try {
         // Read dimensions first without allocating the full bitmap so we can size the decode.
@@ -192,16 +188,22 @@ internal fun processImageForUpload(
         if (srcWidth <= 0 || srcHeight <= 0) {
             null // Not a decodable image — caller uploads the raw bytes.
         } else {
-            // Already PNG and within the limit → upload untouched at full resolution (no decode, no
-            // dimension cap). Everything else falls through to re-encode/downsample. See the
-            // "Sizing" paragraph in the KDoc above for why fitting PNGs are passed through as-is.
+            val orientation = readExifOrientation(bytes)
+            val swapsAxes = orientation in AXIS_SWAPPING_ORIENTATIONS
+            val uprightWidth = if (swapsAxes) srcHeight else srcWidth
+            val uprightHeight = if (swapsAxes) srcWidth else srcHeight
+            val box = resize?.takeIf { detectMimeTypeFromBytes(bytes) in CLIENT_RESIZABLE_TYPES }
+            val fitted = box?.let { fitWithin(uprightWidth, uprightHeight, it.maxWidth, it.maxHeight) }
+                ?: (uprightWidth to uprightHeight)
+            val needsScale = fitted != (uprightWidth to uprightHeight)
             val alreadyPng = mimeType == "image/png" && detectMimeTypeFromBytes(bytes) == "image/png"
             val fitsLimit = maxEncodedBytes == null || bytes.size <= maxEncodedBytes
-            if (alreadyPng && fitsLimit) {
+            if (alreadyPng && fitsLimit && !needsScale && orientation == ExifInterface.ORIENTATION_NORMAL) {
                 ProcessedImage(bytes, mimeType, srcWidth, srcHeight, reEncoded = false)
             } else {
-                val initialSampleSize = computeInSampleSize(srcWidth, srcHeight, MAX_IMAGE_DIMENSION)
-                encodeToPngUnderLimit(bytes, mimeType, srcWidth, srcHeight, initialSampleSize, maxEncodedBytes)
+                // The resize box, then the PNG cap on the longest edge.
+                val capped = fitWithin(fitted.first, fitted.second, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION)
+                encodeToPngUnderLimit(bytes, mimeType, srcWidth, srcHeight, swapsAxes, orientation, capped, maxEncodedBytes)
             }
         }
     } catch (e: IllegalArgumentException) {
@@ -209,37 +211,77 @@ internal fun processImageForUpload(
         // simply aren't an image come back as a null bitmap instead, handled above.
         Logger.w(e) { "processImageForUpload: failed to process $mimeType, using original bytes" }
         null
+    } catch (e: OutOfMemoryError) {
+        // A large photo's decode plus its scaled copy can exceed a small heap. Losing the re-encode
+        // is better than crashing the app: the original bytes go up as they are.
+        Logger.w(e) { "processImageForUpload: out of memory processing $mimeType, using original bytes" }
+        null
     }
 }
 
 /**
- * Decodes [bytes] at [initialSampleSize] and PNG-encodes it, halving dimensions each pass until the
- * result is within [maxEncodedBytes] (if set) or the longest edge would fall below
- * [MIN_IMAGE_DIMENSION]. Returns the original bytes (unchanged, [reEncoded] = false) if the PNG
- * can't be verified, or null if the bitmap can't be decoded. [srcWidth]/[srcHeight] are the source
- * dimensions used only for the fall-back result.
+ * Upstream `calculateDimensions`: [width] x [height] scaled down to fit [maxWidth] x [maxHeight],
+ * aspect kept, never scaled up, each edge at least 1.
  */
+internal fun fitWithin(width: Int, height: Int, maxWidth: Int, maxHeight: Int): Pair<Int, Int> {
+    if (width <= maxWidth && height <= maxHeight) return width to height
+    val factor = minOf(maxWidth.toDouble() / width, maxHeight.toDouble() / height)
+    return maxOf(1, kotlin.math.round(width * factor).toInt()) to maxOf(1, kotlin.math.round(height * factor).toInt())
+}
+
+/**
+ * Decodes [bytes], turns it upright per [orientation], scales it to [target] (upright pixels) and
+ * PNG-encodes it, halving the target each pass until the result is within [maxEncodedBytes] (if set)
+ * or the longest edge would fall below [MIN_IMAGE_DIMENSION]. Returns the original bytes (unchanged,
+ * [ProcessedImage.reEncoded] = false) if the pixels can't be decoded or the PNG can't be verified.
+ */
+@Suppress("LongParameterList") // one image's facts, read once by the caller
 private fun encodeToPngUnderLimit(
     bytes: ByteArray,
     mimeType: String,
     srcWidth: Int,
     srcHeight: Int,
-    initialSampleSize: Int,
+    swapsAxes: Boolean,
+    orientation: Int,
+    target: Pair<Int, Int>,
     maxEncodedBytes: Long?,
 ): ProcessedImage {
-    var sampleSize = initialSampleSize
+    var (targetWidth, targetHeight) = target
     while (true) {
-        val decodeOptions = BitmapFactory.Options().apply { inSampleSize = sampleSize }
-        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOptions)
+        // Decode no smaller than the target (in stored axes), then scale exactly.
+        val storedLongest = if (swapsAxes) maxOf(targetHeight, targetWidth) else maxOf(targetWidth, targetHeight)
+        val decodeOptions = BitmapFactory.Options().apply {
+            inSampleSize = sampleSizeKeepingAtLeast(srcWidth, srcHeight, storedLongest)
+        }
+        val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOptions)
             // Header decoded (we have valid srcWidth/srcHeight) but the full pixel decode failed —
             // upload the original bytes, but still report the dimensions read from the bounds pass.
             ?: return ProcessedImage(bytes, mimeType, srcWidth, srcHeight, reEncoded = false)
-        val outWidth = bitmap.width
-        val outHeight = bitmap.height
+        val uprightDecodedWidth = if (swapsAxes) decoded.height else decoded.width
+        val uprightDecodedHeight = if (swapsAxes) decoded.width else decoded.height
+        val matrix = Matrix().apply {
+            postScale(targetWidth.toFloat() / uprightDecodedWidth, targetHeight.toFloat() / uprightDecodedHeight)
+        }
+        // Scale in stored axes first (the factors are the same either way), then orient.
+        matrix.applyExifOrientation(orientation)
+        // Each bitmap is released as soon as the next step has what it needs, and on a failure
+        // (an OutOfMemoryError in createBitmap or compress) too, so a retry starts from nothing.
+        val upright = try {
+            Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, matrix, true)
+        } catch (e: OutOfMemoryError) {
+            decoded.recycle()
+            throw e
+        }
+        if (upright !== decoded) decoded.recycle()
+        val outWidth = upright.width
+        val outHeight = upright.height
 
         val outputStream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
-        bitmap.recycle()
+        try {
+            upright.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+        } finally {
+            upright.recycle()
+        }
         val encodedBytes = outputStream.toByteArray()
 
         // Verify the re-encoded bytes are valid PNG; if not, fall back to the original bytes but
@@ -258,12 +300,59 @@ private fun encodeToPngUnderLimit(
         if (underLimit || longestEdge / 2 < MIN_IMAGE_DIMENSION) {
             Logger.d {
                 "encodeToPngUnderLimit: $mimeType -> image/png (${bytes.size} -> ${encodedBytes.size} bytes, " +
-                    "${outWidth}x$outHeight, sampleSize=$sampleSize)"
+                    "${outWidth}x$outHeight)"
             }
             return ProcessedImage(encodedBytes, "image/png", outWidth, outHeight, reEncoded = true)
         }
 
         // Overshot the limit and there's still room to shrink — halve dimensions and retry.
-        sampleSize *= 2
+        targetWidth = maxOf(1, targetWidth / 2)
+        targetHeight = maxOf(1, targetHeight / 2)
     }
 }
+
+/** The largest power-of-two sample size that keeps the decoded longest edge at or above [minLongest]. */
+internal fun sampleSizeKeepingAtLeast(srcWidth: Int, srcHeight: Int, minLongest: Int): Int {
+    val longest = maxOf(srcWidth, srcHeight)
+    if (longest <= 0 || minLongest <= 0) return 1
+    var sampleSize = 1
+    while (longest / (sampleSize * 2) >= minLongest) sampleSize *= 2
+    return sampleSize
+}
+
+private fun readExifOrientation(bytes: ByteArray): Int =
+    try {
+        ExifInterface(ByteArrayInputStream(bytes))
+            .getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+    } catch (e: IOException) {
+        Logger.w(e) { "Could not read EXIF orientation; uploading as decoded" }
+        ExifInterface.ORIENTATION_NORMAL
+    }
+
+private fun Matrix.applyExifOrientation(orientation: Int) {
+    when (orientation) {
+        ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> postScale(-1f, 1f)
+        ExifInterface.ORIENTATION_ROTATE_180 -> postRotate(180f)
+        ExifInterface.ORIENTATION_FLIP_VERTICAL -> postScale(1f, -1f)
+        ExifInterface.ORIENTATION_TRANSPOSE -> {
+            postRotate(90f)
+            postScale(-1f, 1f)
+        }
+        ExifInterface.ORIENTATION_ROTATE_90 -> postRotate(90f)
+        ExifInterface.ORIENTATION_TRANSVERSE -> {
+            postRotate(-90f)
+            postScale(-1f, 1f)
+        }
+        ExifInterface.ORIENTATION_ROTATE_270 -> postRotate(-90f)
+    }
+}
+
+private val AXIS_SWAPPING_ORIENTATIONS = setOf(
+    ExifInterface.ORIENTATION_TRANSPOSE,
+    ExifInterface.ORIENTATION_ROTATE_90,
+    ExifInterface.ORIENTATION_TRANSVERSE,
+    ExifInterface.ORIENTATION_ROTATE_270,
+)
+
+/** MIRRORED from upstream `RESIZE_FORMAT_BY_MIME_TYPE` (`client/src/utils/imageResize.ts`). */
+private val CLIENT_RESIZABLE_TYPES = setOf("image/jpeg", "image/png", "image/webp")

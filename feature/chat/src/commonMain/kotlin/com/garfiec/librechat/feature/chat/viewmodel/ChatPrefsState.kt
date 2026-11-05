@@ -84,6 +84,8 @@ data class ChatPreferences(
     val inlineArtifactPrefs: InlineArtifactPrefs = InlineArtifactPrefs(),
     /** Whether a reply's reasoning block starts expanded (Settings → Chat). Read by [ThinkingContentPart]. */
     val thinkingOpenByDefault: Boolean = false,
+    /** Settings › Chat "Collapse long user messages" (web's `collapseLongUserMessages`). */
+    val collapseLongUserMessages: Boolean = true,
     /**
      * Defaults to [SiteIconsState.OFF], not [SiteIconsState.ASK]: `chatPreferences` starts from
      * this default before DataStore's first emission, and an ASK default would flash the prompt at

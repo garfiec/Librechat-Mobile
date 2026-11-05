@@ -127,6 +127,8 @@ data class Conversation(
     val codeEnvironmentMode: String? = null,
     /** The attached workspaces that decision selected, one per machine. */
     val codeWorkspaces: List<CodeWorkspaceSelection>? = null,
+    /** The code approval mode the chat's last turn ran under (`ask`, `acceptEdits`, `fullAccess`). */
+    val codeApprovalMode: String? = null,
     /**
      * Set on `GET /api/convos` list rows (v0.8.9-rc1) when the replica that listed them projected the
      * code fields: a row with this and neither field is an ordinary chat. Absent = not known.

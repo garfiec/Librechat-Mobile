@@ -67,6 +67,8 @@ private data class AdditionalPreferences(
     val showSiteIcons: Boolean = false,
     val preferLastUsedModel: Boolean = false,
     val webSearchFirst: WebSearchPreference = WebSearchPreference.LIBRECHAT_FIRST,
+    val collapseLongUserMessages: Boolean = true,
+    val clientImageResize: Boolean = true,
 )
 
 /**
@@ -191,6 +193,10 @@ class ChatPreferencesController(
         additional.copy(preferLastUsedModel = preferLastUsed)
     }.combine(preferenceStore.observe(AppPreferences.WebSearchFirst)) { additional, webSearchFirst ->
         additional.copy(webSearchFirst = webSearchFirst)
+    }.combine(preferenceStore.observe(AppPreferences.CollapseLongUserMessages)) { additional, collapse ->
+        additional.copy(collapseLongUserMessages = collapse)
+    }.combine(preferenceStore.observe(AppPreferences.ClientImageResize)) { additional, resize ->
+        additional.copy(clientImageResize = resize)
     }.stateIn(
         scope,
         SharingStarted.Eagerly,
@@ -239,6 +245,8 @@ class ChatPreferencesController(
             showSiteIcons = additional.showSiteIcons,
             preferLastUsedModel = additional.preferLastUsedModel,
             webSearchFirst = additional.webSearchFirst,
+            collapseLongUserMessages = additional.collapseLongUserMessages,
+            clientImageResizePreference = additional.clientImageResize,
         )
     }.stateIn(scope, SharingStarted.Eagerly, ChatSettingsUiState())
 
@@ -286,6 +294,14 @@ class ChatPreferencesController(
 
     fun setShowSiteIcons(show: Boolean) {
         scope.launch { preferenceStore.set(AppPreferences.SiteIcons, show) }
+    }
+
+    fun setClientImageResize(resize: Boolean) {
+        scope.launch { preferenceStore.set(AppPreferences.ClientImageResize, resize) }
+    }
+
+    fun setCollapseLongUserMessages(collapse: Boolean) {
+        scope.launch { preferenceStore.set(AppPreferences.CollapseLongUserMessages, collapse) }
     }
 
     fun setPreferLastUsedModel(prefer: Boolean) {

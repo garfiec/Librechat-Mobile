@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.ui.mcp
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
 import android.net.Uri
 import android.view.ViewGroup
 import android.webkit.CookieManager
@@ -24,9 +25,11 @@ import com.garfiec.librechat.core.ui.web.SSO_ANDROID_USER_AGENT
 internal actual fun McpOAuthWebView(
     launch: McpOAuthLaunch.InApp,
     onOutcome: (McpOAuthOutcome) -> Unit,
+    onLocationChange: (McpOAuthPageLocation) -> Unit,
     modifier: Modifier,
 ) {
     val currentOnOutcome by rememberUpdatedState(onOutcome)
+    val currentOnLocationChange by rememberUpdatedState(onLocationChange)
     val gate = remember(launch) { McpOAuthNavigationGate(launch.serverUrl, launch.authorizationUrl) }
     val origins = remember(launch) { mcpOAuthCookieOrigins(launch.serverUrl, launch.authorizationUrl) }
     val serverHosts = remember(origins) { origins.mapNotNull { Uri.parse(it).host?.lowercase() }.toSet() }
@@ -43,6 +46,8 @@ internal actual fun McpOAuthWebView(
                 settings.userAgentString = SSO_ANDROID_USER_AGENT
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
+                settings.allowContentAccess = false
+                settings.allowFileAccess = false
 
                 // Its own latch: stopLoading() inside a client callback can still let a later
                 // callback for the stopped load arrive.
@@ -53,6 +58,7 @@ internal actual fun McpOAuthWebView(
                     finished = true
                     view.stopLoading()
                     view.loadUrl("about:blank")
+                    clearSignInCookies()
                     currentOnOutcome(outcome)
                 }
 
@@ -65,11 +71,23 @@ internal actual fun McpOAuthWebView(
                     }
 
                     // A server redirect chain is not always offered to shouldOverrideUrlLoading;
-                    // the committed url is.
+                    // the start of the page it lands on is.
+                    override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+                        super.onPageStarted(view, url, favicon)
+                        if (finished || url.startsWith("about:")) return
+                        gate.decide(url)?.let { finish(view, it) }
+                    }
+
+                    // And the committed url, in case neither saw it.
                     override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
                         super.doUpdateVisitedHistory(view, url, isReload)
                         if (finished || url.startsWith("about:")) return
-                        gate.decide(url)?.let { finish(view, it) }
+                        val outcome = gate.decide(url)
+                        if (outcome != null) {
+                            finish(view, outcome)
+                            return
+                        }
+                        mcpOAuthPageLocation(url)?.let { currentOnLocationChange(it) }
                     }
 
                     // A main-frame load that never arrives would otherwise leave a dead error page.
@@ -103,7 +121,9 @@ internal actual fun McpOAuthWebView(
                 // process-global and would otherwise sign the user in as whoever was there last.
                 fun seedFrom(index: Int) {
                     if (index == seeds.size) {
-                        loadUrl(launch.authorizationUrl)
+                        // loadUrl is never offered to shouldOverrideUrlLoading.
+                        val refused = gate.decide(launch.authorizationUrl)
+                        if (refused != null) finish(this, refused) else loadUrl(launch.authorizationUrl)
                         return
                     }
                     val (origin, cookie) = seeds[index]
@@ -115,6 +135,17 @@ internal actual fun McpOAuthWebView(
         onRelease = { webView ->
             webView.stopLoading()
             webView.destroy()
+            clearSignInCookies()
         },
     )
+}
+
+/**
+ * Drops what the sign-in left in the process-wide jar: the seeded `oauth_session` binding and the
+ * provider's own session, which would otherwise outlive the flow. The whole jar, because the
+ * provider's hosts aren't known and nothing else keeps state there: SSO wipes it itself before
+ * signing in, account switching wipes it, and the other WebViews load local content.
+ */
+private fun clearSignInCookies() {
+    CookieManager.getInstance().removeAllCookies { CookieManager.getInstance().flush() }
 }

@@ -179,7 +179,6 @@ private fun BookmarkMenuButton(
         AdaptiveDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            shape = RoundedCornerShape(16.dp),
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             offset = DpOffset(0.dp, 0.dp),
             dragSelection = drag,

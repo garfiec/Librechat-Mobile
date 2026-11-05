@@ -299,6 +299,13 @@ fun CommonChatInputCore(
                 .navigationBarsPadding()
                 .padding(horizontal = 12.dp, vertical = 8.dp),
         ) {
+            // The chat's pull request on a narrow pane: the least urgent row, so it sits furthest
+            // from the text field.
+            PullRequestComposerRow(
+                isEditingQueued = state.isEditingQueued,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+
             // Ghost queue, pinned directly above the composer. No scroll wrapper: the input bar is
             // bottom-anchored so the queue grows upward (the text field stays put), and a nested
             // vertical scroll here would fight the long-press drag-reorder. Self-hides when empty.

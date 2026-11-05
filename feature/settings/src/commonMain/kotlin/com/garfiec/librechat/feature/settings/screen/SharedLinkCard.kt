@@ -166,7 +166,6 @@ private fun SharedLinkMenuButton(
         AdaptiveDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            shape = RoundedCornerShape(16.dp),
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             offset = DpOffset(0.dp, (MenuGapBelowIcon - (MenuButtonSize - MenuIconSize) / 2).coerceAtLeast(0.dp)),
             dragSelection = drag,

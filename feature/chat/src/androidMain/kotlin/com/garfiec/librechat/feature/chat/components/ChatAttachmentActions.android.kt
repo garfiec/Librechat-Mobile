@@ -27,8 +27,18 @@ import java.io.File
 actual fun rememberChatAttachmentActions(
     onFilesSelect: (List<Any>) -> Unit,
     filePickerMimeTypes: List<String>,
+    onCodeFilesSelect: (List<Any>) -> Unit,
 ): ChatAttachmentActions {
     val context = LocalContext.current
+
+    // The code environment takes any file: no MIME narrowing, unlike the provider picker.
+    val codeFilePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments(),
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            onCodeFilesSelect(uris)
+        }
+    }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments(),
@@ -102,6 +112,7 @@ actual fun rememberChatAttachmentActions(
                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
                 )
             },
+            onAttachToCode = { codeFilePickerLauncher.launch(arrayOf(ANY_MIME_TYPE)) },
         )
     }
 }

@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.settings.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore.Decision
@@ -18,6 +19,8 @@ import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.data.datastore.WebSearchPreference
+import com.garfiec.librechat.core.data.repository.FileRepository
+import com.garfiec.librechat.core.model.response.clientImageResize
 import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.SpeechSettingsFactory
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +40,7 @@ class ChatSettingsViewModel(
     preferenceStore: PreferenceStore,
     speechSettingsFactory: SpeechSettingsFactory,
     private val libraryConsent: ArtifactLibraryConsentStore,
+    private val fileRepository: FileRepository,
 ) : ViewModel() {
 
     /** Raw state for everything not driven by DataStore flows. */
@@ -81,6 +85,20 @@ class ChatSettingsViewModel(
         // Also loads the server voices, once the config says the server has TTS.
         speechDelegate.loadSpeechConfig()
         speechDelegate.loadDeviceVoices()
+        loadImageResizePolicy()
+    }
+
+    /** Whether the server's admin decides image resizing (`fileConfig.clientImageResize.enabled`). */
+    private fun loadImageResizePolicy() {
+        viewModelScope.launch {
+            val config = (fileRepository.getFileConfig() as? Result.Success)?.data ?: return@launch
+            val policy = config.clientImageResize(userPreference = true)
+            _uiState.update { it.copy(clientImageResizeAdmin = policy.enabledByAdmin.takeIf { policy.enforced }) }
+        }
+    }
+
+    fun setClientImageResize(resize: Boolean) {
+        prefsController.setClientImageResize(resize)
     }
 
     // ── Chat preferences ───────────────────────────────────────────
@@ -134,6 +152,10 @@ class ChatSettingsViewModel(
 
     fun setShowImageDescriptions(show: Boolean) {
         prefsController.setShowImageDescriptions(show)
+    }
+
+    fun setCollapseLongUserMessages(collapse: Boolean) {
+        prefsController.setCollapseLongUserMessages(collapse)
     }
 
     fun setPreferLastUsedModel(prefer: Boolean) {

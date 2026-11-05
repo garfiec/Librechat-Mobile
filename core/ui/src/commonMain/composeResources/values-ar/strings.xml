@@ -362,6 +362,8 @@
     </plurals>
     <string name="mcp_oauth_sign_in_title">تسجيل الدخول إلى %1$s</string>
     <string name="mcp_oauth_sign_in_close">إغلاق تسجيل الدخول</string>
+    <string name="mcp_oauth_connection_secure">اتصال آمن</string>
+    <string name="mcp_oauth_connection_not_secure">غير آمن</string>
     <string name="pull_request">طلب سحب</string>
     <string name="merge_request">طلب دمج</string>
     <string name="pr_label">PR #%1$d</string>

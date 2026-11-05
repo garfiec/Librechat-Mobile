@@ -50,6 +50,7 @@ class MessageContentPartEditTest {
         repository = MessageRepositoryImpl(
             messagesApi = messagesApi,
             messageDao = messageDao,
+            toolCallPartDao = io.mockk.mockk(relaxed = true),
             activeAccountProvider = InMemoryActiveAccountProvider(AccountState.Resolved(account)),
             roster = roster,
             dispatcher = UnconfinedTestDispatcher(),

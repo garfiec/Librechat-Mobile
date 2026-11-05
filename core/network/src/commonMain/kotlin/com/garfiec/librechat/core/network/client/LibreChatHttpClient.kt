@@ -20,6 +20,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
@@ -29,6 +30,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.util.AttributeKey
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
@@ -335,10 +337,12 @@ internal fun HttpRequestRetryConfig.configureRetryPolicy() {
     // ApiException (retryOnExceptionIf) — so both predicates carry the same method and status gate,
     // whichever path a non-2xx takes.
     retryIf(maxRetries = 2) { request, response ->
-        request.method.isRetrySafe() && response.status.value.isTransientServerError()
+        request.method.isRetrySafe() && NoServerErrorRetry !in request.attributes &&
+            response.status.value.isTransientServerError()
     }
     retryOnExceptionIf(maxRetries = 2) { request, cause ->
         request.method.isRetrySafe() &&
+            (NoServerErrorRetry !in request.attributes || cause !is ApiException) &&
             cause !is kotlinx.coroutines.CancellationException &&
             (cause !is ApiException || cause.statusCode.isTransientServerError()) &&
             // Deterministic until the user edits the credential, so retrying only delays the report.
@@ -349,6 +353,17 @@ internal fun HttpRequestRetryConfig.configureRetryPolicy() {
             cause.failureKind() != FailureKind.Tls
     }
     exponentialDelay()
+}
+
+/**
+ * Marks a request whose caller owns its 5xx backoff, so [configureRetryPolicy] sends it once on a
+ * server error (a transport failure still retries). Set it with [noServerErrorRetry].
+ */
+internal val NoServerErrorRetry = AttributeKey<Unit>("NoServerErrorRetry")
+
+/** See [NoServerErrorRetry]. */
+internal fun HttpRequestBuilder.noServerErrorRetry() {
+    attributes.put(NoServerErrorRetry, Unit)
 }
 
 private val RETRY_SAFE_METHODS = setOf(HttpMethod.Get, HttpMethod.Head, HttpMethod.Options)

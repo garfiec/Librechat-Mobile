@@ -481,3 +481,10 @@ data class UpstreamModelErrorDetail(
     val status: Int?,
     val message: String?,
 )
+
+/**
+ * The [StreamErrorType.CODE_WORKSPACE_UNAVAILABLE] marker for this reason, as a refusal outside the
+ * stream (a workspace move) reports it; read back with [StreamErrorType.codeWorkspaceReasonOfMarker].
+ */
+fun CodeWorkspaceUnavailableReason.streamErrorMarker(): String =
+    StreamErrorType.CODE_WORKSPACE_UNAVAILABLE.marker + StreamErrorType.ARG_SEPARATOR + wire

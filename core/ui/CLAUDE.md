@@ -154,7 +154,8 @@ Rules — follow these when writing or reviewing UI:
    keeps M3's layout, placement and colours — e.g. `AdaptiveDropdownMenu` → `MaterialMenuOverlay`
    (drawn in `GlassSheetHost` like the glass menu, so it can overshoot its bounds; inside a
    dialog/sheet window it falls back to the `MaterialMenuPopup` window), both placed by a port of
-   M3's popup positioning rules.
+   M3's popup positioning rules. Menus round to `AdaptiveMenuShape` (16dp, also
+   `GlassDefaults.MenuShape`) in both styles, not M3's 4dp: callers pass no `shape` for that.
 4. **`isLiquidGlass` is the one public predicate.** `LocalGlassLevel` is internal — only core/ui
    tells the tiers (NATIVE / FULL / SIMULATED / BLUR_ONLY / FLAT) apart, and `glassSurface` /
    `rememberGlassBackdrop` degrade by tier themselves. Never re-derive the flag another way
@@ -171,12 +172,14 @@ Rules — follow these when writing or reviewing UI:
    (null to its body). Callers set none of this.
 7. **Bars are data.** `AdaptiveTopBar(AdaptiveTopBarSpec(...))`, because the iOS 26 renderer is a
    UIKit `UINavigationBar` that can't host composables; Compose-only extras go in `belowBar`.
+   A status label is still data: `BarAction.Text(leadingIcon, iconTint, badgeTint,
+   accessibilityLabel)`. The native bar draws glyph + label as a button item and no dot, so the
+   accessibility label must carry the state.
 8. **Escape hatch, used sparingly.** Truly bespoke chrome (chat composer, chat top bar, drawer /
    sidebar, chat backdrop plumbing) may branch on `isLiquidGlass` directly. If the same branch shows
    up a second time, it belongs in a new `Adaptive*` component.
 
-Known gaps (stay M3 in glass until someone adds a wrapper): `ExposedDropdownMenuBox` menus, `Slider`,
-scrolling tab rows, and the indeterminate `LinearProgressIndicator`. The determinate bar has
+Known gaps (stay M3 in glass until someone adds a wrapper): `Slider`, scrolling tab rows, and the indeterminate `LinearProgressIndicator`. The determinate bar has
 `AdaptiveLinearProgressIndicator`, but raw `LinearProgressIndicator` is not banned yet: the context
 gauge, the context-usage settings pill, file upload progress and the iOS media loader still call it.
 `ForbiddenImport` also misses a fully-qualified call
@@ -248,7 +251,11 @@ the controls bullet below.
   `Adaptive*Chip`s (pills; `AdaptiveChipDefaults.overlayAssistChipColors(tint)` for a chip over scrolling content, tinted in both styles), `AdaptiveSnackbarHost` (a glass capsule toast that samples the
   `AdaptiveScaffold` backdrop), `AdaptiveCircularProgressIndicator` (iOS activity indicator when
   indeterminate) and `AdaptiveLinearProgressIndicator` (determinate only: an iOS capsule progress
-  bar in glass; progress clamped to 0..1, NaN as 0; its raw M3 bar isn't banned yet, see Known gaps). Each mirrors the M3 signature and passes straight through in Material, and detekt
+  bar in glass; progress clamped to 0..1, NaN as 0; its raw M3 bar isn't banned yet, see Known gaps),
+  and `AdaptiveExposedDropdownMenuBox` with its scope's `AdaptiveExposedDropdownMenu` (a field's
+  picker: the M3 box unchanged, the menu still the M3 popup anchored to and sized by the field,
+  rounded to `AdaptiveMenuShape`; in glass it takes `AdaptiveDropdownMenu`'s windowed-fallback look,
+  opaque `surfaceContainerHigh` with a hairline border and shadow, not a portalled glass panel). Each mirrors the M3 signature and passes straight through in Material, and detekt
   bans the raw M3 control. Scrolling tab rows have no glass counterpart and stay M3. Settings
   pages group rows with `adaptiveSection { row(key) { … } }` inside `AdaptiveGroupedPage` (rounded,
   inset cells on a grouped background in both styles); a row's own
@@ -285,10 +292,20 @@ the chat's Sign in action (features can't share it otherwise). It takes an `McpO
   `mcpOAuthCookieOrigins` (the `redirect_uri`'s and the app's server) **before** loading the
   provider URL. Android wipes the jar and chains each `setCookie` callback into the next, loading from
   the last; iOS uses a fresh `nonPersistentDataStore` and awaits every `setCookie` completion. A load
-  issued earlier can reach the callback without its binding.
+  issued earlier can reach the callback without its binding. Android wipes the jar again when the
+  flow ends and when the view is released, so the binding and the provider's session don't outlive
+  it (iOS's store dies with the view).
 - `McpOAuthNavigationGate` (pure, commonTest) cancels the redirect to `/oauth/success` or
-  `/oauth/error` on either server host and ends the flow there.
+  `/oauth/error` on either server host and ends the flow there. It also refuses a main-frame
+  `http://` page (the first load included) unless it is on one of those servers' own origins (scheme, host and port), which the user
+  accepted when adding an HTTP server, or on loopback: the flow ends with
+  `Error("insecure_connection")`. The bar shows the committed page's host with a lock, or a
+  warning over HTTP (`McpOAuthPageLocation`).
 - The User-Agent is `web/EmbeddedBrowserUserAgent.kt`, which SSO uses too.
+- **Second caller: Settings' pull request account connect.** Its callback checks the same two
+  cookies and lands on the same `/oauth/success|error` pages, so it reuses the dialog unchanged
+  (`McpOAuthLaunch.InApp` with the provider name as `serverName`). The MCP names were kept rather
+  than renamed.
 
 ### Date & time (`datetime/`, #445)
 - `ProvideDateTimeFormat` sits once inside `AppLocale` in `LibreChatNavHost`. It sits there rather than at the

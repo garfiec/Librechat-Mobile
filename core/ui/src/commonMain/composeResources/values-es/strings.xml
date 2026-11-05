@@ -344,6 +344,8 @@
     </plurals>
     <string name="mcp_oauth_sign_in_title">Iniciar sesión en %1$s</string>
     <string name="mcp_oauth_sign_in_close">Cerrar inicio de sesión</string>
+    <string name="mcp_oauth_connection_secure">Conexión segura</string>
+    <string name="mcp_oauth_connection_not_secure">No es segura</string>
     <string name="pull_request">Pull request</string>
     <string name="merge_request">Merge request</string>
     <string name="pr_label">PR #%1$d</string>

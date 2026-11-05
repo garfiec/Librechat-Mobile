@@ -107,6 +107,12 @@ data class AgentToolCall(
     val subagentAttachmentCalls: List<SubagentAttachmentCall>? = null,
     /** The message's `updatedAt` when the preview was built. Part of [previewKey], never the key alone. */
     val previewRevision: String? = null,
+    /**
+     * For a saved `subagent` call: who ran it (v0.8.9-rc1, host-resolved). [SubagentIdentity.subagentAgentId]
+     * is what a child's file names as its `agentId`, so it is how a file is matched to the right one of
+     * several subagent calls (upstream `runAgentId`).
+     */
+    val subagentIdentity: SubagentIdentity? = null,
 ) {
     /** True when any of this call's content is a preview rather than the stored value (`hasToolCallPreview`). */
     val isPreview: Boolean
@@ -176,6 +182,13 @@ data class AgentToolCall(
         private const val PREVIEW_KEY_SEPARATOR = "\u0000"
     }
 }
+
+/** Upstream `SubagentIdentity` (`types/runs.ts`): the kind and agent of a saved subagent run. */
+@Serializable
+data class SubagentIdentity(
+    val subagentKind: String? = null,
+    val subagentAgentId: String? = null,
+)
 
 /** A call inside an omitted subagent transcript that attachments were saved under (`SubagentAttachmentCall`). */
 @Serializable

@@ -80,4 +80,39 @@ class DrawerFiltersTest {
         val json = Json.encodeToString(DrawerFilters.serializer(), filters)
         assertEquals(filters, Json.decodeFromString(DrawerFilters.serializer(), json))
     }
+
+    @Test
+    fun pickedBookmarksAreSentAsTheyAreAndWinOverAnyBookmark() {
+        val picked = DrawerFilters(bookmarked = true, tags = listOf("work")).toListFilters(now, berlin, listOf("work", "home"))
+        assertEquals(listOf("work"), picked.tags)
+        assertTrue(DrawerFilters(tags = listOf("work")).isActive)
+    }
+
+    @Test
+    fun pickingABookmarkTurnsAnyBookmarkOffAndAnyBookmarkClearsThePicks() {
+        val picked = DrawerFilters(bookmarked = true).withTagToggled("work")
+        assertEquals(listOf("work"), picked.tags)
+        assertFalse(picked.bookmarked)
+        assertEquals(emptyList(), picked.withTagToggled("work").tags)
+        val any = picked.withAnyBookmark(true)
+        assertTrue(any.bookmarked)
+        assertEquals(emptyList(), any.tags)
+    }
+
+    @Test
+    fun selectableBookmarksSkipEmptyOnesButKeepEverySelectedOne() {
+        val bookmarks =
+            listOf(FilterBookmarkOption("work", 3), FilterBookmarkOption("empty", 0), FilterBookmarkOption("old", 0))
+        assertEquals(
+            listOf(FilterBookmarkOption("work", 3), FilterBookmarkOption("old", 0), FilterBookmarkOption("deleted", 0)),
+            selectableBookmarks(bookmarks, selected = listOf("old", "deleted")),
+        )
+    }
+
+    @Test
+    fun pickedBookmarksSurviveTheSavedStateRoundTrip() {
+        val json = Json { ignoreUnknownKeys = true }
+        val filters = DrawerFilters(tags = listOf("work", "home"))
+        assertEquals(filters, json.decodeFromString(DrawerFilters.serializer(), json.encodeToString(DrawerFilters.serializer(), filters)))
+    }
 }

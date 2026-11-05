@@ -5,8 +5,10 @@ import com.garfiec.librechat.core.data.repository.McpAppFailure
 import com.garfiec.librechat.core.data.repository.McpAppResult
 import com.garfiec.librechat.core.data.repository.McpAppsRepository
 import com.garfiec.librechat.core.model.mcp.McpAppCspDeclaration
+import com.garfiec.librechat.core.model.mcp.McpAppPermissions
 import com.garfiec.librechat.core.model.mcp.McpAppsPolicy
 import com.garfiec.librechat.core.model.mcp.UiResource
+import com.garfiec.librechat.core.model.mcp.clampAppViewHeight
 import com.garfiec.librechat.core.model.mcp.isAllowedAppLink
 import com.garfiec.librechat.core.model.mcp.pickAppDocument
 import kotlinx.coroutines.CompletableDeferred
@@ -51,20 +53,37 @@ enum class McpAppLoadFailure(val retryable: Boolean) {
 
     /** A 400 from validate or read: the server's binding changed. Run the tool again. */
     BINDING_STALE(retryable = false),
-
-    /** The WebView can't bridge (Android without WEB_MESSAGE_LISTENER). */
-    UNSUPPORTED(retryable = false),
 }
 
 /** Something the screen reports outside the panel. */
 enum class McpAppNotice { APPS_DISABLED, REAUTH_REQUIRED, BUSY }
 
-/** An action the App asked for that the user must approve first. Text is shown whole, never cut. */
+/**
+ * An action the App asked for that the user must approve first. Text is shown whole, never cut.
+ *
+ * [id] is unique per request within a host, so two identical requests in a row are still two
+ * actions: approving one never settles the other.
+ */
 sealed interface McpAppAction {
+    val id: Long
     val serverName: String
 
-    data class ToolCall(override val serverName: String, val toolName: String, val argumentsText: String) : McpAppAction
-    data class Message(override val serverName: String, val text: String) : McpAppAction
+    data class ToolCall(
+        override val id: Long,
+        override val serverName: String,
+        val toolName: String,
+        val argumentsText: String,
+    ) : McpAppAction
+
+    data class Message(override val id: Long, override val serverName: String, val text: String) : McpAppAction
+}
+
+/**
+ * Called when the WebView withdraws the location prompt it raised (Android's
+ * `onGeolocationPermissionsHidePrompt`): the App's question is refused and dropped.
+ */
+fun interface LocationPromptWithdrawal {
+    fun withdraw()
 }
 
 /** What the host needs from the screen. */
@@ -74,8 +93,35 @@ interface McpAppHostCallbacks {
     fun openLink(url: String)
     fun notice(notice: McpAppNotice, serverName: String)
 
-    /** The App asked to go away, or a message was sent: close the panel. */
+    /** The App asked to go away: tear it down. */
     fun close()
+
+    /**
+     * A message the App asked for was sent: get it out of the way of the reply (leave full screen)
+     * but keep it running, so it can follow up.
+     */
+    fun minimize() = Unit
+
+    /**
+     * The App asked for display [mode] (`inline` or `fullscreen`): switch if that is allowed now and
+     * return the mode in effect afterwards, the current one for anything refused or unknown.
+     */
+    fun requestDisplayMode(mode: String): String = McpAppHost.DISPLAY_MODE_INLINE
+
+    /**
+     * Whether an App of [serverName] that declared geolocation may have it in its frame's `allow`:
+     * the platform can delegate it and the user hasn't refused this server.
+     */
+    suspend fun mayOfferLocation(serverName: String): Boolean = false
+
+    /**
+     * The App's frame asked for the device location: ask the user (consent, then the OS) and
+     * [reply] once with the answer. Every path must reply, or the App waits forever.
+     */
+    fun requestLocation(serverName: String, reply: (Boolean) -> Unit) = reply(false)
+
+    /** The WebView withdrew the App's location prompt: refuse it and drop its question. */
+    fun withdrawLocation() = Unit
 }
 
 /**
@@ -108,12 +154,26 @@ class McpAppHost(
     /** The action awaiting the user's decision (the head of the queue), or null. */
     val pendingAction: StateFlow<McpAppAction?> = _pendingAction.asStateFlow()
 
+    private val _autoRunTools = MutableStateFlow<Set<String>>(emptySet())
+
+    /**
+     * Tools the user said not to ask about again for this App session, any arguments. Held here
+     * only: never persisted, and gone with the host (close, Retry) or a reload of its page.
+     */
+    val autoRunTools: StateFlow<Set<String>> = _autoRunTools.asStateFlow()
+
+    private val _reportedHeight = MutableStateFlow<Int?>(null)
+
+    /** The height (CSS px, clamped as web clamps it) the App last reported, or null before it reports. */
+    val reportedHeight: StateFlow<Int?> = _reportedHeight.asStateFlow()
+
     /** Set by the WebView once the relay page can receive. */
     var send: ((String) -> Unit)? = null
 
     private var hostContext: JsonObject = hostContext
     private var document: String? = null
     private var effectiveCsp = McpAppCspDeclaration()
+    private var effectivePermissions = McpAppPermissions.NONE
     private var resourceSent = false
     private var initialized = false
     private var revealed = false
@@ -125,6 +185,10 @@ class McpAppHost(
     /** Cancel on the visible request pauses the View until it is closed and reopened. */
     private var paused = false
     private val queue = ArrayDeque<Pair<McpAppAction, CompletableDeferred<Boolean>>>()
+    private var nextActionId = 0L
+
+    /** Auto-run tool calls in flight; they count against the same bound as waiting approvals. */
+    private var autoRunsInFlight = 0
     private val jobs = mutableListOf<Job>()
     private var nextRequestId = 1
 
@@ -140,6 +204,7 @@ class McpAppHost(
         val inline = resource.inlineHtml()
         val html: String
         val csp: JsonElement?
+        val permissions: JsonElement?
         if (inline != null) {
             when (val answer = repository.validate(serverName, serverBinding)) {
                 is McpAppResult.Failure -> return fail(answer.failure)
@@ -147,6 +212,7 @@ class McpAppHost(
             }
             html = inline
             csp = resource.csp
+            permissions = resource.permissions
         } else {
             val uri = resource.uri ?: return fail(McpAppFailure.REJECTED)
             when (val answer = repository.readResource(serverName, serverBinding, uri)) {
@@ -156,8 +222,15 @@ class McpAppHost(
                         ?: return run { _state.value = McpAppViewState.Failed(McpAppLoadFailure.COULD_NOT_LOAD) }
                     html = doc.html
                     csp = doc.csp
+                    permissions = doc.permissions
                 }
             }
+        }
+        val declared = McpAppPermissions.supported(permissions)
+        effectivePermissions = if (declared.geolocation && !callbacks.mayOfferLocation(serverName)) {
+            declared.copy(geolocation = false)
+        } else {
+            declared
         }
         if (closed) return
         // Upstream withSandboxCsp: an oversized declaration is not delivered at all, so the View
@@ -209,11 +282,20 @@ class McpAppHost(
         queue.toList().forEach { it.second.complete(false) }
         queue.clear()
         _pendingAction.update { null }
+        _autoRunTools.value = emptySet()
     }
 
-    /** The WebView could not set up an isolated bridge; nothing runs. */
-    fun bridgeUnavailable() {
-        _state.value = McpAppViewState.Failed(McpAppLoadFailure.UNSUPPORTED)
+    /**
+     * The App's frame asked for the device location (Android's WebView prompt). Refused unless this
+     * App was given geolocation in its frame; otherwise the user decides, through [callbacks].
+     */
+    fun onLocationPrompt(reply: (Boolean) -> Unit): LocationPromptWithdrawal {
+        if (closed || !effectivePermissions.geolocation) {
+            reply(false)
+            return LocationPromptWithdrawal {}
+        }
+        callbacks.requestLocation(serverName, reply)
+        return LocationPromptWithdrawal(callbacks::withdrawLocation)
     }
 
     /** One message the relay page posted: the relay's own, or the App's, already source-checked. */
@@ -243,6 +325,7 @@ class McpAppHost(
                 buildJsonObject {
                     put("html", html)
                     put("sandbox", McpAppProtocol.SANDBOX_TOKENS)
+                    if (effectivePermissions != McpAppPermissions.NONE) put("permissions", effectivePermissions.toJson())
                 },
             ),
         )
@@ -263,7 +346,13 @@ class McpAppHost(
                 )
                 post(notification(McpAppProtocol.TOOL_RESULT, resource.appToolResult()))
             }
-            McpAppProtocol.SIZE_CHANGED -> reveal()
+            McpAppProtocol.SIZE_CHANGED -> {
+                // Upstream clampAppViewHeight: rounded into 80..4000, anything else ignored.
+                (params["height"] as? JsonPrimitive)?.takeIf { !it.isString }?.content?.toDoubleOrNull()
+                    ?.let(::clampAppViewHeight)
+                    ?.let { _reportedHeight.value = it }
+                reveal()
+            }
             McpAppProtocol.REQUEST_TEARDOWN -> {
                 pauseActions()
                 callbacks.close()
@@ -285,7 +374,10 @@ class McpAppHost(
         when (method) {
             McpAppProtocol.INITIALIZE -> respond(askedOn, id, initializeResult(params))
             McpAppProtocol.PING -> respond(askedOn, id, JsonObject(emptyMap()))
-            McpAppProtocol.REQUEST_DISPLAY_MODE -> respond(askedOn, id, buildJsonObject { put("mode", DISPLAY_MODE) })
+            McpAppProtocol.REQUEST_DISPLAY_MODE -> {
+                val requested = (params["mode"] as? JsonPrimitive)?.takeIf { it.isString }?.content.orEmpty()
+                respond(askedOn, id, buildJsonObject { put("mode", callbacks.requestDisplayMode(requested)) })
+            }
             McpAppProtocol.OPEN_LINK -> {
                 val url = (params["url"] as? JsonPrimitive)?.takeIf { it.isString }?.content
                 if (url != null && isAllowedAppLink(url, effectiveCsp)) {
@@ -299,8 +391,8 @@ class McpAppHost(
             McpAppProtocol.MESSAGE -> launchTracked {
                 val sent = sendMessage(params)
                 respond(askedOn, id, if (sent) JsonObject(emptyMap()) else IS_ERROR)
-                // Answered first, then closed: the reply reaches the App before teardown.
-                if (sent) callbacks.close()
+                // Answered first, then out of the reply's way; the App keeps running to follow up.
+                if (sent) callbacks.minimize()
             }
             McpAppProtocol.RESOURCES_READ -> {
                 val uri = (params["uri"] as? JsonPrimitive)?.takeIf { it.isString }?.content
@@ -359,10 +451,23 @@ class McpAppHost(
         // Snapshot the text shown; over the limit fails closed, never truncated.
         val argumentsText = arguments.toString()
         if (argumentsText.length > policy.maxActionPreviewChars) return TOOL_ERROR
-        if (!requestApproval(McpAppAction.ToolCall(serverName, toolName, argumentsText))) return TOOL_ERROR
-        return when (val answer = repository.callTool(serverName, serverBinding, toolName, arguments)) {
+        val autoRun = toolName in _autoRunTools.value && !paused && !closed
+        if (autoRun) {
+            if (queue.size + autoRunsInFlight >= policy.maxPendingActions) return TOOL_ERROR
+            autoRunsInFlight++
+        } else if (!requestApproval(McpAppAction.ToolCall(nextActionId++, serverName, toolName, argumentsText))) {
+            return TOOL_ERROR
+        }
+        val answer = try {
+            repository.callTool(serverName, serverBinding, toolName, arguments)
+        } finally {
+            if (autoRun) autoRunsInFlight--
+        }
+        return when (answer) {
             is McpAppResult.Success -> answer.data
             is McpAppResult.Failure -> {
+                // A limiter answering an unasked call means the App is looping: ask again from now on.
+                if (autoRun && answer.failure == McpAppFailure.BUSY) revokeAutoRun(toolName)
                 reportActionFailure(answer.failure)
                 TOOL_ERROR
             }
@@ -379,7 +484,7 @@ class McpAppHost(
             }
             .joinToString("\n")
         if (text.isBlank() || text.length > policy.maxActionPreviewChars) return false
-        if (!requestApproval(McpAppAction.Message(serverName, text))) return false
+        if (!requestApproval(McpAppAction.Message(nextActionId++, serverName, text))) return false
         return !closed && callbacks.sendMessage(text)
     }
 
@@ -424,9 +529,24 @@ class McpAppHost(
         _pendingAction.value = queue.firstOrNull()?.first
     }
 
-    /** The user approved the shown action. */
-    fun approve() {
-        queue.firstOrNull()?.second?.complete(true)
+    /**
+     * The user approved [action], the one their dialog drew. Settles only while it is still the
+     * head: a second tap landing after it settled must not approve the next action unseen.
+     * [dontAskAgain] (a tool call only) runs that tool's later calls, any arguments, without asking
+     * until the App closes; it is recorded only when this decision settles [action] itself.
+     */
+    fun approve(action: McpAppAction, dontAskAgain: Boolean = false) {
+        val head = queue.firstOrNull() ?: return
+        if (head.first != action) return
+        if (dontAskAgain && action is McpAppAction.ToolCall && !paused && !closed) {
+            _autoRunTools.update { it + action.toolName }
+        }
+        head.second.complete(true)
+    }
+
+    /** "Ask again for [toolName]": its next call waits for a decision again. */
+    fun revokeAutoRun(toolName: String) {
+        _autoRunTools.update { it - toolName }
     }
 
     /** The user cancelled the shown action: it fails, and so does everything after until reopened. */
@@ -436,14 +556,20 @@ class McpAppHost(
 
     private fun pauseActions() {
         paused = true
+        _autoRunTools.value = emptySet()
         queue.toList().forEach { it.second.complete(false) }
         queue.clear()
         _pendingAction.update { null }
     }
 
-    /** Tears the App down: no pending action runs, in-flight calls are cancelled. */
-    fun close() {
+    /**
+     * Tears the App down: no pending action runs, in-flight calls are cancelled. [viewLost]: the web
+     * view went without the user closing the App (its renderer died), so it shows as failed with
+     * Retry, which starts a new host.
+     */
+    fun close(viewLost: Boolean = false) {
         if (closed) return
+        if (viewLost) _state.value = McpAppViewState.Failed(McpAppLoadFailure.COULD_NOT_LOAD)
         pauseActions()
         if (initialized) {
             post(request(McpAppProtocol.RESOURCE_TEARDOWN, JsonObject(emptyMap())))
@@ -504,13 +630,12 @@ class McpAppHost(
         send?.invoke(message.toString())
     }
 
-    private fun JsonObject.cursor(): String? = (this["cursor"] as? JsonPrimitive)?.takeIf { it.isString }?.content
-
     companion object {
         /** Upstream `useMCPAppFrame`'s reveal budget. */
         const val REVEAL_BUDGET_MS = 20_000L
         const val HOST_NAME = "Switchboard"
-        const val DISPLAY_MODE = "fullscreen"
+        const val DISPLAY_MODE_INLINE = "inline"
+        const val DISPLAY_MODE_FULLSCREEN = "fullscreen"
 
         private val IS_ERROR = buildJsonObject { put("isError", true) }
         private val TOOL_ERROR = buildJsonObject {
@@ -519,3 +644,5 @@ class McpAppHost(
         }
     }
 }
+
+private fun JsonObject.cursor(): String? = (this["cursor"] as? JsonPrimitive)?.takeIf { it.isString }?.content

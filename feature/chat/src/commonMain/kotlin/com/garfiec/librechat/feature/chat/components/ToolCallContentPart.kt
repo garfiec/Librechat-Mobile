@@ -134,21 +134,21 @@ private fun ToolCallDispatcherContent(
                 stateKey = cardKey,
             )
             if (!hideAttachments) {
-                val hoisted = remember(attachments, toolCall, tracedParts) {
+                val owned = remember(attachments, toolCall, tracedParts) {
                     // With the transcript left out of a preview, the walk finds no child calls: the
                     // ones the files were saved under ride along in `subagentAttachmentCalls`.
                     val ownIds = listOfNotNull(toolCallId?.takeIf { it.isNotEmpty() }) + outputToolCallIds(tracedParts)
                     val hints = omittedTranscriptCalls(toolCall)
-                    collectGroupAttachments(
-                        attachmentsOwnedByHints(attachments, hints, ownIds),
-                        ownIds + hints.map { it.id },
-                    )
+                    SubagentOwnedAttachments(attachmentsOwnedByHints(attachments, hints, ownIds), ownIds + hints.map { it.id })
                 }
+                val hoisted = remember(owned) { collectGroupAttachments(owned.attachments, owned.toolCallIds) }
                 ToolAttachmentBuckets(
                     buckets = hoisted,
                     baseUrl = baseUrl,
                     modifier = Modifier.padding(top = 8.dp),
                 )
+                // Apps the subagent's child calls made sit beside its card, as web puts them.
+                McpAppRows(owned.attachments, owned.toolCallIds, Modifier.padding(top = 8.dp))
             }
         }
         return
@@ -196,6 +196,8 @@ private fun ToolCallDispatcherContent(
     }
 
     val isImageGen = isImageGenToolCall(toolNameLower)
+    // Exact, case-sensitive name, as upstream routes these.
+    val fileToolKind = FileToolKind.of(namedTool)
 
     // The card, then (for every non-image-gen tool) the files this tool call generated. Web passes
     // each tool call's attachments to every tool component; ToolCallAttachments skips the non-file
@@ -223,6 +225,19 @@ private fun ToolCallDispatcherContent(
                 val target = toolName.substring(ToolConstants.LC_TRANSFER_TO_PREFIX.length).ifBlank { toolName }
                 AgentHandoffCard(
                     handoff = AgentHandoff(fromAgent = null, toAgent = target, reason = null),
+                    modifier = cardModifier,
+                )
+            }
+            fileToolKind != null -> {
+                val view = remember(toolCall, fileToolKind, intent) {
+                    fileToolView(fileToolKind, toolCall?.argsText(), output, intent)
+                }
+                FileToolCallCard(
+                    view = view,
+                    verdict = toolCallVerdict(toolCall?.effectiveRunStepStatus, isComplete = true),
+                    outputFailed = isToolErrorOutput(output),
+                    durationMs = toolCall?.runStepDurationMs,
+                    stateKey = cardKey,
                     modifier = cardModifier,
                 )
             }
@@ -308,6 +323,7 @@ private fun ToolCallDispatcherContent(
                         durationMs = toolCall?.runStepDurationMs?.takeIf { toolCall.backgrounded != true },
                         stateKey = cardKey,
                         modifier = cardModifier,
+                        toolCallId = toolCall?.id,
                     )
                 } else {
                     GenericToolCallCard(displayName, displayArgs, output, cardModifier, cardKey, toolCall?.effectiveRunStepStatus)
@@ -486,7 +502,7 @@ internal fun GenericToolCallCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(modifier = Modifier.height(4.dp))
-                        CodeBlock(code = args, language = "json")
+                        CodeBlock(code = args, language = "json", wrap = true)
                     }
                     if (!output.isNullOrBlank()) {
                         Spacer(modifier = Modifier.height(8.dp))
@@ -497,7 +513,7 @@ internal fun GenericToolCallCard(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         // The server's own sentence, without the model-facing error wrapper.
-                        CodeBlock(code = if (interrupted) INTERRUPTED_TOOL_RESULT else output, language = null)
+                        CodeBlock(code = if (interrupted) INTERRUPTED_TOOL_RESULT else output, language = null, wrap = true)
                     }
                 }
             }
@@ -526,3 +542,6 @@ internal fun InterruptedToolStatus(modifier: Modifier = Modifier) {
         )
     }
 }
+
+/** What a subagent card owns: its files and Apps, and the tool calls (its own and its children's) they came from. */
+private class SubagentOwnedAttachments(val attachments: List<Attachment>, val toolCallIds: List<String>)

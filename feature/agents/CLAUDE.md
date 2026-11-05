@@ -188,6 +188,11 @@
   catalog — those are run-behaviour knobs, not things an agent can be given.
 - The catalog is DERIVED, not stored: `AgentEditorUiState.marketplaceCatalog()` builds it from the
   reference lists the editor already loads, so it cannot go stale against them.
+- **Builtins need the role's grant too** (web `BUILTIN_ROLE_PERMISSIONS`): the code interpreter
+  RUN_CODE.USE, web search WEB_SEARCH.USE, file search FILE_SEARCH.USE (plus its own `file_search`
+  capability). `is…Offered` (capability AND grant, fail-open on an unknown role) hides the catalog row
+  and the editor section. **Never the save**: `buildToolsList` reads only `is…Available` and the flag,
+  so a user who can't see a builtin the agent has saves it back unchanged, as web's form keeps it.
 - **Gotcha**: a row's toggle routes back through the existing per-kind entry point
   (`onCodeInterpreterToggled`, `onToolToggled`, …), never straight into state. Code interpreter
   hangs an auth check off its toggle and the picker must not be a second path that skips it.
@@ -201,8 +206,30 @@
 - Version history is fetched lazily (`AgentLoaderDelegate.loadVersions`) because v0.8.8 stopped
   inlining `versions[]`. The active-revision comparison runs against `versionBasis`, captured at
   load — reading live form state would compare against whatever the user has since typed.
-- Not ported from upstream's rework: OrchestrationHub (v0.8.9-rc1 folds it into a native
-  "Orchestration" tool row) and StatefulSessions.
+- Not ported from upstream's rework: OrchestrationHub's placement (v0.8.9-rc1 folds subagents and
+  handoffs into a native "Orchestration" tool row; mobile edits them in `AgentSubagentsSection` and
+  `AgentHandoffsSection`).
+
+### Code section (stateful sessions, machines, workspace, Git identity)
+- `AgentCodeSettingsSection` under the code interpreter, web's `SidePanel/Agents/Code/Settings.tsx`.
+  The draft is `AgentEditorUiState.code` (`AgentCodeSettings`, loaded from the `/expanded` record:
+  the VIEW route carries none of these fields); `agentCodeSection` maps it with
+  `statefulCodeConfig` and the machine's status into `AgentCodeSectionView` (`codeSection` flow);
+  `AgentCodeSettingsDelegate` takes `AgentCodeEvent`s and reads the default-workspace machine's status.
+- **Send only what changed** (`updateFields`): a field set on the web survives a save that never
+  touched it. Back to the deployment default machine and clearing the Git identity are explicit JSON
+  `null`s (`JsonNull`), which `explicitNulls = false` would otherwise drop. Code off saves stateful
+  sessions off, as web does.
+- Turning stateful sessions on applies the user's Settings default scope (`personalization`), else
+  the first allowed one. Picking a default workspace also writes the effective machine. A
+  half-filled or malformed Git identity blocks Save (`codeGitIdentityError`).
+- **Background execution** (`AgentCodeBackgroundRow`, web `Code/Background.tsx`): one switch under the
+  code interpreter, shown while it is on and `agents.capabilities` has `run_in_background` (opt-in,
+  fail-closed like web). It edits `tool_options` for BOTH `execute_code` and `bash_tool`
+  (`withCodeBackground`, port of `withNativeBooleanOptOut`): off writes `run_in_background: false`, on
+  removes the key (on is the native default) and an entry left empty; every other key stays. Read as
+  `bash_tool`'s key, then `execute_code`'s. `pruneToolOptions` keeps `bash_tool` while `execute_code` is
+  saved (it is never an `agent.tools` entry) and drops both with the code interpreter; web keeps them.
 - **Only handoff edges reach `AgentHandoffsSection`** (`isHandoffEdge`, upstream
   `Tools/items/orchestration.ts`): `edgeType: "direct"` and an untyped, unconditional one-to-many
   edge (the SDK runs it as direct) stay raw in `unparsedHandoffEdges` and are re-sent untouched.

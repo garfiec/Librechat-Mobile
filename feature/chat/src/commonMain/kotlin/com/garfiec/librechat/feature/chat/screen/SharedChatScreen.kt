@@ -127,6 +127,7 @@ internal data class SharedChatDisplay(
     val inlineArtifactPrefs: InlineArtifactPrefs = InlineArtifactPrefs(),
     val siteIcons: SiteIconsState = SiteIconsState.OFF,
     val thinkingOpenByDefault: Boolean = false,
+    val collapseLongUserMessages: Boolean = true,
 )
 
 internal class SharedChatActions(
@@ -206,6 +207,7 @@ fun SharedChatScreen(
         mermaidRenderCache = remember { MermaidRenderCache() },
         parsedMarkdownCache = remember { ParsedMarkdownCache() },
         subagentProgress = emptyMap(),
+        ptcTraces = emptyMap(),
         previewOverrides = emptyMap(),
         // No conversation of the user's to read child threads from, and no live run to trace.
         conversationId = null,
@@ -225,6 +227,7 @@ fun SharedChatScreen(
         onRefreshPrompts = {},
         siteIcons = display.siteIcons,
         thinkingOpenByDefault = display.thinkingOpenByDefault,
+        collapseLongUserMessages = display.collapseLongUserMessages,
         onSiteIconsChoice = rememberSiteIconsChoice(),
         onSiteIconsPromptDismiss = koinInject<SiteIconPromptSession>()::dismiss,
         // The memories shown are the sharer's, not the viewer's: no Manage.
@@ -232,6 +235,7 @@ fun SharedChatScreen(
         mcpSignIn = null,
         // Public shares omit App attachments; any that remain say Apps don't run here.
         mcpApps = McpApps.ReadOnly,
+        legacyUiResources = null,
     ) {
         ProvideSharedFileOpeners(state, viewModel) {
             SharedChatScaffold(
@@ -510,6 +514,8 @@ private fun rememberSharedChatDisplay(): SharedChatDisplay {
     val siteIconsChoice by preferences.observe(AppPreferences.SiteIcons)
         .collectAsStateWithLifecycle(preferences.initial(AppPreferences.SiteIcons))
     val promptDismissed by promptSession.dismissed.collectAsStateWithLifecycle()
+    val collapseLong by preferences.observe(AppPreferences.CollapseLongUserMessages)
+        .collectAsStateWithLifecycle(preferences.initial(AppPreferences.CollapseLongUserMessages))
     return SharedChatDisplay(
         fontSizeMultiplier = when (fontSize) {
             ChatFontSize.SMALL -> 0.85f
@@ -523,6 +529,7 @@ private fun rememberSharedChatDisplay(): SharedChatDisplay {
         useKatex = latex == LatexRenderer.KATEX,
         inlineArtifactPrefs = inlineArtifacts,
         thinkingOpenByDefault = thinkingOpen,
+        collapseLongUserMessages = collapseLong,
         siteIcons = when (siteIconsChoice) {
             true -> SiteIconsState.ON
             false -> SiteIconsState.OFF

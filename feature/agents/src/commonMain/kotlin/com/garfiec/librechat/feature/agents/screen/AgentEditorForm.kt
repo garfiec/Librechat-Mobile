@@ -46,7 +46,9 @@ import com.garfiec.librechat.feature.agents.components.AgentAvatarPicker
 import com.garfiec.librechat.feature.agents.components.AgentCapabilitiesSection
 import com.garfiec.librechat.feature.agents.components.AgentCategorySelector
 import com.garfiec.librechat.feature.agents.components.AgentChainSection
+import com.garfiec.librechat.feature.agents.components.AgentCodeBackgroundRow
 import com.garfiec.librechat.feature.agents.components.AgentCodeInterpreterSection
+import com.garfiec.librechat.feature.agents.components.AgentCodeSettingsSection
 import com.garfiec.librechat.feature.agents.components.AgentFileAttachments
 import com.garfiec.librechat.feature.agents.components.AgentFileContextSection
 import com.garfiec.librechat.feature.agents.components.AgentFileSearchSection
@@ -84,6 +86,7 @@ internal fun AgentEditorForm(
     onShowToolDialog: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val codeSection by viewModel.codeSection.collectAsStateWithLifecycle()
     uiState.pendingFileRemoval?.let { pending ->
         AdaptiveAlertDialog(
             onDismissRequest = viewModel::dismissAgentFileRemoval,
@@ -222,8 +225,8 @@ internal fun AgentEditorForm(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Code Interpreter toggle (only shown when the server supports it)
-        if (uiState.isCodeInterpreterAvailable) {
+        // Code Interpreter toggle (the server's capability and the role's RUN_CODE)
+        if (uiState.isCodeInterpreterOffered) {
             AgentCodeInterpreterSection(
                 enabled = uiState.codeInterpreterEnabled,
                 onToggle = viewModel::onCodeInterpreterToggled,
@@ -238,12 +241,28 @@ internal fun AgentEditorForm(
                     },
                 )
             }
+            uiState.codeBackground?.let { checked ->
+                Spacer(modifier = Modifier.height(8.dp))
+                AgentCodeBackgroundRow(
+                    checked = checked,
+                    onToggle = viewModel::onCodeBackgroundToggled,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
+            }
+            codeSection?.let { section ->
+                Spacer(modifier = Modifier.height(8.dp))
+                AgentCodeSettingsSection(
+                    view = section,
+                    onEvent = viewModel::onCodeSettingsEvent,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        // Web Search toggle (only shown when the server has it configured)
-        if (uiState.isWebSearchAvailable) {
+        // Web Search toggle (the server's configuration and the role's WEB_SEARCH)
+        if (uiState.isWebSearchOffered) {
             AgentWebSearchSection(
                 enabled = uiState.webSearchEnabled,
                 onToggle = viewModel::onWebSearchToggled,
@@ -284,23 +303,25 @@ internal fun AgentEditorForm(
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        // File Search toggle
-        AgentFileSearchSection(
-            enabled = uiState.fileSearchEnabled,
-            onToggle = viewModel::onFileSearchToggled,
-        )
-        if (uiState.fileSearchEnabled) {
-            AgentFileAttachments(
-                files = uiState.knowledgeFiles,
-                isUploading = AgentFileSlot.KNOWLEDGE in uiState.uploadingSlots,
-                onAddClick = onAddKnowledgeFile,
-                onRemove = { id ->
-                    viewModel.removeAgentFile(id, AgentFileSlot.KNOWLEDGE)
-                },
+        // File Search toggle (the server's capability and the role's FILE_SEARCH)
+        if (uiState.isFileSearchOffered) {
+            AgentFileSearchSection(
+                enabled = uiState.fileSearchEnabled,
+                onToggle = viewModel::onFileSearchToggled,
             )
-        }
+            if (uiState.fileSearchEnabled) {
+                AgentFileAttachments(
+                    files = uiState.knowledgeFiles,
+                    isUploading = AgentFileSlot.KNOWLEDGE in uiState.uploadingSlots,
+                    onAddClick = onAddKnowledgeFile,
+                    onRemove = { id ->
+                        viewModel.removeAgentFile(id, AgentFileSlot.KNOWLEDGE)
+                    },
+                )
+            }
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
         // File Context toggle (persistent files attached as context)
         AgentFileContextSection(

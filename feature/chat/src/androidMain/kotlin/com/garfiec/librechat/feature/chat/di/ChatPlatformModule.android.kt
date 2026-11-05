@@ -16,6 +16,7 @@ actual val chatPlatformModule: Module = module {
             fileRepository = get(),
             speechRepository = get(),
             settingsDataStore = get(),
+            preferenceStore = get(),
             ioDispatcher = get(KoinQualifiers.IO),
         )
     }
@@ -69,6 +70,7 @@ actual val chatPlatformModule: Module = module {
             codeEnvironmentRepository = get(),
             codeWorkspacePreferenceStore = get(),
             pullRequestRepository = get(),
+            codeRunRepository = get(),
             permissionGate = get(),
             connectivityObserver = get(),
             activeAccountProvider = get(),

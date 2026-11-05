@@ -64,6 +64,7 @@ import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.mcp.McpOAuthSignInDialog
 import com.garfiec.librechat.core.ui.resources.server_headers_no_server
 import com.garfiec.librechat.core.ui.resources.server_headers_save_error
 import com.garfiec.librechat.core.ui.resources.server_headers_unverified_delete
@@ -72,6 +73,8 @@ import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.screen.sections.BackupCodesDialog
 import com.garfiec.librechat.feature.settings.screen.sections.TwoFactorSetupDialog
 import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.PullRequestAccountNotice
+import com.garfiec.librechat.feature.settings.viewmodel.PullRequestAccountViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ServerHeadersViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.EmailChangeNotice
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.ProviderKeysSummary
@@ -144,8 +147,10 @@ fun AccountSettingsContent(
     // Hoisted rather than resolved inside the dialog: the save confirmation has to outlive the
     // dialog that triggered it, since the dialog closes as soon as the save lands.
     serverHeadersViewModel: ServerHeadersViewModel = koinViewModel(),
+    pullRequestAccountViewModel: PullRequestAccountViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val pullRequestAccount by pullRequestAccountViewModel.uiState.collectAsStateWithLifecycle()
     val serverHeadersState by serverHeadersViewModel.uiState.collectAsStateWithLifecycle()
     val currentOnLogout by rememberUpdatedState(onLogout)
     val retryLabel = stringResource(Res.string.action_retry)
@@ -174,6 +179,8 @@ fun AccountSettingsContent(
             } else {
                 viewModel.refreshProviderKeysSummary()
                 viewModel.refreshOnReturn()
+                // A connect made on the web, or one whose page was closed, shows on return.
+                pullRequestAccountViewModel.refresh()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -204,6 +211,17 @@ fun AccountSettingsContent(
         snackbarHostState.showSnackbar(message = text)
         // Consumed after showing: consuming first would change this effect's key and cancel the snackbar.
         viewModel.consumeEmailChangeNotice()
+    }
+
+    val pullRequestNotice = when (pullRequestAccount.notice) {
+        PullRequestAccountNotice.CONNECT_FAILED -> stringResource(Res.string.pr_account_connect_error)
+        PullRequestAccountNotice.NOT_AVAILABLE -> stringResource(Res.string.pr_account_not_available)
+        null -> null
+    }
+    LaunchedEffect(pullRequestNotice) {
+        val text = pullRequestNotice ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message = text)
+        pullRequestAccountViewModel.consumeNotice()
     }
 
     LaunchedEffect(uiState.isLoggedOut, uiState.isAccountDeleted) {
@@ -391,6 +409,21 @@ fun AccountSettingsContent(
                 }
             }
 
+            // Connected accounts: web's Settings › Account › Connected accounts section.
+            if (pullRequestAccount.visible) {
+                item(key = "connections_header") {
+                    AdaptiveSectionHeader(stringResource(Res.string.section_connected_accounts))
+                }
+                adaptiveSection {
+                    row(key = "pull_request_account") {
+                        PullRequestAccountRow(
+                            state = pullRequestAccount,
+                            onClick = pullRequestAccountViewModel::onRowClick,
+                        )
+                    }
+                }
+            }
+
             // Danger zone — destructive, irreversible actions only.
             if (uiState.allowAccountDeletion) {
                 item(key = "danger_header") {
@@ -408,6 +441,17 @@ fun AccountSettingsContent(
 
             // Bottom spacing
             item { Spacer(modifier = Modifier.height(32.dp)) }
+        }
+
+        pullRequestAccount.signIn?.let { launch ->
+            McpOAuthSignInDialog(launch = launch, onOutcome = pullRequestAccountViewModel::onSignInOutcome)
+        }
+        if (pullRequestAccount.confirmingDisconnect) {
+            PullRequestDisconnectDialog(
+                state = pullRequestAccount,
+                onConfirm = pullRequestAccountViewModel::confirmDisconnect,
+                onDismiss = pullRequestAccountViewModel::dismissDisconnect,
+            )
         }
 
         uiState.emailChange?.let { draft ->
