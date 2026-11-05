@@ -252,11 +252,8 @@
     <string name="tool_file_search_desc">アップロード済みのファイルを検索</string>
     <string name="tool_mcp">MCP</string>
     <string name="tool_mcp_desc">Model Context Protocolサーバー</string>
-    <string name="cd_web_search_enabled">ウェブ検索が有効</string>
     <string name="cd_quoted_excerpt">引用された抜粋</string>
     <string name="selection_add_to_chat">チャットに追加</string>
-    <string name="cd_code_enabled">コードインタープリターが有効</string>
-    <string name="cd_file_search_enabled">ファイル検索が有効</string>
 
     <!-- Attachments -->
     <string name="upload_routing_sheet_title">これらをどのように送信しますか？</string>
@@ -636,7 +633,6 @@
     <string name="tool_memory_desc">このチャットの詳細をアシスタントが記憶できるようにする</string>
     <string name="tool_skills">スキル</string>
     <string name="tool_skills_desc">このチャットでアシスタントがあなたのスキルを使えるようにする</string>
-    <string name="cd_skills_enabled">スキルが有効</string>
     <string name="picker_type_prompt">プロンプト</string>
     <string name="picker_type_skill">スキル</string>
     <string name="picker_no_matches">一致するものはありません</string>
@@ -873,7 +869,6 @@
     <string name="artifact_library_declined">読み込まれていません: %1$s</string>
     <string name="artifact_library_allowed">読み込み済み: %1$s</string>
     <string name="artifact_library_change">変更</string>
-    <string name="cd_mcp_server_enabled">MCP サーバー %1$s 有効</string>
     <string name="cd_code_block">コードブロック</string>
     <string name="cd_code_block_language">%1$s のコードブロック</string>
     <string name="log_output_title">ログ出力</string>
@@ -1160,6 +1155,12 @@
     <string name="cd_remove_quote_named">引用を削除: %1$s</string>
     <string name="cd_retry_upload">%1$s のアップロードを再試行</string>
     <string name="draft_item_removed">%1$s を削除しました</string>
+    <string name="setting_chip_set_by">%1$s が設定</string>
+    <string name="setting_chip_turned_off">%1$s をオフにしました</string>
+    <string name="setting_chip_connected">接続済み</string>
+    <string name="setting_chip_not_connected">未接続</string>
+    <string name="thinking_chip_state_next">次のメッセージのみ</string>
+    <string name="cd_context_ring">使用中のコンテキスト: %1$s</string>
     <string name="draft_quote_removed">引用を削除しました</string>
     <string name="action_undo">元に戻す</string>
     <plurals name="cd_draft_stack">

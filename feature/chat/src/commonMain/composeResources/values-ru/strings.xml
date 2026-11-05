@@ -255,11 +255,8 @@
     <string name="tool_file_search_desc">Поиск по загруженным файлам</string>
     <string name="tool_mcp">MCP</string>
     <string name="tool_mcp_desc">Серверы Model Context Protocol</string>
-    <string name="cd_web_search_enabled">Веб-поиск включён</string>
     <string name="cd_quoted_excerpt">Цитируемый фрагмент</string>
     <string name="selection_add_to_chat">Добавить в чат</string>
-    <string name="cd_code_enabled">Интерпретатор кода включён</string>
-    <string name="cd_file_search_enabled">Поиск по файлам включён</string>
 
     <!-- Attachments -->
     <string name="upload_routing_sheet_title">Как отправить эти файлы?</string>
@@ -654,7 +651,6 @@
     <string name="tool_memory_desc">Разрешить ассистенту запоминать подробности из этого чата</string>
     <string name="tool_skills">Навыки</string>
     <string name="tool_skills_desc">Разрешить ассистенту использовать ваши навыки в этом чате</string>
-    <string name="cd_skills_enabled">Навыки включены</string>
     <string name="picker_type_prompt">Промпт</string>
     <string name="picker_type_skill">Навык</string>
     <string name="picker_no_matches">Нет совпадений</string>
@@ -915,7 +911,6 @@
     <string name="artifact_library_declined">Не загружено: %1$s</string>
     <string name="artifact_library_allowed">Загружено: %1$s</string>
     <string name="artifact_library_change">Изменить</string>
-    <string name="cd_mcp_server_enabled">MCP-сервер %1$s включён</string>
     <string name="cd_code_block">Блок кода</string>
     <string name="cd_code_block_language">Блок кода %1$s</string>
     <string name="log_output_title">Вывод журнала</string>
@@ -1220,6 +1215,12 @@
     <string name="cd_remove_quote_named">Удалить цитату: %1$s</string>
     <string name="cd_retry_upload">Повторить загрузку %1$s</string>
     <string name="draft_item_removed">%1$s удалено</string>
+    <string name="setting_chip_set_by">Задано: %1$s</string>
+    <string name="setting_chip_turned_off">%1$s: выключено</string>
+    <string name="setting_chip_connected">Подключено</string>
+    <string name="setting_chip_not_connected">Не подключено</string>
+    <string name="thinking_chip_state_next">Только следующее сообщение</string>
+    <string name="cd_context_ring">Использовано контекста: %1$s</string>
     <string name="draft_quote_removed">Цитата удалена</string>
     <string name="action_undo">Отменить</string>
     <plurals name="cd_draft_stack">

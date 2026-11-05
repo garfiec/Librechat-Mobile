@@ -253,11 +253,8 @@
     <string name="tool_file_search_desc">In hochgeladenen Dateien suchen</string>
     <string name="tool_mcp">MCP</string>
     <string name="tool_mcp_desc">Model-Context-Protocol-Server</string>
-    <string name="cd_web_search_enabled">Websuche aktiviert</string>
     <string name="cd_quoted_excerpt">Zitierter Auszug</string>
     <string name="selection_add_to_chat">Zum Chat hinzufügen</string>
-    <string name="cd_code_enabled">Code-Interpreter aktiviert</string>
-    <string name="cd_file_search_enabled">Dateisuche aktiviert</string>
 
     <!-- Attachments -->
     <string name="upload_routing_sheet_title">Wie sollen diese gesendet werden?</string>
@@ -642,7 +639,6 @@
     <string name="tool_memory_desc">Den Assistenten Details aus diesem Chat merken lassen</string>
     <string name="tool_skills">Skills</string>
     <string name="tool_skills_desc">Den Assistenten in diesem Chat deine Skills nutzen lassen</string>
-    <string name="cd_skills_enabled">Skills aktiviert</string>
     <string name="picker_type_prompt">Prompt</string>
     <string name="picker_type_skill">Skill</string>
     <string name="picker_no_matches">Keine Treffer</string>
@@ -887,7 +883,6 @@
     <string name="artifact_library_declined">Nicht geladen: %1$s</string>
     <string name="artifact_library_allowed">Geladen: %1$s</string>
     <string name="artifact_library_change">Ändern</string>
-    <string name="cd_mcp_server_enabled">MCP-Server %1$s aktiviert</string>
     <string name="cd_code_block">Codeblock</string>
     <string name="cd_code_block_language">%1$s-Codeblock</string>
     <string name="log_output_title">Protokollausgabe</string>
@@ -1180,6 +1175,12 @@
     <string name="cd_remove_quote_named">Zitat entfernen: %1$s</string>
     <string name="cd_retry_upload">Hochladen von %1$s wiederholen</string>
     <string name="draft_item_removed">%1$s entfernt</string>
+    <string name="setting_chip_set_by">Festgelegt von %1$s</string>
+    <string name="setting_chip_turned_off">%1$s ausgeschaltet</string>
+    <string name="setting_chip_connected">Verbunden</string>
+    <string name="setting_chip_not_connected">Nicht verbunden</string>
+    <string name="thinking_chip_state_next">Nur nächste Nachricht</string>
+    <string name="cd_context_ring">Kontext belegt: %1$s</string>
     <string name="draft_quote_removed">Zitat entfernt</string>
     <string name="action_undo">Rückgängig</string>
     <plurals name="cd_draft_stack">

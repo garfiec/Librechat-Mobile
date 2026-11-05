@@ -245,6 +245,13 @@ fun ChatScreen(
     // selector), which keeps dismissing straight to the chat.
     val optionsController = rememberChatOptionsSheetController()
     val thinkingChip = uiState.thinkingChip
+    val onSettingChipTap = rememberSettingChipTap(
+        chips = uiState.settingChips,
+        snackbarHostState = snackbarHostState,
+        onToggle = viewModel::toggleSettingChip,
+        onTurnBackOn = viewModel::turnSettingChipBackOn,
+        onOpenThinking = { showThinkingSheet = true },
+    )
     // On a phone's comparison tab 1 the composer edits the secondary model, so the selector page and
     // label both follow the active tab. Side by side there is no current tab (the remembered index
     // can be stale from before an unfold), so it is never the secondary one.
@@ -550,12 +557,9 @@ fun ChatScreen(
                         onUndoRemove = viewModel::undoDraftRemoval,
                         onFieldFocused = { draftListOpen = false },
                         enabledTools = uiState.effectiveEnabledTools,
-                        pinnedToolKeys = uiState.pinnedToolChips,
-                        onToggleTool = viewModel::toggleTool,
-                        thinking = thinkingChip,
-                        onOpenThinking = { showThinkingSheet = true },
-                        mcpServers = uiState.mcpServers,
                         selectedMcpServerNames = uiState.effectiveMcpServerNames,
+                        settingChips = uiState.settingChips,
+                        onSettingChipTap = onSettingChipTap,
                         contextGauge = uiState.contextGaugeDetails,
                         contextUsageEnabled = uiState.contextUsageEnabled,
                         onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },

@@ -14,7 +14,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -75,7 +74,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.pressBounce
@@ -270,7 +268,7 @@ fun CommonChatInputCore(
                 fontSizeMultiplier = fontSizeMultiplier,
             )
 
-            // Prompt and skill picker, above the input and below the chips/gauge.
+            // Prompt and skill picker, above the input and below the settings line.
             val pickerQuery = remember(state.inputText, state.canPickSkills) {
                 parsePickerQuery(state.inputText, state.canPickSkills)
             }
@@ -345,7 +343,7 @@ fun CommonChatInputCore(
 
 /**
  * Everything above the field: the pull request, the steer and queue region, the queue's banners,
- * the tool chips, the code workspace, pinned tools and the context gauge. Files, picked skills and
+ * the code workspace and the settings line with its context ring. Files, picked skills and
  * quotes are in the field's leading slot instead ([ComposerAttachmentStack]). A
  * vertical drag that starts anywhere on it scrolls the thread ([passVerticalDragsToThread]); rows
  * keep only their horizontal scrolls and the queue's long-press reorder.
@@ -394,55 +392,19 @@ private fun ComposerChromeStack(
             }
         }
 
-        AttachmentChipsRow(
-            enabledTools = chrome.enabledTools,
-            mcpServers = chrome.mcpServers,
-            selectedMcpServerNames = chrome.selectedMcpServerNames,
-            showEphemeralTools = state.gates.showEphemeralTools,
-        )
-
         // The attached machine a coding agent works on (machine, workspace, branch, checkout).
         LocalCodeWorkspaceComposer.current?.let { codeWorkspace ->
             CodeWorkspaceRow(codeWorkspace, modifier = Modifier.padding(bottom = 4.dp))
         }
 
-        // Server-pinned tools (v0.8.7 defaultPinnedTools) as inline quick-toggle chips.
-        // The Thinking chip rides the same row, so it shows with no pinned tools too.
-        if (chrome.pinnedToolKeys.isNotEmpty() || chrome.thinking != null) {
-            PinnedToolsRow(
-                pinnedToolKeys = chrome.pinnedToolKeys,
-                enabledTools = chrome.enabledTools,
-                lockedTools = state.gates.lockedTools,
-                onToggleTool = chrome.onToggleTool,
-                thinking = chrome.thinking,
-                onOpenThinking = chrome.onOpenThinking,
-                modifier = Modifier.padding(bottom = 4.dp),
-            )
-        }
-
-        // Context-usage bar, between the chips and the composer row. Gated on the placement
-        // preference (ABOVE_INPUT here), the server/version support flag, and a snapshot with
-        // real usage. Other placements render in the "+" sheet / overflow menu instead.
-        val contextGauge = chrome.contextGauge
-        if (chrome.contextBarPlacement == ContextBarPlacement.ABOVE_INPUT &&
-            chrome.contextUsageEnabled &&
-            contextGauge != null &&
-            contextGauge.usage.usedTokens > 0
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 6.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                ContextUsageGauge(
-                    details = contextGauge,
-                    onCompact = chrome.onCompact,
-                    onSnoozeCompact = chrome.onSnoozeCompact,
-                )
-            }
-        }
+        // What is on for the next message (tools, MCP servers, Thinking), with the context ring
+        // pinned at its end under the above-the-field placement.
+        ComposerSettingsLine(
+            chips = chrome.settingChips,
+            onChipTap = chrome.onSettingChipTap,
+            ring = chrome.contextRing(),
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
     }
 }
 

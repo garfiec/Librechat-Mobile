@@ -252,11 +252,8 @@
     <string name="tool_file_search_desc">업로드한 파일에서 검색</string>
     <string name="tool_mcp">MCP</string>
     <string name="tool_mcp_desc">Model Context Protocol 서버</string>
-    <string name="cd_web_search_enabled">웹 검색 사용</string>
     <string name="cd_quoted_excerpt">인용된 발췌문</string>
     <string name="selection_add_to_chat">채팅에 추가</string>
-    <string name="cd_code_enabled">코드 인터프리터 사용</string>
-    <string name="cd_file_search_enabled">파일 검색 사용</string>
 
     <!-- Attachments -->
     <string name="upload_routing_sheet_title">이 파일들을 어떻게 보낼까요?</string>
@@ -636,7 +633,6 @@
     <string name="tool_memory_desc">어시스턴트가 이 채팅의 세부 정보를 기억하도록 허용</string>
     <string name="tool_skills">스킬</string>
     <string name="tool_skills_desc">이 채팅에서 어시스턴트가 내 스킬을 사용하도록 허용</string>
-    <string name="cd_skills_enabled">스킬 사용</string>
     <string name="picker_type_prompt">프롬프트</string>
     <string name="picker_type_skill">스킬</string>
     <string name="picker_no_matches">일치하는 항목 없음</string>
@@ -873,7 +869,6 @@
     <string name="artifact_library_declined">불러오지 않음: %1$s</string>
     <string name="artifact_library_allowed">불러옴: %1$s</string>
     <string name="artifact_library_change">변경</string>
-    <string name="cd_mcp_server_enabled">MCP 서버 %1$s 사용 중</string>
     <string name="cd_code_block">코드 블록</string>
     <string name="cd_code_block_language">%1$s 코드 블록</string>
     <string name="log_output_title">로그 출력</string>
@@ -1160,6 +1155,12 @@
     <string name="cd_remove_quote_named">인용 삭제: %1$s</string>
     <string name="cd_retry_upload">%1$s 업로드 다시 시도</string>
     <string name="draft_item_removed">%1$s 삭제됨</string>
+    <string name="setting_chip_set_by">%1$s에서 설정함</string>
+    <string name="setting_chip_turned_off">%1$s 꺼짐</string>
+    <string name="setting_chip_connected">연결됨</string>
+    <string name="setting_chip_not_connected">연결 안 됨</string>
+    <string name="thinking_chip_state_next">다음 메시지에만</string>
+    <string name="cd_context_ring">사용한 컨텍스트: %1$s</string>
     <string name="draft_quote_removed">인용 삭제됨</string>
     <string name="action_undo">실행취소</string>
     <plurals name="cd_draft_stack">

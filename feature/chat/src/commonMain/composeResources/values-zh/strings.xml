@@ -252,11 +252,8 @@
     <string name="tool_file_search_desc">在已上传的文件中搜索</string>
     <string name="tool_mcp">MCP</string>
     <string name="tool_mcp_desc">Model Context Protocol 服务器</string>
-    <string name="cd_web_search_enabled">已启用网络搜索</string>
     <string name="cd_quoted_excerpt">引用的摘录</string>
     <string name="selection_add_to_chat">添加到对话</string>
-    <string name="cd_code_enabled">已启用代码解释器</string>
-    <string name="cd_file_search_enabled">已启用文件搜索</string>
 
     <!-- Attachments -->
     <string name="upload_routing_sheet_title">这些文件要如何发送？</string>
@@ -636,7 +633,6 @@
     <string name="tool_memory_desc">让助手记住此对话中的细节</string>
     <string name="tool_skills">技能</string>
     <string name="tool_skills_desc">允许助手在此对话中使用你的技能</string>
-    <string name="cd_skills_enabled">已启用技能</string>
     <string name="picker_type_prompt">提示词</string>
     <string name="picker_type_skill">技能</string>
     <string name="picker_no_matches">没有匹配项</string>
@@ -873,7 +869,6 @@
     <string name="artifact_library_declined">未加载：%1$s</string>
     <string name="artifact_library_allowed">已加载：%1$s</string>
     <string name="artifact_library_change">更改</string>
-    <string name="cd_mcp_server_enabled">已启用 MCP 服务器 %1$s</string>
     <string name="cd_code_block">代码块</string>
     <string name="cd_code_block_language">%1$s 代码块</string>
     <string name="log_output_title">日志输出</string>
@@ -1160,6 +1155,12 @@
     <string name="cd_remove_quote_named">移除引用：%1$s</string>
     <string name="cd_retry_upload">重新上传 %1$s</string>
     <string name="draft_item_removed">已移除 %1$s</string>
+    <string name="setting_chip_set_by">由 %1$s 设置</string>
+    <string name="setting_chip_turned_off">已关闭 %1$s</string>
+    <string name="setting_chip_connected">已连接</string>
+    <string name="setting_chip_not_connected">未连接</string>
+    <string name="thinking_chip_state_next">仅限下一条消息</string>
+    <string name="cd_context_ring">已用上下文：%1$s</string>
     <string name="draft_quote_removed">已移除引用</string>
     <string name="action_undo">撤销</string>
     <plurals name="cd_draft_stack">

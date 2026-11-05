@@ -2,10 +2,10 @@ package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
-import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.util.DraftItem
 import com.garfiec.librechat.feature.chat.util.DraftItems
-import com.garfiec.librechat.feature.chat.util.ThinkingChip
+import com.garfiec.librechat.feature.chat.util.SettingChip
+import com.garfiec.librechat.feature.chat.util.SettingChips
 import com.garfiec.librechat.feature.chat.util.draftItemsOf
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import com.garfiec.librechat.feature.chat.viewmodel.PendingSteerChip
@@ -48,17 +48,17 @@ data class ComposerChrome(
     val onUndoRemove: (undoId: Long) -> Unit = {},
     /** The message field gained focus; the list panel closes then. */
     val onFieldFocused: () -> Unit = {},
+    /** The tools in use, for the "+" button's dot. */
     val enabledTools: Set<String> = emptySet(),
-    /** Tool keys (already mapped + gated) shown as quick-toggle chips (v0.8.7 `defaultPinnedTools`).
-     *  Selected state reads from [enabledTools]. */
-    val pinnedToolKeys: List<String> = emptyList(),
-    /** Toggle a pinned tool from its chip. */
-    val onToggleTool: (String) -> Unit = {},
-    /** The per-turn Thinking chip (v0.8.9-rc1), shown after the pinned tools; null hides it. */
-    val thinking: ThinkingChip? = null,
-    val onOpenThinking: () -> Unit = {},
-    val mcpServers: List<McpServerDisplayData> = emptyList(),
+    /** The MCP servers in use, for the "+" button's dot. */
     val selectedMcpServerNames: Set<String> = emptySet(),
+    /**
+     * The settings line above the field: tools, MCP servers and Thinking, mapped once by the
+     * ViewModel ([com.garfiec.librechat.feature.chat.util.settingChipsOf]).
+     */
+    val settingChips: SettingChips = SettingChips.EMPTY,
+    /** A settings chip's tap; the screen decides what it does ([SettingChips.tapFor]). */
+    val onSettingChipTap: (SettingChip) -> Unit = {},
     /** The context gauge's reading and breakdown. */
     val contextGauge: ContextGaugeDetails? = null,
     /** Server/version gate for the context gauge (`interface.contextUsage` AND backend ≥ 0.8.7). */

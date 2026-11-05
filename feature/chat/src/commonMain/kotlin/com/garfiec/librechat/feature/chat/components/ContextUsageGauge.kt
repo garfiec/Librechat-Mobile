@@ -10,19 +10,16 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.Compress
 import androidx.compose.material.icons.outlined.DataUsage
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -49,75 +46,12 @@ import com.garfiec.librechat.feature.chat.resources.compact_confirm_action
 import com.garfiec.librechat.feature.chat.resources.compact_confirm_body
 import com.garfiec.librechat.feature.chat.resources.compact_confirm_not_now
 import com.garfiec.librechat.feature.chat.resources.compact_confirm_title
-import com.garfiec.librechat.feature.chat.resources.compact_nudge_action
 import com.garfiec.librechat.feature.chat.resources.compact_nudge_short
 import com.garfiec.librechat.feature.chat.resources.context_percent
 import com.garfiec.librechat.feature.chat.resources.context_percent_estimate
 import com.garfiec.librechat.feature.chat.resources.context_usage_label
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import org.jetbrains.compose.resources.stringResource
-
-/**
- * Compact context-window usage gauge (v0.8.7). A slim pill with a thin progress bar and a
- * "used / window" percentage; tapping opens a breakdown sheet. The caller gates visibility on
- * `contextUsageEnabled` and a non-null snapshot.
- *
- * When compacting is suggested the pill turns tonal and gains a separate compact control, which
- * opens a confirmation rather than compacting, so a stray tap near the composer does nothing.
- */
-@Composable
-fun ContextUsageGauge(
-    details: ContextGaugeDetails,
-    modifier: Modifier = Modifier,
-    onCompact: (() -> Unit)? = null,
-    onSnoozeCompact: () -> Unit = {},
-) {
-    var showSheet by remember { mutableStateOf(false) }
-    var confirmCompact by remember { mutableStateOf(false) }
-    val usage = details.usage
-    val nudge = details.nudge.takeIf { onCompact != null }
-
-    Surface(
-        onClick = { showSheet = true },
-        shape = RoundedCornerShape(8.dp),
-        color = if (nudge != null) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = modifier,
-    ) {
-        ContextGaugePill(
-            percent = percentOf(usage.usedTokens, usage.windowTokens),
-            usedFraction = usage.usedFraction,
-            isEstimate = details.isEstimate,
-        ) {
-            if (nudge != null) {
-                IconButton(onClick = { confirmCompact = true }, modifier = Modifier.size(32.dp)) {
-                    Icon(
-                        imageVector = Icons.Outlined.Compress,
-                        contentDescription = stringResource(Res.string.compact_nudge_action),
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-            }
-        }
-    }
-
-    if (showSheet) {
-        ContextUsageSheet(details = details, onDismiss = { showSheet = false }, onCompact = onCompact)
-    }
-    if (confirmCompact && nudge != null && onCompact != null) {
-        CompactConfirmDialog(
-            percent = nudge.percent,
-            onDismiss = { confirmCompact = false },
-            onNotNow = {
-                confirmCompact = false
-                onSnoozeCompact()
-            },
-            onCompact = {
-                confirmCompact = false
-                onCompact()
-            },
-        )
-    }
-}
 
 /**
  * Context-usage gauge styled as a top-bar overflow-menu entry: a standard [DropdownMenuItem] (so it
@@ -298,7 +232,7 @@ private fun ContextGaugePill(
     }
 }
 
-/** The breakdown in a modal sheet, for surfaces that can open one (the composer pill, the ⋮ menu). */
+/** The breakdown in a modal sheet, for surfaces that can open one (the composer's context ring, the ⋮ menu). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ContextUsageSheet(

@@ -79,6 +79,8 @@ import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.DraftItem
 import com.garfiec.librechat.feature.chat.util.ReplyAvatarMemo
+import com.garfiec.librechat.feature.chat.util.SettingChip
+import com.garfiec.librechat.feature.chat.util.SettingChipsMemo
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.util.ToolPartIdentity
 import com.garfiec.librechat.feature.chat.util.ToolPartKey
@@ -587,6 +589,7 @@ class ChatViewModel(
     }
 
     private val replyAvatarMemo = ReplyAvatarMemo()
+    private val settingChipsMemo = SettingChipsMemo()
 
     val uiState: StateFlow<ChatUiState> = combine(
         _uiState,
@@ -635,6 +638,8 @@ class ChatViewModel(
                 ),
             ),
             avatars = state.replyAvatars(url),
+            // The composer's settings line, mapped here once rather than on every chrome recomposition.
+            settingChips = settingChipsMemo.resolve(state.settingChipInputs),
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, ChatUiState())
 
@@ -2142,6 +2147,29 @@ class ChatViewModel(
     fun toggleTool(toolName: String) {
         // Per conversation, so it never goes through the global enabled-tools store.
         if (toolName == ToolConstants.SKILLS) skillsToggleDelegate.toggle() else modelDelegate.toggleTool(toolName)
+    }
+
+    /** A settings-line chip's switch: the same toggle the "+" sheet's row flips. */
+    fun toggleSettingChip(chip: SettingChip) {
+        when (chip) {
+            is SettingChip.Tool -> toggleTool(chip.key)
+            is SettingChip.Mcp -> toggleMcpServer(chip.name)
+            is SettingChip.Thinking -> Unit
+        }
+    }
+
+    /**
+     * Undo for a chip the user turned off on the settings line: switches it back on, unless something
+     * (the "+" sheet) already did, so the Undo never turns it off again.
+     */
+    fun turnSettingChipBackOn(chip: SettingChip) {
+        val state = _uiState.value
+        val isOn = when (chip) {
+            is SettingChip.Tool -> chip.key in state.effectiveEnabledTools
+            is SettingChip.Mcp -> chip.name in state.effectiveMcpServerNames
+            is SettingChip.Thinking -> return
+        }
+        if (!isOn) toggleSettingChip(chip)
     }
 
     /**

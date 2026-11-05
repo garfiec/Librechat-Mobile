@@ -65,7 +65,7 @@ private fun ComposerCompareEmptyMaterialPreview() = ComposerSurface(UiStyle.MATE
 
 @PreviewNarrowScreens
 @Composable
-private fun ComposerContextPillPreview() = ComposerSurface(UiStyle.MATERIAL) { ContextPillComposerHost() }
+private fun ComposerContextRingPreview() = ComposerSurface(UiStyle.MATERIAL) { ContextRingComposerHost() }
 
 @PreviewNarrowScreens
 @Composable
@@ -168,9 +168,9 @@ private fun CompareComposerHost(draft: String = "Which of these sorting algorith
     )
 }
 
-/** The gauge placed above the composer, with a compact suggestion due. */
+/** The context ring at the end of the settings line (the above-the-field placement), with a compact suggestion due. */
 @Composable
-private fun ContextPillComposerHost() {
+private fun ContextRingComposerHost() {
     ChatInput(
         inputText = "",
         isStreaming = false,

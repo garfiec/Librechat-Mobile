@@ -1,0 +1,174 @@
+package com.garfiec.librechat.feature.chat.util
+
+import androidx.compose.runtime.Immutable
+import com.garfiec.librechat.core.common.ToolConstants
+import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
+
+/**
+ * How a chip on the composer's settings line reads. [ON] is filled; [PINNED_OFF] is a server-pinned
+ * tool (`interface.defaultPinnedTools`) that is off, drawn outlined so it is one tap away; [LOCKED]
+ * is on because the active model spec turns it on, filled with a lock.
+ */
+enum class SettingChipState { ON, PINNED_OFF, LOCKED }
+
+/** One chip on the composer's settings line. */
+@Immutable
+sealed interface SettingChip {
+    /** Null for a chip that is a button rather than a switch (Thinking). */
+    val state: SettingChipState?
+
+    /** A tool from the "+" sheet; [pinned] when the server pins it, so turning it off keeps it on the line. */
+    data class Tool(val key: String, override val state: SettingChipState, val pinned: Boolean) : SettingChip
+
+    /** A selected MCP server. [connected] is its last reported connection. */
+    data class Mcp(
+        val name: String,
+        val label: String,
+        override val state: SettingChipState,
+        val connected: Boolean,
+    ) : SettingChip
+
+    /** The per-turn Thinking control; a tap opens its sheet. */
+    data class Thinking(val chip: ThinkingChip) : SettingChip {
+        override val state: SettingChipState? get() = null
+    }
+}
+
+/** What the settings line shows: tools, then MCP servers, then Thinking. */
+@Immutable
+data class SettingChips(
+    val chips: List<SettingChip> = emptyList(),
+    /** The label of the spec that locks the [SettingChipState.LOCKED] chips, for "Set by …". */
+    val lockedBy: String? = null,
+) {
+    val isEmpty: Boolean get() = chips.isEmpty()
+
+    companion object {
+        val EMPTY = SettingChips()
+    }
+}
+
+/**
+ * What [settingChipsOf] reads, gathered from the chat state ([ChatUiState.settingChipInputs]).
+ * [openTools] are the tools whose own gate is open, the same gates the "+" sheet offers its rows on;
+ * a tool outside it never shows, even when a stored toggle says it is on.
+ */
+@Immutable
+data class SettingChipInputs(
+    /** The composer shows its tool controls (`toolbarShown`): false for an agent or a `hideBadgeRow` spec. */
+    val toolbarShown: Boolean,
+    /** The tools in use (`effectiveEnabledTools`). */
+    val toolsOn: Set<String>,
+    val openTools: Set<String>,
+    /** The server's `defaultPinnedTools`, raw. */
+    val pinned: List<String>,
+    val lockedTools: Set<String>,
+    val mcpServers: List<McpServerDisplayData>,
+    /** The MCP servers in use (`effectiveMcpServerNames`). */
+    val mcpOn: Set<String>,
+    val lockedMcpServers: Set<String>,
+    /** The role may use MCP servers; a spec's own servers show regardless. */
+    val mcpAllowed: Boolean,
+    val specLabel: String?,
+    val thinking: ThinkingChip?,
+)
+
+/**
+ * The settings line, one chip per thing and nothing twice: the tools in the "+" sheet's order (each
+ * on, pinned, or locked by the spec, and only where its gate is open), the selected MCP servers in
+ * list order, then Thinking. Without the tool controls (an agent, `hideBadgeRow`) only Thinking is
+ * left, as the request still carries the spec's own tools then.
+ */
+fun settingChipsOf(inputs: SettingChipInputs): SettingChips {
+    val chips = buildList {
+        if (inputs.toolbarShown) {
+            val pinned = inputs.pinned.mapNotNullTo(mutableSetOf(), ::pinnedToolKey)
+            SETTING_TOOL_ORDER.forEach { key ->
+                if (key !in inputs.openTools) return@forEach
+                val isPinned = key in pinned
+                val state = when {
+                    key in inputs.lockedTools -> SettingChipState.LOCKED
+                    key in inputs.toolsOn -> SettingChipState.ON
+                    isPinned -> SettingChipState.PINNED_OFF
+                    else -> return@forEach
+                }
+                add(SettingChip.Tool(key, state, isPinned))
+            }
+            inputs.mcpServers.forEach { server ->
+                if (server.name !in inputs.mcpOn) return@forEach
+                val locked = server.name in inputs.lockedMcpServers
+                if (!locked && !inputs.mcpAllowed) return@forEach
+                add(
+                    SettingChip.Mcp(
+                        name = server.name,
+                        label = server.title?.takeIf { it.isNotBlank() } ?: server.name,
+                        state = if (locked) SettingChipState.LOCKED else SettingChipState.ON,
+                        connected = server.isConnected,
+                    ),
+                )
+            }
+        }
+        inputs.thinking?.let { add(SettingChip.Thinking(it)) }
+    }
+    if (chips.isEmpty()) return SettingChips.EMPTY
+    val anyLocked = chips.any { it.state == SettingChipState.LOCKED }
+    return SettingChips(chips, lockedBy = inputs.specLabel?.takeIf { anyLocked && it.isNotBlank() })
+}
+
+/**
+ * [settingChipsOf] that returns its last result while the inputs are equal, so the line keeps one
+ * instance across the streaming reply's emissions. One collector only.
+ */
+internal class SettingChipsMemo {
+    private var inputs: SettingChipInputs? = null
+    private var result: SettingChips = SettingChips.EMPTY
+
+    fun resolve(inputs: SettingChipInputs): SettingChips {
+        if (inputs != this.inputs) {
+            result = settingChipsOf(inputs)
+            this.inputs = inputs
+        }
+        return result
+    }
+}
+
+/** A pinned key as mobile names the tool, or null for one it has no toggle for (`artifacts`, …). */
+fun pinnedToolKey(key: String): String? = when (key) {
+    ToolConstants.EXECUTE_CODE, ToolConstants.CODE_INTERPRETER -> ToolConstants.CODE_INTERPRETER
+    in SETTING_TOOL_ORDER -> key
+    else -> null
+}
+
+/** The tools the settings line can show, in the "+" sheet's order. */
+val SETTING_TOOL_ORDER: List<String> = listOf(
+    ToolConstants.WEB_SEARCH,
+    ToolConstants.URL_CONTEXT,
+    ToolConstants.CODE_INTERPRETER,
+    ToolConstants.FILE_SEARCH,
+    ToolConstants.MEMORY,
+    ToolConstants.SKILLS,
+)
+
+/** What a tap on a settings chip does. */
+sealed interface SettingChipTap {
+    /** A spec's own tool: say who set it ([specLabel], null when the spec has no label to name). */
+    data class ExplainLock(val specLabel: String?) : SettingChipTap
+
+    /** Switch it, and the chip stays (a pinned tool). */
+    data object Toggle : SettingChipTap
+
+    /** Switch it off; it leaves the line, so offer Undo. */
+    data object TurnOffWithUndo : SettingChipTap
+
+    data object OpenThinking : SettingChipTap
+}
+
+/** The tap rule for [chip] on this line. */
+fun SettingChips.tapFor(chip: SettingChip): SettingChipTap {
+    val state = chip.state ?: return SettingChipTap.OpenThinking
+    return when {
+        state == SettingChipState.LOCKED -> SettingChipTap.ExplainLock(lockedBy)
+        chip is SettingChip.Tool && chip.pinned -> SettingChipTap.Toggle
+        else -> SettingChipTap.TurnOffWithUndo
+    }
+}

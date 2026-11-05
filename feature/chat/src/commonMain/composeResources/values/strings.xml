@@ -259,11 +259,8 @@
     <string name="tool_file_search_desc">Search through uploaded files</string>
     <string name="tool_mcp">MCP</string>
     <string name="tool_mcp_desc">Model Context Protocol servers</string>
-    <string name="cd_web_search_enabled">Web Search enabled</string>
     <string name="cd_quoted_excerpt">Quoted excerpt</string>
     <string name="selection_add_to_chat">Add to chat</string>
-    <string name="cd_code_enabled">Code interpreter enabled</string>
-    <string name="cd_file_search_enabled">File Search enabled</string>
 
     <!-- Attachments -->
     <string name="upload_routing_sheet_title">How should these be sent?</string>
@@ -669,7 +666,6 @@
     <string name="tool_memory_desc">Let the assistant remember details from this chat</string>
     <string name="tool_skills">Skills</string>
     <string name="tool_skills_desc">Let the assistant use your skills in this chat</string>
-    <string name="cd_skills_enabled">Skills enabled</string>
     <string name="picker_type_prompt">Prompt</string>
     <string name="picker_type_skill">Skill</string>
     <string name="picker_no_matches">No matches</string>
@@ -934,7 +930,6 @@
     <string name="artifact_library_declined">Not loaded: %1$s</string>
     <string name="artifact_library_allowed">Loaded: %1$s</string>
     <string name="artifact_library_change">Change</string>
-    <string name="cd_mcp_server_enabled">%1$s MCP server enabled</string>
     <string name="cd_code_block">Code block</string>
     <string name="cd_code_block_language">%1$s code block</string>
     <string name="log_output_title">Log Output</string>
@@ -1234,6 +1229,12 @@
     <string name="cd_remove_quote_named">Remove quote: %1$s</string>
     <string name="cd_retry_upload">Retry upload of %1$s</string>
     <string name="draft_item_removed">Removed %1$s</string>
+    <string name="setting_chip_set_by">Set by %1$s</string>
+    <string name="setting_chip_turned_off">%1$s turned off</string>
+    <string name="setting_chip_connected">Connected</string>
+    <string name="setting_chip_not_connected">Not connected</string>
+    <string name="thinking_chip_state_next">Next message only</string>
+    <string name="cd_context_ring">Context used: %1$s</string>
     <string name="draft_quote_removed">Quote removed</string>
     <string name="action_undo">Undo</string>
     <plurals name="cd_draft_stack">

@@ -257,11 +257,8 @@
     <string name="tool_file_search_desc">البحث في الملفات المرفوعة</string>
     <string name="tool_mcp">MCP</string>
     <string name="tool_mcp_desc">خوادم بروتوكول سياق النموذج (MCP)</string>
-    <string name="cd_web_search_enabled">البحث على الويب مُفعّل</string>
     <string name="cd_quoted_excerpt">مقتطف مقتبس</string>
     <string name="selection_add_to_chat">إضافة إلى المحادثة</string>
-    <string name="cd_code_enabled">مفسّر الكود مُفعّل</string>
-    <string name="cd_file_search_enabled">البحث في الملفات مُفعّل</string>
 
     <!-- Attachments -->
     <string name="upload_routing_sheet_title">كيف تريد إرسال هذه الملفات؟</string>
@@ -666,7 +663,6 @@
     <string name="tool_memory_desc">السماح للمساعد بتذكر تفاصيل من هذه المحادثة</string>
     <string name="tool_skills">المهارات</string>
     <string name="tool_skills_desc">السماح للمساعد باستخدام مهاراتك في هذه المحادثة</string>
-    <string name="cd_skills_enabled">المهارات مُفعّلة</string>
     <string name="picker_type_prompt">مطالبة</string>
     <string name="picker_type_skill">مهارة</string>
     <string name="picker_no_matches">لا توجد نتائج مطابقة</string>
@@ -943,7 +939,6 @@
     <string name="artifact_library_declined">لم يُحمَّل: %1$s</string>
     <string name="artifact_library_allowed">مُحمَّل: %1$s</string>
     <string name="artifact_library_change">تغيير</string>
-    <string name="cd_mcp_server_enabled">خادم MCP %1$s مفعّل</string>
     <string name="cd_code_block">كتلة شيفرة</string>
     <string name="cd_code_block_language">كتلة شيفرة %1$s</string>
     <string name="log_output_title">مخرجات السجل</string>
@@ -1260,6 +1255,12 @@
     <string name="cd_remove_quote_named">إزالة الاقتباس: %1$s</string>
     <string name="cd_retry_upload">إعادة محاولة رفع %1$s</string>
     <string name="draft_item_removed">أُزيل %1$s</string>
+    <string name="setting_chip_set_by">عيّنه %1$s</string>
+    <string name="setting_chip_turned_off">أُوقف %1$s</string>
+    <string name="setting_chip_connected">متصل</string>
+    <string name="setting_chip_not_connected">غير متصل</string>
+    <string name="thinking_chip_state_next">للرسالة التالية فقط</string>
+    <string name="cd_context_ring">السياق المستخدم: %1$s</string>
     <string name="draft_quote_removed">أُزيل الاقتباس</string>
     <string name="action_undo">تراجع</string>
     <plurals name="cd_draft_stack">
