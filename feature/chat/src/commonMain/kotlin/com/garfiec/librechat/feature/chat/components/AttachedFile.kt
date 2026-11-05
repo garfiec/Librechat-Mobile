@@ -30,4 +30,13 @@ data class AttachedFile(
      * is a display value, not part of the send.
      */
     val route: UploadRoute? = null,
-)
+    /**
+     * Something an image loader can draw this file from on the device, when [uri] is not one: the
+     * picked bytes on iOS, whose [uri] is a minted id. Null where [uri] itself loads (an Android
+     * content `Uri`, a server URL). Compared by identity, so a tray copy keeps equal to itself.
+     */
+    val localPreview: Any? = null,
+) {
+    /** Still uploading: no server id yet and not failed. A PDF waiting for its password counts. */
+    val isUploading: Boolean get() = fileId == null && !uploadFailed
+}

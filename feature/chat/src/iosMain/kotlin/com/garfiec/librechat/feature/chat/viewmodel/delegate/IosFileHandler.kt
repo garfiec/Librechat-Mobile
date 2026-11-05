@@ -5,6 +5,7 @@ import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.pdf.PdfPasswordProtectedException
 import com.garfiec.librechat.core.data.repository.FileRepository
+import com.garfiec.librechat.core.model.FileObject
 import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.core.model.response.toolResource
 import com.garfiec.librechat.feature.chat.components.AttachedFile
@@ -24,8 +25,13 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /**
- * iOS implementation of [PlatformFileHandler].
- * Handles file uploads from clipboard paste and (future) photo picker.
+ * iOS implementation of [PlatformFileHandler]: uploads what the pickers, the camera and a clipboard
+ * paste hand over ([IosImageData], [IosFileData]).
+ *
+ * Unlike an Android `Uri`, an iOS pick can't be read again once it is handed over, so the handler
+ * keeps each tray entry's picked data ([picked]) for as long as the entry can still need it: a
+ * failed upload retries from it, and an image draws its thumbnail from its bytes
+ * ([AttachedFile.localPreview]).
  */
 class IosFileHandler(
     private val handle: ErrorOnlyHandle,
@@ -39,6 +45,17 @@ class IosFileHandler(
     private val pdfPrompts = PdfPasswordPrompts()
     override val pdfPasswordPrompts: StateFlow<List<PdfPasswordPrompt>> = pdfPrompts.pending
 
+    /**
+     * The picked [IosImageData] / [IosFileData] behind each tray entry, by its minted `uri`, as
+     * [pdfPrompts] keeps the [PickedFile] a password retry needs. A removed failed entry keeps its
+     * data, since Undo can bring it back to be retried; the whole map goes when the tray is cleared.
+     * Touched on the caller's thread only (every entry point runs on Main).
+     */
+    private val picked = mutableMapOf<Any, Any>()
+
+    /** Each entry's upload, by `uri`, so removing a file mid-upload cancels it. Same thread rule as [picked]. */
+    private val uploadJobs = mutableMapOf<Any, Job>()
+
     override fun describe(platformRefs: List<Any>): List<PickedFile> = platformRefs.mapNotNull { ref ->
         when (ref) {
             is IosImageData -> PickedFile(ref = ref, name = ref.filename, mimeType = ref.mimeType)
@@ -47,232 +64,199 @@ class IosFileHandler(
         }
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     override fun onFilesSelected(files: List<RoutedFile>) {
         files.forEach { file ->
-            when (val ref = file.file.ref) {
-                // Images have no text route: extraction would need OCR, and the server's
-                // attachment pass drops a text-sourced record before it ever reaches its image
-                // branch. The router never asks for one; ignoring `route` here says so.
-                is IosImageData -> uploadImage(ref)
-                is IosFileData -> uploadFile(ref, file.route)
+            val ref = file.file.ref
+            if (ref is IosImageData || ref is IosFileData) {
+                upload(uniqueId = Uuid.random().toString(), data = ref, route = file.route)
             }
         }
     }
 
+    /**
+     * Uploads [data] as the tray entry [uniqueId]: appended, or over the entry's own place when
+     * [inPlace] (a retry). Images have no text route: extraction would need OCR, and the server's
+     * attachment pass drops a text-sourced record before it ever reaches its image branch. The
+     * router never asks for one; an image ignores [route].
+     */
     @Suppress("TooGenericExceptionCaught") // upload boundary: any failure marks the attachment failed
     @OptIn(ExperimentalUuidApi::class)
-    private fun uploadImage(imageData: IosImageData) {
-        val uniqueId = Uuid.random().toString()
+    private fun upload(
+        uniqueId: String,
+        data: Any,
+        route: UploadRoute,
+        pdfPassword: String? = null,
+        inPlace: Boolean = false,
+    ) {
+        val image = data as? IosImageData
+        val file = data as? IosFileData
+        val filename = image?.filename ?: file?.filename ?: return
+        val mimeType = image?.mimeType ?: file?.mimeType ?: return
+        val bytes = image?.bytes ?: file?.bytes ?: return
+        val effectiveRoute = if (image != null) UploadRoute.PROVIDER else route
+        picked[uniqueId] = data
 
         val pendingFile = AttachedFile(
             uri = uniqueId,
-            name = imageData.filename,
-            isImage = true,
+            name = filename,
+            isImage = image != null,
             uploadProgress = null,
-            type = imageData.mimeType,
-            route = UploadRoute.PROVIDER,
+            type = mimeType,
+            route = effectiveRoute,
+            localPreview = image?.bytes,
         )
-        _attachedFiles.update { it + pendingFile }
+        _attachedFiles.update { list ->
+            if (inPlace && list.any { it.uri == uniqueId }) {
+                list.map { if (it.uri == uniqueId) pendingFile else it }
+            } else {
+                list + pendingFile
+            }
+        }
 
-        handle.scope.launch(ioDispatcher) {
+        uploadJobs[uniqueId] = handle.scope.launch(ioDispatcher) {
             try {
                 val state = handle.state
                 val isAgent = state.selectedEndpoint == EndpointConstants.AGENTS
                 val fileId = Uuid.random().toString()
 
                 val result = fileRepository.uploadFile(
-                    bytes = imageData.bytes,
-                    filename = imageData.filename,
-                    type = imageData.mimeType,
+                    bytes = bytes,
+                    filename = filename,
+                    type = mimeType,
                     fileId = fileId,
                     endpoint = state.selectedEndpoint,
                     model = if (!isAgent) state.selectedModel else null,
                     agentId = if (isAgent) state.selectedModel else null,
+                    toolResource = if (image != null) null else effectiveRoute.toolResource(),
                     messageFile = true,
-                    width = imageData.width,
-                    height = imageData.height,
-                    onProgress = { pct ->
-                        _attachedFiles.update { list ->
-                            list.map { f -> if (f.uri == uniqueId) f.copy(uploadProgress = pct) else f }
-                        }
-                    },
-                )
-
-                when (result) {
-                    is Result.Success -> {
-                        val fileObject = result.data
-                        Logger.d { "IosFileHandler: upload success -- fileId=${fileObject.fileId}" }
-                        _attachedFiles.update { list ->
-                            list.map { f ->
-                                if (f.uri == uniqueId) {
-                                    f.copy(
-                                        uploadProgress = 1f,
-                                        fileId = fileObject.fileId,
-                                        filepath = fileObject.filepath,
-                                        type = fileObject.type,
-                                        width = fileObject.width,
-                                        height = fileObject.height,
-                                    )
-                                } else {
-                                    f
-                                }
-                            }
-                        }
-                    }
-                    is Result.Error -> {
-                        Logger.e(result.exception) { "IosFileHandler: upload failed -- ${result.message}" }
-                        _attachedFiles.update { list ->
-                            list.map { f ->
-                                if (f.uri == uniqueId) f.copy(uploadFailed = true, uploadProgress = null) else f
-                            }
-                        }
-                        handle.setError(ChatNotice.uploadFailed(imageData.filename, result.message))
-                    }
-                    is Result.Loading -> { /* unexpected */ }
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.e(e) { "IosFileHandler: unexpected exception for ${imageData.filename}" }
-                _attachedFiles.update { list ->
-                    list.map { f ->
-                        if (f.uri == uniqueId) f.copy(uploadFailed = true, uploadProgress = null) else f
-                    }
-                }
-                handle.setError(ChatNotice.uploadFailed(imageData.filename, e.message))
-            }
-        }
-    }
-
-    @Suppress("TooGenericExceptionCaught") // upload boundary: any failure marks the attachment failed
-    @OptIn(ExperimentalUuidApi::class)
-    private fun uploadFile(fileData: IosFileData, route: UploadRoute, pdfPassword: String? = null) {
-        val uniqueId = Uuid.random().toString()
-
-        val pendingFile = AttachedFile(
-            uri = uniqueId,
-            name = fileData.filename,
-            isImage = false,
-            uploadProgress = null,
-            type = fileData.mimeType,
-            route = route,
-        )
-        _attachedFiles.update { it + pendingFile }
-
-        handle.scope.launch(ioDispatcher) {
-            try {
-                val state = handle.state
-                val isAgent = state.selectedEndpoint == EndpointConstants.AGENTS
-                val fileId = Uuid.random().toString()
-
-                val result = fileRepository.uploadFile(
-                    bytes = fileData.bytes,
-                    filename = fileData.filename,
-                    type = fileData.mimeType,
-                    fileId = fileId,
-                    endpoint = state.selectedEndpoint,
-                    model = if (!isAgent) state.selectedModel else null,
-                    agentId = if (isAgent) state.selectedModel else null,
-                    toolResource = route.toolResource(),
-                    messageFile = true,
-                    onProgress = { pct ->
-                        _attachedFiles.update { list ->
-                            list.map { f -> if (f.uri == uniqueId) f.copy(uploadProgress = pct) else f }
-                        }
-                    },
+                    width = image?.width,
+                    height = image?.height,
+                    onProgress = { pct -> updateEntry(uniqueId) { it.copy(uploadProgress = pct) } },
                     pdfPassword = pdfPassword,
                 )
 
                 when (result) {
-                    is Result.Success -> {
-                        val fileObject = result.data
-                        Logger.d { "IosFileHandler: file upload success -- fileId=${fileObject.fileId}" }
-                        _attachedFiles.update { list ->
-                            list.map { f ->
-                                if (f.uri == uniqueId) {
-                                    f.copy(
-                                        uploadProgress = 1f,
-                                        fileId = fileObject.fileId,
-                                        filepath = fileObject.filepath,
-                                        type = fileObject.type,
-                                    )
-                                } else {
-                                    f
-                                }
-                            }
-                        }
-                    }
-                    is Result.Error -> {
-                        val locked = result.exception as? PdfPasswordProtectedException
-                        _attachedFiles.update { list ->
-                            list.map { f ->
-                                if (f.uri == uniqueId) f.copy(uploadFailed = locked == null, uploadProgress = null) else f
-                            }
-                        }
-                        if (locked != null) {
-                            // Not an error to show: the chip waits while the UI asks for the password.
-                            // It stays pending, not failed, so a send parked on the upload gate
-                            // keeps waiting for the answer instead of going out without the PDF.
-                            val picked =
-                                PickedFile(ref = fileData, name = fileData.filename, mimeType = fileData.mimeType)
-                            pdfPrompts.add(PdfPasswordPrompt(uniqueId, picked, locked.incorrectPassword))
-                            return@launch
-                        }
-                        Logger.e(result.exception) { "IosFileHandler: file upload failed -- ${result.message}" }
-                        handle.setError(ChatNotice.uploadFailed(fileData.filename, result.message))
-                    }
+                    is Result.Success -> onUploaded(uniqueId, result.data, keepsDimensions = image == null)
+                    is Result.Error -> onUploadError(uniqueId, file, filename, result)
                     is Result.Loading -> { /* unexpected */ }
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Logger.e(e) { "IosFileHandler: unexpected exception for ${fileData.filename}" }
-                _attachedFiles.update { list ->
-                    list.map { f ->
-                        if (f.uri == uniqueId) f.copy(uploadFailed = true, uploadProgress = null) else f
-                    }
-                }
-                handle.setError(ChatNotice.uploadFailed(fileData.filename, e.message))
+                Logger.e(e) { "IosFileHandler: unexpected exception for $filename" }
+                updateEntry(uniqueId) { it.copy(uploadFailed = true, uploadProgress = null) }
+                handle.setError(ChatNotice.uploadFailed(filename, e.message))
             }
         }
     }
 
+    private fun updateEntry(uniqueId: String, transform: (AttachedFile) -> AttachedFile) {
+        _attachedFiles.update { list -> list.map { if (it.uri == uniqueId) transform(it) else it } }
+    }
+
+    /** The server's record onto the entry. A file keeps no dimensions of its own; an image takes the server's. */
+    private fun onUploaded(uniqueId: String, fileObject: FileObject, keepsDimensions: Boolean) {
+        Logger.d { "IosFileHandler: upload success -- fileId=${fileObject.fileId}" }
+        updateEntry(uniqueId) { f ->
+            f.copy(
+                uploadProgress = 1f,
+                fileId = fileObject.fileId,
+                filepath = fileObject.filepath,
+                type = fileObject.type,
+                width = if (keepsDimensions) f.width else fileObject.width,
+                height = if (keepsDimensions) f.height else fileObject.height,
+            )
+        }
+    }
+
+    private fun onUploadError(uniqueId: String, file: IosFileData?, filename: String, result: Result.Error) {
+        val locked = (result.exception as? PdfPasswordProtectedException)?.takeIf { file != null }
+        updateEntry(uniqueId) { it.copy(uploadFailed = locked == null, uploadProgress = null) }
+        if (locked != null && file != null) {
+            // Not an error to show: the chip waits while the UI asks for the password.
+            // It stays pending, not failed, so a send parked on the upload gate
+            // keeps waiting for the answer instead of going out without the PDF.
+            val pickedFile = PickedFile(ref = file, name = file.filename, mimeType = file.mimeType)
+            pdfPrompts.add(PdfPasswordPrompt(uniqueId, pickedFile, locked.incorrectPassword))
+            return
+        }
+        Logger.e(result.exception) { "IosFileHandler: upload failed -- ${result.message}" }
+        handle.setError(ChatNotice.uploadFailed(filename, result.message))
+    }
+
     override fun removeFile(file: AttachedFile) {
         pdfPrompts.remove(file.uri)
+        uploadJobs.remove(file.uri)?.cancel()
+        // A failed entry can come back through Undo and still want its retry.
+        if (!file.uploadFailed) picked.remove(file.uri)
         _attachedFiles.update { list -> list.filter { it.uri != file.uri } }
     }
 
+    /**
+     * Uploads a failed file again from the data it was picked with, in its place in the tray and
+     * with the route it went with, as Android's retry does. A file this handler holds no data for
+     * (one restored from a queued turn another device made) can't be re-read, so it is removed.
+     */
     override fun retryUpload(file: AttachedFile) {
-        // Can't retry clipboard paste — user must paste again
-        removeFile(file)
+        val uniqueId = file.uri as? String
+        val data = uniqueId?.let { picked[it] }
+        if (uniqueId == null || data == null) {
+            removeFile(file)
+            return
+        }
+        pdfPrompts.remove(uniqueId)
+        uploadJobs.remove(uniqueId)?.cancel()
+        upload(
+            uniqueId = uniqueId,
+            data = data,
+            route = file.route ?: handle.state.uploadRouteFor(file.type),
+            inPlace = true,
+        )
+    }
+
+    override fun insertAt(index: Int, file: AttachedFile) {
+        _attachedFiles.update { it.insertedAt(index, file) }
     }
 
     override suspend fun waitForUploadsAndSend(text: String, doSend: (String) -> Unit) =
         _attachedFiles.awaitUploadsThenSend(text, setError = handle::setError, doSend = doSend)
 
     override fun hasPendingUploads(): Boolean =
-        _attachedFiles.value.any { it.fileId == null && !it.uploadFailed }
+        _attachedFiles.value.any { it.isUploading }
 
     override fun clearAttachedFiles() {
         pdfPrompts.clear()
+        picked.clear()
+        uploadJobs.clear()
         _attachedFiles.update { emptyList() }
     }
 
     override fun restoreAttachedFiles(files: List<AttachedFile>) {
+        // [picked] stays: the queued-edit swap restores the stashed draft's own entries afterwards,
+        // and a failed one among them is still retryable from it.
         pdfPrompts.clear()
         _attachedFiles.update { files }
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     override fun submitPdfPassword(prompt: PdfPasswordPrompt, password: String) {
         if (!pdfPrompts.take(prompt)) return
         val fileData = prompt.file.ref as? IosFileData ?: return
         _attachedFiles.update { list -> list.filter { it.uri != prompt.chipKey } }
-        // Routed against the live selection, as the Android handler's retry is.
-        uploadFile(fileData, handle.state.uploadRouteFor(fileData.mimeType), pdfPassword = password)
+        picked.remove(prompt.chipKey)
+        // Routed against the live selection, as the Android handler's password retry is.
+        upload(
+            uniqueId = Uuid.random().toString(),
+            data = fileData,
+            route = handle.state.uploadRouteFor(fileData.mimeType),
+            pdfPassword = password,
+        )
     }
 
     override fun dismissPdfPassword() {
         val prompt = pdfPrompts.takeHead() ?: return
+        picked.remove(prompt.chipKey)
         _attachedFiles.update { list -> list.filter { it.uri != prompt.chipKey } }
     }
 

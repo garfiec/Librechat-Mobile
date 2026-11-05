@@ -46,12 +46,22 @@ class UploadIntakeDelegate(
     /**
      * Runs [action] once any pending file uploads have finished, guarding against a double-send
      * while a previous wait is still in flight. Shared by the live-send and queue paths so the
-     * upload-wait semantics live in one place.
+     * upload-wait semantics live in one place: a send, a voice auto-send, a starter, a queue (a
+     * steer carrying files goes there) and saving a queued edit all pass through it.
+     *
+     * A failed upload holds it, checked before the wait and again after it, since the wait treats a
+     * failure as settled ([awaitUploadsThenSend]): the user retries or removes the file, and the
+     * composer's line under the field says so. The steer re-home and an MCP App's message don't pass
+     * here and are never held: neither sends the composer's files.
      */
     fun withUploadGate(text: String, action: (String) -> Unit) {
         if (fileHandler.pendingUploadSendJob?.isActive == true) return
         if (hasUnsettledPicks()) {
             Logger.d { "withUploadGate: refusing send — picked files are not settled yet" }
+            return
+        }
+        if (fileHandler.hasFailedUploads()) {
+            Logger.d { "withUploadGate: holding send — an attachment failed to upload" }
             return
         }
         if (fileHandler.hasPendingUploads()) {
@@ -65,6 +75,10 @@ class UploadIntakeDelegate(
                         // Clear before handing off so the button never shows a spinner over an
                         // already-started send (the success path may set streaming synchronously).
                         setAwaitingUploadSend(false)
+                        if (fileHandler.hasFailedUploads()) {
+                            Logger.d { "withUploadGate: holding send — an upload failed while it waited" }
+                            return@waitForUploadsAndSend
+                        }
                         action(ready)
                     }
                 } finally {
@@ -272,11 +286,11 @@ class UploadIntakeDelegate(
     fun removeFile(file: AttachedFile) = fileHandler.removeFile(file)
 
     /**
-     * Re-uploads a failed attachment. Resolves the agent's provider first, exactly as the intake
-     * path does: the handler re-derives the route from the live selection, and a retry is the one
-     * action a user takes *after* a failure — the same outage that failed the upload will often
-     * have failed the provider fetch, and routing against an unresolved provider silently sends
-     * every document down the provider path.
+     * Re-uploads a failed attachment, in its place and with its route. Resolves the agent's
+     * provider first, as the intake path does: the upload names the selected agent, and a file
+     * that never committed to a route is routed against the live selection. A retry is the one
+     * action a user takes *after* a failure, and the same outage that failed the upload will often
+     * have failed the provider fetch.
      */
     fun retryUpload(file: AttachedFile) {
         handle.scope.launch {

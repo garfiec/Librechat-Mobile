@@ -24,6 +24,7 @@ class AndroidFileHandler(
 
     override fun removeFile(file: AttachedFile) = delegate.removeFile(file)
     override fun retryUpload(file: AttachedFile) = delegate.retryUpload(file)
+    override fun insertAt(index: Int, file: AttachedFile) = delegate.insertAt(index, file)
     override suspend fun waitForUploadsAndSend(text: String, doSend: (String) -> Unit) =
         delegate.waitForUploadsAndSend(text, doSend)
     override fun hasPendingUploads(): Boolean = delegate.hasPendingUploads()

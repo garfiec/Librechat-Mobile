@@ -1,15 +1,122 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
+import android.content.ContentResolver
+import android.content.Context
+import android.net.Uri
+import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.data.repository.FileRepository
+import com.garfiec.librechat.core.model.FileObject
+import com.garfiec.librechat.core.model.response.UploadRoute
+import com.garfiec.librechat.core.model.response.toolResource
 import com.garfiec.librechat.feature.chat.components.AttachedFile
+import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
+import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ErrorOnlyHandle
 import com.google.common.truth.Truth.assertThat
+import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import java.io.ByteArrayInputStream
 
 class FileAttachmentDelegateTest {
+
+    /**
+     * A delegate over a real state handle, reading [bytes] for every picked uri, uploading through
+     * [fileRepository]. Unconfined, so an upload runs inline up to its first suspension.
+     */
+    private fun uploadingDelegate(fileRepository: FileRepository): FileAttachmentDelegate {
+        val resolver = mockk<ContentResolver>(relaxed = true) {
+            every { openInputStream(any()) } answers { ByteArrayInputStream("plain text".encodeToByteArray()) }
+        }
+        val context = mockk<Context>(relaxed = true) { every { contentResolver } returns resolver }
+        return FileAttachmentDelegate(
+            handle = ErrorOnlyHandle(ChatStateHandle(MutableStateFlow(ChatUiState()), CoroutineScope(Dispatchers.Unconfined))),
+            appContext = context,
+            fileRepository = fileRepository,
+            ioDispatcher = Dispatchers.Unconfined,
+        )
+    }
+
+    private fun serverRecord(name: String) =
+        FileObject(fileId = "server-$name", filename = name, filepath = "/f/$name", type = "text/plain", bytes = 10)
+
+    @Test
+    fun `removing a file mid-upload cancels its upload`() {
+        var cancelled = false
+        val repository = mockk<FileRepository> {
+            coEvery {
+                uploadFile(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+            } coAnswers {
+                try {
+                    awaitCancellation()
+                } finally {
+                    cancelled = true
+                }
+            }
+        }
+        val delegate = uploadingDelegate(repository)
+        delegate.onFilesSelected(listOf(RoutedFile(PickedFile(mockk<Uri>(), "notes.txt", "text/plain"), UploadRoute.TEXT)))
+        val inFlight = delegate.attachedFiles.value.single()
+        assertThat(inFlight.isUploading).isTrue()
+
+        delegate.removeFile(inFlight)
+
+        assertThat(cancelled).isTrue()
+        assertThat(delegate.attachedFiles.value).isEmpty()
+    }
+
+    @Test
+    fun `a retry keeps the file's place and the route it went with`() {
+        val toolResources = mutableListOf<String?>()
+        var calls = 0
+        val repository = mockk<FileRepository> {
+            coEvery {
+                uploadFile(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+            } answers {
+                toolResources += arg<String?>(7)
+                val name = arg<String>(1)
+                if (++calls == 1) Result.Error(message = "offline") else Result.Success(serverRecord(name))
+            }
+        }
+        val delegate = uploadingDelegate(repository)
+        val first = mockk<Uri>()
+        val second = mockk<Uri>()
+        delegate.onFilesSelected(
+            listOf(
+                RoutedFile(PickedFile(first, "notes.txt", "text/plain"), UploadRoute.TEXT),
+                RoutedFile(PickedFile(second, "other.txt", "text/plain"), UploadRoute.PROVIDER),
+            ),
+        )
+        val failed = delegate.attachedFiles.value.first()
+        assertThat(failed.uploadFailed).isTrue()
+
+        delegate.retryUpload(failed)
+
+        val tray = delegate.attachedFiles.value
+        assertThat(tray.map { it.name }).containsExactly("notes.txt", "other.txt").inOrder()
+        assertThat(tray.first().fileId).isEqualTo("server-notes.txt")
+        assertThat(tray.first().route).isEqualTo(UploadRoute.TEXT)
+        // The retry went with the route on the row, not one re-derived from the selection.
+        assertThat(toolResources.last()).isEqualTo(UploadRoute.TEXT.toolResource())
+    }
+
+    @Test
+    fun `insertAt puts a file back at its index, clamped`() {
+        val delegate = createDelegate()
+        delegate.restoreAttachedFiles(listOf(serverFile("a"), serverFile("c")))
+
+        delegate.insertAt(1, serverFile("b"))
+        delegate.insertAt(99, serverFile("d"))
+
+        assertThat(delegate.attachedFiles.value.mapNotNull { it.fileId }).containsExactly("a", "b", "c", "d").inOrder()
+    }
 
     private fun createDelegate(handle: ErrorOnlyHandle = mockk(relaxed = true)) = FileAttachmentDelegate(
         handle = handle,

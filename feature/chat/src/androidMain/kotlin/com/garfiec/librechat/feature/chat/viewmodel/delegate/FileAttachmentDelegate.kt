@@ -49,6 +49,13 @@ class FileAttachmentDelegate(
     var pendingUploadSendJob: Job? = null
 
     /**
+     * Each tray entry's upload, by its `uri`, so removing a file mid-upload cancels it. Touched on
+     * the caller's thread only (every entry point runs on Main); a finished job just stays until its
+     * entry is replaced or the tray is cleared, since cancelling one is a no-op.
+     */
+    private val uploadJobs = mutableMapOf<Any, Job>()
+
+    /**
      * Resolves each picked URI's display name and MIME type from provider metadata alone.
      *
      * The type here is provisional — [uploadFile] re-derives it from the file's magic bytes once
@@ -78,7 +85,13 @@ class FileAttachmentDelegate(
     // debt — LongMethod: 173 lines
     // TooGenericExceptionCaught: upload boundary: any failure marks the attachment failed
     @Suppress("CyclomaticComplexMethod", "LongMethod", "TooGenericExceptionCaught")
-    private fun uploadFile(picked: PickedFile, route: UploadRoute, pdfPassword: String? = null) {
+    private fun uploadFile(
+        picked: PickedFile,
+        route: UploadRoute,
+        pdfPassword: String? = null,
+        /** A retry: the upload takes over its entry's place in the tray rather than appending. */
+        inPlace: Boolean = false,
+    ) {
         val context = appContext
         val contentResolver = context.contentResolver
         val uri = picked.ref as Uri
@@ -99,9 +112,15 @@ class FileAttachmentDelegate(
             route = route,
         )
 
-        _attachedFiles.update { currentList -> currentList + pendingFile }
+        _attachedFiles.update { currentList ->
+            if (inPlace && currentList.any { it.uri == uri }) {
+                currentList.map { if (it.uri == uri) pendingFile else it }
+            } else {
+                currentList + pendingFile
+            }
+        }
 
-        handle.scope.launch(ioDispatcher) {
+        uploadJobs[uri] = handle.scope.launch(ioDispatcher) {
             try {
                 // Read file bytes
                 val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
@@ -326,20 +345,24 @@ class FileAttachmentDelegate(
 
     fun removeFile(file: AttachedFile) {
         pdfPrompts.remove(file.uri)
+        uploadJobs.remove(file.uri)?.cancel()
         _attachedFiles.update { currentList -> currentList.filter { it.uri != file.uri } }
     }
 
+    /**
+     * Uploads a failed file again, in its place in the tray, with the route it went with: the
+     * attachment list shows that route on the row the user tapped, so the retry does what the row
+     * says. Only a file that never committed to a route is routed against the live selection.
+     */
     fun retryUpload(file: AttachedFile) {
         pdfPrompts.remove(file.uri)
-        _attachedFiles.update { currentList -> currentList.filter { it.uri != file.uri } }
-        // Re-resolve the route rather than replaying `file.route`: a retry is a fresh upload
-        // against whatever is selected NOW, and the user may well have switched models precisely
-        // because the first attempt failed. Replaying it would send a route decided under the old
-        // provider — e.g. a PDF chosen as native under Bedrock, retried against a provider that
-        // cannot read PDFs, silently ignored.
-        // A code-environment upload was the user's destination, not a routing decision: keep it.
-        val route = if (file.route == UploadRoute.CODE) UploadRoute.CODE else handle.state.uploadRouteFor(file.type)
-        uploadFile(PickedFile(ref = file.uri, name = file.name, mimeType = file.type), route)
+        uploadJobs.remove(file.uri)?.cancel()
+        val route = file.route ?: handle.state.uploadRouteFor(file.type)
+        uploadFile(PickedFile(ref = file.uri, name = file.name, mimeType = file.type), route, inPlace = true)
+    }
+
+    fun insertAt(index: Int, file: AttachedFile) {
+        _attachedFiles.update { it.insertedAt(index, file) }
     }
 
     /**
@@ -350,10 +373,11 @@ class FileAttachmentDelegate(
         _attachedFiles.awaitUploadsThenSend(text, setError = handle::setError, doSend = doSend)
 
     fun hasPendingUploads(): Boolean =
-        _attachedFiles.value.any { it.fileId == null && !it.uploadFailed }
+        _attachedFiles.value.any { it.isUploading }
 
     fun clearAttachedFiles() {
         pdfPrompts.clear()
+        uploadJobs.clear()
         _attachedFiles.update { emptyList() }
     }
 
@@ -366,7 +390,7 @@ class FileAttachmentDelegate(
         if (!pdfPrompts.take(prompt)) return
         val uri = prompt.chipKey as Uri
         _attachedFiles.update { currentList -> currentList.filter { it.uri != uri } }
-        // Routed against the live selection, as a retry is (see retryUpload).
+        // Routed against the live selection: the locked attempt never uploaded under its route.
         uploadFile(prompt.file, handle.state.uploadRouteFor(prompt.file.mimeType), pdfPassword = password)
     }
 

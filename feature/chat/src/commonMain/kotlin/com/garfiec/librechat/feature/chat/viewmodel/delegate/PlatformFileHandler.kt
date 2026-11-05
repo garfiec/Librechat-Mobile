@@ -43,10 +43,26 @@ interface PlatformFileHandler {
     fun describe(platformRefs: List<Any>): List<PickedFile>
 
     fun onFilesSelected(files: List<RoutedFile>)
+
+    /** Takes [file] off the tray. A file still uploading has its upload cancelled. */
     fun removeFile(file: AttachedFile)
+
+    /**
+     * Re-uploads a failed [file] in its place in the tray, with the route it was sent with. iOS keeps
+     * the picked bytes for this; a file whose bytes are gone (or never were the handler's) is removed.
+     */
     fun retryUpload(file: AttachedFile)
+
+    /**
+     * Puts a removed, settled [file] (uploaded or failed) back at [index], clamped to the tray: the
+     * attachment list's Undo. Touches nothing else, PDF password prompts included.
+     */
+    fun insertAt(index: Int, file: AttachedFile)
     suspend fun waitForUploadsAndSend(text: String, doSend: (String) -> Unit)
     fun hasPendingUploads(): Boolean
+
+    /** Whether any attachment failed to upload; such a tray holds every send until it is retried or removed. */
+    fun hasFailedUploads(): Boolean = attachedFiles.value.any { it.uploadFailed }
     fun clearAttachedFiles()
 
     /**
@@ -75,6 +91,10 @@ interface PlatformFileHandler {
     /** Gives up on the head prompt's PDF and removes its chip. */
     fun dismissPdfPassword()
 }
+
+/** [file] inserted at [index], clamped to the list. Shared by both handlers' [PlatformFileHandler.insertAt]. */
+fun List<AttachedFile>.insertedAt(index: Int, file: AttachedFile): List<AttachedFile> =
+    toMutableList().apply { add(index.coerceIn(0, size), file) }
 
 /**
  * Appends [files] to an already-uploaded tray, deduping by `fileId` against what's already present
@@ -113,11 +133,11 @@ suspend fun StateFlow<List<AttachedFile>>.awaitUploadsThenSend(
 ) {
     var elapsed = 0L
     while (elapsed < timeoutMs) {
-        if (value.none { it.fileId == null && !it.uploadFailed }) break
+        if (value.none { it.isUploading }) break
         delay(pollIntervalMs)
         elapsed += pollIntervalMs
     }
-    val stillPending = value.count { it.fileId == null && !it.uploadFailed }
+    val stillPending = value.count { it.isUploading }
     if (stillPending > 0) {
         Logger.w { "awaitUploadsThenSend: aborting send — $stillPending file(s) still uploading" }
         setError(STILL_UPLOADING_MESSAGE)
