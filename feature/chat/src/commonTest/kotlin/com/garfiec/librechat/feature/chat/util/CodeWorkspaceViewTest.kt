@@ -12,10 +12,15 @@ import com.garfiec.librechat.core.model.code.CodeWorkspaceResolver.StatusResult
 import com.garfiec.librechat.core.model.code.CodeWorkspaceSelection
 import com.garfiec.librechat.core.model.code.PublicCodeEnvironment
 import com.garfiec.librechat.core.model.code.StatefulCodeSessionsConfig
+import com.garfiec.librechat.feature.chat.viewmodel.CodeApprovalChip
+import com.garfiec.librechat.feature.chat.viewmodel.CodeApprovalOption
 import com.garfiec.librechat.feature.chat.viewmodel.CodeCheckoutMode
+import com.garfiec.librechat.feature.chat.viewmodel.CodeConfirming
 import com.garfiec.librechat.feature.chat.viewmodel.CodeFootnote
 import com.garfiec.librechat.feature.chat.viewmodel.CodeRequirementState
+import com.garfiec.librechat.feature.chat.viewmodel.CodeTransitionAction
 import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceChipLabel
+import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceUiState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -71,6 +76,7 @@ class CodeWorkspaceViewTest {
     fun choosingSaysWhoNeedsAWorkspaceAndHoldsTheSend() {
         val ui = codeWorkspaceUiState(resolve(chat()), null, null, null, sheetOpen = false, attention = false)
         assertTrue(ui.holdsSend)
+        assertCard(ui)
         assertEquals(CodeWorkspaceChipLabel.CHOOSE, ui.workspace.label)
         assertEquals(CodeRequirementState.CHOOSE, ui.requirements.single().state)
         assertEquals("Switchboard Dev", ui.requirements.single().agents)
@@ -90,6 +96,8 @@ class CodeWorkspaceViewTest {
         val ui =
             codeWorkspaceUiState(resolve(selected), CodeEnvironmentMode.ATTACHED, null, null, sheetOpen = true, attention = false)
         assertFalse(ui.holdsSend)
+        // The next send seals this pick: the card stays until the server has it.
+        assertCard(ui)
         assertEquals("switchboard", ui.workspace.name)
         assertEquals("develop", ui.branch)
         assertEquals(CodeCheckoutMode.WORKTREE, ui.checkout?.mode)
@@ -112,6 +120,7 @@ class CodeWorkspaceViewTest {
         )
         assertEquals(CodeWorkspaceChipLabel.NONE, ui.workspace.label)
         assertEquals(CodeFootnote.WITHOUT_WORKSPACE, ui.footnote)
+        assertCard(ui)
         assertTrue(ui.sheet.noWorkspaceSelected)
         assertNull(ui.branch)
     }
@@ -135,7 +144,9 @@ class CodeWorkspaceViewTest {
         val ui = codeWorkspaceUiState(resolution, null, null, null, sheetOpen = false, attention = false)
         assertTrue(ui.locked)
         assertTrue(ui.holdsSend)
+        assertCard(ui)
         assertEquals(CodeWorkspaceChipLabel.UNAVAILABLE, ui.workspace.label)
+        assertTrue(ui.workspace.refreshes)
         assertEquals(CodeCheckoutMode.REGISTERED, ui.checkout?.mode)
         assertFalse(ui.checkout?.pickable == true)
     }
@@ -194,5 +205,153 @@ class CodeWorkspaceViewTest {
         assertEquals(listOf("build-vm"), ui.checkoutSummaries.map { it.machine })
         assertEquals(CodeCheckoutMode.REGISTERED, ui.checkoutSummaries.single().mode)
         assertFalse(ui.selectionConflict)
+    }
+
+    private fun savedChat(
+        mode: String? = CodeEnvironmentMode.ATTACHED,
+        selections: List<CodeWorkspaceSelection>? = listOf(CodeWorkspaceSelection(mbp.id, "switchboard", "source")),
+    ) = CodeWorkspaceResolver.Chat(
+        isAgentsConversation = true,
+        isNewChat = false,
+        agentId = dev.id,
+        mode = mode,
+        selections = selections,
+        holdsSavedDecision = true,
+    )
+
+    private val transitions = capabilities.copy(moveVersion = 1, transitionVersion = 2)
+
+    private fun savedUi(
+        chat: CodeWorkspaceResolver.Chat = savedChat(),
+        caps: CodeWorkspaceResolver.Capabilities = capabilities,
+        status: CodeEnvironmentStatus = CodeEnvironmentStatus(mbp.id, "ready", listOf(switchboard, librechat)),
+        attention: Boolean = false,
+        moving: Boolean = false,
+    ) = codeWorkspaceUiState(
+        CodeWorkspaceResolver.resolve(caps, chat, mapOf(dev.id to dev), mapOf(mbp.id to StatusResult.Loaded(status))),
+        null, null, null, sheetOpen = false, attention = attention, moving = moving,
+    )
+
+    private fun assertCard(ui: CodeWorkspaceUiState) {
+        assertTrue(ui.visible)
+        assertFalse(ui.folded)
+        assertFalse(ui.onSettingsLine)
+    }
+
+    private fun assertFolded(ui: CodeWorkspaceUiState) {
+        assertFalse(ui.visible)
+        assertTrue(ui.folded)
+        assertTrue(ui.onSettingsLine)
+        assertFalse(ui.holdsSend)
+    }
+
+    @Test
+    fun aHealthySavedDecisionFoldsOntoTheSettingsLine() {
+        // Web hides this row without the transition version; the line still names the workspace.
+        val ui = savedUi()
+        assertFolded(ui)
+        assertEquals("garfie-mbp", ui.machine?.name)
+        assertEquals(CodeWorkspaceChipLabel.NAME, ui.workspace.label)
+        assertEquals("switchboard", ui.workspace.name)
+        // Nothing to change here: a tap re-reads the machine's status.
+        assertFalse(ui.workspace.opensSheet)
+        assertTrue(ui.workspace.refreshes)
+        // Branch and checkout are the card's details; they don't keep the card.
+        assertEquals("develop", ui.branch)
+        assertEquals(CodeCheckoutMode.REGISTERED, ui.checkout?.mode)
+    }
+
+    @Test
+    fun aHealthySavedDecisionWithDetachOnOfferFoldsAndOpensTheTransitionSheet() {
+        val ui = savedUi(caps = transitions)
+        assertFolded(ui)
+        assertEquals(CodeTransitionAction.DETACH, ui.transition?.action)
+        assertTrue(ui.workspace.opensSheet)
+        assertFalse(ui.workspace.refreshes)
+    }
+
+    @Test
+    fun aSavedDecisionThatNeedsTheUserKeepsTheCard() {
+        // A rejection named the workspace, with and without the transition version.
+        assertCard(savedUi(attention = true))
+        assertCard(savedUi(caps = transitions, attention = true))
+        // The decision is being changed.
+        assertCard(savedUi(caps = transitions, moving = true))
+        // The machine is offline: the send waits.
+        val offline = savedUi(status = CodeEnvironmentStatus(mbp.id, "offline"))
+        assertCard(offline)
+        assertTrue(offline.holdsSend)
+        // The saved workspace is gone.
+        val gone = savedUi(caps = transitions, status = CodeEnvironmentStatus(mbp.id, "ready", listOf(librechat)))
+        assertCard(gone)
+        assertTrue(gone.transition?.action != CodeTransitionAction.DETACH)
+    }
+
+    @Test
+    fun aSealedNoWorkspaceKeepsItsFootnoteAndIsALabel() {
+        val ui = savedUi(savedChat(mode = CodeEnvironmentMode.WITHOUT_ATTACHED, selections = null))
+        assertCard(ui)
+        assertEquals(CodeFootnote.WITHOUT_WORKSPACE, ui.footnote)
+        assertEquals(CodeWorkspaceChipLabel.NONE, ui.workspace.label)
+        // No machine status to read again and no transition on offer: neither a sheet nor Refresh.
+        assertFalse(ui.workspace.opensSheet)
+        assertFalse(ui.workspace.refreshes)
+    }
+
+    @Test
+    fun aSealedNoWorkspaceWithAttachOnOfferOpensTheTransitionSheet() {
+        val ui = savedUi(savedChat(mode = CodeEnvironmentMode.WITHOUT_ATTACHED, selections = null), caps = transitions)
+        assertCard(ui)
+        assertEquals(CodeTransitionAction.ATTACH, ui.transition?.action)
+        assertTrue(ui.workspace.opensSheet)
+        assertFalse(ui.workspace.refreshes)
+    }
+
+    @Test
+    fun aConfirmingChatKeepsTheCard() {
+        val ui = codeWorkspaceUiState(
+            CodeWorkspaceResolver.resolve(
+                capabilities,
+                savedChat(),
+                mapOf(dev.id to dev),
+                mapOf(mbp.id to StatusResult.Loaded(CodeEnvironmentStatus(mbp.id, "ready", listOf(switchboard)))),
+            ),
+            null, null, null, sheetOpen = false, attention = false, confirming = CodeConfirming.PENDING,
+        )
+        assertCard(ui)
+        assertTrue(ui.holdsSend)
+    }
+
+    @Test
+    fun aHealthySavedDecisionOnTwoMachinesFoldsAsACount() {
+        val vm = PublicCodeEnvironment(id = "build-vm", type = "attached")
+        val ops = dev.copy(id = "agent_ops", name = "Ops", codeEnvironmentId = vm.id)
+        val lead = dev.copy(agentIds = listOf(ops.id))
+        val selections = listOf(CodeWorkspaceSelection(mbp.id, "switchboard"), CodeWorkspaceSelection(vm.id, "scratch"))
+        val ui = codeWorkspaceUiState(
+            CodeWorkspaceResolver.resolve(
+                capabilities.copy(statefulCodeSessions = StatefulCodeSessionsConfig(environments = listOf(mbp, vm))),
+                savedChat(selections = selections),
+                mapOf(lead.id to lead, ops.id to ops),
+                mapOf(
+                    mbp.id to StatusResult.Loaded(CodeEnvironmentStatus(mbp.id, "ready", listOf(switchboard))),
+                    vm.id to StatusResult.Loaded(CodeEnvironmentStatus(vm.id, "ready", listOf(CodeWorkspaceDescriptor(id = "scratch")))),
+                ),
+            ),
+            null, null, null, sheetOpen = false, attention = false,
+        )
+        assertFolded(ui)
+        assertNull(ui.machine)
+        assertEquals(CodeWorkspaceChipLabel.COUNT, ui.workspace.label)
+        assertEquals(2, ui.workspace.count)
+    }
+
+    @Test
+    fun theApprovalChipGoesOnTheLineWithoutTheCard() {
+        val approval = CodeApprovalChip(CodeApprovalOption.ASK, emptyList())
+        assertTrue(CodeWorkspaceUiState(approval = approval).onSettingsLine)
+        assertFalse(CodeWorkspaceUiState().onSettingsLine)
+        // With the card, it is on the card.
+        assertFalse(CodeWorkspaceUiState(visible = true, approval = approval).onSettingsLine)
     }
 }

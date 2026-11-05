@@ -1141,6 +1141,7 @@
     <string name="code_checkout_registered_chip">سحب مسجّل</string>
     <string name="code_checkout_registered_info">نسخة الجهاز المسحوبة، مشتركة مع محادثات أخرى</string>
     <string name="cd_code_chip">%1$s: %2$s</string>
+    <string name="cd_code_workspace_folded">مساحة عمل الكود: %1$s على %2$s</string>
     <string name="command_finished">شُغّل الأمر</string>
     <string name="command_exit_code">رمز الخروج %1$d</string>
     <string name="command_terminated">أنهاه %1$s</string>

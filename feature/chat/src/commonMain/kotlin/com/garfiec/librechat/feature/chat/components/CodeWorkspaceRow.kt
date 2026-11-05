@@ -54,6 +54,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveAssistChip
 import com.garfiec.librechat.core.ui.components.AdaptiveChipDefaults
@@ -66,6 +67,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoice
 import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_code_chip
+import com.garfiec.librechat.feature.chat.resources.cd_code_workspace_folded
 import com.garfiec.librechat.feature.chat.resources.code_branch
 import com.garfiec.librechat.feature.chat.resources.code_branch_info
 import com.garfiec.librechat.feature.chat.resources.code_checkout_auto
@@ -98,7 +100,6 @@ import com.garfiec.librechat.feature.chat.resources.code_workspace_used_by
 import com.garfiec.librechat.feature.chat.resources.code_workspace_without
 import com.garfiec.librechat.feature.chat.resources.code_workspace_without_info
 import com.garfiec.librechat.feature.chat.resources.code_workspaces_selected
-import com.garfiec.librechat.feature.chat.viewmodel.CodeApprovalChip
 import com.garfiec.librechat.feature.chat.viewmodel.CodeApprovalOption
 import com.garfiec.librechat.feature.chat.viewmodel.CodeCheckoutMode
 import com.garfiec.librechat.feature.chat.viewmodel.CodeFootnote
@@ -106,6 +107,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.CodeMachineSection
 import com.garfiec.librechat.feature.chat.viewmodel.CodeMachineStatus
 import com.garfiec.librechat.feature.chat.viewmodel.CodeRequirement
 import com.garfiec.librechat.feature.chat.viewmodel.CodeRequirementState
+import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceChip
 import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceChipLabel
 import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceRowView
 import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceUiState
@@ -132,36 +134,91 @@ class CodeWorkspaceComposer(
 )
 
 /**
- * Provided by the chat screen around its composer, so both platform composers draw the row without
- * threading it through their signatures. Null draws nothing.
+ * Provided by the chat screen around its composer, so both platform composers draw the card and the
+ * settings line's workspace chips without threading them through their signatures. Null draws nothing.
  */
 val LocalCodeWorkspaceComposer = compositionLocalOf<CodeWorkspaceComposer?> { null }
 
 /** Web's `max-w-[12rem]` on a machine, workspace or branch name. Translated labels are never capped. */
 private val CHIP_NAME_MAX_WIDTH = 192.dp
 
+/** The folded chip names two of them ("machine · workspace") on a line that scrolls. */
+private val FOLDED_NAME_MAX_WIDTH = 256.dp
+
 /**
- * The attached-machine controls above the pinned tools: machine, workspace, branch and checkout
- * chips, and the lines that say what a held send is waiting on. Draws [CodeWorkspaceComposer.state]
- * and nothing more; every decision is the delegate's.
+ * The attached-machine card above the settings line: machine, workspace, branch and checkout chips,
+ * and the lines that say what a held send is waiting on. Draws [CodeWorkspaceComposer.state] and
+ * nothing more; every decision is the delegate's. Draws nothing without
+ * [CodeWorkspaceUiState.visible]: a healthy saved chat is on the settings line instead
+ * ([CodeWorkspaceLineChips]).
  */
 @Composable
 internal fun CodeWorkspaceRow(composer: CodeWorkspaceComposer, modifier: Modifier = Modifier) {
     val state = composer.state
     val confirming = state.confirming
     when {
-        // A healthy saved chat hides its workspace chips; the approval mode still applies to it.
-        !state.visible -> ApprovalOnlyRow(state.approval, composer.onSelectApprovalMode, modifier)
+        !state.visible -> Unit
         confirming != null -> ConfirmingRow(confirming, composer.onRetryReconcile, modifier = modifier)
         else -> WorkspaceRowContent(composer, modifier)
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * The settings line's leading chips while no card shows ([CodeWorkspaceUiState.onSettingsLine]): a
+ * folded chat's "machine · workspace" chip, then the approval chip. The same callbacks and menus as
+ * the card's chips; a tap on the folded chip opens the transition sheet (Detach) when one is on
+ * offer, else re-reads the machine's status.
+ */
 @Composable
-private fun ApprovalOnlyRow(approval: CodeApprovalChip?, onSelect: (CodeApprovalOption) -> Unit, modifier: Modifier = Modifier) {
-    if (approval == null) return
-    FlowRow(modifier = modifier.fillMaxWidth()) { ApprovalChip(approval, onSelect) }
+internal fun CodeWorkspaceLineChips(composer: CodeWorkspaceComposer) {
+    val state = composer.state
+    if (state.visible) return
+    if (state.folded) FoldedWorkspaceChip(state, composer)
+    state.approval?.let { ApprovalChip(it, composer.onSelectApprovalMode) }
+}
+
+@Composable
+private fun FoldedWorkspaceChip(state: CodeWorkspaceUiState, composer: CodeWorkspaceComposer) {
+    val chip = state.workspace
+    val workspace = if (chip.label == CodeWorkspaceChipLabel.COUNT) {
+        pluralStringResource(Res.plurals.code_workspaces_selected, chip.count, chip.count)
+    } else {
+        chip.name.orEmpty()
+    }
+    val machine = state.machine?.name
+    val description = if (machine != null) {
+        stringResource(Res.string.cd_code_workspace_folded, workspace, machine)
+    } else {
+        stringResource(Res.string.cd_code_chip, stringResource(Res.string.code_workspace), workspace)
+    }
+    Box {
+        CodeChip(
+            icon = Icons.Outlined.Folder,
+            label = listOfNotNull(machine, workspace).joinToString(" · "),
+            description = description,
+            caret = chip.opensSheet,
+            isName = true,
+            nameMaxWidth = FOLDED_NAME_MAX_WIDTH,
+            trailing = if (chip.refreshes) Icons.Default.Refresh else null,
+            onClick = workspaceChipTap(chip, composer),
+        )
+        // A window of its own, in the chip's box so the line's spacing doesn't count it.
+        CodeWorkspaceSheetHost(composer)
+    }
+}
+
+@Composable
+private fun CodeWorkspaceSheetHost(composer: CodeWorkspaceComposer) {
+    val state = composer.state
+    if (!state.sheetOpen) return
+    val transition = state.transition
+    if (transition != null) TransitionSheet(transition, composer) else CodeWorkspaceSheet(composer)
+}
+
+private fun workspaceChipTap(chip: CodeWorkspaceChip, composer: CodeWorkspaceComposer): (() -> Unit)? = when {
+    chip.opensSheet -> ({ composer.onOpenSheet(null) })
+    chip.refreshes -> composer.onRefresh
+    else -> null
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -245,10 +302,7 @@ private fun WorkspaceRowContent(composer: CodeWorkspaceComposer, modifier: Modif
             )
         }
         // The sheet is a window of its own; placed here so the row stays one emitter.
-        if (state.sheetOpen) {
-            val transition = state.transition
-            if (transition != null) TransitionSheet(transition, composer) else CodeWorkspaceSheet(composer)
-        }
+        CodeWorkspaceSheetHost(composer)
     }
 }
 
@@ -356,10 +410,11 @@ private fun WorkspaceChip(state: CodeWorkspaceUiState, composer: CodeWorkspaceCo
         description = description,
         caret = chip.opensSheet,
         isName = chip.label == CodeWorkspaceChipLabel.NAME,
-        // A locked chat cannot change its decision here: a tap re-reads the machine's status.
-        trailing = if (chip.opensSheet) null else Icons.Default.Refresh,
+        // A locked chat with nothing to change re-reads the machine's status on a tap; a sealed
+        // "No workspace" has none to read, so it is a label.
+        trailing = if (chip.refreshes) Icons.Default.Refresh else null,
         tint = tint,
-        onClick = { if (chip.opensSheet) composer.onOpenSheet(null) else composer.onRefresh() },
+        onClick = workspaceChipTap(chip, composer),
     )
 }
 
@@ -397,6 +452,7 @@ internal fun CodeChip(
     onClick: (() -> Unit)?,
     /** A user-chosen name, capped in width. A translated label keeps its full length; the row wraps. */
     isName: Boolean = false,
+    nameMaxWidth: Dp = CHIP_NAME_MAX_WIDTH,
     trailing: ImageVector? = null,
     tint: androidx.compose.ui.graphics.Color? = null,
 ) {
@@ -412,7 +468,7 @@ internal fun CodeChip(
                 text = label,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = if (isName) Modifier.widthIn(max = CHIP_NAME_MAX_WIDTH) else Modifier,
+                modifier = if (isName) Modifier.widthIn(max = nameMaxWidth) else Modifier,
             )
         },
         modifier = if (onClick != null) {

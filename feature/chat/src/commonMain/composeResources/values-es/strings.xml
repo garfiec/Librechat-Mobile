@@ -1078,6 +1078,7 @@
     <string name="code_checkout_registered_chip">Checkout registrado</string>
     <string name="code_checkout_registered_info">El checkout de la máquina, compartido con otros chats</string>
     <string name="cd_code_chip">%1$s: %2$s</string>
+    <string name="cd_code_workspace_folded">Espacio de trabajo de código: %1$s en %2$s</string>
     <string name="command_finished">Comando ejecutado</string>
     <string name="command_exit_code">código de salida %1$d</string>
     <string name="command_terminated">terminado por %1$s</string>

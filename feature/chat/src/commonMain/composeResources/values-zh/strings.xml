@@ -1046,6 +1046,7 @@
     <string name="code_checkout_registered_chip">已注册的检出</string>
     <string name="code_checkout_registered_info">机器上的检出，与其他对话共享</string>
     <string name="cd_code_chip">%1$s：%2$s</string>
+    <string name="cd_code_workspace_folded">代码工作区：%2$s 上的 %1$s</string>
     <string name="command_finished">已运行命令</string>
     <string name="command_exit_code">退出码 %1$d</string>
     <string name="command_terminated">被 %1$s 终止</string>

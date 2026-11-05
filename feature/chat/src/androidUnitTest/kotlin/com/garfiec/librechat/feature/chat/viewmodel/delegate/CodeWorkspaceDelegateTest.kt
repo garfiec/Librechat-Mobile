@@ -191,7 +191,7 @@ class CodeWorkspaceDelegateTest {
     }
 
     @Test
-    fun `a chat holding a decision sends nothing and hides the row when healthy`() {
+    fun `a chat holding a decision sends nothing and folds the row onto the settings line when healthy`() {
         val environments = FakeEnvironments(
             ready(switchboard),
             saved = Result.Success(
@@ -200,7 +200,11 @@ class CodeWorkspaceDelegateTest {
         )
         withDelegate(state(conversationId = "c1"), environments) { flow, delegate ->
             assertThat(delegate.submissionForSend()).isEqualTo(CodeWorkspaceSubmission.NONE)
-            assertThat(flow.value.codeWorkspace.visible).isFalse()
+            val ui = flow.value.codeWorkspace
+            assertThat(ui.visible).isFalse()
+            assertThat(ui.folded).isTrue()
+            assertThat(ui.workspace.name).isEqualTo("switchboard")
+            assertThat(ui.machine?.name).isEqualTo(mbp.displayName)
         }
     }
 
@@ -289,7 +293,9 @@ class CodeWorkspaceDelegateTest {
         )
         withDelegate(state(conversationId = "c1"), environments, moveVersions = true) { flow, delegate ->
             val ui = flow.value.codeWorkspace
-            assertThat(ui.visible).isTrue()
+            // Healthy: folded onto the settings line, whose chip opens the Detach sheet.
+            assertThat(ui.folded).isTrue()
+            assertThat(ui.visible).isFalse()
             assertThat(ui.transition?.action).isEqualTo(CodeTransitionAction.DETACH)
             assertThat(ui.workspace.opensSheet).isTrue()
             delegate.openSheet()
@@ -299,6 +305,9 @@ class CodeWorkspaceDelegateTest {
             assertThat(environments.moves.single())
                 .isEqualTo(listOf(CodeWorkspaceSelection(mbp.id, "switchboard")) to emptyList<CodeWorkspaceSelection>())
             assertThat(flow.value.codeWorkspace.workspace.label).isEqualTo(CodeWorkspaceChipLabel.NONE)
+            // Sealed without a workspace now: its footnote keeps the card.
+            assertThat(flow.value.codeWorkspace.visible).isTrue()
+            assertThat(flow.value.codeWorkspace.folded).isFalse()
             // The server applies its recorded decision: the turn sends none.
             assertThat(delegate.submissionForSend()).isEqualTo(CodeWorkspaceSubmission.NONE)
         }

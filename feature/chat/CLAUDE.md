@@ -1138,8 +1138,8 @@ first, then images, files, skills, quotes.
 - Tool toggles and MCP servers live in the paged "+" options sheet (`ChatToolsSheetContent`),
   reached from the composer's `onOpenTools`. What is on shows on the composer's settings line (next).
 - **The settings line** (`ComposerSettingsLine`, above the field): one chip per thing, on one line
-  that scrolls sideways (end fade) and never wraps. Order: a leading slot (for the code workspace's
-  chips; nothing fills it yet), the tools in the "+" sheet's order, the selected MCP servers in list order, Thinking,
+  that scrolls sideways (end fade) and never wraps. Order: a leading slot (the code workspace's
+  folded chip and approval chip, see "Code workspace"), the tools in the "+" sheet's order, the selected MCP servers in list order, Thinking,
   and the context ring pinned at the end. Hidden when it would hold nothing.
   - **Mapped once, as view data**: `settingChipsOf` (`util/SettingChips.kt`, pure) over
     `ChatUiState.settingChipInputs`, in the ViewModel's `uiState` combine (`SettingChipsMemo`), onto
@@ -1281,9 +1281,25 @@ An agent with stateful code sessions can run files and commands on the user's ow
 `librechat-code` worker). The chat's choice of machine and workspace is a **decision the server seals
 with the first coding turn**: a new chat that sends neither `codeEnvironmentMode` nor `codeWorkspaces`
 is sealed "No workspace" for good. The rules are `:core:model` `code/CodeWorkspaceResolver.kt` (web's
-`useCodeWorkspace`, mirrored); the delegate gathers inputs, polls, and keeps the draft; the composer's
-`CodeWorkspaceRow` (provided through `LocalCodeWorkspaceComposer`, so both platform composers draw it)
-only draws `CodeWorkspaceUiState`.
+`useCodeWorkspace`, mirrored); the delegate gathers inputs, polls, and keeps the draft; the composer
+only draws `CodeWorkspaceUiState` (mapped in `util/CodeWorkspaceView.kt`), through
+`LocalCodeWorkspaceComposer` so both platform composers draw it.
+- **Card or fold.** The chat folds onto the settings line only when it holds a **saved** decision and
+  nothing needs the user (`CodeWorkspaceUiState.folded`, decided in `codeWorkspaceUiState`): locked,
+  sendable, every machine ready, no rejection tint, no change being written, no footnote, requirement
+  or conflict line, and no transition but Detach. Then the line's leading slot
+  (`CodeWorkspaceLineChips`) holds a "machine · workspace" chip ("{n} code workspaces" across
+  machines) and the approval chip, and no card shows. Everything else keeps the card
+  (`CodeWorkspaceRow`, `visible`) above the line: choosing or held (`holdsSend`), an undecided chat
+  whose next send seals the workspace, "No workspace" with its footnote, confirming, rejections and
+  requirement lines. Branch, checkout and linked-worktree chips are card details: a folded chat
+  doesn't show them. The fold also names a healthy saved chat that web hides (no transition version),
+  so `visible` is the card, not web's `visible`; polling still follows the resolver's.
+- **The folded chip is the card's workspace chip in another place**: same callbacks, same sheets. It
+  opens the transition sheet when Detach is on offer, else re-reads the machine's status
+  (`CodeWorkspaceChip.refreshes`, with its Refresh glyph). The sheet is hosted in the chip's box. A
+  sealed "No workspace" chip neither opens nor refreshes unless a transition (Attach) is on offer:
+  there is no status to read, so it is a label.
 - **Gate on the fields, never the version** (VERSION_GATES.md): `RUN_CODE.USE`, the agents endpoint's
   `execute_code` + `stateful_code_sessions` capabilities, an `attached` machine in
   `statefulCodeSessions.environments`, a reachable agent that routes code there. Capability versions
@@ -1311,8 +1327,8 @@ only draws `CodeWorkspaceUiState`.
   (`PATCH …/decision`, `CodeEnvironmentRepository.moveDecision`), and the answer becomes the saved
   decision. While it is in flight the send waits (web's `replacingDecision`). A `locked` refusal or an
   unknown outcome re-reads the decision; busy and other refusals only say so (`ChatNotice`
-  `CODE_WORKSPACE_MOVE_*`). With the transition version a healthy saved chat is visible (for Detach),
-  as on web.
+  `CODE_WORKSPACE_MOVE_*`). With the transition version a healthy saved chat offers Detach from its
+  folded chip; web shows it as a visible row.
 - **Reconcile after a failed turn**: a send that carried a decision and ended in an error (a `ChatNotice`
   marker is not one; the flag clears when the run ends either way) re-reads the
   saved decision with Send held and "Confirming this chat's workspace decision…" (`CodeConfirming`);
@@ -1323,8 +1339,8 @@ only draws `CodeWorkspaceUiState`.
   "{n} machines" / "{n} code workspaces", explicit checkouts get a line each, and picks that leave an
   agent uncovered show web's `graph_selection_conflict` line. "Linked worktrees" shows for a
   `git_linked_worktree` workspace that is not isolated (Auto on a worktree-capable one isolates).
-- **Code approval mode** (`CodeApproval` in `:core:model`): the chip shows with the row, or on its own
-  for a healthy saved chat. `submissionForSend()` adds `approvalMode` to the submission, so the mode
+- **Code approval mode** (`CodeApproval` in `:core:model`): the chip shows on the card, else on the
+  settings line (`CodeWorkspaceUiState.onSettingsLine`), after the folded chip when there is one. `submissionForSend()` adds `approvalMode` to the submission, so the mode
   rides every send path the decision does; `ask` without a workspace. The mode asked for is this
   chat's pick, else the saved decision's, else (no decision yet) the spec preset's `codeApprovalMode`,
   else the device's last pick (`requestedApprovalMode`, web's `conversation.codeApprovalMode ?? preference`). A follow-up whose mode is not

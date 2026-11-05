@@ -1046,6 +1046,7 @@
     <string name="code_checkout_registered_chip">등록된 체크아웃</string>
     <string name="code_checkout_registered_info">머신의 체크아웃으로, 다른 채팅과 공유됩니다</string>
     <string name="cd_code_chip">%1$s: %2$s</string>
+    <string name="cd_code_workspace_folded">코드 작업 공간: %2$s의 %1$s</string>
     <string name="command_finished">명령 실행함</string>
     <string name="command_exit_code">종료 코드 %1$d</string>
     <string name="command_terminated">%1$s(으)로 종료됨</string>

@@ -1103,6 +1103,7 @@
     <string name="code_checkout_registered_chip">Зарегистрированный checkout</string>
     <string name="code_checkout_registered_info">Checkout машины, общий с другими чатами</string>
     <string name="cd_code_chip">%1$s: %2$s</string>
+    <string name="cd_code_workspace_folded">Рабочее пространство для кода: %1$s на %2$s</string>
     <string name="command_finished">Команда выполнена</string>
     <string name="command_exit_code">код выхода %1$d</string>
     <string name="command_terminated">завершено сигналом %1$s</string>

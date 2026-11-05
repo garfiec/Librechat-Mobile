@@ -1046,6 +1046,7 @@
     <string name="code_checkout_registered_chip">登録済みチェックアウト</string>
     <string name="code_checkout_registered_info">マシン上のチェックアウト。他のチャットと共有されます</string>
     <string name="cd_code_chip">%1$s：%2$s</string>
+    <string name="cd_code_workspace_folded">コードワークスペース：%2$s の %1$s</string>
     <string name="command_finished">コマンドを実行しました</string>
     <string name="command_exit_code">終了コード %1$d</string>
     <string name="command_terminated">%1$s により終了</string>

@@ -3,14 +3,21 @@ package com.garfiec.librechat.feature.chat.viewmodel
 import androidx.compose.runtime.Immutable
 
 /**
- * The composer's code-workspace row (`CodeWorkspaceRow`) and its sheet, already mapped to what is
- * drawn: the row resolves strings and nothing else. Written only by `CodeWorkspaceDelegate`.
- * Hidden ([visible] false) unless an agent in the chat runs code on an attached machine and the
- * chat is choosing, cannot send, or runs without a workspace.
+ * The composer's code-workspace card (`CodeWorkspaceRow`), its chips on the settings line and its
+ * sheet, already mapped to what is drawn: the composables resolve strings and nothing else. Written
+ * only by `CodeWorkspaceDelegate`. The card shows ([visible]) when an agent in the chat runs code on
+ * an attached machine and the chat is choosing, cannot send, runs without a workspace, or has a
+ * line to read; a healthy saved decision [folded] onto the settings line instead.
  */
 @Immutable
 data class CodeWorkspaceUiState(
+    /** The card above the settings line. Never with [folded]. */
     val visible: Boolean = false,
+    /**
+     * The chat holds a saved decision and nothing needs the user: the settings line starts with a
+     * "machine · workspace" chip ([machine], [workspace]) and the approval chip, and no card shows.
+     */
+    val folded: Boolean = false,
     /** The chat already recorded its decision: nothing here can change it. */
     val locked: Boolean = false,
     /** Send waits on this row; [requirements] say why. */
@@ -49,11 +56,14 @@ data class CodeWorkspaceUiState(
     /** A change of the saved chat's decision on offer; the workspace chip opens its sheet. */
     val transition: CodeTransitionView? = null,
     /**
-     * The code approval mode picker. Independent of [visible]: a healthy saved chat hides its
-     * workspace chips but still picks how much its agent may do without asking.
+     * The code approval mode picker. Independent of [visible]: without the card it sits on the
+     * settings line, so a chat that shows no workspace still picks how much its agent may do.
      */
     val approval: CodeApprovalChip? = null,
-)
+) {
+    /** What the settings line's leading slot draws: the folded chip, the approval chip, or both. */
+    val onSettingsLine: Boolean get() = folded || (!visible && approval != null)
+}
 
 enum class CodeApprovalOption { ASK, ACCEPT_EDITS, FULL_ACCESS }
 
@@ -114,10 +124,15 @@ data class CodeWorkspaceChip(
     /** The number of picks for [CodeWorkspaceChipLabel.COUNT]. */
     val count: Int = 0,
     /**
-     * False on a locked chat with nothing to change, where a tap refreshes the machine's status
-     * instead. A locked chat with a transition on offer opens the transition sheet.
+     * False on a locked chat with nothing to change. A locked chat with a transition on offer opens
+     * the transition sheet.
      */
     val opensSheet: Boolean = true,
+    /**
+     * A tap re-reads the machine's status (a locked chat with no transition). Neither this nor
+     * [opensSheet] on a sealed "No workspace": the chip is a label.
+     */
+    val refreshes: Boolean = false,
 )
 
 enum class CodeCheckoutMode { AUTO, WORKTREE, REGISTERED }

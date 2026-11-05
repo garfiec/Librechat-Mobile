@@ -42,6 +42,10 @@ import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceUiState
  * not use yet; [browsingStatus] is its poll. [transitionChoices] are the picks drafted for the
  * resolution's transition, [moving] says one is being written, and [confirming] replaces the
  * whole row with the decision check web shows after a failed turn.
+ *
+ * A chat holding a saved decision with nothing that needs the user folds: no card, a
+ * "machine · workspace" chip on the settings line ([CodeWorkspaceUiState.folded]). That includes a
+ * healthy saved chat web hides (no transition version), which the line still names.
  */
 @Suppress("CyclomaticComplexMethod", "LongMethod", "ComplexCondition") // web's menu layout in one mapping
 internal fun codeWorkspaceUiState(
@@ -56,7 +60,7 @@ internal fun codeWorkspaceUiState(
     confirming: CodeConfirming? = null,
 ): CodeWorkspaceUiState {
     if (confirming != null) return CodeWorkspaceUiState(visible = true, holdsSend = true, confirming = confirming)
-    if (!resolution.visible) return CodeWorkspaceUiState()
+    if (!resolution.visible && !mayFold(resolution)) return CodeWorkspaceUiState()
     val transition = resolution.transition?.let { transitionView(it, transitionChoices, moving) }
     val environments = resolution.environments
     val only = environments.singleOrNull()
@@ -80,6 +84,8 @@ internal fun codeWorkspaceUiState(
         name = onlyDescriptor?.displayName,
         count = resolution.selections?.size ?: 0,
         opensSheet = !resolution.locked || transition != null,
+        // A sealed "No workspace" has no machine status to read again.
+        refreshes = resolution.locked && transition == null && !withoutWorkspace,
     )
 
     val machineOptions = LinkedHashMap<String, PublicCodeEnvironment>()
@@ -189,8 +195,22 @@ internal fun codeWorkspaceUiState(
             }
     }
 
+    val footnote = when {
+        withoutWorkspace -> CodeFootnote.WITHOUT_WORKSPACE
+        resolution.locked && resolution.submission == null -> CodeFootnote.LOCKED_RECOVERY
+        else -> null
+    }
+    // Nothing on the card would need the user: no hold, no line to read, nothing to choose. Branch,
+    // checkout and linked-worktree chips are details of the card, not reasons to keep it. A saved
+    // decision web hides that does need the user (a rejection named it) shows the card, not nothing.
+    val folded = mayFold(resolution) && !attention && !moving && footnote == null &&
+        requirements.isEmpty() && !selectionConflict &&
+        (transition == null || transition.action == CodeTransitionAction.DETACH) &&
+        (workspaceChip.label == CodeWorkspaceChipLabel.NAME || workspaceChip.label == CodeWorkspaceChipLabel.COUNT)
+
     return CodeWorkspaceUiState(
-        visible = true,
+        visible = !folded,
+        folded = folded,
         locked = resolution.locked,
         holdsSend = resolution.submission == null,
         machine = machineChip,
@@ -202,11 +222,7 @@ internal fun codeWorkspaceUiState(
         graphRequirement = (requirements.isNotEmpty() || selectionConflict) && codingAgents.size > 1,
         selectionConflict = selectionConflict,
         checkoutSummaries = checkoutSummaries,
-        footnote = when {
-            withoutWorkspace -> CodeFootnote.WITHOUT_WORKSPACE
-            resolution.locked && resolution.submission == null -> CodeFootnote.LOCKED_RECOVERY
-            else -> null
-        },
+        footnote = footnote,
         attention = attention,
         sheetOpen = sheetOpen && (!resolution.locked || transition != null),
         transition = transition,
@@ -217,6 +233,10 @@ internal fun codeWorkspaceUiState(
         ),
     )
 }
+
+/** A saved decision the next send doesn't wait on, with every machine ready. */
+private fun mayFold(resolution: CodeWorkspaceResolver.Resolution): Boolean =
+    resolution.required && resolution.locked && resolution.submission != null && resolution.state == State.READY
 
 /** Web's `describeTransition` inputs, and the target sections with the drafted picks. */
 private fun transitionView(

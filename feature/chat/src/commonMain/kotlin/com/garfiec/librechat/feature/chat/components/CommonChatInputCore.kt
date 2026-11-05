@@ -392,18 +392,21 @@ private fun ComposerChromeStack(
             }
         }
 
-        // The attached machine a coding agent works on (machine, workspace, branch, checkout).
-        LocalCodeWorkspaceComposer.current?.let { codeWorkspace ->
-            CodeWorkspaceRow(codeWorkspace, modifier = Modifier.padding(bottom = 4.dp))
-        }
+        // The attached machine a coding agent works on (machine, workspace, branch, checkout), as a
+        // card while it needs the user; folded onto the settings line once the chat's saved decision
+        // is healthy.
+        val codeWorkspace = LocalCodeWorkspaceComposer.current
+        codeWorkspace?.let { CodeWorkspaceRow(it, modifier = Modifier.padding(bottom = 4.dp)) }
 
-        // What is on for the next message (tools, MCP servers, Thinking), with the context ring
-        // pinned at its end under the above-the-field placement.
+        // What is on for the next message (the workspace, tools, MCP servers, Thinking), with the
+        // context ring pinned at its end under the above-the-field placement.
         ComposerSettingsLine(
             chips = chrome.settingChips,
             onChipTap = chrome.onSettingChipTap,
             ring = chrome.contextRing(),
             modifier = Modifier.padding(bottom = 4.dp),
+            hasLeading = codeWorkspace?.state?.onSettingsLine == true,
+            leading = { codeWorkspace?.let { CodeWorkspaceLineChips(it) } },
         )
     }
 }
