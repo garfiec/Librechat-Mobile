@@ -28,7 +28,8 @@ import org.jetbrains.compose.resources.stringResource
 @Immutable
 data class McpSignIn(
     val preparingServer: String?,
-    val signIn: (serverName: String, authorizationUrl: String) -> Unit,
+    /** Whether it opened: false while another sign-in is binding or on screen. */
+    val signIn: (serverName: String, authorizationUrl: String) -> Boolean,
 )
 
 /**

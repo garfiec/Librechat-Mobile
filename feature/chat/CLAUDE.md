@@ -1176,7 +1176,9 @@ first, then images, files, skills, quotes.
   - **MCP chips carry the MCP servers page's status** (`McpServerDisplayData.status`, mapped in
     `McpServersDelegate.load` with `:core:model`'s `mcpDisplayStatus`, the `mcp-status-badge`
     mirror, over the status map with tool discovery's lapsed authorizations folded in by
-    `applyDiscoveryAuthorizationState`, as the page does). The dot is `mcpStatusColor` (`McpStatusPresentation.kt`, from
+    `applyDiscoveryAuthorizationState`, as the page does; the servers paint as soon as the list and
+    status routes answer, with the last discovery verdicts, and re-fold when `GET /api/mcp/tools`
+    lands, since that route waits on a full catalog load). The dot is `mcpStatusColor` (`McpStatusPresentation.kt`, from
     `statusColors()`): connected green, connecting info, needs sign-in or setup amber, failed error,
     the rest neutral; the "+" sheet's rows use the same dot and label. A chip whose tap signs in
     (`SettingChip.Mcp.signsInOnTap`: needs sign-in, or an OAuth server that reads connecting or
@@ -1184,13 +1186,17 @@ first, then images, files, skills, quotes.
     on a spec-locked chip) runs
     `signInMcpServer`: `McpRepository.reinitialize` → its `oauthUrl` → `LocalMcpSignIn`'s sign-in,
     with the chip connecting meanwhile. Every end reloads the statuses: the delegate's own when no
-    sign-in opens (connected, deferred, refused, failed, the last two with `mcp_sign_in_failed`), and
-    `McpSignInUiState.ended` once an opened one succeeds, is cancelled or fails (a browser sign-in
-    ends on the next ON_RESUME). A chip's sign-in that ends unfinished (closed, refused, never
-    bound, or a browser return the server still doesn't count as connected; `McpSignInEnd`) first
-    cancels the flow its reconnect left pending (`POST /api/mcp/oauth/cancel/:serverName`, as web's
-    Cancel), which would otherwise read as connecting for up to ten minutes; a tool call's sign-in is
-    the run's and is never cancelled. Such a chip is turned off from the "+" sheet's switch. Other
+    sign-in opens (connected, deferred, refused, failed, the last two with `mcp_sign_in_failed`, or
+    `McpSignInViewModel.signIn` returning false because another sign-in is binding or on screen),
+    and `McpSignInUiState.ended` once an opened one succeeds, is cancelled or fails (a browser
+    sign-in ends on the next ON_RESUME). A chip's in-app sign-in that ends unfinished (closed,
+    refused, never opened or bound; `McpSignInEnd.signedIn == false`) first cancels the flow its
+    reconnect left pending (`POST /api/mcp/oauth/cancel/:serverName`, as web's Cancel), which would
+    otherwise read as connecting for up to ten minutes. A browser sign-in is never cancelled: the
+    user may come back mid-way and finish in the browser, whose callback a cancelled flow refuses.
+    Its server's statuses are re-read on every ON_RESUME (`McpServersDelegate.onForeground`) until
+    it stops reading connecting, and the chip's tap (connecting · sign in) replays or reissues an
+    abandoned flow. A tool call's sign-in is the run's and is never cancelled. Such a chip is turned off from the "+" sheet's switch. Other
     needs-setup and failed chips keep the ordinary tap (off with Undo): setup is on the web, a failure on the server. Thinking uses the brain glyph (Memory uses `AutoStories`, here and in the drawer),
     tints tertiary while a one-turn choice is staged, in both styles, and states it. Picked skills use
     the sparkle (`AutoAwesome`) on the stack, the `$` picker, the sent bubble and the skill card.

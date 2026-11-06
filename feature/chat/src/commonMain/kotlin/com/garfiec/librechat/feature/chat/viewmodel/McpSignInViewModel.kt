@@ -61,9 +61,13 @@ class McpSignInViewModel(
     /** The server of the sign-in in progress, for its [McpSignInEnd]. */
     private var server: String = ""
 
-    fun signIn(serverName: String, authorizationUrl: String) {
-        // The one in progress ends with its own [ended], which re-reads every status.
-        if (_uiState.value.preparingServer != null || _uiState.value.launch != null) return
+    /**
+     * Binds and opens the sign-in for [serverName]. Returns false, opening nothing, while another
+     * sign-in is binding or on screen: that one ends with its own [McpSignInUiState.ended], which
+     * re-reads every status, and nothing will ever end this one.
+     */
+    fun signIn(serverName: String, authorizationUrl: String): Boolean {
+        if (_uiState.value.preparingServer != null || _uiState.value.launch != null) return false
         server = serverName
         _uiState.update { it.copy(preparingServer = serverName, failed = false, awaitingReturn = false) }
         viewModelScope.launch {
@@ -75,6 +79,7 @@ class McpSignInViewModel(
                 Result.Loading -> Unit
             }
         }
+        return true
     }
 
     /**

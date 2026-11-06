@@ -1651,6 +1651,8 @@ class ChatViewModel(
         // Skills may have changed on the Skills screen while this chat was behind it.
         val state = _uiState.value
         skillPickerDelegate.refreshOnReturn(pickerOpen = parsePickerQuery(state.inputText, state.canPickSkills) != null)
+        // A chip's browser sign-in may have been finished in the browser since the last return.
+        mcpServersDelegate.onForeground()
     }
 
     /** The picker's retry after the skill catalog failed to load. */
@@ -2149,7 +2151,7 @@ class ChatViewModel(
     /** A settings chip's "sign in": see [McpServersDelegate.signIn]. */
     fun signInMcpServer(
         serverName: String,
-        openSignIn: (serverName: String, authorizationUrl: String) -> Unit,
+        openSignIn: (serverName: String, authorizationUrl: String) -> Boolean,
         onFailed: () -> Unit,
     ) = mcpServersDelegate.signIn(serverName, openSignIn, onFailed)
 

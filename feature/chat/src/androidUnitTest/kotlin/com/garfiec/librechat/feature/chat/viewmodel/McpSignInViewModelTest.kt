@@ -53,6 +53,25 @@ class McpSignInViewModelTest {
     }
 
     @Test
+    fun `a sign-in asked for while another is binding or on screen opens nothing and says so`() = runTest {
+        val bound = CompletableDeferred<Result<McpOAuthLaunch>>()
+        coEvery { launcher.prepare("linear", "https://idp") } coAnswers { bound.await() }
+        val vm = McpSignInViewModel(launcher)
+
+        assertThat(vm.signIn("linear", "https://idp")).isTrue()
+        // A chip's sign-in for github lands while linear's binds.
+        assertThat(vm.signIn("github", "https://idp")).isFalse()
+        bound.complete(Result.Success(inApp))
+        // And while linear's dialog is up.
+        assertThat(vm.signIn("github", "https://idp")).isFalse()
+
+        coVerify(exactly = 0) { launcher.prepare("github", any()) }
+        vm.onOutcome(McpOAuthOutcome.Success)
+        // The end is linear's, not github's.
+        assertThat(vm.uiState.value.lastEnd).isEqualTo(McpSignInEnd("linear", signedIn = true))
+    }
+
+    @Test
     fun `a failed bind opens nothing and is reported once`() = runTest {
         coEvery { launcher.prepare(any(), any()) } returns Result.Error(message = "x")
         val vm = McpSignInViewModel(launcher)
