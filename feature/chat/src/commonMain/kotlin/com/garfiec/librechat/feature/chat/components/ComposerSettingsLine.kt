@@ -198,7 +198,8 @@ private fun ToolSettingChip(chip: SettingChip.Tool, lockedBy: String?, onClick: 
 /**
  * A selected MCP server with its status dot. A chip whose tap signs in reads "· sign in"; one whose
  * sign-in is pending ([opensMenu]) reads "· connecting" and opens a menu with "Cancel sign-in" and
- * "Start over" rather than going to [onClick].
+ * "Start over" rather than going to [onClick]. Either is disabled while a reconnect or a cancel is
+ * out ([SettingChip.Mcp.waitsForSignIn]), which would ignore the tap.
  */
 @Composable
 private fun McpSettingChip(
@@ -217,13 +218,15 @@ private fun McpSettingChip(
     val connection = stringResource(mcpStatusLabel(chip.status))
     val state = if (locked) "$connection, ${lockDescription(lockedBy)}" else connection
     val dotColor = mcpStatusColor(chip.status)
+    val waits = chip.waitsForSignIn
     // A tap that does something other than switch the server off is named, for TalkBack as on screen.
     val suffix = when {
-        opensMenu -> stringResource(Res.string.setting_chip_connecting_suffix)
+        opensMenu || (waits && chip.signInPending) -> stringResource(Res.string.setting_chip_connecting_suffix)
         chip.signsInOnTap -> stringResource(Res.string.setting_chip_sign_in)
         else -> null
     }
     val actionLabel = when {
+        waits -> null
         opensMenu -> stringResource(Res.string.cd_mcp_sign_in_menu)
         chip.signsInOnTap -> stringResource(Res.string.mcp_sign_in_action)
         else -> null
@@ -233,6 +236,7 @@ private fun McpSettingChip(
         AdaptiveFilterChip(
             selected = true,
             onClick = tap,
+            enabled = !waits,
             label = {
                 if (suffix != null) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {

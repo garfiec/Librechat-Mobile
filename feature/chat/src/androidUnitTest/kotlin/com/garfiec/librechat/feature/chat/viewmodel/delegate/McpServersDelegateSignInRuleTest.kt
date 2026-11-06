@@ -212,6 +212,50 @@ class McpServersDelegateSignInRuleTest : McpServersDelegateTestBase() {
     }
 
     @Test
+    fun theChipsReadBusyWhileTheirOwnReconnectIsOut() = runTest {
+        coEvery { mcpRepository.listServers() } returns Result.Success(servers)
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
+        val reconnect = CompletableDeferred<Result<McpReinitializeResponse>>()
+        coEvery { mcpRepository.reinitialize("github") } coAnswers { reconnect.await() }
+        val (handle, delegate) = newDelegate()
+        delegate.load()
+        advanceUntilIdle()
+        assertThat(handle.state.mcpServers.none { it.signInBusy }).isTrue()
+
+        delegate.signIn("github", { _, _ -> true }, {})
+        advanceUntilIdle()
+        // Connecting, but its Cancel sign-in and Start over, and every other chip's sign-in, would be
+        // ignored until the reconnect answers, so none is offered.
+        assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.CONNECTING)
+        assertThat(handle.state.mcpServers.all { it.signInBusy }).isTrue()
+
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(flowPending)
+        reconnect.complete(Result.Success(McpReinitializeResponse(oauthRequired = true, oauthUrl = "https://idp/authorize")))
+        advanceUntilIdle()
+        assertThat(handle.state.mcpServers.none { it.signInBusy }).isTrue()
+        // Still pending on the server, so its menu is offered now.
+        delegate.onSignInEnded()
+        advanceUntilIdle()
+        assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.CONNECTING)
+        assertThat(handle.state.mcpServers.none { it.signInBusy }).isTrue()
+    }
+
+    @Test
+    fun theChipsReadBusyWhileACancelIsOut() = runTest {
+        val (handle, delegate) = pendingSignInChat()
+        val cancel = CompletableDeferred<Result<Unit>>()
+        coEvery { mcpRepository.cancelOAuth("github") } coAnswers { cancel.await() }
+
+        delegate.cancelSignIn("github", {})
+        advanceUntilIdle()
+        assertThat(handle.state.mcpServers.all { it.signInBusy }).isTrue()
+
+        cancel.complete(Result.Success(Unit))
+        advanceUntilIdle()
+        assertThat(handle.state.mcpServers.none { it.signInBusy }).isTrue()
+    }
+
+    @Test
     fun aReturnWhileACancelIsOutLeavesTheReloadToIt() = runTest {
         val (_, delegate) = pendingSignInChat()
         val cancel = CompletableDeferred<Result<Unit>>()

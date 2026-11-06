@@ -1213,7 +1213,10 @@ first, then images, files, skills, quotes.
     (`SettingChip.Mcp.signsInOnTap`: needs sign-in, or an OAuth server that failed) reads "· sign in"
     with a "Sign in" click label, and a tap (`SettingChipTap.SignIn`, even on a spec-locked chip) runs
     `signInMcpServer`: `McpRepository.reinitialize` → its `oauthUrl` → `LocalMcpSignIn`'s sign-in,
-    with the chip connecting meanwhile; a second tap while the reconnect is out does nothing.
+    with the chip connecting meanwhile. While that reconnect or a "Cancel sign-in" is out the
+    delegate ignores sign-in taps, so every chip whose tap would sign in or open the menu is
+    disabled until it ends (`McpServerDisplayData.signInBusy`, `SettingChip.Mcp.waitsForSignIn`,
+    `SettingChipTap.WaitForSignIn`): the connecting chip offers no menu whose items would do nothing.
     **The app never cancels an OAuth flow by itself**: not when the sign-in dialog is closed or
     refused, not on a return from the browser, not when a run ends. The user may still finish it in
     the browser, and a run in another chat, a web tab or another device may be waiting on the same

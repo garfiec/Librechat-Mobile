@@ -266,6 +266,36 @@ class SettingChipsTest {
     }
 
     @Test
+    fun whileASignInOrCancelIsOutNoChipOffersASignIn() {
+        fun server(name: String, status: McpDisplayStatus) = McpServerDisplayData(
+            name = name,
+            title = null,
+            description = null,
+            status = status,
+            requiresOAuth = true,
+            signInBusy = true,
+        )
+        val line = settingChipsOf(
+            inputs(
+                mcpServers = listOf(
+                    server("github", McpDisplayStatus.CONNECTING),
+                    server("drive", McpDisplayStatus.NEEDS_SIGN_IN),
+                    server("linear", McpDisplayStatus.CONNECTED),
+                ),
+                mcpOn = setOf("github", "drive", "linear"),
+            ),
+        )
+        val byName = line.chips.filterIsInstance<SettingChip.Mcp>().associateBy { it.name }
+
+        // The reconnect or cancel out would ignore a Cancel sign-in, a Start over or a sign-in.
+        assertEquals(SettingChipTap.WaitForSignIn, line.tapFor(byName.getValue("github")))
+        assertEquals(SettingChipTap.WaitForSignIn, line.tapFor(byName.getValue("drive")))
+        // A chip whose tap turns it off isn't held.
+        assertEquals(SettingChipTap.TurnOffWithUndo, line.tapFor(byName.getValue("linear")))
+        assertEquals(listOf(true, true, false), listOf("github", "drive", "linear").map { byName.getValue(it).waitsForSignIn })
+    }
+
+    @Test
     fun aSpecLockedServerWhoseSignInIsPendingStillOpensItsMenu() {
         val pending = McpServerDisplayData(
             name = "docs",

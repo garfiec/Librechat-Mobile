@@ -12,4 +12,9 @@ data class McpServerDisplayData(
     val status: McpDisplayStatus,
     /** The server signs in with OAuth, as its connection status reports it. */
     val requiresOAuth: Boolean = false,
+    /**
+     * A chip's sign-in reconnect or a "Cancel sign-in" is still out, this server's or another's.
+     * Until it ends the chips' sign-in taps would be ignored, so they aren't offered.
+     */
+    val signInBusy: Boolean = false,
 )

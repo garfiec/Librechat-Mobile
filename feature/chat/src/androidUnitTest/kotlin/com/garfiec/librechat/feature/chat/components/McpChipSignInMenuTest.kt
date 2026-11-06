@@ -127,6 +127,19 @@ class McpChipSignInMenuTest {
     }
 
     @Test
+    fun aConnectingChipWhoseReconnectIsStillOutOffersNoMenu() {
+        // The chip's own sign-in tap is still reconnecting: Cancel sign-in and Start over would be ignored.
+        liveLine(listOf(mcp("github", "GitHub", McpDisplayStatus.CONNECTING).copy(signInBusy = true)))
+        composeRule.onNodeWithText("· connecting").assertExists()
+
+        composeRule.onNodeWithText("GitHub").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Cancel sign-in").assertDoesNotExist()
+        assertThat(taps).isEmpty()
+    }
+
+    @Test
     fun aChipThatNeedsSignInHandsItsTapToTheScreen() {
         line(McpDisplayStatus.NEEDS_SIGN_IN)
         composeRule.onNodeWithText("· sign in").assertExists()

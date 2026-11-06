@@ -82,6 +82,9 @@ class McpServersDelegate(
      */
     private var pendingCancel: CompletableDeferred<Unit>? = null
 
+    /** A chip's reconnect or a cancel is out: [signIn] and [cancelSignIn] ignore taps until it ends. */
+    private val signInBusy: Boolean get() = signingIn != null || pendingCancel != null
+
     /**
      * The servers with their status as the MCP servers page reads it: the connection-status map
      * with tool discovery's lapsed authorizations folded in ([applyDiscoveryAuthorizationState], as
@@ -159,9 +162,18 @@ class McpServersDelegate(
             server.toDisplayData(
                 status = mcpDisplayStatus(server, status, isReinitializing = false),
                 requiresOAuth = status?.requiresOAuth == true,
+                signInBusy = signInBusy,
             )
         }
         handle.update { selection = selection.copy(mcpServers = servers) }
+    }
+
+    /** Puts [signInBusy] on the servers on screen, as a reconnect or a cancel starts or ends. */
+    private fun paintSignInBusy() {
+        val busy = signInBusy
+        handle.update {
+            selection = selection.copy(mcpServers = selection.mcpServers.map { it.copy(signInBusy = busy) })
+        }
     }
 
     /**
@@ -210,10 +222,16 @@ class McpServersDelegate(
         val cancelling = pendingCancel
         loadGeneration++
         discoveryGeneration++
+        // Connecting, and busy so no chip offers what this reconnect would ignore: its own menu
+        // (Cancel sign-in, Start over) or another chip's sign-in.
         handle.update {
             selection = selection.copy(
                 mcpServers = selection.mcpServers.map {
-                    if (it.name == serverName) it.copy(status = McpDisplayStatus.CONNECTING) else it
+                    if (it.name == serverName) {
+                        it.copy(status = McpDisplayStatus.CONNECTING, signInBusy = true)
+                    } else {
+                        it.copy(signInBusy = true)
+                    }
                 },
             )
         }
@@ -221,6 +239,7 @@ class McpServersDelegate(
             cancelling?.await()
             val result = mcpRepository.reinitialize(serverName)
             signingIn = null
+            paintSignInBusy()
             when (result) {
                 is Result.Success -> {
                     val response = result.data
@@ -266,6 +285,7 @@ class McpServersDelegate(
         val generation = ++loadGeneration
         val cancelled = CompletableDeferred<Unit>()
         pendingCancel = cancelled
+        paintSignInBusy()
         handle.scope.launch {
             try {
                 val result = mcpRepository.cancelOAuth(serverName)
@@ -276,6 +296,7 @@ class McpServersDelegate(
             } finally {
                 cancelled.complete(Unit)
                 if (pendingCancel === cancelled) pendingCancel = null
+                paintSignInBusy()
             }
             // Dropped when a chip sign-in started meanwhile: that one reloads when it ends.
             reload(generation)
@@ -283,10 +304,15 @@ class McpServersDelegate(
     }
 }
 
-internal fun McpServer.toDisplayData(status: McpDisplayStatus, requiresOAuth: Boolean = false) = McpServerDisplayData(
+internal fun McpServer.toDisplayData(
+    status: McpDisplayStatus,
+    requiresOAuth: Boolean = false,
+    signInBusy: Boolean = false,
+) = McpServerDisplayData(
     name = name,
     title = title,
     description = description,
     status = status,
     requiresOAuth = requiresOAuth,
+    signInBusy = signInBusy,
 )
