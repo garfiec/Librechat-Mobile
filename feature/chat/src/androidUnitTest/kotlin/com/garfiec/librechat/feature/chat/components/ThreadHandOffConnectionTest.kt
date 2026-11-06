@@ -28,7 +28,7 @@ class ThreadHandOffConnectionTest {
     }
 
     private val drags = RecordingDrags()
-    private val connection = ThreadHandOffConnection { drags }
+    private val connection = ThreadHandOffConnection(drags)
 
     @Test
     fun aDragPastTheRegionsEdgeScrollsTheThreadAndIsConsumed() {
@@ -80,7 +80,7 @@ class ThreadHandOffConnectionTest {
 
     @Test
     fun withNoThreadTheRegionKeepsEverything() = runTest {
-        val none = ThreadHandOffConnection { RecordingDrags(canTakeDrag = false) }
+        val none = ThreadHandOffConnection(RecordingDrags(canTakeDrag = false))
         assertThat(none.onPostScroll(Offset.Zero, Offset(0f, 7f), NestedScrollSource.UserInput)).isEqualTo(Offset.Zero)
         assertThat(none.onPostFling(Velocity.Zero, Velocity(0f, 300f))).isEqualTo(Velocity.Zero)
     }

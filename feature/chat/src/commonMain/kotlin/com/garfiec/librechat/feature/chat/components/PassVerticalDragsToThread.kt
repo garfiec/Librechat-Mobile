@@ -33,8 +33,8 @@ import kotlin.math.sign
  * started, an inner vertical scroll (whose edge hands off through [ThreadHandOffConnection]). Once
  * it has taken a drag it consumes it, which cancels the press of the chip under the finger.
  *
- * The area it covers stops passing taps through to the thread behind, which a transparent gap
- * between two rows used to do. Drags were the only thing worth reaching there.
+ * Trade-off: the area it covers doesn't pass taps through to the thread behind it; only drags
+ * reach the thread from there.
  */
 fun Modifier.passVerticalDragsToThread(): Modifier = this then PassVerticalDragsElement
 
@@ -152,12 +152,12 @@ internal class PassThroughDrag(private val touchSlop: Float) {
  * scrolled to its edge, the rest of the drag scrolls the messages, and so does a fling it can't
  * use. A drag the region takes back (the finger reverses) leaves the thread where it is.
  */
-internal class ThreadHandOffConnection(private val threadDrags: () -> ThreadDrags?) : NestedScrollConnection {
+internal class ThreadHandOffConnection(private val threadDrags: ThreadDrags?) : NestedScrollConnection {
     private var handingOff = false
 
     override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
         if (source != NestedScrollSource.UserInput) return Offset.Zero
-        val drags = threadDrags()?.takeIf { it.canTakeDrag } ?: return Offset.Zero
+        val drags = threadDrags?.takeIf { it.canTakeDrag } ?: return Offset.Zero
         if (available.y == 0f) {
             if (handingOff && consumed.y != 0f) {
                 handingOff = false
@@ -174,14 +174,14 @@ internal class ThreadHandOffConnection(private val threadDrags: () -> ThreadDrag
         if (!handingOff) return Velocity.Zero
         handingOff = false
         // The drag ended on the thread, so the momentum is the thread's, not the region's.
-        val drags = threadDrags()?.takeIf { it.canTakeDrag } ?: return Velocity.Zero
+        val drags = threadDrags?.takeIf { it.canTakeDrag } ?: return Velocity.Zero
         drags.fling(available.y)
         return Velocity(0f, available.y)
     }
 
     override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
         if (available.y == 0f) return Velocity.Zero
-        val drags = threadDrags()?.takeIf { it.canTakeDrag } ?: return Velocity.Zero
+        val drags = threadDrags?.takeIf { it.canTakeDrag } ?: return Velocity.Zero
         // The region's own fling hit its edge: the thread carries on with what was left.
         drags.fling(available.y)
         return Velocity(0f, available.y)

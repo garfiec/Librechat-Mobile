@@ -458,7 +458,7 @@ private fun SteerAndQueueRegion(
     if (pendingSteers.isEmpty() && queuedMessages.isEmpty()) return
     val scroll = rememberScrollState()
     val threadDrags = LocalThreadScrollHandle.current
-    val handOff = remember(threadDrags) { ThreadHandOffConnection { threadDrags } }
+    val handOff = remember(threadDrags) { ThreadHandOffConnection(threadDrags) }
     val reorderScroll = remember(scroll) { ReorderScrollRegion(scroll, reversed = true) }
     SteerAndQueueColumn(
         scroll = scroll,

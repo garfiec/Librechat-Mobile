@@ -48,23 +48,21 @@ interface ThreadDrags {
  */
 @Stable
 class ThreadScrollHandle internal constructor(private val scope: CoroutineScope) : ThreadDrags {
-    private var target: ScrollableState? = null
-    private var flingBehavior: FlingBehavior? = null
+    /** The list a drag scrolls, with the fling it ends in; null while no list is bound. */
+    private var bound: Pair<ScrollableState, FlingBehavior>? = null
     private var session: Channel<ThreadDragEvent>? = null
 
-    override val canTakeDrag: Boolean get() = target != null
+    override val canTakeDrag: Boolean get() = bound != null
 
     internal fun bind(state: ScrollableState, fling: FlingBehavior) {
-        if (target !== state) cancel()
-        target = state
-        flingBehavior = fling
+        if (bound?.first !== state) cancel()
+        bound = state to fling
     }
 
     internal fun unbind(state: ScrollableState) {
-        if (target !== state) return
+        if (bound?.first !== state) return
         cancel()
-        target = null
-        flingBehavior = null
+        bound = null
     }
 
     override fun drag(delta: Float) {
@@ -86,8 +84,7 @@ class ThreadScrollHandle internal constructor(private val scope: CoroutineScope)
     }
 
     private fun open(): Channel<ThreadDragEvent>? {
-        val state = target ?: return null
-        val fling = flingBehavior ?: return null
+        val (state, fling) = bound ?: return null
         val events = Channel<ThreadDragEvent>(Channel.UNLIMITED)
         session = events
         // Undispatched, so the session holds the scroll before the first delta is read.
