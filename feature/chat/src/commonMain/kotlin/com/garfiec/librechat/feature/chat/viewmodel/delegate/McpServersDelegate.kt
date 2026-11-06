@@ -47,11 +47,22 @@ class McpServersDelegate(
     private var chipSignIn: String? = null
 
     /**
+     * Whether [chipSignIn]'s reconnect started its OAuth flow. False when the server already read
+     * that server connecting with a sign-in pending before the tap: it keeps one flow per user and
+     * server, so the reconnect only replayed a flow somebody else is waiting on (a run in another
+     * chat, a web tab, another device), and closing the dialog must leave it alone.
+     */
+    private var chipOwnsFlow = true
+
+    /**
      * A chip's browser sign-in the app came back from while the server didn't read connected yet:
      * the user may still be finishing it in the browser, so every return to the chat re-reads the
      * statuses ([onForeground]) until this server reads anything but connecting.
      */
     private var browserSignIn: String? = null
+
+    /** Whether [browserSignIn]'s flow was the chip's own ([chipOwnsFlow] when it went to the browser). */
+    private var browserOwnsFlow = true
 
     /**
      * Tool discovery's last verdicts (`GET /api/mcp/tools`), kept across loads as the MCP servers
@@ -166,7 +177,8 @@ class McpServersDelegate(
      * when no sign-in opens (already connected, deferred, refused, failed, or [openSignIn] turned
      * it down because another sign-in holds the screen), and through [onSignInEnded] once an opened
      * sign-in succeeds, is cancelled or fails. [onFailed] is told when the reconnect could not start
-     * a sign-in. The reconnect waits for a cancel an earlier chip sign-in left on its way.
+     * a sign-in. The reconnect waits for a cancel an earlier chip sign-in left on its way. A flow
+     * the server already held pending at the tap is only replayed, and never cancelled from here.
      */
     fun signIn(
         serverName: String,
@@ -176,6 +188,14 @@ class McpServersDelegate(
     ) {
         if (signingIn != null) return
         signingIn = serverName
+        val cancelling = pendingCancel
+        // A flow already pending that this chat didn't leave: not its own cancel still on the way
+        // (the status is then stale) nor its own unfinished browser sign-in.
+        val ownBrowserFlow = browserSignIn == serverName && browserOwnsFlow
+        val replaysAnotherFlow = cancelling == null && !ownBrowserFlow &&
+            handle.state.mcpServers.any {
+                it.name == serverName && it.status == McpDisplayStatus.CONNECTING && it.requiresOAuth
+            }
         loadGeneration++
         handle.update {
             selection = selection.copy(
@@ -184,7 +204,6 @@ class McpServersDelegate(
                 },
             )
         }
-        val cancelling = pendingCancel
         handle.scope.launch {
             cancelling?.await()
             val result = mcpRepository.reinitialize(serverName)
@@ -196,6 +215,7 @@ class McpServersDelegate(
                     if (authorizationUrl != null) {
                         if (openSignIn(serverName, authorizationUrl)) {
                             chipSignIn = serverName
+                            chipOwnsFlow = !replaysAnotherFlow
                             if (browserSignIn == serverName) browserSignIn = null
                             return@launch
                         }
@@ -203,7 +223,7 @@ class McpServersDelegate(
                         // left pending reads as connecting until it times out: it goes the way of a
                         // closed one.
                         Logger.d { "Chip sign-in for $serverName not opened: another sign-in holds the screen" }
-                        cancelPendingFlow(serverName)
+                        if (replaysAnotherFlow) load() else cancelPendingFlow(serverName)
                         return@launch
                     }
                     if (!response.success && response.connectionDeferred != true) onFailed()
@@ -231,12 +251,18 @@ class McpServersDelegate(
      * the browser, whose callback a cancelled flow would refuse. Its statuses are re-read on every
      * return until the server stops reading connecting ([browserSignIn]); a flow the user abandoned
      * is left to the server's timeout, or to the chip's next tap, which replays or reissues it.
+     *
+     * Nor is a flow the chip's reconnect only replayed ([chipOwnsFlow]): it was pending before the
+     * tap, so it belongs to whoever started it, and cancelling it would fail their sign-in.
      */
     fun onSignInEnded(end: McpSignInEnd?) {
         val server = chipSignIn?.takeIf { it == end?.serverName }
         if (server != null) chipSignIn = null
-        if (server == null || end?.signedIn != false) {
-            if (server != null && end?.signedIn == null) browserSignIn = server
+        if (server == null || end?.signedIn != false || !chipOwnsFlow) {
+            if (server != null && end?.signedIn == null) {
+                browserSignIn = server
+                browserOwnsFlow = chipOwnsFlow
+            }
             load()
             return
         }
@@ -246,10 +272,11 @@ class McpServersDelegate(
     /**
      * Cancels the OAuth flow a chip's reconnect left pending on [server], then reloads. The server
      * keeps one flow per user and server, and a reconnect while a run's tool call waits on that
-     * server's sign-in replays the run's own flow: cancelling it would fail the tool call. So while
-     * a reply runs, or a live call waits on that server, the flow is left alone and only the
-     * statuses reload. The chip may then read connecting until the run's sign-in ends; its tap
-     * replays the flow.
+     * server's sign-in replays the run's own flow: cancelling it would fail the tool call. A run
+     * elsewhere is caught at the tap ([chipOwnsFlow]); this chat's run is checked here, since its
+     * flow may start after the tap. So while a reply runs, or a live call waits on that server,
+     * the flow is left alone and only the statuses reload. The chip may then read connecting until
+     * the run's sign-in ends; its tap replays the flow.
      */
     private fun cancelPendingFlow(server: String) {
         if (runMayHoldFlow(server)) {

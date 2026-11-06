@@ -387,17 +387,21 @@ class McpServersDelegateTest {
         assertThat(chip.requiresOAuth).isTrue()
     }
 
+    /** A live tool call waiting on [server]'s sign-in. */
+    private fun waitingOn(server: String, isComplete: Boolean = false) = ActiveToolCall(
+        id = "call_1",
+        name = "list_issues_mcp_$server",
+        isComplete = isComplete,
+        authUrl = "https://idp/authorize",
+        authServerName = server,
+    )
+
     @Test
     fun aClosedChipSignInNeverCancelsTheFlowARunsToolCallWaitsOn() = runTest {
         val (handle, delegate) = openedChipSignIn()
-        // A tool call on github paused for sign-in: the server replayed that flow into the chip's dialog.
-        val waiting = ActiveToolCall(
-            id = "call_1",
-            name = "list_issues_mcp_github",
-            authUrl = "https://idp/authorize",
-            authServerName = "github",
-        )
-        handle.update { copy(content = content.copy(isStreaming = true, activeToolCalls = listOf(waiting))) }
+        // A tool call on github paused for sign-in, with nothing streaming (the stream dropped or
+        // ended around it): the server replayed that flow into the chip's dialog.
+        handle.update { copy(content = content.copy(isStreaming = false, activeToolCalls = listOf(waitingOn("github")))) }
 
         delegate.onSignInEnded(McpSignInEnd("github", signedIn = false))
         advanceUntilIdle()
@@ -405,6 +409,96 @@ class McpServersDelegateTest {
         // Cancelling would fail the run's tool call and refuse the card's sign-in at its callback.
         coVerify(exactly = 0) { mcpRepository.cancelOAuth(any()) }
         coVerify(exactly = 2) { mcpRepository.listServers() }
+    }
+
+    @Test
+    fun aClosedChipSignInStillCancelsWhenTheWaitingCallIsAnotherServersOrDone() = runTest {
+        for (call in listOf(waitingOn("linear"), waitingOn("github", isComplete = true))) {
+            val (handle, delegate) = openedChipSignIn()
+            handle.update { copy(content = content.copy(isStreaming = false, activeToolCalls = listOf(call))) }
+
+            delegate.onSignInEnded(McpSignInEnd("github", signedIn = false))
+            advanceUntilIdle()
+        }
+
+        // Neither call waits on github's flow, so the chip's own pending flow goes both times.
+        coVerify(exactly = 2) { mcpRepository.cancelOAuth("github") }
+    }
+
+    @Test
+    fun aClosedChipSignInNeverCancelsTheFlowACompareLaneWaitsOn() = runTest {
+        val (handle, delegate) = openedChipSignIn()
+        // Only lane B still runs, and nothing on the primary list waits.
+        handle.update { copy(comparisonState = comparisonState.copy(secondaryIsStreaming = true)) }
+
+        delegate.onSignInEnded(McpSignInEnd("github", signedIn = false))
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { mcpRepository.cancelOAuth(any()) }
+
+        // Lane B stopped streaming, but its call still waits on github's sign-in.
+        val (laneHandle, laneDelegate) = openedChipSignIn()
+        laneHandle.update {
+            copy(comparisonState = comparisonState.copy(secondaryActiveToolCalls = listOf(waitingOn("github"))))
+        }
+        laneDelegate.onSignInEnded(McpSignInEnd("github", signedIn = false))
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { mcpRepository.cancelOAuth(any()) }
+    }
+
+    /** github already reads connecting with a sign-in pending before the chip is tapped. */
+    private val flowPendingElsewhere =
+        needsSignIn + ("github" to McpServerStatus(connectionState = "connecting", requiresOAuth = true))
+
+    @Test
+    fun aClosedChipSignInNeverCancelsAFlowThatWasPendingBeforeTheTap() = runTest {
+        coEvery { mcpRepository.listServers() } returns Result.Success(servers)
+        // A run in another chat (or web, or another device) waits on github's sign-in: the server
+        // keeps one flow per user and server, and this chat sees only that github reads connecting.
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(flowPendingElsewhere)
+        coEvery { mcpRepository.reinitialize("github") } returns
+            Result.Success(McpReinitializeResponse(oauthRequired = true, oauthUrl = "https://idp/authorize"))
+        val (handle, delegate) = newDelegate()
+        delegate.load()
+        advanceUntilIdle()
+        val chip = handle.state.mcpServers.first { it.name == "github" }
+        assertThat(chip.status).isEqualTo(McpDisplayStatus.CONNECTING)
+        assertThat(chip.requiresOAuth).isTrue()
+
+        // The reconnect replays that flow into the chip's dialog, which the user closes.
+        delegate.signIn("github", { _, _ -> true }, {})
+        advanceUntilIdle()
+        delegate.onSignInEnded(McpSignInEnd("github", signedIn = false))
+        advanceUntilIdle()
+
+        // Not this chat's flow: cancelling it would fail the other run's tool call.
+        coVerify(exactly = 0) { mcpRepository.cancelOAuth(any()) }
+        coVerify(exactly = 2) { mcpRepository.listServers() }
+
+        // Nor when the replayed sign-in never opens.
+        delegate.signIn("github", { _, _ -> false }, {})
+        advanceUntilIdle()
+        coVerify(exactly = 0) { mcpRepository.cancelOAuth(any()) }
+        coVerify(exactly = 3) { mcpRepository.listServers() }
+    }
+
+    @Test
+    fun aChipsOwnAbandonedBrowserFlowIsStillCancelledWhenItsNextSignInCloses() = runTest {
+        val (handle, delegate) = openedChipSignIn()
+        // The browser sign-in was left unfinished, so github reads connecting on return.
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(flowPendingElsewhere)
+        delegate.onSignInEnded(McpSignInEnd("github", signedIn = null))
+        advanceUntilIdle()
+        assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.CONNECTING)
+
+        // The tap replays the chip's own flow; closing that one cancels it, as any chip sign-in.
+        delegate.signIn("github", { _, _ -> true }, {})
+        advanceUntilIdle()
+        delegate.onSignInEnded(McpSignInEnd("github", signedIn = false))
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { mcpRepository.cancelOAuth("github") }
     }
 
     @Test
