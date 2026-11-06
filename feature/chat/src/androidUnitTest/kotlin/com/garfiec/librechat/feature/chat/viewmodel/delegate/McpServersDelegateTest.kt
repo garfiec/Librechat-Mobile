@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
+import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
@@ -8,10 +9,14 @@ import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerDiscovery
 import com.garfiec.librechat.core.model.mcp.McpServerStatus
 import com.garfiec.librechat.core.model.mcp.McpToolCatalog
+import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.McpSignInEnd
+import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionHandle
+import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -57,9 +62,12 @@ class McpServersDelegateTest {
         coEvery { mcpRepository.cancelOAuth(any()) } returns Result.Success(Unit)
     }
 
-    private fun TestScope.newDelegate(): Pair<ChatStateHandle, McpServersDelegate> {
+    /** A chat on a raw model, so the composer shows its tool controls (`toolbarShown`). */
+    private val modelChat = ChatUiState(selection = ModelSelectionState(choice = ModelChoice.Raw("openAI", "gpt-4o")))
+
+    private fun TestScope.newDelegate(initial: ChatUiState = modelChat): Pair<ChatStateHandle, McpServersDelegate> {
         val handle = ChatStateHandle(
-            stateFlow = MutableStateFlow(ChatUiState()),
+            stateFlow = MutableStateFlow(initial),
             scope = TestScope(StandardTestDispatcher(testScheduler)),
         )
         return handle to McpServersDelegate(ModelSelectionHandle(handle), mcpRepository)
@@ -319,12 +327,24 @@ class McpServersDelegateTest {
         coVerify(exactly = 1) { mcpRepository.listServers() }
     }
 
+    /** github's reconnect leaves a pending flow, read as connecting until a cancel removes it. */
+    private fun stubPendingFlowOnReconnect() {
+        val pending = needsSignIn + ("github" to McpServerStatus(connectionState = "connecting", requiresOAuth = true))
+        coEvery { mcpRepository.reinitialize("github") } coAnswers {
+            coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(pending)
+            Result.Success(McpReinitializeResponse(oauthRequired = true, oauthUrl = "https://idp/authorize"))
+        }
+        coEvery { mcpRepository.cancelOAuth("github") } coAnswers {
+            coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
+            Result.Success(Unit)
+        }
+    }
+
     @Test
-    fun aSignInTheScreenTurnsDownIsNotLeftArmed() = runTest {
+    fun aSignInTheScreenTurnsDownCancelsTheFlowItsReconnectLeftPending() = runTest {
         coEvery { mcpRepository.listServers() } returns Result.Success(servers)
         coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
-        coEvery { mcpRepository.reinitialize("github") } returns
-            Result.Success(McpReinitializeResponse(oauthRequired = true, oauthUrl = "https://idp/authorize"))
+        stubPendingFlowOnReconnect()
         val (handle, delegate) = newDelegate()
         delegate.load()
         advanceUntilIdle()
@@ -333,13 +353,130 @@ class McpServersDelegateTest {
         delegate.signIn("github", { _, _ -> false }, {})
         advanceUntilIdle()
 
-        // The statuses reload, so the chip doesn't read connecting with nothing to end it.
+        // Cancelled before the reload, so the chip offers sign-in again instead of reading
+        // connecting until the server's flow times out.
+        coVerifyOrder {
+            mcpRepository.reinitialize("github")
+            mcpRepository.cancelOAuth("github")
+            mcpRepository.listServers()
+        }
         assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.NEEDS_SIGN_IN)
-        coVerify(exactly = 2) { mcpRepository.listServers() }
-        // A later sign-in for github is a tool call's own: its end cancels nothing.
+        // A later sign-in for github is a tool call's own: its end cancels nothing more.
         delegate.onSignInEnded(McpSignInEnd("github", signedIn = false))
         advanceUntilIdle()
+        coVerify(exactly = 1) { mcpRepository.cancelOAuth(any()) }
+    }
+
+    @Test
+    fun aSignInTurnedDownWhileARunStreamsKeepsTheFlowAndReadsConnecting() = runTest {
+        coEvery { mcpRepository.listServers() } returns Result.Success(servers)
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
+        stubPendingFlowOnReconnect()
+        val (handle, delegate) = newDelegate(modelChat.copy(content = MessagesState(isStreaming = true)))
+        delegate.load()
+        advanceUntilIdle()
+
+        // The sign-in holding the screen may be the run's own, on this very flow.
+        delegate.signIn("github", { _, _ -> false }, {})
+        advanceUntilIdle()
+
         coVerify(exactly = 0) { mcpRepository.cancelOAuth(any()) }
+        val chip = handle.state.mcpServers.first { it.name == "github" }
+        assertThat(chip.status).isEqualTo(McpDisplayStatus.CONNECTING)
+        // Still reads "· sign in": a tap replays the flow.
+        assertThat(chip.requiresOAuth).isTrue()
+    }
+
+    @Test
+    fun aClosedChipSignInNeverCancelsTheFlowARunsToolCallWaitsOn() = runTest {
+        val (handle, delegate) = openedChipSignIn()
+        // A tool call on github paused for sign-in: the server replayed that flow into the chip's dialog.
+        val waiting = ActiveToolCall(
+            id = "call_1",
+            name = "list_issues_mcp_github",
+            authUrl = "https://idp/authorize",
+            authServerName = "github",
+        )
+        handle.update { copy(content = content.copy(isStreaming = true, activeToolCalls = listOf(waiting))) }
+
+        delegate.onSignInEnded(McpSignInEnd("github", signedIn = false))
+        advanceUntilIdle()
+
+        // Cancelling would fail the run's tool call and refuse the card's sign-in at its callback.
+        coVerify(exactly = 0) { mcpRepository.cancelOAuth(any()) }
+        coVerify(exactly = 2) { mcpRepository.listServers() }
+    }
+
+    @Test
+    fun aChipTapRightAfterAClosedSignInWaitsForItsCancel() = runTest {
+        val (handle, delegate) = openedChipSignIn()
+        val cancel = CompletableDeferred<Result<Unit>>()
+        coEvery { mcpRepository.cancelOAuth("github") } coAnswers { cancel.await() }
+        val opened = mutableListOf<String>()
+
+        delegate.onSignInEnded(McpSignInEnd("github", signedIn = false))
+        advanceUntilIdle()
+        // Tapped again while the cancel is still on its way.
+        delegate.signIn("github", { server, _ -> opened += server; true }, {})
+        advanceUntilIdle()
+
+        // The server would replay the flow being cancelled, and the cancel would then kill it.
+        coVerify(exactly = 1) { mcpRepository.reinitialize("github") }
+        assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.CONNECTING)
+
+        cancel.complete(Result.Success(Unit))
+        advanceUntilIdle()
+
+        coVerifyOrder {
+            mcpRepository.cancelOAuth("github")
+            mcpRepository.reinitialize("github")
+        }
+        assertThat(opened).containsExactly("github")
+        // The cancel's own reload gave way to the new sign-in, which the chip still reads.
+        assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.CONNECTING)
+        coVerify(exactly = 1) { mcpRepository.listServers() }
+    }
+
+    @Test
+    fun noServersMeansNoToolDiscoveryRead() = runTest {
+        coEvery { mcpRepository.listServers() } returns Result.Success(emptyList())
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(emptyMap())
+        val (_, delegate) = newDelegate()
+
+        delegate.load()
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { mcpRepository.getTools() }
+    }
+
+    @Test
+    fun anAgentChatAsksForDiscoveryOnlyOnceTheToolControlsShow() = runTest {
+        coEvery { mcpRepository.listServers() } returns Result.Success(listOf(github))
+        coEvery { mcpRepository.getConnectionStatus() } returns
+            Result.Success(mapOf("github" to McpServerStatus(connectionState = "error")))
+        coEvery { mcpRepository.getTools() } returns Result.Success(
+            McpToolCatalog(servers = mapOf("github" to McpServerDiscovery(authorizationState = "reauth_required"))),
+        )
+        val agent = ModelChoice.Raw(EndpointConstants.AGENTS, "agent_1")
+        val (handle, delegate) = newDelegate(ChatUiState(selection = ModelSelectionState(choice = agent)))
+
+        delegate.load()
+        advanceUntilIdle()
+        // Nothing in an agent chat reads the verdicts, and the route runs a full catalog load.
+        coVerify(exactly = 0) { mcpRepository.getTools() }
+        assertThat(handle.statuses()).containsExactly("github", McpDisplayStatus.FAILED)
+
+        handle.update { copy(selection = selection.copy(choice = ModelChoice.Raw("openAI", "gpt-4o"))) }
+        advanceUntilIdle()
+        coVerify(exactly = 1) { mcpRepository.getTools() }
+        assertThat(handle.statuses()).containsExactly("github", McpDisplayStatus.NEEDS_SIGN_IN)
+
+        // Once per load, not on every change of model.
+        handle.update { copy(selection = selection.copy(choice = agent)) }
+        advanceUntilIdle()
+        handle.update { copy(selection = selection.copy(choice = ModelChoice.Raw("openAI", "gpt-4.1"))) }
+        advanceUntilIdle()
+        coVerify(exactly = 1) { mcpRepository.getTools() }
     }
 
     @Test

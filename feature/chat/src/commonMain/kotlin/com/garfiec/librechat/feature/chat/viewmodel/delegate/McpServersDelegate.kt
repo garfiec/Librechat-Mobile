@@ -12,8 +12,12 @@ import com.garfiec.librechat.core.model.mcp.mcpDisplayStatus
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.viewmodel.McpSignInEnd
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionHandle
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
@@ -26,8 +30,9 @@ class McpServersDelegate(
     private val mcpRepository: McpRepository,
 ) {
     /**
-     * Bumped by every MCP load and by a sign-in's start, so a load that lands after a newer one
-     * started (or after the chip went to connecting) is dropped rather than painting older status.
+     * Bumped by every MCP load, a sign-in's start and a sign-in's cancel, so a load that lands after
+     * a newer one started (or after the chip went to connecting) is dropped rather than painting
+     * older status.
      */
     private var loadGeneration = 0
 
@@ -55,40 +60,82 @@ class McpServersDelegate(
      */
     private var discovery: Map<String, McpServerDiscovery> = emptyMap()
 
+    /** What the last load painted, so a discovery read that lands later re-folds onto it. */
+    private var painted: Pair<List<McpServer>, Map<String, McpServerStatus>>? = null
+
+    /**
+     * The last load listed servers whose discovery read waits for the tool controls
+     * (`toolbarShown`): nothing in an agent or `hideBadgeRow` chat reads the verdicts, and that
+     * route runs a full catalog load on the server, so it is asked only once the chat shows them
+     * ([watchToolControls]), as web asks only while it observes tool authorization.
+     */
+    private var discoveryWanted = false
+    private var discoveryJob: Job? = null
+    private var toolControlsWatch: Job? = null
+
+    /**
+     * A chip sign-in's cancel ([cancelPendingFlow]) still on its way to the server. A chip tap
+     * waits for it before reconnecting: the server would otherwise replay the flow being cancelled
+     * into a new sign-in, and the cancel landing after it would refuse that sign-in's callback.
+     */
+    private var pendingCancel: CompletableDeferred<Unit>? = null
+
     /**
      * The servers with their status as the MCP servers page reads it: the connection-status map
      * with tool discovery's lapsed authorizations folded in ([applyDiscoveryAuthorizationState], as
      * the page does), mapped by [mcpDisplayStatus]. The servers show as soon as the list and the
-     * status route answer; discovery, which can take a live `tools/list` per cold server, folds in
+     * status route answer. Discovery, which can take a live `tools/list` per cold server, is asked
+     * after them, only for a non-empty list in a chat that shows the tool controls, and folds in
      * when it lands. A failed status read leaves the statuses unknown rather than failed; a failed
      * discovery read keeps the last verdicts.
      */
     fun load() {
         val generation = ++loadGeneration
-        handle.scope.launch {
-            coroutineScope {
-                val tools = async { mcpRepository.getTools() }
-                val status = async { mcpRepository.getConnectionStatus() }
-                val serversResult = mcpRepository.listServers()
-                if (serversResult !is Result.Success) {
-                    if (serversResult is Result.Error) {
-                        Logger.d(serversResult.exception) { "Failed to load MCP servers: ${serversResult.message}" }
-                    }
-                    tools.cancel()
-                    status.cancel()
-                    return@coroutineScope
+        handle.scope.launch { reload(generation) }
+    }
+
+    /** One load's list and status reads. A newer load or a chip tap since [generation] drops it. */
+    private suspend fun reload(generation: Int) {
+        if (generation != loadGeneration) return
+        watchToolControls()
+        coroutineScope {
+            val status = async { mcpRepository.getConnectionStatus() }
+            val serversResult = mcpRepository.listServers()
+            if (serversResult !is Result.Success) {
+                if (serversResult is Result.Error) {
+                    Logger.d(serversResult.exception) { "Failed to load MCP servers: ${serversResult.message}" }
                 }
-                val statusMap = (status.await() as? Result.Success)?.data ?: emptyMap()
-                if (generation != loadGeneration) {
-                    tools.cancel()
-                    return@coroutineScope
-                }
-                paint(serversResult.data, statusMap)
-                val discovered = (tools.await() as? Result.Success)?.data?.servers ?: return@coroutineScope
-                if (generation != loadGeneration || discovered == discovery) return@coroutineScope
-                discovery = discovered
-                paint(serversResult.data, statusMap)
+                status.cancel()
+                return@coroutineScope
             }
+            val statusMap = (status.await() as? Result.Success)?.data ?: emptyMap()
+            if (generation != loadGeneration) return@coroutineScope
+            painted = serversResult.data to statusMap
+            paint(serversResult.data, statusMap)
+            discoveryWanted = serversResult.data.isNotEmpty()
+            if (discoveryWanted && handle.state.toolbarShown) fetchDiscovery()
+        }
+    }
+
+    /** Asks for discovery once the chat shows its tool controls, when the last load left it waiting. */
+    private fun watchToolControls() {
+        if (toolControlsWatch != null) return
+        toolControlsWatch = handle.scope.launch {
+            handle.stateFlow.map { it.toolbarShown }.distinctUntilChanged().collect { shown ->
+                if (shown && discoveryWanted) fetchDiscovery()
+            }
+        }
+    }
+
+    private fun fetchDiscovery() {
+        discoveryWanted = false
+        val generation = loadGeneration
+        discoveryJob?.cancel()
+        discoveryJob = handle.scope.launch {
+            val discovered = (mcpRepository.getTools() as? Result.Success)?.data?.servers ?: return@launch
+            if (generation != loadGeneration || discovered == discovery) return@launch
+            discovery = discovered
+            painted?.let { (listed, statusMap) -> paint(listed, statusMap) }
         }
     }
 
@@ -119,7 +166,7 @@ class McpServersDelegate(
      * when no sign-in opens (already connected, deferred, refused, failed, or [openSignIn] turned
      * it down because another sign-in holds the screen), and through [onSignInEnded] once an opened
      * sign-in succeeds, is cancelled or fails. [onFailed] is told when the reconnect could not start
-     * a sign-in.
+     * a sign-in. The reconnect waits for a cancel an earlier chip sign-in left on its way.
      */
     fun signIn(
         serverName: String,
@@ -137,7 +184,9 @@ class McpServersDelegate(
                 },
             )
         }
+        val cancelling = pendingCancel
         handle.scope.launch {
+            cancelling?.await()
             val result = mcpRepository.reinitialize(serverName)
             signingIn = null
             when (result) {
@@ -150,10 +199,11 @@ class McpServersDelegate(
                             if (browserSignIn == serverName) browserSignIn = null
                             return@launch
                         }
-                        // Nothing will end a sign-in that never opened. The flow the reconnect
-                        // left pending is replayed or reissued by the chip's next tap.
+                        // Nothing will end a sign-in that never opened, and the flow the reconnect
+                        // left pending reads as connecting until it times out: it goes the way of a
+                        // closed one.
                         Logger.d { "Chip sign-in for $serverName not opened: another sign-in holds the screen" }
-                        load()
+                        cancelPendingFlow(serverName)
                         return@launch
                     }
                     if (!response.success && response.connectionDeferred != true) onFailed()
@@ -174,7 +224,7 @@ class McpServersDelegate(
      * statuses. When a chip's in-app sign-in was closed or refused, or never opened or bound
      * (`signedIn == false`), its reconnect left the server's OAuth flow pending, which reads as
      * connecting until it times out (10 minutes by default). So it is cancelled first, as web's
-     * Cancel does, and the chip offers sign-in again at once.
+     * Cancel does, and the chip offers sign-in again at once ([cancelPendingFlow]).
      *
      * A browser sign-in (`signedIn == null`) is never cancelled: the app sees only that the user came
      * back, and they may come back mid-way (the app switcher, a split-screen pane) and then finish in
@@ -190,13 +240,47 @@ class McpServersDelegate(
             load()
             return
         }
-        handle.scope.launch {
-            val cancelled = mcpRepository.cancelOAuth(server)
-            if (cancelled is Result.Error) {
-                Logger.d(cancelled.exception) { "Failed to cancel MCP OAuth for $server: ${cancelled.message}" }
-            }
+        cancelPendingFlow(server)
+    }
+
+    /**
+     * Cancels the OAuth flow a chip's reconnect left pending on [server], then reloads. The server
+     * keeps one flow per user and server, and a reconnect while a run's tool call waits on that
+     * server's sign-in replays the run's own flow: cancelling it would fail the tool call. So while
+     * a reply runs, or a live call waits on that server, the flow is left alone and only the
+     * statuses reload. The chip may then read connecting until the run's sign-in ends; its tap
+     * replays the flow.
+     */
+    private fun cancelPendingFlow(server: String) {
+        if (runMayHoldFlow(server)) {
+            Logger.d { "Chip sign-in for $server not cancelled: a run may be waiting on its flow" }
             load()
+            return
         }
+        val generation = ++loadGeneration
+        val cancelled = CompletableDeferred<Unit>()
+        pendingCancel = cancelled
+        handle.scope.launch {
+            try {
+                val result = mcpRepository.cancelOAuth(server)
+                if (result is Result.Error) {
+                    Logger.d(result.exception) { "Failed to cancel MCP OAuth for $server: ${result.message}" }
+                }
+            } finally {
+                cancelled.complete(Unit)
+                if (pendingCancel === cancelled) pendingCancel = null
+            }
+            // Dropped when a chip tap came meanwhile: that sign-in owns the chip now.
+            reload(generation)
+        }
+    }
+
+    private fun runMayHoldFlow(server: String): Boolean {
+        val state = handle.state
+        val comparison = state.comparisonState
+        if (state.isStreaming || comparison.primaryIsStreaming || comparison.secondaryIsStreaming) return true
+        return (state.activeToolCalls + comparison.primaryActiveToolCalls + comparison.secondaryActiveToolCalls)
+            .any { it.authServerName == server && it.authUrl != null && !it.isComplete }
     }
 }
 
