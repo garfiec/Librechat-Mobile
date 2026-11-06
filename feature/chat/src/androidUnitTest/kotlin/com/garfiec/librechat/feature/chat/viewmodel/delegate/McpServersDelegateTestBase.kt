@@ -108,7 +108,7 @@ abstract class McpServersDelegateTestBase {
 
     protected fun TestScope.returnToTheChat(delegate: McpServersDelegate) {
         delegate.onBackground()
-        delegate.onForeground()
+        delegate.onForeground(signInEnding = false)
         advanceUntilIdle()
     }
 }

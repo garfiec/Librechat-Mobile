@@ -1640,7 +1640,8 @@ class ChatViewModel(
         mcpServersDelegate.onBackground()
     }
 
-    fun onResume() {
+    /** [mcpSignInEnding]: an MCP sign-in ends on this return and re-reads the MCP statuses itself. */
+    fun onResume(mcpSignInEnding: Boolean = false) {
         streamingManager.onResume()
         codeWorkspaceDelegate.onForeground(true)
         pullRequestDelegate.onForeground(true)
@@ -1655,7 +1656,7 @@ class ChatViewModel(
         skillPickerDelegate.refreshOnReturn(pickerOpen = parsePickerQuery(state.inputText, state.canPickSkills) != null)
         // A chip's tap acts on its server's status, which may have changed elsewhere meanwhile (the
         // MCP servers page, another chat's tool call, a browser sign-in finished there).
-        mcpServersDelegate.onForeground()
+        mcpServersDelegate.onForeground(signInEnding = mcpSignInEnding)
     }
 
     /** The picker's retry after the skill catalog failed to load. */

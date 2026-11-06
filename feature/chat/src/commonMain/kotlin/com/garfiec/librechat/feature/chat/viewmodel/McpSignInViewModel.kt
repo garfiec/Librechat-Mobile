@@ -73,7 +73,7 @@ class McpSignInViewModel(
      * happens out of process, so it ends when the user is back ([onReturned]); a browser that never
      * opened ends it now.
      */
-    fun onLaunched(opened: Boolean = true) {
+    fun onLaunched(opened: Boolean) {
         _uiState.update {
             if (opened) {
                 it.copy(launch = null, awaitingReturn = true)
@@ -82,6 +82,13 @@ class McpSignInViewModel(
             }
         }
     }
+
+    /**
+     * A sign-in ends on this return to the app (a browser one, [onReturned]) or has ended and the
+     * screen hasn't acted on it yet: either way its [McpSignInUiState.ended] re-reads the statuses.
+     * True whichever of the two ON_RESUME observers runs first.
+     */
+    val endsOnReturn: Boolean get() = _uiState.value.let { it.awaitingReturn || it.ended }
 
     /** The app is in front again after a browser sign-in. */
     fun onReturned() {

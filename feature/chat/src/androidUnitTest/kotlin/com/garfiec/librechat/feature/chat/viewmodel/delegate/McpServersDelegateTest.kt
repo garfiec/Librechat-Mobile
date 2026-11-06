@@ -17,6 +17,7 @@ import io.mockk.coVerify
 import io.mockk.coVerifyOrder
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
@@ -217,7 +218,7 @@ class McpServersDelegateTest : McpServersDelegateTestBase() {
         delegate.load()
         advanceUntilIdle()
 
-        delegate.onForeground()
+        delegate.onForeground(signInEnding = false)
         advanceUntilIdle()
 
         coVerify(exactly = 1) { mcpRepository.listServers() }
@@ -259,7 +260,7 @@ class McpServersDelegateTest : McpServersDelegateTestBase() {
         // Signed in on the MCP servers page meanwhile, with no chip sign-in pending here.
         coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(signedIn)
         delegate.onBackground()
-        delegate.onForeground()
+        delegate.onForeground(signInEnding = false)
         advanceUntilIdle()
 
         // A tap now turns github off rather than reconnecting a live connection.
@@ -270,14 +271,14 @@ class McpServersDelegateTest : McpServersDelegateTestBase() {
         // Signed out there again: the next return reads that too.
         coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
         delegate.onBackground()
-        delegate.onForeground()
+        delegate.onForeground(signInEnding = false)
         advanceUntilIdle()
         assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.NEEDS_SIGN_IN)
 
         // A server added elsewhere is new to discovery, so it is asked then.
         coEvery { mcpRepository.listServers() } returns Result.Success(servers + McpServer(name = "added"))
         delegate.onBackground()
-        delegate.onForeground()
+        delegate.onForeground(signInEnding = false)
         advanceUntilIdle()
         coVerify(exactly = 2) { mcpRepository.getTools() }
     }
@@ -301,6 +302,48 @@ class McpServersDelegateTest : McpServersDelegateTestBase() {
     }
 
     @Test
+    fun aReturnLeavesTheReloadToABrowserSignInEndingOnIt() = runTest {
+        coEvery { mcpRepository.listServers() } returns Result.Success(servers)
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
+        val (_, delegate) = newDelegate()
+        delegate.load()
+        advanceUntilIdle()
+
+        delegate.onBackground()
+        delegate.onForeground(signInEnding = true)
+        advanceUntilIdle()
+        coVerify(exactly = 1) { mcpRepository.listServers() }
+
+        // The sign-in's end is the one reload of that return.
+        delegate.onSignInEnded()
+        advanceUntilIdle()
+        coVerify(exactly = 2) { mcpRepository.listServers() }
+    }
+
+    @Test
+    fun aNewerLoadCancelsTheOlderOnesReads() = runTest {
+        var firstReadCancelled = false
+        coEvery { mcpRepository.listServers() } coAnswers {
+            try {
+                awaitCancellation()
+            } finally {
+                firstReadCancelled = true
+            }
+        }
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
+        val (handle, delegate) = newDelegate()
+        delegate.load()
+        advanceUntilIdle()
+
+        coEvery { mcpRepository.listServers() } returns Result.Success(servers)
+        delegate.load()
+        advanceUntilIdle()
+
+        assertThat(firstReadCancelled).isTrue()
+        assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.NEEDS_SIGN_IN)
+    }
+
+    @Test
     fun aReturnBeforeTheFirstLoadReadsNothing() = runTest {
         coEvery { mcpRepository.listServers() } returns Result.Success(servers)
         coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
@@ -308,7 +351,7 @@ class McpServersDelegateTest : McpServersDelegateTestBase() {
 
         // MCP_SERVERS.USE not answered yet (or denied): the chat never loaded its servers.
         delegate.onBackground()
-        delegate.onForeground()
+        delegate.onForeground(signInEnding = false)
         advanceUntilIdle()
 
         coVerify(exactly = 0) { mcpRepository.listServers() }

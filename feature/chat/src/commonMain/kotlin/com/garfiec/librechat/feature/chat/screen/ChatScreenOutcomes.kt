@@ -30,6 +30,8 @@ internal fun ChatScreenOutcomes(
     viewModel: ChatViewModel,
     onConversationStart: ((conversationId: String, isTemporary: Boolean) -> Unit)?,
     onNavigateToConversation: ((String) -> Unit)?,
+    /** Read on each return: an MCP sign-in ends on it and re-reads the MCP statuses itself. */
+    mcpSignInEnding: () -> Boolean,
 ) {
     // The effects below outlive a recomposition, so they read the navigation callbacks through
     // these rather than capturing whichever pair was current when they launched.
@@ -37,7 +39,8 @@ internal fun ChatScreenOutcomes(
     val start by rememberUpdatedState(onConversationStart)
 
     LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { viewModel.onPause() }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume() }
+    val signInEnding by rememberUpdatedState(mcpSignInEnding)
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume(signInEnding()) }
 
     val noticeHandoff = koinInject<ChatNoticeHandoff>()
     LaunchedEffect(uiState.forkedConversationId) {

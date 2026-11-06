@@ -411,6 +411,7 @@ fun ChatScreen(
         viewModel = viewModel,
         onConversationStart = onConversationStart,
         onNavigateToConversation = onNavigateToConversation,
+        mcpSignInEnding = { mcpSignInViewModel.endsOnReturn },
     )
 
     val sendBlockMessage = uiState.sendBlockReason?.asString()
