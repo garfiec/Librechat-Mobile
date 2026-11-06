@@ -672,9 +672,14 @@ data class ChatUiState(
     val openTools: Set<String> get() = SETTING_TOOL_ORDER.filterTo(mutableSetOf(), ::toolGateOpen)
 
     /**
-     * What the composer's settings line is built from ([settingChipsOf]). Read once per state by the
-     * ViewModel's `uiState` combine, which puts the result on [settingChips].
+     * What the composer's settings line is built from ([settingChipsOf]). Read by the ViewModel's
+     * `uiState` combine, which puts the result on [settingChips], only when one of
+     * [settingChipSlices] changed: a new read here from another slice must be added there.
      */
+    val settingChipSlices: List<Any?>
+        get() = listOf(selection, gates, comparisonState, prefs, account, composer.pendingReasoningOverride)
+
+    /** See [settingChipSlices]. */
     val settingChipInputs: SettingChipInputs
         get() {
             val shown = toolbarShown

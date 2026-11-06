@@ -641,7 +641,7 @@ class ChatViewModel(
             ),
             avatars = state.replyAvatars(url),
             // The composer's settings line, mapped here once rather than on every chrome recomposition.
-            settingChips = settingChipsMemo.resolve(state.settingChipInputs),
+            settingChips = settingChipsMemo.resolve(state.settingChipSlices) { state.settingChipInputs },
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, ChatUiState())
 

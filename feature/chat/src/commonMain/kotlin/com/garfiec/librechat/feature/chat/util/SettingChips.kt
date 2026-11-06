@@ -141,16 +141,24 @@ fun settingChipsOf(inputs: SettingChipInputs): SettingChips {
 
 /**
  * [settingChipsOf] that returns its last result while the inputs are equal, so the line keeps one
- * instance across the streaming reply's emissions. One collector only.
+ * instance across the streaming reply's emissions. The inputs are gathered only when one of the
+ * state's [keys] (`ChatUiState.settingChipSlices`, the slices they are read from) is not the same
+ * instance as last time, so a streaming flush, which replaces none of them, gathers nothing. One
+ * collector only.
  */
 internal class SettingChipsMemo {
+    private var keys: List<Any?>? = null
     private var inputs: SettingChipInputs? = null
     private var result: SettingChips = SettingChips.EMPTY
 
-    fun resolve(inputs: SettingChipInputs): SettingChips {
-        if (inputs != this.inputs) {
-            result = settingChipsOf(inputs)
-            this.inputs = inputs
+    fun resolve(keys: List<Any?>, inputs: () -> SettingChipInputs): SettingChips {
+        val last = this.keys
+        if (last != null && last.size == keys.size && last.indices.all { last[it] === keys[it] }) return result
+        this.keys = keys
+        val next = inputs()
+        if (next != this.inputs) {
+            result = settingChipsOf(next)
+            this.inputs = next
         }
         return result
     }

@@ -316,13 +316,36 @@ class SettingChipsTest {
     @Test
     fun theMemoKeepsOneInstanceWhileTheInputsAreEqual() {
         val memo = SettingChipsMemo()
-        val first = memo.resolve(inputs(toolsOn = setOf(ToolConstants.WEB_SEARCH)))
+        val first = memo.resolve(listOf(Any())) { inputs(toolsOn = setOf(ToolConstants.WEB_SEARCH)) }
 
-        assertSame(first, memo.resolve(inputs(toolsOn = setOf(ToolConstants.WEB_SEARCH))))
+        assertSame(first, memo.resolve(listOf(Any())) { inputs(toolsOn = setOf(ToolConstants.WEB_SEARCH)) })
         assertEquals(
             SettingChipState.PINNED_OFF,
-            (memo.resolve(inputs(pinned = listOf(ToolConstants.WEB_SEARCH))).chips.single() as SettingChip.Tool).state,
+            (memo.resolve(listOf(Any())) { inputs(pinned = listOf(ToolConstants.WEB_SEARCH)) }.chips.single() as SettingChip.Tool).state,
         )
+    }
+
+    @Test
+    fun aContentOnlyEmissionGathersNoInputs() {
+        val memo = SettingChipsMemo()
+        val state = ChatUiState(
+            selection = ModelSelectionState(
+                choice = ModelChoice.Raw("openAI", "gpt-5.1"),
+                enabledTools = setOf(ToolConstants.CODE_INTERPRETER),
+            ),
+        )
+        var gathered = 0
+        val first = memo.resolve(state.settingChipSlices) { gathered++; state.settingChipInputs }
+
+        // A streaming flush replaces the message slice and nothing the line reads.
+        val flushed = state.copy(content = state.content.copy(isStreaming = true))
+        assertSame(first, memo.resolve(flushed.settingChipSlices) { gathered++; flushed.settingChipInputs })
+        assertEquals(1, gathered)
+
+        // A tool toggle replaces the selection: gathered again.
+        val toggled = state.copy(selection = state.selection.copy(enabledTools = emptySet()))
+        assertTrue(memo.resolve(toggled.settingChipSlices) { gathered++; toggled.settingChipInputs }.isEmpty)
+        assertEquals(2, gathered)
     }
 
     /** The chat state's gates, end to end: URL context and memory stored on, neither runnable here. */
