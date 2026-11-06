@@ -1159,7 +1159,8 @@ first, then images, files, skills, quotes.
   thumbnail is a small JPEG (PNG with alpha) the picker draws off Main (`draftPreviewOf`,
   `IosImageData.preview` → `AttachedFile.localPreview`), never the picked bytes: a library photo
   comes over as its original data, often HEIC, which Coil's Skia decoder on iOS can't read. A
-  thumbnail prefers the device's copy, then the server's `filepath`.
+  thumbnail prefers the device's copy, then the server's (`filepath`, or the id of a server file
+  attached by reference), else none (the image glyph): a String `uri` is an id, never loaded.
 - **Queued edits carry their quotes** like their skills: `ComposerSnapshot.quotes`, captured and
   applied by the swap, and the commit sends the quotes on screen. A recovery during the edit (a
   steer's lost excerpts, an un-sent turn's text and chips) belongs to the stashed draft, not the

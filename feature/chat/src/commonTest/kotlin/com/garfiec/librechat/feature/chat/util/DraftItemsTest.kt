@@ -115,9 +115,34 @@ class DraftItemsTest {
     }
 
     @Test
-    fun aNotYetUploadedImageWithNoDeviceCopyFallsBackToItsUri() {
-        val picked = AttachedFile(uri = "content://media/1", name = "p.png", isImage = true)
+    fun aNotYetUploadedImageWithOnlyAMintedIdHasNoThumbnail() {
+        // iOS: the uri is the entry's id, and a HEIC pick has no preview the loader can draw.
+        val picked = AttachedFile(uri = "7d3c0e1a-minted", name = "IMG_0001.HEIC", isImage = true)
+        val image = draftItemsOf(listOf(picked), emptyList(), emptyList(), serverUrl = "https://chat.example")
+            .items.single() as DraftItem.Image
+        assertNull(image.thumbnail)
+    }
+
+    @Test
+    fun aPlatformHandleIsItsOwnThumbnail() {
+        // An Android content Uri, which the image loader reads as it is.
+        val handle = Any()
+        val picked = AttachedFile(uri = handle, name = "p.png", isImage = true)
         val image = draftItemsOf(listOf(picked), emptyList(), emptyList(), serverUrl = "").items.single() as DraftItem.Image
-        assertEquals("content://media/1", image.thumbnail)
+        assertSame(handle, image.thumbnail)
+    }
+
+    @Test
+    fun aServerImageWithNoPathDrawsFromItsFileId() {
+        // "From server" with no stored path: the file route by id, as its row's uri also reads.
+        val server = AttachedFile(
+            uri = "https://chat.example/api/files/f1",
+            name = "s.png",
+            isImage = true,
+            fileId = "f1",
+        )
+        val image = draftItemsOf(listOf(server), emptyList(), emptyList(), serverUrl = "https://chat.example")
+            .items.single() as DraftItem.Image
+        assertEquals("https://chat.example/api/files/f1", image.thumbnail)
     }
 }

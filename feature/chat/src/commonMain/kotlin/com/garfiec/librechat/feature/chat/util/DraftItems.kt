@@ -69,9 +69,10 @@ data class DraftItems(
  * each group in the order it was added. Pure, so `ChatScreen` maps it once per change of its inputs.
  *
  * An image's thumbnail is what the device holds when it holds something drawable (an Android
- * content `Uri`, iOS's retained bytes in [AttachedFile.localPreview]), else the server's copy once
- * uploaded ([serverUrl] + `filepath`), else the `uri` as given (a server URL from the "From server"
- * picker). The device copy wins over the server's so the thumbnail doesn't reload as the upload lands.
+ * content `Uri`, the picker's small copy on iOS in [AttachedFile.localPreview]), else the server's
+ * copy once there is one ([serverUrl] with the `filepath`, or the file id of a server file attached
+ * by reference), else nothing: a String `uri` is an id (iOS mints one per pick), not something to
+ * load. The device copy wins over the server's so the thumbnail doesn't reload as the upload lands.
  */
 fun draftItemsOf(
     files: List<AttachedFile>,
@@ -122,8 +123,6 @@ private fun thumbnailFor(file: AttachedFile, serverUrl: String): Any? {
     file.localPreview?.let { return it }
     // A non-String uri is a platform handle an image loader reads (an Android content Uri).
     if (file.uri !is String) return file.uri
-    val server = file.filepath?.let {
-        resolveFileReferenceUrl(FileReference(fileId = file.fileId, filepath = it, type = file.type), serverUrl)
-    }
-    return server ?: file.uri
+    if (file.filepath == null && file.fileId == null) return null
+    return resolveFileReferenceUrl(FileReference(fileId = file.fileId, filepath = file.filepath, type = file.type), serverUrl)
 }
