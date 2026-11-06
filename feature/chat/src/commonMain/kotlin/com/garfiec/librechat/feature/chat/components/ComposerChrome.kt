@@ -42,8 +42,20 @@ data class ComposerChrome(
     val draftUploadProgress: DraftUploadProgress = DraftUploadProgress.NONE,
     /** What was last added to [draftItems], tracked by the screen so the first item counts too. */
     val draftAdditions: DraftAdditions? = null,
-    /** The attachment list panel is open (the screen draws it, above the composer). */
+    /** The attachment list is open (the composer draws it between the settings line and the field). */
     val isDraftListOpen: Boolean = false,
+    /** A screen reader opened the list: it takes focus at its header ([DraftListState.focusHeader]). */
+    val draftListFocusHeader: Boolean = false,
+    /**
+     * The list's slot (zero tall while it is shut), for the screen's outside-tap check and for the
+     * height the rest of the composer takes.
+     */
+    val onDraftListPositioned: (LayoutCoordinates) -> Unit = {},
+    /**
+     * The most the list may take, in px, read as it lays out: what is left below the floating top bar.
+     * Keyboard frames move it, so it is a function the layout reads, not a value that recomposes.
+     */
+    val draftListMaxHeightPx: () -> Int = { Int.MAX_VALUE },
     /**
      * A tool-approval panel holds the space above the composer, so the list doesn't open: the stack
      * draws as usual with no click action, and the failed-upload line says to deal with the file

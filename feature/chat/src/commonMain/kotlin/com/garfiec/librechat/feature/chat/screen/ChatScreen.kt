@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
@@ -30,6 +29,7 @@ import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onPlaced
@@ -55,7 +55,6 @@ import com.garfiec.librechat.feature.chat.components.CodeWorkspaceComposer
 import com.garfiec.librechat.feature.chat.components.ComposerChrome
 import com.garfiec.librechat.feature.chat.components.ComposerComparison
 import com.garfiec.librechat.feature.chat.components.ComposerComparisonHint
-import com.garfiec.librechat.feature.chat.components.ComposerDraftListPanel
 import com.garfiec.librechat.feature.chat.components.DRAFT_LIST_GAP
 import com.garfiec.librechat.feature.chat.components.DraftListPauseEffects
 import com.garfiec.librechat.feature.chat.components.LandingStarters
@@ -200,9 +199,11 @@ fun ChatScreen(
     val draftList = rememberDraftListState()
     val draftTapTargets = remember { DraftListTapTargets() }
     // The composer's own height (not the bottom box's, which also holds starters, the update banner
-    // and a tool-approval panel): the list sits right above the field it opened from. Read only
-    // while the list shows, as is the screen's height: both move with every keyboard frame.
+    // and a tool-approval panel), and the list's within it: the rest is what the list sits on. Read
+    // only by the list's room check and its height cap, as is the screen's height: all three move
+    // with every keyboard frame.
     var composerHeightPx by remember { mutableIntStateOf(0) }
+    var draftListHeightPx by remember { mutableIntStateOf(0) }
     // The screen's height above the keyboard, for the room the list has between the bar and the composer.
     var chatHeightPx by remember { mutableIntStateOf(0) }
     LaunchedEffect(draftItems.isEmpty) { if (draftItems.isEmpty) draftList.close() }
@@ -590,6 +591,24 @@ fun ChatScreen(
                     // but opens nothing), so the panel is never collapsed or covered for it.
                     val pausePanelUp = askPause != null || toolPause != null
                     DraftListPauseEffects(draftList, pausePanelUp = pausePanelUp)
+                    val onDraftListPositioned: (LayoutCoordinates) -> Unit = remember {
+                        {
+                            draftTapTargets.list = it
+                            draftListHeightPx = it.size.height
+                        }
+                    }
+                    // What is left between the floating top bar (which draws over the list and takes
+                    // its taps) and the rest of the composer, so the list scrolls in what is visible.
+                    val topContentPaddingPx = with(LocalDensity.current) { topContentPadding.roundToPx() }
+                    val draftListMaxHeightPx: () -> Int = remember(topContentPaddingPx) {
+                        {
+                            if (chatHeightPx == 0) {
+                                Int.MAX_VALUE
+                            } else {
+                                chatHeightPx - topContentPaddingPx - (composerHeightPx - draftListHeightPx)
+                            }
+                        }
+                    }
                     val composerChrome = ComposerChrome(
                         pendingSteers = uiState.pendingSteers,
                         onCancelSteer = viewModel::cancelSteer,
@@ -604,6 +623,8 @@ fun ChatScreen(
                         onRemoveDraftItem = viewModel::removeDraftItem,
                         onRetryUpload = viewModel::retryUpload,
                         onDraftStackPositioned = { draftTapTargets.stack = it },
+                        onDraftListPositioned = onDraftListPositioned,
+                        draftListMaxHeightPx = draftListMaxHeightPx,
                         enabledTools = uiState.effectiveEnabledTools,
                         selectedMcpServerNames = uiState.effectiveMcpServerNames,
                         settingChips = uiState.settingChips,
@@ -822,15 +843,9 @@ fun ChatScreen(
                         }
                     }
 
-                    // The attachment list, over the thread just above the composer. Outside the
-                    // measured box above, so opening it doesn't move the thread's bottom inset, and
-                    // drawn after it, so the landing starters and the update banner docked there
-                    // neither draw over its rows nor take their taps. A pause panel closes it as it
-                    // comes up, and while one is up it stays shut.
-                    // The list's effects close it as the draft empties or a pause panel comes up, a
-                    // frame later; until then these keep it from drawing.
-                    val draftListShown = draftList.isOpen && !draftItems.isEmpty && !pausePanelUp
-                    if (draftListShown) {
+                    // The composer draws the attachment list between the settings line and the field.
+                    // Too little room for it below the top bar: the keyboard takes it, so it goes down.
+                    if (draftList.isOpen && !draftItems.isEmpty && !pausePanelUp) {
                         val density = LocalDensity.current
                         val minHeight = draftListMinHeight()
                         // Derived, so a keyboard frame that moves the heights recomposes nothing
@@ -840,38 +855,16 @@ fun ChatScreen(
                                 with(density) {
                                     draftListNeedsRoom(
                                         height = chatHeightPx.toDp(),
-                                        bottom = composerHeightPx.toDp() + DRAFT_LIST_GAP,
+                                        bottom = (composerHeightPx - draftListHeightPx).toDp() + DRAFT_LIST_GAP,
                                         barBottom = topContentPadding,
                                         minHeight = minHeight,
                                     )
                                 }
                             }
                         }
-                        // Too little room below the top bar: the keyboard takes it, so it goes down.
                         LaunchedEffect(needsRoom) {
                             if (needsRoom) keyboardController?.hide()
                         }
-                        val draftListBottomEdge = with(density) { composerHeightPx.toDp() } + DRAFT_LIST_GAP
-                        ComposerDraftListPanel(
-                            items = draftItems,
-                            onRemove = composerChrome.onRemoveDraftItem,
-                            onRetry = composerChrome.onRetryUpload,
-                            focusHeader = draftList.focusHeader,
-                            uploadProgress = draftUploadProgress,
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(
-                                    start = 12.dp,
-                                    end = 12.dp,
-                                    // Clear of the floating top bar, which draws over it and takes
-                                    // its taps, so its rows stay visible and tappable with the
-                                    // keyboard up, and it scrolls in what is left.
-                                    top = topContentPadding,
-                                    bottom = draftListBottomEdge,
-                                )
-                                .widthIn(max = DraftListMaxWidth)
-                                .onPlaced { draftTapTargets.list = it },
-                        )
                     }
 
                     // Floating top bar overlays the message list (drawn last so it sits above content),
@@ -1050,8 +1043,6 @@ fun NewChatScreen(
 }
 
 /** The attachment list keeps to a phone's width on a wide pane, under the stack it opened from. */
-private val DraftListMaxWidth = 480.dp
-
 /** The native iOS bar's toggle centre, from the bar's bottom-end corner: before the ⋯ button. */
 private val NativeToggleFromEnd = 82.dp
 private val NativeToggleFromBottom = 28.dp

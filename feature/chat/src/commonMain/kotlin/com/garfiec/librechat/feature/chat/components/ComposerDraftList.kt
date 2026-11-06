@@ -1,5 +1,10 @@
 package com.garfiec.librechat.feature.chat.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
@@ -11,6 +16,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -30,6 +36,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.paneTitle
@@ -62,7 +70,55 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The list the attachment stack opens, over the thread just above the composer: everything that goes
+ * The attachment list's place in the composer: between the settings line and the field it opened
+ * from, growing up out of the field and fading in, and shrinking back into it. Never taller than
+ * [ComposerChrome.draftListMaxHeightPx]. The slot itself is always there (zero tall while shut), so
+ * the screen reads a closed list's height as 0.
+ */
+@Composable
+internal fun ComposerDraftListSlot(chrome: ComposerChrome) {
+    // The items it last showed, so a list closing because it emptied doesn't shrink away as "0 items".
+    val kept = remember { KeptDraftItems() }
+    val items = kept.of(chrome.draftItems)
+    Box(modifier = Modifier.fillMaxWidth().onPlaced(chrome.onDraftListPositioned)) {
+        AnimatedVisibility(
+            visible = chrome.isDraftListOpen && !chrome.draftItems.isEmpty,
+            enter = expandVertically(expandFrom = Alignment.Bottom) + fadeIn(),
+            exit = shrinkVertically(shrinkTowards = Alignment.Bottom) + fadeOut(),
+        ) {
+            ComposerDraftListPanel(
+                items = items,
+                onRemove = chrome.onRemoveDraftItem,
+                onRetry = chrome.onRetryUpload,
+                focusHeader = chrome.draftListFocusHeader,
+                uploadProgress = chrome.draftUploadProgress,
+                modifier = Modifier
+                    .padding(bottom = DRAFT_LIST_GAP)
+                    .widthIn(max = DRAFT_LIST_MAX_WIDTH)
+                    .layout { measurable, constraints ->
+                        val max = chrome.draftListMaxHeightPx().coerceIn(0, constraints.maxHeight)
+                        val placeable = measurable.measure(constraints.copy(maxHeight = max, minHeight = minOf(constraints.minHeight, max)))
+                        layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+                    },
+            )
+        }
+    }
+}
+
+/** Remembers the last non-empty [DraftItems] it was given. */
+private class KeptDraftItems {
+    private var last = DraftItems.EMPTY
+
+    fun of(items: DraftItems): DraftItems {
+        if (!items.isEmpty) last = items
+        return last
+    }
+}
+
+private val DRAFT_LIST_MAX_WIDTH = 480.dp
+
+/**
+ * The list the attachment stack opens, between the settings line and the field: everything that goes
  * with the message (failed files first, then images, files, skills and quotes), one 52dp row each
  * with a 48dp × that removes it. Past four and a half rows it scrolls.
  *
@@ -72,9 +128,9 @@ import org.jetbrains.compose.resources.stringResource
  *
  * Opaque over the thread in Material (`surfaceContainerHigh`), a glass panel in Liquid Glass.
  *
- * [focusHeader] moves focus to the header as it opens, for a screen reader that opened it: drawn
- * above the composer, the panel comes before the stack in traversal order, so without it the next
- * swipe from the stack goes on to the field.
+ * [focusHeader] moves focus to the header as it opens, for a screen reader that opened it: above the
+ * field, the panel comes before the stack in traversal order, so without it the next swipe from the
+ * stack goes on to the field.
  */
 @Composable
 internal fun ComposerDraftListPanel(

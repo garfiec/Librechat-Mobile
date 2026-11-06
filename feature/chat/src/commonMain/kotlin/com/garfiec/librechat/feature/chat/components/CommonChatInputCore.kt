@@ -290,6 +290,9 @@ fun CommonChatInputCore(
                 onRetrySkills = onRetrySkills,
             )
 
+            // The attachment list, right above the field its stack opens it from.
+            ComposerDraftListSlot(state.chrome)
+
             // Temporary chat's wash on the glass capsule, faded rather than snapped (Material's is in the field).
             val temporaryWash = ChatInputDefaults.temporaryWash
             val temporaryBorder = ChatInputDefaults.temporaryBorderColor

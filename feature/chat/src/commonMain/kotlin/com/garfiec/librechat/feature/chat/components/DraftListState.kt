@@ -73,12 +73,12 @@ private fun Density.lineHeightOf(style: TextStyle): Dp {
     }
 }
 
-/** Between the attachment list and the composer it sits on. */
-internal val DRAFT_LIST_GAP = 4.dp
+/** Between the attachment list and the field it sits on. */
+internal val DRAFT_LIST_GAP = 8.dp
 
 /**
- * Whether the list, below the floating top bar ([barBottom]) and above [bottom] (what it sits on, and
- * the gap), needs the keyboard down to get [minHeight] ([draftListMinHeight]) out of a screen
+ * Whether the list, below the floating top bar ([barBottom]) and above [bottom] (the rest of the
+ * composer, and the gap), needs the keyboard down to get [minHeight] ([draftListMinHeight]) out of a screen
  * [height] tall above the keyboard: the keyboard up on a short or landscape phone, a tall queue above
  * the field, a large font. The list never goes higher than the bar, which draws over it and takes its
  * taps. Before the screen is measured ([height] 0) it fits.
@@ -95,6 +95,7 @@ internal fun draftListNeedsRoom(height: Dp, bottom: Dp, barBottom: Dp, minHeight
  */
 internal fun ComposerChrome.withDraftList(state: DraftListState, toolPause: Boolean = false): ComposerChrome = copy(
     isDraftListOpen = state.isOpen && !toolPause,
+    draftListFocusHeader = state.focusHeader,
     draftListShut = toolPause,
     onToggleDraftList = state.toggleFromTouch,
     onToggleDraftListFromScreenReader = state.toggleFromScreenReader,

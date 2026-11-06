@@ -1111,16 +1111,17 @@ an upload starts or stops reporting a progress.
   the compact stack still takes 48dp (the decided 36dp isn't possible in that slot). Wide Compare badges
   draw first in the same slot; on a phone the A·B morph and its prefix reserve move past the stack
   (`afterStack`).
-- **The list** (`ComposerDraftListPanel`) is drawn by `ChatScreen` outside the measured bottom box,
-  so opening it doesn't move the thread's inset, and after it, so the landing starters and the update
-  banner docked there neither draw over its rows nor take their taps (a pause panel closes it as it
-  appears). It sits on the composer itself (its measured height, not the bottom box's, which also holds
-  starters and the update banner) and below the floating top bar, never under it (the bar draws over
-  it and takes its taps), so with the keyboard up it scrolls in what is visible. When that leaves
-  less than its header and one row (`draftListNeedsRoom` against `draftListMinHeight`, worked out
-  from the panel's text styles at the font size in effect: 92dp at 1x, about 130dp at 2x)
-  it hides the keyboard. The screen's and the composer's heights move with every keyboard frame, so
-  they are read only while the list shows, the room check inside a `derivedStateOf`. **During a tool-approval pause the list stays shut**
+- **The list** (`ComposerDraftListPanel`, in `ComposerDraftListSlot`) is drawn by the composer core
+  between the settings line and the field, where the `/` picker sits, so it reads as part of the
+  stack it opened from; don't move it back over the whole composer. It grows up out of the field and fades in, and shrinks back into it; while open the composer is
+  taller, so the thread's inset grows as for the picker. It never goes under the floating top bar
+  (which draws over it and takes its taps): `ComposerChrome.draftListMaxHeightPx`, read in layout,
+  caps it at what is left above the rest of the composer, so with the keyboard up it scrolls in
+  what is visible. When that leaves less than its header and one row (`draftListNeedsRoom` against
+  `draftListMinHeight`, worked out from the panel's text styles at the font size in effect: 92dp at
+  1x, about 130dp at 2x) it hides the keyboard. The screen's, the composer's and the list slot's
+  heights (`onDraftListPositioned`) move with every keyboard frame, so only the cap (in layout) and
+  the room check (in a `derivedStateOf`) read them. **During a tool-approval pause the list stays shut**
   (`withDraftList(toolPause)`, `ComposerChrome.draftListShut`, which the stack and the failed-upload
   line read to drop their toggles): the stack still draws (count, ring,
   red "!") but has no click action and no accessibility open action, and the failed-upload line is
