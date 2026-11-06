@@ -24,10 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,7 +62,8 @@ import org.jetbrains.compose.resources.stringResource
  * What goes with the message, stacked in the field's leading slot: up to two overlapping tiles
  * (one when [compact]) and a count, a progress ring while anything uploads, and a red "!" when an
  * upload failed. A tap opens the list ([ComposerDraftListPanel]); [expanded] is whether it is open.
- * Draws nothing for an empty [items]; the caller leaves the slot out then.
+ * Draws nothing for an empty [items]; the caller leaves the slot out then, which is why what was
+ * added is tracked above it ([additions]).
  *
  * The slot is M3's leading icon, which holds 48dp whatever it draws, so the stack fills that and
  * the compact form only changes what is inside it.
@@ -77,6 +75,8 @@ internal fun ComposerAttachmentStack(
     compact: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /** What was just added, for the pop and the announcement; null draws neither (previews). */
+    additions: DraftAdditions? = null,
 ) {
     if (items.isEmpty) return
     val count = items.items.size
@@ -84,22 +84,13 @@ internal fun ComposerAttachmentStack(
 
     // A pop as something is added; a removal settles without one.
     val scale = remember { Animatable(1f) }
-    val keys = remember(items.items) { items.items.mapTo(HashSet()) { it.key } }
-    var lastKeys by remember { mutableStateOf(keys) }
-    var lastAdded by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(keys) {
-        // Found by key: the list is sorted (failed first, quotes last), so the newest item isn't last.
-        val added = items.items.firstOrNull { it.key !in lastKeys }
-        val grew = keys.size > lastKeys.size
-        lastKeys = keys
-        if (added != null && grew) {
-            lastAdded = added.label()
+    LaunchedEffect(additions?.seq) {
+        if (additions?.takePop() == true) {
             scale.snapTo(POP_SCALE)
             scale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
-        } else {
-            lastAdded = null
         }
     }
+    val lastAdded = additions?.lastAdded
 
     val countDescription = pluralStringResource(Res.plurals.cd_draft_stack, count, count)
     // Announced as the live region changes: what was just added, then how many go with the message.

@@ -69,6 +69,7 @@ import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -621,6 +622,8 @@ internal fun composerFieldLeadingIcon(
                 expanded = chrome.isDraftListOpen,
                 compact = compact,
                 onClick = chrome.onToggleDraftList,
+                modifier = Modifier.onGloballyPositioned(chrome.onDraftStackPositioned),
+                additions = chrome.draftAdditions,
             )
         }
     }

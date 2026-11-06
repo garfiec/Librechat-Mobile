@@ -71,6 +71,7 @@ import com.garfiec.librechat.feature.chat.components.mcpapp.rememberLegacyUiReso
 import com.garfiec.librechat.feature.chat.components.mcpapp.rememberMcpApps
 import com.garfiec.librechat.feature.chat.components.rememberChatAttachmentActions
 import com.garfiec.librechat.feature.chat.components.rememberChatOptionsSheetController
+import com.garfiec.librechat.feature.chat.components.rememberDraftAdditions
 import com.garfiec.librechat.feature.chat.components.rememberMcpSignIn
 import com.garfiec.librechat.feature.chat.components.rememberThreadScrollHandle
 import com.garfiec.librechat.feature.chat.components.veil.COMPOSER_SWELL
@@ -179,9 +180,14 @@ fun ChatScreen(
     val draftItems = remember(attachedFiles, uiState.pendingManualSkills, uiState.pendingQuotes, uiState.serverUrl) {
         draftItemsOf(attachedFiles, uiState.pendingManualSkills, uiState.pendingQuotes, uiState.serverUrl)
     }
+    // Above the stack, which leaves composition while the draft is empty, so the first add pops too.
+    val draftAdditions = rememberDraftAdditions(draftItems)
     var draftListOpen by rememberSaveable { mutableStateOf(false) }
     var draftListBounds by remember { mutableStateOf(Rect.Zero) }
-    var composerBounds by remember { mutableStateOf(Rect.Zero) }
+    val draftTapTargets = remember { DraftListTapTargets() }
+    // The composer's own height (not the bottom box's, which also holds starters, the update banner
+    // and a tool-approval panel): the list sits right above the field it opened from.
+    var composerHeightPx by remember { mutableIntStateOf(0) }
     LaunchedEffect(draftItems.isEmpty) { if (draftItems.isEmpty) draftListOpen = false }
     PlatformBackHandler(enabled = draftListOpen) { draftListOpen = false }
     val prefs by viewModel.chatPreferences.collectAsStateWithLifecycle()
@@ -499,11 +505,13 @@ fun ChatScreen(
                         .fillMaxSize()
                         .glassBackdropSource(pullUp.backdrop.takeIf { pullUp.visible })
                         .then(rememberModeVeilModifier(modeVeil))
-                        // A tap outside the open attachment list and the composer closes the list;
-                        // the tap still reaches what it landed on, and a scroll doesn't close it.
+                        // A tap outside the open attachment list and its stack closes the list: on the
+                        // thread, a starter, the field (focused or not) or another composer control.
+                        // The tap still reaches what it landed on, and a scroll doesn't close it.
+                        .onGloballyPositioned { draftTapTargets.root = it }
                         .closeOnTapOutside(
                             enabled = draftListOpen,
-                            keep = { draftListBounds.contains(it) || composerBounds.contains(it) },
+                            keep = { draftListBounds.contains(it) || draftTapTargets.onStack(it) },
                             onClose = { draftListOpen = false },
                         ),
                 ) {
@@ -566,12 +574,14 @@ fun ChatScreen(
                         onCancelQueuedMessage = viewModel::cancelQueued,
                         onReorderQueuedMessages = viewModel::reorderQueue,
                         draftItems = draftItems,
+                        draftAdditions = draftAdditions,
                         isDraftListOpen = draftListOpen,
                         onToggleDraftList = { draftListOpen = !draftListOpen },
                         onRemoveDraftItem = viewModel::removeDraftItem,
                         onRetryUpload = viewModel::retryUpload,
                         onUndoRemove = viewModel::undoDraftRemoval,
                         onFieldFocused = { draftListOpen = false },
+                        onDraftStackPositioned = { draftTapTargets.stack = it },
                         enabledTools = uiState.effectiveEnabledTools,
                         selectedMcpServerNames = uiState.effectiveMcpServerNames,
                         settingChips = uiState.settingChips,
@@ -596,7 +606,10 @@ fun ChatScreen(
                                 .padding(
                                     start = 12.dp,
                                     end = 12.dp,
-                                    bottom = with(LocalDensity.current) { inputBarHeightPx.toDp() } + 4.dp,
+                                    // Clear of the floating top bar, so its rows stay visible and
+                                    // tappable with the keyboard up; it scrolls in what is left.
+                                    top = topContentPadding,
+                                    bottom = with(LocalDensity.current) { composerHeightPx.toDp() } + 4.dp,
                                 )
                                 .widthIn(max = DraftListMaxWidth)
                                 .onGloballyPositioned { draftListBounds = it.boundsInParent() },
@@ -608,8 +621,7 @@ fun ChatScreen(
                             // The panels size their caps from the height they are given: only what the
                             // floating top bar leaves visible. Before onSizeChanged, which measures content.
                             .padding(top = topContentPadding)
-                            .onSizeChanged { inputBarHeightPx = it.height }
-                            .onGloballyPositioned { composerBounds = it.boundsInParent() },
+                            .onSizeChanged { inputBarHeightPx = it.height },
                     ) {
                         Column {
                             if (uiState.isEmptyLanding()) {
@@ -680,7 +692,7 @@ fun ChatScreen(
                                     reaction = VeilReaction.NUDGE,
                                     swell = COMPOSER_SWELL,
                                 )
-                                Box(composerVeil.modifier) {
+                                Box(Modifier.onSizeChanged { composerHeightPx = it.height }.then(composerVeil.modifier)) {
                                     val codeWorkspace = uiState.codeWorkspace
                                     val codeWorkspaceComposer = remember(codeWorkspace, viewModel) {
                                         CodeWorkspaceComposer(
@@ -733,7 +745,11 @@ fun ChatScreen(
                                         ChatComposer(
                                             inputText = uiState.inputText,
                                             isStreaming = isAnyStreaming,
-                                            onInputChange = viewModel::onInputChanged,
+                                            onInputChange = {
+                                                // Typing on, with the list open over the thread, closes it.
+                                                draftListOpen = false
+                                                viewModel.onInputChanged(it)
+                                            },
                                             onSend = {
                                                 draftListOpen = false
                                                 viewModel.sendMessage()

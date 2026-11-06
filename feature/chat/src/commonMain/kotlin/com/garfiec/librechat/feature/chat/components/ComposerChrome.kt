@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.layout.LayoutCoordinates
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.feature.chat.util.DraftItem
 import com.garfiec.librechat.feature.chat.util.DraftItems
@@ -36,6 +37,8 @@ data class ComposerChrome(
      * by the screen ([draftItemsOf]). The field's leading stack draws it; the list panel opens from it.
      */
     val draftItems: DraftItems = DraftItems.EMPTY,
+    /** What was last added to [draftItems], tracked by the screen so the first item counts too. */
+    val draftAdditions: DraftAdditions? = null,
     /** The attachment list panel is open (the screen draws it, above the composer). */
     val isDraftListOpen: Boolean = false,
     /** The stack's tap: open the list, or close it when open. */
@@ -48,6 +51,11 @@ data class ComposerChrome(
     val onUndoRemove: (undoId: Long) -> Unit = {},
     /** The message field gained focus; the list panel closes then. */
     val onFieldFocused: () -> Unit = {},
+    /**
+     * Where the stack is, for the screen's outside-tap check: a tap on the stack toggles the list,
+     * any other tap outside the list (the field included) closes it.
+     */
+    val onDraftStackPositioned: (LayoutCoordinates) -> Unit = {},
     /** The tools in use, for the "+" button's dot. */
     val enabledTools: Set<String> = emptySet(),
     /** The MCP servers in use, for the "+" button's dot. */
