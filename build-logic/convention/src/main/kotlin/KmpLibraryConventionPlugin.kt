@@ -1,6 +1,7 @@
 import com.android.build.gradle.LibraryExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.configure
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
@@ -51,6 +52,12 @@ class KmpLibraryConventionPlugin : Plugin<Project> {
             }
 
             dependencies.add("coreLibraryDesugaring", libs.findLibrary("desugar-jdk").get())
+
+            // One JVM runs a module's whole unit-test task, and MockK's inline mocks stay reachable
+            // across test classes: :feature:chat's suite sat at Gradle's default 512 MB cap,
+            // full-GC thrashing, and a few more tests turned that into OutOfMemoryErrors (or a
+            // test that never finished) far from the test that tipped it.
+            tasks.withType(Test::class.java).configureEach { maxHeapSize = "2g" }
         }
     }
 }
