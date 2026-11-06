@@ -72,6 +72,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -470,12 +471,16 @@ internal fun SteerAndQueueColumn(
 /**
  * Why Send is held while a file failed to upload, under the field. A tap opens the attachment list,
  * where the failed row retries. 48dp tall whether or not the list is open, so the tap target meets
- * the minimum and the composer doesn't change height as the list opens and closes.
+ * the minimum and the composer doesn't change height as the list opens and closes. A screen reader's
+ * open goes through the stack's screen-reader toggle, so focus moves to the list's header: the
+ * line's own text sends the user there.
  */
 @Composable
-private fun FailedUploadsLine(chrome: ComposerChrome) {
+internal fun FailedUploadsLine(chrome: ComposerChrome) {
     val failed = chrome.draftItems.failedCount
     if (failed == 0) return
+    val openLabel = stringResource(Res.string.cd_expand)
+    val openFromScreenReader = chrome.onToggleDraftListFromScreenReader ?: chrome.onToggleDraftList
     Box(
         contentAlignment = Alignment.CenterStart,
         modifier = Modifier
@@ -486,7 +491,15 @@ private fun FailedUploadsLine(chrome: ComposerChrome) {
                 if (chrome.isDraftListOpen) {
                     Modifier
                 } else {
-                    Modifier.clickable(role = Role.Button, onClick = chrome.onToggleDraftList)
+                    Modifier
+                        // Ahead of the clickable, so its OnClick replaces the clickable's touch one.
+                        .semantics {
+                            onClick(label = openLabel) {
+                                openFromScreenReader()
+                                true
+                            }
+                        }
+                        .clickable(onClickLabel = openLabel, role = Role.Button, onClick = chrome.onToggleDraftList)
                 },
             )
             .padding(horizontal = 12.dp, vertical = 4.dp),

@@ -72,6 +72,7 @@ import com.garfiec.librechat.feature.chat.components.mcpapp.rememberMcpApps
 import com.garfiec.librechat.feature.chat.components.rememberChatAttachmentActions
 import com.garfiec.librechat.feature.chat.components.rememberChatOptionsSheetController
 import com.garfiec.librechat.feature.chat.components.rememberDraftAdditions
+import com.garfiec.librechat.feature.chat.components.rememberDraftListState
 import com.garfiec.librechat.feature.chat.components.rememberMcpSignIn
 import com.garfiec.librechat.feature.chat.components.rememberThreadScrollHandle
 import com.garfiec.librechat.feature.chat.components.veil.COMPOSER_SWELL
@@ -81,6 +82,7 @@ import com.garfiec.librechat.feature.chat.components.veil.VeilReaction
 import com.garfiec.librechat.feature.chat.components.veil.rememberModeVeilModifier
 import com.garfiec.librechat.feature.chat.components.veil.rememberModeVeilState
 import com.garfiec.librechat.feature.chat.components.veil.rememberVeilTarget
+import com.garfiec.librechat.feature.chat.components.withDraftList
 import com.garfiec.librechat.feature.chat.prompts.components.VariableInputDialog
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.mcp_sign_in_failed
@@ -182,16 +184,14 @@ fun ChatScreen(
     }
     // Above the stack, which leaves composition while the draft is empty, so the first add pops too.
     val draftAdditions = rememberDraftAdditions(draftItems)
-    var draftListOpen by rememberSaveable { mutableStateOf(false) }
-    // The list was opened by a screen reader, so it takes focus at its header (ComposerDraftListPanel).
-    var focusDraftListHeader by remember { mutableStateOf(false) }
+    val draftList = rememberDraftListState()
     var draftListBounds by remember { mutableStateOf(Rect.Zero) }
     val draftTapTargets = remember { DraftListTapTargets() }
     // The composer's own height (not the bottom box's, which also holds starters, the update banner
     // and a tool-approval panel): the list sits right above the field it opened from.
     var composerHeightPx by remember { mutableIntStateOf(0) }
-    LaunchedEffect(draftItems.isEmpty) { if (draftItems.isEmpty) draftListOpen = false }
-    PlatformBackHandler(enabled = draftListOpen) { draftListOpen = false }
+    LaunchedEffect(draftItems.isEmpty) { if (draftItems.isEmpty) draftList.close() }
+    PlatformBackHandler(enabled = draftList.isOpen) { draftList.close() }
     val prefs by viewModel.chatPreferences.collectAsStateWithLifecycle()
     val promptLibraryRevision by viewModel.promptLibraryRevision.collectAsStateWithLifecycle()
     val showImageDescriptions = prefs.showImageDescriptions
@@ -513,9 +513,9 @@ fun ChatScreen(
                         // The tap still reaches what it landed on, and a scroll doesn't close it.
                         .onGloballyPositioned { draftTapTargets.root = it }
                         .closeOnTapOutside(
-                            enabled = draftListOpen,
+                            enabled = draftList.isOpen,
                             keep = { draftListBounds.contains(it) || draftTapTargets.onStack(it) },
-                            onClose = { draftListOpen = false },
+                            onClose = draftList::close,
                         ),
                 ) {
                     Column(
@@ -565,9 +565,10 @@ fun ChatScreen(
                     // Everything here is measured together so the list's bottom inset clears it.
                     val askPause = uiState.renderablePendingAction?.takeIf { it.isAskUserQuestion }
                     val toolPause = uiState.renderablePendingAction?.takeIf { it.isToolApproval }
-                    // A pause panel takes the space above the composer: the attachment list gives way.
+                    // A pause panel takes the space above the composer: the attachment list gives way,
+                    // and the stack doesn't open it while the panel is up (it would cover the panel).
                     val pausePanelUp = askPause != null || toolPause != null
-                    LaunchedEffect(pausePanelUp) { if (pausePanelUp) draftListOpen = false }
+                    LaunchedEffect(pausePanelUp) { if (pausePanelUp) draftList.close() }
                     val composerChrome = ComposerChrome(
                         pendingSteers = uiState.pendingSteers,
                         onCancelSteer = viewModel::cancelSteer,
@@ -578,19 +579,9 @@ fun ChatScreen(
                         onReorderQueuedMessages = viewModel::reorderQueue,
                         draftItems = draftItems,
                         draftAdditions = draftAdditions,
-                        isDraftListOpen = draftListOpen,
-                        onToggleDraftList = {
-                            focusDraftListHeader = false
-                            draftListOpen = !draftListOpen
-                        },
-                        onToggleDraftListFromScreenReader = {
-                            focusDraftListHeader = !draftListOpen
-                            draftListOpen = !draftListOpen
-                        },
                         onRemoveDraftItem = viewModel::removeDraftItem,
                         onRetryUpload = viewModel::retryUpload,
                         onUndoRemove = viewModel::undoDraftRemoval,
-                        onFieldFocused = { draftListOpen = false },
                         onDraftStackPositioned = { draftTapTargets.stack = it },
                         enabledTools = uiState.effectiveEnabledTools,
                         selectedMcpServerNames = uiState.effectiveMcpServerNames,
@@ -602,7 +593,7 @@ fun ChatScreen(
                         onSnoozeCompact = viewModel::snoozeCompactNudge,
                         compactSuggested = uiState.compactNudgeOnToolsButton,
                         contextBarPlacement = uiState.contextBarPlacement,
-                    )
+                    ).withDraftList(draftList, blocked = pausePanelUp)
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
@@ -735,11 +726,11 @@ fun ChatScreen(
                                             isStreaming = isAnyStreaming,
                                             onInputChange = {
                                                 // Typing on, with the list open over the thread, closes it.
-                                                draftListOpen = false
+                                                draftList.close()
                                                 viewModel.onInputChanged(it)
                                             },
                                             onSend = {
-                                                draftListOpen = false
+                                                draftList.close()
                                                 viewModel.sendMessage()
                                                 if (dismissKeyboardOnSend) {
                                                     keyboardController?.hide()
@@ -751,14 +742,14 @@ fun ChatScreen(
                                             // user's preference and what this run can actually take, so the composer never
                                             // has to. `onQueue` stays the picker's explicit "add to queue".
                                             onDuringRunSend = {
-                                                draftListOpen = false
+                                                draftList.close()
                                                 viewModel.sendDuringRun()
                                                 if (dismissKeyboardOnSend) {
                                                     keyboardController?.hide()
                                                 }
                                             },
                                             onQueue = {
-                                                draftListOpen = false
+                                                draftList.close()
                                                 viewModel.queueMessage()
                                                 if (dismissKeyboardOnSend) {
                                                     keyboardController?.hide()
@@ -768,14 +759,14 @@ fun ChatScreen(
                                             // Explicit "steer this one", from the during-run picker or the send button when
                                             // steering is the standing default.
                                             onSteer = {
-                                                draftListOpen = false
+                                                draftList.close()
                                                 viewModel.steerMessage()
                                                 if (dismissKeyboardOnSend) {
                                                     keyboardController?.hide()
                                                 }
                                             },
                                             onInterrupt = {
-                                                draftListOpen = false
+                                                draftList.close()
                                                 viewModel.interruptMessage()
                                                 if (dismissKeyboardOnSend) {
                                                     keyboardController?.hide()
@@ -813,7 +804,7 @@ fun ChatScreen(
                                             onSendQueuedMessages = viewModel::sendQueuedNow,
                                             isEditingQueued = uiState.isEditingQueued,
                                             onCommitEdit = {
-                                                draftListOpen = false
+                                                draftList.close()
                                                 viewModel.commitQueuedEdit()
                                             },
                                             onCancelEdit = viewModel::cancelQueuedEdit,
@@ -834,12 +825,12 @@ fun ChatScreen(
                     // measured box above, so opening it doesn't move the thread's bottom inset, and
                     // drawn after it, so the landing starters and the update banner docked there
                     // neither draw over its rows nor take their taps. A pause panel closes it.
-                    if (draftListOpen && !draftItems.isEmpty) {
+                    if (composerChrome.isDraftListOpen && !draftItems.isEmpty) {
                         ComposerDraftListPanel(
                             items = draftItems,
                             onRemove = composerChrome.onRemoveDraftItem,
                             onRetry = composerChrome.onRetryUpload,
-                            focusHeader = focusDraftListHeader,
+                            focusHeader = draftList.focusHeader,
                             modifier = Modifier
                                 .align(Alignment.BottomStart)
                                 .padding(
