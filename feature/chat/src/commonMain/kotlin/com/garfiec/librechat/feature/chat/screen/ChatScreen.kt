@@ -292,6 +292,7 @@ fun ChatScreen(
     }
     val onSettingChipTap = rememberSettingChipTap(
         chips = uiState.settingChips,
+        conversationId = uiState.conversationId,
         editingQueuedId = uiState.editingQueuedItem?.original?.localId,
         snackbarHostState = snackbarHostState,
         onToggle = viewModel::toggleSettingChip,

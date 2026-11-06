@@ -180,6 +180,12 @@ val SETTING_TOOL_ORDER: List<String> = listOf(
     ToolConstants.SKILLS,
 )
 
+/**
+ * Where a settings chip was turned off: the conversation and, in it, the queued item being edited
+ * (null: the new-message draft). Its Undo applies only while both are still the composer's.
+ */
+data class SettingChipUndoScope(val conversationId: String?, val editingQueuedId: String?)
+
 /** What a tap on a settings chip does. */
 sealed interface SettingChipTap {
     /** A spec's own tool: say who set it ([specLabel], null when the spec has no label to name). */

@@ -1197,7 +1197,9 @@ first, then images, files, skills, quotes.
   - **Taps** (`SettingChips.tapFor`, handled by `rememberSettingChipTap` in `ChatScreen`): a locked
     chip says "Set by <spec label>" in a snackbar; a pinned tool switches and stays; anything else
     switches off, leaves the line and offers Undo, which switches it back on unless the sheet already
-    did (`ChatViewModel.turnSettingChipBackOn`). The switches are the sheet's: code, file search,
+    did (`ChatViewModel.turnSettingChipBackOn`), and only while the composer is still the chat and
+    draft it was turned off in (`SettingChipUndoScope`: a change of either takes the snackbar down,
+    and the ViewModel checks it again). The switches are the sheet's: code, file search,
     memory and MCP are global, so the copy says "<tool> turned off", not "for this chat".
   - **MCP chips carry the MCP servers page's status** (`McpServerDisplayData.status`, mapped in
     `McpServersDelegate.load` with `:core:model`'s `mcpDisplayStatus`, the `mcp-status-badge`
