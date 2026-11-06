@@ -7,6 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import com.garfiec.librechat.feature.chat.util.DraftItems
 
@@ -29,9 +30,8 @@ class DraftAdditions internal constructor(initialKeys: Set<String>) {
     var seq: Int by mutableIntStateOf(0)
         private set
 
-    internal fun update(items: DraftItems) {
-        val keys = items.items.mapTo(HashSet()) { it.key }
-        // An upload's progress or a retry changes the items, not what is in the draft.
+    internal fun update(items: DraftItems, keys: Set<String> = items.keySet()) {
+        // A retry or an upload's outcome changes the items, not what is in the draft.
         if (keys == lastKeys) return
         // Found by key: the list is sorted (failed first, quotes last), so the newest item isn't last.
         val added = items.items.firstOrNull { it.key !in lastKeys }
@@ -56,10 +56,17 @@ class DraftAdditions internal constructor(initialKeys: Set<String>) {
     }
 }
 
-/** A [DraftAdditions] following [items], for the screen that owns the draft. */
+/**
+ * A [DraftAdditions] following [items], for the screen that owns the draft. It runs when what is in
+ * the draft changes (its keys), not on every change to the items.
+ */
 @Composable
 internal fun rememberDraftAdditions(items: DraftItems): DraftAdditions {
-    val additions = remember { DraftAdditions(items.items.mapTo(HashSet()) { it.key }) }
-    LaunchedEffect(items) { additions.update(items) }
+    val keys = remember(items) { items.keySet() }
+    val additions = remember { DraftAdditions(keys) }
+    val current by rememberUpdatedState(items)
+    LaunchedEffect(keys) { additions.update(current, keys) }
     return additions
 }
+
+private fun DraftItems.keySet(): Set<String> = items.mapTo(HashSet()) { it.key }

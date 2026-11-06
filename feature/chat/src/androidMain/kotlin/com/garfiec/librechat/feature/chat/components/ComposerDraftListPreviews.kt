@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
+import com.garfiec.librechat.feature.chat.util.DraftUploadProgress
 import com.garfiec.librechat.feature.chat.util.draftItemsOf
 
 // The list the composer's attachment stack opens over the thread. Items are shared with
@@ -39,9 +40,10 @@ private fun ListHost() {
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
+        val files = listOf(draftPhoto, draftReport, draftFailed, draftUploading, draftTextRouted)
         ComposerDraftListPanel(
             items = draftItemsOf(
-                files = listOf(draftPhoto, draftReport, draftFailed, draftUploading, draftTextRouted),
+                files = files,
                 skills = listOf("quarterly-report-formatting-house-style"),
                 quotes = listOf(DRAFT_LONG_QUOTE),
                 serverUrl = "",
@@ -49,6 +51,7 @@ private fun ListHost() {
             onRemove = {},
             onRetry = {},
             modifier = Modifier.padding(horizontal = 12.dp),
+            uploadProgress = DraftUploadProgress { files },
         )
     }
 }

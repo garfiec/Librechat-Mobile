@@ -29,8 +29,13 @@ internal fun showsActiveToolsDot(
  * (bottom, tertiary). Decorative: the sheet the button opens says both in words.
  */
 @Composable
-internal fun BoxScope.ToolsButtonDots(chrome: ComposerChrome, showEphemeralTools: Boolean) {
-    if (chrome.compactSuggested) {
+internal fun BoxScope.ToolsButtonDots(
+    compactSuggested: Boolean,
+    enabledTools: Set<String>,
+    selectedMcpServerNames: Set<String>,
+    showEphemeralTools: Boolean,
+) {
+    if (compactSuggested) {
         Box(
             modifier = Modifier
                 .size(ToolsDotSize)
@@ -39,7 +44,7 @@ internal fun BoxScope.ToolsButtonDots(chrome: ComposerChrome, showEphemeralTools
                 .background(color = MaterialTheme.colorScheme.tertiary, shape = CircleShape),
         )
     }
-    if (showsActiveToolsDot(showEphemeralTools, chrome.enabledTools, chrome.selectedMcpServerNames)) {
+    if (showsActiveToolsDot(showEphemeralTools, enabledTools, selectedMcpServerNames)) {
         Box(
             modifier = Modifier
                 .size(ToolsDotSize)

@@ -4,6 +4,7 @@ import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.components.label
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
@@ -35,7 +36,7 @@ class DraftItemsTest {
             listOf("deck.pptx", "shot.png", "photo.jpg", "report.pdf", "brand-voice", "an excerpt"),
             items.items.map { it.label() },
         )
-        assertEquals(4, items.fileCount)
+        assertTrue(items.hasFiles)
         assertEquals(2, items.failedCount)
         assertTrue(items.hasFailedUploads)
     }
@@ -50,7 +51,7 @@ class DraftItemsTest {
     @Test
     fun skillsAndQuotesAreNotFiles() {
         val items = draftItemsOf(emptyList(), listOf("pdf-tools"), listOf("a", "a"), serverUrl = "")
-        assertEquals(0, items.fileCount)
+        assertFalse(items.hasFiles)
         // A quote repeated is two chips, with two keys.
         assertEquals(listOf("skill:pdf-tools", "quote:0:a", "quote:1:a"), items.items.map { it.key })
     }
@@ -85,22 +86,18 @@ class DraftItemsTest {
 
     @Test
     fun uploadProgressIsTheMeanOfWhatReportsOne() {
-        val items = draftItemsOf(
-            listOf(uploading, uploading.copy(uri = "other", uploadProgress = 0.6f), report),
-            emptyList(),
-            emptyList(),
-            serverUrl = "",
-        )
-        assertEquals(2, items.uploadingCount)
-        assertEquals(0.4f, items.uploadProgress!!, 0.0001f)
+        val files = listOf(uploading, uploading.copy(uri = "other", uploadProgress = 0.6f), report)
+        assertTrue(draftItemsOf(files, emptyList(), emptyList(), serverUrl = "").hasUploads)
+        val progress = DraftUploadProgress { files }
+        assertEquals(0.4f, progress.overall()!!, 0.0001f)
+        assertEquals(0.6f, progress.of(files[1].copy(uploadProgress = null))!!, 0.0001f)
     }
 
     @Test
     fun anUploadWithNoProgressYetIsIndeterminate() {
-        val items =
-            draftItemsOf(listOf(uploading.copy(uploadProgress = null)), emptyList(), emptyList(), serverUrl = "")
-        assertEquals(1, items.uploadingCount)
-        assertNull(items.uploadProgress)
+        val files = listOf(uploading.copy(uploadProgress = null))
+        assertTrue(draftItemsOf(files, emptyList(), emptyList(), serverUrl = "").hasUploads)
+        assertNull(DraftUploadProgress { files }.overall())
     }
 
     @Test

@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
+import com.garfiec.librechat.feature.chat.util.DraftUploadProgress
 import com.garfiec.librechat.feature.chat.util.draftItemsOf
 
 // The composer's attachment stack in the field's leading slot: one, two and four items, uploading,
@@ -116,7 +117,11 @@ private fun StackHost(
             onSend = {},
             onStop = {},
             onOpenTools = {},
-            chrome = ComposerChrome(draftItems = items, draftListShut = toolPause),
+            chrome = ComposerChrome(
+                draftItems = items,
+                draftUploadProgress = DraftUploadProgress { files },
+                draftListShut = toolPause,
+            ),
             selectedModelDisplay = "claude-opus-4-5",
         )
     }

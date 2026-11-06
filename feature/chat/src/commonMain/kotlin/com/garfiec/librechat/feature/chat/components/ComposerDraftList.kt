@@ -42,7 +42,6 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.files.fileKindOf
 import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.core.ui.components.AdaptiveCard
-import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.fileTypeSubtitle
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_cancel_upload
@@ -60,6 +59,7 @@ import com.garfiec.librechat.feature.chat.resources.draft_row_uploading
 import com.garfiec.librechat.feature.chat.resources.draft_subtitle_join
 import com.garfiec.librechat.feature.chat.util.DraftItem
 import com.garfiec.librechat.feature.chat.util.DraftItems
+import com.garfiec.librechat.feature.chat.util.DraftUploadProgress
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -85,6 +85,8 @@ internal fun ComposerDraftListPanel(
     onRetry: (AttachedFile) -> Unit,
     modifier: Modifier = Modifier,
     focusHeader: Boolean = false,
+    /** The rows' upload rings' progress, read as they draw. */
+    uploadProgress: DraftUploadProgress = DraftUploadProgress.NONE,
 ) {
     val count = items.items.size
     val header = pluralStringResource(Res.plurals.draft_list_header, count, count)
@@ -114,7 +116,7 @@ internal fun ComposerDraftListPanel(
         ) {
             items.items.forEach { item ->
                 key(item.key) {
-                    DraftItemRow(item = item, onRemove = { onRemove(item) }, onRetry = onRetry)
+                    DraftItemRow(item = item, onRemove = { onRemove(item) }, onRetry = onRetry, uploadProgress = uploadProgress)
                 }
             }
         }
@@ -122,7 +124,12 @@ internal fun ComposerDraftListPanel(
 }
 
 @Composable
-private fun DraftItemRow(item: DraftItem, onRemove: () -> Unit, onRetry: (AttachedFile) -> Unit) {
+private fun DraftItemRow(
+    item: DraftItem,
+    onRemove: () -> Unit,
+    onRetry: (AttachedFile) -> Unit,
+    uploadProgress: DraftUploadProgress,
+) {
     val attachment = item as? DraftItem.Attachment
     val failedFile = attachment?.takeIf { it.isFailed }?.file
     val retryLabel = failedFile?.let { stringResource(Res.string.cd_retry_upload, it.name) }
@@ -149,18 +156,7 @@ private fun DraftItemRow(item: DraftItem, onRemove: () -> Unit, onRetry: (Attach
                         .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.4f)),
                 )
-                val progress = attachment.file.uploadProgress
-                val color = MaterialTheme.colorScheme.inverseOnSurface
-                if (progress != null) {
-                    AdaptiveCircularProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = color,
-                    )
-                } else {
-                    AdaptiveCircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = color)
-                }
+                UploadRing({ uploadProgress.of(attachment.file) }, 20.dp, MaterialTheme.colorScheme.inverseOnSurface)
             }
         }
         Spacer(Modifier.width(12.dp))

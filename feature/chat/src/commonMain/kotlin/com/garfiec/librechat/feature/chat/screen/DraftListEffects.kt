@@ -2,9 +2,7 @@ package com.garfiec.librechat.feature.chat.screen
 
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -15,7 +13,6 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import com.garfiec.librechat.feature.chat.resources.Res
-import com.garfiec.librechat.feature.chat.resources.action_undo
 import com.garfiec.librechat.feature.chat.resources.draft_item_removed
 import com.garfiec.librechat.feature.chat.resources.draft_quote_removed
 import com.garfiec.librechat.feature.chat.viewmodel.DraftUndo
@@ -44,15 +41,9 @@ internal fun DraftUndoSnackbarEffect(
             is RemovedDraftItem.Skill -> getString(Res.string.draft_item_removed, removed.name)
             is RemovedDraftItem.Quote -> getString(Res.string.draft_quote_removed)
         }
-        snackbarHostState.currentSnackbarData?.dismiss()
         var undone = false
         try {
-            val result = snackbarHostState.showSnackbar(
-                message = message,
-                actionLabel = getString(Res.string.action_undo),
-                duration = SnackbarDuration.Short,
-            )
-            if (result == SnackbarResult.ActionPerformed) {
+            if (snackbarHostState.showUndo(message)) {
                 undone = true
                 currentUndo(pending.id)
             }
@@ -96,18 +87,21 @@ internal fun Modifier.closeOnTapOutside(
 }
 
 /**
- * Where [closeOnTapOutside] measures from ([root], the layout it watches) and the attachment stack,
- * whose own tap toggles the list and so must not also count as outside. Plain fields: they are set
- * on layout and read when a gesture lands, never in composition.
+ * Where [closeOnTapOutside] measures from ([root], the layout it watches), the open list, and the
+ * attachment stack, whose own tap toggles the list and so must not also count as outside. Plain
+ * fields: they are set on placement and read when a gesture lands, never in composition.
  */
 internal class DraftListTapTargets {
     var root: LayoutCoordinates? = null
+    var list: LayoutCoordinates? = null
     var stack: LayoutCoordinates? = null
 
-    /** Whether [position], in [root]'s coordinates, lands on the stack. */
-    fun onStack(position: Offset): Boolean {
+    /** Whether [position], in [root]'s coordinates, lands on the list or the stack. */
+    fun keeps(position: Offset): Boolean = lands(list, position) || lands(stack, position)
+
+    private fun lands(target: LayoutCoordinates?, position: Offset): Boolean {
         val from = root?.takeIf { it.isAttached } ?: return false
-        val target = stack?.takeIf { it.isAttached } ?: return false
-        return from.localBoundingBoxOf(target).contains(position)
+        val on = target?.takeIf { it.isAttached } ?: return false
+        return from.localBoundingBoxOf(on).contains(position)
     }
 }

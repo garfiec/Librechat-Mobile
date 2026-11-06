@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.util
 
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.media.resolveFileReferenceUrl
 import com.garfiec.librechat.feature.chat.components.AttachedFile
@@ -41,26 +42,49 @@ sealed interface DraftItem {
     }
 }
 
-/** The composer's draft items, in list order, with the counts the stack and the send hold read. */
+/**
+ * The composer's draft items, in list order, with what the stack and the send hold read. No upload
+ * progress: that is [DraftUploadProgress], read where the rings draw, so a progress tick changes
+ * nothing here.
+ */
 @Immutable
 data class DraftItems(
     val items: List<DraftItem>,
     /** Files among [items]; what `composerCanSend` counts as an attachment. */
-    val fileCount: Int,
+    val hasFiles: Boolean,
     /** Files that failed to upload: each holds every send until it is retried or removed. */
     val failedCount: Int,
-    /** Files still uploading. */
-    val uploadingCount: Int,
-    /** Mean progress of the uploads that report one, or null when none does (indeterminate). */
-    val uploadProgress: Float?,
+    /** A file is still uploading. */
+    val hasUploads: Boolean,
 ) {
     val isEmpty: Boolean get() = items.isEmpty()
-    val hasFiles: Boolean get() = fileCount > 0
     val hasFailedUploads: Boolean get() = failedCount > 0
 
     companion object {
-        val EMPTY = DraftItems(emptyList(), fileCount = 0, failedCount = 0, uploadingCount = 0, uploadProgress = null)
+        val EMPTY = DraftItems(emptyList(), hasFiles = false, failedCount = 0, hasUploads = false)
     }
+}
+
+/**
+ * The draft's upload progress, kept out of [DraftItems] so a progress tick re-maps nothing above the
+ * rings: they read it as they draw. [files] is the tray as the screen holds it, with its progress.
+ */
+@Stable
+class DraftUploadProgress(private val files: () -> List<AttachedFile>) {
+    /** The mean progress of the uploads that report one, or null when none does (indeterminate). */
+    fun overall(): Float? = meanUploadProgress(files())
+
+    /** [file]'s own progress (its tray entry's, [AttachedFile.key]), or null when it reports none. */
+    fun of(file: AttachedFile): Float? = files().firstOrNull { it.key == file.key }?.uploadProgress
+
+    companion object {
+        val NONE = DraftUploadProgress { emptyList() }
+    }
+}
+
+internal fun meanUploadProgress(files: List<AttachedFile>): Float? {
+    val progresses = files.filter { it.isUploading }.mapNotNull { it.uploadProgress }
+    return progresses.takeIf { it.isNotEmpty() }?.let { it.sum() / it.size }
 }
 
 /**
@@ -108,14 +132,11 @@ fun draftItemsOf(
             add(DraftItem.Quote(index, text, occurrence))
         }
     }
-    val uploading = files.filter { it.isUploading }
-    val progresses = uploading.mapNotNull { it.uploadProgress }
     return DraftItems(
         items = items,
-        fileCount = files.size,
+        hasFiles = files.isNotEmpty(),
         failedCount = failed.size,
-        uploadingCount = uploading.size,
-        uploadProgress = progresses.takeIf { it.isNotEmpty() }?.let { it.sum() / it.size },
+        hasUploads = files.any { it.isUploading },
     )
 }
 

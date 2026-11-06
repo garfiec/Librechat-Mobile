@@ -24,7 +24,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,6 +58,7 @@ import com.garfiec.librechat.feature.chat.resources.cd_expand
 import com.garfiec.librechat.feature.chat.resources.draft_item_attached_announcement
 import com.garfiec.librechat.feature.chat.util.DraftItem
 import com.garfiec.librechat.feature.chat.util.DraftItems
+import com.garfiec.librechat.feature.chat.util.DraftUploadProgress
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -76,6 +80,8 @@ internal fun ComposerAttachmentStack(
     compact: Boolean,
     onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    /** The ring's progress, read as it draws. */
+    uploadProgress: DraftUploadProgress = DraftUploadProgress.NONE,
     /** What was just added, for the pop and the announcement; null draws neither (previews). */
     additions: DraftAdditions? = null,
     /** A screen reader's click (TalkBack, VoiceOver), where it differs from a touch's [onClick]. */
@@ -121,20 +127,7 @@ internal fun ComposerAttachmentStack(
             .then(if (onClick != null) Modifier.clickable(onClickLabel = clickLabel, role = Role.Button, onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
-        if (items.uploadingCount > 0) {
-            val progress = items.uploadProgress
-            val ringColor = MaterialTheme.colorScheme.primary
-            if (progress != null) {
-                AdaptiveCircularProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier.size(RING_SIZE),
-                    strokeWidth = 2.dp,
-                    color = ringColor,
-                )
-            } else {
-                AdaptiveCircularProgressIndicator(modifier = Modifier.size(RING_SIZE), strokeWidth = 2.dp, color = ringColor)
-            }
-        }
+        if (items.hasUploads) UploadRing(uploadProgress::overall, RING_SIZE, MaterialTheme.colorScheme.primary)
         Box(
             modifier = Modifier
                 .width(TILE + TILE_STEP * (shown.size - 1))
@@ -170,6 +163,27 @@ internal fun ComposerAttachmentStack(
                 modifier = Modifier.align(Alignment.BottomEnd),
             )
         }
+    }
+}
+
+/**
+ * An upload's ring: determinate while [progress] reports one, else indeterminate. [progress] is read
+ * as the ring draws, so a tick redraws it and recomposes nothing; only a switch between reported and
+ * unreported recomposes it.
+ */
+@Composable
+internal fun UploadRing(progress: () -> Float?, size: Dp, color: Color) {
+    val current by rememberUpdatedState(progress)
+    val determinate by remember { derivedStateOf { current() != null } }
+    if (determinate) {
+        AdaptiveCircularProgressIndicator(
+            progress = { current() ?: 0f },
+            modifier = Modifier.size(size),
+            strokeWidth = 2.dp,
+            color = color,
+        )
+    } else {
+        AdaptiveCircularProgressIndicator(modifier = Modifier.size(size), strokeWidth = 2.dp, color = color)
     }
 }
 

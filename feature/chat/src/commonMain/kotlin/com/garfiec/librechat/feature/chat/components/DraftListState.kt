@@ -89,15 +89,15 @@ internal fun draftListNeedsRoom(height: Dp, bottom: Dp, barBottom: Dp, minHeight
 /**
  * This chrome with the attachment list's state and toggles. [toolPause]: a tool-approval panel is
  * docked above the composer, in the space the list opens into, so the list stays shut
- * ([ComposerChrome.draftListShut]): the stack still shows what goes with the message but opens
- * nothing, and the failed-upload line says the file can be dealt with after the approval. The panel
- * is never collapsed or covered for the list.
+ * ([ComposerChrome.draftListShut]): the stack still shows what goes with the message but takes
+ * neither toggle, and the failed-upload line says the file can be dealt with after the approval.
+ * The panel is never collapsed or covered for the list.
  */
 internal fun ComposerChrome.withDraftList(state: DraftListState, toolPause: Boolean = false): ComposerChrome = copy(
     isDraftListOpen = state.isOpen && !toolPause,
     draftListShut = toolPause,
-    onToggleDraftList = if (toolPause) state.closeList else state.toggleFromTouch,
-    onToggleDraftListFromScreenReader = if (toolPause) state.closeList else state.toggleFromScreenReader,
+    onToggleDraftList = state.toggleFromTouch,
+    onToggleDraftListFromScreenReader = state.toggleFromScreenReader,
     onFieldFocused = state.closeList,
 )
 

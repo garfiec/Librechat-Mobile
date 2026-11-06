@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -63,7 +64,7 @@ class ComposerDraftListFocusTest {
                         ComposerDraftListPanel(items = items, onRemove = {}, onRetry = {}, focusHeader = draftList.focusHeader)
                     }
                     composerFieldLeadingIcon(comparison = null, chrome = chrome, compact = false)!!()
-                    FailedUploadsLine(chrome = chrome)
+                    FailedLine(chrome)
                 }
             }
         }
@@ -91,7 +92,7 @@ class ComposerDraftListFocusTest {
                             ComposerDraftListPanel(items = items, onRemove = {}, onRetry = {}, focusHeader = draftList.focusHeader)
                         }
                         composerFieldLeadingIcon(comparison = null, chrome = chrome, compact = false)!!()
-                        FailedUploadsLine(chrome = chrome)
+                        FailedLine(chrome)
                     }
                 }
             }
@@ -192,4 +193,14 @@ class ComposerDraftListFocusTest {
 
         composeRule.onNodeWithText("With this message · 1").assertIsNotFocused()
     }
+
+    /** The line under the field, fed from the chrome as `CommonChatInputCore` feeds it. */
+    @Composable
+    private fun FailedLine(chrome: ComposerChrome) = FailedUploadsLine(
+        failedCount = chrome.draftItems.failedCount,
+        listOpen = chrome.isDraftListOpen,
+        listShut = chrome.draftListShut,
+        onOpen = chrome.onToggleDraftList,
+        onOpenFromScreenReader = chrome.onToggleDraftListFromScreenReader,
+    )
 }

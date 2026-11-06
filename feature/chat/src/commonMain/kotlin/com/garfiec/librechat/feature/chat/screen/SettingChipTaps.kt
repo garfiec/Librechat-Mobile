@@ -1,8 +1,6 @@
 package com.garfiec.librechat.feature.chat.screen
 
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -12,7 +10,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import com.garfiec.librechat.feature.chat.components.ephemeralToolMeta
 import com.garfiec.librechat.feature.chat.components.lockedByMessage
 import com.garfiec.librechat.feature.chat.resources.Res
-import com.garfiec.librechat.feature.chat.resources.action_undo
 import com.garfiec.librechat.feature.chat.resources.setting_chip_turned_off
 import com.garfiec.librechat.feature.chat.util.SettingChip
 import com.garfiec.librechat.feature.chat.util.SettingChipTap
@@ -73,22 +70,14 @@ internal fun rememberSettingChipTap(
                 SettingChipTap.WaitForSignIn -> Unit
                 SettingChipTap.Toggle -> toggle(chip)
                 is SettingChipTap.ExplainLock -> scope.launch {
-                    val message = getString(lockedByMessage(tap.specLabel), tap.specLabel.orEmpty())
-                    snackbarHostState.currentSnackbarData?.dismiss()
-                    snackbarHostState.showSnackbar(message)
+                    snackbarHostState.showNotice(getString(lockedByMessage(tap.specLabel), tap.specLabel.orEmpty()))
                 }
                 SettingChipTap.TurnOffWithUndo -> {
                     val turnedOffIn = currentScope
                     toggle(chip)
                     pendingUndo.job = scope.launch {
                         val name = settingChipName(chip) ?: return@launch
-                        snackbarHostState.currentSnackbarData?.dismiss()
-                        val result = snackbarHostState.showSnackbar(
-                            message = getString(Res.string.setting_chip_turned_off, name),
-                            actionLabel = getString(Res.string.action_undo),
-                            duration = SnackbarDuration.Short,
-                        )
-                        if (result == SnackbarResult.ActionPerformed) turnBackOn(chip, turnedOffIn)
+                        if (snackbarHostState.showUndo(getString(Res.string.setting_chip_turned_off, name))) turnBackOn(chip, turnedOffIn)
                     }
                 }
             }

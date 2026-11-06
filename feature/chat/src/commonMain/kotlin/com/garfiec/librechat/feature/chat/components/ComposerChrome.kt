@@ -5,6 +5,7 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.feature.chat.util.DraftItem
 import com.garfiec.librechat.feature.chat.util.DraftItems
+import com.garfiec.librechat.feature.chat.util.DraftUploadProgress
 import com.garfiec.librechat.feature.chat.util.SettingChip
 import com.garfiec.librechat.feature.chat.util.SettingChips
 import com.garfiec.librechat.feature.chat.util.draftItemsOf
@@ -37,6 +38,8 @@ data class ComposerChrome(
      * by the screen ([draftItemsOf]). The field's leading stack draws it; the list panel opens from it.
      */
     val draftItems: DraftItems = DraftItems.EMPTY,
+    /** The uploads' progress, kept out of [draftItems] and read by the rings as they draw. */
+    val draftUploadProgress: DraftUploadProgress = DraftUploadProgress.NONE,
     /** What was last added to [draftItems], tracked by the screen so the first item counts too. */
     val draftAdditions: DraftAdditions? = null,
     /** The attachment list panel is open (the screen draws it, above the composer). */
@@ -53,13 +56,11 @@ data class ComposerChrome(
      * The same toggle from a screen reader (the stack's accessibility click action), which also
      * moves focus to the list's header on open. A touch leaves focus, and the keyboard, where they are.
      */
-    val onToggleDraftListFromScreenReader: (() -> Unit)? = null,
+    val onToggleDraftListFromScreenReader: () -> Unit = {},
     /** A list row's ×: cancels a file still uploading, else removes the item with an Undo. */
     val onRemoveDraftItem: (DraftItem) -> Unit = {},
     /** A failed file's row tap. */
     val onRetryUpload: (AttachedFile) -> Unit = {},
-    /** The Undo snackbar's action, for the removal its id names. */
-    val onUndoRemove: (undoId: Long) -> Unit = {},
     /** The message field gained focus; the list panel closes then. */
     val onFieldFocused: () -> Unit = {},
     /**

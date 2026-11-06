@@ -155,7 +155,12 @@ fun IosChatInput(
                         contentDescription = stringResource(Res.string.cd_open_tools_menu),
                     )
                 }
-                ToolsButtonDots(chrome = chrome, showEphemeralTools = gates.showEphemeralTools)
+                ToolsButtonDots(
+                    compactSuggested = chrome.compactSuggested,
+                    enabledTools = chrome.enabledTools,
+                    selectedMcpServerNames = chrome.selectedMcpServerNames,
+                    showEphemeralTools = gates.showEphemeralTools,
+                )
             }
 
             // Paste image button (shown when clipboard has image content)
@@ -205,7 +210,7 @@ fun IosChatInput(
                             comparisonHint = comparisonHint,
                         )
                     },
-                    leadingIcon = composerFieldLeadingIcon(comparison, chrome, compact),
+                    leadingIcon = remember(comparison, chrome, compact) { composerFieldLeadingIcon(comparison, chrome, compact) },
                     prefix = compactComparison?.let {
                         { ComposerComparisonReserve(collapse = { comparisonCollapse }, afterStack = afterStack) }
                     },

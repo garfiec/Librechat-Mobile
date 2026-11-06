@@ -69,7 +69,7 @@ import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
@@ -116,6 +116,8 @@ import com.garfiec.librechat.feature.chat.resources.queue_held_after_refusal
 import com.garfiec.librechat.feature.chat.resources.recording
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
+import com.garfiec.librechat.feature.chat.viewmodel.PendingSteerChip
+import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -338,7 +340,14 @@ fun CommonChatInputCore(
                     )
                     // Inside the capsule, so Liquid Glass gives it the capsule's fill rather than
                     // drawing it bare over the thread; Material's composer fade sits behind it.
-                    FailedUploadsLine(chrome = state.chrome)
+                    val chrome = state.chrome
+                    FailedUploadsLine(
+                        failedCount = chrome.draftItems.failedCount,
+                        listOpen = chrome.isDraftListOpen,
+                        listShut = chrome.draftListShut,
+                        onOpen = chrome.onToggleDraftList,
+                        onOpenFromScreenReader = chrome.onToggleDraftListFromScreenReader,
+                    )
                 }
             }
         }
@@ -372,7 +381,16 @@ private fun ComposerChromeStack(
             modifier = Modifier.padding(bottom = 4.dp),
         )
 
-        SteerAndQueueRegion(chrome = chrome, fontSizeMultiplier = fontSizeMultiplier)
+        SteerAndQueueRegion(
+            pendingSteers = chrome.pendingSteers,
+            onCancelSteer = chrome.onCancelSteer,
+            onInterruptSteer = chrome.onInterruptSteer,
+            queuedMessages = chrome.queuedMessages,
+            onEditQueuedItem = chrome.onEditQueuedMessage,
+            onCancelQueuedItem = chrome.onCancelQueuedMessage,
+            onReorderQueue = chrome.onReorderQueuedMessages,
+            fontSizeMultiplier = fontSizeMultiplier,
+        )
 
         // Edit-mode banner takes priority over the paused-queue banner.
         if (state.isEditingQueued) {
@@ -427,8 +445,17 @@ private fun ComposerChromeStack(
  * region at its edges ([QueuedMessagesSection]).
  */
 @Composable
-private fun SteerAndQueueRegion(chrome: ComposerChrome, fontSizeMultiplier: Float) {
-    if (chrome.pendingSteers.isEmpty() && chrome.queuedMessages.isEmpty()) return
+private fun SteerAndQueueRegion(
+    pendingSteers: List<PendingSteerChip>,
+    onCancelSteer: (steerId: String) -> Unit,
+    onInterruptSteer: (steerId: String) -> Unit,
+    queuedMessages: List<QueuedMessage>,
+    onEditQueuedItem: (localId: String) -> Unit,
+    onCancelQueuedItem: (localId: String) -> Unit,
+    onReorderQueue: (fromIndex: Int, toIndex: Int) -> Unit,
+    fontSizeMultiplier: Float,
+) {
+    if (pendingSteers.isEmpty() && queuedMessages.isEmpty()) return
     val scroll = rememberScrollState()
     val threadDrags = LocalThreadScrollHandle.current
     val handOff = remember(threadDrags) { ThreadHandOffConnection { threadDrags } }
@@ -438,16 +465,16 @@ private fun SteerAndQueueRegion(chrome: ComposerChrome, fontSizeMultiplier: Floa
         modifier = Modifier.nestedScroll(handOff),
     ) {
         PendingSteerChipsSection(
-            pendingSteers = chrome.pendingSteers,
-            onCancel = chrome.onCancelSteer,
-            onInterrupt = chrome.onInterruptSteer,
+            pendingSteers = pendingSteers,
+            onCancel = onCancelSteer,
+            onInterrupt = onInterruptSteer,
             fontSizeMultiplier = fontSizeMultiplier,
         )
         QueuedMessagesSection(
-            queuedMessages = chrome.queuedMessages,
-            onEdit = chrome.onEditQueuedMessage,
-            onCancel = chrome.onCancelQueuedMessage,
-            onReorder = chrome.onReorderQueuedMessages,
+            queuedMessages = queuedMessages,
+            onEdit = onEditQueuedItem,
+            onCancel = onCancelQueuedItem,
+            onReorder = onReorderQueue,
             fontSizeMultiplier = fontSizeMultiplier,
             reorderScroll = reorderScroll,
         )
@@ -476,15 +503,20 @@ internal fun SteerAndQueueColumn(
  * the minimum and the composer doesn't change height as the list opens and closes. A screen reader's
  * open goes through the stack's screen-reader toggle, so focus moves to the list's header: the
  * line's own text sends the user there. While the list is shut for a tool-approval pause
- * ([ComposerChrome.draftListShut]) the line is plain text saying the file can be retried or removed
- * after the approval.
+ * ([listShut], [ComposerChrome.draftListShut]) the line is plain text saying the file can be retried
+ * or removed after the approval.
  */
 @Composable
-internal fun FailedUploadsLine(chrome: ComposerChrome) {
-    val failed = chrome.draftItems.failedCount
+internal fun FailedUploadsLine(
+    failedCount: Int,
+    listOpen: Boolean,
+    listShut: Boolean,
+    onOpen: () -> Unit,
+    onOpenFromScreenReader: () -> Unit,
+) {
+    val failed = failedCount
     if (failed == 0) return
     val openLabel = stringResource(Res.string.cd_expand)
-    val openFromScreenReader = chrome.onToggleDraftListFromScreenReader ?: chrome.onToggleDraftList
     Box(
         contentAlignment = Alignment.CenterStart,
         modifier = Modifier
@@ -492,25 +524,25 @@ internal fun FailedUploadsLine(chrome: ComposerChrome) {
             .heightIn(min = 48.dp)
             .clip(RoundedCornerShape(12.dp))
             .then(
-                if (chrome.isDraftListOpen || chrome.draftListShut) {
+                if (listOpen || listShut) {
                     Modifier
                 } else {
                     Modifier
                         // Ahead of the clickable, so its OnClick replaces the clickable's touch one.
                         .semantics {
                             onClick(label = openLabel) {
-                                openFromScreenReader()
+                                onOpenFromScreenReader()
                                 true
                             }
                         }
-                        .clickable(onClickLabel = openLabel, role = Role.Button, onClick = chrome.onToggleDraftList)
+                        .clickable(onClickLabel = openLabel, role = Role.Button, onClick = onOpen)
                 },
             )
             .padding(horizontal = 12.dp, vertical = 4.dp),
     ) {
         Text(
             text = pluralStringResource(
-                if (chrome.draftListShut) Res.plurals.draft_uploads_failed_after_approval else Res.plurals.draft_uploads_failed,
+                if (listShut) Res.plurals.draft_uploads_failed_after_approval else Res.plurals.draft_uploads_failed,
                 failed,
                 failed,
             ),
@@ -652,10 +684,10 @@ internal fun composerFieldLeadingIcon(
                 compact = compact,
                 // Shut during a tool-approval pause: the stack shows, but opens nothing.
                 onClick = chrome.onToggleDraftList.takeUnless { chrome.draftListShut },
-                modifier = Modifier.onGloballyPositioned(chrome.onDraftStackPositioned),
+                modifier = Modifier.onPlaced(chrome.onDraftStackPositioned),
+                uploadProgress = chrome.draftUploadProgress,
                 additions = chrome.draftAdditions,
-                onScreenReaderClick = (chrome.onToggleDraftListFromScreenReader ?: chrome.onToggleDraftList)
-                    .takeUnless { chrome.draftListShut },
+                onScreenReaderClick = chrome.onToggleDraftListFromScreenReader.takeUnless { chrome.draftListShut },
             )
         }
     }

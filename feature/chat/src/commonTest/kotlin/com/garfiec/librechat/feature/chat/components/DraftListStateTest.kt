@@ -42,21 +42,19 @@ class DraftListStateTest {
         open.onFieldFocused()
         assertFalse(state.isOpen)
 
-        checkNotNull(open.onToggleDraftListFromScreenReader).invoke()
+        open.onToggleDraftListFromScreenReader()
         assertTrue(state.isOpen)
         assertTrue(state.focusHeader)
     }
 
     @Test
-    fun duringAToolPauseTheTogglesOnlyClose() {
+    fun aToolPauseShutsTheList() {
         val state = DraftListState(initiallyOpen = true)
         val shut = chrome.withDraftList(state, toolPause = true)
 
-        shut.onToggleDraftList()
-        assertFalse(state.isOpen)
-        shut.onToggleDraftList()
-        assertFalse(state.isOpen)
-        checkNotNull(shut.onToggleDraftListFromScreenReader).invoke()
-        assertFalse(state.isOpen)
+        // The stack and the failed-upload line drop the toggles while shut (ComposerDraftListFocusTest).
+        assertTrue(shut.draftListShut)
+        assertFalse(shut.isDraftListOpen)
+        assertFalse(chrome.withDraftList(state).draftListShut)
     }
 }
