@@ -1,217 +1,171 @@
 # feature:settings
 
-## Screen
-`SettingsScreen` -- sealed interface `SettingsRoute : NavKey` with primary route `SettingsTabbed` (`@Serializable` data object). Receives `onLogout` and `onNavigateBack` callbacks.
+## Structure
+- `SettingsScreen`: sealed `SettingsRoute : NavKey`, primary route `SettingsTabbed` (tabs General, Chat,
+  Account, Data; each tab has its own ViewModel). Sub-pages are `SettingsRoute` objects declared in
+  `navigation/*Navigation.kt` but wired through `SettingsNavigation.kt`.
+- Delegates take a `SettingsStateHandle<S>` typed to their host ViewModel's state, so a delegate moves
+  with the page that uses it.
+- Logout / delete account (`AccountDelegate`) set `isLoggedOut` / `isAccountDeleted`; the screen then
+  calls `onLogout`.
 
-## Sections
-- **Account**: displays user profile from `UserApi.getUser()`
-- **Appearance**: its own page (General → Appearance): theme (System / Light / Dark), interface style, accent colour, wallpaper colours, via `ThemeDataStore`
-  - **Server accent (v0.8.9-rc1 `interface.theme`)**: `DeploymentThemeSync` (`:core:data`) caches the
-    active server's inline-theme accent in `ThemeDataStore.serverAccent`, writing only from a config
-    tagged with the active server (`ConfigRepository.startupConfigForServer`) and clearing another
-    server's cached accent when the active server changes; both app roots paint
-    `serverAccent?.activeSeed ?: accentColor`. "Use server accent" is stored per server (absent = on)
-    and its row shows only while the server sets an accent. While it's on, the Accent row reads
-    "Set by your server (name)", dims, and its picker carries a note; a picked colour is kept for
-    when the switch goes off. Wallpaper colours still win over both.
-- **Server**: shows current server URL from `ServerDataStore`
-- **About**: app version info
-- **Danger Zone**: delete account with confirmation dialog
+## Tabs
+- **General** (`GeneralSettingsViewModel`): DataStore + `/api/config` only, no network loads.
+  - `DateTimeSettingsDialog`: Save writes all three choices in one DataStore edit. The tab row shows only
+    a summary; keep new date options in the dialog, not on the tab.
+  - `AppearanceSettingsScreen` (route `AppearanceSettings`, `AppearanceSettingsViewModel`, ThemeDataStore
+    only), reached from one summary row.
+  - **Server accent** (`interface.theme`): `DeploymentThemeSync` (`:core:data`) caches the active
+    server's accent in `ThemeDataStore.serverAccent`, writing only from a config tagged with the active
+    server (`ConfigRepository.startupConfigForServer`) and clearing another server's accent when the
+    active server changes. App roots paint `serverAccent?.activeSeed ?: accentColor`; wallpaper colours
+    win over both. "Use server accent" is per server (absent = on), its row shows only while the server
+    sets an accent; while on, the Accent row dims and a picked colour is kept for when it goes off.
+- **Chat** (`ChatSettingsViewModel`, hosts the platform speech delegate): `ChatPreferencesController`
+  merges the ~30 prefs into `ChatSettingsUiState` (`combine` tops out at five flows). Errors show in the
+  tab's own snackbar. The Flagged libraries dialog uses `ArtifactLibraryConsentStore` directly; Ask
+  calls `forget`, which drops only the remembered answer (one-time answers aren't listed, so it leaves
+  them).
+  - `ChatLayoutSettingsScreen`: `:feature:chat` is out of reach, so its preview redraws the message
+    layout at `MessageBubble`'s measures (sharing `BubbleShape`). Change one, change the other.
+  - `ForkSettingsDialog`: labels come from `fork_mode_*` strings via `forkModeLabel()` /
+    `forkModeDescription()`, not from the enum.
+- **Data** (`DataSettingsViewModel`, hosts `DataManagementDelegate`): summary rows for Memories, MCP
+  servers, Shared chats, prefetch, code execution. Summaries reload on every resume (`refreshSummaries`);
+  a resume while a refresh runs replaces it, so a stale count can't land last.
+  - MCP row hidden without MCP_SERVERS USE. Memories row hidden unless `canReachMemoriesSettings()`
+    (USE + READ or OPT_OUT); its count is fetched only with READ (`canOpenMemories()`). It shows nothing
+    while `memoriesEnabled` is null: "Off" only when false, the count only when true.
+  - `archiveAllSupported` means "the server has not 404'd it" and is ANDed with the version gate in the
+    `uiState` combine, where all role gates are derived.
+- **Account** (`AccountSettingsViewModel`, hosts `AccountDelegate` + `TwoFactorSecurityDelegate`): loads
+  the profile and balance only. Role-admin rows show only when `isAdmin` (fail-closed).
 
-## Theme
-- `ThemeMode` enum: `SYSTEM`, `LIGHT`, `DARK`
-- Persisted in `ThemeDataStore` (DataStore<Preferences>)
-- `setThemeMode()` writes to DataStore; the app's root composable observes `themeDataStore.themeMode` flow
-- Applied via Compose `MaterialTheme` with `isSystemInDarkTheme()` for SYSTEM mode
+## Memories (`MemoriesScreen`, `MemoriesViewModel`, `MemoriesUiState.kt`)
+- The VM owns search, partition chips, role gates (permissive) and the sheet draft (`MemoryEditorState`).
+- Only a failed FIRST load is `loadError`; later failures are one-shot `MemoriesEvent.Failed`, and Retry
+  re-runs only a `MemoryOperation.Retryable`. A save fails into its own sheet (`saveFailure`), whose Save
+  is the retry; no sheet can be closed or opened over one mid-save. Strings in
+  `screen/MemoryFailureText.kt`; only a server 400's own sentence is shown verbatim.
+- Gates: the Data row uses `canReachMemoriesSettings()` (opt-out needs no READ), chat's Manage uses
+  `canOpenMemories()`. When the list is denied (no READ, or first-load 403): a role that may opt out gets
+  `switchOnly` (the list is never requested without READ), others get `noAccess`. After a 403 the switch
+  stays only on an explicit OPT_OUT grant (the 403 may mean USE is missing).
+- The opt-out switch reads `MemoryRepository.memoriesEnabled` (null = unknown, show no value).
+- `MemoryEditSheet` uses `AdaptiveModalBottomSheet(interceptDismiss = isDirty || isSaving)`; a dirty
+  dismiss raises `DiscardChangesDialog`, and `dismissEditor()` ignores dismissal mid-save. Keep fields
+  enabled while saving (disabling drops focus, the keyboard and the sheet); `updateDraft` ignores edits
+  until the save answers. Opening the sheet clears page focus, or the keyboard returns to search on
+  close. View mode (no UPDATE, or content-filtered) is read-only, Close only. Token share
+  (`MemoryEditorState.tokenShare`) is web's formula, personal entries only.
+- A key can be renamed: `UpdateMemoryRequest.key` is sent only when it changed (the by-id route
+  pattern-checks any key it gets); a key-route rename is create-then-delete, so reload after any rename
+  failure.
 
-## Logout
-- `AccountSettingsViewModel.logout()` calls `AuthRepository.logout()` which clears tokens from `EncryptedSharedPreferences`
-- Sets `isLoggedOut = true` in UI state; screen calls `onLogout` callback to navigate to auth graph
+## MCP servers (`McpServersScreen`, `McpViewModel`)
+- Add hidden without MCP_SERVERS CREATE (`canCreateServer`). Edit/Delete follow `McpServerAccess`
+  (no `dbId` or `consumeOnly` = read-only; else the effective permission bits; unknown = editable).
+- Status comes from `mcpDisplayStatus` (`:core:model`, registered mirror of upstream `MCPStatusBadge`),
+  never from `isConnected`: needs-sign-in, idle and failed are all `disconnected` on the wire and must not
+  look alike.
+- Cards are uniform height: description always 2 lines, meta line always 1 (an error ellipsizes, never
+  wraps), so grid rows line up.
+- `McpServerSheet` closes when `selectedRow` is null. `McpToolsSheet` opens from the top bar only.
+- `McpServerEditorScreen` (`McpServerEditor(serverName?)`, null = add): the VM owns draft, discard prompt,
+  save, re-entry prompts and carry-over (`McpPreservedFields`). The list refreshes on ON_RESUME.
+  - Offers only SSE and STREAMABLE_HTTP; a stored `HTTP` shows as Streamable HTTP and is saved back
+    as-is unless changed.
+  - Adding requires "I trust this server" (client-side only; an edit starts checked). Wording from
+    `interface.mcpServers.trustCheckbox` when configured, else our strings.
+- **OAuth consent:** `reinitialize` may answer `oauthRequired` + `oauthUrl` → `pendingOAuth` → consent
+  dialog. Do NOT auto-launch: the redirect hands a third party this session, so it must be an explicit
+  user action. `continueOAuth()` asks `McpOAuthLauncher` (`:core:data`, the one version gate, shared
+  with chat): `InApp` renders `McpOAuthSignInDialog` (`:core:ui`); `External` (known server before rc1,
+  or a bind that sets no binding cookie or 404s; before v0.8.3-rc1 the SPA catch-all answers the bind
+  200 HTML with no `Set-Cookie`) opens the system browser. Bind at the tap, not when the prompt
+  appears: the CSRF cookie lives ten minutes.
+- The in-app sign-in fires no ON_RESUME, so `onOAuthOutcome` reloads itself and reports via
+  `OAUTH_SIGNED_IN_MARKER` / `OAUTH_FAILED_MARKER`; closing the page is silent. `connectionDeferred`
+  reports via `DEFERRED_MARKER`. Sentinels exist because the VM can't read compose resources.
 
-## Delete Account
-- `AccountSettingsViewModel.deleteAccount()` calls `UserApi.deleteUser()` then `AuthRepository.logout()`
-- Sets `isAccountDeleted = true` in UI state; triggers navigation to auth graph
+## Role admin (`RoleSkillsAdminScreen` / `RoleMemoriesAdminScreen`)
+- Both render the stateless `RolePermissionsEditor` and PUT a flat partial body. Save is off until a
+  switch differs from the server's last answer, and stays on after a refused save as its retry. A load
+  generation drops any load/save answering after a newer load. Saving the admin's own role publishes the PUT's answer
+  as the app's role (`RoleRepositoryImpl`). `showAdminWarning` toggles carry web's
+  ADMIN warning (mirror `admin-access-warning`).
 
-## ViewModel Dependencies
-- `UserApi` -- fetch/delete user profile
-- `AuthRepository` -- logout (clear tokens)
-- `ThemeDataStore` -- observe and set theme preference
-- `ServerDataStore` -- observe current server URL
+## Shared links (`SharedLinksScreen`, `SharedLinksViewModel`)
+- Search shows only when `SearchCapabilityRepository` says server search is on (300 ms debounce,
+  `MAX_SHARED_LINK_SEARCH_LENGTH` cap). A card opens the share sheet with `focusShareId`; Update and
+  the files choice live only in the sheet.
+- Paging uses a generation token (sort/search restarts from a null cursor, drops older pages);
+  `shouldLoadMore` must read the current state, not a captured one. Quiet reloads on ON_RESUME and
+  `ShareRepository.revision` refetch as many rows as were loaded. A failed first load is an error state
+  with Retry, never the empty state.
 
-## Future Sections (from spec, not yet implemented)
-- Chat tab (font size, message layout, auto-scroll toggle)
-- Speech tab (STT/TTS engine config)
-- Data tab (import/export, clear chats, Shared chats summary row)
-- Balance tab (conditional, token credits display)
-- 2FA setup/disable in Account section
+## Code execution (`CodeExecutionScreen`, `CodeSetupScreen`)
+- Data row shows when `agents.capabilities` has `stateful_code_sessions`.
+- Default workspace: `PATCH /api/user/preferences`, optimistic, reverted if refused; a disallowed saved
+  scope is listed disabled.
+- Machines (network-direct): polled every 10 s while resumed; File changes / Commands only with
+  permissions and `canEdit`; Delete only with `canDelete`; Connect VM only when `controlPlanes` exist.
+  Every change refreshes `/api/endpoints` so the composer's machine list follows.
+- Setup approval (`CodeSetup(attemptId)`, also `librechat://code-setup/<id>`): polls every 2 s while the
+  attempt can move; nothing is approved until a control plane is picked and Approve tapped. The routes
+  run `requireSameOrigin`, which passes because the app sends no `Origin` or `Sec-Fetch-Site`: don't
+  add either.
 
-### New Settings Sections
-- `SettingsScreen` now organized into: Account, Appearance, General (Language & region: Language, Date & time), Chat (Presets), Advanced (Fork Behavior, Commands), Server, About, Danger Zone
-- Each new setting opens a dialog or navigates to a dedicated screen
+## Passkeys (management only)
+- `PasskeyRepository` is network-direct, never cached (a password reset deletes every passkey). Row gated
+  by `isPasskeyManagementAvailable` (`AccountGates.kt`: `passkeyLoginEnabled` and not a tagged build
+  below rc1).
+- **No sign-in and no Add**: a WebAuthn ceremony from a native app gets origin `"null"` upstream (and iOS
+  needs a per-server entitlement). Don't add a Credential Manager / ASAuthorization path until upstream
+  accepts native origins.
+- Remove: a local account gives its password (`ContentType.Password`, not `SecretTextField`); a non-local
+  one sends none until a 403 demands it. 403 = wrong password inline, 404 = already gone, 429 = wait;
+  errors render inside the dialog. A list 404 refetches `/api/config`.
 
-### Settings Sub-screens (via SettingsNavigation)
-- `MemoriesScreen` — full memory CRUD, enable/disable toggle, own ViewModel (`MemoriesViewModel`, state in `MemoriesUiState.kt`); opened from the Data tab's Memories row (route `Memories`)
-  - The VM owns local search (key + value, from 5 memories), the partition chips (All / Personal / per agent, back to All when an agent's memories are gone), role gates (MEMORIES USE + READ/CREATE/UPDATE/OPT_OUT, permissive), and the memory sheet's draft (`MemoryEditorState`: Create/Edit/View, validation, dirty check)
-  - Only a failed FIRST load is `loadError`; every later failure is a one-shot `MemoriesEvent.Failed` carrying the `MemoryOperation`, and Retry re-runs it only when it is `MemoryOperation.Retryable` (refresh, delete, toggle). A save fails into its own sheet (`saveFailure`), whose Save is the retry: no sheet can be closed or opened over one mid-save. `MemoryFailure` is mapped to strings in `screen/MemoryFailureText.kt`; only a server 400's own sentence is shown verbatim
-  - The page is reachable before the role loads, and without READ: the Data row gates on the permissive `canReachMemoriesSettings()` (USE + READ or OPT_OUT, since the opt-out route needs no READ), chat's Manage on `canOpenMemories()` (USE + READ). When the list is denied (`listDenied`: no READ, or a first-load 403), a role that may opt out gets `switchOnly` (the switch card alone; the list is never requested without READ) and any other gets `noAccess`, web's no-access message. After a 403 the switch stays only on an explicit OPT_OUT grant, as that 403 may mean USE is missing
-  - The opt-out switch reads `MemoryRepository.memoriesEnabled` (null = unknown, no value shown); `refreshOnReturn()` on ON_RESUME reloads quietly
-  - `MemoryEditSheet` (stateless, one sheet for Create/Edit/View) is an `AdaptiveModalBottomSheet(interceptDismiss = editor.isDirty || editor.isSaving)`: a dirty draft's swipe/scrim/back/Cancel goes to `dismissEditor()`, which raises `DiscardChangesDialog`; while a save is in flight `dismissEditor()` ignores it, as the save's answer belongs to this sheet. The fields stay enabled while saving (disabling them dropped focus and the keyboard, and the sheet with it); `updateDraft` ignores edits until the save answers. Opening the sheet clears the page's focus, or the keyboard comes back up on the search field when the sheet closes. View (no UPDATE, or a content-filtered entry) is read-only with Close only. The value counter counts the trimmed text against `charLimit`; the token share (`MemoryEditorState.tokenShare`) is web's `tokenCount / (tokenLimit − totalTokens + tokenCount)`, personal entries only
-- `McpServersScreen` — server cards (`McpServerCard`), search, a "Needs attention" filter, CRUD, reinitialize, tools sheet (`McpViewModel`); opened from the Data tab's MCP servers row (route `McpServers`). Add is hidden without MCP_SERVERS CREATE (`McpUiState.canCreateServer`)
-  - Status comes from `mcpDisplayStatus` (`:core:model`, a registered mirror of upstream `MCPStatusBadge`), never from `isConnected`: needs-sign-in, request-scoped-idle and failed are all `disconnected` on the wire and must not look alike. Each card shows the status in words plus the one action that fixes it (Sign in / Retry / Connect) and an overflow menu (Reconnect when there is no action, Edit/Delete where allowed)
-  - Every card is the same height: the description always takes 2 lines and the meta line always takes one (a failed server's error ellipsizes at its end, never on a line of its own), so two-column grid rows line up
-  - Tapping a card opens `McpServerSheet` (status, full error, URL, actions, filterable tools) via `McpViewModel.openServer`; it disappears once `selectedRow` is null (server deleted). `McpToolsSheet` is the all-tools view from the top bar only
-  - Rows, sort and filter are pure functions in `McpServerRows.kt`, derived in `McpViewModel.uiState`; Edit/Delete follow `McpServerAccess` (no `dbId` or `consumeOnly` = read-only; else the effective permission bits; unknown = editable)
-- `RoleSkillsAdminScreen` / `RoleMemoriesAdminScreen` — admin-only role permission editors (routes `RoleSkillsAdmin`, `RoleMemoriesAdmin`), two rows on the Account tab shown only when `isAdmin` (fail-closed). Both render the stateless `RolePermissionsEditor` (role picker, one switch per flag, Save, discard prompt) from their own ViewModel; each PUTs a flat partial body (`UpdateRoleSkillsRequest` / `UpdateRoleMemoriesRequest`); `RoleRepositoryImpl` publishes the PUT's answer as the app's role when the admin saved their own. Save is off until a switch differs from what the server last reported (`canSave` includes `hasUnsavedChanges`), and stays on after a refused save as its retry. Results are typed (`RolePermissionsAdminError` LOAD/SAVE, `saved`) and the editor renders the shared `role_permissions_*` strings. A load generation drops any load or save that answers after a newer load started (role switch, or the same role picked again). A toggle with `showAdminWarning` (each editor's USE switch) carries web's ADMIN access warning and "More info" docs link while ADMIN is selected (mirror `admin-access-warning`)
-- `PresetManagerScreen` — list/delete presets (`PresetManagerViewModel`)
-- `CommandsConfigScreen` — enable/disable slash commands
-- `AppearanceSettingsScreen` — theme, interface style, accent colour, wallpaper colours; reached from one summary row on the General tab (route `AppearanceSettings`, `AppearanceNavigation.kt`). Own ViewModel (`AppearanceSettingsViewModel`, ThemeDataStore only); the General tab's summary row reads it too
-- `PrefetchSettingsScreen` — background prefetch switches, depth and status summary; reached from one row in the Data tab (route `PrefetchSettings`, `PrefetchNavigation.kt`, which also holds `PrefetchActivity`). Own ViewModel (`PrefetchSettingsViewModel`, `PreferenceStore` only) plus `PrefetchActivityViewModel` for status
-- `ChatLayoutSettingsScreen` — thread or two-sided, bubbles, avatars, under a live preview of a short conversation; reached from the Chat tab's Chat layout summary row (route `ChatLayoutSettings`, `ChatLayoutNavigation.kt`). Own ViewModel (`ChatLayoutSettingsViewModel`, SettingsDataStore only); the Chat tab's summary row reads it too. `:feature:chat` is out of reach, so the preview redraws the message layout at `MessageBubble`'s measures (sharing `BubbleShape` from `:core:ui`) — change one, change the other
-- `ChatSettingsScreen` (Chat tab) — display, behaviour, artifacts, speech, fork mode. Own ViewModel (`ChatSettingsViewModel`, hosting the platform speech delegate); `ChatPreferencesController` merges its ~30 DataStore prefs into `ChatSettingsUiState` because `combine` tops out at five flows. Errors (e.g. a failed voice test) show in the tab's own snackbar. Its Flagged libraries dialog reads and writes `ArtifactLibraryConsentStore` directly (`ChatSettingsViewModel.artifactLibraries`), not through the controller; Ask calls `forget`, which drops only the remembered answer: one-time answers aren't shown there, so it leaves them (they end at restart or with the artifact's Change)
-- `GeneralSettingsScreen` (General tab) — language, date & time, tablet gesture, About. Own ViewModel (`GeneralSettingsViewModel`): DataStore + `/api/config` only, no network loads; the language and date & time dialog flags live there too
-- `AccountSettingsScreen` (Account tab) — profile, avatar, balance, 2FA, sign out, delete account. Own ViewModel (`AccountSettingsViewModel`, hosting `AccountDelegate` + `TwoFactorSecurityDelegate`): loads the profile and balance only. The Data tab's Memories row reads the opt-out from the profile separately (`DataSettingsViewModel.refreshSummaries`)
-- `DataSettingsScreen` (Data tab) — clear/archive/export, cache, keys, diagnostic logs, and one summary row each for Memories and MCP servers (count, or "Off" for the memories opt-out), which open `MemoriesScreen` / `McpServersScreen`. Own ViewModel (`DataSettingsViewModel`, hosting `DataManagementDelegate`); the summaries reload on every resume (`refreshSummaries`) so they catch up after editing on either page. The MCP row is hidden without MCP_SERVERS USE; the Memories row unless `canReachMemoriesSettings()` (USE plus READ or OPT_OUT), and its count is fetched only with READ (`canOpenMemories()`). The row shows nothing until the opt-out is known (`memoriesEnabled` null): "Off" only when it reads false, the count only when true. A resume while a refresh runs replaces it, so a count read before the user's edits can't land last. Role gates and the archive-all version gate are derived in its `uiState` combine; the internal `archiveAllSupported` means "the server has not 404'd it" and is ANDed with the version gate there
-- `SharedLinksScreen` — the "Shared chats" page (route `SharedLinks`, from the Data tab's summary row): `SharedLinkCard`s in an `UpToTwoColumns` grid, search (only when `SearchCapabilityRepository` says server search is on; 300 ms debounce, `MAX_SHARED_LINK_SEARCH_LENGTH` cap) and a session-only sort (no saved pref yet). A card opens the share sheet (`SharedLinkSheetHost` over the VM's `ShareLinkController`, `focusShareId` = the card's link, so a link that isn't the conversation's newest opens reduced); ⋮ = Open chat (`settingsEntries(onOpenConversation)`, wired to the chat in `LibreChatNavHost`), View shared version (the in-app viewer, via `LocalOpenSharedChat`; hidden when absent), Copy link (page snackbar), Delete (confirm). Update and the files choice live only in the sheet. Own ViewModel (`SharedLinksViewModel`): paging with a generation token (a sort/search change starts from a null cursor and drops older pages), `shouldLoadMore` read from the current state (a captured one never loaded past page one), quiet reloads on ON_RESUME (`refreshOnReturn`) and on `ShareRepository.revision`, refetching as many rows as were loaded. A failed first load is an error state with Retry, never the empty state
-- Delegates take a `SettingsStateHandle<S>` typed to their host ViewModel's state, so a delegate moves with the page that uses it
-- Routes: `Memories`, `McpServers`, `PresetManager` (all `@Serializable` data objects extending `SettingsRoute`)
-- **Gotcha**: Memories and MCP navigation routes defined in their own files (`MemoriesNavigation.kt`, `McpNavigation.kt`) but wired through `SettingsNavigation.kt`
-- `McpServerEditorScreen` (route `McpServerEditor(serverName: String?)`, null = add) is the full-screen add/edit form, built like the schedule editor: `McpServerEditorViewModel` owns the draft, the discard prompt and the save, including the re-entry prompts (`MCP_OAUTH_SECRET_REENTRY_REQUIRED` / `MCP_API_KEY_REENTRY_REQUIRED`) and the iconPath/obo carry-over (`McpPreservedFields`). `McpServersScreen` refreshes on ON_RESUME (`refreshOnReturn`) to pick up a save
-- **Trust checkbox**: adding a server requires "I trust this server", as the web form does. It is client-side only (the server doesn't check it); an edit starts checked. The wording comes from `interface.mcpServers.trustCheckbox` when configured (`mcpTrustCheckbox()` + `resolveLocalizedConfigText`, markup stripped), else our strings
-- **Gotcha**: the editor offers `McpServerType` SSE and STREAMABLE_HTTP only; a stored `HTTP` shows as Streamable HTTP and is saved back as-is unless the user changes it
-- **Gotcha**: a memory key can be renamed on edit. `UpdateMemoryRequest.key` is sent only when it changed (the by-id route pattern-checks any key it receives), and a key-route rename is create-then-delete, so `MemoriesViewModel` reloads after any rename failure
+## Pull request account (Account › Connected accounts)
+- `PullRequestAccountViewModel` over `PullRequestConnectionRepository`; shown when
+  `pullRequestConnectionKnowable` and `showsPullRequestAccount` (upstream `hasPullRequestConnect`: a
+  grant exists, or `pullRequestsConnect` is set and the status hasn't said `configured: false`). The
+  status is re-read when the gate opens, on each return to the tab, on an account switch and after
+  every connect or disconnect.
+- Connect: `GET /oauth/connect`, then `McpOAuthSignInDialog` with those cookies. No bind step and no
+  system-browser fallback (the callback refuses a browser without them). A 404 hides the row for the
+  session.
+- Disconnect failure stays in the dialog; if the re-read shows the grant gone, close as on success.
 
-### Code execution (Data tab)
-- `CodeExecutionScreen` + `CodeExecutionViewModel` (route `CodeExecution`, `CodeExecutionNavigation.kt`),
-  web's Data controls › Code execution (`StatefulWorkspaceDefault` + `CodeEnvironments`). The Data row
-  shows when `agents.capabilities` has `stateful_code_sessions` (`codeExecutionEnabled`).
-- Default stateful workspace: read from the profile's `personalization.statefulCodeEnvironment`,
-  written with `PATCH /api/user/preferences`; optimistic, put back if refused. A saved scope the
-  deployment no longer allows is listed disabled.
-- Machines (`CodeMachinesRepository`, network-direct): status polled every 10 s while the page is
-  resumed; File changes / Commands and code only when the machine offers permissions and `canEdit`;
-  Delete only with `canDelete`. Connect VM only when the list has `controlPlanes`; the one-time
-  command (`CodeWorkerCommand`, posix or PowerShell) is shown until the code expires. Every change
-  refreshes `/api/endpoints` so the chat composer's machine list follows.
-- Setup approval: `CodeSetupScreen` + `CodeSetupViewModel` (route `CodeSetup(attemptId)`), from the
-  setup link pasted on the page or `librechat://code-setup/<id>` (`DeepLinks`). Polls every 2 s while
-  the attempt can move; nothing is approved until a control plane is picked and Approve is tapped.
-  The approve/deny routes run `requireSameOrigin`, which passes because the app sends no `Origin` or
-  `Sec-Fetch-Site`: don't add either.
+## Change email
+- Gate `isEmailChangeAvailable`: `provider == "local"` (null is NOT local), `emailEnabled`,
+  `allowEmailChange`, and hidden only on a server known to predate the route (`isRuledOut`).
+- `EmailChangeDelegate`; `EmailChangeError` (`:core:model`) maps every `code`; never show the server's
+  message. Field codes go under their field, the rest inside the dialog. A wrong password clears only
+  the password. 429 holds Send for `Retry-After`, else 2 min.
+  Never retry: each attempt mails the old address.
+- The Account tab re-reads the profile on every resume after the first (`refreshOnReturn`) and says
+  "Email address updated" only when a link was sent in this ViewModel's life.
 
-### Passkeys (v0.8.9-rc1, management only)
-- `PasskeysScreen` + `PasskeysViewModel` (route `Passkeys`, `PasskeysNavigation.kt`): list, rename, remove
-  through `PasskeyRepository` (`:core:data`, network-direct, never cached: a password reset deletes
-  every passkey). Reached from the Account tab's Passkeys row (between 2FA and API Keys), shown by
-  `isPasskeyManagementAvailable` (`AccountGates.kt`): `passkeyLoginEnabled` and not a tagged build
-  below rc1. The row's count rides the profile load and the resume refresh.
-- **No sign-in and no Add.** Both run a WebAuthn ceremony, and rc1's `normalizeOrigin` turns a native
-  app's origin into `"null"`; iOS would also need a build-time entitlement per server. Where Add would
-  be, the page says to sign in at the server's host in a browser (a link). Don't add a Credential
-  Manager / ASAuthorization path until upstream accepts native origins.
-- Remove asks a local account for its password (`ContentType.Password`, not `SecretTextField`); a
-  non-local one sends none, and a 403 brings the field up (upstream's `serverDemandedPassword`).
-  403 = incorrect password inline, 404 = already gone (reload + snackbar), 429 = wait. Errors render
-  inside the dialog. A list 404 refetches `/api/config`: passkeys were switched off.
+## API keys (`ApiKeysScreen`)
+- The key value exists only in the creation response; `ApiKeyCreateDialog` must show it immediately.
 
-### Pull request account (v0.8.9-rc1)
-- Account tab › **Connected accounts** (web's own section, after Security) › one row
-  (`PullRequestAccountRow`), from `PullRequestAccountViewModel` over `:core:data`
-  `PullRequestConnectionRepository`. Shown when `pullRequestConnectionKnowable` and
-  `showsPullRequestAccount` (upstream `hasPullRequestConnect`: a grant exists, or `pullRequestsConnect`
-  is set and the status hasn't said `configured: false`). Status read when the gate opens and on each
-  return to the tab. States: Checking / Not connected (tap = Connect) / Connected or Not in use (tap =
-  Disconnect, asks first) / Couldn't check (tap = Retry).
-- Connect calls `GET /oauth/connect` and opens `McpOAuthSignInDialog` with the cookies that response
-  set: no bind step, no system browser fallback (the callback refuses a browser without them). Success
-  or a closed page re-reads the status; an error page or a failed start is a snackbar. A 404 hides the
-  row for the session ("Connecting an account isn't available on this server.").
-- Disconnect failure stays in the dialog; the status is re-read, and if the grant is gone the dialog
-  closes as on success. Every credential change re-asks cached pull request lookups (repository side).
-
-### Change email (v0.8.9-rc1)
-- Profile row "Email address" (subtitle = current address) above Sign out, when
-  `isEmailChangeAvailable`: `provider == "local"` (null is NOT local), `emailEnabled`,
-  `allowEmailChange`, and the rc1 floor applied like the passkey gate's (`featureSupport(...).isRuledOut`:
-  hidden only on a server known to predate the route).
-- `EmailChangeDelegate` owns the dialog state in `AccountSettingsUiState` (draft, sending, error,
-  cooldown, one-shot notice). `EmailChangeError` (`:core:model`) maps every `code`; the server's
-  message is never shown. Field codes go under their field, the rest inside the dialog. A wrong
-  password clears only the password. A 429 holds Send off for `Retry-After`, else 2 minutes. Never
-  retried: each attempt mails the old address.
-- The change lands when the link is opened on the web; the Account tab re-reads the profile quietly
-  on every resume after the first (`refreshOnReturn`), which also fixes avatar/name staleness, and
-  says "Email address updated" only when a link was sent in this ViewModel's life.
-
-### API Keys
-- `ApiKeysScreen` — list/create/delete API keys, own ViewModel (`ApiKeysViewModel`)
-- Route: `ApiKeys` (`@Serializable` data object extending `SettingsRoute`), accessible from Settings → Security section
-- `ApiKeyCreateDialog` is two-phase: name input → show created key value with copy button
-- **Gotcha**: The key value is only available in the creation response — it cannot be retrieved again from the server. The dialog must show it immediately after creation.
-
-### Server connection (gateway headers, issue #287)
-- `ServerHeadersDialog` + `ServerHeadersViewModel` — edits the **active** server's static request
-  headers (Cloudflare Access service tokens and equivalents). Reached from **Settings → Account →
-  Server connection**, grouped with the other credentials rather than with data/diagnostics.
-- The dialog is **stateless** (the screen owns the ViewModel and passes state + callbacks down) —
-  forwarding the ViewModel into it trips detekt-compose's `ViewModelForwarding`.
-- Two things the dialog does NOT own: it closes on `saved` turning true, driven from the screen, so a
-  save the store could not persist keeps it open with the typed rows intact; and dismissing with
-  `isDirty` prompts before discarding, then calls `discardEdits()` — the ViewModel outlives the
-  dialog, so an abandoned edit would otherwise still be there on the next open.
-- **Gotcha**: `AlertDialog` clips its content rather than scrolling it, so the dialog body wraps the
-  editor in its own `verticalScroll` — otherwise a few rows plus the keyboard put the fields out of
-  reach.
-- The same headers are editable pre-login on `ServerUrlScreen`; both render `CustomHeadersEditor` from
-  `:core:ui` so the two can't drift.
-- **Why it exists post-login at all**: a gateway credential can be rotated or revoked mid-session, and
-  the pre-login editor is only reachable by signing out — not a step anyone would guess from the
-  resulting "could not reach the server."
-- **A null read is not an empty header set.** `headersForServer` returning null sets `loadFailed`: the
-  editor shows a warning instead of an empty list, and a server change clears the typed rows even
-  though the new server's read failed, because those rows belong to the server that just went away.
-  Refusing the *empty save* that would delete an unloaded credential is deliberately **not** here —
-  `ServerRepository.setHeaders` owns it, so the pre-login editor is covered by the same rule instead
-  of a second copy of it. A non-empty save is the recovery path and goes through.
-- **The dialog re-reads when it opens** (`reload()`, called from the row's `onClick`). The URL is
-  observed, so for one server the load happens exactly once — a read that failed would otherwise keep
-  warning about a store that has since recovered, for the life of the process. Unsaved edits win over
-  the re-read, and that is checked on **both** sides of the read: it genuinely suspends while the
-  store is recovering, and the dialog is already on screen by then, so the user is typing into it.
-- `showServerHeadersDialog` is `rememberSaveable`, unlike the screen's other dialog flags. This
-  ViewModel outlives the composition and holds half-typed rows, so a rotation that closed the dialog
-  without running the discard prompt would strand them behind a `reload()` that (correctly) refuses to
-  overwrite unsaved edits.
-- **Save failures render inside the dialog**, not as a snackbar: a refused save leaves the dialog open
-  and otherwise unchanged, and the Scaffold's snackbar draws behind its scrim — so the message would
-  be invisible and the Save button would look dead. `saveFailure` is therefore state that clears on
-  the next edit, not a one-shot event.
-- Save is explicit and does **not** re-probe: `ServerRepository` patches its in-memory map under the
-  same lock that performs the write (it is the table's only writer, and deliberately does *not*
-  observe it), so the next ordinary request picks the values up. In-flight requests keep the headers
-  they were snapshotted with — immutable by design.
-
-### Dialogs
-- `LanguageSelectorDialog` — 37+ locales with search, single-select radio
-- `DateTimeSettingsDialog` (#445) — timestamp style, clock and date format in one dialog with a live preview of the pending choices; Save writes all three in one DataStore edit. The General-tab row shows only a summary (a live sample + style name) — keep new date options in the dialog, not on the tab
-- `ForkSettingsDialog` — 3 fork modes (`DIRECT_PATH`, `INCLUDE_BRANCHES`, `TARGET_LEVEL`); labels/descriptions come from `fork_mode_*` string resources via `forkModeLabel()` / `forkModeDescription()`, not from the enum
-
-### MCP OAuth consent (v0.8.8)
-- `reinitialize` can answer `oauthRequired` + `oauthUrl`, meaning the server is waiting on the user
-  rather than connected. `McpViewModel` holds that as `pendingOAuth` and `McpServersScreen` renders
-  a consent dialog.
-- **Gotcha**: do NOT auto-launch the browser. The redirect hands a third-party provider this
-  session, so the launch has to be an explicit user action, not a side effect of tapping reconnect.
-- **Continue binds, then opens in app (v0.8.9-rc1).** The callback now needs the `oauth_csrf` /
-  `oauth_session` cookies, which the system browser never has. `continueOAuth()` asks
-  `McpOAuthLauncher` (`:core:data`, the one version gate, shared with chat): an `InApp` launch
-  (`POST /oauth/bind`'s cookies) renders `McpOAuthSignInDialog` from `:core:ui`; an `External` one
-  (known server before rc1, or any server whose bind sets no binding cookie or 404s: the route is
-  absent before v0.8.3-rc1, where the SPA catch-all answers it 200 HTML with no `Set-Cookie`)
-  opens the system browser as before. The bind is at the tap, not when
-  the prompt appears: the CSRF cookie lives ten minutes.
-- The in-app sign-in fires no ON_RESUME, so `onOAuthOutcome` reloads the servers itself and reports
-  through the `OAUTH_SIGNED_IN_MARKER` / `OAUTH_FAILED_MARKER` sentinels (Retry = reconnect).
-  Closing the page is silent.
-- `connectionDeferred` is a third outcome: the ack landed but the connection is still being made.
-  Reported via the `McpViewModel.DEFERRED_MARKER` sentinel, which the screen swaps for a localized
-  string (the VM has no access to compose resources).
+## Server connection (`ServerHeadersDialog`, `ServerHeadersViewModel`)
+Edits the **active** server's static request headers (Account › Server connection). Pre-login
+`ServerUrlScreen` renders the same `CustomHeadersEditor` (`:core:ui`).
+- The dialog is stateless; forwarding the ViewModel trips detekt-compose `ViewModelForwarding`.
+- The screen closes it on `saved`, so an unpersisted save keeps the typed rows. Dismissing while
+  `isDirty` prompts, then calls `discardEdits()` (the VM outlives the dialog).
+- `AlertDialog` clips rather than scrolls, so the body wraps the editor in `verticalScroll`.
+- A null `headersForServer` is not an empty set: `loadFailed` shows a warning, and a server change still
+  clears the typed rows. Refusing an empty save over an unloaded credential belongs to
+  `ServerRepository.setHeaders`, not here; a non-empty save is the recovery path.
+- `reload()` on open; unsaved edits win over the re-read, checked on both sides of the (suspending) read.
+- `showServerHeadersDialog` is `rememberSaveable` (unlike other dialog flags): a rotation that closed it
+  would strand half-typed rows behind a `reload()` that refuses to overwrite them.
+- Save failures render inside the dialog (the snackbar draws behind its scrim); `saveFailure` is state
+  that clears on the next edit, not a one-shot event.
+- Save does not re-probe: `ServerRepository` patches its in-memory map under the write lock (it is
+  the table's only writer and deliberately doesn't observe it), so the next
+  request picks it up; in-flight requests keep their snapshot.

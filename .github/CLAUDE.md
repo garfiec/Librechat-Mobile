@@ -1,136 +1,81 @@
 # GitHub CI/CD
 
-## Workflow: Apple App Store Upload
+Setup runbooks for every release workflow: `docs/RELEASING.md`.
 
-File: `.github/workflows/appstore.yml`
+## Apple App Store upload — `.github/workflows/appstore.yml`
+- **Manual only** (`workflow_dispatch`, required `tag`); cutting a GitHub release never uploads to Apple.
+- One `upload` job on `xcode-27` (Xcode pinned, see Environment), `environment: release` (reviewer-gated secrets).
+- Xcode **cloud signing** via an App Store Connect API key: no certificates or profiles stored anywhere;
+  `-allowProvisioningUpdates` manages them.
+- Archives the tag with scheme `iosApp AppStore`, configuration `Release-AppStore`
+  (`SWITCHBOARD_CHANNEL=appstore`), and fails unless the archived Info.plist says `SwitchboardChannel=appstore`.
+  Plain `Release` is the open-source channel (release.yml's sideload IPA).
+- `xcodebuild -exportArchive` with `method: app-store-connect`, `destination: upload` (no altool/fastlane).
+- `IOS_BUILD_NUMBER_SUFFIX` (run_number×100 + run_attempt) makes the "Stamp Version" phase emit a unique
+  `CFBundleVersion` (`YYYYMMPP.N`) per upload.
+- Uploads `dSYMs/` as artifact `dSYMs-<tag>-<run>-<attempt>` (90 days) before the App Store upload;
+  after that, App Store Connect's copy is the only one.
+- Secrets (`release` environment): `ASC_API_KEY_P8_BASE64`, `ASC_API_KEY_ID`, `ASC_API_ISSUER_ID`, `APPLE_TEAM_ID`.
 
-- **Manual only** (`workflow_dispatch`) with a required `tag` input (e.g. `v2026.07.3`) —
-  cutting a GitHub release never uploads to Apple.
-- Single `upload` job: `xcode-27` runner with Xcode pinned to 27.1 (see Environment), `environment: release` (reviewer-gated secrets).
-- Xcode **cloud signing** via an App Store Connect API key — no certificates or profiles
-  stored anywhere; `-allowProvisioningUpdates` manages them in Apple's cloud.
-- Archives the tagged commit with the `iosApp AppStore` scheme and `Release-AppStore` configuration
-  (`SWITCHBOARD_CHANNEL=appstore`), then fails unless the archived Info.plist says
-  `SwitchboardChannel=appstore`. The plain `Release` configuration is the open-source channel,
-  which release.yml's sideload IPA uses.
-- Then `xcodebuild -exportArchive` with
-  `method: app-store-connect`, `destination: upload` uploads during export (no altool/fastlane).
-- Passes `IOS_BUILD_NUMBER_SUFFIX` (run_number×100 + run_attempt) so the "Stamp Version"
-  build phase emits a per-upload-unique `CFBundleVersion` (`YYYYMMPP.N`).
-- Uploads the archive's `dSYMs/` as the `dSYMs-<tag>-<run>-<attempt>` artifact (90 days), before the
-  App Store upload, for symbolicating a field crash report; after that, App Store Connect's copy is
-  the only one.
-- Secrets (in the `release` environment): `ASC_API_KEY_P8_BASE64`, `ASC_API_KEY_ID`,
-  `ASC_API_ISSUER_ID`, `APPLE_TEAM_ID`. Setup runbook: `docs/RELEASING.md`.
+## Google Play upload — `.github/workflows/play.yml`
+- **Manual only** (`workflow_dispatch`: `tag`, `track` default `internal`, `status` — `draft` until the app's
+  first release has been reviewed). Cutting a GitHub release never uploads to Google.
+- Refuses any tag not `vYYYY.MM.N`: an `-rcN` shares its final release's versionCode, which Play accepts once.
+- `ubuntu-latest`, `environment: release`. Builds `:app:bundlePlayRelease -PbuildPlay` (the `playRelease`
+  variant is disabled without the flag), signed with the same `SIGNING_*` key as the open-source APK.
+- Fails unless the bundle is `com.garfiec.librechat.play` with the release certificate, then uploads it and the
+  R8 mapping via `r0adkll/upload-google-play` (SHA-pinned). Native debug symbols ride in the bundle
+  (`play` flavor `debugSymbolLevel`).
+- Extra secret: `PLAY_SERVICE_ACCOUNT_JSON` (runbook: "Distribution channels").
 
-## Workflow: Google Play Upload
+## F-Droid reproduce — `.github/workflows/fdroid-reproduce.yml`, `scripts/fdroid-reproduce.sh`
+- Triggers: stable release **published** (prereleases skipped), `workflow_dispatch` with `tag`, and PRs to
+  `develop` touching the workflow or script (rebuild the latest release). Don't run it from release.yml: a
+  draft's assets 404, which reads as a mismatch.
+- Rebuilds the tag in `registry.gitlab.com/fdroid/fdroidserver:buildserver-trixie` with fdroidserver master and the **live** fdroiddata
+  recipe; `fdroid build` compares against our published APK and checks the signer against
+  `AllowedAPKSigningKeys`. A tag missing a `Builds:` entry gets one copied from the last. Artifact
+  `fdroid-reproduce-<tag>` has the log and recipe.
+- Can't gate a release (needs the published APK). On `release`, checkout is the tag, so only tags containing
+  this workflow run automatically; dispatch for older ones.
 
-File: `.github/workflows/play.yml`
+## F-Droid watch — `.github/workflows/fdroid-watch.yml`, `scripts/check-fdroid-published.py`
+- Daily 15:17 UTC + `workflow_dispatch`; builds nothing. Fails when F-Droid's latest cycle lists our latest
+  stable release under `failedBuilds`, or the release is > 4 days old and F-Droid still suggests an older
+  versionCode. So it is red daily until F-Droid catches up.
+- Both F-Droid workflows alert **only** via GitHub's failed-workflow email (reproduce: the release publisher;
+  watch: whoever last changed its `cron:` line); nothing posts to issues or releases. GitHub disables
+  scheduled workflows after 60 days without repository activity.
 
-- Refuses any tag that is not `vYYYY.MM.N`: an `-rcN` shares its final release's versionCode,
-  which Play accepts only once.
-- **Manual only** (`workflow_dispatch`) with `tag`, `track` (default `internal`) and `status`
-  (`draft` until the app's first release has been reviewed) inputs. Cutting a GitHub release
-  never uploads to Google.
-- `ubuntu-latest`, `environment: release`. Builds `:app:bundlePlayRelease -PbuildPlay` — the
-  `playRelease` variant is disabled without that flag — signed with the same `SIGNING_*` release
-  key as the open-source APK.
-- Fails unless the bundle is `com.garfiec.librechat.play` and carries the release certificate,
-  then uploads it and the R8 mapping with `r0adkll/upload-google-play` (SHA-pinned). Native debug
-  symbols ride inside the bundle (`play` flavor `debugSymbolLevel`), not as a separate upload.
-- Extra secret: `PLAY_SERVICE_ACCOUNT_JSON`. Setup runbook: `docs/RELEASING.md` "Distribution
-  channels".
+## CI — `.github/workflows/ci.yml`
+Triggers: push to `develop`, PRs targeting `develop`. Concurrency cancels in-progress runs on the same branch.
 
-## Workflow: F-Droid reproduce verification
+- `lint`: `scripts/check-native-test-names.py` (fails on any backtick-quoted declaration name, main or test, Kotlin/Native rejects:
+  `. , ; : / \ < > [ ]`, in any iOS-compiled source set — the JVM accepts some, so otherwise only `ios`
+  notices); `./gradlew detekt :app:lint --continue` (detekt covers every source set; `DetektConventionPlugin`);
+  uploads detekt SARIF to Code Scanning (needs Advanced Security on private repos) + lint HTML.
+- `test`: `./gradlew test`.
+- `android`: `:app:assembleDebug` (both `fossDebug` and `playDebug`);
+  `:feature:chat:assembleDebugAndroidTest` as a compile-only gate (keep it scoped: a repo-wide
+  `assembleDebugAndroidTest` also compiles `:app`'s stale `androidTest`); `scripts/verify-speech-services.py
+  --manifest-only` (both flavors declare the speech `<queries>`; the device half runs locally only). Uploads
+  the `fossDebug` APK (90 days) and posts its link to the PR.
+- `ios`: `iosSimulatorArm64Test` for `:shared`, `:core:ui`, `:core:common`, `:core:data`, `:core:model`,
+  `:core:network`, `:core:logging`, `:feature:chat`, `:feature:conversations` (runs `iosTest` and `commonTest`
+  for iOS). **A new module with a `commonTest` or `iosTest` must be added to this list**, or its tests never
+  compile or run for iOS in CI (the ubuntu `test` job can't run Kotlin/Native). Caches `~/.konan`. Then
+  `xcodebuild` for the simulator (arm64, no signing); the framework comes from the Xcode "Compile Kotlin
+  Framework" phase (`:shared:embedAndSignAppleFrameworkForXcode`), no separate link step.
+- `ios-release-link` (OOM canary): `:shared:linkReleaseFrameworkIosArm64`, the Release device link the
+  release/appstore archives run. Debug/simulator builds skip whole-program optimization, so only this catches
+  the Release link's DevirtualizationAnalysis OOMing the 7 GB runner (KT-80367); don't drop it.
+- CI does no release signing. Instrumented tests are never executed in CI (no emulator); `:feature:chat`'s
+  suite is compile-only. The iOS app is built, not uploaded.
 
-File: `.github/workflows/fdroid-reproduce.yml`, script `scripts/fdroid-reproduce.sh`
-
-- Triggers: a stable release is **published** (prereleases skipped), `workflow_dispatch` with a
-  `tag` input, and PRs to `develop` that touch the workflow or script (those rebuild the latest
-  release). Not run from release.yml: a draft's assets 404, which would read as a mismatch.
-- Rebuilds the tag in `registry.gitlab.com/fdroid/fdroidserver:buildserver-trixie` with
-  fdroidserver from git master and the **live** fdroiddata recipe, then `fdroid build` compares
-  its unsigned build with our published APK and checks the signer against `AllowedAPKSigningKeys`,
-  as F-Droid does before publishing. A tag the recipe has no `Builds:` entry for yet gets one
-  copied from the last entry. ~15 min; `fdroid-reproduce-<tag>` artifact holds the build log and
-  the recipe used.
-- It cannot gate a release (it needs the published APK); it reports within the hour what F-Droid
-  would otherwise find out, silently, a day or more later. On `release`, checkout is the tag, so
-  only tags containing this workflow run automatically; dispatch it for older ones.
-
-## Workflow: F-Droid watch
-
-File: `.github/workflows/fdroid-watch.yml`, script `scripts/check-fdroid-published.py`
-
-- Daily at 15:17 UTC and `workflow_dispatch`. Builds nothing: fails when F-Droid's latest build
-  cycle lists our latest stable release under `failedBuilds`, or when that release was published
-  more than 4 days ago and F-Droid still suggests an older versionCode. Catches what the reproduce
-  check can't: the update bot not picking up a tag, a stuck cycle or deploy.
-- Fails daily until F-Droid catches up, so it is red whenever a release is newer than F-Droid's
-  listing by more than the grace period.
-
-Both alert **only** through GitHub's failed-workflow email (reproduce: whoever published the
-release; watch: whoever last changed its `cron:` line). Nothing is posted to issues or the
-release page. GitHub disables scheduled workflows after 60 days without repository activity.
-
-## Workflow: CI
-
-File: `.github/workflows/ci.yml`
-
-### Triggers
-
-- Push to `develop`
-- Pull requests targeting `develop`
-
-### Jobs
-
-#### `lint`
-- `scripts/check-native-test-names.py` — fails on a backtick-quoted name Kotlin/Native rejects
-  (`. , ; : / \ < > [ ]`) in any source set compiled for iOS. The JVM accepts some of them (`,`
-  for one), so without this only the `ios` job notices.
-- `./gradlew detekt :app:lint --continue` (`detekt` covers every source set of every module; see `DetektConventionPlugin`)
-- Uploads merged detekt SARIF to GitHub Code Scanning + lint HTML report
-
-#### `test`
-- `./gradlew test`
-- Uploads test results XML
-
-#### `android` (Build Android App)
-- `./gradlew :app:assembleDebug`, which builds both channel flavors (`fossDebug`, `playDebug`)
-- `./gradlew :feature:chat:assembleDebugAndroidTest` — compile-only gate for the chat instrumented
-  suite, which *runs* on a local emulator (`connectedDebugAndroidTest`), never in CI. Scoped to the
-  one module deliberately: a repo-wide `assembleDebugAndroidTest` would also compile `:app`'s stale
-  `androidTest` sources.
-- `scripts/verify-speech-services.py --manifest-only` — both flavors' merged manifests declare the
-  speech `<queries>` intents (#601). The device half of that script runs locally only.
-- Uploads the `fossDebug` APK as an artifact (90-day retention) and posts its download link to the PR
-
-#### `ios` (Build iOS App)
-- Selects Xcode 27.1 (pinned; see Environment)
-- Runs `iosSimulatorArm64Test` for every KMP module with tests: `:shared`, `:core:ui`,
-  `:core:common`, `:core:data` (which have an `iosTest`), plus `:core:model`, `:core:network`,
-  `:core:logging`, `:feature:chat` and `:feature:conversations` (`commonTest` only). That task runs
-  the module's `iosTest` and its `commonTest` compiled for iOS. The `ubuntu` `test` job cannot run
-  Kotlin/Native tests, so a module left off this list never has its tests compiled or run for iOS
-  in CI: a new module with a `commonTest` or `iosTest` must be added.
-- Caches `~/.konan`
-- Runs `xcodebuild` for the iOS simulator (arm64-only, no signing). The Kotlin framework is built by the Xcode "Compile Kotlin Framework" build phase (`./gradlew :shared:embedAndSignAppleFrameworkForXcode`) — no separate link step.
-
-#### `ios-release-link` (iOS Release Link (OOM canary))
-- `./gradlew :shared:linkReleaseFrameworkIosArm64` — the Release device link that release.yml/appstore.yml archives run
-- Exists because the Release link's DevirtualizationAnalysis pass OOM'd the 7 GB runner on every release Jul 2–25, 2026 (KT-80367) while PR CI stayed green: Debug/simulator builds skip whole-program optimization, so code growth crossing the heap ceiling was invisible until release day. This job fails the PR that crosses it instead.
-
-### Environment
-
-- `lint` + `test` + `android` jobs: `ubuntu-latest`, JDK 21
-- iOS jobs (`ios`, `ios-release-link`, release's `ios`, appstore's `upload`): `xcode-27` (Apple Silicon — required since there's no `iosSimulatorX64` target), JDK 21
-- Xcode is pinned to `'27.1'`, not `latest-stable`: per Apple's iPhone Duo guidance only an iOS 27.1 SDK build fills the inner display, and `latest-stable` follows whatever non-beta Xcode the image adds next. setup-xcode matches a plain version only against a non-beta Xcode, so a pin to a beta fails at "Select Xcode". Bump the pin deliberately, in all four jobs together.
-- Concurrency: cancels in-progress runs for same branch
-
-### Notes
-
-- No release signing configured yet
-- Instrumented/UI tests are never *executed* in CI (no emulator) — `:feature:chat`'s suite is only
-  compiled, as a gate. Executed test coverage in CI is unit tests plus the iOS tests of the nine modules above.
-- The debug APK is uploaded as an artifact; the iOS app is built but not uploaded
-- Detekt SARIF is uploaded to GitHub Code Scanning (requires GitHub Advanced Security for private repos)
+## Environment
+- `lint`, `test`, `android`: `ubuntu-latest`, JDK 21.
+- iOS jobs (`ios`, `ios-release-link`, release's `ios`, appstore's `upload`): `xcode-27` (Apple Silicon; there
+  is no `iosSimulatorX64` target), JDK 21.
+- Xcode is pinned to `'27.1'`, not `latest-stable`: only an iOS 27.1 SDK build fills the iPhone Duo inner
+  display, and `latest-stable` drifts. setup-xcode matches a plain version only against non-beta Xcode, so a
+  beta pin fails at "Select Xcode". Bump the pin deliberately, in all four jobs together.
