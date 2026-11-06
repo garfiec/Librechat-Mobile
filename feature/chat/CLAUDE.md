@@ -1110,9 +1110,14 @@ first, then images, files, skills, quotes.
 - **The list** (`ComposerDraftListPanel`) is drawn by `ChatScreen` outside the measured bottom box,
   so opening it doesn't move the thread's inset, and after it, so the landing starters and the update
   banner docked there neither draw over its rows nor take their taps (a pause panel closes it as it
-  appears). It sits on the composer itself (its measured height, not the bottom box's, which also holds
+  appears, and while one is up the stack doesn't open it: it would cover the tool-approval panel
+  docked in the same place). It sits on the composer itself (its measured height, not the bottom box's, which also holds
   starters and the update banner) and below the floating top bar, so with the keyboard up it scrolls
-  in what is visible. It closes on a tap anywhere but it and the stack (`closeOnTapOutside`, which
+  in what is visible. When that leaves less than its header and one row (`draftListFit`,
+  `DRAFT_LIST_MIN_HEIGHT`) it goes under the bar's scrim, and when even that is too little it
+  hides the keyboard. Its open/closed state and the toggles are `DraftListState`, handed to the
+  composer through `ComposerChrome.withDraftList`; a screen reader's open, from the stack or the
+  failed-upload line, moves focus to its header. It closes on a tap anywhere but it and the stack (`closeOnTapOutside`, which
   only watches; the stack's bounds come from `ComposerChrome.onDraftStackPositioned`), so a tap in
   an already-focused field closes it too, and on typing, a send of any kind, the field gaining
   focus, the list emptying, a pause panel appearing, or back
@@ -1202,7 +1207,10 @@ first, then images, files, skills, quotes.
     flow being cancelled. **Never while a reply runs or a live tool call waits on that server's
     sign-in**: the server keeps one flow per user and server, and a reconnect then replays the run's
     own flow into the chip's dialog, so cancelling it would fail the tool call. The flow is left to
-    the run and the chip may read connecting · sign in until it ends. A browser sign-in is never cancelled: the
+    the run and the chip may read connecting · sign in until it ends. **Nor when the server already
+    read connecting with a sign-in pending at the tap** (`chipOwnsFlow`): the reconnect only replayed
+    a flow a run in another chat, a web tab or another device started, which this chat's state can't
+    see. A flow the chip's own browser sign-in or cancel left there is still its own. A browser sign-in is never cancelled: the
     user may come back mid-way and finish in the browser, whose callback a cancelled flow refuses.
     Its server's statuses are re-read on every ON_RESUME (`McpServersDelegate.onForeground`) until
     it stops reading connecting, and the chip's tap (connecting · sign in) replays or reissues an
