@@ -52,7 +52,17 @@ class DraftItemsTest {
         val items = draftItemsOf(emptyList(), listOf("pdf-tools"), listOf("a", "a"), serverUrl = "")
         assertEquals(0, items.fileCount)
         // A quote repeated is two chips, with two keys.
-        assertEquals(listOf("skill:pdf-tools", "quote:0", "quote:1"), items.items.map { it.key })
+        assertEquals(listOf("skill:pdf-tools", "quote:0:a", "quote:1:a"), items.items.map { it.key })
+    }
+
+    @Test
+    fun aQuoteKeepsItsKeyWhenAnEarlierOneIsRemoved() {
+        val before = draftItemsOf(emptyList(), emptyList(), listOf("first", "second"), serverUrl = "")
+        val after = draftItemsOf(emptyList(), emptyList(), listOf("second"), serverUrl = "")
+
+        assertEquals(before.items.last().key, after.items.single().key)
+        // Its index moves with the list, which is what removal goes by.
+        assertEquals(0, (after.items.single() as DraftItem.Quote).index)
     }
 
     @Test

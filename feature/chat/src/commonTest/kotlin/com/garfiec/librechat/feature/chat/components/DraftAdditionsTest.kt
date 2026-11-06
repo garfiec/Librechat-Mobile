@@ -58,6 +58,20 @@ class DraftAdditionsTest {
     }
 
     @Test
+    fun anUndoneQuoteIsAnnouncedAsItself() {
+        val additions = DraftAdditions(emptySet())
+        additions.update(quotes("first", "second"))
+        additions.update(quotes("second"))
+
+        // The Undo puts the first back ahead of the second.
+        additions.update(quotes("first", "second"))
+
+        assertEquals("first", additions.lastAdded)
+    }
+
+    private fun quotes(vararg texts: String) = draftItemsOf(emptyList(), emptyList(), texts.toList(), serverUrl = "")
+
+    @Test
     fun aSkillAddedBesideFilesIsNamed() {
         val additions = DraftAdditions(emptySet())
         additions.update(items(notes))

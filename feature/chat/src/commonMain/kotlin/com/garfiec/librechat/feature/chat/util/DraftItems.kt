@@ -30,9 +30,14 @@ sealed interface DraftItem {
         override val key: String get() = "skill:$name"
     }
 
-    /** A staged quote, at [index] in `ComposerState.pendingQuotes` (quotes may repeat). */
-    data class Quote(val index: Int, val text: String) : DraftItem {
-        override val key: String get() = "quote:$index"
+    /**
+     * A staged quote, at [index] in `ComposerState.pendingQuotes`. Keyed by its words, and by
+     * [occurrence] among quotes with the same words (quotes may repeat), not by [index]: removing or
+     * restoring one quote moves the others' indexes, and a key that moved with them would hand one
+     * quote's row to another and announce the wrong one as added.
+     */
+    data class Quote(val index: Int, val text: String, val occurrence: Int = 0) : DraftItem {
+        override val key: String get() = "quote:$occurrence:$text"
     }
 }
 
@@ -95,7 +100,12 @@ fun draftItemsOf(
         addAll(settled.filterIsInstance<DraftItem.Image>())
         addAll(settled.filterIsInstance<DraftItem.File>())
         skills.distinct().forEach { add(DraftItem.Skill(it)) }
-        quotes.forEachIndexed { index, text -> add(DraftItem.Quote(index, text)) }
+        val quoteRepeats = mutableMapOf<String, Int>()
+        quotes.forEachIndexed { index, text ->
+            val occurrence = quoteRepeats[text] ?: 0
+            quoteRepeats[text] = occurrence + 1
+            add(DraftItem.Quote(index, text, occurrence))
+        }
     }
     val uploading = files.filter { it.isUploading }
     val progresses = uploading.mapNotNull { it.uploadProgress }
