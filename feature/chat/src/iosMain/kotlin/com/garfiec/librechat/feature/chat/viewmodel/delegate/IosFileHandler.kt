@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -29,8 +30,9 @@ import kotlin.uuid.Uuid
  * paste hand over ([IosImageData], [IosFileData]).
  *
  * Unlike an Android `Uri`, an iOS pick can't be read again once it is handed over, so the handler
- * keeps each tray entry's picked data ([picked]) for as long as the entry can still need it: a
- * failed upload retries from it. An image's thumbnail is the small copy the picker made of it
+ * keeps each tray entry's picked data ([picked]) only while the entry can still need it: while its
+ * upload is out or waits on a PDF password, and after it failed, since a retry uploads from it. A
+ * successful upload drops it. An image's thumbnail is the small copy the picker made of it
  * ([IosImageData.preview] as [AttachedFile.localPreview]), since the picked bytes may be HEIC.
  */
 class IosFileHandler(
@@ -47,11 +49,15 @@ class IosFileHandler(
 
     /**
      * The picked [IosImageData] / [IosFileData] behind each tray entry, by its minted `uri`, as
-     * [pdfPrompts] keeps the [PickedFile] a password retry needs. A removed failed entry keeps its
-     * data, since Undo can bring it back to be retried; the whole map goes when the tray is cleared.
-     * Touched on the caller's thread only (every entry point runs on Main).
+     * [pdfPrompts] keeps the [PickedFile] a password retry needs. An entry's data goes once its
+     * upload succeeds or it is removed; a removed failed entry keeps it, since Undo can bring it back
+     * to be retried. The whole map goes when the tray is cleared. Touched on Main only: every entry
+     * point runs there, and so does an upload's outcome (only the request runs on [ioDispatcher]).
      */
     private val picked = mutableMapOf<Any, Any>()
+
+    /** Whether the entry [uri] still holds its picked data in memory ([picked]); read by the tests. */
+    internal fun holdsPickedData(uri: Any): Boolean = uri in picked
 
     /** Each entry's upload, by `uri`, so removing a file mid-upload cancels it. Same thread rule as [picked]. */
     private val uploadJobs = mutableMapOf<Any, Job>()
@@ -118,27 +124,30 @@ class IosFileHandler(
             }
         }
 
-        uploadJobs[uniqueId] = handle.scope.launch(ioDispatcher) {
+        // On the handle's (Main) scope, with only the upload itself on IO: the outcome touches [picked].
+        uploadJobs[uniqueId] = handle.scope.launch {
             try {
                 val state = handle.state
                 val isAgent = state.selectedEndpoint == EndpointConstants.AGENTS
                 val fileId = Uuid.random().toString()
 
-                val result = fileRepository.uploadFile(
-                    bytes = bytes,
-                    filename = filename,
-                    type = mimeType,
-                    fileId = fileId,
-                    endpoint = state.selectedEndpoint,
-                    model = if (!isAgent) state.selectedModel else null,
-                    agentId = if (isAgent) state.selectedModel else null,
-                    toolResource = if (image != null) null else effectiveRoute.toolResource(),
-                    messageFile = true,
-                    width = image?.width,
-                    height = image?.height,
-                    onProgress = { pct -> updateEntry(uniqueId) { it.copy(uploadProgress = pct) } },
-                    pdfPassword = pdfPassword,
-                )
+                val result = withContext(ioDispatcher) {
+                    fileRepository.uploadFile(
+                        bytes = bytes,
+                        filename = filename,
+                        type = mimeType,
+                        fileId = fileId,
+                        endpoint = state.selectedEndpoint,
+                        model = if (!isAgent) state.selectedModel else null,
+                        agentId = if (isAgent) state.selectedModel else null,
+                        toolResource = if (image != null) null else effectiveRoute.toolResource(),
+                        messageFile = true,
+                        width = image?.width,
+                        height = image?.height,
+                        onProgress = { pct -> updateEntry(uniqueId) { it.copy(uploadProgress = pct) } },
+                        pdfPassword = pdfPassword,
+                    )
+                }
 
                 when (result) {
                     is Result.Success -> onUploaded(uniqueId, result.data, keepsDimensions = image == null)
@@ -159,9 +168,14 @@ class IosFileHandler(
         _attachedFiles.update { list -> list.map { if (it.uri == uniqueId) transform(it) else it } }
     }
 
-    /** The server's record onto the entry. A file keeps no dimensions of its own; an image takes the server's. */
+    /**
+     * The server's record onto the entry. A file keeps no dimensions of its own; an image takes the
+     * server's. The picked data goes: an uploaded entry never uploads again (Undo brings it back
+     * already uploaded), and a pick can be tens of MB.
+     */
     private fun onUploaded(uniqueId: String, fileObject: FileObject, keepsDimensions: Boolean) {
         Logger.d { "IosFileHandler: upload success -- fileId=${fileObject.fileId}" }
+        picked.remove(uniqueId)
         updateEntry(uniqueId) { f ->
             f.copy(
                 uploadProgress = 1f,

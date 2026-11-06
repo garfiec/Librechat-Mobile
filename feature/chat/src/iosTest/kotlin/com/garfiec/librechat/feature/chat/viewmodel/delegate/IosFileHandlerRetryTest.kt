@@ -117,6 +117,20 @@ class IosFileHandlerRetryTest {
     }
 
     @Test
+    fun aFailedUploadKeepsItsPickAndAnUploadedOneLetsItGo() {
+        pick(notes)
+        val entry = handler.attachedFiles.value.single()
+        assertTrue(entry.uploadFailed)
+        assertTrue(handler.holdsPickedData(entry.uri))
+
+        handler.retryUpload(entry)
+
+        // Uploaded: it never uploads again (Undo restores it as uploaded), so the bytes go.
+        assertNotNull(handler.attachedFiles.value.single().fileId)
+        assertFalse(handler.holdsPickedData(entry.uri))
+    }
+
+    @Test
     fun anImageDrawsItsThumbnailFromThePickersPreview() {
         val preview = byteArrayOf(9, 9)
         val shot = IosImageData(
