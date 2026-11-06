@@ -77,6 +77,8 @@ internal fun ComposerAttachmentStack(
     modifier: Modifier = Modifier,
     /** What was just added, for the pop and the announcement; null draws neither (previews). */
     additions: DraftAdditions? = null,
+    /** A screen reader's click (TalkBack, VoiceOver), where it differs from a touch's [onClick]. */
+    onScreenReaderClick: () -> Unit = onClick,
 ) {
     if (items.isEmpty) return
     val count = items.items.size
@@ -107,7 +109,7 @@ internal fun ComposerAttachmentStack(
                 liveRegion = LiveRegionMode.Polite
                 role = Role.Button
                 onClick(label = clickLabel) {
-                    onClick()
+                    onScreenReaderClick()
                     true
                 }
             },

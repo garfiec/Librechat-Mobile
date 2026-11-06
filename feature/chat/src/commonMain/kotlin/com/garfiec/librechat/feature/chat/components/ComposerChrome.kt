@@ -43,6 +43,11 @@ data class ComposerChrome(
     val isDraftListOpen: Boolean = false,
     /** The stack's tap: open the list, or close it when open. */
     val onToggleDraftList: () -> Unit = {},
+    /**
+     * The same toggle from a screen reader (the stack's accessibility click action), which also
+     * moves focus to the list's header on open. A touch leaves focus, and the keyboard, where they are.
+     */
+    val onToggleDraftListFromScreenReader: (() -> Unit)? = null,
     /** A list row's ×: cancels a file still uploading, else removes the item with an Undo. */
     val onRemoveDraftItem: (DraftItem) -> Unit = {},
     /** A failed file's row tap. */

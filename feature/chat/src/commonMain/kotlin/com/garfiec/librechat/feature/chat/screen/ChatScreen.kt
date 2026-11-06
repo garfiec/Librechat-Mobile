@@ -183,6 +183,8 @@ fun ChatScreen(
     // Above the stack, which leaves composition while the draft is empty, so the first add pops too.
     val draftAdditions = rememberDraftAdditions(draftItems)
     var draftListOpen by rememberSaveable { mutableStateOf(false) }
+    // The list was opened by a screen reader, so it takes focus at its header (ComposerDraftListPanel).
+    var focusDraftListHeader by remember { mutableStateOf(false) }
     var draftListBounds by remember { mutableStateOf(Rect.Zero) }
     val draftTapTargets = remember { DraftListTapTargets() }
     // The composer's own height (not the bottom box's, which also holds starters, the update banner
@@ -577,7 +579,14 @@ fun ChatScreen(
                         draftItems = draftItems,
                         draftAdditions = draftAdditions,
                         isDraftListOpen = draftListOpen,
-                        onToggleDraftList = { draftListOpen = !draftListOpen },
+                        onToggleDraftList = {
+                            focusDraftListHeader = false
+                            draftListOpen = !draftListOpen
+                        },
+                        onToggleDraftListFromScreenReader = {
+                            focusDraftListHeader = !draftListOpen
+                            draftListOpen = !draftListOpen
+                        },
                         onRemoveDraftItem = viewModel::removeDraftItem,
                         onRetryUpload = viewModel::retryUpload,
                         onUndoRemove = viewModel::undoDraftRemoval,
@@ -602,6 +611,7 @@ fun ChatScreen(
                             items = draftItems,
                             onRemove = composerChrome.onRemoveDraftItem,
                             onRetry = composerChrome.onRetryUpload,
+                            focusHeader = focusDraftListHeader,
                             modifier = Modifier
                                 .align(Alignment.BottomStart)
                                 .padding(

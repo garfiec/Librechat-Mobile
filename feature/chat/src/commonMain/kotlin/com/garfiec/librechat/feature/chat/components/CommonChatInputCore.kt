@@ -334,9 +334,11 @@ fun CommonChatInputCore(
                         onCommitEdit = onCommitEdit,
                         onCancelPendingSend = onCancelPendingSend,
                     )
+                    // Inside the capsule, so Liquid Glass gives it the capsule's fill rather than
+                    // drawing it bare over the thread; Material's composer fade sits behind it.
+                    FailedUploadsLine(chrome = state.chrome)
                 }
             }
-            FailedUploadsLine(chrome = state.chrome)
         }
         bottomContent()
     }
@@ -467,19 +469,19 @@ internal fun SteerAndQueueColumn(
 
 /**
  * Why Send is held while a file failed to upload, under the field. A tap opens the attachment list,
- * where the failed row retries.
+ * where the failed row retries. 48dp tall whether or not the list is open, so the tap target meets
+ * the minimum and the composer doesn't change height as the list opens and closes.
  */
 @Composable
 private fun FailedUploadsLine(chrome: ComposerChrome) {
     val failed = chrome.draftItems.failedCount
     if (failed == 0) return
-    Text(
-        text = pluralStringResource(Res.plurals.draft_uploads_failed, failed, failed),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.error,
+    Box(
+        contentAlignment = Alignment.CenterStart,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .heightIn(min = 48.dp)
+            .clip(RoundedCornerShape(12.dp))
             .then(
                 if (chrome.isDraftListOpen) {
                     Modifier
@@ -488,7 +490,13 @@ private fun FailedUploadsLine(chrome: ComposerChrome) {
                 },
             )
             .padding(horizontal = 12.dp, vertical = 4.dp),
-    )
+    ) {
+        Text(
+            text = pluralStringResource(Res.plurals.draft_uploads_failed, failed, failed),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+    }
 }
 
 /** About two and a half steer or queue rows. */
@@ -624,6 +632,7 @@ internal fun composerFieldLeadingIcon(
                 onClick = chrome.onToggleDraftList,
                 modifier = Modifier.onGloballyPositioned(chrome.onDraftStackPositioned),
                 additions = chrome.draftAdditions,
+                onScreenReaderClick = chrome.onToggleDraftListFromScreenReader ?: chrome.onToggleDraftList,
             )
         }
     }

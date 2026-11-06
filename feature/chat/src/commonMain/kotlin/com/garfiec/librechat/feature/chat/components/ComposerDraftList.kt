@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,11 +23,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
@@ -66,6 +70,10 @@ import org.jetbrains.compose.resources.stringResource
  * local preview of a draft image is a follow-up.
  *
  * Opaque over the thread in Material (`surfaceContainerHigh`), a glass panel in Liquid Glass.
+ *
+ * [focusHeader] moves focus to the header as it opens, for a screen reader that opened it: drawn
+ * above the composer, the panel comes before the stack in traversal order, so without it the next
+ * swipe from the stack goes on to the field.
  */
 @Composable
 internal fun ComposerDraftListPanel(
@@ -73,9 +81,12 @@ internal fun ComposerDraftListPanel(
     onRemove: (DraftItem) -> Unit,
     onRetry: (AttachedFile) -> Unit,
     modifier: Modifier = Modifier,
+    focusHeader: Boolean = false,
 ) {
     val count = items.items.size
     val header = pluralStringResource(Res.plurals.draft_list_header, count, count)
+    val headerFocus = remember { FocusRequester() }
+    LaunchedEffect(focusHeader) { if (focusHeader) headerFocus.requestFocus() }
     AdaptiveCard(
         modifier = modifier.semantics { paneTitle = header },
         shape = RoundedCornerShape(16.dp),
@@ -87,6 +98,8 @@ internal fun ComposerDraftListPanel(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
                 .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp)
+                .focusRequester(headerFocus)
+                .focusable()
                 .semantics { heading() },
         )
         Column(
