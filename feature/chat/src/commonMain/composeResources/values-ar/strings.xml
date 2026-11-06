@@ -1255,9 +1255,9 @@
     <string name="cd_cancel_upload">إلغاء رفع %1$s</string>
     <string name="cd_remove_quote_named">إزالة الاقتباس: %1$s</string>
     <string name="cd_retry_upload">إعادة محاولة رفع %1$s</string>
-    <string name="draft_item_removed">أُزيل %1$s</string>
-    <string name="setting_chip_set_by">عيّنه %1$s</string>
-    <string name="setting_chip_turned_off">أُوقف %1$s</string>
+    <string name="draft_item_removed">تمت إزالة %1$s</string>
+    <string name="setting_chip_set_by">من إعداد %1$s</string>
+    <string name="setting_chip_turned_off">تم إيقاف %1$s</string>
     <string name="setting_chip_connected">متصل</string>
     <string name="setting_chip_not_connected">غير متصل</string>
     <string name="setting_chip_connecting">جارٍ الاتصال…</string>
