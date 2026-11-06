@@ -66,7 +66,7 @@ private fun Density.lineHeightOf(style: TextStyle): Dp {
     }
 }
 
-/** Between the attachment list and what it sits on. */
+/** Between the attachment list and the composer it sits on. */
 internal val DRAFT_LIST_GAP = 4.dp
 
 /**
@@ -80,30 +80,19 @@ internal fun draftListNeedsRoom(height: Dp, bottom: Dp, barBottom: Dp, minHeight
     height > 0.dp && height - bottom - barBottom < minHeight
 
 /**
- * Where the list's bottom edge sits above the screen's: on the [composer], or, while a tool-approval
- * panel is docked above it, on that panel collapsed ([collapsedToolPanel], null without one), so the
- * list never covers the panel.
+ * This chrome with the attachment list's state and toggles. [toolPause]: a tool-approval panel is
+ * docked above the composer, in the space the list opens into, so the list stays shut
+ * ([ComposerChrome.draftListShut]): the stack still shows what goes with the message but opens
+ * nothing, and the failed-upload line says the file can be dealt with after the approval. The panel
+ * is never collapsed or covered for the list.
  */
-internal fun draftListBottom(composer: Dp, collapsedToolPanel: Dp?): Dp = composer + (collapsedToolPanel ?: 0.dp) + DRAFT_LIST_GAP
-
-/**
- * This chrome with the attachment list's state and toggles. [toolPauseExpanded]: a tool-approval
- * panel docked above the composer is expanded, taking the space the list opens into, so opening the
- * list collapses it ([onCollapseToolPause]) and the list opens above it. The list stays reachable
- * during the pause: it is the only place a failed file is retried or removed, and that file holds the
- * run's next send.
- */
-internal fun ComposerChrome.withDraftList(
-    state: DraftListState,
-    toolPauseExpanded: Boolean = false,
-    onCollapseToolPause: () -> Unit = {},
-): ComposerChrome {
+internal fun ComposerChrome.withDraftList(state: DraftListState, toolPause: Boolean = false): ComposerChrome {
     fun toggle(fromScreenReader: Boolean) {
-        state.toggle(fromScreenReader)
-        if (state.isOpen && toolPauseExpanded) onCollapseToolPause()
+        if (toolPause) state.close() else state.toggle(fromScreenReader)
     }
     return copy(
-        isDraftListOpen = state.isOpen,
+        isDraftListOpen = state.isOpen && !toolPause,
+        draftListShut = toolPause,
         onToggleDraftList = { toggle(fromScreenReader = false) },
         onToggleDraftListFromScreenReader = { toggle(fromScreenReader = true) },
         onFieldFocused = state::close,
@@ -111,11 +100,10 @@ internal fun ComposerChrome.withDraftList(
 }
 
 /**
- * Closes the list when a pause panel comes up ([pausePanelUp]), so the user sees the panel, and when
- * the tool-approval panel is expanded again over it ([toolPauseExpanded]).
+ * Closes the list when a pause panel comes up ([pausePanelUp]), so the user sees the panel; it
+ * doesn't reopen when the pause ends.
  */
 @Composable
-internal fun DraftListPauseEffects(state: DraftListState, pausePanelUp: Boolean, toolPauseExpanded: Boolean) {
+internal fun DraftListPauseEffects(state: DraftListState, pausePanelUp: Boolean) {
     LaunchedEffect(pausePanelUp) { if (pausePanelUp) state.close() }
-    LaunchedEffect(toolPauseExpanded) { if (toolPauseExpanded) state.close() }
 }

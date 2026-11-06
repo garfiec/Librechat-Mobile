@@ -10,7 +10,7 @@ import org.junit.Test
 /**
  * The attachment list keeps below the top bar (which draws over it and takes its taps) and asks for
  * the keyboard down when that leaves less than its header and one row, measured at the font size in
- * effect. During a tool-approval pause it sits on the collapsed panel rather than over it.
+ * effect.
  */
 class DraftListFitTest {
 
@@ -72,12 +72,5 @@ class DraftListFitTest {
         // a queued message leave 98dp: enough at 1x, a sliver of the first row at 2x.
         assertThat(draftListNeedsRoom(height = 380.dp, bottom = 194.dp, barBottom = 88.dp, minHeight = minHeight)).isFalse()
         assertThat(draftListNeedsRoom(height = 380.dp, bottom = 194.dp, barBottom = 88.dp, minHeight = large)).isTrue()
-    }
-
-    @Test
-    fun theListSitsOnTheComposerOrOnACollapsedApprovalPanel() {
-        assertThat(draftListBottom(composer = composer, collapsedToolPanel = null)).isEqualTo(composer + DRAFT_LIST_GAP)
-        assertThat(draftListBottom(composer = composer, collapsedToolPanel = 56.dp))
-            .isEqualTo(composer + 56.dp + DRAFT_LIST_GAP)
     }
 }

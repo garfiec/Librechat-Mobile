@@ -1210,4 +1210,8 @@
         <item quantity="one">%1$d Datei wurde nicht hochgeladen. Tippe sie in der Liste an, um es erneut zu versuchen, oder entferne sie.</item>
         <item quantity="other">%1$d Dateien wurden nicht hochgeladen. Tippe sie in der Liste an, um es erneut zu versuchen, oder entferne sie.</item>
     </plurals>
+    <plurals name="draft_uploads_failed_after_approval">
+        <item quantity="one">%1$d Datei wurde nicht hochgeladen. Nach der Genehmigung kannst du es erneut versuchen oder sie entfernen.</item>
+        <item quantity="other">%1$d Dateien wurden nicht hochgeladen. Nach der Genehmigung kannst du es erneut versuchen oder sie entfernen.</item>
+    </plurals>
 </resources>

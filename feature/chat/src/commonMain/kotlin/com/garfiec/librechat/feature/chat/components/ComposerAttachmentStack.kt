@@ -62,8 +62,9 @@ import org.jetbrains.compose.resources.stringResource
  * What goes with the message, stacked in the field's leading slot: up to two overlapping tiles
  * (one when [compact]) and a count, a progress ring while anything uploads, and a red "!" when an
  * upload failed. A tap opens the list ([ComposerDraftListPanel]); [expanded] is whether it is open.
- * Draws nothing for an empty [items]; the caller leaves the slot out then, which is why what was
- * added is tracked above it ([additions]).
+ * A null [onClick] (a tool-approval pause holds the list's space) draws the same stack with no click
+ * action, for a touch or a screen reader. Draws nothing for an empty [items]; the caller leaves the
+ * slot out then, which is why what was added is tracked above it ([additions]).
  *
  * The slot is M3's leading icon, which holds 48dp whatever it draws, so the stack fills that and
  * the compact form only changes what is inside it.
@@ -73,12 +74,12 @@ internal fun ComposerAttachmentStack(
     items: DraftItems,
     expanded: Boolean,
     compact: Boolean,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
     /** What was just added, for the pop and the announcement; null draws neither (previews). */
     additions: DraftAdditions? = null,
     /** A screen reader's click (TalkBack, VoiceOver), where it differs from a touch's [onClick]. */
-    onScreenReaderClick: () -> Unit = onClick,
+    onScreenReaderClick: (() -> Unit)? = onClick,
 ) {
     if (items.isEmpty) return
     val count = items.items.size
@@ -108,13 +109,16 @@ internal fun ComposerAttachmentStack(
             .clearAndSetSemantics {
                 contentDescription = description
                 liveRegion = LiveRegionMode.Polite
-                role = Role.Button
-                onClick(label = clickLabel) {
-                    onScreenReaderClick()
-                    true
+                val screenReaderClick = onScreenReaderClick ?: onClick
+                if (onClick != null && screenReaderClick != null) {
+                    role = Role.Button
+                    this.onClick(label = clickLabel) {
+                        screenReaderClick()
+                        true
+                    }
                 }
             }
-            .clickable(onClickLabel = clickLabel, role = Role.Button, onClick = onClick),
+            .then(if (onClick != null) Modifier.clickable(onClickLabel = clickLabel, role = Role.Button, onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
         if (items.uploadingCount > 0) {

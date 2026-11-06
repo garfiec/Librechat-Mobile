@@ -1186,4 +1186,7 @@
     <plurals name="draft_uploads_failed">
         <item quantity="other">%1$d 件のファイルをアップロードできませんでした。リストでタップして再試行するか、削除してください。</item>
     </plurals>
+    <plurals name="draft_uploads_failed_after_approval">
+        <item quantity="other">%1$d 件のファイルをアップロードできませんでした。承認が済んだら、再試行または削除できます。</item>
+    </plurals>
 </resources>

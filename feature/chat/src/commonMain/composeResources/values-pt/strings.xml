@@ -1223,4 +1223,8 @@
         <item quantity="one">%1$d arquivo não foi enviado. Toque nele na lista para tentar de novo ou remova-o.</item>
         <item quantity="other">%1$d arquivos não foram enviados. Toque neles na lista para tentar de novo ou remova-os.</item>
     </plurals>
+    <plurals name="draft_uploads_failed_after_approval">
+        <item quantity="one">%1$d arquivo não foi enviado. Você poderá tentar de novo ou removê-lo depois da aprovação.</item>
+        <item quantity="other">%1$d arquivos não foram enviados. Você poderá tentar de novo ou removê-los depois da aprovação.</item>
+    </plurals>
 </resources>

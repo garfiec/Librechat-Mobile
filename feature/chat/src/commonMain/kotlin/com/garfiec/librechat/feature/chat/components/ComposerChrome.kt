@@ -41,6 +41,12 @@ data class ComposerChrome(
     val draftAdditions: DraftAdditions? = null,
     /** The attachment list panel is open (the screen draws it, above the composer). */
     val isDraftListOpen: Boolean = false,
+    /**
+     * A tool-approval panel holds the space above the composer, so the list doesn't open: the stack
+     * draws as usual with no click action, and the failed-upload line says to deal with the file
+     * after the approval.
+     */
+    val draftListShut: Boolean = false,
     /** The stack's tap: open the list, or close it when open. */
     val onToggleDraftList: () -> Unit = {},
     /**

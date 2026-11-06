@@ -108,6 +108,7 @@ import com.garfiec.librechat.feature.chat.resources.cd_update_queued_message
 import com.garfiec.librechat.feature.chat.resources.compare_message_both
 import com.garfiec.librechat.feature.chat.resources.compare_pick_to_send
 import com.garfiec.librechat.feature.chat.resources.draft_uploads_failed
+import com.garfiec.librechat.feature.chat.resources.draft_uploads_failed_after_approval
 import com.garfiec.librechat.feature.chat.resources.editing_queued_message
 import com.garfiec.librechat.feature.chat.resources.hint_message
 import com.garfiec.librechat.feature.chat.resources.hint_message_model
@@ -475,7 +476,9 @@ internal fun SteerAndQueueColumn(
  * where the failed row retries. 48dp tall whether or not the list is open, so the tap target meets
  * the minimum and the composer doesn't change height as the list opens and closes. A screen reader's
  * open goes through the stack's screen-reader toggle, so focus moves to the list's header: the
- * line's own text sends the user there.
+ * line's own text sends the user there. While the list is shut for a tool-approval pause
+ * ([ComposerChrome.draftListShut]) the line is plain text saying the file can be retried or removed
+ * after the approval.
  */
 @Composable
 internal fun FailedUploadsLine(chrome: ComposerChrome) {
@@ -490,7 +493,7 @@ internal fun FailedUploadsLine(chrome: ComposerChrome) {
             .heightIn(min = 48.dp)
             .clip(RoundedCornerShape(12.dp))
             .then(
-                if (chrome.isDraftListOpen) {
+                if (chrome.isDraftListOpen || chrome.draftListShut) {
                     Modifier
                 } else {
                     Modifier
@@ -507,7 +510,11 @@ internal fun FailedUploadsLine(chrome: ComposerChrome) {
             .padding(horizontal = 12.dp, vertical = 4.dp),
     ) {
         Text(
-            text = pluralStringResource(Res.plurals.draft_uploads_failed, failed, failed),
+            text = pluralStringResource(
+                if (chrome.draftListShut) Res.plurals.draft_uploads_failed_after_approval else Res.plurals.draft_uploads_failed,
+                failed,
+                failed,
+            ),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.error,
         )
@@ -644,10 +651,12 @@ internal fun composerFieldLeadingIcon(
                 items = draft,
                 expanded = chrome.isDraftListOpen,
                 compact = compact,
-                onClick = chrome.onToggleDraftList,
+                // Shut during a tool-approval pause: the stack shows, but opens nothing.
+                onClick = chrome.onToggleDraftList.takeUnless { chrome.draftListShut },
                 modifier = Modifier.onGloballyPositioned(chrome.onDraftStackPositioned),
                 additions = chrome.draftAdditions,
-                onScreenReaderClick = chrome.onToggleDraftListFromScreenReader ?: chrome.onToggleDraftList,
+                onScreenReaderClick = (chrome.onToggleDraftListFromScreenReader ?: chrome.onToggleDraftList)
+                    .takeUnless { chrome.draftListShut },
             )
         }
     }

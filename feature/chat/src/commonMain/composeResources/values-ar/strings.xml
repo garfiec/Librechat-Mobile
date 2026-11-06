@@ -1306,4 +1306,12 @@
         <item quantity="many">لم يُرفع %1$d ملفًا. انقر عليها في القائمة لإعادة المحاولة، أو أزلها.</item>
         <item quantity="other">لم يُرفع %1$d ملف. انقر عليها في القائمة لإعادة المحاولة، أو أزلها.</item>
     </plurals>
+    <plurals name="draft_uploads_failed_after_approval">
+        <item quantity="zero">لم يُرفع أي ملف.</item>
+        <item quantity="one">لم يُرفع ملف واحد. يمكنك إعادة المحاولة أو إزالته بعد الموافقة.</item>
+        <item quantity="two">لم يُرفع ملفان. يمكنك إعادة المحاولة أو إزالتهما بعد الموافقة.</item>
+        <item quantity="few">لم تُرفع %1$d ملفات. يمكنك إعادة المحاولة أو إزالتها بعد الموافقة.</item>
+        <item quantity="many">لم يُرفع %1$d ملفًا. يمكنك إعادة المحاولة أو إزالتها بعد الموافقة.</item>
+        <item quantity="other">لم يُرفع %1$d ملف. يمكنك إعادة المحاولة أو إزالتها بعد الموافقة.</item>
+    </plurals>
 </resources>

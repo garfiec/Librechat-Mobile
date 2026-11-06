@@ -1186,4 +1186,7 @@
     <plurals name="draft_uploads_failed">
         <item quantity="other">파일 %1$d개가 업로드되지 않았습니다. 목록에서 탭하여 다시 시도하거나 삭제하세요.</item>
     </plurals>
+    <plurals name="draft_uploads_failed_after_approval">
+        <item quantity="other">파일 %1$d개가 업로드되지 않았습니다. 승인을 마친 후 다시 시도하거나 삭제할 수 있습니다.</item>
+    </plurals>
 </resources>

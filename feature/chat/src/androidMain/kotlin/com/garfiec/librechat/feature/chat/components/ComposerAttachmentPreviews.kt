@@ -59,6 +59,19 @@ private fun StackFailedMaterialPreview() = StackSurface(UiStyle.MATERIAL) { Stac
 @Composable
 private fun StackFailedGlassPreview() = StackSurface(UiStyle.LIQUID_GLASS) { StackHost(files = listOf(draftFailed, draftReport)) }
 
+// During a tool-approval pause: the stack shows but opens nothing, and the line says "after the approval".
+@PreviewNarrowScreens
+@Composable
+private fun StackFailedDuringToolPauseMaterialPreview() = StackSurface(UiStyle.MATERIAL) {
+    StackHost(files = listOf(draftFailed, draftReport), toolPause = true)
+}
+
+@PreviewNarrowScreens
+@Composable
+private fun StackFailedDuringToolPauseGlassPreview() = StackSurface(UiStyle.LIQUID_GLASS) {
+    StackHost(files = listOf(draftFailed, draftReport), toolPause = true)
+}
+
 /** Below a 360dp phone's row the stack draws one tile and the count. */
 @PreviewNarrowScreens
 @Composable
@@ -92,6 +105,7 @@ private fun StackHost(
     skills: List<String> = emptyList(),
     quotes: List<String> = emptyList(),
     compactWidth: Boolean = false,
+    toolPause: Boolean = false,
 ) {
     val items = draftItemsOf(files, skills, quotes, serverUrl = "")
     val composer = @Composable {
@@ -102,7 +116,7 @@ private fun StackHost(
             onSend = {},
             onStop = {},
             onOpenTools = {},
-            chrome = ComposerChrome(draftItems = items),
+            chrome = ComposerChrome(draftItems = items, draftListShut = toolPause),
             selectedModelDisplay = "claude-opus-4-5",
         )
     }

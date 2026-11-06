@@ -1186,4 +1186,7 @@
     <plurals name="draft_uploads_failed">
         <item quantity="other">%1$d 个文件未能上传。在列表中点按以重试，或将其移除。</item>
     </plurals>
+    <plurals name="draft_uploads_failed_after_approval">
+        <item quantity="other">%1$d 个文件未能上传。批准完成后，可以重试或将其移除。</item>
+    </plurals>
 </resources>

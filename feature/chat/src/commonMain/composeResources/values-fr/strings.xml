@@ -1223,4 +1223,8 @@
         <item quantity="one">%1$d fichier n'a pas été envoyé. Touchez-le dans la liste pour réessayer, ou retirez-le.</item>
         <item quantity="other">%1$d fichiers n'ont pas été envoyés. Touchez-les dans la liste pour réessayer, ou retirez-les.</item>
     </plurals>
+    <plurals name="draft_uploads_failed_after_approval">
+        <item quantity="one">%1$d fichier n'a pas été envoyé. Vous pourrez réessayer ou le retirer après l'approbation.</item>
+        <item quantity="other">%1$d fichiers n'ont pas été envoyés. Vous pourrez réessayer ou les retirer après l'approbation.</item>
+    </plurals>
 </resources>

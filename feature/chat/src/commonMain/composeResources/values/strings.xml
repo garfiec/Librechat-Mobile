@@ -1265,4 +1265,8 @@
         <item quantity="one">%1$d file didn't upload. Tap it in the list to retry, or remove it.</item>
         <item quantity="other">%1$d files didn't upload. Tap them in the list to retry, or remove them.</item>
     </plurals>
+    <plurals name="draft_uploads_failed_after_approval">
+        <item quantity="one">%1$d file didn't upload. You can retry or remove it after the approval.</item>
+        <item quantity="other">%1$d files didn't upload. You can retry or remove them after the approval.</item>
+    </plurals>
 </resources>

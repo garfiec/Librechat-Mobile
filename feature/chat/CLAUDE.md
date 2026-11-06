@@ -1115,12 +1115,14 @@ first, then images, files, skills, quotes.
   it and takes its taps), so with the keyboard up it scrolls in what is visible. When that leaves
   less than its header and one row (`draftListNeedsRoom` against `draftListMinHeight`, worked out
   from the panel's text styles at the font size in effect: 92dp at 1x, about 130dp at 2x)
-  it hides the keyboard. **During a tool-approval pause it still opens**: it is the only place a
-  failed file is retried or removed, and that file holds the run's next send. Opening it collapses
-  the approval panel (`withDraftList(toolPauseExpanded, onCollapseToolPause)`), and it sits on the
-  collapsed panel (`draftListBottom`, the panel's height measured while collapsed), so it never
-  covers the panel; expanding the panel again closes it (`DraftListPauseEffects`). An ask pause hides
-  the composer, so there is no stack to open it from. Its open/closed state and the toggles are `DraftListState`, handed to the
+  it hides the keyboard. **During a tool-approval pause the list stays shut**
+  (`withDraftList(toolPause)`, `ComposerChrome.draftListShut`): the stack still draws (count, ring,
+  red "!") but has no click action and no accessibility open action, and the failed-upload line is
+  plain text saying the file can be retried or removed after the approval
+  (`draft_uploads_failed_after_approval`). The approval panel is never collapsed or covered for the
+  list. A pause panel that comes up while the list is open closes it (`DraftListPauseEffects`), and
+  it doesn't reopen when the pause ends. An ask pause hides the composer, so there is no stack at
+  all. Review must not re-add opening during a pause. Its open/closed state and the toggles are `DraftListState`, handed to the
   composer through `ComposerChrome.withDraftList`; a screen reader's open, from the stack or the
   failed-upload line, moves focus to its header. It closes on a tap anywhere but it and the stack (`closeOnTapOutside`, which
   only watches; the stack's bounds come from `ComposerChrome.onDraftStackPositioned`), so a tap in
