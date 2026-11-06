@@ -544,6 +544,32 @@ class ChatViewModelQueuedSkillsTest {
     }
 
     @Test
+    fun `a superseded undo neither drops nor restores, and only the current one drops`() =
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            listOf("first", "second", "third").forEach(vm::addPendingManualSkill)
+            vm.removeDraftItem(DraftItem.Skill("first"))
+            val firstId = checkNotNull(vm.uiState.value.pendingDraftUndo).id
+            vm.removeDraftItem(DraftItem.Skill("second"))
+            val second = checkNotNull(vm.uiState.value.pendingDraftUndo)
+            assertThat(second.id).isNotEqualTo(firstId)
+
+            // The first snackbar's effect is cancelled after the second Undo is already pending,
+            // and drops its own id on the way out.
+            vm.dropDraftUndo(firstId)
+            assertThat(vm.uiState.value.pendingDraftUndo).isEqualTo(second)
+
+            // A leftover first snackbar's Undo restores nothing into the second's slot.
+            vm.undoDraftRemoval(firstId)
+            assertThat(vm.uiState.value.pendingManualSkills).containsExactly("third")
+            assertThat(vm.uiState.value.pendingDraftUndo).isEqualTo(second)
+
+            vm.dropDraftUndo(second.id)
+            assertThat(vm.uiState.value.pendingDraftUndo).isNull()
+            vm.undoDraftRemoval(second.id)
+            assertThat(vm.uiState.value.pendingManualSkills).containsExactly("third")
+        }
+
+    @Test
     fun `undo puts a removed quote back where it was`() = queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
         listOf("one", "two", "three").forEach(vm::addPendingQuote)
 
