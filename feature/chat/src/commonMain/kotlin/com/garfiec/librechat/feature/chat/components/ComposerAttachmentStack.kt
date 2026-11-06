@@ -103,7 +103,8 @@ internal fun ComposerAttachmentStack(
         modifier = modifier
             .size(width = STACK_SLOT, height = STACK_SLOT)
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClickLabel = clickLabel, role = Role.Button, onClick = onClick)
+            // Ahead of the clickable: a node's semantics are applied from the inner modifier out,
+            // so only an outer block's OnClick replaces the clickable's touch one.
             .clearAndSetSemantics {
                 contentDescription = description
                 liveRegion = LiveRegionMode.Polite
@@ -112,7 +113,8 @@ internal fun ComposerAttachmentStack(
                     onScreenReaderClick()
                     true
                 }
-            },
+            }
+            .clickable(onClickLabel = clickLabel, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         if (items.uploadingCount > 0) {

@@ -13,20 +13,23 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import com.garfiec.librechat.feature.chat.util.draftItemsOf
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * The attachment list takes focus at its header when a screen reader opened it, so the next swipe
  * reads the list rather than the field; a touch open leaves focus (and the keyboard) where it was.
- * Hosted the way `ChatScreen` wires the stack and the panel.
+ * Hosted the way `ChatScreen` wires the stack and the panel. On Robolectric, so it runs with the
+ * unit tests in CI, which only compiles the instrumented ones.
  */
-@RunWith(AndroidJUnit4::class)
-class ComposerDraftListFocusInstrumentedTest {
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class ComposerDraftListFocusTest {
 
     @get:Rule
     val composeRule = createComposeRule()
