@@ -1098,15 +1098,23 @@ first, then images, files, skills, quotes.
 - **The stack** (`ComposerAttachmentStack`) is the field's M3 `leadingIcon`, through
   `composerFieldLeadingIcon` on both composers: up to two tiles (one when the row is compact, below
   336dp, which `textFieldContent` is now told) and a count, a progress ring while anything uploads,
-  a red "!" on a failure, a pop when something is added, a polite live region. M3 holds that slot at
+  a red "!" on a failure, a pop and an "attached" announcement when something is added, a polite
+  live region. What was added is tracked in `ChatScreen` (`DraftAdditions`), above the stack, so the
+  first item into an empty draft counts too; a draft already there when the screen opens doesn't.
+  M3 holds that slot at
   48dp whatever it draws, so the slot is left out (null) while the list is empty rather than kept
-  non-null: an always-present slot would take 36dp from every empty composer. Wide Compare badges
+  non-null: an always-present slot would take 36dp from every empty composer. For the same reason
+  the compact stack still takes 48dp (the decided 36dp isn't possible in that slot). Wide Compare badges
   draw first in the same slot; on a phone the A·B morph and its prefix reserve move past the stack
   (`afterStack`).
 - **The list** (`ComposerDraftListPanel`) is drawn by `ChatScreen` outside the measured bottom box,
   so opening it doesn't move the thread's inset, and before it, so `ToolApprovalPanel` stays on top.
-  It closes on a tap outside it and the composer (`closeOnTapOutside`, which only watches), a send
-  of any kind, the field gaining focus, the list emptying, a pause panel appearing, or back
+  It sits on the composer itself (its measured height, not the bottom box's, which also holds
+  starters and the update banner) and below the floating top bar, so with the keyboard up it scrolls
+  in what is visible. It closes on a tap anywhere but it and the stack (`closeOnTapOutside`, which
+  only watches; the stack's bounds come from `ComposerChrome.onDraftStackPositioned`), so a tap in
+  an already-focused field closes it too, and on typing, a send of any kind, the field gaining
+  focus, the list emptying, a pause panel appearing, or back
   (`PlatformBackHandler`, the iOS edge swipe included). Only a failed row is tappable (retry); a
   local preview of a picked image is a follow-up (the media viewer knows conversation media only).
 - **× and Undo** (`DraftItemsDelegate`, `ComposerState.pendingDraftUndo`): an uploaded or failed
@@ -1115,19 +1123,26 @@ first, then images, files, skills, quotes.
   `SendDispatchDelegate.restorePendingManualSkill` / `restorePendingQuote`). A file still uploading
   is cancelled instead (each handler keeps its upload jobs), with no Undo. One Undo is pending at a
   time; `clearComposer` (every send), `applyComposer` (the queued-edit swap) and the landing reset
-  (conversation switch) drop it inside their own writes.
+  (conversation switch) drop it inside their own writes, and so does the snackbar effect when the
+  screen leaves composition with it up, so it never comes back on return.
 - **A failed upload holds Send.** The hold is `UploadIntakeDelegate.withUploadGate`, checked before
   and after the upload wait (the wait treats a failure as settled), so it covers send, voice
   auto-send, starters, queue (a steer with files goes there) and saving a queued edit. Not
   `SendBlockReason` (that opens the model sheet) and not `buildSendSpec` (a steer's re-home and an
   MCP App's message build there and must not be held). `composerCanSend` and the during-run morph
   take `hasFailedUploads`, and `FailedUploadsLine` under the field says why.
-- **Retry keeps the file's place and route** on both platforms. iOS keeps each entry's picked
+- **Retry keeps the file's place, and its route while the live selection still offers it**
+  (`ChatUiState.retryUploadRoute`: a code upload, the route the selection would pick, or either while
+  both are open; otherwise it is routed afresh, so a PDF sent natively under one provider isn't
+  replayed to one that ignores it). On both platforms. iOS keeps each entry's picked
   `IosImageData` / `IosFileData` (`IosFileHandler.picked`) and uploads it again; an image's thumbnail
   is its retained bytes (`AttachedFile.localPreview`). A thumbnail prefers the device's copy, then
   the server's `filepath`.
 - **Queued edits carry their quotes** like their skills: `ComposerSnapshot.quotes`, captured and
-  applied by the swap, and the commit sends the quotes on screen.
+  applied by the swap, and the commit sends the quotes on screen. A recovery during the edit (a
+  steer's lost excerpts, an un-sent turn's text and chips) belongs to the stashed draft, not the
+  item on screen: it waits in `ComposerState.draftRestore` and joins the draft when the edit ends,
+  saved or cancelled.
 
 ## Chat Tools
 - The user's own toggles: `enabledTools` and `selectedMcpServerNames` are global (stored in
@@ -1159,8 +1174,9 @@ first, then images, files, skills, quotes.
     did (`ChatViewModel.turnSettingChipBackOn`). The switches are the sheet's: code, file search,
     memory and MCP are global, so the copy says "<tool> turned off", not "for this chat".
   - **MCP chips carry the MCP servers page's status** (`McpServerDisplayData.status`, mapped in
-    `ModelSelectionDelegate.loadMcpServers` with `:core:model`'s `mcpDisplayStatus`, the
-    `mcp-status-badge` mirror). The dot is `mcpStatusColor` (`McpStatusPresentation.kt`, from
+    `McpServersDelegate.load` with `:core:model`'s `mcpDisplayStatus`, the `mcp-status-badge`
+    mirror, over the status map with tool discovery's lapsed authorizations folded in by
+    `applyDiscoveryAuthorizationState`, as the page does). The dot is `mcpStatusColor` (`McpStatusPresentation.kt`, from
     `statusColors()`): connected green, connecting info, needs sign-in or setup amber, failed error,
     the rest neutral; the "+" sheet's rows use the same dot and label. A chip that needs sign-in reads
     "· sign in", and a tap (`SettingChipTap.SignIn`, even on a spec-locked chip) runs
@@ -1168,8 +1184,13 @@ first, then images, files, skills, quotes.
     with the chip connecting meanwhile. Every end reloads the statuses: the delegate's own when no
     sign-in opens (connected, deferred, refused, failed, the last two with `mcp_sign_in_failed`), and
     `McpSignInUiState.ended` once an opened one succeeds, is cancelled or fails (a browser sign-in
-    ends on the next ON_RESUME). Needs-setup and failed chips keep the ordinary tap (off with Undo):
-    setup is on the web, a failure on the server. Thinking uses the brain glyph (Memory uses `AutoStories`, here and in the drawer),
+    ends on the next ON_RESUME). A chip's sign-in that ends unfinished (closed, refused, never
+    bound, or a browser return the server still doesn't count as connected; `McpSignInEnd`) first
+    cancels the flow its reconnect left pending (`POST /api/mcp/oauth/cancel/:serverName`, as web's
+    Cancel), which would otherwise read as connecting for up to ten minutes; a tool call's sign-in is
+    the run's and is never cancelled. An OAuth server that reads connecting or failed also signs in
+    on tap (`SettingChip.Mcp.signsInOnTap`). Other needs-setup and failed chips keep the ordinary
+    tap (off with Undo): setup is on the web, a failure on the server. Thinking uses the brain glyph (Memory uses `AutoStories`, here and in the drawer),
     tints tertiary while a one-turn choice is staged, in both styles, and states it. Picked skills use
     the sparkle (`AutoAwesome`) on the stack, the `$` picker, the sent bubble and the skill card.
   - **The context ring** (`ContextRing`, only with the above-the-field placement): a 24dp ring with
