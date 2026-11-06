@@ -98,6 +98,13 @@ CONVENTIONS (this project uses KOIN, not Hilt):
   expect in commonMain REQUIRES actual in every target. The approved items carry an iosMainCoverage flag —
   honor it.
 - Apply the version gate exactly as each item specifies (isCompatibleOrNewer vs supportsFeature+landedDate).
+- Build what the item needs, with the smallest change that matches the web client's behaviour. Handle
+  an edge case when a user on a supported server reaches it in normal use, or when it loses data, leaks
+  a credential or strands the session; not cases the web client itself ignores.
+- Comments: only a present-tense rule a plausible edit would break, one or two lines. No history and no
+  "upstream changed X in #N" narration (that goes in the commit message). Add to a module CLAUDE.md only
+  a rule that governs many files, stated once; DISCOVERY.md gets the endpoint facts, not the story.
+- Tests: add cases to the class's existing test file; a new test file only for a new class.
 
 APPROVED ITEMS (implement each; do not add unapproved scope):
 ${JSON.stringify(A.approvedItems)}
@@ -242,9 +249,15 @@ Hunt for:
 - iOS-vs-Android SSE shape divergence; missing iosMain actuals for touched commonMain expects.
 - Missing/incorrect version gates around new endpoints (wrong landedDate, wrong first-line).
 - Koin DI wiring gaps; missing safeApiCall; DISCOVERY.md not updated for new endpoints.
+- Over-building: state, jobs, flags or branches for cases no user on a supported server reaches; a new
+  test file where the class's existing one would do; comments or CLAUDE.md text narrating history
+  instead of stating a rule. The fix for these is deletion.
 ${A.bumpVersion ? '' : '- AUDIT: any change that moved the pin / version (it must not have).'}
 
 Classify each issue: CONFIRMED (you verified it is real and wrong) vs PLAUSIBLE (suspected, not proven).
+A defect is CONFIRMED only if a user on a supported server reaches it in normal use, or it crashes, loses
+data, leaks a credential or strands the session. One that needs unusual timing and that a retry, refresh
+or reopen recovers is PLAUSIBLE at most, and so is a fix that would cost more code than the harm.
 Do NOT fix anything. Return clean=true only if there are zero CONFIRMED issues.`,
     { label: `${role}:${reviewRound}`, phase: 'Independent review', schema: REVIEW_SCHEMA }
   )
@@ -255,7 +268,9 @@ Do NOT fix anything. Return clean=true only if there are zero CONFIRMED issues.`
     log(`${role} pass ${reviewRound}: ${confirmed.length} CONFIRMED issue(s) → dispatching fix`)
     await agent(
       `Fix these CONFIRMED review issues on branch ${A.branchName}, then stop (do not push). Repo root is CWD.
-Commit the fixes with a clear subject. CONFIRMED ISSUES:\n${JSON.stringify(confirmed)}`,
+Fix each scenario with the smallest change that closes it, not its hypothetical neighbours; fix an
+over-building issue by deleting code. Add tests to the class's existing test file. No comment narrating
+the fix. Commit the fixes with a clear subject. CONFIRMED ISSUES:\n${JSON.stringify(confirmed)}`,
       { label: `review-fix:${reviewRound}`, phase: 'Independent review' }
     )
     build = await runBuildGates(`r${reviewRound}`)
