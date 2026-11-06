@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.Icon
@@ -245,7 +244,7 @@ internal fun DraftItemTile(item: DraftItem, size: Dp, modifier: Modifier = Modif
         }
 
         is DraftItem.Skill -> GlyphTile(
-            icon = Icons.Default.AutoAwesome,
+            icon = SkillGlyph,
             container = MaterialTheme.colorScheme.secondaryContainer,
             content = MaterialTheme.colorScheme.onSecondaryContainer,
             size = size,
