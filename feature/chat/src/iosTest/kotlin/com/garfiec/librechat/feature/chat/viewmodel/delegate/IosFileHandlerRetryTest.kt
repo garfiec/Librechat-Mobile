@@ -9,6 +9,7 @@ import com.garfiec.librechat.core.model.response.DeleteFilesResponse
 import com.garfiec.librechat.core.model.response.FilePreviewResponse
 import com.garfiec.librechat.core.model.response.FileUploadConfig
 import com.garfiec.librechat.core.model.response.UploadRoute
+import com.garfiec.librechat.core.model.response.toolResource
 import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.util.IosFileData
 import com.garfiec.librechat.feature.chat.util.IosImageData
@@ -106,7 +107,7 @@ class IosFileHandlerRetryTest {
         val retried = repository.uploads.last()
         assertEquals("notes.pdf", retried.filename)
         assertContentEquals(notes.bytes, retried.bytes)
-        assertEquals("text", retried.toolResource)
+        assertEquals(UploadRoute.TEXT.toolResource(), retried.toolResource)
         val tray = handler.attachedFiles.value
         assertEquals(listOf("notes.pdf", "photo.png"), tray.map { it.name })
         assertEquals("server-notes.pdf", tray.first().fileId)
