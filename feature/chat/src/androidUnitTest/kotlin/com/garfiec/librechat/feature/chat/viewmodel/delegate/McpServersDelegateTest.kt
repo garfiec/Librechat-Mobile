@@ -529,6 +529,155 @@ class McpServersDelegateTest {
         // The cancel's own reload gave way to the new sign-in, which the chip still reads.
         assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.CONNECTING)
         coVerify(exactly = 1) { mcpRepository.listServers() }
+
+        // The tap's optimistic connecting was the chip's own, not another client's flow: closing
+        // this sign-in cancels its flow too.
+        delegate.onSignInEnded(McpSignInEnd("github", signedIn = false))
+        advanceUntilIdle()
+        coVerify(exactly = 2) { mcpRepository.cancelOAuth("github") }
+    }
+
+    @Test
+    fun aFlowTheChipOnlyReplayedIntoTheBrowserIsNeverCancelledByItsNextSignIn() = runTest {
+        coEvery { mcpRepository.listServers() } returns Result.Success(servers)
+        // A run elsewhere waits on github's sign-in before the chip is tapped.
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(flowPendingElsewhere)
+        coEvery { mcpRepository.reinitialize("github") } returns
+            Result.Success(McpReinitializeResponse(oauthRequired = true, oauthUrl = "https://idp/authorize"))
+        val (_, delegate) = newDelegate()
+        delegate.load()
+        advanceUntilIdle()
+
+        // The replayed flow goes to the browser and the user comes back unfinished.
+        delegate.signIn("github", { _, _ -> true }, {})
+        advanceUntilIdle()
+        delegate.onSignInEnded(McpSignInEnd("github", signedIn = null))
+        advanceUntilIdle()
+        // Tapped again, and this time the dialog is closed.
+        delegate.signIn("github", { _, _ -> true }, {})
+        advanceUntilIdle()
+        delegate.onSignInEnded(McpSignInEnd("github", signedIn = false))
+        advanceUntilIdle()
+
+        // Still the other run's flow: cancelling it would fail that run's tool call.
+        coVerify(exactly = 0) { mcpRepository.cancelOAuth(any()) }
+    }
+
+    @Test
+    fun aFlowLeftUncancelledWhileAReplyStreamedIsCancelledWhenTheNextChipSignInCloses() = runTest {
+        coEvery { mcpRepository.listServers() } returns Result.Success(servers)
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
+        stubPendingFlowOnReconnect()
+        val (handle, delegate) = newDelegate(modelChat.copy(content = MessagesState(isStreaming = true)))
+        delegate.load()
+        advanceUntilIdle()
+
+        // Closed while a reply streams: the flow is left alone and github reads connecting.
+        delegate.signIn("github", { _, _ -> true }, {})
+        advanceUntilIdle()
+        delegate.onSignInEnded(McpSignInEnd("github", signedIn = false))
+        advanceUntilIdle()
+        coVerify(exactly = 0) { mcpRepository.cancelOAuth(any()) }
+        assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.CONNECTING)
+
+        // The reply ends. That connecting is the chip's own flow, so the next close cancels it.
+        handle.update { copy(content = content.copy(isStreaming = false)) }
+        delegate.signIn("github", { _, _ -> true }, {})
+        advanceUntilIdle()
+        delegate.onSignInEnded(McpSignInEnd("github", signedIn = false))
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { mcpRepository.cancelOAuth("github") }
+        assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.NEEDS_SIGN_IN)
+    }
+
+    @Test
+    fun aFlowWhoseCancelFailedIsCancelledAgainWhenTheNextChipSignInCloses() = runTest {
+        val (handle, delegate) = openedChipSignIn()
+        // The reconnect left a pending flow, and the first cancel doesn't reach the server.
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(flowPendingElsewhere)
+        var cancels = 0
+        coEvery { mcpRepository.cancelOAuth("github") } coAnswers {
+            if (cancels++ == 0) {
+                Result.Error(message = "offline")
+            } else {
+                coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
+                Result.Success(Unit)
+            }
+        }
+
+        delegate.onSignInEnded(McpSignInEnd("github", signedIn = false))
+        advanceUntilIdle()
+        assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.CONNECTING)
+
+        delegate.signIn("github", { _, _ -> true }, {})
+        advanceUntilIdle()
+        delegate.onSignInEnded(McpSignInEnd("github", signedIn = false))
+        advanceUntilIdle()
+
+        coVerify(exactly = 2) { mcpRepository.cancelOAuth("github") }
+        assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.NEEDS_SIGN_IN)
+    }
+
+    @Test
+    fun aReturnToTheChatPicksUpAStatusChangedElsewhere() = runTest {
+        coEvery { mcpRepository.listServers() } returns Result.Success(servers)
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
+        val (handle, delegate) = newDelegate()
+        delegate.load()
+        advanceUntilIdle()
+        assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.NEEDS_SIGN_IN)
+
+        // Signed in on the MCP servers page meanwhile, with no chip sign-in pending here.
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(signedIn)
+        delegate.onBackground()
+        delegate.onForeground()
+        advanceUntilIdle()
+
+        // A tap now turns github off rather than reconnecting a live connection.
+        assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.CONNECTED)
+        // The list didn't change, so discovery (a full catalog load) isn't asked again.
+        coVerify(exactly = 1) { mcpRepository.getTools() }
+
+        // Signed out there again: the next return reads that too.
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
+        delegate.onBackground()
+        delegate.onForeground()
+        advanceUntilIdle()
+        assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.NEEDS_SIGN_IN)
+
+        // A server added elsewhere is new to discovery, so it is asked then.
+        coEvery { mcpRepository.listServers() } returns Result.Success(servers + McpServer(name = "added"))
+        delegate.onBackground()
+        delegate.onForeground()
+        advanceUntilIdle()
+        coVerify(exactly = 2) { mcpRepository.getTools() }
+    }
+
+    @Test
+    fun aReturnLeavesTheReloadToAChipSignInStillOpen() = runTest {
+        val (_, delegate) = openedChipSignIn()
+
+        delegate.onBackground()
+        delegate.onForeground()
+        advanceUntilIdle()
+
+        // The sign-in's end reloads; a read now would paint over the chip's connecting.
+        coVerify(exactly = 1) { mcpRepository.listServers() }
+    }
+
+    @Test
+    fun aReturnBeforeTheFirstLoadReadsNothing() = runTest {
+        coEvery { mcpRepository.listServers() } returns Result.Success(servers)
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
+        val (_, delegate) = newDelegate()
+
+        // MCP_SERVERS.USE not answered yet (or denied): the chat never loaded its servers.
+        delegate.onBackground()
+        delegate.onForeground()
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { mcpRepository.listServers() }
     }
 
     @Test

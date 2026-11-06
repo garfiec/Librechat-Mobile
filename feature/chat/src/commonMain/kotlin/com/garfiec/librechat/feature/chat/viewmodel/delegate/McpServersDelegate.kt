@@ -65,6 +65,21 @@ class McpServersDelegate(
     private var browserOwnsFlow = true
 
     /**
+     * Servers whose OAuth flow a chip's own sign-in left pending without cancelling it: the cancel
+     * was skipped while a run might wait on that flow ([cancelPendingFlow]), or it failed. The server
+     * then reads connecting with a sign-in pending, as it would for somebody else's flow, but the
+     * chip's next tap only replays its own, so closing that sign-in still cancels it. A server leaves
+     * the set once it reads anything but connecting.
+     */
+    private val leftPendingFlows = mutableSetOf<String>()
+
+    /** Whether [load] ran: only then does a return to the chat ([onForeground]) re-read the servers. */
+    private var loaded = false
+
+    /** Set by [onBackground]: the chat was behind something since its last [onForeground]. */
+    private var wentAway = false
+
+    /**
      * Tool discovery's last verdicts (`GET /api/mcp/tools`), kept across loads as the MCP servers
      * page keeps them: that route answers only after a full catalog load, so a load paints the
      * statuses with these and re-folds once its own discovery read lands.
@@ -100,13 +115,20 @@ class McpServersDelegate(
      * when it lands. A failed status read leaves the statuses unknown rather than failed; a failed
      * discovery read keeps the last verdicts.
      */
-    fun load() {
+    fun load() = load(discover = true)
+
+    /**
+     * [discover] false (a return to the chat): the list and status reads only, with discovery asked
+     * again only when the list of servers changed, since that route runs a full catalog load.
+     */
+    private fun load(discover: Boolean) {
+        loaded = true
         val generation = ++loadGeneration
-        handle.scope.launch { reload(generation) }
+        handle.scope.launch { reload(generation, discover) }
     }
 
     /** One load's list and status reads. A newer load or a chip tap since [generation] drops it. */
-    private suspend fun reload(generation: Int) {
+    private suspend fun reload(generation: Int, discover: Boolean = true) {
         if (generation != loadGeneration) return
         watchToolControls()
         coroutineScope {
@@ -121,10 +143,13 @@ class McpServersDelegate(
             }
             val statusMap = (status.await() as? Result.Success)?.data ?: emptyMap()
             if (generation != loadGeneration) return@coroutineScope
+            val listChanged = painted?.first?.map { it.name } != serversResult.data.map { it.name }
             painted = serversResult.data to statusMap
             paint(serversResult.data, statusMap)
-            discoveryWanted = serversResult.data.isNotEmpty()
-            if (discoveryWanted && handle.state.toolbarShown) fetchDiscovery()
+            if (discover || listChanged) {
+                discoveryWanted = serversResult.data.isNotEmpty()
+                if (discoveryWanted && handle.state.toolbarShown) fetchDiscovery()
+            }
         }
     }
 
@@ -159,15 +184,32 @@ class McpServersDelegate(
                 requiresOAuth = status?.requiresOAuth == true,
             )
         }
-        browserSignIn?.let { pending ->
-            if (servers.none { it.name == pending && it.status == McpDisplayStatus.CONNECTING }) browserSignIn = null
-        }
+        fun stillConnecting(name: String) = servers.any { it.name == name && it.status == McpDisplayStatus.CONNECTING }
+        browserSignIn?.let { pending -> if (!stillConnecting(pending)) browserSignIn = null }
+        leftPendingFlows.retainAll(::stillConnecting)
         handle.update { selection = selection.copy(mcpServers = servers) }
     }
 
-    /** The chat is in front again: re-reads the statuses while a browser sign-in may still be finishing. */
+    /**
+     * The chat is in front again: re-reads the servers and their statuses, since a chip's tap acts
+     * on them and they may have changed elsewhere meanwhile (a sign-in or sign-out on the MCP servers
+     * page, a tool call in another chat). Discovery is asked again only while a chip's browser
+     * sign-in may still be finishing ([browserSignIn]), or when the list changed. Skipped while a
+     * chip sign-in, or its cancel, is still out: that one reloads when it ends, and a read now could
+     * paint over it with the status it is about to change. A resume with no pause before it (the
+     * chat's first) re-reads nothing: the chat's own first load is out.
+     */
     fun onForeground() {
-        if (browserSignIn != null) load()
+        val returned = wentAway
+        wentAway = false
+        if (!returned && browserSignIn == null) return
+        if (!loaded || signingIn != null || chipSignIn != null || pendingCancel != null) return
+        load(discover = browserSignIn != null)
+    }
+
+    /** The chat went behind another screen or app; its next [onForeground] re-reads. */
+    fun onBackground() {
+        wentAway = true
     }
 
     /**
@@ -190,9 +232,13 @@ class McpServersDelegate(
         signingIn = serverName
         val cancelling = pendingCancel
         // A flow already pending that this chat didn't leave: not its own cancel still on the way
-        // (the status is then stale) nor its own unfinished browser sign-in.
-        val ownBrowserFlow = browserSignIn == serverName && browserOwnsFlow
-        val replaysAnotherFlow = cancelling == null && !ownBrowserFlow &&
+        // (the status is then stale), its own unfinished browser sign-in, nor a flow its own sign-in
+        // left uncancelled. A stored-token reconnect the server runs on its own also reads connecting
+        // with a sign-in pending (upstream getServerConnectionStatus, isReconnecting), and the status
+        // can't tell it from another client's flow: a flow the chip's reconnect then starts is taken
+        // for that one's and left to the server's timeout.
+        val ownLeftoverFlow = (browserSignIn == serverName && browserOwnsFlow) || serverName in leftPendingFlows
+        val replaysAnotherFlow = cancelling == null && !ownLeftoverFlow &&
             handle.state.mcpServers.any {
                 it.name == serverName && it.status == McpDisplayStatus.CONNECTING && it.requiresOAuth
             }
@@ -281,6 +327,7 @@ class McpServersDelegate(
     private fun cancelPendingFlow(server: String) {
         if (runMayHoldFlow(server)) {
             Logger.d { "Chip sign-in for $server not cancelled: a run may be waiting on its flow" }
+            leftPendingFlows += server
             load()
             return
         }
@@ -292,6 +339,9 @@ class McpServersDelegate(
                 val result = mcpRepository.cancelOAuth(server)
                 if (result is Result.Error) {
                     Logger.d(result.exception) { "Failed to cancel MCP OAuth for $server: ${result.message}" }
+                    leftPendingFlows += server
+                } else {
+                    leftPendingFlows -= server
                 }
             } finally {
                 cancelled.complete(Unit)

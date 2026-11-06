@@ -1636,6 +1636,7 @@ class ChatViewModel(
         codeWorkspaceDelegate.onForeground(false)
         pullRequestDelegate.onForeground(false)
         queuedTurnDelegate.stopPolling()
+        mcpServersDelegate.onBackground()
     }
 
     fun onResume() {
@@ -1651,7 +1652,8 @@ class ChatViewModel(
         // Skills may have changed on the Skills screen while this chat was behind it.
         val state = _uiState.value
         skillPickerDelegate.refreshOnReturn(pickerOpen = parsePickerQuery(state.inputText, state.canPickSkills) != null)
-        // A chip's browser sign-in may have been finished in the browser since the last return.
+        // A chip's tap acts on its server's status, which may have changed elsewhere meanwhile (the
+        // MCP servers page, another chat's tool call, a browser sign-in finished there).
         mcpServersDelegate.onForeground()
     }
 
