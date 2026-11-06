@@ -50,9 +50,11 @@ class IosFileHandler(
     /**
      * The picked [IosImageData] / [IosFileData] behind each tray entry, by its minted `uri`, as
      * [pdfPrompts] keeps the [PickedFile] a password retry needs. An entry's data goes once its
-     * upload succeeds or it is removed; a removed failed entry keeps it, since Undo can bring it back
-     * to be retried. The whole map goes when the tray is cleared. Touched on Main only: every entry
-     * point runs there, and so does an upload's outcome (only the request runs on [ioDispatcher]).
+     * upload succeeds or it is removed; a removed failed entry keeps it while its Undo can still
+     * bring it back to be retried ([forgetRemoved]). The whole map goes when the tray is cleared, and
+     * a queued-edit swap keeps only what the two drafts hold ([restoreAttachedFiles]). Touched on
+     * Main only: every entry point runs there, and so does an upload's outcome (only the request runs
+     * on [ioDispatcher]).
      */
     private val picked = mutableMapOf<Any, Any>()
 
@@ -240,6 +242,10 @@ class IosFileHandler(
         _attachedFiles.update { it.insertedAt(index, file) }
     }
 
+    override fun forgetRemoved(file: AttachedFile) {
+        if (_attachedFiles.value.none { it.uri == file.uri }) picked.remove(file.uri)
+    }
+
     override suspend fun waitForUploadsAndSend(text: String, doSend: (String) -> Unit) =
         _attachedFiles.awaitUploadsThenSend(text, setError = handle::setError, doSend = doSend)
 
@@ -254,8 +260,11 @@ class IosFileHandler(
     }
 
     override fun restoreAttachedFiles(files: List<AttachedFile>) {
-        // [picked] stays: the queued-edit swap restores the stashed draft's own entries afterwards,
-        // and a failed one among them is still retryable from it.
+        // The queued-edit swap stashes the tray it replaces and brings it back afterwards, so the
+        // data of both stays (a failed entry among them is still retryable from it). Anything in
+        // neither, such as a removal whose Undo the swap drops, goes.
+        val kept = (_attachedFiles.value + files).mapTo(HashSet()) { it.uri }
+        picked.keys.retainAll(kept)
         pdfPrompts.clear()
         _attachedFiles.update { files }
     }

@@ -58,6 +58,13 @@ interface PlatformFileHandler {
      * attachment list's Undo. Touches nothing else, PDF password prompts included.
      */
     fun insertAt(index: Int, file: AttachedFile)
+
+    /**
+     * The Undo that could have put a removed [file] back is gone (it lapsed, a later removal replaced
+     * it, or the draft it belonged to moved on): let go of anything kept so it could come back. iOS
+     * keeps a removed failed file's picked bytes for that Undo; Android keeps nothing.
+     */
+    fun forgetRemoved(file: AttachedFile) = Unit
     suspend fun waitForUploadsAndSend(text: String, doSend: (String) -> Unit)
     fun hasPendingUploads(): Boolean
 

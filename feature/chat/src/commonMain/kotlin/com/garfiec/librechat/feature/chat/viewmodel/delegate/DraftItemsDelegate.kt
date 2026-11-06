@@ -47,8 +47,10 @@ class DraftItemsDelegate(
                 RemovedDraftItem.Quote(item.text, item.index)
             }
         }
+        val replaced = handle.state.composer.pendingDraftUndo
         val undo = DraftUndo(id = ++nextUndoId, removed = removed)
         handle.update { pendingDraftUndo = undo }
+        forget(replaced)
     }
 
     /** Puts back the removal [id] names, if it is still the one pending. */
@@ -65,6 +67,18 @@ class DraftItemsDelegate(
 
     /** The snackbar for [id] went away without an Undo. */
     fun dropUndo(id: Long) {
-        handle.update { if (pendingDraftUndo?.id == id) pendingDraftUndo = null }
+        val dropped = handle.state.composer.pendingDraftUndo?.takeIf { it.id == id } ?: return
+        handle.update { pendingDraftUndo = null }
+        forget(dropped)
+    }
+
+    /**
+     * [undo] can no longer put its file back, so what the handler kept for it goes. The composer
+     * writes that drop an Undo with the draft (a send's clear, the queued-edit swap) clear or swap
+     * the tray in the same step, which lets go of it there.
+     */
+    private fun forget(undo: DraftUndo?) {
+        val removed = undo?.removed as? RemovedDraftItem.File ?: return
+        fileHandler.forgetRemoved(removed.file)
     }
 }

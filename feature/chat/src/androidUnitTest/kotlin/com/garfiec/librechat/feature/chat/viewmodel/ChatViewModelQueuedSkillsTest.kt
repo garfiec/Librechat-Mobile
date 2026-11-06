@@ -593,6 +593,38 @@ class ChatViewModelQueuedSkillsTest {
     }
 
     @Test
+    fun `a removed file's undo that lapses or is replaced lets the handler forget the file`() =
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            val failed = AttachedFile(uri = "b", name = "b.pdf", uploadFailed = true)
+            val other = AttachedFile(uri = "c", name = "c.pdf", uploadFailed = true)
+            every { fileHandler.attachedFiles } returns MutableStateFlow(listOf(failed, other))
+
+            vm.removeDraftItem(DraftItem.File(failed, key = "file:b"))
+            verify(exactly = 0) { fileHandler.forgetRemoved(any()) }
+            // A later removal replaces its Undo.
+            vm.removeDraftItem(DraftItem.File(other, key = "file:c"))
+            verify(exactly = 1) { fileHandler.forgetRemoved(failed) }
+
+            // The snackbar lapses.
+            vm.dropDraftUndo(checkNotNull(vm.uiState.value.pendingDraftUndo).id)
+            verify(exactly = 1) { fileHandler.forgetRemoved(other) }
+        }
+
+    @Test
+    fun `an undone file removal forgets nothing`() = queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+        val failed = AttachedFile(uri = "b", name = "b.pdf", uploadFailed = true)
+        every { fileHandler.attachedFiles } returns MutableStateFlow(listOf(failed))
+
+        vm.removeDraftItem(DraftItem.File(failed, key = "file:b"))
+        val undo = checkNotNull(vm.uiState.value.pendingDraftUndo)
+        vm.undoDraftRemoval(undo.id)
+        // The snackbar effect's own drop after an Undo finds nothing pending.
+        vm.dropDraftUndo(undo.id)
+
+        verify(exactly = 0) { fileHandler.forgetRemoved(any()) }
+    }
+
+    @Test
     fun `removing one copy of a file attached twice takes that copy alone and its undo puts it back`() =
         queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
             // One picked file, two tray entries told apart by their entry ids.

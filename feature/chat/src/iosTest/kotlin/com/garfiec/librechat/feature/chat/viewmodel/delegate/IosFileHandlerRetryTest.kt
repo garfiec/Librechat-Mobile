@@ -165,6 +165,47 @@ class IosFileHandlerRetryTest {
     }
 
     @Test
+    fun aRemovedFailedFileLetsItsPickGoOnceItsUndoIsGone() {
+        pick(notes)
+        val failed = handler.attachedFiles.value.single()
+        handler.removeFile(failed)
+        // Kept while the Undo can still bring it back to be retried.
+        assertTrue(handler.holdsPickedData(failed.uri))
+
+        handler.forgetRemoved(failed)
+
+        assertFalse(handler.holdsPickedData(failed.uri))
+    }
+
+    @Test
+    fun forgettingAFileStillInTheTrayKeepsItsPick() {
+        pick(notes)
+        val failed = handler.attachedFiles.value.single()
+
+        handler.forgetRemoved(failed)
+
+        assertTrue(handler.holdsPickedData(failed.uri))
+    }
+
+    @Test
+    fun aQueuedEditSwapKeepsBothDraftsPicksAndDropsARemovedOnes() {
+        pick(notes, photo)
+        val (failedNotes, failedPhoto) = handler.attachedFiles.value
+        // Removed with its Undo pending, which the swap drops.
+        handler.removeFile(failedPhoto)
+        val draft = handler.attachedFiles.value
+
+        handler.restoreAttachedFiles(emptyList())
+        assertTrue(handler.holdsPickedData(failedNotes.uri))
+        assertFalse(handler.holdsPickedData(failedPhoto.uri))
+
+        // The edit ends and the stashed draft comes back, still retryable.
+        handler.restoreAttachedFiles(draft)
+        handler.retryUpload(failedNotes)
+        assertNotNull(handler.attachedFiles.value.single().fileId)
+    }
+
+    @Test
     fun aRetryForAFileRemovedFromTheTrayLeavesItRemoved() {
         pick(notes)
         val failed = handler.attachedFiles.value.single()

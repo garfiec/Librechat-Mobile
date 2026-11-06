@@ -1152,7 +1152,10 @@ first, then images, files, skills, quotes.
   both are open; otherwise it is routed afresh, so a PDF sent natively under one provider isn't
   replayed to one that ignores it). On both platforms. iOS keeps each entry's picked
   `IosImageData` / `IosFileData` (`IosFileHandler.picked`) until it uploads, and a failed one
-  uploads from it again; a successful upload lets the bytes go. An iOS image's
+  uploads from it again; a successful upload lets the bytes go, and a removed failed one keeps them
+  only while its Undo is pending (`PlatformFileHandler.forgetRemoved`, called when the Undo lapses
+  or a later removal replaces it; a send's clear and the queued-edit swap let them go with the
+  tray). An iOS image's
   thumbnail is a small JPEG (PNG with alpha) the picker draws off Main (`draftPreviewOf`,
   `IosImageData.preview` → `AttachedFile.localPreview`), never the picked bytes: a library photo
   comes over as its original data, often HEIC, which Coil's Skia decoder on iOS can't read. A
