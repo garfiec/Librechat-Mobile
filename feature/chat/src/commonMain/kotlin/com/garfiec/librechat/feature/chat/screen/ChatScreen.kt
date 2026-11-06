@@ -262,6 +262,7 @@ fun ChatScreen(
     val mcpSignInFailed = stringResource(Res.string.mcp_sign_in_failed)
     val onSettingChipTap = rememberSettingChipTap(
         chips = uiState.settingChips,
+        editingQueuedId = uiState.editingQueuedItem?.original?.localId,
         snackbarHostState = snackbarHostState,
         onToggle = viewModel::toggleSettingChip,
         onTurnBackOn = viewModel::turnSettingChipBackOn,

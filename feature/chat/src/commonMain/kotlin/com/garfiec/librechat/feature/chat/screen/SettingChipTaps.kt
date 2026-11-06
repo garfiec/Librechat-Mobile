@@ -4,6 +4,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -18,6 +19,7 @@ import com.garfiec.librechat.feature.chat.util.SettingChip
 import com.garfiec.librechat.feature.chat.util.SettingChipTap
 import com.garfiec.librechat.feature.chat.util.SettingChips
 import com.garfiec.librechat.feature.chat.util.tapFor
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 
@@ -28,18 +30,31 @@ import org.jetbrains.compose.resources.getString
  * sheet's, so a global one (code, file search, memory, MCP) is off in every chat, as the snackbar
  * says, and a spec chat's additions are this chat's. An MCP server that needs sign-in signs in
  * instead ([onSignIn], with its stored name).
+ *
+ * The Undo belongs to the composer whose chip was tapped. [editingQueuedId] names it (the queued
+ * item being edited, null for the new-message draft): when it changes, the queued-edit swap has
+ * handed the line to another draft's tools, so the snackbar goes, and [onTurnBackOn] carries the
+ * id the chip was turned off under for the ViewModel to check too.
  */
 @Composable
 internal fun rememberSettingChipTap(
     chips: SettingChips,
+    editingQueuedId: String?,
     snackbarHostState: SnackbarHostState,
     onToggle: (SettingChip) -> Unit,
-    onTurnBackOn: (SettingChip) -> Unit,
+    onTurnBackOn: (chip: SettingChip, turnedOffWhileEditing: String?) -> Unit,
     onOpenThinking: () -> Unit,
     onSignIn: (serverName: String) -> Unit,
 ): (SettingChip) -> Unit {
     val scope = rememberCoroutineScope()
     val currentChips by rememberUpdatedState(chips)
+    val currentEditingId by rememberUpdatedState(editingQueuedId)
+    val pendingUndo = remember { PendingChipUndo() }
+    LaunchedEffect(editingQueuedId) {
+        // Cancelling the snackbar's coroutine takes the snackbar down with it.
+        pendingUndo.job?.cancel()
+        pendingUndo.job = null
+    }
     val toggle by rememberUpdatedState(onToggle)
     val turnBackOn by rememberUpdatedState(onTurnBackOn)
     val openThinking by rememberUpdatedState(onOpenThinking)
@@ -57,8 +72,9 @@ internal fun rememberSettingChipTap(
                     snackbarHostState.showSnackbar(message)
                 }
                 SettingChipTap.TurnOffWithUndo -> {
+                    val turnedOffWhileEditing = currentEditingId
                     toggle(chip)
-                    scope.launch {
+                    pendingUndo.job = scope.launch {
                         val name = settingChipName(chip) ?: return@launch
                         snackbarHostState.currentSnackbarData?.dismiss()
                         val result = snackbarHostState.showSnackbar(
@@ -66,12 +82,17 @@ internal fun rememberSettingChipTap(
                             actionLabel = getString(Res.string.action_undo),
                             duration = SnackbarDuration.Short,
                         )
-                        if (result == SnackbarResult.ActionPerformed) turnBackOn(chip)
+                        if (result == SnackbarResult.ActionPerformed) turnBackOn(chip, turnedOffWhileEditing)
                     }
                 }
             }
         }
     }
+}
+
+/** The chip Undo snackbar's coroutine, so a composer swap can take it down. Read and written on the main thread. */
+private class PendingChipUndo {
+    var job: Job? = null
 }
 
 private suspend fun settingChipName(chip: SettingChip): String? = when (chip) {

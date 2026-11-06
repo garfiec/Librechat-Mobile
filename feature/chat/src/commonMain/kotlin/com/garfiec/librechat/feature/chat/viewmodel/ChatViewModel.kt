@@ -2172,9 +2172,14 @@ class ChatViewModel(
     /**
      * Undo for a chip the user turned off on the settings line: switches it back on, unless something
      * (the "+" sheet) already did, so the Undo never turns it off again.
+     *
+     * [turnedOffWhileEditing] is the queued item being edited when the chip was tapped (null: the
+     * new-message draft). If the composer has swapped since, the line now shows another draft's
+     * tools, and switching one on there would change a message the user never touched.
      */
-    fun turnSettingChipBackOn(chip: SettingChip) {
+    fun turnSettingChipBackOn(chip: SettingChip, turnedOffWhileEditing: String?) {
         val state = _uiState.value
+        if (state.editingQueuedItem?.original?.localId != turnedOffWhileEditing) return
         val isOn = when (chip) {
             is SettingChip.Tool -> chip.key in state.effectiveEnabledTools
             is SettingChip.Mcp -> chip.name in state.effectiveMcpServerNames
