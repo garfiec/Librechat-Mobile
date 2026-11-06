@@ -1944,6 +1944,14 @@ class ChatViewModel(
         _uiState.update { it.copy(mediaPreview = preview) }
     }
 
+    /**
+     * Opens the media viewer on the composer's own images ([preview], built by the attachment list
+     * from what the draft holds), which are on the device and not in the thread.
+     */
+    fun openDraftMedia(preview: MediaPreviewState) {
+        _uiState.update { it.copy(mediaPreview = preview) }
+    }
+
     fun closeMedia() {
         _uiState.update { it.copy(mediaPreview = null) }
     }

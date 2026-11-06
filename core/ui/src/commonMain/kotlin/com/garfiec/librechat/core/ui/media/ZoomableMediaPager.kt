@@ -51,8 +51,8 @@ import kotlinx.coroutines.CancellationException
 /**
  * A single zoomable/pannable media item displayed by [ZoomableMediaPager].
  *
- * [url] is the resolved, ready-to-load image URL and doubles as the stable pager key,
- * so callers must dedupe by URL before passing the list in.
+ * [url] is the resolved, ready-to-load image URL and doubles as the stable pager key and the
+ * [mediaThumbnail] key, so callers must dedupe by URL before passing the list in.
  */
 @Immutable
 data class MediaItem(
@@ -62,6 +62,12 @@ data class MediaItem(
     /** The generated file this image is, when it is one: save and share then use its original
      *  bytes, downloaded, rather than whatever the image loader decoded. */
     val attachment: Attachment? = null,
+    /**
+     * What the image loader draws instead of [url], for an image that is only on the device (a
+     * picked, unsent photo: an Android content `Uri`, iOS's picked bytes). [url] is then only the
+     * key, and there is no URL to save or share from.
+     */
+    val model: Any? = null,
 )
 
 /**
@@ -184,7 +190,7 @@ internal fun ZoomableMediaPager(
                 if (item.url.isNotBlank()) {
                     var loadState by remember(item.url) { mutableStateOf(MediaLoadState.LOADING) }
                     CoilZoomAsyncImage(
-                        model = item.url,
+                        model = item.model ?: item.url,
                         contentDescription = item.contentDescription.ifBlank { defaultContentDescription },
                         imageLoader = imageLoader,
                         modifier = Modifier.fillMaxSize(),

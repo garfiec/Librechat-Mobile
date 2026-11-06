@@ -1136,8 +1136,16 @@ an upload starts or stops reporting a progress.
   the stack's through `ComposerChrome.onDraftStackPositioned`), so a tap in
   an already-focused field closes it too, and on typing, a send of any kind, the field gaining
   focus, the list emptying, a pause panel appearing, or back
-  (`PlatformBackHandler`, the iOS edge swipe included). Only a failed row is tappable (retry); a
-  local preview of a picked image is a follow-up (the media viewer knows conversation media only).
+  (`PlatformBackHandler`, the iOS edge swipe included). A row's tap is `DraftItems.tapFor`
+  (`util/DraftItems.kt`, pure): a failed file retries; an image opens the chat's media viewer on the
+  draft's images (`ChatViewModel.openDraftMedia`), each a `MediaItem` keyed `DraftItem.Image.mediaKey`
+  whose `model` is the device's full copy (an Android content `Uri`; on iOS the server's copy once
+  uploaded, else the small picker preview), and every draft image tile (row and stack) is a
+  `mediaThumbnail` under that key, so the viewer flies back into the most visible one; an uploaded
+  PDF opens the PDF preview and another uploaded file the file actions (`conversationFileTap`, as the
+  media page's Files tab). A file still uploading, a skill and a quote aren't tappable. The viewer
+  has no save/share bar for a draft image (`MediaItem.model` set). While the viewer is up the list
+  ignores outside taps and back, so it stays open under it and the image has a row to land in.
 - **× and Undo** (`DraftItemsDelegate`, `ComposerState.pendingDraftUndo`): an uploaded or failed
   file, a skill or a quote comes off with an Undo snackbar (`DraftUndoSnackbarEffect`) that puts it
   back at its index (`PlatformFileHandler.insertAt`, which leaves PDF password prompts alone;

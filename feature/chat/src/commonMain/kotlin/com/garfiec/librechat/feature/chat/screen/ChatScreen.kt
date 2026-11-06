@@ -60,6 +60,8 @@ import com.garfiec.librechat.feature.chat.components.DraftListPauseEffects
 import com.garfiec.librechat.feature.chat.components.LandingStarters
 import com.garfiec.librechat.feature.chat.components.LocalCodeRunHost
 import com.garfiec.librechat.feature.chat.components.LocalCodeWorkspaceComposer
+import com.garfiec.librechat.feature.chat.components.LocalOpenFileActions
+import com.garfiec.librechat.feature.chat.components.LocalOpenPdf
 import com.garfiec.librechat.feature.chat.components.LocalPullRequestComposer
 import com.garfiec.librechat.feature.chat.components.LocalThreadScrollHandle
 import com.garfiec.librechat.feature.chat.components.PullRequestComposer
@@ -91,6 +93,7 @@ import com.garfiec.librechat.feature.chat.prompts.components.VariableInputDialog
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.mcp_cancel_sign_in_failed
 import com.garfiec.librechat.feature.chat.resources.mcp_sign_in_failed
+import com.garfiec.librechat.feature.chat.util.DraftItemTap
 import com.garfiec.librechat.feature.chat.util.DraftUploadProgress
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.util.draftItemsOf
@@ -207,7 +210,10 @@ fun ChatScreen(
     // The screen's height above the keyboard, for the room the list has between the bar and the composer.
     var chatHeightPx by remember { mutableIntStateOf(0) }
     LaunchedEffect(draftItems.isEmpty) { if (draftItems.isEmpty) draftList.close() }
-    PlatformBackHandler(enabled = draftList.isOpen) { draftList.close() }
+    // The media viewer opened from the list sits over it and handles its own back and taps; the list
+    // stays open under it, so the image flies back into its row.
+    val draftMediaOpen = uiState.mediaPreview != null
+    PlatformBackHandler(enabled = draftList.isOpen && !draftMediaOpen) { draftList.close() }
     val prefs by viewModel.chatPreferences.collectAsStateWithLifecycle()
     val promptLibraryRevision by viewModel.promptLibraryRevision.collectAsStateWithLifecycle()
     val showImageDescriptions = prefs.showImageDescriptions
@@ -534,7 +540,7 @@ fun ChatScreen(
                         // The tap still reaches what it landed on, and a scroll doesn't close it.
                         .onPlaced { draftTapTargets.root = it }
                         .closeOnTapOutside(
-                            enabled = draftList.isOpen,
+                            enabled = draftList.isOpen && !draftMediaOpen,
                             keep = draftTapTargets::keeps,
                             onClose = draftList::close,
                         ),
@@ -591,6 +597,18 @@ fun ChatScreen(
                     // but opens nothing), so the panel is never collapsed or covered for it.
                     val pausePanelUp = askPause != null || toolPause != null
                     DraftListPauseEffects(draftList, pausePanelUp = pausePanelUp)
+                    val openPdf = LocalOpenPdf.current
+                    val openFileActions = LocalOpenFileActions.current
+                    val onDraftItemTap: (DraftItemTap) -> Unit = remember(viewModel, openPdf, openFileActions) {
+                        { tap ->
+                            when (tap) {
+                                is DraftItemTap.Retry -> viewModel.retryUpload(tap.file)
+                                is DraftItemTap.ViewImage -> viewModel.openDraftMedia(tap.preview)
+                                is DraftItemTap.OpenPdf -> openPdf(tap.fileId, tap.filename)
+                                is DraftItemTap.OpenFile -> openFileActions(tap.attachment)
+                            }
+                        }
+                    }
                     val onDraftListPositioned: (LayoutCoordinates) -> Unit = remember {
                         {
                             draftTapTargets.list = it
@@ -622,6 +640,7 @@ fun ChatScreen(
                         draftAdditions = draftAdditions,
                         onRemoveDraftItem = viewModel::removeDraftItem,
                         onRetryUpload = viewModel::retryUpload,
+                        onDraftItemTap = onDraftItemTap,
                         onDraftStackPositioned = { draftTapTargets.stack = it },
                         onDraftListPositioned = onDraftListPositioned,
                         draftListMaxHeightPx = draftListMaxHeightPx,

@@ -76,7 +76,7 @@ private fun ChipsOverTextHost() {
         ComposerDraftListPanel(
             items = draftItemsOf(emptyList(), tenLongChips, emptyList(), serverUrl = ""),
             onRemove = {},
-            onRetry = {},
+            onTap = {},
             modifier = Modifier
                 .align(Alignment.Center)
                 .padding(horizontal = 12.dp),

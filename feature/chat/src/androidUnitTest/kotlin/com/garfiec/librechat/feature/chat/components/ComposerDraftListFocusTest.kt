@@ -61,7 +61,7 @@ class ComposerDraftListFocusTest {
                 val chrome = ComposerChrome(draftItems = items).withDraftList(draftList)
                 Column {
                     if (chrome.isDraftListOpen) {
-                        ComposerDraftListPanel(items = items, onRemove = {}, onRetry = {}, focusHeader = draftList.focusHeader)
+                        ComposerDraftListPanel(items = items, onRemove = {}, onTap = {}, focusHeader = draftList.focusHeader)
                     }
                     composerFieldLeadingIcon(comparison = null, chrome = chrome, compact = false)!!()
                     FailedLine(chrome)
@@ -89,7 +89,7 @@ class ComposerDraftListFocusTest {
                     val chrome = ComposerChrome(draftItems = items).withDraftList(draftList, toolPause = paused)
                     Column {
                         if (chrome.isDraftListOpen && !paused) {
-                            ComposerDraftListPanel(items = items, onRemove = {}, onRetry = {}, focusHeader = draftList.focusHeader)
+                            ComposerDraftListPanel(items = items, onRemove = {}, onTap = {}, focusHeader = draftList.focusHeader)
                         }
                         composerFieldLeadingIcon(comparison = null, chrome = chrome, compact = false)!!()
                         FailedLine(chrome)

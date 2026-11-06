@@ -49,7 +49,7 @@ private fun ListHost() {
                 serverUrl = "",
             ),
             onRemove = {},
-            onRetry = {},
+            onTap = {},
             modifier = Modifier.padding(horizontal = 12.dp),
             uploadProgress = DraftUploadProgress { files },
         )

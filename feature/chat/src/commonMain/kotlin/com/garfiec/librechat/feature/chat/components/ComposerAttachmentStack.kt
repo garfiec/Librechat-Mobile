@@ -50,6 +50,7 @@ import coil3.compose.AsyncImage
 import com.garfiec.librechat.core.model.files.fileKindOf
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.FileTypeTile
+import com.garfiec.librechat.core.ui.media.mediaThumbnail
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_collapse
 import com.garfiec.librechat.feature.chat.resources.cd_draft_stack
@@ -246,7 +247,8 @@ internal fun DraftItemTile(item: DraftItem, size: Dp, modifier: Modifier = Modif
         is DraftItem.Image -> Box(
             modifier = modifier
                 .size(size)
-                .clip(TileShape)
+                // Where the media viewer flies back to as it closes (the most visible tile of it).
+                .mediaThumbnail(item.mediaKey, TileShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center,
         ) {

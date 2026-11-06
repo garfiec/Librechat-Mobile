@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.layout.LayoutCoordinates
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.feature.chat.util.DraftItem
+import com.garfiec.librechat.feature.chat.util.DraftItemTap
 import com.garfiec.librechat.feature.chat.util.DraftItems
 import com.garfiec.librechat.feature.chat.util.DraftUploadProgress
 import com.garfiec.librechat.feature.chat.util.SettingChip
@@ -71,8 +72,10 @@ data class ComposerChrome(
     val onToggleDraftListFromScreenReader: () -> Unit = {},
     /** A list row's ×: cancels a file still uploading, else removes the item with an Undo. */
     val onRemoveDraftItem: (DraftItem) -> Unit = {},
-    /** A failed file's row tap. */
+    /** A failed file's retry. */
     val onRetryUpload: (AttachedFile) -> Unit = {},
+    /** A list row's tap ([com.garfiec.librechat.feature.chat.util.tapFor]): retry, or open the item. */
+    val onDraftItemTap: (DraftItemTap) -> Unit = {},
     /** The message field gained focus; the list panel closes then. */
     val onFieldFocused: () -> Unit = {},
     /**

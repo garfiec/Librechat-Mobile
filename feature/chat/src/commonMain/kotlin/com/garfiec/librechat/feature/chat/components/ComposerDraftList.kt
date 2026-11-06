@@ -52,6 +52,7 @@ import com.garfiec.librechat.core.ui.components.fileTypeSubtitle
 import com.garfiec.librechat.core.ui.components.scrollFadingEdges
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_cancel_upload
+import com.garfiec.librechat.feature.chat.resources.cd_open_file
 import com.garfiec.librechat.feature.chat.resources.cd_remove_file
 import com.garfiec.librechat.feature.chat.resources.cd_remove_quote_named
 import com.garfiec.librechat.feature.chat.resources.cd_remove_skill
@@ -65,8 +66,10 @@ import com.garfiec.librechat.feature.chat.resources.draft_row_skill
 import com.garfiec.librechat.feature.chat.resources.draft_row_uploading
 import com.garfiec.librechat.feature.chat.resources.draft_subtitle_join
 import com.garfiec.librechat.feature.chat.util.DraftItem
+import com.garfiec.librechat.feature.chat.util.DraftItemTap
 import com.garfiec.librechat.feature.chat.util.DraftItems
 import com.garfiec.librechat.feature.chat.util.DraftUploadProgress
+import com.garfiec.librechat.feature.chat.util.tapFor
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -90,7 +93,7 @@ internal fun ComposerDraftListSlot(chrome: ComposerChrome) {
             ComposerDraftListPanel(
                 items = items,
                 onRemove = chrome.onRemoveDraftItem,
-                onRetry = chrome.onRetryUpload,
+                onTap = chrome.onDraftItemTap,
                 focusHeader = chrome.draftListFocusHeader,
                 uploadProgress = chrome.draftUploadProgress,
                 modifier = Modifier
@@ -123,9 +126,9 @@ private val DRAFT_LIST_MAX_WIDTH = 480.dp
  * with the message (failed files first, then images, files, skills and quotes), one 52dp row each
  * with a 48dp × that removes it. Past four and a half rows it scrolls.
  *
- * Only a failed file's row acts on a tap (it retries); the others aren't tappable. Opening a picked,
- * unsent image isn't offered yet: the media viewer only knows the conversation's own media, so a
- * local preview of a draft image is a follow-up.
+ * A row's tap is [tapFor]'s: a failed file retries, an image opens in the media viewer (and flies
+ * back into its tile as the viewer closes), an uploaded file opens in the PDF preview or the file
+ * actions. A file still uploading, a skill and a quote aren't tappable.
  *
  * Opaque over the thread in Material (`surfaceContainerHigh`), a glass panel in Liquid Glass.
  *
@@ -137,7 +140,8 @@ private val DRAFT_LIST_MAX_WIDTH = 480.dp
 internal fun ComposerDraftListPanel(
     items: DraftItems,
     onRemove: (DraftItem) -> Unit,
-    onRetry: (AttachedFile) -> Unit,
+    /** A row's tap ([tapFor]): retry a failed file, open an image or an uploaded file. */
+    onTap: (DraftItemTap) -> Unit,
     modifier: Modifier = Modifier,
     focusHeader: Boolean = false,
     /** The rows' upload rings' progress, read as they draw. */
@@ -173,7 +177,8 @@ internal fun ComposerDraftListPanel(
         ) {
             items.items.forEach { item ->
                 key(item.key) {
-                    DraftItemRow(item = item, onRemove = { onRemove(item) }, onRetry = onRetry, uploadProgress = uploadProgress)
+                    val tap = remember(items, item) { items.tapFor(item) }
+                    DraftItemRow(item = item, tap = tap, onRemove = { onRemove(item) }, onTap = onTap, uploadProgress = uploadProgress)
                 }
             }
         }
@@ -183,20 +188,24 @@ internal fun ComposerDraftListPanel(
 @Composable
 private fun DraftItemRow(
     item: DraftItem,
+    tap: DraftItemTap?,
     onRemove: () -> Unit,
-    onRetry: (AttachedFile) -> Unit,
+    onTap: (DraftItemTap) -> Unit,
     uploadProgress: DraftUploadProgress,
 ) {
     val attachment = item as? DraftItem.Attachment
-    val failedFile = attachment?.takeIf { it.isFailed }?.file
-    val retryLabel = failedFile?.let { stringResource(Res.string.cd_retry_upload, it.name) }
+    val tapLabel = when (tap) {
+        null -> null
+        is DraftItemTap.Retry -> stringResource(Res.string.cd_retry_upload, tap.file.name)
+        else -> stringResource(Res.string.cd_open_file, item.label())
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = DRAFT_ROW_HEIGHT)
             .then(
-                if (failedFile != null) {
-                    Modifier.clickable(onClickLabel = retryLabel) { onRetry(failedFile) }
+                if (tap != null) {
+                    Modifier.clickable(onClickLabel = tapLabel) { onTap(tap) }
                 } else {
                     Modifier
                 },
@@ -222,7 +231,7 @@ private fun DraftItemRow(
             Text(
                 text = draftItemSubtitle(item),
                 style = MaterialTheme.typography.bodySmall,
-                color = if (failedFile != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (attachment?.isFailed == true) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

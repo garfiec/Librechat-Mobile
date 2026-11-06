@@ -142,4 +142,33 @@ class DraftItemsTest {
             .items.single() as DraftItem.Image
         assertEquals("https://chat.example/api/files/f1", image.thumbnail)
     }
+
+    @Test
+    fun tapRetriesAFailedFileAndOpensImagesAndUploadedFiles() {
+        val pdf = AttachedFile(uri = "local-pdf", name = "spec.pdf", type = "application/pdf", fileId = "f-pdf")
+        val csv = AttachedFile(uri = "local-csv", name = "rows.csv", type = "text/csv", fileId = "f-csv")
+        val second = photo.copy(uri = "local-second", name = "second.jpg", fileId = "s", filepath = "/images/u/second.jpg")
+        val items = draftItemsOf(
+            files = listOf(photo, failedShot, second, pdf, csv, uploading),
+            skills = listOf("brand-voice"),
+            quotes = emptyList(),
+            serverUrl = "https://chat.example",
+        )
+        fun item(name: String) = items.items.first { it.label() == name }
+
+        assertEquals(DraftItemTap.Retry(failedShot), items.tapFor(item("shot.png")))
+
+        val view = items.tapFor(item("second.jpg")) as DraftItemTap.ViewImage
+        // Pages through the draft's images that can be drawn, failed ones left out.
+        assertEquals(listOf("photo.jpg", "second.jpg"), view.preview.items.map { it.contentDescription })
+        assertEquals(1, view.preview.initialIndex)
+        assertEquals((item("second.jpg") as DraftItem.Image).mediaKey, view.preview.items[1].url)
+        assertEquals("https://chat.example/images/u/second.jpg", view.preview.items[1].model)
+
+        assertEquals(DraftItemTap.OpenPdf("f-pdf", "spec.pdf"), items.tapFor(item("spec.pdf")))
+        val open = items.tapFor(item("rows.csv")) as DraftItemTap.OpenFile
+        assertEquals("f-csv", open.attachment.fileId)
+        assertNull(items.tapFor(item("data.csv")))
+        assertNull(items.tapFor(item("brand-voice")))
+    }
 }

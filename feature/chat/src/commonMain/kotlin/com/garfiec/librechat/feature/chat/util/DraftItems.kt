@@ -2,8 +2,11 @@ package com.garfiec.librechat.feature.chat.util
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
+import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.FileReference
 import com.garfiec.librechat.core.model.media.resolveFileReferenceUrl
+import com.garfiec.librechat.core.ui.media.MediaItem
+import com.garfiec.librechat.core.ui.media.MediaPreviewState
 import com.garfiec.librechat.feature.chat.components.AttachedFile
 
 /**
@@ -22,8 +25,20 @@ sealed interface DraftItem {
         val isFailed: Boolean get() = file.uploadFailed
     }
 
-    /** An image, with what to draw its thumbnail from ([thumbnail], null when nothing can be drawn). */
-    data class Image(override val file: AttachedFile, val thumbnail: Any?, override val key: String) : Attachment
+    /**
+     * An image, with what to draw its thumbnail from ([thumbnail], null when nothing can be drawn) and
+     * what the media viewer draws it from ([viewerSource]: the device's full copy where there is one,
+     * else the server's, else the thumbnail).
+     */
+    data class Image(
+        override val file: AttachedFile,
+        val thumbnail: Any?,
+        override val key: String,
+        val viewerSource: Any? = thumbnail,
+    ) : Attachment {
+        /** Its key in the media viewer, which its thumbnails register under so the viewer flies back to them. */
+        val mediaKey: String get() = "draft:$key"
+    }
 
     data class File(override val file: AttachedFile, override val key: String) : Attachment
 
@@ -114,7 +129,8 @@ fun draftItemsOf(
         seenKeys[base] = repeat + 1
         val key = if (repeat == 0) base else "$base#$repeat"
         if (file.isImage) {
-            DraftItem.Image(file, thumbnailFor(file, serverUrl), key)
+            val thumbnail = thumbnailFor(file, serverUrl)
+            DraftItem.Image(file, thumbnail, key, viewerSourceFor(file, serverUrl) ?: thumbnail)
         } else {
             DraftItem.File(file, key)
         }
@@ -144,6 +160,59 @@ private fun thumbnailFor(file: AttachedFile, serverUrl: String): Any? {
     file.localPreview?.let { return it }
     // A non-String uri is a platform handle an image loader reads (an Android content Uri).
     if (file.uri !is String) return file.uri
+    return serverCopyOf(file, serverUrl)
+}
+
+/**
+ * The full image for the viewer: an Android content `Uri` is the picked file itself; iOS keeps only a
+ * small preview on the item ([AttachedFile.localPreview]), so the server's copy is the full one once
+ * the upload lands. Null leaves the thumbnail.
+ */
+private fun viewerSourceFor(file: AttachedFile, serverUrl: String): Any? =
+    if (file.uri !is String) file.uri else serverCopyOf(file, serverUrl)
+
+private fun serverCopyOf(file: AttachedFile, serverUrl: String): String? {
     if (file.filepath == null && file.fileId == null) return null
     return resolveFileReferenceUrl(FileReference(fileId = file.fileId, filepath = file.filepath, type = file.type), serverUrl)
+}
+
+/** What a tap on a row of the attachment list does; null leaves the row untappable. */
+sealed interface DraftItemTap {
+    /** A failed upload: try it again. */
+    data class Retry(val file: AttachedFile) : DraftItemTap
+
+    /** An image: the media viewer, paging through the draft's images. */
+    data class ViewImage(val preview: MediaPreviewState) : DraftItemTap
+
+    /** An uploaded PDF: the native PDF preview. */
+    data class OpenPdf(val fileId: String, val filename: String) : DraftItemTap
+
+    /** Any other uploaded file: the file actions (open in another app, save, share). */
+    data class OpenFile(val attachment: Attachment) : DraftItemTap
+}
+
+/**
+ * The tap on [item]'s row. A failed file retries. An image opens in the media viewer, from the device's
+ * copy while it uploads. Another file opens once it is uploaded (both viewers read it from the
+ * server), by the rule the media page's Files tab uses ([conversationFileTap]); until then, and for a
+ * skill or a quote, the row isn't tappable.
+ */
+fun DraftItems.tapFor(item: DraftItem): DraftItemTap? {
+    if (item !is DraftItem.Attachment) return null
+    if (item.isFailed) return DraftItemTap.Retry(item.file)
+    if (item is DraftItem.Image) {
+        val images = items.filterIsInstance<DraftItem.Image>().filter { !it.isFailed && it.viewerSource != null }
+        val index = images.indexOf(item).takeIf { it >= 0 } ?: return null
+        val media = images.map {
+            MediaItem(url = it.mediaKey, contentDescription = it.file.name, filename = it.file.name, model = it.viewerSource)
+        }
+        return DraftItemTap.ViewImage(MediaPreviewState(items = media, initialIndex = index))
+    }
+    val file = item.file
+    val fileId = file.fileId ?: return null
+    val attachment = Attachment(fileId = fileId, filename = file.name, filepath = file.filepath, type = file.type)
+    return when (conversationFileTap(attachment, canOpenArtifact = false)) {
+        is ConversationFileTap.Pdf -> DraftItemTap.OpenPdf(fileId, file.name)
+        else -> DraftItemTap.OpenFile(attachment)
+    }
 }
