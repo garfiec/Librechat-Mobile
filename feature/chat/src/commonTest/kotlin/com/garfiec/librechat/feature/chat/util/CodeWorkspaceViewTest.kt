@@ -96,8 +96,10 @@ class CodeWorkspaceViewTest {
         val ui =
             codeWorkspaceUiState(resolve(selected), CodeEnvironmentMode.ATTACHED, null, null, sheetOpen = true, attention = false)
         assertFalse(ui.holdsSend)
-        // The next send seals this pick: the card stays until the server has it.
-        assertCard(ui)
+        // A ready pick with no machine to choose folds; the next send seals it, as its sheet says.
+        assertFolded(ui)
+        assertFalse(ui.locked)
+        assertTrue(ui.workspace.opensSheet)
         assertEquals("switchboard", ui.workspace.name)
         assertEquals("develop", ui.branch)
         assertEquals(CodeCheckoutMode.WORKTREE, ui.checkout?.mode)

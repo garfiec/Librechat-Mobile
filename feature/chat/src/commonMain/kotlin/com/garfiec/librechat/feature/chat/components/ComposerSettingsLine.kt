@@ -16,7 +16,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Psychology
@@ -295,13 +294,14 @@ private fun ThinkingSettingChip(chip: ThinkingChip, onClick: () -> Unit) {
             contentDescription = description
             stateDescription = state
         },
-        colors = AdaptiveChipDefaults.overlayAssistChipColors(tint = if (staged) MaterialTheme.colorScheme.tertiary else null),
-        border = AssistChipDefaults.assistChipBorder(
-            enabled = true,
-            borderColor = if (staged) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outlineVariant,
-        ),
+        // Filled like the line's "on" chips; a staged choice adds the tertiary tint and border.
+        colors = AdaptiveChipDefaults.overlayTonalChipColors(tint = if (staged) MaterialTheme.colorScheme.tertiary else null),
+        border = if (staged) {
+            AssistChipDefaults.assistChipBorder(enabled = true, borderColor = MaterialTheme.colorScheme.tertiary)
+        } else {
+            null
+        },
         leadingIcon = { ChipIcon(Icons.Default.Psychology) },
-        trailingIcon = { ChipIcon(Icons.Default.ArrowDropDown) },
     )
 }
 

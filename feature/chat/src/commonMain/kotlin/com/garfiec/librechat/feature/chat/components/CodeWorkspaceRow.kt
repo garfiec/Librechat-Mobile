@@ -18,7 +18,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DriveFileMove
 import androidx.compose.material.icons.filled.AccountTree
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Computer
@@ -94,6 +93,7 @@ import com.garfiec.librechat.feature.chat.resources.code_workspace_locked_recove
 import com.garfiec.librechat.feature.chat.resources.code_workspace_missing
 import com.garfiec.librechat.feature.chat.resources.code_workspace_refresh
 import com.garfiec.librechat.feature.chat.resources.code_workspace_required_for
+import com.garfiec.librechat.feature.chat.resources.code_workspace_saved_on_send
 import com.garfiec.librechat.feature.chat.resources.code_workspace_unavailable
 import com.garfiec.librechat.feature.chat.resources.code_workspace_unsupported
 import com.garfiec.librechat.feature.chat.resources.code_workspace_used_by
@@ -177,7 +177,7 @@ internal fun codeWorkspaceLineLeading(composer: CodeWorkspaceComposer?): (@Compo
 private fun CodeWorkspaceLineChips(composer: CodeWorkspaceComposer) {
     val state = composer.state
     if (state.folded) FoldedWorkspaceChip(state, composer)
-    state.approval?.let { ApprovalChip(it, composer.onSelectApprovalMode) }
+    state.approval?.let { ApprovalChip(it, composer.onSelectApprovalMode, onLine = true) }
 }
 
 @Composable
@@ -199,10 +199,12 @@ private fun FoldedWorkspaceChip(state: CodeWorkspaceUiState, composer: CodeWorks
             icon = Icons.Outlined.Folder,
             label = listOfNotNull(machine, workspace).joinToString(" · "),
             description = description,
-            caret = chip.opensSheet,
             isName = true,
             nameMaxWidth = FOLDED_NAME_MAX_WIDTH,
             trailing = if (chip.refreshes) Icons.Default.Refresh else null,
+            // Not saved yet: the next message seals it, as its sheet says.
+            tint = if (state.locked) null else MaterialTheme.colorScheme.primary,
+            tonal = true,
             onClick = workspaceChipTap(chip, composer),
         )
         // A window of its own, in the chip's box so the line's spacing doesn't count it.
@@ -258,7 +260,6 @@ private fun WorkspaceRowContent(composer: CodeWorkspaceComposer, modifier: Modif
                     icon = checkoutIcon(checkout.mode),
                     label = label,
                     description = description,
-                    caret = checkout.pickable,
                     onClick = if (checkout.pickable) ({ composer.onOpenSheet(null) }) else null,
                 )
             }
@@ -344,7 +345,6 @@ private fun MachineChip(
             icon = Icons.Default.Computer,
             label = label,
             description = description,
-            caret = choices.isNotEmpty(),
             isName = name != null,
             onClick = if (choices.isNotEmpty()) ({ expanded = true }) else null,
         )
@@ -411,7 +411,6 @@ private fun WorkspaceChip(state: CodeWorkspaceUiState, composer: CodeWorkspaceCo
         icon = icon,
         label = label,
         description = description,
-        caret = chip.opensSheet,
         isName = chip.label == CodeWorkspaceChipLabel.NAME,
         // A locked chat with nothing to change re-reads the machine's status on a tap; a sealed
         // "No workspace" has none to read, so it is a label.
@@ -430,7 +429,6 @@ private fun InfoChip(icon: ImageVector, label: String, description: String, info
             icon = icon,
             label = label,
             description = description,
-            caret = false,
             isName = isName,
             onClick = { expanded = true },
         )
@@ -451,28 +449,43 @@ internal fun CodeChip(
     icon: ImageVector,
     label: String,
     description: String,
-    caret: Boolean,
     onClick: (() -> Unit)?,
     /** A user-chosen name, capped in width. A translated label keeps its full length; the row wraps. */
     isName: Boolean = false,
     nameMaxWidth: Dp = CHIP_NAME_MAX_WIDTH,
     trailing: ImageVector? = null,
     tint: androidx.compose.ui.graphics.Color? = null,
+    /** On the settings line: filled like the line's "on" chips, with no border. */
+    tonal: Boolean = false,
+    /** Draws [icon] alone; [description] still names the label. */
+    iconOnly: Boolean = false,
 ) {
     // The composer overlays the list, so the chip needs a container; the tint shows in both styles.
-    val overlay = AdaptiveChipDefaults.overlayAssistChipColors(tint)
+    val overlay = if (tonal) {
+        AdaptiveChipDefaults.overlayTonalChipColors(tint)
+    } else {
+        AdaptiveChipDefaults.overlayAssistChipColors(tint)
+    }
+    val iconContent: @Composable () -> Unit = {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize))
+    }
     AdaptiveAssistChip(
         onClick = onClick ?: {},
         // With nothing to pick, the chip is a label: no ripple, and announced as text rather than a
         // button a double-tap does nothing with. Drawn in its enabled colours.
         enabled = onClick != null,
-        label = {
-            Text(
-                text = label,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = if (isName) Modifier.widthIn(max = nameMaxWidth) else Modifier,
-            )
+        // Icon-only, the icon is the label, so M3's label padding centres it.
+        label = if (iconOnly) {
+            iconContent
+        } else {
+            {
+                Text(
+                    text = label,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = if (isName) Modifier.widthIn(max = nameMaxWidth) else Modifier,
+                )
+            }
         },
         modifier = if (onClick != null) {
             Modifier.semantics {
@@ -487,15 +500,10 @@ internal fun CodeChip(
             disabledLeadingIconContentColor = overlay.leadingIconContentColor,
             disabledTrailingIconContentColor = overlay.trailingIconContentColor,
         ),
-        leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize)) },
-        trailingIcon = when {
-            trailing != null -> {
-                { Icon(trailing, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize)) }
-            }
-            caret -> {
-                { Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize)) }
-            }
-            else -> null
+        border = if (tonal) null else AssistChipDefaults.assistChipBorder(enabled = onClick != null),
+        leadingIcon = if (iconOnly) null else iconContent,
+        trailingIcon = trailing?.let {
+            { Icon(it, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize)) }
         },
     )
 }
@@ -523,6 +531,14 @@ private fun CodeWorkspaceSheet(composer: CodeWorkspaceComposer) {
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
             )
+            if (!composer.state.locked) {
+                Text(
+                    text = stringResource(Res.string.code_workspace_saved_on_send),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 8.dp),
+                )
+            }
             sheet.sections.forEach { section ->
                 MachineSection(section, onSelect = composer.onSelectWorkspace, onSetCheckout = composer.onSetCheckout)
             }

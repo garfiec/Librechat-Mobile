@@ -1008,6 +1008,7 @@
     <string name="code_machine">Machine</string>
     <string name="code_machine_choose">Choisir une machine</string>
     <string name="code_workspace">Espace de travail de code</string>
+    <string name="code_workspace_saved_on_send">Votre prochain message enregistre cet espace de travail pour cette discussion.</string>
     <string name="code_workspace_choose">Choisir un espace de travail</string>
     <string name="code_workspace_loading">Chargement de l'espace de travail…</string>
     <string name="code_workspace_missing">Espace de travail manquant</string>

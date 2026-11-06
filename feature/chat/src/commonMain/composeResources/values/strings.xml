@@ -1048,6 +1048,7 @@
     <string name="code_machine">Machine</string>
     <string name="code_machine_choose">Choose machine</string>
     <string name="code_workspace">Code workspace</string>
+    <string name="code_workspace_saved_on_send">Your next message saves this workspace for the chat.</string>
     <string name="code_workspace_choose">Choose workspace</string>
     <string name="code_workspace_loading">Loading workspace…</string>
     <string name="code_workspace_missing">Workspace missing</string>

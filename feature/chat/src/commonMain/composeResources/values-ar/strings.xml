@@ -1063,6 +1063,7 @@
     <string name="code_machine">الجهاز</string>
     <string name="code_machine_choose">اختيار الجهاز</string>
     <string name="code_workspace">مساحة عمل الكود</string>
+    <string name="code_workspace_saved_on_send">ستحفظ رسالتك التالية مساحة العمل هذه للمحادثة.</string>
     <string name="code_workspace_choose">اختيار مساحة العمل</string>
     <string name="code_workspace_loading">جارٍ تحميل مساحة العمل…</string>
     <string name="code_workspace_missing">مساحة العمل مفقودة</string>

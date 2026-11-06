@@ -164,7 +164,9 @@ class CodeWorkspaceDelegateTest {
             ),
         )
         val ui = flow.value.codeWorkspace
-        assertThat(ui.visible).isTrue()
+        // A ready pick with no machine to choose sits on the settings line until the send seals it.
+        assertThat(ui.folded).isTrue()
+        assertThat(ui.locked).isFalse()
         assertThat(ui.holdsSend).isFalse()
         assertThat(ui.workspace.label).isEqualTo(CodeWorkspaceChipLabel.NAME)
         assertThat(ui.branch).isEqualTo("develop")

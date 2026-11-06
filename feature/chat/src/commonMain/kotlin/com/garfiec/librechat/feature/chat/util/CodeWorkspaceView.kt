@@ -43,9 +43,11 @@ import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceUiState
  * resolution's transition, [moving] says one is being written, and [confirming] replaces the
  * whole row with the decision check web shows after a failed turn.
  *
- * A chat holding a saved decision with nothing that needs the user folds: no card, a
- * "machine · workspace" chip on the settings line ([CodeWorkspaceUiState.folded]). That includes a
- * healthy saved chat web hides (no transition version), which the line still names.
+ * A chat whose workspace is settled folds: no card, a "machine · workspace" chip on the settings line
+ * ([CodeWorkspaceUiState.folded]). Settled is a saved decision with nothing that needs the user
+ * (including a healthy saved chat web hides, with no transition version, which the line still names),
+ * or an undecided chat whose next send would seal a ready pick with no machine left to choose: its
+ * chip opens the same sheet, which says the next message saves it.
  */
 @Suppress("CyclomaticComplexMethod", "LongMethod", "ComplexCondition") // web's menu layout in one mapping
 internal fun codeWorkspaceUiState(
@@ -203,7 +205,11 @@ internal fun codeWorkspaceUiState(
     // Nothing on the card would need the user: no hold, no line to read, nothing to choose. Branch,
     // checkout and linked-worktree chips are details of the card, not reasons to keep it. A saved
     // decision web hides that does need the user (a rejection named it) shows the card, not nothing.
-    val folded = mayFold(resolution) && !attention && !moving && footnote == null &&
+    // An undecided chat folds only when the folded chip's sheet holds every choice left: the machine
+    // picker is the card's alone.
+    val settled = mayFold(resolution) ||
+        (mayFoldUndecided(resolution) && machineChip?.choices.isNullOrEmpty())
+    val folded = settled && !attention && !moving && footnote == null &&
         requirements.isEmpty() && !selectionConflict &&
         (transition == null || transition.action == CodeTransitionAction.DETACH) &&
         (workspaceChip.label == CodeWorkspaceChipLabel.NAME || workspaceChip.label == CodeWorkspaceChipLabel.COUNT)
@@ -237,6 +243,10 @@ internal fun codeWorkspaceUiState(
 /** A saved decision the next send doesn't wait on, with every machine ready. */
 private fun mayFold(resolution: CodeWorkspaceResolver.Resolution): Boolean =
     resolution.required && resolution.locked && resolution.submission != null && resolution.state == State.READY
+
+/** An undecided chat whose next send would seal a ready pick. */
+private fun mayFoldUndecided(resolution: CodeWorkspaceResolver.Resolution): Boolean =
+    resolution.required && !resolution.locked && resolution.submission != null && resolution.state == State.READY
 
 /** Web's `describeTransition` inputs, and the target sections with the drafted picks. */
 private fun transitionView(

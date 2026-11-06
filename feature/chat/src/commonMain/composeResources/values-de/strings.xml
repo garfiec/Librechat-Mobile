@@ -995,6 +995,7 @@
     <string name="code_machine">Maschine</string>
     <string name="code_machine_choose">Maschine wählen</string>
     <string name="code_workspace">Code-Arbeitsbereich</string>
+    <string name="code_workspace_saved_on_send">Deine nächste Nachricht speichert diesen Arbeitsbereich für den Chat.</string>
     <string name="code_workspace_choose">Arbeitsbereich wählen</string>
     <string name="code_workspace_loading">Arbeitsbereich wird geladen…</string>
     <string name="code_workspace_missing">Arbeitsbereich fehlt</string>

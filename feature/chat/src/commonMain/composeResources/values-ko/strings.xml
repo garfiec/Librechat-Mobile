@@ -978,6 +978,7 @@
     <string name="code_machine">머신</string>
     <string name="code_machine_choose">머신 선택</string>
     <string name="code_workspace">코드 작업 공간</string>
+    <string name="code_workspace_saved_on_send">다음 메시지를 보내면 이 작업 공간이 채팅에 저장됩니다.</string>
     <string name="code_workspace_choose">작업 공간 선택</string>
     <string name="code_workspace_loading">작업 공간 불러오는 중…</string>
     <string name="code_workspace_missing">작업 공간 없음</string>

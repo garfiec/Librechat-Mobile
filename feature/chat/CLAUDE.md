@@ -1211,6 +1211,8 @@ an upload starts or stops reporting a progress.
     can't run (URL context on a non-Google model, memory without the capability) never appears.
     MCP servers need `MCP_SERVERS.USE` unless the spec adds them. Without the tool controls
     (`toolbarShown` false: an agent, a `hideBadgeRow` spec) only Thinking and the workspace stay.
+  - **No carets** on any composer chip; the line's assist chips (workspace, approval, Thinking) use
+    `AdaptiveChipDefaults.overlayTonalChipColors` with no border, so they read as "on".
   - **States** (`SettingChipState`): on = filled; pinned but off = outlined (an opaque fill and the
     M3 border in Material, glass's resting fill in glass, `AdaptiveChipDefaults.overlayFilterChipColors`);
     locked by the spec (`lockedTools`, `lockedMcpServers`) = filled with a lock.
@@ -1392,10 +1394,12 @@ is sealed "No workspace" for good. The rules are `:core:model` `code/CodeWorkspa
 `useCodeWorkspace`, mirrored); the delegate gathers inputs, polls, and keeps the draft; the composer
 only draws `CodeWorkspaceUiState` (mapped in `util/CodeWorkspaceView.kt`), through
 `LocalCodeWorkspaceComposer` so both platform composers draw it.
-- **Card or fold.** The chat folds onto the settings line only when it holds a **saved** decision and
-  nothing needs the user (`CodeWorkspaceUiState.folded`, decided in `codeWorkspaceUiState`): locked,
-  sendable, every machine ready, no rejection tint, no change being written, no footnote, requirement
-  or conflict line, and no transition but Detach. Then the line's leading slot
+- **Card or fold.** The chat folds onto the settings line when its workspace is settled and nothing
+  needs the user (`CodeWorkspaceUiState.folded`, decided in `codeWorkspaceUiState`): sendable, every
+  machine ready, no rejection tint, no change being written, no footnote, requirement or conflict
+  line, and no transition but Detach. Settled is a saved decision, or an undecided chat's ready pick
+  with no machine left to choose (the machine picker is the card's alone); that chip is tinted
+  primary and its sheet says the next message saves it (`code_workspace_saved_on_send`). Then the line's leading slot
   (`CodeWorkspaceLineChips`) holds a "machine · workspace" chip ("{n} code workspaces" across
   machines) and the approval chip, and no card shows. Everything else keeps the card
   (`CodeWorkspaceRow`, `visible`) above the line: choosing or held (`holdsSend`), an undecided chat
@@ -1448,7 +1452,8 @@ only draws `CodeWorkspaceUiState` (mapped in `util/CodeWorkspaceView.kt`), throu
   agent uncovered show web's `graph_selection_conflict` line. "Linked worktrees" shows for a
   `git_linked_worktree` workspace that is not isolated (Auto on a worktree-capable one isolates).
 - **Code approval mode** (`CodeApproval` in `:core:model`): the chip shows on the card, else on the
-  settings line (`CodeWorkspaceUiState.onSettingsLine`), after the folded chip when there is one. `submissionForSend()` adds `approvalMode` to the submission, so the mode
+  settings line (`CodeWorkspaceUiState.onSettingsLine`), after the folded chip when there is one. It
+  is icon-only on "Ask before changes", so a mode that does more always shows its name. `submissionForSend()` adds `approvalMode` to the submission, so the mode
   rides every send path the decision does; `ask` without a workspace. The mode asked for is this
   chat's pick, else the saved decision's, else (no decision yet) the spec preset's `codeApprovalMode`,
   else the device's last pick (`requestedApprovalMode`, web's `conversation.codeApprovalMode ?? preference`). A follow-up whose mode is not

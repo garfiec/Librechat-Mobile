@@ -978,6 +978,7 @@
     <string name="code_machine">机器</string>
     <string name="code_machine_choose">选择机器</string>
     <string name="code_workspace">代码工作区</string>
+    <string name="code_workspace_saved_on_send">你的下一条消息会为此聊天保存这个工作区。</string>
     <string name="code_workspace_choose">选择工作区</string>
     <string name="code_workspace_loading">正在加载工作区…</string>
     <string name="code_workspace_missing">工作区缺失</string>

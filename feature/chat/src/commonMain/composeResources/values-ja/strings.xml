@@ -978,6 +978,7 @@
     <string name="code_machine">マシン</string>
     <string name="code_machine_choose">マシンを選択</string>
     <string name="code_workspace">コードワークスペース</string>
+    <string name="code_workspace_saved_on_send">次のメッセージでこのワークスペースがチャットに保存されます。</string>
     <string name="code_workspace_choose">ワークスペースを選択</string>
     <string name="code_workspace_loading">ワークスペースを読み込み中…</string>
     <string name="code_workspace_missing">ワークスペースが見つかりません</string>

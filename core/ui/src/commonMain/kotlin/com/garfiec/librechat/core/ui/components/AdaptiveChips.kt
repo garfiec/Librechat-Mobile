@@ -196,6 +196,28 @@ object AdaptiveChipDefaults {
     }
 
     /**
+     * Colours for an [AdaptiveAssistChip] on the composer's settings line, which reads as "on" like a
+     * selected filter chip beside it: Material's `secondaryContainer` fill (draw it without a border),
+     * glass's secondary fill. [tint] (null = none) colours its label and icons in both styles.
+     */
+    @Composable
+    fun overlayTonalChipColors(tint: Color? = null): ChipColors {
+        if (isLiquidGlass) return overlayAssistChipColors(tint)
+        val scheme = MaterialTheme.colorScheme
+        val content = tint ?: scheme.onSecondaryContainer
+        return AssistChipDefaults.assistChipColors(
+            containerColor = scheme.secondaryContainer,
+            labelColor = content,
+            leadingIconContentColor = content,
+            trailingIconContentColor = content,
+            disabledContainerColor = scheme.secondaryContainer,
+            disabledLabelColor = content,
+            disabledLeadingIconContentColor = content,
+            disabledTrailingIconContentColor = content,
+        )
+    }
+
+    /**
      * Colours for an [AdaptiveFilterChip] drawn over scrolling content (the composer's settings line).
      * Material fills the unselected chip with `surfaceContainerHigh` and keeps M3's outline, so an off
      * chip reads as off without showing the content through it; glass keeps its own resting and

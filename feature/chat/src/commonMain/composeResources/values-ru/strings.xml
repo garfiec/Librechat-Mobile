@@ -1029,6 +1029,7 @@
     <string name="code_machine">Машина</string>
     <string name="code_machine_choose">Выбрать машину</string>
     <string name="code_workspace">Рабочее пространство для кода</string>
+    <string name="code_workspace_saved_on_send">Следующее сообщение сохранит это рабочее пространство для чата.</string>
     <string name="code_workspace_choose">Выбрать рабочее пространство</string>
     <string name="code_workspace_loading">Загрузка рабочего пространства…</string>
     <string name="code_workspace_missing">Рабочее пространство отсутствует</string>
