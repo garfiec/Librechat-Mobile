@@ -122,7 +122,8 @@ class McpServersDelegateSignInRuleTest : McpServersDelegateTestBase() {
         val (handle, delegate) = pendingSignInChat()
         assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.CONNECTING)
 
-        delegate.cancelSignIn("github")
+        var failures = 0
+        delegate.cancelSignIn("github") { failures++ }
         advanceUntilIdle()
 
         coVerifyOrder {
@@ -130,18 +131,22 @@ class McpServersDelegateSignInRuleTest : McpServersDelegateTestBase() {
             mcpRepository.cancelOAuth("github")
             mcpRepository.listServers()
         }
+        assertThat(failures).isEqualTo(0)
         assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.NEEDS_SIGN_IN)
         coVerify(exactly = 0) { mcpRepository.reinitialize(any()) }
     }
 
     @Test
-    fun aCancelThatFailsStillReloads() = runTest {
+    fun aCancelThatFailsSaysSoAndStillReloads() = runTest {
         val (handle, delegate) = pendingSignInChat()
         coEvery { mcpRepository.cancelOAuth("github") } returns Result.Error(message = "offline")
+        var failures = 0
 
-        delegate.cancelSignIn("github")
+        delegate.cancelSignIn("github") { failures++ }
         advanceUntilIdle()
 
+        // The chip reads exactly as before the tap, so only this tells the user it didn't land.
+        assertThat(failures).isEqualTo(1)
         coVerify(exactly = 2) { mcpRepository.listServers() }
         // Still pending on the server, so the chip still offers its menu.
         assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.CONNECTING)
@@ -168,7 +173,7 @@ class McpServersDelegateSignInRuleTest : McpServersDelegateTestBase() {
         coEvery { mcpRepository.cancelOAuth("github") } coAnswers { cancel.await() }
         val opened = mutableListOf<String>()
 
-        delegate.cancelSignIn("github")
+        delegate.cancelSignIn("github", {})
         advanceUntilIdle()
         delegate.signIn("github", { server, _ -> opened += server; true }, {})
         advanceUntilIdle()
@@ -200,7 +205,7 @@ class McpServersDelegateSignInRuleTest : McpServersDelegateTestBase() {
         delegate.signIn("github", { _, _ -> true }, {})
         advanceUntilIdle()
 
-        delegate.cancelSignIn("github")
+        delegate.cancelSignIn("github", {})
         advanceUntilIdle()
 
         coVerify(exactly = 0) { mcpRepository.cancelOAuth(any()) }
@@ -211,7 +216,7 @@ class McpServersDelegateSignInRuleTest : McpServersDelegateTestBase() {
         val (_, delegate) = pendingSignInChat()
         val cancel = CompletableDeferred<Result<Unit>>()
         coEvery { mcpRepository.cancelOAuth("github") } coAnswers { cancel.await() }
-        delegate.cancelSignIn("github")
+        delegate.cancelSignIn("github", {})
         advanceUntilIdle()
 
         returnToTheChat(delegate)

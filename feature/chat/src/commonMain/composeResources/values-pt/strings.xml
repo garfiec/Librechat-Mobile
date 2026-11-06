@@ -1202,6 +1202,7 @@
     <string name="setting_chip_connecting_suffix">· conectando</string>
     <string name="mcp_chip_cancel_sign_in">Cancelar login</string>
     <string name="mcp_chip_start_over">Recomeçar</string>
+    <string name="mcp_cancel_sign_in_failed">Não foi possível cancelar o login. Tente novamente.</string>
     <string name="cd_mcp_sign_in_menu">Opções de login</string>
     <string name="thinking_chip_state_next">Só na próxima mensagem</string>
     <string name="cd_context_ring">Contexto usado: %1$s</string>

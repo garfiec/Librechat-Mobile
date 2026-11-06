@@ -2158,7 +2158,8 @@ class ChatViewModel(
     ) = mcpServersDelegate.signIn(serverName, openSignIn, onFailed)
 
     /** A connecting chip's "Cancel sign-in": see [McpServersDelegate.cancelSignIn]. */
-    fun cancelMcpSignIn(serverName: String) = mcpServersDelegate.cancelSignIn(serverName)
+    fun cancelMcpSignIn(serverName: String, onFailed: () -> Unit) =
+        mcpServersDelegate.cancelSignIn(serverName, onFailed)
 
     /** An MCP sign-in ended: see [McpServersDelegate.onSignInEnded]. */
     fun onMcpSignInEnded() = mcpServersDelegate.onSignInEnded()

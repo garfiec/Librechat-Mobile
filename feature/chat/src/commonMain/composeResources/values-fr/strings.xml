@@ -1202,6 +1202,7 @@
     <string name="setting_chip_connecting_suffix">· connexion</string>
     <string name="mcp_chip_cancel_sign_in">Annuler la connexion</string>
     <string name="mcp_chip_start_over">Recommencer</string>
+    <string name="mcp_cancel_sign_in_failed">Impossible d'annuler la connexion. Réessayez.</string>
     <string name="cd_mcp_sign_in_menu">Options de connexion</string>
     <string name="thinking_chip_state_next">Prochain message uniquement</string>
     <string name="cd_context_ring">Contexte utilisé : %1$s</string>

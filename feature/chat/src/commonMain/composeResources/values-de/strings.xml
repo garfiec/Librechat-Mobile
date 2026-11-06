@@ -1189,6 +1189,7 @@
     <string name="setting_chip_connecting_suffix">· verbindet</string>
     <string name="mcp_chip_cancel_sign_in">Anmeldung abbrechen</string>
     <string name="mcp_chip_start_over">Neu beginnen</string>
+    <string name="mcp_cancel_sign_in_failed">Die Anmeldung konnte nicht abgebrochen werden. Versuche es erneut.</string>
     <string name="cd_mcp_sign_in_menu">Anmeldeoptionen</string>
     <string name="thinking_chip_state_next">Nur nächste Nachricht</string>
     <string name="cd_context_ring">Kontext belegt: %1$s</string>

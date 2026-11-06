@@ -1169,6 +1169,7 @@
     <string name="setting_chip_connecting_suffix">· 接続中</string>
     <string name="mcp_chip_cancel_sign_in">サインインをキャンセル</string>
     <string name="mcp_chip_start_over">最初からやり直す</string>
+    <string name="mcp_cancel_sign_in_failed">サインインをキャンセルできませんでした。もう一度お試しください。</string>
     <string name="cd_mcp_sign_in_menu">サインインのオプション</string>
     <string name="thinking_chip_state_next">次のメッセージのみ</string>
     <string name="cd_context_ring">使用中のコンテキスト: %1$s</string>

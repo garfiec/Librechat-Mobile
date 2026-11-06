@@ -256,11 +256,12 @@ class McpServersDelegate(
     /**
      * The user's "Cancel sign-in" on a chip that reads connecting: cancels this user's pending OAuth
      * flow for [serverName] (`POST /api/mcp/oauth/cancel/:serverName`, web's `cancelOAuthFlow`), then
-     * reloads the statuses, whether or not the cancel landed. Ignored while a chip's reconnect or
-     * another cancel is out (the same guard as a second tap): that reconnect is what starts or
-     * replays the flow, and it reloads when it ends.
+     * reloads the statuses, whether or not the cancel landed. [onFailed] is told when it didn't, since
+     * the chip then reads connecting as before. Ignored while a chip's reconnect or another cancel is
+     * out (the same guard as a second tap): that reconnect is what starts or replays the flow, and it
+     * reloads when it ends.
      */
-    fun cancelSignIn(serverName: String) {
+    fun cancelSignIn(serverName: String, onFailed: () -> Unit) {
         if (signingIn != null || pendingCancel != null) return
         val generation = ++loadGeneration
         val cancelled = CompletableDeferred<Unit>()
@@ -270,6 +271,7 @@ class McpServersDelegate(
                 val result = mcpRepository.cancelOAuth(serverName)
                 if (result is Result.Error) {
                     Logger.d(result.exception) { "Failed to cancel MCP OAuth for $serverName: ${result.message}" }
+                    onFailed()
                 }
             } finally {
                 cancelled.complete(Unit)

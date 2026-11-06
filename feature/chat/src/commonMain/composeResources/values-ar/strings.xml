@@ -1269,6 +1269,7 @@
     <string name="setting_chip_connecting_suffix">· جارٍ الاتصال</string>
     <string name="mcp_chip_cancel_sign_in">إلغاء تسجيل الدخول</string>
     <string name="mcp_chip_start_over">البدء من جديد</string>
+    <string name="mcp_cancel_sign_in_failed">تعذّر إلغاء تسجيل الدخول. حاول مرة أخرى.</string>
     <string name="cd_mcp_sign_in_menu">خيارات تسجيل الدخول</string>
     <string name="thinking_chip_state_next">للرسالة التالية فقط</string>
     <string name="cd_context_ring">السياق المستخدم: %1$s</string>

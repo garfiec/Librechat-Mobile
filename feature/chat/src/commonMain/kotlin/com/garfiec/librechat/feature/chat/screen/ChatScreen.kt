@@ -89,6 +89,7 @@ import com.garfiec.librechat.feature.chat.components.veil.rememberVeilTarget
 import com.garfiec.librechat.feature.chat.components.withDraftList
 import com.garfiec.librechat.feature.chat.prompts.components.VariableInputDialog
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.mcp_cancel_sign_in_failed
 import com.garfiec.librechat.feature.chat.resources.mcp_sign_in_failed
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.util.draftItemsOf
@@ -269,18 +270,25 @@ fun ChatScreen(
     val mcpSignInViewModel: McpSignInViewModel = koinViewModel()
     val mcpSignIn = rememberMcpSignIn(mcpSignInViewModel, snackbarHostState, onSignInEnd = viewModel::onMcpSignInEnded)
     val mcpSignInFailed = stringResource(Res.string.mcp_sign_in_failed)
+    val mcpCancelSignInFailed = stringResource(Res.string.mcp_cancel_sign_in_failed)
+    val showMcpNotice: (String) -> Unit = { message ->
+        coroutineScope.launch {
+            snackbarHostState.currentSnackbarData?.dismiss()
+            snackbarHostState.showSnackbar(message)
+        }
+    }
     // A chip's sign-in, and a connecting chip's "Start over": reconnect, then open its link.
     val startMcpSignIn: (String) -> Unit = { serverName ->
         viewModel.signInMcpServer(
             serverName = serverName,
             openSignIn = mcpSignIn.signIn,
-            onFailed = {
-                coroutineScope.launch {
-                    snackbarHostState.currentSnackbarData?.dismiss()
-                    snackbarHostState.showSnackbar(mcpSignInFailed)
-                }
-            },
+            onFailed = { showMcpNotice(mcpSignInFailed) },
         )
+    }
+    // A connecting chip's "Cancel sign-in". A refused cancel leaves the chip reading connecting, so
+    // only the snackbar says it didn't land.
+    val cancelMcpSignIn: (String) -> Unit = { serverName ->
+        viewModel.cancelMcpSignIn(serverName, onFailed = { showMcpNotice(mcpCancelSignInFailed) })
     }
     val onSettingChipTap = rememberSettingChipTap(
         chips = uiState.settingChips,
@@ -600,7 +608,7 @@ fun ChatScreen(
                         selectedMcpServerNames = uiState.effectiveMcpServerNames,
                         settingChips = uiState.settingChips,
                         onSettingChipTap = onSettingChipTap,
-                        onCancelMcpSignIn = viewModel::cancelMcpSignIn,
+                        onCancelMcpSignIn = cancelMcpSignIn,
                         onStartMcpSignInOver = startMcpSignIn,
                         contextGauge = uiState.contextGaugeDetails,
                         contextUsageEnabled = uiState.contextUsageEnabled,
