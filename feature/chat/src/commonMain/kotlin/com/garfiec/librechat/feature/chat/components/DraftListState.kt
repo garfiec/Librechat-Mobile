@@ -37,6 +37,13 @@ internal class DraftListState(initiallyOpen: Boolean = false) {
         isOpen = false
     }
 
+    // The toggles the composer's chrome carries, made once per state: built afresh on every
+    // [withDraftList] they would never equal the last ones, so the chrome would never equal its
+    // previous value and nothing under the composer would skip recomposing.
+    internal val toggleFromTouch: () -> Unit = { toggle(fromScreenReader = false) }
+    internal val toggleFromScreenReader: () -> Unit = { toggle(fromScreenReader = true) }
+    internal val closeList: () -> Unit = { close() }
+
     companion object {
         val Saver: Saver<DraftListState, Boolean> = Saver(save = { it.isOpen }, restore = { DraftListState(it) })
     }
@@ -86,18 +93,13 @@ internal fun draftListNeedsRoom(height: Dp, bottom: Dp, barBottom: Dp, minHeight
  * nothing, and the failed-upload line says the file can be dealt with after the approval. The panel
  * is never collapsed or covered for the list.
  */
-internal fun ComposerChrome.withDraftList(state: DraftListState, toolPause: Boolean = false): ComposerChrome {
-    fun toggle(fromScreenReader: Boolean) {
-        if (toolPause) state.close() else state.toggle(fromScreenReader)
-    }
-    return copy(
-        isDraftListOpen = state.isOpen && !toolPause,
-        draftListShut = toolPause,
-        onToggleDraftList = { toggle(fromScreenReader = false) },
-        onToggleDraftListFromScreenReader = { toggle(fromScreenReader = true) },
-        onFieldFocused = state::close,
-    )
-}
+internal fun ComposerChrome.withDraftList(state: DraftListState, toolPause: Boolean = false): ComposerChrome = copy(
+    isDraftListOpen = state.isOpen && !toolPause,
+    draftListShut = toolPause,
+    onToggleDraftList = if (toolPause) state.closeList else state.toggleFromTouch,
+    onToggleDraftListFromScreenReader = if (toolPause) state.closeList else state.toggleFromScreenReader,
+    onFieldFocused = state.closeList,
+)
 
 /**
  * Closes the list when a pause panel comes up ([pausePanelUp]), so the user sees the panel; it
