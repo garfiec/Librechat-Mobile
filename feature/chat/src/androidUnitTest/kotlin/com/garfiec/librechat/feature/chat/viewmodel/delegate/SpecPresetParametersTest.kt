@@ -63,6 +63,9 @@ class SpecPresetParametersTest {
         name = "deep",
         preset = Preset(endpoint = "openAI", model = "gpt-4.1", temperature = 0.9, reasoningEffort = "high", maxTokensSnake = 32000),
     )
+
+    /** [deep] after an admin moved it to another endpoint, where the server refuses the name on openAI. */
+    private val deepElsewhere = deep.copy(preset = Preset(endpoint = "azureOpenAI", model = "gpt-4.1"))
     private val quick = ModelSpec(
         name = "quick",
         preset = Preset(endpoint = "openAI", model = "gpt-4o", temperature = 0.2),
@@ -201,7 +204,7 @@ class SpecPresetParametersTest {
         delegate.applyResolvedConversationModel("openAI", "gpt-4.1", "deep")
         delegate.updateModelParameters(ModelParameters.DEFAULT.copy(temperature = 0.4f), restoring = true)
 
-        startupConfig.value = config(quick, modelSelect = true)
+        startupConfig.value = config(deepElsewhere, quick, modelSelect = true)
         advanceUntilIdle()
 
         assertThat(handle.state.selectedSpec).isNull()
@@ -210,9 +213,27 @@ class SpecPresetParametersTest {
     }
 
     @Test
+    fun aConfigThatStopsServingTheSpecOfAnOpenConversationKeepsIt() = runTest {
+        // Hidden specs are never served, but the server still applies them by name.
+        val handle = newHandle(TestScope(StandardTestDispatcher(testScheduler)), conversationId = "c1")
+        startupConfig.value = config(deep, modelSelect = true)
+        val delegate = newDelegate(handle)
+        delegate.seedInitialSelection(isNewConversation = false)
+        advanceUntilIdle()
+        delegate.applyResolvedConversationModel("openAI", "gpt-4.1", "deep")
+        delegate.updateModelParameters(ModelParameters.DEFAULT.copy(temperature = 0.4f), restoring = true)
+
+        startupConfig.value = config(quick, modelSelect = true)
+        advanceUntilIdle()
+
+        assertThat(handle.state.selection.choice).isEqualTo(ModelChoice.Spec("deep", "openAI", "gpt-4.1"))
+        assertThat(handle.state.modelParameters).isEqualTo(ModelParameters.DEFAULT.copy(temperature = 0.4f))
+    }
+
+    @Test
     fun aConversationLoadedAfterTheConfigDroppedItsSpecKeepsItsParameters() = runTest {
         val handle = newHandle(TestScope(StandardTestDispatcher(testScheduler)), conversationId = "c1")
-        startupConfig.value = config(quick, modelSelect = true)
+        startupConfig.value = config(deepElsewhere, quick, modelSelect = true)
         val delegate = newDelegate(handle)
         delegate.seedInitialSelection(isNewConversation = false)
         advanceUntilIdle()
@@ -236,7 +257,7 @@ class SpecPresetParametersTest {
         delegate.updateModelParameters(ModelParameters.DEFAULT.copy(temperature = 0.4f), restoring = true)
         assertThat(handle.state.selectedSpec).isEqualTo("deep")
 
-        startupConfig.value = config(quick, modelSelect = true)
+        startupConfig.value = config(deepElsewhere, quick, modelSelect = true)
         advanceUntilIdle()
 
         assertThat(handle.state.selectedSpec).isNull()
@@ -253,11 +274,50 @@ class SpecPresetParametersTest {
         delegate.onSpecSelected(deep)
         delegate.updateModelParameters(handle.state.modelParameters.copy(temperature = 0.3f))
 
-        startupConfig.value = config(quick, modelSelect = true)
+        startupConfig.value = config(deepElsewhere, quick, modelSelect = true)
         advanceUntilIdle()
 
         assertThat(handle.state.selectedSpec).isNull()
         assertThat(handle.state.selectedModel).isEqualTo("gpt-4.1")
+        assertThat(handle.state.modelParameters).isEqualTo(deepParameters.copy(temperature = 0.3f))
+    }
+
+    @Test
+    fun aRemovedSpecsPresetDoesNotFollowTheLandingOntoAnotherModel() = runTest {
+        // The landing sits on prioritized "deep"; the admin removes the spec and its model.
+        val handle = newHandle(TestScope(StandardTestDispatcher(testScheduler)))
+        startupConfig.value = config(deep)
+        val delegate = newDelegate(handle)
+        delegate.seedInitialSelection(isNewConversation = true)
+        advanceUntilIdle()
+        assertThat(handle.state.modelParameters).isEqualTo(deepParameters)
+
+        startupConfig.value = config(modelSelect = true)
+        advanceUntilIdle()
+        assertThat(handle.state.selection.choice).isEqualTo(ModelChoice.Raw("openAI", "gpt-4.1"))
+        assertThat(handle.state.modelParameters).isEqualTo(deepParameters)
+        availableModels.value = mapOf("openAI" to listOf("gpt-4o", "gpt-5"))
+        advanceUntilIdle()
+
+        assertThat(handle.state.selection.choice).isEqualTo(ModelChoice.Raw("openAI", "gpt-4o"))
+        assertThat(handle.state.modelParameters).isEqualTo(ModelParameters.DEFAULT)
+    }
+
+    @Test
+    fun aTweakAfterASpecDropIsTheUsersAndFollowsARawPick() = runTest {
+        val handle = newHandle(TestScope(StandardTestDispatcher(testScheduler)), conversationId = "c1")
+        startupConfig.value = config(deep, modelSelect = true)
+        val delegate = newDelegate(handle)
+        delegate.seedInitialSelection(isNewConversation = false)
+        advanceUntilIdle()
+        delegate.applyResolvedConversationModel("openAI", "gpt-4.1", "deep")
+        delegate.updateModelParameters(deepParameters, restoring = true)
+        startupConfig.value = config(deepElsewhere, modelSelect = true)
+        advanceUntilIdle()
+
+        delegate.updateModelParameters(deepParameters.copy(temperature = 0.3f))
+        delegate.onChoiceSelected(ModelChoice.Raw("openAI", "gpt-4o"))
+
         assertThat(handle.state.modelParameters).isEqualTo(deepParameters.copy(temperature = 0.3f))
     }
 

@@ -223,6 +223,40 @@ class ChatViewModelQueuedSkillsTest {
     }
 
     @Test
+    fun `a queued edit holds the item's spec as the server would after the config changed`() {
+        val curated = ModelSpec(name = "curated", preset = Preset(endpoint = ENDPOINT, model = MODEL))
+        val config = MutableStateFlow<StartupConfig?>(StartupConfig(modelSpecs = ModelSpecs(list = listOf(curated))))
+        every { fixture.configRepository.startupConfig } returns config
+        every { fixture.settingsDataStore.lastUsedSelection } returns MutableStateFlow(LastUsedSelection.NONE)
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            vm.onSpecSelected(curated)
+            runCurrent()
+            vm.onInputChanged(TEXT)
+            vm.queueMessage()
+            runCurrent()
+            val queued = vm.uiState.value.messageQueue.single().localId
+
+            // Hidden from the served list: the server still applies it, so the edit keeps it.
+            config.value = StartupConfig(modelSpecs = ModelSpecs(list = emptyList()))
+            runCurrent()
+            vm.editQueued(queued)
+            runCurrent()
+            assertThat(vm.uiState.value.selectedSpec).isEqualTo("curated")
+            vm.cancelQueuedEdit()
+            runCurrent()
+
+            // Moved to another endpoint: the server would refuse the name with this model.
+            config.value = StartupConfig(
+                modelSpecs = ModelSpecs(list = listOf(curated.copy(preset = Preset(endpoint = "elsewhere", model = MODEL)))),
+            )
+            runCurrent()
+            vm.editQueued(queued)
+            runCurrent()
+            assertThat(vm.uiState.value.selection.choice).isEqualTo(ModelChoice.Raw(ENDPOINT, MODEL))
+        }
+    }
+
+    @Test
     fun `editing a message queued on a spec with Skills on keeps it on after a raw model pick`() {
         val curated = ModelSpec(name = "curated", preset = Preset(endpoint = ENDPOINT, model = MODEL))
         serveSpecs(curated)

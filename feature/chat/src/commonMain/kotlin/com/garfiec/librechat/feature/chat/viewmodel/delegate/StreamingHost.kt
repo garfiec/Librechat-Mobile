@@ -31,4 +31,7 @@ interface StreamingHost {
      * still cleared.
      */
     fun unsendTurn(optimisticId: String?)
+
+    /** Opens the model picker after the server refused the turn's spec ([isSpecRefusal]). */
+    fun surfaceSpecRefusal()
 }

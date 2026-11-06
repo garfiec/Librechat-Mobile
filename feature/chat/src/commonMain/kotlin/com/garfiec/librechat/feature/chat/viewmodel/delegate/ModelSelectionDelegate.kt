@@ -23,21 +23,23 @@ import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
+import com.garfiec.librechat.feature.chat.util.DroppedSpecMemo
 import com.garfiec.librechat.feature.chat.util.SpecSeed
 import com.garfiec.librechat.feature.chat.util.StartChatPick
 import com.garfiec.librechat.feature.chat.util.demotedForLastUsed
 import com.garfiec.librechat.feature.chat.util.fallbackSpecSeeds
-import com.garfiec.librechat.feature.chat.util.offeredOrUnchecked
+import com.garfiec.librechat.feature.chat.util.heldAgainst
 import com.garfiec.librechat.feature.chat.util.reopenedPick
 import com.garfiec.librechat.feature.chat.util.requiresSpec
 import com.garfiec.librechat.feature.chat.util.resolveDefaultModelSpec
 import com.garfiec.librechat.feature.chat.util.resolvedAgainst
 import com.garfiec.librechat.feature.chat.util.seedableLastUsed
+import com.garfiec.librechat.feature.chat.util.stored
 import com.garfiec.librechat.feature.chat.util.toChoice
 import com.garfiec.librechat.feature.chat.util.toSeed
 import com.garfiec.librechat.feature.chat.util.withChoice
 import com.garfiec.librechat.feature.chat.util.withSpecsRefreshed
-import com.garfiec.librechat.feature.chat.util.withoutStale
+import com.garfiec.librechat.feature.chat.util.withUngatedDefault
 import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
@@ -151,8 +153,7 @@ class ModelSelectionDelegate(
      * and by [ChatViewModel]'s conversation reads — so the flags can't drift from the value.
      */
     fun applyResolvedConversationModel(endpoint: String, model: String?, spec: String? = null) {
-        val config = configRepository.startupConfig.value
-        val choice = spec.offeredOrUnchecked(endpoint, model, config?.modelSpecs, checkable = config != null)
+        val choice = ModelChoice.stored(endpoint, model, spec, configRepository.startupConfig.value?.modelSpecs)
         applySelection(choice, reason = "conversationResolved", specPreset = false)
         conversationModelLoaded = true
         conversationModelResolved = true
@@ -562,7 +563,8 @@ class ModelSelectionDelegate(
                     agents = agents.agents,
                     agentsLoaded = agents.loaded,
                     conversationId = agents.conversationId,
-                    serverSpecSeed = resolveDefaultModelSpec(specConfig.modelSpecs, specConfig.modelSelect, lastUsed.spec),
+                    serverSpecSeed = resolveDefaultModelSpec(specConfig.modelSpecs, specConfig.modelSelect, lastUsed.spec)
+                        .withUngatedDefault(specConfig.modelSpecs),
                     modelSpecs = specConfig.modelSpecs,
                     modelSelect = specConfig.modelSelect,
                     preferLastUsed = specConfig.preferLastUsed,
@@ -580,7 +582,9 @@ class ModelSelectionDelegate(
                         tier0AwaitingSpecs = null
                         tier0SpecsArrived = true
                     }
-                    val current = handle.state.selection.choice.withoutStale(input.modelSpecs)
+                    val seeded = onLanding && handle.state.selection.choice == seederChoice
+                    val before = handle.state.selection
+                    val current = before.choice.heldAgainst(input.modelSpecs, seeded)
                     // Still the raw pair the entry point applied before the config: resolve it now.
                     val resolved = awaiting
                         ?.takeIf { current == ModelChoice.Raw(it.endpoint, it.model) }
@@ -596,9 +600,10 @@ class ModelSelectionDelegate(
                     selectionWatches.configRewrite {
                         handle.update {
                             selection = resolved?.let { selection.withChoice(it, input.modelSpecs) }
-                                ?: selection.withSpecsRefreshed(input.modelSpecs)
+                                ?: selection.withSpecsRefreshed(input.modelSpecs, seeded)
                         }
                     }
+                    droppedSpec.record(before, handle.state.selection)
                 }
                 // Keep the cached last-used fresh for refilterModels' existing-
                 // conversation corrective fallback. This runs for every conversation
@@ -698,7 +703,6 @@ class ModelSelectionDelegate(
             preferLastUsed = input.preferLastUsed,
             modelSelect = input.modelSelect,
             lastUsed = lastUsed,
-            specs = input.modelSpecs,
         )
         // Switching the setting on while this landing sits on the spec should hand it to last-used,
         // which the re-sync below does only for a last-used it hasn't applied yet. Only when the
@@ -913,7 +917,8 @@ class ModelSelectionDelegate(
         val previous = handle.state
         val changed = previous.selectedEndpoint != choice.endpoint || previous.selectedModel != choice.model
         reseedCarried = false
-        handle.update { selection = if (specPreset) selection.withChoice(choice) else selection.copy(choice = choice) }
+        val from = droppedSpec.take(previous.selection, choice) ?: previous.selection.choice
+        handle.update { selection = if (specPreset) selection.withChoice(choice, from = from) else selection.copy(choice = choice) }
         if (changed) {
             Diag.d(
                 tag = "ModelSel",
@@ -986,6 +991,8 @@ class ModelSelectionDelegate(
     }
 
     private enum class Selectability { VALID, PENDING, INVALID }
+
+    private val droppedSpec = DroppedSpecMemo()
 
     // Transport-only snapshots: no copy, destructuring or structural equality is used.
     // Avoid generating equality/hash code over the full config and agent graphs on Native.
