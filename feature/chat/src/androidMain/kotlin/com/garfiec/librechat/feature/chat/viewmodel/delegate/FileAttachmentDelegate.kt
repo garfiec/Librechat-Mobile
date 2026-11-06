@@ -90,12 +90,11 @@ class FileAttachmentDelegate(
         route: UploadRoute,
         pdfPassword: String? = null,
         /**
-         * A retry: the upload takes over this entry's place in the tray rather than appending, and
-         * does nothing when the entry is gone (removed, or the tray swapped to another draft).
+         * A retry: the upload takes over this entry's place in the tray rather than appending
+         * (`UploadIntakeDelegate.retryUpload` asks only for a failed entry still in the tray).
          */
         replacing: AttachedFile? = null,
     ) {
-        if (replacing != null && _attachedFiles.value.none { it.key == replacing.key }) return
         // Each pick is its own entry, even one whose Uri is already in the tray: every write below
         // names the entry, never the Uri, so a file attached twice is two files.
         val entryId = if (replacing != null) replacing.entryId else UUID.randomUUID().toString()
@@ -122,11 +121,7 @@ class FileAttachmentDelegate(
         val key = pendingFile.key
 
         _attachedFiles.update { currentList ->
-            if (replacing != null) {
-                currentList.map { if (it.key == key) pendingFile else it }
-            } else {
-                currentList + pendingFile
-            }
+            if (replacing != null) currentList.updateEntry(key) { pendingFile } else currentList + pendingFile
         }
 
         uploadJobs[key] = handle.scope.launch(ioDispatcher) {
@@ -224,17 +219,8 @@ class FileAttachmentDelegate(
                 if (needsTypeUpdate || needsNameUpdate || effectiveRoute != route) {
                     val isImageType = mimeType.startsWith("image/")
                     _attachedFiles.update { currentList ->
-                        currentList.map { f ->
-                            if (f.key == key) {
-                                f.copy(
-                                    type = mimeType,
-                                    isImage = isImageType,
-                                    name = uploadFilename,
-                                    route = effectiveRoute,
-                                )
-                            } else {
-                                f
-                            }
+                        currentList.updateEntry(key) { f ->
+                            f.copy(type = mimeType, isImage = isImageType, name = uploadFilename, route = effectiveRoute)
                         }
                     }
                 }
@@ -281,19 +267,15 @@ class FileAttachmentDelegate(
                         }
                         // Atomically update the attached file with server data
                         _attachedFiles.update { currentList ->
-                            currentList.map { f ->
-                                if (f.key == key) {
-                                    f.copy(
-                                        uploadProgress = 1f,
-                                        fileId = fileObject.fileId,
-                                        filepath = fileObject.filepath,
-                                        type = fileObject.type,
-                                        width = fileObject.width,
-                                        height = fileObject.height,
-                                    )
-                                } else {
-                                    f
-                                }
+                            currentList.updateEntry(key) { f ->
+                                f.copy(
+                                    uploadProgress = 1f,
+                                    fileId = fileObject.fileId,
+                                    filepath = fileObject.filepath,
+                                    type = fileObject.type,
+                                    width = fileObject.width,
+                                    height = fileObject.height,
+                                )
                             }
                         }
                     }
@@ -308,16 +290,7 @@ class FileAttachmentDelegate(
                             return@launch
                         }
                         Logger.e(result.exception) { "uploadFile: server error -- ${result.message}" }
-                        // Atomically mark failed and remove from list in one update
-                        _attachedFiles.update { currentList ->
-                            currentList.map { f ->
-                                if (f.key == key) {
-                                    f.copy(uploadFailed = true, uploadProgress = null)
-                                } else {
-                                    f
-                                }
-                            }
-                        }
+                        markUploadFailed(key)
                         handle.setError(ChatNotice.uploadFailed(filename, result.message))
                     }
                     is Result.Loading -> {
@@ -337,19 +310,11 @@ class FileAttachmentDelegate(
     }
 
     private fun updateFileProgress(key: Any, progress: Float?) {
-        _attachedFiles.update { currentList ->
-            currentList.map { f ->
-                if (f.key == key) f.copy(uploadProgress = progress) else f
-            }
-        }
+        _attachedFiles.update { it.updateEntry(key) { f -> f.copy(uploadProgress = progress) } }
     }
 
     private fun markUploadFailed(key: Any) {
-        _attachedFiles.update { currentList ->
-            currentList.map { f ->
-                if (f.key == key) f.copy(uploadFailed = true, uploadProgress = null) else f
-            }
-        }
+        _attachedFiles.update { it.updateEntry(key) { f -> f.copy(uploadFailed = true, uploadProgress = null) } }
     }
 
     fun removeFile(file: AttachedFile) {
@@ -364,8 +329,6 @@ class FileAttachmentDelegate(
      * row says), else routed afresh: see `ChatUiState.retryUploadRoute`.
      */
     fun retryUpload(file: AttachedFile) {
-        // Gone from the tray (the user's ×, or a swap to another draft): putting it back would undo that.
-        if (_attachedFiles.value.none { it.key == file.key }) return
         pdfPrompts.remove(file.key)
         uploadJobs.remove(file.key)?.cancel()
         val route = handle.state.retryUploadRoute(file.route, file.type)

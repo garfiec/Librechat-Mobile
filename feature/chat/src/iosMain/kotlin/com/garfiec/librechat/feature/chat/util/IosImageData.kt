@@ -5,9 +5,9 @@ package com.garfiec.librechat.feature.chat.util
  * Passed as the platform reference through [PlatformFileHandler.onFilesSelected].
  */
 class IosImageData(
-    val bytes: ByteArray,
-    val filename: String,
-    val mimeType: String,
+    override val bytes: ByteArray,
+    override val filename: String,
+    override val mimeType: String,
     val width: Int? = null,
     val height: Int? = null,
     /**
@@ -16,4 +16,4 @@ class IosImageData(
      * HEIC the thumbnail can't decode.
      */
     val preview: ByteArray? = null,
-)
+) : IosPickedData

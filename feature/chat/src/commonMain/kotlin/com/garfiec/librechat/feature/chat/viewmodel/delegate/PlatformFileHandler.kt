@@ -99,9 +99,15 @@ interface PlatformFileHandler {
     fun dismissPdfPassword()
 }
 
-/** [file] inserted at [index], clamped to the list. Shared by both handlers' [PlatformFileHandler.insertAt]. */
-fun List<AttachedFile>.insertedAt(index: Int, file: AttachedFile): List<AttachedFile> =
-    toMutableList().apply { add(index.coerceIn(0, size), file) }
+/**
+ * [item] inserted at [index], clamped to the list: an Undo putting a removed draft item back
+ * (both handlers' [PlatformFileHandler.insertAt], a skill, a quote).
+ */
+fun <T> List<T>.insertedAt(index: Int, item: T): List<T> = toMutableList().apply { add(index.coerceIn(0, size), item) }
+
+/** This tray with the entry [key] names ([AttachedFile.key]) replaced by [transform] of it; the rest as they are. */
+fun List<AttachedFile>.updateEntry(key: Any, transform: (AttachedFile) -> AttachedFile): List<AttachedFile> =
+    map { if (it.key == key) transform(it) else it }
 
 /**
  * Appends [files] to an already-uploaded tray, deduping by `fileId` against what's already present

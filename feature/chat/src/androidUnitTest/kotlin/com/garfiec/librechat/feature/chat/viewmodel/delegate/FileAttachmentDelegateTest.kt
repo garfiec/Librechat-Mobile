@@ -172,29 +172,6 @@ class FileAttachmentDelegateTest {
     }
 
     @Test
-    fun `a retry for a file no longer in the tray uploads nothing and adds nothing`() {
-        var calls = 0
-        val repository = mockk<FileRepository> {
-            coEvery {
-                uploadFile(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
-            } answers {
-                if (++calls == 1) Result.Error(message = "offline") else Result.Success(serverRecord(arg(1)))
-            }
-        }
-        val delegate = uploadingDelegate(repository)
-        delegate.onFilesSelected(
-            listOf(RoutedFile(PickedFile(mockk<Uri>(), "notes.txt", "text/plain"), UploadRoute.TEXT)),
-        )
-        val failed = delegate.attachedFiles.value.single()
-        delegate.removeFile(failed)
-
-        delegate.retryUpload(failed)
-
-        assertThat(delegate.attachedFiles.value).isEmpty()
-        assertThat(calls).isEqualTo(1)
-    }
-
-    @Test
     fun `a retry after the selection moved re-routes a route the new selection can't use`() {
         val toolResources = mutableListOf<String?>()
         var calls = 0

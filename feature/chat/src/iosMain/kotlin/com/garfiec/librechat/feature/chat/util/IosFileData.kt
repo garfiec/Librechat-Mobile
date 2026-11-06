@@ -5,7 +5,7 @@ package com.garfiec.librechat.feature.chat.util
  * For non-image files. Passed through [PlatformFileHandler.onFilesSelected].
  */
 class IosFileData(
-    val bytes: ByteArray,
-    val filename: String,
-    val mimeType: String,
-)
+    override val bytes: ByteArray,
+    override val filename: String,
+    override val mimeType: String,
+) : IosPickedData

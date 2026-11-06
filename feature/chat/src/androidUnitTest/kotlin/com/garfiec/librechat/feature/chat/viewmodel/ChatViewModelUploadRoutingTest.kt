@@ -627,6 +627,16 @@ class ChatViewModelUploadRoutingTest {
     }
 
     @Test
+    fun `a retry for a file no longer in the tray does nothing`() =
+        routingTest(endpoint = "anthropic") { vm ->
+            // Taken off the message while its row was still on screen: a retry now would upload it again.
+            tray.value = emptyList()
+            vm.retryUpload(failedDocx)
+            runCurrent()
+            verify(exactly = 0) { fileHandler.retryUpload(any()) }
+        }
+
+    @Test
     fun `a retry for a row that is not failed does nothing`() =
         routingTest(endpoint = "anthropic") { vm ->
             val uploaded = failedDocx.copy(uploadFailed = false, uploadProgress = 1f, fileId = "f1")

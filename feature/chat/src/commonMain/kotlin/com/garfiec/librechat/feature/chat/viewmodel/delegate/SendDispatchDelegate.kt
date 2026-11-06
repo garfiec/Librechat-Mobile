@@ -282,8 +282,7 @@ class SendDispatchDelegate(
         var restored = false
         handle.update {
             if (name in pendingManualSkills || pendingManualSkills.size >= MAX_MANUAL_SKILLS) return@update
-            pendingManualSkills = pendingManualSkills.toMutableList()
-                .apply { add(index.coerceIn(0, size), name) }
+            pendingManualSkills = pendingManualSkills.insertedAt(index, name)
             restored = true
         }
         if (restored && heldBack) heldBackForCatalog = heldBackForCatalog + name
@@ -353,7 +352,7 @@ class SendDispatchDelegate(
     /** Undo of [removePendingQuote]: puts [quote] back at [index], clamped to the chips staged now. */
     fun restorePendingQuote(index: Int, quote: String) {
         handle.update {
-            pendingQuotes = pendingQuotes.toMutableList().apply { add(index.coerceIn(0, size), quote) }
+            pendingQuotes = pendingQuotes.insertedAt(index, quote)
         }
     }
 
