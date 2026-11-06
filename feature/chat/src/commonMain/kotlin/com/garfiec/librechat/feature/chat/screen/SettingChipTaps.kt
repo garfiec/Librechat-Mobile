@@ -10,11 +10,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import com.garfiec.librechat.feature.chat.components.ephemeralToolMeta
+import com.garfiec.librechat.feature.chat.components.lockedByMessage
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.action_undo
-import com.garfiec.librechat.feature.chat.resources.setting_chip_set_by
 import com.garfiec.librechat.feature.chat.resources.setting_chip_turned_off
-import com.garfiec.librechat.feature.chat.resources.tool_set_by_spec
 import com.garfiec.librechat.feature.chat.util.SettingChip
 import com.garfiec.librechat.feature.chat.util.SettingChipTap
 import com.garfiec.librechat.feature.chat.util.SettingChipUndoScope
@@ -69,13 +68,12 @@ internal fun rememberSettingChipTap(
                 SettingChipTap.OpenThinking -> openThinking()
                 is SettingChipTap.SignIn -> signIn(tap.serverName)
                 // The chip opens its own menu; its items come back through the composer chrome.
-                is SettingChipTap.SignInMenu -> Unit
+                SettingChipTap.SignInMenu -> Unit
                 // A reconnect or cancel is out; the chip is disabled until it ends.
                 SettingChipTap.WaitForSignIn -> Unit
                 SettingChipTap.Toggle -> toggle(chip)
                 is SettingChipTap.ExplainLock -> scope.launch {
-                    val message = tap.specLabel?.let { getString(Res.string.setting_chip_set_by, it) }
-                        ?: getString(Res.string.tool_set_by_spec)
+                    val message = getString(lockedByMessage(tap.specLabel), tap.specLabel.orEmpty())
                     snackbarHostState.currentSnackbarData?.dismiss()
                     snackbarHostState.showSnackbar(message)
                 }

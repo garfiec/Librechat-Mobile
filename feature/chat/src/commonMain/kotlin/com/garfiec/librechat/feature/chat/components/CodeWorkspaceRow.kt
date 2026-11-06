@@ -163,6 +163,10 @@ internal fun CodeWorkspaceRow(composer: CodeWorkspaceComposer, modifier: Modifie
     }
 }
 
+/** The settings line's leading slot: [composer]'s chips while they are on the line, else none. */
+internal fun codeWorkspaceLineLeading(composer: CodeWorkspaceComposer?): (@Composable () -> Unit)? =
+    if (composer?.state?.onSettingsLine == true) ({ CodeWorkspaceLineChips(composer) }) else null
+
 /**
  * The settings line's leading chips while no card shows ([CodeWorkspaceUiState.onSettingsLine]): a
  * folded chat's "machine · workspace" chip, then the approval chip. The same callbacks and menus as
@@ -170,9 +174,8 @@ internal fun CodeWorkspaceRow(composer: CodeWorkspaceComposer, modifier: Modifie
  * offer, else re-reads the machine's status.
  */
 @Composable
-internal fun CodeWorkspaceLineChips(composer: CodeWorkspaceComposer) {
+private fun CodeWorkspaceLineChips(composer: CodeWorkspaceComposer) {
     val state = composer.state
-    if (state.visible) return
     if (state.folded) FoldedWorkspaceChip(state, composer)
     state.approval?.let { ApprovalChip(it, composer.onSelectApprovalMode) }
 }

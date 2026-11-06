@@ -1260,13 +1260,6 @@
     <string name="draft_item_removed">تمت إزالة %1$s</string>
     <string name="setting_chip_set_by">من إعداد %1$s</string>
     <string name="setting_chip_turned_off">تم إيقاف %1$s</string>
-    <string name="setting_chip_connected">متصل</string>
-    <string name="setting_chip_not_connected">غير متصل</string>
-    <string name="setting_chip_connecting">جارٍ الاتصال…</string>
-    <string name="setting_chip_needs_sign_in">يلزم تسجيل الدخول</string>
-    <string name="setting_chip_needs_setup">أكمل الإعداد على الويب</string>
-    <string name="setting_chip_on_demand">يتصل عند الدردشة</string>
-    <string name="setting_chip_failed">تعذّر الاتصال</string>
     <string name="setting_chip_sign_in">· سجّل الدخول</string>
     <string name="setting_chip_connecting_suffix">· جارٍ الاتصال</string>
     <string name="mcp_chip_cancel_sign_in">إلغاء تسجيل الدخول</string>

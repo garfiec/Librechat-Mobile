@@ -1160,13 +1160,6 @@
     <string name="draft_item_removed">已移除 %1$s</string>
     <string name="setting_chip_set_by">由 %1$s 设置</string>
     <string name="setting_chip_turned_off">已关闭 %1$s</string>
-    <string name="setting_chip_connected">已连接</string>
-    <string name="setting_chip_not_connected">未连接</string>
-    <string name="setting_chip_connecting">正在连接…</string>
-    <string name="setting_chip_needs_sign_in">需要登录</string>
-    <string name="setting_chip_needs_setup">请在网页版中设置</string>
-    <string name="setting_chip_on_demand">聊天时连接</string>
-    <string name="setting_chip_failed">无法连接</string>
     <string name="setting_chip_sign_in">· 登录</string>
     <string name="setting_chip_connecting_suffix">· 正在连接</string>
     <string name="mcp_chip_cancel_sign_in">取消登录</string>

@@ -1193,13 +1193,6 @@
     <string name="draft_item_removed">Retiré : %1$s</string>
     <string name="setting_chip_set_by">Défini par %1$s</string>
     <string name="setting_chip_turned_off">Désactivé : %1$s</string>
-    <string name="setting_chip_connected">Connecté</string>
-    <string name="setting_chip_not_connected">Non connecté</string>
-    <string name="setting_chip_connecting">Connexion…</string>
-    <string name="setting_chip_needs_sign_in">Connexion requise</string>
-    <string name="setting_chip_needs_setup">À configurer sur le web</string>
-    <string name="setting_chip_on_demand">Se connecte pendant vos chats</string>
-    <string name="setting_chip_failed">Connexion impossible</string>
     <string name="setting_chip_sign_in">· se connecter</string>
     <string name="setting_chip_connecting_suffix">· connexion</string>
     <string name="mcp_chip_cancel_sign_in">Annuler la connexion</string>

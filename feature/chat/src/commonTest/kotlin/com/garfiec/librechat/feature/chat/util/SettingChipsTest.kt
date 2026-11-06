@@ -109,8 +109,8 @@ class SettingChipsTest {
             listOf<SettingChip>(
                 SettingChip.Tool(ToolConstants.WEB_SEARCH, SettingChipState.LOCKED, pinned = false),
                 SettingChip.Tool(ToolConstants.FILE_SEARCH, SettingChipState.ON, pinned = false),
-                SettingChip.Mcp("linear", "Linear", SettingChipState.ON, McpDisplayStatus.CONNECTED),
-                SettingChip.Mcp("docs", "docs", SettingChipState.LOCKED, McpDisplayStatus.NEEDS_SIGN_IN),
+                SettingChip.Mcp(linear, SettingChipState.ON),
+                SettingChip.Mcp(docs, SettingChipState.LOCKED),
             ),
             line.chips,
         )
@@ -254,7 +254,7 @@ class SettingChipsTest {
         val byName = line.chips.filterIsInstance<SettingChip.Mcp>().associateBy { it.name }
 
         // A pending sign-in offers Cancel sign-in and Start over (the chip's own menu), never off.
-        assertEquals(SettingChipTap.SignInMenu("github"), line.tapFor(byName.getValue("github")))
+        assertEquals(SettingChipTap.SignInMenu, line.tapFor(byName.getValue("github")))
         assertEquals(SettingChipTap.SignIn("drive"), line.tapFor(byName.getValue("drive")))
         // Not OAuth: nothing to sign in to, so the ordinary tap.
         assertEquals(SettingChipTap.TurnOffWithUndo, line.tapFor(byName.getValue("search")))
@@ -310,7 +310,7 @@ class SettingChipsTest {
         val chip = line.chips.filterIsInstance<SettingChip.Mcp>().single()
 
         assertEquals(SettingChipState.LOCKED, chip.state)
-        assertEquals(SettingChipTap.SignInMenu("docs"), line.tapFor(chip))
+        assertEquals(SettingChipTap.SignInMenu, line.tapFor(chip))
     }
 
     @Test

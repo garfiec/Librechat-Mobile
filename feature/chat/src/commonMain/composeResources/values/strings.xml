@@ -1234,13 +1234,6 @@
     <string name="draft_item_removed">Removed %1$s</string>
     <string name="setting_chip_set_by">Set by %1$s</string>
     <string name="setting_chip_turned_off">%1$s turned off</string>
-    <string name="setting_chip_connected">Connected</string>
-    <string name="setting_chip_not_connected">Not connected</string>
-    <string name="setting_chip_connecting">Connecting…</string>
-    <string name="setting_chip_needs_sign_in">Sign-in needed</string>
-    <string name="setting_chip_needs_setup">Set up on the web</string>
-    <string name="setting_chip_on_demand">Connects when you chat</string>
-    <string name="setting_chip_failed">Can't connect</string>
     <!-- After an MCP server's name on its settings chip when it needs the user to sign in; a tap starts the sign-in -->
     <string name="setting_chip_sign_in">· sign in</string>
     <string name="setting_chip_connecting_suffix">· connecting</string>

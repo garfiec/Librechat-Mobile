@@ -21,17 +21,15 @@ sealed interface SettingChip {
     /** A tool from the "+" sheet; [pinned] when the server pins it, so turning it off keeps it on the line. */
     data class Tool(val key: String, override val state: SettingChipState, val pinned: Boolean) : SettingChip
 
-    /** A selected MCP server, with its last reported [status]. */
-    data class Mcp(
-        val name: String,
-        val label: String,
-        override val state: SettingChipState,
-        val status: McpDisplayStatus,
+    /** A selected MCP server, with its last reported status. */
+    data class Mcp(val server: McpServerDisplayData, override val state: SettingChipState) : SettingChip {
+        val name: String get() = server.name
+        val label: String get() = server.label
+        val status: McpDisplayStatus get() = server.status
+
         /** It signs in with OAuth ([McpServerDisplayData.requiresOAuth]). */
-        val requiresOAuth: Boolean = false,
-        /** A chip's sign-in reconnect or a cancel is out ([McpServerDisplayData.signInBusy]). */
-        val signInBusy: Boolean = false,
-    ) : SettingChip {
+        private val requiresOAuth: Boolean get() = server.requiresOAuth
+
         /**
          * A tap starts the sign-in rather than turning it off, and the chip says so ("· sign in", a
          * "Sign in" click label): a server that needs sign-in, or an OAuth server whose connection
@@ -54,7 +52,11 @@ sealed interface SettingChip {
          * ([signInBusy]), which would ignore either: the chip waits, disabled, until that ends.
          */
         val waitsForSignIn: Boolean
-            get() = signInBusy && (signInPending || signsInOnTap)
+            get() = server.signInBusy && (signInPending || signsInOnTap)
+
+        /** Its tap opens the "Cancel sign-in" / "Start over" menu ([SettingChipTap.SignInMenu]). */
+        val opensMenu: Boolean
+            get() = signInPending && !waitsForSignIn
     }
 
     /** The per-turn Thinking control; a tap opens its sheet. */
@@ -127,16 +129,7 @@ fun settingChipsOf(inputs: SettingChipInputs): SettingChips {
                 if (server.name !in inputs.mcpOn) return@forEach
                 val locked = server.name in inputs.lockedMcpServers
                 if (!locked && !inputs.mcpAllowed) return@forEach
-                add(
-                    SettingChip.Mcp(
-                        name = server.name,
-                        label = server.title?.takeIf { it.isNotBlank() } ?: server.name,
-                        state = if (locked) SettingChipState.LOCKED else SettingChipState.ON,
-                        status = server.status,
-                        requiresOAuth = server.requiresOAuth,
-                        signInBusy = server.signInBusy,
-                    ),
-                )
+                add(SettingChip.Mcp(server, if (locked) SettingChipState.LOCKED else SettingChipState.ON))
             }
         }
         inputs.thinking?.let { add(SettingChip.Thinking(it)) }
@@ -170,7 +163,7 @@ fun pinnedToolKey(key: String): String? = when (key) {
     else -> null
 }
 
-/** The tools the settings line can show, in the "+" sheet's order. */
+/** The tools the "+" sheet offers rows for and the settings line can show, in that order. */
 val SETTING_TOOL_ORDER: List<String> = listOf(
     ToolConstants.WEB_SEARCH,
     ToolConstants.URL_CONTEXT,
@@ -206,7 +199,7 @@ sealed interface SettingChipTap {
      * An MCP server whose sign-in is pending ([SettingChip.Mcp.signInPending]): the chip opens its
      * own menu, "Cancel sign-in" and "Start over", so the screen does nothing with the tap.
      */
-    data class SignInMenu(val serverName: String) : SettingChipTap
+    data object SignInMenu : SettingChipTap
 
     /** An MCP chip whose sign-in can't start yet ([SettingChip.Mcp.waitsForSignIn]): nothing. */
     data object WaitForSignIn : SettingChipTap
@@ -221,7 +214,7 @@ fun SettingChips.tapFor(chip: SettingChip): SettingChipTap {
     val state = chip.state ?: return SettingChipTap.OpenThinking
     return when {
         chip is SettingChip.Mcp && chip.waitsForSignIn -> SettingChipTap.WaitForSignIn
-        chip is SettingChip.Mcp && chip.signInPending -> SettingChipTap.SignInMenu(chip.name)
+        chip is SettingChip.Mcp && chip.opensMenu -> SettingChipTap.SignInMenu
         chip is SettingChip.Mcp && chip.signsInOnTap -> SettingChipTap.SignIn(chip.name)
         state == SettingChipState.LOCKED -> SettingChipTap.ExplainLock(lockedBy)
         chip is SettingChip.Tool && chip.pinned -> SettingChipTap.Toggle

@@ -21,6 +21,7 @@ import com.garfiec.librechat.core.model.usage.TokenBudgetBreakdown
 import com.garfiec.librechat.core.ui.contextusage.ContextBreakdownModel
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
+import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.util.SettingChip
 import com.garfiec.librechat.feature.chat.util.SettingChipState
 import com.garfiec.librechat.feature.chat.util.SettingChips
@@ -68,8 +69,8 @@ private fun SettingsLineStates() {
                     SettingChip.Tool(ToolConstants.WEB_SEARCH, SettingChipState.ON, pinned = true),
                     SettingChip.Tool(ToolConstants.CODE_INTERPRETER, SettingChipState.PINNED_OFF, pinned = true),
                     SettingChip.Tool(ToolConstants.MEMORY, SettingChipState.ON, pinned = false),
-                    SettingChip.Mcp("linear", "Linear", SettingChipState.ON, McpDisplayStatus.CONNECTED),
-                    SettingChip.Mcp("github", "GitHub Enterprise (internal mirror)", SettingChipState.ON, McpDisplayStatus.DISCONNECTED),
+                    mcpChip("linear", "Linear", McpDisplayStatus.CONNECTED, SettingChipState.ON),
+                    mcpChip("github", "GitHub Enterprise (internal mirror)", McpDisplayStatus.DISCONNECTED, SettingChipState.ON),
                     SettingChip.Thinking(thinking(pending = null)),
                 ),
             ),
@@ -81,7 +82,7 @@ private fun SettingsLineStates() {
             chips = SettingChips(
                 listOf(
                     SettingChip.Tool(ToolConstants.FILE_SEARCH, SettingChipState.LOCKED, pinned = false),
-                    SettingChip.Mcp("docs", "Docs", SettingChipState.LOCKED, McpDisplayStatus.CONNECTED),
+                    mcpChip("docs", "Docs", McpDisplayStatus.CONNECTED, SettingChipState.LOCKED),
                     SettingChip.Thinking(thinking(pending = "high")),
                 ),
                 lockedBy = "Research assistant",
@@ -99,13 +100,13 @@ private fun SettingsLineStates() {
         ComposerSettingsLine(
             chips = SettingChips(
                 listOf(
-                    SettingChip.Mcp("github", "GitHub Enterprise (internal mirror)", SettingChipState.ON, McpDisplayStatus.NEEDS_SIGN_IN),
-                    SettingChip.Mcp("docs", "Docs", SettingChipState.LOCKED, McpDisplayStatus.NEEDS_SIGN_IN),
-                    SettingChip.Mcp("drive", "Drive", SettingChipState.ON, McpDisplayStatus.CONNECTING, requiresOAuth = true),
-                    SettingChip.Mcp("linear", "Linear", SettingChipState.ON, McpDisplayStatus.CONNECTING),
-                    SettingChip.Mcp("jira", "Jira", SettingChipState.ON, McpDisplayStatus.NEEDS_SETUP),
-                    SettingChip.Mcp("sentry", "Sentry", SettingChipState.ON, McpDisplayStatus.FAILED),
-                    SettingChip.Mcp("notes", "Notes", SettingChipState.ON, McpDisplayStatus.ON_DEMAND),
+                    mcpChip("github", "GitHub Enterprise (internal mirror)", McpDisplayStatus.NEEDS_SIGN_IN, SettingChipState.ON),
+                    mcpChip("docs", "Docs", McpDisplayStatus.NEEDS_SIGN_IN, SettingChipState.LOCKED),
+                    mcpChip("drive", "Drive", McpDisplayStatus.CONNECTING, SettingChipState.ON, oauth = true),
+                    mcpChip("linear", "Linear", McpDisplayStatus.CONNECTING, SettingChipState.ON),
+                    mcpChip("jira", "Jira", McpDisplayStatus.NEEDS_SETUP, SettingChipState.ON),
+                    mcpChip("sentry", "Sentry", McpDisplayStatus.FAILED, SettingChipState.ON),
+                    mcpChip("notes", "Notes", McpDisplayStatus.ON_DEMAND, SettingChipState.ON),
                 ),
                 lockedBy = "Research assistant",
             ),
@@ -148,3 +149,6 @@ private fun gauge(used: Int, nudge: CompactNudge?) = ContextGaugeDetails(
     sections = ContextDetailPreset.STANDARD.sections,
     nudge = nudge,
 )
+
+private fun mcpChip(name: String, label: String, status: McpDisplayStatus, state: SettingChipState, oauth: Boolean = false) =
+    SettingChip.Mcp(McpServerDisplayData(name, label, null, status, requiresOAuth = oauth), state)

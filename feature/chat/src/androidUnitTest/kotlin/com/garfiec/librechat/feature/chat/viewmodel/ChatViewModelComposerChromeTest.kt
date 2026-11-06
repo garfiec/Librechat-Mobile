@@ -15,6 +15,7 @@ import com.garfiec.librechat.core.model.response.ChatResumeResponse
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
 import com.garfiec.librechat.core.model.response.SteerResponse
 import com.garfiec.librechat.feature.chat.components.AttachedFile
+import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.util.SettingChip
 import com.garfiec.librechat.feature.chat.util.SettingChipState
 import com.garfiec.librechat.feature.chat.util.SettingChipUndoScope
@@ -414,7 +415,7 @@ class ChatViewModelComposerChromeTest {
     @Test
     fun `an MCP settings chip switches its server and its undo brings it back`() =
         queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
-            val chip = SettingChip.Mcp("linear", "Linear", SettingChipState.ON, McpDisplayStatus.CONNECTED)
+            val chip = SettingChip.Mcp(McpServerDisplayData("linear", "Linear", null, McpDisplayStatus.CONNECTED), SettingChipState.ON)
             vm.toggleMcpServer("linear")
             assertThat(vm.uiState.value.effectiveMcpServerNames).containsExactly("linear")
 
@@ -469,7 +470,7 @@ class ChatViewModelComposerChromeTest {
     @Test
     fun `a queued edit's settings chip undo does nothing once the edit has ended`() =
         queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
-            val chip = SettingChip.Mcp("linear", "Linear", SettingChipState.ON, McpDisplayStatus.CONNECTED)
+            val chip = SettingChip.Mcp(McpServerDisplayData("linear", "Linear", null, McpDisplayStatus.CONNECTED), SettingChipState.ON)
             vm.onInputChanged(TEXT)
             vm.toggleMcpServer("linear")
             vm.queueMessage()
@@ -493,7 +494,7 @@ class ChatViewModelComposerChromeTest {
     @Test
     fun `a queued edit's settings chip undo turns it back on within the same edit`() =
         queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
-            val chip = SettingChip.Mcp("linear", "Linear", SettingChipState.ON, McpDisplayStatus.CONNECTED)
+            val chip = SettingChip.Mcp(McpServerDisplayData("linear", "Linear", null, McpDisplayStatus.CONNECTED), SettingChipState.ON)
             vm.onInputChanged(TEXT)
             vm.toggleMcpServer("linear")
             vm.queueMessage()

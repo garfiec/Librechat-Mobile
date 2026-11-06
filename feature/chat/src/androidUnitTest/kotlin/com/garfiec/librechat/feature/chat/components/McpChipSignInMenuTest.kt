@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
+import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.util.SettingChip
 import com.garfiec.librechat.feature.chat.util.SettingChipState
 import com.garfiec.librechat.feature.chat.util.SettingChips
@@ -34,7 +35,7 @@ class McpChipSignInMenuTest {
     private val startsOver = mutableListOf<String>()
 
     private fun line(status: McpDisplayStatus) {
-        val chip = SettingChip.Mcp("github", "GitHub", SettingChipState.ON, status, requiresOAuth = true)
+        val chip = SettingChip.Mcp(McpServerDisplayData("github", "GitHub", null, status, requiresOAuth = true), SettingChipState.ON)
         composeRule.setContent {
             LibreChatTheme {
                 ComposerSettingsLine(
@@ -75,8 +76,10 @@ class McpChipSignInMenuTest {
         assertThat(taps).isEmpty()
     }
 
-    private fun mcp(name: String, label: String, status: McpDisplayStatus) =
-        SettingChip.Mcp(name, label, SettingChipState.ON, status, requiresOAuth = true)
+    private fun mcp(name: String, label: String, status: McpDisplayStatus, signInBusy: Boolean = false) = SettingChip.Mcp(
+        McpServerDisplayData(name, label, null, status, requiresOAuth = true, signInBusy = signInBusy),
+        SettingChipState.ON,
+    )
 
     /** A line whose chips the test changes afterwards, as a status reload or a deselect would. */
     private fun liveLine(initial: List<SettingChip>): MutableState<List<SettingChip>> {
@@ -129,7 +132,7 @@ class McpChipSignInMenuTest {
     @Test
     fun aConnectingChipWhoseReconnectIsStillOutOffersNoMenu() {
         // The chip's own sign-in tap is still reconnecting: Cancel sign-in and Start over would be ignored.
-        liveLine(listOf(mcp("github", "GitHub", McpDisplayStatus.CONNECTING).copy(signInBusy = true)))
+        liveLine(listOf(mcp("github", "GitHub", McpDisplayStatus.CONNECTING, signInBusy = true)))
         composeRule.onNodeWithText("· connecting").assertExists()
 
         composeRule.onNodeWithText("GitHub").performClick()

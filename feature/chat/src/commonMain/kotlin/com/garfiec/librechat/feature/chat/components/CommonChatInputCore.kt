@@ -412,8 +412,7 @@ private fun ComposerChromeStack(
             onStartSignInOver = chrome.onStartMcpSignInOver,
             ring = chrome.contextRing(),
             modifier = Modifier.padding(bottom = 4.dp),
-            hasLeading = codeWorkspace?.state?.onSettingsLine == true,
-            leading = { codeWorkspace?.let { CodeWorkspaceLineChips(it) } },
+            leading = codeWorkspaceLineLeading(codeWorkspace),
         )
     }
 }

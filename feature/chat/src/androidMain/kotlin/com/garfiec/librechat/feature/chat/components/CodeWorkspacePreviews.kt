@@ -141,8 +141,7 @@ private fun ComposerHost(state: CodeWorkspaceUiState, chips: SettingChips) {
             ComposerSettingsLine(
                 chips = chips,
                 onChipTap = {},
-                hasLeading = codeWorkspace?.state?.onSettingsLine == true,
-                leading = { codeWorkspace?.let { CodeWorkspaceLineChips(it) } },
+                leading = codeWorkspaceLineLeading(codeWorkspace),
             )
         }
     }

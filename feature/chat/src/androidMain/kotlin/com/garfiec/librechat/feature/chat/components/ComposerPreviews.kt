@@ -205,7 +205,7 @@ private fun ToolsSheetHost() {
         onOpenModelSelector = {},
         selectedModelDisplay = "gpt-5.1",
         onDismiss = {},
-        skillsEnabled = true,
+        openTools = setOf(ToolConstants.WEB_SEARCH, ToolConstants.CODE_INTERPRETER, ToolConstants.FILE_SEARCH, ToolConstants.SKILLS),
         contextGauge = gaugeWithNudge,
         contextUsageEnabled = true,
         onCompact = {},

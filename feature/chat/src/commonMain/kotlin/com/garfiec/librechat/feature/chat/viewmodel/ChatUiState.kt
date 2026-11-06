@@ -668,6 +668,9 @@ data class ChatUiState(
         else -> false
     }
 
+    /** The tools whose gate is open ([toolGateOpen]): the "+" sheet's rows and the settings line's candidates. */
+    val openTools: Set<String> get() = SETTING_TOOL_ORDER.filterTo(mutableSetOf(), ::toolGateOpen)
+
     /**
      * What the composer's settings line is built from ([settingChipsOf]). Read once per state by the
      * ViewModel's `uiState` combine, which puts the result on [settingChips].
@@ -678,7 +681,7 @@ data class ChatUiState(
             return SettingChipInputs(
                 toolbarShown = shown,
                 toolsOn = if (shown) effectiveEnabledTools else emptySet(),
-                openTools = if (shown) SETTING_TOOL_ORDER.filterTo(mutableSetOf(), ::toolGateOpen) else emptySet(),
+                openTools = if (shown) openTools else emptySet(),
                 pinned = pinnedTools,
                 lockedTools = lockedTools,
                 mcpServers = mcpServers,

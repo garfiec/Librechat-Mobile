@@ -58,9 +58,12 @@ import com.garfiec.librechat.core.ui.components.dragSelectRow
 import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
 import com.garfiec.librechat.core.ui.components.listDragSelection
 import com.garfiec.librechat.core.ui.components.rememberListDragSelection
+import com.garfiec.librechat.core.ui.mcp.mcpStatusColor
+import com.garfiec.librechat.core.ui.mcp.mcpStatusLabel
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.util.SETTING_TOOL_ORDER
 import com.garfiec.librechat.feature.chat.util.WebSearchKind
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
@@ -92,27 +95,14 @@ fun ChatToolsSheetContent(
     modifier: Modifier = Modifier,
     /** Both models while comparing: the Model row then names A and B rather than A alone. */
     comparisonModels: ComparisonModelLabels? = null,
-    isCodeInterpreterAvailable: Boolean = true,
-    webSearchEnabled: Boolean = true,
+    /**
+     * The tools whose own gate is open ([ChatUiState.openTools]): a row is offered for each, in
+     * [SETTING_TOOL_ORDER], the order the settings line shows them in. The Skills row's state is per
+     * conversation; it reads it from [enabledTools] like the others.
+     */
+    openTools: Set<String> = emptySet(),
     /** The search the web-search control runs when on, named on its second line. */
     webSearchKind: WebSearchKind = WebSearchKind(WebSearchRoute.LIBRECHAT, null),
-    /** Whether to offer the Google-only URL Context toggle (active provider is Google/Gemini). */
-    urlContextEnabled: Boolean = false,
-    runCodeEnabled: Boolean = true,
-    fileSearchEnabled: Boolean = true,
-    /**
-     * Whether to offer the memory toggle: MEMORIES USE+CREATE+UPDATE, the agents endpoint's
-     * `memory` capability, and the user not having opted out. Defaults OFF — unlike the other
-     * tool gates, a server with memory disabled is the common case, and the row would otherwise
-     * appear for every host that never enabled it.
-     */
-    memoryEnabled: Boolean = false,
-    /**
-     * Whether to offer the Skills toggle: SKILLS.USE, the agents `skills` capability, and no
-     * active model spec configuring skills. Defaults OFF for the same reason as [memoryEnabled].
-     * Its state is per conversation; the row reads it from [enabledTools] like the others.
-     */
-    skillsEnabled: Boolean = false,
     mcpServersEnabled: Boolean = true,
     /**
      * Server/endpoint feature gates for the sheet: model-select row, parameters row,
@@ -275,21 +265,13 @@ fun ChatToolsSheetContent(
 
         // Tool toggle items — ephemeral tools are hidden for the agents endpoint
         // (the agent uses its own configured tools), mirroring web's showEphemeralBadges.
-        // Each tool's icon/label comes from the shared [ephemeralToolMeta]; the per-tool
-        // enable gate stays inline (they differ per tool).
+        // Each tool's icon/label comes from the shared [ephemeralToolMeta]; its gate is
+        // ChatUiState.toolGateOpen, the one the settings line shows its chip by.
         if (gates.showEphemeralTools) {
-            val toolRows = listOf(
-                ToolConstants.WEB_SEARCH to webSearchEnabled,
-                ToolConstants.URL_CONTEXT to urlContextEnabled,
-                ToolConstants.CODE_INTERPRETER to (isCodeInterpreterAvailable && runCodeEnabled),
-                ToolConstants.FILE_SEARCH to fileSearchEnabled,
-                ToolConstants.MEMORY to memoryEnabled,
-                ToolConstants.SKILLS to skillsEnabled,
-            )
             val searchName = webSearchName(webSearchKind)
-            toolRows.forEach { (toolKey, enabled) ->
+            SETTING_TOOL_ORDER.forEach { toolKey ->
                 val meta = ephemeralToolMeta(toolKey)
-                if (enabled && meta != null) {
+                if (toolKey in openTools && meta != null) {
                     val locked = toolKey in gates.lockedTools
                     val name = searchName.takeIf { toolKey == ToolConstants.WEB_SEARCH }
                     ToolToggleRow(
@@ -565,7 +547,7 @@ private fun McpServerToggleRow(
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = server.title ?: server.name,
+                text = server.label,
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

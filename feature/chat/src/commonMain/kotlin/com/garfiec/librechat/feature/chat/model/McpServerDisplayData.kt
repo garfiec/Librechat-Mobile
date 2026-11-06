@@ -17,4 +17,7 @@ data class McpServerDisplayData(
      * Until it ends the chips' sign-in taps would be ignored, so they aren't offered.
      */
     val signInBusy: Boolean = false,
-)
+) {
+    /** What the server is called on screen: its title, or its stored name when it has none. */
+    val label: String get() = title?.takeIf { it.isNotBlank() } ?: name
+}

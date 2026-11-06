@@ -1,13 +1,12 @@
 package com.garfiec.librechat.feature.chat.components
 
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -31,7 +30,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -39,14 +37,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -54,7 +44,6 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
@@ -66,7 +55,10 @@ import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
 import com.garfiec.librechat.core.ui.components.CornerStatusDot
 import com.garfiec.librechat.core.ui.components.reasoningLevelLabel
+import com.garfiec.librechat.core.ui.components.scrollFadingEdges
 import com.garfiec.librechat.core.ui.contextusage.pressureColor
+import com.garfiec.librechat.core.ui.mcp.mcpStatusColor
+import com.garfiec.librechat.core.ui.mcp.mcpStatusLabel
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_context_ring
 import com.garfiec.librechat.feature.chat.resources.cd_mcp_sign_in_menu
@@ -84,16 +76,15 @@ import com.garfiec.librechat.feature.chat.resources.thinking_chip_state_next
 import com.garfiec.librechat.feature.chat.resources.tool_set_by_spec
 import com.garfiec.librechat.feature.chat.util.SettingChip
 import com.garfiec.librechat.feature.chat.util.SettingChipState
-import com.garfiec.librechat.feature.chat.util.SettingChipTap
 import com.garfiec.librechat.feature.chat.util.SettingChips
 import com.garfiec.librechat.feature.chat.util.ThinkingChip
-import com.garfiec.librechat.feature.chat.util.tapFor
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
  * The composer's settings line: what is on for the next message, one chip per thing, on one line
- * that scrolls sideways and never wraps. [leading] comes first (the code workspace's chips), then
+ * that scrolls sideways and never wraps. [leading] comes first when set (the code workspace's chips), then
  * [chips] (tools, MCP servers, Thinking), with the context ring pinned at the end when [ring] is
  * set. A tap goes to [onChipTap]; the screen decides what it does ([SettingChips.tapFor]), except on
  * an MCP chip whose sign-in is pending, which opens its own menu ([onCancelSignIn],
@@ -109,10 +100,9 @@ internal fun ComposerSettingsLine(
     /** "Start over" in that menu. */
     onStartSignInOver: (serverName: String) -> Unit = {},
     ring: ContextRingState? = null,
-    hasLeading: Boolean = false,
-    leading: @Composable RowScope.() -> Unit = {},
+    leading: (@Composable () -> Unit)? = null,
 ) {
-    if (chips.isEmpty && ring == null && !hasLeading) return
+    if (chips.isEmpty && ring == null && leading == null) return
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -122,12 +112,12 @@ internal fun ComposerSettingsLine(
         Row(
             modifier = Modifier
                 .weight(1f)
-                .fadeEndWhileScrollable(scroll)
+                .scrollFadingEdges(scroll, Orientation.Horizontal, fadeStart = false)
                 .horizontalScroll(scroll),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            if (hasLeading) leading()
+            leading?.invoke()
             chips.chips.forEach { chip ->
                 // Keyed by what the chip is, not where it sits: a chip leaving the line ahead of an MCP
                 // chip would otherwise hand that chip's menu state to the next one.
@@ -137,7 +127,6 @@ internal fun ComposerSettingsLine(
                         is SettingChip.Mcp -> McpSettingChip(
                             chip = chip,
                             lockedBy = chips.lockedBy,
-                            opensMenu = chips.tapFor(chip) is SettingChipTap.SignInMenu,
                             onClick = { onChipTap(chip) },
                             onCancelSignIn = { onCancelSignIn(chip.name) },
                             onStartSignInOver = { onStartSignInOver(chip.name) },
@@ -183,7 +172,7 @@ internal fun ComposerChrome.contextRing(): ContextRingState? {
 private fun ToolSettingChip(chip: SettingChip.Tool, lockedBy: String?, onClick: () -> Unit) {
     val meta = ephemeralToolMeta(chip.key) ?: return
     val locked = chip.state == SettingChipState.LOCKED
-    val lockState = if (locked) lockDescription(lockedBy) else null
+    val lockState = if (locked) lockedByText(lockedBy) else null
     AdaptiveFilterChip(
         selected = chip.state != SettingChipState.PINNED_OFF,
         onClick = onClick,
@@ -197,7 +186,7 @@ private fun ToolSettingChip(chip: SettingChip.Tool, lockedBy: String?, onClick: 
 
 /**
  * A selected MCP server with its status dot. A chip whose tap signs in reads "· sign in"; one whose
- * sign-in is pending ([opensMenu]) reads "· connecting" and opens a menu with "Cancel sign-in" and
+ * sign-in is pending ([SettingChip.Mcp.opensMenu]) reads "· connecting" and opens a menu with "Cancel sign-in" and
  * "Start over" rather than going to [onClick]. Either is disabled while a reconnect or a cancel is
  * out ([SettingChip.Mcp.waitsForSignIn]), which would ignore the tap.
  */
@@ -205,23 +194,23 @@ private fun ToolSettingChip(chip: SettingChip.Tool, lockedBy: String?, onClick: 
 private fun McpSettingChip(
     chip: SettingChip.Mcp,
     lockedBy: String?,
-    opensMenu: Boolean,
     onClick: () -> Unit,
     onCancelSignIn: () -> Unit,
     onStartSignInOver: () -> Unit,
 ) {
-    var menuOpen by remember { mutableStateOf(false) }
-    // A status reload that settles the sign-in hides the menu without dismissing it; clear the flag
-    // too, or the chip's next connecting spell (a later sign-in tap) would pop the menu open untapped.
-    LaunchedEffect(opensMenu) { if (!opensMenu) menuOpen = false }
+    val opensMenu = chip.opensMenu
+    // A fresh closed menu each time the chip starts opening one: a status reload that settles the
+    // sign-in hides the menu without dismissing it, and the chip's next connecting spell (a later
+    // sign-in tap) must not pop it open untapped.
+    var menuOpen by remember(opensMenu) { mutableStateOf(false) }
     val locked = chip.state == SettingChipState.LOCKED
     val connection = stringResource(mcpStatusLabel(chip.status))
-    val state = if (locked) "$connection, ${lockDescription(lockedBy)}" else connection
+    val state = if (locked) "$connection, ${lockedByText(lockedBy)}" else connection
     val dotColor = mcpStatusColor(chip.status)
     val waits = chip.waitsForSignIn
     // A tap that does something other than switch the server off is named, for TalkBack as on screen.
     val suffix = when {
-        opensMenu || (waits && chip.signInPending) -> stringResource(Res.string.setting_chip_connecting_suffix)
+        chip.signInPending -> stringResource(Res.string.setting_chip_connecting_suffix)
         chip.signsInOnTap -> stringResource(Res.string.setting_chip_sign_in)
         else -> null
     }
@@ -238,20 +227,16 @@ private fun McpSettingChip(
             onClick = tap,
             enabled = !waits,
             label = {
-                if (suffix != null) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        // A width cap, not a weight: the line scrolls, so the chip is measured unbounded
-                        // and a weighted child there gets 0 width, which would hide the server's name.
-                        Text(
-                            chip.label,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.widthIn(max = McpNameMaxWidth),
-                        )
-                        Text(suffix, maxLines = 1)
-                    }
-                } else {
-                    Text(chip.label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = McpNameMaxWidth))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    // A width cap, not a weight: the line scrolls, so the chip is measured unbounded
+                    // and a weighted child there gets 0 width, which would hide the server's name.
+                    Text(
+                        chip.label,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = McpNameMaxWidth),
+                    )
+                    if (suffix != null) Text(suffix, maxLines = 1)
                 }
             },
             modifier = Modifier.semantics {
@@ -325,10 +310,17 @@ private fun ChipIcon(icon: ImageVector) {
     Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize))
 }
 
-/** "Set by <spec>", or the server's generic wording when the spec has no label. */
+/**
+ * What a spec-locked chip says about its lock: "Set by <spec>", or the server's generic wording when
+ * the spec has no label to name ([lockedBy] null). Formatted with `lockedBy.orEmpty()`, which the
+ * generic wording ignores. Read by the chip's description and by its tap's snackbar
+ * (`rememberSettingChipTap`).
+ */
+internal fun lockedByMessage(lockedBy: String?): StringResource =
+    if (lockedBy != null) Res.string.setting_chip_set_by else Res.string.tool_set_by_spec
+
 @Composable
-private fun lockDescription(lockedBy: String?): String =
-    lockedBy?.let { stringResource(Res.string.setting_chip_set_by, it) } ?: stringResource(Res.string.tool_set_by_spec)
+private fun lockedByText(lockedBy: String?): String = stringResource(lockedByMessage(lockedBy), lockedBy.orEmpty())
 
 /**
  * The context window as a 24dp ring with the percentage inside, tinted by [pressureColor], with a
@@ -417,27 +409,3 @@ private val RingSize = 24.dp
 
 /** The longest an MCP server's name gets on its chip before it ellipsizes. */
 private val McpNameMaxWidth = 160.dp
-
-/** Fades the line out toward its end while there is more to scroll to (the start, in RTL). */
-private fun Modifier.fadeEndWhileScrollable(state: ScrollState): Modifier =
-    graphicsLayer {
-        compositingStrategy = if (state.maxValue > 0) CompositingStrategy.Offscreen else CompositingStrategy.Auto
-    }.drawWithContent {
-        drawContent()
-        val extent = (state.maxValue - state.value).toFloat().coerceAtMost(FadeLength.toPx())
-        if (state.maxValue <= 0 || extent <= 0f) return@drawWithContent
-        val rtl = layoutDirection == LayoutDirection.Rtl
-        val start = if (rtl) 0f else size.width - extent
-        drawRect(
-            brush = Brush.horizontalGradient(
-                colors = if (rtl) listOf(Color.Transparent, Color.Black) else listOf(Color.Black, Color.Transparent),
-                startX = start,
-                endX = start + extent,
-            ),
-            topLeft = Offset(start, 0f),
-            size = Size(extent, size.height),
-            blendMode = BlendMode.DstIn,
-        )
-    }
-
-private val FadeLength = 24.dp

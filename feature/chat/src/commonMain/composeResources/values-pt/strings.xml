@@ -1193,13 +1193,6 @@
     <string name="draft_item_removed">Removido: %1$s</string>
     <string name="setting_chip_set_by">Definido por %1$s</string>
     <string name="setting_chip_turned_off">Desativado: %1$s</string>
-    <string name="setting_chip_connected">Conectado</string>
-    <string name="setting_chip_not_connected">Não conectado</string>
-    <string name="setting_chip_connecting">Conectando…</string>
-    <string name="setting_chip_needs_sign_in">Login necessário</string>
-    <string name="setting_chip_needs_setup">Configure na web</string>
-    <string name="setting_chip_on_demand">Conecta quando você conversa</string>
-    <string name="setting_chip_failed">Não foi possível conectar</string>
     <string name="setting_chip_sign_in">· fazer login</string>
     <string name="setting_chip_connecting_suffix">· conectando</string>
     <string name="mcp_chip_cancel_sign_in">Cancelar login</string>
