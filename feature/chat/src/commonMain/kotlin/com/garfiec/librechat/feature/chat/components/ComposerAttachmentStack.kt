@@ -108,9 +108,8 @@ internal fun ComposerAttachmentStack(
     Box(
         modifier = modifier
             .size(width = STACK_SLOT, height = STACK_SLOT)
-            .clip(RoundedCornerShape(12.dp))
-            // Ahead of the clickable: a node's semantics are applied from the inner modifier out,
-            // so only an outer block's OnClick replaces the clickable's touch one.
+            // Ahead of the clickable (on the child below): only an outer block's OnClick replaces
+            // the clickable's touch one, and clearing here drops the child's.
             .clearAndSetSemantics {
                 contentDescription = description
                 liveRegion = LiveRegionMode.Polite
@@ -122,31 +121,44 @@ internal fun ComposerAttachmentStack(
                         true
                     }
                 }
-            }
-            .then(if (onClick != null) Modifier.clickable(onClickLabel = clickLabel, role = Role.Button, onClick = onClick) else Modifier),
-        contentAlignment = Alignment.Center,
+            },
     ) {
+        // The clip shapes the press ripple only; the badges sit above it, so its corners don't cut them.
         Box(
             modifier = Modifier
-                .width(TILE + TILE_STEP * (shown.size - 1))
-                .graphicsLayer {
-                    scaleX = scale.value
-                    scaleY = scale.value
-                },
+                .matchParentSize()
+                .clip(PressShape)
+                .then(
+                    if (onClick != null) {
+                        Modifier.clickable(onClickLabel = clickLabel, role = Role.Button, onClick = onClick)
+                    } else {
+                        Modifier
+                    },
+                ),
+            contentAlignment = Alignment.Center,
         ) {
-            val ring = MaterialTheme.colorScheme.surface
-            shown.forEachIndexed { index, item ->
-                DraftItemTile(
-                    item = item,
-                    size = TILE,
-                    modifier = Modifier
-                        .offset(x = TILE_STEP * index)
-                        .border(2.dp, ring, TileShape),
-                )
-            }
-            // On the front tile, as each list row draws its own.
-            if (items.hasUploads) {
-                UploadOverlay(uploadProgress::overall, TILE, Modifier.offset(x = TILE_STEP * (shown.size - 1)))
+            Box(
+                modifier = Modifier
+                    .width(TILE + TILE_STEP * (shown.size - 1))
+                    .graphicsLayer {
+                        scaleX = scale.value
+                        scaleY = scale.value
+                    },
+            ) {
+                val ring = MaterialTheme.colorScheme.surface
+                shown.forEachIndexed { index, item ->
+                    DraftItemTile(
+                        item = item,
+                        size = TILE,
+                        modifier = Modifier
+                            .offset(x = TILE_STEP * index)
+                            .border(2.dp, ring, TileShape),
+                    )
+                }
+                // On the front tile, as each list row draws its own.
+                if (items.hasUploads) {
+                    UploadOverlay(uploadProgress::overall, TILE, Modifier.offset(x = TILE_STEP * (shown.size - 1)))
+                }
             }
         }
         if (count > 1) {
@@ -304,6 +316,7 @@ internal fun DraftItem.label(): String = when (this) {
 }
 
 private val TileShape = RoundedCornerShape(8.dp)
+private val PressShape = RoundedCornerShape(12.dp)
 
 /** M3's leading-icon slot, which the stack fills. */
 internal val STACK_SLOT = 48.dp
