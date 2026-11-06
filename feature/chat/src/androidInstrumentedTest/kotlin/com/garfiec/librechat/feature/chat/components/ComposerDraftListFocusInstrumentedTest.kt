@@ -31,7 +31,8 @@ class ComposerDraftListFocusInstrumentedTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private val items = draftItemsOf(files = emptyList(), skills = listOf("summarize", "translate"), quotes = emptyList(), serverUrl = "")
+    private val items =
+        draftItemsOf(files = emptyList(), skills = listOf("summarize", "translate"), quotes = emptyList(), serverUrl = "")
 
     private fun host() {
         composeRule.setContent {

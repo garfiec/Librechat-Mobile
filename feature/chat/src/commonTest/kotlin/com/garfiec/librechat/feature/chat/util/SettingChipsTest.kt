@@ -259,7 +259,10 @@ class SettingChipsTest {
         assertEquals(SettingChipTap.TurnOffWithUndo, line.tapFor(byName.getValue("search")))
         assertEquals(SettingChipTap.TurnOffWithUndo, line.tapFor(byName.getValue("sentry")))
         // Every chip whose tap signs in reads "· sign in", so the tap's effect shows; the others don't.
-        assertEquals(listOf(true, true, false, false), listOf("github", "drive", "search", "sentry").map { byName.getValue(it).signsInOnTap })
+        assertEquals(
+            listOf(true, true, false, false),
+            listOf("github", "drive", "search", "sentry").map { byName.getValue(it).signsInOnTap },
+        )
     }
 
     @Test
