@@ -49,6 +49,7 @@ interface McpRepository {
      * values (see `McpApi.bindOAuth`), for an in-app sign-in to seed into its WebView.
      */
     suspend fun bindOAuth(serverName: String): Result<List<String>>
+
     /** Cancels this user's pending OAuth flow for [serverName] (see `McpApi.cancelOAuth`). */
     suspend fun cancelOAuth(serverName: String): Result<Unit>
 
