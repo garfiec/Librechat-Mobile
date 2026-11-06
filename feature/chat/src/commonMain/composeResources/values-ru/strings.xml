@@ -1215,7 +1215,7 @@
     <string name="cd_cancel_upload">Отменить загрузку %1$s</string>
     <string name="cd_remove_quote_named">Удалить цитату: %1$s</string>
     <string name="cd_retry_upload">Повторить загрузку %1$s</string>
-    <string name="draft_item_removed">%1$s удалено</string>
+    <string name="draft_item_removed">Удалено: %1$s</string>
     <string name="setting_chip_set_by">Задано: %1$s</string>
     <string name="setting_chip_turned_off">%1$s: выключено</string>
     <string name="setting_chip_connected">Подключено</string>

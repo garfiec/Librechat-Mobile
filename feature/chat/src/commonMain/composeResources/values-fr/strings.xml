@@ -1188,9 +1188,9 @@
     <string name="cd_cancel_upload">Annuler l'envoi de %1$s</string>
     <string name="cd_remove_quote_named">Retirer la citation : %1$s</string>
     <string name="cd_retry_upload">Réessayer l'envoi de %1$s</string>
-    <string name="draft_item_removed">%1$s retiré</string>
+    <string name="draft_item_removed">Retiré : %1$s</string>
     <string name="setting_chip_set_by">Défini par %1$s</string>
-    <string name="setting_chip_turned_off">%1$s désactivé</string>
+    <string name="setting_chip_turned_off">Désactivé : %1$s</string>
     <string name="setting_chip_connected">Connecté</string>
     <string name="setting_chip_not_connected">Non connecté</string>
     <string name="setting_chip_connecting">Connexion…</string>
