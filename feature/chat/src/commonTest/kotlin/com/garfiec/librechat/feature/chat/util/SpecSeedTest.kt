@@ -220,14 +220,12 @@ class SpecSeedTest {
     }
 
     @Test
-    fun a_stored_spec_is_offered_only_on_its_own_pair() {
-        val specs = ModelSpecs(list = listOf(model("fast", "openAI", "gpt-4.1"), agent("agent_w")))
-        assertEquals("fast", "fast".offeredOn("openAI", "gpt-4.1", specs))
-        assertNull("fast".offeredOn("openAI", "gpt-4o", specs))
-        assertNull("fast".offeredOn("azureOpenAI", "gpt-4.1", specs))
-        assertEquals("agent_w", "agent_w".offeredOn(EndpointConstants.AGENTS, "agent_w", specs))
-        assertNull("gone".offeredOn("openAI", "gpt-4.1", specs))
-        assertNull(null.offeredOn("openAI", "gpt-4.1", specs))
+    fun only_the_spec_refusals_open_the_picker() {
+        assertEquals(true, isSpecRefusal("Invalid model spec"))
+        assertEquals(true, isSpecRefusal("Model spec mismatch"))
+        assertEquals(true, isSpecRefusal("No model spec selected"))
+        assertEquals(false, isSpecRefusal("Illegal model request"))
+        assertEquals(false, isSpecRefusal(null))
     }
 
     @Test
@@ -254,6 +252,16 @@ class SpecSeedTest {
         assertNull(specs.laneBSpecFor("openAI", "gpt-4o", "OpenAI"))
         assertNull(specs.laneBSpecFor("openAI", "gpt-4o", null))
         assertNull((null as ModelSpecs?).laneBSpecFor("openAI", "gpt-4.1", "Careful"))
+    }
+
+    @Test
+    fun a_reopened_lane_b_finds_a_spec_moved_to_another_model_on_its_endpoint() {
+        val careful = model("careful", "openAI", "gpt-5").copy(label = "Careful")
+        val specs = ModelSpecs(list = listOf(careful, model("other", "anthropic", "claude").copy(label = "Careful")))
+
+        assertEquals("careful", specs.laneBSpecFor("openAI", "gpt-4.1", "Careful"))
+        // On another endpoint the label names nothing the server would apply there.
+        assertNull(specs.laneBSpecFor("azureOpenAI", "gpt-4.1", "Careful"))
     }
 
     @Test

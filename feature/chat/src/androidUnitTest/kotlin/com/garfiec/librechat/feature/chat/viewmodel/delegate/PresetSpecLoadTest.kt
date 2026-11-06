@@ -62,22 +62,39 @@ class PresetSpecLoadTest {
     }
 
     @Test
-    fun `a spec the server retargeted is dropped and the preset's own pair kept`() = runTest {
+    fun `a spec the server moved to another model on its endpoint is kept on the preset's own pair`() = runTest {
         val preset = Preset(presetId = "p1", endpoint = "openAI", model = "gpt-4o", spec = "fast")
 
         val selection = loadPreset(preset, ModelSpecs(list = listOf(fast)))
 
-        assertThat(selection.selectedModel).isEqualTo("gpt-4o")
-        assertThat(selection.selectedSpec).isNull()
+        assertThat(selection.choice).isEqualTo(ModelChoice.Spec("fast", "openAI", "gpt-4o"))
     }
 
     @Test
-    fun `a spec the server no longer lists is dropped`() = runTest {
+    fun `under enforce a spec moved to another model opens on the spec's pair`() = runTest {
+        val preset = Preset(presetId = "p1", endpoint = "openAI", model = "gpt-4o", spec = "fast")
+
+        val selection = loadPreset(preset, ModelSpecs(list = listOf(fast), enforce = true))
+
+        assertThat(selection.choice).isEqualTo(ModelChoice.Spec("fast", "openAI", "gpt-4.1"))
+    }
+
+    @Test
+    fun `a spec the server does not serve is kept, since it may be hidden`() = runTest {
         val preset = Preset(presetId = "p1", endpoint = "openAI", model = "gpt-4.1", spec = "fast")
 
         val selection = loadPreset(preset, ModelSpecs(list = emptyList()))
 
-        assertThat(selection.selectedSpec).isNull()
+        assertThat(selection.selectedSpec).isEqualTo("fast")
+    }
+
+    @Test
+    fun `a spec the server moved to another endpoint is dropped`() = runTest {
+        val preset = Preset(presetId = "p1", endpoint = "azureOpenAI", model = "gpt-4.1", spec = "fast")
+
+        val selection = loadPreset(preset, ModelSpecs(list = listOf(fast)))
+
+        assertThat(selection.choice).isEqualTo(ModelChoice.Raw("azureOpenAI", "gpt-4.1"))
     }
 
     @Test

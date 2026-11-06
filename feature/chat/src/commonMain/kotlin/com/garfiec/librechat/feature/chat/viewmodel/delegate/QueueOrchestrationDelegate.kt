@@ -10,8 +10,10 @@ import com.garfiec.librechat.core.model.media.resolveFileReferenceUrl
 import com.garfiec.librechat.core.model.queuedturn.AgentQueuedTurnReceipt
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnFileRef
 import com.garfiec.librechat.feature.chat.components.AttachedFile
+import com.garfiec.librechat.feature.chat.util.acrossSpecChange
 import com.garfiec.librechat.feature.chat.util.isImageType
 import com.garfiec.librechat.feature.chat.util.requiresSpec
+import com.garfiec.librechat.feature.chat.util.storedAgainst
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.ComposerSnapshot
@@ -567,17 +569,26 @@ class QueueOrchestrationDelegate(
      *  contents for an edit never overwrites the persisted on-disk new-message draft. */
     private fun applyComposer(snapshot: ComposerSnapshot, editSession: QueuedEditSession?) {
         fileHandler.restoreAttachedFiles(snapshot.attachments)
+        // The config may have changed since capture. An enforced spec that moved to another model
+        // takes that spec's preset, as the server sends it.
+        val specs = handle.state.modelSpecs
+        val restored = snapshot.choice.storedAgainst(specs)
+        val parameters = if (restored == snapshot.choice) {
+            snapshot.modelParameters
+        } else {
+            snapshot.modelParameters.acrossSpecChange(snapshot.choice, restored, specs)
+        }
         handle.update {
             editingQueuedItem = editSession
             inputText = snapshot.text
             // The snapshot replaces the whole tray, so an undecided batch from before the edit
             // no longer belongs to anything on screen.
             pendingUploadRouting = null
-            choice = snapshot.choice
+            choice = restored
             enabledTools = snapshot.enabledTools
             selectedMcpServerNames = snapshot.mcpServerNames
             specTools = snapshot.specTools
-            modelParameters = snapshot.modelParameters
+            modelParameters = parameters
             pendingManualSkills = snapshot.manualSkills
             pendingReasoningOverride = snapshot.reasoningOverride
             skillsToggle = snapshot.skillsToggle

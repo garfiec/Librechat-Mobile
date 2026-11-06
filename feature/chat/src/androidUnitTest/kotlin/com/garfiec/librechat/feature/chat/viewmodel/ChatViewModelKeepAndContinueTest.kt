@@ -19,6 +19,8 @@ import com.garfiec.librechat.core.model.content.MessageContentPart
 import com.garfiec.librechat.core.model.request.AddedConversation
 import com.garfiec.librechat.core.model.request.NO_PARENT
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
+import com.garfiec.librechat.core.ui.components.ModelParameters
+import com.garfiec.librechat.feature.chat.util.parametersFor
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -164,6 +166,50 @@ class ChatViewModelKeepAndContinueTest {
             coVerify(exactly = 0) { messageRepository.cacheMessages(any(), any()) }
             coVerify(exactly = 0) { messageRepository.getMessages(any(), any()) }
         }
+
+    @Test
+    fun `keep and continue on a raw lane B continues on the defaults, not lane A's parameters`() =
+        vmTest(temporary = true) { vm ->
+            stopComparisonInTemporaryChat(vm)
+            vm.updateModelParameters(
+                ModelParameters.DEFAULT.copy(temperature = 0.2f, maxOutputTokens = 256, customInstructions = "Be brief."),
+            )
+            coEvery { messageRepository.branchMessage(CONVERSATION_ID, PARALLEL_ID, LANE_B) } returns
+                Result.Success(kept(parent = sends.single().userMessageId!!))
+
+            vm.keepAndContinue(LANE_B)
+            runCurrent()
+
+            // Lane B ran on the server's defaults, with lane A's custom instructions sent alongside.
+            assertThat(vm.uiState.value.modelParameters).isEqualTo(ModelParameters.DEFAULT.copy(customInstructions = "Be brief."))
+            // A pick like any other, temporary chat or not.
+            coVerify { fixture.settingsDataStore.setLastUsedModel(SECOND_ENDPOINT, SECOND_MODEL, null) }
+        }
+
+    @Test
+    fun `keep and continue on a spec lane B continues on its preset with lane A's custom instructions`() {
+        val careful = ModelSpec(
+            name = "careful",
+            label = "Careful",
+            preset = Preset(endpoint = SECOND_ENDPOINT, model = SECOND_MODEL, temperature = 0.7),
+        )
+        val specs = ModelSpecs(list = listOf(careful))
+        startupConfig.value = StartupConfig(modelSpecs = specs)
+        vmTest(temporary = true) { vm ->
+            vm.updateModelParameters(ModelParameters.DEFAULT.copy(customInstructions = "Be brief."))
+            stopComparisonInTemporaryChat(vm, laneBSpec = "careful")
+            coEvery { messageRepository.branchMessage(CONVERSATION_ID, PARALLEL_ID, LANE_B) } returns
+                Result.Success(kept(parent = sends.single().userMessageId!!))
+
+            vm.keepAndContinue(LANE_B)
+            runCurrent()
+
+            assertThat(vm.uiState.value.selectedSpec).isEqualTo("careful")
+            // Moving onto the spec resets the parameters; lane A's instructions, which lane B ran with, stay.
+            assertThat(vm.uiState.value.modelParameters)
+                .isEqualTo(specs.parametersFor("careful")!!.copy(customInstructions = "Be brief."))
+        }
+    }
 
     @Test
     fun `keep in a temporary chat shows only the kept reply`() =
@@ -402,10 +448,10 @@ class ChatViewModelKeepAndContinueTest {
      * Turns Compare on, sends, and ends the run on a stopped comparison reply whose lane B ran only
      * a tool call. A temporary chat finalizes it in memory, as the server never lists it.
      */
-    private fun TestScope.stopComparisonInTemporaryChat(vm: ChatViewModel) {
+    private fun TestScope.stopComparisonInTemporaryChat(vm: ChatViewModel, laneBSpec: String? = null) {
         val run = MutableSharedFlow<StreamEvent>(extraBufferCapacity = 4)
         streams.addLast(run)
-        vm.startComparison(SECOND_ENDPOINT, SECOND_MODEL)
+        vm.startComparison(SECOND_ENDPOINT, SECOND_MODEL, laneBSpec)
         vm.onInputChanged("Which is better?")
         vm.sendMessage()
         runCurrent()

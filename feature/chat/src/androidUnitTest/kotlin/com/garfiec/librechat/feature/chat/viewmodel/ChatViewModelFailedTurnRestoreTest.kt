@@ -156,6 +156,29 @@ class ChatViewModelFailedTurnRestoreTest {
     }
 
     @Test
+    fun `a refusal of the chat's spec opens the model picker`() = runTest(testDispatcher) {
+        for (refusal in listOf("Invalid model spec", "Model spec mismatch", "No model spec selected")) {
+            val vm = sendRefused(refusal, serverAfterFailure = listOf(user))
+            try {
+                assertThat(vm.uiState.value.showModelSheet).isTrue()
+                assertThat(vm.uiState.value.sendBlockReason).isEqualTo(SendBlockReason.SelectModel)
+            } finally {
+                vm.viewModelScope.cancel()
+            }
+        }
+    }
+
+    @Test
+    fun `any other refusal leaves the model picker closed`() = runTest(testDispatcher) {
+        val vm = sendRefused("Illegal model request", serverAfterFailure = listOf(user))
+        try {
+            assertThat(vm.uiState.value.showModelSheet).isFalse()
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
+
+    @Test
     fun `a created turn the server never saved hands its text back to the composer`() = runTest(testDispatcher) {
         val vm = sendFailingAfterCreated(
             StreamEvent.Error("An error occurred while processing the request: 401"),
