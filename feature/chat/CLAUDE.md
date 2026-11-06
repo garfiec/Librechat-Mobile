@@ -1113,7 +1113,8 @@ first, then images, files, skills, quotes.
   appears). It sits on the composer itself (its measured height, not the bottom box's, which also holds
   starters and the update banner) and below the floating top bar, never under it (the bar draws over
   it and takes its taps), so with the keyboard up it scrolls in what is visible. When that leaves
-  less than its header and one row (`draftListNeedsRoom`, `DRAFT_LIST_MIN_HEIGHT`, 92dp at 1x font)
+  less than its header and one row (`draftListNeedsRoom` against `draftListMinHeight`, worked out
+  from the panel's text styles at the font size in effect: 92dp at 1x, about 130dp at 2x)
   it hides the keyboard. **During a tool-approval pause it still opens**: it is the only place a
   failed file is retried or removed, and that file holds the run's next send. Opening it collapses
   the approval panel (`withDraftList(toolPauseExpanded, onCollapseToolPause)`), and it sits on the
@@ -1211,18 +1212,23 @@ first, then images, files, skills, quotes.
     flow being cancelled. **Never while a reply runs or a live tool call waits on that server's
     sign-in**: the server keeps one flow per user and server, and a reconnect then replays the run's
     own flow into the chip's dialog, so cancelling it would fail the tool call. The flow is left to
-    the run and the chip may read connecting · sign in until it ends. **Nor when the server already
+    the run and the chip may read connecting · sign in until it ends; once no run in the chat may
+    wait on it, the statuses are read and a flow still pending is cancelled then (`heldByRun`,
+    `cancelOnceRunLetsGo`), not at the next tap, by which time a run on the web or another device may
+    have picked it up. A loaded status that reads the server anything but connecting meanwhile drops
+    it: that flow is over. **Nor when the server already
     read connecting with a sign-in pending at the tap** (`chipOwnsFlow`): the reconnect only replayed
     a flow a run in another chat, a web tab or another device started, which this chat's state can't
     see. A flow the chip's own browser sign-in or cancel left there is still its own, and so is one
-    whose cancel was skipped for a run or failed (`leftPendingFlows`, until the server stops reading
-    connecting): the next close cancels it. A stored-token reconnect the server runs itself reads the
+    whose cancel failed (`leftPendingFlows`, until a status read that loaded, not a failed one, stops
+    reading connecting): the next close cancels it. A stored-token reconnect the server runs itself reads the
     same, so a flow the chip starts during it is left to the timeout. A browser sign-in is never cancelled: the
     user may come back mid-way and finish in the browser, whose callback a cancelled flow refuses.
     The statuses are re-read on every return to the chat (ON_RESUME after an ON_PAUSE,
     `McpServersDelegate.onForeground`), since the tap acts on them and a sign-in or sign-out on the
     MCP servers page or in another chat changes them; discovery is asked again then only while a
-    browser sign-in may be finishing or when the list changed. The chip's tap (connecting · sign in)
+    browser sign-in may be finishing or when the list changed; a discovery read still out keeps going
+    (its own generation, bumped only by discovery reads and chip taps). The chip's tap (connecting · sign in)
     replays or reissues an abandoned flow. A tool call's sign-in is the run's and is never cancelled. Such a chip is turned off from the "+" sheet's switch. Other
     needs-setup and failed chips keep the ordinary tap (off with Undo): setup is on the web, a failure on the server. Thinking uses the brain glyph (Memory uses `AutoStories`, here and in the drawer),
     tints tertiary while a one-turn choice is staged, in both styles, and states it. Picked skills use
