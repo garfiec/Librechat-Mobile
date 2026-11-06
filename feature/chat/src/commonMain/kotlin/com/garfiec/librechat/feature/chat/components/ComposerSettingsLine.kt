@@ -329,7 +329,8 @@ private fun lockDescription(lockedBy: String?): String =
 /**
  * The context window as a 24dp ring with the percentage inside, tinted by [pressureColor], with a
  * tertiary dot while compacting is suggested. A tap opens the breakdown; while the suggestion is due
- * it opens the compact confirmation instead, which keeps "Not now".
+ * it opens the compact confirmation instead, which keeps "Not now" and offers "See usage", the way
+ * to the breakdown that doesn't snooze the suggestion.
  */
 @Composable
 internal fun ContextRing(state: ContextRingState, modifier: Modifier = Modifier) {
@@ -399,6 +400,10 @@ internal fun ContextRing(state: ContextRingState, modifier: Modifier = Modifier)
             onCompact = {
                 confirmCompact = false
                 onCompact()
+            },
+            onSeeUsage = {
+                confirmCompact = false
+                showSheet = true
             },
         )
     }

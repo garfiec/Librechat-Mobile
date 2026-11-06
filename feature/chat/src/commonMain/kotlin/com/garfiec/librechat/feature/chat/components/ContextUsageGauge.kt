@@ -45,6 +45,7 @@ import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.compact_confirm_action
 import com.garfiec.librechat.feature.chat.resources.compact_confirm_body
 import com.garfiec.librechat.feature.chat.resources.compact_confirm_not_now
+import com.garfiec.librechat.feature.chat.resources.compact_confirm_see_usage
 import com.garfiec.librechat.feature.chat.resources.compact_confirm_title
 import com.garfiec.librechat.feature.chat.resources.compact_nudge_short
 import com.garfiec.librechat.feature.chat.resources.context_percent
@@ -261,7 +262,8 @@ internal fun ContextUsageSheet(
 /**
  * Confirms a compaction started from a suggestion. Every suggestion goes through it: compacting
  * changes what the model reads from then on, so it is never one tap. "Not now" quiets the
- * suggestion for this conversation until usage reaches the next band.
+ * suggestion for this conversation until usage reaches the next band. [onSeeUsage] adds "See usage",
+ * for an entry point whose tap opens this dialog instead of the breakdown (the context ring).
  */
 @Composable
 internal fun CompactConfirmDialog(
@@ -269,13 +271,20 @@ internal fun CompactConfirmDialog(
     onDismiss: () -> Unit,
     onNotNow: () -> Unit,
     onCompact: () -> Unit,
+    onSeeUsage: (() -> Unit)? = null,
 ) {
     AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.compact_confirm_title)) },
         text = { Text(stringResource(Res.string.compact_confirm_body, percent)) },
         confirmButton = { AdaptiveTextButton(onClick = onCompact) { Text(stringResource(Res.string.compact_confirm_action)) } },
-        dismissButton = { AdaptiveTextButton(onClick = onNotNow) { Text(stringResource(Res.string.compact_confirm_not_now)) } },
+        dismissButton = {
+            // Two buttons in the slot: both dialog styles lay its children out in their wrapping button row.
+            if (onSeeUsage != null) {
+                AdaptiveTextButton(onClick = onSeeUsage) { Text(stringResource(Res.string.compact_confirm_see_usage)) }
+            }
+            AdaptiveTextButton(onClick = onNotNow) { Text(stringResource(Res.string.compact_confirm_not_now)) }
+        },
     )
 }
 

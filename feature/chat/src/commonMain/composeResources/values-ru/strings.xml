@@ -770,6 +770,7 @@
     <string name="compact_confirm_title">Сжать эту беседу?</string>
     <string name="compact_confirm_body">Окно контекста заполнено на %1$d%. Сжатие кратко пересказывает беседу в заметке, которую модель продолжает читать, и освобождает место для продолжения. Ничего не удаляется.</string>
     <string name="compact_confirm_not_now">Не сейчас</string>
+    <string name="compact_confirm_see_usage">Показать расход</string>
     <string name="compact_confirm_action">Сжать</string>
     <string name="cd_temporary_chat">Временный чат</string>
     <string name="temporary_chat_enforced">Временный чат включён для всех бесед администратором</string>

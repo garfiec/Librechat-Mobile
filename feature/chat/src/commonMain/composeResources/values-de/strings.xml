@@ -758,6 +758,7 @@
     <string name="compact_confirm_title">Diese Unterhaltung komprimieren?</string>
     <string name="compact_confirm_body">%1$d % des Kontextfensters sind belegt. Beim Komprimieren wird die bisherige Unterhaltung zu einer kürzeren Notiz zusammengefasst, die das Modell weiter liest – so wird Platz für Neues frei. Es wird nichts gelöscht.</string>
     <string name="compact_confirm_not_now">Nicht jetzt</string>
+    <string name="compact_confirm_see_usage">Belegung ansehen</string>
     <string name="compact_confirm_action">Komprimieren</string>
     <string name="cd_temporary_chat">Temporärer Chat</string>
     <string name="temporary_chat_enforced">Temporärer Chat ist für alle Chats aktiv, festgelegt von deinem Administrator</string>

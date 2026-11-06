@@ -789,6 +789,7 @@
     <string name="compact_confirm_title">Compact this conversation?</string>
     <string name="compact_confirm_body">%1$d% of the context window is used. Compacting summarizes the conversation so far into a shorter note the model keeps reading, freeing room for what comes next. Nothing is deleted.</string>
     <string name="compact_confirm_not_now">Not now</string>
+    <string name="compact_confirm_see_usage">See usage</string>
     <string name="compact_confirm_action">Compact</string>
     <string name="notice_rename_failed">Failed to rename conversation</string>
     <string name="notice_rename_not_ready">This chat can't be renamed until its title is ready. Try again once the reply has finished.</string>

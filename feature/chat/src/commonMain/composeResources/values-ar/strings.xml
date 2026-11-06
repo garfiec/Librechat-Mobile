@@ -782,6 +782,7 @@
     <string name="compact_confirm_title">ضغط هذه المحادثة؟</string>
     <string name="compact_confirm_body">تم استخدام %1$d% من نافذة السياق. يلخّص الضغط المحادثة حتى الآن في ملاحظة أقصر يواصل النموذج قراءتها، مما يفسح المجال لما يلي. لا يُحذف أي شيء.</string>
     <string name="compact_confirm_not_now">ليس الآن</string>
+    <string name="compact_confirm_see_usage">عرض الاستخدام</string>
     <string name="compact_confirm_action">ضغط</string>
     <string name="cd_temporary_chat">محادثة مؤقتة</string>
     <string name="temporary_chat_enforced">المحادثة المؤقتة مفعّلة لجميع المحادثات، بإعداد من المسؤول</string>

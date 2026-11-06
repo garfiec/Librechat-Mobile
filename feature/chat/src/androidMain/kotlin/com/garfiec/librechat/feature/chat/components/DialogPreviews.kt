@@ -45,7 +45,8 @@ private fun SiteIconsHost(style: UiStyle, height: Dp = 640.dp) = DialogPreviewHo
 
 @Composable
 private fun CompactConfirmHost(style: UiStyle, height: Dp = 640.dp) = DialogPreviewHost(style, height = height) {
-    CompactConfirmDialog(percent = 92, onDismiss = {}, onNotNow = {}, onCompact = {})
+    // As the context ring opens it, with its way to the breakdown.
+    CompactConfirmDialog(percent = 92, onDismiss = {}, onNotNow = {}, onCompact = {}, onSeeUsage = {})
 }
 
 @Composable

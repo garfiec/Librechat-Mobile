@@ -1243,7 +1243,8 @@ first, then images, files, skills, quotes.
   - **The context ring** (`ContextRing`, only with the above-the-field placement): a 24dp ring with
     the percentage inside, `pressureColor`, a tertiary dot while the compact suggestion is due. A tap
     opens `ContextUsageSheet`, or `CompactConfirmDialog` while the suggestion is due, which keeps
-    "Not now" (`snoozeCompactNudge`). It replaces the centred gauge pill row; the sheet and menu
+    "Not now" (`snoozeCompactNudge`) and adds "See usage" (`onSeeUsage`), the way to the sheet that
+    doesn't snooze. It replaces the centred gauge pill row; the sheet and menu
     placements are unchanged.
 - URL context shows only on a Google parameter set and a model the server runs it on
   (`urlContextProviderGate`, `supportsUrlContext`: Gemini 2.5+, not image/live/TTS/audio). The server

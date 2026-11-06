@@ -761,6 +761,7 @@
     <string name="compact_confirm_title">Compactar esta conversa?</string>
     <string name="compact_confirm_body">%1$d% da janela de contexto está em uso. Compactar resume a conversa até aqui em uma nota mais curta que o modelo continua lendo, liberando espaço para o que vem a seguir. Nada é excluído.</string>
     <string name="compact_confirm_not_now">Agora não</string>
+    <string name="compact_confirm_see_usage">Ver uso</string>
     <string name="compact_confirm_action">Compactar</string>
     <string name="cd_temporary_chat">Chat temporário</string>
     <string name="temporary_chat_enforced">O chat temporário está ativado para todas as conversas, definido pelo seu administrador</string>
