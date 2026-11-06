@@ -299,7 +299,7 @@ private fun MorphingMenu(
                             .then(modifier)
                             .width(IntrinsicSize.Max)
                             // The padding scrolls with the rows, so they run to the panel's edge and fade.
-                            .menuFadingEdges(scrollState)
+                            .scrollFadingEdges(scrollState)
                             .verticalScroll(scrollState)
                             .padding(vertical = MenuVerticalPadding)
                             .semantics { isTraversalGroup = true },
