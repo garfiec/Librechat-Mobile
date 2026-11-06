@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
@@ -64,6 +65,7 @@ import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_context_ring
 import com.garfiec.librechat.feature.chat.resources.cd_thinking_chip
 import com.garfiec.librechat.feature.chat.resources.compact_nudge_action
+import com.garfiec.librechat.feature.chat.resources.mcp_sign_in_action
 import com.garfiec.librechat.feature.chat.resources.setting_chip_set_by
 import com.garfiec.librechat.feature.chat.resources.setting_chip_sign_in
 import com.garfiec.librechat.feature.chat.resources.thinking_chat_setting
@@ -163,11 +165,13 @@ private fun McpSettingChip(chip: SettingChip.Mcp, lockedBy: String?, onClick: ()
     val connection = stringResource(mcpStatusLabel(chip.status))
     val state = if (locked) "$connection, ${lockDescription(lockedBy)}" else connection
     val dotColor = mcpStatusColor(chip.status)
+    // A tap that signs in instead of switching the server off is named, for TalkBack as on screen.
+    val signInLabel = if (chip.signsInOnTap) stringResource(Res.string.mcp_sign_in_action) else null
     AdaptiveFilterChip(
         selected = true,
         onClick = onClick,
         label = {
-            if (chip.needsSignIn) {
+            if (signInLabel != null) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     // A width cap, not a weight: the line scrolls, so the chip is measured unbounded
                     // and a weighted child there gets 0 width, which would hide the server's name.
@@ -183,7 +187,10 @@ private fun McpSettingChip(chip: SettingChip.Mcp, lockedBy: String?, onClick: ()
                 Text(chip.label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = McpNameMaxWidth))
             }
         },
-        modifier = Modifier.semantics { stateDescription = state },
+        modifier = Modifier.semantics {
+            stateDescription = state
+            if (signInLabel != null) onClick(label = signInLabel) { onClick(); true }
+        },
         colors = AdaptiveChipDefaults.overlayFilterChipColors(),
         leadingIcon = {
             // Ringed in the chip's own content colour so the dot reads on the filled chip in both styles.

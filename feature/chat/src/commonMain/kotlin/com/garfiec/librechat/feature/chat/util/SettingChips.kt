@@ -30,16 +30,14 @@ sealed interface SettingChip {
         /** It signs in with OAuth ([McpServerDisplayData.requiresOAuth]). */
         val requiresOAuth: Boolean = false,
     ) : SettingChip {
-        /** Drawn with "· sign in", and a tap starts the sign-in rather than turning it off. */
-        val needsSignIn: Boolean get() = status == McpDisplayStatus.NEEDS_SIGN_IN
-
         /**
-         * A tap starts the sign-in: [needsSignIn], or an OAuth server that isn't connected because
-         * a sign-in is still pending (connecting) or ended in an error. Turning it off would be the
-         * wrong answer to either; signing in again is what fixes them.
+         * A tap starts the sign-in rather than turning it off, and the chip says so ("· sign in", a
+         * "Sign in" click label): a server that needs sign-in, or an OAuth server that isn't connected
+         * because a sign-in is still pending (connecting) or ended in an error. Signing in again is
+         * what fixes either; the "+" sheet's switch still turns it off.
          */
         val signsInOnTap: Boolean
-            get() = needsSignIn ||
+            get() = status == McpDisplayStatus.NEEDS_SIGN_IN ||
                 (requiresOAuth && (status == McpDisplayStatus.CONNECTING || status == McpDisplayStatus.FAILED))
     }
 
