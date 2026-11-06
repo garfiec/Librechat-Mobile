@@ -267,10 +267,24 @@ fun ChatScreen(
     val thinkingChip = uiState.thinkingChip
     // MCP sign-in: a tool call's card (mid-run, delta.auth) and a settings chip both bind and open it
     // here. A paused run resumes by itself once the server's callback lands; whichever way a sign-in
-    // ends, the chat re-reads its servers' statuses so the chips' dots catch up.
+    // ends, the chat re-reads its servers' statuses so the chips' dots catch up. Nothing here cancels
+    // a flow: only a connecting chip's "Cancel sign-in" does.
     val mcpSignInViewModel: McpSignInViewModel = koinViewModel()
     val mcpSignIn = rememberMcpSignIn(mcpSignInViewModel, snackbarHostState, onSignInEnd = viewModel::onMcpSignInEnded)
     val mcpSignInFailed = stringResource(Res.string.mcp_sign_in_failed)
+    // A chip's sign-in, and a connecting chip's "Start over": reconnect, then open its link.
+    val startMcpSignIn: (String) -> Unit = { serverName ->
+        viewModel.signInMcpServer(
+            serverName = serverName,
+            openSignIn = mcpSignIn.signIn,
+            onFailed = {
+                coroutineScope.launch {
+                    snackbarHostState.currentSnackbarData?.dismiss()
+                    snackbarHostState.showSnackbar(mcpSignInFailed)
+                }
+            },
+        )
+    }
     val onSettingChipTap = rememberSettingChipTap(
         chips = uiState.settingChips,
         editingQueuedId = uiState.editingQueuedItem?.original?.localId,
@@ -278,18 +292,7 @@ fun ChatScreen(
         onToggle = viewModel::toggleSettingChip,
         onTurnBackOn = viewModel::turnSettingChipBackOn,
         onOpenThinking = { showThinkingSheet = true },
-        onSignIn = { serverName ->
-            viewModel.signInMcpServer(
-                serverName = serverName,
-                openSignIn = mcpSignIn.signIn,
-                onFailed = {
-                    coroutineScope.launch {
-                        snackbarHostState.currentSnackbarData?.dismiss()
-                        snackbarHostState.showSnackbar(mcpSignInFailed)
-                    }
-                },
-            )
-        },
+        onSignIn = startMcpSignIn,
     )
     // On a phone's comparison tab 1 the composer edits the secondary model, so the selector page and
     // label both follow the active tab. Side by side there is no current tab (the remembered index
@@ -602,6 +605,8 @@ fun ChatScreen(
                         selectedMcpServerNames = uiState.effectiveMcpServerNames,
                         settingChips = uiState.settingChips,
                         onSettingChipTap = onSettingChipTap,
+                        onCancelMcpSignIn = viewModel::cancelMcpSignIn,
+                        onStartMcpSignInOver = startMcpSignIn,
                         contextGauge = uiState.contextGaugeDetails,
                         contextUsageEnabled = uiState.contextUsageEnabled,
                         onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },

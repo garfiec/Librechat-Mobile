@@ -1195,42 +1195,34 @@ first, then images, files, skills, quotes.
     when it isn't empty and the chat shows the tool controls, or once they show (an agent chat
     switched to a model), as web asks only while it observes tool authorization). The dot is `mcpStatusColor` (`McpStatusPresentation.kt`, from
     `statusColors()`): connected green, connecting info, needs sign-in or setup amber, failed error,
-    the rest neutral; the "+" sheet's rows use the same dot and label. A chip whose tap signs in
-    (`SettingChip.Mcp.signsInOnTap`: needs sign-in, or an OAuth server that reads connecting or
-    failed) reads "· sign in" with a "Sign in" click label, and a tap (`SettingChipTap.SignIn`, even
-    on a spec-locked chip) runs
+    the rest neutral; the "+" sheet's rows use the same dot and label. **Sign-in follows web's rule**
+    (`usePaletteEntries` / `useMCPServerManager`). A chip whose tap signs in
+    (`SettingChip.Mcp.signsInOnTap`: needs sign-in, or an OAuth server that failed) reads "· sign in"
+    with a "Sign in" click label, and a tap (`SettingChipTap.SignIn`, even on a spec-locked chip) runs
     `signInMcpServer`: `McpRepository.reinitialize` → its `oauthUrl` → `LocalMcpSignIn`'s sign-in,
-    with the chip connecting meanwhile. Every end reloads the statuses: the delegate's own when no
-    sign-in opens (connected, deferred, refused, failed, the last two with `mcp_sign_in_failed`, or
-    `McpSignInViewModel.signIn` returning false because another sign-in is binding or on screen),
-    and `McpSignInUiState.ended` once an opened one succeeds, is cancelled or fails (a browser
-    sign-in ends on the next ON_RESUME). A chip's in-app sign-in that ends unfinished (closed,
-    refused, never opened or bound; `McpSignInEnd.signedIn == false`), or that the screen turned
-    down, first cancels the flow its reconnect left pending (`POST /api/mcp/oauth/cancel/:serverName`,
-    as web's Cancel), which would otherwise read as connecting for up to ten minutes. A chip tap
-    while that cancel is out waits for it before reconnecting, since the server would replay the
-    flow being cancelled. **Never while a reply runs or a live tool call waits on that server's
-    sign-in**: the server keeps one flow per user and server, and a reconnect then replays the run's
-    own flow into the chip's dialog, so cancelling it would fail the tool call. The flow is left to
-    the run and the chip may read connecting · sign in until it ends; once no run in the chat may
-    wait on it, the statuses are read and a flow still pending is cancelled then (`heldByRun`,
-    `cancelOnceRunLetsGo`), not at the next tap, by which time a run on the web or another device may
-    have picked it up. A loaded status that reads the server anything but connecting meanwhile drops
-    it: that flow is over. **Nor when the server already
-    read connecting with a sign-in pending at the tap** (`chipOwnsFlow`): the reconnect only replayed
-    a flow a run in another chat, a web tab or another device started, which this chat's state can't
-    see. A flow the chip's own browser sign-in or cancel left there is still its own, and so is one
-    whose cancel failed (`leftPendingFlows`, until a status read that loaded, not a failed one, stops
-    reading connecting): the next close cancels it. A stored-token reconnect the server runs itself reads the
-    same, so a flow the chip starts during it is left to the timeout. A browser sign-in is never cancelled: the
-    user may come back mid-way and finish in the browser, whose callback a cancelled flow refuses.
-    The statuses are re-read on every return to the chat (ON_RESUME after an ON_PAUSE,
-    `McpServersDelegate.onForeground`), since the tap acts on them and a sign-in or sign-out on the
-    MCP servers page or in another chat changes them; discovery is asked again then only while a
-    browser sign-in may be finishing or when the list changed; a discovery read still out keeps going
-    (its own generation, bumped only by discovery reads and chip taps). The chip's tap (connecting · sign in)
-    replays or reissues an abandoned flow. A tool call's sign-in is the run's and is never cancelled. Such a chip is turned off from the "+" sheet's switch. Other
-    needs-setup and failed chips keep the ordinary tap (off with Undo): setup is on the web, a failure on the server. Thinking uses the brain glyph (Memory uses `AutoStories`, here and in the drawer),
+    with the chip connecting meanwhile; a second tap while the reconnect is out does nothing.
+    **The app never cancels an OAuth flow by itself**: not when the sign-in dialog is closed or
+    refused, not on a return from the browser, not when a run ends. The user may still finish it in
+    the browser, and a run in another chat, a web tab or another device may be waiting on the same
+    flow (the server keeps one per user and server). Don't add an automatic cancel back.
+    An OAuth server that reads connecting (`signInPending`: a flow is open, finished elsewhere or
+    abandoned) reads "· connecting", and its tap (`SettingChipTap.SignInMenu`, handled by the chip
+    itself) opens a small `AdaptiveDropdownMenu`: **Cancel sign-in** (`cancelMcpSignIn`,
+    `POST /api/mcp/oauth/cancel/:serverName`, web's Cancel) and **Start over** (the same reconnect
+    as the sign-in tap). A reconnect waits for a cancel still on its way, since the server would
+    replay the flow being cancelled; a cancel while a reconnect is out is ignored. The statuses
+    reload when a sign-in ends, whatever the outcome (the delegate's own reload when none opens:
+    connected, deferred, refused, failed, the last two with `mcp_sign_in_failed`, or
+    `McpSignInViewModel.signIn` returning false because another sign-in holds the screen; else
+    `McpSignInUiState.ended`, a browser sign-in ending on the next ON_RESUME), after a cancel
+    (landed or not), and on every return to the chat (ON_RESUME after an ON_PAUSE,
+    `McpServersDelegate.onForeground`, skipped while a reconnect or a cancel is out, which reload
+    when they end), since a sign-in or sign-out on the MCP servers page, in the browser or in another
+    chat changes them. Discovery is asked again on a return only when the list changed; a discovery
+    read still out keeps going (its own generation, bumped only by discovery reads and chip
+    sign-ins). A tool call's sign-in is the run's and goes through the same reload. Such a chip is
+    turned off from the "+" sheet's switch. Other needs-setup and failed chips keep the ordinary tap
+    (off with Undo): setup is on the web, a failure on the server. Thinking uses the brain glyph (Memory uses `AutoStories`, here and in the drawer),
     tints tertiary while a one-turn choice is staged, in both styles, and states it. Picked skills use
     the sparkle (`AutoAwesome`) on the stack, the `$` picker, the sent bubble and the skill card.
   - **The context ring** (`ContextRing`, only with the above-the-field placement): a 24dp ring with

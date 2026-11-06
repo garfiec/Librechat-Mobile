@@ -18,9 +18,12 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
@@ -57,15 +60,20 @@ import com.garfiec.librechat.core.model.usage.percentOf
 import com.garfiec.librechat.core.ui.components.AdaptiveAssistChip
 import com.garfiec.librechat.core.ui.components.AdaptiveChipDefaults
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
 import com.garfiec.librechat.core.ui.components.CornerStatusDot
 import com.garfiec.librechat.core.ui.components.reasoningLevelLabel
 import com.garfiec.librechat.core.ui.contextusage.pressureColor
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_context_ring
+import com.garfiec.librechat.feature.chat.resources.cd_mcp_sign_in_menu
 import com.garfiec.librechat.feature.chat.resources.cd_thinking_chip
 import com.garfiec.librechat.feature.chat.resources.compact_nudge_action
+import com.garfiec.librechat.feature.chat.resources.mcp_chip_cancel_sign_in
+import com.garfiec.librechat.feature.chat.resources.mcp_chip_start_over
 import com.garfiec.librechat.feature.chat.resources.mcp_sign_in_action
+import com.garfiec.librechat.feature.chat.resources.setting_chip_connecting_suffix
 import com.garfiec.librechat.feature.chat.resources.setting_chip_set_by
 import com.garfiec.librechat.feature.chat.resources.setting_chip_sign_in
 import com.garfiec.librechat.feature.chat.resources.thinking_chat_setting
@@ -74,8 +82,10 @@ import com.garfiec.librechat.feature.chat.resources.thinking_chip_state_next
 import com.garfiec.librechat.feature.chat.resources.tool_set_by_spec
 import com.garfiec.librechat.feature.chat.util.SettingChip
 import com.garfiec.librechat.feature.chat.util.SettingChipState
+import com.garfiec.librechat.feature.chat.util.SettingChipTap
 import com.garfiec.librechat.feature.chat.util.SettingChips
 import com.garfiec.librechat.feature.chat.util.ThinkingChip
+import com.garfiec.librechat.feature.chat.util.tapFor
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import org.jetbrains.compose.resources.stringResource
 
@@ -83,14 +93,19 @@ import org.jetbrains.compose.resources.stringResource
  * The composer's settings line: what is on for the next message, one chip per thing, on one line
  * that scrolls sideways and never wraps. [leading] comes first (the code workspace's chips), then
  * [chips] (tools, MCP servers, Thinking), with the context ring pinned at the end when [ring] is
- * set. A tap goes to [onChipTap]; the screen decides what it does ([SettingChips.tapFor]).
- * Draws nothing when it would hold nothing.
+ * set. A tap goes to [onChipTap]; the screen decides what it does ([SettingChips.tapFor]), except on
+ * an MCP chip whose sign-in is pending, which opens its own menu ([onCancelSignIn],
+ * [onStartSignInOver]). Draws nothing when it would hold nothing.
  */
 @Composable
 internal fun ComposerSettingsLine(
     chips: SettingChips,
     onChipTap: (SettingChip) -> Unit,
     modifier: Modifier = Modifier,
+    /** "Cancel sign-in" in a connecting MCP chip's menu ([SettingChip.Mcp.signInPending]). */
+    onCancelSignIn: (serverName: String) -> Unit = {},
+    /** "Start over" in that menu. */
+    onStartSignInOver: (serverName: String) -> Unit = {},
     ring: ContextRingState? = null,
     hasLeading: Boolean = false,
     leading: @Composable RowScope.() -> Unit = {},
@@ -114,7 +129,14 @@ internal fun ComposerSettingsLine(
             chips.chips.forEach { chip ->
                 when (chip) {
                     is SettingChip.Tool -> ToolSettingChip(chip, chips.lockedBy, onClick = { onChipTap(chip) })
-                    is SettingChip.Mcp -> McpSettingChip(chip, chips.lockedBy, onClick = { onChipTap(chip) })
+                    is SettingChip.Mcp -> McpSettingChip(
+                        chip = chip,
+                        lockedBy = chips.lockedBy,
+                        opensMenu = chips.tapFor(chip) is SettingChipTap.SignInMenu,
+                        onClick = { onChipTap(chip) },
+                        onCancelSignIn = { onCancelSignIn(chip.name) },
+                        onStartSignInOver = { onStartSignInOver(chip.name) },
+                    )
                     is SettingChip.Thinking -> ThinkingSettingChip(chip.chip, onClick = { onChipTap(chip) })
                 }
             }
@@ -159,45 +181,94 @@ private fun ToolSettingChip(chip: SettingChip.Tool, lockedBy: String?, onClick: 
     )
 }
 
+/**
+ * A selected MCP server with its status dot. A chip whose tap signs in reads "· sign in"; one whose
+ * sign-in is pending ([opensMenu]) reads "· connecting" and opens a menu with "Cancel sign-in" and
+ * "Start over" rather than going to [onClick].
+ */
 @Composable
-private fun McpSettingChip(chip: SettingChip.Mcp, lockedBy: String?, onClick: () -> Unit) {
+private fun McpSettingChip(
+    chip: SettingChip.Mcp,
+    lockedBy: String?,
+    opensMenu: Boolean,
+    onClick: () -> Unit,
+    onCancelSignIn: () -> Unit,
+    onStartSignInOver: () -> Unit,
+) {
+    var menuOpen by remember { mutableStateOf(false) }
     val locked = chip.state == SettingChipState.LOCKED
     val connection = stringResource(mcpStatusLabel(chip.status))
     val state = if (locked) "$connection, ${lockDescription(lockedBy)}" else connection
     val dotColor = mcpStatusColor(chip.status)
-    // A tap that signs in instead of switching the server off is named, for TalkBack as on screen.
-    val signInLabel = if (chip.signsInOnTap) stringResource(Res.string.mcp_sign_in_action) else null
-    AdaptiveFilterChip(
-        selected = true,
-        onClick = onClick,
-        label = {
-            if (signInLabel != null) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    // A width cap, not a weight: the line scrolls, so the chip is measured unbounded
-                    // and a weighted child there gets 0 width, which would hide the server's name.
-                    Text(
-                        chip.label,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.widthIn(max = McpNameMaxWidth),
-                    )
-                    Text(stringResource(Res.string.setting_chip_sign_in), maxLines = 1)
+    // A tap that does something other than switch the server off is named, for TalkBack as on screen.
+    val suffix = when {
+        opensMenu -> stringResource(Res.string.setting_chip_connecting_suffix)
+        chip.signsInOnTap -> stringResource(Res.string.setting_chip_sign_in)
+        else -> null
+    }
+    val actionLabel = when {
+        opensMenu -> stringResource(Res.string.cd_mcp_sign_in_menu)
+        chip.signsInOnTap -> stringResource(Res.string.mcp_sign_in_action)
+        else -> null
+    }
+    val tap: () -> Unit = if (opensMenu) ({ menuOpen = true }) else onClick
+    Box {
+        AdaptiveFilterChip(
+            selected = true,
+            onClick = tap,
+            label = {
+                if (suffix != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        // A width cap, not a weight: the line scrolls, so the chip is measured unbounded
+                        // and a weighted child there gets 0 width, which would hide the server's name.
+                        Text(
+                            chip.label,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.widthIn(max = McpNameMaxWidth),
+                        )
+                        Text(suffix, maxLines = 1)
+                    }
+                } else {
+                    Text(chip.label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = McpNameMaxWidth))
                 }
-            } else {
-                Text(chip.label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = McpNameMaxWidth))
-            }
-        },
-        modifier = Modifier.semantics {
-            stateDescription = state
-            if (signInLabel != null) onClick(label = signInLabel) { onClick(); true }
-        },
-        colors = AdaptiveChipDefaults.overlayFilterChipColors(),
-        leadingIcon = {
-            // Ringed in the chip's own content colour so the dot reads on the filled chip in both styles.
-            CornerStatusDot(color = dotColor, size = 12.dp, ringColor = LocalContentColor.current)
-        },
-        trailingIcon = if (locked) ({ ChipIcon(Icons.Default.Lock) }) else null,
-    )
+            },
+            modifier = Modifier.semantics {
+                stateDescription = state
+                if (actionLabel != null) {
+                    onClick(label = actionLabel) {
+                        tap()
+                        true
+                    }
+                }
+            },
+            colors = AdaptiveChipDefaults.overlayFilterChipColors(),
+            leadingIcon = {
+                // Ringed in the chip's own content colour so the dot reads on the filled chip in both styles.
+                CornerStatusDot(color = dotColor, size = 12.dp, ringColor = LocalContentColor.current)
+            },
+            trailingIcon = if (locked) ({ ChipIcon(Icons.Default.Lock) }) else null,
+        )
+        // Only while the sign-in still reads pending: a status reload that settles it takes the menu down.
+        AdaptiveDropdownMenu(expanded = menuOpen && opensMenu, onDismissRequest = { menuOpen = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.mcp_chip_cancel_sign_in)) },
+                leadingIcon = { Icon(Icons.Default.Close, contentDescription = null) },
+                onClick = {
+                    menuOpen = false
+                    onCancelSignIn()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.mcp_chip_start_over)) },
+                leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+                onClick = {
+                    menuOpen = false
+                    onStartSignInOver()
+                },
+            )
+        }
+    }
 }
 
 /**

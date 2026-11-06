@@ -1166,6 +1166,10 @@
     <string name="setting_chip_on_demand">채팅할 때 연결됨</string>
     <string name="setting_chip_failed">연결할 수 없음</string>
     <string name="setting_chip_sign_in">· 로그인</string>
+    <string name="setting_chip_connecting_suffix">· 연결 중</string>
+    <string name="mcp_chip_cancel_sign_in">로그인 취소</string>
+    <string name="mcp_chip_start_over">처음부터 다시</string>
+    <string name="cd_mcp_sign_in_menu">로그인 옵션</string>
     <string name="thinking_chip_state_next">다음 메시지에만</string>
     <string name="cd_context_ring">사용한 컨텍스트: %1$s</string>
     <string name="draft_quote_removed">인용 삭제됨</string>

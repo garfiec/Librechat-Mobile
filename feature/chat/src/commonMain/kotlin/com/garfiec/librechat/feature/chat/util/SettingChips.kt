@@ -32,13 +32,20 @@ sealed interface SettingChip {
     ) : SettingChip {
         /**
          * A tap starts the sign-in rather than turning it off, and the chip says so ("· sign in", a
-         * "Sign in" click label): a server that needs sign-in, or an OAuth server that isn't connected
-         * because a sign-in is still pending (connecting) or ended in an error. Signing in again is
-         * what fixes either; the "+" sheet's switch still turns it off.
+         * "Sign in" click label): a server that needs sign-in, or an OAuth server whose connection
+         * failed. Signing in again is what fixes either, as web's MCP palette reconnects them; the
+         * "+" sheet's switch still turns it off.
          */
         val signsInOnTap: Boolean
-            get() = status == McpDisplayStatus.NEEDS_SIGN_IN ||
-                (requiresOAuth && (status == McpDisplayStatus.CONNECTING || status == McpDisplayStatus.FAILED))
+            get() = status == McpDisplayStatus.NEEDS_SIGN_IN || (requiresOAuth && status == McpDisplayStatus.FAILED)
+
+        /**
+         * An OAuth server that reads connecting: a sign-in is pending, maybe still being finished in
+         * the browser, maybe abandoned. The chip says so ("· connecting") and its tap offers "Cancel
+         * sign-in" and "Start over" instead of turning it off. The app never cancels the flow itself.
+         */
+        val signInPending: Boolean
+            get() = requiresOAuth && status == McpDisplayStatus.CONNECTING
     }
 
     /** The per-turn Thinking control; a tap opens its sheet. */
@@ -178,15 +185,23 @@ sealed interface SettingChipTap {
 
     /** An MCP server that needs the user to sign in: start it ([serverName] is its stored name). */
     data class SignIn(val serverName: String) : SettingChipTap
+
+    /**
+     * An MCP server whose sign-in is pending ([SettingChip.Mcp.signInPending]): the chip opens its
+     * own menu, "Cancel sign-in" and "Start over", so the screen does nothing with the tap.
+     */
+    data class SignInMenu(val serverName: String) : SettingChipTap
 }
 
 /**
- * The tap rule for [chip] on this line. A server that needs sign-in signs in even when the spec
- * locks it on: the lock only says why it is there, and signing in is what makes it work.
+ * The tap rule for [chip] on this line. A server that needs sign-in signs in, and one whose sign-in
+ * is pending opens its menu, even when the spec locks it on: the lock only says why it is there,
+ * and signing in is what makes it work.
  */
 fun SettingChips.tapFor(chip: SettingChip): SettingChipTap {
     val state = chip.state ?: return SettingChipTap.OpenThinking
     return when {
+        chip is SettingChip.Mcp && chip.signInPending -> SettingChipTap.SignInMenu(chip.name)
         chip is SettingChip.Mcp && chip.signsInOnTap -> SettingChipTap.SignIn(chip.name)
         state == SettingChipState.LOCKED -> SettingChipTap.ExplainLock(lockedBy)
         chip is SettingChip.Tool && chip.pinned -> SettingChipTap.Toggle

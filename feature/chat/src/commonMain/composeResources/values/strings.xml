@@ -1241,6 +1241,10 @@
     <string name="setting_chip_failed">Can't connect</string>
     <!-- After an MCP server's name on its settings chip when it needs the user to sign in; a tap starts the sign-in -->
     <string name="setting_chip_sign_in">· sign in</string>
+    <string name="setting_chip_connecting_suffix">· connecting</string>
+    <string name="mcp_chip_cancel_sign_in">Cancel sign-in</string>
+    <string name="mcp_chip_start_over">Start over</string>
+    <string name="cd_mcp_sign_in_menu">Sign-in options</string>
     <string name="thinking_chip_state_next">Next message only</string>
     <string name="cd_context_ring">Context used: %1$s</string>
     <string name="draft_quote_removed">Quote removed</string>

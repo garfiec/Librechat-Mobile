@@ -72,6 +72,10 @@ data class ComposerChrome(
     val settingChips: SettingChips = SettingChips.EMPTY,
     /** A settings chip's tap; the screen decides what it does ([SettingChips.tapFor]). */
     val onSettingChipTap: (SettingChip) -> Unit = {},
+    /** "Cancel sign-in" in a connecting MCP chip's menu: the server's explicit OAuth cancel. */
+    val onCancelMcpSignIn: (serverName: String) -> Unit = {},
+    /** "Start over" in a connecting MCP chip's menu: reconnect it and open the sign-in again. */
+    val onStartMcpSignInOver: (serverName: String) -> Unit = {},
     /** The context gauge's reading and breakdown. */
     val contextGauge: ContextGaugeDetails? = null,
     /** Server/version gate for the context gauge (`interface.contextUsage` AND backend ≥ 0.8.7). */

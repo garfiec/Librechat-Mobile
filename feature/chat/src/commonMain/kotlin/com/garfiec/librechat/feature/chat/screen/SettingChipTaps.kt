@@ -64,6 +64,8 @@ internal fun rememberSettingChipTap(
             when (val tap = currentChips.tapFor(chip)) {
                 SettingChipTap.OpenThinking -> openThinking()
                 is SettingChipTap.SignIn -> signIn(tap.serverName)
+                // The chip opens its own menu; its items come back through the composer chrome.
+                is SettingChipTap.SignInMenu -> Unit
                 SettingChipTap.Toggle -> toggle(chip)
                 is SettingChipTap.ExplainLock -> scope.launch {
                     val message = tap.specLabel?.let { getString(Res.string.setting_chip_set_by, it) }

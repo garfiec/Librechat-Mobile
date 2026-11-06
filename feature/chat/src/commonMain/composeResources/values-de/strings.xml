@@ -1186,6 +1186,10 @@
     <string name="setting_chip_on_demand">Verbindet sich beim Chatten</string>
     <string name="setting_chip_failed">Keine Verbindung möglich</string>
     <string name="setting_chip_sign_in">· anmelden</string>
+    <string name="setting_chip_connecting_suffix">· verbindet</string>
+    <string name="mcp_chip_cancel_sign_in">Anmeldung abbrechen</string>
+    <string name="mcp_chip_start_over">Neu beginnen</string>
+    <string name="cd_mcp_sign_in_menu">Anmeldeoptionen</string>
     <string name="thinking_chip_state_next">Nur nächste Nachricht</string>
     <string name="cd_context_ring">Kontext belegt: %1$s</string>
     <string name="draft_quote_removed">Zitat entfernt</string>

@@ -1166,6 +1166,10 @@
     <string name="setting_chip_on_demand">聊天时连接</string>
     <string name="setting_chip_failed">无法连接</string>
     <string name="setting_chip_sign_in">· 登录</string>
+    <string name="setting_chip_connecting_suffix">· 正在连接</string>
+    <string name="mcp_chip_cancel_sign_in">取消登录</string>
+    <string name="mcp_chip_start_over">重新开始</string>
+    <string name="cd_mcp_sign_in_menu">登录选项</string>
     <string name="thinking_chip_state_next">仅限下一条消息</string>
     <string name="cd_context_ring">已用上下文：%1$s</string>
     <string name="draft_quote_removed">已移除引用</string>

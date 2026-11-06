@@ -238,7 +238,7 @@ class SettingChipsTest {
     }
 
     @Test
-    fun anOAuthServerLeftPendingOrFailedSignsInAgainRatherThanTurningOff() {
+    fun anOAuthServerThatFailedSignsInAgainAndOnePendingOpensItsMenu() {
         fun server(name: String, status: McpDisplayStatus, oauth: Boolean) =
             McpServerDisplayData(name = name, title = null, description = null, status = status, requiresOAuth = oauth)
         val pending = server("github", McpDisplayStatus.CONNECTING, oauth = true)
@@ -253,16 +253,34 @@ class SettingChipsTest {
         )
         val byName = line.chips.filterIsInstance<SettingChip.Mcp>().associateBy { it.name }
 
-        assertEquals(SettingChipTap.SignIn("github"), line.tapFor(byName.getValue("github")))
+        // A pending sign-in offers Cancel sign-in and Start over (the chip's own menu), never off.
+        assertEquals(SettingChipTap.SignInMenu("github"), line.tapFor(byName.getValue("github")))
         assertEquals(SettingChipTap.SignIn("drive"), line.tapFor(byName.getValue("drive")))
         // Not OAuth: nothing to sign in to, so the ordinary tap.
         assertEquals(SettingChipTap.TurnOffWithUndo, line.tapFor(byName.getValue("search")))
         assertEquals(SettingChipTap.TurnOffWithUndo, line.tapFor(byName.getValue("sentry")))
-        // Every chip whose tap signs in reads "· sign in", so the tap's effect shows; the others don't.
-        assertEquals(
-            listOf(true, true, false, false),
-            listOf("github", "drive", "search", "sentry").map { byName.getValue(it).signsInOnTap },
+        // "· sign in" on the chip that signs in, "· connecting" on the one whose sign-in is pending.
+        val names = listOf("github", "drive", "search", "sentry")
+        assertEquals(listOf(false, true, false, false), names.map { byName.getValue(it).signsInOnTap })
+        assertEquals(listOf(true, false, false, false), names.map { byName.getValue(it).signInPending })
+    }
+
+    @Test
+    fun aSpecLockedServerWhoseSignInIsPendingStillOpensItsMenu() {
+        val pending = McpServerDisplayData(
+            name = "docs",
+            title = null,
+            description = null,
+            status = McpDisplayStatus.CONNECTING,
+            requiresOAuth = true,
         )
+        val line = settingChipsOf(
+            inputs(mcpServers = listOf(pending), mcpOn = setOf("docs"), lockedMcpServers = setOf("docs"), specLabel = "Research"),
+        )
+        val chip = line.chips.filterIsInstance<SettingChip.Mcp>().single()
+
+        assertEquals(SettingChipState.LOCKED, chip.state)
+        assertEquals(SettingChipTap.SignInMenu("docs"), line.tapFor(chip))
     }
 
     @Test

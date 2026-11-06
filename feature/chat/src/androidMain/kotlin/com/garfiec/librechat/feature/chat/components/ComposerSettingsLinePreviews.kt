@@ -94,13 +94,14 @@ private fun SettingsLineStates() {
             ),
         )
         // MCP servers by status: needs sign-in (amber, "· sign in", a long name and a locked one),
-        // connecting while that sign-in starts, needs setup on the web (amber), failed (error),
-        // and on demand.
+        // a sign-in pending ("· connecting", its tap opens Cancel sign-in / Start over), a server
+        // connecting without OAuth, needs setup on the web (amber), failed (error), and on demand.
         ComposerSettingsLine(
             chips = SettingChips(
                 listOf(
                     SettingChip.Mcp("github", "GitHub Enterprise (internal mirror)", SettingChipState.ON, McpDisplayStatus.NEEDS_SIGN_IN),
                     SettingChip.Mcp("docs", "Docs", SettingChipState.LOCKED, McpDisplayStatus.NEEDS_SIGN_IN),
+                    SettingChip.Mcp("drive", "Drive", SettingChipState.ON, McpDisplayStatus.CONNECTING, requiresOAuth = true),
                     SettingChip.Mcp("linear", "Linear", SettingChipState.ON, McpDisplayStatus.CONNECTING),
                     SettingChip.Mcp("jira", "Jira", SettingChipState.ON, McpDisplayStatus.NEEDS_SETUP),
                     SettingChip.Mcp("sentry", "Sentry", SettingChipState.ON, McpDisplayStatus.FAILED),

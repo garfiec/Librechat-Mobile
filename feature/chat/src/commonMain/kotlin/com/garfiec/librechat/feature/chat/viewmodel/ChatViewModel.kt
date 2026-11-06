@@ -2150,15 +2150,18 @@ class ChatViewModel(
     fun setSecondaryModel(endpoint: String, model: String) = comparisonDelegate.setSecondaryModel(endpoint, model)
     fun toggleMcpServer(serverName: String) = modelDelegate.toggleMcpServer(serverName)
 
-    /** A settings chip's "sign in": see [McpServersDelegate.signIn]. */
+    /** A settings chip's "sign in", or its "Start over": see [McpServersDelegate.signIn]. */
     fun signInMcpServer(
         serverName: String,
         openSignIn: (serverName: String, authorizationUrl: String) -> Boolean,
         onFailed: () -> Unit,
     ) = mcpServersDelegate.signIn(serverName, openSignIn, onFailed)
 
+    /** A connecting chip's "Cancel sign-in": see [McpServersDelegate.cancelSignIn]. */
+    fun cancelMcpSignIn(serverName: String) = mcpServersDelegate.cancelSignIn(serverName)
+
     /** An MCP sign-in ended: see [McpServersDelegate.onSignInEnded]. */
-    fun onMcpSignInEnded(end: McpSignInEnd?) = mcpServersDelegate.onSignInEnded(end)
+    fun onMcpSignInEnded() = mcpServersDelegate.onSignInEnded()
     fun toggleTool(toolName: String) {
         // Per conversation, so it never goes through the global enabled-tools store.
         if (toolName == ToolConstants.SKILLS) skillsToggleDelegate.toggle() else modelDelegate.toggleTool(toolName)

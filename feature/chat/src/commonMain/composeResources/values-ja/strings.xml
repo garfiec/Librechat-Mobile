@@ -1166,6 +1166,10 @@
     <string name="setting_chip_on_demand">チャット時に接続</string>
     <string name="setting_chip_failed">接続できません</string>
     <string name="setting_chip_sign_in">· サインイン</string>
+    <string name="setting_chip_connecting_suffix">· 接続中</string>
+    <string name="mcp_chip_cancel_sign_in">サインインをキャンセル</string>
+    <string name="mcp_chip_start_over">最初からやり直す</string>
+    <string name="cd_mcp_sign_in_menu">サインインのオプション</string>
     <string name="thinking_chip_state_next">次のメッセージのみ</string>
     <string name="cd_context_ring">使用中のコンテキスト: %1$s</string>
     <string name="draft_quote_removed">引用を削除しました</string>

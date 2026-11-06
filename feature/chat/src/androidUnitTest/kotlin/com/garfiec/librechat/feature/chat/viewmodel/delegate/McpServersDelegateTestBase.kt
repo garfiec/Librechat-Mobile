@@ -2,22 +2,16 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.McpRepository
-import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
 import com.garfiec.librechat.core.model.mcp.McpReinitializeResponse
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerStatus
 import com.garfiec.librechat.core.model.mcp.McpToolCatalog
-import com.garfiec.librechat.feature.chat.viewmodel.ActiveToolCall
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
-import com.garfiec.librechat.feature.chat.viewmodel.McpSignInEnd
-import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
-import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +21,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 
 /**
  * Shared fixture for the MCP servers delegate's tests: a fake server list and statuses, a delegate
- * over a real state handle, and the chip sign-in set-ups the cancel rules start from.
+ * over a real state handle, and the chip sign-in set-ups the sign-in and cancel tests start from.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 abstract class McpServersDelegateTestBase {
@@ -50,6 +44,10 @@ abstract class McpServersDelegateTestBase {
     )
     protected val signedIn = needsSignIn + ("github" to McpServerStatus(connectionState = "connected"))
 
+    /** github reads connecting with a sign-in pending: its OAuth flow is still open on the server. */
+    protected val flowPending =
+        needsSignIn + ("github" to McpServerStatus(connectionState = "connecting", requiresOAuth = true))
+
     init {
         // Tool discovery reports nothing lapsed unless a test says so.
         coEvery { mcpRepository.getTools() } returns Result.Success(McpToolCatalog())
@@ -69,25 +67,13 @@ abstract class McpServersDelegateTestBase {
 
     protected fun ChatStateHandle.statuses() = state.mcpServers.associate { it.name to it.status }
 
-    /** A chip sign-in on github that opened its link; returns the delegate after one load. */
-    protected fun TestScope.openedChipSignIn(): Pair<ChatStateHandle, McpServersDelegate> {
-        coEvery { mcpRepository.listServers() } returns Result.Success(servers)
-        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
-        coEvery { mcpRepository.reinitialize("github") } returns
-            Result.Success(McpReinitializeResponse(oauthRequired = true, oauthUrl = "https://idp/authorize"))
-        val pair = newDelegate()
-        pair.second.load()
-        advanceUntilIdle()
-        pair.second.signIn("github", { _, _ -> true }, {})
-        advanceUntilIdle()
-        return pair
-    }
-
-    /** github's reconnect leaves a pending flow, read as connecting until a cancel removes it. */
+    /**
+     * github's reconnect opens an OAuth flow on the server, which then reads connecting until the
+     * flow completes, times out, or the cancel route removes it.
+     */
     protected fun stubPendingFlowOnReconnect() {
-        val pending = needsSignIn + ("github" to McpServerStatus(connectionState = "connecting", requiresOAuth = true))
         coEvery { mcpRepository.reinitialize("github") } coAnswers {
-            coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(pending)
+            coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(flowPending)
             Result.Success(McpReinitializeResponse(oauthRequired = true, oauthUrl = "https://idp/authorize"))
         }
         coEvery { mcpRepository.cancelOAuth("github") } coAnswers {
@@ -96,34 +82,27 @@ abstract class McpServersDelegateTestBase {
         }
     }
 
-    /** A live tool call waiting on [server]'s sign-in. */
-    protected fun waitingOn(server: String, isComplete: Boolean = false) = ActiveToolCall(
-        id = "call_1",
-        name = "list_issues_mcp_$server",
-        isComplete = isComplete,
-        authUrl = "https://idp/authorize",
-        authServerName = server,
-    )
-
-    /** github already reads connecting with a sign-in pending before the chip is tapped. */
-    protected val flowPendingElsewhere =
-        needsSignIn + ("github" to McpServerStatus(connectionState = "connecting", requiresOAuth = true))
-
-    /** A chip sign-in on github closed while a reply streams, so its flow is left pending. */
-    protected fun TestScope.chipFlowLeftForAReply(): Pair<ChatStateHandle, McpServersDelegate> {
+    /** A chip sign-in on github that opened its link, leaving its flow pending; after one load. */
+    protected fun TestScope.openedChipSignIn(initial: ChatUiState = modelChat): Pair<ChatStateHandle, McpServersDelegate> {
         coEvery { mcpRepository.listServers() } returns Result.Success(servers)
         coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
         stubPendingFlowOnReconnect()
-        val pair = newDelegate(modelChat.copy(content = MessagesState(isStreaming = true)))
-        val (handle, delegate) = pair
-        delegate.load()
+        val pair = newDelegate(initial)
+        pair.second.load()
         advanceUntilIdle()
-        delegate.signIn("github", { _, _ -> true }, {})
+        pair.second.signIn("github", { _, _ -> true }, {})
         advanceUntilIdle()
-        delegate.onSignInEnded(McpSignInEnd("github", signedIn = false))
+        return pair
+    }
+
+    /** A chat whose github sign-in is pending on the server when it loads (a browser sign-in left open). */
+    protected fun TestScope.pendingSignInChat(): Pair<ChatStateHandle, McpServersDelegate> {
+        coEvery { mcpRepository.listServers() } returns Result.Success(servers)
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(flowPending)
+        stubPendingFlowOnReconnect()
+        val pair = newDelegate()
+        pair.second.load()
         advanceUntilIdle()
-        coVerify(exactly = 0) { mcpRepository.cancelOAuth(any()) }
-        assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.CONNECTING)
         return pair
     }
 
@@ -131,18 +110,5 @@ abstract class McpServersDelegateTestBase {
         delegate.onBackground()
         delegate.onForeground()
         advanceUntilIdle()
-    }
-
-    /** github's first cancel doesn't reach the server, so its flow stays pending; later ones do. */
-    protected fun stubFirstCancelFails() {
-        var cancels = 0
-        coEvery { mcpRepository.cancelOAuth("github") } coAnswers {
-            if (cancels++ == 0) {
-                Result.Error(message = "offline")
-            } else {
-                coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
-                Result.Success(Unit)
-            }
-        }
     }
 }

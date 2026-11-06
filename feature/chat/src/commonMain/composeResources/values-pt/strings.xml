@@ -1199,6 +1199,10 @@
     <string name="setting_chip_on_demand">Conecta quando você conversa</string>
     <string name="setting_chip_failed">Não foi possível conectar</string>
     <string name="setting_chip_sign_in">· fazer login</string>
+    <string name="setting_chip_connecting_suffix">· conectando</string>
+    <string name="mcp_chip_cancel_sign_in">Cancelar login</string>
+    <string name="mcp_chip_start_over">Recomeçar</string>
+    <string name="cd_mcp_sign_in_menu">Opções de login</string>
     <string name="thinking_chip_state_next">Só na próxima mensagem</string>
     <string name="cd_context_ring">Contexto usado: %1$s</string>
     <string name="draft_quote_removed">Citação removida</string>

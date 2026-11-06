@@ -1226,6 +1226,10 @@
     <string name="setting_chip_on_demand">Подключается во время чата</string>
     <string name="setting_chip_failed">Не удаётся подключиться</string>
     <string name="setting_chip_sign_in">· войти</string>
+    <string name="setting_chip_connecting_suffix">· подключение</string>
+    <string name="mcp_chip_cancel_sign_in">Отменить вход</string>
+    <string name="mcp_chip_start_over">Начать заново</string>
+    <string name="cd_mcp_sign_in_menu">Параметры входа</string>
     <string name="thinking_chip_state_next">Только следующее сообщение</string>
     <string name="cd_context_ring">Использовано контекста: %1$s</string>
     <string name="draft_quote_removed">Цитата удалена</string>

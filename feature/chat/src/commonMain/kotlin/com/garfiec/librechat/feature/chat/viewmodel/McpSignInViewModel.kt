@@ -28,17 +28,7 @@ data class McpSignInUiState(
      * statuses; the screen acts on it once and calls [McpSignInViewModel.consumeEnded].
      */
     val ended: Boolean = false,
-    /** How the sign-in that set [ended] ended; cleared with it. */
-    val lastEnd: McpSignInEnd? = null,
 )
-
-/**
- * How an MCP sign-in ended, for the chat: [signedIn] is true on the success callback, false when it
- * was refused, closed, never opened or failed to bind, and null after a system-browser sign-in,
- * whose result the app can't see.
- */
-@Immutable
-data class McpSignInEnd(val serverName: String, val signedIn: Boolean?)
 
 /**
  * Drives the Sign in action on a live tool call that is waiting on an MCP OAuth
@@ -58,9 +48,6 @@ class McpSignInViewModel(
     private val _uiState = MutableStateFlow(McpSignInUiState())
     val uiState: StateFlow<McpSignInUiState> = _uiState.asStateFlow()
 
-    /** The server of the sign-in in progress, for its [McpSignInEnd]. */
-    private var server: String = ""
-
     /**
      * Binds and opens the sign-in for [serverName]. Returns false, opening nothing, while another
      * sign-in is binding or on screen: that one ends with its own [McpSignInUiState.ended], which
@@ -68,13 +55,12 @@ class McpSignInViewModel(
      */
     fun signIn(serverName: String, authorizationUrl: String): Boolean {
         if (_uiState.value.preparingServer != null || _uiState.value.launch != null) return false
-        server = serverName
         _uiState.update { it.copy(preparingServer = serverName, failed = false, awaitingReturn = false) }
         viewModelScope.launch {
             when (val result = launcher.prepare(serverName, authorizationUrl)) {
                 is Result.Success -> _uiState.update { it.copy(preparingServer = null, launch = result.data) }
                 is Result.Error -> _uiState.update {
-                    it.copy(preparingServer = null, failed = true, ended = true, lastEnd = McpSignInEnd(serverName, false))
+                    it.copy(preparingServer = null, failed = true, ended = true)
                 }
                 Result.Loading -> Unit
             }
@@ -92,7 +78,7 @@ class McpSignInViewModel(
             if (opened) {
                 it.copy(launch = null, awaitingReturn = true)
             } else {
-                it.copy(launch = null, awaitingReturn = false, ended = true, lastEnd = McpSignInEnd(server, false))
+                it.copy(launch = null, awaitingReturn = false, ended = true)
             }
         }
     }
@@ -100,19 +86,12 @@ class McpSignInViewModel(
     /** The app is in front again after a browser sign-in. */
     fun onReturned() {
         if (!_uiState.value.awaitingReturn) return
-        _uiState.update { it.copy(awaitingReturn = false, ended = true, lastEnd = McpSignInEnd(server, null)) }
+        _uiState.update { it.copy(awaitingReturn = false, ended = true) }
     }
 
     /** The in-app sign-in ended. A refused callback is reported; closing the page is not. */
     fun onOutcome(outcome: McpOAuthOutcome) {
-        _uiState.update {
-            it.copy(
-                launch = null,
-                failed = outcome is McpOAuthOutcome.Error,
-                ended = true,
-                lastEnd = McpSignInEnd(server, outcome == McpOAuthOutcome.Success),
-            )
-        }
+        _uiState.update { it.copy(launch = null, failed = outcome is McpOAuthOutcome.Error, ended = true) }
     }
 
     fun dismissFailure() {
@@ -120,6 +99,6 @@ class McpSignInViewModel(
     }
 
     fun consumeEnded() {
-        _uiState.update { it.copy(ended = false, lastEnd = null) }
+        _uiState.update { it.copy(ended = false) }
     }
 }

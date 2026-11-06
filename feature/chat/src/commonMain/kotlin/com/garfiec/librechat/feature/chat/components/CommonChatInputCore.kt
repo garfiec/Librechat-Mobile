@@ -407,6 +407,8 @@ private fun ComposerChromeStack(
         ComposerSettingsLine(
             chips = chrome.settingChips,
             onChipTap = chrome.onSettingChipTap,
+            onCancelSignIn = chrome.onCancelMcpSignIn,
+            onStartSignInOver = chrome.onStartMcpSignInOver,
             ring = chrome.contextRing(),
             modifier = Modifier.padding(bottom = 4.dp),
             hasLeading = codeWorkspace?.state?.onSettingsLine == true,
