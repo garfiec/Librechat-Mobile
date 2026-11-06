@@ -49,6 +49,7 @@ import com.garfiec.librechat.core.model.files.fileKindOf
 import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.core.ui.components.AdaptiveCard
 import com.garfiec.librechat.core.ui.components.fileTypeSubtitle
+import com.garfiec.librechat.core.ui.components.scrollFadingEdges
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_cancel_upload
 import com.garfiec.librechat.feature.chat.resources.cd_remove_file
@@ -161,11 +162,13 @@ internal fun ComposerDraftListPanel(
                 .focusable()
                 .semantics { heading() },
         )
+        val scroll = rememberScrollState()
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(max = DRAFT_ROW_HEIGHT * 4 + DRAFT_ROW_HEIGHT / 2)
-                .verticalScroll(rememberScrollState())
+                .scrollFadingEdges(scroll)
+                .verticalScroll(scroll)
                 .padding(bottom = 4.dp),
         ) {
             items.items.forEach { item ->
