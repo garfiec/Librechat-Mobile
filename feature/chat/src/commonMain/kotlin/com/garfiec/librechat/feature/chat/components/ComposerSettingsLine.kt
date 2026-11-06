@@ -31,7 +31,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -127,23 +129,35 @@ internal fun ComposerSettingsLine(
         ) {
             if (hasLeading) leading()
             chips.chips.forEach { chip ->
-                when (chip) {
-                    is SettingChip.Tool -> ToolSettingChip(chip, chips.lockedBy, onClick = { onChipTap(chip) })
-                    is SettingChip.Mcp -> McpSettingChip(
-                        chip = chip,
-                        lockedBy = chips.lockedBy,
-                        opensMenu = chips.tapFor(chip) is SettingChipTap.SignInMenu,
-                        onClick = { onChipTap(chip) },
-                        onCancelSignIn = { onCancelSignIn(chip.name) },
-                        onStartSignInOver = { onStartSignInOver(chip.name) },
-                    )
-                    is SettingChip.Thinking -> ThinkingSettingChip(chip.chip, onClick = { onChipTap(chip) })
+                // Keyed by what the chip is, not where it sits: a chip leaving the line ahead of an MCP
+                // chip would otherwise hand that chip's menu state to the next one.
+                key(chip.lineKey) {
+                    when (chip) {
+                        is SettingChip.Tool -> ToolSettingChip(chip, chips.lockedBy, onClick = { onChipTap(chip) })
+                        is SettingChip.Mcp -> McpSettingChip(
+                            chip = chip,
+                            lockedBy = chips.lockedBy,
+                            opensMenu = chips.tapFor(chip) is SettingChipTap.SignInMenu,
+                            onClick = { onChipTap(chip) },
+                            onCancelSignIn = { onCancelSignIn(chip.name) },
+                            onStartSignInOver = { onStartSignInOver(chip.name) },
+                        )
+                        is SettingChip.Thinking -> ThinkingSettingChip(chip.chip, onClick = { onChipTap(chip) })
+                    }
                 }
             }
         }
         if (ring != null) ContextRing(ring)
     }
 }
+
+/** A chip's identity on the line, apart from its state; a tool key and a server name may coincide. */
+private val SettingChip.lineKey: String
+    get() = when (this) {
+        is SettingChip.Tool -> "tool:$key"
+        is SettingChip.Mcp -> "mcp:$name"
+        is SettingChip.Thinking -> "thinking"
+    }
 
 /** What the context ring at the end of the settings line reads and does. */
 internal data class ContextRingState(
@@ -196,6 +210,9 @@ private fun McpSettingChip(
     onStartSignInOver: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    // A status reload that settles the sign-in hides the menu without dismissing it; clear the flag
+    // too, or the chip's next connecting spell (a later sign-in tap) would pop the menu open untapped.
+    LaunchedEffect(opensMenu) { if (!opensMenu) menuOpen = false }
     val locked = chip.state == SettingChipState.LOCKED
     val connection = stringResource(mcpStatusLabel(chip.status))
     val state = if (locked) "$connection, ${lockDescription(lockedBy)}" else connection

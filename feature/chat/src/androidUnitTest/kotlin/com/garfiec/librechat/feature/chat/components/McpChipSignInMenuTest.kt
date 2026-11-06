@@ -1,5 +1,7 @@
 package com.garfiec.librechat.feature.chat.components
 
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -71,6 +73,57 @@ class McpChipSignInMenuTest {
         assertThat(startsOver).containsExactly("github")
         assertThat(cancels).isEmpty()
         assertThat(taps).isEmpty()
+    }
+
+    private fun mcp(name: String, label: String, status: McpDisplayStatus) =
+        SettingChip.Mcp(name, label, SettingChipState.ON, status, requiresOAuth = true)
+
+    /** A line whose chips the test changes afterwards, as a status reload or a deselect would. */
+    private fun liveLine(initial: List<SettingChip>): MutableState<List<SettingChip>> {
+        val chips = mutableStateOf(initial)
+        composeRule.setContent {
+            LibreChatTheme {
+                ComposerSettingsLine(
+                    chips = SettingChips(chips.value),
+                    onChipTap = { taps += it },
+                    onCancelSignIn = { cancels += it },
+                    onStartSignInOver = { startsOver += it },
+                )
+            }
+        }
+        return chips
+    }
+
+    @Test
+    fun aMenuASettledStatusTookDownNeverReopensUntapped() {
+        val chips = liveLine(listOf(mcp("drive", "Drive", McpDisplayStatus.CONNECTING)))
+        composeRule.onNodeWithText("Drive").performClick()
+        composeRule.onNodeWithText("Cancel sign-in").assertExists()
+
+        // A reload while the menu is up: the flow finished elsewhere, and later needs sign-in again.
+        chips.value = listOf(mcp("drive", "Drive", McpDisplayStatus.NEEDS_SIGN_IN))
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Cancel sign-in").assertDoesNotExist()
+
+        // The user's sign-in tap writes the chip connecting at once: no menu over that sign-in.
+        chips.value = listOf(mcp("drive", "Drive", McpDisplayStatus.CONNECTING))
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Cancel sign-in").assertDoesNotExist()
+    }
+
+    @Test
+    fun anOpenMenuStaysWithItsChipWhenAChipAheadLeaves() {
+        val chips = liveLine(
+            listOf(mcp("github", "GitHub", McpDisplayStatus.CONNECTING), mcp("drive", "Drive", McpDisplayStatus.CONNECTING)),
+        )
+        composeRule.onNodeWithText("GitHub").performClick()
+        composeRule.onNodeWithText("Cancel sign-in").assertExists()
+
+        // GitHub is deselected in the "+" sheet while its menu is up; Drive moves into its place.
+        chips.value = listOf(mcp("drive", "Drive", McpDisplayStatus.CONNECTING))
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Cancel sign-in").assertDoesNotExist()
     }
 
     @Test
