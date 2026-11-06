@@ -7,7 +7,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** The stack's pop and "attached" announcement, tracked above the stack so the first item counts. */
+/** The strip's pop and "attached" announcement, tracked above the strip so the first item counts. */
 class DraftAdditionsTest {
 
     private val photo = AttachedFile(uri = "p", name = "photo.jpg", isImage = true, type = "image/jpeg")
@@ -24,7 +24,7 @@ class DraftAdditionsTest {
 
         assertEquals("photo.jpg", additions.lastAdded)
         assertTrue(additions.takePop())
-        // Once per addition: a stack coming back into composition doesn't pop again.
+        // Once per addition: a strip coming back into composition doesn't pop again.
         assertFalse(additions.takePop())
     }
 
@@ -50,10 +50,13 @@ class DraftAdditionsTest {
 
         additions.update(items(photo, notes))
         assertEquals("notes.pdf", additions.lastAdded)
+        // The strip pops the item with this key: sorted, the new file isn't necessarily last.
+        assertEquals(items(photo, notes).items.single { it.label() == "notes.pdf" }.key, additions.lastAddedKey)
         assertTrue(additions.takePop())
 
         additions.update(items(notes))
         assertNull(additions.lastAdded)
+        assertNull(additions.lastAddedKey)
         assertFalse(additions.takePop())
     }
 

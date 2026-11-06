@@ -10,8 +10,8 @@ import com.garfiec.librechat.core.ui.media.MediaPreviewState
 import com.garfiec.librechat.feature.chat.components.AttachedFile
 
 /**
- * One thing that goes with the message being composed, as the composer's attachment stack and
- * list draw it: a file (an image or anything else), a picked skill, or a staged quote.
+ * One thing that goes with the message being composed, as the composer's attachment strip draws
+ * it: a file (an image or anything else), a picked skill, or a staged quote.
  */
 @Immutable
 sealed interface DraftItem {
@@ -58,7 +58,7 @@ sealed interface DraftItem {
 }
 
 /**
- * The composer's draft items, in list order, with what the stack and the send hold read. No upload
+ * The composer's draft items, in list order, with what the strip and the send hold read. No upload
  * progress: that is [DraftUploadProgress], read where the rings draw, so a progress tick changes
  * nothing here.
  */
@@ -103,8 +103,8 @@ internal fun meanUploadProgress(files: List<AttachedFile>): Float? {
 }
 
 /**
- * Maps the composer's files, picked skills and staged quotes to the list the attachment stack and
- * panel draw: failed files first (they hold the send), then images, other files, skills and quotes,
+ * Maps the composer's files, picked skills and staged quotes to the list the attachment strip
+ * draws: failed files first (they hold the send), then images, other files, skills and quotes,
  * each group in the order it was added. Pure, so `ChatScreen` maps it once per change of its inputs.
  *
  * An image's thumbnail is what the device holds when it holds something drawable (an Android
@@ -176,7 +176,7 @@ private fun serverCopyOf(file: AttachedFile, serverUrl: String): String? {
     return resolveFileReferenceUrl(FileReference(fileId = file.fileId, filepath = file.filepath, type = file.type), serverUrl)
 }
 
-/** What a tap on a row of the attachment list does; null leaves the row untappable. */
+/** What a tap on an item of the attachment strip does; null leaves the item untappable. */
 sealed interface DraftItemTap {
     /** A failed upload: try it again. */
     data class Retry(val file: AttachedFile) : DraftItemTap

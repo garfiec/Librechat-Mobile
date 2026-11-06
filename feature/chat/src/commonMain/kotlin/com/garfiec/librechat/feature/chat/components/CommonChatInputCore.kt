@@ -71,9 +71,9 @@ import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.onPlaced
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -111,7 +111,6 @@ import com.garfiec.librechat.feature.chat.resources.cd_update_queued_message
 import com.garfiec.librechat.feature.chat.resources.compare_message_both
 import com.garfiec.librechat.feature.chat.resources.compare_pick_to_send
 import com.garfiec.librechat.feature.chat.resources.draft_uploads_failed
-import com.garfiec.librechat.feature.chat.resources.draft_uploads_failed_after_approval
 import com.garfiec.librechat.feature.chat.resources.editing_queued_message
 import com.garfiec.librechat.feature.chat.resources.hint_message
 import com.garfiec.librechat.feature.chat.resources.hint_message_model
@@ -181,11 +180,12 @@ data class ChatInputState(
 /**
  * Shared container for the chat input area. Renders the gradient background, the chrome above the
  * box ([ChatInputState.chrome]), and the composer box: one rounded frame (Material's fill and border,
- * or the glass capsule) holding the field, the failed-upload line and a button row with "+", the
- * settings line, the mic and the shared send/stop control.
+ * or the glass capsule) holding the attachment strip, the field, the failed-upload line and a button
+ * row with "+", the settings line, the mic and the shared send/stop control.
  *
  * Platform wrappers fill in [leadingButtons] ("+", paste), [textFieldContent] (their own field) and
  * [trailingButtons] (the mic). Each is told when the box is compact (narrower than a 360dp phone's).
+ * Attachments, skills and quotes ride in a strip at the box's top ([ComposerDraftStrip]).
  */
 @Composable
 fun CommonChatInputCore(
@@ -231,8 +231,8 @@ fun CommonChatInputCore(
     trailingButtons: @Composable RowScope.(compact: Boolean) -> Unit = {},
     bottomContent: @Composable BoxScope.() -> Unit = {},
     /**
-     * The field, on the box's first row. It draws no frame of its own ([ChatInputDefaults.textFieldColors]):
-     * the box is the frame. [compact] as for [leadingButtons]: the attachment stack draws its narrow form then.
+     * The field, on the box's row under the attachment strip. It draws no frame of its own
+     * ([ChatInputDefaults.textFieldColors]): the box is the frame.
      */
     textFieldContent: @Composable RowScope.(compact: Boolean) -> Unit,
 ) {
@@ -297,9 +297,6 @@ fun CommonChatInputCore(
                 onRetrySkills = onRetrySkills,
             )
 
-            // The attachment list, right above the field its stack opens it from.
-            ComposerDraftListSlot(state.chrome)
-
             // Temporary chat's violet on the box, faded rather than snapped, in both styles.
             val temporaryWash = ChatInputDefaults.temporaryWash
             val temporaryBorder = ChatInputDefaults.temporaryBorderColor
@@ -309,8 +306,8 @@ fun CommonChatInputCore(
             val temporaryAccent = ChatInputDefaults.temporaryAccent
             var boxFocused by remember { mutableStateOf(false) }
             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                // Below a 360dp screen the during-run caret folds into the send button and the stack
-                // draws one tile, so the field and the settings line keep their room.
+                // Below a 360dp screen the during-run caret folds into the send button, so the
+                // settings line keeps its room.
                 val compact = maxWidth < COMPACT_COMPOSER_ROW_WIDTH
                 Column(
                     modifier = Modifier
@@ -349,17 +346,11 @@ fun CommonChatInputCore(
                         )
                         .padding(4.dp),
                 ) {
+                    ComposerDraftStrip(state.chrome)
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         textFieldContent(compact)
                     }
-                    val chrome = state.chrome
-                    FailedUploadsLine(
-                        failedCount = chrome.draftItems.failedCount,
-                        listOpen = chrome.isDraftListOpen,
-                        listShut = chrome.draftListShut,
-                        onOpen = chrome.onToggleDraftList,
-                        onOpenFromScreenReader = chrome.onToggleDraftListFromScreenReader,
-                    )
+                    FailedUploadsLine(failedCount = state.chrome.draftItems.failedCount)
                     ComposerButtonRow(
                         state = state,
                         compact = compact,
@@ -385,7 +376,7 @@ fun CommonChatInputCore(
 /**
  * Everything above the box: the pull request, the steer and queue region, the queue's banners and
  * the code workspace card. The settings line is in the box's button row ([ComposerButtonRow]);
- * files, picked skills and quotes are in the field's leading slot ([ComposerAttachmentStack]). A
+ * files, picked skills and quotes are in the strip at the box's top ([ComposerDraftStrip]). A
  * vertical drag that starts anywhere on it scrolls the thread ([passVerticalDragsToThread]); rows
  * keep only their horizontal scrolls and the queue's long-press reorder.
  */
@@ -512,58 +503,21 @@ internal fun SteerAndQueueColumn(
 }
 
 /**
- * Why Send is held while a file failed to upload, under the field. A tap opens the attachment list,
- * where the failed row retries. 48dp tall whether or not the list is open, so the tap target meets
- * the minimum and the composer doesn't change height as the list opens and closes. A screen reader's
- * open goes through the stack's screen-reader toggle, so focus moves to the list's header: the
- * line's own text sends the user there. While the list is shut for a tool-approval pause
- * ([listShut], [ComposerChrome.draftListShut]) the line is plain text saying the file can be retried
- * or removed after the approval.
+ * Why Send is held while a file failed to upload, under the field: the failed items are in the strip
+ * above, where a tap retries and the × removes.
  */
 @Composable
-internal fun FailedUploadsLine(
-    failedCount: Int,
-    listOpen: Boolean,
-    listShut: Boolean,
-    onOpen: () -> Unit,
-    onOpenFromScreenReader: () -> Unit,
-) {
-    val failed = failedCount
-    if (failed == 0) return
-    val openLabel = stringResource(Res.string.cd_expand)
-    Box(
-        contentAlignment = Alignment.CenterStart,
+internal fun FailedUploadsLine(failedCount: Int) {
+    if (failedCount == 0) return
+    Text(
+        text = pluralStringResource(Res.plurals.draft_uploads_failed, failedCount, failedCount),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.error,
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .then(
-                if (listOpen || listShut) {
-                    Modifier
-                } else {
-                    Modifier
-                        // Ahead of the clickable, so its OnClick replaces the clickable's touch one.
-                        .semantics {
-                            onClick(label = openLabel) {
-                                onOpenFromScreenReader()
-                                true
-                            }
-                        }
-                        .clickable(onClickLabel = openLabel, role = Role.Button, onClick = onOpen)
-                },
-            )
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-    ) {
-        Text(
-            text = pluralStringResource(
-                if (listShut) Res.plurals.draft_uploads_failed_after_approval else Res.plurals.draft_uploads_failed,
-                failed,
-                failed,
-            ),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error,
-        )
-    }
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .semantics { liveRegion = LiveRegionMode.Polite },
+    )
 }
 
 /** About two and a half steer or queue rows. */
@@ -694,34 +648,12 @@ private val ComposerBoxShape = RoundedCornerShape(28.dp)
 internal val BoxButtonSize = 40.dp
 
 /**
- * The field's leading slot: the wide Compare badges, then the attachment stack. Null when it holds
- * neither, so an empty composer keeps M3's plain start padding (the slot holds 48dp or more
- * whatever it draws). Both platform composers read it, so the field starts the same on both.
+ * The field's leading slot: the wide Compare badges. Null without them, so the field keeps M3's plain
+ * start padding (the slot holds 48dp or more whatever it draws). Both platform composers read it.
  */
-internal fun composerFieldLeadingIcon(
-    comparison: ComposerComparison?,
-    chrome: ComposerChrome,
-    compact: Boolean,
-): (@Composable () -> Unit)? {
-    val badges = comparison?.takeUnless { it.compact }
-    val draft = chrome.draftItems
-    if (badges == null && draft.isEmpty) return null
-    return {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            badges?.let { ComposerComparisonBadges(it) }
-            ComposerAttachmentStack(
-                items = draft,
-                expanded = chrome.isDraftListOpen,
-                compact = compact,
-                // Shut during a tool-approval pause: the stack shows, but opens nothing.
-                onClick = chrome.onToggleDraftList.takeUnless { chrome.draftListShut },
-                modifier = Modifier.onPlaced(chrome.onDraftStackPositioned),
-                uploadProgress = chrome.draftUploadProgress,
-                additions = chrome.draftAdditions,
-                onScreenReaderClick = chrome.onToggleDraftListFromScreenReader.takeUnless { chrome.draftListShut },
-            )
-        }
-    }
+internal fun composerFieldLeadingIcon(comparison: ComposerComparison?): (@Composable () -> Unit)? {
+    val badges = comparison?.takeUnless { it.compact } ?: return null
+    return { ComposerComparisonBadges(badges) }
 }
 
 /** The input row's width on a 360dp phone, inside the bar's 12dp side padding. */

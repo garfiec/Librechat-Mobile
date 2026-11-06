@@ -6,7 +6,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.DraftUndo
 import com.garfiec.librechat.feature.chat.viewmodel.RemovedDraftItem
 
 /**
- * The attachment list's × and Undo: what goes with the message being composed (files, picked
+ * The attachment strip's × and Undo: what goes with the message being composed (files, picked
  * skills, quotes) is removed here, and a finished removal can be put back where it was.
  *
  * Only a settled item gets an Undo: an uploaded or failed file, a skill, a quote. Removing a file

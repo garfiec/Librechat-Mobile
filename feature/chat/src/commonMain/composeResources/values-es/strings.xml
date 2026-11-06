@@ -1212,16 +1212,8 @@
         <item quantity="one">%1$s adjuntado, %2$d elemento</item>
         <item quantity="other">%1$s adjuntado, %2$d elementos</item>
     </plurals>
-    <plurals name="draft_list_header">
-        <item quantity="one">Con este mensaje · %1$d</item>
-        <item quantity="other">Con este mensaje · %1$d</item>
-    </plurals>
     <plurals name="draft_uploads_failed">
-        <item quantity="one">%1$d archivo no se subió. Tócalo en la lista para reintentar, o quítalo.</item>
-        <item quantity="other">%1$d archivos no se subieron. Tócalos en la lista para reintentar, o quítalos.</item>
-    </plurals>
-    <plurals name="draft_uploads_failed_after_approval">
-        <item quantity="one">%1$d archivo no se subió. Podrás reintentarlo o quitarlo después de la aprobación.</item>
-        <item quantity="other">%1$d archivos no se subieron. Podrás reintentarlos o quitarlos después de la aprobación.</item>
+        <item quantity="one">%1$d archivo no se subió. Tócalo para reintentar, o quítalo.</item>
+        <item quantity="other">%1$d archivos no se subieron. Tócalos para reintentar, o quítalos.</item>
     </plurals>
 </resources>

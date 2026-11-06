@@ -599,7 +599,7 @@ class QueueOrchestrationHandle(root: ChatStateHandle) : DelegateHandle(root) {
 }
 
 // ── DraftItemsDelegate ────────────────────────────────────────────────────
-// Owns the attachment list's Undo slot and nothing else: the removals and restores themselves go
+// Owns the attachment strip's Undo slot and nothing else: the removals and restores themselves go
 // through the file handler and SendDispatchDelegate, which own those lists.
 class DraftItemsWrites internal constructor(state: ChatUiState) {
     var pendingDraftUndo: DraftUndo? = state.composer.pendingDraftUndo

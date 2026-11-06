@@ -12,101 +12,72 @@ import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import com.garfiec.librechat.feature.chat.util.DraftUploadProgress
 import com.garfiec.librechat.feature.chat.util.draftItemsOf
 
-// The composer's attachment stack in the field's leading slot: one, two and four items, uploading,
-// failed, a 320dp row, under Compare's A·B pill. The list it opens is in ComposerDraftListPreviews.kt.
+// The attachment strip at the top of the composer box: one file, a photo with a file, a skill and a
+// quote, uploading, failed, a full draft that scrolls, a 320dp screen, under Compare's A·B pill.
 
 @PreviewNarrowScreens
 @Composable
-private fun StackOneMaterialPreview() = StackSurface(UiStyle.MATERIAL) { StackHost(files = listOf(draftReport)) }
+private fun StripOneMaterialPreview() = StripSurface(UiStyle.MATERIAL) { StripHost(files = listOf(draftReport)) }
 
 @PreviewNarrowScreens
 @Composable
-private fun StackOneGlassPreview() = StackSurface(UiStyle.LIQUID_GLASS) { StackHost(files = listOf(draftReport)) }
+private fun StripOneGlassPreview() = StripSurface(UiStyle.LIQUID_GLASS) { StripHost(files = listOf(draftReport)) }
 
 @PreviewNarrowScreens
 @Composable
-private fun StackTwoMaterialPreview() = StackSurface(UiStyle.MATERIAL) { StackHost(files = listOf(draftPhoto, draftReport)) }
-
-@PreviewNarrowScreens
-@Composable
-private fun StackTwoGlassPreview() = StackSurface(UiStyle.LIQUID_GLASS) { StackHost(files = listOf(draftPhoto, draftReport)) }
-
-@PreviewNarrowScreens
-@Composable
-private fun StackFourMaterialPreview() = StackSurface(UiStyle.MATERIAL) {
-    StackHost(files = listOf(draftPhoto, draftReport), skills = listOf("brand-voice"), quotes = listOf(DRAFT_LONG_QUOTE))
+private fun StripMixedMaterialPreview() = StripSurface(UiStyle.MATERIAL) {
+    StripHost(files = listOf(draftPhoto, draftReport), skills = listOf("brand-voice"), quotes = listOf(DRAFT_LONG_QUOTE))
 }
 
 @PreviewNarrowScreens
 @Composable
-private fun StackFourGlassPreview() = StackSurface(UiStyle.LIQUID_GLASS) {
-    StackHost(files = listOf(draftPhoto, draftReport), skills = listOf("brand-voice"), quotes = listOf(DRAFT_LONG_QUOTE))
+private fun StripMixedGlassPreview() = StripSurface(UiStyle.LIQUID_GLASS) {
+    StripHost(files = listOf(draftPhoto, draftReport), skills = listOf("brand-voice"), quotes = listOf(DRAFT_LONG_QUOTE))
+}
+
+/** Uploading and failed: the ring on its tile, the red cover, Send held and the line saying why. */
+@PreviewNarrowScreens
+@Composable
+private fun StripUploadsMaterialPreview() = StripSurface(UiStyle.MATERIAL) {
+    StripHost(files = listOf(draftFailed, draftUploadingPhoto, draftUploading, draftPhoto))
 }
 
 @PreviewNarrowScreens
 @Composable
-private fun StackUploadingMaterialPreview() = StackSurface(UiStyle.MATERIAL) { StackHost(files = listOf(draftUploading, draftReport)) }
-
-@PreviewNarrowScreens
-@Composable
-private fun StackUploadingGlassPreview() = StackSurface(UiStyle.LIQUID_GLASS) { StackHost(files = listOf(draftUploading, draftReport)) }
-
-/** A failed upload: the "!" on the stack, Send held, and the line under the field saying why. */
-@PreviewNarrowScreens
-@Composable
-private fun StackFailedMaterialPreview() = StackSurface(UiStyle.MATERIAL) { StackHost(files = listOf(draftFailed, draftReport)) }
-
-@PreviewNarrowScreens
-@Composable
-private fun StackFailedGlassPreview() = StackSurface(UiStyle.LIQUID_GLASS) { StackHost(files = listOf(draftFailed, draftReport)) }
-
-// During a tool-approval pause: the stack shows but opens nothing, and the line says "after the approval".
-@PreviewNarrowScreens
-@Composable
-private fun StackFailedDuringToolPauseMaterialPreview() = StackSurface(UiStyle.MATERIAL) {
-    StackHost(files = listOf(draftFailed, draftReport), toolPause = true)
+private fun StripUploadsGlassPreview() = StripSurface(UiStyle.LIQUID_GLASS) {
+    StripHost(files = listOf(draftFailed, draftUploadingPhoto, draftUploading, draftPhoto))
 }
 
+/** More than fits: the strip scrolls, fades at its end and shows the total. */
 @PreviewNarrowScreens
 @Composable
-private fun StackFailedDuringToolPauseGlassPreview() = StackSurface(UiStyle.LIQUID_GLASS) {
-    StackHost(files = listOf(draftFailed, draftReport), toolPause = true)
+private fun StripFullMaterialPreview() = StripSurface(UiStyle.MATERIAL) {
+    StripHost(
+        files = List(5) { draftPhoto.copy(uri = "file://photo$it", fileId = "p$it") } + draftReport + draftTextRouted,
+        compactWidth = true,
+    )
 }
 
-/** Below a 360dp phone's row the stack draws one tile and the count. */
+/** A phone comparing two models: the A·B pill in the field, with a photo in the strip above. */
 @PreviewNarrowScreens
 @Composable
-private fun StackCompactMaterialPreview() = StackSurface(UiStyle.MATERIAL) {
-    StackHost(files = listOf(draftPhoto, draftReport), skills = listOf("brand-voice"), compactWidth = true)
-}
+private fun StripWithCompareMaterialPreview() = StripSurface(UiStyle.MATERIAL) { CompareStripHost() }
 
 @PreviewNarrowScreens
 @Composable
-private fun StackCompactGlassPreview() = StackSurface(UiStyle.LIQUID_GLASS) {
-    StackHost(files = listOf(draftPhoto, draftReport), skills = listOf("brand-voice"), compactWidth = true)
-}
-
-/** A phone comparing two models: the A·B pill starts past the stack, empty and with a draft (dots). */
-@PreviewNarrowScreens
-@Composable
-private fun StackWithCompareMaterialPreview() = StackSurface(UiStyle.MATERIAL) { CompareStackHost() }
-
-@PreviewNarrowScreens
-@Composable
-private fun StackWithCompareGlassPreview() = StackSurface(UiStyle.LIQUID_GLASS) { CompareStackHost() }
+private fun StripWithCompareGlassPreview() = StripSurface(UiStyle.LIQUID_GLASS) { CompareStripHost() }
 
 @Composable
-internal fun StackSurface(style: UiStyle, content: @Composable () -> Unit) {
+internal fun StripSurface(style: UiStyle, content: @Composable () -> Unit) {
     LibreChatTheme(darkTheme = true, uiStyle = style, content = content)
 }
 
 @Composable
-private fun StackHost(
+private fun StripHost(
     files: List<AttachedFile>,
     skills: List<String> = emptyList(),
     quotes: List<String> = emptyList(),
     compactWidth: Boolean = false,
-    toolPause: Boolean = false,
 ) {
     val items = draftItemsOf(files, skills, quotes, serverUrl = "")
     val composer = @Composable {
@@ -117,11 +88,7 @@ private fun StackHost(
             onSend = {},
             onStop = {},
             onOpenTools = {},
-            chrome = ComposerChrome(
-                draftItems = items,
-                draftUploadProgress = DraftUploadProgress { files },
-                draftListShut = toolPause,
-            ),
+            chrome = ComposerChrome(draftItems = items, draftUploadProgress = DraftUploadProgress { files }),
             selectedModelDisplay = "claude-opus-4-5",
         )
     }
@@ -134,7 +101,7 @@ private fun StackHost(
 }
 
 @Composable
-private fun CompareStackHost() {
+private fun CompareStripHost() {
     val comparison = ComposerComparison(
         primaryLabel = "gpt-5",
         secondaryLabel = "claude-opus-4-5-20251101-thinking",
@@ -142,7 +109,7 @@ private fun CompareStackHost() {
         onChangeSecondary = {},
         compact = true,
     )
-    val items = draftItemsOf(listOf(draftPhoto, draftReport), emptyList(), emptyList(), serverUrl = "")
+    val items = draftItemsOf(listOf(draftPhoto), emptyList(), emptyList(), serverUrl = "")
     Column {
         listOf("", "Which of these is stable?").forEach { draft ->
             ChatInput(
@@ -185,6 +152,13 @@ internal val draftUploading = AttachedFile(
     name = "sales.csv",
     uploadProgress = 0.4f,
     type = "text/csv",
+)
+internal val draftUploadingPhoto = AttachedFile(
+    uri = "file://photo-up",
+    name = "IMG_20261106_091500.jpg",
+    isImage = true,
+    uploadProgress = 0.7f,
+    type = "image/jpeg",
 )
 internal val draftFailed = AttachedFile(
     uri = "file://deck",

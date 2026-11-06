@@ -1199,16 +1199,8 @@
         <item quantity="one">%1$s angehängt, %2$d Element</item>
         <item quantity="other">%1$s angehängt, %2$d Elemente</item>
     </plurals>
-    <plurals name="draft_list_header">
-        <item quantity="one">Mit dieser Nachricht · %1$d</item>
-        <item quantity="other">Mit dieser Nachricht · %1$d</item>
-    </plurals>
     <plurals name="draft_uploads_failed">
-        <item quantity="one">%1$d Datei wurde nicht hochgeladen. Tippe sie in der Liste an, um es erneut zu versuchen, oder entferne sie.</item>
-        <item quantity="other">%1$d Dateien wurden nicht hochgeladen. Tippe sie in der Liste an, um es erneut zu versuchen, oder entferne sie.</item>
-    </plurals>
-    <plurals name="draft_uploads_failed_after_approval">
-        <item quantity="one">%1$d Datei wurde nicht hochgeladen. Nach der Genehmigung kannst du es erneut versuchen oder sie entfernen.</item>
-        <item quantity="other">%1$d Dateien wurden nicht hochgeladen. Nach der Genehmigung kannst du es erneut versuchen oder sie entfernen.</item>
+        <item quantity="one">%1$d Datei wurde nicht hochgeladen. Tippe sie an, um es erneut zu versuchen, oder entferne sie.</item>
+        <item quantity="other">%1$d Dateien wurden nicht hochgeladen. Tippe sie an, um es erneut zu versuchen, oder entferne sie.</item>
     </plurals>
 </resources>

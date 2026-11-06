@@ -55,7 +55,7 @@ interface PlatformFileHandler {
 
     /**
      * Puts a removed, settled [file] (uploaded or failed) back at [index], clamped to the tray: the
-     * attachment list's Undo. Touches nothing else, PDF password prompts included.
+     * attachment strip's Undo. Touches nothing else, PDF password prompts included.
      */
     fun insertAt(index: Int, file: AttachedFile)
 

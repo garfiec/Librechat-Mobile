@@ -19,7 +19,7 @@ internal const val DRAFT_PREVIEW_MAX_EDGE_PX = 160
 private const val DRAFT_PREVIEW_JPEG_QUALITY = 0.8
 
 /**
- * A small copy of a picked image for the attachment stack and list ([IosImageData.preview]), in a
+ * A small copy of a picked image for the attachment strip ([IosImageData.preview]), in a
  * format the thumbnail's decoder reads. The picked bytes are often HEIC (a library photo shot on
  * "High Efficiency" comes over as its original data, whatever type it is labelled with), and
  * Coil's Skia decoder on iOS reads PNG, JPEG, WebP, GIF and BMP only. JPEG, or PNG when the image

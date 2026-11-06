@@ -1287,28 +1287,12 @@
         <item quantity="many">أُرفق %1$s، %2$d عنصرًا</item>
         <item quantity="other">أُرفق %1$s، %2$d عنصر</item>
     </plurals>
-    <plurals name="draft_list_header">
-        <item quantity="zero">مع هذه الرسالة · %1$d</item>
-        <item quantity="one">مع هذه الرسالة · %1$d</item>
-        <item quantity="two">مع هذه الرسالة · %1$d</item>
-        <item quantity="few">مع هذه الرسالة · %1$d</item>
-        <item quantity="many">مع هذه الرسالة · %1$d</item>
-        <item quantity="other">مع هذه الرسالة · %1$d</item>
-    </plurals>
     <plurals name="draft_uploads_failed">
         <item quantity="zero">لم يُرفع أي ملف.</item>
-        <item quantity="one">لم يُرفع ملف واحد. انقر عليه في القائمة لإعادة المحاولة، أو أزله.</item>
-        <item quantity="two">لم يُرفع ملفان. انقر عليهما في القائمة لإعادة المحاولة، أو أزلهما.</item>
-        <item quantity="few">لم تُرفع %1$d ملفات. انقر عليها في القائمة لإعادة المحاولة، أو أزلها.</item>
-        <item quantity="many">لم يُرفع %1$d ملفًا. انقر عليها في القائمة لإعادة المحاولة، أو أزلها.</item>
-        <item quantity="other">لم يُرفع %1$d ملف. انقر عليها في القائمة لإعادة المحاولة، أو أزلها.</item>
-    </plurals>
-    <plurals name="draft_uploads_failed_after_approval">
-        <item quantity="zero">لم يُرفع أي ملف.</item>
-        <item quantity="one">لم يُرفع ملف واحد. يمكنك إعادة المحاولة أو إزالته بعد الموافقة.</item>
-        <item quantity="two">لم يُرفع ملفان. يمكنك إعادة المحاولة أو إزالتهما بعد الموافقة.</item>
-        <item quantity="few">لم تُرفع %1$d ملفات. يمكنك إعادة المحاولة أو إزالتها بعد الموافقة.</item>
-        <item quantity="many">لم يُرفع %1$d ملفًا. يمكنك إعادة المحاولة أو إزالتها بعد الموافقة.</item>
-        <item quantity="other">لم يُرفع %1$d ملف. يمكنك إعادة المحاولة أو إزالتها بعد الموافقة.</item>
+        <item quantity="one">لم يُرفع ملف واحد. انقر عليه لإعادة المحاولة، أو أزله.</item>
+        <item quantity="two">لم يُرفع ملفان. انقر عليهما لإعادة المحاولة، أو أزلهما.</item>
+        <item quantity="few">لم تُرفع %1$d ملفات. انقر عليها لإعادة المحاولة، أو أزلها.</item>
+        <item quantity="many">لم يُرفع %1$d ملفًا. انقر عليها لإعادة المحاولة، أو أزلها.</item>
+        <item quantity="other">لم يُرفع %1$d ملف. انقر عليها لإعادة المحاولة، أو أزلها.</item>
     </plurals>
 </resources>

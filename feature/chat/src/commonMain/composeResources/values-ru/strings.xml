@@ -1243,22 +1243,10 @@
         <item quantity="many">Прикреплено: %1$s, %2$d элементов</item>
         <item quantity="other">Прикреплено: %1$s, %2$d элемента</item>
     </plurals>
-    <plurals name="draft_list_header">
-        <item quantity="one">С этим сообщением · %1$d</item>
-        <item quantity="few">С этим сообщением · %1$d</item>
-        <item quantity="many">С этим сообщением · %1$d</item>
-        <item quantity="other">С этим сообщением · %1$d</item>
-    </plurals>
     <plurals name="draft_uploads_failed">
-        <item quantity="one">%1$d файл не загружен. Нажмите на него в списке, чтобы повторить, или удалите его.</item>
-        <item quantity="few">%1$d файла не загружены. Нажмите на них в списке, чтобы повторить, или удалите их.</item>
-        <item quantity="many">%1$d файлов не загружено. Нажмите на них в списке, чтобы повторить, или удалите их.</item>
-        <item quantity="other">%1$d файла не загружено. Нажмите на них в списке, чтобы повторить, или удалите их.</item>
-    </plurals>
-    <plurals name="draft_uploads_failed_after_approval">
-        <item quantity="one">%1$d файл не загружен. После одобрения можно будет повторить загрузку или удалить его.</item>
-        <item quantity="few">%1$d файла не загружены. После одобрения можно будет повторить загрузку или удалить их.</item>
-        <item quantity="many">%1$d файлов не загружено. После одобрения можно будет повторить загрузку или удалить их.</item>
-        <item quantity="other">%1$d файла не загружено. После одобрения можно будет повторить загрузку или удалить их.</item>
+        <item quantity="one">%1$d файл не загружен. Нажмите на него, чтобы повторить, или удалите его.</item>
+        <item quantity="few">%1$d файла не загружены. Нажмите на них, чтобы повторить, или удалите их.</item>
+        <item quantity="many">%1$d файлов не загружено. Нажмите на них, чтобы повторить, или удалите их.</item>
+        <item quantity="other">%1$d файла не загружено. Нажмите на них, чтобы повторить, или удалите их.</item>
     </plurals>
 </resources>

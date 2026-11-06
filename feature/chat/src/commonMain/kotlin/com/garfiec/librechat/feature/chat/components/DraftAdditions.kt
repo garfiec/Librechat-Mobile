@@ -12,8 +12,8 @@ import androidx.compose.runtime.setValue
 import com.garfiec.librechat.feature.chat.util.DraftItems
 
 /**
- * What the attachment stack pops for and announces: the item last added to the draft. Kept above
- * the stack, which leaves composition while the draft is empty, so the first item added counts as
+ * What the attachment strip pops for and announces: the item last added to the draft. Kept above
+ * the strip, which leaves composition while the draft is empty, so the first item added counts as
  * an addition too. What the draft held when this was created (a draft restored with the
  * conversation) is not one.
  */
@@ -26,7 +26,11 @@ class DraftAdditions internal constructor(initialKeys: Set<String>) {
     var lastAdded: String? by mutableStateOf(null)
         private set
 
-    /** Counts additions, so the stack pops once per addition. */
+    /** The newest addition's [com.garfiec.librechat.feature.chat.util.DraftItem.key], with [lastAdded]. */
+    var lastAddedKey: String? by mutableStateOf(null)
+        private set
+
+    /** Counts additions, so the strip pops once per addition. */
     var seq: Int by mutableIntStateOf(0)
         private set
 
@@ -39,14 +43,16 @@ class DraftAdditions internal constructor(initialKeys: Set<String>) {
         lastKeys = keys
         if (added != null && grew) {
             lastAdded = added.label()
+            lastAddedKey = added.key
             seq++
         } else {
             lastAdded = null
+            lastAddedKey = null
         }
     }
 
     /**
-     * True once per addition, for the stack's pop: a stack that comes back into composition (the
+     * True once per addition, for the strip's pop: a strip that comes back into composition (the
      * composer hidden by a question and shown again) doesn't pop for an old one.
      */
     internal fun takePop(): Boolean {

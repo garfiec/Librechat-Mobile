@@ -20,7 +20,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
@@ -173,7 +172,7 @@ fun IosChatInput(
                 }
             }
         },
-        textFieldContent = { compact ->
+        textFieldContent = {
             Box(
                 modifier = Modifier.weight(1f),
             ) {
@@ -183,16 +182,13 @@ fun IosChatInput(
                 val compactComparison = comparison?.takeIf { it.compact }
                 val comparisonCollapsed = compactComparison?.collapsedFor(field.value.text) == true
                 val comparisonCollapse by animateComposerComparisonCollapse(comparisonCollapsed)
-                // The stack takes the leading slot, so the phone's A·B pill moves past it.
-                val afterStack = !chrome.draftItems.isEmpty
                 // The composer draws its own field (ChatInputDefaults), glass included; not the adaptive one.
                 OutlinedTextField(
                     value = field.value,
                     onValueChange = { field.onValueChange(it, onInputChange) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 48.dp, max = 160.dp)
-                        .onFocusChanged { if (it.isFocused) chrome.onFieldFocused() },
+                        .heightIn(min = 48.dp, max = 160.dp),
                     placeholder = {
                         ChatInputPlaceholder(
                             isRecording = isRecording,
@@ -200,9 +196,9 @@ fun IosChatInput(
                             comparisonHint = comparisonHint,
                         )
                     },
-                    leadingIcon = remember(comparison, chrome, compact) { composerFieldLeadingIcon(comparison, chrome, compact) },
+                    leadingIcon = remember(comparison) { composerFieldLeadingIcon(comparison) },
                     prefix = compactComparison?.let {
-                        { ComposerComparisonReserve(collapse = { comparisonCollapse }, afterStack = afterStack) }
+                        { ComposerComparisonReserve(collapse = { comparisonCollapse }) }
                     },
                     suffix = { ComposerAffixAnchor() },
                     textStyle = MaterialTheme.typography.bodyLarge,
@@ -218,7 +214,6 @@ fun IosChatInput(
                         collapsed = comparisonCollapsed,
                         collapse = { comparisonCollapse },
                         modifier = Modifier.align(Alignment.TopStart),
-                        afterStack = afterStack,
                     )
                 }
             }

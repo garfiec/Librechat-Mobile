@@ -1223,7 +1223,7 @@
     <string name="cd_run_code_previous">Previous run</string>
     <string name="cd_run_code_next">Next run</string>
     <string name="notice_run_code_failed">Couldn't run this code.</string>
-    <!-- Composer attachment stack and list -->
+    <!-- Composer attachment strip -->
     <string name="draft_row_uploading">Uploading…</string>
     <string name="draft_row_failed">Didn't upload · Tap to retry</string>
     <string name="draft_row_skill">Skill</string>
@@ -1254,16 +1254,8 @@
         <item quantity="one">%1$s attached, %2$d item</item>
         <item quantity="other">%1$s attached, %2$d items</item>
     </plurals>
-    <plurals name="draft_list_header">
-        <item quantity="one">With this message · %1$d</item>
-        <item quantity="other">With this message · %1$d</item>
-    </plurals>
     <plurals name="draft_uploads_failed">
-        <item quantity="one">%1$d file didn't upload. Tap it in the list to retry, or remove it.</item>
-        <item quantity="other">%1$d files didn't upload. Tap them in the list to retry, or remove them.</item>
-    </plurals>
-    <plurals name="draft_uploads_failed_after_approval">
-        <item quantity="one">%1$d file didn't upload. You can retry or remove it after the approval.</item>
-        <item quantity="other">%1$d files didn't upload. You can retry or remove them after the approval.</item>
+        <item quantity="one">%1$d file didn't upload. Tap it to retry, or remove it.</item>
+        <item quantity="other">%1$d files didn't upload. Tap them to retry, or remove them.</item>
     </plurals>
 </resources>

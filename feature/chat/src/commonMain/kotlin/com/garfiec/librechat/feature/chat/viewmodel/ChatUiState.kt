@@ -1007,7 +1007,7 @@ data class ChatUiState(
     }
 
     /**
-     * The route a failed upload goes again with. It keeps [stored], the route the attachment list
+     * The route a failed upload goes again with. It keeps [stored], the route the attachment strip
      * shows on its row, while that route still works for the live selection: a code upload (the
      * user's destination), the route the selection would pick itself, or either one while both
      * are open. Otherwise the selection moved under it, often because the first attempt failed,

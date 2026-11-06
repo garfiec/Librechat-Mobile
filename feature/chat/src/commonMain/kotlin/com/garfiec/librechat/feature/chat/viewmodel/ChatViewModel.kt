@@ -1945,7 +1945,7 @@ class ChatViewModel(
     }
 
     /**
-     * Opens the media viewer on the composer's own images ([preview], built by the attachment list
+     * Opens the media viewer on the composer's own images ([preview], built by the attachment strip
      * from what the draft holds), which are on the device and not in the thread.
      */
     fun openDraftMedia(preview: MediaPreviewState) {
@@ -2036,7 +2036,7 @@ class ChatViewModel(
         if (sendDispatchDelegate.addPendingManualSkill(name)) skillsToggleDelegate.turnOn()
     }
 
-    // The composer's attachment list (files, picked skills, quotes): × removes, a finished removal can be undone.
+    // The composer's attachment strip (files, picked skills, quotes): × removes, a finished removal can be undone.
     fun removeDraftItem(item: DraftItem) = draftItemsDelegate.remove(item)
     fun undoDraftRemoval(id: Long) = draftItemsDelegate.undo(id)
     fun dropDraftUndo(id: Long) = draftItemsDelegate.dropUndo(id)

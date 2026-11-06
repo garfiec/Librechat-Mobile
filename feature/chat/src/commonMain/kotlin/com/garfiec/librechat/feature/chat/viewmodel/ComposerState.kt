@@ -53,14 +53,14 @@ data class ComposerState(
     val resolvingPickCount: Int = 0,
     /**
      * Verbatim excerpts staged via the selection toolbar's "Add to chat" (v0.8.7, upstream
-     * #13868), one item each in the composer's attachment stack until a fresh send or a
+     * #13868), one item each in the composer's attachment strip until a fresh send or a
      * composer-origin queue takes them. During a queued edit these are the edited item's own; the
      * draft's are stashed in `ComposerSnapshot`. Taken atomically at spec-mint time (`SendDispatchDelegate.takePendingQuotes`);
      * composer-origin steers leave them staged, and assistants endpoints never take them.
      */
     val pendingQuotes: List<String> = emptyList(),
     /**
-     * Skill names picked for the next turn, one item each in the composer's attachment stack (deduped by name,
+     * Skill names picked for the next turn, one item each in the composer's attachment strip (deduped by name,
      * at most `MAX_MANUAL_SKILLS`). Taken with the quote chips by a fresh send or a composer-origin
      * queue (`SendDispatchDelegate.takePendingManualSkills`); a steer leaves them staged (the steer
      * route carries no skills), and assistants endpoints never take them. During a queued edit
@@ -75,7 +75,7 @@ data class ComposerState(
      */
     val pendingReasoningOverride: ReasoningOverride? = null,
     /**
-     * The attachment list's last removal, while its Undo snackbar can still bring it back (see
+     * The attachment strip's last removal, while its Undo snackbar can still bring it back (see
      * `DraftItemsDelegate`). Dropped by a send (`SendDispatchDelegate.clearComposer`), the queued-edit
      * swap (`QueueOrchestrationDelegate.applyComposer`) and a conversation switch (the landing
      * reset), each inside its own composer write, so an Undo never lands on a different draft.
@@ -117,7 +117,7 @@ internal fun ComposerSnapshot.withRestore(restore: DraftRestore): ComposerSnapsh
 }
 
 /**
- * A removal from the attachment list that Undo can reverse. [id] tells one removal from the next,
+ * A removal from the attachment strip that Undo can reverse. [id] tells one removal from the next,
  * so a snackbar left over from an earlier one can't undo this one.
  */
 @Immutable

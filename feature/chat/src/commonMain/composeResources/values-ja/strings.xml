@@ -1177,13 +1177,7 @@
     <plurals name="draft_item_attached_announcement">
         <item quantity="other">%1$s を添付しました。%2$d 件</item>
     </plurals>
-    <plurals name="draft_list_header">
-        <item quantity="other">このメッセージと一緒に · %1$d</item>
-    </plurals>
     <plurals name="draft_uploads_failed">
-        <item quantity="other">%1$d 件のファイルをアップロードできませんでした。リストでタップして再試行するか、削除してください。</item>
-    </plurals>
-    <plurals name="draft_uploads_failed_after_approval">
-        <item quantity="other">%1$d 件のファイルをアップロードできませんでした。承認が済んだら、再試行または削除できます。</item>
+        <item quantity="other">%1$d 件のファイルをアップロードできませんでした。タップして再試行するか、削除してください。</item>
     </plurals>
 </resources>

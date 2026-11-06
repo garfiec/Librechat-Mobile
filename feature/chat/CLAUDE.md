@@ -1059,12 +1059,12 @@ while attachments are staged, so neither promises something the tap won't do.
 ## Composer chrome (what sits around the field)
 **The composer is one box** (`CommonChatInputCore`): a rounded frame (Material's
 `ChatInputDefaults.containerColor` fill and border, outline while the field is focused, or the glass
-capsule) holding the field, which draws no frame of its own (`ChatInputDefaults.textFieldColors`),
+capsule) holding the attachment strip, the field, which draws no frame of its own (`ChatInputDefaults.textFieldColors`),
 the failed-upload line, and a button row: "+" and paste (`leadingButtons`), the settings line with
 its context ring, the mic (`trailingButtons`) and the send control (`BoxButtonSize`). Temporary
 chat's violet tints the box. Above the box: pull request, steers, the queue and its banners, the
 code workspace card. Everything the composer draws around its field (those rows, the settings line,
-the attachment stack in the field) and the "+" button's dots is **one view-data holder, `ComposerChrome`**, built in `ChatScreen` and threaded
+the attachment strip at the box's top) and the "+" button's dots is **one view-data holder, `ComposerChrome`**, built in `ChatScreen` and threaded
 once through the `ChatComposer` expect, both actuals, `ChatInput` / `IosChatInput` and
 `ChatInputState.chrome`. A new row adds a field there, never a parameter to those five signatures:
 the iOS ones are not compiled on a Linux host, so a signature change there is only caught by CI.
@@ -1073,7 +1073,7 @@ the iOS ones are not compiled on a Linux host, so a signature change there is on
   child consumed goes to `LocalThreadScrollHandle`, fling included. It watches on the Main pass, so a
   child that claims the gesture keeps it (a horizontal chip row past its slop, the queue's long-press
   reorder once it fired, the steer and queue region's own scroll). The decision is the pure
-  `PassThroughDrag`. The field and the `/` `$` picker are outside the stack. Trade-off: the stack's
+  `PassThroughDrag`. The box and the `/` `$` picker are outside the stack. Trade-off: the stack's
   area no longer passes taps through to the thread behind it.
 - **`ThreadScrollHandle`** is created in `ChatScreen` (above both the thread and the composer) and
   bound by `ChatContent`, which owns the `LazyListState`s, to the list the composer covers
@@ -1095,62 +1095,37 @@ the iOS ones are not compiled on a Linux host, so a signature change there is on
   and the code chips (`AdaptiveChipDefaults.overlayAssistChipColors`). A code chip with nothing to
   pick is a label: not clickable, read as text.
 
-### Attachment stack and list (files, picked skills, quotes)
+### Attachment strip (files, picked skills, quotes)
 What goes with the message is **one list, `DraftItems`**, mapped by the pure `draftItemsOf`
 (`util/DraftItems.kt`) in a `remember` in `ChatScreen` (the files are their own flow,
 `ChatViewModel.attachedFiles`), and carried on `ComposerChrome.draftItems`. Order: failed files
 first, then images, files, skills, quotes. **Upload progress is not in it**: `ChatScreen` maps the
 files with their progress stripped (a `derivedStateOf`), so a progress tick re-maps nothing and
-the chrome stays equal; the rings (`UploadOverlay`: a white ring on a dark scrim over the front stack tile and each uploading row's tile) read
-`DraftUploadProgress` (`ComposerChrome.draftUploadProgress`) as they draw, and recompose only when
-an upload starts or stops reporting a progress.
-- **The stack** (`ComposerAttachmentStack`) is the field's M3 `leadingIcon`, through
-  `composerFieldLeadingIcon` on both composers: up to two tiles (one when the row is compact, below
-  336dp, which `textFieldContent` is now told) and a count, a progress ring while anything uploads,
-  a red "!" on a failure, a pop and an "attached" announcement when something is added, a polite
-  live region. What was added is tracked in `ChatScreen` (`DraftAdditions`), above the stack, so the
-  first item into an empty draft counts too; a draft already there when the screen opens doesn't.
-  M3 holds that slot at
-  48dp whatever it draws, so the slot is left out (null) while the list is empty rather than kept
-  non-null: an always-present slot would take 36dp from every empty composer. For the same reason
-  the compact stack still takes 48dp (the decided 36dp isn't possible in that slot). Wide Compare badges
-  draw first in the same slot; on a phone the A·B morph and its prefix reserve move past the stack
-  (`afterStack`).
-- **The list** (`ComposerDraftListPanel`, in `ComposerDraftListSlot`) is drawn by the composer core
-  between the settings line and the field, where the `/` picker sits, so it reads as part of the
-  stack it opened from; don't move it back over the whole composer. It grows up out of the field and fades in, and shrinks back into it; while open the composer is
-  taller, so the thread's inset grows as for the picker. It never goes under the floating top bar
-  (which draws over it and takes its taps): `ComposerChrome.draftListMaxHeightPx`, read in layout,
-  caps it at what is left above the rest of the composer, so with the keyboard up it scrolls in
-  what is visible. When that leaves less than its header and one row (`draftListNeedsRoom` against
-  `draftListMinHeight`, worked out from the panel's text styles at the font size in effect: 92dp at
-  1x, about 130dp at 2x) it hides the keyboard. The screen's, the composer's and the list slot's
-  heights (`onDraftListPositioned`) move with every keyboard frame, so only the cap (in layout) and
-  the room check (in a `derivedStateOf`) read them. **During a tool-approval pause the list stays shut**
-  (`withDraftList(toolPause)`, `ComposerChrome.draftListShut`, which the stack and the failed-upload
-  line read to drop their toggles): the stack still draws (count, ring,
-  red "!") but has no click action and no accessibility open action, and the failed-upload line is
-  plain text saying the file can be retried or removed after the approval
-  (`draft_uploads_failed_after_approval`). The approval panel is never collapsed or covered for the
-  list. A pause panel that comes up while the list is open closes it (`DraftListPauseEffects`), and
-  it doesn't reopen when the pause ends. An ask pause hides the composer, so there is no stack at
-  all. Review must not re-add opening during a pause. Its open/closed state and the toggles are `DraftListState`, handed to the
-  composer through `ComposerChrome.withDraftList`; a screen reader's open, from the stack or the
-  failed-upload line, moves focus to its header. It closes on a tap anywhere but it and the stack (`closeOnTapOutside`, which
-  only watches; `DraftListTapTargets` holds the list's and the stack's coordinates from `onPlaced`,
-  the stack's through `ComposerChrome.onDraftStackPositioned`), so a tap in
-  an already-focused field closes it too, and on typing, a send of any kind, the field gaining
-  focus, the list emptying, a pause panel appearing, or back
-  (`PlatformBackHandler`, the iOS edge swipe included). A row's tap is `DraftItems.tapFor`
-  (`util/DraftItems.kt`, pure): a failed file retries; an image opens the chat's media viewer on the
-  draft's images (`ChatViewModel.openDraftMedia`), each a `MediaItem` keyed `DraftItem.Image.mediaKey`
-  whose `model` is the device's full copy (an Android content `Uri`; on iOS the server's copy once
-  uploaded, else the small picker preview), and every draft image tile (row and stack) is a
-  `mediaThumbnail` under that key, so the viewer flies back into the most visible one; an uploaded
-  PDF opens the PDF preview and another uploaded file the file actions (`conversationFileTap`, as the
-  media page's Files tab). A file still uploading, a skill and a quote aren't tappable. The viewer
-  has no save/share bar for a draft image (`MediaItem.model` set). While the viewer is up the list
-  ignores outside taps and back, so it stays open under it and the image has a row to land in.
+the chrome stays equal; the rings (`UploadOverlay`: a white ring on a dark scrim over each uploading
+item's tile) read `DraftUploadProgress` (`ComposerChrome.draftUploadProgress`) as they draw, and
+recompose only when an upload starts or stops reporting a progress.
+- **The strip** (`ComposerDraftStrip`, `components/ComposerDraftStrip.kt`) is the composer box's top
+  row, above the field, on both composers: one row that scrolls sideways (end fade), never a second
+  row, so the box never grows past it. Images are 56dp thumbnails, files, skills and quotes cards
+  with their name and kind. Each item has a corner × (20dp drawn; Compose widens the touch target only
+  where no other target is hit, so a tap on the item opens it and a drag along the strip removes
+  nothing). An uploading item carries the ring, a failed one a red cover or border. It grows in with
+  the first item and shrinks away with the last. An addition pops its item and scrolls it into view,
+  found by key (`DraftAdditions.lastAddedKey`), since the sorted strip puts it anywhere; the strip's
+  polite live region announces it. What was added is tracked in `ChatScreen` (`DraftAdditions`), above
+  the strip, so the first item into an empty draft counts too; a draft already there when the screen
+  opens doesn't. Nothing draws in the field's leading slot but wide Compare's badges
+  (`composerFieldLeadingIcon`), so the phone's A·B pill keeps the field's start.
+- **An item's tap** is `DraftItems.tapFor` (`util/DraftItems.kt`, pure): a failed file retries; an
+  image opens the chat's media viewer on the draft's images (`ChatViewModel.openDraftMedia`), each a
+  `MediaItem` keyed `DraftItem.Image.mediaKey` whose `model` is the device's full copy (an Android
+  content `Uri`; on iOS the server's copy once uploaded, else the small picker preview), and each
+  thumbnail is a `mediaThumbnail` under that key, so the viewer flies back into it; an uploaded PDF
+  opens the PDF preview and another uploaded file the file actions (`conversationFileTap`, as the media
+  page's Files tab). A file still uploading, a skill and a quote aren't tappable. The viewer has no
+  save/share bar for a draft image (`MediaItem.model` set). The strip sits in the composer, never over
+  a pause panel, so a tool-approval pause leaves it working: a failed file can be retried or removed
+  during the pause. An ask pause hides the composer, strip included.
 - **× and Undo** (`DraftItemsDelegate`, `ComposerState.pendingDraftUndo`): an uploaded or failed
   file, a skill or a quote comes off with an Undo snackbar (`DraftUndoSnackbarEffect`) that puts it
   back at its index (`PlatformFileHandler.insertAt`, which leaves PDF password prompts alone;
@@ -1274,7 +1249,7 @@ an upload starts or stops reporting a progress.
     turned off from the "+" sheet's switch. Other needs-setup and failed chips keep the ordinary tap
     (off with Undo): setup is on the web, a failure on the server. Thinking uses the brain glyph (Memory uses `AutoStories`, here and in the drawer),
     tints tertiary while a one-turn choice is staged, in both styles, and states it. Picked skills use
-    the sparkle (`AutoAwesome`) on the stack, the `$` picker, the sent bubble and the skill card.
+    the sparkle (`AutoAwesome`) on the strip, the `$` picker, the sent bubble and the skill card.
   - **The context ring** (`ContextRing`, only with the above-the-field placement): a 24dp ring with
     the percentage inside, `pressureColor`, a tertiary dot while the compact suggestion is due. A tap
     opens `ContextUsageSheet`, or `CompactConfirmDialog` while the suggestion is due, which keeps

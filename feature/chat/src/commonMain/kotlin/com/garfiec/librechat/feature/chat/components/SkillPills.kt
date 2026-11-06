@@ -84,5 +84,5 @@ private fun SkillPill(name: String, icon: ImageVector, cd: String) {
     }
 }
 
-/** A picked or used skill's glyph: the attachment stack, the `$` picker, the sent bubble's pills and the skill card. */
+/** A picked or used skill's glyph: the attachment strip, the `$` picker, the sent bubble's pills and the skill card. */
 internal val SkillGlyph: ImageVector = Icons.Default.AutoAwesome
