@@ -339,7 +339,15 @@ class SendDispatchDelegate(
      */
     fun restagePendingQuotes(quotes: List<String>) {
         if (quotes.isEmpty()) return
-        handle.update { pendingQuotes = mergeRestagedQuotes(pendingQuotes, quotes) }
+        handle.update {
+            // During a queued edit the chips on screen are that item's: the excerpts go to the
+            // stashed draft the steer was sent from, which the edit's end restores.
+            if (handle.state.editingQueuedItem != null) {
+                draftRestore = draftRestore.copy(quotes = mergeRestagedQuotes(draftRestore.quotes, quotes))
+            } else {
+                pendingQuotes = mergeRestagedQuotes(pendingQuotes, quotes)
+            }
+        }
     }
 
     /** Undo of [removePendingQuote]: puts [quote] back at [index], clamped to the chips staged now. */

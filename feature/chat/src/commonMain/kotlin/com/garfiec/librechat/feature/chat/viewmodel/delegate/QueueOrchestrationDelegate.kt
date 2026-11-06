@@ -15,12 +15,14 @@ import com.garfiec.librechat.feature.chat.util.requiresSpec
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.ComposerSnapshot
+import com.garfiec.librechat.feature.chat.viewmodel.DraftRestore
 import com.garfiec.librechat.feature.chat.viewmodel.QueueOrchestrationHandle
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedEditSession
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedTurnServerState
 import com.garfiec.librechat.feature.chat.viewmodel.quotesSupportedOn
 import com.garfiec.librechat.feature.chat.viewmodel.toComposerSnapshot
+import com.garfiec.librechat.feature.chat.viewmodel.withRestore
 import kotlinx.coroutines.launch
 import kotlin.uuid.Uuid
 
@@ -568,9 +570,12 @@ class QueueOrchestrationDelegate(
      *  during the edit is written to the conversation's slot.
      *  Sets [ChatUiState.inputText] directly rather than via `ChatViewModel.onInputChanged` so swapping composer
      *  contents for an edit never overwrites the persisted on-disk new-message draft. */
-    private fun applyComposer(snapshot: ComposerSnapshot, editSession: QueuedEditSession?) {
-        fileHandler.restoreAttachedFiles(snapshot.attachments)
+    private fun applyComposer(target: ComposerSnapshot, editSession: QueuedEditSession?) {
+        fileHandler.restoreAttachedFiles(target.attachments)
         handle.update {
+            // Ending an edit: what a recovery put back meanwhile belongs to this draft.
+            val snapshot = if (editSession == null) target.withRestore(draftRestore) else target
+            if (editSession == null) draftRestore = DraftRestore.NONE
             editingQueuedItem = editSession
             inputText = snapshot.text
             // The snapshot replaces the whole tray, so an undecided batch from before the edit

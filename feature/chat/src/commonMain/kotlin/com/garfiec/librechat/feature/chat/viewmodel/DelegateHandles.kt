@@ -481,6 +481,7 @@ class ConversationLoadWrites internal constructor(state: ChatUiState) {
     var inputText: String = state.composer.inputText
     var pendingQuotes: List<String> = state.composer.pendingQuotes
     var pendingManualSkills: List<String> = state.composer.pendingManualSkills
+    var draftRestore: DraftRestore = state.composer.draftRestore
     var conversationTitle: String? = state.conversation.conversationTitle
     var error: String? = state.error
     internal fun applyTo(s: ChatUiState) = s.copy(
@@ -489,6 +490,7 @@ class ConversationLoadWrites internal constructor(state: ChatUiState) {
             inputText = inputText,
             pendingQuotes = pendingQuotes,
             pendingManualSkills = pendingManualSkills,
+            draftRestore = draftRestore,
         ),
         conversation = s.conversation.copy(conversationTitle = conversationTitle),
         error = error,
@@ -523,6 +525,7 @@ class SendDispatchWrites internal constructor(state: ChatUiState) {
     var pendingReasoningOverride: ReasoningOverride? = state.composer.pendingReasoningOverride
     var pendingUploadRouting: PendingUploadRouting? = state.composer.pendingUploadRouting
     var pendingDraftUndo: DraftUndo? = state.composer.pendingDraftUndo
+    var draftRestore: DraftRestore = state.composer.draftRestore
     var error: String? = state.error
     internal fun applyTo(s: ChatUiState) = s.copy(
         content = content,
@@ -533,6 +536,7 @@ class SendDispatchWrites internal constructor(state: ChatUiState) {
             pendingReasoningOverride = pendingReasoningOverride,
             pendingUploadRouting = pendingUploadRouting,
             pendingDraftUndo = pendingDraftUndo,
+            draftRestore = draftRestore,
         ),
         error = error,
     )
@@ -558,6 +562,7 @@ class QueueOrchestrationWrites internal constructor(state: ChatUiState) {
     var pendingQuotes: List<String> = state.composer.pendingQuotes
     var pendingDraftUndo: DraftUndo? = state.composer.pendingDraftUndo
     var pendingReasoningOverride: ReasoningOverride? = state.composer.pendingReasoningOverride
+    var draftRestore: DraftRestore = state.composer.draftRestore
     var choice: ModelChoice = state.selection.choice
     var enabledTools: Set<String> = state.selection.enabledTools
     var selectedMcpServerNames: Set<String> = state.selection.selectedMcpServerNames
@@ -574,6 +579,7 @@ class QueueOrchestrationWrites internal constructor(state: ChatUiState) {
             pendingQuotes = pendingQuotes,
             pendingDraftUndo = pendingDraftUndo,
             pendingReasoningOverride = pendingReasoningOverride,
+            draftRestore = draftRestore,
         ),
         selection = s.selection.copy(
             choice = choice,

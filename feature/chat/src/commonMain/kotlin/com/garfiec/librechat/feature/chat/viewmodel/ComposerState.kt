@@ -2,7 +2,9 @@ package com.garfiec.librechat.feature.chat.viewmodel
 
 import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.model.ReasoningOverride
+import com.garfiec.librechat.core.model.request.MAX_MANUAL_SKILLS
 import com.garfiec.librechat.core.model.response.UploadRoute
+import com.garfiec.librechat.core.model.steer.mergeRestagedQuotes
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.util.SpecTools
@@ -79,9 +81,39 @@ data class ComposerState(
      * reset), each inside its own composer write, so an Undo never lands on a different draft.
      */
     val pendingDraftUndo: DraftUndo? = null,
+    /**
+     * What a recovery put back while a queued edit held the composer: a steer's lost excerpts
+     * (`SendDispatchDelegate.restagePendingQuotes`) or an un-sent turn's text and chips
+     * (`ConversationLoadDelegate.restoreUnsentInput`). They belong to the stashed new-message draft,
+     * not to the item on screen, so the edit's end adds them to it whether it is saved or cancelled
+     * (`QueueOrchestrationDelegate.applyComposer`). Always empty outside an edit.
+     */
+    val draftRestore: DraftRestore = DraftRestore.NONE,
 ) {
     /** True while at least one intake is still in flight. See [resolvingPickCount]. */
     val isResolvingPickedFiles: Boolean get() = resolvingPickCount > 0
+}
+
+/** See [ComposerState.draftRestore]. [text] is set only when the draft had none. */
+@Immutable
+data class DraftRestore(
+    val text: String = "",
+    val quotes: List<String> = emptyList(),
+    val manualSkills: List<String> = emptyList(),
+) {
+    companion object {
+        val NONE = DraftRestore()
+    }
+}
+
+/** The stashed draft with [restore] added: the text only into a blank draft, the chips merged. */
+internal fun ComposerSnapshot.withRestore(restore: DraftRestore): ComposerSnapshot {
+    if (restore == DraftRestore.NONE) return this
+    return copy(
+        text = text.ifBlank { restore.text },
+        quotes = mergeRestagedQuotes(quotes, restore.quotes),
+        manualSkills = (restore.manualSkills + manualSkills).distinct().take(MAX_MANUAL_SKILLS),
+    )
 }
 
 /**
