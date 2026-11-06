@@ -3,17 +3,13 @@
 package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -145,10 +141,10 @@ fun IosChatInput(
             // "+" button to open tools bottom sheet (matches Android behavior): it opens the
             // options sheet, not a file picker, and carries the same dots.
             Box {
-                FilledTonalIconButton(
+                IconButton(
                     onClick = onOpenTools,
                     colors = ChatInputDefaults.toolsButtonColors(),
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(BoxButtonSize),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
@@ -167,23 +163,17 @@ fun IosChatInput(
             if (hasClipboardImage && onPasteImage != null) {
                 IconButton(
                     onClick = onPasteImage,
-                    modifier = Modifier.size(40.dp),
+                    colors = ChatInputDefaults.toolsButtonColors(),
+                    modifier = Modifier.size(BoxButtonSize),
                 ) {
                     Icon(
                         imageVector = Icons.Default.ContentPaste,
                         contentDescription = stringResource(Res.string.cd_paste_image),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.width(4.dp))
         },
         textFieldContent = { compact ->
-            // Text field with mic button overlaid at trailing edge.
-            // The mic is a separate composable (not trailingIcon) to
-            // avoid iOS text-magnifier gesture conflicts, but visually
-            // it sits inside the field's rounded border.
             Box(
                 modifier = Modifier.weight(1f),
             ) {
@@ -216,15 +206,10 @@ fun IosChatInput(
                     },
                     suffix = { ComposerAffixAnchor() },
                     textStyle = MaterialTheme.typography.bodyLarge,
-                    shape = ChatInputDefaults.shape,
-                    colors = ChatInputDefaults.textFieldColors(isTemporaryChat),
+                    colors = ChatInputDefaults.textFieldColors(),
                     keyboardOptions = ChatInputDefaults.keyboardOptions,
                     keyboardActions = KeyboardActions.Default,
                     maxLines = 6,
-                    // Invisible spacer reserves room for the overlaid mic button
-                    trailingIcon = {
-                        Spacer(modifier = Modifier.width(36.dp))
-                    },
                 )
 
                 if (compactComparison != null) {
@@ -236,31 +221,18 @@ fun IosChatInput(
                         afterStack = afterStack,
                     )
                 }
-
-                // Mic button overlaid at trailing edge of the text field
-                IconButton(
-                    onClick = {
-                        if (isRecording) {
-                            onStopRecording()
-                        } else {
-                            onStartRecording()
-                        }
-                    },
-                    modifier = Modifier
-                        .size(40.dp)
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 4.dp),
-                    enabled = !isTranscribing,
-                ) {
-                    VoiceMicIndicator(
-                        isRecording = isRecording,
-                        isTranscribing = isTranscribing,
-                    )
-                }
             }
         },
-        trailingSpacer = {
-            Spacer(modifier = Modifier.width(4.dp))
+        // The mic sits in the button row, apart from the field, so it never competes with the
+        // field's text-magnifier gesture.
+        trailingButtons = {
+            IconButton(
+                onClick = { if (isRecording) onStopRecording() else onStartRecording() },
+                modifier = Modifier.size(BoxButtonSize),
+                enabled = !isTranscribing,
+            ) {
+                VoiceMicIndicator(isRecording = isRecording, isTranscribing = isTranscribing)
+            }
         },
         bottomContent = {
             // Snackbar for file attachment toast

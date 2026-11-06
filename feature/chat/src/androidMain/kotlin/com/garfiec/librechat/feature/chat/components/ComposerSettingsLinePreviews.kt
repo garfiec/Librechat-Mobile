@@ -9,6 +9,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.ToolConstants
@@ -26,6 +30,7 @@ import com.garfiec.librechat.feature.chat.util.SettingChip
 import com.garfiec.librechat.feature.chat.util.SettingChipState
 import com.garfiec.librechat.feature.chat.util.SettingChips
 import com.garfiec.librechat.feature.chat.util.ThinkingChip
+import com.garfiec.librechat.feature.chat.util.draftItemsOf
 import com.garfiec.librechat.feature.chat.viewmodel.CompactNudge
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 
@@ -40,6 +45,39 @@ private fun SettingsLineMaterialPreview() = LineSurface(UiStyle.MATERIAL) { Sett
 @PreviewNarrowScreens
 @Composable
 private fun SettingsLineGlassPreview() = LineSurface(UiStyle.LIQUID_GLASS) { SettingsLineStates() }
+
+/** The line in its place: the composer box's button row, with a photo in the field. */
+@PreviewNarrowScreens
+@Composable
+private fun ComposerBoxMaterialPreview() = LineSurface(UiStyle.MATERIAL) { BoxComposerHost() }
+
+@PreviewNarrowScreens
+@Composable
+private fun ComposerBoxGlassPreview() = LineSurface(UiStyle.LIQUID_GLASS) { BoxComposerHost() }
+
+@Composable
+private fun BoxComposerHost() {
+    var draft by remember { mutableStateOf("") }
+    ChatInput(
+        inputText = draft,
+        isStreaming = false,
+        onInputChange = { draft = it },
+        onSend = {},
+        onStop = {},
+        onOpenTools = {},
+        selectedModelDisplay = "Coder",
+        chrome = ComposerChrome(
+            draftItems = draftItemsOf(listOf(draftPhoto), emptyList(), emptyList(), serverUrl = ""),
+            settingChips = SettingChips(
+                listOf(
+                    SettingChip.Tool(ToolConstants.WEB_SEARCH, SettingChipState.ON, pinned = true),
+                    SettingChip.Tool(ToolConstants.CODE_INTERPRETER, SettingChipState.PINNED_OFF, pinned = true),
+                    SettingChip.Thinking(thinking(pending = null)),
+                ),
+            ),
+        ),
+    )
+}
 
 @Composable
 private fun LineSurface(style: UiStyle, content: @Composable () -> Unit) {

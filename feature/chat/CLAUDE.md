@@ -1057,9 +1057,14 @@ while attachments are staged, so neither promises something the tap won't do.
   an interrupted search keeps the generic card, and a group header counts it as cancelled, not failed.
 
 ## Composer chrome (what sits around the field)
-Everything the composer draws around its field (above it: pull request, steers, the queue and its
-banners, the code workspace, the settings line with its context ring; in it: the attachment
-stack) and the "+" button's dots is **one view-data holder, `ComposerChrome`**, built in `ChatScreen` and threaded
+**The composer is one box** (`CommonChatInputCore`): a rounded frame (Material's
+`ChatInputDefaults.containerColor` fill and border, outline while the field is focused, or the glass
+capsule) holding the field, which draws no frame of its own (`ChatInputDefaults.textFieldColors`),
+the failed-upload line, and a button row: "+" and paste (`leadingButtons`), the settings line with
+its context ring, the mic (`trailingButtons`) and the send control (`BoxButtonSize`). Temporary
+chat's violet tints the box. Above the box: pull request, steers, the queue and its banners, the
+code workspace card. Everything the composer draws around its field (those rows, the settings line,
+the attachment stack in the field) and the "+" button's dots is **one view-data holder, `ComposerChrome`**, built in `ChatScreen` and threaded
 once through the `ChatComposer` expect, both actuals, `ChatInput` / `IosChatInput` and
 `ChatInputState.chrome`. A new row adds a field there, never a parameter to those five signatures:
 the iOS ones are not compiled on a Linux host, so a signature change there is only caught by CI.
@@ -1196,7 +1201,7 @@ an upload starts or stops reporting a progress.
   conversation (`SkillsToggleDelegate`).
 - Tool toggles and MCP servers live in the paged "+" options sheet (`ChatToolsSheetContent`),
   reached from the composer's `onOpenTools`. What is on shows on the composer's settings line (next).
-- **The settings line** (`ComposerSettingsLine`, above the field): one chip per thing, on one line
+- **The settings line** (`ComposerSettingsLine`, in the composer box's button row): one chip per thing, on one line
   that scrolls sideways (end fade, `:core:ui` `scrollFadingEdges`) and never wraps. Order: a leading slot (the code workspace's
   folded chip and approval chip, see "Code workspace"), the tools in the "+" sheet's order, the selected MCP servers in list order, Thinking,
   and the context ring pinned at the end. Hidden when it would hold nothing.

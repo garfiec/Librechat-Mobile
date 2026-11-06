@@ -63,8 +63,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -75,6 +77,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
@@ -176,14 +179,13 @@ data class ChatInputState(
 )
 
 /**
- * Shared container for the chat input area. Renders the gradient background,
- * the chrome above the field ([ChatInputState.chrome]), and a slot-based input row with a shared
- * send/stop button.
+ * Shared container for the chat input area. Renders the gradient background, the chrome above the
+ * box ([ChatInputState.chrome]), and the composer box: one rounded frame (Material's fill and border,
+ * or the glass capsule) holding the field, the failed-upload line and a button row with "+", the
+ * settings line, the mic and the shared send/stop control.
  *
- * Platform wrappers fill in [leadingButtons] (e.g. "+" button, paste button)
- * and [textFieldContent] (platform-specific text field with mic placement). [leadingButtons] and
- * [trailingSpacer] are told when the row is compact (narrower than a 360dp phone's), where the
- * gaps they put beside the field are better given to the field.
+ * Platform wrappers fill in [leadingButtons] ("+", paste), [textFieldContent] (their own field) and
+ * [trailingButtons] (the mic). Each is told when the box is compact (narrower than a 360dp phone's).
  */
 @Composable
 fun CommonChatInputCore(
@@ -223,10 +225,15 @@ fun CommonChatInputCore(
     fontSizeMultiplier: Float = 1f,
     /** A row picked from the `/` and `$` list: a prompt or a skill. */
     onSelectPickerItem: (ComposerPickerItem) -> Unit = {},
+    /** The start of the box's button row: "+" and, where offered, paste. */
     leadingButtons: @Composable RowScope.(compact: Boolean) -> Unit = {},
-    trailingSpacer: @Composable RowScope.(compact: Boolean) -> Unit = {},
+    /** Just before the send control in the button row: the mic. */
+    trailingButtons: @Composable RowScope.(compact: Boolean) -> Unit = {},
     bottomContent: @Composable BoxScope.() -> Unit = {},
-    /** The field. [compact] as for [leadingButtons]: the attachment stack draws its narrow form then. */
+    /**
+     * The field, on the box's first row. It draws no frame of its own ([ChatInputDefaults.textFieldColors]):
+     * the box is the frame. [compact] as for [leadingButtons]: the attachment stack draws its narrow form then.
+     */
     textFieldContent: @Composable RowScope.(compact: Boolean) -> Unit,
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface
@@ -293,44 +300,71 @@ fun CommonChatInputCore(
             // The attachment list, right above the field its stack opens it from.
             ComposerDraftListSlot(state.chrome)
 
-            // Temporary chat's wash on the glass capsule, faded rather than snapped (Material's is in the field).
+            // Temporary chat's violet on the box, faded rather than snapped, in both styles.
             val temporaryWash = ChatInputDefaults.temporaryWash
             val temporaryBorder = ChatInputDefaults.temporaryBorderColor
+            val boxFill = ChatInputDefaults.containerColor
+            val boxBorder = ChatInputDefaults.borderColor
+            val boxFocusedBorder = MaterialTheme.colorScheme.outline
+            val temporaryAccent = ChatInputDefaults.temporaryAccent
+            var boxFocused by remember { mutableStateOf(false) }
             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                // Below a 360dp screen the gaps beside the field go, and the during-run caret folds
-                // into the send button, so the field keeps room for more than a word a line.
+                // Below a 360dp screen the during-run caret folds into the send button and the stack
+                // draws one tile, so the field and the settings line keep their room.
                 val compact = maxWidth < COMPACT_COMPOSER_ROW_WIDTH
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        // A parent sees its children's focus: the box's border follows the field's.
+                        .onFocusChanged { boxFocused = it.hasFocus }
                         .then(
                             if (glass != null) {
                                 Modifier
-                                    .glassSurface(glass, GlassComposerShape, glassBackdrop, flare = LocalComposerFlare.current)
+                                    .glassSurface(glass, ComposerBoxShape, glassBackdrop, flare = LocalComposerFlare.current)
                                     .drawBehind {
                                         val amount = temporaryAmount.value
                                         if (amount > 0f) {
-                                            val outline = GlassComposerShape.createOutline(size, layoutDirection, this)
+                                            val outline = ComposerBoxShape.createOutline(size, layoutDirection, this)
                                             drawOutline(outline, temporaryWash.copy(alpha = temporaryWash.alpha * amount))
                                             drawInsetOutlineStroke(
-                                                GlassComposerShape,
+                                                ComposerBoxShape,
                                                 temporaryBorder.copy(alpha = temporaryBorder.alpha * amount),
                                                 1.dp.toPx(),
                                             )
                                         }
                                     }
-                                    .padding(4.dp)
                             } else {
-                                Modifier
+                                Modifier.drawBehind {
+                                    val amount = temporaryAmount.value
+                                    val outline = ComposerBoxShape.createOutline(size, layoutDirection, this)
+                                    drawOutline(outline, lerp(boxFill, temporaryWash.compositeOver(boxFill), amount))
+                                    val border = if (boxFocused) {
+                                        lerp(boxFocusedBorder, temporaryAccent, amount)
+                                    } else {
+                                        lerp(boxBorder, temporaryBorder.compositeOver(boxFill), amount)
+                                    }
+                                    drawInsetOutlineStroke(ComposerBoxShape, border, 1.dp.toPx())
+                                }
                             },
-                        ),
+                        )
+                        .padding(4.dp),
                 ) {
-                    ComposerInputRow(
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        textFieldContent(compact)
+                    }
+                    val chrome = state.chrome
+                    FailedUploadsLine(
+                        failedCount = chrome.draftItems.failedCount,
+                        listOpen = chrome.isDraftListOpen,
+                        listShut = chrome.draftListShut,
+                        onOpen = chrome.onToggleDraftList,
+                        onOpenFromScreenReader = chrome.onToggleDraftListFromScreenReader,
+                    )
+                    ComposerButtonRow(
                         state = state,
                         compact = compact,
                         leadingButtons = leadingButtons,
-                        textFieldContent = textFieldContent,
-                        trailingSpacer = trailingSpacer,
+                        trailingButtons = trailingButtons,
                         onSend = onSend,
                         onStop = onStop,
                         onQueue = onQueue,
@@ -341,16 +375,6 @@ fun CommonChatInputCore(
                         onCommitEdit = onCommitEdit,
                         onCancelPendingSend = onCancelPendingSend,
                     )
-                    // Inside the capsule, so Liquid Glass gives it the capsule's fill rather than
-                    // drawing it bare over the thread; Material's composer fade sits behind it.
-                    val chrome = state.chrome
-                    FailedUploadsLine(
-                        failedCount = chrome.draftItems.failedCount,
-                        listOpen = chrome.isDraftListOpen,
-                        listShut = chrome.draftListShut,
-                        onOpen = chrome.onToggleDraftList,
-                        onOpenFromScreenReader = chrome.onToggleDraftListFromScreenReader,
-                    )
                 }
             }
         }
@@ -359,9 +383,9 @@ fun CommonChatInputCore(
 }
 
 /**
- * Everything above the field: the pull request, the steer and queue region, the queue's banners,
- * the code workspace and the settings line with its context ring. Files, picked skills and
- * quotes are in the field's leading slot instead ([ComposerAttachmentStack]). A
+ * Everything above the box: the pull request, the steer and queue region, the queue's banners and
+ * the code workspace card. The settings line is in the box's button row ([ComposerButtonRow]);
+ * files, picked skills and quotes are in the field's leading slot ([ComposerAttachmentStack]). A
  * vertical drag that starts anywhere on it scrolls the thread ([passVerticalDragsToThread]); rows
  * keep only their horizontal scrolls and the queue's long-press reorder.
  */
@@ -421,20 +445,7 @@ private fun ComposerChromeStack(
         // The attached machine a coding agent works on (machine, workspace, branch, checkout), as a
         // card while it needs the user; folded onto the settings line once the chat's saved decision
         // is healthy.
-        val codeWorkspace = LocalCodeWorkspaceComposer.current
-        codeWorkspace?.let { CodeWorkspaceRow(it, modifier = Modifier.padding(bottom = 4.dp)) }
-
-        // What is on for the next message (the workspace, tools, MCP servers, Thinking), with the
-        // context ring pinned at its end under the above-the-field placement.
-        ComposerSettingsLine(
-            chips = chrome.settingChips,
-            onChipTap = chrome.onSettingChipTap,
-            onCancelSignIn = chrome.onCancelMcpSignIn,
-            onStartSignInOver = chrome.onStartMcpSignInOver,
-            ring = chrome.contextRing(),
-            modifier = Modifier.padding(bottom = 4.dp),
-            leading = codeWorkspaceLineLeading(codeWorkspace),
-        )
+        LocalCodeWorkspaceComposer.current?.let { CodeWorkspaceRow(it, modifier = Modifier.padding(bottom = 4.dp)) }
     }
 }
 
@@ -558,15 +569,18 @@ internal fun FailedUploadsLine(
 /** About two and a half steer or queue rows. */
 internal val STEER_AND_QUEUE_MAX_HEIGHT = 168.dp
 
-/** The field and its trailing send/stop control: the part of the composer the glass capsule wraps. */
+/**
+ * The box's bottom row: [leadingButtons], the settings line (what is on for the next message, with
+ * the context ring at its end under the above-the-field placement), [trailingButtons] and the send
+ * control with its during-run picker. The line takes what the buttons leave and scrolls sideways.
+ */
 @Suppress("LongParameterList")
 @Composable
-private fun ComposerInputRow(
+private fun ComposerButtonRow(
     state: ChatInputState,
     compact: Boolean,
     leadingButtons: @Composable RowScope.(compact: Boolean) -> Unit,
-    textFieldContent: @Composable RowScope.(compact: Boolean) -> Unit,
-    trailingSpacer: @Composable RowScope.(compact: Boolean) -> Unit,
+    trailingButtons: @Composable RowScope.(compact: Boolean) -> Unit,
     onSend: () -> Unit,
     onStop: () -> Unit,
     onQueue: (() -> Unit)?,
@@ -577,13 +591,23 @@ private fun ComposerInputRow(
     onCommitEdit: () -> Unit,
     onCancelPendingSend: () -> Unit,
 ) {
+    val chrome = state.chrome
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         leadingButtons(compact)
-        textFieldContent(compact)
-        trailingSpacer(compact)
+        Box(modifier = Modifier.weight(1f).padding(horizontal = 4.dp)) {
+            ComposerSettingsLine(
+                chips = chrome.settingChips,
+                onChipTap = chrome.onSettingChipTap,
+                onCancelSignIn = chrome.onCancelMcpSignIn,
+                onStartSignInOver = chrome.onStartMcpSignInOver,
+                ring = chrome.contextRing(),
+                leading = codeWorkspaceLineLeading(LocalCodeWorkspaceComposer.current),
+            )
+        }
+        trailingButtons(compact)
         // A comparison still choosing its second model has nowhere to send yet. Committing a queued
         // edit sends nothing (the queue is held through setup), so Update stays available.
         val blockedBySetup = state.comparisonHint == ComposerComparisonHint.SETTING_UP && !state.isEditingQueued
@@ -628,6 +652,7 @@ private fun ComposerInputRow(
         }
         Box {
             SendStopButton(
+                buttonSize = BoxButtonSize,
                 isStreaming = state.isStreaming,
                 canSend = hasComposerContent,
                 canQueue = duringRunSend,
@@ -663,7 +688,10 @@ private fun ComposerInputRow(
     }
 }
 
-private val GlassComposerShape = RoundedCornerShape(28.dp)
+private val ComposerBoxShape = RoundedCornerShape(28.dp)
+
+/** The box's round buttons: 40dp drawn, a 48dp touch target from Compose's touch-bounds expansion. */
+internal val BoxButtonSize = 40.dp
 
 /**
  * The field's leading slot: the wide Compare badges, then the attachment stack. Null when it holds
@@ -795,6 +823,7 @@ fun SendStopButton(
     onCancelPendingSend: () -> Unit = {},
     /** A during-run tap opens the steer/queue picker rather than sending: the caret is folded in. */
     opensMenu: Boolean = false,
+    buttonSize: Dp = 56.dp,
 ) {
     val mode = sendButtonModeFor(
         isStreaming = isStreaming,
@@ -818,7 +847,7 @@ fun SendStopButton(
         when (buttonMode) {
             SendButtonMode.UPDATE -> IconButton(
                 onClick = onUpdate,
-                modifier = Modifier.size(56.dp),
+                modifier = Modifier.size(buttonSize),
                 enabled = canSend,
                 colors = ChatInputDefaults.sendButtonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -833,7 +862,7 @@ fun SendStopButton(
 
             SendButtonMode.REMOVE_QUEUED -> IconButton(
                 onClick = onUpdate,
-                modifier = Modifier.size(56.dp),
+                modifier = Modifier.size(buttonSize),
                 colors = ChatInputDefaults.sendButtonColors(
                     containerColor = MaterialTheme.colorScheme.error,
                     contentColor = MaterialTheme.colorScheme.onError,
@@ -848,7 +877,7 @@ fun SendStopButton(
 
             SendButtonMode.AWAITING -> IconButton(
                 onClick = onCancelPendingSend,
-                modifier = Modifier.size(56.dp),
+                modifier = Modifier.size(buttonSize),
                 colors = ChatInputDefaults.sendButtonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -857,7 +886,7 @@ fun SendStopButton(
                 // Spinner (upload still in flight) with a small ✕ so it reads as "tap to cancel".
                 Box(contentAlignment = Alignment.Center) {
                     AdaptiveCircularProgressIndicator(
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(buttonSize / 2),
                         strokeWidth = 2.dp,
                         color = LocalContentColor.current,
                     )
@@ -871,7 +900,7 @@ fun SendStopButton(
 
             SendButtonMode.STOP -> IconButton(
                 onClick = onStop,
-                modifier = Modifier.size(56.dp),
+                modifier = Modifier.size(buttonSize),
                 colors = ChatInputDefaults.sendButtonColors(
                     containerColor = MaterialTheme.colorScheme.error,
                     contentColor = MaterialTheme.colorScheme.onError,
@@ -881,13 +910,13 @@ fun SendStopButton(
                 Icon(
                     imageVector = Icons.Default.Stop,
                     contentDescription = stringResource(Res.string.cd_stop_generation),
-                    modifier = Modifier.size(28.dp),
+                    modifier = Modifier.size(buttonSize / 2),
                 )
             }
 
             SendButtonMode.QUEUE -> IconButton(
                 onClick = onQueue,
-                modifier = Modifier.size(56.dp),
+                modifier = Modifier.size(buttonSize),
                 colors = ChatInputDefaults.sendButtonColors(
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -902,7 +931,7 @@ fun SendStopButton(
 
             SendButtonMode.STEER -> IconButton(
                 onClick = onQueue,
-                modifier = Modifier.size(56.dp),
+                modifier = Modifier.size(buttonSize),
                 colors = ChatInputDefaults.sendButtonColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -917,7 +946,7 @@ fun SendStopButton(
 
             SendButtonMode.INTERRUPT -> IconButton(
                 onClick = onQueue,
-                modifier = Modifier.size(56.dp),
+                modifier = Modifier.size(buttonSize),
                 colors = ChatInputDefaults.sendButtonColors(
                     containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                     contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -935,7 +964,7 @@ fun SendStopButton(
             // click target differs (onQueue → sendDuringRun → resolve the pause).
             SendButtonMode.ANSWER -> IconButton(
                 onClick = onQueue,
-                modifier = Modifier.size(56.dp),
+                modifier = Modifier.size(buttonSize),
                 colors = ChatInputDefaults.sendButtonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -949,7 +978,7 @@ fun SendStopButton(
 
             SendButtonMode.SEND -> IconButton(
                 onClick = onSend,
-                modifier = Modifier.size(56.dp),
+                modifier = Modifier.size(buttonSize),
                 enabled = canSend,
                 colors = ChatInputDefaults.sendButtonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
