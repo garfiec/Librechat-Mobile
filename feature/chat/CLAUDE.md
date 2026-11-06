@@ -1134,7 +1134,10 @@ first, then images, files, skills, quotes.
   file, a skill or a quote comes off with an Undo snackbar (`DraftUndoSnackbarEffect`) that puts it
   back at its index (`PlatformFileHandler.insertAt`, which leaves PDF password prompts alone;
   `SendDispatchDelegate.restorePendingManualSkill` / `restorePendingQuote`). A file still uploading
-  is cancelled instead (each handler keeps its upload jobs), with no Undo. One Undo is pending at a
+  is cancelled instead (each handler keeps its upload jobs), with no Undo. Removal, retry and an
+  upload's outcome name one tray entry (`AttachedFile.key`), never the file: a content `Uri` picked
+  twice on Android is two entries with their own `entryId` (iOS mints a `uri` per pick, which is
+  its key). One Undo is pending at a
   time; `clearComposer` (every send), `applyComposer` (the queued-edit swap) and the landing reset
   (conversation switch) drop it inside their own writes, and so does the snackbar effect when the
   screen leaves composition with it up, so it never comes back on return.

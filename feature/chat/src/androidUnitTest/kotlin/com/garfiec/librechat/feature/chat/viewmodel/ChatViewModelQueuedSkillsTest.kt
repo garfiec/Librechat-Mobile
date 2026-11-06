@@ -593,6 +593,21 @@ class ChatViewModelQueuedSkillsTest {
     }
 
     @Test
+    fun `removing one copy of a file attached twice takes that copy alone and its undo puts it back`() =
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            // One picked file, two tray entries told apart by their entry ids.
+            val first = AttachedFile(uri = "same", name = "a.pdf", fileId = "a1", uploadProgress = 1f, entryId = "e1")
+            val second = first.copy(fileId = "a2", entryId = "e2")
+            every { fileHandler.attachedFiles } returns MutableStateFlow(listOf(first, second))
+
+            vm.removeDraftItem(DraftItem.File(second, key = "file:e2"))
+            vm.undoDraftRemoval(checkNotNull(vm.uiState.value.pendingDraftUndo).id)
+
+            verify { fileHandler.removeFile(second) }
+            verify { fileHandler.insertAt(1, second) }
+        }
+
+    @Test
     fun `removing a file still uploading cancels it with no undo`() = queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
         val uploading = AttachedFile(uri = "c", name = "c.pdf", uploadProgress = 0.4f)
         every { fileHandler.attachedFiles } returns MutableStateFlow(listOf(uploading))

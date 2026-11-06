@@ -62,6 +62,18 @@ class DraftItemsTest {
     }
 
     @Test
+    fun twoPicksOfOneFileAreKeyedByTheirOwnEntries() {
+        val first = report.copy(entryId = "e1")
+        val second = report.copy(entryId = "e2")
+        val both = draftItemsOf(listOf(first, second), emptyList(), emptyList(), serverUrl = "")
+        assertEquals(listOf("file:e1", "file:e2"), both.items.map { it.key })
+
+        // Removing the first leaves the second's key as it was.
+        val left = draftItemsOf(listOf(second), emptyList(), emptyList(), serverUrl = "")
+        assertEquals(listOf("file:e2"), left.items.map { it.key })
+    }
+
+    @Test
     fun uploadProgressIsTheMeanOfWhatReportsOne() {
         val items = draftItemsOf(
             listOf(uploading, uploading.copy(uri = "other", uploadProgress = 0.6f), report),

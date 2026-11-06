@@ -115,6 +115,63 @@ class FileAttachmentDelegateTest {
     }
 
     @Test
+    fun `a file picked twice is two entries, and removing one leaves the other uploading`() {
+        val cancelled = mutableListOf<String>()
+        val repository = mockk<FileRepository> {
+            coEvery {
+                uploadFile(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+            } coAnswers {
+                val fileId = arg<String>(3)
+                try {
+                    awaitCancellation()
+                } finally {
+                    cancelled += fileId
+                }
+            }
+        }
+        val delegate = uploadingDelegate(repository)
+        val uri = mockk<Uri>()
+        val pick = RoutedFile(PickedFile(uri, "notes.txt", "text/plain"), UploadRoute.TEXT)
+        delegate.onFilesSelected(listOf(pick, pick))
+        val (first, second) = delegate.attachedFiles.value
+        assertThat(first.key).isNotEqualTo(second.key)
+
+        delegate.removeFile(first)
+
+        assertThat(delegate.attachedFiles.value).containsExactly(second)
+        assertThat(cancelled).hasSize(1)
+    }
+
+    @Test
+    fun `retrying one of a file picked twice uploads that one again and leaves the other`() {
+        var calls = 0
+        val repository = mockk<FileRepository> {
+            coEvery {
+                uploadFile(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+            } answers {
+                when (++calls) {
+                    1 -> Result.Error(message = "offline")
+                    2 -> Result.Success(serverRecord("first"))
+                    else -> Result.Success(serverRecord("retried"))
+                }
+            }
+        }
+        val delegate = uploadingDelegate(repository)
+        val uri = mockk<Uri>()
+        val pick = RoutedFile(PickedFile(uri, "notes.txt", "text/plain"), UploadRoute.TEXT)
+        delegate.onFilesSelected(listOf(pick, pick))
+        val (failed, uploaded) = delegate.attachedFiles.value
+        assertThat(failed.uploadFailed).isTrue()
+        assertThat(uploaded.fileId).isEqualTo("server-first")
+
+        delegate.retryUpload(failed)
+
+        val tray = delegate.attachedFiles.value
+        assertThat(tray.map { it.key }).containsExactly(failed.key, uploaded.key).inOrder()
+        assertThat(tray.map { it.fileId }).containsExactly("server-retried", "server-first").inOrder()
+    }
+
+    @Test
     fun `a retry for a file no longer in the tray uploads nothing and adds nothing`() {
         var calls = 0
         val repository = mockk<FileRepository> {

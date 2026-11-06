@@ -24,7 +24,7 @@ internal class FakeFileHandler(initial: List<AttachedFile> = emptyList()) : Plat
 
     override fun removeFile(file: AttachedFile) {
         removed += file
-        files.value = files.value.filter { it.uri != file.uri }
+        files.value = files.value.filter { it.key != file.key }
     }
 
     override fun retryUpload(file: AttachedFile) {

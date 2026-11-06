@@ -283,7 +283,7 @@ class UploadIntakeDelegate(
         if (routed.isNotEmpty()) fileHandler.onFilesSelected(routed)
     }
 
-    /** Uris whose [retryUpload] is waiting on the agent's provider. Touched on the main dispatcher only. */
+    /** Entries ([AttachedFile.key]) whose [retryUpload] is waiting on the agent's provider. Touched on the main dispatcher only. */
     private val pendingRetries = mutableSetOf<Any>()
 
     /**
@@ -299,7 +299,7 @@ class UploadIntakeDelegate(
      * would otherwise put back a second copy), and a tray swapped to a queued edit never gains it.
      */
     fun retryUpload(file: AttachedFile) {
-        if (!isFailedInTray(file) || !pendingRetries.add(file.uri)) return
+        if (!isFailedInTray(file) || !pendingRetries.add(file.key)) return
         val retryFor = handle.state.composer.editingQueuedItem
         handle.scope.launch {
             try {
@@ -310,13 +310,13 @@ class UploadIntakeDelegate(
                 }
                 fileHandler.retryUpload(file)
             } finally {
-                pendingRetries.remove(file.uri)
+                pendingRetries.remove(file.key)
             }
         }
     }
 
     private fun isFailedInTray(file: AttachedFile): Boolean =
-        fileHandler.attachedFiles.value.any { it.uri == file.uri && it.uploadFailed }
+        fileHandler.attachedFiles.value.any { it.key == file.key && it.uploadFailed }
 
     /** Re-uploads the prompted PDF with its password; routed like [retryUpload], for the same reason. */
     fun submitPdfPassword(password: String) {

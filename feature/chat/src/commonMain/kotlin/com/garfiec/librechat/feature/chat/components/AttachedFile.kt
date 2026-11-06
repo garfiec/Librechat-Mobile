@@ -36,7 +36,16 @@ data class AttachedFile(
      * content `Uri`, a server URL). Compared by identity, so a tray copy keeps equal to itself.
      */
     val localPreview: Any? = null,
+    /**
+     * This tray entry's own id, minted by the handler that added it, where [uri] can't tell it from
+     * another: an Android content `Uri` picked twice is two entries with one [uri]. Null where [uri]
+     * is already one entry's (iOS's minted id, a server file by reference).
+     */
+    val entryId: String? = null,
 ) {
+    /** Names this one entry in its tray: what removal, retry and an upload's outcome match on. */
+    val key: Any get() = entryId ?: uri
+
     /** Still uploading: no server id yet and not failed. A PDF waiting for its password counts. */
     val isUploading: Boolean get() = fileId == null && !uploadFailed
 }

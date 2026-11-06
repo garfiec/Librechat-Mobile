@@ -49,9 +49,9 @@ class FileAttachmentDelegate(
     var pendingUploadSendJob: Job? = null
 
     /**
-     * Each tray entry's upload, by its `uri`, so removing a file mid-upload cancels it. Touched on
-     * the caller's thread only (every entry point runs on Main); a finished job just stays until its
-     * entry is replaced or the tray is cleared, since cancelling one is a no-op.
+     * Each tray entry's upload, by its [AttachedFile.key], so removing a file mid-upload cancels it.
+     * Touched on the caller's thread only (every entry point runs on Main); a finished job just stays
+     * until its entry is replaced or the tray is cleared, since cancelling one is a no-op.
      */
     private val uploadJobs = mutableMapOf<Any, Job>()
 
@@ -90,12 +90,15 @@ class FileAttachmentDelegate(
         route: UploadRoute,
         pdfPassword: String? = null,
         /**
-         * A retry: the upload takes over its entry's place in the tray rather than appending, and
+         * A retry: the upload takes over this entry's place in the tray rather than appending, and
          * does nothing when the entry is gone (removed, or the tray swapped to another draft).
          */
-        inPlace: Boolean = false,
+        replacing: AttachedFile? = null,
     ) {
-        if (inPlace && _attachedFiles.value.none { it.uri == picked.ref }) return
+        if (replacing != null && _attachedFiles.value.none { it.key == replacing.key }) return
+        // Each pick is its own entry, even one whose Uri is already in the tray: every write below
+        // names the entry, never the Uri, so a file attached twice is two files.
+        val entryId = if (replacing != null) replacing.entryId else UUID.randomUUID().toString()
         val context = appContext
         val contentResolver = context.contentResolver
         val uri = picked.ref as Uri
@@ -114,23 +117,25 @@ class FileAttachmentDelegate(
             uploadProgress = null,
             type = preliminaryMimeType,
             route = route,
+            entryId = entryId,
         )
+        val key = pendingFile.key
 
         _attachedFiles.update { currentList ->
-            if (inPlace) {
-                currentList.map { if (it.uri == uri) pendingFile else it }
+            if (replacing != null) {
+                currentList.map { if (it.key == key) pendingFile else it }
             } else {
                 currentList + pendingFile
             }
         }
 
-        uploadJobs[uri] = handle.scope.launch(ioDispatcher) {
+        uploadJobs[key] = handle.scope.launch(ioDispatcher) {
             try {
                 // Read file bytes
                 val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
                 if (bytes == null) {
                     Logger.e { "uploadFile: could not read bytes from URI: $uri" }
-                    markUploadFailed(uri)
+                    markUploadFailed(key)
                     handle.setError(ChatNotice.UPLOAD_UNREADABLE.marker(filename))
                     return@launch
                 }
@@ -193,7 +198,7 @@ class FileAttachmentDelegate(
                 // non-images and for images the re-encode couldn't shrink under the limit.
                 if (sizeLimit != null && uploadBytes.size > sizeLimit) {
                     Logger.w { "uploadFile: $filename is ${uploadBytes.size} bytes, over server limit of $sizeLimit" }
-                    markUploadFailed(uri)
+                    markUploadFailed(key)
                     // State only the limit — not the file's own size. The limit is the actionable
                     // number, and rounding both to the same MB precision could otherwise print a
                     // self-contradictory "X MB is larger than the X MB limit".
@@ -220,7 +225,7 @@ class FileAttachmentDelegate(
                     val isImageType = mimeType.startsWith("image/")
                     _attachedFiles.update { currentList ->
                         currentList.map { f ->
-                            if (f.uri == uri) {
+                            if (f.key == key) {
                                 f.copy(
                                     type = mimeType,
                                     isImage = isImageType,
@@ -263,7 +268,7 @@ class FileAttachmentDelegate(
                     messageFile = true,
                     width = imageWidth,
                     height = imageHeight,
-                    onProgress = { pct -> updateFileProgress(uri, pct) },
+                    onProgress = { pct -> updateFileProgress(key, pct) },
                     pdfPassword = pdfPassword,
                 )
 
@@ -277,7 +282,7 @@ class FileAttachmentDelegate(
                         // Atomically update the attached file with server data
                         _attachedFiles.update { currentList ->
                             currentList.map { f ->
-                                if (f.uri == uri) {
+                                if (f.key == key) {
                                     f.copy(
                                         uploadProgress = 1f,
                                         fileId = fileObject.fileId,
@@ -298,15 +303,15 @@ class FileAttachmentDelegate(
                             // Not an error to show: the chip waits while the UI asks for the password.
                             // It stays pending, not failed, so a send parked on the upload gate
                             // keeps waiting for the answer instead of going out without the PDF.
-                            updateFileProgress(uri, null)
-                            pdfPrompts.add(PdfPasswordPrompt(uri, picked, locked.incorrectPassword))
+                            updateFileProgress(key, null)
+                            pdfPrompts.add(PdfPasswordPrompt(key, picked, locked.incorrectPassword))
                             return@launch
                         }
                         Logger.e(result.exception) { "uploadFile: server error -- ${result.message}" }
                         // Atomically mark failed and remove from list in one update
                         _attachedFiles.update { currentList ->
                             currentList.map { f ->
-                                if (f.uri == uri) {
+                                if (f.key == key) {
                                     f.copy(uploadFailed = true, uploadProgress = null)
                                 } else {
                                     f
@@ -325,32 +330,32 @@ class FileAttachmentDelegate(
                 throw e
             } catch (e: Exception) {
                 Logger.e(e) { "uploadFile: unexpected exception for $filename" }
-                markUploadFailed(uri)
+                markUploadFailed(key)
                 handle.setError(ChatNotice.uploadFailed(filename, e.message))
             }
         }
     }
 
-    private fun updateFileProgress(uri: Uri, progress: Float?) {
+    private fun updateFileProgress(key: Any, progress: Float?) {
         _attachedFiles.update { currentList ->
             currentList.map { f ->
-                if (f.uri == uri) f.copy(uploadProgress = progress) else f
+                if (f.key == key) f.copy(uploadProgress = progress) else f
             }
         }
     }
 
-    private fun markUploadFailed(uri: Uri) {
+    private fun markUploadFailed(key: Any) {
         _attachedFiles.update { currentList ->
             currentList.map { f ->
-                if (f.uri == uri) f.copy(uploadFailed = true, uploadProgress = null) else f
+                if (f.key == key) f.copy(uploadFailed = true, uploadProgress = null) else f
             }
         }
     }
 
     fun removeFile(file: AttachedFile) {
-        pdfPrompts.remove(file.uri)
-        uploadJobs.remove(file.uri)?.cancel()
-        _attachedFiles.update { currentList -> currentList.filter { it.uri != file.uri } }
+        pdfPrompts.remove(file.key)
+        uploadJobs.remove(file.key)?.cancel()
+        _attachedFiles.update { currentList -> currentList.filter { it.key != file.key } }
     }
 
     /**
@@ -360,11 +365,11 @@ class FileAttachmentDelegate(
      */
     fun retryUpload(file: AttachedFile) {
         // Gone from the tray (the user's ×, or a swap to another draft): putting it back would undo that.
-        if (_attachedFiles.value.none { it.uri == file.uri }) return
-        pdfPrompts.remove(file.uri)
-        uploadJobs.remove(file.uri)?.cancel()
+        if (_attachedFiles.value.none { it.key == file.key }) return
+        pdfPrompts.remove(file.key)
+        uploadJobs.remove(file.key)?.cancel()
         val route = handle.state.retryUploadRoute(file.route, file.type)
-        uploadFile(PickedFile(ref = file.uri, name = file.name, mimeType = file.type), route, inPlace = true)
+        uploadFile(PickedFile(ref = file.uri, name = file.name, mimeType = file.type), route, replacing = file)
     }
 
     fun insertAt(index: Int, file: AttachedFile) {
@@ -394,15 +399,14 @@ class FileAttachmentDelegate(
 
     fun submitPdfPassword(prompt: PdfPasswordPrompt, password: String) {
         if (!pdfPrompts.take(prompt)) return
-        val uri = prompt.chipKey as Uri
-        _attachedFiles.update { currentList -> currentList.filter { it.uri != uri } }
+        _attachedFiles.update { currentList -> currentList.filter { it.key != prompt.chipKey } }
         // Routed against the live selection: the locked attempt never uploaded under its route.
         uploadFile(prompt.file, handle.state.uploadRouteFor(prompt.file.mimeType), pdfPassword = password)
     }
 
     fun dismissPdfPassword() {
         val prompt = pdfPrompts.takeHead() ?: return
-        _attachedFiles.update { currentList -> currentList.filter { it.uri != prompt.chipKey } }
+        _attachedFiles.update { currentList -> currentList.filter { it.key != prompt.chipKey } }
     }
 
     fun addPreUploadedFiles(files: List<AttachedFile>) {

@@ -27,7 +27,7 @@ class DraftItemsDelegate(
             is DraftItem.Attachment -> {
                 // The tray's own copy: the row may have been drawn a progress update ago.
                 val files = fileHandler.attachedFiles.value
-                val index = files.indexOfFirst { it.uri == item.file.uri }
+                val index = files.indexOfFirst { it.key == item.file.key }
                 val file = files.getOrNull(index) ?: item.file
                 fileHandler.removeFile(file)
                 if (index < 0 || file.isUploading) return

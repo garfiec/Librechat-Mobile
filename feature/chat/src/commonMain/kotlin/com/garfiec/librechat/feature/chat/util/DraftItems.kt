@@ -77,8 +77,9 @@ fun draftItemsOf(
     if (files.isEmpty() && skills.isEmpty() && quotes.isEmpty()) return DraftItems.EMPTY
     val seenKeys = mutableMapOf<String, Int>()
     val attachments = files.map { file ->
-        // The same file picked twice shares its uri; the second copy gets its own key.
-        val base = "file:${file.uri}"
+        // A handler tells two picks of one file apart ([AttachedFile.key]); an entry it didn't mint
+        // (a restored queued turn) can still repeat one, so a repeat gets its own key too.
+        val base = "file:${file.key}"
         val repeat = seenKeys[base] ?: 0
         seenKeys[base] = repeat + 1
         val key = if (repeat == 0) base else "$base#$repeat"
