@@ -27,9 +27,20 @@ sealed interface SettingChip {
         val label: String,
         override val state: SettingChipState,
         val status: McpDisplayStatus,
+        /** It signs in with OAuth ([McpServerDisplayData.requiresOAuth]). */
+        val requiresOAuth: Boolean = false,
     ) : SettingChip {
         /** Drawn with "· sign in", and a tap starts the sign-in rather than turning it off. */
         val needsSignIn: Boolean get() = status == McpDisplayStatus.NEEDS_SIGN_IN
+
+        /**
+         * A tap starts the sign-in: [needsSignIn], or an OAuth server that isn't connected because
+         * a sign-in is still pending (connecting) or ended in an error. Turning it off would be the
+         * wrong answer to either; signing in again is what fixes them.
+         */
+        val signsInOnTap: Boolean
+            get() = needsSignIn ||
+                (requiresOAuth && (status == McpDisplayStatus.CONNECTING || status == McpDisplayStatus.FAILED))
     }
 
     /** The per-turn Thinking control; a tap opens its sheet. */
@@ -108,6 +119,7 @@ fun settingChipsOf(inputs: SettingChipInputs): SettingChips {
                         label = server.title?.takeIf { it.isNotBlank() } ?: server.name,
                         state = if (locked) SettingChipState.LOCKED else SettingChipState.ON,
                         status = server.status,
+                        requiresOAuth = server.requiresOAuth,
                     ),
                 )
             }
@@ -177,7 +189,7 @@ sealed interface SettingChipTap {
 fun SettingChips.tapFor(chip: SettingChip): SettingChipTap {
     val state = chip.state ?: return SettingChipTap.OpenThinking
     return when {
-        chip is SettingChip.Mcp && chip.needsSignIn -> SettingChipTap.SignIn(chip.name)
+        chip is SettingChip.Mcp && chip.signsInOnTap -> SettingChipTap.SignIn(chip.name)
         state == SettingChipState.LOCKED -> SettingChipTap.ExplainLock(lockedBy)
         chip is SettingChip.Tool && chip.pinned -> SettingChipTap.Toggle
         else -> SettingChipTap.TurnOffWithUndo

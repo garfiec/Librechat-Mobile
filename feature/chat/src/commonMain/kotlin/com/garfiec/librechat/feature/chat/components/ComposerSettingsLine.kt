@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicText
@@ -168,11 +169,18 @@ private fun McpSettingChip(chip: SettingChip.Mcp, lockedBy: String?, onClick: ()
         label = {
             if (chip.needsSignIn) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(chip.label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    // A width cap, not a weight: the line scrolls, so the chip is measured unbounded
+                    // and a weighted child there gets 0 width, which would hide the server's name.
+                    Text(
+                        chip.label,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = McpNameMaxWidth),
+                    )
                     Text(stringResource(Res.string.setting_chip_sign_in), maxLines = 1)
                 }
             } else {
-                Text(chip.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(chip.label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = McpNameMaxWidth))
             }
         },
         modifier = Modifier.semantics { stateDescription = state },
@@ -302,6 +310,9 @@ internal fun ContextRing(state: ContextRingState, modifier: Modifier = Modifier)
 }
 
 private val RingSize = 24.dp
+
+/** The longest an MCP server's name gets on its chip before it ellipsizes. */
+private val McpNameMaxWidth = 160.dp
 
 /** Fades the line out toward its end while there is more to scroll to (the start, in RTL). */
 private fun Modifier.fadeEndWhileScrollable(state: ScrollState): Modifier =

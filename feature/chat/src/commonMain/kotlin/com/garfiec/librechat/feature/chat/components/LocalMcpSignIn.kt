@@ -16,6 +16,7 @@ import com.garfiec.librechat.core.model.mcp.McpOAuthLaunch
 import com.garfiec.librechat.core.ui.mcp.McpOAuthSignInDialog
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.mcp_sign_in_failed
+import com.garfiec.librechat.feature.chat.viewmodel.McpSignInEnd
 import com.garfiec.librechat.feature.chat.viewmodel.McpSignInViewModel
 import org.jetbrains.compose.resources.stringResource
 
@@ -46,7 +47,7 @@ val LocalMcpSignIn = compositionLocalOf<McpSignIn?> { null }
 fun rememberMcpSignIn(
     viewModel: McpSignInViewModel,
     snackbarHostState: SnackbarHostState,
-    onSignInEnd: () -> Unit = {},
+    onSignInEnd: (McpSignInEnd?) -> Unit = {},
 ): McpSignIn {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     when (val launch = state.launch) {
@@ -71,8 +72,9 @@ fun rememberMcpSignIn(
     val currentOnSignInEnd by rememberUpdatedState(onSignInEnd)
     LaunchedEffect(state.ended) {
         if (!state.ended) return@LaunchedEffect
+        val end = state.lastEnd
         viewModel.consumeEnded()
-        currentOnSignInEnd()
+        currentOnSignInEnd(end)
     }
     return remember(viewModel, state.preparingServer) { McpSignIn(state.preparingServer, viewModel::signIn) }
 }

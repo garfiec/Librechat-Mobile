@@ -134,4 +134,39 @@ class McpSignInViewModelTest {
         assertThat(vm.uiState.value.ended).isTrue()
         assertThat(vm.uiState.value.awaitingReturn).isFalse()
     }
+
+    @Test
+    fun `each end names its server and whether it signed in`() = runTest {
+        coEvery { launcher.prepare(any(), any()) } returns Result.Success(inApp)
+        val vm = McpSignInViewModel(launcher)
+        val ends = mutableListOf<McpSignInEnd?>()
+
+        for (outcome in listOf(McpOAuthOutcome.Success, McpOAuthOutcome.Abandoned, McpOAuthOutcome.Error("x"))) {
+            vm.signIn("github", "https://idp")
+            vm.onOutcome(outcome)
+            ends += vm.uiState.value.lastEnd
+            vm.consumeEnded()
+        }
+        assertThat(vm.uiState.value.lastEnd).isNull()
+
+        coEvery { launcher.prepare(any(), any()) } returns Result.Success(McpOAuthLaunch.External("drive", "https://idp"))
+        vm.signIn("drive", "https://idp")
+        vm.onLaunched(opened = true)
+        vm.onReturned()
+        ends += vm.uiState.value.lastEnd
+        vm.consumeEnded()
+
+        coEvery { launcher.prepare(any(), any()) } returns Result.Error(message = "x")
+        vm.signIn("docs", "https://idp")
+        ends += vm.uiState.value.lastEnd
+
+        assertThat(ends).containsExactly(
+            McpSignInEnd("github", signedIn = true),
+            McpSignInEnd("github", signedIn = false),
+            McpSignInEnd("github", signedIn = false),
+            // The browser's result is out of the app's sight.
+            McpSignInEnd("drive", signedIn = null),
+            McpSignInEnd("docs", signedIn = false),
+        ).inOrder()
+    }
 }

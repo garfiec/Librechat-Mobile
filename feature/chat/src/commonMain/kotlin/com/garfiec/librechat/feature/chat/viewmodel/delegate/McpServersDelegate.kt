@@ -5,9 +5,14 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
 import com.garfiec.librechat.core.model.mcp.McpServer
+import com.garfiec.librechat.core.model.mcp.McpServerStatus
+import com.garfiec.librechat.core.model.mcp.applyDiscoveryAuthorizationState
 import com.garfiec.librechat.core.model.mcp.mcpDisplayStatus
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
+import com.garfiec.librechat.feature.chat.viewmodel.McpSignInEnd
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionHandle
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 /**
@@ -29,19 +34,31 @@ class McpServersDelegate(
     private var signingIn: String? = null
 
     /**
-     * The servers with their status as the MCP servers page reads it ([mcpDisplayStatus]), from the
-     * connection-status map. A failed status read leaves every status unknown rather than failed.
+     * The server whose sign-in a chip opened, until that sign-in ends. Its end cancels the OAuth
+     * flow the reconnect started when the user didn't finish it ([onSignInEnded]); a sign-in a tool
+     * call opened is the run's, and is left alone.
+     */
+    private var chipSignIn: String? = null
+
+    /**
+     * The servers with their status as the MCP servers page reads it: the connection-status map
+     * with tool discovery's lapsed authorizations folded in ([applyDiscoveryAuthorizationState], as
+     * the page does), mapped by [mcpDisplayStatus]. A failed status read leaves the statuses unknown
+     * rather than failed; a failed discovery read folds nothing.
      */
     fun load() {
         val generation = ++loadGeneration
         handle.scope.launch {
             when (val serversResult = mcpRepository.listServers()) {
                 is Result.Success -> {
-                    val statusResult = mcpRepository.getConnectionStatus()
-                    val statusMap = (statusResult as? Result.Success)?.data ?: emptyMap()
+                    val statusMap = readStatuses()
                     if (generation != loadGeneration) return@launch
                     val servers = serversResult.data.map { server ->
-                        server.toDisplayData(mcpDisplayStatus(server, statusMap[server.name], isReinitializing = false))
+                        val status = statusMap[server.name]
+                        server.toDisplayData(
+                            status = mcpDisplayStatus(server, status, isReinitializing = false),
+                            requiresOAuth = status?.requiresOAuth == true,
+                        )
                     }
                     handle.update { selection = selection.copy(mcpServers = servers) }
                 }
@@ -51,6 +68,14 @@ class McpServersDelegate(
                 is Result.Loading -> { /* no-op */ }
             }
         }
+    }
+
+    private suspend fun readStatuses(): Map<String, McpServerStatus> = coroutineScope {
+        val status = async { mcpRepository.getConnectionStatus() }
+        val tools = async { mcpRepository.getTools() }
+        val statusMap = (status.await() as? Result.Success)?.data ?: emptyMap()
+        val discovery = (tools.await() as? Result.Success)?.data?.servers ?: emptyMap()
+        applyDiscoveryAuthorizationState(statusMap, discovery)
     }
 
     /**
@@ -84,6 +109,7 @@ class McpServersDelegate(
                     val response = result.data
                     val authorizationUrl = response.oauthUrl?.takeIf { response.oauthRequired == true && it.isNotBlank() }
                     if (authorizationUrl != null) {
+                        chipSignIn = serverName
                         openSignIn(serverName, authorizationUrl)
                         return@launch
                     }
@@ -100,13 +126,41 @@ class McpServersDelegate(
         }
     }
 
-    /** An MCP sign-in ended, whichever way and wherever it started (a chip, a tool call): re-read the statuses. */
-    fun onSignInEnded() = load()
+    /**
+     * An MCP sign-in ended, whichever way and wherever it started (a chip, a tool call): re-read the
+     * statuses. When a chip's ended unfinished (closed, refused, failed to bind, or a browser
+     * sign-in the server still doesn't count as authorized), its reconnect left the server's OAuth
+     * flow pending, which reads as connecting until it times out (10 minutes by default). So it is
+     * cancelled first, as web's Cancel does, and the chip offers sign-in again at once.
+     */
+    fun onSignInEnded(end: McpSignInEnd?) {
+        val server = chipSignIn?.takeIf { it == end?.serverName }
+        if (server != null) chipSignIn = null
+        if (server == null || end?.signedIn == true) {
+            load()
+            return
+        }
+        handle.scope.launch {
+            val unfinished = end?.signedIn == false || !isConnected(server)
+            if (unfinished) {
+                val cancelled = mcpRepository.cancelOAuth(server)
+                if (cancelled is Result.Error) {
+                    Logger.d(cancelled.exception) { "Failed to cancel MCP OAuth for $server: ${cancelled.message}" }
+                }
+            }
+            load()
+        }
+    }
+
+    /** After a browser sign-in, whose result the app can't see: whether the server now reads connected. */
+    private suspend fun isConnected(server: String): Boolean =
+        (mcpRepository.getConnectionStatus() as? Result.Success)?.data?.get(server)?.isConnected == true
 }
 
-internal fun McpServer.toDisplayData(status: McpDisplayStatus) = McpServerDisplayData(
+internal fun McpServer.toDisplayData(status: McpDisplayStatus, requiresOAuth: Boolean = false) = McpServerDisplayData(
     name = name,
     title = title,
     description = description,
     status = status,
+    requiresOAuth = requiresOAuth,
 )

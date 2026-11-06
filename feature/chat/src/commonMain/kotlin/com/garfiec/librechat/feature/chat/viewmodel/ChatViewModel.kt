@@ -2153,8 +2153,8 @@ class ChatViewModel(
         onFailed: () -> Unit,
     ) = mcpServersDelegate.signIn(serverName, openSignIn, onFailed)
 
-    /** An MCP sign-in ended: re-read the servers' statuses. */
-    fun onMcpSignInEnded() = mcpServersDelegate.onSignInEnded()
+    /** An MCP sign-in ended: see [McpServersDelegate.onSignInEnded]. */
+    fun onMcpSignInEnded(end: McpSignInEnd?) = mcpServersDelegate.onSignInEnded(end)
     fun toggleTool(toolName: String) {
         // Per conversation, so it never goes through the global enabled-tools store.
         if (toolName == ToolConstants.SKILLS) skillsToggleDelegate.toggle() else modelDelegate.toggleTool(toolName)

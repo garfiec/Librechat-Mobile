@@ -5,9 +5,12 @@ import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
 import com.garfiec.librechat.core.model.mcp.McpReinitializeResponse
 import com.garfiec.librechat.core.model.mcp.McpServer
+import com.garfiec.librechat.core.model.mcp.McpServerDiscovery
 import com.garfiec.librechat.core.model.mcp.McpServerStatus
+import com.garfiec.librechat.core.model.mcp.McpToolCatalog
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
+import com.garfiec.librechat.feature.chat.viewmodel.McpSignInEnd
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionHandle
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -47,6 +50,12 @@ class McpServersDelegateTest {
         "jira" to McpServerStatus(configurationState = "needs_configuration"),
     )
     private val signedIn = needsSignIn + ("github" to McpServerStatus(connectionState = "connected"))
+
+    init {
+        // Tool discovery reports nothing lapsed unless a test says so.
+        coEvery { mcpRepository.getTools() } returns Result.Success(McpToolCatalog())
+        coEvery { mcpRepository.cancelOAuth(any()) } returns Result.Success(Unit)
+    }
 
     private fun TestScope.newDelegate(): Pair<ChatStateHandle, McpServersDelegate> {
         val handle = ChatStateHandle(
@@ -118,11 +127,13 @@ class McpServersDelegateTest {
         coVerify(exactly = 1) { mcpRepository.listServers() }
 
         coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(signedIn)
-        delegate.onSignInEnded()
+        delegate.onSignInEnded(McpSignInEnd("github", signedIn = true))
         advanceUntilIdle()
 
         assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.CONNECTED)
         coVerify(exactly = 1) { mcpRepository.reinitialize(any()) }
+        // A finished sign-in leaves nothing pending to cancel.
+        coVerify(exactly = 0) { mcpRepository.cancelOAuth(any()) }
         coVerifyOrder {
             mcpRepository.listServers()
             mcpRepository.reinitialize("github")
@@ -143,7 +154,7 @@ class McpServersDelegateTest {
         delegate.signIn("github", { _, _ -> }, {})
         advanceUntilIdle()
         assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.CONNECTING)
-        delegate.onSignInEnded()
+        delegate.onSignInEnded(McpSignInEnd("github", signedIn = false))
         advanceUntilIdle()
 
         assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.NEEDS_SIGN_IN)
@@ -233,5 +244,82 @@ class McpServersDelegateTest {
         advanceUntilIdle()
 
         assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.CONNECTING)
+    }
+
+    /** A chip sign-in on github that opened its link; returns the delegate after one load. */
+    private fun TestScope.openedChipSignIn(): Pair<ChatStateHandle, McpServersDelegate> {
+        coEvery { mcpRepository.listServers() } returns Result.Success(servers)
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
+        coEvery { mcpRepository.reinitialize("github") } returns
+            Result.Success(McpReinitializeResponse(oauthRequired = true, oauthUrl = "https://idp/authorize"))
+        val pair = newDelegate()
+        pair.second.load()
+        advanceUntilIdle()
+        pair.second.signIn("github", { _, _ -> }, {})
+        advanceUntilIdle()
+        return pair
+    }
+
+    @Test
+    fun aChipSignInClosedUnfinishedCancelsItsPendingFlowBeforeReloading() = runTest {
+        val (handle, delegate) = openedChipSignIn()
+
+        delegate.onSignInEnded(McpSignInEnd("github", signedIn = false))
+        advanceUntilIdle()
+
+        // Cancelled first: otherwise the status route reads the pending flow as connecting.
+        coVerifyOrder {
+            mcpRepository.reinitialize("github")
+            mcpRepository.cancelOAuth("github")
+            mcpRepository.listServers()
+        }
+        assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.NEEDS_SIGN_IN)
+    }
+
+    @Test
+    fun aBrowserSignInIsCancelledOnlyWhenTheServerStillIsNotConnected() = runTest {
+        val (_, delegate) = openedChipSignIn()
+        delegate.onSignInEnded(McpSignInEnd("github", signedIn = null))
+        advanceUntilIdle()
+        coVerify(exactly = 1) { mcpRepository.cancelOAuth("github") }
+
+        delegate.signIn("github", { _, _ -> }, {})
+        advanceUntilIdle()
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(signedIn)
+        delegate.onSignInEnded(McpSignInEnd("github", signedIn = null))
+        advanceUntilIdle()
+        coVerify(exactly = 1) { mcpRepository.cancelOAuth("github") }
+    }
+
+    @Test
+    fun aSignInAToolCallOpenedIsNeverCancelled() = runTest {
+        coEvery { mcpRepository.listServers() } returns Result.Success(servers)
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
+        val (_, delegate) = newDelegate()
+
+        // The run's own flow: no chip opened it.
+        delegate.onSignInEnded(McpSignInEnd("github", signedIn = false))
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { mcpRepository.cancelOAuth(any()) }
+        coVerify(exactly = 1) { mcpRepository.listServers() }
+    }
+
+    @Test
+    fun aLapsedAuthorizationDiscoveryFindsReadsAsSignInOverAnErrorStatus() = runTest {
+        coEvery { mcpRepository.listServers() } returns Result.Success(listOf(github))
+        coEvery { mcpRepository.getConnectionStatus() } returns
+            Result.Success(mapOf("github" to McpServerStatus(connectionState = "error")))
+        coEvery { mcpRepository.getTools() } returns Result.Success(
+            McpToolCatalog(servers = mapOf("github" to McpServerDiscovery(authorizationState = "reauth_required"))),
+        )
+        val (handle, delegate) = newDelegate()
+
+        delegate.load()
+        advanceUntilIdle()
+
+        // As the MCP servers page reads it (applyDiscoveryAuthorizationState), not FAILED.
+        assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.NEEDS_SIGN_IN)
+        assertThat(handle.state.mcpServers.single().requiresOAuth).isTrue()
     }
 }

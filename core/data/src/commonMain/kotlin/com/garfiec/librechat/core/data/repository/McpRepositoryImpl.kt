@@ -53,6 +53,9 @@ class McpRepositoryImpl(
     override suspend fun bindOAuth(serverName: String): Result<List<String>> =
         safeApiCall { mcpApi.bindOAuth(serverName) }
 
+    override suspend fun cancelOAuth(serverName: String): Result<Unit> =
+        safeApiCall { mcpApi.cancelOAuth(serverName) }
+
     override suspend fun getTools(): Result<McpToolCatalog> =
         safeApiCall { mcpApi.getTools() }
 

@@ -942,7 +942,7 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpConnectionStatus.kt",
         "symbol": "applyDiscoveryAuthorizationState"
       },
-      "why": "Folds the per-server verdicts from GET /api/mcp/tools onto the connection-status map, so a lapsed OAuth authorization noticed by discovery is reflected before the status route catches up. A web-client rule; the server sends the two halves and never the combination.",
+      "why": "Folds the per-server verdicts from GET /api/mcp/tools onto the connection-status map, so a lapsed OAuth authorization noticed by discovery is reflected before the status route catches up. A web-client rule; the server sends the two halves and never the combination. Both the MCP servers page (McpViewModel) and the chat's MCP chips (McpServersDelegate.load) fold it.",
       "failure_mode": "The fold diverges and a server whose authorization has lapsed keeps rendering as connected until the status route notices independently -- the user's tool calls fail against a server the settings screen says is fine."
     },
     {
@@ -2068,7 +2068,7 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpDisplayStatus.kt",
         "symbol": "mcpDisplayStatus"
       },
-      "why": "Which connection states the MCP servers page shows as connected, connecting, needing sign-in, idle or failed, and so which servers get a Sign in or Retry button and sort first. The chat reads the same status for its MCP chips on the composer's settings line and the dots in the \"+\" sheet (ModelSelectionDelegate.loadMcpServers): a chip that needs sign-in reads \"· sign in\" and signs in on tap.",
+      "why": "Which connection states the MCP servers page shows as connected, connecting, needing sign-in, idle or failed, and so which servers get a Sign in or Retry button and sort first. The chat reads the same status, from the same discovery-folded map, for its MCP chips on the composer's settings line and the dots in the \"+\" sheet (McpServersDelegate.load): a chip that needs sign-in reads \"· sign in\" and signs in on tap.",
       "failure_mode": "A state upstream starts reporting falls through to the wrong label: a server that needs the user's action reads as merely disconnected, or a healthy one as failed. Nothing errors."
     },
     {

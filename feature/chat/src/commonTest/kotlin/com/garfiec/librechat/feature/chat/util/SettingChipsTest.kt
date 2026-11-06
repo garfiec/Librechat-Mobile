@@ -238,6 +238,31 @@ class SettingChipsTest {
     }
 
     @Test
+    fun anOAuthServerLeftPendingOrFailedSignsInAgainRatherThanTurningOff() {
+        fun server(name: String, status: McpDisplayStatus, oauth: Boolean) =
+            McpServerDisplayData(name = name, title = null, description = null, status = status, requiresOAuth = oauth)
+        val pending = server("github", McpDisplayStatus.CONNECTING, oauth = true)
+        val refused = server("drive", McpDisplayStatus.FAILED, oauth = true)
+        val connecting = server("search", McpDisplayStatus.CONNECTING, oauth = false)
+        val broken = server("sentry", McpDisplayStatus.FAILED, oauth = false)
+        val line = settingChipsOf(
+            inputs(
+                mcpServers = listOf(pending, refused, connecting, broken),
+                mcpOn = setOf("github", "drive", "search", "sentry"),
+            ),
+        )
+        val byName = line.chips.filterIsInstance<SettingChip.Mcp>().associateBy { it.name }
+
+        assertEquals(SettingChipTap.SignIn("github"), line.tapFor(byName.getValue("github")))
+        assertEquals(SettingChipTap.SignIn("drive"), line.tapFor(byName.getValue("drive")))
+        // Not OAuth: nothing to sign in to, so the ordinary tap.
+        assertEquals(SettingChipTap.TurnOffWithUndo, line.tapFor(byName.getValue("search")))
+        assertEquals(SettingChipTap.TurnOffWithUndo, line.tapFor(byName.getValue("sentry")))
+        // Only a server that needs sign-in reads "· sign in".
+        assertEquals(false, byName.getValue("github").needsSignIn)
+    }
+
+    @Test
     fun theMemoKeepsOneInstanceWhileTheInputsAreEqual() {
         val memo = SettingChipsMemo()
         val first = memo.resolve(inputs(toolsOn = setOf(ToolConstants.WEB_SEARCH)))

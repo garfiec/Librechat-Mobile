@@ -10,4 +10,6 @@ data class McpServerDisplayData(
     val description: String?,
     /** Its connection as the MCP servers page reads it ([com.garfiec.librechat.core.model.mcp.mcpDisplayStatus]). */
     val status: McpDisplayStatus,
+    /** The server signs in with OAuth, as its connection status reports it. */
+    val requiresOAuth: Boolean = false,
 )
