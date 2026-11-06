@@ -603,29 +603,6 @@ fun ChatScreen(
                         compactSuggested = uiState.compactNudgeOnToolsButton,
                         contextBarPlacement = uiState.contextBarPlacement,
                     )
-                    // The attachment list, over the thread just above the composer. Outside the
-                    // measured box below, so opening it doesn't move the thread's bottom inset, and
-                    // drawn before it, so a tool-approval panel there stays on top.
-                    if (draftListOpen && !draftItems.isEmpty) {
-                        ComposerDraftListPanel(
-                            items = draftItems,
-                            onRemove = composerChrome.onRemoveDraftItem,
-                            onRetry = composerChrome.onRetryUpload,
-                            focusHeader = focusDraftListHeader,
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(
-                                    start = 12.dp,
-                                    end = 12.dp,
-                                    // Clear of the floating top bar, so its rows stay visible and
-                                    // tappable with the keyboard up; it scrolls in what is left.
-                                    top = topContentPadding,
-                                    bottom = with(LocalDensity.current) { composerHeightPx.toDp() } + 4.dp,
-                                )
-                                .widthIn(max = DraftListMaxWidth)
-                                .onGloballyPositioned { draftListBounds = it.boundsInParent() },
-                        )
-                    }
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
@@ -851,6 +828,31 @@ fun ChatScreen(
                                 }
                             }
                         }
+                    }
+
+                    // The attachment list, over the thread just above the composer. Outside the
+                    // measured box above, so opening it doesn't move the thread's bottom inset, and
+                    // drawn after it, so the landing starters and the update banner docked there
+                    // neither draw over its rows nor take their taps. A pause panel closes it.
+                    if (draftListOpen && !draftItems.isEmpty) {
+                        ComposerDraftListPanel(
+                            items = draftItems,
+                            onRemove = composerChrome.onRemoveDraftItem,
+                            onRetry = composerChrome.onRetryUpload,
+                            focusHeader = focusDraftListHeader,
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(
+                                    start = 12.dp,
+                                    end = 12.dp,
+                                    // Clear of the floating top bar, so its rows stay visible and
+                                    // tappable with the keyboard up; it scrolls in what is left.
+                                    top = topContentPadding,
+                                    bottom = with(LocalDensity.current) { composerHeightPx.toDp() } + 4.dp,
+                                )
+                                .widthIn(max = DraftListMaxWidth)
+                                .onGloballyPositioned { draftListBounds = it.boundsInParent() },
+                        )
                     }
 
                     // Floating top bar overlays the message list (drawn last so it sits above content),
