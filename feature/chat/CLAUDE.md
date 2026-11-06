@@ -1094,7 +1094,11 @@ the iOS ones are not compiled on a Linux host, so a signature change there is on
 What goes with the message is **one list, `DraftItems`**, mapped by the pure `draftItemsOf`
 (`util/DraftItems.kt`) in a `remember` in `ChatScreen` (the files are their own flow,
 `ChatViewModel.attachedFiles`), and carried on `ComposerChrome.draftItems`. Order: failed files
-first, then images, files, skills, quotes.
+first, then images, files, skills, quotes. **Upload progress is not in it**: `ChatScreen` maps the
+files with their progress stripped (a `derivedStateOf`), so a progress tick re-maps nothing and
+the chrome stays equal; the rings (`UploadRing`, on the stack and each uploading row) read
+`DraftUploadProgress` (`ComposerChrome.draftUploadProgress`) as they draw, and recompose only when
+an upload starts or stops reporting a progress.
 - **The stack** (`ComposerAttachmentStack`) is the field's M3 `leadingIcon`, through
   `composerFieldLeadingIcon` on both composers: up to two tiles (one when the row is compact, below
   336dp, which `textFieldContent` is now told) and a count, a progress ring while anything uploads,
@@ -1115,8 +1119,10 @@ first, then images, files, skills, quotes.
   it and takes its taps), so with the keyboard up it scrolls in what is visible. When that leaves
   less than its header and one row (`draftListNeedsRoom` against `draftListMinHeight`, worked out
   from the panel's text styles at the font size in effect: 92dp at 1x, about 130dp at 2x)
-  it hides the keyboard. **During a tool-approval pause the list stays shut**
-  (`withDraftList(toolPause)`, `ComposerChrome.draftListShut`): the stack still draws (count, ring,
+  it hides the keyboard. The screen's and the composer's heights move with every keyboard frame, so
+  they are read only while the list shows, the room check inside a `derivedStateOf`. **During a tool-approval pause the list stays shut**
+  (`withDraftList(toolPause)`, `ComposerChrome.draftListShut`, which the stack and the failed-upload
+  line read to drop their toggles): the stack still draws (count, ring,
   red "!") but has no click action and no accessibility open action, and the failed-upload line is
   plain text saying the file can be retried or removed after the approval
   (`draft_uploads_failed_after_approval`). The approval panel is never collapsed or covered for the
@@ -1125,7 +1131,8 @@ first, then images, files, skills, quotes.
   all. Review must not re-add opening during a pause. Its open/closed state and the toggles are `DraftListState`, handed to the
   composer through `ComposerChrome.withDraftList`; a screen reader's open, from the stack or the
   failed-upload line, moves focus to its header. It closes on a tap anywhere but it and the stack (`closeOnTapOutside`, which
-  only watches; the stack's bounds come from `ComposerChrome.onDraftStackPositioned`), so a tap in
+  only watches; `DraftListTapTargets` holds the list's and the stack's coordinates from `onPlaced`,
+  the stack's through `ComposerChrome.onDraftStackPositioned`), so a tap in
   an already-focused field closes it too, and on typing, a send of any kind, the field gaining
   focus, the list emptying, a pause panel appearing, or back
   (`PlatformBackHandler`, the iOS edge swipe included). Only a failed row is tappable (retry); a
@@ -1151,11 +1158,12 @@ first, then images, files, skills, quotes.
   (`ChatUiState.retryUploadRoute`: a code upload, the route the selection would pick, or either while
   both are open; otherwise it is routed afresh, so a PDF sent natively under one provider isn't
   replayed to one that ignores it). On both platforms. iOS keeps each entry's picked
-  `IosImageData` / `IosFileData` (`IosFileHandler.picked`) until it uploads, and a failed one
-  uploads from it again; a successful upload lets the bytes go, and a removed failed one keeps them
-  only while its Undo is pending (`PlatformFileHandler.forgetRemoved`, called when the Undo lapses
-  or a later removal replaces it; a send's clear and the queued-edit swap let them go with the
-  tray). An iOS image's
+  `IosImageData` / `IosFileData` (`IosPickedData`, `IosFileHandler.picked`) until it uploads, and
+  a failed one uploads from it again. One rule says what stays (`IosFileHandler.prune`, run after
+  every tray or Undo change): the entries not yet uploaded in the tray or in the tray a queued-edit
+  swap put aside, and a removed failed one while its Undo is pending
+  (`PlatformFileHandler.forgetRemoved`, called when the Undo lapses or a later removal replaces it;
+  a send's clear and the swap drop the Undo with the tray). An iOS image's
   thumbnail is a small JPEG (PNG with alpha) the picker draws off Main (`draftPreviewOf`,
   `IosImageData.preview` → `AttachedFile.localPreview`), never the picked bytes: a library photo
   comes over as its original data, often HEIC, which Coil's Skia decoder on iOS can't read. A
@@ -1180,14 +1188,17 @@ first, then images, files, skills, quotes.
 - Tool toggles and MCP servers live in the paged "+" options sheet (`ChatToolsSheetContent`),
   reached from the composer's `onOpenTools`. What is on shows on the composer's settings line (next).
 - **The settings line** (`ComposerSettingsLine`, above the field): one chip per thing, on one line
-  that scrolls sideways (end fade) and never wraps. Order: a leading slot (the code workspace's
+  that scrolls sideways (end fade, `:core:ui` `scrollFadingEdges`) and never wraps. Order: a leading slot (the code workspace's
   folded chip and approval chip, see "Code workspace"), the tools in the "+" sheet's order, the selected MCP servers in list order, Thinking,
   and the context ring pinned at the end. Hidden when it would hold nothing.
   - **Mapped once, as view data**: `settingChipsOf` (`util/SettingChips.kt`, pure) over
     `ChatUiState.settingChipInputs`, in the ViewModel's `uiState` combine (`SettingChipsMemo`), onto
-    `ChatUiState.settingChips`. Tools come from the tools in use (`effectiveEnabledTools`) and the
+    `ChatUiState.settingChips`. The inputs are gathered only when one of the slices they read
+    (`ChatUiState.settingChipSlices`) is a new instance, so a streaming flush gathers nothing; a new
+    read in `settingChipInputs` from another slice goes in that list too. Tools come from the tools in use (`effectiveEnabledTools`) and the
     server's `defaultPinnedTools`, and a tool shows only where its own gate is open
-    (`ChatUiState.toolGateOpen`, the gates the sheet offers its rows on), so a stored flag the server
+    (`ChatUiState.toolGateOpen`, gathered as `ChatUiState.openTools`, which the sheet's rows iterate
+    in the same `SETTING_TOOL_ORDER`), so a stored flag the server
     can't run (URL context on a non-Google model, memory without the capability) never appears.
     MCP servers need `MCP_SERVERS.USE` unless the spec adds them. Without the tool controls
     (`toolbarShown` false: an agent, a `hideBadgeRow` spec) only Thinking and the workspace stay.
@@ -1208,8 +1219,9 @@ first, then images, files, skills, quotes.
     status routes answer, with the last discovery verdicts, and re-fold when `GET /api/mcp/tools`
     lands, since that route waits on a full catalog load. That read is asked after the list, only
     when it isn't empty and the chat shows the tool controls, or once they show (an agent chat
-    switched to a model), as web asks only while it observes tool authorization). The dot is `mcpStatusColor` (`McpStatusPresentation.kt`, from
-    `statusColors()`): connected green, connecting info, needs sign-in or setup amber, failed error,
+    switched to a model), as web asks only while it observes tool authorization). The dot is `mcpStatusColor` (`:core:ui`
+    `mcp/McpStatusPresentation.kt`, from `statusColors()`, with `mcpStatusLabel`, shared with the
+    Settings MCP page): connected green, connecting info, needs sign-in or setup amber, failed error,
     the rest neutral; the "+" sheet's rows use the same dot and label. **Sign-in follows web's rule**
     (`usePaletteEntries` / `useMCPServerManager`). A chip whose tap signs in
     (`SettingChip.Mcp.signsInOnTap`: needs sign-in, or an OAuth server that failed) reads "· sign in"
@@ -1237,10 +1249,12 @@ first, then images, files, skills, quotes.
     `McpSignInUiState.ended`, a browser sign-in ending on the next ON_RESUME), after a cancel
     (landed or not), and on every return to the chat (ON_RESUME after an ON_PAUSE,
     `McpServersDelegate.onForeground`, skipped while a reconnect or a cancel is out, which reload
-    when they end), since a sign-in or sign-out on the MCP servers page, in the browser or in another
-    chat changes them. Discovery is asked again on a return only when the list changed; a discovery
-    read still out keeps going (its own generation, bumped only by discovery reads and chip
-    sign-ins). A tool call's sign-in is the run's and goes through the same reload. Such a chip is
+    when they end, and when a browser sign-in ends on that same return, whose end reloads:
+    `McpSignInViewModel.endsOnReturn`), since a sign-in or sign-out on the MCP servers page, in the
+    browser or in another chat changes them. A newer load cancels an older one's reads (its
+    generation check stays as the backstop), and a paint that changes nothing writes nothing.
+    Discovery is asked again on a return only when the list changed; a discovery read still out
+    keeps going (only a newer discovery read or a chip sign-in cancels it). A tool call's sign-in is the run's and goes through the same reload. Such a chip is
     turned off from the "+" sheet's switch. Other needs-setup and failed chips keep the ordinary tap
     (off with Undo): setup is on the web, a failure on the server. Thinking uses the brain glyph (Memory uses `AutoStories`, here and in the drawer),
     tints tertiary while a one-turn choice is staged, in both styles, and states it. Picked skills use
