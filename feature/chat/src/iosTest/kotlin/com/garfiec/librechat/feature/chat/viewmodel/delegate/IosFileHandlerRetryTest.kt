@@ -24,6 +24,7 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
@@ -116,9 +117,24 @@ class IosFileHandlerRetryTest {
     }
 
     @Test
-    fun anImageDrawsItsThumbnailFromThePickedBytes() {
-        pick(photo)
-        assertSame(photo.bytes, handler.attachedFiles.value.single().localPreview)
+    fun anImageDrawsItsThumbnailFromThePickersPreview() {
+        val preview = byteArrayOf(9, 9)
+        val shot = IosImageData(
+            bytes = byteArrayOf(1, 2, 3),
+            filename = "shot.png",
+            mimeType = "image/png",
+            preview = preview,
+        )
+        pick(shot)
+        assertSame(preview, handler.attachedFiles.value.single().localPreview)
+    }
+
+    @Test
+    fun aHeicPickNeverHandsItsOwnBytesToTheThumbnail() {
+        // Skia's decoder can't read HEIC: with no preview the thumbnail waits for the server's copy.
+        val heic = IosImageData(bytes = byteArrayOf(0, 0, 0, 24), filename = "IMG_0001.HEIC", mimeType = "image/heic")
+        pick(heic)
+        assertNull(handler.attachedFiles.value.single().localPreview)
     }
 
     @Test

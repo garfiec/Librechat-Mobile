@@ -30,8 +30,8 @@ import kotlin.uuid.Uuid
  *
  * Unlike an Android `Uri`, an iOS pick can't be read again once it is handed over, so the handler
  * keeps each tray entry's picked data ([picked]) for as long as the entry can still need it: a
- * failed upload retries from it, and an image draws its thumbnail from its bytes
- * ([AttachedFile.localPreview]).
+ * failed upload retries from it. An image's thumbnail is the small copy the picker made of it
+ * ([IosImageData.preview] as [AttachedFile.localPreview]), since the picked bytes may be HEIC.
  */
 class IosFileHandler(
     private val handle: ErrorOnlyHandle,
@@ -106,7 +106,9 @@ class IosFileHandler(
             uploadProgress = null,
             type = mimeType,
             route = effectiveRoute,
-            localPreview = image?.bytes,
+            // The picker's small JPEG/PNG, never the picked bytes: a library photo is often HEIC,
+            // which the thumbnail's decoder can't read. Null leaves the thumbnail to the server's copy.
+            localPreview = image?.preview,
         )
         _attachedFiles.update { list ->
             if (inPlace) {
