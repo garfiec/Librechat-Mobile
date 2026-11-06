@@ -34,6 +34,7 @@ import com.garfiec.librechat.core.model.queuedturn.QueuedTurnStatus
 import com.garfiec.librechat.core.model.response.ChatAbortResponse
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
 import com.garfiec.librechat.core.model.response.SteerResponse
+import com.garfiec.librechat.feature.chat.util.DraftItem
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -809,7 +810,7 @@ class ChatViewModelQueuedTurnTest {
         runCurrent()
         assertThat(vm.uiState.value.pendingQuotes).containsExactly("old excerpt")
 
-        vm.removePendingQuote(0)
+        vm.removeDraftItem(DraftItem.Quote(0, vm.uiState.value.pendingQuotes[0]))
         vm.addPendingQuote("new excerpt")
         vm.commitQueuedEdit()
         runCurrent()
@@ -1015,7 +1016,7 @@ class ChatViewModelQueuedTurnTest {
         assertThat(vm.uiState.value.pendingManualSkills).containsExactly("pdf-tools")
 
         vm.addPendingManualSkill("translator")
-        vm.removePendingManualSkill("pdf-tools")
+        vm.removeDraftItem(DraftItem.Skill("pdf-tools"))
         vm.commitQueuedEdit()
         runCurrent()
         coVerify(exactly = 1) { queuedTurnRepository.cancel(any()) }

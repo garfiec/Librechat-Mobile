@@ -372,7 +372,7 @@ class ChatViewModelQueuedSkillsTest {
             assertThat(vm.uiState.value.pendingManualSkills).containsExactly("pdf-tools")
 
             vm.addPendingManualSkill("translator")
-            vm.removePendingManualSkill("pdf-tools")
+            vm.removeDraftItem(DraftItem.Skill("pdf-tools"))
             vm.commitQueuedEdit()
             runCurrent()
 
@@ -501,7 +501,7 @@ class ChatViewModelQueuedSkillsTest {
             runCurrent()
             assertThat(vm.uiState.value.pendingQuotes).containsExactly("queued excerpt")
 
-            vm.removePendingQuote(0)
+            vm.removeDraftItem(DraftItem.Quote(0, vm.uiState.value.pendingQuotes[0]))
             vm.addPendingQuote("edited excerpt")
             vm.commitQueuedEdit()
             runCurrent()

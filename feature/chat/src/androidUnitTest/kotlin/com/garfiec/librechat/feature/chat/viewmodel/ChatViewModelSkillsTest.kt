@@ -27,6 +27,7 @@ import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.core.model.request.MAX_MANUAL_SKILLS
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
+import com.garfiec.librechat.feature.chat.util.DraftItem
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -283,7 +284,7 @@ class ChatViewModelSkillsTest {
     @Test
     fun `a pick on a new chat turns Skills on for that chat alone`() = skillsTest { vm ->
         vm.addPendingManualSkill("pdf-tools")
-        vm.removePendingManualSkill("pdf-tools")
+        vm.removeDraftItem(DraftItem.Skill("pdf-tools"))
         runCurrent()
         assertThat(vm.uiState.value.skillsToggle).isTrue()
         assertThat(fixture.skillsToggles.value).isEmpty()

@@ -2014,21 +2014,16 @@ class ChatViewModel(
     fun confirmPendingUploadRouting() = uploadIntakeDelegate.confirmPendingUploadRouting()
     fun cancelPendingUploadRouting() = uploadIntakeDelegate.cancelPendingUploadRouting()
     fun cancelPendingUploadSend() = uploadIntakeDelegate.cancelPendingUploadSend()
-    fun removeFile(file: AttachedFile) = uploadIntakeDelegate.removeFile(file)
     fun retryUpload(file: AttachedFile) = uploadIntakeDelegate.retryUpload(file)
     fun submitPdfPassword(password: String) = uploadIntakeDelegate.submitPdfPassword(password)
     fun dismissPdfPassword() = uploadIntakeDelegate.dismissPdfPassword()
 
     // Quote chips (selection toolbar "Add to chat")
     fun addPendingQuote(text: String) = sendDispatchDelegate.addPendingQuote(text)
-    fun removePendingQuote(index: Int) = sendDispatchDelegate.removePendingQuote(index)
 
     // Pending skill chips (picked from the `/` and `$` list). A pick also turns Skills on here.
     fun addPendingManualSkill(name: String) {
         if (sendDispatchDelegate.addPendingManualSkill(name)) skillsToggleDelegate.turnOn()
-    }
-    fun removePendingManualSkill(name: String) {
-        sendDispatchDelegate.removePendingManualSkill(name)
     }
 
     // The composer's attachment list (files, picked skills, quotes): × removes, a finished removal can be undone.

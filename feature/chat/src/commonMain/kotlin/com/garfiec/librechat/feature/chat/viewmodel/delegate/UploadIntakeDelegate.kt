@@ -283,8 +283,6 @@ class UploadIntakeDelegate(
         if (routed.isNotEmpty()) fileHandler.onFilesSelected(routed)
     }
 
-    fun removeFile(file: AttachedFile) = fileHandler.removeFile(file)
-
     /** Uris whose [retryUpload] is waiting on the agent's provider. Touched on the main dispatcher only. */
     private val pendingRetries = mutableSetOf<Any>()
 
