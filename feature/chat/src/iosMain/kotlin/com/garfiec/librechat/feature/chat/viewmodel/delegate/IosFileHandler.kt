@@ -195,7 +195,8 @@ class IosFileHandler(
 
     /**
      * Uploads a failed file again from the data it was picked with, in its place in the tray and
-     * with the route it went with, as Android's retry does. A file this handler holds no data for
+     * with the route it went with while that route still works (`ChatUiState.retryUploadRoute`),
+     * as Android's retry does. A file this handler holds no data for
      * (one restored from a queued turn another device made) can't be re-read, so it is removed.
      */
     override fun retryUpload(file: AttachedFile) {
@@ -210,7 +211,7 @@ class IosFileHandler(
         upload(
             uniqueId = uniqueId,
             data = data,
-            route = file.route ?: handle.state.uploadRouteFor(file.type),
+            route = handle.state.retryUploadRoute(file.route, file.type),
             inPlace = true,
         )
     }

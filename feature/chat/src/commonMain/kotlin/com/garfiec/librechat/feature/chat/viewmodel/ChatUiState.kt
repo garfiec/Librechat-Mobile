@@ -999,6 +999,23 @@ data class ChatUiState(
     }
 
     /**
+     * The route a failed upload goes again with. It keeps [stored], the route the attachment list
+     * shows on its row, while that route still works for the live selection: a code upload (the
+     * user's destination), the route the selection would pick itself, or either one while both
+     * are open. Otherwise the selection moved under it, often because the first attempt failed,
+     * and replaying it would send a PDF chosen as native under Bedrock to a provider that ignores
+     * it, or a text route to a selection that can't extract: so it is routed afresh.
+     */
+    fun retryUploadRoute(stored: UploadRoute?, mimeType: String?): UploadRoute {
+        val live = uploadRouteFor(mimeType)
+        return when {
+            stored == null -> live
+            stored == UploadRoute.CODE || stored == live || uploadRouteIsAmbiguous(mimeType) -> stored
+            else -> live
+        }
+    }
+
+    /**
      * True when firing `chatRepository.startChat(...)` is unlikely to race against
      * cold-start initialization.
      *

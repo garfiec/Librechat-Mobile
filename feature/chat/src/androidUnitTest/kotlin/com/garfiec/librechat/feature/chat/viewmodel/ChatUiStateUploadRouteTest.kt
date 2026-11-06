@@ -68,4 +68,32 @@ class ChatUiStateUploadRouteTest {
         assertThat(unresolved.uploadRouteIsAmbiguous("application/zip")).isFalse()
         assertThat(unresolved.uploadRouteIsAmbiguous("image/png")).isFalse()
     }
+
+    @Test
+    fun `a retry keeps a route the live selection still offers`() {
+        val unresolved = state(endpoint = EndpointConstants.AGENTS, agentProvider = null)
+        // Both routes are open for a docx here, so the user's pick stands either way.
+        assertThat(unresolved.retryUploadRoute(UploadRoute.TEXT, docx)).isEqualTo(UploadRoute.TEXT)
+        assertThat(unresolved.retryUploadRoute(UploadRoute.PROVIDER, docx)).isEqualTo(UploadRoute.PROVIDER)
+        // A code upload is the user's destination, never a routing guess.
+        val ollama = state(endpoint = EndpointConstants.AGENTS, agentProvider = "ollama")
+        assertThat(ollama.retryUploadRoute(UploadRoute.CODE, pdf)).isEqualTo(UploadRoute.CODE)
+        // Nothing stored: routed against the selection.
+        assertThat(ollama.retryUploadRoute(null, docx)).isEqualTo(UploadRoute.TEXT)
+    }
+
+    @Test
+    fun `a retry re-routes a route the selection moved away from`() {
+        // Native under a document provider, now an agent whose provider can't read it.
+        val ollama = state(endpoint = EndpointConstants.AGENTS, agentProvider = "ollama")
+        assertThat(ollama.retryUploadRoute(UploadRoute.PROVIDER, pdf)).isEqualTo(UploadRoute.TEXT)
+
+        // Text, now on an agents endpoint that refuses extraction.
+        val noContext = state(
+            endpoint = EndpointConstants.AGENTS,
+            agentProvider = "ollama",
+            configs = mapOf(EndpointConstants.AGENTS to EndpointConfig(capabilities = listOf("tools"))),
+        )
+        assertThat(noContext.retryUploadRoute(UploadRoute.TEXT, pdf)).isEqualTo(UploadRoute.PROVIDER)
+    }
 }

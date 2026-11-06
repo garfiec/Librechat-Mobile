@@ -350,14 +350,14 @@ class FileAttachmentDelegate(
     }
 
     /**
-     * Uploads a failed file again, in its place in the tray, with the route it went with: the
-     * attachment list shows that route on the row the user tapped, so the retry does what the row
-     * says. Only a file that never committed to a route is routed against the live selection.
+     * Uploads a failed file again, in its place in the tray, with the route it went with while
+     * that route still works for the live selection (the row shows it, so the retry does what the
+     * row says), else routed afresh: see `ChatUiState.retryUploadRoute`.
      */
     fun retryUpload(file: AttachedFile) {
         pdfPrompts.remove(file.uri)
         uploadJobs.remove(file.uri)?.cancel()
-        val route = file.route ?: handle.state.uploadRouteFor(file.type)
+        val route = handle.state.retryUploadRoute(file.route, file.type)
         uploadFile(PickedFile(ref = file.uri, name = file.name, mimeType = file.type), route, inPlace = true)
     }
 

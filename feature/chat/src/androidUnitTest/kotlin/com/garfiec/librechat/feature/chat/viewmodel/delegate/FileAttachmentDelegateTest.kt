@@ -3,8 +3,10 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
+import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.FileRepository
+import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.FileObject
 import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.core.model.response.toolResource
@@ -12,6 +14,8 @@ import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ErrorOnlyHandle
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
+import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.every
@@ -31,13 +35,16 @@ class FileAttachmentDelegateTest {
      * A delegate over a real state handle, reading [bytes] for every picked uri, uploading through
      * [fileRepository]. Unconfined, so an upload runs inline up to its first suspension.
      */
-    private fun uploadingDelegate(fileRepository: FileRepository): FileAttachmentDelegate {
+    private fun uploadingDelegate(
+        fileRepository: FileRepository,
+        state: MutableStateFlow<ChatUiState> = MutableStateFlow(ChatUiState()),
+    ): FileAttachmentDelegate {
         val resolver = mockk<ContentResolver>(relaxed = true) {
             every { openInputStream(any()) } answers { ByteArrayInputStream("plain text".encodeToByteArray()) }
         }
         val context = mockk<Context>(relaxed = true) { every { contentResolver } returns resolver }
         return FileAttachmentDelegate(
-            handle = ErrorOnlyHandle(ChatStateHandle(MutableStateFlow(ChatUiState()), CoroutineScope(Dispatchers.Unconfined))),
+            handle = ErrorOnlyHandle(ChatStateHandle(state, CoroutineScope(Dispatchers.Unconfined))),
             appContext = context,
             fileRepository = fileRepository,
             ioDispatcher = Dispatchers.Unconfined,
@@ -106,6 +113,43 @@ class FileAttachmentDelegateTest {
         // The retry went with the route on the row, not one re-derived from the selection.
         assertThat(toolResources.last()).isEqualTo(UploadRoute.TEXT.toolResource())
     }
+
+    @Test
+    fun `a retry after the selection moved re-routes a route the new selection can't use`() {
+        val toolResources = mutableListOf<String?>()
+        var calls = 0
+        val repository = mockk<FileRepository> {
+            coEvery {
+                uploadFile(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+            } answers {
+                toolResources += arg<String?>(7)
+                if (++calls == 1) Result.Error(message = "offline") else Result.Success(serverRecord(arg(1)))
+            }
+        }
+        // Anthropic reads a PDF natively, so it went as PROVIDER (no tool resource).
+        val state = MutableStateFlow(selectionOn("anthropic"))
+        val delegate = uploadingDelegate(repository, state)
+        delegate.onFilesSelected(
+            listOf(RoutedFile(PickedFile(mockk<Uri>(), "notes.pdf", "application/pdf"), UploadRoute.PROVIDER)),
+        )
+        val failed = delegate.attachedFiles.value.single()
+        assertThat(failed.uploadFailed).isTrue()
+
+        // An agent on a provider that can't read PDFs: replaying PROVIDER would be ignored.
+        state.value = selectionOn(EndpointConstants.AGENTS, agentProvider = "ollama")
+        delegate.retryUpload(failed)
+
+        assertThat(toolResources).containsExactly(null, UploadRoute.TEXT.toolResource()).inOrder()
+        assertThat(delegate.attachedFiles.value.single().route).isEqualTo(UploadRoute.TEXT)
+    }
+
+    private fun selectionOn(endpoint: String, agentProvider: String? = null) = ChatUiState(
+        selection = ModelSelectionState(
+            choice = ModelChoice.Raw(endpoint, null),
+            selectedAgentProvider = agentProvider,
+            endpointConfigs = mapOf(endpoint to EndpointConfig()),
+        ),
+    )
 
     @Test
     fun `insertAt puts a file back at its index, clamped`() {
