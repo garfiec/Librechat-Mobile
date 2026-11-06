@@ -76,7 +76,8 @@ class IosFileHandler(
 
     /**
      * Uploads [data] as the tray entry [uniqueId]: appended, or over the entry's own place when
-     * [inPlace] (a retry). Images have no text route: extraction would need OCR, and the server's
+     * [inPlace] (a retry), which does nothing once that entry is gone (removed, or the tray swapped
+     * to another draft). Images have no text route: extraction would need OCR, and the server's
      * attachment pass drops a text-sourced record before it ever reaches its image branch. The
      * router never asks for one; an image ignores [route].
      */
@@ -95,6 +96,7 @@ class IosFileHandler(
         val mimeType = image?.mimeType ?: file?.mimeType ?: return
         val bytes = image?.bytes ?: file?.bytes ?: return
         val effectiveRoute = if (image != null) UploadRoute.PROVIDER else route
+        if (inPlace && _attachedFiles.value.none { it.uri == uniqueId }) return
         picked[uniqueId] = data
 
         val pendingFile = AttachedFile(
@@ -107,7 +109,7 @@ class IosFileHandler(
             localPreview = image?.bytes,
         )
         _attachedFiles.update { list ->
-            if (inPlace && list.any { it.uri == uniqueId }) {
+            if (inPlace) {
                 list.map { if (it.uri == uniqueId) pendingFile else it }
             } else {
                 list + pendingFile
@@ -198,8 +200,10 @@ class IosFileHandler(
      * with the route it went with while that route still works (`ChatUiState.retryUploadRoute`),
      * as Android's retry does. A file this handler holds no data for
      * (one restored from a queued turn another device made) can't be re-read, so it is removed.
+     * A file no longer in the tray is left alone: putting it back would undo the user's ×.
      */
     override fun retryUpload(file: AttachedFile) {
+        if (_attachedFiles.value.none { it.uri == file.uri }) return
         val uniqueId = file.uri as? String
         val data = uniqueId?.let { picked[it] }
         if (uniqueId == null || data == null) {

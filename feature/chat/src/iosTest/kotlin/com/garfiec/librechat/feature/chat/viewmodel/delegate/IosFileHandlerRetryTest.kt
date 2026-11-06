@@ -135,6 +135,18 @@ class IosFileHandlerRetryTest {
     }
 
     @Test
+    fun aRetryForAFileRemovedFromTheTrayLeavesItRemoved() {
+        pick(notes)
+        val failed = handler.attachedFiles.value.single()
+        handler.removeFile(failed)
+
+        handler.retryUpload(failed)
+
+        assertTrue(handler.attachedFiles.value.isEmpty())
+        assertEquals(1, repository.uploads.size)
+    }
+
+    @Test
     fun aFileWithNoPickedDataIsRemovedOnRetry() {
         val orphan = AttachedFile(
             uri = "from-another-device",

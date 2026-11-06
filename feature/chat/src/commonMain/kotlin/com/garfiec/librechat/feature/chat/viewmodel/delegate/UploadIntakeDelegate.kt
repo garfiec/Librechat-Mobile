@@ -285,19 +285,40 @@ class UploadIntakeDelegate(
 
     fun removeFile(file: AttachedFile) = fileHandler.removeFile(file)
 
+    /** Uris whose [retryUpload] is waiting on the agent's provider. Touched on the main dispatcher only. */
+    private val pendingRetries = mutableSetOf<Any>()
+
     /**
      * Re-uploads a failed attachment, in its place and with its route. Resolves the agent's
      * provider first, as the intake path does: the upload names the selected agent, and a file
      * that never committed to a route is routed against the live selection. A retry is the one
      * action a user takes *after* a failure, and the same outage that failed the upload will often
      * have failed the provider fetch.
+     *
+     * The row still reads failed through that wait, so the user can tap it again or × it. A second
+     * tap is ignored while the first is pending, and after the wait the retry goes ahead only while
+     * the same composer still holds that file as failed: a removed file stays removed (its Undo
+     * would otherwise put back a second copy), and a tray swapped to a queued edit never gains it.
      */
     fun retryUpload(file: AttachedFile) {
+        if (!isFailedInTray(file) || !pendingRetries.add(file.uri)) return
+        val retryFor = handle.state.composer.editingQueuedItem
         handle.scope.launch {
-            awaitAgentProvider()
-            fileHandler.retryUpload(file)
+            try {
+                awaitAgentProvider()
+                if (handle.state.composer.editingQueuedItem != retryFor || !isFailedInTray(file)) {
+                    Logger.d { "retryUpload: dropped — the failed file left the tray while the provider resolved" }
+                    return@launch
+                }
+                fileHandler.retryUpload(file)
+            } finally {
+                pendingRetries.remove(file.uri)
+            }
         }
     }
+
+    private fun isFailedInTray(file: AttachedFile): Boolean =
+        fileHandler.attachedFiles.value.any { it.uri == file.uri && it.uploadFailed }
 
     /** Re-uploads the prompted PDF with its password; routed like [retryUpload], for the same reason. */
     fun submitPdfPassword(password: String) {

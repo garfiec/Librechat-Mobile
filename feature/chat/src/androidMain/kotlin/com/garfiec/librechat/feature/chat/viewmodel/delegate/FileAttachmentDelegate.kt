@@ -89,9 +89,13 @@ class FileAttachmentDelegate(
         picked: PickedFile,
         route: UploadRoute,
         pdfPassword: String? = null,
-        /** A retry: the upload takes over its entry's place in the tray rather than appending. */
+        /**
+         * A retry: the upload takes over its entry's place in the tray rather than appending, and
+         * does nothing when the entry is gone (removed, or the tray swapped to another draft).
+         */
         inPlace: Boolean = false,
     ) {
+        if (inPlace && _attachedFiles.value.none { it.uri == picked.ref }) return
         val context = appContext
         val contentResolver = context.contentResolver
         val uri = picked.ref as Uri
@@ -113,7 +117,7 @@ class FileAttachmentDelegate(
         )
 
         _attachedFiles.update { currentList ->
-            if (inPlace && currentList.any { it.uri == uri }) {
+            if (inPlace) {
                 currentList.map { if (it.uri == uri) pendingFile else it }
             } else {
                 currentList + pendingFile
@@ -355,6 +359,8 @@ class FileAttachmentDelegate(
      * row says), else routed afresh: see `ChatUiState.retryUploadRoute`.
      */
     fun retryUpload(file: AttachedFile) {
+        // Gone from the tray (the user's ×, or a swap to another draft): putting it back would undo that.
+        if (_attachedFiles.value.none { it.uri == file.uri }) return
         pdfPrompts.remove(file.uri)
         uploadJobs.remove(file.uri)?.cancel()
         val route = handle.state.retryUploadRoute(file.route, file.type)
