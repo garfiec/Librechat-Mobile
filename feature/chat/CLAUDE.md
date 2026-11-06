@@ -1148,7 +1148,8 @@ first, then images, files, skills, quotes.
   (`ChatUiState.retryUploadRoute`: a code upload, the route the selection would pick, or either while
   both are open; otherwise it is routed afresh, so a PDF sent natively under one provider isn't
   replayed to one that ignores it). On both platforms. iOS keeps each entry's picked
-  `IosImageData` / `IosFileData` (`IosFileHandler.picked`) and uploads it again. An iOS image's
+  `IosImageData` / `IosFileData` (`IosFileHandler.picked`) until it uploads, and a failed one
+  uploads from it again; a successful upload lets the bytes go. An iOS image's
   thumbnail is a small JPEG (PNG with alpha) the picker draws off Main (`draftPreviewOf`,
   `IosImageData.preview` → `AttachedFile.localPreview`), never the picked bytes: a library photo
   comes over as its original data, often HEIC, which Coil's Skia decoder on iOS can't read. A
@@ -1210,8 +1211,10 @@ first, then images, files, skills, quotes.
     An OAuth server that reads connecting (`signInPending`: a flow is open, finished elsewhere or
     abandoned) reads "· connecting", and its tap (`SettingChipTap.SignInMenu`, handled by the chip
     itself) opens a small `AdaptiveDropdownMenu`: **Cancel sign-in** (`cancelMcpSignIn`,
-    `POST /api/mcp/oauth/cancel/:serverName`, web's Cancel) and **Start over** (the same reconnect
-    as the sign-in tap). A reconnect waits for a cancel still on its way, since the server would
+    `POST /api/mcp/oauth/cancel/:serverName`, web's Cancel; one the server refuses says so with
+    `mcp_cancel_sign_in_failed`, since the chip still reads connecting) and **Start over** (the same
+    reconnect as the sign-in tap). The menu opens only from a tap and closes once the chip stops
+    reading connecting. A reconnect waits for a cancel still on its way, since the server would
     replay the flow being cancelled; a cancel while a reconnect is out is ignored. The statuses
     reload when a sign-in ends, whatever the outcome (the delegate's own reload when none opens:
     connected, deferred, refused, failed, the last two with `mcp_sign_in_failed`, or
