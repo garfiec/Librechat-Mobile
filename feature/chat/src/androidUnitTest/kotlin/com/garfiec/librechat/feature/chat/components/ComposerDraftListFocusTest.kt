@@ -108,6 +108,49 @@ class ComposerDraftListFocusTest {
         }
     }
 
+    /**
+     * The list open with no pause, then a pause panel arriving: an ask (the composer goes, so
+     * `ChatScreen` stops drawing the list) or a tool pause restored collapsed.
+     */
+    private inner class PauseArrivalHost(items: DraftItems) {
+        val state = DraftListState()
+        var pausePanelUp by mutableStateOf(false)
+
+        init {
+            composeRule.setContent {
+                LibreChatTheme {
+                    val draftList = remember { state }
+                    DraftListPauseEffects(draftList, pausePanelUp = pausePanelUp, toolPauseExpanded = false)
+                    val chrome = ComposerChrome(draftItems = items).withDraftList(draftList)
+                    Column {
+                        if (chrome.isDraftListOpen && !pausePanelUp) {
+                            ComposerDraftListPanel(items = items, onRemove = {}, onRetry = {}, focusHeader = draftList.focusHeader)
+                        }
+                        composerFieldLeadingIcon(comparison = null, chrome = chrome, compact = false)!!()
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun aPausePanelComingUpClosesTheListAndItStaysClosedAfter() {
+        val pause = PauseArrivalHost(skills)
+        composeRule.onNodeWithContentDescription("2 items with this message").performClick()
+        composeRule.waitForIdle()
+        assertThat(pause.state.isOpen).isTrue()
+
+        pause.pausePanelUp = true
+        composeRule.waitForIdle()
+        assertThat(pause.state.isOpen).isFalse()
+
+        // Answered: the list doesn't pop back over the thread on its own.
+        pause.pausePanelUp = false
+        composeRule.waitForIdle()
+        assertThat(pause.state.isOpen).isFalse()
+        composeRule.onNodeWithText("With this message · 2").assertDoesNotExist()
+    }
+
     @Test
     fun aScreenReaderOpenFocusesTheHeader() {
         host()
