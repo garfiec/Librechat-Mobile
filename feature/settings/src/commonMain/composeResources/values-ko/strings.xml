@@ -859,13 +859,6 @@
     <plurals name="mcp_tool_count">
         <item quantity="other">도구 %1$d개</item>
     </plurals>
-    <string name="mcp_status_connected">연결됨</string>
-    <string name="mcp_status_connecting">연결 중…</string>
-    <string name="mcp_status_needs_sign_in">로그인 필요</string>
-    <string name="mcp_status_needs_setup">웹에서 설정하세요</string>
-    <string name="mcp_status_on_demand">채팅할 때 연결됨</string>
-    <string name="mcp_status_disconnected">연결 안 됨</string>
-    <string name="mcp_status_failed">연결할 수 없음</string>
     <string name="mcp_action_sign_in">로그인</string>
     <string name="mcp_action_connect">연결</string>
     <string name="mcp_action_reconnect">다시 연결</string>

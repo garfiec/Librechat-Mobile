@@ -907,13 +907,6 @@
         <item quantity="many">%1$d инструментов</item>
         <item quantity="other">%1$d инструмента</item>
     </plurals>
-    <string name="mcp_status_connected">Подключён</string>
-    <string name="mcp_status_connecting">Подключение…</string>
-    <string name="mcp_status_needs_sign_in">Нужен вход</string>
-    <string name="mcp_status_needs_setup">Настройте в веб-версии</string>
-    <string name="mcp_status_on_demand">Подключается во время чата</string>
-    <string name="mcp_status_disconnected">Не подключён</string>
-    <string name="mcp_status_failed">Не удаётся подключиться</string>
     <string name="mcp_action_sign_in">Войти</string>
     <string name="mcp_action_connect">Подключить</string>
     <string name="mcp_action_reconnect">Переподключить</string>

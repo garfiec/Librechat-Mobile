@@ -358,4 +358,12 @@
     <string name="pr_retry">다시 시도</string>
     <string name="pr_additions_cd">%1$d줄 추가됨</string>
     <string name="pr_deletions_cd">%1$d줄 삭제됨</string>
+    <!-- MCP server status (the MCP servers page, the chat's settings chips and "+" sheet) -->
+    <string name="mcp_status_connected">연결됨</string>
+    <string name="mcp_status_connecting">연결 중…</string>
+    <string name="mcp_status_needs_sign_in">로그인 필요</string>
+    <string name="mcp_status_needs_setup">웹에서 설정하세요</string>
+    <string name="mcp_status_on_demand">채팅할 때 연결됨</string>
+    <string name="mcp_status_disconnected">연결 안 됨</string>
+    <string name="mcp_status_failed">연결할 수 없음</string>
 </resources>

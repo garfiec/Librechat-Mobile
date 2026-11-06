@@ -36,6 +36,8 @@ import com.garfiec.librechat.core.ui.components.AdaptiveCard
 import com.garfiec.librechat.core.ui.components.AdaptiveFilledTonalButton
 import com.garfiec.librechat.core.ui.components.InitialTile
 import com.garfiec.librechat.core.ui.components.TileStatusDot
+import com.garfiec.librechat.core.ui.mcp.mcpStatusLabel
+import com.garfiec.librechat.core.ui.mcp.tint
 import com.garfiec.librechat.core.ui.platform.rememberReduceMotion
 import com.garfiec.librechat.core.ui.theme.StatusColors
 import com.garfiec.librechat.core.ui.theme.statusColors
@@ -63,16 +65,19 @@ internal fun McpDisplayStatus.cardAction(): McpCardAction? = when (this) {
 /** Label, icon and tint for a status. Null label: nothing reported yet, so nothing to say. */
 internal data class McpStatusPresentation(val label: StringResource?, val icon: ImageVector?, val tint: Color)
 
-internal fun McpDisplayStatus.presentation(colors: StatusColors): McpStatusPresentation = when (this) {
-    McpDisplayStatus.CONNECTED -> McpStatusPresentation(Res.string.mcp_status_connected, Icons.Default.CheckCircle, colors.success)
-    McpDisplayStatus.CONNECTING -> McpStatusPresentation(Res.string.mcp_status_connecting, null, colors.info)
-    McpDisplayStatus.NEEDS_SIGN_IN -> McpStatusPresentation(Res.string.mcp_status_needs_sign_in, Icons.Default.Key, colors.warning)
-    McpDisplayStatus.NEEDS_SETUP -> McpStatusPresentation(Res.string.mcp_status_needs_setup, Icons.Default.Tune, colors.warning)
-    McpDisplayStatus.ON_DEMAND -> McpStatusPresentation(Res.string.mcp_status_on_demand, Icons.Default.Schedule, colors.neutral)
-    McpDisplayStatus.DISCONNECTED -> McpStatusPresentation(Res.string.mcp_status_disconnected, Icons.Default.Power, colors.neutral)
-    McpDisplayStatus.FAILED -> McpStatusPresentation(Res.string.mcp_status_failed, Icons.Default.Error, colors.error)
-    McpDisplayStatus.UNKNOWN -> McpStatusPresentation(null, null, colors.neutral)
-}
+internal fun McpDisplayStatus.presentation(colors: StatusColors): McpStatusPresentation = McpStatusPresentation(
+    label = if (this == McpDisplayStatus.UNKNOWN) null else mcpStatusLabel(this),
+    icon = when (this) {
+        McpDisplayStatus.CONNECTED -> Icons.Default.CheckCircle
+        McpDisplayStatus.NEEDS_SIGN_IN -> Icons.Default.Key
+        McpDisplayStatus.NEEDS_SETUP -> Icons.Default.Tune
+        McpDisplayStatus.ON_DEMAND -> Icons.Default.Schedule
+        McpDisplayStatus.DISCONNECTED -> Icons.Default.Power
+        McpDisplayStatus.FAILED -> Icons.Default.Error
+        McpDisplayStatus.CONNECTING, McpDisplayStatus.UNKNOWN -> null
+    },
+    tint = tint(colors),
+)
 
 /**
  * One server in the list: its tile with a status dot, title, description, and a meta line saying

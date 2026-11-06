@@ -875,13 +875,6 @@
         <item quantity="one">%1$d herramienta</item>
         <item quantity="other">%1$d herramientas</item>
     </plurals>
-    <string name="mcp_status_connected">Conectado</string>
-    <string name="mcp_status_connecting">Conectando…</string>
-    <string name="mcp_status_needs_sign_in">Requiere iniciar sesión</string>
-    <string name="mcp_status_needs_setup">Configúralo en la web</string>
-    <string name="mcp_status_on_demand">Se conecta cuando chateas</string>
-    <string name="mcp_status_disconnected">No conectado</string>
-    <string name="mcp_status_failed">No se puede conectar</string>
     <string name="mcp_action_sign_in">Iniciar sesión</string>
     <string name="mcp_action_connect">Conectar</string>
     <string name="mcp_action_reconnect">Reconectar</string>

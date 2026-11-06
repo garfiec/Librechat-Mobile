@@ -883,13 +883,6 @@
         <item quantity="one">%1$d tool</item>
         <item quantity="other">%1$d tools</item>
     </plurals>
-    <string name="mcp_status_connected">Connected</string>
-    <string name="mcp_status_connecting">Connecting…</string>
-    <string name="mcp_status_needs_sign_in">Sign-in needed</string>
-    <string name="mcp_status_needs_setup">Set up on the web</string>
-    <string name="mcp_status_on_demand">Connects when you chat</string>
-    <string name="mcp_status_disconnected">Not connected</string>
-    <string name="mcp_status_failed">Can't connect</string>
     <string name="mcp_action_sign_in">Sign in</string>
     <string name="mcp_action_connect">Connect</string>
     <string name="mcp_action_reconnect">Reconnect</string>
