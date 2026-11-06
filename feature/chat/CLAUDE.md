@@ -1110,12 +1110,16 @@ first, then images, files, skills, quotes.
 - **The list** (`ComposerDraftListPanel`) is drawn by `ChatScreen` outside the measured bottom box,
   so opening it doesn't move the thread's inset, and after it, so the landing starters and the update
   banner docked there neither draw over its rows nor take their taps (a pause panel closes it as it
-  appears, and while one is up the stack doesn't open it: it would cover the tool-approval panel
-  docked in the same place). It sits on the composer itself (its measured height, not the bottom box's, which also holds
-  starters and the update banner) and below the floating top bar, so with the keyboard up it scrolls
-  in what is visible. When that leaves less than its header and one row (`draftListFit`,
-  `DRAFT_LIST_MIN_HEIGHT`) it goes under the bar's scrim, and when even that is too little it
-  hides the keyboard. Its open/closed state and the toggles are `DraftListState`, handed to the
+  appears). It sits on the composer itself (its measured height, not the bottom box's, which also holds
+  starters and the update banner) and below the floating top bar, never under it (the bar draws over
+  it and takes its taps), so with the keyboard up it scrolls in what is visible. When that leaves
+  less than its header and one row (`draftListNeedsRoom`, `DRAFT_LIST_MIN_HEIGHT`, 92dp at 1x font)
+  it hides the keyboard. **During a tool-approval pause it still opens**: it is the only place a
+  failed file is retried or removed, and that file holds the run's next send. Opening it collapses
+  the approval panel (`withDraftList(toolPauseExpanded, onCollapseToolPause)`), and it sits on the
+  collapsed panel (`draftListBottom`, the panel's height measured while collapsed), so it never
+  covers the panel; expanding the panel again closes it (`DraftListPauseEffects`). An ask pause hides
+  the composer, so there is no stack to open it from. Its open/closed state and the toggles are `DraftListState`, handed to the
   composer through `ComposerChrome.withDraftList`; a screen reader's open, from the stack or the
   failed-upload line, moves focus to its header. It closes on a tap anywhere but it and the stack (`closeOnTapOutside`, which
   only watches; the stack's bounds come from `ComposerChrome.onDraftStackPositioned`), so a tap in
@@ -1210,11 +1214,16 @@ first, then images, files, skills, quotes.
     the run and the chip may read connecting · sign in until it ends. **Nor when the server already
     read connecting with a sign-in pending at the tap** (`chipOwnsFlow`): the reconnect only replayed
     a flow a run in another chat, a web tab or another device started, which this chat's state can't
-    see. A flow the chip's own browser sign-in or cancel left there is still its own. A browser sign-in is never cancelled: the
+    see. A flow the chip's own browser sign-in or cancel left there is still its own, and so is one
+    whose cancel was skipped for a run or failed (`leftPendingFlows`, until the server stops reading
+    connecting): the next close cancels it. A stored-token reconnect the server runs itself reads the
+    same, so a flow the chip starts during it is left to the timeout. A browser sign-in is never cancelled: the
     user may come back mid-way and finish in the browser, whose callback a cancelled flow refuses.
-    Its server's statuses are re-read on every ON_RESUME (`McpServersDelegate.onForeground`) until
-    it stops reading connecting, and the chip's tap (connecting · sign in) replays or reissues an
-    abandoned flow. A tool call's sign-in is the run's and is never cancelled. Such a chip is turned off from the "+" sheet's switch. Other
+    The statuses are re-read on every return to the chat (ON_RESUME after an ON_PAUSE,
+    `McpServersDelegate.onForeground`), since the tap acts on them and a sign-in or sign-out on the
+    MCP servers page or in another chat changes them; discovery is asked again then only while a
+    browser sign-in may be finishing or when the list changed. The chip's tap (connecting · sign in)
+    replays or reissues an abandoned flow. A tool call's sign-in is the run's and is never cancelled. Such a chip is turned off from the "+" sheet's switch. Other
     needs-setup and failed chips keep the ordinary tap (off with Undo): setup is on the web, a failure on the server. Thinking uses the brain glyph (Memory uses `AutoStories`, here and in the drawer),
     tints tertiary while a one-turn choice is staged, in both styles, and states it. Picked skills use
     the sparkle (`AutoAwesome`) on the stack, the `$` picker, the sent bubble and the skill card.
