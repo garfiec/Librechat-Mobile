@@ -1108,8 +1108,9 @@ first, then images, files, skills, quotes.
   draw first in the same slot; on a phone the A·B morph and its prefix reserve move past the stack
   (`afterStack`).
 - **The list** (`ComposerDraftListPanel`) is drawn by `ChatScreen` outside the measured bottom box,
-  so opening it doesn't move the thread's inset, and before it, so `ToolApprovalPanel` stays on top.
-  It sits on the composer itself (its measured height, not the bottom box's, which also holds
+  so opening it doesn't move the thread's inset, and after it, so the landing starters and the update
+  banner docked there neither draw over its rows nor take their taps (a pause panel closes it as it
+  appears). It sits on the composer itself (its measured height, not the bottom box's, which also holds
   starters and the update banner) and below the floating top bar, so with the keyboard up it scrolls
   in what is visible. It closes on a tap anywhere but it and the stack (`closeOnTapOutside`, which
   only watches; the stack's bounds come from `ComposerChrome.onDraftStackPositioned`), so a tap in
@@ -1135,9 +1136,11 @@ first, then images, files, skills, quotes.
   (`ChatUiState.retryUploadRoute`: a code upload, the route the selection would pick, or either while
   both are open; otherwise it is routed afresh, so a PDF sent natively under one provider isn't
   replayed to one that ignores it). On both platforms. iOS keeps each entry's picked
-  `IosImageData` / `IosFileData` (`IosFileHandler.picked`) and uploads it again; an image's thumbnail
-  is its retained bytes (`AttachedFile.localPreview`). A thumbnail prefers the device's copy, then
-  the server's `filepath`.
+  `IosImageData` / `IosFileData` (`IosFileHandler.picked`) and uploads it again. An iOS image's
+  thumbnail is a small JPEG (PNG with alpha) the picker draws off Main (`draftPreviewOf`,
+  `IosImageData.preview` → `AttachedFile.localPreview`), never the picked bytes: a library photo
+  comes over as its original data, often HEIC, which Coil's Skia decoder on iOS can't read. A
+  thumbnail prefers the device's copy, then the server's `filepath`.
 - **Queued edits carry their quotes** like their skills: `ComposerSnapshot.quotes`, captured and
   applied by the swap, and the commit sends the quotes on screen. A recovery during the edit (a
   steer's lost excerpts, an un-sent turn's text and chips) belongs to the stashed draft, not the
@@ -1178,7 +1181,9 @@ first, then images, files, skills, quotes.
     mirror, over the status map with tool discovery's lapsed authorizations folded in by
     `applyDiscoveryAuthorizationState`, as the page does; the servers paint as soon as the list and
     status routes answer, with the last discovery verdicts, and re-fold when `GET /api/mcp/tools`
-    lands, since that route waits on a full catalog load). The dot is `mcpStatusColor` (`McpStatusPresentation.kt`, from
+    lands, since that route waits on a full catalog load. That read is asked after the list, only
+    when it isn't empty and the chat shows the tool controls, or once they show (an agent chat
+    switched to a model), as web asks only while it observes tool authorization). The dot is `mcpStatusColor` (`McpStatusPresentation.kt`, from
     `statusColors()`): connected green, connecting info, needs sign-in or setup amber, failed error,
     the rest neutral; the "+" sheet's rows use the same dot and label. A chip whose tap signs in
     (`SettingChip.Mcp.signsInOnTap`: needs sign-in, or an OAuth server that reads connecting or
@@ -1190,9 +1195,14 @@ first, then images, files, skills, quotes.
     `McpSignInViewModel.signIn` returning false because another sign-in is binding or on screen),
     and `McpSignInUiState.ended` once an opened one succeeds, is cancelled or fails (a browser
     sign-in ends on the next ON_RESUME). A chip's in-app sign-in that ends unfinished (closed,
-    refused, never opened or bound; `McpSignInEnd.signedIn == false`) first cancels the flow its
-    reconnect left pending (`POST /api/mcp/oauth/cancel/:serverName`, as web's Cancel), which would
-    otherwise read as connecting for up to ten minutes. A browser sign-in is never cancelled: the
+    refused, never opened or bound; `McpSignInEnd.signedIn == false`), or that the screen turned
+    down, first cancels the flow its reconnect left pending (`POST /api/mcp/oauth/cancel/:serverName`,
+    as web's Cancel), which would otherwise read as connecting for up to ten minutes. A chip tap
+    while that cancel is out waits for it before reconnecting, since the server would replay the
+    flow being cancelled. **Never while a reply runs or a live tool call waits on that server's
+    sign-in**: the server keeps one flow per user and server, and a reconnect then replays the run's
+    own flow into the chip's dialog, so cancelling it would fail the tool call. The flow is left to
+    the run and the chip may read connecting · sign in until it ends. A browser sign-in is never cancelled: the
     user may come back mid-way and finish in the browser, whose callback a cancelled flow refuses.
     Its server's statuses are re-read on every ON_RESUME (`McpServersDelegate.onForeground`) until
     it stops reading connecting, and the chip's tap (connecting · sign in) replays or reissues an
