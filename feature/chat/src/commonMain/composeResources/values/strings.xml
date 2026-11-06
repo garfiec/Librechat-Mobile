@@ -1100,6 +1100,7 @@
     <string name="notice_queue_withdraw_refused">Couldn't withdraw this queued message from the server.</string>
     <string name="notice_queue_withdraw_busy">Still finishing the previous withdrawal. Try again in a moment.</string>
     <string name="notice_queue_edit_overtaken">That queued message was already sent, so your edit wasn't applied.</string>
+    <string name="notice_queue_edit_waits_for_uploads">Wait for your attachments to finish, then edit the queued message.</string>
     <string name="notice_queue_server_holds">The server still holds a queued message. Try again in a moment.</string>
     <string name="notice_queue_restored_to_composer">Queued messages weren't sent, so they were put back in the message box.</string>
     <string name="tool_content_loading">Loading the full tool call…</string>

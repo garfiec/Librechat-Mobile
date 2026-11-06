@@ -1028,6 +1028,7 @@
     <string name="notice_queue_withdraw_refused">无法从服务器撤回这条排队的消息。</string>
     <string name="notice_queue_withdraw_busy">仍在撤回上一条消息，请稍后再试。</string>
     <string name="notice_queue_edit_overtaken">这条排队的消息已发送，因此你的编辑未生效。</string>
+    <string name="notice_queue_edit_waits_for_uploads">请等附件处理完成后再编辑排队的消息。</string>
     <string name="notice_queue_server_holds">服务器上仍有一条排队的消息，请稍后再试。</string>
     <string name="notice_queue_restored_to_composer">排队的消息未发送，已放回输入框。</string>
     <string name="tool_content_loading">正在加载完整的工具调用…</string>

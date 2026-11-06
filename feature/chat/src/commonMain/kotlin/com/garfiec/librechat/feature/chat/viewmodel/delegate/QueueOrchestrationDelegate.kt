@@ -228,8 +228,13 @@ class QueueOrchestrationDelegate(
         // out from under it re-homes it onto the queued item instead — attaching it to a message
         // the user did not pick it for, and losing it from the one they did, since `captureComposer`
         // cannot stash a file that is not in the tray yet.
-        if (uploadIntakeDelegate.hasUnsettledPicks()) {
-            Logger.d { "editQueued: refusing — picked files are not settled yet" }
+        //
+        // An upload still out (or a PDF waiting for its password) is the same: its outcome lands on
+        // the tray entry it started from, which the swap takes away, so it would be lost and the
+        // stashed copy would come back reading uploading for good, holding every later send.
+        if (uploadIntakeDelegate.hasUnsettledPicks() || fileHandler.hasPendingUploads()) {
+            Logger.d { "editQueued: refusing — the draft's files are not settled yet" }
+            handle.setError(ChatNotice.QUEUE_EDIT_WAITS_FOR_UPLOADS.marker())
             return
         }
         val index = handle.state.messageQueue.indexOfFirst { it.localId == localId }

@@ -348,6 +348,35 @@ class ChatViewModelComposerChromeTest {
             assertThat(vm.uiState.value.inputText).isEqualTo("$TEXT Briefly.")
         }
 
+    @Test
+    fun `a queued message doesn't open for editing while a draft file is still uploading`() =
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            vm.onInputChanged(TEXT)
+            vm.queueMessage()
+            runCurrent()
+            val queued = vm.uiState.value.messageQueue.single()
+            // The draft's file is still on its way up (or waits for a PDF password).
+            val uploading = AttachedFile(uri = "u", name = "photo.png", isImage = true)
+            every { fileHandler.attachedFiles } returns MutableStateFlow(listOf(uploading))
+            every { fileHandler.hasPendingUploads() } returns true
+            vm.onInputChanged("My next question")
+
+            vm.editQueued(queued.localId)
+            runCurrent()
+
+            // The swap would take the tray from under the upload, losing its result.
+            assertThat(vm.uiState.value.isEditingQueued).isFalse()
+            assertThat(vm.uiState.value.inputText).isEqualTo("My next question")
+            assertThat(vm.uiState.value.error).isEqualTo(ChatNotice.QUEUE_EDIT_WAITS_FOR_UPLOADS.marker())
+            io.mockk.verify(exactly = 0) { fileHandler.restoreAttachedFiles(any()) }
+
+            // Once it has landed the edit opens.
+            every { fileHandler.hasPendingUploads() } returns false
+            vm.editQueued(queued.localId)
+            runCurrent()
+            assertThat(vm.uiState.value.isEditingQueued).isTrue()
+        }
+
     private val memoryChip = SettingChip.Tool(ToolConstants.MEMORY, SettingChipState.ON, pinned = false)
 
     @Test

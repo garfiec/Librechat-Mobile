@@ -1028,6 +1028,7 @@
     <string name="notice_queue_withdraw_refused">キュー内のメッセージをサーバーから取り消せませんでした。</string>
     <string name="notice_queue_withdraw_busy">前のメッセージの取り消しを処理中です。しばらくしてからもう一度お試しください。</string>
     <string name="notice_queue_edit_overtaken">キュー内のメッセージはすでに送信されたため、編集は適用されませんでした。</string>
+    <string name="notice_queue_edit_waits_for_uploads">添付ファイルの処理が終わってから、キュー内のメッセージを編集してください。</string>
     <string name="notice_queue_server_holds">サーバーにまだキュー内のメッセージがあります。しばらくしてからもう一度お試しください。</string>
     <string name="notice_queue_restored_to_composer">キュー内のメッセージは送信されなかったため、入力欄に戻しました。</string>
     <string name="tool_content_loading">ツール呼び出し全体を読み込み中…</string>

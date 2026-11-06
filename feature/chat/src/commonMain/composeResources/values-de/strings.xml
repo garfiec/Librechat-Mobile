@@ -1047,6 +1047,7 @@
     <string name="notice_queue_withdraw_refused">Die eingereihte Nachricht konnte nicht vom Server zurückgezogen werden.</string>
     <string name="notice_queue_withdraw_busy">Die vorherige Nachricht wird noch zurückgezogen. Versuche es gleich noch einmal.</string>
     <string name="notice_queue_edit_overtaken">Die eingereihte Nachricht wurde bereits gesendet, daher wurde deine Änderung nicht übernommen.</string>
+    <string name="notice_queue_edit_waits_for_uploads">Warte, bis deine Anhänge fertig sind, und bearbeite dann die eingereihte Nachricht.</string>
     <string name="notice_queue_server_holds">Der Server hält noch eine Nachricht in der Warteschlange. Versuche es gleich noch einmal.</string>
     <string name="notice_queue_restored_to_composer">Nachrichten in der Warteschlange wurden nicht gesendet und stehen wieder im Eingabefeld.</string>
     <string name="tool_content_loading">Vollständiger Tool-Aufruf wird geladen…</string>

@@ -1060,6 +1060,7 @@
     <string name="notice_queue_withdraw_refused">Impossible de retirer ce message en file d'attente du serveur.</string>
     <string name="notice_queue_withdraw_busy">Le retrait du message précédent est toujours en cours. Réessayez dans un instant.</string>
     <string name="notice_queue_edit_overtaken">Ce message en file d'attente a déjà été envoyé, votre modification n'a donc pas été appliquée.</string>
+    <string name="notice_queue_edit_waits_for_uploads">Attendez que vos pièces jointes soient prêtes, puis modifiez le message en file d'attente.</string>
     <string name="notice_queue_server_holds">Le serveur conserve encore un message en file d'attente. Réessayez dans un instant.</string>
     <string name="notice_queue_restored_to_composer">Les messages en file d'attente n'ont pas été envoyés et ont été replacés dans la zone de saisie.</string>
     <string name="tool_content_loading">Chargement de l'appel d'outil complet…</string>

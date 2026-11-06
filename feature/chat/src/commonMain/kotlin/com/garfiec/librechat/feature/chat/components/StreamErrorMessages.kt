@@ -129,6 +129,7 @@ private fun localizedNotice(parsed: ChatNotice.Parsed): String {
         ChatNotice.QUEUE_WITHDRAW_REFUSED -> Res.string.notice_queue_withdraw_refused
         ChatNotice.QUEUE_WITHDRAW_BUSY -> Res.string.notice_queue_withdraw_busy
         ChatNotice.QUEUE_EDIT_OVERTAKEN -> Res.string.notice_queue_edit_overtaken
+        ChatNotice.QUEUE_EDIT_WAITS_FOR_UPLOADS -> Res.string.notice_queue_edit_waits_for_uploads
         ChatNotice.QUEUE_SERVER_HOLDS -> Res.string.notice_queue_server_holds
         ChatNotice.QUEUE_RESTORED_TO_COMPOSER -> Res.string.notice_queue_restored_to_composer
         // Reached only with an unreadable argument; the generic message-limit copy still applies.

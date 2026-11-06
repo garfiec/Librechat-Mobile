@@ -1028,6 +1028,7 @@
     <string name="notice_queue_withdraw_refused">대기 중인 메시지를 서버에서 철회하지 못했습니다.</string>
     <string name="notice_queue_withdraw_busy">이전 메시지를 아직 철회하는 중입니다. 잠시 후 다시 시도하세요.</string>
     <string name="notice_queue_edit_overtaken">대기 중인 메시지가 이미 전송되어 수정 내용이 적용되지 않았습니다.</string>
+    <string name="notice_queue_edit_waits_for_uploads">첨부 파일 처리가 끝난 뒤 대기 중인 메시지를 수정하세요.</string>
     <string name="notice_queue_server_holds">서버에 아직 대기 중인 메시지가 있습니다. 잠시 후 다시 시도하세요.</string>
     <string name="notice_queue_restored_to_composer">대기 중인 메시지가 전송되지 않아 입력란으로 되돌렸습니다.</string>
     <string name="tool_content_loading">전체 도구 호출을 불러오는 중…</string>

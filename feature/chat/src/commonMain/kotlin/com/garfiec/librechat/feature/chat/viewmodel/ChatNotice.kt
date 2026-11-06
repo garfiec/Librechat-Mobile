@@ -131,6 +131,9 @@ enum class ChatNotice(val wire: String) {
     /** A queued message was sent before its edit could be saved; the edit was dropped. */
     QUEUE_EDIT_OVERTAKEN("queue_edit_overtaken"),
 
+    /** A queued message opened for editing while the draft's files are still being attached or uploaded. */
+    QUEUE_EDIT_WAITS_FOR_UPLOADS("queue_edit_waits_for_uploads"),
+
     /** "Send queued" while the server still holds a queued turn of this chat. */
     QUEUE_SERVER_HOLDS("queue_server_holds"),
 

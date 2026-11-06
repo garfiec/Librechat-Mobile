@@ -1060,6 +1060,7 @@
     <string name="notice_queue_withdraw_refused">No se pudo retirar este mensaje en cola del servidor.</string>
     <string name="notice_queue_withdraw_busy">Todavía se está retirando el mensaje anterior. Inténtalo de nuevo en un momento.</string>
     <string name="notice_queue_edit_overtaken">Ese mensaje en cola ya se envió, así que tu edición no se aplicó.</string>
+    <string name="notice_queue_edit_waits_for_uploads">Espera a que terminen tus archivos adjuntos y luego edita el mensaje en cola.</string>
     <string name="notice_queue_server_holds">El servidor todavía tiene un mensaje en cola. Inténtalo de nuevo en un momento.</string>
     <string name="notice_queue_restored_to_composer">Los mensajes en cola no se enviaron, así que se devolvieron al cuadro de mensaje.</string>
     <string name="tool_content_loading">Cargando la llamada completa a la herramienta…</string>

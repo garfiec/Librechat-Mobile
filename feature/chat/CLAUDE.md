@@ -1158,7 +1158,10 @@ first, then images, files, skills, quotes.
   applied by the swap, and the commit sends the quotes on screen. A recovery during the edit (a
   steer's lost excerpts, an un-sent turn's text and chips) belongs to the stashed draft, not the
   item on screen: it waits in `ComposerState.draftRestore` and joins the draft when the edit ends,
-  saved or cancelled.
+  saved or cancelled. A queued message doesn't open for editing while the draft's files are still
+  being attached or uploading (a PDF waiting for its password included): an upload's outcome lands
+  on the tray entry it started from, which the swap takes away. The tap says to wait
+  (`ChatNotice.QUEUE_EDIT_WAITS_FOR_UPLOADS`).
 
 ## Chat Tools
 - The user's own toggles: `enabledTools` and `selectedMcpServerNames` are global (stored in
