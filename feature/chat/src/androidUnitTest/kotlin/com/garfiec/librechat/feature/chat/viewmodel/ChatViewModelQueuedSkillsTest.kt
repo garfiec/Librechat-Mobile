@@ -20,6 +20,7 @@ import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.core.model.request.SteerRequest
 import com.garfiec.librechat.core.model.response.ChatResumeResponse
@@ -27,9 +28,13 @@ import com.garfiec.librechat.core.model.response.ChatStatusResponse
 import com.garfiec.librechat.core.model.response.SteerResponse
 import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.util.DraftItem
+import com.garfiec.librechat.feature.chat.util.SettingChip
+import com.garfiec.librechat.feature.chat.util.SettingChipState
+import com.garfiec.librechat.feature.chat.util.ThinkingChip
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -56,7 +61,9 @@ import org.junit.Test
  * Skill chips on the local queue, in a non-agent chat (where skills are mostly used, and where a
  * queue goes through the client's own drain rather than the server's enqueue claim): the drain
  * sends the queued picks with the ephemeral flag, a queued edit keeps them, and a steer leaves
- * them staged. Also the quote chips a queued edit carries, and the attachment list's Undo. Driven through the real ViewModel over a live run, on the
+ * them staged. Also the quote chips a queued edit carries, the attachment list's Undo, and the
+ * settings line's chip switch and its Undo, and a failed upload holding every send path at the
+ * ViewModel boundary. Driven through the real ViewModel over a live run, on the
  * [ChatViewModelDuringRunSendTest] harness shape; see its KDoc for why every case cancels the
  * ViewModel scope inside the body and drives with [runCurrent].
  */
@@ -529,6 +536,197 @@ class ChatViewModelQueuedSkillsTest {
             assertThat(vm.uiState.value.pendingQuotes).containsExactly("draft excerpt")
         }
 
+    /**
+     * Steers [STEERED_QUOTE] (accepted, not yet injected), queues a follow-up, opens it for editing
+     * and then lets the run inject the steer without its quotes, which re-stages them.
+     */
+    private suspend fun TestScope.restageDuringQueuedEdit(vm: ChatViewModel) {
+        coEvery { chatRepository.steerChat(any()) } returns
+            Result.Success(SteerResponse(status = "queued", steerId = "s1"))
+        vm.addPendingQuote(STEERED_QUOTE)
+        vm.onInputChanged(TEXT)
+        vm.steerMessage()
+        runCurrent()
+        assertThat(vm.uiState.value.pendingQuotes).isEmpty()
+        vm.onInputChanged("Then summarise.")
+        vm.queueMessage()
+        runCurrent()
+        vm.editQueued(vm.uiState.value.messageQueue.single().localId)
+        runCurrent()
+        assertThat(vm.uiState.value.isEditingQueued).isTrue()
+
+        resumedStream.emit(StreamEvent.SteerApplied(steerId = "s1", text = TEXT, quotes = emptyList()))
+        runCurrent()
+
+        // Not onto the queued item's chips, which are on screen during the edit.
+        assertThat(vm.uiState.value.pendingQuotes).isEmpty()
+    }
+
+    @Test
+    fun `a steer's lost excerpt restored during a queued edit comes back with the draft on cancel`() =
+        queuedSkillsTest(DuringRunAction.STEER) { vm ->
+            restageDuringQueuedEdit(vm)
+
+            vm.cancelQueuedEdit()
+            runCurrent()
+
+            assertThat(vm.uiState.value.pendingQuotes).containsExactly(STEERED_QUOTE)
+            assertThat(vm.uiState.value.messageQueue.single().quotes).isEmpty()
+            assertThat(vm.uiState.value.draftRestore).isEqualTo(DraftRestore.NONE)
+        }
+
+    @Test
+    fun `a steer's lost excerpt restored during a queued edit stays off the saved item`() =
+        queuedSkillsTest(DuringRunAction.STEER) { vm ->
+            restageDuringQueuedEdit(vm)
+
+            vm.onInputChanged("Then summarise briefly.")
+            vm.commitQueuedEdit()
+            runCurrent()
+
+            val saved = vm.uiState.value.messageQueue.single()
+            assertThat(saved.text).isEqualTo("Then summarise briefly.")
+            assertThat(saved.quotes).isEmpty()
+            assertThat(vm.uiState.value.pendingQuotes).containsExactly(STEERED_QUOTE)
+        }
+
+    private val failedUpload = AttachedFile(uri = "f", name = "report.pdf", uploadFailed = true)
+
+    /**
+     * Puts [failedUpload] in the tray. The relaxed handler mock would answer false to
+     * `hasFailedUploads` whatever the tray holds, so it answers from the tray, as the interface's
+     * default does; a path that skipped the gate would then send or queue regardless.
+     */
+    private fun trayWithFailedUpload() {
+        val tray = MutableStateFlow(listOf(failedUpload))
+        every { fileHandler.attachedFiles } returns tray
+        every { fileHandler.hasFailedUploads() } answers { tray.value.any { it.uploadFailed } }
+    }
+
+    @Test
+    fun `a failed upload holds a send`() = queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+        resumedStream.emit(cleanFinal())
+        runCurrent()
+        assertThat(vm.uiState.value.isStreaming).isFalse()
+        val sends = sent.size
+        trayWithFailedUpload()
+
+        vm.onInputChanged(TEXT)
+        vm.sendMessage()
+        runCurrent()
+
+        assertThat(sent).hasSize(sends)
+        assertThat(vm.uiState.value.inputText).isEqualTo(TEXT)
+    }
+
+    @Test
+    fun `a failed upload holds a queued follow-up`() = queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+        trayWithFailedUpload()
+
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+
+        assertThat(vm.uiState.value.messageQueue).isEmpty()
+        assertThat(vm.uiState.value.inputText).isEqualTo(TEXT)
+    }
+
+    @Test
+    fun `a failed upload holds a steer with files, which would have gone to the queue`() =
+        queuedSkillsTest(DuringRunAction.STEER) { vm ->
+            trayWithFailedUpload()
+
+            vm.onInputChanged(TEXT)
+            vm.steerMessage()
+            runCurrent()
+
+            assertThat(vm.uiState.value.messageQueue).isEmpty()
+            assertThat(vm.uiState.value.pendingSteers).isEmpty()
+            coVerify(exactly = 0) { chatRepository.steerChat(any()) }
+        }
+
+    @Test
+    fun `a failed upload holds saving a queued edit and keeps the edit open`() =
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            vm.onInputChanged(TEXT)
+            vm.queueMessage()
+            runCurrent()
+            val queued = vm.uiState.value.messageQueue.single()
+            vm.editQueued(queued.localId)
+            runCurrent()
+            // A file added during the edit failed to upload.
+            trayWithFailedUpload()
+
+            vm.onInputChanged("$TEXT Briefly.")
+            vm.commitQueuedEdit()
+            runCurrent()
+
+            assertThat(vm.uiState.value.messageQueue.single()).isEqualTo(queued)
+            assertThat(vm.uiState.value.isEditingQueued).isTrue()
+            assertThat(vm.uiState.value.inputText).isEqualTo("$TEXT Briefly.")
+        }
+
+    private val memoryChip = SettingChip.Tool(ToolConstants.MEMORY, SettingChipState.ON, pinned = false)
+
+    @Test
+    fun `a settings chip's undo turns the tool it switched off back on`() =
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            vm.toggleTool(ToolConstants.MEMORY)
+            assertThat(vm.uiState.value.effectiveEnabledTools).contains(ToolConstants.MEMORY)
+
+            vm.toggleSettingChip(memoryChip)
+            assertThat(vm.uiState.value.effectiveEnabledTools).doesNotContain(ToolConstants.MEMORY)
+
+            vm.turnSettingChipBackOn(memoryChip)
+            runCurrent()
+            assertThat(vm.uiState.value.effectiveEnabledTools).contains(ToolConstants.MEMORY)
+            // Memory is global: the Undo writes the stored set back too.
+            coVerify(exactly = 2) { fixture.settingsDataStore.setEnabledTools(setOf(ToolConstants.MEMORY)) }
+        }
+
+    @Test
+    fun `a settings chip's undo leaves a tool the sheet already turned back on`() =
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            vm.toggleTool(ToolConstants.MEMORY)
+            vm.toggleSettingChip(memoryChip)
+            // The "+" sheet's switch, before the snackbar's Undo.
+            vm.toggleTool(ToolConstants.MEMORY)
+
+            vm.turnSettingChipBackOn(memoryChip)
+            runCurrent()
+
+            // Turning it off again here would switch Memory off in every chat, unasked.
+            assertThat(vm.uiState.value.effectiveEnabledTools).contains(ToolConstants.MEMORY)
+        }
+
+    @Test
+    fun `an MCP settings chip switches its server and its undo brings it back`() =
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            val chip = SettingChip.Mcp("linear", "Linear", SettingChipState.ON, McpDisplayStatus.CONNECTED)
+            vm.toggleMcpServer("linear")
+            assertThat(vm.uiState.value.effectiveMcpServerNames).containsExactly("linear")
+
+            vm.toggleSettingChip(chip)
+            assertThat(vm.uiState.value.effectiveMcpServerNames).isEmpty()
+            assertThat(vm.uiState.value.effectiveEnabledTools).isEmpty()
+
+            vm.turnSettingChipBackOn(chip)
+            assertThat(vm.uiState.value.effectiveMcpServerNames).containsExactly("linear")
+        }
+
+    @Test
+    fun `the Thinking chip switches nothing`() = queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+        val chip = SettingChip.Thinking(
+            ThinkingChip(key = "reasoning_effort", options = listOf("", "low"), configured = "", pending = null, unsetIsOff = false),
+        )
+        val before = vm.uiState.value.selection
+
+        vm.toggleSettingChip(chip)
+        vm.turnSettingChipBackOn(chip)
+
+        assertThat(vm.uiState.value.selection).isEqualTo(before)
+    }
+
     @Test
     fun `undo puts a removed skill back where it was`() = queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
         listOf("first", "second", "third").forEach(vm::addPendingManualSkill)
@@ -655,5 +853,6 @@ class ChatViewModelQueuedSkillsTest {
         const val ENDPOINT = "anthropic"
         const val MODEL = "claude-haiku-4-5"
         const val TEXT = "Answer only in French."
+        const val STEERED_QUOTE = "the selected excerpt"
     }
 }
