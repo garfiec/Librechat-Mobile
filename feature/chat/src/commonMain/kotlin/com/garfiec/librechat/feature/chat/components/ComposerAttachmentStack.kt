@@ -126,7 +126,6 @@ internal fun ComposerAttachmentStack(
             .then(if (onClick != null) Modifier.clickable(onClickLabel = clickLabel, role = Role.Button, onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
-        if (items.hasUploads) UploadRing(uploadProgress::overall, RING_SIZE, MaterialTheme.colorScheme.primary)
         Box(
             modifier = Modifier
                 .width(TILE + TILE_STEP * (shown.size - 1))
@@ -144,6 +143,19 @@ internal fun ComposerAttachmentStack(
                         .offset(x = TILE_STEP * index)
                         .border(2.dp, ring, TileShape),
                 )
+            }
+            // On the front tile, as each list row draws its own.
+            if (items.hasUploads) {
+                Box(
+                    modifier = Modifier
+                        .offset(x = TILE_STEP * (shown.size - 1))
+                        .size(TILE)
+                        .clip(TileShape)
+                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.4f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    UploadRing(uploadProgress::overall, RING_SIZE, MaterialTheme.colorScheme.inverseOnSurface)
+                }
             }
         }
         if (count > 1) {
@@ -293,6 +305,6 @@ private val TileShape = RoundedCornerShape(8.dp)
 internal val STACK_SLOT = 48.dp
 private val TILE = 28.dp
 private val TILE_STEP = 12.dp
-private val RING_SIZE = 44.dp
+private val RING_SIZE = 16.dp
 private val BADGE = 16.dp
 private const val POP_SCALE = 1.16f
