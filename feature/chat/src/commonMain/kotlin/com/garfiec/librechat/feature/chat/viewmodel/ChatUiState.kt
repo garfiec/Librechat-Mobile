@@ -219,7 +219,6 @@ data class ChatUiState(
     val isAwaitingUploadSend: Boolean get() = composer.isAwaitingUploadSend
     val pendingQuotes: List<String> get() = composer.pendingQuotes
     val pendingDraftUndo: DraftUndo? get() = composer.pendingDraftUndo
-    val draftRestore: DraftRestore get() = composer.draftRestore
     val pendingManualSkills: List<String> get() = composer.pendingManualSkills
     val skillsToggle: Boolean get() = selection.skillsToggle
     val skillCatalog: List<CatalogSkill>? get() = presetPrompts.skillCatalog

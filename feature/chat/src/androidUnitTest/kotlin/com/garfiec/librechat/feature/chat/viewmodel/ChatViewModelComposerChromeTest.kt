@@ -147,7 +147,7 @@ class ChatViewModelComposerChromeTest {
 
             assertThat(vm.uiState.value.pendingQuotes).containsExactly(STEERED_QUOTE)
             assertThat(vm.uiState.value.messageQueue.single().quotes).isEmpty()
-            assertThat(vm.uiState.value.draftRestore).isEqualTo(DraftRestore.NONE)
+            assertThat(vm.uiState.value.composer.draftRestore).isEqualTo(DraftRestore.NONE)
         }
 
     @Test
@@ -209,7 +209,7 @@ class ChatViewModelComposerChromeTest {
             assertThat(vm.uiState.value.inputText).isEqualTo(QUEUED_TEXT)
             assertThat(vm.uiState.value.pendingQuotes).isEmpty()
             assertThat(vm.uiState.value.pendingManualSkills).isEmpty()
-            assertThat(vm.uiState.value.draftRestore)
+            assertThat(vm.uiState.value.composer.draftRestore)
                 .isEqualTo(DraftRestore(text = TEXT, quotes = listOf(STEERED_QUOTE), manualSkills = listOf(SKILL)))
         }
 
@@ -225,7 +225,7 @@ class ChatViewModelComposerChromeTest {
             assertThat(vm.uiState.value.inputText).isEqualTo(TEXT)
             assertThat(vm.uiState.value.pendingQuotes).containsExactly(STEERED_QUOTE)
             assertThat(vm.uiState.value.pendingManualSkills).containsExactly(SKILL)
-            assertThat(vm.uiState.value.draftRestore).isEqualTo(DraftRestore.NONE)
+            assertThat(vm.uiState.value.composer.draftRestore).isEqualTo(DraftRestore.NONE)
         }
 
     @Test
@@ -265,7 +265,7 @@ class ChatViewModelComposerChromeTest {
             io.mockk.clearMocks(fixture.draftRepository, answers = false, recordedCalls = true)
 
             earlyAbort()
-            assertThat(vm.uiState.value.draftRestore).isEqualTo(DraftRestore.NONE)
+            assertThat(vm.uiState.value.composer.draftRestore).isEqualTo(DraftRestore.NONE)
             vm.cancelQueuedEdit()
             runCurrent()
 
