@@ -57,6 +57,9 @@ class ChatViewModelComposerChromeTest {
     /** The resumed run's SSE events; a test ends the run by emitting its Final. */
     private val resumedStream = MutableSharedFlow<StreamEvent>(extraBufferCapacity = 8)
 
+    /** Every run a `startChat` opens; a test ends one by emitting its Final. */
+    private val sentStream = MutableSharedFlow<StreamEvent>(extraBufferCapacity = 8)
+
     /** How many `startChat`s the ViewModel fired. */
     private val sent = mutableListOf<Unit>()
 
@@ -69,8 +72,12 @@ class ChatViewModelComposerChromeTest {
             every { configRepository.detectedBackend } returns
                 MutableStateFlow(DetectedBackend("0.8.8-rc1", BackendBuildClass.RC))
             every { configRepository.detectedBackendVersion } returns MutableStateFlow("0.8.8-rc1")
+            // The agents endpoint advertises skills, so chips can be staged in this anthropic chat.
             every { configRepository.endpointConfigs } returns MutableStateFlow(
-                mapOf(ENDPOINT to EndpointConfig(), EndpointConstants.AGENTS to EndpointConfig()),
+                mapOf(
+                    ENDPOINT to EndpointConfig(),
+                    EndpointConstants.AGENTS to EndpointConfig(capabilities = listOf(ToolConstants.SKILLS)),
+                ),
             )
             every { configRepository.availableModels } returns MutableStateFlow(mapOf(ENDPOINT to listOf(MODEL)))
             every { settingsDataStore.selectedMcpServers } returns flowOf(emptySet())
@@ -92,7 +99,7 @@ class ChatViewModelComposerChromeTest {
                 )
             } answers {
                 sent += Unit
-                MutableSharedFlow()
+                sentStream
             }
         }
     }
@@ -154,6 +161,115 @@ class ChatViewModelComposerChromeTest {
             assertThat(saved.text).isEqualTo("Then summarise briefly.")
             assertThat(saved.quotes).isEmpty()
             assertThat(vm.uiState.value.pendingQuotes).containsExactly(STEERED_QUOTE)
+        }
+
+    /**
+     * Ends the resumed run, sends [TEXT] with [STEERED_QUOTE] and [SKILL], queues a follow-up behind
+     * it with [draftAfterQueue] typed into the new-message draft, and opens the follow-up for editing.
+     * Returns the queued item.
+     */
+    private suspend fun TestScope.sendThenEditQueued(vm: ChatViewModel, draftAfterQueue: String = ""): QueuedMessage {
+        resumedStream.emit(cleanFinal())
+        runCurrent()
+        vm.addPendingQuote(STEERED_QUOTE)
+        vm.addPendingManualSkill(SKILL)
+        vm.onInputChanged(TEXT)
+        vm.sendMessage()
+        runCurrent()
+        assertThat(vm.uiState.value.isStreaming).isTrue()
+        assertThat(vm.uiState.value.pendingQuotes).isEmpty()
+        assertThat(vm.uiState.value.pendingManualSkills).isEmpty()
+        vm.onInputChanged(QUEUED_TEXT)
+        vm.queueMessage()
+        runCurrent()
+        if (draftAfterQueue.isNotEmpty()) vm.onInputChanged(draftAfterQueue)
+        val queued = vm.uiState.value.messageQueue.single()
+        vm.editQueued(queued.localId)
+        runCurrent()
+        assertThat(vm.uiState.value.isEditingQueued).isTrue()
+        return queued
+    }
+
+    /** Stop landed before the server's `created`: nothing was saved, so the turn is un-sent. */
+    private suspend fun TestScope.earlyAbort() {
+        sentStream.emit(StreamEvent.Final(aborted = true, earlyAbort = true))
+        runCurrent()
+    }
+
+    @Test
+    fun `an un-sent turn during a queued edit leaves the edit's composer alone`() =
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            sendThenEditQueued(vm)
+
+            earlyAbort()
+
+            assertThat(vm.uiState.value.isEditingQueued).isTrue()
+            assertThat(vm.uiState.value.inputText).isEqualTo(QUEUED_TEXT)
+            assertThat(vm.uiState.value.pendingQuotes).isEmpty()
+            assertThat(vm.uiState.value.pendingManualSkills).isEmpty()
+            assertThat(vm.uiState.value.draftRestore)
+                .isEqualTo(DraftRestore(text = TEXT, quotes = listOf(STEERED_QUOTE), manualSkills = listOf(SKILL)))
+        }
+
+    @Test
+    fun `an un-sent turn during a queued edit comes back to the draft on cancel`() =
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            sendThenEditQueued(vm)
+            earlyAbort()
+
+            vm.cancelQueuedEdit()
+            runCurrent()
+
+            assertThat(vm.uiState.value.inputText).isEqualTo(TEXT)
+            assertThat(vm.uiState.value.pendingQuotes).containsExactly(STEERED_QUOTE)
+            assertThat(vm.uiState.value.pendingManualSkills).containsExactly(SKILL)
+            assertThat(vm.uiState.value.draftRestore).isEqualTo(DraftRestore.NONE)
+        }
+
+    @Test
+    fun `an un-sent turn during a queued edit stays off the saved item`() =
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            sendThenEditQueued(vm)
+            earlyAbort()
+
+            vm.onInputChanged("$QUEUED_TEXT Briefly.")
+            vm.commitQueuedEdit()
+            runCurrent()
+
+            val saved = vm.uiState.value.messageQueue.single()
+            assertThat(saved.text).isEqualTo("$QUEUED_TEXT Briefly.")
+            assertThat(saved.quotes).isEmpty()
+            assertThat(saved.manualSkills).isEmpty()
+            assertThat(vm.uiState.value.inputText).isEqualTo(TEXT)
+            assertThat(vm.uiState.value.pendingQuotes).containsExactly(STEERED_QUOTE)
+            assertThat(vm.uiState.value.pendingManualSkills).containsExactly(SKILL)
+        }
+
+    @Test
+    fun `an un-sent turn during a queued edit saves its text as the conversation's draft`() =
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            sendThenEditQueued(vm)
+            io.mockk.clearMocks(fixture.draftRepository, answers = false, recordedCalls = true)
+
+            earlyAbort()
+
+            coVerify(exactly = 1) { fixture.draftRepository.saveDraft(CONVERSATION_ID, TEXT) }
+        }
+
+    @Test
+    fun `an un-sent turn during a queued edit yields to a draft the user typed`() =
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            sendThenEditQueued(vm, draftAfterQueue = "My own next question")
+            io.mockk.clearMocks(fixture.draftRepository, answers = false, recordedCalls = true)
+
+            earlyAbort()
+            assertThat(vm.uiState.value.draftRestore).isEqualTo(DraftRestore.NONE)
+            vm.cancelQueuedEdit()
+            runCurrent()
+
+            assertThat(vm.uiState.value.inputText).isEqualTo("My own next question")
+            assertThat(vm.uiState.value.pendingQuotes).isEmpty()
+            coVerify(exactly = 0) { fixture.draftRepository.saveDraft(any(), TEXT) }
         }
 
     private val failedUpload = AttachedFile(uri = "f", name = "report.pdf", uploadFailed = true)
@@ -387,5 +503,7 @@ class ChatViewModelComposerChromeTest {
         const val MODEL = "claude-haiku-4-5"
         const val TEXT = "Answer only in French."
         const val STEERED_QUOTE = "the selected excerpt"
+        const val SKILL = "translator"
+        const val QUEUED_TEXT = "Then summarise."
     }
 }
