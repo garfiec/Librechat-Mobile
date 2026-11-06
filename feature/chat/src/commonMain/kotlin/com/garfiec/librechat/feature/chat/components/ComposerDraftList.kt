@@ -24,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -31,10 +32,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.files.fileKindOf
 import com.garfiec.librechat.core.model.response.UploadRoute
@@ -220,6 +223,17 @@ private fun removeDescription(item: DraftItem): String = when (item) {
 
     is DraftItem.Skill -> stringResource(Res.string.cd_remove_skill, item.name)
     is DraftItem.Quote -> stringResource(Res.string.cd_remove_quote_named, item.text.take(QUOTE_CD_CHARS))
+}
+
+/**
+ * [draftListMinHeight] for the panel as it draws now: the header's, a row's name and its subtitle's
+ * text styles, at the font size in effect.
+ */
+@Composable
+@ReadOnlyComposable
+internal fun draftListMinHeight(): Dp {
+    val type = MaterialTheme.typography
+    return LocalDensity.current.draftListMinHeight(header = type.titleSmall, name = type.bodyMedium, subtitle = type.bodySmall)
 }
 
 internal val DRAFT_ROW_HEIGHT = 52.dp

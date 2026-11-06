@@ -69,6 +69,7 @@ import com.garfiec.librechat.feature.chat.components.UpdateAvailableBanner
 import com.garfiec.librechat.feature.chat.components.UploadRoutingSheet
 import com.garfiec.librechat.feature.chat.components.addToChatSelectionItem
 import com.garfiec.librechat.feature.chat.components.draftListBottom
+import com.garfiec.librechat.feature.chat.components.draftListMinHeight
 import com.garfiec.librechat.feature.chat.components.draftListNeedsRoom
 import com.garfiec.librechat.feature.chat.components.mcpapp.rememberLegacyUiResources
 import com.garfiec.librechat.feature.chat.components.mcpapp.rememberMcpApps
@@ -856,11 +857,13 @@ fun ChatScreen(
                             collapsedToolPanel = toolPanelCollapsedHeightPx.toDp().takeIf { toolPause != null },
                         )
                     }
+                    val draftListMinHeight = draftListMinHeight()
                     val draftListNeedsRoom = with(LocalDensity.current) {
                         draftListNeedsRoom(
                             height = chatHeightPx.toDp(),
                             bottom = draftListBottomEdge,
                             barBottom = topContentPadding,
+                            minHeight = draftListMinHeight,
                         )
                     }
                     // Too little room below the top bar: the keyboard takes it, so it goes down. Keyed

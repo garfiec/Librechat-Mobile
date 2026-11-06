@@ -8,6 +8,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -44,23 +46,38 @@ internal class DraftListState(initiallyOpen: Boolean = false) {
 internal fun rememberDraftListState(): DraftListState = rememberSaveable(saver = DraftListState.Saver) { DraftListState() }
 
 /**
- * The least height the list is usable in at 1x font: its header (12dp above a 20dp `titleSmall` line,
- * 4dp below), one row and the rows' 4dp bottom padding, as [ComposerDraftListPanel] lays them out.
+ * The least height the list is usable in: its header (12dp above a [header] line, 4dp below), one row
+ * and the rows' 4dp bottom padding, as [ComposerDraftListPanel] lays them out. A row is 52dp, or its
+ * [name] and [subtitle] lines with their 4dp padding where those are taller. The lines are in sp, so
+ * this follows the font size in effect: 92dp at 1x, about 130dp at 2x.
  */
-internal val DRAFT_LIST_MIN_HEIGHT = 12.dp + 20.dp + 4.dp + DRAFT_ROW_HEIGHT + 4.dp
+internal fun Density.draftListMinHeight(header: TextStyle, name: TextStyle, subtitle: TextStyle): Dp {
+    val row = maxOf(DRAFT_ROW_HEIGHT, 4.dp + lineHeightOf(name) + lineHeightOf(subtitle) + 4.dp)
+    return 12.dp + lineHeightOf(header) + 4.dp + row + 4.dp
+}
+
+private fun Density.lineHeightOf(style: TextStyle): Dp {
+    val lineHeight = style.lineHeight
+    return when {
+        lineHeight.isSp -> lineHeight.toDp()
+        lineHeight.isEm && style.fontSize.isSp -> style.fontSize.toDp() * lineHeight.value
+        style.fontSize.isSp -> style.fontSize.toDp()
+        else -> 0.dp
+    }
+}
 
 /** Between the attachment list and what it sits on. */
 internal val DRAFT_LIST_GAP = 4.dp
 
 /**
  * Whether the list, below the floating top bar ([barBottom]) and above [bottom] (what it sits on, and
- * the gap), needs the keyboard down to get [DRAFT_LIST_MIN_HEIGHT] out of a screen [height] tall
- * above the keyboard: the keyboard up on a short or landscape phone, a tall queue above the field.
- * The list never goes higher than the bar, which draws over it and takes its taps. Before the screen
- * is measured ([height] 0) it fits.
+ * the gap), needs the keyboard down to get [minHeight] ([draftListMinHeight]) out of a screen
+ * [height] tall above the keyboard: the keyboard up on a short or landscape phone, a tall queue above
+ * the field, a large font. The list never goes higher than the bar, which draws over it and takes its
+ * taps. Before the screen is measured ([height] 0) it fits.
  */
-internal fun draftListNeedsRoom(height: Dp, bottom: Dp, barBottom: Dp): Boolean =
-    height > 0.dp && height - bottom - barBottom < DRAFT_LIST_MIN_HEIGHT
+internal fun draftListNeedsRoom(height: Dp, bottom: Dp, barBottom: Dp, minHeight: Dp): Boolean =
+    height > 0.dp && height - bottom - barBottom < minHeight
 
 /**
  * Where the list's bottom edge sits above the screen's: on the [composer], or, while a tool-approval
