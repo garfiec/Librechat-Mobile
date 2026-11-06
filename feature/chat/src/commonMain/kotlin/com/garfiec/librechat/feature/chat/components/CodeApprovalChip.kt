@@ -60,12 +60,14 @@ internal fun approvalIcon(option: CodeApprovalOption): ImageVector = when (optio
 /**
  * Web's `CodeApprovalMenu`: how much the coding agent may do on its machine without asking. Icon-only
  * on "Ask before changes", the default and safest mode, so a mode that does more always shows its
- * name. [onLine]: drawn on the settings line rather than the workspace card.
+ * name; but named whenever there is no other mode to pick, since a bare icon that opens nothing
+ * explains nothing. [onLine]: drawn on the settings line rather than the workspace card.
  */
 @Composable
 internal fun ApprovalChip(approval: CodeApprovalChip, onSelect: (CodeApprovalOption) -> Unit, onLine: Boolean = false) {
     var expanded by remember { mutableStateOf(false) }
     val label = stringResource(approvalLabel(approval.selected))
+    val picks = approval.options.size > 1
     val description = stringResource(Res.string.cd_code_chip, stringResource(Res.string.code_approval_mode), label)
     Box {
         CodeChip(
@@ -73,8 +75,8 @@ internal fun ApprovalChip(approval: CodeApprovalChip, onSelect: (CodeApprovalOpt
             label = label,
             description = description,
             tonal = onLine,
-            iconOnly = approval.selected == CodeApprovalOption.ASK,
-            onClick = if (approval.options.size > 1) ({ expanded = true }) else null,
+            iconOnly = picks && approval.selected == CodeApprovalOption.ASK,
+            onClick = if (picks) ({ expanded = true }) else null,
         )
         AdaptiveDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             Text(

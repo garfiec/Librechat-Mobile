@@ -30,6 +30,7 @@ import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -94,7 +95,7 @@ import com.garfiec.librechat.feature.chat.util.DraftItem
 import com.garfiec.librechat.feature.chat.util.DraftItemTap
 import com.garfiec.librechat.feature.chat.util.DraftItems
 import com.garfiec.librechat.feature.chat.util.DraftUploadProgress
-import com.garfiec.librechat.feature.chat.util.tapFor
+import com.garfiec.librechat.feature.chat.util.taps
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -119,6 +120,10 @@ internal fun ComposerDraftStrip(chrome: ComposerChrome) {
             onTap = chrome.onDraftItemTap,
             uploadProgress = chrome.draftUploadProgress,
             additions = chrome.draftAdditions,
+            // While it shrinks away the items it shows are gone (sent or removed): nothing acts on them.
+            enabled = !chrome.draftItems.isEmpty,
+            // A vertical drag on it scrolls the thread, as on the rows above the box.
+            modifier = Modifier.passVerticalDragsToThread(),
         )
     }
 }
@@ -137,7 +142,7 @@ private class KeptDraftItems {
  * The strip's row: an image as a 56dp thumbnail, a file, skill or quote as a card with its name and
  * kind, each with a corner × ([removeDescription]: cancels a file still uploading, else removes the
  * item with an Undo). An uploading item carries the upload ring ([UploadOverlay]), a failed one a red
- * cover. A tap is [tapFor]'s: a failed file retries, an image opens in the media viewer (and flies
+ * cover. A tap is [taps]'s: a failed file retries, an image opens in the media viewer (and flies
  * back into its tile as the viewer closes), an uploaded file opens in the PDF preview or the file
  * actions; a file still uploading, a skill and a quote aren't tappable.
  *
@@ -158,8 +163,11 @@ internal fun DraftStrip(
     uploadProgress: DraftUploadProgress = DraftUploadProgress.NONE,
     /** What was just added, for the pop and the announcement; null draws neither (previews). */
     additions: DraftAdditions? = null,
+    /** False: drawn only (taps and × do nothing). */
+    enabled: Boolean = true,
 ) {
     val count = items.items.size
+    val taps = remember(items) { items.taps() }
     val countDescription = pluralStringResource(Res.plurals.cd_draft_stack, count, count)
     val description = additions?.lastAdded
         ?.let { pluralStringResource(Res.plurals.draft_item_attached_announcement, count, it, count) }
@@ -185,11 +193,10 @@ internal fun DraftStrip(
         ) {
             items.items.forEach { item ->
                 key(item.key) {
-                    val tap = remember(items, item) { items.tapFor(item) }
                     DraftStripItem(
                         item = item,
-                        tap = tap,
-                        onRemove = { onRemove(item) },
+                        tap = taps[item.key]?.takeIf { enabled },
+                        onRemove = { if (enabled) onRemove(item) },
                         onTap = onTap,
                         uploadProgress = uploadProgress,
                         additions = additions,
@@ -254,7 +261,7 @@ private fun DraftStripItem(
                     .size(IMAGE_TILE)
                     .semantics { contentDescription = "$label, $subtitle" },
             ) {
-                DraftItemTile(item = item, size = IMAGE_TILE)
+                DraftItemTile(item = item, size = IMAGE_TILE, shape = ItemShape)
                 if (uploading) UploadOverlay({ uploadProgress.of(item.file) }, IMAGE_TILE)
                 if (failed) FailedCover()
             }
@@ -282,17 +289,20 @@ private fun DraftCard(
     modifier: Modifier = Modifier,
     tileOverlay: @Composable () -> Unit = {},
 ) {
-    val container = if (isLiquidGlass) {
-        AdaptiveChipDefaults.overlayContainerColor()
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerHighest
+    // Glass's fill is the box's own, so a glass card takes the outline as its edge.
+    val glass = isLiquidGlass
+    val container = if (glass) AdaptiveChipDefaults.overlayContainerColor() else MaterialTheme.colorScheme.surfaceContainerHighest
+    val edge = when {
+        failed -> Modifier.border(2.dp, MaterialTheme.colorScheme.error, ItemShape)
+        glass -> Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, ItemShape)
+        else -> Modifier
     }
     Row(
         modifier = modifier
             .heightIn(min = IMAGE_TILE)
             .widthIn(min = CARD_MIN_WIDTH, max = CARD_MAX_WIDTH)
             .background(container)
-            .then(if (failed) Modifier.border(2.dp, MaterialTheme.colorScheme.error, ItemShape) else Modifier)
+            .then(edge)
             .semantics(mergeDescendants = true) {}
             .padding(start = 12.dp, end = 16.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -401,15 +411,19 @@ internal fun UploadOverlay(progress: () -> Float?, tileSize: Dp, modifier: Modif
     }
 }
 
-/** One draft item's tile: an image's thumbnail, a file's type tile, a skill's or a quote's glyph. */
+/**
+ * One draft item's tile: an image's thumbnail, a file's type tile, a skill's or a quote's glyph, in
+ * [shape]. An image's [shape] is also what the media viewer flies back into, so it must match the clip
+ * around the tile.
+ */
 @Composable
-internal fun DraftItemTile(item: DraftItem, size: Dp, modifier: Modifier = Modifier) {
+internal fun DraftItemTile(item: DraftItem, size: Dp, modifier: Modifier = Modifier, shape: CornerBasedShape = TileShape) {
     when (item) {
         is DraftItem.Image -> Box(
             modifier = modifier
                 .size(size)
                 // Where the media viewer flies back to as it closes.
-                .mediaThumbnail(item.mediaKey, TileShape)
+                .mediaThumbnail(item.mediaKey, shape)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center,
         ) {
@@ -431,7 +445,7 @@ internal fun DraftItemTile(item: DraftItem, size: Dp, modifier: Modifier = Modif
 
         is DraftItem.File -> {
             val kind = remember(item.file.name, item.file.type) { fileKindOf(item.file.name, item.file.type) }
-            FileTypeTile(kind = kind, size = size, shape = TileShape, modifier = modifier)
+            FileTypeTile(kind = kind, size = size, shape = shape, modifier = modifier)
         }
 
         is DraftItem.Skill -> GlyphTile(
@@ -439,6 +453,7 @@ internal fun DraftItemTile(item: DraftItem, size: Dp, modifier: Modifier = Modif
             container = MaterialTheme.colorScheme.secondaryContainer,
             content = MaterialTheme.colorScheme.onSecondaryContainer,
             size = size,
+            shape = shape,
             modifier = modifier,
         )
 
@@ -447,6 +462,7 @@ internal fun DraftItemTile(item: DraftItem, size: Dp, modifier: Modifier = Modif
             container = MaterialTheme.colorScheme.tertiaryContainer,
             content = MaterialTheme.colorScheme.onTertiaryContainer,
             size = size,
+            shape = shape,
             modifier = modifier,
         )
     }
@@ -458,12 +474,13 @@ private fun GlyphTile(
     container: Color,
     content: Color,
     size: Dp,
+    shape: CornerBasedShape,
     modifier: Modifier = Modifier,
 ) {
     Box(
         modifier = modifier
             .size(size)
-            .clip(TileShape)
+            .clip(shape)
             .background(container),
         contentAlignment = Alignment.Center,
     ) {

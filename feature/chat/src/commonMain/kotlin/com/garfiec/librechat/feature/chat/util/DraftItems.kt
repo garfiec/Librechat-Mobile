@@ -176,7 +176,7 @@ private fun serverCopyOf(file: AttachedFile, serverUrl: String): String? {
     return resolveFileReferenceUrl(FileReference(fileId = file.fileId, filepath = file.filepath, type = file.type), serverUrl)
 }
 
-/** What a tap on an item of the attachment strip does; null leaves the item untappable. */
+/** What a tap on an item of the attachment strip does ([taps]); null leaves the item untappable. */
 sealed interface DraftItemTap {
     /** A failed upload: try it again. */
     data class Retry(val file: AttachedFile) : DraftItemTap
@@ -192,21 +192,28 @@ sealed interface DraftItemTap {
 }
 
 /**
- * The tap on [item]'s row. A failed file retries. An image opens in the media viewer, from the device's
- * copy while it uploads. Another file opens once it is uploaded (both viewers read it from the
- * server), by the rule the media page's Files tab uses ([conversationFileTap]); until then, and for a
- * skill or a quote, the row isn't tappable.
+ * Each item's tap, by [DraftItem.key]. A failed file retries. An image opens in the media viewer, from
+ * the device's copy while it uploads. Another file opens once it is uploaded (both viewers read it from
+ * the server), by the rule the media page's Files tab uses ([conversationFileTap]); until then, and
+ * for a skill or a quote, the item isn't tappable (null). The viewer's page list is built once for all
+ * the images.
  */
-fun DraftItems.tapFor(item: DraftItem): DraftItemTap? {
+fun DraftItems.taps(): Map<String, DraftItemTap?> {
+    val images = items.filterIsInstance<DraftItem.Image>().filter { !it.isFailed && it.viewerSource != null }
+    val media by lazy(LazyThreadSafetyMode.NONE) {
+        images.map {
+            MediaItem(url = it.mediaKey, contentDescription = it.file.name, filename = it.file.name, model = it.viewerSource)
+        }
+    }
+    return items.associate { item -> item.key to tapOf(item, images) { media } }
+}
+
+private fun tapOf(item: DraftItem, images: List<DraftItem.Image>, media: () -> List<MediaItem>): DraftItemTap? {
     if (item !is DraftItem.Attachment) return null
     if (item.isFailed) return DraftItemTap.Retry(item.file)
     if (item is DraftItem.Image) {
-        val images = items.filterIsInstance<DraftItem.Image>().filter { !it.isFailed && it.viewerSource != null }
         val index = images.indexOf(item).takeIf { it >= 0 } ?: return null
-        val media = images.map {
-            MediaItem(url = it.mediaKey, contentDescription = it.file.name, filename = it.file.name, model = it.viewerSource)
-        }
-        return DraftItemTap.ViewImage(MediaPreviewState(items = media, initialIndex = index))
+        return DraftItemTap.ViewImage(MediaPreviewState(items = media(), initialIndex = index))
     }
     val file = item.file
     val fileId = file.fileId ?: return null

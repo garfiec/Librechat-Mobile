@@ -155,20 +155,22 @@ class DraftItemsTest {
             serverUrl = "https://chat.example",
         )
         fun item(name: String) = items.items.first { it.label() == name }
+        val taps = items.taps()
+        fun tap(name: String) = taps.getValue(item(name).key)
 
-        assertEquals(DraftItemTap.Retry(failedShot), items.tapFor(item("shot.png")))
+        assertEquals(DraftItemTap.Retry(failedShot), tap("shot.png"))
 
-        val view = items.tapFor(item("second.jpg")) as DraftItemTap.ViewImage
+        val view = tap("second.jpg") as DraftItemTap.ViewImage
         // Pages through the draft's images that can be drawn, failed ones left out.
         assertEquals(listOf("photo.jpg", "second.jpg"), view.preview.items.map { it.contentDescription })
         assertEquals(1, view.preview.initialIndex)
         assertEquals((item("second.jpg") as DraftItem.Image).mediaKey, view.preview.items[1].url)
         assertEquals("https://chat.example/images/u/second.jpg", view.preview.items[1].model)
 
-        assertEquals(DraftItemTap.OpenPdf("f-pdf", "spec.pdf"), items.tapFor(item("spec.pdf")))
-        val open = items.tapFor(item("rows.csv")) as DraftItemTap.OpenFile
+        assertEquals(DraftItemTap.OpenPdf("f-pdf", "spec.pdf"), tap("spec.pdf"))
+        val open = tap("rows.csv") as DraftItemTap.OpenFile
         assertEquals("f-csv", open.attachment.fileId)
-        assertNull(items.tapFor(item("data.csv")))
-        assertNull(items.tapFor(item("brand-voice")))
+        assertNull(tap("data.csv"))
+        assertNull(tap("brand-voice"))
     }
 }

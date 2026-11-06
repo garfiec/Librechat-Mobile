@@ -1073,7 +1073,8 @@ the iOS ones are not compiled on a Linux host, so a signature change there is on
   child consumed goes to `LocalThreadScrollHandle`, fling included. It watches on the Main pass, so a
   child that claims the gesture keeps it (a horizontal chip row past its slop, the queue's long-press
   reorder once it fired, the steer and queue region's own scroll). The decision is the pure
-  `PassThroughDrag`. The box and the `/` `$` picker are outside the stack. Trade-off: the stack's
+  `PassThroughDrag`. The box's button row and attachment strip carry it too; the field and the
+  `/` `$` picker don't. Trade-off: the stack's
   area no longer passes taps through to the thread behind it.
 - **`ThreadScrollHandle`** is created in `ChatScreen` (above both the thread and the composer) and
   bound by `ChatContent`, which owns the `LazyListState`s, to the list the composer covers
@@ -1116,7 +1117,7 @@ recompose only when an upload starts or stops reporting a progress.
   the strip, so the first item into an empty draft counts too; a draft already there when the screen
   opens doesn't. Nothing draws in the field's leading slot but wide Compare's badges
   (`composerFieldLeadingIcon`), so the phone's A·B pill keeps the field's start.
-- **An item's tap** is `DraftItems.tapFor` (`util/DraftItems.kt`, pure): a failed file retries; an
+- **An item's tap** is `DraftItems.taps` (`util/DraftItems.kt`, pure, built once per draft): a failed file retries; an
   image opens the chat's media viewer on the draft's images (`ChatViewModel.openDraftMedia`), each a
   `MediaItem` keyed `DraftItem.Image.mediaKey` whose `model` is the device's full copy (an Android
   content `Uri`; on iOS the server's copy once uploaded, else the small picker preview), and each

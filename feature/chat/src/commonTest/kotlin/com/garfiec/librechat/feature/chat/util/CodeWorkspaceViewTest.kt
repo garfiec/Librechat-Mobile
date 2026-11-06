@@ -101,6 +101,8 @@ class CodeWorkspaceViewTest {
         assertFalse(ui.locked)
         assertTrue(ui.workspace.opensSheet)
         assertEquals("switchboard", ui.workspace.name)
+        // Named as the sealed chat's chip will be, so the first send doesn't rename it.
+        assertEquals("garfie-mbp", ui.machine?.name)
         assertEquals("develop", ui.branch)
         assertEquals(CodeCheckoutMode.WORKTREE, ui.checkout?.mode)
         assertTrue(ui.checkout?.pickable == true)
@@ -108,6 +110,27 @@ class CodeWorkspaceViewTest {
         assertTrue(row.selected)
         assertNotNull(row.checkout)
         assertTrue(row.checkout!!.offersWorktree)
+    }
+
+    @Test
+    fun anUndecidedPickWithAMachineToChooseKeepsTheCard() {
+        // The machine picker is the card's alone: folding would hide it before the send seals the pick.
+        val vm = PublicCodeEnvironment(id = "build-vm", type = "attached")
+        val chooser = dev.copy(codeEnvironmentIds = listOf(vm.id))
+        val ui = codeWorkspaceUiState(
+            CodeWorkspaceResolver.resolve(
+                capabilities.copy(
+                    statefulCodeSessions = StatefulCodeSessionsConfig(environments = listOf(mbp, vm), allowEnvironmentSelection = true),
+                ),
+                chat(CodeEnvironmentMode.ATTACHED, listOf(CodeWorkspaceSelection(mbp.id, "switchboard", "isolated"))),
+                mapOf(dev.id to chooser),
+                mapOf(mbp.id to StatusResult.Loaded(CodeEnvironmentStatus(mbp.id, "ready", listOf(switchboard, librechat)))),
+            ),
+            CodeEnvironmentMode.ATTACHED, null, null, sheetOpen = false, attention = false,
+        )
+        assertFalse(ui.holdsSend)
+        assertEquals(2, ui.machine?.choices?.size)
+        assertCard(ui)
     }
 
     @Test

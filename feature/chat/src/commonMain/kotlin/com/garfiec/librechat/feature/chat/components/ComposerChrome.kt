@@ -44,7 +44,7 @@ data class ComposerChrome(
     val draftAdditions: DraftAdditions? = null,
     /** A strip item's ×: cancels a file still uploading, else removes the item with an Undo. */
     val onRemoveDraftItem: (DraftItem) -> Unit = {},
-    /** A strip item's tap ([com.garfiec.librechat.feature.chat.util.tapFor]): retry, or open the item. */
+    /** A strip item's tap ([com.garfiec.librechat.feature.chat.util.taps]): retry, or open the item. */
     val onDraftItemTap: (DraftItemTap) -> Unit = {},
     /** The tools in use, for the "+" button's dot. */
     val enabledTools: Set<String> = emptySet(),

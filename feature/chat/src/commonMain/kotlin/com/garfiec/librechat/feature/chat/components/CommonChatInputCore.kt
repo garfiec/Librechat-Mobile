@@ -547,7 +547,8 @@ private fun ComposerButtonRow(
 ) {
     val chrome = state.chrome
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        // A vertical drag on the row (the chips, the buttons) scrolls the thread, as on the rows above.
+        modifier = Modifier.fillMaxWidth().passVerticalDragsToThread(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         leadingButtons(compact)
