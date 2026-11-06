@@ -1237,10 +1237,10 @@
         <item quantity="other">%1$d элемента с этим сообщением</item>
     </plurals>
     <plurals name="draft_item_attached_announcement">
-        <item quantity="one">%1$s прикреплено, %2$d элемент</item>
-        <item quantity="few">%1$s прикреплено, %2$d элемента</item>
-        <item quantity="many">%1$s прикреплено, %2$d элементов</item>
-        <item quantity="other">%1$s прикреплено, %2$d элемента</item>
+        <item quantity="one">Прикреплено: %1$s, %2$d элемент</item>
+        <item quantity="few">Прикреплено: %1$s, %2$d элемента</item>
+        <item quantity="many">Прикреплено: %1$s, %2$d элементов</item>
+        <item quantity="other">Прикреплено: %1$s, %2$d элемента</item>
     </plurals>
     <plurals name="draft_list_header">
         <item quantity="one">С этим сообщением · %1$d</item>
