@@ -55,6 +55,7 @@ import com.garfiec.librechat.feature.chat.components.ComposerChrome
 import com.garfiec.librechat.feature.chat.components.ComposerComparison
 import com.garfiec.librechat.feature.chat.components.ComposerComparisonHint
 import com.garfiec.librechat.feature.chat.components.ComposerDraftListPanel
+import com.garfiec.librechat.feature.chat.components.DraftListPauseEffects
 import com.garfiec.librechat.feature.chat.components.LandingStarters
 import com.garfiec.librechat.feature.chat.components.LocalCodeRunHost
 import com.garfiec.librechat.feature.chat.components.LocalCodeWorkspaceComposer
@@ -67,7 +68,8 @@ import com.garfiec.librechat.feature.chat.components.ToolContentHost
 import com.garfiec.librechat.feature.chat.components.UpdateAvailableBanner
 import com.garfiec.librechat.feature.chat.components.UploadRoutingSheet
 import com.garfiec.librechat.feature.chat.components.addToChatSelectionItem
-import com.garfiec.librechat.feature.chat.components.draftListFit
+import com.garfiec.librechat.feature.chat.components.draftListBottom
+import com.garfiec.librechat.feature.chat.components.draftListNeedsRoom
 import com.garfiec.librechat.feature.chat.components.mcpapp.rememberLegacyUiResources
 import com.garfiec.librechat.feature.chat.components.mcpapp.rememberMcpApps
 import com.garfiec.librechat.feature.chat.components.rememberChatAttachmentActions
@@ -97,6 +99,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.asString
 import com.garfiec.librechat.feature.chat.viewmodel.conversationUiResources
 import com.garfiec.librechat.feature.chat.viewmodel.isEmptyLanding
 import com.garfiec.librechat.feature.chat.viewmodel.neutralizeStreamingChurn
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -193,6 +196,8 @@ fun ChatScreen(
     var composerHeightPx by remember { mutableIntStateOf(0) }
     // The screen's height above the keyboard, for the room the list has between the bar and the composer.
     var chatHeightPx by remember { mutableIntStateOf(0) }
+    // A tool-approval panel's height while collapsed: the list opens above it during the pause.
+    var toolPanelCollapsedHeightPx by remember { mutableIntStateOf(0) }
     LaunchedEffect(draftItems.isEmpty) { if (draftItems.isEmpty) draftList.close() }
     PlatformBackHandler(enabled = draftList.isOpen) { draftList.close() }
     val prefs by viewModel.chatPreferences.collectAsStateWithLifecycle()
@@ -571,10 +576,13 @@ fun ChatScreen(
                     // Everything here is measured together so the list's bottom inset clears it.
                     val askPause = uiState.renderablePendingAction?.takeIf { it.isAskUserQuestion }
                     val toolPause = uiState.renderablePendingAction?.takeIf { it.isToolApproval }
-                    // A pause panel takes the space above the composer: the attachment list gives way,
-                    // and the stack doesn't open it while the panel is up (it would cover the panel).
+                    // A pause panel takes the space above the composer: the attachment list gives way
+                    // as it comes up. During a tool-approval pause the stack still opens the list (the
+                    // only place a failed file is retried or removed), collapsing the panel so the
+                    // list fits above it; expanding the panel again closes the list.
                     val pausePanelUp = askPause != null || toolPause != null
-                    LaunchedEffect(pausePanelUp) { if (pausePanelUp) draftList.close() }
+                    val toolPauseExpanded = toolPause != null && !uiState.toolPanelCollapsed
+                    DraftListPauseEffects(draftList, pausePanelUp = pausePanelUp, toolPauseExpanded = toolPauseExpanded)
                     val composerChrome = ComposerChrome(
                         pendingSteers = uiState.pendingSteers,
                         onCancelSteer = viewModel::cancelSteer,
@@ -599,7 +607,11 @@ fun ChatScreen(
                         onSnoozeCompact = viewModel::snoozeCompactNudge,
                         compactSuggested = uiState.compactNudgeOnToolsButton,
                         contextBarPlacement = uiState.contextBarPlacement,
-                    ).withDraftList(draftList, blocked = pausePanelUp)
+                    ).withDraftList(
+                        draftList,
+                        toolPauseExpanded = toolPauseExpanded,
+                        onCollapseToolPause = { viewModel.setToolPanelCollapsed(true) },
+                    )
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
@@ -631,6 +643,7 @@ fun ChatScreen(
                                 )
                             }
                             toolPause?.let { pause ->
+                                val panelCollapsed = uiState.toolPanelCollapsed
                                 ToolApprovalPanel(
                                     pendingAction = pause,
                                     isResolving = uiState.isResolvingPendingAction,
@@ -647,6 +660,8 @@ fun ChatScreen(
                                     // gets only the height it leaves.
                                     modifier = Modifier
                                         .weight(1f, fill = false)
+                                        // With its top padding: the attachment list sits on it.
+                                        .onSizeChanged { if (panelCollapsed) toolPanelCollapsedHeightPx = it.height }
                                         .padding(start = 12.dp, end = 12.dp, top = 8.dp),
                                 )
                             }
@@ -827,22 +842,34 @@ fun ChatScreen(
                         }
                     }
 
-                    // The attachment list, over the thread just above the composer. Outside the
-                    // measured box above, so opening it doesn't move the thread's bottom inset, and
-                    // drawn after it, so the landing starters and the update banner docked there
-                    // neither draw over its rows nor take their taps. A pause panel closes it.
-                    val draftListShown = composerChrome.isDraftListOpen && !draftItems.isEmpty
-                    val draftListFit = with(LocalDensity.current) {
-                        draftListFit(
-                            height = chatHeightPx.toDp(),
-                            bottom = composerHeightPx.toDp() + DraftListGap,
-                            barBottom = topContentPadding,
-                            statusBarTop = statusBarTop,
+                    // The attachment list, over the thread just above the composer, or above a
+                    // tool-approval panel docked on it. Outside the measured box above, so opening it
+                    // doesn't move the thread's bottom inset, and drawn after it, so the landing
+                    // starters and the update banner docked there neither draw over its rows nor take
+                    // their taps. Under an ask pause (the composer is gone) and an expanded approval
+                    // panel it doesn't show; opening it collapses the panel first.
+                    val draftListShown = composerChrome.isDraftListOpen && !draftItems.isEmpty &&
+                        askPause == null && !toolPauseExpanded
+                    val draftListBottomEdge = with(LocalDensity.current) {
+                        draftListBottom(
+                            composer = composerHeightPx.toDp(),
+                            collapsedToolPanel = toolPanelCollapsedHeightPx.toDp().takeIf { toolPause != null },
                         )
                     }
-                    // Too little room even under the top bar: the keyboard takes it, so it goes down.
-                    LaunchedEffect(draftListShown, draftListFit.needsRoom) {
-                        if (draftListShown && draftListFit.needsRoom) keyboardController?.hide()
+                    val draftListNeedsRoom = with(LocalDensity.current) {
+                        draftListNeedsRoom(
+                            height = chatHeightPx.toDp(),
+                            bottom = draftListBottomEdge,
+                            barBottom = topContentPadding,
+                        )
+                    }
+                    // Too little room below the top bar: the keyboard takes it, so it goes down. Keyed
+                    // on the panel's height too, so while a collapsing approval panel animates down
+                    // the wait restarts and the keyboard goes only if the settled layout lacks room.
+                    LaunchedEffect(draftListShown, draftListNeedsRoom, toolPanelCollapsedHeightPx) {
+                        if (!draftListShown || !draftListNeedsRoom) return@LaunchedEffect
+                        if (toolPause != null) delay(DraftListSettleMillis)
+                        keyboardController?.hide()
                     }
                     if (draftListShown) {
                         ComposerDraftListPanel(
@@ -855,11 +882,11 @@ fun ChatScreen(
                                 .padding(
                                     start = 12.dp,
                                     end = 12.dp,
-                                    // Clear of the floating top bar, so its rows stay visible and
-                                    // tappable with the keyboard up, and it scrolls in what is left;
-                                    // under the bar's scrim when that leaves too little (draftListFit).
-                                    top = draftListFit.top,
-                                    bottom = with(LocalDensity.current) { composerHeightPx.toDp() } + DraftListGap,
+                                    // Clear of the floating top bar, which draws over it and takes
+                                    // its taps, so its rows stay visible and tappable with the
+                                    // keyboard up, and it scrolls in what is left.
+                                    top = topContentPadding,
+                                    bottom = draftListBottomEdge,
                                 )
                                 .widthIn(max = DraftListMaxWidth)
                                 .onGloballyPositioned { draftListBounds = it.boundsInParent() },
@@ -1044,8 +1071,8 @@ fun NewChatScreen(
 /** The attachment list keeps to a phone's width on a wide pane, under the stack it opened from. */
 private val DraftListMaxWidth = 480.dp
 
-/** Between the attachment list and the composer it opens from. */
-private val DraftListGap = 4.dp
+/** How long the list's layout must hold still during a tool pause before it hides the keyboard for room. */
+private const val DraftListSettleMillis = 120L
 
 /** The native iOS bar's toggle centre, from the bar's bottom-end corner: before the ⋯ button. */
 private val NativeToggleFromEnd = 82.dp

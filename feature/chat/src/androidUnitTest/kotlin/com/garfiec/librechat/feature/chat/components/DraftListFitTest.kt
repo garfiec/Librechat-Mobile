@@ -5,62 +5,57 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 /**
- * The attachment list keeps room for its header and a row: below the top bar while it fits there,
- * under the bar's scrim when it doesn't, and with the keyboard down when even that is too little.
+ * The attachment list keeps below the top bar (which draws over it and takes its taps) and asks for
+ * the keyboard down when that leaves less than its header and one row. During a tool-approval pause
+ * it sits on the collapsed panel rather than over it.
  */
 class DraftListFitTest {
 
-    private val statusBar = 24.dp
     private val bar = 80.dp
+    private val composer = 128.dp
 
     @Test
-    fun aPhoneWithRoomKeepsTheListBelowTheTopBar() {
+    fun aPhoneWithRoomKeepsTheKeyboard() {
         // 780dp phone, keyboard down, a plain composer.
-        val fit = draftListFit(height = 780.dp, bottom = 128.dp, barBottom = bar, statusBarTop = statusBar)
-
-        assertThat(fit).isEqualTo(DraftListFit(top = bar, needsRoom = false))
+        assertThat(draftListNeedsRoom(height = 780.dp, bottom = composer, barBottom = bar)).isFalse()
     }
 
     @Test
-    fun aListThatWouldBeASliverBelowTheBarGoesUnderItsScrim() {
-        // 300dp above the keyboard and a 128dp composer leave 92dp below the bar, 148dp below the status bar.
-        val fit = draftListFit(height = 300.dp, bottom = 128.dp, barBottom = bar, statusBarTop = statusBar)
+    fun theHeaderAndOneRowBelowTheBarFit() {
+        // 300dp above the keyboard and a 128dp composer leave 92dp below the bar: the header and a row.
+        assertThat(draftListNeedsRoom(height = 300.dp, bottom = composer, barBottom = bar)).isFalse()
+    }
 
-        assertThat(fit).isEqualTo(DraftListFit(top = statusBar, needsRoom = false))
+    @Test
+    fun lessThanTheHeaderAndARowAsksForTheKeyboardDown() {
+        assertThat(draftListNeedsRoom(height = 299.dp, bottom = composer, barBottom = bar)).isTrue()
     }
 
     @Test
     fun aTallComposerWithTheKeyboardUpAsksForTheKeyboardDown() {
-        // 780dp phone with a 300dp keyboard, three queued messages and the workspace card: about
-        // 30dp would be left below the bar, and under 100dp even below the status bar.
-        val fit = draftListFit(height = 480.dp, bottom = 374.dp, barBottom = bar, statusBarTop = statusBar)
-
-        assertThat(fit).isEqualTo(DraftListFit(top = statusBar, needsRoom = true))
+        // 780dp phone with a 300dp keyboard, three queued messages and the workspace card.
+        assertThat(draftListNeedsRoom(height = 480.dp, bottom = 374.dp, barBottom = bar)).isTrue()
     }
 
     @Test
     fun aLandscapePhoneWithTheKeyboardUpAsksForTheKeyboardDown() {
-        val fit = draftListFit(height = 211.dp, bottom = 128.dp, barBottom = bar, statusBarTop = statusBar)
-
-        assertThat(fit.needsRoom).isTrue()
+        assertThat(draftListNeedsRoom(height = 211.dp, bottom = composer, barBottom = bar)).isTrue()
     }
 
     @Test
-    fun beforeTheScreenIsMeasuredTheListTakesTheBarsInset() {
-        val fit = draftListFit(height = 0.dp, bottom = 0.dp, barBottom = bar, statusBarTop = statusBar)
-
-        assertThat(fit).isEqualTo(DraftListFit(top = bar, needsRoom = false))
+    fun beforeTheScreenIsMeasuredTheListFits() {
+        assertThat(draftListNeedsRoom(height = 0.dp, bottom = 0.dp, barBottom = bar)).isFalse()
     }
 
     @Test
-    fun theMinimumIsTheHeaderAndOneRow() {
-        assertThat(DRAFT_LIST_MIN_HEIGHT).isEqualTo(100.dp)
-        val exact = draftListFit(
-            height = bar + DRAFT_LIST_MIN_HEIGHT + 128.dp,
-            bottom = 128.dp,
-            barBottom = bar,
-            statusBarTop = statusBar,
-        )
-        assertThat(exact.top).isEqualTo(bar)
+    fun theMinimumIsTheHeaderARowAndThePanelsPadding() {
+        assertThat(DRAFT_LIST_MIN_HEIGHT).isEqualTo(92.dp)
+    }
+
+    @Test
+    fun theListSitsOnTheComposerOrOnACollapsedApprovalPanel() {
+        assertThat(draftListBottom(composer = composer, collapsedToolPanel = null)).isEqualTo(composer + DRAFT_LIST_GAP)
+        assertThat(draftListBottom(composer = composer, collapsedToolPanel = 56.dp))
+            .isEqualTo(composer + 56.dp + DRAFT_LIST_GAP)
     }
 }

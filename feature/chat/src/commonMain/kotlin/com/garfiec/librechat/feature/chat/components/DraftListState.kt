@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,12 +25,8 @@ internal class DraftListState(initiallyOpen: Boolean = false) {
     var focusHeader by mutableStateOf(false)
         private set
 
-    /**
-     * Opens or closes the list, from a touch or a screen reader's click ([fromScreenReader]). While
-     * [blocked] (a pause panel holds the space it opens into) it only closes.
-     */
-    fun toggle(fromScreenReader: Boolean, blocked: Boolean) {
-        if (blocked && !isOpen) return
+    /** Opens or closes the list, from a touch or a screen reader's click ([fromScreenReader]). */
+    fun toggle(fromScreenReader: Boolean) {
         focusHeader = fromScreenReader && !isOpen
         isOpen = !isOpen
     }
@@ -46,33 +43,62 @@ internal class DraftListState(initiallyOpen: Boolean = false) {
 @Composable
 internal fun rememberDraftListState(): DraftListState = rememberSaveable(saver = DraftListState.Saver) { DraftListState() }
 
-/** The least height the list is usable in: its header and one row. */
-internal val DRAFT_LIST_MIN_HEIGHT = 48.dp + DRAFT_ROW_HEIGHT
+/**
+ * The least height the list is usable in at 1x font: its header (12dp above a 20dp `titleSmall` line,
+ * 4dp below), one row and the rows' 4dp bottom padding, as [ComposerDraftListPanel] lays them out.
+ */
+internal val DRAFT_LIST_MIN_HEIGHT = 12.dp + 20.dp + 4.dp + DRAFT_ROW_HEIGHT + 4.dp
 
-/** Where the list's top edge goes ([top]), and whether it needs the keyboard down to fit ([needsRoom]). */
-internal data class DraftListFit(val top: Dp, val needsRoom: Boolean)
+/** Between the attachment list and what it sits on. */
+internal val DRAFT_LIST_GAP = 4.dp
 
 /**
- * Fits the list into a screen [height] tall (above the keyboard) whose composer and gap take
- * [bottom]: below the floating top bar ([barBottom]) while that leaves [DRAFT_LIST_MIN_HEIGHT];
- * else under the bar's scrim, below only the status bar ([statusBarTop]); and when even that is too
- * little (the keyboard up on a short or landscape phone, a tall queue above the field), there too,
- * asking for the keyboard to go down so the list has its rows. Before the screen is measured
- * ([height] 0) it takes the bar's inset.
+ * Whether the list, below the floating top bar ([barBottom]) and above [bottom] (what it sits on, and
+ * the gap), needs the keyboard down to get [DRAFT_LIST_MIN_HEIGHT] out of a screen [height] tall
+ * above the keyboard: the keyboard up on a short or landscape phone, a tall queue above the field.
+ * The list never goes higher than the bar, which draws over it and takes its taps. Before the screen
+ * is measured ([height] 0) it fits.
  */
-internal fun draftListFit(height: Dp, bottom: Dp, barBottom: Dp, statusBarTop: Dp): DraftListFit = when {
-    height <= 0.dp || height - bottom - barBottom >= DRAFT_LIST_MIN_HEIGHT -> DraftListFit(barBottom, needsRoom = false)
-    height - bottom - statusBarTop >= DRAFT_LIST_MIN_HEIGHT -> DraftListFit(statusBarTop, needsRoom = false)
-    else -> DraftListFit(statusBarTop, needsRoom = true)
+internal fun draftListNeedsRoom(height: Dp, bottom: Dp, barBottom: Dp): Boolean =
+    height > 0.dp && height - bottom - barBottom < DRAFT_LIST_MIN_HEIGHT
+
+/**
+ * Where the list's bottom edge sits above the screen's: on the [composer], or, while a tool-approval
+ * panel is docked above it, on that panel collapsed ([collapsedToolPanel], null without one), so the
+ * list never covers the panel.
+ */
+internal fun draftListBottom(composer: Dp, collapsedToolPanel: Dp?): Dp = composer + (collapsedToolPanel ?: 0.dp) + DRAFT_LIST_GAP
+
+/**
+ * This chrome with the attachment list's state and toggles. [toolPauseExpanded]: a tool-approval
+ * panel docked above the composer is expanded, taking the space the list opens into, so opening the
+ * list collapses it ([onCollapseToolPause]) and the list opens above it. The list stays reachable
+ * during the pause: it is the only place a failed file is retried or removed, and that file holds the
+ * run's next send.
+ */
+internal fun ComposerChrome.withDraftList(
+    state: DraftListState,
+    toolPauseExpanded: Boolean = false,
+    onCollapseToolPause: () -> Unit = {},
+): ComposerChrome {
+    fun toggle(fromScreenReader: Boolean) {
+        state.toggle(fromScreenReader)
+        if (state.isOpen && toolPauseExpanded) onCollapseToolPause()
+    }
+    return copy(
+        isDraftListOpen = state.isOpen,
+        onToggleDraftList = { toggle(fromScreenReader = false) },
+        onToggleDraftListFromScreenReader = { toggle(fromScreenReader = true) },
+        onFieldFocused = state::close,
+    )
 }
 
 /**
- * This chrome with the attachment list's state and toggles. [blocked]: a pause panel holds the space
- * above the composer, so the list reads closed and doesn't open.
+ * Closes the list when a pause panel comes up ([pausePanelUp]), so the user sees the panel, and when
+ * the tool-approval panel is expanded again over it ([toolPauseExpanded]).
  */
-internal fun ComposerChrome.withDraftList(state: DraftListState, blocked: Boolean): ComposerChrome = copy(
-    isDraftListOpen = state.isOpen && !blocked,
-    onToggleDraftList = { state.toggle(fromScreenReader = false, blocked = blocked) },
-    onToggleDraftListFromScreenReader = { state.toggle(fromScreenReader = true, blocked = blocked) },
-    onFieldFocused = state::close,
-)
+@Composable
+internal fun DraftListPauseEffects(state: DraftListState, pausePanelUp: Boolean, toolPauseExpanded: Boolean) {
+    LaunchedEffect(pausePanelUp) { if (pausePanelUp) state.close() }
+    LaunchedEffect(toolPauseExpanded) { if (toolPauseExpanded) state.close() }
+}
