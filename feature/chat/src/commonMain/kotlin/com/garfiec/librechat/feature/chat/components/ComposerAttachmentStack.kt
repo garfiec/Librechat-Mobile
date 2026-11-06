@@ -146,16 +146,7 @@ internal fun ComposerAttachmentStack(
             }
             // On the front tile, as each list row draws its own.
             if (items.hasUploads) {
-                Box(
-                    modifier = Modifier
-                        .offset(x = TILE_STEP * (shown.size - 1))
-                        .size(TILE)
-                        .clip(TileShape)
-                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.4f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    UploadRing(uploadProgress::overall, RING_SIZE, MaterialTheme.colorScheme.inverseOnSurface)
-                }
+                UploadOverlay(uploadProgress::overall, TILE, Modifier.offset(x = TILE_STEP * (shown.size - 1)))
             }
         }
         if (count > 1) {
@@ -178,23 +169,36 @@ internal fun ComposerAttachmentStack(
 }
 
 /**
- * An upload's ring: determinate while [progress] reports one, else indeterminate. [progress] is read
- * as the ring draws, so a tick redraws it and recomposes nothing; only a switch between reported and
- * unreported recomposes it.
+ * An uploading tile's cover: a dark scrim over the [tileSize] tile and a white ring on it, so it
+ * reads on any photo in either theme. The ring is determinate while [progress] reports one, else
+ * indeterminate. [progress] is read as the ring draws, so a tick redraws it and recomposes nothing;
+ * only a switch between reported and unreported recomposes it.
  */
 @Composable
-internal fun UploadRing(progress: () -> Float?, size: Dp, color: Color) {
-    val current by rememberUpdatedState(progress)
-    val determinate by remember { derivedStateOf { current() != null } }
-    if (determinate) {
-        AdaptiveCircularProgressIndicator(
-            progress = { current() ?: 0f },
-            modifier = Modifier.size(size),
-            strokeWidth = 2.dp,
-            color = color,
-        )
-    } else {
-        AdaptiveCircularProgressIndicator(modifier = Modifier.size(size), strokeWidth = 2.dp, color = color)
+internal fun UploadOverlay(progress: () -> Float?, tileSize: Dp, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.size(tileSize).background(UploadScrim, TileShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        val current by rememberUpdatedState(progress)
+        val determinate by remember { derivedStateOf { current() != null } }
+        val ringModifier = Modifier.size(tileSize * RING_FRACTION)
+        if (determinate) {
+            AdaptiveCircularProgressIndicator(
+                progress = { current() ?: 0f },
+                modifier = ringModifier,
+                strokeWidth = RING_STROKE,
+                color = Color.White,
+                trackColor = UploadTrack,
+            )
+        } else {
+            AdaptiveCircularProgressIndicator(
+                modifier = ringModifier,
+                strokeWidth = RING_STROKE,
+                color = Color.White,
+                trackColor = UploadTrack,
+            )
+        }
     }
 }
 
@@ -305,6 +309,11 @@ private val TileShape = RoundedCornerShape(8.dp)
 internal val STACK_SLOT = 48.dp
 private val TILE = 28.dp
 private val TILE_STEP = 12.dp
-private val RING_SIZE = 16.dp
+private const val RING_FRACTION = 0.72f
+private val RING_STROKE = 3.dp
+
+// Fixed, not theme colours: the overlay sits on a photo, whose colours no theme knows.
+private val UploadScrim = Color(0x8C000000)
+private val UploadTrack = Color(0x4DFFFFFF)
 private val BADGE = 16.dp
 private const val POP_SCALE = 1.16f

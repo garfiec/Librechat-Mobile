@@ -1,6 +1,5 @@
 package com.garfiec.librechat.feature.chat.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
@@ -29,7 +28,6 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalDensity
@@ -150,13 +148,7 @@ private fun DraftItemRow(
         Box(contentAlignment = Alignment.Center) {
             DraftItemTile(item = item, size = ROW_TILE)
             if (attachment != null && attachment.isUploading) {
-                Box(
-                    modifier = Modifier
-                        .size(ROW_TILE)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.4f)),
-                )
-                UploadRing({ uploadProgress.of(attachment.file) }, 20.dp, MaterialTheme.colorScheme.inverseOnSurface)
+                UploadOverlay({ uploadProgress.of(attachment.file) }, ROW_TILE)
             }
         }
         Spacer(Modifier.width(12.dp))

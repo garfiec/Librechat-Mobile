@@ -1096,7 +1096,7 @@ What goes with the message is **one list, `DraftItems`**, mapped by the pure `dr
 `ChatViewModel.attachedFiles`), and carried on `ComposerChrome.draftItems`. Order: failed files
 first, then images, files, skills, quotes. **Upload progress is not in it**: `ChatScreen` maps the
 files with their progress stripped (a `derivedStateOf`), so a progress tick re-maps nothing and
-the chrome stays equal; the rings (`UploadRing`, on the stack and each uploading row) read
+the chrome stays equal; the rings (`UploadOverlay`: a white ring on a dark scrim over the front stack tile and each uploading row's tile) read
 `DraftUploadProgress` (`ComposerChrome.draftUploadProgress`) as they draw, and recompose only when
 an upload starts or stops reporting a progress.
 - **The stack** (`ComposerAttachmentStack`) is the field's M3 `leadingIcon`, through
