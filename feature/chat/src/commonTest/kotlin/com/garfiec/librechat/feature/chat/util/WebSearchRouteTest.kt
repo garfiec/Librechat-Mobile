@@ -146,6 +146,15 @@ class WebSearchRouteTest {
     }
 
     @Test
+    fun `a custom endpoint takes the provider its parameter set names as the server does`() {
+        assertEquals(BuiltInSearchProvider.OPENROUTER, builtInSearchProvider("Router", emptyList(), settingsKey = "openrouter"))
+        assertEquals(BuiltInSearchProvider.ANTHROPIC, builtInSearchProvider("openrouter-x", emptyList(), settingsKey = "anthropic"))
+        assertEquals(BuiltInSearchProvider.GOOGLE, builtInSearchProvider("Vertex", emptyList(), settingsKey = "google"))
+        assertEquals(BuiltInSearchProvider.OPENROUTER, builtInSearchProvider("my-openrouter", emptyList(), settingsKey = "custom"))
+        assertNull(builtInSearchProvider("Ollama", emptyList(), settingsKey = "custom"))
+    }
+
+    @Test
     fun `other endpoints have none`() {
         assertNull(builtInSearchProvider("bedrock", emptyList()))
         assertNull(builtInSearchProvider("Ollama", emptyList()))

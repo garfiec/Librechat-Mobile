@@ -20,6 +20,7 @@ import com.garfiec.librechat.core.model.config.EndpointDropParams
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecSkills
 import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.core.model.config.paramSettingsKey
 import com.garfiec.librechat.core.model.config.supportsUrlContext
 import com.garfiec.librechat.core.model.content.Compaction
 import com.garfiec.librechat.core.model.endpoint.KeyState
@@ -62,6 +63,7 @@ import com.garfiec.librechat.feature.chat.util.changedPartIndices
 import com.garfiec.librechat.feature.chat.util.composerReasoningSetting
 import com.garfiec.librechat.feature.chat.util.parameterTarget
 import com.garfiec.librechat.feature.chat.util.pickableSkills
+import com.garfiec.librechat.feature.chat.util.presetTools
 import com.garfiec.librechat.feature.chat.util.reasoningTarget
 import com.garfiec.librechat.feature.chat.util.requiresSpec
 import com.garfiec.librechat.feature.chat.util.resolveLandingStarters
@@ -75,6 +77,9 @@ import com.garfiec.librechat.feature.chat.util.webSearchRoute
  * Not in [ToolConstants]: it is a file-delivery capability, not a tool the composer can toggle.
  */
 private const val FILE_CONTEXT_CAPABILITY = "context"
+
+/** Endpoint types the server sends a preset's `web_search` to (`getOpenAIConfig`, Anthropic, Google); bedrock takes none. */
+private val BUILT_IN_SEARCH_ENDPOINT_TYPES = setOf("openAI", "azureOpenAI", "anthropic", "google", "custom")
 
 @Immutable
 data class ChatUiState(
@@ -587,9 +592,39 @@ data class ChatUiState(
     val builtInSearchProvider: BuiltInSearchProvider?
         get() {
             if (!showEphemeralTools) return null
-            val dropParams = EndpointDropParams.resolve(gates.dropParamsMap, selectedEndpoint, null, selectedModel)
-            return builtInSearchProvider(selectedEndpoint, dropParams)
+            return builtInSearchProvider(selectedEndpoint, webSearchDropParams, paramSettingsKey(selectedEndpoint, endpointConfigs))
         }
+
+    private val webSearchDropParams: List<String>
+        get() = EndpointDropParams.resolve(gates.dropParamsMap, selectedEndpoint, null, selectedModel)
+
+    /**
+     * Whether the server runs the spec preset's built-in search whatever the request says: under
+     * `enforce` it sends the preset, and every endpoint on the OpenAI-compatible, Anthropic or Google
+     * path takes `web_search` (a custom one is moved to the Responses API). So the route must not add
+     * LibreChat search beside it, even where [builtInSearchProvider] can't name the provider.
+     */
+    private val builtInSearchEnforced: Boolean
+        get() {
+            val spec = selection.activeSpec ?: return false
+            if (!parametersSetBySpec || !showEphemeralTools || ToolConstants.WEB_SEARCH !in spec.presetTools) return false
+            val type = endpointConfigs[selectedEndpoint]?.type?.takeIf { it.isNotBlank() } ?: selectedEndpoint
+            return type in BUILT_IN_SEARCH_ENDPOINT_TYPES && ToolConstants.WEB_SEARCH !in webSearchDropParams
+        }
+
+    /** Whether the server loads LibreChat's search tool (`loadToolDefinitionsWrapper`'s capability check). */
+    private val librechatSearchCapable: Boolean
+        get() = agentCapabilityAllows(ToolConstants.WEB_SEARCH)
+
+    /**
+     * Whether the agents endpoint's `capabilities` allow [capability]. Fails OPEN on a missing list,
+     * as the server (`resolveAgentCapabilities`) and web fall back to the defaults, and on an empty
+     * one, which the client can't tell from missing (`EndpointConfig.capabilities` defaults to empty).
+     */
+    private fun agentCapabilityAllows(capability: String): Boolean {
+        val capabilities = endpointConfigs[EndpointConstants.AGENTS]?.capabilities ?: return true
+        return capabilities.isEmpty() || capability in capabilities
+    }
 
     /**
      * Which web search a send runs: [webSearchTarget] while the control is on. Read by every send
@@ -618,9 +653,10 @@ data class ChatUiState(
             spec = selection.activeSpec,
             comparing = comparisonState.isEnabled,
             preference = prefs.webSearchFirst,
-            librechatUsable = webSearchEnabled && gates.librechatSearchReady,
-            builtInAvailable = gates.webSearchPermitted && builtInSearchProvider != null,
-            librechatChecking = webSearchEnabled && gates.librechatSearchChecking,
+            librechatUsable = webSearchEnabled && librechatSearchCapable && gates.librechatSearchReady,
+            builtInAvailable = gates.webSearchPermitted && (builtInSearchProvider != null || builtInSearchEnforced),
+            librechatChecking = webSearchEnabled && librechatSearchCapable && gates.librechatSearchChecking,
+            keepsBuiltIn = selection.keepsBuiltInSearch,
         )
 
     /** [webSearchTarget] with the provider it would run on, for the control's caption. */
@@ -902,8 +938,7 @@ data class ChatUiState(
             // extraction the server performs happily, and one admin narrowing agent capabilities
             // would switch the feature off app-wide.
             if (selectedEndpoint != EndpointConstants.AGENTS) return true
-            val capabilities = endpointConfigs[EndpointConstants.AGENTS]?.capabilities ?: return true
-            return capabilities.isEmpty() || FILE_CONTEXT_CAPABILITY in capabilities
+            return agentCapabilityAllows(FILE_CONTEXT_CAPABILITY)
         }
 
     /**
