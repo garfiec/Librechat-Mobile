@@ -39,8 +39,8 @@
 ## One screen, five platform seams
 `ChatScreen` / `NewChatScreen` are a single commonMain composable for both platforms. Where the
 platforms genuinely differ, the screen calls an `expect`, never an `if (platform)`:
-- `ChatComposer` — `ChatInput` on Android, `IosChatInput` on iOS. iOS's clipboard-image paste lives
-  inside its actual (`onPasteFiles` is ignored on Android).
+- `ChatComposer` — `ChatInput` on Android, `IosChatInput` on iOS. Each actual takes pasted images
+  itself and hands copies to `onPasteFiles` (Android: `imageContentReceiver`).
 - `rememberChatAttachmentActions` — activity-result launchers vs the native iOS pickers.
 - `rememberChatStartRecording` — Android routes API 26–30 through the system recognizer overlay.
 - `Modifier.addToChatSelectionItem` — a no-op on iOS.

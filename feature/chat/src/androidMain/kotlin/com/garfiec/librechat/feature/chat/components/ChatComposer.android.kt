@@ -1,7 +1,9 @@
 package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
 import com.garfiec.librechat.feature.chat.model.PickerSkill
@@ -61,53 +63,56 @@ internal actual fun ChatComposer(
     fontSizeMultiplier: Float,
     modifier: Modifier,
 ) {
-    KeyboardImageInput(enabled = gates.fileUploadEnabled, onImages = onPasteFiles, scope = pasteScope) {
-        ChatInput(
-            inputText = inputText,
-            isStreaming = isStreaming,
-            onInputChange = onInputChange,
-            onSend = onSend,
-            onStop = onStop,
-            onOpenTools = onOpenTools,
-            onDuringRunSend = onDuringRunSend,
-            onQueue = onQueue,
-            canQueue = canQueue,
-            onSteer = onSteer,
-            onInterrupt = onInterrupt,
-            canSteer = canSteer,
-            builtInSearchOn = builtInSearchOn,
-            duringRunAction = duringRunAction,
-            duringRunSendTarget = duringRunSendTarget,
-            chrome = chrome,
-            onSetDuringRunAction = onSetDuringRunAction,
-            promptSuggestions = promptSuggestions,
-            skillSuggestions = skillSuggestions,
-            isLoadingSkills = isLoadingSkills,
-            skillsLoadFailed = skillsLoadFailed,
-            canPickSkills = canPickSkills,
-            onRetrySkills = onRetrySkills,
-            onPickerSelect = onPickerSelect,
-            isRecording = isRecording,
-            isTranscribing = isTranscribing,
-            onStartRecording = onStartRecording,
-            onStopRecording = onStopRecording,
-            selectedModelDisplay = selectedModelDisplay,
-            isCodeInterpreterAvailable = isCodeInterpreterAvailable,
-            gates = gates,
-            queuedPausedCount = queuedPausedCount,
-            queueHeldForRefusal = queueHeldForRefusal,
-            isTemporaryChat = isTemporaryChat,
-            onSendQueuedMessages = onSendQueuedMessages,
-            isEditingQueued = isEditingQueued,
-            onCommitEdit = onCommitEdit,
-            onCancelEdit = onCancelEdit,
-            isAwaitingUploadSend = isAwaitingUploadSend,
-            arePicksUnsettled = arePicksUnsettled,
-            comparison = comparison,
-            comparisonHint = comparisonHint,
-            onCancelPendingSend = onCancelPendingSend,
-            fontSizeMultiplier = fontSizeMultiplier,
-            modifier = modifier,
-        )
+    val context = LocalContext.current
+    // On the whole composer, so an image dropped anywhere on it attaches; the field pastes into it.
+    val receiver = remember(gates.fileUploadEnabled, context, pasteScope, onPasteFiles) {
+        if (gates.fileUploadEnabled) Modifier.imageContentReceiver(context, pasteScope, onPasteFiles) else Modifier
     }
+    ChatInput(
+        inputText = inputText,
+        isStreaming = isStreaming,
+        onInputChange = onInputChange,
+        onSend = onSend,
+        onStop = onStop,
+        onOpenTools = onOpenTools,
+        onDuringRunSend = onDuringRunSend,
+        onQueue = onQueue,
+        canQueue = canQueue,
+        onSteer = onSteer,
+        onInterrupt = onInterrupt,
+        canSteer = canSteer,
+        builtInSearchOn = builtInSearchOn,
+        duringRunAction = duringRunAction,
+        duringRunSendTarget = duringRunSendTarget,
+        chrome = chrome,
+        onSetDuringRunAction = onSetDuringRunAction,
+        promptSuggestions = promptSuggestions,
+        skillSuggestions = skillSuggestions,
+        isLoadingSkills = isLoadingSkills,
+        skillsLoadFailed = skillsLoadFailed,
+        canPickSkills = canPickSkills,
+        onRetrySkills = onRetrySkills,
+        onPickerSelect = onPickerSelect,
+        isRecording = isRecording,
+        isTranscribing = isTranscribing,
+        onStartRecording = onStartRecording,
+        onStopRecording = onStopRecording,
+        selectedModelDisplay = selectedModelDisplay,
+        isCodeInterpreterAvailable = isCodeInterpreterAvailable,
+        gates = gates,
+        queuedPausedCount = queuedPausedCount,
+        queueHeldForRefusal = queueHeldForRefusal,
+        isTemporaryChat = isTemporaryChat,
+        onSendQueuedMessages = onSendQueuedMessages,
+        isEditingQueued = isEditingQueued,
+        onCommitEdit = onCommitEdit,
+        onCancelEdit = onCancelEdit,
+        isAwaitingUploadSend = isAwaitingUploadSend,
+        arePicksUnsettled = arePicksUnsettled,
+        comparison = comparison,
+        comparisonHint = comparisonHint,
+        onCancelPendingSend = onCancelPendingSend,
+        fontSizeMultiplier = fontSizeMultiplier,
+        modifier = modifier.then(receiver),
+    )
 }

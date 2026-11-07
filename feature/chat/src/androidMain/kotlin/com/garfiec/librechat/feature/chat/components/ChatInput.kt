@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
@@ -27,7 +27,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.ui.components.pressBounce
-import com.garfiec.librechat.core.ui.components.rememberDraftField
+import com.garfiec.librechat.core.ui.components.rememberDraftTextField
 import com.garfiec.librechat.core.ui.components.rememberPressBounce
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
@@ -100,7 +100,7 @@ fun ChatInput(
 
     // inputText reaches here a frame or more after each keystroke; the field keeps its own text and
     // takes only the ViewModel's own writes (STT, prompt insertion, the clear on send).
-    val field = rememberDraftField(inputText)
+    val field = rememberDraftTextField(inputText, onInputChange)
 
     val state = ChatInputState(
         inputText = inputText,
@@ -176,12 +176,11 @@ fun ChatInput(
         textFieldContent = {
             Box(modifier = Modifier.weight(1f)) {
                 val compactComparison = comparison?.takeIf { it.compact }
-                val comparisonCollapsed = compactComparison?.collapsedFor(field.value.text) == true
+                val comparisonCollapsed = compactComparison?.collapsedFor(field.state.text.toString()) == true
                 val comparisonCollapse by animateComposerComparisonCollapse(comparisonCollapsed)
                 // The composer draws its own field (ChatInputDefaults), glass included; not the adaptive one.
                 OutlinedTextField(
-                    value = field.value,
-                    onValueChange = { field.onValueChange(it, onInputChange) },
+                    state = field.state,
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 48.dp, max = 160.dp)
@@ -204,8 +203,7 @@ fun ChatInput(
                     textStyle = MaterialTheme.typography.bodyLarge,
                     colors = ChatInputDefaults.textFieldColors(),
                     keyboardOptions = ChatInputDefaults.keyboardOptions,
-                    keyboardActions = KeyboardActions.Default,
-                    maxLines = 6,
+                    lineLimits = TextFieldLineLimits.MultiLine(maxHeightInLines = 6),
                 )
                 if (compactComparison != null) {
                     ComposerComparisonMorph(
