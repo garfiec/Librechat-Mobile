@@ -363,7 +363,7 @@
     <string name="context_bar_title">استخدام السياق</string>
     <string name="context_bar_desc">مكان عرض مؤشر استخدام نافذة السياق</string>
     <string name="context_bar_hidden">مخفي</string>
-    <string name="context_bar_above_input">فوق مربع الرسالة</string>
+    <string name="context_bar_above_input">داخل مربع الرسالة</string>
     <string name="context_bar_options_sheet">قائمة خيارات المحادثة</string>
     <string name="context_bar_overflow_menu">قائمة الشريط العلوي (⋮)</string>
     <string name="show_image_descriptions">إظهار أوصاف الصور</string>

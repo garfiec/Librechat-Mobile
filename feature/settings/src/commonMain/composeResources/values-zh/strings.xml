@@ -333,7 +333,7 @@
     <string name="context_bar_title">上下文用量</string>
     <string name="context_bar_desc">上下文窗口用量指示器的显示位置</string>
     <string name="context_bar_hidden">隐藏</string>
-    <string name="context_bar_above_input">消息框上方</string>
+    <string name="context_bar_above_input">消息框内</string>
     <string name="context_bar_options_sheet">聊天选项菜单</string>
     <string name="context_bar_overflow_menu">顶栏菜单 (⋮)</string>
     <string name="show_image_descriptions">显示图片描述</string>

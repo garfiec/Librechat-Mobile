@@ -339,7 +339,7 @@
     <string name="context_bar_title">Uso del contexto</string>
     <string name="context_bar_desc">Dónde mostrar el indicador de uso de la ventana de contexto</string>
     <string name="context_bar_hidden">Oculto</string>
-    <string name="context_bar_above_input">Encima del cuadro de mensaje</string>
+    <string name="context_bar_above_input">En el cuadro de mensaje</string>
     <string name="context_bar_options_sheet">Menú de opciones del chat</string>
     <string name="context_bar_overflow_menu">Menú de la barra superior (⋮)</string>
     <string name="show_image_descriptions">Mostrar descripciones de imágenes</string>

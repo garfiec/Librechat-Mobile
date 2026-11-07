@@ -333,7 +333,7 @@
     <string name="context_bar_title">コンテキスト使用量</string>
     <string name="context_bar_desc">コンテキストウィンドウ使用量ゲージの表示場所</string>
     <string name="context_bar_hidden">非表示</string>
-    <string name="context_bar_above_input">メッセージ入力欄の上</string>
+    <string name="context_bar_above_input">メッセージ入力欄内</string>
     <string name="context_bar_options_sheet">チャットオプションメニュー</string>
     <string name="context_bar_overflow_menu">トップバーのメニュー (⋮)</string>
     <string name="show_image_descriptions">画像の説明を表示</string>

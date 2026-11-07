@@ -102,7 +102,7 @@ internal fun ComposerSettingsLine(
         Row(
             modifier = Modifier
                 .weight(1f)
-                .scrollFadingEdges(scroll, Orientation.Horizontal, fadeStart = false)
+                .scrollFadingEdges(scroll, Orientation.Horizontal)
                 .horizontalScroll(scroll),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),

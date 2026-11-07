@@ -333,7 +333,7 @@
     <string name="context_bar_title">컨텍스트 사용량</string>
     <string name="context_bar_desc">컨텍스트 창 사용량 게이지를 표시할 위치</string>
     <string name="context_bar_hidden">숨김</string>
-    <string name="context_bar_above_input">메시지 입력란 위</string>
+    <string name="context_bar_above_input">메시지 입력란 안</string>
     <string name="context_bar_options_sheet">채팅 옵션 메뉴</string>
     <string name="context_bar_overflow_menu">상단 바 메뉴 (⋮)</string>
     <string name="show_image_descriptions">이미지 설명 표시</string>

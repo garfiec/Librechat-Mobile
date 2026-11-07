@@ -339,7 +339,7 @@
     <string name="context_bar_title">Kontextauslastung</string>
     <string name="context_bar_desc">Wo die Anzeige der Kontextfenster-Auslastung erscheint</string>
     <string name="context_bar_hidden">Ausgeblendet</string>
-    <string name="context_bar_above_input">Über dem Nachrichtenfeld</string>
+    <string name="context_bar_above_input">Im Nachrichtenfeld</string>
     <string name="context_bar_options_sheet">Chat-Optionsmenü</string>
     <string name="context_bar_overflow_menu">Menü der oberen Leiste (⋮)</string>
     <string name="show_image_descriptions">Bildbeschreibungen anzeigen</string>

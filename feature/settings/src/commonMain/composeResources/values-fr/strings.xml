@@ -339,7 +339,7 @@
     <string name="context_bar_title">Utilisation du contexte</string>
     <string name="context_bar_desc">Où afficher la jauge d'utilisation de la fenêtre de contexte</string>
     <string name="context_bar_hidden">Masquée</string>
-    <string name="context_bar_above_input">Au-dessus de la zone de message</string>
+    <string name="context_bar_above_input">Dans la zone de message</string>
     <string name="context_bar_options_sheet">Menu des options de discussion</string>
     <string name="context_bar_overflow_menu">Menu de la barre supérieure (⋮)</string>
     <string name="show_image_descriptions">Afficher les descriptions d'images</string>

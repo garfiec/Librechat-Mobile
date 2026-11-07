@@ -348,7 +348,7 @@
     <string name="context_bar_title">Context usage</string>
     <string name="context_bar_desc">Where to show the context-window usage gauge</string>
     <string name="context_bar_hidden">Hidden</string>
-    <string name="context_bar_above_input">Above the message box</string>
+    <string name="context_bar_above_input">In the message box</string>
     <string name="context_bar_options_sheet">Chat options menu</string>
     <string name="context_bar_overflow_menu">Top bar menu (⋮)</string>
     <string name="show_image_descriptions">Show image descriptions</string>

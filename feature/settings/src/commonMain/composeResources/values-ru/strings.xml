@@ -351,7 +351,7 @@
     <string name="context_bar_title">Использование контекста</string>
     <string name="context_bar_desc">Где показывать индикатор заполнения контекстного окна</string>
     <string name="context_bar_hidden">Скрыт</string>
-    <string name="context_bar_above_input">Над полем сообщения</string>
+    <string name="context_bar_above_input">В поле сообщения</string>
     <string name="context_bar_options_sheet">Меню параметров чата</string>
     <string name="context_bar_overflow_menu">Меню верхней панели (⋮)</string>
     <string name="show_image_descriptions">Показывать описания изображений</string>
