@@ -15,7 +15,7 @@ data class CodeWorkspaceUiState(
     val visible: Boolean = false,
     /**
      * The workspace is settled (a saved decision, or an undecided chat's ready pick, [locked] false)
-     * and nothing needs the user: the settings line starts with a "machine · workspace" chip
+     * and nothing needs the user: the settings line starts with a "workspace · machine" chip
      * ([machine], [workspace]) and the approval chip, and no card shows.
      */
     val folded: Boolean = false,

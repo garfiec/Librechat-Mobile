@@ -1381,7 +1381,7 @@ only draws `CodeWorkspaceUiState` (mapped in `util/CodeWorkspaceView.kt`), throu
   line, and no transition but Detach. Settled is a saved decision, or an undecided chat's ready pick
   with no machine left to choose (the machine picker is the card's alone); that chip is tinted
   primary and its sheet says the next message saves it (`code_workspace_saved_on_send`). Then the line's leading slot
-  (`CodeWorkspaceLineChips`) holds a "machine · workspace" chip ("{n} code workspaces" across
+  (`CodeWorkspaceLineChips`) holds a "workspace · machine" chip ("{n} code workspaces" across
   machines) and the approval chip, and no card shows. Everything else keeps the card
   (`CodeWorkspaceRow`, `visible`) above the line: choosing or held (`holdsSend`), an undecided chat
   whose next send seals the workspace, "No workspace" with its footnote, confirming, rejections and

@@ -43,7 +43,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceUiState
  * resolution's transition, [moving] says one is being written, and [confirming] replaces the
  * whole row with the decision check web shows after a failed turn.
  *
- * A chat whose workspace is settled folds: no card, a "machine · workspace" chip on the settings line
+ * A chat whose workspace is settled folds: no card, a "workspace · machine" chip on the settings line
  * ([CodeWorkspaceUiState.folded]). Settled is a saved decision with nothing that needs the user
  * (including a healthy saved chat web hides, with no transition version, which the line still names),
  * or an undecided chat whose next send would seal a ready pick with no machine left to choose: its
@@ -219,7 +219,7 @@ internal fun codeWorkspaceUiState(
         folded = folded,
         locked = resolution.locked,
         holdsSend = resolution.submission == null,
-        // Folded, the chip names its machine before the first send as after it ("machine · workspace"),
+        // Folded, the chip names its machine before the first send as after it ("workspace · machine"),
         // so sealing the pick doesn't rename it; the card shows a lone machine only once locked. Not a
         // machine named as its workspace (the server's own environment is often both "Server
         // workspace"): the chip would read the name twice.

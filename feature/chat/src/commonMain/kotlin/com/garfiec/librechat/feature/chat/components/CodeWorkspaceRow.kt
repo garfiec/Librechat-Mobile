@@ -142,7 +142,7 @@ val LocalCodeWorkspaceComposer = compositionLocalOf<CodeWorkspaceComposer?> { nu
 /** Web's `max-w-[12rem]` on a machine, workspace or branch name. Translated labels are never capped. */
 private val CHIP_NAME_MAX_WIDTH = 192.dp
 
-/** The folded chip names two of them ("machine · workspace") on a line that scrolls. */
+/** The folded chip names two of them ("workspace · machine") on a line that scrolls. */
 private val FOLDED_NAME_MAX_WIDTH = 256.dp
 
 /**
@@ -169,7 +169,7 @@ internal fun codeWorkspaceLineLeading(composer: CodeWorkspaceComposer?): (@Compo
 
 /**
  * The settings line's leading chips while no card shows ([CodeWorkspaceUiState.onSettingsLine]): a
- * folded chat's "machine · workspace" chip, then the approval chip. The same callbacks and menus as
+ * folded chat's "workspace · machine" chip, then the approval chip. The same callbacks and menus as
  * the card's chips; a tap on the folded chip opens the transition sheet (Detach) when one is on
  * offer, else re-reads the machine's status.
  */
@@ -197,7 +197,8 @@ private fun FoldedWorkspaceChip(state: CodeWorkspaceUiState, composer: CodeWorks
     Box {
         CodeChip(
             icon = Icons.Outlined.Folder,
-            label = listOfNotNull(machine, workspace).joinToString(" · "),
+            // The workspace first, so a label cut short loses the machine, not what the chat works in.
+            label = listOfNotNull(workspace, machine).joinToString(" · "),
             description = description,
             isName = true,
             nameMaxWidth = FOLDED_NAME_MAX_WIDTH,
