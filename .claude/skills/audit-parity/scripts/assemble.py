@@ -18,6 +18,8 @@ def main(run):
     results = [json.load(open(p)) for p in sorted(glob.glob(os.path.join(run, "result-*.json")))]
     if not results:
         sys.exit(f"no result-*.json in {run}")
+    if any(r.get("halted") for r in results):
+        sys.exit("a result-*.json is a halted run: resume that batch first")
     ranking = next((r["ranking"] for r in reversed(results) if r.get("ranking")), None)
 
     by_id = {}
