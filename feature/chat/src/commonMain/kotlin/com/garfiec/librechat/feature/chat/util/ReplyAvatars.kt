@@ -3,12 +3,13 @@ package com.garfiec.librechat.feature.chat.util
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.media.IconSource
+import com.garfiec.librechat.core.model.media.iconEndpoint
+import com.garfiec.librechat.core.model.media.isImageUrl
 import com.garfiec.librechat.core.model.media.resolveIconSource
 
 /**
- * The avatar a reply draws: its `iconURL` (a spec's icon or a name like `groq`), else its endpoint's
- * brand, including a custom endpoint's served `providerId` from [endpointConfigs]. A message with no
- * endpoint of its own takes [fallbackEndpoint]. Null for the user's own messages.
+ * The avatar a reply draws. A message with no endpoint of its own takes [fallbackEndpoint]. Null for
+ * the user's own messages.
  */
 fun Message.replyAvatar(
     fallbackEndpoint: String?,
@@ -17,7 +18,26 @@ fun Message.replyAvatar(
 ): IconSource? = if (isCreatedByUser) {
     null
 } else {
-    resolveIconSource(iconURL, endpoint ?: fallbackEndpoint, serverUrl, endpointConfigs)
+    replyIconSource(iconURL, endpoint ?: fallbackEndpoint, serverUrl, endpointConfigs)
+}
+
+/**
+ * What a reply with [iconURL] on [endpoint] draws, as web's `MessageIcon`
+ * (`client/src/components/Chat/Messages/MessageIcon.tsx`, registered as `message-icon-rule`): an image
+ * [iconURL] is loaded; any other value counts only as an endpoint key ([iconEndpoint]), whose configured
+ * image `iconURL` is loaded, else its brand drawn, including a custom endpoint's served `providerId`.
+ * So a spec icon naming a provider (`groq`) draws the reply's endpoint, unlike the picker.
+ */
+internal fun replyIconSource(
+    iconURL: String?,
+    endpoint: String?,
+    serverUrl: String,
+    endpointConfigs: Map<String, EndpointConfig>?,
+): IconSource {
+    if (isImageUrl(iconURL)) return resolveIconSource(iconURL, endpoint, serverUrl, endpointConfigs)
+    val drawn = iconEndpoint(iconURL, endpoint, endpointConfigs)
+    val endpointImage = drawn?.let { endpointConfigs?.get(it)?.iconURL }?.takeIf(::isImageUrl)
+    return resolveIconSource(endpointImage, drawn, serverUrl, endpointConfigs)
 }
 
 /**

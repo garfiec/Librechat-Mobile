@@ -37,10 +37,11 @@ data class IconSource(val endpointName: String?, val imageUrl: String?, val prov
  * joins the server, as avatars do; a protocol-relative one takes `https:`), a name becomes the glyph
  * to show. A blank value is unset, as web's `firstPresentIcon` treats `""`, and falls to [endpoint].
  *
- * The [IconSource.provider] follows web's `SpecIcon`: a value naming a brand (`groq`), else
- * [endpoint]'s brand ([endpointBrand]: its configured brand `iconURL`, served `providerId`, first-class
- * brand, then name). A value equal to [endpoint] counts as the endpoint's name, not a value of its own.
- * For an image, [endpoint]'s brand alone. Without [endpointConfigs] the served `providerId` is skipped.
+ * The [IconSource.provider] follows web's `SpecIcon`: `agents` draws the agents mark, a value naming a
+ * brand (`groq`) that brand, else [endpoint]'s brand ([endpointBrand]: its configured brand `iconURL`,
+ * served `providerId`, first-class brand, then name). A value equal to [endpoint] counts as the
+ * endpoint's name, not a value of its own. For an image, [endpoint]'s brand alone. Without
+ * [endpointConfigs] the served `providerId` is skipped.
  */
 fun resolveIconSource(
     value: String?,
@@ -49,6 +50,7 @@ fun resolveIconSource(
     endpointConfigs: Map<String, EndpointConfig>? = null,
 ): IconSource {
     val icon = value?.takeIf(String::isNotBlank)
+    if (icon == EndpointConstants.AGENTS) return IconSource(icon, null, null)
     if (icon == null || !isImageUrl(icon)) {
         // A value that is just the endpoint's own name (iconValue's last fallback) is no icon of its
         // own: it must not outrank the served providerId, which the server resolves ahead of the name.
@@ -58,6 +60,15 @@ fun resolveIconSource(
     val url = if (icon.startsWith("//")) "https:$icon" else resolveAvatarUrl(icon, serverUrl)
     return IconSource(endpoint, url, endpointBrand(endpoint, endpointConfigs))
 }
+
+/**
+ * The endpoint whose icon stands for an [iconURL] on [endpoint], as web's `getIconEndpoint`
+ * (`client/src/utils/endpoints.ts`, registered as `icon-endpoint-rule`): [iconURL] when
+ * [endpointConfigs] lists it as an endpoint key, else [endpoint]. An image, a bare provider name like
+ * `"groq"` or a blank value leaves [endpoint].
+ */
+fun iconEndpoint(iconURL: String?, endpoint: String?, endpointConfigs: Map<String, EndpointConfig>?): String? =
+    iconURL?.takeIf { it.isNotEmpty() && endpointConfigs?.containsKey(it) == true } ?: endpoint
 
 /**
  * The icon value a spec shows, as web's `getModelSpecIconURL` (`client/src/utils/endpoints.ts`,

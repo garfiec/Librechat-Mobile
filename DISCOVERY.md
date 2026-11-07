@@ -198,6 +198,10 @@ GET  /api/prompts/groups/:id/resolve[?version=N] → a group's live text (v0.8.9
   the Delete Account button when `false`. Defaults to `true` for older servers that omit the field.
 - `GET /api/endpoints` now requires JWT (was public in v0.8.4). Mobile already called it
   post-auth, so this is non-breaking.
+- `GET /api/endpoints` entries carry `providerId` (v0.8.8-rc2+) for a custom endpoint: the brand the
+  server derives from its `iconURL`, `baseURL` host, `provider` and name (`EndpointConfig.providerId`).
+  Mobile loads that brand's art at runtime from the server's static `{server}/assets/<file>`
+  (`feature/chat/CLAUDE.md` "Brand art").
 - Favorites schema: each entry has exactly one of `{ agentId }`, `{ model, endpoint }`,
   or `{ spec }` — three mutually exclusive variants enforced by the server
   (`FavoritesController.js`: "Each favorite must have either agentId, model+endpoint, or spec";

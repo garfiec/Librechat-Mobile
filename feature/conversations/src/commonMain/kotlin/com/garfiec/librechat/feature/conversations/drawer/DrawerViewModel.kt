@@ -38,7 +38,6 @@ import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
 import com.garfiec.librechat.core.model.permissions.canReachMemoriesSettings
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.core.model.pullrequest.ConversationPullRequest
-import com.garfiec.librechat.core.model.resolveEndpointIconUrl
 import com.garfiec.librechat.feature.conversations.components.message
 import com.garfiec.librechat.feature.conversations.export.ConversationExporter
 import com.garfiec.librechat.feature.conversations.export.ExportFormat
@@ -380,14 +379,7 @@ class DrawerViewModel(
     ) { (endpoints, serverUrl), actionMenu, filters, online, bookmarks ->
         DrawerFilterOptions(
             endpoints = selectableEndpoints(endpoints.keys.toList(), filters.endpoints, actionMenu.maxEndpointNameLength)
-                .map { name ->
-                    val config = endpoints[name]
-                    FilterEndpointOption(
-                        name = name,
-                        label = config?.modelDisplayLabel ?: name,
-                        iconUrl = Conversation(endpoint = name).resolveEndpointIconUrl(endpoints, serverUrl),
-                    )
-                },
+                .map { name -> filterEndpointOption(name, endpoints, serverUrl) },
             maxEndpoints = actionMenu.maxEndpointFilters,
             sharedOnlyAvailable = actionMenu.sharedLinksConfigured,
             bookmarksAvailable = actionMenu.bookmarksEnabled,

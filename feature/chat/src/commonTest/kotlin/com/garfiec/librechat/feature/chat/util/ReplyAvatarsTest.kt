@@ -40,8 +40,37 @@ class ReplyAvatarsTest {
     }
 
     @Test
-    fun an_icon_naming_a_provider_draws_that_provider() {
-        assertEquals(ProviderId.GROQ, reply("r", endpoint = "openAI", iconUrl = "groq").replyAvatar(null, server, configs)?.provider)
+    fun an_icon_naming_no_endpoint_draws_the_replys_endpoint() {
+        assertEquals(
+            IconSource("My Router", null, ProviderId.OPENROUTER),
+            reply("r", iconUrl = "groq").replyAvatar(null, server, configs),
+        )
+    }
+
+    @Test
+    fun an_icon_naming_an_endpoint_draws_that_endpoint() {
+        assertEquals(
+            IconSource("My Router", null, ProviderId.OPENROUTER),
+            reply("r", endpoint = "openAI", iconUrl = "My Router").replyAvatar(null, server, configs),
+        )
+    }
+
+    @Test
+    fun a_custom_endpoint_with_an_image_icon_loads_it() {
+        val pictured = mapOf("My Router" to EndpointConfig(iconURL = "/images/router.png", providerId = "openrouter"))
+        assertEquals(
+            IconSource("My Router", "$server/images/router.png", ProviderId.OPENROUTER),
+            reply("r").replyAvatar(null, server, pictured),
+        )
+    }
+
+    @Test
+    fun an_agents_icon_draws_the_agents_mark() {
+        val withAgents = configs + ("agents" to EndpointConfig())
+        assertEquals(
+            IconSource("agents", null, null),
+            reply("r", endpoint = "openAI", iconUrl = "agents").replyAvatar(null, server, withAgents),
+        )
     }
 
     @Test

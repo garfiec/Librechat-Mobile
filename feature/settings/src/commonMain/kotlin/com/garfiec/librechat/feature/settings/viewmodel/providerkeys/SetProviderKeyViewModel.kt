@@ -27,6 +27,7 @@ import com.garfiec.librechat.feature.settings.state.providerkeys.SetProviderKeyE
 import com.garfiec.librechat.feature.settings.state.providerkeys.SetProviderKeyResult
 import com.garfiec.librechat.feature.settings.state.providerkeys.SetProviderKeyUiState
 import com.garfiec.librechat.feature.settings.state.providerkeys.providerKeyDisplayLabel
+import com.garfiec.librechat.feature.settings.state.providerkeys.providerKeyIcon
 import com.garfiec.librechat.feature.settings.state.providerkeys.providerKeyNeeds
 import com.garfiec.librechat.feature.settings.state.providerkeys.validateGoogleServiceKey
 import kotlinx.coroutines.channels.Channel
@@ -133,9 +134,11 @@ class SetProviderKeyViewModel(
 
     /** This state on [config]'s form: its kind's blank form, label, icon and needs, no longer waiting. */
     private fun SetProviderKeyUiState.settledOn(config: EndpointConfig): SetProviderKeyUiState {
+        val icon = providerKeyIcon(endpointName, config)
         return copy(
             displayLabel = providerKeyDisplayLabel(endpointName, config),
-            iconUrl = config.iconURL,
+            iconUrl = icon.imageUrl,
+            iconProvider = icon.provider,
             form = blankForm(config),
             needs = providerKeyNeeds(endpointName, config),
             awaitingConfig = false,

@@ -386,14 +386,14 @@ Compare setup stages specs like models, so a spec can be either lane before the 
     header (a tap opens the key screen) and hides its raw models, as web's `EndpointItem` lists them.
 - **Icons** (`isImageUrl`, `iconValue` and `resolveIconSource` in `:core:model` `media/IconUrls.kt`,
   `util/SpecIcons.kt`): a spec's `iconURL`, its preset's, its agent's avatar, then its endpoint; a
-  value is an image by web's `isImageURL` rule, else an endpoint or provider whose glyph to borrow,
-  and `""` is unset. The picker rows, landing hero, Compare's spec lane and quick picks use it, and
-  so do reply avatars (see "Reply avatars" below);
+  value is an image by web's `isImageURL` rule, `agents` draws the agents mark (web's `SpecIcon`),
+  else an endpoint or provider whose glyph to borrow, and `""` is unset. The picker rows, landing
+  hero, Compare's spec lane and quick picks use it; reply avatars don't (see "Reply avatars" below);
   `showIconInMenu: false` hides it in the picker and quick picks. The conversation rows apply web's
   `EndpointIcon` rule (`Conversation.iconEndpoint(configs)` / `iconProvider(configs)`: a non-image
-  `iconURL` counts only when it is an endpoint key), joining a relative icon path to the server
-  (`ConfigRepository.serverUrl`). `showIconInHeader` is decoded only: the header
-  chip is text-only by design.
+  `iconURL` counts only when it is an endpoint key, `iconEndpoint`), joining a relative icon path to
+  the server (`ConfigRepository.serverUrl`).
+  `showIconInHeader` is decoded only: the header chip is text-only by design.
 - **Brand art** follows web's `resolveProviderIcon` (`:core:model` `media/ProviderIcons.kt`): an
   image icon, then an icon value naming a provider (`groq`, `grok`, `Together.AI`), then the
   endpoint's served `providerId` (the server derives it from the endpoint's `iconURL`, `baseURL`
@@ -402,11 +402,13 @@ Compare setup stages specs like models, so a spec can be either lane before the 
   `IconSource.provider`; pass them, and `EndpointIcon(provider = …)`, wherever configs are in reach,
   or a custom endpoint draws its monogram or the generic glyph.
 - **Reply avatars are view data.** A bubble never resolves its own icon: `ChatViewModel`'s exposed
-  `uiState` combine fills each node's `MessageNode.avatar` (`util/ReplyAvatars.kt`: the message's
-  `iconURL`, else its endpoint's brand with configs), because the server URL and the endpoint configs
-  arrive on their own flows and a path built before them would keep a stale avatar. `ReplyAvatarMemo`
-  skips the walk while the path, URL and configs are unchanged, so streaming emissions cost nothing.
-  `ChatUiState.avatars` (`ReplyAvatarsState`) holds the streaming reply's and Compare lane B's, and
+  `uiState` combine fills each node's `MessageNode.avatar` (`util/ReplyAvatars.kt`, web's
+  `MessageIcon`: a non-image `iconURL` counts only as an endpoint key, so a spec icon `groq` draws the
+  reply's endpoint, unlike the picker), because the server URL and the endpoint configs arrive on
+  their own flows and a path built before them would keep a stale avatar. `ReplyAvatarMemo` skips the walk while the path, URL and
+  configs are unchanged, so streaming emissions cost nothing.
+  `ChatUiState.avatars` (`ReplyAvatarsState`) holds the streaming reply's and Compare lane B's, by
+  the same rule (`ModelSpec.replyIconSource`) so a reply doesn't change icon when it's saved, and
   `buildComparisonDisplayMessages` puts lane B's on pane B's nodes. The bubbles, the streaming
   bubble and the steer segment header (`SegmentAuthorHeader`) draw the `IconSource` they are given.
   Shared links map their snapshot the same way without configs, so a custom endpoint resolves by
@@ -418,7 +420,8 @@ Compare setup stages specs like models, so a spec can be either lane before the 
     host). A provider with no served file (Anthropic, Azure, Bedrock, xAI, Moonshot, Vercel) or a
     file an older server lacks draws a monogram tile of its label. Loaded art is never tinted;
     near-black art (OpenAI, MLX) sits on a light tile in a dark theme. Web's model-level refinement
-    (`byModel`) isn't ported.
+    (`byModel`) and its model-maker override (`modelMakers`: `meta-llama/…` draws Meta on any host)
+    aren't ported.
 
 **Model spec fields** (v0.8.8, #668). Every field `GET /api/config` serves for a spec, and what this
 client does with it. A field that is decoded but not honoured, or not decoded at all, is left out
