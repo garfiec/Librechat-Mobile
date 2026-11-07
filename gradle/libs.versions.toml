@@ -20,7 +20,7 @@ lifecycle-viewmodel-nav3-kmp = "2.11.0"
 koin = "4.2.2"
 
 # Network
-ktor = "3.6.0"
+ktor = "3.6.1"
 kotlinx-serialization = "1.12.0"
 kotlinx-datetime = "0.8.0"
 
