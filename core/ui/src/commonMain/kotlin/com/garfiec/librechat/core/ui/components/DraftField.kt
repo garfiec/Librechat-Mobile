@@ -1,12 +1,17 @@
 package com.garfiec.librechat.core.ui.components
 
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 
@@ -53,6 +58,53 @@ class DraftFieldState internal constructor(initial: String) {
 @Composable
 fun rememberDraftField(text: String, resetKey: Any? = Unit): DraftFieldState {
     val field = remember(resetKey) { DraftFieldState(text) }
+    SideEffect { field.follow(text) }
+    return field
+}
+
+/**
+ * [DraftFieldState] for a field built on [TextFieldState], which a field needs to take pasted,
+ * dropped or keyboard-inserted content. The field edits [state] itself; its text reaches the
+ * ViewModel through [rememberDraftTextField], and the ViewModel's own writes replace it the same way.
+ */
+@Stable
+class DraftTextFieldState internal constructor(initial: String) {
+    val state = TextFieldState(initial)
+
+    private val echoes = DraftEchoes(initial)
+
+    // The text this class wrote into [state], so seeing it come back isn't reported as typing.
+    private var applied: String? = initial
+
+    internal fun follow(external: String) {
+        if (echoes.isOwnWrite(external, state.text.toString())) {
+            applied = external
+            state.setTextAndPlaceCursorAtEnd(external)
+        }
+    }
+
+    /** Called with each new text of [state]; reports it unless it is the ViewModel's own write. */
+    internal fun observed(text: String, onTextChange: (String) -> Unit) {
+        val own = text == applied
+        applied = null
+        if (own) return
+        echoes.reported(text)
+        onTextChange(text)
+    }
+}
+
+/**
+ * Remembers a [DraftTextFieldState] seeded from [text]: edits to its state go to [onTextChange],
+ * and the ViewModel's own writes to [text] replace the field's text. A new [resetKey] starts it
+ * over from [text].
+ */
+@Composable
+fun rememberDraftTextField(text: String, onTextChange: (String) -> Unit, resetKey: Any? = Unit): DraftTextFieldState {
+    val field = remember(resetKey) { DraftTextFieldState(text) }
+    val currentOnTextChange by rememberUpdatedState(onTextChange)
+    LaunchedEffect(field) {
+        snapshotFlow { field.state.text.toString() }.collect { field.observed(it, currentOnTextChange) }
+    }
     SideEffect { field.follow(text) }
     return field
 }
