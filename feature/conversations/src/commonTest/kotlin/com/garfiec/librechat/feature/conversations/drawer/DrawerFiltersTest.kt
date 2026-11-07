@@ -1,6 +1,8 @@
 package com.garfiec.librechat.feature.conversations.drawer
 
+import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.SAVED_TAG
+import com.garfiec.librechat.core.model.media.ProviderId
 import kotlinx.datetime.TimeZone
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
@@ -66,6 +68,13 @@ class DrawerFiltersTest {
     fun selectableEndpointsKeepServedNamesWithinTheLimitAndEverySelectedOne() {
         val served = listOf("openAI", "anthropic", "x".repeat(10))
         assertEquals(listOf("openAI", "anthropic", "gone"), selectableEndpoints(served, listOf("anthropic", "gone"), maxNameLength = 9))
+    }
+
+    @Test
+    fun anEndpointChipDrawsTheServedProvider() {
+        val configs = mapOf("my-llm" to EndpointConfig(providerId = "groq", modelDisplayLabel = "My LLM"))
+        val option = filterEndpointOption("my-llm", configs, "https://chat.example")
+        assertEquals(FilterEndpointOption("my-llm", "My LLM", iconUrl = null, provider = ProviderId.GROQ), option)
     }
 
     @Test

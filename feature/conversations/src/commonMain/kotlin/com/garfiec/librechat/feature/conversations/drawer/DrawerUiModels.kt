@@ -187,6 +187,7 @@ data class FilterEndpointOption(
     val name: String,
     val label: String,
     val iconUrl: String?,
+    val provider: ProviderId? = null,
 )
 
 /** What the filter sheet can offer, mapped from config, role and connectivity. */

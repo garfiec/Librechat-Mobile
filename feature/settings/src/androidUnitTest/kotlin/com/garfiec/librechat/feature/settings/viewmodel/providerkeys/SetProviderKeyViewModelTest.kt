@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.KeyRepository
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.endpoint.KeyState
+import com.garfiec.librechat.core.model.media.ProviderId
 import com.garfiec.librechat.core.model.request.UpdateKeyRequest
 import com.garfiec.librechat.feature.settings.state.providerkeys.ProviderKeyExpiry
 import com.garfiec.librechat.feature.settings.state.providerkeys.ProviderKeyField
@@ -82,6 +83,20 @@ class SetProviderKeyViewModelTest {
                 ),
             ),
         )
+
+    @Test
+    fun the_sheet_draws_the_endpoints_served_provider() = runTest(testDispatcher) {
+        val flow = MutableStateFlow(
+            mapOf("my-llm" to EndpointConfig(name = "my-llm", type = "custom", userProvide = true, providerId = "groq", iconURL = "groq")),
+        )
+        coEvery { configRepository.endpointConfigs } returns flow
+
+        val vm = SetProviderKeyViewModel("my-llm", keyRepository, configRepository, SavedStateHandle())
+        advanceUntilIdle()
+
+        assertThat(vm.uiState.value.iconProvider).isEqualTo(ProviderId.GROQ)
+        assertThat(vm.uiState.value.iconUrl).isNull()
+    }
 
     @Test
     fun openai_payload_is_apiKey_plus_baseURL_pair() = runTest(testDispatcher) {

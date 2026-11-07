@@ -15,6 +15,7 @@ import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.endpoint.KeyState
+import com.garfiec.librechat.core.model.media.ProviderId
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.provider_keys_revoke_all_failed
@@ -100,6 +101,22 @@ class ProviderKeysViewModelTest {
         // Base-URL-only endpoints stay (deliberately; web drops them), and a Bedrock credential
         // flag counts on its own.
         assertThat(names).containsExactly("openAI", "google", "custom-url", "bedrock")
+    }
+
+    @Test
+    fun a_custom_endpoint_row_draws_its_served_provider() = runTest(testDispatcher) {
+        setEndpoints(
+            mapOf(
+                "my-llm" to EndpointConfig(name = "my-llm", userProvide = true, providerId = "groq", iconURL = "groq"),
+                "pictured" to EndpointConfig(name = "pictured", userProvide = true, iconURL = "https://cdn.example/p.png"),
+            ),
+        )
+        val vm = newVm()
+        advanceUntilIdle()
+        val entries = vm.uiState.value.entries.associateBy { it.endpointName }
+        assertThat(entries.getValue("my-llm").iconProvider).isEqualTo(ProviderId.GROQ)
+        assertThat(entries.getValue("my-llm").iconUrl).isNull()
+        assertThat(entries.getValue("pictured").iconUrl).isEqualTo("https://cdn.example/p.png")
     }
 
     @Test

@@ -1,7 +1,11 @@
 package com.garfiec.librechat.feature.conversations.drawer
 
 import androidx.compose.runtime.Immutable
+import com.garfiec.librechat.core.model.Conversation
 import com.garfiec.librechat.core.model.ConversationListFilters
+import com.garfiec.librechat.core.model.EndpointConfig
+import com.garfiec.librechat.core.model.iconProvider
+import com.garfiec.librechat.core.model.resolveEndpointIconUrl
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
@@ -113,4 +117,15 @@ fun selectableBookmarks(bookmarks: List<FilterBookmarkOption>, selected: List<St
     val known = bookmarks.mapTo(HashSet()) { it.tag }
     val listed = bookmarks.filter { it.count > 0 || it.tag in selected }
     return listed + selected.filterNot { it in known }.map { FilterBookmarkOption(it, 0) }
+}
+
+/** A filter chip for [name]: its label, and the icon its conversations' rows draw. */
+internal fun filterEndpointOption(name: String, endpoints: Map<String, EndpointConfig>, serverUrl: String): FilterEndpointOption {
+    val row = Conversation(endpoint = name)
+    return FilterEndpointOption(
+        name = name,
+        label = endpoints[name]?.modelDisplayLabel ?: name,
+        iconUrl = row.resolveEndpointIconUrl(endpoints, serverUrl),
+        provider = row.iconProvider(endpoints),
+    )
 }

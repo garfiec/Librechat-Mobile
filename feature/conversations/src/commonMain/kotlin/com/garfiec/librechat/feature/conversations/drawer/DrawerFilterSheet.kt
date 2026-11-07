@@ -167,7 +167,14 @@ internal fun DrawerFilterSheet(
                                 )
                             },
                             label = { Text(endpoint.label, maxLines = 1) },
-                            leadingIcon = { EndpointIcon(endpointName = endpoint.name, iconUrl = endpoint.iconUrl, size = 18.dp) },
+                            leadingIcon = {
+                                EndpointIcon(
+                                    endpointName = endpoint.name,
+                                    iconUrl = endpoint.iconUrl,
+                                    size = 18.dp,
+                                    provider = endpoint.provider,
+                                )
+                            },
                         )
                     }
                 }

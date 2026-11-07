@@ -3808,7 +3808,63 @@
       "failure_mode": "If web reorders the rules or adds one, the same endpoint draws different art on mobile than on web; nothing fails to decode."
     },
     {
+      "id": "provider-id-values",
+      "upstream": {
+        "file": "packages/data-provider/src/providers.ts",
+        "symbol": "ProviderId",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "ProviderId"
+      },
+      "why": "The `ProviderId` wire ids the server serves as `EndpointConfig.providerId`, which `resolveProviderId` matches by normalised id.",
+      "failure_mode": "A new provider id upstream decodes fine (`providerId` is a String) and just draws the generic glyph on mobile."
+    },
+    {
+      "id": "provider-id-endpoint-map",
+      "upstream": {
+        "file": "packages/data-provider/src/providers.ts",
+        "symbol": "endpointToProvider",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "endpointToProvider"
+      },
+      "why": "Which first-class endpoint draws which provider's brand.",
+      "failure_mode": "Upstream remaps or adds a first-class endpoint, and mobile draws the old brand or the generic glyph where web draws the new one."
+    },
+    {
       "id": "provider-id-aliases",
+      "upstream": {
+        "file": "packages/data-provider/src/providers.ts",
+        "symbol": "providerAliases",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAliases"
+      },
+      "why": "The alias table that turns a free-form name or `iconURL` (`claude`, `vertexai`, `mistralai`) into a provider. `knownEndpointToProvider` isn't ported: normalisation and the aliases cover its keys.",
+      "failure_mode": "Upstream adds an alias, and an endpoint or spec named by it draws the generic glyph on mobile where web draws the brand."
+    },
+    {
+      "id": "provider-id-normalize",
+      "upstream": {
+        "file": "packages/data-provider/src/providers.ts",
+        "symbol": "normalize",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "normalize"
+      },
+      "why": "How a name is normalised before the id and alias lookups: lowercased, with spaces, dots, underscores and hyphens stripped.",
+      "failure_mode": "Upstream strips or keeps another separator, and a name web resolves to a brand draws the generic glyph on mobile, or the reverse."
+    },
+    {
+      "id": "provider-id-resolve",
       "upstream": {
         "file": "packages/data-provider/src/providers.ts",
         "symbol": "resolveProviderId",
@@ -3818,8 +3874,8 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
         "symbol": "resolveProviderId"
       },
-      "why": "The `ProviderId` wire ids the server serves as `EndpointConfig.providerId`, `endpointToProvider`, and the alias table plus normalisation (lowercase, separators stripped) that turn a free-form name or `iconURL` into a provider. `knownEndpointToProvider` isn't ported: normalisation and the aliases cover its keys.",
-      "failure_mode": "A new provider id or alias upstream decodes fine (`providerId` is a String) and just draws the generic glyph on mobile."
+      "why": "The lookup order: the normalised id first, then the aliases.",
+      "failure_mode": "Upstream adds a step (a prefix match, a third table), and mobile resolves fewer names to a brand than web."
     },
     {
       "id": "endpoint-alternate-names",
@@ -3845,8 +3901,8 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
         "symbol": "providerAssetFiles"
       },
-      "why": "Which providers have served art and its file name (the registry's `asset('assets/<file>')` entries, loaded from the user's server at `{server}/assets/<file>`), and each provider's `label` (`ProviderId.label`, the monogram letter and content description). No logo art is bundled in the app. Mono component art (Anthropic, Azure, Bedrock, xAI, Moonshot, Vercel) has no served file and draws a monogram. The model-level refinement (`byModel`: OpenAI colour by model, Gemini/Gemma art) isn't ported.",
-      "failure_mode": "A renamed or removed asset 404s and silently falls to the monogram; a new provider or a new served file draws the monogram (or the generic glyph) until mapped."
+      "why": "Which providers have art on the user's server and its file name (`providerAssetFiles`, loaded from `{server}/assets/<file>`), and each provider's `label` (`ProviderId.label`, the monogram letter and content description). No logo art is bundled in the app. Since v0.8.9-rc1 web draws every provider as an inline mark and references none of these files; they are the legacy files `client/public/assets/` still ships, so mobile depends on that directory, which no entry can watch. Anthropic, Azure, Bedrock, xAI, Moonshot and Vercel have no file and draw a monogram. Not ported: the model-level refinement (`byModel`) and the model-maker override (`modelMakers`, `getProviderIconDef`), so a model id naming its maker (`meta-llama/…`) draws the host's brand on mobile and the maker's mark on web.",
+      "failure_mode": "A new provider draws the monogram (or the generic glyph) until mapped; a label change shows a different monogram letter. A file removed from `client/public/assets/` 404s and silently falls to the monogram."
     },
     {
       "id": "provider-icon-assets",
@@ -3859,7 +3915,7 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
         "symbol": "providerAssetUrl"
       },
-      "why": "Production builds copy `client/public/assets/` into the served `dist/assets/`; the client loads provider art from there (`openai.svg` and `google.svg` included, which the registry draws as components) relative to the server's base URL, as web's `base: ''` relative srcs resolve.",
+      "why": "Production builds copy `client/public/assets/` into the served `dist/assets/`, relative to the server's base URL as web's `base: ''` relative srcs resolve. Mobile loads every provider's art from there (`providerAssetFiles`), though web itself no longer does (v0.8.9-rc1 inline marks).",
       "failure_mode": "If the build stops copying public assets, or serves them elsewhere, every provider silently draws its monogram."
     },
     {
@@ -3870,10 +3926,76 @@
       },
       "kotlin": {
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/Conversation.kt",
-        "symbol": "Conversation.iconEndpoint"
+        "symbol": "Conversation.iconEndpoint / Conversation.iconProvider"
       },
-      "why": "How a conversation row picks its icon: an image `iconURL` wins; a non-image `iconURL` switches the icon endpoint only when it is an endpoints-config key (`getIconEndpoint`); the provider art is then resolved for that endpoint without the conversation's own `iconURL`.",
+      "why": "How a conversation row picks its icon: an image `iconURL` wins; a non-image `iconURL` switches the icon endpoint only when it is an endpoints-config key (`getIconEndpoint`, `icon-endpoint-rule`); the provider art is then resolved for that endpoint without the conversation's own `iconURL`. The drawer's endpoint filter chips draw the same icon (`filterEndpointOption`). Web then passes `model` to `MinimalIcon` for the model-maker override, which mobile doesn't port (`provider-icon-registry`).",
       "failure_mode": "Drawer, list and archive rows draw different icons than web's sidebar."
+    },
+    {
+      "id": "icon-endpoint-rule",
+      "upstream": {
+        "file": "client/src/utils/endpoints.ts",
+        "symbol": "getIconEndpoint",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/IconUrls.kt",
+        "symbol": "iconEndpoint"
+      },
+      "why": "Which endpoint's icon an `iconURL` stands for: the `iconURL` itself when the endpoints config lists it as a key, else the conversation's or message's endpoint. Conversation rows, filter chips and reply avatars all use it.",
+      "failure_mode": "Upstream widens the match (labels, case), and rows and replies draw a different endpoint's brand than web's."
+    },
+    {
+      "id": "message-icon-rule",
+      "upstream": {
+        "file": "client/src/components/Chat/Messages/MessageIcon.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/ReplyAvatars.kt",
+        "symbol": "replyIconSource"
+      },
+      "why": "What a reply's avatar draws: an image `iconURL` is loaded; any other value counts only as an endpoint key (`getIconEndpoint`), and that endpoint's configured image `iconURL` is loaded, else its brand drawn, so a spec icon naming a provider (`groq`) draws the reply's endpoint, unlike the picker. The streaming reply and Compare's lane B use the same rule (`ModelSpec.replyIconSource`). Web passes `model` for the model-maker override, which mobile doesn't port.",
+      "failure_mode": "If web changes the rule, mobile's reply avatars disagree with web's, or with the drawer row for the same chat."
+    },
+    {
+      "id": "spec-icon-rule",
+      "upstream": {
+        "file": "client/src/components/Chat/Menus/Endpoints/components/SpecIcon.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/IconUrls.kt",
+        "symbol": "resolveIconSource"
+      },
+      "why": "What a spec draws in the picker, the landing hero and Compare's quick picks: `agents` draws the agents mark, an image is loaded, a value naming a provider draws that brand, else the spec endpoint's brand. Mobile draws `assistants` as OpenAI, on purpose, where web draws its entity mark.",
+      "failure_mode": "If web changes the order (entity, image, brand), mobile's picker draws a different icon for the same spec."
+    },
+    {
+      "id": "spec-group-icon",
+      "upstream": {
+        "file": "client/src/components/Chat/Menus/Endpoints/components/GroupIcon.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/components/ModelSelectorSheet.kt",
+        "symbol": "PickerHeader (HeaderIcon.Group)"
+      },
+      "why": "What a custom spec group's header draws for its `groupIcon`: an image is loaded, a value naming a provider draws that brand. Mobile also draws an endpoint key's served brand, which web's `GroupIcon` doesn't.",
+      "failure_mode": "If web changes the rule, a custom group's header draws a different icon on mobile than on web."
+    },
+    {
+      "id": "landing-convo-icon",
+      "upstream": {
+        "file": "client/src/components/Endpoints/ConvoIcon.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/screen/ChatContent.kt",
+        "symbol": "ChatUiState.landingHeroIcon"
+      },
+      "why": "What the new chat's hero draws: the selected spec's icon by the `SpecIcon` rule, else the agent's avatar, else the endpoint's brand.",
+      "failure_mode": "If web changes the precedence, mobile's landing hero draws a different icon from web's."
     },
     {
       "id": "picker-user-key",
@@ -4115,7 +4237,7 @@
         "mode": "block"
       },
       "kotlin": {
-        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/providerkeys/SetProviderKeyViewModel.kt",
+        "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/state/providerkeys/ServiceKeyValidation.kt",
         "symbol": "validateGoogleServiceKey / EMAIL_PATTERN"
       },
       "why": "What counts as a Google service-account key: client_email a valid email (zod 3's email pattern, copied) of at least 3 characters, project_id at least 3, private_key at least 601. Mobile applies it to a pasted key as well as an imported file, and refuses to save a key that fails it.",

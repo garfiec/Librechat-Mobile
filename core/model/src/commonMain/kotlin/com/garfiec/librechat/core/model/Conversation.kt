@@ -2,6 +2,7 @@ package com.garfiec.librechat.core.model
 
 import com.garfiec.librechat.core.model.code.CodeWorkspaceSelection
 import com.garfiec.librechat.core.model.media.ProviderId
+import com.garfiec.librechat.core.model.media.iconEndpoint
 import com.garfiec.librechat.core.model.media.isImageUrl
 import com.garfiec.librechat.core.model.media.resolveIconSource
 import com.garfiec.librechat.core.model.media.resolveProviderIcon
@@ -190,15 +191,13 @@ fun Conversation.resolveEndpointIconUrl(
 }
 
 /**
- * The endpoint whose glyph stands for this conversation, as web's `getIconEndpoint`: a spec may store
- * an endpoint's key in [iconURL], which wins over [endpoint] only when [endpointConfigs] lists that
- * key. Any other [iconURL] (an image, a bare provider name like `"groq"`, blank) leaves [endpoint].
+ * The endpoint whose glyph stands for this conversation, by [com.garfiec.librechat.core.model.media.iconEndpoint].
  *
  * MIRRORED from `client/src/components/Endpoints/EndpointIcon.tsx` (registered in
  * `scripts/mirrors.json` as `endpoint-icon-rule`).
  */
 fun Conversation.iconEndpoint(endpointConfigs: Map<String, EndpointConfig>): String? =
-    iconURL?.takeIf { it.isNotEmpty() && it in endpointConfigs } ?: endpoint
+    iconEndpoint(iconURL, endpoint, endpointConfigs)
 
 /**
  * The brand art for this conversation's row: [iconEndpoint]'s by [resolveProviderIcon] (its configured

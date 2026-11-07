@@ -3,9 +3,11 @@ package com.garfiec.librechat.feature.chat.viewmodel
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.EndpointConfig
+import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.media.ProviderId
+import com.garfiec.librechat.feature.chat.util.replyAvatar
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlin.test.Test
@@ -38,6 +40,15 @@ class ReplyAvatarsStateTest {
         val specs = ModelSpecs(list = listOf(ModelSpec(name = "coder", iconURL = "/images/coder.png")))
         val avatars = state(ModelChoice.Spec("coder", "My Router", "m"), specs).replyAvatars(server)
         assertEquals("$server/images/coder.png", avatars.streaming?.imageUrl)
+    }
+
+    @Test
+    fun the_streaming_reply_on_a_spec_draws_what_its_saved_reply_will() {
+        val specs = ModelSpecs(list = listOf(ModelSpec(name = "fast", iconURL = "groq")))
+        val avatars = state(ModelChoice.Spec("fast", "My Router", "m"), specs).replyAvatars(server)
+        val saved = Message(messageId = "r", conversationId = "c", endpoint = "My Router", iconURL = "groq")
+        assertEquals(saved.replyAvatar(null, server, configs), avatars.streaming)
+        assertEquals(ProviderId.OPENROUTER, avatars.streaming?.provider)
     }
 
     @Test

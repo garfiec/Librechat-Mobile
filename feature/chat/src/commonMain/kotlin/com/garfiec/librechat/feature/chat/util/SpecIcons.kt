@@ -20,6 +20,14 @@ fun ModelSpec.iconSource(
 ): IconSource =
     resolveIconSource(iconValue(agentAvatar(agents)), toSeed()?.endpoint, serverUrl, endpointConfigs)
 
+/** What a reply on this spec, sent to [endpoint], draws ([replyIconSource]): the same as its saved reply. */
+fun ModelSpec.replyIconSource(
+    endpoint: String?,
+    agents: List<Agent>,
+    serverUrl: String,
+    endpointConfigs: Map<String, EndpointConfig>?,
+): IconSource = replyIconSource(iconValue(agentAvatar(agents)), endpoint, serverUrl, endpointConfigs)
+
 private fun ModelSpec.agentAvatar(agents: List<Agent>): String? =
     preset?.agentId?.let { id -> agents.firstOrNull { it.id == id }?.avatarUrl }
 

@@ -5,8 +5,7 @@ import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
-import com.garfiec.librechat.core.model.media.resolveIconSource
-import com.garfiec.librechat.feature.chat.util.iconSource
+import com.garfiec.librechat.feature.chat.util.replyIconSource
 
 /**
  * The avatars of replies that have no message yet, resolved with the server URL and endpoint
@@ -36,7 +35,7 @@ internal fun ChatUiState.replyAvatars(serverUrl: String): ReplyAvatarsState = Re
     },
 )
 
-/** A spec's icon, else an agent's avatar under the agents endpoint, else [endpoint]'s brand. */
+/** A spec's reply icon, else an agent's avatar under the agents endpoint, else [endpoint]'s brand. */
 private fun ChatUiState.replyAvatarFor(
     endpoint: String?,
     model: String?,
@@ -46,11 +45,11 @@ private fun ChatUiState.replyAvatarFor(
 ): IconSource {
     val spec = specName?.let { name -> modelSpecs?.list?.find { it.name == name } }
     return when {
-        spec != null -> spec.iconSource(agents, serverUrl, endpointConfigs)
+        spec != null -> spec.replyIconSource(endpoint, agents, serverUrl, endpointConfigs)
         endpoint == EndpointConstants.AGENTS && model != null -> IconSource(
             endpoint,
             resolveAvatarUrl(agents.find { it.id == model }?.avatarUrl, serverUrl),
         )
-        else -> resolveIconSource(null, endpoint, serverUrl, endpointConfigs)
+        else -> replyIconSource(null, endpoint, serverUrl, endpointConfigs)
     }
 }

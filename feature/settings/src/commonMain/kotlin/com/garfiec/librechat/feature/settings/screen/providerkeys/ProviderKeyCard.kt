@@ -67,7 +67,8 @@ internal fun ProviderKeyCard(
             leading = {
                 EndpointIcon(
                     endpointName = entry.endpointName,
-                    iconUrl = entry.config.iconURL,
+                    iconUrl = entry.iconUrl,
+                    provider = entry.iconProvider,
                     size = IconSize,
                     glyphTint = MaterialTheme.colorScheme.onSurface,
                 )

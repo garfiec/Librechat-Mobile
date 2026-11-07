@@ -48,6 +48,11 @@ class IconUrlsTest {
     }
 
     @Test
+    fun anAgentsIconDrawsTheAgentsMarkOnAnyEndpoint() {
+        assertEquals(IconSource("agents", null, null), resolveIconSource("agents", "openAI", "https://srv"))
+    }
+
+    @Test
     fun resolveTakesTheServedProviderOfTheSpecEndpoint() {
         val configs = mapOf("Proxy" to EndpointConfig(providerId = "openrouter"))
         // The endpoint's own name and an unknown icon name fall to what the server resolved.

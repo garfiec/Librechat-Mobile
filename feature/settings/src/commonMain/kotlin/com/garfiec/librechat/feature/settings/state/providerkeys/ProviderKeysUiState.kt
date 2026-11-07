@@ -4,6 +4,9 @@ import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.core.model.endpoint.endpointDisplayName
+import com.garfiec.librechat.core.model.media.ProviderIconResolution
+import com.garfiec.librechat.core.model.media.ProviderId
+import com.garfiec.librechat.core.model.media.resolveProviderIcon
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.provider_keys_expiry_12h
 import com.garfiec.librechat.feature.settings.resources.provider_keys_expiry_1d
@@ -42,9 +45,21 @@ data class ProviderKeyEntry(
     val fetchFailed: Boolean = false,
     val retrying: Boolean = false,
 ) {
+    private val icon = providerKeyIcon(endpointName, config)
+
+    /** The endpoint's configured image icon, as given: a relative path is not joined to the server. */
+    val iconUrl: String? get() = icon.imageUrl
+
+    /** The brand the row draws when there is no image, including a custom endpoint's served `providerId`. */
+    val iconProvider: ProviderId? get() = icon.provider
+
     /** The key-state GET is still in flight. */
     val isChecking: Boolean get() = keyState is KeyState.Loading && !fetchFailed
 }
+
+/** What a provider-keys row or sheet draws for [endpointName], as the chat picker does. */
+internal fun providerKeyIcon(endpointName: String, config: EndpointConfig): ProviderIconResolution =
+    resolveProviderIcon(endpointName, mapOf(endpointName to config))
 
 /** A key is stored, live or past its expiry. */
 internal val KeyState.isStored: Boolean get() = this is KeyState.Set || this is KeyState.Expired
@@ -339,7 +354,8 @@ sealed class ProviderKeyFormState {
 /**
  * UI state for the Set Provider Key dialog (one instance per endpoint).
  *
- * @property iconUrl the endpoint's own icon, as the list row shows it.
+ * @property iconUrl the endpoint's own image icon, as the list row shows it.
+ * @property iconProvider the brand drawn without an image, as the list row shows it.
  * @property missingFields the required inputs the last Save found empty, in [ProviderKeyField]
  *   order. An input leaves the set as soon as it is edited.
  * @property rowKeyState the list row's key state, which the header shows; the list re-reads it.
@@ -364,6 +380,7 @@ data class SetProviderKeyUiState(
     val endpointName: String = "",
     val displayLabel: String = "",
     val iconUrl: String? = null,
+    val iconProvider: ProviderId? = null,
     val form: ProviderKeyFormState = ProviderKeyFormState.Other(),
     val chosenExpiry: ProviderKeyExpiry? = null,
     val rowKeyState: KeyState = KeyState.Loading,
