@@ -1,5 +1,7 @@
 package com.garfiec.librechat.feature.chat.components
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +17,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,8 +40,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -64,10 +74,12 @@ import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.SETTING_TOOL_ORDER
+import com.garfiec.librechat.feature.chat.util.ToolsSheetFocus
 import com.garfiec.librechat.feature.chat.util.WebSearchKind
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -129,8 +141,17 @@ fun ChatToolsSheetContent(
     scrollState: ScrollState = rememberScrollState(),
     /** "Upload to Code Environment" (legacy upload UX); null hides the card. */
     onAttachToCode: (() -> Unit)? = null,
+    /**
+     * The row to scroll to and mark as the page opens (a settings chip's tap): the MCP list opens for
+     * a server, so its switch is there to turn it off.
+     */
+    focus: ToolsSheetFocus? = null,
 ) {
     val dragSelection = rememberListDragSelection()
+    val expandMcp by rememberUpdatedState(onMcpExpandedChange)
+    LaunchedEffect(focus) {
+        if (focus is ToolsSheetFocus.McpServer && !mcpExpanded) expandMcp(true)
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -275,6 +296,7 @@ fun ChatToolsSheetContent(
                     val locked = toolKey in gates.lockedTools
                     val name = searchName.takeIf { toolKey == ToolConstants.WEB_SEARCH }
                     ToolToggleRow(
+                        modifier = focusedRow(focus == ToolsSheetFocus.Tool(toolKey)),
                         icon = meta.icon,
                         title = stringResource(meta.titleRes),
                         subtitle = when {
@@ -342,6 +364,7 @@ fun ChatToolsSheetContent(
                     mcpServers.forEach { server ->
                         val locked = server.name in gates.lockedMcpServers
                         McpServerToggleRow(
+                            modifier = focusedRow(focus == ToolsSheetFocus.McpServer(server.name)),
                             server = server,
                             isSelected = locked || server.name in selectedMcpServerNames,
                             onToggle = { onToggleMcpServer(server.name) },
@@ -355,6 +378,32 @@ fun ChatToolsSheetContent(
     }
 }
 
+/**
+ * For the row a settings chip's tap opened the sheet at ([focused]): scrolled into view once the
+ * page has laid out, and marked with a primary wash that fades, so the eye lands on the switch.
+ */
+@Composable
+private fun focusedRow(focused: Boolean): Modifier {
+    if (!focused) return Modifier
+    val requester = remember { BringIntoViewRequester() }
+    val wash = remember { Animatable(1f) }
+    val color = MaterialTheme.colorScheme.primary
+    LaunchedEffect(Unit) {
+        // After the page's first layout, so there is somewhere to scroll to.
+        withFrameNanos {}
+        requester.bringIntoView()
+        delay(FOCUS_HOLD_MS)
+        wash.animateTo(0f, tween(FOCUS_FADE_MS))
+    }
+    return Modifier
+        .bringIntoViewRequester(requester)
+        .drawBehind { drawRect(color.copy(alpha = FOCUS_WASH_ALPHA * wash.value)) }
+}
+
+private const val FOCUS_HOLD_MS = 700L
+private const val FOCUS_FADE_MS = 900
+private const val FOCUS_WASH_ALPHA = 0.14f
+
 @Composable
 private fun ToolToggleRow(
     icon: ImageVector,
@@ -363,10 +412,11 @@ private fun ToolToggleRow(
     isEnabled: Boolean,
     onToggle: () -> Unit,
     dragSelection: ListDragSelection,
+    modifier: Modifier = Modifier,
     locked: Boolean = false,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             // The platform reads the on/off state out in the user's language. The title and
             // subtitle below name the row, so no description is set on top of them.
@@ -520,10 +570,11 @@ private fun McpServerToggleRow(
     isSelected: Boolean,
     onToggle: () -> Unit,
     dragSelection: ListDragSelection,
+    modifier: Modifier = Modifier,
     locked: Boolean = false,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .then(
                 if (locked) {

@@ -80,7 +80,6 @@ import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.DraftItem
 import com.garfiec.librechat.feature.chat.util.ReplyAvatarMemo
 import com.garfiec.librechat.feature.chat.util.SettingChip
-import com.garfiec.librechat.feature.chat.util.SettingChipUndoScope
 import com.garfiec.librechat.feature.chat.util.SettingChipsMemo
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.util.ToolPartIdentity
@@ -2180,27 +2179,6 @@ class ChatViewModel(
             is SettingChip.Mcp -> toggleMcpServer(chip.name)
             is SettingChip.Thinking -> Unit
         }
-    }
-
-    /**
-     * Undo for a chip the user turned off on the settings line: switches it back on, unless something
-     * (the "+" sheet) already did, so the Undo never turns it off again.
-     *
-     * [turnedOffIn] is the conversation and the queued item being edited when the chip was tapped
-     * (null: the new-message draft). If either has changed since, the line now shows another chat's
-     * or another draft's tools, and switching one on there would change a message the user never
-     * touched.
-     */
-    fun turnSettingChipBackOn(chip: SettingChip, turnedOffIn: SettingChipUndoScope) {
-        val state = _uiState.value
-        if (state.conversationId != turnedOffIn.conversationId) return
-        if (state.editingQueuedItem?.original?.localId != turnedOffIn.editingQueuedId) return
-        val isOn = when (chip) {
-            is SettingChip.Tool -> chip.key in state.effectiveEnabledTools
-            is SettingChip.Mcp -> chip.name in state.effectiveMcpServerNames
-            is SettingChip.Thinking -> return
-        }
-        if (!isOn) toggleSettingChip(chip)
     }
 
     /**

@@ -1220,7 +1220,6 @@
     <string name="cd_retry_upload">Повторить загрузку %1$s</string>
     <string name="draft_item_removed">Удалено: %1$s</string>
     <string name="setting_chip_set_by">Задано: %1$s</string>
-    <string name="setting_chip_turned_off">%1$s: выключено</string>
     <string name="setting_chip_sign_in">· войти</string>
     <string name="setting_chip_connecting_suffix">· подключение</string>
     <string name="mcp_chip_cancel_sign_in">Отменить вход</string>

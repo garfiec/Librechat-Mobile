@@ -71,6 +71,7 @@ internal fun ChatOptionsSheetHost(
         onPageChange = controller::open,
         onDismiss = controller::close,
         tools = ChatToolsPageParams(
+            focus = controller.focus,
             enabledTools = uiState.effectiveEnabledTools,
             onToggleTool = viewModel::toggleTool,
             mcpServers = uiState.mcpServers,

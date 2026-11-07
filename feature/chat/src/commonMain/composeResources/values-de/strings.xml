@@ -1180,7 +1180,6 @@
     <string name="cd_retry_upload">Hochladen von %1$s wiederholen</string>
     <string name="draft_item_removed">%1$s entfernt</string>
     <string name="setting_chip_set_by">Festgelegt von %1$s</string>
-    <string name="setting_chip_turned_off">%1$s ausgeschaltet</string>
     <string name="setting_chip_sign_in">· anmelden</string>
     <string name="setting_chip_connecting_suffix">· verbindet</string>
     <string name="mcp_chip_cancel_sign_in">Anmeldung abbrechen</string>

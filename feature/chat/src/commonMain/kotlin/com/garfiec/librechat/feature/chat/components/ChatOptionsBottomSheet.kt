@@ -53,6 +53,7 @@ import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_back
 import com.garfiec.librechat.feature.chat.resources.param_set_by_spec
 import com.garfiec.librechat.feature.chat.resources.tool_model_parameters
+import com.garfiec.librechat.feature.chat.util.ToolsSheetFocus
 import com.garfiec.librechat.feature.chat.util.WebSearchKind
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
@@ -68,6 +69,8 @@ private val SubPageFallbackHeight = 560.dp
 /** Everything the Options (tools/attachment) page renders. See [ChatToolsSheetContent]. */
 @Immutable
 data class ChatToolsPageParams(
+    /** The row the page opens at (a settings chip's tap), scrolled into view and marked. */
+    val focus: ToolsSheetFocus? = null,
     val enabledTools: Set<String>,
     val onToggleTool: (String) -> Unit,
     val mcpServers: List<McpServerDisplayData>,
@@ -269,6 +272,7 @@ fun ChatOptionsBottomSheet(
                         mcpExpanded = mcpExpanded,
                         onMcpExpandedChange = { mcpExpanded = it },
                         scrollState = optionsScrollState,
+                        focus = tools.focus,
                     )
 
                     ChatOptionsPage.ModelSelector -> ModelSelectorSheetContent(

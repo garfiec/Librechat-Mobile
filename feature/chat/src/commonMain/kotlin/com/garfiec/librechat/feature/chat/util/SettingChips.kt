@@ -181,22 +181,26 @@ val SETTING_TOOL_ORDER: List<String> = listOf(
     ToolConstants.SKILLS,
 )
 
-/**
- * Where a settings chip was turned off: the conversation and, in it, the queued item being edited
- * (null: the new-message draft). Its Undo applies only while both are still the composer's.
- */
-data class SettingChipUndoScope(val conversationId: String?, val editingQueuedId: String?)
+/** The row the "+" sheet opens on, scrolled into view and marked, for a settings chip's tap. */
+sealed interface ToolsSheetFocus {
+    data class Tool(val key: String) : ToolsSheetFocus
+
+    data class McpServer(val name: String) : ToolsSheetFocus
+}
 
 /** What a tap on a settings chip does. */
 sealed interface SettingChipTap {
     /** A spec's own tool: say who set it ([specLabel], null when the spec has no label to name). */
     data class ExplainLock(val specLabel: String?) : SettingChipTap
 
-    /** Switch it, and the chip stays (a pinned tool). */
-    data object Toggle : SettingChipTap
+    /** A pinned tool that is off: switch it on (harmless, so one tap). */
+    data object TurnOn : SettingChipTap
 
-    /** Switch it off; it leaves the line, so offer Undo. */
-    data object TurnOffWithUndo : SettingChipTap
+    /**
+     * Anything that is on: open the "+" sheet at its row, where its switch turns it off. A tap on the
+     * line never turns a thing off, so a stray one removes nothing.
+     */
+    data class ShowInSheet(val focus: ToolsSheetFocus) : SettingChipTap
 
     data object OpenThinking : SettingChipTap
 
@@ -225,7 +229,9 @@ fun SettingChips.tapFor(chip: SettingChip): SettingChipTap {
         chip is SettingChip.Mcp && chip.opensMenu -> SettingChipTap.SignInMenu
         chip is SettingChip.Mcp && chip.signsInOnTap -> SettingChipTap.SignIn(chip.name)
         state == SettingChipState.LOCKED -> SettingChipTap.ExplainLock(lockedBy)
-        chip is SettingChip.Tool && chip.pinned -> SettingChipTap.Toggle
-        else -> SettingChipTap.TurnOffWithUndo
+        state == SettingChipState.PINNED_OFF -> SettingChipTap.TurnOn
+        chip is SettingChip.Tool -> SettingChipTap.ShowInSheet(ToolsSheetFocus.Tool(chip.key))
+        chip is SettingChip.Mcp -> SettingChipTap.ShowInSheet(ToolsSheetFocus.McpServer(chip.name))
+        else -> SettingChipTap.OpenThinking
     }
 }

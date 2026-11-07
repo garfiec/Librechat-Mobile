@@ -2,61 +2,39 @@ package com.garfiec.librechat.feature.chat.screen
 
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
-import com.garfiec.librechat.feature.chat.components.ephemeralToolMeta
 import com.garfiec.librechat.feature.chat.components.lockedByMessage
-import com.garfiec.librechat.feature.chat.resources.Res
-import com.garfiec.librechat.feature.chat.resources.setting_chip_turned_off
 import com.garfiec.librechat.feature.chat.util.SettingChip
 import com.garfiec.librechat.feature.chat.util.SettingChipTap
-import com.garfiec.librechat.feature.chat.util.SettingChipUndoScope
 import com.garfiec.librechat.feature.chat.util.SettingChips
+import com.garfiec.librechat.feature.chat.util.ToolsSheetFocus
 import com.garfiec.librechat.feature.chat.util.tapFor
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 
 /**
  * What a tap on a settings-line chip does ([SettingChips.tapFor]): a spec's own tool says who set it;
- * a pinned tool switches and stays; anything else switches off, leaves the line and offers Undo,
- * which switches it back on through the same toggle ([onTurnBackOn]). The toggles are the "+"
- * sheet's, so a global one (code, file search, memory, MCP) is off in every chat, as the snackbar
- * says, and a spec chat's additions are this chat's. An MCP server that needs sign-in signs in
- * instead ([onSignIn], with its stored name).
- *
- * The Undo belongs to the composer whose chip was tapped: [conversationId]'s, and in it
- * [editingQueuedId]'s (the queued item being edited, null for the new-message draft). When either
- * changes, the line now shows another chat's or another draft's tools (the landing becoming its new
- * chat and then the next one, a deleted chat on its way out, the queued-edit swap), so the snackbar
- * goes, and [onTurnBackOn] carries both as they were when the chip was turned off for the ViewModel
- * to check too.
+ * a pinned tool that is off switches on ([onToggle], the "+" sheet's toggle); anything that is on
+ * opens the "+" sheet at its row ([onShowInSheet]), where its switch turns it off. A tap on the line
+ * never turns a thing off. An MCP server that needs sign-in signs in instead ([onSignIn], with its
+ * stored name).
  */
 @Composable
 internal fun rememberSettingChipTap(
     chips: SettingChips,
-    conversationId: String?,
-    editingQueuedId: String?,
     snackbarHostState: SnackbarHostState,
     onToggle: (SettingChip) -> Unit,
-    onTurnBackOn: (chip: SettingChip, turnedOffIn: SettingChipUndoScope) -> Unit,
+    onShowInSheet: (ToolsSheetFocus) -> Unit,
     onOpenThinking: () -> Unit,
     onSignIn: (serverName: String) -> Unit,
 ): (SettingChip) -> Unit {
     val scope = rememberCoroutineScope()
     val currentChips by rememberUpdatedState(chips)
-    val currentScope by rememberUpdatedState(SettingChipUndoScope(conversationId, editingQueuedId))
-    val pendingUndo = remember { PendingChipUndo() }
-    LaunchedEffect(conversationId, editingQueuedId) {
-        // Cancelling the snackbar's coroutine takes the snackbar down with it.
-        pendingUndo.job?.cancel()
-        pendingUndo.job = null
-    }
     val toggle by rememberUpdatedState(onToggle)
-    val turnBackOn by rememberUpdatedState(onTurnBackOn)
+    val showInSheet by rememberUpdatedState(onShowInSheet)
     val openThinking by rememberUpdatedState(onOpenThinking)
     val signIn by rememberUpdatedState(onSignIn)
     return remember(scope, snackbarHostState) {
@@ -68,30 +46,12 @@ internal fun rememberSettingChipTap(
                 SettingChipTap.SignInMenu -> Unit
                 // A reconnect or cancel is out; the chip is disabled until it ends.
                 SettingChipTap.WaitForSignIn -> Unit
-                SettingChipTap.Toggle -> toggle(chip)
+                SettingChipTap.TurnOn -> toggle(chip)
+                is SettingChipTap.ShowInSheet -> showInSheet(tap.focus)
                 is SettingChipTap.ExplainLock -> scope.launch {
                     snackbarHostState.showNotice(getString(lockedByMessage(tap.specLabel), tap.specLabel.orEmpty()))
-                }
-                SettingChipTap.TurnOffWithUndo -> {
-                    val turnedOffIn = currentScope
-                    toggle(chip)
-                    pendingUndo.job = scope.launch {
-                        val name = settingChipName(chip) ?: return@launch
-                        if (snackbarHostState.showUndo(getString(Res.string.setting_chip_turned_off, name))) turnBackOn(chip, turnedOffIn)
-                    }
                 }
             }
         }
     }
-}
-
-/** The chip Undo snackbar's coroutine, so a composer swap can take it down. Read and written on the main thread. */
-private class PendingChipUndo {
-    var job: Job? = null
-}
-
-private suspend fun settingChipName(chip: SettingChip): String? = when (chip) {
-    is SettingChip.Tool -> ephemeralToolMeta(chip.key)?.let { getString(it.titleRes) }
-    is SettingChip.Mcp -> chip.label
-    is SettingChip.Thinking -> null
 }

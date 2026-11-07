@@ -1160,7 +1160,6 @@
     <string name="cd_retry_upload">%1$s のアップロードを再試行</string>
     <string name="draft_item_removed">%1$s を削除しました</string>
     <string name="setting_chip_set_by">%1$s が設定</string>
-    <string name="setting_chip_turned_off">%1$s をオフにしました</string>
     <string name="setting_chip_sign_in">· サインイン</string>
     <string name="setting_chip_connecting_suffix">· 接続中</string>
     <string name="mcp_chip_cancel_sign_in">サインインをキャンセル</string>

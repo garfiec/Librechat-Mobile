@@ -1197,13 +1197,12 @@ recompose only when an upload starts or stops reporting a progress.
   - **States** (`SettingChipState`): on = filled; pinned but off = outlined (an opaque fill and the
     M3 border in Material, glass's resting fill in glass, `AdaptiveChipDefaults.overlayFilterChipColors`);
     locked by the spec (`lockedTools`, `lockedMcpServers`) = filled with a lock.
-  - **Taps** (`SettingChips.tapFor`, handled by `rememberSettingChipTap` in `ChatScreen`): a locked
-    chip says "Set by <spec label>" in a snackbar; a pinned tool switches and stays; anything else
-    switches off, leaves the line and offers Undo, which switches it back on unless the sheet already
-    did (`ChatViewModel.turnSettingChipBackOn`), and only while the composer is still the chat and
-    draft it was turned off in (`SettingChipUndoScope`: a change of either takes the snackbar down,
-    and the ViewModel checks it again). The switches are the sheet's: code, file search,
-    memory and MCP are global, so the copy says "<tool> turned off", not "for this chat".
+  - **Taps** (`SettingChips.tapFor`, handled by `rememberSettingChipTap` in `ChatScreen`): **a tap
+    on the line never turns a thing off.** A locked chip says "Set by <spec label>" in a snackbar; a
+    pinned tool that is off switches on; anything that is on opens the "+" sheet at its row
+    (`SettingChipTap.ShowInSheet`, `ChatOptionsSheetController.focus`): the MCP list opens for a
+    server, and the row scrolls into view under a fading primary wash, so its switch is where it is
+    turned off. The switches are the sheet's, so code, file search, memory and MCP are global.
   - **MCP chips carry the MCP servers page's status** (`McpServerDisplayData.status`, mapped in
     `McpServersDelegate.load` with `:core:model`'s `mcpDisplayStatus`, the `mcp-status-badge`
     mirror, over the status map with tool discovery's lapsed authorizations folded in by
@@ -1248,7 +1247,7 @@ recompose only when an upload starts or stops reporting a progress.
     Discovery is asked again on a return only when the list changed; a discovery read still out
     keeps going (only a newer discovery read or a chip sign-in cancels it). A tool call's sign-in is the run's and goes through the same reload. Such a chip is
     turned off from the "+" sheet's switch. Other needs-setup and failed chips keep the ordinary tap
-    (off with Undo): setup is on the web, a failure on the server. Thinking uses the brain glyph (Memory uses `AutoStories`, here and in the drawer),
+    (the sheet at their row): setup is on the web, a failure on the server. Thinking uses the brain glyph (Memory uses `AutoStories`, here and in the drawer),
     tints tertiary while a one-turn choice is staged, in both styles, and states it. Picked skills use
     the sparkle (`AutoAwesome`) on the strip, the `$` picker, the sent bubble and the skill card.
   - **The context ring** (`ContextRing`, only with the above-the-field placement): a 24dp ring with

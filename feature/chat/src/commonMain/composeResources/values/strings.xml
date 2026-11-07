@@ -1234,7 +1234,6 @@
     <string name="cd_retry_upload">Retry upload of %1$s</string>
     <string name="draft_item_removed">Removed %1$s</string>
     <string name="setting_chip_set_by">Set by %1$s</string>
-    <string name="setting_chip_turned_off">%1$s turned off</string>
     <!-- After an MCP server's name on its settings chip when it needs the user to sign in; a tap starts the sign-in -->
     <string name="setting_chip_sign_in">· sign in</string>
     <string name="setting_chip_connecting_suffix">· connecting</string>

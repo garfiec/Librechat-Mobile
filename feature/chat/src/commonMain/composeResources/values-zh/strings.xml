@@ -1160,7 +1160,6 @@
     <string name="cd_retry_upload">重新上传 %1$s</string>
     <string name="draft_item_removed">已移除 %1$s</string>
     <string name="setting_chip_set_by">由 %1$s 设置</string>
-    <string name="setting_chip_turned_off">已关闭 %1$s</string>
     <string name="setting_chip_sign_in">· 登录</string>
     <string name="setting_chip_connecting_suffix">· 正在连接</string>
     <string name="mcp_chip_cancel_sign_in">取消登录</string>

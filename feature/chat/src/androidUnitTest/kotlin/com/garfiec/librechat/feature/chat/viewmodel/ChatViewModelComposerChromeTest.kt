@@ -18,7 +18,6 @@ import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.util.SettingChip
 import com.garfiec.librechat.feature.chat.util.SettingChipState
-import com.garfiec.librechat.feature.chat.util.SettingChipUndoScope
 import com.garfiec.librechat.feature.chat.util.ThinkingChip
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
 import com.google.common.truth.Truth.assertThat
@@ -382,38 +381,22 @@ class ChatViewModelComposerChromeTest {
     private val memoryChip = SettingChip.Tool(ToolConstants.MEMORY, SettingChipState.ON, pinned = false)
 
     @Test
-    fun `a settings chip's undo turns the tool it switched off back on`() =
+    fun `a settings chip switches its tool through the sheet's toggle`() =
         queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
             vm.toggleTool(ToolConstants.MEMORY)
-            assertThat(vm.uiState.value.effectiveEnabledTools).contains(ToolConstants.MEMORY)
-
             vm.toggleSettingChip(memoryChip)
+            runCurrent()
             assertThat(vm.uiState.value.effectiveEnabledTools).doesNotContain(ToolConstants.MEMORY)
 
-            vm.turnSettingChipBackOn(memoryChip, SettingChipUndoScope(CONVERSATION_ID, editingQueuedId = null))
+            vm.toggleSettingChip(memoryChip)
             runCurrent()
             assertThat(vm.uiState.value.effectiveEnabledTools).contains(ToolConstants.MEMORY)
-            // Memory is global: the Undo writes the stored set back too.
+            // Memory is global: the chip writes the stored set, as the sheet's switch does.
             coVerify(exactly = 2) { fixture.settingsDataStore.setEnabledTools(setOf(ToolConstants.MEMORY)) }
         }
 
     @Test
-    fun `a settings chip's undo leaves a tool the sheet already turned back on`() =
-        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
-            vm.toggleTool(ToolConstants.MEMORY)
-            vm.toggleSettingChip(memoryChip)
-            // The "+" sheet's switch, before the snackbar's Undo.
-            vm.toggleTool(ToolConstants.MEMORY)
-
-            vm.turnSettingChipBackOn(memoryChip, SettingChipUndoScope(CONVERSATION_ID, editingQueuedId = null))
-            runCurrent()
-
-            // Turning it off again here would switch Memory off in every chat, unasked.
-            assertThat(vm.uiState.value.effectiveEnabledTools).contains(ToolConstants.MEMORY)
-        }
-
-    @Test
-    fun `an MCP settings chip switches its server and its undo brings it back`() =
+    fun `an MCP settings chip switches its server`() =
         queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
             val chip = SettingChip.Mcp(McpServerDisplayData("linear", "Linear", null, McpDisplayStatus.CONNECTED), SettingChipState.ON)
             vm.toggleMcpServer("linear")
@@ -422,91 +405,6 @@ class ChatViewModelComposerChromeTest {
             vm.toggleSettingChip(chip)
             assertThat(vm.uiState.value.effectiveMcpServerNames).isEmpty()
             assertThat(vm.uiState.value.effectiveEnabledTools).isEmpty()
-
-            vm.turnSettingChipBackOn(chip, SettingChipUndoScope(CONVERSATION_ID, editingQueuedId = null))
-            assertThat(vm.uiState.value.effectiveMcpServerNames).containsExactly("linear")
-        }
-
-    @Test
-    fun `a settings chip's undo does nothing once the composer belongs to another chat`() =
-        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
-            vm.toggleTool(ToolConstants.MEMORY)
-            vm.toggleSettingChip(memoryChip)
-            val turnedOffIn = SettingChipUndoScope(CONVERSATION_ID, editingQueuedId = null)
-
-            // The ViewModel's chat changes under the snackbar (here the landing's reset).
-            vm.onPendingNavigationHandled()
-            assertThat(vm.uiState.value.conversationId).isNull()
-            vm.turnSettingChipBackOn(memoryChip, turnedOffIn)
-            runCurrent()
-
-            assertThat(vm.uiState.value.effectiveEnabledTools).doesNotContain(ToolConstants.MEMORY)
-        }
-
-    @Test
-    fun `a draft's settings chip undo does nothing once a queued edit has taken the composer`() =
-        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
-            // Queued with Memory off, so the edit's composer has it off.
-            vm.onInputChanged(TEXT)
-            vm.queueMessage()
-            runCurrent()
-            vm.toggleTool(ToolConstants.MEMORY)
-            vm.toggleSettingChip(memoryChip)
-            vm.editQueued(vm.uiState.value.messageQueue.single().localId)
-            runCurrent()
-            assertThat(vm.uiState.value.effectiveEnabledTools).doesNotContain(ToolConstants.MEMORY)
-
-            // The draft's snackbar Undo, tapped after the swap.
-            vm.turnSettingChipBackOn(memoryChip, SettingChipUndoScope(CONVERSATION_ID, editingQueuedId = null))
-            runCurrent()
-
-            // Saving the edit would otherwise send the queued message with Memory on.
-            assertThat(vm.uiState.value.effectiveEnabledTools).doesNotContain(ToolConstants.MEMORY)
-            vm.commitQueuedEdit()
-            runCurrent()
-            assertThat(vm.uiState.value.effectiveEnabledTools).doesNotContain(ToolConstants.MEMORY)
-        }
-
-    @Test
-    fun `a queued edit's settings chip undo does nothing once the edit has ended`() =
-        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
-            val chip = SettingChip.Mcp(McpServerDisplayData("linear", "Linear", null, McpDisplayStatus.CONNECTED), SettingChipState.ON)
-            vm.onInputChanged(TEXT)
-            vm.toggleMcpServer("linear")
-            vm.queueMessage()
-            runCurrent()
-            vm.toggleMcpServer("linear")
-            assertThat(vm.uiState.value.effectiveMcpServerNames).isEmpty()
-            val editing = vm.uiState.value.messageQueue.single().localId
-            vm.editQueued(editing)
-            runCurrent()
-            assertThat(vm.uiState.value.effectiveMcpServerNames).containsExactly("linear")
-
-            vm.toggleSettingChip(chip)
-            vm.cancelQueuedEdit()
-            runCurrent()
-            vm.turnSettingChipBackOn(chip, SettingChipUndoScope(CONVERSATION_ID, editingQueuedId = editing))
-
-            // The draft had it off; the Undo was for the queued message.
-            assertThat(vm.uiState.value.effectiveMcpServerNames).isEmpty()
-        }
-
-    @Test
-    fun `a queued edit's settings chip undo turns it back on within the same edit`() =
-        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
-            val chip = SettingChip.Mcp(McpServerDisplayData("linear", "Linear", null, McpDisplayStatus.CONNECTED), SettingChipState.ON)
-            vm.onInputChanged(TEXT)
-            vm.toggleMcpServer("linear")
-            vm.queueMessage()
-            runCurrent()
-            val editing = vm.uiState.value.messageQueue.single().localId
-            vm.editQueued(editing)
-            runCurrent()
-
-            vm.toggleSettingChip(chip)
-            vm.turnSettingChipBackOn(chip, SettingChipUndoScope(CONVERSATION_ID, editingQueuedId = editing))
-
-            assertThat(vm.uiState.value.effectiveMcpServerNames).containsExactly("linear")
         }
 
     @Test
@@ -517,7 +415,6 @@ class ChatViewModelComposerChromeTest {
         val before = vm.uiState.value.selection
 
         vm.toggleSettingChip(chip)
-        vm.turnSettingChipBackOn(chip, SettingChipUndoScope(CONVERSATION_ID, editingQueuedId = null))
 
         assertThat(vm.uiState.value.selection).isEqualTo(before)
     }

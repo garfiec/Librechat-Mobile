@@ -177,7 +177,7 @@ class SettingChipsTest {
     }
 
     @Test
-    fun aTapExplainsALockTogglesAPinAndOffersUndoOtherwise() {
+    fun aTapExplainsALockTurnsOnAPinnedToolAndShowsAnythingOnInTheSheet() {
         val line = settingChipsOf(
             inputs(
                 toolsOn = setOf(ToolConstants.WEB_SEARCH, ToolConstants.CODE_INTERPRETER, ToolConstants.MEMORY),
@@ -198,10 +198,18 @@ class SettingChipsTest {
         }
 
         assertEquals(SettingChipTap.ExplainLock("Research"), line.tapFor(byKey.getValue(ToolConstants.WEB_SEARCH)))
-        assertEquals(SettingChipTap.Toggle, line.tapFor(byKey.getValue(ToolConstants.CODE_INTERPRETER)))
-        assertEquals(SettingChipTap.Toggle, line.tapFor(byKey.getValue(ToolConstants.FILE_SEARCH)))
-        assertEquals(SettingChipTap.TurnOffWithUndo, line.tapFor(byKey.getValue(ToolConstants.MEMORY)))
-        assertEquals(SettingChipTap.TurnOffWithUndo, line.tapFor(byKey.getValue("linear")))
+        // A tap never turns a thing off: one that is on, pinned or not, opens the sheet at its row.
+        assertEquals(
+            SettingChipTap.ShowInSheet(ToolsSheetFocus.Tool(ToolConstants.CODE_INTERPRETER)),
+            line.tapFor(byKey.getValue(ToolConstants.CODE_INTERPRETER)),
+        )
+        // A pinned tool that is off turns on at once.
+        assertEquals(SettingChipTap.TurnOn, line.tapFor(byKey.getValue(ToolConstants.FILE_SEARCH)))
+        assertEquals(
+            SettingChipTap.ShowInSheet(ToolsSheetFocus.Tool(ToolConstants.MEMORY)),
+            line.tapFor(byKey.getValue(ToolConstants.MEMORY)),
+        )
+        assertEquals(SettingChipTap.ShowInSheet(ToolsSheetFocus.McpServer("linear")), line.tapFor(byKey.getValue("linear")))
         assertEquals(SettingChipTap.OpenThinking, line.tapFor(byKey.getValue("thinking")))
     }
 
@@ -232,9 +240,9 @@ class SettingChipsTest {
         )
         assertEquals(SettingChipTap.SignIn("docs"), line.tapFor(byName.getValue("docs")))
         // Only sign-in is something a tap here can fix; setup is on the web, a failure on the server.
-        assertEquals(SettingChipTap.TurnOffWithUndo, line.tapFor(byName.getValue("sentry")))
-        assertEquals(SettingChipTap.TurnOffWithUndo, line.tapFor(byName.getValue("jira")))
-        assertEquals(SettingChipTap.TurnOffWithUndo, line.tapFor(byName.getValue("linear")))
+        assertEquals(SettingChipTap.ShowInSheet(ToolsSheetFocus.McpServer("sentry")), line.tapFor(byName.getValue("sentry")))
+        assertEquals(SettingChipTap.ShowInSheet(ToolsSheetFocus.McpServer("jira")), line.tapFor(byName.getValue("jira")))
+        assertEquals(SettingChipTap.ShowInSheet(ToolsSheetFocus.McpServer("linear")), line.tapFor(byName.getValue("linear")))
     }
 
     @Test
@@ -257,8 +265,8 @@ class SettingChipsTest {
         assertEquals(SettingChipTap.SignInMenu, line.tapFor(byName.getValue("github")))
         assertEquals(SettingChipTap.SignIn("drive"), line.tapFor(byName.getValue("drive")))
         // Not OAuth: nothing to sign in to, so the ordinary tap.
-        assertEquals(SettingChipTap.TurnOffWithUndo, line.tapFor(byName.getValue("search")))
-        assertEquals(SettingChipTap.TurnOffWithUndo, line.tapFor(byName.getValue("sentry")))
+        assertEquals(SettingChipTap.ShowInSheet(ToolsSheetFocus.McpServer("search")), line.tapFor(byName.getValue("search")))
+        assertEquals(SettingChipTap.ShowInSheet(ToolsSheetFocus.McpServer("sentry")), line.tapFor(byName.getValue("sentry")))
         // "· sign in" on the chip that signs in, "· connecting" on the one whose sign-in is pending.
         val names = listOf("github", "drive", "search", "sentry")
         assertEquals(listOf(false, true, false, false), names.map { byName.getValue(it).signsInOnTap })
@@ -290,8 +298,8 @@ class SettingChipsTest {
         // The reconnect or cancel out would ignore a Cancel sign-in, a Start over or a sign-in.
         assertEquals(SettingChipTap.WaitForSignIn, line.tapFor(byName.getValue("github")))
         assertEquals(SettingChipTap.WaitForSignIn, line.tapFor(byName.getValue("drive")))
-        // A chip whose tap turns it off isn't held.
-        assertEquals(SettingChipTap.TurnOffWithUndo, line.tapFor(byName.getValue("linear")))
+        // A chip whose tap opens the sheet isn't held.
+        assertEquals(SettingChipTap.ShowInSheet(ToolsSheetFocus.McpServer("linear")), line.tapFor(byName.getValue("linear")))
         assertEquals(listOf(true, true, false), listOf("github", "drive", "linear").map { byName.getValue(it).waitsForSignIn })
     }
 

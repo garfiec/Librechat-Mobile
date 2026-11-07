@@ -1193,7 +1193,6 @@
     <string name="cd_retry_upload">Réessayer l'envoi de %1$s</string>
     <string name="draft_item_removed">Retiré : %1$s</string>
     <string name="setting_chip_set_by">Défini par %1$s</string>
-    <string name="setting_chip_turned_off">Désactivé : %1$s</string>
     <string name="setting_chip_sign_in">· se connecter</string>
     <string name="setting_chip_connecting_suffix">· connexion</string>
     <string name="mcp_chip_cancel_sign_in">Annuler la connexion</string>
