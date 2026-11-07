@@ -56,7 +56,6 @@ fun IosChatInput(
     builtInSearchOn: Boolean = false,
     duringRunAction: DuringRunAction = DuringRunAction.STEER,
     duringRunSendTarget: DuringRunSendTarget = DuringRunSendTarget.QUEUE,
-    /** The rows around the field and what they fire (see [ComposerChrome]). */
     chrome: ComposerChrome = ComposerChrome(),
     onSetDuringRunAction: (DuringRunAction) -> Unit = {},
     queuedPausedCount: Int = 0,
@@ -137,8 +136,7 @@ fun IosChatInput(
         fontSizeMultiplier = fontSizeMultiplier,
         modifier = modifier,
         leadingButtons = {
-            // "+" button to open tools bottom sheet (matches Android behavior): it opens the
-            // options sheet, not a file picker, and carries the same dots.
+            // "+" opens the options sheet, not a file picker, as on Android.
             Box {
                 IconButton(
                     onClick = onOpenTools,

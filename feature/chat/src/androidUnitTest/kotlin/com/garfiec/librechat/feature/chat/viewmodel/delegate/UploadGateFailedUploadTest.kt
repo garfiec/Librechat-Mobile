@@ -17,12 +17,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
-/**
- * A file that failed to upload holds the gate the sends share ([UploadIntakeDelegate.withUploadGate]),
- * both when the tap lands and when a send parked behind an upload wakes to find it failed. This is
- * the gate alone; that the send, queue, steer-with-files and queued-edit paths go through it is
- * checked at the ViewModel in `ChatViewModelQueuedSkillsTest`.
- */
+/** The gate alone; that every send path goes through it is checked in `ChatViewModelQueuedSkillsTest`. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class UploadGateFailedUploadTest {
 

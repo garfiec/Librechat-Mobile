@@ -12,9 +12,6 @@ import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import com.garfiec.librechat.feature.chat.util.DraftUploadProgress
 import com.garfiec.librechat.feature.chat.util.draftItemsOf
 
-// The attachment strip at the top of the composer box: one file, a photo with a file, a skill and a
-// quote, uploading, failed, a full draft that scrolls, a 320dp screen, under Compare's A·B pill.
-
 @PreviewNarrowScreens
 @Composable
 private fun StripOneMaterialPreview() = StripSurface(UiStyle.MATERIAL) { StripHost(files = listOf(draftReport)) }

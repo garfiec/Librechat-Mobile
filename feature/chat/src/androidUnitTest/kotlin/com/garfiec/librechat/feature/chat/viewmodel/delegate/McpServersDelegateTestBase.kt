@@ -19,10 +19,6 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 
-/**
- * Shared fixture for the MCP servers delegate's tests: a fake server list and statuses, a delegate
- * over a real state handle, and the chip sign-in set-ups the sign-in and cancel tests start from.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 abstract class McpServersDelegateTestBase {
 

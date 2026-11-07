@@ -27,14 +27,9 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /**
- * iOS implementation of [PlatformFileHandler]: uploads what the pickers, the camera and a clipboard
- * paste hand over ([IosImageData], [IosFileData]).
- *
- * Unlike an Android `Uri`, an iOS pick can't be read again once it is handed over, so the handler
- * keeps each tray entry's picked data ([picked]) only while the entry can still need it ([prune]):
- * while it isn't uploaded (its upload is out, waits on a PDF password, or failed, since a retry
- * uploads from it). An image's thumbnail is the small copy the picker made of it
- * ([IosImageData.preview] as [AttachedFile.localPreview]), since the picked bytes may be HEIC.
+ * iOS [PlatformFileHandler]. Unlike an Android `Uri`, an iOS pick can't be read again once handed
+ * over, so each tray entry's picked data ([picked]) is kept while the entry may still upload from it
+ * ([prune]).
  */
 class IosFileHandler(
     private val handle: ErrorOnlyHandle,
@@ -49,10 +44,8 @@ class IosFileHandler(
     override val pdfPasswordPrompts: StateFlow<List<PdfPasswordPrompt>> = pdfPrompts.pending
 
     /**
-     * The picked data behind each tray entry, by its [AttachedFile.key] (the minted `uri`), as
-     * [pdfPrompts] keeps the [PickedFile] a password retry needs. What stays is [prune]'s one rule.
-     * Touched on Main only: every entry point runs there, and so does an upload's outcome (only the
-     * request runs on [ioDispatcher]).
+     * The picked data behind each tray entry, by its [AttachedFile.key]; what stays is [prune]'s rule.
+     * Main only: every entry point and an upload's outcome run there (only the request is on [ioDispatcher]).
      */
     private val picked = mutableMapOf<Any, IosPickedData>()
 
@@ -81,11 +74,8 @@ class IosFileHandler(
     }
 
     /**
-     * Uploads [data] as the tray entry [key]: appended, or over the entry's own place when [inPlace]
-     * (a retry; `UploadIntakeDelegate.retryUpload` asks only for a failed entry still in the tray).
-     * Images have no text route: extraction would need OCR, and the server's attachment pass drops a
-     * text-sourced record before it ever reaches its image branch. The router never asks for one; an
-     * image ignores [route].
+     * Uploads [data] as the tray entry [key], appended or over its own place when [inPlace]. An image
+     * ignores [route]: the server's attachment pass drops a text-sourced image record.
      */
     @Suppress("TooGenericExceptionCaught") // upload boundary: any failure marks the attachment failed
     @OptIn(ExperimentalUuidApi::class)
@@ -111,8 +101,7 @@ class IosFileHandler(
             uploadProgress = null,
             type = mimeType,
             route = effectiveRoute,
-            // The picker's small JPEG/PNG, never the picked bytes: a library photo is often HEIC,
-            // which the thumbnail's decoder can't read. Null leaves the thumbnail to the server's copy.
+            // The picker's small copy, never the picked bytes (often HEIC); null waits for the server's.
             localPreview = image?.preview,
         )
         _attachedFiles.update { list -> if (inPlace) list.updateEntry(key) { pendingFile } else list + pendingFile }
@@ -174,10 +163,6 @@ class IosFileHandler(
         picked.keys.retainAll(keep)
     }
 
-    /**
-     * The server's record onto the entry. A file keeps no dimensions of its own; an image takes the
-     * server's. Uploaded, its picked data goes ([prune]).
-     */
     private fun onUploaded(key: Any, fileObject: FileObject, keepsDimensions: Boolean) {
         Logger.d { "IosFileHandler: upload success -- fileId=${fileObject.fileId}" }
         updateTrayEntry(key) { f ->
@@ -219,10 +204,8 @@ class IosFileHandler(
     }
 
     /**
-     * Uploads a failed file again from the data it was picked with, in its place in the tray and
-     * with the route it went with while that route still works (`ChatUiState.retryUploadRoute`),
-     * as Android's retry does. A file this handler holds no data for
-     * (one restored from a queued turn another device made) can't be re-read, so it is removed.
+     * Re-uploads a failed file in place from its picked data, on `ChatUiState.retryUploadRoute`. A file
+     * with no picked data (restored from a queued turn another device made) can't be re-read: removed.
      */
     override fun retryUpload(file: AttachedFile) {
         val data = picked[file.key]
@@ -268,9 +251,7 @@ class IosFileHandler(
     }
 
     override fun restoreAttachedFiles(files: List<AttachedFile>) {
-        // The queued-edit swap stashes the tray it replaces and brings it back afterwards, so the
-        // data of both stays (a failed entry among them is still retryable from it). The swap drops
-        // a pending Undo, so a removal's data goes.
+        // Keep both trays' data: the swap brings the stashed one back, failed entries still retryable.
         val incoming = files.mapTo(HashSet()) { it.key }
         putAside = _attachedFiles.value.map { it.key }.filterNotTo(HashSet()) { it in incoming }
         undoable = null

@@ -48,11 +48,7 @@ class FileAttachmentDelegate(
     /** Job that waits for pending uploads before sending a message. */
     var pendingUploadSendJob: Job? = null
 
-    /**
-     * Each tray entry's upload, by its [AttachedFile.key], so removing a file mid-upload cancels it.
-     * Touched on the caller's thread only (every entry point runs on Main); a finished job just stays
-     * until its entry is replaced or the tray is cleared, since cancelling one is a no-op.
-     */
+    /** Touched on Main only. A finished job stays until its entry goes; cancelling it is a no-op. */
     private val uploadJobs = mutableMapOf<Any, Job>()
 
     /**
@@ -89,10 +85,7 @@ class FileAttachmentDelegate(
         picked: PickedFile,
         route: UploadRoute,
         pdfPassword: String? = null,
-        /**
-         * A retry: the upload takes over this entry's place in the tray rather than appending
-         * (`UploadIntakeDelegate.retryUpload` asks only for a failed entry still in the tray).
-         */
+        /** A retry: the upload takes over this entry's place in the tray rather than appending. */
         replacing: AttachedFile? = null,
     ) {
         // Each pick is its own entry, even one whose Uri is already in the tray: every write below
@@ -323,11 +316,7 @@ class FileAttachmentDelegate(
         _attachedFiles.update { currentList -> currentList.filter { it.key != file.key } }
     }
 
-    /**
-     * Uploads a failed file again, in its place in the tray, with the route it went with while
-     * that route still works for the live selection (the row shows it, so the retry does what the
-     * row says), else routed afresh: see `ChatUiState.retryUploadRoute`.
-     */
+    /** Keeps the file's route while the live selection still offers it (`ChatUiState.retryUploadRoute`). */
     fun retryUpload(file: AttachedFile) {
         pdfPrompts.remove(file.key)
         uploadJobs.remove(file.key)?.cancel()

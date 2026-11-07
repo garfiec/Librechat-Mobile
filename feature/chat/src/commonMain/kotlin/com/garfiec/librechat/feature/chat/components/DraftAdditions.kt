@@ -12,10 +12,8 @@ import androidx.compose.runtime.setValue
 import com.garfiec.librechat.feature.chat.util.DraftItems
 
 /**
- * What the attachment strip pops for and announces: the item last added to the draft. Kept above
- * the strip, which leaves composition while the draft is empty, so the first item added counts as
- * an addition too. What the draft held when this was created (a draft restored with the
- * conversation) is not one.
+ * Held above the strip, which leaves composition while the draft is empty, so the first item added
+ * counts too. What the draft held when this was created is not an addition.
  */
 @Stable
 class DraftAdditions internal constructor(initialKeys: Set<String>) {
@@ -26,7 +24,6 @@ class DraftAdditions internal constructor(initialKeys: Set<String>) {
     var lastAdded: String? by mutableStateOf(null)
         private set
 
-    /** The newest addition's [com.garfiec.librechat.feature.chat.util.DraftItem.key], with [lastAdded]. */
     var lastAddedKey: String? by mutableStateOf(null)
         private set
 
@@ -62,10 +59,6 @@ class DraftAdditions internal constructor(initialKeys: Set<String>) {
     }
 }
 
-/**
- * A [DraftAdditions] following [items], for the screen that owns the draft. It runs when what is in
- * the draft changes (its keys), not on every change to the items.
- */
 @Composable
 internal fun rememberDraftAdditions(items: DraftItems): DraftAdditions {
     val keys = remember(items) { items.keySet() }

@@ -16,11 +16,7 @@ import com.garfiec.librechat.core.ui.theme.StatusColors
 import com.garfiec.librechat.core.ui.theme.statusColors
 import org.jetbrains.compose.resources.StringResource
 
-/**
- * An MCP server's status as every screen names it (the MCP servers page, the chat's settings chips
- * and "+" sheet rows). A status nothing has reported yet ([McpDisplayStatus.UNKNOWN]) reads as not
- * connected; a screen that says nothing until a status is in leaves it out itself.
- */
+/** [McpDisplayStatus.UNKNOWN] reads as not connected; a screen that shows nothing until a status is in leaves it out itself. */
 fun mcpStatusLabel(status: McpDisplayStatus): StringResource = when (status) {
     McpDisplayStatus.CONNECTED -> Res.string.mcp_status_connected
     McpDisplayStatus.CONNECTING -> Res.string.mcp_status_connecting
@@ -31,10 +27,7 @@ fun mcpStatusLabel(status: McpDisplayStatus): StringResource = when (status) {
     McpDisplayStatus.DISCONNECTED, McpDisplayStatus.UNKNOWN -> Res.string.mcp_status_disconnected
 }
 
-/**
- * An MCP server's status colour: connected green, connecting the info tint, needing sign-in or setup
- * amber, failed the error colour, and the rest neutral. Always paired with [mcpStatusLabel].
- */
+/** Always shown with [mcpStatusLabel]. */
 fun McpDisplayStatus.tint(colors: StatusColors): Color = when (this) {
     McpDisplayStatus.CONNECTED -> colors.success
     McpDisplayStatus.CONNECTING -> colors.info
@@ -43,7 +36,6 @@ fun McpDisplayStatus.tint(colors: StatusColors): Color = when (this) {
     McpDisplayStatus.ON_DEMAND, McpDisplayStatus.DISCONNECTED, McpDisplayStatus.UNKNOWN -> colors.neutral
 }
 
-/** [tint] with the theme's [statusColors]. */
 @Composable
 @ReadOnlyComposable
 fun mcpStatusColor(status: McpDisplayStatus): Color = status.tint(statusColors())

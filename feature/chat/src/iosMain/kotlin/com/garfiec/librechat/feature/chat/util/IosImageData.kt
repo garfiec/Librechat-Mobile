@@ -10,10 +10,6 @@ class IosImageData(
     override val mimeType: String,
     val width: Int? = null,
     val height: Int? = null,
-    /**
-     * A small JPEG or PNG of the image for the draft's thumbnail ([draftPreviewOf]), made where the
-     * picker decodes it; null when it couldn't be drawn. Never [bytes] themselves, which may be
-     * HEIC the thumbnail can't decode.
-     */
+    /** The draft thumbnail's image ([draftPreviewOf]); null when it couldn't be drawn. Never [bytes] (often HEIC). */
     val preview: ByteArray? = null,
 ) : IosPickedData

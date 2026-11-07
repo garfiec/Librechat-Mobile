@@ -232,8 +232,7 @@ class QueueOrchestrationDelegate(
         // cannot stash a file that is not in the tray yet.
         //
         // An upload still out (or a PDF waiting for its password) is the same: its outcome lands on
-        // the tray entry it started from, which the swap takes away, so it would be lost and the
-        // stashed copy would come back reading uploading for good, holding every later send.
+        // the tray entry the swap takes away, so the stashed copy would read uploading for good.
         if (uploadIntakeDelegate.hasUnsettledPicks() || fileHandler.hasPendingUploads()) {
             Logger.d { "editQueued: refusing — the draft's files are not settled yet" }
             handle.setError(ChatNotice.QUEUE_EDIT_WAITS_FOR_UPLOADS.marker())
@@ -296,7 +295,6 @@ class QueueOrchestrationDelegate(
             val edited = sendDispatchDelegate.buildSendSpec(text)?.let { spec ->
                 spec.copy(
                     localId = session.original.localId,
-                    // The quote chips on screen during the edit are this item's own, like the skills.
                     quotes = handle.state.pendingQuotes.takeIf { quotesSupportedOn(spec.endpoint) }.orEmpty(),
                     // The chips on screen during the edit are this item's own (see
                     // [beginQueuedEdit]), so what the user added or removed there is what it sends.

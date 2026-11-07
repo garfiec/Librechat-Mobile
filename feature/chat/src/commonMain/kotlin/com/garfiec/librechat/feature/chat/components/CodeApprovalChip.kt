@@ -58,10 +58,8 @@ internal fun approvalIcon(option: CodeApprovalOption): ImageVector = when (optio
 }
 
 /**
- * Web's `CodeApprovalMenu`: how much the coding agent may do on its machine without asking. Icon-only
- * on "Ask before changes", the default and safest mode, so a mode that does more always shows its
- * name; but named whenever there is no other mode to pick, since a bare icon that opens nothing
- * explains nothing. Filled like the settings line's other "on" chips.
+ * Web's `CodeApprovalMenu`. Icon-only on "Ask before changes", the safest mode, so a mode that does
+ * more always shows its name; named when there is no other mode to pick, as a bare icon then explains nothing.
  */
 @Composable
 internal fun ApprovalChip(approval: CodeApprovalChip, onSelect: (CodeApprovalOption) -> Unit) {

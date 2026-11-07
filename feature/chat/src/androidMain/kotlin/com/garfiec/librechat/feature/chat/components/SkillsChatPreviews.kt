@@ -94,7 +94,7 @@ private val previewSkills = listOf(
     ),
 )
 
-/** The composer with the picker open on [text] (or closed, the picked skills in the field's stack). */
+/** The composer with the picker open on [text] (or closed, the picked skills in the attachment strip). */
 @Composable
 internal fun PickerHost(
     text: String,

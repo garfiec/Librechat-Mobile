@@ -264,10 +264,7 @@ class SendDispatchDelegate(
         return added
     }
 
-    /**
-     * Removes one pending skill chip (its ×). Returns whether it was one a new chat's first send held
-     * back for the catalog, which [restorePendingManualSkill] needs to put it back as it was.
-     */
+    /** Returns whether a new chat's first send held it back for the catalog, for [restorePendingManualSkill]. */
     fun removePendingManualSkill(name: String): Boolean {
         handle.update { pendingManualSkills = pendingManualSkills - name }
         val heldBack = name in heldBackForCatalog
@@ -275,10 +272,7 @@ class SendDispatchDelegate(
         return heldBack
     }
 
-    /**
-     * Undo of [removePendingManualSkill]: puts [name] back at [index] (clamped), unless it is staged
-     * again already or the chips are at [MAX_MANUAL_SKILLS]. [heldBack] restores the catalog wait.
-     */
+    /** A no-op when [name] is staged again already or the chips are at [MAX_MANUAL_SKILLS]. */
     fun restorePendingManualSkill(index: Int, name: String, heldBack: Boolean) {
         var restored = false
         handle.update {
@@ -350,7 +344,6 @@ class SendDispatchDelegate(
         }
     }
 
-    /** Undo of [removePendingQuote]: puts [quote] back at [index], clamped to the chips staged now. */
     fun restorePendingQuote(index: Int, quote: String) {
         handle.update {
             pendingQuotes = pendingQuotes.insertedAt(index, quote)

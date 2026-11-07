@@ -99,11 +99,6 @@ import com.garfiec.librechat.feature.chat.util.taps
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
-/**
- * The strip at the top of the composer box: everything that goes with the message, in [DraftItems]
- * order, on one row that scrolls sideways. It grows in when the first item is added and shrinks away
- * with the last.
- */
 @Composable
 internal fun ComposerDraftStrip(chrome: ComposerChrome) {
     // The items it last showed, so a strip leaving because it emptied doesn't shrink away blank.
@@ -122,13 +117,11 @@ internal fun ComposerDraftStrip(chrome: ComposerChrome) {
             additions = chrome.draftAdditions,
             // While it shrinks away the items it shows are gone (sent or removed): nothing acts on them.
             enabled = !chrome.draftItems.isEmpty,
-            // A vertical drag on it scrolls the thread, as on the rows above the box.
             modifier = Modifier.passVerticalDragsToThread(),
         )
     }
 }
 
-/** Remembers the last non-empty [DraftItems] it was given. */
 private class KeptDraftItems {
     private var last = DraftItems.EMPTY
 
@@ -138,28 +131,12 @@ private class KeptDraftItems {
     }
 }
 
-/**
- * The strip's row: an image as a 56dp thumbnail, a file, skill or quote as a card with its name and
- * kind, each with a corner × ([removeDescription]: cancels a file still uploading, else removes the
- * item with an Undo). An uploading item carries the upload ring ([UploadOverlay]), a failed one a red
- * cover. A tap is [taps]'s: a failed file retries, an image opens in the media viewer (and flies
- * back into its tile as the viewer closes), an uploaded file opens in the PDF preview or the file
- * actions; a file still uploading, a skill and a quote aren't tappable.
- *
- * The × is drawn small on the item's corner: Compose widens its touch target to 48dp only where no
- * other target is hit, so a tap on the item opens it and a drag along the strip, which cancels both
- * taps past touch slop, removes nothing.
- *
- * An addition pops its item and scrolls it into view; the row's live region announces what was added
- * and how many items go with the message. Past the edge the row fades.
- */
 @Composable
 internal fun DraftStrip(
     items: DraftItems,
     onRemove: (DraftItem) -> Unit,
     onTap: (DraftItemTap) -> Unit,
     modifier: Modifier = Modifier,
-    /** The upload rings' progress, read as they draw. */
     uploadProgress: DraftUploadProgress = DraftUploadProgress.NONE,
     /** What was just added, for the pop and the announcement; null draws neither (previews). */
     additions: DraftAdditions? = null,
@@ -225,8 +202,7 @@ private fun DraftStripItem(
         is DraftItemTap.Retry -> stringResource(Res.string.cd_retry_upload, tap.file.name)
         else -> stringResource(Res.string.cd_open_file, item.label())
     }
-    // A pop as this item is added, scrolled into view first: the strip is sorted (failed first,
-    // quotes last), so the newest item may land anywhere along it.
+    // Scrolled into view before the pop: the strip is sorted, so the newest item may land anywhere.
     val scale = remember { Animatable(1f) }
     val bringIntoView = remember { BringIntoViewRequester() }
     LaunchedEffect(additions?.seq) {
@@ -280,7 +256,6 @@ private fun DraftStripItem(
     }
 }
 
-/** A file's, skill's or quote's card: its tile, then its name over what it is. */
 @Composable
 private fun DraftCard(
     item: DraftItem,
@@ -331,7 +306,6 @@ private fun DraftCard(
     }
 }
 
-/** A failed image's cover: the error colour over the photo and a "!", so it reads on any photo. */
 @Composable
 private fun FailedCover() {
     val error = MaterialTheme.colorScheme.error
@@ -346,7 +320,10 @@ private fun FailedCover() {
     }
 }
 
-/** The corner ×: drawn 20dp, its touch target widened by Compose where nothing else is hit. */
+/**
+ * Drawn small on purpose: Compose widens its touch target only where no other target is hit, so a tap
+ * on the item opens it and a drag along the strip removes nothing.
+ */
 @Composable
 private fun RemoveBadge(description: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
@@ -377,12 +354,7 @@ private fun FixedScaleText(text: String, color: Color, style: androidx.compose.u
     }
 }
 
-/**
- * An uploading tile's cover: a dark scrim over the [tileSize] tile and a white ring on it, so it
- * reads on any photo in either theme. The ring is determinate while [progress] reports one, else
- * indeterminate. [progress] is read as the ring draws, so a tick redraws it and recomposes nothing;
- * only a switch between reported and unreported recomposes it.
- */
+/** [progress] is read as the ring draws, so a tick redraws it without recomposing. */
 @Composable
 internal fun UploadOverlay(progress: () -> Float?, tileSize: Dp, modifier: Modifier = Modifier) {
     Box(
@@ -411,18 +383,13 @@ internal fun UploadOverlay(progress: () -> Float?, tileSize: Dp, modifier: Modif
     }
 }
 
-/**
- * One draft item's tile: an image's thumbnail, a file's type tile, a skill's or a quote's glyph, in
- * [shape]. An image's [shape] is also what the media viewer flies back into, so it must match the clip
- * around the tile.
- */
+/** An image's [shape] is what the media viewer flies back into, so it must match the clip around the tile. */
 @Composable
 internal fun DraftItemTile(item: DraftItem, size: Dp, modifier: Modifier = Modifier, shape: CornerBasedShape = TileShape) {
     when (item) {
         is DraftItem.Image -> Box(
             modifier = modifier
                 .size(size)
-                // Where the media viewer flies back to as it closes.
                 .mediaThumbnail(item.mediaKey, shape)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center,
@@ -488,14 +455,12 @@ private fun GlyphTile(
     }
 }
 
-/** What an item and an announcement call it: a file's name, a skill's name, a quote's text. */
 internal fun DraftItem.label(): String = when (this) {
     is DraftItem.Attachment -> file.name
     is DraftItem.Skill -> name
     is DraftItem.Quote -> text
 }
 
-/** An item's second line: the file's type and route, its upload state, or what kind of item it is. */
 @Composable
 private fun draftItemSubtitle(item: DraftItem): String = when (item) {
     is DraftItem.Attachment -> when {

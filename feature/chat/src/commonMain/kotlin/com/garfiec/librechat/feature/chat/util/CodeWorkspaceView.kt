@@ -42,12 +42,6 @@ import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceUiState
  * not use yet; [browsingStatus] is its poll. [transitionChoices] are the picks drafted for the
  * resolution's transition, [moving] says one is being written, and [confirming] replaces the
  * whole row with the decision check web shows after a failed turn.
- *
- * A chat whose workspace is settled folds: no card, a "workspace · machine" chip on the settings line
- * ([CodeWorkspaceUiState.folded]). Settled is a saved decision with nothing that needs the user
- * (including a healthy saved chat web hides, with no transition version, which the line still names),
- * or an undecided chat whose next send would seal a ready pick with no machine left to choose: its
- * chip opens the same sheet, which says the next message saves it.
  */
 @Suppress("CyclomaticComplexMethod", "LongMethod", "ComplexCondition") // web's menu layout in one mapping
 internal fun codeWorkspaceUiState(
@@ -202,10 +196,8 @@ internal fun codeWorkspaceUiState(
         resolution.locked && resolution.submission == null -> CodeFootnote.LOCKED_RECOVERY
         else -> null
     }
-    // Nothing would need the user: no hold, no line to read, nothing to choose. Branch, checkout and
-    // linked worktrees are details, not reasons. A saved decision web hides that does need the user
-    // (a rejection named it) still shows, as needing the user. An undecided chat with a machine to
-    // choose needs the user too: the pick isn't made until the send seals it.
+    // Branch, checkout and linked worktrees never unfold it. An undecided chat with a machine to
+    // choose stays unfolded: the pick isn't made until the send seals it.
     val settled = mayFold(resolution) ||
         (mayFoldUndecided(resolution) && machineChip?.choices.isNullOrEmpty())
     val folded = settled && !attention && !moving && footnote == null &&

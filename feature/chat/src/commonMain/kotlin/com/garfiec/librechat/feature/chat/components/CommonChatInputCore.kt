@@ -129,7 +129,6 @@ data class ChatInputState(
     val isStreaming: Boolean,
     val isRecording: Boolean,
     val isTranscribing: Boolean,
-    /** The rows around the field and the callbacks they fire (see [ComposerChrome]). */
     val chrome: ComposerChrome,
     val selectedModelDisplay: String?,
     val isCodeInterpreterAvailable: Boolean,
@@ -178,14 +177,8 @@ data class ChatInputState(
 )
 
 /**
- * Shared container for the chat input area. Renders the gradient background, the chrome above the
- * box ([ChatInputState.chrome]), and the composer box: one rounded frame (Material's fill and border,
- * or the glass capsule) holding the attachment strip, the field, the failed-upload line and a button
- * row with "+", the settings line, the mic and the shared send/stop control.
- *
- * Platform wrappers fill in [leadingButtons] ("+", paste), [textFieldContent] (their own field) and
- * [trailingButtons] (the mic). Each is told when the box is compact (narrower than a 360dp phone's).
- * Attachments, skills and quotes ride in a strip at the box's top ([ComposerDraftStrip]).
+ * The composer box shared by both platforms. [leadingButtons], [textFieldContent] and
+ * [trailingButtons] are each told when the box is compact (narrower than a 360dp phone's).
  */
 @Composable
 fun CommonChatInputCore(
@@ -225,15 +218,10 @@ fun CommonChatInputCore(
     fontSizeMultiplier: Float = 1f,
     /** A row picked from the `/` and `$` list: a prompt or a skill. */
     onSelectPickerItem: (ComposerPickerItem) -> Unit = {},
-    /** The start of the box's button row: "+" and, where offered, paste. */
     leadingButtons: @Composable RowScope.(compact: Boolean) -> Unit = {},
-    /** Just before the send control in the button row: the mic. */
     trailingButtons: @Composable RowScope.(compact: Boolean) -> Unit = {},
     bottomContent: @Composable BoxScope.() -> Unit = {},
-    /**
-     * The field, on the box's row under the attachment strip. It draws no frame of its own
-     * ([ChatInputDefaults.textFieldColors]): the box is the frame.
-     */
+    /** Draws no frame of its own ([ChatInputDefaults.textFieldColors]): the box is the frame. */
     textFieldContent: @Composable RowScope.(compact: Boolean) -> Unit,
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface
@@ -280,7 +268,6 @@ fun CommonChatInputCore(
                 fontSizeMultiplier = fontSizeMultiplier,
             )
 
-            // Prompt and skill picker, above the input and below the settings line.
             val pickerQuery = remember(state.inputText, state.canPickSkills) {
                 parsePickerQuery(state.inputText, state.canPickSkills)
             }
@@ -297,7 +284,6 @@ fun CommonChatInputCore(
                 onRetrySkills = onRetrySkills,
             )
 
-            // Temporary chat's violet on the box, faded rather than snapped, in both styles.
             val temporaryWash = ChatInputDefaults.temporaryWash
             val temporaryBorder = ChatInputDefaults.temporaryBorderColor
             val boxFill = ChatInputDefaults.containerColor
@@ -374,13 +360,6 @@ fun CommonChatInputCore(
     }
 }
 
-/**
- * Everything above the box: the pull request, the steer and queue region and the queue's banners.
- * The settings line (with the code workspace's chips) is in the box's button row ([ComposerButtonRow]);
- * files, picked skills and quotes are in the strip at the box's top ([ComposerDraftStrip]). A
- * vertical drag that starts anywhere on it scrolls the thread ([passVerticalDragsToThread]); rows
- * keep only their horizontal scrolls and the queue's long-press reorder.
- */
 @Suppress("LongParameterList")
 @Composable
 private fun ComposerChromeStack(
@@ -433,22 +412,10 @@ private fun ComposerChromeStack(
                 )
             }
         }
-
-        // The attached machine a coding agent works on (machine, workspace, branch, checkout), as a
-        // card while it needs the user; folded onto the settings line once the chat's saved decision
-        // is healthy.
     }
 }
 
-/**
- * Steers, then the queue: the order they will reach the model. A steer lands in the reply being
- * written right now; a queued message becomes a later turn. One region, capped at
- * [STEER_AND_QUEUE_MAX_HEIGHT] (about two and a half rows) and resting on its bottom, the end
- * nearest the field; past the cap it scrolls, and a drag that reaches its edge goes on to scroll
- * the thread ([ThreadHandOffConnection]). The scroll is off while everything fits, so the stack's
- * own pass-through takes the drag. The queue's long-press reorder keeps its gesture and scrolls the
- * region at its edges ([QueuedMessagesSection]).
- */
+/** Steers, then the queue: the order they will reach the model. */
 @Composable
 private fun SteerAndQueueRegion(
     pendingSteers: List<PendingSteerChip>,
@@ -486,7 +453,7 @@ private fun SteerAndQueueRegion(
     }
 }
 
-/** The capped, bottom-resting column of [SteerAndQueueRegion]. */
+/** Scrolls only while it overflows, so until then the stack's pass-through takes the drag. */
 @Composable
 internal fun SteerAndQueueColumn(
     scroll: ScrollState,
@@ -502,10 +469,6 @@ internal fun SteerAndQueueColumn(
     )
 }
 
-/**
- * Why Send is held while a file failed to upload, under the field: the failed items are in the strip
- * above, where a tap retries and the × removes.
- */
 @Composable
 internal fun FailedUploadsLine(failedCount: Int) {
     if (failedCount == 0) return
@@ -523,11 +486,6 @@ internal fun FailedUploadsLine(failedCount: Int) {
 /** About two and a half steer or queue rows. */
 internal val STEER_AND_QUEUE_MAX_HEIGHT = 168.dp
 
-/**
- * The box's bottom row: [leadingButtons], the settings line (what is on for the next message, with
- * the context ring at its end under the above-the-field placement), [trailingButtons] and the send
- * control with its during-run picker. The line takes what the buttons leave and scrolls sideways.
- */
 @Suppress("LongParameterList")
 @Composable
 private fun ComposerButtonRow(
@@ -547,7 +505,6 @@ private fun ComposerButtonRow(
 ) {
     val chrome = state.chrome
     Row(
-        // A vertical drag on the row (the chips, the buttons) scrolls the thread, as on the rows above.
         modifier = Modifier.fillMaxWidth().passVerticalDragsToThread(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -648,10 +605,7 @@ private val ComposerBoxShape = RoundedCornerShape(28.dp)
 /** The box's round buttons: 40dp drawn, a 48dp touch target from Compose's touch-bounds expansion. */
 internal val BoxButtonSize = 40.dp
 
-/**
- * The field's leading slot: the wide Compare badges. Null without them, so the field keeps M3's plain
- * start padding (the slot holds 48dp or more whatever it draws). Both platform composers read it.
- */
+/** Null without wide Compare badges, so the field keeps M3's plain start padding (any slot takes 48dp+). */
 internal fun composerFieldLeadingIcon(comparison: ComposerComparison?): (@Composable () -> Unit)? {
     val badges = comparison?.takeUnless { it.compact } ?: return null
     return { ComposerComparisonBadges(badges) }
@@ -675,9 +629,8 @@ internal enum class SendButtonMode { SEND, STOP, QUEUE, STEER, INTERRUPT, ANSWER
  * sheet, so counting them would leave Send, Steer, Queue and Update looking live over a tap that
  * silently does nothing for as long as the provider takes to resolve.
  *
- * Pulled out of the composable for the same reason as [sendButtonModeFor]: this module has no
- * Compose test harness, and an affordance that disagrees with the action behind it is exactly the
- * defect no behavioural test catches.
+ * Pulled out of the composable for the same reason as [sendButtonModeFor]: an affordance that
+ * disagrees with the action behind it is exactly the defect no behavioural test catches.
  */
 internal fun composerCanSend(
     inputText: String,
@@ -688,9 +641,8 @@ internal fun composerCanSend(
 
 /**
  * Which face the composer's trailing button shows. Pulled out of the composable so the mapping
- * from state to affordance is testable without a Compose harness — this module has none, and the
- * one defect this rule has produced was a *label* that disagreed with the action behind it, which
- * no behavioural test could ever catch.
+ * from state to affordance is asserted as a pure function: the one defect this rule has produced
+ * was a *label* that disagreed with the action behind it, which no behavioural test could catch.
  */
 @Suppress("LongParameterList")
 internal fun sendButtonModeFor(

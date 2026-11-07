@@ -6,14 +6,8 @@ import com.garfiec.librechat.feature.chat.viewmodel.DraftUndo
 import com.garfiec.librechat.feature.chat.viewmodel.RemovedDraftItem
 
 /**
- * The attachment strip's × and Undo: what goes with the message being composed (files, picked
- * skills, quotes) is removed here, and a finished removal can be put back where it was.
- *
- * Only a settled item gets an Undo: an uploaded or failed file, a skill, a quote. Removing a file
- * still uploading cancels its upload and offers none, since bringing it back would mean starting the
- * upload over. One Undo is pending at a time (`ComposerState.pendingDraftUndo`); a later removal
- * replaces it, and a send, the queued-edit swap or a conversation switch drops it in their own
- * composer writes.
+ * A file still uploading is cancelled, with no Undo. One Undo is pending at a time; a send, the
+ * queued-edit swap and a conversation switch drop it inside their own composer writes.
  */
 class DraftItemsDelegate(
     private val handle: DraftItemsHandle,
@@ -72,11 +66,7 @@ class DraftItemsDelegate(
         forget(dropped)
     }
 
-    /**
-     * [undo] can no longer put its file back, so what the handler kept for it goes. The composer
-     * writes that drop an Undo with the draft (a send's clear, the queued-edit swap) clear or swap
-     * the tray in the same step, which lets go of it there.
-     */
+    // Composer writes that drop an Undo with the draft clear or swap the tray, which releases it there.
     private fun forget(undo: DraftUndo?) {
         val removed = undo?.removed as? RemovedDraftItem.File ?: return
         fileHandler.forgetRemoved(removed.file)

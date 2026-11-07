@@ -20,11 +20,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/**
- * While a compact suggestion is due the context ring's tap opens the compact confirmation, which
- * keeps "Not now" and still leads to the usage breakdown, without snoozing the suggestion.
- * On Robolectric, with the unit tests.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class ContextRingNudgeTest {

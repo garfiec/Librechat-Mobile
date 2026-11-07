@@ -7,7 +7,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** The strip's pop and "attached" announcement, tracked above the strip so the first item counts. */
 class DraftAdditionsTest {
 
     private val photo = AttachedFile(uri = "p", name = "photo.jpg", isImage = true, type = "image/jpeg")

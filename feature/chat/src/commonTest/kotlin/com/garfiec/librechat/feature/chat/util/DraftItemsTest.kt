@@ -52,7 +52,6 @@ class DraftItemsTest {
     fun skillsAndQuotesAreNotFiles() {
         val items = draftItemsOf(emptyList(), listOf("pdf-tools"), listOf("a", "a"), serverUrl = "")
         assertFalse(items.hasFiles)
-        // A quote repeated is two chips, with two keys.
         assertEquals(listOf("skill:pdf-tools", "quote:0:a", "quote:1:a"), items.items.map { it.key })
     }
 
@@ -79,7 +78,6 @@ class DraftItemsTest {
         val both = draftItemsOf(listOf(first, second), emptyList(), emptyList(), serverUrl = "")
         assertEquals(listOf("file:e1", "file:e2"), both.items.map { it.key })
 
-        // Removing the first leaves the second's key as it was.
         val left = draftItemsOf(listOf(second), emptyList(), emptyList(), serverUrl = "")
         assertEquals(listOf("file:e2"), left.items.map { it.key })
     }

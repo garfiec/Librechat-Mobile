@@ -183,8 +183,7 @@ fun ChatScreen(
         derivedStateOf(structuralEqualityPolicy()) { attachedFiles.value.map { it.copy(uploadProgress = null) } }
     }
     val draftUploadProgress = remember { DraftUploadProgress { attachedFiles.value } }
-    // What goes with the message, for the composer's attachment strip. The files are their own flow,
-    // so this is mapped here rather than in the uiState combine.
+    // Mapped here, not in the uiState combine: the files are their own flow.
     val draftItems = remember(draftFiles, uiState.pendingManualSkills, uiState.pendingQuotes, uiState.serverUrl) {
         draftItemsOf(draftFiles, uiState.pendingManualSkills, uiState.pendingQuotes, uiState.serverUrl)
     }
@@ -254,16 +253,12 @@ fun ChatScreen(
     // selector), which keeps dismissing straight to the chat.
     val optionsController = rememberChatOptionsSheetController()
     val thinkingChip = uiState.thinkingChip
-    // MCP sign-in: a tool call's card (mid-run, delta.auth) and a settings chip both bind and open it
-    // here. A paused run resumes by itself once the server's callback lands; whichever way a sign-in
-    // ends, the chat re-reads its servers' statuses so the chips' dots catch up. Nothing here cancels
-    // a flow: only a connecting chip's "Cancel sign-in" does.
+    // Nothing here cancels an OAuth flow: only a connecting chip's "Cancel sign-in" does.
     val mcpSignInViewModel: McpSignInViewModel = koinViewModel()
     val mcpSignIn = rememberMcpSignIn(mcpSignInViewModel, snackbarHostState, onSignInEnd = viewModel::onMcpSignInEnded)
     val mcpSignInFailed = stringResource(Res.string.mcp_sign_in_failed)
     val mcpCancelSignInFailed = stringResource(Res.string.mcp_cancel_sign_in_failed)
     val showNotice: (String) -> Unit = { message -> coroutineScope.launch { snackbarHostState.showNotice(message) } }
-    // A chip's sign-in, and a connecting chip's "Start over": reconnect, then open its link.
     val startMcpSignIn: (String) -> Unit = { serverName ->
         viewModel.signInMcpServer(
             serverName = serverName,
@@ -271,8 +266,7 @@ fun ChatScreen(
             onFailed = { showNotice(mcpSignInFailed) },
         )
     }
-    // A connecting chip's "Cancel sign-in". A refused cancel leaves the chip reading connecting, so
-    // only the snackbar says it didn't land.
+    // A refused cancel leaves the chip reading connecting, so only the snackbar says it didn't land.
     val cancelMcpSignIn: (String) -> Unit = { serverName ->
         viewModel.cancelMcpSignIn(serverName, onFailed = { showNotice(mcpCancelSignInFailed) })
     }
@@ -715,7 +709,6 @@ fun ChatScreen(
                                         }
                                     }
 
-                                    // A send of any kind closes the keyboard when the user asked for that.
                                     fun send(action: () -> Unit): () -> Unit = {
                                         action()
                                         if (dismissKeyboardOnSend) keyboardController?.hide()

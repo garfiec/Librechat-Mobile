@@ -307,7 +307,7 @@ class CodeWorkspaceDelegateTest {
             assertThat(environments.moves.single())
                 .isEqualTo(listOf(CodeWorkspaceSelection(mbp.id, "switchboard")) to emptyList<CodeWorkspaceSelection>())
             assertThat(flow.value.codeWorkspace.workspace.label).isEqualTo(CodeWorkspaceChipLabel.NONE)
-            // Sealed without a workspace now: its footnote keeps the card.
+            // Sealed without a workspace now: its footnote keeps it unfolded.
             assertThat(flow.value.codeWorkspace.visible).isTrue()
             assertThat(flow.value.codeWorkspace.folded).isFalse()
             // The server applies its recorded decision: the turn sends none.

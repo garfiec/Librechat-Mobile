@@ -102,8 +102,8 @@ data class ChatUiState(
     val content: MessagesState = MessagesState(),
     val avatars: ReplyAvatarsState = ReplyAvatarsState(),
     /**
-     * The composer's settings line, mapped once per state by the ViewModel's `uiState` combine from
-     * [settingChipInputs]. Empty on the backing state, which delegates read.
+     * Mapped by the ViewModel's `uiState` combine from [settingChipInputs]. Empty on the backing
+     * state, which delegates read.
      */
     val settingChips: SettingChips = SettingChips.EMPTY,
     val conversation: ConversationMetaState = ConversationMetaState(),
@@ -1007,12 +1007,9 @@ data class ChatUiState(
     }
 
     /**
-     * The route a failed upload goes again with. It keeps [stored], the route the attachment strip
-     * shows on its row, while that route still works for the live selection: a code upload (the
-     * user's destination), the route the selection would pick itself, or either one while both
-     * are open. Otherwise the selection moved under it, often because the first attempt failed,
-     * and replaying it would send a PDF chosen as native under Bedrock to a provider that ignores
-     * it, or a text route to a selection that can't extract: so it is routed afresh.
+     * The route a failed upload goes again with: [stored] while it still works for the live
+     * selection (a code upload, the route the selection would pick, or either while both are open),
+     * else routed afresh, so a native PDF isn't replayed to a provider that ignores it.
      */
     fun retryUploadRoute(stored: UploadRoute?, mimeType: String?): UploadRoute {
         val live = uploadRouteFor(mimeType)

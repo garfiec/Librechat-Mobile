@@ -32,10 +32,6 @@ import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceChip
 import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceChipLabel
 import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceUiState
 
-// The code workspace on the composer's settings line, over thread text: a healthy saved chat (with and
-// without the line's other chips, and the approval chip alone), a chat choosing its workspace with
-// the notice saying why Send waits, and one sealed without a workspace.
-
 @PreviewNarrowScreens
 @Composable
 private fun CodeWorkspaceFoldedMaterialPreview() = WorkspaceSurface(UiStyle.MATERIAL) { FoldedStates() }
@@ -131,7 +127,6 @@ private fun NeedsYouStates() {
     )
 }
 
-/** The code workspace's chips on the settings line, and its notice, as the composer box draws them. */
 @Composable
 private fun ComposerHost(state: CodeWorkspaceUiState, chips: SettingChips) {
     CompositionLocalProvider(LocalCodeWorkspaceComposer provides composer(state)) {

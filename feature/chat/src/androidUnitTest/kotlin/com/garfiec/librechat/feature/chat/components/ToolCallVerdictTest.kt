@@ -6,9 +6,8 @@ import org.junit.Test
 
 /**
  * The live card and the reloaded card both answer "how did this tool call end", from two
- * different fields, and this module has no Compose harness to catch them disagreeing. Pulling the
- * rule out is what makes the mapping assertable at all — the same reason `sendButtonModeFor`
- * exists.
+ * different fields, which can disagree. Pulling the rule out makes the mapping assertable as a pure
+ * function, the same reason `sendButtonModeFor` exists.
  */
 class ToolCallVerdictTest {
 

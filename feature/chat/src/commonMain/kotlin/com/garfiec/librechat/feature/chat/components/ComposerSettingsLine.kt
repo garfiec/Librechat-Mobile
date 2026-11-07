@@ -81,22 +81,13 @@ import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
-/**
- * The composer's settings line: what is on for the next message, one chip per thing, on one line
- * that scrolls sideways and never wraps. [leading] comes first when set (the code workspace's chips), then
- * [chips] (tools, MCP servers, Thinking), with the context ring pinned at the end when [ring] is
- * set. A tap goes to [onChipTap]; the screen decides what it does ([SettingChips.tapFor]), except on
- * an MCP chip whose sign-in is pending, which opens its own menu ([onCancelSignIn],
- * [onStartSignInOver]). Draws nothing when it would hold nothing.
- */
+/** One line that scrolls sideways and never wraps. A chip whose sign-in is pending handles its own tap (a menu). */
 @Composable
 internal fun ComposerSettingsLine(
     chips: SettingChips,
     onChipTap: (SettingChip) -> Unit,
     modifier: Modifier = Modifier,
-    /** "Cancel sign-in" in a connecting MCP chip's menu ([SettingChip.Mcp.signInPending]). */
     onCancelSignIn: (serverName: String) -> Unit = {},
-    /** "Start over" in that menu. */
     onStartSignInOver: (serverName: String) -> Unit = {},
     ring: ContextRingState? = null,
     leading: (@Composable () -> Unit)? = null,
@@ -147,7 +138,6 @@ private val SettingChip.lineKey: String
         is SettingChip.Thinking -> "thinking"
     }
 
-/** What the context ring at the end of the settings line reads and does. */
 internal data class ContextRingState(
     val details: ContextGaugeDetails,
     /** Null when the server does not offer compaction, or nothing can be compacted right now. */
@@ -155,11 +145,6 @@ internal data class ContextRingState(
     val onSnoozeCompact: () -> Unit,
 )
 
-/**
- * The ring for the composer's chrome: only with the above-the-field placement, a server that reports
- * context usage, and a reading with real usage. Other placements draw the gauge in the "+" sheet or
- * the ⋮ menu instead.
- */
 internal fun ComposerChrome.contextRing(): ContextRingState? {
     val details = contextGauge ?: return null
     if (contextBarPlacement != ContextBarPlacement.ABOVE_INPUT || !contextUsageEnabled) return null
@@ -183,12 +168,6 @@ private fun ToolSettingChip(chip: SettingChip.Tool, lockedBy: String?, onClick: 
     )
 }
 
-/**
- * A selected MCP server with its status dot. A chip whose tap signs in reads "· sign in"; one whose
- * sign-in is pending ([SettingChip.Mcp.opensMenu]) reads "· connecting" and opens a menu with "Cancel sign-in" and
- * "Start over" rather than going to [onClick]. Either is disabled while a reconnect or a cancel is
- * out ([SettingChip.Mcp.waitsForSignIn]), which would ignore the tap.
- */
 @Composable
 private fun McpSettingChip(
     chip: SettingChip.Mcp,
@@ -276,10 +255,6 @@ private fun McpSettingChip(
     }
 }
 
-/**
- * The per-turn Thinking chip: a button that opens the level sheet, showing the level the next message
- * will use. A one-turn choice tints it tertiary in both styles and says "next message".
- */
 @Composable
 private fun ThinkingSettingChip(chip: ThinkingChip, onClick: () -> Unit) {
     val level = reasoningLevelLabel(chip.shown, chip.unsetIsOff)
@@ -310,24 +285,14 @@ private fun ChipIcon(icon: ImageVector) {
     Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize))
 }
 
-/**
- * What a spec-locked chip says about its lock: "Set by <spec>", or the server's generic wording when
- * the spec has no label to name ([lockedBy] null). Formatted with `lockedBy.orEmpty()`, which the
- * generic wording ignores. Read by the chip's description and by its tap's snackbar
- * (`rememberSettingChipTap`).
- */
+/** Format either string with `lockedBy.orEmpty()`; the generic wording ignores it. */
 internal fun lockedByMessage(lockedBy: String?): StringResource =
     if (lockedBy != null) Res.string.setting_chip_set_by else Res.string.tool_set_by_spec
 
 @Composable
 private fun lockedByText(lockedBy: String?): String = stringResource(lockedByMessage(lockedBy), lockedBy.orEmpty())
 
-/**
- * The context window as a 24dp ring with the percentage inside, tinted by [pressureColor], with a
- * tertiary dot while compacting is suggested. A tap opens the breakdown; while the suggestion is due
- * it opens the compact confirmation instead, which keeps "Not now" and offers "See usage", the way
- * to the breakdown that doesn't snooze the suggestion.
- */
+/** While compacting is suggested a tap opens the compact confirmation, whose "See usage" reaches the breakdown without snoozing. */
 @Composable
 internal fun ContextRing(state: ContextRingState, modifier: Modifier = Modifier) {
     var showSheet by remember { mutableStateOf(false) }

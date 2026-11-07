@@ -15,13 +15,6 @@ import com.garfiec.librechat.feature.chat.util.tapFor
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 
-/**
- * What a tap on a settings-line chip does ([SettingChips.tapFor]): a spec's own tool says who set it;
- * a pinned tool that is off switches on ([onToggle], the "+" sheet's toggle); anything that is on
- * opens the "+" sheet at its row ([onShowInSheet]), where its switch turns it off. A tap on the line
- * never turns a thing off. An MCP server that needs sign-in signs in instead ([onSignIn], with its
- * stored name).
- */
 @Composable
 internal fun rememberSettingChipTap(
     chips: SettingChips,

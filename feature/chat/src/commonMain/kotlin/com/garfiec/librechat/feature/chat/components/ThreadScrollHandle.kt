@@ -36,15 +36,9 @@ interface ThreadDrags {
 }
 
 /**
- * The [ThreadDrags] of the chat screen. `ChatScreen` creates it, above both the thread and the
- * composer; `ChatContent`, which owns the lists, binds whichever list is on screen
- * ([BindThreadScroll]).
- *
- * A drag is ONE `scroll(UserInput) { scrollBy }` session from its first delta to its fling, as a
- * finger on the list makes, so the list reports `isScrollInProgress` for the whole of it: that is
- * what the tail follower reads as the user scrolling away mid-reply (`TailFollower`), and what
- * takes the scroll from the follower instead of fighting it frame by frame. A finger on the list
- * itself cancels the session the same way it would cancel a fling.
+ * The chat screen's [ThreadDrags]; `ChatContent` binds the list on screen ([BindThreadScroll]).
+ * A drag is ONE `scroll(UserInput)` session from first delta to fling, so `isScrollInProgress` holds
+ * throughout and `TailFollower` reads it as the user scrolling away; don't open one per delta.
  */
 @Stable
 class ThreadScrollHandle internal constructor(private val scope: CoroutineScope) : ThreadDrags {
@@ -123,7 +117,6 @@ fun rememberThreadScrollHandle(): ThreadScrollHandle {
     return remember(scope) { ThreadScrollHandle(scope) }
 }
 
-/** Points [LocalThreadScrollHandle] at [state] while this is composed. */
 @Composable
 fun BindThreadScroll(state: ScrollableState) {
     val handle = LocalThreadScrollHandle.current ?: return

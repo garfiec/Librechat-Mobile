@@ -46,13 +46,11 @@ class UploadIntakeDelegate(
     /**
      * Runs [action] once any pending file uploads have finished, guarding against a double-send
      * while a previous wait is still in flight. Shared by the live-send and queue paths so the
-     * upload-wait semantics live in one place: a send, a voice auto-send, a starter, a queue (a
-     * steer carrying files goes there) and saving a queued edit all pass through it.
+     * upload-wait semantics live in one place.
      *
      * A failed upload holds it, checked before the wait and again after it, since the wait treats a
-     * failure as settled ([awaitUploadsThenSend]): the user retries or removes the file, and the
-     * composer's line under the field says so. The steer re-home and an MCP App's message don't pass
-     * here and are never held: neither sends the composer's files.
+     * failure as settled. The steer re-home and an MCP App's message must not pass here: neither
+     * sends the composer's files.
      */
     fun withUploadGate(text: String, action: (String) -> Unit) {
         if (fileHandler.pendingUploadSendJob?.isActive == true) return
@@ -287,16 +285,9 @@ class UploadIntakeDelegate(
     private val pendingRetries = mutableSetOf<Any>()
 
     /**
-     * Re-uploads a failed attachment, in its place and with its route. Resolves the agent's
-     * provider first, as the intake path does: the upload names the selected agent, and a file
-     * that never committed to a route is routed against the live selection. A retry is the one
-     * action a user takes *after* a failure, and the same outage that failed the upload will often
-     * have failed the provider fetch.
-     *
-     * The row still reads failed through that wait, so the user can tap it again or × it. A second
-     * tap is ignored while the first is pending, and after the wait the retry goes ahead only while
-     * the same composer still holds that file as failed: a removed file stays removed (its Undo
-     * would otherwise put back a second copy), and a tray swapped to a queued edit never gains it.
+     * Resolves the agent's provider first, as the intake path does. After that wait it goes ahead only
+     * while the same composer still holds the file as failed: a removed file's Undo would otherwise put
+     * back a second copy, and a tray swapped to a queued edit must not gain it.
      */
     fun retryUpload(file: AttachedFile) {
         if (!isFailedInTray(file) || !pendingRetries.add(file.key)) return

@@ -34,10 +34,6 @@ import com.garfiec.librechat.feature.chat.util.draftItemsOf
 import com.garfiec.librechat.feature.chat.viewmodel.CompactNudge
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 
-// The composer's settings line over scrolled thread text (the composer's top is transparent):
-// tools on, pinned and off, locked by a spec; MCP servers in each status; Thinking idle and staged;
-// the context ring at a normal reading and with a compact suggestion due.
-
 @PreviewNarrowScreens
 @Composable
 private fun SettingsLineMaterialPreview() = LineSurface(UiStyle.MATERIAL) { SettingsLineStates() }
@@ -132,9 +128,6 @@ private fun SettingsLineStates() {
                 onSnoozeCompact = {},
             ),
         )
-        // MCP servers by status: needs sign-in (amber, "· sign in", a long name and a locked one),
-        // a sign-in pending ("· connecting", its tap opens Cancel sign-in / Start over), a server
-        // connecting without OAuth, needs setup on the web (amber), failed (error), and on demand.
         ComposerSettingsLine(
             chips = SettingChips(
                 listOf(

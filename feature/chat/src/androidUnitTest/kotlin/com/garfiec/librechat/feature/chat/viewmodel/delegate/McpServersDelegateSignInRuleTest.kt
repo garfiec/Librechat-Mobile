@@ -14,13 +14,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
-/**
- * A chip sign-in follows web's rule (`useMCPServerManager`): the chip reconnects and opens the
- * sign-in, and the app never cancels the OAuth flow that leaves pending by itself, whatever happens
- * to the sign-in or the run. While the server reads connecting, the chip offers "Cancel sign-in"
- * (the explicit cancel route) and "Start over" (reconnect again). Statuses reload when a sign-in
- * ends, after a cancel, and when the chat comes back to the front.
- */
+/** Web's `useMCPServerManager` rule: the app never cancels a pending OAuth flow by itself. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class McpServersDelegateSignInRuleTest : McpServersDelegateTestBase() {
 

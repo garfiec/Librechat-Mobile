@@ -62,11 +62,7 @@ data class MediaItem(
     /** The generated file this image is, when it is one: save and share then use its original
      *  bytes, downloaded, rather than whatever the image loader decoded. */
     val attachment: Attachment? = null,
-    /**
-     * What the image loader draws instead of [url], for an image that is only on the device (a
-     * picked, unsent photo: an Android content `Uri`, iOS's picked bytes). [url] is then only the
-     * key, and there is no URL to save or share from.
-     */
+    /** Drawn instead of [url] for an image only on the device; [url] is then only the key, with nothing to save or share. */
     val model: Any? = null,
 )
 

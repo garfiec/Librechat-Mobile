@@ -9,27 +9,18 @@ import com.garfiec.librechat.core.ui.media.MediaItem
 import com.garfiec.librechat.core.ui.media.MediaPreviewState
 import com.garfiec.librechat.feature.chat.components.AttachedFile
 
-/**
- * One thing that goes with the message being composed, as the composer's attachment strip draws
- * it: a file (an image or anything else), a picked skill, or a staged quote.
- */
 @Immutable
 sealed interface DraftItem {
     /** Unique within one [DraftItems], stable while the item stays in it. */
     val key: String
 
-    /** An attached file, [Image] or [File]. */
     sealed interface Attachment : DraftItem {
         val file: AttachedFile
         val isUploading: Boolean get() = file.isUploading
         val isFailed: Boolean get() = file.uploadFailed
     }
 
-    /**
-     * An image, with what to draw its thumbnail from ([thumbnail], null when nothing can be drawn) and
-     * what the media viewer draws it from ([viewerSource]: the device's full copy where there is one,
-     * else the server's, else the thumbnail).
-     */
+    /** [thumbnail] is null when nothing can be drawn; [viewerSource] is the full copy the media viewer opens. */
     data class Image(
         override val file: AttachedFile,
         val thumbnail: Any?,
@@ -47,21 +38,15 @@ sealed interface DraftItem {
     }
 
     /**
-     * A staged quote, at [index] in `ComposerState.pendingQuotes`. Keyed by its words, and by
-     * [occurrence] among quotes with the same words (quotes may repeat), not by [index]: removing or
-     * restoring one quote moves the others' indexes, and a key that moved with them would hand one
-     * quote's row to another and announce the wrong one as added.
+     * Keyed by its words and [occurrence], never by [index]: removing or restoring a quote shifts the
+     * others' indexes, and a key that moved with them would hand one quote's row to another.
      */
     data class Quote(val index: Int, val text: String, val occurrence: Int = 0) : DraftItem {
         override val key: String get() = "quote:$occurrence:$text"
     }
 }
 
-/**
- * The composer's draft items, in list order, with what the strip and the send hold read. No upload
- * progress: that is [DraftUploadProgress], read where the rings draw, so a progress tick changes
- * nothing here.
- */
+/** Holds no upload progress ([DraftUploadProgress]), so a progress tick leaves it equal. */
 @Immutable
 data class DraftItems(
     val items: List<DraftItem>,
@@ -69,7 +54,6 @@ data class DraftItems(
     val hasFiles: Boolean,
     /** Files that failed to upload: each holds every send until it is retried or removed. */
     val failedCount: Int,
-    /** A file is still uploading. */
     val hasUploads: Boolean,
 ) {
     val isEmpty: Boolean get() = items.isEmpty()
@@ -80,16 +64,12 @@ data class DraftItems(
     }
 }
 
-/**
- * The draft's upload progress, kept out of [DraftItems] so a progress tick re-maps nothing above the
- * rings: they read it as they draw. [files] is the tray as the screen holds it, with its progress.
- */
+/** Read only where the rings draw, so a progress tick recomposes nothing above them. */
 @Stable
 class DraftUploadProgress(private val files: () -> List<AttachedFile>) {
     /** The mean progress of the uploads that report one, or null when none does (indeterminate). */
     fun overall(): Float? = meanUploadProgress(files())
 
-    /** [file]'s own progress (its tray entry's, [AttachedFile.key]), or null when it reports none. */
     fun of(file: AttachedFile): Float? = files().firstOrNull { it.key == file.key }?.uploadProgress
 
     companion object {
@@ -102,17 +82,7 @@ internal fun meanUploadProgress(files: List<AttachedFile>): Float? {
     return progresses.takeIf { it.isNotEmpty() }?.let { it.sum() / it.size }
 }
 
-/**
- * Maps the composer's files, picked skills and staged quotes to the list the attachment strip
- * draws: failed files first (they hold the send), then images, other files, skills and quotes,
- * each group in the order it was added. Pure, so `ChatScreen` maps it once per change of its inputs.
- *
- * An image's thumbnail is what the device holds when it holds something drawable (an Android
- * content `Uri`, the picker's small copy on iOS in [AttachedFile.localPreview]), else the server's
- * copy once there is one ([serverUrl] with the `filepath`, or the file id of a server file attached
- * by reference), else nothing: a String `uri` is an id (iOS mints one per pick), not something to
- * load. The device copy wins over the server's so the thumbnail doesn't reload as the upload lands.
- */
+/** Failed files first (they hold the send), then images, other files, skills and quotes. */
 fun draftItemsOf(
     files: List<AttachedFile>,
     skills: List<String>,
@@ -158,16 +128,13 @@ fun draftItemsOf(
 
 private fun thumbnailFor(file: AttachedFile, serverUrl: String): Any? {
     file.localPreview?.let { return it }
-    // A non-String uri is a platform handle an image loader reads (an Android content Uri).
+    // The device copy wins so the thumbnail doesn't reload as the upload lands. A String uri is an
+    // id (iOS mints one per pick), never loaded; any other uri is a handle the loader reads.
     if (file.uri !is String) return file.uri
     return serverCopyOf(file, serverUrl)
 }
 
-/**
- * The full image for the viewer: an Android content `Uri` is the picked file itself; iOS keeps only a
- * small preview on the item ([AttachedFile.localPreview]), so the server's copy is the full one once
- * the upload lands. Null leaves the thumbnail.
- */
+// iOS keeps only a small preview on the item, so its full image is the server's copy.
 private fun viewerSourceFor(file: AttachedFile, serverUrl: String): Any? =
     if (file.uri !is String) file.uri else serverCopyOf(file, serverUrl)
 
@@ -178,26 +145,16 @@ private fun serverCopyOf(file: AttachedFile, serverUrl: String): String? {
 
 /** What a tap on an item of the attachment strip does ([taps]); null leaves the item untappable. */
 sealed interface DraftItemTap {
-    /** A failed upload: try it again. */
     data class Retry(val file: AttachedFile) : DraftItemTap
 
-    /** An image: the media viewer, paging through the draft's images. */
     data class ViewImage(val preview: MediaPreviewState) : DraftItemTap
 
-    /** An uploaded PDF: the native PDF preview. */
     data class OpenPdf(val fileId: String, val filename: String) : DraftItemTap
 
-    /** Any other uploaded file: the file actions (open in another app, save, share). */
     data class OpenFile(val attachment: Attachment) : DraftItemTap
 }
 
-/**
- * Each item's tap, by [DraftItem.key]. A failed file retries. An image opens in the media viewer, from
- * the device's copy while it uploads. Another file opens once it is uploaded (both viewers read it from
- * the server), by the rule the media page's Files tab uses ([conversationFileTap]); until then, and
- * for a skill or a quote, the item isn't tappable (null). The viewer's page list is built once for all
- * the images.
- */
+/** A non-image file is tappable only once uploaded: both file viewers read it from the server. */
 fun DraftItems.taps(): Map<String, DraftItemTap?> {
     val images = items.filterIsInstance<DraftItem.Image>().filter { !it.isFailed && it.viewerSource != null }
     val media by lazy(LazyThreadSafetyMode.NONE) {

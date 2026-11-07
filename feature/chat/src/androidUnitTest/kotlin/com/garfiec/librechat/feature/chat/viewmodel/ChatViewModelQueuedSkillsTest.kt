@@ -56,7 +56,7 @@ import org.junit.Test
  * Skill chips on the local queue, in a non-agent chat (where skills are mostly used, and where a
  * queue goes through the client's own drain rather than the server's enqueue claim): the drain
  * sends the queued picks with the ephemeral flag, a queued edit keeps them, and a steer leaves
- * them staged. Also the quote chips a queued edit carries, and the attachment list's Undo. Driven through the real ViewModel over a live run, on the
+ * them staged. Driven through the real ViewModel over a live run, on the
  * [ChatViewModelDuringRunSendTest] harness shape; see its KDoc for why every case cancels the
  * ViewModel scope inside the body and drives with [runCurrent].
  */

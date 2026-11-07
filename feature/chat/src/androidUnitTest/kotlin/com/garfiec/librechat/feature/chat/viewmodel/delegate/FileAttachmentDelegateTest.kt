@@ -31,10 +31,7 @@ import java.io.ByteArrayInputStream
 
 class FileAttachmentDelegateTest {
 
-    /**
-     * A delegate over a real state handle, reading [bytes] for every picked uri, uploading through
-     * [fileRepository]. Unconfined, so an upload runs inline up to its first suspension.
-     */
+    /** Unconfined, so an upload runs inline up to its first suspension. */
     private fun uploadingDelegate(
         fileRepository: FileRepository,
         state: MutableStateFlow<ChatUiState> = MutableStateFlow(ChatUiState()),

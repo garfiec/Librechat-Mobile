@@ -14,18 +14,14 @@ import com.garfiec.librechat.feature.chat.viewmodel.PendingSteerChip
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 
 /**
- * What the composer draws around its field (the rows above it and the "+" button's dots), with the
- * callbacks those rows fire. One holder threaded from the screen through [ChatComposer], both
- * platform composers and [ChatInputState], so a new row adds a field here rather than a parameter to
- * five signatures, two of which (iOS) this module's Linux builds never compile.
+ * What the composer draws around its field. A new row adds a field here, never a parameter to the
+ * five signatures that thread it: the two iOS ones are not compiled on a Linux host.
  */
 @Immutable
 data class ComposerChrome(
     /** Steers accepted by the running turn but not yet injected; rendered above the queue. */
     val pendingSteers: List<PendingSteerChip> = emptyList(),
-    /** Withdraw a steer the run has not injected yet. */
     val onCancelSteer: (steerId: String) -> Unit = {},
-    /** "Interrupt now" on a waiting steer chip. */
     val onInterruptSteer: (steerId: String) -> Unit = {},
     /** Queued follow-ups (ghost rows), pinned above the composer so the list's auto-follow can't
      *  make them bounce as the reply streams. */
@@ -33,10 +29,7 @@ data class ComposerChrome(
     val onEditQueuedMessage: (localId: String) -> Unit = {},
     val onCancelQueuedMessage: (localId: String) -> Unit = {},
     val onReorderQueuedMessages: (fromIndex: Int, toIndex: Int) -> Unit = { _, _ -> },
-    /**
-     * What goes with the message being composed (files, picked skills, staged quotes), mapped once
-     * by the screen ([draftItemsOf]). The strip at the top of the composer box draws it.
-     */
+    /** Mapped once by the screen ([draftItemsOf]). */
     val draftItems: DraftItems = DraftItems.EMPTY,
     /** The uploads' progress, kept out of [draftItems] and read by the rings as they draw. */
     val draftUploadProgress: DraftUploadProgress = DraftUploadProgress.NONE,
@@ -50,10 +43,7 @@ data class ComposerChrome(
     val enabledTools: Set<String> = emptySet(),
     /** The MCP servers in use, for the "+" button's dot. */
     val selectedMcpServerNames: Set<String> = emptySet(),
-    /**
-     * The settings line above the field: tools, MCP servers and Thinking, mapped once by the
-     * ViewModel ([com.garfiec.librechat.feature.chat.util.settingChipsOf]).
-     */
+    /** Mapped once by the ViewModel ([com.garfiec.librechat.feature.chat.util.settingChipsOf]). */
     val settingChips: SettingChips = SettingChips.EMPTY,
     /** A settings chip's tap; the screen decides what it does ([SettingChips.tapFor]). */
     val onSettingChipTap: (SettingChip) -> Unit = {},
@@ -61,7 +51,6 @@ data class ComposerChrome(
     val onCancelMcpSignIn: (serverName: String) -> Unit = {},
     /** "Start over" in a connecting MCP chip's menu: reconnect it and open the sign-in again. */
     val onStartMcpSignInOver: (serverName: String) -> Unit = {},
-    /** The context gauge's reading and breakdown. */
     val contextGauge: ContextGaugeDetails? = null,
     /** Server/version gate for the context gauge (`interface.contextUsage` AND backend ≥ 0.8.7). */
     val contextUsageEnabled: Boolean = false,

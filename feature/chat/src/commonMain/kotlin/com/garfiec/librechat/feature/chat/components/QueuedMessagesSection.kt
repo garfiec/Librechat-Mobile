@@ -72,10 +72,8 @@ import org.jetbrains.compose.resources.stringResource
  * measured row bounds and swaps with a neighbour once the finger passes that neighbour's midpoint,
  * so variable-height rows reorder correctly. No external reorderable dependency.
  *
- * Inside the composer the section sits in the capped steer and queue region ([reorderScroll]).
  * Once the long press has picked a row up, the gesture is the section's: the region's own scroll
- * never starts, and holding the row near the region's top or bottom edge scrolls the region under
- * it ([reorderAutoScrollStep]), so a row can reach a slot the cap hides.
+ * never starts, so holding the row near an edge scrolls it ([reorderAutoScrollStep]).
  */
 @Composable
 fun QueuedMessagesSection(
@@ -104,10 +102,9 @@ fun QueuedMessagesSection(
     var pointerY by remember { mutableFloatStateOf(0f) }
     var sectionTop by remember { mutableFloatStateOf(0f) }
 
-    // Swap with a neighbour once the dragged row crosses that neighbour's midpoint. A server-owned
-    // neighbour is not swappable either — the reorder is refused for BOTH endpoints — and settling the
-    // offset against a swap that did not happen is what makes the row jump a full row height back
-    // under a stationary finger.
+    // Swap with a neighbour once the dragged row crosses its midpoint. A server-owned neighbour is not
+    // swappable (the reorder is refused for BOTH endpoints); settle the offset only after a swap that
+    // happened, or the row jumps a full row height back under a still finger.
     fun settleSwap(direction: Float) {
         val id = draggingId ?: return
         val list = currentQueue
@@ -319,11 +316,7 @@ private val QueuedMessage.needsAttention: Boolean
         else -> false
     }
 
-/**
- * A scrolling region a reorder drag can scroll: the composer's capped steer and queue region.
- * [reversed] is `verticalScroll(reverseScrolling = true)`, which keeps the region resting on its
- * bottom, the end nearest the field.
- */
+/** A scrolling region a reorder drag can scroll. [reversed] is `verticalScroll(reverseScrolling = true)`. */
 @Stable
 class ReorderScrollRegion(val state: ScrollState, val reversed: Boolean) {
     /** The part of the region's content on screen, in content pixels; null before the first layout. */

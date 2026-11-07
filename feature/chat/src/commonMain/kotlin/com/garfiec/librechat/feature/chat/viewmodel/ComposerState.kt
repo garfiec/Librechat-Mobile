@@ -82,10 +82,8 @@ data class ComposerState(
      */
     val pendingDraftUndo: DraftUndo? = null,
     /**
-     * What a recovery put back while a queued edit held the composer: a steer's lost excerpts
-     * (`SendDispatchDelegate.restagePendingQuotes`) or an un-sent turn's text and chips
-     * (`ConversationLoadDelegate.restoreUnsentInput`). They belong to the stashed new-message draft,
-     * not to the item on screen, so the edit's end adds them to it whether it is saved or cancelled
+     * What a recovery put back while a queued edit held the composer. It belongs to the stashed
+     * draft, not the item on screen, so the edit's end adds it whether saved or cancelled
      * (`QueueOrchestrationDelegate.applyComposer`). Always empty outside an edit.
      */
     val draftRestore: DraftRestore = DraftRestore.NONE,

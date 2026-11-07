@@ -121,26 +121,18 @@ class CodeWorkspaceComposer(
     val onSelectApprovalMode: (CodeApprovalOption) -> Unit = {},
 )
 
-/**
- * Provided by the chat screen around its composer, so both platform composers draw the settings
- * line's workspace chips and the notice under the field without threading them through their
- * signatures. Null draws nothing.
- */
+/** Provided around the composer so both platform composers draw the workspace chips and notice. Null draws nothing. */
 val LocalCodeWorkspaceComposer = compositionLocalOf<CodeWorkspaceComposer?> { null }
 
 /** The line's chip names two of them ("workspace · machine") on a line that scrolls. */
 private val LINE_NAME_MAX_WIDTH = 256.dp
 
-/** The settings line's leading slot: [composer]'s chips while it has any, else none. */
 internal fun codeWorkspaceLineLeading(composer: CodeWorkspaceComposer?): (@Composable () -> Unit)? =
     if (composer?.state?.onSettingsLine == true) ({ CodeWorkspaceLineChips(composer) }) else null
 
 /**
- * The settings line's leading chips: the workspace chip whenever the chat has a workspace to show
- * ([CodeWorkspaceUiState.shown]), in every state, then the approval chip. The workspace's place never
- * moves; what needs the user is said by the chip's tint and the notice under the field
- * ([CodeWorkspaceNotice]). Draws [CodeWorkspaceComposer.state] and nothing more; every decision is the
- * delegate's.
+ * The workspace chip keeps this place in every state; what needs the user is its tint and
+ * [CodeWorkspaceNotice]. Draws [CodeWorkspaceComposer.state] only; every decision is the delegate's.
  */
 @Composable
 private fun CodeWorkspaceLineChips(composer: CodeWorkspaceComposer) {
@@ -149,13 +141,6 @@ private fun CodeWorkspaceLineChips(composer: CodeWorkspaceComposer) {
     state.approval?.let { ApprovalChip(it, composer.onSelectApprovalMode) }
 }
 
-/**
- * "workspace · machine", or the chat's state ("Choose workspace", "No workspace", "Move chat"…).
- * Tinted primary while the next message would seal it, the error colour after a rejection. A tap
- * opens the transition sheet when a change is on offer, the workspace sheet while the chat can still
- * choose, and otherwise a menu of what the sealed chat runs on (branch, checkout, linked worktrees,
- * what "No workspace" means) with Refresh where the machine's status can be read again.
- */
 @Composable
 private fun LineWorkspaceChip(state: CodeWorkspaceUiState, composer: CodeWorkspaceComposer) {
     val chip = state.workspace
@@ -235,7 +220,6 @@ private fun LineWorkspaceChip(state: CodeWorkspaceUiState, composer: CodeWorkspa
     }
 }
 
-/** What a sealed chat runs on, as title and explanation pairs, for the chip's menu. */
 @Composable
 private fun sealedDetails(state: CodeWorkspaceUiState): List<Pair<String, String?>> = buildList {
     state.branch?.let {
@@ -269,12 +253,6 @@ private fun CodeWorkspaceSheetHost(composer: CodeWorkspaceComposer) {
     if (transition != null) TransitionSheet(transition, composer) else CodeWorkspaceSheet(composer)
 }
 
-/**
- * Under the field, only while the workspace needs the user: the decision check after a failed turn
- * (with Retry once it failed), or why Send waits (a workspace to choose, a machine that isn't ready,
- * agents whose picks don't add up) or what a sealed chat that lost its workspace can do. Nothing while
- * the workspace is fine.
- */
 @Composable
 internal fun CodeWorkspaceNotice(composer: CodeWorkspaceComposer) {
     val state = composer.state
@@ -331,7 +309,6 @@ internal fun CodeChip(
     /** Draws [icon] alone; [description] still names the label. */
     iconOnly: Boolean = false,
 ) {
-    // The tint shows in both styles.
     val overlay = AdaptiveChipDefaults.overlayTonalChipColors(tint)
     val iconContent: @Composable () -> Unit = {
         Icon(icon, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize))
@@ -398,8 +375,6 @@ private fun CodeWorkspaceSheet(composer: CodeWorkspaceComposer) {
                     modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 8.dp),
                 )
             }
-            // The machine picker: an agent that lets the chat choose its machine. A pick shows that
-            // machine's workspaces below.
             val machineChoices = state.machine?.choices.orEmpty()
             if (machineChoices.isNotEmpty()) {
                 AdaptiveSectionHeader(stringResource(Res.string.code_machine), horizontalInset = 24.dp)

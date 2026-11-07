@@ -170,7 +170,7 @@ internal fun PullRequestComposerChip(
                 liveRegion = LiveRegionMode.Polite
                 onClick { onOpen(); true }
             },
-        // Filled, not M3's outline: the composer's top is transparent, so the thread showed through.
+        // Filled, not M3's outline: the composer's top is transparent and the thread would show through.
         colors = AdaptiveChipDefaults.overlayAssistChipColors(),
         leadingIcon = { PullRequestStateIcon(presentation = state.presentation, size = 18.dp) },
         label = {

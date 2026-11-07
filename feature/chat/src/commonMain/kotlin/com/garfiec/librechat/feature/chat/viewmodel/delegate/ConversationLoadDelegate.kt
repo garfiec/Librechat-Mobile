@@ -391,9 +391,8 @@ class ConversationLoadDelegate(
     }
 
     /**
-     * [restoreUnsentInput] while a queued edit holds the composer: the turn came from the new-message
-     * draft, which is stashed, so it goes back there (`ComposerState.draftRestore`) under the same
-     * yield rules, judged against the stashed draft rather than the item on screen.
+     * During a queued edit the turn goes back to the stashed draft it came from
+     * (`ComposerState.draftRestore`), its yield rules judged against that draft, not the item on screen.
      */
     private fun restoreUnsentInputToStash(
         stashed: ComposerSnapshot,

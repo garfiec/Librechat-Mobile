@@ -11,9 +11,7 @@ android {
     }
 }
 
-// One JVM runs a module's whole unit-test task, and MockK's inline mocks stay reachable across test
-// classes: this suite sat at Gradle's default 512 MB cap, full-GC thrashing, and a few more tests
-// turned that into OutOfMemoryErrors (or a test that never finished) far from the test that tipped it.
+// One JVM runs the whole suite and MockK's inline mocks stay reachable across classes: 512 MB OOMs.
 tasks.withType<Test>().configureEach { maxHeapSize = "2g" }
 
 kotlin {

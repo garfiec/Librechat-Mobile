@@ -1024,7 +1024,7 @@ picker beside it (`DuringRunSendMenu`, rendered only when both routes are open) 
 
 **The button's face and its action must come from the same value.** `sendDuringRun()` switches on
 `ChatUiState.duringRunSendTarget`, so the button's icon/label does too (`sendButtonModeFor`, extracted from
-the composable purely so this module — which has no Compose test harness — can assert the mapping). Deriving
+the composable so the mapping is asserted as a pure function). Deriving
 the face from the *preference* instead is a bug that nothing catches: a live `ask_user_question` pause
 overrides the preference, so the button read "add to queue" over a tap that answered the question. Behaviour
 correct, label lying. `duringRunAction` in `ChatInputState` is now the picker's checkmark only.
@@ -1097,116 +1097,41 @@ while attachments are staged, so neither promises something the tap won't do.
   an interrupted search keeps the generic card, and a group header counts it as cancelled, not failed.
 
 ## Composer chrome (what sits around the field)
-**The composer is one box** (`CommonChatInputCore`): a rounded frame (Material's
-`ChatInputDefaults.containerColor` fill and border, outline while the field is focused, or the glass
-capsule) holding the attachment strip, the field, which draws no frame of its own (`ChatInputDefaults.textFieldColors`),
-the failed-upload line, and a button row: "+" and paste (`leadingButtons`), the settings line with
-its context ring, the mic (`trailingButtons`) and the send control (`BoxButtonSize`). Temporary
-chat's violet tints the box. Above the box: pull request, steers, the queue and its banners.
-Everything the composer draws around its field (those rows, the settings line,
-the attachment strip at the box's top) and the "+" button's dots is **one view-data holder, `ComposerChrome`**, built in `ChatScreen` and threaded
-once through the `ChatComposer` expect, both actuals, `ChatInput` / `IosChatInput` and
-`ChatInputState.chrome`. A new row adds a field there, never a parameter to those five signatures:
-the iOS ones are not compiled on a Linux host, so a signature change there is only caught by CI.
-- **Vertical drags pass through to the thread.** `ComposerChromeStack` (in `CommonChatInputCore`)
-  carries `Modifier.passVerticalDragsToThread()`: past touch slop, a mostly vertical drag that no
-  child consumed goes to `LocalThreadScrollHandle`, fling included. It watches on the Main pass, so a
-  child that claims the gesture keeps it (a horizontal chip row past its slop, the queue's long-press
-  reorder once it fired, the steer and queue region's own scroll). The decision is the pure
-  `PassThroughDrag`. The box's button row and attachment strip carry it too; the field and the
-  `/` `$` picker don't. Trade-off: the stack's
-  area no longer passes taps through to the thread behind it.
-- **`ThreadScrollHandle`** is created in `ChatScreen` (above both the thread and the composer) and
-  bound by `ChatContent`, which owns the `LazyListState`s, to the list the composer covers
-  (`threadScrollTarget`: the single list; in Compare the tab on screen on a phone, pane A side by
-  side). A drag is ONE `scroll(MutatePriority.UserInput) { scrollBy }` session from first delta to
-  fling, so `isScrollInProgress` holds for the whole drag and `TailFollower` reads it as the user
-  scrolling away mid-reply. A finger on the list takes the session over, like any user scroll.
-- **Steers and the queue share one region capped at 168dp** (`SteerAndQueueRegion`, about two and a
-  half rows), resting on its bottom (`reverseScrolling`), the end nearest the field. Its scroll is
-  enabled only while it overflows; until then the stack's pass-through takes the drag. Past the cap,
-  a drag that reaches the region's edge goes on to the thread and so does a fling it can't use
-  (`ThreadHandOffConnection`, nested scroll). The queue's long-press reorder keeps its gesture, and
-  holding a row near the region's edge auto-scrolls it (`ReorderScrollRegion`,
-  `reorderAutoScrollStep`).
-- **The "+" dots are shared** (`ToolsButtonDots`, `showsActiveToolsDot`): tools on (primary, top)
-  and a compact suggestion due under the options-sheet placement (tertiary, bottom), on both
-  platforms; both name the button "Open tools menu".
-- Over the composer's transparent top, Material fills are opaque: steer cards, the pull request chip
-  and the code chips (`AdaptiveChipDefaults.overlayAssistChipColors`). A code chip with nothing to
-  pick is a label: not clickable, read as text.
+- **Everything the composer draws around its field is one view-data holder, `ComposerChrome`**,
+  built in `ChatScreen` and threaded through the `ChatComposer` expect, both actuals, `ChatInput` /
+  `IosChatInput` and `ChatInputState.chrome`. A new row adds a field there, never a parameter to
+  those five signatures: the iOS ones only compile in CI.
+- **A vertical drag on the composer scrolls the thread** (`Modifier.passVerticalDragsToThread()` →
+  `LocalThreadScrollHandle`). It watches on the Main pass, so a child that claims the gesture keeps
+  it; the field and the `/` `$` picker don't carry it. A drag is ONE `scroll(MutatePriority.UserInput)`
+  session, so `TailFollower` reads it as the user scrolling away: never one session per delta.
+- Steers and the queue share one region capped at 168dp. Its scroll is enabled only while it
+  overflows; past its edge a drag or fling goes on to the thread (`ThreadHandOffConnection`).
+- Over the composer's transparent top, Material chip fills are opaque
+  (`AdaptiveChipDefaults.overlay*ChipColors`). No composer chip has a caret.
 
 ### Attachment strip (files, picked skills, quotes)
-What goes with the message is **one list, `DraftItems`**, mapped by the pure `draftItemsOf`
-(`util/DraftItems.kt`) in a `remember` in `ChatScreen` (the files are their own flow,
-`ChatViewModel.attachedFiles`), and carried on `ComposerChrome.draftItems`. Order: failed files
-first, then images, files, skills, quotes. **Upload progress is not in it**: `ChatScreen` maps the
-files with their progress stripped (a `derivedStateOf`), so a progress tick re-maps nothing and
-the chrome stays equal; the rings (`UploadOverlay`: a white ring on a dark scrim over each uploading
-item's tile) read `DraftUploadProgress` (`ComposerChrome.draftUploadProgress`) as they draw, and
-recompose only when an upload starts or stops reporting a progress.
-- **The strip** (`ComposerDraftStrip`, `components/ComposerDraftStrip.kt`) is the composer box's top
-  row, above the field, on both composers: one row that scrolls sideways (end fade), never a second
-  row, so the box never grows past it. Images are 56dp thumbnails, files, skills and quotes cards
-  with their name and kind. Each item has a corner × (20dp drawn; Compose widens the touch target only
-  where no other target is hit, so a tap on the item opens it and a drag along the strip removes
-  nothing). An uploading item carries the ring, a failed one a red cover or border. It grows in with
-  the first item and shrinks away with the last. An addition pops its item and scrolls it into view,
-  found by key (`DraftAdditions.lastAddedKey`), since the sorted strip puts it anywhere; the strip's
-  polite live region announces it. What was added is tracked in `ChatScreen` (`DraftAdditions`), above
-  the strip, so the first item into an empty draft counts too; a draft already there when the screen
-  opens doesn't. Nothing draws in the field's leading slot but wide Compare's badges
-  (`composerFieldLeadingIcon`), so the phone's A·B pill keeps the field's start.
-- **An item's tap** is `DraftItems.taps` (`util/DraftItems.kt`, pure, built once per draft): a failed file retries; an
-  image opens the chat's media viewer on the draft's images (`ChatViewModel.openDraftMedia`), each a
-  `MediaItem` keyed `DraftItem.Image.mediaKey` whose `model` is the device's full copy (an Android
-  content `Uri`; on iOS the server's copy once uploaded, else the small picker preview), and each
-  thumbnail is a `mediaThumbnail` under that key, so the viewer flies back into it; an uploaded PDF
-  opens the PDF preview and another uploaded file the file actions (`conversationFileTap`, as the media
-  page's Files tab). A file still uploading, a skill and a quote aren't tappable. The viewer has no
-  save/share bar for a draft image (`MediaItem.model` set). The strip sits in the composer, never over
-  a pause panel, so a tool-approval pause leaves it working: a failed file can be retried or removed
-  during the pause. An ask pause hides the composer, strip included.
-- **× and Undo** (`DraftItemsDelegate`, `ComposerState.pendingDraftUndo`): an uploaded or failed
-  file, a skill or a quote comes off with an Undo snackbar (`DraftUndoSnackbarEffect`) that puts it
-  back at its index (`PlatformFileHandler.insertAt`, which leaves PDF password prompts alone;
-  `SendDispatchDelegate.restorePendingManualSkill` / `restorePendingQuote`). A file still uploading
-  is cancelled instead (each handler keeps its upload jobs), with no Undo. Removal, retry and an
-  upload's outcome name one tray entry (`AttachedFile.key`), never the file: a content `Uri` picked
-  twice on Android is two entries with their own `entryId` (iOS mints a `uri` per pick, which is
-  its key). One Undo is pending at a
-  time; `clearComposer` (every send), `applyComposer` (the queued-edit swap) and the landing reset
-  (conversation switch) drop it inside their own writes, and so does the snackbar effect when the
-  screen leaves composition with it up, so it never comes back on return.
-- **A failed upload holds Send.** The hold is `UploadIntakeDelegate.withUploadGate`, checked before
-  and after the upload wait (the wait treats a failure as settled), so it covers send, voice
-  auto-send, starters, queue (a steer with files goes there) and saving a queued edit. Not
-  `SendBlockReason` (that opens the model sheet) and not `buildSendSpec` (a steer's re-home and an
-  MCP App's message build there and must not be held). `composerCanSend` and the during-run morph
-  take `hasFailedUploads`, and `FailedUploadsLine` under the field says why.
-- **Retry keeps the file's place, and its route while the live selection still offers it**
-  (`ChatUiState.retryUploadRoute`: a code upload, the route the selection would pick, or either while
-  both are open; otherwise it is routed afresh, so a PDF sent natively under one provider isn't
-  replayed to one that ignores it). On both platforms. iOS keeps each entry's picked
-  `IosImageData` / `IosFileData` (`IosPickedData`, `IosFileHandler.picked`) until it uploads, and
-  a failed one uploads from it again. One rule says what stays (`IosFileHandler.prune`, run after
-  every tray or Undo change): the entries not yet uploaded in the tray or in the tray a queued-edit
-  swap put aside, and a removed failed one while its Undo is pending
-  (`PlatformFileHandler.forgetRemoved`, called when the Undo lapses or a later removal replaces it;
-  a send's clear and the swap drop the Undo with the tray). An iOS image's
-  thumbnail is a small JPEG (PNG with alpha) the picker draws off Main (`draftPreviewOf`,
-  `IosImageData.preview` → `AttachedFile.localPreview`), never the picked bytes: a library photo
-  comes over as its original data, often HEIC, which Coil's Skia decoder on iOS can't read. A
-  thumbnail prefers the device's copy, then the server's (`filepath`, or the id of a server file
-  attached by reference), else none (the image glyph): a String `uri` is an id, never loaded.
-- **Queued edits carry their quotes** like their skills: `ComposerSnapshot.quotes`, captured and
-  applied by the swap, and the commit sends the quotes on screen. A recovery during the edit (a
-  steer's lost excerpts, an un-sent turn's text and chips) belongs to the stashed draft, not the
-  item on screen: it waits in `ComposerState.draftRestore` and joins the draft when the edit ends,
-  saved or cancelled. A queued message doesn't open for editing while the draft's files are still
-  being attached or uploading (a PDF waiting for its password included): an upload's outcome lands
-  on the tray entry it started from, which the swap takes away. The tap says to wait
-  (`ChatNotice.QUEUE_EDIT_WAITS_FOR_UPLOADS`).
+- **What goes with the message is one list, `DraftItems`** (pure `draftItemsOf`). Upload progress
+  stays out of it and out of `ComposerChrome`: the rings read `DraftUploadProgress` as they draw, so
+  a progress tick re-maps nothing. The strip is one sideways-scrolling row, never a second row.
+- **Removal, retry and an upload's outcome name one tray entry (`AttachedFile.key`), never the
+  file**: the same content `Uri` picked twice is two entries.
+- **One Undo is pending at a time** (`ComposerState.pendingDraftUndo`); every write that replaces the
+  draft (`clearComposer`, `applyComposer`, the landing reset) drops it in that same write. A file
+  still uploading is cancelled, with no Undo.
+- **A failed upload holds Send through `UploadIntakeDelegate.withUploadGate`**, checked before and
+  after the upload wait, on every send path. Not `SendBlockReason` (that opens the model sheet) and
+  not `buildSendSpec` (a steer's re-home and an MCP App's message build there and must not be held).
+- **Retry keeps the stored route only while the live selection still offers it**
+  (`ChatUiState.retryUploadRoute`); otherwise it routes afresh.
+- **iOS keeps each entry's picked data until it uploads** (`IosFileHandler.picked`), and
+  `IosFileHandler.prune`, run after every tray or Undo change, is the one rule for what stays. An iOS
+  thumbnail is the picker's small JPEG/PNG preview, never the picked bytes (often HEIC, which Coil
+  can't decode on iOS). A String `uri` is an id, never loaded as an image.
+- **During a queued edit, a recovered draft part belongs to the stashed draft**
+  (`ComposerState.draftRestore`) and joins it when the edit ends. A queued message doesn't open for
+  editing while the draft's files are attaching or uploading: their outcome lands on a tray entry
+  the swap takes away.
 
 ## Chat Tools
 - The user's own toggles: `enabledTools` and `selectedMcpServerNames` are global (stored in
@@ -1217,85 +1142,27 @@ recompose only when an upload starts or stops reporting a progress.
   conversation (`SkillsToggleDelegate`).
 - Tool toggles and MCP servers live in the paged "+" options sheet (`ChatToolsSheetContent`),
   reached from the composer's `onOpenTools`. What is on shows on the composer's settings line (next).
-- **The settings line** (`ComposerSettingsLine`, in the composer box's button row): one chip per thing, on one line
-  that scrolls sideways (end fade, `:core:ui` `scrollFadingEdges`) and never wraps. Order: a leading slot (the code workspace's
-  folded chip and approval chip, see "Code workspace"), the tools in the "+" sheet's order, the selected MCP servers in list order, Thinking,
-  and the context ring pinned at the end. Hidden when it would hold nothing.
-  - **Mapped once, as view data**: `settingChipsOf` (`util/SettingChips.kt`, pure) over
-    `ChatUiState.settingChipInputs`, in the ViewModel's `uiState` combine (`SettingChipsMemo`), onto
-    `ChatUiState.settingChips`. The inputs are gathered only when one of the slices they read
-    (`ChatUiState.settingChipSlices`) is a new instance, so a streaming flush gathers nothing; a new
-    read in `settingChipInputs` from another slice goes in that list too. Tools come from the tools in use (`effectiveEnabledTools`) and the
-    server's `defaultPinnedTools`, and a tool shows only where its own gate is open
-    (`ChatUiState.toolGateOpen`, gathered as `ChatUiState.openTools`, which the sheet's rows iterate
-    in the same `SETTING_TOOL_ORDER`), so a stored flag the server
-    can't run (URL context on a non-Google model, memory without the capability) never appears.
-    MCP servers need `MCP_SERVERS.USE` unless the spec adds them. Without the tool controls
-    (`toolbarShown` false: an agent, a `hideBadgeRow` spec) only Thinking and the workspace stay.
-  - **No carets** on any composer chip; the line's assist chips (workspace, approval, Thinking) use
-    `AdaptiveChipDefaults.overlayTonalChipColors` with no border, so they read as "on".
-  - **States** (`SettingChipState`): on = filled; pinned but off = outlined (an opaque fill and the
-    M3 border in Material, glass's resting fill in glass, `AdaptiveChipDefaults.overlayFilterChipColors`);
-    locked by the spec (`lockedTools`, `lockedMcpServers`) = filled with a lock.
-  - **Taps** (`SettingChips.tapFor`, handled by `rememberSettingChipTap` in `ChatScreen`): **a tap
-    on the line never turns a thing off.** A locked chip says "Set by <spec label>" in a snackbar; a
-    pinned tool that is off switches on; anything that is on opens the "+" sheet at its row
-    (`SettingChipTap.ShowInSheet`, `ChatOptionsSheetController.focus`): the MCP list opens for a
-    server, and the row scrolls into view under a fading primary wash, so its switch is where it is
-    turned off. The switches are the sheet's, so code, file search, memory and MCP are global.
-  - **MCP chips carry the MCP servers page's status** (`McpServerDisplayData.status`, mapped in
-    `McpServersDelegate.load` with `:core:model`'s `mcpDisplayStatus`, the `mcp-status-badge`
-    mirror, over the status map with tool discovery's lapsed authorizations folded in by
-    `applyDiscoveryAuthorizationState`, as the page does; the servers paint as soon as the list and
-    status routes answer, with the last discovery verdicts, and re-fold when `GET /api/mcp/tools`
-    lands, since that route waits on a full catalog load. That read is asked after the list, only
-    when it isn't empty and the chat shows the tool controls, or once they show (an agent chat
-    switched to a model), as web asks only while it observes tool authorization). The dot is `mcpStatusColor` (`:core:ui`
-    `mcp/McpStatusPresentation.kt`, from `statusColors()`, with `mcpStatusLabel`, shared with the
-    Settings MCP page): connected green, connecting info, needs sign-in or setup amber, failed error,
-    the rest neutral; the "+" sheet's rows use the same dot and label. **Sign-in follows web's rule**
-    (`usePaletteEntries` / `useMCPServerManager`). A chip whose tap signs in
-    (`SettingChip.Mcp.signsInOnTap`: needs sign-in, or an OAuth server that failed) reads "· sign in"
-    with a "Sign in" click label, and a tap (`SettingChipTap.SignIn`, even on a spec-locked chip) runs
-    `signInMcpServer`: `McpRepository.reinitialize` → its `oauthUrl` → `LocalMcpSignIn`'s sign-in,
-    with the chip connecting meanwhile. While that reconnect or a "Cancel sign-in" is out the
-    delegate ignores sign-in taps, so every chip whose tap would sign in or open the menu is
-    disabled until it ends (`McpServerDisplayData.signInBusy`, `SettingChip.Mcp.waitsForSignIn`,
-    `SettingChipTap.WaitForSignIn`): the connecting chip offers no menu whose items would do nothing.
-    **The app never cancels an OAuth flow by itself**: not when the sign-in dialog is closed or
-    refused, not on a return from the browser, not when a run ends. The user may still finish it in
-    the browser, and a run in another chat, a web tab or another device may be waiting on the same
-    flow (the server keeps one per user and server). Don't add an automatic cancel back.
-    An OAuth server that reads connecting (`signInPending`: a flow is open, finished elsewhere or
-    abandoned) reads "· connecting", and its tap (`SettingChipTap.SignInMenu`, handled by the chip
-    itself) opens a small `AdaptiveDropdownMenu`: **Cancel sign-in** (`cancelMcpSignIn`,
-    `POST /api/mcp/oauth/cancel/:serverName`, web's Cancel; one the server refuses says so with
-    `mcp_cancel_sign_in_failed`, since the chip still reads connecting) and **Start over** (the same
-    reconnect as the sign-in tap). The menu opens only from a tap and closes once the chip stops
-    reading connecting. A reconnect waits for a cancel still on its way, since the server would
-    replay the flow being cancelled; a cancel while a reconnect is out is ignored. The statuses
-    reload when a sign-in ends, whatever the outcome (the delegate's own reload when none opens:
-    connected, deferred, refused, failed, the last two with `mcp_sign_in_failed`, or
-    `McpSignInViewModel.signIn` returning false because another sign-in holds the screen; else
-    `McpSignInUiState.ended`, a browser sign-in ending on the next ON_RESUME), after a cancel
-    (landed or not), and on every return to the chat (ON_RESUME after an ON_PAUSE,
-    `McpServersDelegate.onForeground`, skipped while a reconnect or a cancel is out, which reload
-    when they end, and when a browser sign-in ends on that same return, whose end reloads:
-    `McpSignInViewModel.endsOnReturn`), since a sign-in or sign-out on the MCP servers page, in the
-    browser or in another chat changes them. A newer load cancels an older one's reads (its
-    generation check stays as the backstop), and a paint that changes nothing writes nothing.
-    Discovery is asked again on a return only when the list changed; a discovery read still out
-    keeps going (only a newer discovery read or a chip sign-in cancels it). A tool call's sign-in is the run's and goes through the same reload. Such a chip is
-    turned off from the "+" sheet's switch. Other needs-setup and failed chips keep the ordinary tap
-    (the sheet at their row): setup is on the web, a failure on the server. Thinking uses the brain glyph (Memory uses `AutoStories`, here and in the drawer),
-    tints tertiary while a one-turn choice is staged, in both styles, and states it. Picked skills use
-    the sparkle (`AutoAwesome`) on the strip, the `$` picker, the sent bubble and the skill card.
-  - **The context ring** (`ContextRing`, only with the above-the-field placement): a 24dp ring with
-    the percentage inside, `pressureColor`, a tertiary dot while the compact suggestion is due. A tap
-    opens `ContextUsageSheet`, or `CompactConfirmDialog` while the suggestion is due, which keeps
-    "Not now" (`snoozeCompactNudge`) and adds "See usage" (`onSeeUsage`), the way to the sheet that
-    doesn't snooze. It replaces the centred gauge pill row; the sheet and menu
-    placements are unchanged.
+- **The settings line** (`ComposerSettingsLine`) is view data mapped once: `settingChipsOf`
+  (`util/SettingChips.kt`, pure) in the ViewModel's `uiState` combine (`SettingChipsMemo`). Its inputs
+  are re-gathered only when a slice in `ChatUiState.settingChipSlices` is a new instance, so a new
+  read in `settingChipInputs` adds its slice to that list. A tool shows only where its own gate is
+  open (`ChatUiState.toolGateOpen`), in the sheet's `SETTING_TOOL_ORDER`.
+  - **A tap on the line never turns a thing off**: a chip that is on opens the "+" sheet at its row,
+    a pinned tool that is off turns on, a spec-locked one says who set it. Sign-in outranks a lock.
+  - **MCP chips show the MCP servers page's status** (`mcpDisplayStatus` over the status map with
+    discovery's lapsed authorizations folded in; `:core:ui` `mcpStatusLabel` / `mcpStatusColor`). They
+    paint from the list and status routes and re-fold when the slower `GET /api/mcp/tools` lands,
+    which is asked only while the chat shows the tool controls.
+  - **Sign-in follows web's `useMCPServerManager`**: reconnect → `oauthUrl` → `LocalMcpSignIn`.
+    **The app never cancels an OAuth flow by itself** (not on dialog close, browser return or run
+    end): the server keeps one flow per user and server, and another run may be waiting on it. Only
+    the chip's Cancel sign-in cancels. A reconnect waits for a cancel still in flight (the server
+    would replay the flow being cancelled); while either is out, sign-in taps are ignored and those
+    chips are disabled.
+  - **The statuses reload when any sign-in ends, whatever the outcome**, after a cancel, and on every
+    return to the chat (`McpServersDelegate.onForeground`): they change outside the chat.
+- Thinking uses the brain glyph, Memory `AutoStories`, picked skills the sparkle (`AutoAwesome`),
+  wherever they appear.
 - URL context shows only on a Google parameter set and a model the server runs it on
   (`urlContextProviderGate`, `supportsUrlContext`: Gemini 2.5+, not image/live/TTS/audio). The server
   skips it elsewhere with only a debug log. Web shows it on every Google model; the divergence is deliberate.
@@ -1414,24 +1281,10 @@ is sealed "No workspace" for good. The rules are `:core:model` `code/CodeWorkspa
 `useCodeWorkspace`, mirrored); the delegate gathers inputs, polls, and keeps the draft; the composer
 only draws `CodeWorkspaceUiState` (mapped in `util/CodeWorkspaceView.kt`), through
 `LocalCodeWorkspaceComposer` so both platform composers draw it.
-- **One place: the settings line.** Whenever the chat has a workspace to show
-  (`CodeWorkspaceUiState.shown`), its chip is the line's first chip, then the approval chip
-  (`CodeWorkspaceLineChips`), in every state: never a card above the composer. Don't add one back.
-  The chip reads "workspace · machine" (`lineMachineName`: only after a workspace's name, and not a
-  machine named as its workspace) or the state ("Choose workspace", "No workspace", "Move chat"…),
-  tinted primary while the next message would seal it (`code_workspace_saved_on_send` in its sheet),
-  the error colour after a rejection. `folded` (settled: a saved decision, or an undecided chat's
-  ready pick with no machine to choose) and `visible` (needs the user) are decided in
-  `codeWorkspaceUiState`; `visible` is not web's `visible`, and polling still follows the resolver's.
-- **What needs the user is a notice under the field** (`CodeWorkspaceNotice`, in the box after the
-  failed-upload line): the decision check with Retry (`confirming`), or the requirement, graph,
-  conflict and locked-recovery lines. Nothing while the workspace is fine.
-- **The chip's tap**: the transition sheet when a change is on offer, the workspace sheet while the
-  chat can choose (machine picker on top, `CodeMachineChip.choices`, then each machine's workspaces
-  with their checkout, the checkout summaries and the linked-worktrees note), else a small menu of
-  what the sealed chat runs on (branch, checkout, linked worktrees, what "No workspace" means) with
-  Refresh where the machine's status can be read again (`CodeWorkspaceChip.refreshes`). The sheet is
-  hosted in the chip's box.
+- **The workspace lives on the settings line, never as a card above the composer**: its chip first,
+  then the approval chip, in every state. What needs the user is a notice under the field
+  (`CodeWorkspaceNotice`). `CodeWorkspaceUiState.visible` (needs the user) is not web's `visible`;
+  polling still follows the resolver's.
 - **Gate on the fields, never the version** (VERSION_GATES.md): `RUN_CODE.USE`, the agents endpoint's
   `execute_code` + `stateful_code_sessions` capabilities, an `attached` machine in
   `statefulCodeSessions.environments`, a reachable agent that routes code there. Capability versions
@@ -1471,10 +1324,9 @@ only draws `CodeWorkspaceUiState` (mapped in `util/CodeWorkspaceView.kt`), throu
   "{n} machines" / "{n} code workspaces", explicit checkouts get a line each, and picks that leave an
   agent uncovered show web's `graph_selection_conflict` line. "Linked worktrees" shows for a
   `git_linked_worktree` workspace that is not isolated (Auto on a worktree-capable one isolates).
-- **Code approval mode** (`CodeApproval` in `:core:model`): the chip is on the settings line
-  (`CodeWorkspaceUiState.onSettingsLine`), after the workspace chip when there is one. It is
-  icon-only on "Ask before changes" while it has other modes to offer, so a mode that does more
-  always shows its name. `submissionForSend()` adds `approvalMode` to the submission, so the mode
+- **Code approval mode** (`CodeApproval` in `:core:model`): the chip is on the settings line, icon-only
+  on "Ask before changes" while other modes are on offer, so a mode that does more shows its name.
+  `submissionForSend()` adds `approvalMode` to the submission, so the mode
   rides every send path the decision does; `ask` without a workspace. The mode asked for is this
   chat's pick, else the saved decision's, else (no decision yet) the spec preset's `codeApprovalMode`,
   else the device's last pick (`requestedApprovalMode`, web's `conversation.codeApprovalMode ?? preference`). A follow-up whose mode is not
@@ -1764,7 +1616,7 @@ A server with PII protection stores a user turn filtered (`text` = `[EMAIL]`…)
 `groupContentParts` (`util/ContentSegments.kt`) is ONE pure transform producing both the steer
 segmentation and the activity grouping, memoized at `MessageContentAndActions`. Two passes over the
 same list would eventually disagree about a boundary and render the user's words inside a collapsed
-tool block. It is pure because this module has no Compose test harness.
+tool block. It is pure so its boundaries are asserted directly.
 
 - **Activity groups.** Consecutive reasoning + tool calls fold under one header, terminated by an
   `activity_label` part. A blank label is a *reservation* — invisible, and it only moves the claim
@@ -2067,10 +1919,9 @@ ported from upstream `tokens.ts`; registered in `scripts/mirrors.json`). Two rul
   carries over a reading that replaced it. Otherwise a run that reported nothing pins the previous
   run's value.
 
-The breakdown (`util/ContextBreakdown.kt`, rendered by `ContextBreakdownCard` from `ContextUsageGauge.kt`'s sheet and gauges) ports web's
-`Breakdown.tsx`; Totals and Cost come from `util/UsageTotals.kt`. The percentage is written by
-`percentLabel`, from the localized `context_percent` / `context_percent_estimate` (`42 %` in German
-and French), for the gauge, the composer's context ring and the ⋮ menu's subtitle alike. One more load-bearing rule:
+The breakdown (`util/ContextBreakdown.kt`, rendered by `ContextBreakdownCard`) ports web's
+`Breakdown.tsx`; Totals and Cost come from `util/UsageTotals.kt`. Every context percentage goes
+through `percentLabel` (localized: `42 %` in German and French). One more load-bearing rule:
 - **Live usage is attributed to the Final frame's response id, never the tail.** `LiveReplyDelegate`
   folds every `on_token_usage` (buckets included, deduped by `runId:seq`, plus the resume frame's
   `collectedUsage`) into `pendingUsage`, which counts until its reply carries `metadata.usage`.

@@ -44,31 +44,21 @@ interface PlatformFileHandler {
 
     fun onFilesSelected(files: List<RoutedFile>)
 
-    /** Takes [file] off the tray. A file still uploading has its upload cancelled. */
+    /** A file still uploading has its upload cancelled. */
     fun removeFile(file: AttachedFile)
 
-    /**
-     * Re-uploads a failed [file] in its place in the tray, with the route it was sent with. iOS keeps
-     * the picked bytes for this; a file whose bytes are gone (or never were the handler's) is removed.
-     */
+    /** Re-uploads in place, on its original route; a file whose bytes are gone is removed instead. */
     fun retryUpload(file: AttachedFile)
 
-    /**
-     * Puts a removed, settled [file] (uploaded or failed) back at [index], clamped to the tray: the
-     * attachment strip's Undo. Touches nothing else, PDF password prompts included.
-     */
+    /** The strip's Undo. Touches nothing else, PDF password prompts included. */
     fun insertAt(index: Int, file: AttachedFile)
 
-    /**
-     * The Undo that could have put a removed [file] back is gone (it lapsed, a later removal replaced
-     * it, or the draft it belonged to moved on): let go of anything kept so it could come back. iOS
-     * keeps a removed failed file's picked bytes for that Undo; Android keeps nothing.
-     */
+    /** The Undo for a removed [file] is gone: release what was kept for it (iOS: a failed file's picked bytes). */
     fun forgetRemoved(file: AttachedFile) = Unit
     suspend fun waitForUploadsAndSend(text: String, doSend: (String) -> Unit)
     fun hasPendingUploads(): Boolean
 
-    /** Whether any attachment failed to upload; such a tray holds every send until it is retried or removed. */
+    /** A failed upload holds every send until it is retried or removed. */
     fun hasFailedUploads(): Boolean = attachedFiles.value.any { it.uploadFailed }
     fun clearAttachedFiles()
 
@@ -99,13 +89,8 @@ interface PlatformFileHandler {
     fun dismissPdfPassword()
 }
 
-/**
- * [item] inserted at [index], clamped to the list: an Undo putting a removed draft item back
- * (both handlers' [PlatformFileHandler.insertAt], a skill, a quote).
- */
 fun <T> List<T>.insertedAt(index: Int, item: T): List<T> = toMutableList().apply { add(index.coerceIn(0, size), item) }
 
-/** This tray with the entry [key] names ([AttachedFile.key]) replaced by [transform] of it; the rest as they are. */
 fun List<AttachedFile>.updateEntry(key: Any, transform: (AttachedFile) -> AttachedFile): List<AttachedFile> =
     map { if (it.key == key) transform(it) else it }
 

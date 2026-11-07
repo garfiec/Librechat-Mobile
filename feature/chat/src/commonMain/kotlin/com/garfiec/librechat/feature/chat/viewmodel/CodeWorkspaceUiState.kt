@@ -3,11 +3,8 @@ package com.garfiec.librechat.feature.chat.viewmodel
 import androidx.compose.runtime.Immutable
 
 /**
- * The composer's code workspace: its chip on the settings line, the notice under the field and its
- * sheets, already mapped to what is drawn: the composables resolve strings and nothing else. Written
- * only by `CodeWorkspaceDelegate`. The chip shows ([shown]) whenever an agent in the chat runs code
- * on an attached machine, always in the same place; [visible] and [folded] say whether the
- * workspace needs the user or is settled.
+ * Already mapped to what is drawn: the composables resolve strings and nothing else. Written only by
+ * `CodeWorkspaceDelegate`.
  */
 @Immutable
 data class CodeWorkspaceUiState(
@@ -59,21 +56,19 @@ data class CodeWorkspaceUiState(
     /** A change of the saved chat's decision on offer; the workspace chip opens its sheet. */
     val transition: CodeTransitionView? = null,
     /**
-     * The code approval mode picker. Independent of [visible]: without the card it sits on the
-     * settings line, so a chat that shows no workspace still picks how much its agent may do.
+     * The code approval mode picker. Independent of [visible]: a chat that shows no workspace still
+     * picks how much its agent may do.
      */
     val approval: CodeApprovalChip? = null,
 ) {
     /** The workspace chip is on the settings line. */
     val shown: Boolean get() = visible || folded
 
-    /** What the settings line's leading slot draws: the workspace chip, the approval chip, or both. */
     val onSettingsLine: Boolean get() = shown || approval != null
 
     /**
-     * The machine the chip names after a workspace's name ("workspace · machine"). Not one named as
-     * its workspace (the server's own environment is often both "Server workspace"): the chip would
-     * read the name twice.
+     * Null for a machine named as its workspace (the server's own environment is often both "Server
+     * workspace"), so the chip never reads the name twice.
      */
     fun lineMachineName(): String? {
         if (workspace.label != CodeWorkspaceChipLabel.NAME) return null

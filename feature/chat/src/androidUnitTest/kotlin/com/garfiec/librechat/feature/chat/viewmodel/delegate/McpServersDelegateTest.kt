@@ -22,10 +22,6 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
-/**
- * The chat's MCP servers carry the MCP servers page's status, and a settings chip that needs
- * sign-in runs reconnect → sign-in → reload at the delegate boundary, reloading on every outcome.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 class McpServersDelegateTest : McpServersDelegateTestBase() {
 

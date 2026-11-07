@@ -61,7 +61,6 @@ fun ChatInput(
     builtInSearchOn: Boolean = false,
     duringRunAction: DuringRunAction = DuringRunAction.QUEUE,
     duringRunSendTarget: DuringRunSendTarget = DuringRunSendTarget.QUEUE,
-    /** The rows around the field and what they fire (see [ComposerChrome]). */
     chrome: ComposerChrome = ComposerChrome(),
     onSetDuringRunAction: (DuringRunAction) -> Unit = {},
     queuedPausedCount: Int = 0,
@@ -149,7 +148,6 @@ fun ChatInput(
         fontSizeMultiplier = fontSizeMultiplier,
         modifier = modifier,
         leadingButtons = {
-            // "+" opens the options sheet
             val toolsBounce = rememberPressBounce()
             Box(modifier = Modifier.pressBounce(toolsBounce, enabled = !isLiquidGlass)) {
                 IconButton(

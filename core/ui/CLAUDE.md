@@ -284,15 +284,11 @@ row math and filtering are pure and live in `:core:model` (`usage/ContextBreakdo
 `usage/ContextDetail.kt`). Also here: `SegmentedMeter`, `pressureColor` (amber at a rounded 80%, error
 at 95%), `formatCost` with its platform currency actuals, and `SampleContextModel` for previews.
 
-### MCP server status (`mcp/McpStatusPresentation.kt`)
-`mcpStatusLabel` / `mcpStatusColor` (and `McpDisplayStatus.tint(StatusColors)`) name and colour an
-MCP server's `McpDisplayStatus` the same way on the Settings MCP page and the chat's settings chips
-and "+" sheet rows. The labels are this module's `mcp_status_*` strings.
-
-### Scroll fade (`components/ScrollFadingEdges.kt`)
-`Modifier.scrollFadingEdges(state, orientation, fadeStart)` fades a scrolling container out toward
-an edge with more to scroll past, RTL-aware when horizontal. The menus use it vertically, the chat's
-settings line horizontally with only the end faded.
+### MCP status and scroll fades
+- An MCP server's `McpDisplayStatus` is named and coloured only by `mcp/McpStatusPresentation.kt`
+  (`mcpStatusLabel` / `mcpStatusColor`), in Settings and in chat alike.
+- A scrolling container fades toward an edge with more to scroll past through
+  `Modifier.scrollFadingEdges` (RTL-aware).
 
 ### MCP OAuth sign-in (`mcp/`, v0.8.9-rc1)
 `McpOAuthSignInDialog` is the one sign-in page for an MCP server's provider, used by Settings and by

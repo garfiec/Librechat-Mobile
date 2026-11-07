@@ -131,8 +131,8 @@ class CodeWorkspaceViewTest {
     }
 
     @Test
-    fun anUndecidedPickWithAMachineToChooseKeepsTheCard() {
-        // The machine picker is the card's alone: folding would hide it before the send seals the pick.
+    fun anUndecidedPickWithAMachineToChooseNeedsTheUser() {
+        // Not folded while a machine is left to choose: the pick isn't made until the send seals it.
         val vm = PublicCodeEnvironment(id = "build-vm", type = "attached")
         val chooser = dev.copy(codeEnvironmentIds = listOf(vm.id))
         val ui = codeWorkspaceUiState(
@@ -300,7 +300,7 @@ class CodeWorkspaceViewTest {
         // Nothing to change here: a tap re-reads the machine's status.
         assertFalse(ui.workspace.opensSheet)
         assertTrue(ui.workspace.refreshes)
-        // Branch and checkout are the card's details; they don't keep the card.
+        // Branch and checkout don't unfold it.
         assertEquals("develop", ui.branch)
         assertEquals(CodeCheckoutMode.REGISTERED, ui.checkout?.mode)
     }
@@ -315,7 +315,7 @@ class CodeWorkspaceViewTest {
     }
 
     @Test
-    fun aSavedDecisionThatNeedsTheUserKeepsTheCard() {
+    fun aSavedDecisionThatNeedsTheUserSaysSo() {
         // A rejection named the workspace, with and without the transition version.
         assertNeedsUser(savedUi(attention = true))
         assertNeedsUser(savedUi(caps = transitions, attention = true))
@@ -352,7 +352,7 @@ class CodeWorkspaceViewTest {
     }
 
     @Test
-    fun aConfirmingChatKeepsTheCard() {
+    fun aConfirmingChatNeedsTheUser() {
         val ui = codeWorkspaceUiState(
             CodeWorkspaceResolver.resolve(
                 capabilities,

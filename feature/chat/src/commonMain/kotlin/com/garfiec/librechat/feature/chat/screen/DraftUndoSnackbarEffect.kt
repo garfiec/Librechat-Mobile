@@ -12,12 +12,6 @@ import com.garfiec.librechat.feature.chat.viewmodel.DraftUndo
 import com.garfiec.librechat.feature.chat.viewmodel.RemovedDraftItem
 import org.jetbrains.compose.resources.getString
 
-/**
- * The Undo snackbar for the draft's last removal (a strip item's ×). Shown while [undo] is pending; when the
- * ViewModel drops it (a send, the queued-edit swap, a conversation switch) the effect restarts and
- * the snackbar goes with it. A snackbar that times out, or is cut short because the screen left
- * composition, drops its Undo through [onDrop].
- */
 @Composable
 internal fun DraftUndoSnackbarEffect(
     undo: DraftUndo?,
@@ -41,9 +35,8 @@ internal fun DraftUndoSnackbarEffect(
                 currentUndo(pending.id)
             }
         } finally {
-            // Also when the screen leaves composition with the snackbar up (another nav entry, an
-            // Activity recreated on a fold): a kept Undo would come back on return, long after the
-            // removal. A no-op when the ViewModel already dropped it or a newer removal replaced it.
+            // Also when the screen leaves composition with the snackbar up: a kept Undo would come
+            // back on return, long after the removal.
             if (!undone) currentDrop(pending.id)
         }
     }

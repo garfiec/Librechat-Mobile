@@ -110,8 +110,7 @@ fun ChatToolsSheetContent(
     /** Both models while comparing: the Model row then names A and B rather than A alone. */
     comparisonModels: ComparisonModelLabels? = null,
     /**
-     * The tools whose own gate is open ([ChatUiState.openTools]): a row is offered for each, in
-     * [SETTING_TOOL_ORDER], the order the settings line shows them in. The Skills row's state is per
+     * [ChatUiState.openTools]: a row for each, in [SETTING_TOOL_ORDER]. The Skills row's state is per
      * conversation; it reads it from [enabledTools] like the others.
      */
     openTools: Set<String> = emptySet(),
@@ -380,11 +379,6 @@ fun ChatToolsSheetContent(
     }
 }
 
-/**
- * For the row a settings chip's tap opened the sheet at ([focused]): scrolled into view once the
- * page has laid out, and marked with a primary wash in the row's press shape that fades, so the eye
- * lands on the switch.
- */
 @Composable
 private fun focusedRow(focused: Boolean): Modifier {
     if (!focused) return Modifier

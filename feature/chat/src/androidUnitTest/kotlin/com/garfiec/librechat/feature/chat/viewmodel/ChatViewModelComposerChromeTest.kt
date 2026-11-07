@@ -41,12 +41,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
-/**
- * The composer chrome's ViewModel boundary: a steer's excerpt restored during a queued edit goes to
- * the stashed draft, a failed upload holds every send path (send, queue, a steer with files, saving
- * a queued edit), and a settings chip's switch and Undo go through the "+" sheet's toggles. Driven through the real ViewModel over a live run, on the
- * [ChatViewModelQueuedSkillsTest] harness shape.
- */
+/** Driven through the real ViewModel over a live run, on the [ChatViewModelQueuedSkillsTest] harness shape. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModelComposerChromeTest {
 

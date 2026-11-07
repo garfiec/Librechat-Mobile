@@ -23,18 +23,10 @@ import kotlin.math.abs
 import kotlin.math.sign
 
 /**
- * Hands the vertical drags that start on the composer's chrome (its chips, steers, queue and
- * banners) to the thread under it ([LocalThreadScrollHandle]), fling included, so a swipe that
- * happens to start on a chip still scrolls the messages. Without it, whatever claims the touch first
- * (a horizontal chip row, a card) swallows the swipe, and only in some styles.
- *
- * It watches after its children (the Main pass, bottom-up), so anything inside that claims the
- * gesture keeps it: a horizontal scroll past its slop, the queue's long-press reorder once it has
- * started, an inner vertical scroll (whose edge hands off through [ThreadHandOffConnection]). Once
- * it has taken a drag it consumes it, which cancels the press of the chip under the finger.
- *
- * Trade-off: the area it covers doesn't pass taps through to the thread behind it; only drags
- * reach the thread from there.
+ * Hands vertical drags that start on the composer's chrome to the thread under it
+ * ([LocalThreadScrollHandle]), fling included. It watches on the Main pass, after its children, so a
+ * child that claims the gesture (a horizontal row past its slop, the queue's reorder, an inner
+ * scroll) keeps it. The area it covers doesn't pass taps through to the thread behind it.
  */
 fun Modifier.passVerticalDragsToThread(): Modifier = this then PassVerticalDragsElement
 
@@ -101,12 +93,8 @@ private suspend fun PointerInputScope.forwardVerticalDrags(threadDrags: () -> Th
 }
 
 /**
- * Whose a drag on the chrome is, decided move by move. Pure, so the thresholds are testable without
- * a pointer harness.
- *
- * Waits until the finger has moved past [touchSlop], then takes the drag if it went mostly
- * vertically and stands down if it went sideways. Stands down for good the moment a child consumes
- * a move: a horizontal row, the queue's reorder or an inner scroll took the gesture.
+ * Whose a drag on the chrome is, decided move by move. Past [touchSlop] it takes a mostly vertical
+ * drag and stands down on a sideways one; it stands down for good once a child consumes a move.
  */
 internal class PassThroughDrag(private val touchSlop: Float) {
     private var totalX = 0f

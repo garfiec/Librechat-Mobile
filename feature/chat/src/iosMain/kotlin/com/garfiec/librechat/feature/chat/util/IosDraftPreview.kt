@@ -19,14 +19,9 @@ internal const val DRAFT_PREVIEW_MAX_EDGE_PX = 160
 private const val DRAFT_PREVIEW_JPEG_QUALITY = 0.8
 
 /**
- * A small copy of a picked image for the attachment strip ([IosImageData.preview]), in a
- * format the thumbnail's decoder reads. The picked bytes are often HEIC (a library photo shot on
- * "High Efficiency" comes over as its original data, whatever type it is labelled with), and
- * Coil's Skia decoder on iOS reads PNG, JPEG, WebP, GIF and BMP only. JPEG, or PNG when the image
- * has transparency, which JPEG would fill with black. Null when there is nothing to draw; the
- * thumbnail then waits for the server's copy.
- *
- * Run it where the picker already decodes the image, off Main.
+ * A small JPEG (PNG when the image has alpha, which JPEG fills with black) of a picked image for the
+ * strip's thumbnail; null when there is nothing to draw. Never the picked bytes: they are often
+ * HEIC, which Coil's Skia decoder on iOS can't read. Run it off Main, where the picker decodes.
  */
 @OptIn(ExperimentalForeignApi::class)
 internal fun draftPreviewOf(image: UIImage?): ByteArray? {

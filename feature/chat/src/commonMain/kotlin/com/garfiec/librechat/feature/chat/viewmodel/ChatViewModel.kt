@@ -2037,7 +2037,6 @@ class ChatViewModel(
         if (sendDispatchDelegate.addPendingManualSkill(name)) skillsToggleDelegate.turnOn()
     }
 
-    // The composer's attachment strip (files, picked skills, quotes): × removes, a finished removal can be undone.
     fun removeDraftItem(item: DraftItem) = draftItemsDelegate.remove(item)
     fun undoDraftRemoval(id: Long) = draftItemsDelegate.undo(id)
     fun dropDraftUndo(id: Long) = draftItemsDelegate.dropUndo(id)

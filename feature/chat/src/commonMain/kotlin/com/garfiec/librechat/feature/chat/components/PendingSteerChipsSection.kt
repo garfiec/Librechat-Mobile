@@ -123,8 +123,8 @@ private fun PendingSteerRow(
     val container = if (interrupting) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.primaryContainer
     val content = if (interrupting) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onPrimaryContainer
     // A glass panel under Liquid Glass (the tint is Material only); the content keeps its colour.
-    // Opaque in Material: the composer's top is transparent, so a translucent card showed the thread
-    // through the steer.
+    // Opaque in Material: the composer's top is transparent, so a translucent card would show the
+    // thread through the steer.
     AdaptiveCard(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),

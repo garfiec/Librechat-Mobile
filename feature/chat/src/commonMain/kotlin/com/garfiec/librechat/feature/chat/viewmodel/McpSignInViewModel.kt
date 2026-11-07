@@ -23,10 +23,7 @@ data class McpSignInUiState(
     val failed: Boolean = false,
     /** The sign-in went to the system browser; the next return to the app ends it ([McpSignInViewModel.onReturned]). */
     val awaitingReturn: Boolean = false,
-    /**
-     * A sign-in ended (signed in, cancelled, refused or failed to bind), so the chat re-reads its MCP
-     * statuses; the screen acts on it once and calls [McpSignInViewModel.consumeEnded].
-     */
+    /** A sign-in ended, however it ended: the chat re-reads its MCP statuses once and calls [McpSignInViewModel.consumeEnded]. */
     val ended: Boolean = false,
 )
 
@@ -49,9 +46,8 @@ class McpSignInViewModel(
     val uiState: StateFlow<McpSignInUiState> = _uiState.asStateFlow()
 
     /**
-     * Binds and opens the sign-in for [serverName]. Returns false, opening nothing, while another
-     * sign-in is binding or on screen: that one ends with its own [McpSignInUiState.ended], which
-     * re-reads every status, and nothing will ever end this one.
+     * Returns false, opening nothing, while another sign-in is binding or on screen; no
+     * [McpSignInUiState.ended] will come for this one, so the caller reloads itself.
      */
     fun signIn(serverName: String, authorizationUrl: String): Boolean {
         if (_uiState.value.preparingServer != null || _uiState.value.launch != null) return false
@@ -68,11 +64,7 @@ class McpSignInViewModel(
         return true
     }
 
-    /**
-     * The system browser was asked to open an [McpOAuthLaunch.External] sign-in. The authorization
-     * happens out of process, so it ends when the user is back ([onReturned]); a browser that never
-     * opened ends it now.
-     */
+    /** A browser sign-in ends on the next return ([onReturned]); one whose browser never opened ends now. */
     fun onLaunched(opened: Boolean) {
         _uiState.update {
             if (opened) {
@@ -84,13 +76,11 @@ class McpSignInViewModel(
     }
 
     /**
-     * A sign-in ends on this return to the app (a browser one, [onReturned]) or has ended and the
-     * screen hasn't acted on it yet: either way its [McpSignInUiState.ended] re-reads the statuses.
-     * True whichever of the two ON_RESUME observers runs first.
+     * A sign-in's [McpSignInUiState.ended] will re-read the statuses on this return; true whichever
+     * of the two ON_RESUME observers runs first.
      */
     val endsOnReturn: Boolean get() = _uiState.value.let { it.awaitingReturn || it.ended }
 
-    /** The app is in front again after a browser sign-in. */
     fun onReturned() {
         if (!_uiState.value.awaitingReturn) return
         _uiState.update { it.copy(awaitingReturn = false, ended = true) }

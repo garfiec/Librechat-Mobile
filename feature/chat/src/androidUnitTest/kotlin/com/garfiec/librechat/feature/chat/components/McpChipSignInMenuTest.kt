@@ -18,11 +18,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/**
- * An MCP chip whose OAuth sign-in is pending reads "· connecting" and opens a menu with "Cancel
- * sign-in" and "Start over"; its tap never reaches the screen's chip tap (which would turn it off).
- * A chip that needs sign-in still hands its tap to the screen. On Robolectric, with the unit tests.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class McpChipSignInMenuTest {

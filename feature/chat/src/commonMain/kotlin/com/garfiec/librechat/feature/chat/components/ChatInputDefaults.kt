@@ -70,10 +70,7 @@ object ChatInputDefaults {
     fun toolsButtonColors(): IconButtonColors =
         IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
 
-    /**
-     * The box's send control: a bare icon in [color] (the primary colour, or what the control does:
-     * Stop in the error colour), in both styles. The box is its frame, so it draws no circle.
-     */
+    /** A bare icon in [color], no circle: the box is its frame. */
     @Composable
     fun sendButtonColors(color: Color = MaterialTheme.colorScheme.primary): IconButtonColors =
         IconButtonDefaults.iconButtonColors(

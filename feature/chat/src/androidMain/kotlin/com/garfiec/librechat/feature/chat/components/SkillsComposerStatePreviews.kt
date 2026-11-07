@@ -12,8 +12,7 @@ import com.garfiec.librechat.core.common.ChatLayoutConstants
 import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 
-// The chat side of skills under stress: the picker when the catalog failed to load, the attachment
-// strip at the server's cap, and the streaming reply's "Running X" rows in each layout. Hosts are shared with SkillsChatPreviews.kt.
+// Hosts are shared with SkillsChatPreviews.kt.
 
 @PreviewNarrowScreens
 @Composable
@@ -27,7 +26,7 @@ private fun SkillPickerFailedGlassPreview() = SkillsSurface(UiStyle.LIQUID_GLASS
     PickerHost("\$pd", skills = emptyList(), failed = true)
 }
 
-/** Ten long names (the server's cap): the field's stack counts them. */
+/** Ten long names: the server's cap. */
 @PreviewNarrowScreens
 @Composable
 private fun SkillChipsAtCapMaterialPreview() = SkillsSurface(UiStyle.MATERIAL) {
