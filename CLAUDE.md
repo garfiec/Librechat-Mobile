@@ -33,6 +33,20 @@ testing/speech-fixture/ → Stand-in speech provider APK for scripts/verify-spee
 
 Each module has its own `CLAUDE.md` with specific guidance.
 
+## Writing code here
+
+- **Build for what users hit.** Handle an edge case when a user on a supported server reaches it in
+  normal use, or when it loses data, leaks a credential or strands the session. A rare glitch that a
+  retry, refresh or reopen clears doesn't earn new state, a Job, a flag or a new test file. Fix the
+  reported scenario with the smallest change, not its hypothetical neighbours; reuse or delete code
+  before adding it. This applies to review findings too, including `/code-review --fix`.
+- **Comments state present-tense rules** a plausible edit would break, in a line or two. No history,
+  no story of how a bug was found or fixed, no issue numbers as narrative: that goes in the commit and PR.
+- **A module `CLAUDE.md` holds rules, not history.** Every agent touching the module loads it, so add
+  only a rule that governs many files, once, with its condition in the same sentence. A rule that
+  guards one line belongs at that line, or in a test or detekt rule.
+- **Tests go in the class's existing test file**; a new test file is for a new class.
+
 ## Architecture Rules
 
 - Feature modules depend on `:core:*` only, never on each other

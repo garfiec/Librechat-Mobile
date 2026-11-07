@@ -1,408 +1,232 @@
 # core:data
 
-Room database, DataStore preferences, EncryptedSharedPreferences for tokens, and all repository implementations. This is the coordination layer between network and local storage.
-
-## What This Module Provides
-
-- **Room database** (`db/LibreChatDatabase.kt`): 6 entities, 6 DAOs, version 1, `exportSchema = true`.
-- **Entities**: `ConversationEntity`, `MessageEntity`, `FileEntity`, `AgentEntity`, `PresetEntity`, `ConversationTagEntity`. Complex fields (lists, nested objects) stored as JSON strings via `Converters`.
-- **DAOs**: `ConversationDao`, `MessageDao`, `FileDao`, `AgentDao`, `PresetDao`, `ConversationTagDao`. Read methods return `Flow<T>` for reactive observation.
-- **DataStore**: `ServerDataStore` (server URL prefs), `SettingsDataStore` (user preferences).
-- **Token storage** (`datastore/TokenDataStore.kt`): Implements `TokenManager` from `:core:network` using `EncryptedSharedPreferences` with AES-256. Uses `Mutex` to ensure only one refresh runs at a time when multiple 401s arrive concurrently.
-- **Repositories** (`repository/`): Interface + Impl for each domain: `AuthRepository`, `ConversationRepository`, `MessageRepository`, `ChatRepository`, `FileRepository`, `AgentRepository`, `PresetRepository`, `PromptRepository`, `TagRepository`, `ShareRepository`, `ConfigRepository`, `UserRepository`, `SettingsRepository`.
-- **Entity mappers** (`db/mapper/EntityMapper.kt`): Convert between Room entities and domain models.
-- **Sync manager** (`sync/ConversationSyncManager.kt`): Orchestrates cache invalidation.
-
-## Key Patterns
-
-### Repository: Interface + Impl
-
-```kotlin
-interface ConversationRepository {
-    fun observeConversations(...): Flow<Result<List<Conversation>>>
-    suspend fun updateTitle(id: String, title: String): Result<Conversation>
-}
-```
-
-All impls take constructor parameters (api, dao, mapper, dispatcher) wired via Koin named qualifiers.
-
-### Read-Through Cache
-
-1. Emit cached data from Room immediately (first page).
-2. Fetch fresh data from network via API service.
-3. Upsert into Room. The Room `Flow` auto-emits the updated list.
-4. On network error, the cached data remains visible; error is surfaced separately.
-
-### Account-keyed token store (`CommonTokenDataStore`)
-
-Sessions now persist as one versioned encrypted/Keychain value per slot
-(`acct:<accountId>:session_credentials`, bare `session_credentials` while staging). It contains the
-access token, refresh token and optional opaque OpenID marker. `SecureSessionRecords` reads legacy
-access/refresh keys only when the record is absent; a successful write verifies the replacement before
-removing legacy keys. A present invalid record never falls back to older credentials.
-
-OpenID refresh snapshots its complete cookie bundle and epoch under `stateMutex`, releases the lock
-for the POST, and commits the full replacement only while that slot's epoch is unchanged. Request
-snapshots read bearer and marker together, from memory for the active slot (`cachedAuth`, updated
-wherever the slot is written): on iOS a storage read is a Keychain IPC. Normal login/2FA replaces
-the session without OpenID markers. All staging, account resolution and teardown paths handle the
-whole record.
-
-
-Tokens are namespaced by account (`acct:<accountId>:access_token`) and several accounts' tokens are
-retained at rest at once (multi-account, issue #179). Concurrency uses four cooperating pieces, not a
-single refresh mutex:
-
-- **`stateMutex`** — guards the in-memory identity + cached bearer and short storage reads/writes of
-  it. Held only for brief critical sections, **never across the refresh network POST**, so a switch or
-  logout never stalls behind a slow refresh.
-- **per-account `flightMutex`/`flights`** — single-flights refreshes of the *same* account across their
-  POST, so a second 401 reads the rotated token instead of re-POSTing a spent one.
-- **`tokenEpoch`** — bumped by every op that invalidates token truth (logout, clear, removal, a new
-  authentication, an identity re-home). A refresh captures it before its POST and discards its result
-  if it changed, so a refresh racing a teardown can't resurrect a cleared session even with no lock
-  held across the POST.
-- **`rejectedRefreshes`** — per-slot stand-down markers, **read and written inside the flight lock**
-  (#376). The older `proactiveSuppressedUntil` cooldown is read before the lock and written after it,
-  so a request fan-out passes it N times before the first failure lands, and the coalescing check keys
-  on the access token having *changed*, which a failed refresh does not do — hence one POST per
-  request. A marker has two modes: a **token-keyed** one (a proactive renewal had *these bytes*
-  rejected; damps proactive callers only, since a reactive ladder must settle to drop the slot and
-  route to re-auth) and a **null-token** one (a 403 LibreChat did not author blocked the endpoint;
-  damps everyone, and a proactive outcome must never narrow it back to token-keyed). Two orderings
-  are load-bearing: the coalescing check runs **before** the suppression gate, and **every** successful
-  commit clears the marker — because a 2xx on the server's reuse path does not rotate the refresh
-  token, so a slot can hold a marker for the exact bytes it still stores.
-
-**A refresh `403` is classified by provenance.** LibreChat's own bodies (`Invalid refresh token`,
-`Invalid OpenID refresh token`, `No session found`; registered in `scripts/mirrors.json`) are terminal
-and settle without the ladder; any other 403 is a bouncer/WAF and keeps the slot, since reading it as
-a dead session logs the user out over a block they cannot clear. The 401 keeps its ladder. Upstream's
-`res.status(4xx).redirect('/login')` arms arrive as a **302** — Express's `redirect()` overwrites the
-chained status — so a server-rooted `/login` Location is classified terminal in the 3xx arm; an
-absolute portal URL is a gateway's and is not. The 5xx ladder deliberately keeps its older,
-undamped shape.
-
-**A refresh `200` can end the session (v0.8.9-rc1).** A server enforcing 2FA answers an unenrolled
-account's refresh with `{ code: TWO_FACTOR_ENROLLMENT_REQUIRED, tempToken }`, no token, having deleted
-the session and cleared the cookie. `handleSuccess` checks this **before** `CookieHelper.update` (which
-would throw on the cleared cookie and read as Retryable — the old refresh limbo). The slot is dropped,
-the expiry report latched for the active binding (stragglers then settle HardExpired silently), and
-`authGate` set to `AuthGate.TwoFactorSetupRequired`. It returns `Transient`, never `settle()`: an
-expiry fails over to another account. `authGate` is cleared wherever the expiry latch is re-armed.
-The gate is raised only for the active binding, so a **non-active** account's enrollment would leave
-just an empty slot. Every enrollment therefore also writes a persisted marker beside the slot
-(`acct:<id>:two_factor_setup_required`), read through `TokenManager.isTwoFactorSetupRequired` /
-`AccountSwitcher.needsTwoFactorSetup`: the account switcher words that row as needing 2FA setup and
-its tap goes to sign-in, whose login answer runs the setup flow. The sign-in screen names the
-signed-out accounts on its server that carry it (`AccountSwitcher.awaitingTwoFactorSetupOn`).
-Writing it starts no failover and leaves the active pointer alone. A sign-in that re-homes into the slot, a teardown and an account
-removal clear it.
-
-**A kept session that cannot renew is reported, not just kept.** The unattributed-403 arm also
-publishes `TokenManager.sessionHealth = SessionHealth.RenewalBlocked(accountId)`; the nav shell shows
-a banner for the active account with one action, **Sign in again** → `endSessionForReauth`, which
-drops the slot and bumps its epoch like a hard expiry (roster entry and Room rows stay), latches the
-one-shot expiry report so in-flight 401s can't announce an expiry over a chosen sign-out, and emits
-nothing — the ViewModel routes. The block clears on the next successful commit, a sign-in, a teardown
-or a hard expiry, and deliberately **not** when the 60 s stand-down lapses: that means "we'll POST
-again", not "the server answers". The first field report was a stored base URL carrying the web UI's
-`/login?redirect_to=…` (see `cleanServerUrl` in `core/network/CLAUDE.md`), refused identically for
-ever; the stand-down's "never indefinite" only holds for a block that lifts. The banner is the safety
-net for a genuine blocker; it does not fix the URL (that is `cleanServerUrl`, at entry and at every
-join), and in that incident "sign in again" would have bought fifteen minutes.
-
-Interactive sign-in (`setTokens`) **stages** the pair under the bare keys and drops the active binding;
-`onAccountResolved` re-homes it into the account's keyed slot. This makes a re-login while another
-account is active unable to corrupt/leak into that account's slot.
-
-Wrap `EncryptedSharedPreferences` access in try/catch -- some OEM devices have broken Keystore
-implementations. `TokenDataStore` recovers in place rather than crashing: a single undecryptable entry
-is dropped (other retained accounts stay logged in), a broken keyset is wiped and rebuilt with a fresh
-master key, and if even a rebuild can't produce a working store it degrades to an in-memory session for
-the process. Construction never throws into `startKoin`. The next request then 401s and routes to
-re-login through the normal expired-session flow.
-
-**The store is built lazily and the cache is warmed off the main thread** (#326 follow-up). `MasterKey.Builder().build()`
-plus `EncryptedSharedPreferences.create` cost 300–900 ms on an emulator's software Keymaster, and the
-eager `AccountRegistry` single used to pay that on the thread `startKoin` runs on. So the encrypted
-store is created on first use behind a monitor, and `TokenCacheWarmer` (an eager single) calls
-`warmTokenCache()` on the IO dispatcher. Its registration position relative to `AccountRegistry` only
-sequences construction, not the launches, so it is not an invariant.
-
-Three rules keep that safe, each with a test in `CommonTokenDataStoreWarmTest`:
-
-- **The warmer performs the load; it never awaits one.** A logged-out cold start touches no other entry
-  point on the store — `AccountRegistry` takes its `activeEntry == null` branch and never calls
-  `selectAccount` — so a warm that waited for someone else's seed would never complete.
-- **`warmTokenCache()` takes `stateMutex`, and is the only writer of the cache fields outside a
-  mutation.** Every mutator holds that lock across its whole critical section, so a warm either
-  completes before one starts or begins after it finished — and in the latter case it reads back what
-  the mutation just wrote through to storage, since memory always mirrors disk. Note `tokenInitialized`
-  is set *only* by the load, so a post-mutation warm still runs; it is the mutex, not that flag, that
-  makes it harmless.
-- **`ensureTokenLoaded()` is the synchronous fallback, and it reads through without publishing.**
-  Populating the cache fields from there would be an unlocked read-read-write-write against the same
-  fields a mutator writes under `stateMutex`: a caller that began reading before `setTokens` wrote and
-  assigned after would replace the fresh bearer with the pre-login disk value *and* pin it by marking
-  the cache initialized — every later request on a stale bearer until process death. Reading through
-  costs a repeated decrypt in the startup window instead. Losing the race therefore costs a duplicated
-  read, never a wrong bearer, which is what licenses the design and what keeps `isAuthenticated` on
-  `TokenManager`.
-
-Two consequences worth knowing. `emitSessionExpired` is not `suspend`, so it cannot warm the cache; it
-suppresses a scoped emit only against a *seeded* identity, because an unseeded `activeAccountKey` is
-null and would swallow the expiry signal. And the "a write before the warm must not land in
-`memoryFallback`" trap has **no unit test** — Robolectric cannot build `EncryptedSharedPreferences`, so
-every write there goes to memory and a test would pass for the wrong reason. It is a device-pass item.
-
-### DataModule Bindings
-
-`DataModule.kt` defines a Koin `module { }` that binds repository interfaces to their implementations via `singleOf(::Impl) bind Interface::class` and provides the Room database, DAOs, and DataStore instances.
-
-## Room TypeConverters
-
-`Converters.kt` handles JSON serialization for complex Room fields: `List<String>`, `MessageContentPart` lists, `Feedback`, `FileReference` lists, etc. Uses the same `Json` instance from the Koin graph.
+Room (`db/`), DataStore (`datastore/`), secure token storage, and repository implementations
+(`repository/`, bound in `di/DataModule.kt`). The coordination layer between network and local
+storage.
 
 ## Rules
 
-- Dependencies: `:core:network`, `:core:model`, `:core:common`, Room, DataStore, security-crypto, Ktor, kotlinx-serialization, Timber, Koin.
-- Convention plugins: `librechat.mobile.library` + `librechat.mobile.koin` + `librechat.mobile.room` + `librechat.kotlin.serialization`.
-- Repositories must use `safeApiCall` from `:core:common` for all network calls. It carries the IO
-  dispatcher hop as well as the error mapping (#326), so an API invocation reached any other way runs
-  on whatever dispatcher the caller happened to launch from — the UI thread, for anything started
-  from `viewModelScope`. **The invariant: every `:core:network` API-service invocation sits inside
-  `safeApiCall`, inside `apiCallCatching` (the same hop and catch with the mapping left to the
-  caller, for calls that classify their own failures), or inside a flow that ends in `.flowOn(dispatcher)`.** The one HTTP call in
-  this module that isn't an API-service method — `CommonTokenDataStore`'s token-refresh POST — is
-  always driven from inside a request that already took the hop.
-- Entities are internal to this module -- feature modules work with domain models from `:core:model`.
-- All DAO read methods that the UI observes should return `Flow`, not suspend functions.
+- **Every `:core:network` API-service call sits inside `safeApiCall`, `apiCallCatching`, or a flow
+  ending in `.flowOn(dispatcher)`.** `safeApiCall` carries the IO hop as well as the error mapping, so
+  a call reached any other way runs on the caller's dispatcher (the UI thread, from `viewModelScope`).
+  See `core/common/CLAUDE.md`. `CommonTokenDataStore`'s refresh POST is the one non-API HTTP call; it
+  is always driven from inside a request that already hopped.
+- Entities are internal; feature modules see `:core:model` domain models.
+- DAO reads the UI observes return `Flow`, not suspend functions.
+- Read-through cache: emit Room, fetch, upsert (Room re-emits); on network error the cache stays
+  visible and the error is surfaced separately.
 
-### New Repositories (Round 2)
-- `MemoryRepository` / `MemoryRepositoryImpl` — wraps `MemoriesApi` for memory CRUD + preferences.
-  `getMemories()` returns the whole `MemoriesResponse` (list + pool usage + charLimit). The user's
-  opt-out lives in `memoriesEnabled: StateFlow<Boolean?>`, account-scoped (null until known, reset
-  on switch/logout), seeded by `refreshMemoriesPreference()` (`GET /api/user`) and updated by a
-  successful `updatePreferences`; every screen that shows or obeys the opt-out reads it there.
-  Failures carry no English of their own: status codes on `ApiException`, or
-  `MemoryContentFilteredException`.
-- `McpRepository` / `McpRepositoryImpl` — wraps `McpApi` for server CRUD, tools, connection status, reinitialize
-- `McpRepository` is bound via `singleOf`; `MemoryRepository` via an explicit `single` (it takes the
-  application scope)
-- Both use `safeApiCall` — no local caching (server is sole source of truth for memories and MCP)
-- **Gotcha**: Memory delete/update address the row by `_id` (by-id routes, v0.8.8-rc2) and fall back
-  to `key` + `agentId` only on a 404 without a memory-handler JSON `error` (a missing route). A
-  by-id 404 saying `Memory not found.` or `Agent not found.` is returned as is: falling back would
-  hit a re-created row of the same key. A rename sends the new `key` in the body only when it changed
-- **Gotcha**: MCP server operations use `serverName` as identifier
+## Account-keyed token store (`CommonTokenDataStore`)
 
-### New Repositories (Round 3)
-- `BannerRepository` / `BannerRepositoryImpl` — wraps `BannerApi` for fetching server banners
-- `AgentRepository.getAgentsPaginated()` — server-side paginated agent fetch, maps response to `PaginatedAgents` domain model
-- Both bound in `DataModule.kt` via `singleOf`, both use `safeApiCall`, no local caching
+Each account's session is one versioned encrypted/Keychain record (`acct:<accountId>:session_credentials`;
+bare `session_credentials` while staging): access token, refresh token, optional opaque OpenID marker.
+Several accounts are retained at once.
 
-### Attached code machines (`CodeEnvironmentRepository`, `CodeWorkspacePreferenceStore`)
-- `CodeEnvironmentRepository` is network-direct: a machine's live status, and a saved chat's recorded
-  code-workspace decision read off the single-conversation GET. The decision is deliberately **not**
-  cached in Room: a decision inferred from anything local can disagree with the server's, which then
-  refuses the turn as `locked`.
-- `CodeWorkspacePreferenceStore` remembers the last workspace picked per agent and machine (web's
-  browser-local `workspacePreferences.ts`), account-scoped so logout sweeps it, most recent first,
-  capped at 100. Hints only; mirrored in `scripts/mirrors.json`.
+- `SecureSessionRecords` reads legacy access/refresh keys only when the record is absent, and removes
+  them only after verifying the replacement write. **A present but invalid record never falls back to
+  older credentials.** All staging, account-resolution and teardown paths handle the whole record.
+- Request snapshots read bearer and marker together, from memory for the active slot (`cachedAuth`,
+  updated wherever the slot is written): on iOS a storage read is Keychain IPC. Normal login/2FA
+  replaces the session without OpenID markers.
+- **Interactive sign-in (`setTokens`) stages** under the bare keys and drops the active binding;
+  `onAccountResolved` re-homes it, so a re-login can't corrupt another active account's slot.
 
-### Preference registry and one-time migrations (`AppPreferences`, `PreferenceMigrations`)
-New device-wide preferences are declared in `AppPreferences` and read and written through
-`PreferenceStore`, not added as members of `SettingsDataStore` (the older settings move over as
-their code is touched; keep each key name exactly, or that setting resets for every user).
-- **A default is applied on read and never written**, so a stored choice always wins and an
-  unchosen preference follows the build's current default. `always(x)` or
-  `perChannel(openSource, playStore, appStore)`; the latter names every channel, so a new channel
-  fails to compile until each default decides. `AppPreferencesTest` pins every default per channel
-  and rejects duplicate keys, but only among the specs listed in `AppPreferences.all`: it cannot
-  see a key that `SettingsDataStore` or another store on the same file still owns, so when a
-  setting moves over, delete its old member in the same change.
-- **One-time changes are `PreferenceMigrations`**, run by `PreferenceMigrationRunner`, a DataStore
-  `DataMigration` on the preferences store: they run before anything can read it, and the change and
-  its ledger entry (`applied_pref_migrations`, a set of ids) land in one atomic write. Ids are
-  `YYYYMMDD-slug`, append-only and immutable once shipped. `reset(spec)` clears a stored choice so
-  the (new) default applies; `force(spec, value)` writes one.
-- **Ledger rules:** only migrations that ran (or were waived) on this channel are recorded, so a
-  channel-scoped one still runs if a different channel's build opens the data (the iOS store and
-  sideload builds share a bundle id). A fresh install (empty store, no ledger) waives this channel's
-  migrations. Unknown ids from a newer build are kept across a downgrade.
-- **A migration body must be total.** A throw fails every read and write of the shared settings
-  store (server URL, account roster, every setting). DataStore retries the initialization on the
-  next access, so a throw that always happens fails them on every launch, and the corruption handler
-  cannot recover it.
-- A corrupt preferences file is replaced with an empty one before migrations run, so it reads as a
-  fresh install and its migrations are waived.
+### Concurrency (four cooperating pieces, not one refresh mutex)
 
-### Date/time format (`DateTimePrefsStore`)
-Timestamp style, clock and date format, global (not per-account). Its own class on the shared
-preferences `DataStore` rather than more members on `SettingsDataStore`, which sits at detekt's
-`LargeClass` limit. It warms its first-frame seed like `ThemeDataStore`, and both app roots
-(`MainActivity`, `LibreChatApp`) gate the first frame on its `isReady`.
+- **`stateMutex`** guards in-memory identity + cached bearer and short storage I/O. **Never held across
+  the refresh POST**, so switch/logout never stall behind a slow refresh. OpenID refresh snapshots its
+  cookie bundle and epoch under it, releases for the POST, and commits only if the slot's epoch is
+  unchanged.
+- **Per-account `flightMutex`/`flights`** single-flight same-account refreshes across the POST, so a
+  second 401 reads the rotated token instead of re-POSTing a spent one.
+- **`tokenEpoch`** is bumped by every op that invalidates token truth (logout, clear, removal, new
+  authentication, identity re-home). A refresh captures the epoch before its POST and discards its result if it changed, so it can't
+  resurrect a cleared session.
+- **`rejectedRefreshes`** stand-down markers are **read and written inside the flight lock** (a check
+  outside it is passed N times by a fan-out → one POST per request). Two modes: **token-keyed** (a
+  proactive renewal had these bytes rejected; damps proactive callers only, since a reactive ladder
+  must settle to route to re-auth) and **null-token** (an unattributed 403; damps everyone; a proactive
+  outcome must never narrow it back to token-keyed). The coalescing check runs **before** the
+  suppression gate, and **every** successful commit clears the marker (the server's reuse-path 2xx
+  doesn't rotate the token, so a slot can hold a marker for the bytes it stores).
 
-### Compact-suggestion snoozes (`SettingsDataStore.compactNudgeSnoozes`)
-**Device-scoped by design**, like the other context-usage preferences: it maps conversation ids to the
-band the user answered "Not now" to, and holds no account data. `removeAllForAccount` sweeps only
-`acct:` keys, so it is not purged on logout; it is bounded instead (200 entries, oldest evicted by a
-sequence number, read-modify-write inside `dataStore.edit` under `NonCancellable`, mirroring
-`incrementModelUsage`).
+### Refresh outcomes
 
-### Per-server gateway headers (`servers` table)
+- **A refresh `403` is classified by provenance.** LibreChat's own bodies (`Invalid refresh token`,
+  `Invalid OpenID refresh token`, `No session found`; in `scripts/mirrors.json`) are terminal and settle
+  without the ladder. **Any other 403 keeps the slot** (bouncer/WAF; logging out over it strands the
+  user). 401 keeps its ladder. Upstream's `res.status(4xx).redirect('/login')` arrives as a **302**, so
+  a server-rooted `/login` Location is terminal in the 3xx arm; an absolute portal URL is a gateway's
+  and is not. The 5xx ladder stays undamped.
+- **A refresh `200` can end the session (v0.8.9-rc1)**: `{ code: TWO_FACTOR_ENROLLMENT_REQUIRED,
+  tempToken }`, no token, server session deleted. `handleSuccess` checks it **before**
+  `CookieHelper.update` (which would throw on the cleared cookie → Retryable limbo). It drops the slot,
+  latches the expiry report for the active binding, sets `authGate = AuthGate.TwoFactorSetupRequired`,
+  and returns `Transient`, **never `settle()`** (an expiry would fail over to another account).
+  `authGate` is cleared wherever the expiry latch is re-armed. Because the gate is raised only for the
+  active binding, every enrollment also writes `acct:<id>:two_factor_setup_required`
+  (`TokenManager.isTwoFactorSetupRequired`, `AccountSwitcher.needsTwoFactorSetup` /
+  `awaitingTwoFactorSetupOn`), starting no failover and leaving the active pointer alone; a re-homing
+  sign-in, teardown or removal clears it.
+- **A kept session that cannot renew is reported.** The unattributed-403 arm publishes
+  `SessionHealth.RenewalBlocked(accountId)`; the shell's banner offers **Sign in again** →
+  `endSessionForReauth` (drops the slot and bumps its epoch like a hard expiry, keeps roster + Room
+  rows, latches the expiry report, emits nothing; the ViewModel routes). It clears on a successful
+  commit, sign-in, teardown or hard expiry, and **not** when the 60 s stand-down lapses (that means
+  "we'll POST again", not "the server answers"). The banner doesn't fix a bad stored URL; that is
+  `cleanServerUrl` (`core/network/CLAUDE.md`).
 
-`ServerRepository` / `ServerRepositoryImpl` own the gateway headers of issue #287 and are the
-`ServerHeadersProvider` the HTTP clients read them through.
+### Keystore failure and cold start
 
-- **Device-scoped, no `accountId`.** Like `artifact_shortcuts`, deliberately absent from
-  `AccountDataPurger` and from the detekt tenancy rule's table list: the headers are what let a user
-  log back *in*, so logout must not take them.
-- **Natural primary key.** `server_id` is the derived server id, not a surrogate — Room resolves
-  `@Upsert` by primary key, so a surrogate would make every save after the first match zero rows and
-  vanish silently. The whole-row `@Upsert` is safe *only* while the table has one non-key column and
-  one writer; **any added per-server column (cert pinning, detected version, a label) has to make the
-  writes column-scoped first.**
-- **`headersFor` is non-suspend** — it is called inside `SwitchGate`'s lock and in the request
-  pipeline's `State` phase. Persistence stays behind a `@Volatile` map guarded by `awaitWarm()`.
-- **One seed read, then patch-on-write.** The repository is the table's only writer, so it keeps the
-  map current by patching its own writes under the same lock. Observing the table instead hands those
-  writes back a moment later, and a Room emission whose query snapshot predates a save can arrive
-  after it, reverting a credential the user just typed.
-- **Resolved `createdAtStart`.** The warm gate blocks the first HTTP request, so the database open it
-  forces should overlap cold start rather than be serialized after it.
-- **No migration — correct only while the release timeline holds.** An interim version kept these in
-  the preference store under `srv:<serverId>:custom_headers`. No release tag contains it (verify with
-  `git tag --contains <PR1 merge>`), so there is nothing on any device to move and no drain code.
-  **This is a fact about the calendar, not a property of the code**: cut a release from `develop`
-  between PR1 and this change and every user who configures headers on that build loses them silently
-  on upgrade — no error, just a server they can no longer reach. If that ever happens, a drain is
-  required after all. Otherwise don't add one back "for safety" — it would reintroduce a second writer
-  and with it the patch-on-write race above.
-- **A read failure is not "no headers".** `headersForServer` returns null when the store could not be
-  read, and both editors render that as a warning instead of an empty list — an empty editor reads as
-  "your credential is gone", and saving from it would make that true. Rules that keep the contract
-  honest, each with a test: a row that won't decode is tracked per-server rather than skipped, as is
-  one whose pairs all sanitize away (both otherwise report as "none configured"); a successful write
-  does not clear the failure flag (a write proves one row is writable, not that the others were ever
-  read); and the read is re-attempted after a failure (it is otherwise attempted once, so one
-  transient error disables headers until the process is killed).
-- **The empty-write refusal lives in `setHeaders`, not in the editors.** An empty map is a delete, and
-  this repository is the only thing that knows whether the value it is about to destroy was ever
-  successfully read — so it refuses that one combination itself and reports
-  `HeaderWriteFailure.UnverifiedDelete`. Both editors write through it. Enforcing it caller-side means
-  a copy of the rule in each editor, either of which can omit it. A **non-empty** write always goes
-  through: re-entering the credential is the recovery path.
-- **Two read paths, and the request path never retries.** `headersFor` / `awaitWarm` serve the request
-  pipeline from a snapshot seeded once at startup; `headersForServer` serves the editors and reads
-  through to the table every call. **Don't merge them.** No single retry policy serves both: bounded,
-  one transient failure disables headers for the rest of the process; unbounded, an unreadable
-  database queues every request behind the same failing query. Split, there is no policy to tune —
-  opening an editor is what heals a store that failed at startup, and that is the moment a user is
-  waiting for the answer anyway.
-- **A write outranks a later failed read** (`writtenHere`). This class is the table's only writer, so
-  a value it wrote is not in doubt even when the table stops reading. Without it a store whose reads
-  fail but whose writes land confirms a save and then reports it unreadable, and the user re-enters a
-  secret every request is already carrying.
-- **Plaintext, deliberately.** The realistic exfiltration path for the app-private database is an ADB
-  backup, which `android:allowBackup="false"` already closes; on iOS the app container is sandboxed.
-  Against that, encrypting it would add the wipe-and-rebuild failure mode `TokenDataStore` has on OEMs
-  with broken Keystores — and losing this particular value doesn't degrade to a re-login prompt, it
-  degrades to a server the user can no longer reach at all.
-- **The table is named for the deployment, not for the headers**, because per-server state with
-  nowhere else to live (cert pinning, detected backend version, a user-chosen label) belongs here. It
-  carries only the headers today; see the natural-primary-key bullet before adding a column.
+- Wrap `EncryptedSharedPreferences` access in try/catch (broken OEM Keystores). `TokenDataStore`
+  recovers in place: a one-entry decrypt failure drops only that entry (never rebuild over it, or
+  every retained account is logged out); a keyset failure wipes and rebuilds; if that fails, an
+  in-memory session. **Construction never throws into `startKoin`.**
+- The encrypted store is built lazily on first use, and `TokenCacheWarmer` (eager single) calls
+  `warmTokenCache()` on IO, keeping 300–900 ms of keystore work off the `startKoin` thread. Rules:
+  - **The warmer performs the load; it never awaits one** (a logged-out cold start triggers no other
+    load, so it would never complete).
+  - **`warmTokenCache()` takes `stateMutex` and is the only writer of the cache fields outside a
+    mutation.** Every mutator holds the lock across its critical section, so a warm runs wholly
+    before or after it; the mutex, not `tokenInitialized`, makes a late warm harmless.
+  - **`ensureTokenLoaded()` reads through without publishing.** Populating the cache unlocked could
+    overwrite a fresh `setTokens` bearer with the pre-login disk value and pin it until process death.
+- `emitSessionExpired` isn't `suspend` and can't warm; it suppresses a scoped emit only against a
+  *seeded* identity (an unseeded key is null and would swallow the expiry).
+- "A write before the warm must not land in `memoryFallback`" has **no unit test** (Robolectric can't
+  build `EncryptedSharedPreferences`); verify on a device.
 
-### Custom project order (`project_order`) — Switchboard-only
-LibreChat stores no project order, so the drawer's drag-to-reorder order lives here, keyed by
-`(accountId, projectId)` and purged with the account by `AccountDataPurger`.
-- `ProjectRepository.listAllProjectsInCustomOrder` fetches every page and applies it
-  (`ProjectOrdering`): saved projects by slot, never-placed ones after, oldest first. With nothing
-  saved the server's order (latest activity) is kept, and that first load is what gets saved.
-- Only an unfiltered, complete list saves back (it is also what prunes projects deleted elsewhere);
-  a search, or a fetch cut off by the page cap (`AllProjects.isComplete`), never does.
-- The read-arrange-write and `saveProjectOrder` share one `Mutex`, so a load can't write the order a
-  drop just replaced. `saveProjectOrder` takes the account captured at the drop, not the active one.
-- `saveProjectOrder` bumps `orderRevision` (the Custom sort reloads on it), not `revision`: nothing
-  changed on the server.
-- If upstream ships ordering, drop the table with an `@DeleteTable` AutoMigrationSpec and read the
-  server's order; nothing else references it.
+## Preferences (`AppPreferences`, `PreferenceMigrations`)
 
-### Stored full tool calls (`tool_call_parts`, v0.8.9-rc1 previews)
-The full content of previewed tool calls (`?toolPreviews=1`) fetched for finished messages, written by
-the chat screen (`ToolPartHydrationDelegate`) and the prefetcher, so later and offline sessions open a
-card without refetching.
-- **Beside the message rows, never merged into them.** A merged row would be indistinguishable from
-  the server's answer and the next refresh would flip it back; here `messages` stays exactly what the
-  server sent, so `refreshMessages` / `replaceAllForConversation` need no merge.
-- **FK to `messages.messageId` with CASCADE**, like `message_search`: every message delete path
-  (conversation delete, delete-all, prefetch prune, account purge, a refresh dropping a message) takes
-  the parts with it. Safe only because `messages` is never written with REPLACE. A row is written only
-  when its message is cached for the same account (`storeWithinBudget` checks), so a temporary or
-  uncached chat stores nothing.
-- Identity columns hold `""` for an absent `stepId` / `agentId`; `ToolCallPartRef.normalized()` maps
-  blanks to null on the way out.
-- **Bounded:** 16M chars per account (oldest `storedAt` first), a single call over 2M chars is never
-  stored. A row decoded as a preview is never returned.
-- Whether a stored row still stands for the current preview is the caller's check (`isFullCopyOf`),
-  since only it holds the preview. Export never reads this table (`fetchMessagesFull`).
-- **The prefetcher fills it** (`PrefetchEngine.warmToolParts`), right after a conversation is
-  re-warmed with previews: newest finished messages first, skipping calls already stored and calls
-  whose preview declares over 256k chars, at most 12 per conversation, 48 and ~4M chars per pass,
-  paced and breaker-counted like every other request. So the bytes are bounded by the caps rather
-  than by the thread; what the cap leaves out is fetched online when its card opens. It skips by
-  identity without re-checking lengths: the chat screen does that check on open. Subagent calls
-  whose transcript was omitted are never prefetched (their size is undeclared). A call asked once
-  is not asked again in that process, whether or not the table kept it (over 2M, pruned, refused).
-  The conversation's watermark is written as soon as its messages are cached. One whose calls were
-  cut short by a budget, the time or a rate limit is remembered as pending (in memory, per process)
-  and the next pass finishes its calls from the cached messages first, without downloading the
-  messages again; a pending one that left the warm set is dropped, and the open chat's wait for its
-  screen to close. After a restart the leftovers wait
-  for their cards, or for the conversation to change.
+- New device-wide preferences are declared in `AppPreferences` and accessed through `PreferenceStore`,
+  not added to `SettingsDataStore`. When moving an old setting over, **keep its key name exactly** (or
+  it resets for everyone) and **delete the old member in the same change** (`AppPreferencesTest` can't
+  see keys owned by other stores on the same file). List every new spec in `AppPreferences.all`: that
+  list is all the test's default pinning and duplicate-key check cover.
+- **Defaults are applied on read, never written.** `always(x)` or `perChannel(openSource, playStore,
+  appStore)` (every channel named, so a new channel fails to compile).
+- **One-time changes are `PreferenceMigrations`** (run by `PreferenceMigrationRunner` as a DataStore
+  `DataMigration`: before any read, change + ledger entry in one atomic write). Ids `YYYYMMDD-slug`,
+  append-only, immutable once shipped. `reset(spec)` / `force(spec, value)`.
+- Ledger: only migrations run or waived **on this channel** are recorded (iOS store and sideload builds
+  share a bundle id). A fresh install, or a corrupt file replaced with an empty one, waives this
+  channel's migrations. Unknown ids from a newer build survive a downgrade.
+- **A migration body must be total.** A throw fails every read/write of the shared settings store
+  (server URL, roster, all settings) on every launch; the corruption handler can't recover it.
+- `DateTimePrefsStore` (global, not per-account) is its own class on the shared store because
+  `SettingsDataStore` is at detekt's `LargeClass` limit. It warms a first-frame seed like
+  `ThemeDataStore`; both app roots gate the first frame on its `isReady`.
+- `SettingsDataStore.compactNudgeSnoozes` is **device-scoped** (no account data), so logout's
+  `acct:`-key sweep doesn't purge it; it is bounded instead (200, oldest evicted by sequence number,
+  read-modify-write inside `dataStore.edit` under `NonCancellable`, like `incrementModelUsage`).
 
-### Message search index (`message_search` + `messages_fts`)
-Offline full-text search over cached messages. FTS4 + `unicode61` (the only full-text setup both
-drivers have; no FTS5 on Android's framework SQLite), external-content over a narrow side table.
-- **Search data never lives on `messages`.** Its trailing columns sit behind `text`/`content`, so
-  reading them walks overflow pages, and a column there would make the backfill rewrite every wide
-  row. `message_search` holds the filter/sort columns and the flattened text
-  (`searchTextOf`: content parts flattened like the server's Meilisearch plugin, TEXT + THINK +
-  STEER, capped at 128k chars).
+## Network-direct repositories (no Room cache)
+
+- `MemoryRepository`: `memoriesEnabled: StateFlow<Boolean?>` is the account-scoped opt-out (null until
+  known, reset on switch/logout), seeded by `refreshMemoriesPreference()`, updated by a successful
+  `updatePreferences`; **every screen that shows or obeys the opt-out reads it there.** Failures carry no
+  English: status on `ApiException`, or `MemoryContentFilteredException`. Delete/update address `_id`
+  and fall back to `key` + `agentId` **only on a 404 without a memory-handler JSON `error`** (missing
+  route); a by-id `Memory not found.` / `Agent not found.` is returned as is (falling back would hit a
+  re-created row). A rename sends `key` only when it changed. Bound with explicit `single` (takes the
+  application scope).
+- `McpRepository` identifies servers by `serverName`.
+- `CodeEnvironmentRepository`: machine status and a saved chat's code-workspace decision (from the
+  single-conversation GET). **Never cache the decision locally**: one that disagrees with the server's
+  gets the turn refused as `locked`.
+- `CodeWorkspacePreferenceStore`: last workspace per agent and machine (web's
+  `workspacePreferences.ts`), account-scoped, most recent first, capped at 100. Hints only; mirrored in
+  `scripts/mirrors.json`.
+
+## Per-server gateway headers (`servers` table)
+
+`ServerRepository` owns them and is the `ServerHeadersProvider` the HTTP clients read
+(`core/network/CLAUDE.md` for the request side).
+
+- **Device-scoped, no `accountId`**: deliberately absent from `AccountDataPurger` and the detekt
+  tenancy rule, since the headers are what let a user log back in.
+- **Natural primary key** (`server_id` = derived server id); a surrogate would make `@Upsert` match
+  zero rows. The whole-row `@Upsert` is safe only with one non-key column and one writer: **any added
+  per-server column must make writes column-scoped first.** The table is named for the deployment so
+  such state can live here.
+- **`headersFor` is non-suspend** (called inside `SwitchGate`'s lock and in the `State` phase), backed
+  by a `@Volatile` map behind `awaitWarm()`, resolved `createdAtStart`.
+- **One seed read, then patch-on-write** under the same lock. Don't observe the table: a stale Room
+  emission can arrive after a save and revert it.
+- **No migration from the old `srv:<serverId>:custom_headers` prefs**, because no release shipped them.
+  Don't add one "for safety" (a second writer reintroduces the race). If a release from that window
+  ever surfaces, a drain is required.
+- **A read failure is not "no headers".** `headersForServer` returns null and editors show a warning.
+  Undecodable rows and rows whose pairs all sanitize away are tracked per-server as failures; a
+  successful write doesn't clear the failure flag; the read is re-attempted after a failure. **A write
+  outranks a later failed read** (`writtenHere`).
+- **The empty-write refusal lives in `setHeaders`** (`HeaderWriteFailure.UnverifiedDelete` when the
+  value was never read), not in the editors. A non-empty write always goes through (it's the recovery
+  path).
+- **Two read paths; don't merge them.** `headersFor` / `awaitWarm` serve requests from the startup
+  snapshot and never retry; `headersForServer` serves editors and reads through every call (opening an
+  editor heals a store that failed at startup).
+- **Plaintext, deliberately**: `allowBackup="false"` and the iOS sandbox cover exfiltration;
+  encryption would add Keystore wipe-and-rebuild, and losing this value leaves a server unreachable.
+
+## Custom project order (`project_order`), Switchboard-only
+
+Drawer order keyed by `(accountId, projectId)`, purged by `AccountDataPurger`.
+
+- `ProjectRepository.listAllProjectsInCustomOrder` fetches all pages and applies `ProjectOrdering`
+  (saved by slot, unplaced after, oldest first; with nothing saved the server order is kept and saved).
+- **Only an unfiltered, complete list saves back** (it also prunes deleted projects); never a search or
+  a page-capped fetch (`AllProjects.isComplete`).
+- Read-arrange-write and `saveProjectOrder` share one `Mutex`. `saveProjectOrder` takes the account
+  captured at the drop, not the active one, and bumps `orderRevision`, not `revision`.
+- If upstream ships ordering: `@DeleteTable` AutoMigrationSpec and read the server's order.
+
+## Stored full tool calls (`tool_call_parts`, v0.8.9-rc1 previews)
+
+Full content of previewed tool calls for finished messages, written by `ToolPartHydrationDelegate` and
+the prefetcher.
+
+- **Beside the message rows, never merged into them**, so `messages` stays exactly what the server sent
+  and refreshes need no merge.
+- **FK to `messages.messageId` with CASCADE**: every message delete takes the parts. Safe only because
+  `messages` is never written with REPLACE. Rows are written only when the message is cached for the
+  same account (`storeWithinBudget`).
+- `""` for absent `stepId` / `agentId`; `ToolCallPartRef.normalized()` maps blanks to null.
+- Bounded: 16M chars per account (oldest `storedAt` evicted); a single call over 2M is never stored; a
+  row decoding as a preview is never returned. `isFullCopyOf` (caller's check) decides whether a row
+  still stands for the preview. Export never reads this table.
+- `PrefetchEngine.warmToolParts` fills it after a re-warm, under its caps (256k per declared call, 12
+  per conversation, 48 / ~4M chars per pass), paced and breaker-counted. It skips a stored call by
+  identity without re-checking lengths; the chat screen does that check on open. Never prefetches
+  subagent calls with omitted transcripts (undeclared size); asks each call at most once per process.
+  A conversation's watermark is written as soon as its messages are cached; one cut short is finished
+  next pass from the cached messages (in-memory pending set).
+
+## Message search index (`message_search` + `messages_fts`)
+
+FTS4 + `unicode61` (no FTS5 on Android's framework SQLite), external-content over a narrow side table.
+
+- **Search data never lives on `messages`** (wide rows; overflow pages and a full rewrite on backfill).
+  `message_search` holds filter/sort columns and `searchTextOf` output (visible text, then reasoning,
+  split at `visibleLength`; capped at 128k). The "in reasoning" marker and "answers only" compare a
+  match against `visibleLength`, so neither reads `messages` rows.
 - **Write messages only through `MessageDao.upsertAllIndexed`** (or `replaceAllForConversation` /
-  `updateText` / `upsertReindexed`, which use it or index themselves). It indexes in the same
-  transaction and skips side rows whose `updatedAt` hasn't moved, since any update re-tokenizes the
-  row. `MessageWritePairingTest` fails a raw `upsert`/`upsertAll` outside the DAO package.
-- **That `updatedAt` dedupe is only valid for writes that carry the server's value.** It reads an
-  unchanged `updatedAt` as unchanged text, which holds for a fetch (the server bumps it on every
-  write) and fails for an edit applied locally: a read-modify-write keeps the old value, so the
-  dedupe hits and the index keeps matching the text the user just replaced. Local edits therefore go
-  through `updateText` (flat text) or `upsertReindexed` (one content part), both of which write the
-  side row unconditionally. A future local mutation of message text needs the same treatment.
-- **Deletes need nothing**: the side table's FK (the DB's first) cascades, and the cascade fires the
-  FTS delete trigger. Room turns `foreign_keys` on in its generated `onOpen`.
-- **Unclaimed rows (`accountId IS NULL`) are never indexed.** Side rows copy the parent's stamped
-  account, never the active one.
-- **Never select content from `messages_fts`** (it spans every account), never `VACUUM` without a
-  `'rebuild'`, only add nullable columns to `message_search`, never `REPLACE` either table, never
-  `'optimize'`. The entity KDocs say why.
-- `SearchIndexBackfillSessionTask` indexes rows cached before the index existed, then runs a repair
-  each session. It is gated on `SearchIndexWindow` (in front, idle, unconstrained; not the prefetch
-  opt-in or the network) and steps aside while a local search runs.
-- Typed input goes through `FtsQuery.plan` (quoted tokens only, so no operator reaches the parser);
-  CJK/Thai input and regex go to the bounded `MessageScanEngine` instead.
-- **`searchText` is the visible text, then the reasoning**, with `visibleLength` marking the split
-  (`searchTextOf`). The "in reasoning" marker and "answers only" both compare a match against that
-  offset, so neither reads the wide `messages` rows.
-- **Changing what `searchTextOf` produces means bumping `SearchIndexState.CURRENT_FORMAT`.** The
-  backfill then empties the index once (`SearchIndexMaintenance.resetIndex`: triggers dropped, wipe,
-  `'rebuild'`, triggers recreated) and refills it. Without the bump, old rows keep the old shape.
-- Two operations run with the sync triggers dropped, in one transaction: the reset, and
-  `SearchIndexMaintenance.purgeAccountMessages`'s fast path for an account that holds most of the
-  index (2k+ rows and more than every other account combined), which deletes without per-row
-  tokenizing and rebuilds what remains. Both `AccountDataPurger` and delete-all go through it.
-  `SYNC_TRIGGERS` is compared with the exported schema by `SearchIndexMaintenanceTest`.
+  `updateText` / `upsertReindexed`), never a raw `upsert`/`upsertAll` outside the DAO package.
+- The index skips side rows whose `updatedAt` hasn't moved, valid only for server-carried values. **Local
+  text edits must go through `updateText` or `upsertReindexed`**, which reindex unconditionally; any new
+  local text mutation needs the same.
+- Deletes cascade via the side table's FK (Room enables `foreign_keys`), firing the FTS delete trigger.
+- **Never index unclaimed rows (`accountId IS NULL`)**; side rows copy the parent's stamped account,
+  never the active one.
+- **Never select content from `messages_fts`** (spans accounts), never `VACUUM` without `'rebuild'`,
+  only add nullable columns to `message_search`, never `REPLACE` either table, never `'optimize'`.
+  Entity KDocs say why.
+- **Changing `searchTextOf` output means bumping `SearchIndexState.CURRENT_FORMAT`**, or old rows keep
+  the old shape.
+- `SearchIndexBackfillSessionTask` backfills then repairs each session, gated on `SearchIndexWindow`
+  (foreground, idle, unconstrained; never on the prefetch opt-in or the network),
+  yielding to a running local search. Typed input goes through `FtsQuery.plan` (quoted tokens only);
+  CJK/Thai and regex use `MessageScanEngine`.
+- Reset and `SearchIndexMaintenance.purgeAccountMessages`'s fast path run with sync triggers dropped in
+  one transaction; `AccountDataPurger` and delete-all go through it.
 - A prune of 1k+ messages merges the index afterwards, inside the prefetch window.
-- `SearchIndexBenchmark` (androidInstrumentedTest, off unless `searchBench=true`) times the
-  budgets in TRUNCATE and WAL; see its KDoc to run it.

@@ -1,95 +1,60 @@
 # App Module
 
-Single Activity architecture. `MainActivity` is the sole entry point.
+Single Activity; `MainActivity` is the sole entry point. Depends on `:shared`, all `:core:*` and `:feature:*`.
 
 ## Navigation
+`LibreChatNavHost.kt` (this module) wraps the shared `LibreChatNavHost` via a `content` lambda, adding deep
+links, share-intent routing and phone/tablet branching. The shared module owns the rest (`Navigator`,
+`NavHostViewModel`, `MainNavDisplay`, `PhoneLayout`, `TabletLayout`, drawer, all entry providers): see
+`shared/CLAUDE.md`. Feature modules get `onNavigate`/`onBack` lambdas, never `NavBackStack`.
 
-`LibreChatNavHost` (in this module) is the Android-specific entry point. It wraps the shared module's `LibreChatNavHost` via a `content` lambda, adding:
+### Layout modes
+- Tablet layout at 680dp+ wide and 480dp+ tall (320dp sidebar + 360dp pane), else the phone drawer. Android
+  picks here, iOS in the shared host, both via `usesSidebarLayout` (`TabletLayout.kt`): change the breakpoint
+  there, not at a call site.
+- iOS switches layouts in place, so both layouts must place the one `rememberMovableNavDisplay` instance (a
+  `MainNavDisplay` leaving composition clears every entry's ViewModels). Keep the layout choice in the host's
+  own composition, not a subcomposition like `BoxWithConstraints` — only that case is covered
+  (`MovableNavDisplayTest`).
 
-- **Deep link handling** (`librechat://conversation/{conversationId}`)
-- **Share intent routing** (addresses the share to the chat on screen; navigates to NewChat first if
-  the user is not on one — see Share Intents below)
-- **Tablet layout branching** based on the window size (`usesSidebarLayout`, see Layout Modes)
+## Deep links
+- Scheme `librechat://`; hosts `conversation/{id}`, `artifact/{uuid}`, `oauth`.
+- **Single source of truth**: `DeepLinks.resolve()` (`:shared/commonMain`) → `DeepLinkResolution`
+  (`Route(target, requiresAuth)` / `Consumed` / `None`). Add a link as one branch there; do NOT reintroduce a
+  per-host allowlist here.
+- `MainActivity.handleDeepLink()` (and `onNewIntent`) resolves to accept/drop (`DeepLinkUriAdapter.kt`), then
+  `LibreChatNavHost` resolves again to place the target. `requiresAuth` links go to login when signed out;
+  artifact links open signed out. `oauth` is `Consumed` (sign-in is in-app WebView); keep the mapping so links
+  from older builds still bring the app forward.
 
-The shared module owns the core navigation: `Navigator`, `NavHostViewModel`, `MainNavDisplay`, `PhoneLayout`, `TabletLayout`, sidebar/drawer composables, and all feature entry providers. See `shared/CLAUDE.md` for details.
+## Share intents
+- `MainActivity.handleShareIntent()` only **stages** on `ShareIntentConsumer`. `LibreChatNavHost` reads
+  `navigator.currentRoute` and calls `dispatchTo(conversationId)` (`null` = `NewChat` landing), navigating to a
+  chat first if none is on screen.
+- **A share must be addressed, never broadcast**: several `ChatViewModel`s are alive (the landing sits beneath
+  an open `Chat`), and an unaddressed share goes to whichever collects first. Each screen uses
+  `sharesFor(conversationId)`; addressing lives in the nav host.
+- Drive delivery off `ShareIntentConsumer.undelivered`, not an activity counter: the launch intent is processed
+  only on a fresh start, so a recreation during the theme/locale warm-up would strand the share.
 
-### Layout Modes
+## Server banners
+- `GET /api/banner` returns one object or a 200 with empty body and no `Content-Type`, never an array.
+  `BannerApi` reads the raw body; anything else still throws, so a proxy answer can't read as "no banner".
+- `NavHostViewModel` fetches via `BannerRepository` on init, account switch and auth-complete; no timer.
+- The server applies `displayFrom`/`displayTo` and `type: 'banner'`; don't re-check client-side (clock skew).
+- Dismissal lives in `BannerStateHolder`: in-memory **(serverId, bannerId)** key. Both halves are needed: by
+  banner alone, a bannerId shared across servers arrives pre-dismissed; cleared on switch, A's banner returns.
+  `clearForAccountChange()` drops the banner but must **not** touch dismissals.
+- `BannerDisplay` takes a nullable banner and decides visibility itself; don't hoist the null check (kills the
+  enter/exit animation).
+- One treatment, `secondaryContainer`/`onSecondaryContainer`. Don't re-introduce a `type`-keyed palette or
+  hardcoded hex (server only sends `type: "banner"`; fixed colours ignore the accent seed and dark mode).
+- `persistable` hides dismiss; a banner with no `bannerId` is not rendered.
 
-- **Phone**: Delegates to shared `PhoneLayout` — `ModalNavigationDrawer` sidebar-first pattern.
-- **Tablet** (680dp+ wide and 480dp+ tall): Delegates to shared `TabletLayout` — persistent side panel that pushes the content aside, with swipe gesture and back handling. 680dp is the 320dp sidebar plus a 360dp phone-width pane; a phone on its side stays on the drawer.
-- Android picks the layout here and iOS in the shared host, both through `usesSidebarLayout` (in `TabletLayout.kt`) on the window size. Change the breakpoint there, not at a call site.
-- iOS switches layouts in place (rotation, Split View, fold), so both layouts must place the one `rememberMovableNavDisplay` instance — a `MainNavDisplay` that leaves the composition clears every back-stack entry's ViewModels. Keep the layout choice in the host's own composition rather than a subcomposition such as `BoxWithConstraints` — only the single-composition case is covered, by `MovableNavDisplayTest`.
-
-Feature modules provide entries via `EntryProviderScope<NavKey>` extensions (e.g., `authEntries()`, `chatEntries()`). Navigation is driven by `onNavigate: (NavKey) -> Unit` and `onBack: () -> Unit` lambdas — feature modules never receive `NavBackStack` directly.
-
-## Android-Only Files in This Module
-
-- `LibreChatNavHost.kt` — Thin wrapper adding deep links, share intents, and tablet/phone branching
-
-## Top-Level Destinations
-
-Top-level routes: `NewChat` (Chat), `Conversations`, `AgentMarketplace` (Agents), `Files`, `SettingsTabbed` (Settings).
-Conversations are integrated into the drawer body. Agents, Files, and Settings are accessible via drawer footer links. All routes are registered in the shared `MainNavDisplay` entry provider.
-
-## Auth & Session
-
-- `NavHostViewModel` (in shared) observes auth state via `isLoggedIn` flow
-- Start destination is `NewChat` if logged in, `ServerUrl` otherwise
-- `sessionExpired` flow triggers nav to auth flow with full back stack clear
-- Drawer gestures are hidden during auth flow
-
-## Deep Linking
-
-- Scheme `librechat://`. Hosts: `conversation/{id}`, `artifact/{uuid}`, `oauth` (cookie-consumed; see below).
-- **Single source of truth**: `DeepLinks.resolve()` in `:shared/commonMain` maps a URI to a
-  `DeepLinkResolution` (`Route(target, requiresAuth)` / `Consumed` / `None`). Add a new deep link by
-  adding one branch there — do NOT reintroduce a per-host allowlist here.
-- `MainActivity.handleDeepLink()` calls the resolver to accept/drop the intent (via the Android
-  `Uri → DeepLinkUri` adapter in `DeepLinkUriAdapter.kt`), then forwards to this module's
-  `LibreChatNavHost`, which resolves again to place the target on the back stack.
-- `requiresAuth` links (conversation) redirect to login when logged out; non-auth links (device-scoped
-  artifact) open logged-out. `oauth` is `Consumed` — sign-in completes in the app's own WebView, so
-  nothing arrives this way any more; the mapping survives so a link from an older build still brings
-  the app forward rather than being dropped.
-- `onNewIntent` handles deep links when the app is already running.
-
-## Share Intents
-
-- `MainActivity.handleShareIntent()` only **stages** the payload on `ShareIntentConsumer`; it does
-  not deliver it. This module's `LibreChatNavHost` then reads `navigator.currentRoute` and calls
-  `dispatchTo(conversationId)` — `null` for the `NewChat` landing — navigating there first if the
-  user is not on a chat at all.
-- **A share must be addressed, never broadcast.** Several `ChatViewModel`s are alive at once (the
-  landing sits in the back stack beneath an open `Chat`), so an unaddressed share is claimed by
-  whichever one collects first — usually the invisible landing, which put the user's text in a
-  composer they weren't looking at. `ShareIntentConsumer.sharesFor(conversationId)` gives each
-  screen its own channel; the nav host is the only place that knows both that a share is waiting
-  and which chat is on screen, so addressing lives there.
-- Delivery is driven off `ShareIntentConsumer.undelivered`, not an activity-held counter: the launch
-  intent is processed only on a fresh start, so a recreation during the theme/locale warm-up gate
-  would otherwise strand a share nothing had addressed yet.
-
-## Connectivity
-
-- `ConnectivityObserver` injected into `MainActivity`
-- Offline banner animates in/out at top of screen when connection is lost
-
-## Dependencies
-
-This module depends on `:shared`, all `:core:*`, and all `:feature:*` modules.
-It applies convention plugins: `librechat.mobile.application`, `librechat.mobile.compose`, `librechat.mobile.koin`.
-
-### Server Banners
-- `GET /api/banner` returns **one banner object, or a 200 with an empty body and no `Content-Type`** — never an array. `BannerApi` reads the raw body for that reason; anything else still throws, so a proxy answering for the API can't read as "no banner configured"
-- `NavHostViewModel` (shared) fetches the banner via `BannerRepository` on init, on account switch and on auth-complete. There is no timer
-- The server applies the `displayFrom`/`displayTo` window and filters `type: 'banner'` itself, so the client does neither — a client-side re-check can only ever subtract from the server's decision, and did so on device-clock skew
-- Dismissal is resolved in `BannerStateHolder`, not the UI: it nulls the banner and records a **(serverId, bannerId)** key, in-memory for the process. Both halves of that key are load-bearing and pull opposite ways — keyed by banner alone, a fleet seeding one bannerId across its servers delivers the next server's banner pre-dismissed; cleared on switch, dismissing A's banner and switching away and back brings A's right back
-- `BannerStateHolder.clearForAccountChange()` drops the banner (scoped to a deployment) on switch and sign-out. It deliberately does **not** touch dismissals
-- `BannerDisplay` composable shown at top of content in both `PhoneLayout` and `TabletLayout` (both shared). It takes a nullable banner and decides visibility itself — hoisting the null check to the callers would add/remove it from the tree and kill its enter/exit animation
-- One visual treatment, from `secondaryContainer`/`onSecondaryContainer`. Do not re-introduce a `type`-keyed palette or hardcoded hex: the server only ever sends `type: "banner"`, and fixed colours ignore the accent seed and break in dark mode
-- A `persistable` banner hides the dismiss control (matching web); a banner with no `bannerId` is not rendered at all, since nothing could ever remove it
-
-### Preset Navigation
-- `PresetManager` route registered in `SettingsNavigation.kt`
-- `PresetManagerScreen` accessible from Settings → Chat section
-- Navigation wired through shared `MainNavDisplay` entry provider, accessible from both phone and tablet layouts
+## Other
+- Session (shared `NavHostViewModel`): start at `NewChat` if signed in, else `ServerUrl`; `sessionExpired`
+  clears the whole back stack into auth; drawer gestures are off during auth.
+- Top-level routes: `NewChat`, `Conversations` (drawer body), `AgentMarketplace`, `Files`, `SettingsTabbed`
+  (drawer footer), all registered in shared `MainNavDisplay`.
+- `ConnectivityObserver` (injected into `MainActivity`) drives the offline banner.
+- `PresetManager` route is registered in `SettingsNavigation.kt` (Settings → Chat).

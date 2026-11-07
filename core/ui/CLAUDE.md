@@ -1,97 +1,62 @@
 # core:ui
 
-Material 3 theme and shared Compose components used across all feature modules. Purely presentational -- no business logic, no ViewModels, no repositories.
+Material 3 theme and shared Compose components for all feature modules. Purely presentational.
 
-## What This Module Provides
+## Module rules
+- **No business logic**: no ViewModels, repository calls, use cases, or DI (no Koin modules, no
+  injected classes).
+- Components take `:core:model` types as parameters and are stateless or hoist state to the caller.
+- Dependencies: `:core:model`, `:core:common`, Coil, Compose, Kermit (androidMain, PDF holder).
+- `@Preview` on all components.
+- During SSE streaming, buffer markdown re-renders to ~100ms intervals.
+- No shared markdown renderer lives here: features use `com.mikepenz` multiplatform-markdown-renderer
+  (`libs.markdown.renderer.m3`) directly (`feature/chat` CachedMarkdown, `feature/skills`). Lift one
+  here only if it is genuinely shared.
 
-### Theme (`theme/`)
-- `Theme.kt`: `LibreChatTheme` wrapping Material 3 `MaterialTheme`. Maps LibreChat web colors to M3 color roles.
-- `Color.kt`: Color palette derived from the web app's CSS variables.
-- `Type.kt`: Typography scale.
-- `Shape.kt`: Corner radius definitions.
+## Components (`components/`, `media/`, `theme/`)
+- Reuse before writing: `LibreChatTopBar`, `LoadingIndicator`, `ErrorBanner`, `EmptyState` (`action`
+  slot), `AvatarImage`, `BannerDisplay`, `FileTypeTile` / `FileTypeChip`, `FilterChipBottomSheet`,
+  `OtpVerificationDialog`, `PdfPasswordDialog`, `CustomHeadersEditor`; `media/` `MediaViewerHost`,
+  `FileActionsSheet` / `FileActionsMenu`.
+- `InitialTile`: the identity mark for every list of user-made things (project, MCP server), so they
+  match. Seed with a stable id; `TileStatusDot` goes in `badge`.
+- `EndpointIcon` / `EndpointAvatar`: no third-party logo is bundled; see `feature/chat/CLAUDE.md`
+  "Brand art".
+- `ShareLinkSheet` (`components/share/`): the one conversation share sheet; which controls show is
+  decided in `ShareSheetControls`. The host owns the clipboard write (`onCopy`).
+- `AclSharingSection` (`components/acl/`): driven by `:core:data` `AclController(AclPolicy)`; the agent
+  and skill editors still carry their own copies until they migrate.
+- `BookmarkPickerSheet` / `BookmarkEditorSheet` (`components/bookmarks/`): driven by `:core:data`
+  `BookmarkPickerController` (each tap saves).
 
-### Shared Components (`components/`)
-- `LibreChatTopBar` - App bar with optional back navigation and actions.
-- `LoadingIndicator` - Centered circular progress.
-- `ErrorBanner` - Dismissible error message bar.
-- `EmptyState` - Icon + message for empty lists, with an optional `action` slot (the create button).
-- `InitialTile` - Rounded-square tile for a named thing (project, MCP server): its image, else the
-  first letter on `avatarColorForSeed`. Seed it with a stable id. `TileStatusDot` goes in its
-  `badge` slot. Use it wherever a list of user-made things needs an identity mark, so they match.
-- `ShareLinkSheet` (`components/share/`) - The one share sheet for a conversation's link. It renders
-  a `ShareSheetState` (`:core:model` `share/`); which controls a state shows is decided in
-  `ShareSheetControls`, which is unit-tested. The host owns the clipboard write (`onCopy`); Share…
-  uses `rememberShareText()` (`media/ShareText.kt`). Its Manage access page shows while the host
-  passes an open `AclState`.
-- `AclSharingSection` (`components/acl/`) - Who can open a resource: public switch, grants with the
-  owner locked, people search. Stateless over `AclState` (`:core:model` `acl/`), driven by
-  `:core:data` `AclController(AclPolicy)`. Shared links use it; the agent and skill editors still
-  carry their own copies until they migrate.
-- `BookmarkPickerSheet` / `BookmarkEditorSheet` (`components/bookmarks/`) - The per-chat bookmark
-  checklist and the bookmark create/edit sheet, used by the drawer, project chats and the chat
-  screen. The checklist renders a `BookmarkPickerUiState`; `:core:data` `BookmarkPickerController`
-  drives it (each tap saves at once). The editor validates with `:core:model` `BookmarkNameRules`.
-- `AvatarImage` - User/agent/model avatar with Coil image loading and fallback.
-- `EndpointIcon` / `EndpointAvatar` - Endpoint and reply-avatar icons: an image `iconURL`, else the
-  provider art the user's server serves at `{server}/assets/` (read from `LocalServerUrl`), else a
-  monogram tile. No third-party logo is bundled; see `feature/chat/CLAUDE.md` "Brand art".
-- `ConfirmationDialog` - Reusable confirm/cancel dialog.
-- `DiscardChangesDialog` - "Discard changes?" for leaving an editor with unsaved edits. Every
-  full-screen editor (agent, skill, schedule, prompt, role skills) uses it the same way: the ViewModel
-  owns `onBackRequested()` and the dialog flag, `PlatformBackHandler` is enabled only while dirty (a
-  clean form keeps predictive back), and the top bar's back goes through the same check. On iOS
-  the start-edge swipe reaches the handler (CMP's edge-pan recognizer, or the phone shell's
-  `edgeSwipeBack` fallback in `:shared`). Dirty = what Save would send differs from what was loaded.
-  A sheet editor (the memory sheet) uses the `AdaptiveModalBottomSheet(interceptDismiss = dirty)`
-  overload instead: while it is true, swipe, scrim, handle tap and back leave the sheet up and call
-  `onDismissRequest`, which raises the dialog; the sheet closes when the caller drops it.
-  Both overloads take `secure`: while true the sheet stays out of screenshots and the recents
-  snapshot (Android `FLAG_SECURE`: the M3 sheet's own window, or the activity window for the glass
-  sheet, ref-counted so a flag set elsewhere survives). Set it while a `SecretTextField` is revealed.
-  iOS has no equivalent; re-mask on ON_PAUSE there. Not ON_STOP: iOS stops drawing when the scene
-  enters the background, so a re-mask at ON_STOP never reaches the app-switcher snapshot.
-- `ModelIcon` - Endpoint-specific model icons.
-- `EndpointBadge` - Colored badge showing the AI provider.
-- `SearchBar` - Reusable search input field.
-- `BottomSheetScaffold` - Wrapper for modal bottom sheets.
-- `PullToRefresh` - Pull-to-refresh wrapper.
-- `BannerDisplay` - The server banner. The server sends at most one and only ever types it
-  `banner`, so there is a single visual treatment; a `persistable` banner hides the dismiss control.
+### Editors: `DiscardChangesDialog`
+- Every full-screen editor uses it the same way: the ViewModel owns `onBackRequested()` and the dialog
+  flag; `PlatformBackHandler` is enabled only while dirty (a clean form keeps predictive back); the top
+  bar's back goes through the same check. Dirty = what Save would send differs from what was loaded.
+- A sheet editor uses `AdaptiveModalBottomSheet(interceptDismiss = dirty)`: while true, every dismiss
+  gesture calls `onDismissRequest` instead; the sheet closes when the caller drops it.
+- Pass `secure = true` (both sheet overloads) while a `SecretTextField` is revealed (Android
+  `FLAG_SECURE`, ref-counted). iOS has no equivalent: re-mask on ON_PAUSE, not ON_STOP (iOS stops
+  drawing before ON_STOP, so the app-switcher snapshot would keep the secret).
 
-### Autofill helpers
-- `Modifier.excludeFromAutofill()` (`components/ExcludeFromAutofill.kt`): for masked fields holding a
-  secret that isn't the login (API keys, tokens, PDF passwords). Android only.
-- `SecretTextField` (`components/SecretTextField.kt`): the field for such a secret. Masked, trailing
-  show/hide button, `excludeFromAutofill`, password keyboard. Reveal is hoisted (`revealed` +
-  `onRevealedChange`) so the caller can re-mask on ON_PAUSE and knows when a secret is on screen. Use
-  it rather than a new reveal toggle; the PDF password and gateway-header value fields do.
-- `KeyboardOptions.withIosTextContentType()` (`components/IosTextContentType.kt`): iOS
-  `textContentType` roles (`.username`, `.password`, `.newPassword`, `.oneTimeCode`, `.emailAddress`);
-  a no-op on Android.
+### Secrets and autofill
+- `SecretTextField`: use it (not a new reveal toggle) for a non-login secret (API keys, tokens, PDF
+  passwords). Reveal is hoisted so the caller can re-mask on ON_PAUSE.
+- `Modifier.excludeFromAutofill()`: for such masked secret fields (Android only).
+- `KeyboardOptions.withIosTextContentType()`: iOS `textContentType` roles; no-op on Android.
 
 ### Keyboard dismissal (`components/ClearFocusOnTap.kt`)
-`Modifier.clearFocusOnTap()` clears focus — dismissing the keyboard — on a tap nothing else handled.
-iOS has no Back key, so without it a focused field's keyboard cannot be dismissed at all. Applies on
-both platforms.
-
-- **Rule: every composition root that can host a text field applies it.** The app roots already do
-  (`MainActivity`'s root `Surface`, `LibreChatApp`'s root `Box`). Every `AlertDialog` /
-  `ModalBottomSheet` / `Dialog` whose content has a text field must apply it too — they render in their
-  own window (Android) / platform layer (iOS), which the app root's pointer input never sees. On
-  `AlertDialog`/`ModalBottomSheet` pass it as `modifier`; `Dialog` has none, so put it on the content root.
-- **Why `clearFocus()`, not `LocalSoftwareKeyboardController.hide()`:** hide leaves the field focused,
-  so tapping it again may not reshow the keyboard.
-- **Why not `Modifier.clickable { clearFocus() }` on a root Box** (the common snippet): full-screen
-  ripple, plus an accessibility "button" node covering the whole app.
-- **Why not `detectTapGestures`:** it cancels only when a child consumes the movement, so a drag across
-  inert space would count as a tap. The node gives up past touch slop, like a UIKit tap recognizer.
-- **Why not a native UIKit tap recognizer on the host view:** it can't hit-test Compose text fields,
-  and `endEditing` resigns CMP's hidden input view without clearing Compose focus.
-
-Behaviour, pinned by `ClearFocusOnTapInstrumentedTest` (Android; every row, with a list swipe standing in for the drag gestures) and `ClearFocusOnTapIosTest`
-(iOS simulator, `:core:ui:iosSimulatorArm64Test` — CMP's iOS text field has its own gesture code, so
-"the field consumes its own tap" must be proven there too). The one rule: a down→up within touch slop
-that no child consumed:
+`Modifier.clearFocusOnTap()` clears focus on a tap nothing else handled (both platforms). iOS has no Back key, so without
+it a keyboard cannot be dismissed.
+- **Every composition root that can host a text field applies it.** The app roots do (`MainActivity`'s
+  root `Surface`, `LibreChatApp`'s root `Box`). Every `AlertDialog` / `ModalBottomSheet` / `Dialog` with
+  a text field must apply it too (own window/layer, unseen by the app root): pass it as `modifier`, or on
+  `Dialog` (no modifier) put it on the content root.
+- Don't swap the mechanism for `keyboardController.hide()` (field stays focused; a re-tap may not
+  reshow the keyboard), `clickable { clearFocus() }` (full-screen ripple + a11y button),
+  `detectTapGestures` (a drag over inert space counts as a tap) or a UIKit tap recognizer (can't
+  hit-test Compose fields; `endEditing` doesn't clear Compose focus).
+- Behaviour: a down→up within touch slop that no child consumed.
 
 | Gesture | Keyboard | Why |
 |---|---|---|
@@ -105,14 +70,11 @@ that no child consumed:
 | Tap that stops a fling | stays | the list consumes the stopping tap |
 | Long-press message text | dismisses | **not this modifier**: starting a selection moves focus to the `SelectionContainer`; same without it |
 
-**Deliberately not done — scroll-to-dismiss.** iMessage dismisses when the transcript is dragged
-(`keyboardDismissMode = .interactive`: the keyboard tracks the finger and can be dragged back). Compose
-can't reproduce the interactive variant, and the "dismiss as soon as a scroll starts" approximation is
-non-idiomatic on Android, where chat apps keep the keyboard while scrolling history. If ever wanted: iOS
-only, message list only, user-initiated scrolls only (`NestedScrollSource.UserInput`) — never the
+Scroll-to-dismiss is deliberately not done (non-idiomatic on Android; iOS's interactive variant can't be
+reproduced). If ever added: iOS only, message list only, `NestedScrollSource.UserInput` only, never the
 streaming auto-follow scroll.
 
-### Interface style and Liquid Glass (`theme/UiStyleLocals.kt`, `glass/`, `components/topbar/`)
+## Interface style and Liquid Glass (`theme/UiStyleLocals.kt`, `glass/`, `components/topbar/`)
 
 #### The pattern: self-theming components, one CompositionLocal
 The user picks Material or Liquid Glass in Settings. **The theme passes that choice down as a
@@ -127,7 +89,7 @@ LibreChatTheme(darkTheme, accentColor, useDynamicColor, uiStyle = storedUiStyle)
 @Composable
 fun AdaptiveThing(/* exactly the M3 Thing's parameters, same names, order and defaults */) {
     if (!isLiquidGlass) {
-        Thing(/* every parameter forwarded unchanged */)   // Material: the M3 control, every parameter forwarded
+        Thing(/* every parameter forwarded unchanged */)
         return
     }
     // Liquid Glass variant. Colours from GlassControlColors, sizes from GlassDefaults,
@@ -141,232 +103,129 @@ AdaptiveThing(...)
 Rules — follow these when writing or reviewing UI:
 1. **Screens use `Adaptive*` components, never raw M3 chrome.** Detekt `ForbiddenImport`
    (`config/detekt/detekt.yml`) bans the raw M3 versions outside `components/Adaptive*.kt` and
-   `components/topbar/`.
-2. **The branch lives inside the component, once.** Two accepted shapes:
-   - *early return* (above) when the glass variant is a different control (Switch, Checkbox, Radio,
-     TabRow, SegmentedChoice, SectionHeader, TextField, spinner);
-   - *one M3 call with per-argument overrides* when glass only restyles it (Buttons, Chips,
-     DropdownMenu, FAB): `shape = shape ?: if (glass) GlassShape else M3Defaults.shape`. A value the
-     caller passes explicitly still wins (null / M3-default sentinel).
-3. **Material path = the M3 call with every parameter forwarded.** M3-only parameters stay and are
-   documented as "Material only". The exception is deliberate Material motion: a component may
-   replace the M3 call with its own implementation to add motion M3 doesn't expose, provided it
-   keeps M3's layout, placement and colours — e.g. `AdaptiveDropdownMenu` → `MaterialMenuOverlay`
-   (drawn in `GlassSheetHost` like the glass menu, so it can overshoot its bounds; inside a
-   dialog/sheet window it falls back to the `MaterialMenuPopup` window), both placed by a port of
-   M3's popup positioning rules. Menus round to `AdaptiveMenuShape` (16dp, also
-   `GlassDefaults.MenuShape`) in both styles, not M3's 4dp: callers pass no `shape` for that.
-4. **`isLiquidGlass` is the one public predicate.** `LocalGlassLevel` is internal — only core/ui
-   tells the tiers (NATIVE / FULL / SIMULATED / BLUR_ONLY / FLAT) apart, and `glassSurface` /
-   `rememberGlassBackdrop` degrade by tier themselves. Never re-derive the flag another way
-   (`rememberGlassStyle() != null` as a boolean, comparing styles, reading capability).
-   The one place outside `LibreChatTheme` that sets the style is `UiStylePreview(style)`, for a style
-   picker's previews: it draws its content in the given style (bars kept in Compose, window insets
-   taken as used, content hidden from accessibility). `ThemePreview(darkTheme, accent, dynamic)` is
-   its light/dark counterpart, building the scheme `LibreChatTheme` would. Previews only — never to
-   restyle part of a real screen.
-5. **Tokens, not literals.** Glass colours: `GlassControlColors` (reads `MaterialTheme.colorScheme`
-   + `LocalDarkTheme`, so accent and dark mode carry over). Shared measures: `GlassDefaults`.
+   `components/topbar/`; it misses a fully-qualified call with no import, so import and use the wrapper.
+2. **The branch lives inside the component, once**, in one of two shapes: *early return* when glass is
+   a different control (Switch, Checkbox, Radio, TabRow, SegmentedChoice, SectionHeader, TextField,
+   spinner); *one M3 call with per-argument overrides* when glass only restyles it (Buttons, Chips,
+   DropdownMenu, FAB): `shape = shape ?: if (glass) GlassShape else M3Defaults.shape`, so an explicit
+   caller value still wins (null / M3-default sentinel).
+3. **Material path = the M3 call with every parameter forwarded**; M3-only parameters stay, documented
+   "Material only". Exception: a component may replace the M3 call to add Material motion M3 doesn't
+   expose, if it keeps M3's layout, placement and colours (`AdaptiveDropdownMenu` →
+   `MaterialMenuOverlay`, or the `MaterialMenuPopup` window inside a dialog/sheet window). Menus round
+   to `AdaptiveMenuShape` (16dp) in both styles; callers pass no `shape` for that.
+4. **`isLiquidGlass` is the one public predicate.** `LocalGlassLevel` is internal; only core/ui tells
+   the tiers (NATIVE / FULL / SIMULATED / BLUR_ONLY / FLAT) apart, and `glassSurface` /
+   `rememberGlassBackdrop` degrade by tier themselves. Never re-derive the flag (`rememberGlassStyle()
+   != null`, comparing styles, reading capability). `UiStylePreview(style)` / `ThemePreview(...)` set
+   style for a picker's previews only, never to restyle part of a real screen.
+5. **Tokens, not literals.** Glass colours from `GlassControlColors` (follows accent and dark mode),
+   measures from `GlassDefaults`.
 6. **Self-gating, not caller-gating.** Adaptive sheets/dialogs call `CoversNativeBars` and provide
    `LocalInSeparateWindow` themselves; `AdaptiveScaffold` provides `LocalGlassBackdrop` to its slots
    (null to its body). Callers set none of this.
-7. **Bars are data.** `AdaptiveTopBar(AdaptiveTopBarSpec(...))`, because the iOS 26 renderer is a
-   UIKit `UINavigationBar` that can't host composables; Compose-only extras go in `belowBar`.
-   A status label is still data: `BarAction.Text(leadingIcon, iconTint, badgeTint,
-   accessibilityLabel)`. The native bar draws glyph + label as a button item and no dot, so the
-   accessibility label must carry the state.
-8. **Escape hatch, used sparingly.** Truly bespoke chrome (chat composer, chat top bar, drawer /
-   sidebar, chat backdrop plumbing) may branch on `isLiquidGlass` directly. If the same branch shows
-   up a second time, it belongs in a new `Adaptive*` component.
+7. **Bars are data.** `AdaptiveTopBar(AdaptiveTopBarSpec(...))`: the iOS 26 renderer is a UIKit
+   `UINavigationBar` that can't host composables; Compose-only extras go in `belowBar`. A status label
+   is `BarAction.Text(...)`; the native bar draws no dot, so its `accessibilityLabel` must carry the
+   state.
+8. **Escape hatch, used sparingly.** Bespoke chrome (chat composer, chat top bar, drawer / sidebar,
+   chat backdrop plumbing) may branch on `isLiquidGlass`. A branch that shows up a second time belongs
+   in a new `Adaptive*` component.
 
-Known gaps (stay M3 in glass until someone adds a wrapper): `Slider`, scrolling tab rows, and the indeterminate `LinearProgressIndicator`. The determinate bar has
-`AdaptiveLinearProgressIndicator`, but raw `LinearProgressIndicator` is not banned yet: the context
-gauge, the context-usage settings pill, file upload progress and the iOS media loader still call it.
-`ForbiddenImport` also misses a fully-qualified call
-(`androidx.compose.material3.AlertDialog(…)` with no import) — write the import and use the wrapper.
+**Known gaps** (stay M3 in glass until wrapped): `Slider`, scrolling tab rows, indeterminate
+`LinearProgressIndicator`. Raw `LinearProgressIndicator` and `TextButton` aren't banned yet (existing
+call sites); prefer `AdaptiveLinearProgressIndicator` (determinate) and `AdaptiveTextButton`.
 
-**Adding a new style-aware control:** write `AdaptiveX` in `components/` with the M3 signature,
-pick a shape from rule 2, put the Material branch first, take glass values from
-`GlassControlColors`/`GlassDefaults`, add a `ForbiddenImport` entry for the raw M3 `X`, and list it in
-the controls bullet below.
+**Adding a style-aware control:** `AdaptiveX` in `components/` with the M3 signature, a shape from
+rule 2, Material branch first, glass values from `GlassControlColors`/`GlassDefaults`, a
+`ForbiddenImport` entry for raw `X`, and list it under Controls below.
 
 #### Details
-- `LibreChatTheme(uiStyle = …)` (null = the platform default) provides `LocalGlassLevel` (null =
-  Material, else the device's `GlassCapability`; internal), `LocalDarkTheme` and the app-wide
-  `LocalNativeOverlayGate`. **Prefer an `Adaptive*` component to branching.** When a screen genuinely
-  must branch, ask `isLiquidGlass` — the one public predicate; only core/ui tells the tiers apart.
-- **Top bars are data.** Screens describe a bar with `AdaptiveTopBarSpec` and draw it with
-  `AdaptiveTopBar`, which renders a plain M3 `TopAppBar` in Material, the system's glass
-  `UINavigationBar` on iOS 26+, and a simulated glass bar elsewhere. Every bar icon is a `BarIcon`
-  from `BarIcons` (Material vector + SF Symbol); `BarIconsSymbolTest` in `:shared` iosTest fails on a
-  symbol UIKit does not know. Use `AdaptiveScaffold` for screens with an adaptive bar or FAB.
-- **Scrolling under the bars.** A list screen that should show its content through the status bar
-  and top bar passes `MaterialBarStyle(translucent = true)` (Material draws a fading surface scrim,
-  like the chat top bar, instead of a solid container; glass bars are translucent already), wraps
-  the list in `UnderBarsPullToRefreshBox(barPadding = innerPadding)` rather than padding it, and
-  adds `innerPadding` to the list's `contentPadding`. States that don't scroll (empty, error,
-  loading) still pad themselves. In Material, `belowBar` sits inside the scrim, so give it a
-  transparent container (`AdaptiveTabRow(containerColor = …)`); in glass it floats below the
-  bar's scrim, as before.
-- **Native bars sit above the whole Compose canvas**, so a Compose surface meant to cover them (the
-  drawer, a sheet or dialog scrim) draws *under* them. Such surfaces call `CoversNativeBars(active)`;
-  the bar hides while any are up. `AdaptiveModalBottomSheet`, `AdaptiveAlertDialog` and
-  `AdaptiveDialog` do this themselves — never gate a surface drawn by one of them again — so only
-  canvas overlays that aren't (the drawer, the chat media/PDF overlays) call it; it is a no-op off
-  the native tier, and detekt bans the raw M3 versions (plus `DropdownMenu`, for
-  `AdaptiveDropdownMenu`) outside core/ui's adaptive files. Sheets, dialogs and menus open in their
-  own window, which the backdrop cannot sample — so in glass mode `AdaptiveAlertDialog`,
-  `AdaptiveModalBottomSheet` and `AdaptiveDropdownMenu` don't use a window: they portal
-  (`GlassPortal`) into `GlassSheetHost`, which `LibreChatNavHost` wraps around **every** layout,
-  including a platform's own `content` (Android's) — a layout outside the host silently gets opaque
-  M3 sheets and menus. The host draws its overlays over the whole app canvas and records the app as
-  their backdrop only while one is open. The opener's composition locals are captured and
-  re-provided, so content reads the same theme/ViewModels as in place; overlay parameters go through
-  `rememberUpdatedState` so an opener's recomposition doesn't recompose the open overlay. The menu
-  (`GlassFloatingMenu`) anchors to the caller's parent layout, as the M3 popup does, opens below it
-  (above when there's no room) aligned to its nearer edge, and dismisses on an outside tap or back.
-  The sheet (`GlassFloatingSheet`)
-  re-implements the slide, scrim, back, drag/fling-to-dismiss and nested-scroll pull, and provides
-  `onSurface` as the content colour; `sheetState` and `shape` apply to Material only. The dialog
-  (`GlassFloatingDialog`) keeps the M3 layout (icon, title, text, buttons at the end), honours
-  `dismissOnBackPress` / `dismissOnClickOutside`, and rises above the keyboard. The panel is glass
-  and the buttons stay plain `TextButton`s — one glass layer, as on an iOS alert. `AdaptiveDialog` (arbitrary full content) still opens a window and
-  stays opaque. `AdaptiveCard` is a glass panel over `LocalGlassBackdrop` (cards floating over
-  content, e.g. the tool-approval / ask-user panels above the composer); its `onClick` overload
-  is the tappable list card, so don't add `Modifier.clickable` to the plain one. The adaptive
-  dialogs and the M3 sheet provide `LocalInSeparateWindow`: inside their own window a sheet falls back
-  to the opaque M3 sheet and a top bar stays in Compose, with nothing for the caller to set.
-- **Controls look like iOS in glass mode**, drawn in Compose: `AdaptiveSwitch` (with `AdaptiveSwitchPlaceholder`, the bare off track in each style, for a value not known yet), `AdaptiveRadioButton`
-  (a checkmark), `AdaptiveCheckbox`, `AdaptiveDivider` (inset hairline), `AdaptiveButton` (flat
-  capsule) and `AdaptiveOutlinedButton`/`AdaptiveFilledTonalButton` (borderless capsule on
-  `GlassControlColors.fill`, accent label unless the caller picked a colour), `AdaptiveTextButton`
-  (the iOS plain button: no fill, capsule press shape; raw `TextButton` is not banned yet, it has
-  ~100 call sites and renders the same in Material),
-  `AdaptiveOutlinedTextField` (iOS rounded filled field; the chat composer keeps its own field),
-  `AdaptiveSegmentedChoice` and `AdaptiveTabRow` (the liquid segmented control in glass; the tab
-  row takes a `backdrop` only in a bar slot), `AdaptivePillChoice` (a full-width sliding-pill
-  toggle in Material, like the drawer's Chats/Projects switch, for a few short options; the
-  liquid segmented control in glass), `AdaptiveFloatingActionButton` (`small` for the M3
-  small FAB), `AdaptiveExtendedFloatingActionButton` (labelled; collapse it with `expanded` on scroll), `AdaptiveSectionHeader`, the four
-  `Adaptive*Chip`s (pills; `AdaptiveChipDefaults.overlayAssistChipColors(tint)` for a chip over scrolling content, tinted in both styles, and `overlayFilterChipColors()` for a toggle chip there, opaque when off in Material), `AdaptiveSnackbarHost` (a glass capsule toast that samples the
-  `AdaptiveScaffold` backdrop), `AdaptiveCircularProgressIndicator` (iOS activity indicator when
-  indeterminate) and `AdaptiveLinearProgressIndicator` (determinate only: an iOS capsule progress
-  bar in glass; progress clamped to 0..1, NaN as 0; its raw M3 bar isn't banned yet, see Known gaps),
-  and `AdaptiveExposedDropdownMenuBox` with its scope's `AdaptiveExposedDropdownMenu` (a field's
-  picker: the M3 box unchanged, the menu still the M3 popup anchored to and sized by the field,
-  rounded to `AdaptiveMenuShape`; in glass it takes `AdaptiveDropdownMenu`'s windowed-fallback look,
-  opaque `surfaceContainerHigh` with a hairline border and shadow, not a portalled glass panel). Each mirrors the M3 signature and passes straight through in Material, and detekt
-  bans the raw M3 control. Scrolling tab rows have no glass counterpart and stay M3. Settings
-  pages group rows with `adaptiveSection { row(key) { … } }` inside `AdaptiveGroupedPage` (rounded,
-  inset cells on a grouped background in both styles); a row's own
-  `Surface` takes `adaptiveRowColor`; title a section with `AdaptiveSectionHeader`. A cell is a
-  Column, because a lazy item stacks several root children vertically.
+- **Top bars.** Every bar icon is a `BarIcon` from `BarIcons` (Material vector + SF Symbol);
+  `BarIconsSymbolTest` (`:shared` iosTest) fails on an unknown symbol. Use `AdaptiveScaffold` for
+  screens with an adaptive bar or FAB.
+- **Scrolling under the bars.** A list screen that shows content through the status and top bar passes
+  `MaterialBarStyle(translucent = true)`, wraps the list in
+  `UnderBarsPullToRefreshBox(barPadding = innerPadding)` instead of padding it, and adds `innerPadding`
+  to the list's `contentPadding`. Non-scrolling states (empty, error, loading) still pad themselves. In
+  Material `belowBar` sits inside the scrim, so give it a transparent container
+  (`AdaptiveTabRow(containerColor = …)`).
+- **Native bars sit above the whole Compose canvas**, so a Compose surface meant to cover them draws
+  under them. Such surfaces call `CoversNativeBars(active)` (no-op off the native tier). The adaptive
+  sheet and dialogs already do — never gate them again; only other canvas overlays (drawer, chat
+  media/PDF overlays) call it.
+- **Overlays in glass.** A separate window can't be sampled by the backdrop, so in glass
+  `AdaptiveAlertDialog`, `AdaptiveModalBottomSheet` and `AdaptiveDropdownMenu` portal (`GlassPortal`)
+  into `GlassSheetHost`, which `LibreChatNavHost` must wrap around **every** layout, including a
+  platform's own `content`; a layout outside it silently gets opaque M3 sheets and menus. The host
+  re-provides the opener's composition locals and passes overlay parameters through
+  `rememberUpdatedState`, so an opener's recomposition doesn't recompose the overlay. In glass,
+  `sheetState` and `shape` apply to Material only; the glass dialog's buttons stay plain `TextButton`s
+  (one glass layer). `AdaptiveDialog` (arbitrary content) still opens a window and stays opaque. Inside
+  a separate window (`LocalInSeparateWindow`) a sheet falls back to the M3 sheet and a top bar stays in
+  Compose, automatically.
+- `AdaptiveCard`'s `onClick` overload is the tappable card; don't add `Modifier.clickable` to the plain
+  one.
+- **Controls** (M3 signature, straight through in Material, raw M3 banned): `AdaptiveSwitch`
+  (+ `AdaptiveSwitchPlaceholder` for a value not known yet), `AdaptiveRadioButton`, `AdaptiveCheckbox`,
+  `AdaptiveDivider`, `AdaptiveButton`, `AdaptiveOutlinedButton`, `AdaptiveFilledTonalButton`,
+  `AdaptiveTextButton`, `AdaptiveOutlinedTextField` (not the chat composer), `AdaptiveSegmentedChoice`,
+  `AdaptiveTabRow` (`backdrop` only in a bar slot), `AdaptivePillChoice`,
+  `AdaptiveFloatingActionButton`, `AdaptiveExtendedFloatingActionButton`, `AdaptiveSectionHeader`, the
+  four `Adaptive*Chip`s (`overlayAssistChipColors(tint)` over scrolling content;
+  `overlayFilterChipColors()` for a toggle chip there, opaque when off in Material),
+  `AdaptiveSnackbarHost`, `AdaptiveCircularProgressIndicator`, `AdaptiveLinearProgressIndicator`
+  (determinate only), `AdaptiveExposedDropdownMenuBox` + `AdaptiveExposedDropdownMenu` (opaque M3
+  popup in glass, not portalled).
+- **Settings pages** group rows with `adaptiveSection { row(key) { … } }` inside `AdaptiveGroupedPage`;
+  a row's own `Surface` takes `adaptiveRowColor`; title sections with `AdaptiveSectionHeader`. A cell is
+  a Column, because a lazy item stacks several root children vertically.
 - **Glass primitives** (`glass/`): the backdrop library is an `implementation` dependency, so only this
-  module can touch it. `rememberGlassBackdrop()` returns null in Material and on the flat tier —
-  recording costs a redraw of the content every frame, so never record unconditionally. Apply
-  `glassBackdropSource` to content that is a *sibling* of the glass, never an ancestor (a surface
-  sampling its own ancestor feeds back into itself); `AdaptiveScaffold` hides the backdrop from its
-  own body for that reason. Shared measures live in `GlassDefaults`. The backdrop paints the screen colour first:
-  recorded content is usually transparent, and a blurred transparent copy lets the sharp original
-  show through. Don't add `vibrancy()` back without measuring; it was the entire cost of glass while
-  streaming.
+  module touches it.
+  - `rememberGlassBackdrop()` is null in Material and on the flat tier; recording redraws the content
+    every frame, so never record unconditionally.
+  - Apply `glassBackdropSource` to a *sibling* of the glass, never an ancestor (it would sample itself);
+    hence `AdaptiveScaffold` hides the backdrop from its own body.
+  - The backdrop paints the screen colour first: recorded content is usually transparent, and a blurred
+    transparent copy lets the sharp original show through.
+  - Don't add `vibrancy()` without measuring: it costs more than the rest of glass while streaming.
 
-### Status colours (`theme/StatusColors.kt`)
-`statusColors()` gives `success`, `info`, `warning`, `neutral`, `error` for state (connected, in
-progress, needs you, idle, failed). Use it instead of colour literals; it follows light/dark and the
-accent. Always pair a status colour with a label or icon, never colour alone.
-
-### Context usage breakdown (`contextusage/`)
-`ContextBreakdownCard` renders the context-window breakdown for both the chat gauge (`:feature:chat`)
-and the Settings preview (`:feature:settings`); features can't depend on each other, so the one
-renderer lives here. It takes a `ContextBreakdownModel` and the user's `ContextDetailSections`; the
-row math and filtering are pure and live in `:core:model` (`usage/ContextBreakdown.kt`,
-`usage/ContextDetail.kt`). Also here: `SegmentedMeter`, `pressureColor` (amber at a rounded 80%, error
-at 95%), `formatCost` with its platform currency actuals, and `SampleContextModel` for previews.
-
-### MCP status and scroll fades
-- An MCP server's `McpDisplayStatus` is named and coloured only by `mcp/McpStatusPresentation.kt`
-  (`mcpStatusLabel` / `mcpStatusColor`), in Settings and in chat alike.
-- A scrolling container fades toward an edge with more to scroll past through
+## Other packages
+- **Status colours** (`theme/StatusColors.kt`): `statusColors()` (`success`, `info`, `warning`,
+  `neutral`, `error`) instead of colour literals. Always pair a status colour with a label or icon.
+- **Context usage** (`contextusage/`): `ContextBreakdownCard` is the one renderer for the chat gauge and
+  the Settings preview; row math lives in `:core:model` `usage/`.
+- **MCP status** (`mcp/McpStatusPresentation.kt`): `mcpStatusLabel` / `mcpStatusColor` alone name and
+  colour an `McpDisplayStatus`, in Settings and in chat alike.
+- **Scroll fades**: a container fades toward an edge with more to scroll through
   `Modifier.scrollFadingEdges` (RTL-aware).
-
-### MCP OAuth sign-in (`mcp/`, v0.8.9-rc1)
-`McpOAuthSignInDialog` is the one sign-in page for an MCP server's provider, used by Settings and by
-the chat's Sign in action (features can't share it otherwise). It takes an `McpOAuthLaunch.InApp`
-(`:core:model`) and reports one `McpOAuthOutcome`; the bind that produced it is the caller's.
-- `McpOAuthWebView` (expect/actual) seeds the bind's `Set-Cookie` values for every origin in
-  `mcpOAuthCookieOrigins` (the `redirect_uri`'s and the app's server) **before** loading the
-  provider URL. Android wipes the jar and chains each `setCookie` callback into the next, loading from
-  the last; iOS uses a fresh `nonPersistentDataStore` and awaits every `setCookie` completion. A load
-  issued earlier can reach the callback without its binding. Android wipes the jar again when the
-  flow ends and when the view is released, so the binding and the provider's session don't outlive
-  it (iOS's store dies with the view).
-- `McpOAuthNavigationGate` (pure, commonTest) cancels the redirect to `/oauth/success` or
-  `/oauth/error` on either server host and ends the flow there. It also refuses a main-frame
-  `http://` page (the first load included) unless it is on one of those servers' own origins (scheme, host and port), which the user
-  accepted when adding an HTTP server, or on loopback: the flow ends with
-  `Error("insecure_connection")`. The bar shows the committed page's host with a lock, or a
-  warning over HTTP (`McpOAuthPageLocation`).
-- The User-Agent is `web/EmbeddedBrowserUserAgent.kt`, which SSO uses too.
-- **Second caller: Settings' pull request account connect.** Its callback checks the same two
-  cookies and lands on the same `/oauth/success|error` pages, so it reuses the dialog unchanged
-  (`McpOAuthLaunch.InApp` with the provider name as `serverName`). The MCP names were kept rather
-  than renamed.
-
-### Date & time (`datetime/`, #445)
-- `ProvideDateTimeFormat` sits once inside `AppLocale` in `LibreChatNavHost`. It sits there rather than at the
-  activity root because Android's language override reaches the configuration inside `AppLocale`. It provides two locals:
-  - `LocalDateTimeFormat`: static, and changes only on Save, on a locale change, or on a device 12/24h
-    change seen on resume.
-  - `LocalRelativeTimeReference`: the app-wide minute ticker.
-- Show a date via `rememberAbsoluteTimestamp(iso)` (unparseable shows raw, never blank), or compute a
-  `TimestampLabel` inside `remember(…, format, reference)` and call `.resolve()` outside it. Plural
-  resources only resolve in composition.
-- `rememberSystemIs24Hour()` reads the device clock setting (not the locale convention, which was the
-  #445 bug) and re-reads it on resume.
-
-### Markdown
-- core/ui does NOT provide a shared markdown renderer. Features render markdown
-  directly with the `com.mikepenz` multiplatform-markdown-renderer
-  (`libs.markdown.renderer.m3`) — see `feature/chat` (CachedMarkdown, streaming-
-  tuned) and `feature/skills` (plain static `Markdown(...)`). `feature/chat`
-  also has its own WebView-based artifact/LaTeX rendering. If a genuinely shared
-  renderer is ever needed, lift it here; until then there is nothing in core/ui
-  to depend on.
-
-### Message Components (`message/`)
-- `MessageBubble` - Shared message rendering used by `:feature:chat`.
-- `ToolCallCard` - Expandable tool call display.
-- `FileAttachmentChip` - File reference chip.
-- `FeedbackButtons` - Thumbs up/down.
-
-### PDF (`pdf/`, androidMain only)
-- `PdfDocumentHolder` - Owns the `PdfRenderer`/fd; mutex-serialized on-demand `renderPage` with
-  dimension caps and a page-count bound. Created from bytes, closed by the owning composable.
-- `PdfPageContent` - One page rendered when it scrolls into a LazyColumn window and recycled when
-  it scrolls out; a width change (a zoom) keeps drawing the old bitmap until the new one lands, and
-  leaves it to the GC. Shared by `:feature:chat`'s viewer (document-wide zoom: it lays pages out
-  wider, so they re-render sharp) and `:feature:files`' preview (adds page labels). Fix render/recycle logic HERE, not in the
-  feature copies — there are none.
-
-## Rules
-
-- **No business logic.** No ViewModels, no repository calls, no use cases.
-- Components accept domain models from `:core:model` as parameters and render them.
-- All components must be stateless or hoist state to the caller.
-- Dependencies: `:core:model`, `:core:common`, Coil for image loading, Compose libraries, Kermit logging (androidMain, for the PDF holder).
-- Convention plugins: `librechat.mobile.library` + `librechat.mobile.compose`.
-- No DI in this module (no Koin modules, no injected classes).
-- Use `@Preview` annotations on all components for Android Studio preview support.
-- During SSE streaming, buffer markdown re-renders to ~100ms intervals to avoid frame drops.
-
-### Dynamic Parameters (`components/Dynamic*.kt`)
-- `DynamicParameterPanel` dispatches `List<ParameterDefinition>` to typed controls (slider/dropdown/checkbox/input/textarea)
-- `ParameterDefinition` contains: key, type, label, description, default, min, max, step, options
-- `DynamicSlider` snaps to step increments; calculates stepCount from range
-- All controls are stateless — caller manages values via `Map<String, String>`
-- `ModelParameterContent` falls back to existing fixed params when no schema available
-- **Gotcha**: Slider step count calculated as `((max - min) / step).toInt()` — ensure step divides range evenly to avoid drift
+- **MCP OAuth sign-in** (`mcp/`): `McpOAuthSignInDialog` is the one sign-in page, used by Settings, the
+  chat's Sign in, and Settings' pull request account connect (same cookies and `/oauth/success|error`
+  pages, so it reuses the dialog unchanged under its MCP names). Takes `McpOAuthLaunch.InApp`, reports
+  one `McpOAuthOutcome`; the bind is the caller's.
+  - `McpOAuthWebView` must finish seeding the bind's cookies for every origin in
+    `mcpOAuthCookieOrigins` **before** loading the provider URL (an earlier load can reach the callback
+    unbound): Android chains the `setCookie` callbacks and loads from the last; iOS awaits every
+    completion on a fresh `nonPersistentDataStore`. Android wipes the jar before, when the flow ends and
+    on release, so the binding and provider session don't outlive it.
+  - `McpOAuthNavigationGate` (pure, commonTest) ends the flow at `/oauth/success` or `/oauth/error` on
+    either server host, and refuses a main-frame `http://` page, the first load included, unless it is on one of those servers'
+    own origins (scheme, host, port) or loopback: `Error("insecure_connection")`.
+  - User-Agent: `web/EmbeddedBrowserUserAgent.kt` (shared with SSO).
+- **Date & time** (`datetime/`): `ProvideDateTimeFormat` sits once inside `AppLocale` in
+  `LibreChatNavHost`, not at the activity root (Android's language override only reaches the
+  configuration there). It provides `LocalDateTimeFormat` and `LocalRelativeTimeReference` (the
+  app-wide minute ticker).
+  - Show a date via `rememberAbsoluteTimestamp(iso)` (unparseable shows raw, never blank), or compute a
+    `TimestampLabel` inside `remember(…, format, reference)` and call `.resolve()` outside it: plural
+    resources only resolve in composition.
+  - `rememberSystemIs24Hour()` reads the device clock setting, not the locale convention.
+- **PDF** (`pdf/`, androidMain): `PdfDocumentHolder` (closed by the owning composable) and
+  `PdfPageContent` serve both `:feature:chat`'s viewer and `:feature:files`' preview: fix render/recycle
+  logic here; there are no feature copies.
+- **Dynamic parameters** (`components/Dynamic*.kt`): `DynamicParameterPanel` dispatches
+  `ParameterDefinition`s to stateless controls (caller holds `Map<String, String>`). `DynamicSlider` step count is
+  `((max - min) / step).toInt()`: the step must divide the range evenly or values drift.
 
 ## Compose Performance Rules
 
@@ -374,40 +233,40 @@ These rules apply to ALL composables across feature modules, not just core:ui.
 
 ### UI State Architecture
 
-1. **Single UI state data class per screen.** Each ViewModel exposes ONE `StateFlow<XyzUiState>` — never 5+ individual StateFlows that each trigger recomposition independently.
+1. **Single UI state data class per screen.** Each ViewModel exposes ONE `StateFlow<XyzUiState>`, not many StateFlows that each trigger recomposition.
 
-2. **UI state contains only display-ready data.** The ViewModel maps domain models (e.g., `Conversation` with 28 fields) to minimal display data classes (e.g., `DrawerConversationDisplayData` with 7 fields). Composables should never receive full domain models.
+2. **UI state contains only display-ready data.** The ViewModel maps domain models (`Conversation`) to minimal display classes (`DrawerConversationDisplayData`); composables should never receive full domain models.
 
-3. **Mark UI state classes `@Immutable`.** This lets the Compose compiler skip recomposition when the reference hasn't changed. All fields must be `val` with stable types.
+3. **Mark UI state classes `@Immutable`.** All fields `val` with stable types, so Compose can skip recomposition when the reference is unchanged.
 
-4. **Collect state at the narrowest scope.** If only `DrawerContent` uses drawer state, collect inside `DrawerContent` — not in the parent `PhoneLayout` which also owns the NavDisplay. State changes should only recompose the composable that reads them.
+4. **Collect state at the narrowest scope**: in the composable that reads it (`DrawerContent`), not a parent that also owns the NavDisplay.
 
-5. **Use `SharingStarted.Eagerly`** for UI state that should be ready before the composable subscribes (avoids empty→populated two-phase render jank on first frame).
+5. **Use `SharingStarted.Eagerly`** for UI state that should be ready before the composable subscribes (no empty→populated first frame).
 
 ### Stability
 
-6. **All types passed to composables must be stable.** Primitives, `String`, `@Immutable` data classes, and enums are stable. Standard `List`/`Set`/`Map` are NOT stable by default — they are declared stable in `compose-stability.conf` at the project root.
+6. **All types passed to composables must be stable.** Primitives, `String`, `@Immutable` data classes and enums are; `List`/`Set`/`Map` are declared stable in `compose-stability.conf` at the project root.
 
-7. **Never pass lambdas that capture unstable references.** Prefer method references (`viewModel::doThing`) or `remember`'d lambdas over inline lambdas that capture changing state.
+7. **Never pass lambdas that capture unstable references.** Prefer method references (`viewModel::doThing`) or `remember`'d lambdas.
 
 ### LazyColumn / LazyList
 
-8. **Always provide `key`** on `items()` calls. Keys must be unique, stable identifiers (e.g., `conversationId`).
+8. **Always provide `key`** on `items()`: unique, stable identifiers (e.g. `conversationId`).
 
-9. **Always provide `contentType`** when a LazyColumn has mixed item types (headers, content rows, loading indicators). This enables Compose to reuse compositions across items of the same type.
+9. **Always provide `contentType`** when a list mixes item types (headers, rows, loading indicators).
 
-10. **One element per `item {}` block.** Multiple composables in one block prevents independent recycling.
+10. **One element per `item {}` block**, so items recycle independently.
 
-11. **No nested same-direction scrollables.** Never put `LazyColumn` inside `verticalScroll` — combine into one `LazyColumn` using `item {}` blocks.
+11. **No nested same-direction scrollables.** Never put `LazyColumn` inside `verticalScroll`; use one `LazyColumn` with `item {}` blocks.
 
 ### Avoiding Unnecessary Work
 
-12. **Move data transformations to the ViewModel.** Sorting, filtering, grouping, and model mapping happen in the ViewModel — not in `remember` blocks in composables.
+12. **Move data transformations to the ViewModel.** Sorting, filtering, grouping and model mapping happen there, not in `remember` blocks in composables.
 
-13. **Cache expensive objects as top-level constants.** `RoundedCornerShape`, `Regex`, `DateTimeFormatter` — allocating these per-item per-frame is wasteful.
+13. **Cache expensive objects as top-level constants** (`RoundedCornerShape`, `Regex`, `DateTimeFormatter`), not per item per frame.
 
-14. **Use `background(color, shape)` instead of `clip(shape).background(color)`.** The `clip` modifier creates a persistent clip layer per composable; `background` with a shape parameter draws the clipped background without the layer overhead.
+14. **Use `background(color, shape)` instead of `clip(shape).background(color)`**: `clip` adds a persistent clip layer.
 
-15. **Avoid `copy(alpha = ...)` on colors.** Alpha-blended colors force GPU compositing. Use opaque colors from the theme where possible.
+15. **Avoid `copy(alpha = ...)` on colors.** Alpha blending forces GPU compositing; use opaque theme colors where possible.
 
-16. **Defer state reads to later phases.** Use lambda-based modifiers (`Modifier.offset { }`, `Modifier.drawBehind { }`) instead of value-based ones (`Modifier.offset(x, y)`, `Modifier.background(animatedColor)`) for scroll/animation state.
+16. **Defer state reads to later phases.** Use lambda modifiers (`Modifier.offset { }`, `Modifier.drawBehind { }`) instead of value ones (`Modifier.offset(x, y)`, `Modifier.background(animatedColor)`) for scroll/animation state.
