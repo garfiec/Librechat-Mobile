@@ -32,9 +32,9 @@ import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceChip
 import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceChipLabel
 import com.garfiec.librechat.feature.chat.viewmodel.CodeWorkspaceUiState
 
-// The code workspace in the composer's chrome, over thread text: folded onto the settings line for
-// a healthy saved chat (with and without the line's other chips, and the approval chip alone), and
-// the card for a chat choosing its workspace and one sealed without one.
+// The code workspace on the composer's settings line, over thread text: a healthy saved chat (with and
+// without the line's other chips, and the approval chip alone), a chat choosing its workspace with
+// the notice saying why Send waits, and one sealed without a workspace.
 
 @PreviewNarrowScreens
 @Composable
@@ -46,11 +46,11 @@ private fun CodeWorkspaceFoldedGlassPreview() = WorkspaceSurface(UiStyle.LIQUID_
 
 @PreviewNarrowScreens
 @Composable
-private fun CodeWorkspaceCardMaterialPreview() = WorkspaceSurface(UiStyle.MATERIAL) { CardStates() }
+private fun CodeWorkspaceNeedsYouMaterialPreview() = WorkspaceSurface(UiStyle.MATERIAL) { NeedsYouStates() }
 
 @PreviewNarrowScreens
 @Composable
-private fun CodeWorkspaceCardGlassPreview() = WorkspaceSurface(UiStyle.LIQUID_GLASS) { CardStates() }
+private fun CodeWorkspaceNeedsYouGlassPreview() = WorkspaceSurface(UiStyle.LIQUID_GLASS) { NeedsYouStates() }
 
 @Composable
 private fun WorkspaceSurface(style: UiStyle, content: @Composable () -> Unit) {
@@ -103,7 +103,7 @@ private fun FoldedStates() {
 }
 
 @Composable
-private fun CardStates() {
+private fun NeedsYouStates() {
     // Choosing: Send waits, and the requirement line says why.
     ComposerHost(
         CodeWorkspaceUiState(
@@ -119,7 +119,7 @@ private fun CardStates() {
         ),
         SettingChips(listOf(SettingChip.Tool(ToolConstants.WEB_SEARCH, SettingChipState.ON, pinned = true))),
     )
-    // Sealed without a workspace: the chip is a label, the footnote explains.
+    // Sealed without a workspace: the chip's tap explains what that means.
     ComposerHost(
         CodeWorkspaceUiState(
             visible = true,
@@ -131,18 +131,18 @@ private fun CardStates() {
     )
 }
 
-/** The composer's two code-workspace places, laid out as `CommonChatInputCore` stacks them. */
+/** The code workspace's chips on the settings line, and its notice, as the composer box draws them. */
 @Composable
 private fun ComposerHost(state: CodeWorkspaceUiState, chips: SettingChips) {
     CompositionLocalProvider(LocalCodeWorkspaceComposer provides composer(state)) {
         val codeWorkspace = LocalCodeWorkspaceComposer.current
         Column {
-            codeWorkspace?.let { CodeWorkspaceRow(it, modifier = Modifier.padding(bottom = 4.dp)) }
             ComposerSettingsLine(
                 chips = chips,
                 onChipTap = {},
                 leading = codeWorkspaceLineLeading(codeWorkspace),
             )
+            codeWorkspace?.let { CodeWorkspaceNotice(it) }
         }
     }
 }

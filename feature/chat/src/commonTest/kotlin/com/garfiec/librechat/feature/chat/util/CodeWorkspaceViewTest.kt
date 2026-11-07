@@ -76,7 +76,7 @@ class CodeWorkspaceViewTest {
     fun choosingSaysWhoNeedsAWorkspaceAndHoldsTheSend() {
         val ui = codeWorkspaceUiState(resolve(chat()), null, null, null, sheetOpen = false, attention = false)
         assertTrue(ui.holdsSend)
-        assertCard(ui)
+        assertNeedsUser(ui)
         assertEquals(CodeWorkspaceChipLabel.CHOOSE, ui.workspace.label)
         assertEquals(CodeRequirementState.CHOOSE, ui.requirements.single().state)
         assertEquals("Switchboard Dev", ui.requirements.single().agents)
@@ -102,7 +102,7 @@ class CodeWorkspaceViewTest {
         assertTrue(ui.workspace.opensSheet)
         assertEquals("switchboard", ui.workspace.name)
         // Named as the sealed chat's chip will be, so the first send doesn't rename it.
-        assertEquals("garfie-mbp", ui.machine?.name)
+        assertEquals("garfie-mbp", ui.lineMachineName())
         assertEquals("develop", ui.branch)
         assertEquals(CodeCheckoutMode.WORKTREE, ui.checkout?.mode)
         assertTrue(ui.checkout?.pickable == true)
@@ -127,7 +127,7 @@ class CodeWorkspaceViewTest {
         )
         assertFolded(ui)
         assertEquals("Server workspace", ui.workspace.name)
-        assertNull(ui.machine)
+        assertNull(ui.lineMachineName())
     }
 
     @Test
@@ -148,7 +148,7 @@ class CodeWorkspaceViewTest {
         )
         assertFalse(ui.holdsSend)
         assertEquals(2, ui.machine?.choices?.size)
-        assertCard(ui)
+        assertNeedsUser(ui)
     }
 
     @Test
@@ -163,7 +163,7 @@ class CodeWorkspaceViewTest {
         )
         assertEquals(CodeWorkspaceChipLabel.NONE, ui.workspace.label)
         assertEquals(CodeFootnote.WITHOUT_WORKSPACE, ui.footnote)
-        assertCard(ui)
+        assertNeedsUser(ui)
         assertTrue(ui.sheet.noWorkspaceSelected)
         assertNull(ui.branch)
     }
@@ -187,7 +187,7 @@ class CodeWorkspaceViewTest {
         val ui = codeWorkspaceUiState(resolution, null, null, null, sheetOpen = false, attention = false)
         assertTrue(ui.locked)
         assertTrue(ui.holdsSend)
-        assertCard(ui)
+        assertNeedsUser(ui)
         assertEquals(CodeWorkspaceChipLabel.UNAVAILABLE, ui.workspace.label)
         assertTrue(ui.workspace.refreshes)
         assertEquals(CodeCheckoutMode.REGISTERED, ui.checkout?.mode)
@@ -275,10 +275,11 @@ class CodeWorkspaceViewTest {
         null, null, null, sheetOpen = false, attention = attention, moving = moving,
     )
 
-    private fun assertCard(ui: CodeWorkspaceUiState) {
+    /** Needs the user: the chip is still on the line, with its notice or tint. */
+    private fun assertNeedsUser(ui: CodeWorkspaceUiState) {
         assertTrue(ui.visible)
         assertFalse(ui.folded)
-        assertFalse(ui.onSettingsLine)
+        assertTrue(ui.shown)
     }
 
     private fun assertFolded(ui: CodeWorkspaceUiState) {
@@ -316,24 +317,24 @@ class CodeWorkspaceViewTest {
     @Test
     fun aSavedDecisionThatNeedsTheUserKeepsTheCard() {
         // A rejection named the workspace, with and without the transition version.
-        assertCard(savedUi(attention = true))
-        assertCard(savedUi(caps = transitions, attention = true))
+        assertNeedsUser(savedUi(attention = true))
+        assertNeedsUser(savedUi(caps = transitions, attention = true))
         // The decision is being changed.
-        assertCard(savedUi(caps = transitions, moving = true))
+        assertNeedsUser(savedUi(caps = transitions, moving = true))
         // The machine is offline: the send waits.
         val offline = savedUi(status = CodeEnvironmentStatus(mbp.id, "offline"))
-        assertCard(offline)
+        assertNeedsUser(offline)
         assertTrue(offline.holdsSend)
         // The saved workspace is gone.
         val gone = savedUi(caps = transitions, status = CodeEnvironmentStatus(mbp.id, "ready", listOf(librechat)))
-        assertCard(gone)
+        assertNeedsUser(gone)
         assertTrue(gone.transition?.action != CodeTransitionAction.DETACH)
     }
 
     @Test
     fun aSealedNoWorkspaceKeepsItsFootnoteAndIsALabel() {
         val ui = savedUi(savedChat(mode = CodeEnvironmentMode.WITHOUT_ATTACHED, selections = null))
-        assertCard(ui)
+        assertNeedsUser(ui)
         assertEquals(CodeFootnote.WITHOUT_WORKSPACE, ui.footnote)
         assertEquals(CodeWorkspaceChipLabel.NONE, ui.workspace.label)
         // No machine status to read again and no transition on offer: neither a sheet nor Refresh.
@@ -344,7 +345,7 @@ class CodeWorkspaceViewTest {
     @Test
     fun aSealedNoWorkspaceWithAttachOnOfferOpensTheTransitionSheet() {
         val ui = savedUi(savedChat(mode = CodeEnvironmentMode.WITHOUT_ATTACHED, selections = null), caps = transitions)
-        assertCard(ui)
+        assertNeedsUser(ui)
         assertEquals(CodeTransitionAction.ATTACH, ui.transition?.action)
         assertTrue(ui.workspace.opensSheet)
         assertFalse(ui.workspace.refreshes)
@@ -361,7 +362,7 @@ class CodeWorkspaceViewTest {
             ),
             null, null, null, sheetOpen = false, attention = false, confirming = CodeConfirming.PENDING,
         )
-        assertCard(ui)
+        assertNeedsUser(ui)
         assertTrue(ui.holdsSend)
     }
 
@@ -390,11 +391,12 @@ class CodeWorkspaceViewTest {
     }
 
     @Test
-    fun theApprovalChipGoesOnTheLineWithoutTheCard() {
+    fun theWorkspaceAndApprovalChipsAreAlwaysOnTheLine() {
         val approval = CodeApprovalChip(CodeApprovalOption.ASK, emptyList())
         assertTrue(CodeWorkspaceUiState(approval = approval).onSettingsLine)
         assertFalse(CodeWorkspaceUiState().onSettingsLine)
-        // With the card, it is on the card.
-        assertFalse(CodeWorkspaceUiState(visible = true, approval = approval).onSettingsLine)
+        // A workspace that needs the user stays in the same place, the line.
+        assertTrue(CodeWorkspaceUiState(visible = true, approval = approval).onSettingsLine)
+        assertTrue(CodeWorkspaceUiState(visible = true).shown)
     }
 }

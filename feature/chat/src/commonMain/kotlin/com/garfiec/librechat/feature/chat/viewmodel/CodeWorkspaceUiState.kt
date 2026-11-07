@@ -3,27 +3,29 @@ package com.garfiec.librechat.feature.chat.viewmodel
 import androidx.compose.runtime.Immutable
 
 /**
- * The composer's code-workspace card (`CodeWorkspaceRow`), its chips on the settings line and its
- * sheet, already mapped to what is drawn: the composables resolve strings and nothing else. Written
- * only by `CodeWorkspaceDelegate`. The card shows ([visible]) when an agent in the chat runs code on
- * an attached machine and the chat is choosing, cannot send, runs without a workspace, or has a
- * line to read; a healthy saved decision [folded] onto the settings line instead.
+ * The composer's code workspace: its chip on the settings line, the notice under the field and its
+ * sheets, already mapped to what is drawn: the composables resolve strings and nothing else. Written
+ * only by `CodeWorkspaceDelegate`. The chip shows ([shown]) whenever an agent in the chat runs code
+ * on an attached machine, always in the same place; [visible] and [folded] say whether the
+ * workspace needs the user or is settled.
  */
 @Immutable
 data class CodeWorkspaceUiState(
-    /** The card above the settings line. Never with [folded]. */
+    /**
+     * The workspace needs the user (choosing, cannot send, runs without a workspace, a line to read,
+     * a machine to pick). Never with [folded].
+     */
     val visible: Boolean = false,
     /**
      * The workspace is settled (a saved decision, or an undecided chat's ready pick, [locked] false)
-     * and nothing needs the user: the settings line starts with a "workspace · machine" chip
-     * ([machine], [workspace]) and the approval chip, and no card shows.
+     * and nothing needs the user: the chip reads "workspace · machine" ([workspace], [machine]).
      */
     val folded: Boolean = false,
     /** The chat already recorded its decision: nothing here can change it. */
     val locked: Boolean = false,
     /** Send waits on this row; [requirements] say why. */
     val holdsSend: Boolean = false,
-    /** Null hides the machine chip. */
+    /** The machine the chat runs on, named after the workspace; its choices go in the sheet. */
     val machine: CodeMachineChip? = null,
     val workspace: CodeWorkspaceChip = CodeWorkspaceChip(),
     /** The selected workspace's branch, as the worker reports it. Read only. */
@@ -62,8 +64,21 @@ data class CodeWorkspaceUiState(
      */
     val approval: CodeApprovalChip? = null,
 ) {
-    /** What the settings line's leading slot draws: the folded chip, the approval chip, or both. */
-    val onSettingsLine: Boolean get() = folded || (!visible && approval != null)
+    /** The workspace chip is on the settings line. */
+    val shown: Boolean get() = visible || folded
+
+    /** What the settings line's leading slot draws: the workspace chip, the approval chip, or both. */
+    val onSettingsLine: Boolean get() = shown || approval != null
+
+    /**
+     * The machine the chip names after a workspace's name ("workspace · machine"). Not one named as
+     * its workspace (the server's own environment is often both "Server workspace"): the chip would
+     * read the name twice.
+     */
+    fun lineMachineName(): String? {
+        if (workspace.label != CodeWorkspaceChipLabel.NAME) return null
+        return machine?.name?.takeUnless { it.equals(workspace.name, ignoreCase = true) }
+    }
 }
 
 enum class CodeApprovalOption { ASK, ACCEPT_EDITS, FULL_ACCESS }

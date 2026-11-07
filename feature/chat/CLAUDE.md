@@ -1062,8 +1062,8 @@ while attachments are staged, so neither promises something the tap won't do.
 capsule) holding the attachment strip, the field, which draws no frame of its own (`ChatInputDefaults.textFieldColors`),
 the failed-upload line, and a button row: "+" and paste (`leadingButtons`), the settings line with
 its context ring, the mic (`trailingButtons`) and the send control (`BoxButtonSize`). Temporary
-chat's violet tints the box. Above the box: pull request, steers, the queue and its banners, the
-code workspace card. Everything the composer draws around its field (those rows, the settings line,
+chat's violet tints the box. Above the box: pull request, steers, the queue and its banners.
+Everything the composer draws around its field (those rows, the settings line,
 the attachment strip at the box's top) and the "+" button's dots is **one view-data holder, `ComposerChrome`**, built in `ChatScreen` and threaded
 once through the `ChatComposer` expect, both actuals, `ChatInput` / `IosChatInput` and
 `ChatInputState.chrome`. A new row adds a field there, never a parameter to those five signatures:
@@ -1375,24 +1375,24 @@ is sealed "No workspace" for good. The rules are `:core:model` `code/CodeWorkspa
 `useCodeWorkspace`, mirrored); the delegate gathers inputs, polls, and keeps the draft; the composer
 only draws `CodeWorkspaceUiState` (mapped in `util/CodeWorkspaceView.kt`), through
 `LocalCodeWorkspaceComposer` so both platform composers draw it.
-- **Card or fold.** The chat folds onto the settings line when its workspace is settled and nothing
-  needs the user (`CodeWorkspaceUiState.folded`, decided in `codeWorkspaceUiState`): sendable, every
-  machine ready, no rejection tint, no change being written, no footnote, requirement or conflict
-  line, and no transition but Detach. Settled is a saved decision, or an undecided chat's ready pick
-  with no machine left to choose (the machine picker is the card's alone); that chip is tinted
-  primary and its sheet says the next message saves it (`code_workspace_saved_on_send`). Then the line's leading slot
-  (`CodeWorkspaceLineChips`) holds a "workspace · machine" chip ("{n} code workspaces" across
-  machines) and the approval chip, and no card shows. Everything else keeps the card
-  (`CodeWorkspaceRow`, `visible`) above the line: choosing or held (`holdsSend`), an undecided chat
-  whose next send seals the workspace, "No workspace" with its footnote, confirming, rejections and
-  requirement lines. Branch, checkout and linked-worktree chips are card details: a folded chat
-  doesn't show them. The fold also names a healthy saved chat that web hides (no transition version),
-  so `visible` is the card, not web's `visible`; polling still follows the resolver's.
-- **The folded chip is the card's workspace chip in another place**: same callbacks, same sheets. It
-  opens the transition sheet when Detach is on offer, else re-reads the machine's status
-  (`CodeWorkspaceChip.refreshes`, with its Refresh glyph). The sheet is hosted in the chip's box. A
-  sealed "No workspace" chip neither opens nor refreshes unless a transition (Attach) is on offer:
-  there is no status to read, so it is a label.
+- **One place: the settings line.** Whenever the chat has a workspace to show
+  (`CodeWorkspaceUiState.shown`), its chip is the line's first chip, then the approval chip
+  (`CodeWorkspaceLineChips`), in every state: never a card above the composer. Don't add one back.
+  The chip reads "workspace · machine" (`lineMachineName`: only after a workspace's name, and not a
+  machine named as its workspace) or the state ("Choose workspace", "No workspace", "Move chat"…),
+  tinted primary while the next message would seal it (`code_workspace_saved_on_send` in its sheet),
+  the error colour after a rejection. `folded` (settled: a saved decision, or an undecided chat's
+  ready pick with no machine to choose) and `visible` (needs the user) are decided in
+  `codeWorkspaceUiState`; `visible` is not web's `visible`, and polling still follows the resolver's.
+- **What needs the user is a notice under the field** (`CodeWorkspaceNotice`, in the box after the
+  failed-upload line): the decision check with Retry (`confirming`), or the requirement, graph,
+  conflict and locked-recovery lines. Nothing while the workspace is fine.
+- **The chip's tap**: the transition sheet when a change is on offer, the workspace sheet while the
+  chat can choose (machine picker on top, `CodeMachineChip.choices`, then each machine's workspaces
+  with their checkout, the checkout summaries and the linked-worktrees note), else a small menu of
+  what the sealed chat runs on (branch, checkout, linked worktrees, what "No workspace" means) with
+  Refresh where the machine's status can be read again (`CodeWorkspaceChip.refreshes`). The sheet is
+  hosted in the chip's box.
 - **Gate on the fields, never the version** (VERSION_GATES.md): `RUN_CODE.USE`, the agents endpoint's
   `execute_code` + `stateful_code_sessions` capabilities, an `attached` machine in
   `statefulCodeSessions.environments`, a reachable agent that routes code there. Capability versions
@@ -1432,9 +1432,10 @@ only draws `CodeWorkspaceUiState` (mapped in `util/CodeWorkspaceView.kt`), throu
   "{n} machines" / "{n} code workspaces", explicit checkouts get a line each, and picks that leave an
   agent uncovered show web's `graph_selection_conflict` line. "Linked worktrees" shows for a
   `git_linked_worktree` workspace that is not isolated (Auto on a worktree-capable one isolates).
-- **Code approval mode** (`CodeApproval` in `:core:model`): the chip shows on the card, else on the
-  settings line (`CodeWorkspaceUiState.onSettingsLine`), after the folded chip when there is one. It
-  is icon-only on "Ask before changes", so a mode that does more always shows its name. `submissionForSend()` adds `approvalMode` to the submission, so the mode
+- **Code approval mode** (`CodeApproval` in `:core:model`): the chip is on the settings line
+  (`CodeWorkspaceUiState.onSettingsLine`), after the workspace chip when there is one. It is
+  icon-only on "Ask before changes" while it has other modes to offer, so a mode that does more
+  always shows its name. `submissionForSend()` adds `approvalMode` to the submission, so the mode
   rides every send path the decision does; `ask` without a workspace. The mode asked for is this
   chat's pick, else the saved decision's, else (no decision yet) the spec preset's `codeApprovalMode`,
   else the device's last pick (`requestedApprovalMode`, web's `conversation.codeApprovalMode ?? preference`). A follow-up whose mode is not

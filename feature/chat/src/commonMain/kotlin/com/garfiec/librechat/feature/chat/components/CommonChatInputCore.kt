@@ -351,6 +351,7 @@ fun CommonChatInputCore(
                         textFieldContent(compact)
                     }
                     FailedUploadsLine(failedCount = state.chrome.draftItems.failedCount)
+                    LocalCodeWorkspaceComposer.current?.let { CodeWorkspaceNotice(it) }
                     ComposerButtonRow(
                         state = state,
                         compact = compact,
@@ -374,8 +375,8 @@ fun CommonChatInputCore(
 }
 
 /**
- * Everything above the box: the pull request, the steer and queue region, the queue's banners and
- * the code workspace card. The settings line is in the box's button row ([ComposerButtonRow]);
+ * Everything above the box: the pull request, the steer and queue region and the queue's banners.
+ * The settings line (with the code workspace's chips) is in the box's button row ([ComposerButtonRow]);
  * files, picked skills and quotes are in the strip at the box's top ([ComposerDraftStrip]). A
  * vertical drag that starts anywhere on it scrolls the thread ([passVerticalDragsToThread]); rows
  * keep only their horizontal scrolls and the queue's long-press reorder.
@@ -436,7 +437,6 @@ private fun ComposerChromeStack(
         // The attached machine a coding agent works on (machine, workspace, branch, checkout), as a
         // card while it needs the user; folded onto the settings line once the chat's saved decision
         // is healthy.
-        LocalCodeWorkspaceComposer.current?.let { CodeWorkspaceRow(it, modifier = Modifier.padding(bottom = 4.dp)) }
     }
 }
 

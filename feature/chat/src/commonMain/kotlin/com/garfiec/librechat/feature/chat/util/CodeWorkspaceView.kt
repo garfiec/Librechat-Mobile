@@ -202,11 +202,10 @@ internal fun codeWorkspaceUiState(
         resolution.locked && resolution.submission == null -> CodeFootnote.LOCKED_RECOVERY
         else -> null
     }
-    // Nothing on the card would need the user: no hold, no line to read, nothing to choose. Branch,
-    // checkout and linked-worktree chips are details of the card, not reasons to keep it. A saved
-    // decision web hides that does need the user (a rejection named it) shows the card, not nothing.
-    // An undecided chat folds only when the folded chip's sheet holds every choice left: the machine
-    // picker is the card's alone.
+    // Nothing would need the user: no hold, no line to read, nothing to choose. Branch, checkout and
+    // linked worktrees are details, not reasons. A saved decision web hides that does need the user
+    // (a rejection named it) still shows, as needing the user. An undecided chat with a machine to
+    // choose needs the user too: the pick isn't made until the send seals it.
     val settled = mayFold(resolution) ||
         (mayFoldUndecided(resolution) && machineChip?.choices.isNullOrEmpty())
     val folded = settled && !attention && !moving && footnote == null &&
@@ -219,16 +218,9 @@ internal fun codeWorkspaceUiState(
         folded = folded,
         locked = resolution.locked,
         holdsSend = resolution.submission == null,
-        // Folded, the chip names its machine before the first send as after it ("workspace · machine"),
-        // so sealing the pick doesn't rename it; the card shows a lone machine only once locked. Not a
-        // machine named as its workspace (the server's own environment is often both "Server
-        // workspace"): the chip would read the name twice.
-        machine = if (folded) {
-            (machineChip ?: only?.takeIf { !withoutWorkspace }?.let { CodeMachineChip(it.environment.displayName, emptyList()) })
-                ?.takeUnless { it.name != null && it.name.equals(onlyDescriptor?.displayName, ignoreCase = true) }
-        } else {
-            machineChip
-        },
+        // The chip names its machine before the first send as after it ("workspace · machine"), so
+        // sealing the pick doesn't rename it.
+        machine = machineChip ?: only?.takeIf { !withoutWorkspace }?.let { CodeMachineChip(it.environment.displayName, emptyList()) },
         workspace = workspaceChip,
         branch = onlyDescriptor?.environment?.ref?.takeIf { it.isNotBlank() && !withoutWorkspace },
         checkout = checkout,
