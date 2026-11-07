@@ -206,7 +206,9 @@ class ChatViewModelConversationParametersTest {
         val vm = open("cp-drop")
         advanceUntilIdle()
         assertEquals("deep", vm.uiState.value.selectedSpec)
-        startupConfig.value = StartupConfig(modelSpecs = ModelSpecs(list = emptyList()))
+        // Moved to another endpoint, where the server would refuse the name with this model.
+        val moved = deep.copy(preset = deep.preset!!.copy(endpoint = "azureOpenAI"))
+        startupConfig.value = StartupConfig(modelSpecs = ModelSpecs(list = listOf(moved)))
         advanceUntilIdle()
         assertNull(vm.uiState.value.selectedSpec)
         assertEquals(0.2f, vm.uiState.value.modelParameters.temperature)

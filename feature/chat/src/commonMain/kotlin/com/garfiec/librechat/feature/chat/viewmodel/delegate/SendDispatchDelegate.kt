@@ -18,6 +18,7 @@ import com.garfiec.librechat.core.model.steer.mergeRestagedQuotes
 import com.garfiec.librechat.feature.chat.util.NEW_CHAT_DRAFT_KEY
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.sendableManualSkills
+import com.garfiec.librechat.feature.chat.util.storedAgainst
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
@@ -423,14 +424,17 @@ class SendDispatchDelegate(
         val codeWorkspace = baseSpec.codeWorkspace
             ?: if (handle.state.conversationId != null) CodeWorkspaceSubmission.NONE else return false
         // Guard passed: safe to take the chips and clear the composer without risking their loss.
+        // A drained turn's spec was held at enqueue; the config may have changed while it waited.
+        val choice = baseSpec.choice.storedAgainst(handle.state.modelSpecs)
         val spec = if (fromComposer) {
             baseSpec.copy(
+                choice = choice,
                 quotes = takePendingQuotes(baseSpec.endpoint),
                 manualSkills = takePendingManualSkills(baseSpec.endpoint),
                 reasoningOverride = takePendingReasoningOverride(),
             )
         } else {
-            baseSpec
+            baseSpec.copy(choice = choice)
         }
         if (fromComposer) clearComposer()
 

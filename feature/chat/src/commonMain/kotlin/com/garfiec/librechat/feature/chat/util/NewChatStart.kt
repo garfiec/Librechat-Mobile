@@ -13,21 +13,28 @@ import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
  * the new chat on [lastUsed] when it is usable, and on the spec only when it isn't. The spec stays
  * prioritized where the server leaves the user no choice:
  * - [modelSelect] off: the admin hid the selector;
- * - no last-used selection to prefer;
- * - an enforced server ([requiresSpec]) and a raw last-used pair, which the server would refuse.
- *   A last-used spec is still preferred there.
+ * - no last-used selection to prefer. Under `enforce` [lastUsed] is never a raw pair
+ *   ([seedableLastUsed]), so a raw last-used the server would refuse counts as none.
  */
 internal fun SpecSeed?.demotedForLastUsed(
     preferLastUsed: Boolean,
     modelSelect: Boolean,
     lastUsed: ModelChoice?,
-    specs: ModelSpecs?,
 ): SpecSeed? {
     if (this == null || !prioritized) return this
     if (!preferLastUsed || !modelSelect || lastUsed == null) return this
-    if (specs.requiresSpec && lastUsed is ModelChoice.Raw) return this
     return copy(prioritized = false)
 }
+
+/**
+ * [resolveDefaultModelSpec]'s answer plus web's two ungated default-spec paths: the first load of
+ * `/c/new` (`ChatRoute.tsx`, `getNewConvoPreset`) and the `defaultPreset` every later new chat starts
+ * from (`useAppStartup.ts`, `useNewConvo`'s `switchToConversation`). Both take the `default: true`
+ * spec whatever `prioritize` says, so it opens every new chat ahead of last-used, as a prioritized
+ * spec does. "Start new chats on: My last-used model" then demotes it ([demotedForLastUsed]).
+ */
+internal fun SpecSeed?.withUngatedDefault(specs: ModelSpecs?): SpecSeed? =
+    this ?: specs?.list.orEmpty().firstOrNull { it.isDefault }?.toSeed(prioritized = true)
 
 /**
  * The stored [lastUsed] pick as the seeder may open it, or null. A last spec reopens on its current

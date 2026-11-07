@@ -15,11 +15,12 @@ import com.garfiec.librechat.feature.chat.prompts.PromptInsertion
 import com.garfiec.librechat.feature.chat.prompts.resolvePromptInsertion
 import com.garfiec.librechat.feature.chat.prompts.resolvePromptText
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
-import com.garfiec.librechat.feature.chat.util.offeredOrUnchecked
 import com.garfiec.librechat.feature.chat.util.parametersFor
 import com.garfiec.librechat.feature.chat.util.requiresSpec
+import com.garfiec.librechat.feature.chat.util.stored
 import com.garfiec.librechat.feature.chat.util.toSeed
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.PendingVariablePrompt
 import com.garfiec.librechat.feature.chat.viewmodel.PresetPromptHandle
 import kotlinx.coroutines.Job
@@ -207,12 +208,10 @@ class PresetPromptDelegate(
             val model = specSeed?.model ?: preset.model ?: selection.selectedModel
             // A preset carrying only parameters leaves the selection, spec included, as it is.
             val namesNoModel = preset.spec == null && preset.endpoint == null && preset.model == null
-            // The spec is kept only while the server still offers it on that pair: a retargeted
-            // spec fails every send with "Model spec mismatch". Unchecked before the spec config loads.
             val choice = if (namesNoModel) {
                 selection.choice
             } else {
-                preset.spec.offeredOrUnchecked(endpoint, model, specs, checkable = specs != null)
+                ModelChoice.stored(endpoint, model, preset.spec, specs)
             }
             // Authoritative load: a preset represents a complete saved
             // configuration. Merging from current parameters would let

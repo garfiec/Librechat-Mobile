@@ -225,7 +225,8 @@ class SpecToolsTest {
         val (handle, delegate) = onSpec(search)
         delegate.toggleTool(ToolConstants.FILE_SEARCH)
 
-        startupConfig.value = config(plain)
+        // Moved to another endpoint: the server would refuse the name on this one.
+        startupConfig.value = config(search.copy(preset = Preset(endpoint = "azureOpenAI", model = "gpt-4.1")), plain)
         advanceUntilIdle()
 
         assertThat(handle.state.selectedSpec).isNull()

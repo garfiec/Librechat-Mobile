@@ -133,6 +133,14 @@ Which spec applies, and whether it is prioritized, is `util/SpecSeed.kt`, a port
   Tier-0 override yields it. `ChatViewModel.onPendingNavigationHandled` re-arms it, so the next new
   chat is back on the spec. A spec agent the loaded list doesn't contain (deleted, not shared, no
   agents at all, agents denied) falls through to the ordinary tiers.
+- **A `default: true` spec is prioritized whatever `prioritize` says** (`withUngatedDefault` in
+  `util/NewChatStart.kt`). `useNewConvo`'s gate checks `prioritize`, but web's other two paths don't:
+  the first load of `/c/new` (`ChatRoute.tsx`, `getNewConvoPreset`) and the `defaultPreset` every
+  later "New chat" starts from (`useAppStartup.ts`). Checked on a v0.8.9-rc1 rig with
+  `prioritize: false` and `modelSelect: true`: web opened every new chat on the default spec, after a
+  raw pick and after opening another spec's chat too. `SpecSeed.kt` stays the port of the gate. An
+  unset `prioritize` is served as `true` and, with specs and no `addedEndpoints`, an unset
+  `modelSelect` as `false`, so this only matters when an admin sets both.
 - **Last spec**: a spec the user picked is stored with the last-used pair (`LastUsedSelection.spec` in `:core:data`'s
   `SettingsDataStore`; a raw pick clears it). Unless a spec is marked `default`, new chats reopen on it, under `prioritize` too
   and ahead of a soft default, as web reopens on `LAST_CONVO_SETUP.spec`. On restore it reopens on the
@@ -153,7 +161,7 @@ Which spec applies, and whether it is prioritized, is `util/SpecSeed.kt`, a port
 - **Under `enforce`** (both modes): the server refuses a raw pair, `addedEndpoints` or not, so a raw
   last-used never seeds (`seedableLastUsed`) and a raw model the seeder opened before the config arrived
   gives way; a raw pick on the landing stays, for the send preflight to ask. When the spec tiers open
-  no spec (no `default` or soft spec without `prioritize`, a spec agent the user can't reach, a last
+  no spec (no `default` or soft spec and no `prioritize`, a spec agent the user can't reach, a last
   spec the server dropped), Tier 1b goes on to the first spec that can: the `default` one, then list
   order (`fallbackSpecSeeds`). Only when none can do the raw tiers run. Web opens the raw model in
   these cases and the server refuses the send.
@@ -163,8 +171,9 @@ Which spec applies, and whether it is prioritized, is `util/SpecSeed.kt`, a port
 | No `modelSpecs` | Last-used, then first agent, then first model | Same | Decides new chats |
 | `prioritize: true` (or field omitted) | The `default` spec, or the first spec if none is marked `default` or `softDefault` (a `softDefault` stays soft: row 4) | Last-used if usable, otherwise that spec | Default: saved, used only when the spec can't apply. Setting: wins |
 | …and the user's last pick was a spec | That spec, unless a spec is marked `default` (web: `LAST_CONVO_SETUP.spec`) | That spec | Last spec reopens |
-| `prioritize: false` + `softDefault` spec | Last-used if usable, otherwise the soft spec | Same | Wins over the soft spec |
-| `prioritize: false`, no soft default | Same as no specs | Same | Same as no specs |
+| `prioritize: false` + `default` spec | That spec, ahead of last-used and a last spec (web: `ChatRoute`, `defaultPreset`) | Last-used if usable, otherwise that spec | Default: saved, used only when the spec can't apply. Setting: wins |
+| `prioritize: false` + `softDefault` spec, no `default` | Last-used if usable, otherwise the soft spec | Same | Wins over the soft spec |
+| `prioritize: false`, no `default` or soft default | A last spec, else as no specs | Same | Same as no specs |
 | `interface.modelSelect: false` | The `default`/soft/first spec, always (a stored last spec still reopens when none is marked `default`); an agent card or a spec's shortcut still wins, as a start-chat link does on web | Same: the setting is ignored | Used only when no spec applies |
 | `enforce: true` | As above, then any spec that can open (`default` first) before a raw model; a raw pick can't be sent | Last-used only if it's a spec; otherwise as "Server's choice" | Raw last-used ignored |
 
@@ -237,10 +246,13 @@ the set uses (`EndpointParameterRegistry.wireKeyFor`). Only a change of spec tou
 same one, so a tweak on top of a spec survives config refreshes and is sent:
 - Onto a spec (a pick, a seeded tier, a retargeted spec re-applied): that spec's preset over the defaults.
 - Off a spec onto a raw model the user picked: the defaults.
-- A config that stops offering the chat's spec on its pair (removed, renamed, retargeted) drops the
-  name and keeps the parameters, in an open chat and on the landing, whichever loads first: the
-  endpoint and model are unchanged, and web keeps sending the conversation as it is. On the landing
-  a retargeted prioritized spec then re-applies through the tiers with its new preset.
+- A config that drops the chat's spec (see the stored-spec table above; on the landing, the seeder's
+  own spec once it is not served on its pair) drops the name and keeps the parameters: the endpoint
+  and model are unchanged. The next move to another pair counts as leaving that spec and resets to
+  the defaults (`ModelSelectionDelegate.applySelection`, `DroppedSpecMemo`), unless the user tweaked a
+  parameter in between. So a landing whose removed spec's model is gone too opens its fallback model
+  on the defaults, not on the spec's preset. On the landing a retargeted prioritized spec re-applies
+  through the tiers with its new preset.
 - The user's web search and URL context carry across either way, within the chat (a new chat
   resets both). Under a spec the toolbar shows the spec's tools instead (see "Chat Tools"), so
   these wait for the user to leave it.
@@ -318,14 +330,33 @@ like the picker, lets the send through while the key state is loading or unknown
 the Set API Key chip on that endpoint; with no picker (`modelSelect` off and no specs) the reason is
 text only.
 
-**A stored spec is kept only while the server still offers it on the same endpoint and model**
-(`offeredOn`): on a conversation load, a preset load (which adopts the spec's own pair when the
-preset names none), and again whenever the spec config changes. This is stricter than the server,
-whose mismatch check compares the endpoint only, so a spec whose model an admin changed is dropped
-too: the spec and pair were sent together, so a moved spec is a different selection. Under
-`enforce` the send is then blocked with "Select a model" rather than refused by the server. A stored
-*pick* — the last-used restore and a model shortcut — is the exception (`reopenedPick`): it follows
-the spec to its current pair.
+**A stored spec is held as the server holds it** (`ModelChoice.stored` / `storedAgainst` in
+`util/SpecSeed.kt`, a port of `resolveModelSpecForEndpoint` as `buildEndpointOption.js` applies it).
+The server resolves a stored spec against its full list, hidden specs included, and checks the
+endpoint only. Every cell below was reproduced on a v0.8.9-rc1 rig:
+
+| Stored spec | No `enforce` | `enforce` | Mobile |
+|---|---|---|---|
+| Not in the served list, hidden | applies it: private prompt and tools | applies it | kept |
+| Not in the served list, deleted | ignores it, runs raw | "Invalid model spec" | kept (can't be told from hidden) |
+| Served, preset on another endpoint | "Model spec mismatch" | "Model spec mismatch" | dropped to raw |
+| Served, same endpoint, another model | applies it on the stored model | the preset replaces the body | kept on the stored model; under `enforce`, moved to the spec's pair |
+
+It applies at every writer of a stored selection: a conversation load (`applyResolvedConversationModel`,
+from the load, the send completion and the new-chat handoff), a config change on an open chat
+(`withSpecsRefreshed`), a preset load (which adopts the spec's own pair when the preset names none),
+a queued turn restored to the composer or drained (`applyComposer`, `doSendWithSpec`), and Compare's
+picked lane B (`laneBSpec`). The send preflight accepts any kept name and lets the server decide.
+The three spec refusals ("No model spec selected", "Invalid model spec", "Model spec mismatch",
+`isSpecRefusal`) open the picker with "Select a model" next to the server's sentence.
+- The seeder's own landing pick is the exception (`seededAgainst`): it holds only specs the server
+  serves on that pair, so one it no longer serves there re-seeds through the tiers (a retargeted
+  prioritized spec re-applies with its new preset) instead of being sent.
+- A stored *pick* (the last-used restore and a model shortcut) follows the spec to its current pair
+  (`reopenedPick`).
+- The header chip shows a kept spec the list doesn't serve by its model name. Web shows its
+  "Select a model" placeholder there (checked on the rig) and still sends the spec. There is no picker
+  row for it, as on web.
 
 **Spec rows** (`visibleSpecs`) sort by `order`, ascending with unordered specs after in list order
 (librechatios parity; web ignores `order`), and leave out an agent spec once the agents list has
@@ -402,7 +433,7 @@ listed in `ModelSpec`'s KDoc.
 | `label` | yes | yes | picker, header chip, lane B sender (`laneBSpecFor`) | Falls back to `name` (`ModelSpec.displayLabel`), as `normalizeModelSpecs` |
 | `preset` | yes | yes | see the preset rows below | |
 | `order` | yes | yes | `visibleSpecs` sort | Web ignores it (librechatios parity) |
-| `default` | yes | yes | `SpecSeed` (`resolveDefaultModelSpec`) | |
+| `default` | yes | yes | `SpecSeed` (`resolveDefaultModelSpec`), `withUngatedDefault` | Applies whatever `prioritize` says, as web's `ChatRoute` and `defaultPreset` |
 | `softDefault` | yes | yes | `SpecSeed`, Tier 1b | |
 | `description` | yes | yes | picker row, landing (`landingText`, with `showOnLanding`) | |
 | `group` | yes | yes | `SpecGroups` | |
@@ -411,7 +442,7 @@ listed in `ModelSpec`'s KDoc.
 | `showIconInHeader` | yes | no | | The header chip is text-only by design |
 | `showOnLanding` | yes | yes | `landingText` | |
 | `conversation_starters` | yes | yes | `resolveLandingStarters` | An agent's own starters win |
-| `showInMenu` | yes | filtered | `visibleSpecs` | Never arrives `false` (`excludeHiddenModelSpecs`); filtered again anyway |
+| `showInMenu` | yes | filtered | `visibleSpecs` | Never arrives `false` (`excludeHiddenModelSpecs`); filtered again anyway. A hidden spec still exists on the server, which applies it by name, so a stored one is kept (`ModelChoice.stored`) |
 | `iconURL` | yes | yes | `iconValue` / `resolveIconSource`, reply avatars | |
 | `authType` | no | | | Dead upstream: only the schema and web's fake picker data mention it |
 | `hideBadgeRow` | yes | yes | `toolsHiddenBySpec` → `toolbarShown` | |
@@ -472,6 +503,15 @@ listed in `ModelSpec`'s KDoc.
   but no request model sends it.
 - **A stored `url_context: true` is still sent** after the model's URL context control is hidden
   (#667). The server skips URL context on models that don't run it, so this is harmless.
+- **A preset loaded onto a spec chat keeps a spec.** Web always sets `newPreset.spec = null`
+  (`usePresets.ts`): the spec, its prompt and its tools are dropped, and under `enforce` every later
+  send fails. Mobile keeps the preset's own spec, or the chat's when the preset names no endpoint,
+  model or spec (`PresetPromptDelegate.loadPreset`). A preset naming its own endpoint or model
+  without a spec drops the chat's spec, as web does.
+- **No `@` mention to switch spec, model, agent or preset** (web: `useMentions.ts`,
+  `useSelectMention.onSelectSpec`). On mobile `@` inserts prompts only.
+- **Web start-chat URLs (`/c/new?spec=…`) aren't handled.** Only `librechat://model?…&spec=` is
+  (`DeepLinks.kt`).
 - **Seen on a v0.8.8 rig during #661, not traced in code** (a candidate for an upstream report):
   every continue saves a stray user message with parent `NO_PARENT` and reparents the reply. Web's
   payload does the same.
@@ -553,9 +593,9 @@ ported.
   `renderedToolCallIds`** — the latter stops at one level because that is where the dispatcher stops
   drawing cards, which is a different question.
 - **Reopen (`ComparisonModeDelegate.rehydrateFromMessage`):** nothing but the persisted attribution records that a conversation was a comparison, so `loadConversation` rehydrates comparison state from the assistant tail's parts on the first non-empty emission (latched once per load; respects a session toggle-off). Keep this answer = `POST /api/messages/branch` filtered to one agent's parts; the branched sibling becomes a single-agent tail, so the next reopen is the normal view. The route returns the whole saved message (a sibling of the comparison reply), and `ComparisonModeDelegate.branch` merges it into the tree in the same update that ends the comparison, as web appends it without refetching (`useBranchMessageMutation`, registered in `scripts/mirrors.json`). Outside a temporary chat it also writes it to Room first, so a reload whose fetch fails settles on the kept reply instead of the comparison one (which the load's rehydrate would turn back into a comparison). Then it reloads. **Temporary chats depend on the merge**: their load is a no-op (nothing of theirs touches Room), so the merge is the only way the kept reply reaches the screen.
-- **Lane B's spec on reopen.** The server saves nothing about the added convo's spec: not on the message, not on the conversation. The only trace is the sender in an ephemeral lane's id, `modelLabel ?? spec.label ?? modelDisplayLabel` (left out when empty). `ComparisonState.reopenedSecondaryId` keeps that id and `laneBSpec` reads it against the spec config through `laneBSpecFor`: the one spec on the lane's pair with that label, else, under `enforce` only, the one spec on the pair. It is re-read on every use, so a reopen that lands before the spec config still finds its spec; the screens read `ChatUiState.laneBSpec`, never `secondarySpec` directly. A sender equal to the lane endpoint's `modelDisplayLabel` is what a raw lane there saves too, so outside `enforce` it reopens raw even when a spec on the pair has that label: a wrong raw reopen loses only the preset (the user can re-pick), while a wrong spec reopen sends the spec's name and preset unasked. Until the endpoint's config has loaded its label is unknown, so the lane reopens raw meanwhile, and the next read decides once it arrives. **This depends on `buildAddedConvo` sending no `modelLabel`**: the server would save that as the sender in place of the spec's label. A saved-agent lane has no spec, and the server ignores one there.
+- **Lane B's spec on reopen.** The server saves nothing about the added convo's spec: not on the message, not on the conversation. The only trace is the sender in an ephemeral lane's id, `modelLabel ?? spec.label ?? modelDisplayLabel` (left out when empty). `ComparisonState.reopenedSecondaryId` keeps that id and `laneBSpec` reads it against the spec config through `laneBSpecFor`: the one spec on the lane's pair with that label, else the one on its endpoint with that label (an admin moved it to another model, which the server still applies), else, under `enforce` only, the one spec on the pair. A hidden spec is never served, so a lane sent on one reopens without it: a limit, not a bug. A lane B spec picked in this session is held to the stored-spec rule instead. It is re-read on every use, so a reopen that lands before the spec config still finds its spec; the screens read `ChatUiState.laneBSpec`, never `secondarySpec` directly. A sender equal to the lane endpoint's `modelDisplayLabel` is what a raw lane there saves too, so outside `enforce` it reopens raw even when a spec on the pair has that label: a wrong raw reopen loses only the preset (the user can re-pick), while a wrong spec reopen sends the spec's name and preset unasked. Until the endpoint's config has loaded its label is unknown, so the lane reopens raw meanwhile, and the next read decides once it arrives. **This depends on `buildAddedConvo` sending no `modelLabel`**: the server would save that as the sender in place of the spec's label. A saved-agent lane has no spec, and the server ignores one there.
 - **Lane B's settings.** `buildAddedConvo` copies its spec preset's sampling fields flat onto `AddedConversation`, the names `packages/api/src/agents/added.ts` copies. v0.8.8 applies them only when the primary is a saved agent. They are not `ModelParamPayload` output: that is keyed per provider, and the server reads this list by name whatever the provider. **The user's custom instructions do reach lane B**, and are the only primary setting that does: `buildAddedConvo` takes the primary's payload (the same `JsonObject` its request sends) and copies its `promptPrefix` (or Bedrock's `system`) onto the added convo as `promptPrefix`, which the server applies as the lane's instructions whatever the primary is. Web gets the same by cloning the whole conversation into the added slot. A saved-agent lane gets none (it runs its own), and a saved-agent primary gives none (the server ignores its payload, so a Bedrock agent's `system` never reached it). That primary is the turn's own (`spec.endpoint` for a send or queue drain), never the live selection, which may have moved by the time a queued turn drains. Drop this and lane B answers under no instructions while the primary follows the user's. A spec's prompt never reaches lane B, on web either: the served config strips `promptPrefix` and the other private preset fields (`PRIVATE_MODEL_SPEC_PRESET_FIELDS`), and the server merges them into the primary only.
-- **Edit and regenerate carry lane B; continue and compaction don't.** `MessageEditingDelegate.launchSend` calls `onSendStart` and sends `buildAddedConvo`, so an edit or regenerate in a comparison re-runs both panes, as web does. **A comparison can't be continued as one** (v0.8.8, checked on the rig): a continue carrying `addedConvo` makes the server rewrite both lanes from scratch in place, partial text lost, and one without it saves the primary's answer alone, dropping lane B's. A single-model continue extends the reply correctly (checked on Anthropic; to an OpenAI-compatible custom endpoint the server sends no partial, so the model writes the reply again and the save replaces it). So `ChatViewModel.continueGeneration` refuses while comparing, and each pane offers **Keep and continue** instead (`ComparisonModeDelegate.keepAndContinue`): branch to that lane (as "Keep this answer" does), wait for the kept reply to be the one shown, then continue it as a single-model chat. The server records cut-short only per message (`unfinished`), never per lane, so both panes offer it. Outside a temporary chat the Continue waits for the branch's reload to settle (`loadConversation`'s `onSettled`): the kept reply is already on screen from memory, but a reload landing mid-stream writes Room and the observer rebuilds the path without the streaming anchor. A failed fetch still settles, on the cached rows (which hold the kept reply), and a load that replaces this one runs the callback when it settles, so the wait's 100s cap is only a backstop sized to the fetch's retry ladder. A pane needs its lane's agent id, which streaming learns only from text and thinking deltas; `onFinal` fills a missing one from the final message's parts (web reads the lane from each part), so a lane stopped inside its first tool call still offers Keep. A lane with no parts stays without: the server refuses to branch to it. Keeping lane B first switches the chat to lane B's model and spec (`ChatViewModel.keepAndContinue`): a Continue sends with the chat's model, which while comparing is lane A's.
+- **Edit and regenerate carry lane B; continue and compaction don't.** `MessageEditingDelegate.launchSend` calls `onSendStart` and sends `buildAddedConvo`, so an edit or regenerate in a comparison re-runs both panes, as web does. **A comparison can't be continued as one** (v0.8.8, checked on the rig): a continue carrying `addedConvo` makes the server rewrite both lanes from scratch in place, partial text lost, and one without it saves the primary's answer alone, dropping lane B's. A single-model continue extends the reply correctly (checked on Anthropic; to an OpenAI-compatible custom endpoint the server sends no partial, so the model writes the reply again and the save replaces it). So `ChatViewModel.continueGeneration` refuses while comparing, and each pane offers **Keep and continue** instead (`ComparisonModeDelegate.keepAndContinue`): branch to that lane (as "Keep this answer" does), wait for the kept reply to be the one shown, then continue it as a single-model chat. The server records cut-short only per message (`unfinished`), never per lane, so both panes offer it. Outside a temporary chat the Continue waits for the branch's reload to settle (`loadConversation`'s `onSettled`): the kept reply is already on screen from memory, but a reload landing mid-stream writes Room and the observer rebuilds the path without the streaming anchor. A failed fetch still settles, on the cached rows (which hold the kept reply), and a load that replaces this one runs the callback when it settles, so the wait's 100s cap is only a backstop sized to the fetch's retry ladder. A pane needs its lane's agent id, which streaming learns only from text and thinking deltas; `onFinal` fills a missing one from the final message's parts (web reads the lane from each part), so a lane stopped inside its first tool call still offers Keep. A lane with no parts stays without: the server refuses to branch to it. Keeping lane B first switches the chat to lane B's model, spec and parameters (`ChatViewModel.keepAndContinue`, `parametersLaneRanOn`): a Continue sends with the chat's model, which while comparing is lane A's. Lane B ran on its spec's preset or, raw, on the server's defaults, with lane A's custom instructions (`buildAddedConvo`), so that is what the chat continues on. It is a pick like any other, so it writes last-used, in a temporary chat too.
 
 ## Continuing a cut-short reply
 - The chip ("Stopped" + Continue, `StoppedReplyFooter`) sits under the latest reply, always visible rather than in the tap-to-reveal action row: it also says why the reply ends mid-sentence. `MessageList` and `SecondaryMessageList` draw it under the reply whose id `stoppedReply` names.

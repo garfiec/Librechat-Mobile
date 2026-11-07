@@ -34,26 +34,58 @@ class ModelChoiceTest {
     }
 
     @Test
-    fun offered_or_unchecked_keeps_a_spec_only_on_its_own_pair() {
-        assertEquals("fast", "fast".offeredOrUnchecked("openAI", "gpt-4.1", specs, checkable = true).spec)
+    fun a_stored_spec_on_its_own_pair_is_kept() {
+        assertEquals(ModelChoice.Spec("fast", "openAI", "gpt-4.1"), ModelChoice.stored("openAI", "gpt-4.1", "fast", specs))
+    }
+
+    @Test
+    fun a_stored_spec_the_server_does_not_serve_is_kept_since_it_may_be_hidden() {
+        assertEquals(ModelChoice.Spec("hidden", "openAI", "gpt-4o"), ModelChoice.stored("openAI", "gpt-4o", "hidden", specs))
         assertEquals(
-            ModelChoice.Raw("openAI", "gpt-4o"),
-            "fast".offeredOrUnchecked("openAI", "gpt-4o", specs, checkable = true),
+            ModelChoice.Spec("hidden", "openAI", "gpt-4o"),
+            ModelChoice.stored("openAI", "gpt-4o", "hidden", specs.copy(enforce = true)),
         )
     }
 
     @Test
-    fun offered_or_unchecked_keeps_the_spec_while_there_is_no_config_to_check() {
-        assertEquals("fast", "fast".offeredOrUnchecked("openAI", "gpt-4o", specs = null, checkable = false).spec)
+    fun a_stored_spec_is_kept_while_there_is_no_config_to_check() {
+        assertEquals("fast", ModelChoice.stored("openAI", "gpt-4o", "fast", specs = null).spec)
     }
 
     @Test
-    fun without_stale_drops_a_spec_retargeted_off_the_pair() {
-        val stored = ModelChoice.restore("openAI", "gpt-4o", "fast")
+    fun a_stored_spec_served_on_another_endpoint_is_dropped() {
+        assertEquals(ModelChoice.Raw("azureOpenAI", "gpt-4.1"), ModelChoice.stored("azureOpenAI", "gpt-4.1", "fast", specs))
+        assertEquals(
+            ModelChoice.Raw("azureOpenAI", "gpt-4.1"),
+            ModelChoice.stored("azureOpenAI", "gpt-4.1", "fast", specs.copy(enforce = true)),
+        )
+    }
 
-        assertEquals(ModelChoice.Raw("openAI", "gpt-4o"), stored.withoutStale(specs))
-        val current = ModelChoice.restore("openAI", "gpt-4.1", "fast")
-        assertEquals(current, current.withoutStale(specs))
+    @Test
+    fun a_stored_spec_moved_to_another_model_on_its_endpoint_keeps_the_stored_model() {
+        assertEquals(ModelChoice.Spec("fast", "openAI", "gpt-4o"), ModelChoice.stored("openAI", "gpt-4o", "fast", specs))
+    }
+
+    @Test
+    fun under_enforce_a_stored_spec_moved_to_another_model_follows_it() {
+        assertEquals(
+            ModelChoice.Spec("fast", "openAI", "gpt-4.1"),
+            ModelChoice.stored("openAI", "gpt-4o", "fast", specs.copy(enforce = true)),
+        )
+    }
+
+    @Test
+    fun stored_against_holds_a_spec_selection_and_leaves_a_raw_one() {
+        assertEquals(ModelChoice.Raw("azureOpenAI", "gpt-4.1"), ModelChoice.Spec("fast", "azureOpenAI", "gpt-4.1").storedAgainst(specs))
+        assertEquals(ModelChoice.Raw("openAI", "gpt-4o"), ModelChoice.Raw("openAI", "gpt-4o").storedAgainst(specs))
+    }
+
+    @Test
+    fun seeded_against_keeps_a_spec_only_on_its_own_pair() {
+        val current = ModelChoice.Spec("fast", "openAI", "gpt-4.1")
+        assertEquals(current, current.seededAgainst(specs))
+        assertEquals(ModelChoice.Raw("openAI", "gpt-4o"), ModelChoice.Spec("fast", "openAI", "gpt-4o").seededAgainst(specs))
+        assertEquals(ModelChoice.Raw("openAI", "gpt-4o"), ModelChoice.Spec("gone", "openAI", "gpt-4o").seededAgainst(specs))
     }
 
     @Test

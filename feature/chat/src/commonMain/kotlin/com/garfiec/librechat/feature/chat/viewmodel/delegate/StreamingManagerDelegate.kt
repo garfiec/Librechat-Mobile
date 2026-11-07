@@ -23,6 +23,7 @@ import com.garfiec.librechat.feature.chat.util.applyAbortContract
 import com.garfiec.librechat.feature.chat.util.buildActiveMessagePath
 import com.garfiec.librechat.feature.chat.util.changesPath
 import com.garfiec.librechat.feature.chat.util.displayPath
+import com.garfiec.librechat.feature.chat.util.isSpecRefusal
 import com.garfiec.librechat.feature.chat.util.keyEndpointOf
 import com.garfiec.librechat.feature.chat.util.resolvedResponseMessage
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
@@ -427,14 +428,16 @@ class StreamingManagerDelegate(
             // applies; the prose under `error` does not. A project chat's start can fail the same
             // way (files changed mid-start, or the project gone).
             val mcpAuthMarker = (e as? ApiException)?.let { StreamErrorType.startFailureMarker(it.body, it.statusCode) }
+            val refusal = (e as? ApiException)?.chatRefusalText
             endStream(
                 StreamEndReason.StreamError(
                     refusalErrorMarker(e) ?: contentFilterNotice(e, safe.message) ?: mcpAuthMarker
                         ?: safe.message ?: "Chat request failed",
                     isNetwork = safe.kind == FailureKind.Network,
-                    refusedByServer = (e as? ApiException)?.chatRefusalText != null,
+                    refusedByServer = refusal != null,
                 ),
             )
+            if (isSpecRefusal(refusal)) host.surfaceSpecRefusal()
         }
     }
 

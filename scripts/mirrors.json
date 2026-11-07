@@ -1484,6 +1484,32 @@
       "failure_mode": "Upstream loosens or tightens when a spec overrides the user's selection, and mobile keeps applying the old rule -- forcing a spec web no longer forces, leaving a raw model where web now opens the spec, or letting a start-chat link beat a spec that web now applies over it."
     },
     {
+      "id": "default-model-spec-first-load",
+      "upstream": {
+        "file": "client/src/routes/ChatRoute.tsx",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/NewChatStart.kt",
+        "symbol": "withUngatedDefault"
+      },
+      "why": "`getNewConvoPreset` opens the first load of `/c/new` on `urlSpec ?? getDefaultModelSpec(...).default ?? .last ?? .softDefault`, with no `prioritize` check, so a `default: true` spec opens it even under `prioritize: false`. `withUngatedDefault` adds that to the seeder. Watched as a file because the function is nested in the route component.",
+      "failure_mode": "Upstream gates the first load on `prioritize` (or stops preferring `default`), and mobile keeps opening new chats on a default spec web no longer forces."
+    },
+    {
+      "id": "default-model-spec-default-preset",
+      "upstream": {
+        "file": "client/src/hooks/Config/useAppStartup.ts",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/NewChatStart.kt",
+        "symbol": "withUngatedDefault"
+      },
+      "why": "The startup effect stores the `default: true` spec's preset as the `defaultPreset` atom, whatever `prioritize` says, and `useNewConvo`'s `switchToConversation` starts every later plain \"New chat\" from it. The other half of default-model-spec-first-load.",
+      "failure_mode": "Upstream stops seeding `defaultPreset` from the default spec (or gates it), and mobile opens later new chats on a spec web no longer applies."
+    },
+    {
       "id": "model-spec-endpoint-resolution",
       "upstream": {
         "file": "packages/data-provider/src/models.ts",
@@ -1559,10 +1585,23 @@
       },
       "kotlin": {
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpecParameters.kt",
-        "symbol": "acrossSpecChange; also parametersSetBySpec in feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/ChatUiState.kt"
+        "symbol": "acrossSpecChange; also parametersSetBySpec in feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/ChatUiState.kt, and ModelChoice.stored in feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpecSeed.kt"
       },
-      "why": "Without `enforce` the server applies none of a spec's public preset fields (`mergeModelSpecPreset` fills only the private ones, `PRIVATE_MODEL_SPEC_PRESET_FIELDS`), so the client sends the spec's preset as the chat's parameters (`parametersFor`, `acrossSpecChange`). Under `enforce` it replaces the body with the preset, keeping only `ENFORCED_MODEL_SPEC_REQUEST_FIELDS`, which is why `parametersSetBySpec` locks the sheet and a loaded preset keeps the spec's values. Compare's lane B relies on the same private-field list.",
-      "failure_mode": "Upstream starts applying public preset fields itself, or keeps more of the body under `enforce`, and mobile's parameters or locked sheet no longer match what the server runs."
+      "why": "Without `enforce` the server applies none of a spec's public preset fields (`mergeModelSpecPreset` fills only the private ones, `PRIVATE_MODEL_SPEC_PRESET_FIELDS`), so the client sends the spec's preset as the chat's parameters (`parametersFor`, `acrossSpecChange`). Under `enforce` it replaces the body with the preset, keeping only `ENFORCED_MODEL_SPEC_REQUEST_FIELDS`, which is why `parametersSetBySpec` locks the sheet and a loaded preset keeps the spec's values. Compare's lane B relies on the same private-field list. The same file holds `resolveModelSpecForEndpoint` and `excludeHiddenModelSpecs`, which `ModelChoice.stored` ports: a stored spec is checked against the full list (hidden ones included) and by endpoint only, so mobile keeps a hidden or same-endpoint-retargeted spec and drops only one moved to another endpoint.",
+      "failure_mode": "Upstream starts applying public preset fields itself, or keeps more of the body under `enforce`, and mobile's parameters or locked sheet no longer match what the server runs. Or upstream starts checking the model too, or stops resolving hidden specs, and mobile keeps sending a spec name the server now refuses or ignores."
+    },
+    {
+      "id": "model-spec-refusals",
+      "upstream": {
+        "file": "api/server/middleware/buildEndpointOption.js",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SpecSeed.kt",
+        "symbol": "SPEC_REFUSALS (isSpecRefusal); also ModelChoice.stored"
+      },
+      "why": "The start POST's spec refusals, matched verbatim to open the model picker: 'No model spec selected' and 'Invalid model spec' under `enforce`, 'Model spec mismatch' with or without it. The same middleware decides which stored specs the server applies (the enforce branch replaces the body with the preset; the other applies only private fields and refuses only an endpoint mismatch), which `ModelChoice.stored` mirrors.",
+      "failure_mode": "Upstream rewords a refusal and the picker no longer opens (the sentence still shows). Or it changes when a stored spec is refused, and mobile keeps or drops specs the server now treats the other way."
     },
     {
       "id": "model-spec-preset-web",

@@ -91,6 +91,7 @@ import com.garfiec.librechat.feature.chat.util.isAddedAgentId
 import com.garfiec.librechat.feature.chat.util.newChatDraftKey
 import com.garfiec.librechat.feature.chat.util.overrideFor
 import com.garfiec.librechat.feature.chat.util.parametersFor
+import com.garfiec.librechat.feature.chat.util.parametersLaneRanOn
 import com.garfiec.librechat.feature.chat.util.reopenedParameters
 import com.garfiec.librechat.feature.chat.util.restore
 import com.garfiec.librechat.feature.chat.util.serializeMessageForClipboard
@@ -784,6 +785,7 @@ class ChatViewModel(
                     )
                 }
             }
+            override fun surfaceSpecRefusal() = surfaceModelSheet(SendBlockReason.SelectModel)
         },
     )
 
@@ -2217,7 +2219,8 @@ class ChatViewModel(
     /**
      * Keeps [agentId]'s answer and continues it with the model that wrote it. A Continue sends with
      * the chat's model, which during a comparison is lane A's, so keeping lane B switches the chat
-     * to lane B's model and spec first; read now, since keeping the lane clears the comparison.
+     * to lane B's model, spec and parameters first ([parametersLaneRanOn]); read now, since keeping
+     * the lane clears the comparison. A pick like any other, so it writes last-used.
      */
     fun keepAndContinue(agentId: String) {
         val state = _uiState.value
@@ -2226,7 +2229,12 @@ class ChatViewModel(
             comparison.secondaryModel?.let { model -> ModelChoice.restore(endpoint, model, state.laneBSpec) }
         }
         comparisonDelegate.keepAndContinue(agentId) {
-            laneB?.let(modelDelegate::onChoiceSelected)
+            laneB?.let { choice ->
+                // Read before the pick: moving onto or off a spec resets lane A's custom instructions.
+                val ran = _uiState.value.selection.parametersLaneRanOn(choice)
+                modelDelegate.onChoiceSelected(choice)
+                modelDelegate.updateModelParameters(ran, restoring = true)
+            }
             continueGeneration()
         }
     }

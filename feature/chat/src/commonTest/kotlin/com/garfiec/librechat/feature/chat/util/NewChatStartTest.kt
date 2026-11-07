@@ -13,16 +13,13 @@ class NewChatStartTest {
 
     private val prioritized = SpecSeed(endpoint = "openAI", model = "gpt-4.1", prioritized = true, spec = "marked")
     private val raw = ModelChoice.Raw("openAI", "gpt-4o")
-    private val specs = ModelSpecs(prioritize = true)
-    private val enforced = ModelSpecs(list = listOf(ModelSpec(name = "marked")), enforce = true)
 
     private fun demote(
         seed: SpecSeed? = prioritized,
         preferLastUsed: Boolean = true,
         modelSelect: Boolean = true,
         lastUsed: ModelChoice? = raw,
-        modelSpecs: ModelSpecs? = specs,
-    ) = seed.demotedForLastUsed(preferLastUsed, modelSelect, lastUsed, modelSpecs)
+    ) = seed.demotedForLastUsed(preferLastUsed, modelSelect, lastUsed)
 
     @Test
     fun setting_on_demotes_a_prioritized_spec() {
@@ -45,14 +42,23 @@ class NewChatStartTest {
     }
 
     @Test
-    fun enforce_with_a_raw_last_used_leaves_the_spec_prioritized() {
-        assertEquals(prioritized, demote(modelSpecs = enforced))
+    fun a_spec_last_used_demotes() {
+        val lastSpec = ModelChoice.restore("openAI", "gpt-4o", "picked")
+        assertEquals(prioritized.copy(prioritized = false), demote(lastUsed = lastSpec))
     }
 
     @Test
-    fun enforce_with_a_spec_last_used_demotes() {
-        val lastSpec = ModelChoice.restore("openAI", "gpt-4o", "picked")
-        assertEquals(prioritized.copy(prioritized = false), demote(lastUsed = lastSpec, modelSpecs = enforced))
+    fun an_unprioritized_default_spec_opens_new_chats_as_on_web() {
+        val marked =
+            ModelSpec(name = "marked", preset = Preset(endpoint = "openAI", model = "gpt-4.1"), isDefault = true)
+        val other = ModelSpec(name = "other", preset = Preset(endpoint = "openAI", model = "gpt-4o"))
+        val specs = ModelSpecs(list = listOf(other, marked), prioritize = false)
+
+        assertEquals(prioritized, (null as SpecSeed?).withUngatedDefault(specs))
+        // An answer the resolver gave stands.
+        val soft = prioritized.copy(spec = "soft", prioritized = false)
+        assertEquals(soft, soft.withUngatedDefault(specs))
+        assertNull((null as SpecSeed?).withUngatedDefault(ModelSpecs(list = listOf(other), prioritize = false)))
     }
 
     @Test
