@@ -492,7 +492,9 @@ listed in `ModelSpec`'s KDoc.
 - **Lane B's web search.** With an ephemeral primary (a model or spec, not a saved agent), lane B
   copies the primary's tools (`added.ts`, `tools: [...primaryAgent.tools]`) with empty
   `model_parameters`. So LibreChat search reaches it and the provider's built-in search never does,
-  which is why a comparison routes to LibreChat search. With a saved-agent primary, lane B searches
+  which is why a comparison routes to LibreChat search. A spec whose preset sets `web_search`, or a
+  chat that keeps a stored built-in search (`keepsBuiltInSearch`), keeps the built-in search on the
+  primary, so lane B gets no search, as on web. With a saved-agent primary, lane B searches
   only when its own spec sets `webSearch`: the added convo carries no `ephemeralAgent`, and its
   `model_parameters` take only the sampling keys. Web is the same.
 - **Keep this answer loses the Stopped chip.** `POST /api/messages/branch` saves the kept message
@@ -1186,12 +1188,19 @@ moves a custom OpenAI-compatible endpoint to a Responses API it may not serve.
   `MessageEditingDelegate`). In order: off or a saved agent sends nothing (a saved agent runs its
   own tools and `model_parameters`); a spec's `webSearch` is LibreChat search and its preset's
   `web_search` the built-in one (the admin's choice, not the preference's; on an endpoint with no
-  built-in search the preset's runs LibreChat search when it can, else nothing); a comparison uses
+  built-in search the preset's runs LibreChat search when it can, else nothing, except under
+  `enforce`, where the server sends the preset on any openAI, azureOpenAI, anthropic, google or
+  custom endpoint, so the route is the built-in search there); a reopened chat whose stored
+  conversation has `web_search` on (web's parameters switch) keeps the built-in search the same way
+  until the user turns the control off (`keepsBuiltInSearch`), since a send without it makes the
+  server unset it (`getUnsetFields`; `excludedKeys` doesn't list it); a comparison uses
   LibreChat search when it can (the second model only gets the first's tools, `added.ts`); otherwise the
   user's Settings › Chat › Web search choice (`AppPreferences.WebSearchFirst`, LibreChat first by
   default), falling back to the other, else nothing and the control is hidden.
 - **LibreChat search counts only when it will work** (`FeatureGatesState.librechatSearchReady`):
-  `/api/config` serves `webSearch` and `GET /api/agents/tools/web_search/auth` says `authenticated`,
+  the agents endpoint's `capabilities` include `web_search` (a missing list counts, as the server
+  falls back to the defaults, and so does an empty one, which decodes the same), `/api/config` serves `webSearch` and
+  `GET /api/agents/tools/web_search/auth` says `authenticated`,
   checked by `ChatConfigDelegate` on every config, account or role change (not asked at all when the
   role or `interface.webSearch` rules LibreChat search out) and false until answered. The answer is
   cached per account and config in `:core:data`'s `WebSearchReadinessRepository`, so only a process's
@@ -1210,9 +1219,11 @@ moves a custom OpenAI-compatible endpoint to a Responses API it may not serve.
   role's `WEB_SEARCH.USE` (`webSearchPermitted`; the server strips it without), as web's parameters
   panel offers its switch whatever the interface flag says.
 - **Built-in search exists** on openAI, azureOpenAI, anthropic, google and a custom endpoint whose
-  name contains `openrouter` (`builtInSearchProvider`; the server also matches the base URL, which
-  the client can't see), unless `dropParams` names `web_search`. The control's second line names the
-  search it runs ("LibreChat search", "Claude's built-in search"; `webSearchName`).
+  parameter set (`paramSettingsKey`) is `anthropic`, `google` or `openrouter` (the server serves
+  `openrouter` for an openrouter.ai base URL) or whose name contains `openrouter`, which
+  `getOpenAIConfig` still reads (`builtInSearchProvider`), unless `dropParams` names `web_search`.
+  The control's second line names the search it runs ("LibreChat search", "Claude's built-in
+  search"; `webSearchName`).
 - The parameters sheet has no Web Search row (`hiddenKeys`); the registry keeps it for the payload,
   presets and the agent editor, where it is the agent's own built-in search.
 - **Each chat remembers its switch on the device** (`ConversationWebSearchStore`, account-scoped,
@@ -1230,7 +1241,9 @@ moves a custom OpenAI-compatible endpoint to a Responses API it may not serve.
   Under a spec, a loaded preset's `web_search` and `url_context` go into the spec's additions
   (`withSpecTool`), not the user's hidden toggles.
 - **Known gap:** a spec with both `webSearch` and preset `web_search` under `enforce` shows
-  LibreChat search, but the server sends the preset anyway, so OpenAI runs both.
+  LibreChat search, but the server sends the preset anyway, so OpenAI runs both. Under `enforce` a
+  preset `web_search` on a custom endpoint without the Responses API fails the send, which the
+  server forces either way.
 - **A model spec drives the tools** (`util/SpecTools.kt`, registered in `scripts/mirrors.json` as
   `model-spec-tools` and `model-spec-tools-web`). The server ORs the spec's `webSearch`,
   `fileSearch`, `executeCode` and `memory` with the request's flags and adds its `mcpServers`, so

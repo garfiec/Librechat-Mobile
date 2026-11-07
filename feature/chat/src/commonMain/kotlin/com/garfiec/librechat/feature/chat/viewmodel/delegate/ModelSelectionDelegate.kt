@@ -1189,7 +1189,10 @@ class ModelSelectionDelegate(
             // feature/chat/CLAUDE.md, "Web search: one control, two searches").
             val current = handle.state.modelParameters.webSearch
             handle.update {
-                selection = selection.copy(modelParameters = selection.modelParameters.copy(webSearch = !current))
+                selection = selection.copy(
+                    modelParameters = selection.modelParameters.copy(webSearch = !current),
+                    keepsBuiltInSearch = selection.keepsBuiltInSearch && !current,
+                )
             }
         } else if (toolName == ToolConstants.URL_CONTEXT) {
             // URL context (Google-only) is backed by modelParameters.urlContext, like web search.

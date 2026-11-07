@@ -76,6 +76,11 @@ data class ModelSelectionState(
      */
     val reasoningCatalog: ReasoningCatalogState? = null,
     val modelParameters: ModelParameters = ModelParameters.DEFAULT,
+    /**
+     * The reopened chat's stored `web_search` is on (web's parameters switch), so the route keeps the
+     * built-in search: a send without it makes the server unset it. Cleared when the control is turned off.
+     */
+    val keepsBuiltInSearch: Boolean = false,
     /** Single source of truth for whether the *standalone* model-selector sheet is open — the
      *  top-bar chip, the comparison dual-pane, and send-block auto-opens. Preflight failures and
      *  readiness timeouts flip this to true so the user sees the sheet with a send-block banner.

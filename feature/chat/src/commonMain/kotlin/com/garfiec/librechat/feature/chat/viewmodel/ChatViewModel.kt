@@ -670,6 +670,8 @@ class ChatViewModel(
                 switch?.let { restored.copy(webSearch = it) } ?: restored,
                 restoring = true,
             )
+            val keepsBuiltIn = _uiState.value.selectedSpec == null && conversation.webSearch == true
+            _uiState.update { it.copy(selection = it.selection.copy(keepsBuiltInSearch = keepsBuiltIn)) }
         },
         onModelLoadSettled = {
             modelDelegate.conversationModelLoaded = true

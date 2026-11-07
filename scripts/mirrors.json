@@ -3370,7 +3370,7 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/WebSearchRoute.kt",
         "symbol": "builtInSearchProvider"
       },
-      "why": "The conversation parameter `web_search` becomes OpenRouter's `web` plugin on an OpenRouter endpoint and otherwise moves the request to the Responses API with a `web_search` tool. That move is why the app never sends the built-in search to a custom endpoint it can't tell is OpenRouter: a custom OpenAI-compatible server may not serve the Responses API.",
+      "why": "The conversation parameter `web_search` becomes OpenRouter's `web` plugin on an OpenRouter endpoint and otherwise moves the request to the Responses API with a `web_search` tool. That move is why the app never sends the built-in search to a custom endpoint it can't tell is OpenRouter (a custom OpenAI-compatible server may not serve the Responses API), except under `enforce` with a spec preset's `web_search`, which the server sends there anyway.",
       "failure_mode": "If upstream adds built-in search for other providers or stops using the Responses API for it, the control hides a search the server could run, or offers one that fails."
     },
     {
@@ -3384,8 +3384,50 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/WebSearchRoute.kt",
         "symbol": "builtInSearchProvider"
       },
-      "why": "The server treats an endpoint as OpenRouter when `defaultParamsEndpoint` says so or its name or base URL contains `openrouter`. The client sees only the name, so a custom endpoint counts as having a built-in search only when its name contains `openrouter`.",
+      "why": "`getOpenAIConfig` picks Anthropic's, Google's or OpenRouter's built-in search from `customParams.defaultParamsEndpoint`, and also treats a name or base URL containing `openrouter` as OpenRouter. The served config carries that key (`openrouter` for an openrouter.ai base URL, see `web-search-openrouter-served`), so the client reads the key, then the name.",
       "failure_mode": "If upstream changes the test, a custom OpenRouter endpoint loses or gains the built-in search here while the server does the opposite."
+    },
+    {
+      "id": "web-search-openrouter-served",
+      "upstream": {
+        "file": "packages/api/src/endpoints/custom/config.ts",
+        "symbol": "isOpenRouterEndpoint",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/WebSearchRoute.kt",
+        "symbol": "builtInSearchProvider"
+      },
+      "why": "The served config marks a custom endpoint `defaultParamsEndpoint: openrouter` from an openrouter.ai base URL or an explicit `customParams` (never from its name), and a `provider` sets its own key. That key is how the client learns an endpoint's built-in search when its name doesn't say OpenRouter.",
+      "failure_mode": "If upstream stops serving the key for a base URL match, an OpenRouter endpoint under another name loses its web-search control; if it marks more endpoints, the control appears where the server may not run the search."
+    },
+    {
+      "id": "web-search-stored-built-in-unset",
+      "upstream": {
+        "file": "packages/data-provider/src/config.ts",
+        "symbol": "excludedKeys",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/ModelSelectionState.kt",
+        "symbol": "ModelSelectionState.keepsBuiltInSearch"
+      },
+      "why": "`web_search` is not in `excludedKeys`, so a turn that omits it unsets the conversation's built-in search (`getUnsetFields`). A reopened chat whose stored `web_search` is on (web's parameters switch) therefore keeps the built-in search on the one control instead of following \"LibreChat first\".",
+      "failure_mode": "If upstream adds `web_search` to `excludedKeys`, keeping the built-in search is no longer needed and the chat could follow the preference; if the unset rule goes, the same."
+    },
+    {
+      "id": "web-search-enforced-endpoint-types",
+      "upstream": {
+        "file": "packages/api/src/endpoints/config/providers.ts",
+        "symbol": "providerConfigMap",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/ChatUiState.kt",
+        "symbol": "BUILT_IN_SEARCH_ENDPOINT_TYPES"
+      },
+      "why": "Under `enforce` the server sends a spec preset's `web_search` to whichever initializer the endpoint maps to: openAI, azureOpenAI and custom go through `getOpenAIConfig`, anthropic and google add their search tool, bedrock takes none. The app routes those endpoints to the built-in search so it never adds LibreChat search beside the one the server forces.",
+      "failure_mode": "If upstream maps another endpoint to an initializer with a built-in search (or drops one), the app adds a second search beside the forced one, or withholds LibreChat search where the server runs nothing."
     },
     {
       "id": "web-search-config-served",
@@ -3412,7 +3454,7 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/ChatConfigDelegate.kt",
         "symbol": "ChatConfigDelegate.loadWebSearchReadiness"
       },
-      "why": "The tool-definition path adds `web_search` on capability and permission alone; the search keys are checked only when the tool executes (`handleTools`, `loadWebSearchAuth`). So the app must check the keys itself (`GET /api/agents/tools/web_search/auth`) before sending LibreChat search, or the model gets a tool that fails when called and, on Anthropic and Google, loses its built-in search too.",
+      "why": "The tool-definition path adds `web_search` on capability and permission alone; the search keys are checked only when the tool executes (`handleTools`, `loadWebSearchAuth`). So the app must check the keys itself (`GET /api/agents/tools/web_search/auth`) before sending LibreChat search, or the model gets a tool that fails when called and, on Anthropic and Google, loses its built-in search too. The capability half (`filteredTools`, the agents `capabilities` from `resolveAgentCapabilities`, which falls back to the defaults on an empty list) is `ChatUiState.librechatSearchCapable`.",
       "failure_mode": "If upstream starts checking the keys before adding the definition, the app's own check becomes redundant (harmless). If the auth route changes shape, the app reads every server as not set up and always uses the built-in search."
     },
     {

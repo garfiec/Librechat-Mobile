@@ -219,6 +219,8 @@ class ChatConfigDelegate(
             ) { config, role, account ->
                 config?.webSearch?.takeIf { librechatSearchAllowed(role, config.interfaceConfig) } to account
             }.distinctUntilChanged().collectLatest { (searchConfig, _) ->
+                // Unknown, not unusable, while cached() waits out another screen's check.
+                handle.update { gates = gates.copy(librechatSearchChecking = searchConfig != null) }
                 val cached = searchConfig?.let { webSearchReadiness.cached(it) }
                 handle.update {
                     gates = gates.copy(

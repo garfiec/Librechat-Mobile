@@ -31,6 +31,9 @@ enum class WebSearchRoute { NONE, LIBRECHAT, BUILT_IN, CHECKING }
  *    are the admin's choice, so neither follows the preference. Where the preset asks for a built-in
  *    search the endpoint doesn't have (`dropParams`, a custom endpoint that isn't OpenRouter), it
  *    runs LibreChat search if that can, else nothing, rather than a parameter that searches nowhere.
+ *    Under `enforce` the server sends the preset anyway, so [builtInAvailable] counts it there.
+ *    A chat whose stored conversation has the built-in search on ([keepsBuiltIn], set from web's
+ *    parameters switch) takes the same rule: a send without `web_search` would make the server unset it.
  * 3. In a comparison, LibreChat search when it is usable: the second model only gets the first's
  *    tools (`added.ts` copies `primaryAgent.tools`, with empty `model_parameters`), so it is the
  *    only search both panes run.
@@ -51,6 +54,7 @@ internal fun webSearchRoute(
     librechatUsable: Boolean,
     builtInAvailable: Boolean,
     librechatChecking: Boolean = false,
+    keepsBuiltIn: Boolean = false,
 ): WebSearchRoute {
     if (!on || !sendsEphemeralTools) return WebSearchRoute.NONE
     if (spec != null && ToolConstants.WEB_SEARCH in spec.forcedTools) return WebSearchRoute.LIBRECHAT
@@ -58,6 +62,7 @@ internal fun webSearchRoute(
     val builtIn = WebSearchRoute.BUILT_IN.takeIf { builtInAvailable }
     val route = when {
         spec != null && ToolConstants.WEB_SEARCH in spec.presetTools -> builtIn ?: librechat
+        spec == null && keepsBuiltIn -> builtIn ?: librechat
         comparing && librechat != null -> librechat
         preference == WebSearchPreference.LIBRECHAT_FIRST -> librechat ?: builtIn
         else -> builtIn ?: librechat
@@ -67,14 +72,24 @@ internal fun webSearchRoute(
 
 /**
  * The provider whose built-in search a send on [endpoint] would run, or null when it has none:
- * openAI, azureOpenAI, anthropic, google, and a custom endpoint the server treats as OpenRouter
- * (its name contains `openrouter`, as `getOpenAIConfig` checks). The server also checks the base
- * URL, which the client never sees, so an OpenRouter endpoint under another name reads as none.
- * Bedrock and every other custom endpoint have none. [dropParams] naming `web_search` means the
- * server strips it.
+ * openAI, azureOpenAI, anthropic, google, and a custom endpoint whose parameter set
+ * ([settingsKey], `paramSettingsKey`) is `anthropic`, `google` or `openrouter`, as `getOpenAIConfig`
+ * picks the search from `defaultParamsEndpoint` (the server serves `openrouter` there for an
+ * openrouter.ai base URL). A name containing `openrouter` counts too: `getOpenAIConfig` still reads
+ * the name. Bedrock and every other custom endpoint have none. [dropParams] naming `web_search`
+ * means the server strips it.
  */
-internal fun builtInSearchProvider(endpoint: String?, dropParams: List<String>): BuiltInSearchProvider? {
+internal fun builtInSearchProvider(
+    endpoint: String?,
+    dropParams: List<String>,
+    settingsKey: String? = null,
+): BuiltInSearchProvider? {
     if (endpoint == null || ToolConstants.WEB_SEARCH in dropParams) return null
+    when (settingsKey) {
+        "anthropic" -> return BuiltInSearchProvider.ANTHROPIC
+        "google" -> return BuiltInSearchProvider.GOOGLE
+        "openrouter" -> return BuiltInSearchProvider.OPENROUTER
+    }
     return when (endpoint.lowercase()) {
         "openai" -> BuiltInSearchProvider.OPENAI
         "azureopenai" -> BuiltInSearchProvider.AZURE_OPENAI
