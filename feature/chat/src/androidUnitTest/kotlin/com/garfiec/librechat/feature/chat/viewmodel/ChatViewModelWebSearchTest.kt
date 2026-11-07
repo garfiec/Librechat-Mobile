@@ -24,6 +24,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.TestScope
@@ -140,6 +141,32 @@ class ChatViewModelWebSearchTest {
             coVerify(exactly = 1) { fixture.agentToolsRepository.verifyToolAuth(ToolConstants.WEB_SEARCH) }
         } finally {
             second.viewModelScope.cancel()
+        }
+    }
+
+    @Test
+    fun `a second chat opened while the first one's check is out sends no search until the answer`() {
+        coEvery { fixture.agentToolsRepository.verifyToolAuth(ToolConstants.WEB_SEARCH) } coAnswers {
+            delay(5_000)
+            Result.Success(ToolAuthResult(authenticated = true))
+        }
+        webSearchTest { first ->
+            val second = fixture.build(defaultDispatcher = testDispatcher)
+            try {
+                runCurrent()
+                sendWithSearch(second)
+
+                assertThat(second.uiState.value.webSearchRoute).isEqualTo(WebSearchRoute.CHECKING)
+                assertThat(topLevel.single()).isFalse()
+                assertThat(ephemeral.single()?.webSearch).isNull()
+
+                advanceTimeBy(5_001)
+
+                assertThat(second.uiState.value.webSearchRoute).isEqualTo(WebSearchRoute.LIBRECHAT)
+                assertThat(first.uiState.value.gates.librechatSearchReady).isTrue()
+            } finally {
+                second.viewModelScope.cancel()
+            }
         }
     }
 
@@ -268,6 +295,39 @@ class ChatViewModelWebSearchTest {
             advanceUntilIdle()
 
             assertThat(vm.uiState.value.modelParameters.webSearch).isTrue()
+            assertThat(vm.uiState.value.webSearchRoute).isEqualTo(WebSearchRoute.LIBRECHAT)
+        }
+    }
+
+    @Test
+    fun `a reopened chat whose stored built-in search is on keeps it, so a send doesn't erase it`() {
+        coEvery { fixture.conversationRepository.getConversation(CONVERSATION, any()) } returns Result.Success(
+            Conversation(conversationId = CONVERSATION, endpoint = ENDPOINT, model = MODEL, webSearch = true),
+        )
+        webSearchTest(CONVERSATION) { vm ->
+            advanceUntilIdle()
+            assertThat(vm.uiState.value.webSearchRoute).isEqualTo(WebSearchRoute.BUILT_IN)
+
+            vm.onInputChanged("hello")
+            vm.sendMessage()
+            runCurrent()
+
+            assertThat(topLevel.single()).isTrue()
+            assertThat(ephemeral.single()?.webSearch).isNull()
+        }
+    }
+
+    @Test
+    fun `turning a kept built-in search off and on again follows the preference`() {
+        coEvery { fixture.conversationRepository.getConversation(CONVERSATION, any()) } returns Result.Success(
+            Conversation(conversationId = CONVERSATION, endpoint = ENDPOINT, model = MODEL, webSearch = true),
+        )
+        webSearchTest(CONVERSATION) { vm ->
+            advanceUntilIdle()
+
+            vm.toggleTool(ToolConstants.WEB_SEARCH)
+            vm.toggleTool(ToolConstants.WEB_SEARCH)
+
             assertThat(vm.uiState.value.webSearchRoute).isEqualTo(WebSearchRoute.LIBRECHAT)
         }
     }
