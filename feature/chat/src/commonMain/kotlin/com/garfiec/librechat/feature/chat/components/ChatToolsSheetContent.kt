@@ -48,6 +48,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -63,6 +64,7 @@ import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.ui.components.AdaptiveCheckbox
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
+import com.garfiec.librechat.core.ui.components.DragSelectRowShape
 import com.garfiec.librechat.core.ui.components.ListDragSelection
 import com.garfiec.librechat.core.ui.components.dragSelectRow
 import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
@@ -380,7 +382,8 @@ fun ChatToolsSheetContent(
 
 /**
  * For the row a settings chip's tap opened the sheet at ([focused]): scrolled into view once the
- * page has laid out, and marked with a primary wash that fades, so the eye lands on the switch.
+ * page has laid out, and marked with a primary wash in the row's press shape that fades, so the eye
+ * lands on the switch.
  */
 @Composable
 private fun focusedRow(focused: Boolean): Modifier {
@@ -397,7 +400,10 @@ private fun focusedRow(focused: Boolean): Modifier {
     }
     return Modifier
         .bringIntoViewRequester(requester)
-        .drawBehind { drawRect(color.copy(alpha = FOCUS_WASH_ALPHA * wash.value)) }
+        // The row's own press shape, so the mark reads as the row being touched.
+        .drawBehind {
+            drawOutline(DragSelectRowShape.createOutline(size, layoutDirection, this), color.copy(alpha = FOCUS_WASH_ALPHA * wash.value))
+        }
 }
 
 private const val FOCUS_HOLD_MS = 700L
