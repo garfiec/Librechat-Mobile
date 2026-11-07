@@ -15,7 +15,7 @@ import java.io.File
 
 /**
  * The SQLite facts the message search index is built on, checked against the framework SQLite
- * production Android uses (Robolectric supplies it on the host JVM):
+ * Robolectric supplies on the host JVM (production runs the bundled SQLite, which has them too):
  *
  * - FTS4 with the `unicode61` tokenizer exists and folds case.
  * - Room turns foreign keys on, so deleting a message cascades into `message_search`, and the

@@ -17,9 +17,9 @@ import kotlin.test.assertTrue
  * running on the Path B lane established by [RoomHostJvmSmokeTest].
  *
  * Drives [MIGRATION_4_5] directly against an in-memory connection from [AndroidSQLiteDriver] — the
- * framework-backed driver, shadowed by Robolectric on the JVM, the same engine production Android
- * runs. This gives the migration the exact `androidx.sqlite.SQLiteConnection` its `migrate()` takes,
- * with no instrumentation or schema-asset plumbing.
+ * framework-backed driver, shadowed by Robolectric on the JVM. This gives the migration the exact
+ * `androidx.sqlite.SQLiteConnection` its `migrate()` takes, with no instrumentation or schema-asset
+ * plumbing.
  *
  * It asserts the migration's contract: every tenant table gains a **nullable** `accountId` whose value
  * is NULL for rows that predate the migration (legacy single-account data, claimed later at runtime),

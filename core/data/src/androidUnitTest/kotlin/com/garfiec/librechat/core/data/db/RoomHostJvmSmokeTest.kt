@@ -18,8 +18,8 @@ import kotlin.test.assertEquals
  * the `sqlite-bundled` artifact resolved for the `androidTarget` ships only Android `.so` natives, which
  * throw `UnsatisfiedLinkError` in a desktop host-JVM unit test. This test uses **Path B**: run the
  * real [LibreChatDatabase] in-memory on the host JVM under Robolectric, which supplies a working framework
- * SQLite — the same driver production Android uses (`DataPlatformModule.android.kt` builds Room with no
- * `setDriver`, so it takes the default `AndroidSQLiteDriver`).
+ * SQLite. Production Android runs the bundled driver (`DataPlatformModule.android.kt`), so this lane
+ * covers the schema, DAOs and migrations but not a difference between the two SQLite builds.
  *
  * If this passes, the account-tenancy migration (4→5) and the cross-account isolation suite can live in
  * `androidUnitTest`, gated by the existing host-JVM `Test` job as a required check — no emulator, no
