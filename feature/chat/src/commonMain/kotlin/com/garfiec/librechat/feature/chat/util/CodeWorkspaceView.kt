@@ -220,9 +220,14 @@ internal fun codeWorkspaceUiState(
         locked = resolution.locked,
         holdsSend = resolution.submission == null,
         // Folded, the chip names its machine before the first send as after it ("machine · workspace"),
-        // so sealing the pick doesn't rename it; the card shows a lone machine only once locked.
-        machine = machineChip ?: only?.takeIf { folded && !withoutWorkspace }?.let {
-            CodeMachineChip(it.environment.displayName, emptyList())
+        // so sealing the pick doesn't rename it; the card shows a lone machine only once locked. Not a
+        // machine named as its workspace (the server's own environment is often both "Server
+        // workspace"): the chip would read the name twice.
+        machine = if (folded) {
+            (machineChip ?: only?.takeIf { !withoutWorkspace }?.let { CodeMachineChip(it.environment.displayName, emptyList()) })
+                ?.takeUnless { it.name != null && it.name.equals(onlyDescriptor?.displayName, ignoreCase = true) }
+        } else {
+            machineChip
         },
         workspace = workspaceChip,
         branch = onlyDescriptor?.environment?.ref?.takeIf { it.isNotBlank() && !withoutWorkspace },

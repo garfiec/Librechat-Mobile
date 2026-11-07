@@ -113,6 +113,24 @@ class CodeWorkspaceViewTest {
     }
 
     @Test
+    fun aFoldedChipDoesNotNameAMachineCalledAsItsWorkspace() {
+        val server = PublicCodeEnvironment(id = mbp.id, type = "attached", name = "Server workspace")
+        val serverWorkspace = switchboard.copy(name = "Server workspace")
+        val ui = codeWorkspaceUiState(
+            CodeWorkspaceResolver.resolve(
+                capabilities.copy(statefulCodeSessions = StatefulCodeSessionsConfig(environments = listOf(server))),
+                chat(CodeEnvironmentMode.ATTACHED, listOf(CodeWorkspaceSelection(mbp.id, "switchboard"))),
+                mapOf(dev.id to dev),
+                mapOf(mbp.id to StatusResult.Loaded(CodeEnvironmentStatus(mbp.id, "ready", listOf(serverWorkspace)))),
+            ),
+            CodeEnvironmentMode.ATTACHED, null, null, sheetOpen = false, attention = false,
+        )
+        assertFolded(ui)
+        assertEquals("Server workspace", ui.workspace.name)
+        assertNull(ui.machine)
+    }
+
+    @Test
     fun anUndecidedPickWithAMachineToChooseKeepsTheCard() {
         // The machine picker is the card's alone: folding would hide it before the send seals the pick.
         val vm = PublicCodeEnvironment(id = "build-vm", type = "attached")
