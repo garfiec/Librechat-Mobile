@@ -145,7 +145,8 @@ work, platform APIs) goes to `OS integration` whatever its area.
 
 ## Phase 1: the workflow
 
-Run the batches **one after another**. For each batch `n` of `N`:
+Run the batches **one after another**. For each batch `n` of `N`, first write the args to
+`$RUN/args-<n>.json`, then launch with that file's contents pasted unchanged:
 
 ```
 Workflow({ name: "audit-parity", args: {
@@ -154,12 +155,17 @@ Workflow({ name: "audit-parity", args: {
   report: <n == N>,
   // last batch of a multi-batch sweep only, from result-1..N-1.json:
   priorIndex: [...all earlier index], priorRuns: [...all earlier runs],
-  priorLeads: [...all earlier leads], priorRefuted: [...all earlier refuted]
+  priorLeads: [...all earlier leads], priorRefuted: [...all earlier refuted],
+  // optional: stopAt: <agents>, pause at the next round/critic/triage/report boundary once this
+  // many agents have run (cached replays count); resume with a higher value
 } })
 ```
 
-Pass arrays as parsed values, not strings. Save each return to `$RUN/result-<n>.json` before
-anything else.
+Pass arrays as parsed values, not strings. The workflow logs `args fingerprint <hash>` first;
+write it, the run ID and the tool result's Script file path to `$RUN/RESUME.md`.
+Save each return to `$RUN/result-<n>.json` before anything else. A return with `halted` set has
+no findings: resume it (below) until `halted` is null, overwriting `result-<n>.json`, before the
+next batch or Phase 2.
 
 Per area, as a pipeline (areas don't wait for each other):
 - **Scope**: an agent writes `areas/<id>/scope.md`, mapping our files, the endpoints, the server
@@ -187,7 +193,30 @@ totals (from the report agent, or null), `ranking` (`order`, `groups`, `shared_r
 (one short entry per finding), `runs` (per area: rounds, agents, `exhausted`, `budgetStop`,
 verdict counts, `triaged`), `leads`, `refuted` and `unmerged`.
 
-Every failure degrades rather than throws, and is logged:
+**An agent that fails halts the run** (almost always the usage limit, which fails everything
+after it): no new agent starts, agents already running finish and are cached, and the workflow
+returns `{halted: "<reason>", fingerprint, agentsUsed, areas}` with no findings. A `stopAt` pause
+returns the same shape.
+
+**Resuming.** In the same session:
+`Workflow({ scriptPath: "<the run's Script file>", resumeFromRunId: "<run ID>", args: <args-<n>.json, plus expectFingerprint: "<hash>"> })`.
+Every agent whose prompt is unchanged replays from cache; only what never finished runs. The
+prompts embed the args, so a resume whose args differ re-runs every agent whose prompt they reach
+(`repo`, `run`, `pin` or `ref`: all of them): `expectFingerprint` makes that throw before any agent
+starts. Wait for the limit to
+reset before resuming; a resume into a spent limit halts on its first agent. If a resume with limit
+to spare halts on the same label again, that agent fails for another reason: resume once more with
+`haltOnFailure: false` added (not part of the fingerprint) so it degrades instead. Finders and the
+critic keep a work log in `areas/<id>/log/`, so one cut off mid-run resumes from its log instead
+of re-reading everything (`workLog: false` turns this off, only for runs launched before it
+existed). The cache is per session: a new session has to start the batch over, and first deletes
+`areas/*/log/`, or each finder takes the old session's log for its own cut-off attempt.
+
+**Cost.** Finders dominate (three per round, each about ten verifiers' worth). To spread a long
+batch over several usage windows, launch with `stopAt` and resume with a higher one each window.
+
+With `haltOnFailure: false`, or when the agent budget runs out, failures degrade instead, and
+are logged:
 - an agent that crashes or would exceed the budget returns nothing;
 - a failed **scoper**: the area's finders map it from the seeds;
 - a failed **dedupe**: every candidate goes through, so expect some duplicates;
@@ -195,9 +224,6 @@ Every failure degrades rather than throws, and is logged:
 - a failed **triage**: the area's findings come back unmerged in `unmerged` and no
   `areas/<id>/findings.json` is written;
 - a failed **report**: no `report.md` and `ranking` is null.
-
-A usage-limit cut: relaunch that batch with `resumeFromRunId` and the same args; finished agents
-replay from cache.
 
 ## Phase 2: assemble, check and report (you)
 

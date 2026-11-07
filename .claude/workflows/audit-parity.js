@@ -25,6 +25,13 @@ const CAP = A.agentCap || 950
 const REPORT = A.report !== false
 const PRIOR_INDEX = parse(A.priorIndex) || []
 const PRIOR_RUNS = parse(A.priorRuns) || []
+const PRIOR_LEADS = parse(A.priorLeads) || []
+const PRIOR_REFUTED = parse(A.priorRefuted) || []
+// Counts agents replayed from cache, so a resume with a higher stopAt pauses at the same total.
+const STOP_AT = A.stopAt || Infinity
+// Off only for runs launched before work logs existed: their cached finder prompts lack the log line.
+const WORK_LOG = A.workLog !== false
+const HALT_ON_FAILURE = A.haltOnFailure !== false
 const METHOD = `${REPO}/.claude/skills/audit-parity/reference.md`
 const WEB = REF === 'web'
 
@@ -32,16 +39,44 @@ if (!REPO || !RUN || !PIN) throw new Error('audit-parity: args.repo, args.run an
 if (!AREAS.length && !(REPORT && PRIOR_INDEX.length)) throw new Error('audit-parity: args.areas is empty and there is no priorIndex to report on')
 for (const a of AREAS) if (!a.id || !a.name) throw new Error(`audit-parity: every area needs id and name, got ${JSON.stringify(a)}`)
 
+// Prompts embed these args and the cache replays only byte-identical prompts: a resume must pass
+// the launch fingerprint back as expectFingerprint, so differing args throw here.
+function fnv(str) {
+  let h = 2166136261 >>> 0
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0 }
+  return h.toString(16).padStart(8, '0')
+}
+// The round cap, agent cap and report flag steer which agents run and what later prompts hold.
+// stopAt and haltOnFailure stay out: a resume changes them.
+const FINGERPRINT = fnv(JSON.stringify([REPO, RUN, PIN, REF, AREAS, MAX_ROUNDS, CAP, REPORT, PRIOR_INDEX, PRIOR_RUNS, PRIOR_LEADS, PRIOR_REFUTED, WORK_LOG]))
+log(`args fingerprint ${FINGERPRINT}`)
+if (A.expectFingerprint && A.expectFingerprint !== FINGERPRINT) {
+  throw new Error(`audit-parity: args fingerprint ${FINGERPRINT} does not match expectFingerprint ${A.expectFingerprint}. These args would re-run the agents whose prompts they change, or change which agents run; pass the args saved in the run directory unchanged.`)
+}
+
 // Agent budget. The runtime refuses agents past its lifetime cap, so the script keeps its own
 // count: each area gets an equal share and the cross-area report keeps a reserve.
 const REPORT_RESERVE = REPORT ? 2 : 0
 const SHARE = AREAS.length ? Math.floor((CAP - REPORT_RESERVE) / AREAS.length) : 0
 const TAIL = 9 // critic, its dedupe, triage, and verification of up to three critic findings
 const SKIP = { skipped: true }
+const HALTED = { halted: true }
 const spent = {}
 let used = 0
 
+// The first failed agent (almost always the usage limit) stops new launches; every await in an
+// area checks halt, so nothing degraded is returned.
+let halt = null
+function stop(reason, resume = 'resume with the same args') {
+  if (!halt) { halt = reason; log(`HALT: ${reason}. No new agents start; ${resume}.`) }
+}
+function pauseHere(where) {
+  if (!halt && used >= STOP_AT) stop(`paused before ${where}: ${used} agents run, stopAt ${STOP_AT}`, 'resume with the same args and a higher stopAt')
+  return !!halt
+}
+
 async function call(areaId, prompt, opts) {
+  if (halt) return HALTED
   const limit = areaId ? SHARE : CAP
   if ((areaId && (spent[areaId] || 0) >= limit) || used >= CAP) {
     log(`${opts.label}: skipped, agent budget spent`)
@@ -49,15 +84,17 @@ async function call(areaId, prompt, opts) {
   }
   used++
   if (areaId) spent[areaId] = (spent[areaId] || 0) + 1
+  let r = null
   try {
-    return await agent(prompt, opts)
+    r = await agent(prompt, opts)
   } catch (e) {
     log(`${opts.label} threw: ${e && e.message ? e.message : e}`)
-    return null
   }
+  if (r == null && HALT_ON_FAILURE) stop(`${opts.label} failed (usage limit or API error)`)
+  return r
 }
 const left = id => SHARE - (spent[id] || 0)
-const got = r => r && r !== SKIP
+const got = r => r && r !== SKIP && r !== HALTED
 
 function context(area, opts = {}) {
   return `
@@ -183,6 +220,11 @@ const OURS_ONLY = [
 ]
 
 const brief = f => `${f.title} [${f.kind}] ours: ${f.ours}`
+// The log is named for the task's exact prompt: a relaunch whose earlier rounds came out
+// differently gives a later finder a different prompt, so it never inherits a log of other work.
+const withLog = (area, label, prompt) => (WORK_LOG ? `${prompt}
+Work log: ${RUN}/areas/${area.id}/log/${label.replace(/:/g, '-')}-${fnv(prompt)}.md is the only file you may write. If it already exists, an earlier attempt at this exact task was cut off: read it first, keep what it found, and do not re-trace what it lists. As you go, append each flow you finish tracing (one line) and each finding as soon as you have checked it (every field), so a cut-off attempt loses little. Your returned answer must still list everything, the log's contents included.
+` : prompt)
 const short = (s, n) => (s && s.length > n ? `${s.slice(0, n)}…` : s || '')
 
 async function verify(area, ctx, f, label) {
@@ -228,7 +270,7 @@ ${candidates.map((f, i) => `${i}. ${brief(f)}`).join('\n')}
 
 Return the indexes of candidates that are new (not in Seen, and not a repeat of an earlier candidate).`, { label: `dedupe:${label}`, phase, schema: NEW_SCHEMA, effort: 'low' })
   if (!got(r)) {
-    log(`dedupe:${label} ${r === SKIP ? 'skipped' : 'failed'}; passing all ${candidates.length} candidates through`)
+    if (r !== HALTED) log(`dedupe:${label} ${r === SKIP ? 'skipped' : 'failed'}; passing all ${candidates.length} candidates through`)
     return candidates
   }
   return [...new Set(r.fresh)].filter(i => i >= 0 && i < candidates.length).map(i => candidates[i])
@@ -253,7 +295,7 @@ You are the SCOPER for this area. Write ${RUN}/areas/${area.id}/scope.md (the ON
 - Reference: ${WEB ? 'the data-service functions and endpoints (packages/data-provider/src/data-service.ts, api-endpoints.ts), react-query hooks (client/src/data-provider/) and components (client/src/components/)' : `the same map in ${REF}`}.
 - Reference calls in this area we make no equivalent of: one line each. These seed missing-feature and behaviour-gap leads.
 Use path:line where useful. Be complete rather than brief. Return one line: how many files on each side and how many endpoints.`, { label: `scope:${area.id}`, phase: 'Scope' })
-  if (!got(r)) log(`scope:${area.id} ${r === SKIP ? 'skipped' : 'failed'}; finders will map the area from its seeds`)
+  if (!got(r) && r !== HALTED) log(`scope:${area.id} ${r === SKIP ? 'skipped' : 'failed'}; finders will map the area from its seeds`)
   return { ok: got(r) }
 }
 
@@ -266,22 +308,27 @@ async function auditArea(area, scoped) {
   let dry = 0
   let round = 0
   let budgetStop = false
+  const paused = () => ({ area: area.id, name: area.name, halted: true, rounds: round, agents: spent[area.id] || 0, found: seen.length })
   while (dry < 2 && round < MAX_ROUNDS) {
+    if (pauseHere(`${area.id} round ${round + 1}`)) return paused()
     if (left(area.id) < LENSES.length + 1 + TAIL) { budgetStop = true; log(`${area.id}: no budget for round ${round + 1}`); break }
     round++
     const raw = await parallel(LENSES.map(l => () =>
-      call(area.id, `${ctx}
+      call(area.id, withLog(area, `find:${area.id}:r${round}:${l.key}`, `${ctx}
 Your lens is ${l.focus}
 This is round ${round}. ${seen.length ? `These are already found (some were refuted); do NOT report them again, look for what they missed:\n${seen.map((f, i) => `${i + 1}. ${brief(f)}`).join('\n')}` : 'Nothing has been found yet.'}
-Report every defect that survives your own check against the evidence rules. There is no cap. In "checked", list what you traced, including things that were fine, so later rounds know what was covered.`,
+Report every defect that survives your own check against the evidence rules. There is no cap. In "checked", list what you traced, including things that were fine, so later rounds know what was covered.`),
       { label: `find:${area.id}:r${round}:${l.key}`, phase: 'Find', schema: FIND_SCHEMA })))
+    if (halt) return paused()
     raw.forEach((o, i) => { if (got(o)) coverage.push({ round, lens: LENSES[i].key, checked: o.checked }) })
     const failed = LENSES.filter((l, i) => !got(raw[i])).map(l => l.key)
     if (failed.length) log(`${area.id} round ${round}: finder(s) did not run: ${failed.join(', ')}`)
     const news = await fresh(area, raw.filter(got).flatMap(o => o.findings), seen, `${area.id}:r${round}`, 'Find')
+    if (halt) return paused()
     seen.push(...news)
     leads.push(...news.filter(f => f.kind === 'missing-feature'))
     const judged = await verifyAll(area, ctx, news.filter(f => f.kind !== 'missing-feature'), `${area.id}:r${round}`, TAIL)
+    if (halt) return paused()
     results.push(...judged)
     const survived = judged.filter(j => j.verdict !== 'REFUTED').length
     log(`${area.id} round ${round}: ${news.length} new, ${survived} survived`)
@@ -292,19 +339,24 @@ Report every defect that survives your own check against the evidence rules. The
   const exhausted = dry >= 2
   if (!exhausted && !budgetStop) log(`${area.id}: stopped at the ${MAX_ROUNDS}-round cap before two dry rounds`)
 
-  const critic = await call(area.id, `${ctx}
+  if (pauseHere(`${area.id} critic`)) return paused()
+  const critic = await call(area.id, withLog(area, `critic:${area.id}`, `${ctx}
 You are the completeness critic for this area. ${round} rounds of finders have run. What they traced:
 ${coverage.map(c => `[r${c.round} ${c.lens}] ${c.checked.join('; ')}`).join('\n')}
 
 What they found:
 ${seen.map((f, i) => `${i + 1}. ${brief(f)}`).join('\n') || '(nothing)'}
 
-Ask what is missing: calls in the scope nobody traced, status codes or error codes nobody checked, reference flows nobody walked, states (loading, error, offline, session expired) nobody looked at, the iOS side of anything checked only on Android. Check those yourself and report every defect you confirm. Do not repeat the list above.`, { label: `critic:${area.id}`, phase: 'Critic', schema: FIND_SCHEMA, effort: 'high' })
-  if (!got(critic)) log(`critic:${area.id} ${critic === SKIP ? 'skipped' : 'failed'}`)
+Ask what is missing: calls in the scope nobody traced, status codes or error codes nobody checked, reference flows nobody walked, states (loading, error, offline, session expired) nobody looked at, the iOS side of anything checked only on Android. Check those yourself and report every defect you confirm. Do not repeat the list above.`), { label: `critic:${area.id}`, phase: 'Critic', schema: FIND_SCHEMA, effort: 'high' })
+  if (!got(critic) && critic !== HALTED) log(`critic:${area.id} ${critic === SKIP ? 'skipped' : 'failed'}`)
+  if (halt) return paused()
   const criticNew = got(critic) ? await fresh(area, critic.findings, seen, `${area.id}:critic`, 'Critic') : []
+  if (halt) return paused()
   seen.push(...criticNew)
   leads.push(...criticNew.filter(f => f.kind === 'missing-feature'))
-  results.push(...await verifyAll(area, ctx, criticNew.filter(f => f.kind !== 'missing-feature'), `${area.id}:c`, 1))
+  const criticJudged = await verifyAll(area, ctx, criticNew.filter(f => f.kind !== 'missing-feature'), `${area.id}:c`, 1)
+  if (halt) return paused()
+  results.push(...criticJudged)
 
   const kept = results.filter(r => r.verdict !== 'REFUTED')
   const refuted = results.filter(r => r.verdict === 'REFUTED')
@@ -312,6 +364,7 @@ Ask what is missing: calls in the scope nobody traced, status codes or error cod
   let index = []
   let triageOk = false
   if (kept.length) {
+    if (pauseHere(`${area.id} triage`)) return paused()
     const triage = await call(area.id, `${ctx}
 You are triaging this area's verified findings. Write ${file} (the ONLY file you may write): a JSON array, one object per finding after merging, each with every field of the input plus "id" ("${area.id}-1", "${area.id}-2", ... in rank order), "area": "${area.id}" and "merged_from" (titles folded into it).
 - Merge findings that one fix would close (same root cause), keeping each one's evidence.
@@ -323,6 +376,7 @@ Findings (JSON):
 ${JSON.stringify(kept)}
 
 Coverage: ${coverage.map(c => c.checked.join('; ')).join(' | ')}`, { label: `triage:${area.id}`, phase: 'Triage', schema: TRIAGE_SCHEMA, effort: 'high' })
+    if (halt) return paused()
     if (got(triage)) {
       triageOk = true
       index = triage.index.map(i => ({ ...i, area: area.id }))
@@ -359,6 +413,15 @@ Coverage: ${coverage.map(c => c.checked.join('; ')).join(' | ')}`, { label: `tri
 const runs = AREAS.length
   ? (await pipeline(AREAS, area => scope(area), (scoped, area) => auditArea(area, scoped))).filter(Boolean)
   : []
+const halted = () => ({
+  run: RUN,
+  halted: halt,
+  fingerprint: FINGERPRINT,
+  agentsUsed: used,
+  areas: runs.map(o => (o.halted ? o : { area: o.area, halted: false, rounds: o.rounds, agents: o.agents, found: o.found })),
+})
+
+if (halt) return halted()
 const failedAreas = AREAS.map(a => a.id).filter(id => !runs.some(r => r.area === id))
 if (failedAreas.length) log(`areas with no result: ${failedAreas.join(', ')}`)
 
@@ -376,7 +439,7 @@ const preMerge = {
 }
 
 let ranking = null
-if (REPORT) {
+if (REPORT && !pauseHere('report')) {
   const index = [...PRIOR_INDEX, ...batch.index]
   const allRuns = [...PRIOR_RUNS, ...batch.runs]
   const r = await call(null, `You are writing the final report of a parity audit of Switchboard against ${WEB ? 'the upstream LibreChat web client' : REF} and the pinned server. Read ${METHOD} for the vocabulary. The full findings are in ${RUN}/areas/<area>/findings.json; read one only when an index entry is not enough to decide a merge.
@@ -389,20 +452,24 @@ Index of every finding (JSON):
 ${JSON.stringify(index)}
 
 Missing-feature leads (JSON):
-${JSON.stringify([...runs.flatMap(x => x.leads), ...parse(A.priorLeads || '[]')])}
+${JSON.stringify([...runs.flatMap(x => x.leads), ...PRIOR_LEADS])}
 
 Refuted (JSON):
-${JSON.stringify([...runs.flatMap(x => x.refuted), ...parse(A.priorRefuted || '[]')])}
+${JSON.stringify([...runs.flatMap(x => x.refuted), ...PRIOR_REFUTED])}
 
 Per-area runs (JSON):
 ${JSON.stringify(allRuns)}
 Areas with no result in this batch: ${failedAreas.join(', ') || 'none'}`, { label: 'report', phase: 'Report', schema: REPORT_SCHEMA, effort: 'high' })
   if (got(r)) ranking = r
-  else log(`report ${r === SKIP ? 'skipped' : 'failed'}; report.md not written, rank with assemble.py's fallback`)
+  else if (!halt) log(`report ${r === SKIP ? 'skipped' : 'failed'}; report.md not written, rank with assemble.py's fallback`)
 }
+
+if (halt) return halted()
 
 return {
   run: RUN,
+  halted: null,
+  fingerprint: FINGERPRINT,
   agentsUsed: used,
   sharePerArea: SHARE,
   failedAreas,
