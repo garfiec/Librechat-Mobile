@@ -10,6 +10,7 @@ import com.garfiec.librechat.core.logging.LogOrigin
 import com.garfiec.librechat.core.logging.redact.LogRedactor
 import com.garfiec.librechat.core.model.error.ServerErrorCode
 import io.ktor.client.HttpClient
+import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.HttpClientEngineFactory
 import io.ktor.client.plugins.DefaultRequest.DefaultRequestBuilder
 import io.ktor.client.plugins.HttpRequestRetry
@@ -94,9 +95,7 @@ object LibreChatHttpClient {
             }
         }
 
-        install(HttpRequestRetry) {
-            configureRetryPolicy()
-        }
+        install(HttpRequestRetry) { configureRetryPolicy() }
 
         install(AuthInterceptorPlugin) {
             this.tokenManager = tokenManager
@@ -199,6 +198,9 @@ object LibreChatHttpClient {
             applyBrowserDefaults()
             contentType(ContentType.Application.Json)
         }
+
+        // Keep last: the innermost send interceptor, between the engine and the other plugins.
+        installTransportRecovery()
     }
 
     /**
@@ -325,13 +327,19 @@ object LibreChatHttpClient {
     }
 }
 
+private fun HttpClientConfig<*>.installTransportRecovery() {
+    val platformVerdict = platformTransportVerdict ?: return
+    install(TransportRecoveryPlugin) { verdict = platformVerdict }
+}
+
 /**
  * Retry policy shared by production and the guard test so they can't drift. Replays only
  * side-effect-free methods: a retried POST/PATCH would mint a duplicate chat job + orphaned
  * generation or a duplicate upload, and a retried DELETE that already succeeded server-side would
  * surface a spurious 404. The allow-list means an unknown or newly added method defaults to *not*
- * retried. Below this, OkHttp still resends a request with a replayable body, POST included, when
- * its connection fails before a response; on Android multipart uploads count (`ReplayableUploadBodies`).
+ * retried. Below this, a request whose connection fails before a response can still be resent: on
+ * Android by OkHttp, for any replayable body, POST included (multipart counts, `ReplayableUploadBodies`);
+ * on iOS only a multipart upload, by [TransportRecoveryPlugin].
  */
 internal fun HttpRequestRetryConfig.configureRetryPolicy() {
     // A 5xx can arrive as a response (retryIf) or, once HttpResponseValidator throws, as an
