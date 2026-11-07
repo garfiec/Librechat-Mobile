@@ -158,8 +158,8 @@ class IosFileHandler(
      */
     private fun prune() {
         val keep = _attachedFiles.value.filter { it.fileId == null }.mapTo(HashSet()) { it.key }
-        keep += putAside
-        undoable?.let { keep += it }
+        keep.addAll(putAside)
+        undoable?.let { keep.add(it) }
         picked.keys.retainAll(keep)
     }
 
