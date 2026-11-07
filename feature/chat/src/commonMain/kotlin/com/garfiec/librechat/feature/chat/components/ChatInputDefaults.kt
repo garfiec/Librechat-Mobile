@@ -14,7 +14,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import com.garfiec.librechat.core.ui.theme.LocalDarkTheme
-import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 
 object ChatInputDefaults {
     /** Resting fill shared by the composer box and the floating top-bar chips. */
@@ -71,25 +70,16 @@ object ChatInputDefaults {
     fun toolsButtonColors(): IconButtonColors =
         IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
 
-    /** In Liquid Glass a bare icon in [glassContentColor]; Material fills it with [containerColor]. */
+    /**
+     * The box's send control: a bare icon in [color] (the primary colour, or what the control does:
+     * Stop in the error colour), in both styles. The box is its frame, so it draws no circle.
+     */
     @Composable
-    fun sendButtonColors(
-        containerColor: Color,
-        contentColor: Color,
-        glassContentColor: Color = MaterialTheme.colorScheme.primary,
-    ): IconButtonColors = if (isLiquidGlass) {
+    fun sendButtonColors(color: Color = MaterialTheme.colorScheme.primary): IconButtonColors =
         IconButtonDefaults.iconButtonColors(
-            contentColor = glassContentColor,
+            contentColor = color,
             disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DISABLED_ALPHA),
         )
-    } else {
-        IconButtonDefaults.iconButtonColors(
-            containerColor = containerColor,
-            contentColor = contentColor,
-            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
 
     private const val DISABLED_ALPHA = 0.38f
     private const val TEMPORARY_TINT_MS = 200

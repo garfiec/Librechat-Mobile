@@ -782,10 +782,7 @@ fun SendStopButton(
                 onClick = onUpdate,
                 modifier = Modifier.size(buttonSize),
                 enabled = canSend,
-                colors = ChatInputDefaults.sendButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
+                colors = ChatInputDefaults.sendButtonColors(),
             ) {
                 Icon(
                     imageVector = Icons.Default.Check,
@@ -796,11 +793,7 @@ fun SendStopButton(
             SendButtonMode.REMOVE_QUEUED -> IconButton(
                 onClick = onUpdate,
                 modifier = Modifier.size(buttonSize),
-                colors = ChatInputDefaults.sendButtonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError,
-                    glassContentColor = MaterialTheme.colorScheme.error,
-                ),
+                colors = ChatInputDefaults.sendButtonColors(MaterialTheme.colorScheme.error),
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
@@ -811,10 +804,7 @@ fun SendStopButton(
             SendButtonMode.AWAITING -> IconButton(
                 onClick = onCancelPendingSend,
                 modifier = Modifier.size(buttonSize),
-                colors = ChatInputDefaults.sendButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
+                colors = ChatInputDefaults.sendButtonColors(),
             ) {
                 // Spinner (upload still in flight) with a small ✕ so it reads as "tap to cancel".
                 Box(contentAlignment = Alignment.Center) {
@@ -834,11 +824,7 @@ fun SendStopButton(
             SendButtonMode.STOP -> IconButton(
                 onClick = onStop,
                 modifier = Modifier.size(buttonSize),
-                colors = ChatInputDefaults.sendButtonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError,
-                    glassContentColor = MaterialTheme.colorScheme.error,
-                ),
+                colors = ChatInputDefaults.sendButtonColors(MaterialTheme.colorScheme.error),
             ) {
                 Icon(
                     imageVector = Icons.Default.Stop,
@@ -850,10 +836,7 @@ fun SendStopButton(
             SendButtonMode.QUEUE -> IconButton(
                 onClick = onQueue,
                 modifier = Modifier.size(buttonSize),
-                colors = ChatInputDefaults.sendButtonColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                ),
+                colors = ChatInputDefaults.sendButtonColors(),
             ) {
                 DuringRunSendIcon(
                     imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
@@ -865,10 +848,7 @@ fun SendStopButton(
             SendButtonMode.STEER -> IconButton(
                 onClick = onQueue,
                 modifier = Modifier.size(buttonSize),
-                colors = ChatInputDefaults.sendButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                ),
+                colors = ChatInputDefaults.sendButtonColors(),
             ) {
                 DuringRunSendIcon(
                     imageVector = Icons.Default.Bolt,
@@ -880,10 +860,7 @@ fun SendStopButton(
             SendButtonMode.INTERRUPT -> IconButton(
                 onClick = onQueue,
                 modifier = Modifier.size(buttonSize),
-                colors = ChatInputDefaults.sendButtonColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                ),
+                colors = ChatInputDefaults.sendButtonColors(),
             ) {
                 DuringRunSendIcon(
                     imageVector = Icons.Default.FlashOff,
@@ -898,10 +875,7 @@ fun SendStopButton(
             SendButtonMode.ANSWER -> IconButton(
                 onClick = onQueue,
                 modifier = Modifier.size(buttonSize),
-                colors = ChatInputDefaults.sendButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
+                colors = ChatInputDefaults.sendButtonColors(),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
@@ -913,10 +887,7 @@ fun SendStopButton(
                 onClick = onSend,
                 modifier = Modifier.size(buttonSize),
                 enabled = canSend,
-                colors = ChatInputDefaults.sendButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
+                colors = ChatInputDefaults.sendButtonColors(),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
