@@ -11,6 +11,7 @@ internal val CACHE_SUBDIRECTORIES = listOf(
     "shared_images",
     "shared_files",
     "camera_photos",
+    "keyboard_images",
     "pdf_preview",
     "voice_recording",
     "audio",

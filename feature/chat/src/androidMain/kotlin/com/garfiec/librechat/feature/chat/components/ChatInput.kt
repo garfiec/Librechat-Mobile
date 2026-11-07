@@ -2,7 +2,6 @@
 
 package com.garfiec.librechat.feature.chat.components
 
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
@@ -15,7 +14,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -114,7 +112,6 @@ fun ChatInput(
     isTranscribing: Boolean = false,
     onStartRecording: () -> Unit = {},
     onStopRecording: () -> Unit = {},
-    onImagePaste: ((Uri) -> Unit)? = null,
     enabledTools: Set<String> = emptySet(),
     onToggleTool: (String) -> Unit = {},
     pinnedToolKeys: List<String> = emptyList(),
@@ -135,7 +132,6 @@ fun ChatInput(
     contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
 ) {
     val cdOpenToolsMenu = stringResource(Res.string.cd_open_tools_menu)
-    val cdPasteImage = stringResource(Res.string.cd_paste_image)
     val cdMessageInput = stringResource(Res.string.cd_message_input)
     val cdStopVoiceRec = stringResource(Res.string.cd_stop_voice_recording)
     val cdStartVoiceRec = stringResource(Res.string.cd_start_voice_recording)
@@ -263,30 +259,6 @@ fun ChatInput(
                                 color = MaterialTheme.colorScheme.primary,
                                 shape = CircleShape,
                             ),
-                    )
-                }
-            }
-
-            // Paste image button (shown only when clipboard has image content)
-            if (onImagePaste != null) {
-                val pasteBounce = rememberPressBounce()
-                IconButton(
-                    onClick = {
-                        // Clipboard image pasting is handled by the screen
-                        onImagePaste(Uri.EMPTY)
-                    },
-                    modifier = Modifier
-                        .size(48.dp)
-                        .pressBounce(pasteBounce, enabled = !isLiquidGlass)
-                        .semantics {
-                            contentDescription = cdPasteImage
-                            role = Role.Button
-                        },
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ContentPaste,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
