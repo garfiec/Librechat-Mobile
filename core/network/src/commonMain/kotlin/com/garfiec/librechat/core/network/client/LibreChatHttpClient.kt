@@ -330,7 +330,8 @@ object LibreChatHttpClient {
  * side-effect-free methods: a retried POST/PATCH would mint a duplicate chat job + orphaned
  * generation or a duplicate upload, and a retried DELETE that already succeeded server-side would
  * surface a spurious 404. The allow-list means an unknown or newly added method defaults to *not*
- * retried.
+ * retried. Below this, OkHttp still resends a request with a replayable body, POST included, when
+ * its connection fails before a response; on Android multipart uploads count (`ReplayableUploadBodies`).
  */
 internal fun HttpRequestRetryConfig.configureRetryPolicy() {
     // A 5xx can arrive as a response (retryIf) or, once HttpResponseValidator throws, as an

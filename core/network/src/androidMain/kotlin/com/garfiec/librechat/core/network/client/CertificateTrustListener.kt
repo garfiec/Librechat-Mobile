@@ -59,6 +59,9 @@ internal class CertificateTrustOkHttp(
 ) : HttpClientEngineFactory<OkHttpConfig> {
     override fun create(block: OkHttpConfig.() -> Unit): HttpClientEngine = OkHttp.create {
         block()
-        config { eventListener(listener) }
+        config {
+            eventListener(listener)
+            addInterceptor(ReplayableUploadBodies)
+        }
     }
 }
