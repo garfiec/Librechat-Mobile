@@ -300,7 +300,7 @@ class McpViewModel(
                     // An oauthRequired ack is NOT a connection: the server is telling us it cannot
                     // proceed until the user authorizes it. Reporting it as "initialized
                     // successfully" leaves the user staring at a server that never connects.
-                    val oauthUrl = response.oauthUrl?.takeIf { response.oauthRequired == true }
+                    val oauthUrl = response.authorizationUrl
                     val message = when {
                         oauthUrl != null -> null
                         response.connectionDeferred == true -> DEFERRED_MARKER

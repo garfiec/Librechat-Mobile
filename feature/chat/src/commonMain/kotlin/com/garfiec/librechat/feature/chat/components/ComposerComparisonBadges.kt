@@ -5,10 +5,13 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -19,6 +22,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -92,14 +96,22 @@ internal fun ComposerComparisonBadges(comparison: ComposerComparison, modifier: 
     // The badges sit on a small pill; each badge's ring is the pill's colour, so the overlap reads as
     // a cut-out rather than one badge drawn over the other's letter.
     val pill = MaterialTheme.colorScheme.surfaceContainerHighest
-    Box(modifier = modifier.padding(start = 8.dp, end = 4.dp)) {
+    // The 36dp pill draws inside a 48dp target, its ripple on the pill.
+    val interaction = remember { MutableInteractionSource() }
+    Box(
+        modifier = modifier
+            .heightIn(min = MinTouchTarget)
+            .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = { menuOpen = true })
+            .semantics { contentDescription = description }
+            .padding(start = 8.dp, end = 4.dp),
+        contentAlignment = Alignment.Center,
+    ) {
         Row(
             modifier = Modifier
                 .clip(CircleShape)
                 .background(pill)
-                .clickable(role = Role.Button, onClick = { menuOpen = true })
-                .semantics { contentDescription = description }
-                .padding(start = 4.dp, end = 6.dp, top = 4.dp, bottom = 4.dp),
+                .indication(interaction, ripple())
+                .padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy((-6).dp),
         ) {
@@ -145,7 +157,8 @@ internal fun animateComposerComparisonCollapse(collapsed: Boolean): State<Float>
 internal fun ComposerComparisonReserve(collapse: () -> Float) {
     Spacer(
         Modifier.layout { measurable, constraints ->
-            val width = constraints.constrainWidth((CompactReserve * (1f - collapse())).roundToPx())
+            val reserve = CompactReserve * (1f - collapse())
+            val width = constraints.constrainWidth(reserve.roundToPx())
             val placeable = measurable.measure(Constraints.fixed(width, 0))
             layout(width, 0) { placeable.place(0, 0) }
         },
@@ -188,23 +201,26 @@ internal fun ComposerComparisonMorph(
         MaterialTheme.typography.bodyLarge.lineHeight.toDp() / 2
     }
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    val interaction = remember { MutableInteractionSource() }
     Box(modifier.padding(start = PillStart, top = firstLineCentre - PillHeight / 2)) {
         Box(
             Modifier
                 .size(PillWidth, PillHeight)
                 .graphicsLayer { alpha = 1f - collapse() }
                 .background(pill, CircleShape)
-                .then(
-                    if (collapsed) {
-                        Modifier
-                    } else {
-                        Modifier
-                            .clip(CircleShape)
-                            .clickable(role = Role.Button, onClick = { menuOpen = true })
-                            .semantics { contentDescription = description }
-                    },
-                ),
+                .clip(CircleShape)
+                .indication(interaction, ripple()),
         )
+        if (!collapsed) {
+            // The 32dp pill's 48dp target, centred on it; the ripple stays on the pill.
+            Box(
+                Modifier
+                    .offset(y = (PillHeight - MinTouchTarget) / 2)
+                    .size(PillWidth, MinTouchTarget)
+                    .clickable(interactionSource = interaction, indication = null, role = Role.Button, onClick = { menuOpen = true })
+                    .semantics { contentDescription = description },
+            )
+        }
         ComparisonLane.entries.forEachIndexed { index, lane ->
             MorphingLaneBadge(
                 lane = lane,
@@ -297,6 +313,7 @@ private fun LaneMenuItem(lane: ComparisonLane, label: String, onClick: () -> Uni
 // Expanded: 24dp badges on a pill 8dp into the field, level with the wide badges' 8dp start.
 // Collapsed: two 6dp dots stacked in the field's 16dp start padding.
 private val FieldPadding = 16.dp
+private val MinTouchTarget = 48.dp
 private val PillStart = 8.dp
 private val PillInset = 4.dp
 private val CompactBadge = 24.dp

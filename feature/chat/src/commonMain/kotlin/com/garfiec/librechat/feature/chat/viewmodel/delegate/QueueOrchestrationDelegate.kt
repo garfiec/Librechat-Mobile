@@ -17,11 +17,14 @@ import com.garfiec.librechat.feature.chat.util.storedAgainst
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.ComposerSnapshot
+import com.garfiec.librechat.feature.chat.viewmodel.DraftRestore
 import com.garfiec.librechat.feature.chat.viewmodel.QueueOrchestrationHandle
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedEditSession
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedTurnServerState
+import com.garfiec.librechat.feature.chat.viewmodel.quotesSupportedOn
 import com.garfiec.librechat.feature.chat.viewmodel.toComposerSnapshot
+import com.garfiec.librechat.feature.chat.viewmodel.withRestore
 import kotlinx.coroutines.launch
 import kotlin.uuid.Uuid
 
@@ -227,8 +230,12 @@ class QueueOrchestrationDelegate(
         // out from under it re-homes it onto the queued item instead — attaching it to a message
         // the user did not pick it for, and losing it from the one they did, since `captureComposer`
         // cannot stash a file that is not in the tray yet.
-        if (uploadIntakeDelegate.hasUnsettledPicks()) {
-            Logger.d { "editQueued: refusing — picked files are not settled yet" }
+        //
+        // An upload still out (or a PDF waiting for its password) is the same: its outcome lands on
+        // the tray entry the swap takes away, so the stashed copy would read uploading for good.
+        if (uploadIntakeDelegate.hasUnsettledPicks() || fileHandler.hasPendingUploads()) {
+            Logger.d { "editQueued: refusing — the draft's files are not settled yet" }
+            handle.setError(ChatNotice.QUEUE_EDIT_WAITS_FOR_UPLOADS.marker())
             return
         }
         val index = handle.state.messageQueue.indexOfFirst { it.localId == localId }
@@ -257,9 +264,9 @@ class QueueOrchestrationDelegate(
     )
 
     /**
-     * Swaps the composer over to [item]. The skill chips go with it: the draft's are stashed and
-     * the item's own picks shown, so a `$` pick during the edit lands on this message and the
-     * draft's chips come back untouched when the edit ends.
+     * Swaps the composer over to [item]. The skill and quote chips go with it: the draft's are
+     * stashed and the item's own shown, so a `$` pick or an "Add to chat" during the edit lands on
+     * this message and the draft's chips come back untouched when the edit ends.
      */
     private fun beginQueuedEdit(item: QueuedMessage, index: Int) {
         val stashed = captureComposer()
@@ -288,7 +295,7 @@ class QueueOrchestrationDelegate(
             val edited = sendDispatchDelegate.buildSendSpec(text)?.let { spec ->
                 spec.copy(
                     localId = session.original.localId,
-                    quotes = session.original.quotes,
+                    quotes = handle.state.pendingQuotes.takeIf { quotesSupportedOn(spec.endpoint) }.orEmpty(),
                     // The chips on screen during the edit are this item's own (see
                     // [beginQueuedEdit]), so what the user added or removed there is what it sends.
                     manualSkills = sendDispatchDelegate.sendablePendingManualSkills(spec.endpoint),
@@ -556,29 +563,33 @@ class QueueOrchestrationDelegate(
             manualSkills = state.pendingManualSkills,
             skillsToggle = state.skillsToggle,
             reasoningOverride = state.composer.pendingReasoningOverride,
+            quotes = state.pendingQuotes,
         )
     }
 
     /** Writes a [ComposerSnapshot] back onto the composer (text, attachments, model, tools, params,
-     *  skill chips, Skills toggle) and starts or ends the queued edit ([editSession]) in the same
+     *  skill and quote chips, Skills toggle) and starts or ends the queued edit ([editSession]) in the same
      *  emission. The toggle is set in memory only. Because the edit flag flips in the emission that
      *  swaps the spec, `SkillsToggleDelegate` reads it as a swap rather than a spec pick and keeps
      *  the value. The stashed value is still the conversation's own: nothing toggled or picked
      *  during the edit is written to the conversation's slot.
      *  Sets [ChatUiState.inputText] directly rather than via `ChatViewModel.onInputChanged` so swapping composer
      *  contents for an edit never overwrites the persisted on-disk new-message draft. */
-    private fun applyComposer(snapshot: ComposerSnapshot, editSession: QueuedEditSession?) {
-        fileHandler.restoreAttachedFiles(snapshot.attachments)
+    private fun applyComposer(target: ComposerSnapshot, editSession: QueuedEditSession?) {
+        fileHandler.restoreAttachedFiles(target.attachments)
         // The config may have changed since capture. An enforced spec that moved to another model
         // takes that spec's preset, as the server sends it.
         val specs = handle.state.modelSpecs
-        val restored = snapshot.choice.storedAgainst(specs)
-        val parameters = if (restored == snapshot.choice) {
-            snapshot.modelParameters
+        val restored = target.choice.storedAgainst(specs)
+        val parameters = if (restored == target.choice) {
+            target.modelParameters
         } else {
-            snapshot.modelParameters.acrossSpecChange(snapshot.choice, restored, specs)
+            target.modelParameters.acrossSpecChange(target.choice, restored, specs)
         }
         handle.update {
+            // Ending an edit: what a recovery put back meanwhile belongs to this draft.
+            val snapshot = if (editSession == null) target.withRestore(draftRestore) else target
+            if (editSession == null) draftRestore = DraftRestore.NONE
             editingQueuedItem = editSession
             inputText = snapshot.text
             // The snapshot replaces the whole tray, so an undecided batch from before the edit
@@ -590,6 +601,9 @@ class QueueOrchestrationDelegate(
             specTools = snapshot.specTools
             modelParameters = parameters
             pendingManualSkills = snapshot.manualSkills
+            pendingQuotes = snapshot.quotes
+            // An Undo pending from before the swap would restore into the other draft.
+            pendingDraftUndo = null
             pendingReasoningOverride = snapshot.reasoningOverride
             skillsToggle = snapshot.skillsToggle
         }

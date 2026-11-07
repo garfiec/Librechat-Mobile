@@ -30,4 +30,17 @@ data class AttachedFile(
      * is a display value, not part of the send.
      */
     val route: UploadRoute? = null,
-)
+    /**
+     * Drawable on the device when [uri] is not (iOS, whose [uri] is a minted id); null where [uri]
+     * itself loads. Compared by identity, so a tray copy stays equal to itself.
+     */
+    val localPreview: Any? = null,
+    /** Tells apart entries sharing one [uri] (an Android content `Uri` picked twice); null where [uri] is unique. */
+    val entryId: String? = null,
+) {
+    /** Names this one entry in its tray: what removal, retry and an upload's outcome match on. */
+    val key: Any get() = entryId ?: uri
+
+    /** A PDF waiting for its password counts. */
+    val isUploading: Boolean get() = fileId == null && !uploadFailed
+}

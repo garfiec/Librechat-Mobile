@@ -50,6 +50,7 @@ suspend fun readClipboardImage(): IosImageData? {
             mimeType = "image/png",
             width = width,
             height = height,
+            preview = draftPreviewOf(image),
         )
     }
 }

@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -135,7 +134,7 @@ internal fun SkillCallCard(
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.Default.Extension,
+                        imageVector = SkillGlyph,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,

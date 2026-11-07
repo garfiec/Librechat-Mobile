@@ -248,7 +248,7 @@ the controls bullet below.
   toggle in Material, like the drawer's Chats/Projects switch, for a few short options; the
   liquid segmented control in glass), `AdaptiveFloatingActionButton` (`small` for the M3
   small FAB), `AdaptiveExtendedFloatingActionButton` (labelled; collapse it with `expanded` on scroll), `AdaptiveSectionHeader`, the four
-  `Adaptive*Chip`s (pills; `AdaptiveChipDefaults.overlayAssistChipColors(tint)` for a chip over scrolling content, tinted in both styles), `AdaptiveSnackbarHost` (a glass capsule toast that samples the
+  `Adaptive*Chip`s (pills; `AdaptiveChipDefaults.overlayAssistChipColors(tint)` for a chip over scrolling content, tinted in both styles, and `overlayFilterChipColors()` for a toggle chip there, opaque when off in Material), `AdaptiveSnackbarHost` (a glass capsule toast that samples the
   `AdaptiveScaffold` backdrop), `AdaptiveCircularProgressIndicator` (iOS activity indicator when
   indeterminate) and `AdaptiveLinearProgressIndicator` (determinate only: an iOS capsule progress
   bar in glass; progress clamped to 0..1, NaN as 0; its raw M3 bar isn't banned yet, see Known gaps),
@@ -283,6 +283,12 @@ renderer lives here. It takes a `ContextBreakdownModel` and the user's `ContextD
 row math and filtering are pure and live in `:core:model` (`usage/ContextBreakdown.kt`,
 `usage/ContextDetail.kt`). Also here: `SegmentedMeter`, `pressureColor` (amber at a rounded 80%, error
 at 95%), `formatCost` with its platform currency actuals, and `SampleContextModel` for previews.
+
+### MCP status and scroll fades
+- An MCP server's `McpDisplayStatus` is named and coloured only by `mcp/McpStatusPresentation.kt`
+  (`mcpStatusLabel` / `mcpStatusColor`), in Settings and in chat alike.
+- A scrolling container fades toward an edge with more to scroll past through
+  `Modifier.scrollFadingEdges` (RTL-aware).
 
 ### MCP OAuth sign-in (`mcp/`, v0.8.9-rc1)
 `McpOAuthSignInDialog` is the one sign-in page for an MCP server's provider, used by Settings and by

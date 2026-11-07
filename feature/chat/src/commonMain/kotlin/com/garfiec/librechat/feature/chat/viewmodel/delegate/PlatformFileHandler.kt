@@ -43,10 +43,23 @@ interface PlatformFileHandler {
     fun describe(platformRefs: List<Any>): List<PickedFile>
 
     fun onFilesSelected(files: List<RoutedFile>)
+
+    /** A file still uploading has its upload cancelled. */
     fun removeFile(file: AttachedFile)
+
+    /** Re-uploads in place, on its original route; a file whose bytes are gone is removed instead. */
     fun retryUpload(file: AttachedFile)
+
+    /** The strip's Undo. Touches nothing else, PDF password prompts included. */
+    fun insertAt(index: Int, file: AttachedFile)
+
+    /** The Undo for a removed [file] is gone: release what was kept for it (iOS: a failed file's picked bytes). */
+    fun forgetRemoved(file: AttachedFile) = Unit
     suspend fun waitForUploadsAndSend(text: String, doSend: (String) -> Unit)
     fun hasPendingUploads(): Boolean
+
+    /** A failed upload holds every send until it is retried or removed. */
+    fun hasFailedUploads(): Boolean = attachedFiles.value.any { it.uploadFailed }
     fun clearAttachedFiles()
 
     /**
@@ -75,6 +88,11 @@ interface PlatformFileHandler {
     /** Gives up on the head prompt's PDF and removes its chip. */
     fun dismissPdfPassword()
 }
+
+fun <T> List<T>.insertedAt(index: Int, item: T): List<T> = toMutableList().apply { add(index.coerceIn(0, size), item) }
+
+fun List<AttachedFile>.updateEntry(key: Any, transform: (AttachedFile) -> AttachedFile): List<AttachedFile> =
+    map { if (it.key == key) transform(it) else it }
 
 /**
  * Appends [files] to an already-uploaded tray, deduping by `fileId` against what's already present
@@ -113,11 +131,11 @@ suspend fun StateFlow<List<AttachedFile>>.awaitUploadsThenSend(
 ) {
     var elapsed = 0L
     while (elapsed < timeoutMs) {
-        if (value.none { it.fileId == null && !it.uploadFailed }) break
+        if (value.none { it.isUploading }) break
         delay(pollIntervalMs)
         elapsed += pollIntervalMs
     }
-    val stillPending = value.count { it.fileId == null && !it.uploadFailed }
+    val stillPending = value.count { it.isUploading }
     if (stillPending > 0) {
         Logger.w { "awaitUploadsThenSend: aborting send — $stillPending file(s) still uploading" }
         setError(STILL_UPLOADING_MESSAGE)

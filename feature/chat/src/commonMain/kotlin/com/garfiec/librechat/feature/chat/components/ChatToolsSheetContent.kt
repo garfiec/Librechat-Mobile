@@ -1,5 +1,7 @@
 package com.garfiec.librechat.feature.chat.components
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +17,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,10 +40,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -52,18 +64,24 @@ import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.ui.components.AdaptiveCheckbox
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
+import com.garfiec.librechat.core.ui.components.DragSelectRowShape
 import com.garfiec.librechat.core.ui.components.ListDragSelection
 import com.garfiec.librechat.core.ui.components.dragSelectRow
 import com.garfiec.librechat.core.ui.components.dragSelectRowIcon
 import com.garfiec.librechat.core.ui.components.listDragSelection
 import com.garfiec.librechat.core.ui.components.rememberListDragSelection
+import com.garfiec.librechat.core.ui.mcp.mcpStatusColor
+import com.garfiec.librechat.core.ui.mcp.mcpStatusLabel
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.util.SETTING_TOOL_ORDER
+import com.garfiec.librechat.feature.chat.util.ToolsSheetFocus
 import com.garfiec.librechat.feature.chat.util.WebSearchKind
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -91,27 +109,13 @@ fun ChatToolsSheetContent(
     modifier: Modifier = Modifier,
     /** Both models while comparing: the Model row then names A and B rather than A alone. */
     comparisonModels: ComparisonModelLabels? = null,
-    isCodeInterpreterAvailable: Boolean = true,
-    webSearchEnabled: Boolean = true,
+    /**
+     * [ChatUiState.openTools]: a row for each, in [SETTING_TOOL_ORDER]. The Skills row's state is per
+     * conversation; it reads it from [enabledTools] like the others.
+     */
+    openTools: Set<String> = emptySet(),
     /** The search the web-search control runs when on, named on its second line. */
     webSearchKind: WebSearchKind = WebSearchKind(WebSearchRoute.LIBRECHAT, null),
-    /** Whether to offer the Google-only URL Context toggle (active provider is Google/Gemini). */
-    urlContextEnabled: Boolean = false,
-    runCodeEnabled: Boolean = true,
-    fileSearchEnabled: Boolean = true,
-    /**
-     * Whether to offer the memory toggle: MEMORIES USE+CREATE+UPDATE, the agents endpoint's
-     * `memory` capability, and the user not having opted out. Defaults OFF — unlike the other
-     * tool gates, a server with memory disabled is the common case, and the row would otherwise
-     * appear for every host that never enabled it.
-     */
-    memoryEnabled: Boolean = false,
-    /**
-     * Whether to offer the Skills toggle: SKILLS.USE, the agents `skills` capability, and no
-     * active model spec configuring skills. Defaults OFF for the same reason as [memoryEnabled].
-     * Its state is per conversation; the row reads it from [enabledTools] like the others.
-     */
-    skillsEnabled: Boolean = false,
     mcpServersEnabled: Boolean = true,
     /**
      * Server/endpoint feature gates for the sheet: model-select row, parameters row,
@@ -138,8 +142,17 @@ fun ChatToolsSheetContent(
     scrollState: ScrollState = rememberScrollState(),
     /** "Upload to Code Environment" (legacy upload UX); null hides the card. */
     onAttachToCode: (() -> Unit)? = null,
+    /**
+     * The row to scroll to and mark as the page opens (a settings chip's tap): the MCP list opens for
+     * a server, so its switch is there to turn it off.
+     */
+    focus: ToolsSheetFocus? = null,
 ) {
     val dragSelection = rememberListDragSelection()
+    val expandMcp by rememberUpdatedState(onMcpExpandedChange)
+    LaunchedEffect(focus) {
+        if (focus is ToolsSheetFocus.McpServer && !mcpExpanded) expandMcp(true)
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -274,24 +287,17 @@ fun ChatToolsSheetContent(
 
         // Tool toggle items — ephemeral tools are hidden for the agents endpoint
         // (the agent uses its own configured tools), mirroring web's showEphemeralBadges.
-        // Each tool's icon/label comes from the shared [ephemeralToolMeta]; the per-tool
-        // enable gate stays inline (they differ per tool).
+        // Each tool's icon/label comes from the shared [ephemeralToolMeta]; its gate is
+        // ChatUiState.toolGateOpen, the one the settings line shows its chip by.
         if (gates.showEphemeralTools) {
-            val toolRows = listOf(
-                ToolConstants.WEB_SEARCH to webSearchEnabled,
-                ToolConstants.URL_CONTEXT to urlContextEnabled,
-                ToolConstants.CODE_INTERPRETER to (isCodeInterpreterAvailable && runCodeEnabled),
-                ToolConstants.FILE_SEARCH to fileSearchEnabled,
-                ToolConstants.MEMORY to memoryEnabled,
-                ToolConstants.SKILLS to skillsEnabled,
-            )
             val searchName = webSearchName(webSearchKind)
-            toolRows.forEach { (toolKey, enabled) ->
+            SETTING_TOOL_ORDER.forEach { toolKey ->
                 val meta = ephemeralToolMeta(toolKey)
-                if (enabled && meta != null) {
+                if (toolKey in openTools && meta != null) {
                     val locked = toolKey in gates.lockedTools
                     val name = searchName.takeIf { toolKey == ToolConstants.WEB_SEARCH }
                     ToolToggleRow(
+                        modifier = focusedRow(focus == ToolsSheetFocus.Tool(toolKey)),
                         icon = meta.icon,
                         title = stringResource(meta.titleRes),
                         subtitle = when {
@@ -359,6 +365,7 @@ fun ChatToolsSheetContent(
                     mcpServers.forEach { server ->
                         val locked = server.name in gates.lockedMcpServers
                         McpServerToggleRow(
+                            modifier = focusedRow(focus == ToolsSheetFocus.McpServer(server.name)),
                             server = server,
                             isSelected = locked || server.name in selectedMcpServerNames,
                             onToggle = { onToggleMcpServer(server.name) },
@@ -373,6 +380,31 @@ fun ChatToolsSheetContent(
 }
 
 @Composable
+private fun focusedRow(focused: Boolean): Modifier {
+    if (!focused) return Modifier
+    val requester = remember { BringIntoViewRequester() }
+    val wash = remember { Animatable(1f) }
+    val color = MaterialTheme.colorScheme.primary
+    LaunchedEffect(Unit) {
+        // After the page's first layout, so there is somewhere to scroll to.
+        withFrameNanos {}
+        requester.bringIntoView()
+        delay(FOCUS_HOLD_MS)
+        wash.animateTo(0f, tween(FOCUS_FADE_MS))
+    }
+    return Modifier
+        .bringIntoViewRequester(requester)
+        // The row's own press shape, so the mark reads as the row being touched.
+        .drawBehind {
+            drawOutline(DragSelectRowShape.createOutline(size, layoutDirection, this), color.copy(alpha = FOCUS_WASH_ALPHA * wash.value))
+        }
+}
+
+private const val FOCUS_HOLD_MS = 700L
+private const val FOCUS_FADE_MS = 900
+private const val FOCUS_WASH_ALPHA = 0.14f
+
+@Composable
 private fun ToolToggleRow(
     icon: ImageVector,
     title: String,
@@ -380,10 +412,11 @@ private fun ToolToggleRow(
     isEnabled: Boolean,
     onToggle: () -> Unit,
     dragSelection: ListDragSelection,
+    modifier: Modifier = Modifier,
     locked: Boolean = false,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             // The platform reads the on/off state out in the user's language. The title and
             // subtitle below name the row, so no description is set on top of them.
@@ -537,10 +570,11 @@ private fun McpServerToggleRow(
     isSelected: Boolean,
     onToggle: () -> Unit,
     dragSelection: ListDragSelection,
+    modifier: Modifier = Modifier,
     locked: Boolean = false,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .then(
                 if (locked) {
@@ -552,24 +586,19 @@ private fun McpServerToggleRow(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Connection status indicator
+        // The connection, as the settings chip and the MCP servers page show it.
+        val statusLabel = stringResource(mcpStatusLabel(server.status))
         Box(
             modifier = Modifier
                 .size(8.dp)
                 .dragSelectRowIcon()
-                .background(
-                    color = if (server.isConnected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.error
-                    },
-                    shape = CircleShape,
-                ),
+                .background(color = mcpStatusColor(server.status), shape = CircleShape)
+                .semantics { contentDescription = statusLabel },
         )
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = server.title ?: server.name,
+                text = server.label,
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

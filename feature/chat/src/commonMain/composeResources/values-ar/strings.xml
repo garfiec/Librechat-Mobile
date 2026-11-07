@@ -257,19 +257,10 @@
     <string name="tool_file_search_desc">البحث في الملفات المرفوعة</string>
     <string name="tool_mcp">MCP</string>
     <string name="tool_mcp_desc">خوادم بروتوكول سياق النموذج (MCP)</string>
-    <string name="cd_web_search_enabled">البحث على الويب مُفعّل</string>
     <string name="cd_quoted_excerpt">مقتطف مقتبس</string>
-    <string name="cd_remove_quote">إزالة الاقتباس</string>
     <string name="selection_add_to_chat">إضافة إلى المحادثة</string>
-    <string name="cd_code_enabled">مفسّر الكود مُفعّل</string>
-    <string name="cd_file_search_enabled">البحث في الملفات مُفعّل</string>
 
     <!-- Attachments -->
-    <string name="cd_attach_file">إرفاق ملف</string>
-    <string name="files_count">الملفات (%1$d)</string>
-    <string name="files_count_with_text">الملفات (%1$d) · %2$d كنص</string>
-    <string name="cd_files_attached">الملفات المرفقة: %1$d، اضغط للمعاينة</string>
-    <string name="cd_files_attached_with_text">الملفات المرفقة: %1$d، منها %2$d أُرسلت كنص، اضغط للمعاينة</string>
     <string name="upload_routing_sheet_title">كيف تريد إرسال هذه الملفات؟</string>
     <string name="upload_routing_sheet_title_single">كيف تريد إرسال هذا الملف؟</string>
     <string name="upload_routing_option_provider">إلى النموذج</string>
@@ -281,8 +272,6 @@
     <string name="upload_routing_apply_all">استخدام للكل</string>
     <string name="upload_routing_attach">إرفاق</string>
     <string name="cd_upload_route_text">أُرسل كنص مستخرج</string>
-    <string name="cd_attached_file">ملف مرفق: %1$s</string>
-    <string name="cd_preview_file">معاينة %1$s</string>
     <string name="cd_remove_file">إزالة %1$s</string>
 
     <!-- Agent handoff -->
@@ -577,6 +566,8 @@
     <string name="media_empty_links">لا توجد روابط في هذه المحادثة</string>
     <string name="media_empty_artifacts">لا توجد عناصر تفاعلية في هذه المحادثة</string>
     <string name="context_usage_label">السياق</string>
+    <string name="context_percent">%1$d%</string>
+    <string name="context_percent_estimate">~%1$d%</string>
     <string name="tool_approval_title">مطلوب موافقة</string>
     <string name="tool_approval_arguments">الوسائط</string>
     <string name="tool_approval_approve">موافقة</string>
@@ -672,13 +663,11 @@
     <string name="tool_memory_desc">السماح للمساعد بتذكر تفاصيل من هذه المحادثة</string>
     <string name="tool_skills">المهارات</string>
     <string name="tool_skills_desc">السماح للمساعد باستخدام مهاراتك في هذه المحادثة</string>
-    <string name="cd_skills_enabled">المهارات مُفعّلة</string>
     <string name="picker_type_prompt">مطالبة</string>
     <string name="picker_type_skill">مهارة</string>
     <string name="picker_no_matches">لا توجد نتائج مطابقة</string>
     <string name="picker_loading_skills">جارٍ تحميل المهارات…</string>
     <string name="picker_skills_failed">تعذّر تحميل المهارات</string>
-    <string name="cd_pending_skills">مهارات للرسالة التالية</string>
     <string name="cd_remove_skill">إزالة المهارة %1$s</string>
     <string name="cd_skill_always_applied">مهارة مطبّقة دائمًا: %1$s</string>
     <string name="cd_skill_used">المهارة المستخدمة: %1$s</string>
@@ -686,7 +675,7 @@
     <string name="skill_call_finished">تم تشغيل %1$s</string>
     <string name="skill_call_fallback_name">مهارة</string>
     <string name="cd_steer_message">توجيه هذا الرد</string>
-    <string name="cd_cancel_steer">إلغاء التوجيه</string>
+    <string name="cd_cancel_steer">إلغاء التوجيه: %1$s</string>
     <string name="cd_during_run_options">اختر ما يفعله الإرسال الآن</string>
     <string name="during_run_steer">توجيه هذا الرد</string>
     <string name="during_run_queue">إضافة إلى قائمة الانتظار</string>
@@ -793,6 +782,7 @@
     <string name="compact_confirm_title">ضغط هذه المحادثة؟</string>
     <string name="compact_confirm_body">تم استخدام %1$d% من نافذة السياق. يلخّص الضغط المحادثة حتى الآن في ملاحظة أقصر يواصل النموذج قراءتها، مما يفسح المجال لما يلي. لا يُحذف أي شيء.</string>
     <string name="compact_confirm_not_now">ليس الآن</string>
+    <string name="compact_confirm_see_usage">عرض الاستخدام</string>
     <string name="compact_confirm_action">ضغط</string>
     <string name="cd_temporary_chat">محادثة مؤقتة</string>
     <string name="temporary_chat_enforced">المحادثة المؤقتة مفعّلة لجميع المحادثات، بإعداد من المسؤول</string>
@@ -950,7 +940,6 @@
     <string name="artifact_library_declined">لم يُحمَّل: %1$s</string>
     <string name="artifact_library_allowed">مُحمَّل: %1$s</string>
     <string name="artifact_library_change">تغيير</string>
-    <string name="cd_mcp_server_enabled">خادم MCP %1$s مفعّل</string>
     <string name="cd_code_block">كتلة شيفرة</string>
     <string name="cd_code_block_language">كتلة شيفرة %1$s</string>
     <string name="log_output_title">مخرجات السجل</string>
@@ -967,7 +956,7 @@
     <string name="mcp_sign_in_needed_unnamed">تحتاج أداة إلى تسجيل دخولك</string>
     <string name="mcp_sign_in_resumes">يستمر الرد بمجرد تسجيل دخولك.</string>
     <string name="mcp_sign_in_action">تسجيل الدخول</string>
-    <string name="mcp_sign_in_failed">لم يكتمل تسجيل الدخول. حاول مرة أخرى من استدعاء الأداة.</string>
+    <string name="mcp_sign_in_failed">لم يكتمل تسجيل الدخول. حاول مرة أخرى.</string>
     <string name="prompt_filter_title">التصفية والفرز</string>
     <string name="prompt_sort_recent">الأحدث</string>
     <string name="prompt_sort_popular">الأكثر شيوعًا</string>
@@ -1074,6 +1063,7 @@
     <string name="code_machine">الجهاز</string>
     <string name="code_machine_choose">اختيار الجهاز</string>
     <string name="code_workspace">مساحة عمل الكود</string>
+    <string name="code_workspace_saved_on_send">ستحفظ رسالتك التالية مساحة العمل هذه للمحادثة.</string>
     <string name="code_workspace_choose">اختيار مساحة العمل</string>
     <string name="code_workspace_loading">جارٍ تحميل مساحة العمل…</string>
     <string name="code_workspace_missing">مساحة العمل مفقودة</string>
@@ -1135,6 +1125,7 @@
     <string name="notice_queue_withdraw_refused">تعذّر سحب هذه الرسالة في قائمة الانتظار من الخادم.</string>
     <string name="notice_queue_withdraw_busy">لا يزال سحب الرسالة السابقة جاريًا. حاول مرة أخرى بعد قليل.</string>
     <string name="notice_queue_edit_overtaken">أُرسلت الرسالة في قائمة الانتظار بالفعل، لذا لم يُطبَّق تعديلك.</string>
+    <string name="notice_queue_edit_waits_for_uploads">انتظر حتى تكتمل مرفقاتك، ثم عدّل الرسالة في قائمة الانتظار.</string>
     <string name="notice_queue_server_holds">لا يزال الخادم يحتفظ برسالة في قائمة الانتظار. حاول مرة أخرى بعد قليل.</string>
     <string name="notice_queue_restored_to_composer">لم تُرسَل الرسائل في قائمة الانتظار، لذا أُعيدت إلى مربع الرسالة.</string>
     <string name="tool_content_loading">جارٍ تحميل استدعاء الأداة كاملًا…</string>
@@ -1153,6 +1144,7 @@
     <string name="code_checkout_registered_chip">سحب مسجّل</string>
     <string name="code_checkout_registered_info">نسخة الجهاز المسحوبة، مشتركة مع محادثات أخرى</string>
     <string name="cd_code_chip">%1$s: %2$s</string>
+    <string name="cd_code_workspace_folded">مساحة عمل الكود: %1$s على %2$s</string>
     <string name="command_finished">شُغّل الأمر</string>
     <string name="command_exit_code">رمز الخروج %1$d</string>
     <string name="command_terminated">أنهاه %1$s</string>
@@ -1257,4 +1249,49 @@
     <string name="cd_run_code_previous">التشغيل السابق</string>
     <string name="cd_run_code_next">التشغيل التالي</string>
     <string name="notice_run_code_failed">تعذّر تشغيل هذه الشيفرة.</string>
+    <!-- Composer attachment stack and list -->
+    <string name="draft_row_uploading">جارٍ الرفع…</string>
+    <string name="draft_row_failed">لم يُرفع · انقر لإعادة المحاولة</string>
+    <string name="draft_row_skill">مهارة</string>
+    <string name="draft_row_quote">اقتباس</string>
+    <string name="draft_subtitle_join">%1$s · %2$s</string>
+    <string name="cd_cancel_upload">إلغاء رفع %1$s</string>
+    <string name="cd_remove_quote_named">إزالة الاقتباس: %1$s</string>
+    <string name="cd_retry_upload">إعادة محاولة رفع %1$s</string>
+    <string name="draft_item_removed">تمت إزالة %1$s</string>
+    <string name="setting_chip_set_by">من إعداد %1$s</string>
+    <string name="setting_chip_sign_in">· سجّل الدخول</string>
+    <string name="setting_chip_connecting_suffix">· جارٍ الاتصال</string>
+    <string name="mcp_chip_cancel_sign_in">إلغاء تسجيل الدخول</string>
+    <string name="mcp_chip_start_over">البدء من جديد</string>
+    <string name="mcp_cancel_sign_in_failed">تعذّر إلغاء تسجيل الدخول. حاول مرة أخرى.</string>
+    <string name="cd_mcp_sign_in_menu">خيارات تسجيل الدخول</string>
+    <string name="thinking_chip_state_next">للرسالة التالية فقط</string>
+    <string name="cd_context_ring">السياق المستخدم: %1$s</string>
+    <string name="draft_quote_removed">أُزيل الاقتباس</string>
+    <string name="action_undo">تراجع</string>
+    <plurals name="cd_draft_stack">
+        <item quantity="zero">لا عناصر مع هذه الرسالة</item>
+        <item quantity="one">عنصر واحد مع هذه الرسالة</item>
+        <item quantity="two">عنصران مع هذه الرسالة</item>
+        <item quantity="few">%1$d عناصر مع هذه الرسالة</item>
+        <item quantity="many">%1$d عنصرًا مع هذه الرسالة</item>
+        <item quantity="other">%1$d عنصر مع هذه الرسالة</item>
+    </plurals>
+    <plurals name="draft_item_attached_announcement">
+        <item quantity="zero">أُرفق %1$s، لا عناصر</item>
+        <item quantity="one">أُرفق %1$s، عنصر واحد</item>
+        <item quantity="two">أُرفق %1$s، عنصران</item>
+        <item quantity="few">أُرفق %1$s، %2$d عناصر</item>
+        <item quantity="many">أُرفق %1$s، %2$d عنصرًا</item>
+        <item quantity="other">أُرفق %1$s، %2$d عنصر</item>
+    </plurals>
+    <plurals name="draft_uploads_failed">
+        <item quantity="zero">لم يُرفع أي ملف.</item>
+        <item quantity="one">لم يُرفع ملف واحد. انقر عليه لإعادة المحاولة، أو أزله.</item>
+        <item quantity="two">لم يُرفع ملفان. انقر عليهما لإعادة المحاولة، أو أزلهما.</item>
+        <item quantity="few">لم تُرفع %1$d ملفات. انقر عليها لإعادة المحاولة، أو أزلها.</item>
+        <item quantity="many">لم يُرفع %1$d ملفًا. انقر عليها لإعادة المحاولة، أو أزلها.</item>
+        <item quantity="other">لم يُرفع %1$d ملف. انقر عليها لإعادة المحاولة، أو أزلها.</item>
+    </plurals>
 </resources>

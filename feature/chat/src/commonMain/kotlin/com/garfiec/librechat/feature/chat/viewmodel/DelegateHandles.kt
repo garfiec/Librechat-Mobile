@@ -481,6 +481,7 @@ class ConversationLoadWrites internal constructor(state: ChatUiState) {
     var inputText: String = state.composer.inputText
     var pendingQuotes: List<String> = state.composer.pendingQuotes
     var pendingManualSkills: List<String> = state.composer.pendingManualSkills
+    var draftRestore: DraftRestore = state.composer.draftRestore
     var conversationTitle: String? = state.conversation.conversationTitle
     var error: String? = state.error
     internal fun applyTo(s: ChatUiState) = s.copy(
@@ -489,6 +490,7 @@ class ConversationLoadWrites internal constructor(state: ChatUiState) {
             inputText = inputText,
             pendingQuotes = pendingQuotes,
             pendingManualSkills = pendingManualSkills,
+            draftRestore = draftRestore,
         ),
         conversation = s.conversation.copy(conversationTitle = conversationTitle),
         error = error,
@@ -522,6 +524,8 @@ class SendDispatchWrites internal constructor(state: ChatUiState) {
     var pendingManualSkills: List<String> = state.composer.pendingManualSkills
     var pendingReasoningOverride: ReasoningOverride? = state.composer.pendingReasoningOverride
     var pendingUploadRouting: PendingUploadRouting? = state.composer.pendingUploadRouting
+    var pendingDraftUndo: DraftUndo? = state.composer.pendingDraftUndo
+    var draftRestore: DraftRestore = state.composer.draftRestore
     var error: String? = state.error
     internal fun applyTo(s: ChatUiState) = s.copy(
         content = content,
@@ -531,6 +535,8 @@ class SendDispatchWrites internal constructor(state: ChatUiState) {
             pendingManualSkills = pendingManualSkills,
             pendingReasoningOverride = pendingReasoningOverride,
             pendingUploadRouting = pendingUploadRouting,
+            pendingDraftUndo = pendingDraftUndo,
+            draftRestore = draftRestore,
         ),
         error = error,
     )
@@ -546,14 +552,17 @@ class SendDispatchHandle(root: ChatStateHandle) : DelegateHandle(root) {
 // ── QueueOrchestrationDelegate ────────────────────────────────────────────
 // Writes nothing on the queue slice: every row change goes through MessageQueueDelegate and
 // QueuedTurnDelegate. What it owns is the composer swap a queued edit makes — the text, a staged
-// batch, the skill chips, the edit session — and the selection fields that swap carries, so `applyComposer`
-// stays one emission.
+// batch, the skill and quote chips, the edit session, a pending Undo — and the selection fields that
+// swap carries, so `applyComposer` stays one emission.
 class QueueOrchestrationWrites internal constructor(state: ChatUiState) {
     var inputText: String = state.composer.inputText
     var pendingUploadRouting: PendingUploadRouting? = state.composer.pendingUploadRouting
     var editingQueuedItem: QueuedEditSession? = state.composer.editingQueuedItem
     var pendingManualSkills: List<String> = state.composer.pendingManualSkills
+    var pendingQuotes: List<String> = state.composer.pendingQuotes
+    var pendingDraftUndo: DraftUndo? = state.composer.pendingDraftUndo
     var pendingReasoningOverride: ReasoningOverride? = state.composer.pendingReasoningOverride
+    var draftRestore: DraftRestore = state.composer.draftRestore
     var choice: ModelChoice = state.selection.choice
     var enabledTools: Set<String> = state.selection.enabledTools
     var selectedMcpServerNames: Set<String> = state.selection.selectedMcpServerNames
@@ -567,7 +576,10 @@ class QueueOrchestrationWrites internal constructor(state: ChatUiState) {
             pendingUploadRouting = pendingUploadRouting,
             editingQueuedItem = editingQueuedItem,
             pendingManualSkills = pendingManualSkills,
+            pendingQuotes = pendingQuotes,
+            pendingDraftUndo = pendingDraftUndo,
             pendingReasoningOverride = pendingReasoningOverride,
+            draftRestore = draftRestore,
         ),
         selection = s.selection.copy(
             choice = choice,
@@ -584,6 +596,19 @@ class QueueOrchestrationWrites internal constructor(state: ChatUiState) {
 class QueueOrchestrationHandle(root: ChatStateHandle) : DelegateHandle(root) {
     fun update(block: QueueOrchestrationWrites.() -> Unit) =
         root.update { QueueOrchestrationWrites(this).apply(block).applyTo(this) }
+}
+
+// ── DraftItemsDelegate ────────────────────────────────────────────────────
+// Owns the attachment strip's Undo slot and nothing else: the removals and restores themselves go
+// through the file handler and SendDispatchDelegate, which own those lists.
+class DraftItemsWrites internal constructor(state: ChatUiState) {
+    var pendingDraftUndo: DraftUndo? = state.composer.pendingDraftUndo
+    internal fun applyTo(s: ChatUiState) = s.copy(composer = s.composer.copy(pendingDraftUndo = pendingDraftUndo))
+}
+
+class DraftItemsHandle(root: ChatStateHandle) : DelegateHandle(root) {
+    fun update(block: DraftItemsWrites.() -> Unit) =
+        root.update { DraftItemsWrites(this).apply(block).applyTo(this) }
 }
 
 // ── Platform voice input (VoiceInputDelegate / IosVoiceInput) ─────────────

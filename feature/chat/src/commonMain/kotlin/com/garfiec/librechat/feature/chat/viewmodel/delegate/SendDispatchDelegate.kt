@@ -264,10 +264,23 @@ class SendDispatchDelegate(
         return added
     }
 
-    /** Removes one pending skill chip (its ×). */
-    fun removePendingManualSkill(name: String) {
+    /** Returns whether a new chat's first send held it back for the catalog, for [restorePendingManualSkill]. */
+    fun removePendingManualSkill(name: String): Boolean {
         handle.update { pendingManualSkills = pendingManualSkills - name }
+        val heldBack = name in heldBackForCatalog
         heldBackForCatalog = heldBackForCatalog - name
+        return heldBack
+    }
+
+    /** A no-op when [name] is staged again already or the chips are at [MAX_MANUAL_SKILLS]. */
+    fun restorePendingManualSkill(index: Int, name: String, heldBack: Boolean) {
+        var restored = false
+        handle.update {
+            if (name in pendingManualSkills || pendingManualSkills.size >= MAX_MANUAL_SKILLS) return@update
+            pendingManualSkills = pendingManualSkills.insertedAt(index, name)
+            restored = true
+        }
+        if (restored && heldBack) heldBackForCatalog = heldBackForCatalog + name
     }
 
     /**
@@ -320,7 +333,21 @@ class SendDispatchDelegate(
      */
     fun restagePendingQuotes(quotes: List<String>) {
         if (quotes.isEmpty()) return
-        handle.update { pendingQuotes = mergeRestagedQuotes(pendingQuotes, quotes) }
+        handle.update {
+            // During a queued edit the chips on screen are that item's: the excerpts go to the
+            // stashed draft the steer was sent from, which the edit's end restores.
+            if (handle.state.editingQueuedItem != null) {
+                draftRestore = draftRestore.copy(quotes = mergeRestagedQuotes(draftRestore.quotes, quotes))
+            } else {
+                pendingQuotes = mergeRestagedQuotes(pendingQuotes, quotes)
+            }
+        }
+    }
+
+    fun restorePendingQuote(index: Int, quote: String) {
+        handle.update {
+            pendingQuotes = pendingQuotes.insertedAt(index, quote)
+        }
     }
 
     /** Removes one staged quote chip (its ×). */
@@ -355,10 +382,12 @@ class SendDispatchDelegate(
     fun clearComposer() {
         val draftKey = handle.state.conversationId ?: newChatDraftKey
         // Drop any staged batch too: it belongs to the message just sent, and surviving here would
-        // attach it to the next one.
+        // attach it to the next one. A pending Undo goes for the same reason: what it would restore
+        // was removed from the message just sent.
         handle.update {
             inputText = ""
             pendingUploadRouting = null
+            pendingDraftUndo = null
         }
         handle.scope.launch { draftRepository.deleteDraft(draftKey) }
         fileHandler.clearAttachedFiles()

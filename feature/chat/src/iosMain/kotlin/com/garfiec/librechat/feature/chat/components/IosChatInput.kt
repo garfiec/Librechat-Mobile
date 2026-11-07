@@ -2,21 +2,14 @@
 
 package com.garfiec.librechat.feature.chat.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -28,23 +21,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.rememberDraftField
 import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
-import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.resources.Res
-import com.garfiec.librechat.feature.chat.resources.cd_attach_file
+import com.garfiec.librechat.feature.chat.resources.cd_open_tools_menu
 import com.garfiec.librechat.feature.chat.resources.cd_paste_image
-import com.garfiec.librechat.feature.chat.util.ThinkingChip
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
-import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
-import com.garfiec.librechat.feature.chat.viewmodel.PendingSteerChip
-import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -69,13 +56,7 @@ fun IosChatInput(
     builtInSearchOn: Boolean = false,
     duringRunAction: DuringRunAction = DuringRunAction.STEER,
     duringRunSendTarget: DuringRunSendTarget = DuringRunSendTarget.QUEUE,
-    pendingSteers: List<PendingSteerChip> = emptyList(),
-    onCancelSteer: (steerId: String) -> Unit = {},
-    onInterruptSteer: (steerId: String) -> Unit = {},
-    pendingQuotes: List<String> = emptyList(),
-    onRemoveQuote: (index: Int) -> Unit = {},
-    pendingManualSkills: List<String> = emptyList(),
-    onRemoveManualSkill: (name: String) -> Unit = {},
+    chrome: ComposerChrome = ComposerChrome(),
     onSetDuringRunAction: (DuringRunAction) -> Unit = {},
     queuedPausedCount: Int = 0,
     queueHeldForRefusal: Boolean = false,
@@ -89,37 +70,16 @@ fun IosChatInput(
     comparison: ComposerComparison? = null,
     comparisonHint: ComposerComparisonHint = ComposerComparisonHint.NONE,
     onCancelPendingSend: () -> Unit = {},
-    queuedMessages: List<QueuedMessage> = emptyList(),
-    onEditQueuedMessage: (localId: String) -> Unit = {},
-    onCancelQueuedMessage: (localId: String) -> Unit = {},
-    onReorderQueuedMessages: (fromIndex: Int, toIndex: Int) -> Unit = { _, _ -> },
     fontSizeMultiplier: Float = 1f,
-    enabledTools: Set<String> = emptySet(),
-    pinnedToolKeys: List<String> = emptyList(),
-    onToggleTool: (String) -> Unit = {},
-    thinking: ThinkingChip? = null,
-    onOpenThinking: () -> Unit = {},
-    mcpServers: List<McpServerDisplayData> = emptyList(),
-    selectedMcpServerNames: Set<String> = emptySet(),
     isRecording: Boolean = false,
     isTranscribing: Boolean = false,
     onStartRecording: () -> Unit = {},
     onStopRecording: () -> Unit = {},
     selectedModelDisplay: String? = null,
     isCodeInterpreterAvailable: Boolean = true,
-    attachedFiles: List<AttachedFile> = emptyList(),
-    onRemoveFile: (AttachedFile) -> Unit = {},
     hasClipboardImage: Boolean = false,
     onPasteImage: (() -> Unit)? = null,
     gates: ChatInputGates = ChatInputGates(),
-    contextGauge: ContextGaugeDetails? = null,
-    contextUsageEnabled: Boolean = false,
-    onCompact: (() -> Unit)? = null,
-    /** "Not now" on a compact suggestion. */
-    onSnoozeCompact: () -> Unit = {},
-    /** A compact suggestion is due under the options-sheet placement: hint at it on the + button. */
-    compactSuggested: Boolean = false,
-    contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     promptSuggestions: List<PromptMentionDisplayData> = emptyList(),
     skillSuggestions: List<PickerSkill> = emptyList(),
     isLoadingSkills: Boolean = false,
@@ -135,32 +95,19 @@ fun IosChatInput(
         isStreaming = isStreaming,
         isRecording = isRecording,
         isTranscribing = isTranscribing,
-        enabledTools = enabledTools,
-        pinnedToolKeys = pinnedToolKeys,
-        thinking = thinking,
-        mcpServers = mcpServers,
-        selectedMcpServerNames = selectedMcpServerNames,
+        chrome = chrome,
         selectedModelDisplay = selectedModelDisplay,
         isCodeInterpreterAvailable = isCodeInterpreterAvailable,
-        attachedFiles = attachedFiles,
         gates = gates,
         canQueue = canQueue,
         canSteer = canSteer,
         builtInSearchOn = builtInSearchOn,
         duringRunAction = duringRunAction,
         duringRunSendTarget = duringRunSendTarget,
-        pendingSteers = pendingSteers,
-        pendingQuotes = pendingQuotes,
-        pendingManualSkills = pendingManualSkills,
         isEditingQueued = isEditingQueued,
         isAwaitingUploadSend = isAwaitingUploadSend,
         arePicksUnsettled = arePicksUnsettled,
         comparisonHint = comparisonHint,
-        contextGauge = contextGauge,
-        contextUsageEnabled = contextUsageEnabled,
-        onCompact = onCompact,
-        onSnoozeCompact = onSnoozeCompact,
-        contextBarPlacement = contextBarPlacement,
         promptSuggestions = promptSuggestions,
         skillSuggestions = skillSuggestions,
         isLoadingSkills = isLoadingSkills,
@@ -173,16 +120,10 @@ fun IosChatInput(
         onSend = onSend,
         onStop = onStop,
         onSelectPickerItem = onPickerSelect,
-        onToggleTool = onToggleTool,
-        onOpenThinking = onOpenThinking,
         onQueue = onQueue,
         onDuringRunSend = onDuringRunSend,
         onSteer = onSteer,
         onInterrupt = onInterrupt,
-        onCancelSteer = onCancelSteer,
-        onInterruptSteer = onInterruptSteer,
-        onRemoveQuote = onRemoveQuote,
-        onRemoveManualSkill = onRemoveManualSkill,
         onRetrySkills = onRetrySkills,
         onSetDuringRunAction = onSetDuringRunAction,
         queuedPausedCount = queuedPausedCount,
@@ -192,59 +133,44 @@ fun IosChatInput(
         onCommitEdit = onCommitEdit,
         onCancelEdit = onCancelEdit,
         onCancelPendingSend = onCancelPendingSend,
-        queuedMessages = queuedMessages,
-        onEditQueuedMessage = onEditQueuedMessage,
-        onCancelQueuedMessage = onCancelQueuedMessage,
-        onReorderQueuedMessages = onReorderQueuedMessages,
         fontSizeMultiplier = fontSizeMultiplier,
-        onRemoveFile = onRemoveFile,
         modifier = modifier,
         leadingButtons = {
-            // "+" button to open tools bottom sheet (matches Android behavior)
+            // "+" opens the options sheet, not a file picker, as on Android.
             Box {
-                FilledTonalIconButton(
+                IconButton(
                     onClick = onOpenTools,
                     colors = ChatInputDefaults.toolsButtonColors(),
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(BoxButtonSize),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = stringResource(Res.string.cd_attach_file),
+                        contentDescription = stringResource(Res.string.cd_open_tools_menu),
                     )
                 }
-                // Compact suggestion under the options-sheet placement (same dot as Android).
-                if (compactSuggested) {
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .align(Alignment.BottomEnd)
-                            .offset(x = (-2).dp, y = (-2).dp)
-                            .background(color = MaterialTheme.colorScheme.tertiary, shape = CircleShape),
-                    )
-                }
+                ToolsButtonDots(
+                    compactSuggested = chrome.compactSuggested,
+                    enabledTools = chrome.enabledTools,
+                    selectedMcpServerNames = chrome.selectedMcpServerNames,
+                    showEphemeralTools = gates.showEphemeralTools,
+                )
             }
 
             // Paste image button (shown when clipboard has image content)
             if (hasClipboardImage && onPasteImage != null) {
                 IconButton(
                     onClick = onPasteImage,
-                    modifier = Modifier.size(40.dp),
+                    colors = ChatInputDefaults.toolsButtonColors(),
+                    modifier = Modifier.size(BoxButtonSize),
                 ) {
                     Icon(
                         imageVector = Icons.Default.ContentPaste,
                         contentDescription = stringResource(Res.string.cd_paste_image),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.width(4.dp))
         },
         textFieldContent = {
-            // Text field with mic button overlaid at trailing edge.
-            // The mic is a separate composable (not trailingIcon) to
-            // avoid iOS text-magnifier gesture conflicts, but visually
-            // it sits inside the field's rounded border.
             Box(
                 modifier = Modifier.weight(1f),
             ) {
@@ -268,21 +194,16 @@ fun IosChatInput(
                             comparisonHint = comparisonHint,
                         )
                     },
-                    leadingIcon = comparison?.takeUnless { it.compact }?.let { comparison ->
-                        { ComposerComparisonBadges(comparison) }
+                    leadingIcon = remember(comparison) { composerFieldLeadingIcon(comparison) },
+                    prefix = compactComparison?.let {
+                        { ComposerComparisonReserve(collapse = { comparisonCollapse }) }
                     },
-                    prefix = compactComparison?.let { { ComposerComparisonReserve { comparisonCollapse } } },
                     suffix = { ComposerAffixAnchor() },
                     textStyle = MaterialTheme.typography.bodyLarge,
-                    shape = ChatInputDefaults.shape,
-                    colors = ChatInputDefaults.textFieldColors(isTemporaryChat),
+                    colors = ChatInputDefaults.textFieldColors(),
                     keyboardOptions = ChatInputDefaults.keyboardOptions,
                     keyboardActions = KeyboardActions.Default,
                     maxLines = 6,
-                    // Invisible spacer reserves room for the overlaid mic button
-                    trailingIcon = {
-                        Spacer(modifier = Modifier.width(36.dp))
-                    },
                 )
 
                 if (compactComparison != null) {
@@ -293,31 +214,18 @@ fun IosChatInput(
                         modifier = Modifier.align(Alignment.TopStart),
                     )
                 }
-
-                // Mic button overlaid at trailing edge of the text field
-                IconButton(
-                    onClick = {
-                        if (isRecording) {
-                            onStopRecording()
-                        } else {
-                            onStartRecording()
-                        }
-                    },
-                    modifier = Modifier
-                        .size(40.dp)
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 4.dp),
-                    enabled = !isTranscribing,
-                ) {
-                    VoiceMicIndicator(
-                        isRecording = isRecording,
-                        isTranscribing = isTranscribing,
-                    )
-                }
             }
         },
-        trailingSpacer = {
-            Spacer(modifier = Modifier.width(4.dp))
+        // The mic sits in the button row, apart from the field, so it never competes with the
+        // field's text-magnifier gesture.
+        trailingButtons = {
+            IconButton(
+                onClick = { if (isRecording) onStopRecording() else onStartRecording() },
+                modifier = Modifier.size(BoxButtonSize),
+                enabled = !isTranscribing,
+            ) {
+                VoiceMicIndicator(isRecording = isRecording, isTranscribing = isTranscribing)
+            }
         },
         bottomContent = {
             // Snackbar for file attachment toast

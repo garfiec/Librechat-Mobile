@@ -39,6 +39,7 @@ import com.garfiec.librechat.core.model.pullrequest.ConversationPullRequest
 import com.garfiec.librechat.core.model.pullrequest.PullRequestChecksLabel
 import com.garfiec.librechat.core.model.pullrequest.PullRequestPresentation
 import com.garfiec.librechat.core.ui.components.AdaptiveAssistChip
+import com.garfiec.librechat.core.ui.components.AdaptiveChipDefaults
 import com.garfiec.librechat.core.ui.components.pullrequest.PullRequestStateIcon
 import com.garfiec.librechat.core.ui.components.pullrequest.pullRequestChecksText
 import com.garfiec.librechat.core.ui.components.pullrequest.pullRequestLabel
@@ -169,6 +170,8 @@ internal fun PullRequestComposerChip(
                 liveRegion = LiveRegionMode.Polite
                 onClick { onOpen(); true }
             },
+        // Filled, not M3's outline: the composer's top is transparent and the thread would show through.
+        colors = AdaptiveChipDefaults.overlayAssistChipColors(),
         leadingIcon = { PullRequestStateIcon(presentation = state.presentation, size = 18.dp) },
         label = {
             AnimatedVisibility(

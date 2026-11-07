@@ -5,8 +5,8 @@ package com.garfiec.librechat.core.data.datastore
  * Single-choice: the gauge appears in at most one location at a time.
  *
  * - [HIDDEN] — never shown.
- * - [ABOVE_INPUT] — a slim pill just above the composer (between the attachment/tool chips and
- *   the input row); tap opens the breakdown sheet.
+ * - [ABOVE_INPUT] — a ring at the end of the composer's settings line, inside the message box
+ *   (the stored name predates the move); tap opens the breakdown sheet.
  * - [OPTIONS_SHEET] — a full-width gauge at the top of the composer "+" tools sheet (above the
  *   model selector row) that expands the breakdown in place. The default.
  * - [OVERFLOW_MENU] — a gauge menu item in the chat top-bar overflow ("⋮") menu; tap opens the

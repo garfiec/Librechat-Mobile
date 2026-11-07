@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -55,7 +55,7 @@ internal fun SkillPills(
             SkillPill(name = name, icon = Icons.Default.PushPin, cd = stringResource(Res.string.cd_skill_always_applied, name))
         }
         manual.forEach { name ->
-            SkillPill(name = name, icon = Icons.Default.Extension, cd = stringResource(Res.string.cd_skill_used, name))
+            SkillPill(name = name, icon = SkillGlyph, cd = stringResource(Res.string.cd_skill_used, name))
         }
     }
 }
@@ -83,3 +83,6 @@ private fun SkillPill(name: String, icon: ImageVector, cd: String) {
         )
     }
 }
+
+/** A picked or used skill's glyph: the attachment strip, the `$` picker, the sent bubble's pills and the skill card. */
+internal val SkillGlyph: ImageVector = Icons.Default.AutoAwesome

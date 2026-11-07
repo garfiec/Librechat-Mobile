@@ -376,4 +376,12 @@
     <string name="pr_retry">Повторить</string>
     <string name="pr_additions_cd">Добавлено строк: %1$d</string>
     <string name="pr_deletions_cd">Удалено строк: %1$d</string>
+    <!-- MCP server status (the MCP servers page, the chat's settings chips and "+" sheet) -->
+    <string name="mcp_status_connected">Подключён</string>
+    <string name="mcp_status_connecting">Подключение…</string>
+    <string name="mcp_status_needs_sign_in">Нужен вход</string>
+    <string name="mcp_status_needs_setup">Настройте в веб-версии</string>
+    <string name="mcp_status_on_demand">Подключается во время чата</string>
+    <string name="mcp_status_disconnected">Не подключён</string>
+    <string name="mcp_status_failed">Не удаётся подключиться</string>
 </resources>

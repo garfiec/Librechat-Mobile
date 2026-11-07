@@ -189,7 +189,7 @@ class ChatConfigDelegate(
                         // like the Data tab row that opens the same page: USE + READ.
                         memoriesPageEnabled = role.canOpenMemories(),
                         skillsEnabled = role.hasAccessOrPermissive(PermissionType.SKILLS, Permission.USE),
-                        // Pinned tools (v0.8.7): raw interface list; mapped/filtered by pinnedToolChips.
+                        // Pinned tools (v0.8.7): raw interface list; mapped and gated by settingChipsOf.
                         pinnedTools = iface?.defaultPinnedTools ?: emptyList(),
                         dropParamsMap = inputs.dropParamsMap,
                         compactionEnabled = inputs.compactionEnabled == true,

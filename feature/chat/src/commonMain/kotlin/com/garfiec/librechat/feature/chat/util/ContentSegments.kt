@@ -12,8 +12,7 @@ import kotlinx.serialization.json.JsonPrimitive
  * ONE transform for both concerns on purpose. Activity grouping and steer segmentation both carve
  * up the same list, and two passes would eventually disagree about a boundary — a group spanning a
  * steer would render the user's words inside a collapsed tool block. Pure and memoizable so the
- * boundaries can be asserted directly; this module has no Compose test harness, so a function is
- * the only testable form.
+ * boundaries can be asserted directly.
  *
  * Mirrors upstream `client/src/utils/groupToolCalls.ts` (grouping) and the `postSteerAuthors` pass
  * in `ContentParts.tsx` (segmentation).

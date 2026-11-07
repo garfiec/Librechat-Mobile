@@ -388,4 +388,12 @@
     <string name="pr_retry">إعادة المحاولة</string>
     <string name="pr_additions_cd">عدد الأسطر المضافة: %1$d</string>
     <string name="pr_deletions_cd">عدد الأسطر المحذوفة: %1$d</string>
+    <!-- MCP server status (the MCP servers page, the chat's settings chips and "+" sheet) -->
+    <string name="mcp_status_connected">متصل</string>
+    <string name="mcp_status_connecting">جارٍ الاتصال…</string>
+    <string name="mcp_status_needs_sign_in">يلزم تسجيل الدخول</string>
+    <string name="mcp_status_needs_setup">أكمل الإعداد على الويب</string>
+    <string name="mcp_status_on_demand">يتصل عند الدردشة</string>
+    <string name="mcp_status_disconnected">غير متصل</string>
+    <string name="mcp_status_failed">تعذّر الاتصال</string>
 </resources>

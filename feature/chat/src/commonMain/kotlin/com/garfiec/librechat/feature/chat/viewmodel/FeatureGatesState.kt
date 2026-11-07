@@ -84,7 +84,7 @@ data class FeatureGatesState(
      *  never coming. */
     val feedbackEnabled: Boolean = true,
     /** `interface.defaultPinnedTools` (v0.8.7): tool keys the server pins to the prompt bar.
-     *  Raw, as sent; mapped/filtered to renderable chips by [ChatUiState.pinnedToolChips]. */
+     *  Raw, as sent; mapped and gated into the settings line by `settingChipsOf`. */
     val pinnedTools: List<String> = emptyList(),
     /** `endpointsDropParamsMap` (v0.8.8-rc3): parameters this server strips before calling the
      *  provider. Raw, as sent — the endpoint/model lookup is a union shape and is resolved inside

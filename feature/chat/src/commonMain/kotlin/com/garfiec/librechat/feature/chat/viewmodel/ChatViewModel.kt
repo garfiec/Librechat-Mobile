@@ -77,7 +77,10 @@ import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
+import com.garfiec.librechat.feature.chat.util.DraftItem
 import com.garfiec.librechat.feature.chat.util.ReplyAvatarMemo
+import com.garfiec.librechat.feature.chat.util.SettingChip
+import com.garfiec.librechat.feature.chat.util.SettingChipsMemo
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
 import com.garfiec.librechat.feature.chat.util.ToolPartIdentity
 import com.garfiec.librechat.feature.chat.util.ToolPartKey
@@ -103,12 +106,14 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.ComparisonModeDeleg
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ContextProjectionDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ConversationActionsDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.ConversationLoadDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.DraftItemsDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.EndpointKeyStatusDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.FavoritesDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.InConversationSearchDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.JumpToMessageDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.LiveReplyDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.LocalQueueContinuityDelegate
+import com.garfiec.librechat.feature.chat.viewmodel.delegate.McpServersDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageEditingDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageQueueDelegate
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.MessageTreeDelegate
@@ -325,7 +330,6 @@ class ChatViewModel(
         handle = ModelSelectionHandle(stateHandle),
         configRepository = configRepository,
         agentRepository = agentRepository,
-        mcpRepository = mcpRepository,
         settingsDataStore = settingsDataStore,
         permissionGate = permissionGate,
         connectivityObserver = connectivityObserver,
@@ -335,6 +339,7 @@ class ChatViewModel(
         initialModel = initialModel,
         initialSpec = initialSpec,
     )
+    private val mcpServersDelegate = McpServersDelegate(ModelSelectionHandle(stateHandle), mcpRepository)
     private val skillsToggleDelegate = SkillsToggleDelegate(SkillsToggleHandle(stateHandle), settingsDataStore)
 
     // The attached-machine workspace a chat's coding agents run on, and what each send carries.
@@ -586,6 +591,7 @@ class ChatViewModel(
     }
 
     private val replyAvatarMemo = ReplyAvatarMemo()
+    private val settingChipsMemo = SettingChipsMemo()
 
     val uiState: StateFlow<ChatUiState> = combine(
         _uiState,
@@ -634,6 +640,8 @@ class ChatViewModel(
                 ),
             ),
             avatars = state.replyAvatars(url),
+            // The composer's settings line, mapped here once rather than on every chrome recomposition.
+            settingChips = settingChipsMemo.resolve(state.settingChipSlices) { state.settingChipInputs },
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, ChatUiState())
 
@@ -812,6 +820,12 @@ class ChatViewModel(
         loadSkillCatalog = { skillPickerDelegate.ensureLoaded(newTrigger = true) },
         codeWorkspace = codeWorkspaceDelegate::submissionForSend,
         sendsWithoutWorkspace = codeWorkspaceDelegate::sendsWithoutWorkspace,
+    )
+
+    private val draftItemsDelegate = DraftItemsDelegate(
+        handle = DraftItemsHandle(stateHandle),
+        fileHandler = fileDelegate,
+        sendDispatchDelegate = sendDispatchDelegate,
     )
 
     private val queueOrchestrationDelegate = QueueOrchestrationDelegate(
@@ -1213,7 +1227,7 @@ class ChatViewModel(
                 promptsUseAllowed = true
             }
             if (role?.hasAccess(PermissionType.MCP_SERVERS, Permission.USE) != false) {
-                modelDelegate.loadMcpServers()
+                mcpServersDelegate.load()
             }
             // Always call loadAgents — it self-gates on the AGENTS.USE permission and
             // flips its agentsLoaded flag on every path (including denial). Skipping it
@@ -1626,9 +1640,11 @@ class ChatViewModel(
         codeWorkspaceDelegate.onForeground(false)
         pullRequestDelegate.onForeground(false)
         queuedTurnDelegate.stopPolling()
+        mcpServersDelegate.onBackground()
     }
 
-    fun onResume() {
+    /** [mcpSignInEnding]: an MCP sign-in ends on this return and re-reads the MCP statuses itself. */
+    fun onResume(mcpSignInEnding: Boolean = false) {
         streamingManager.onResume()
         codeWorkspaceDelegate.onForeground(true)
         pullRequestDelegate.onForeground(true)
@@ -1641,6 +1657,9 @@ class ChatViewModel(
         // Skills may have changed on the Skills screen while this chat was behind it.
         val state = _uiState.value
         skillPickerDelegate.refreshOnReturn(pickerOpen = parsePickerQuery(state.inputText, state.canPickSkills) != null)
+        // A chip's tap acts on its server's status, which may have changed elsewhere meanwhile (the
+        // MCP servers page, another chat's tool call, a browser sign-in finished there).
+        mcpServersDelegate.onForeground(signInEnding = mcpSignInEnding)
     }
 
     /** The picker's retry after the skill catalog failed to load. */
@@ -1928,6 +1947,14 @@ class ChatViewModel(
         _uiState.update { it.copy(mediaPreview = preview) }
     }
 
+    /**
+     * Opens the media viewer on the composer's own images ([preview], built by the attachment strip
+     * from what the draft holds), which are on the device and not in the thread.
+     */
+    fun openDraftMedia(preview: MediaPreviewState) {
+        _uiState.update { it.copy(mediaPreview = preview) }
+    }
+
     fun closeMedia() {
         _uiState.update { it.copy(mediaPreview = null) }
     }
@@ -2000,20 +2027,21 @@ class ChatViewModel(
     fun confirmPendingUploadRouting() = uploadIntakeDelegate.confirmPendingUploadRouting()
     fun cancelPendingUploadRouting() = uploadIntakeDelegate.cancelPendingUploadRouting()
     fun cancelPendingUploadSend() = uploadIntakeDelegate.cancelPendingUploadSend()
-    fun removeFile(file: AttachedFile) = uploadIntakeDelegate.removeFile(file)
     fun retryUpload(file: AttachedFile) = uploadIntakeDelegate.retryUpload(file)
     fun submitPdfPassword(password: String) = uploadIntakeDelegate.submitPdfPassword(password)
     fun dismissPdfPassword() = uploadIntakeDelegate.dismissPdfPassword()
 
     // Quote chips (selection toolbar "Add to chat")
     fun addPendingQuote(text: String) = sendDispatchDelegate.addPendingQuote(text)
-    fun removePendingQuote(index: Int) = sendDispatchDelegate.removePendingQuote(index)
 
     // Pending skill chips (picked from the `/` and `$` list). A pick also turns Skills on here.
     fun addPendingManualSkill(name: String) {
         if (sendDispatchDelegate.addPendingManualSkill(name)) skillsToggleDelegate.turnOn()
     }
-    fun removePendingManualSkill(name: String) = sendDispatchDelegate.removePendingManualSkill(name)
+
+    fun removeDraftItem(item: DraftItem) = draftItemsDelegate.remove(item)
+    fun undoDraftRemoval(id: Long) = draftItemsDelegate.undo(id)
+    fun dropDraftUndo(id: Long) = draftItemsDelegate.dropUndo(id)
 
     /**
      * Stages [value] from the Thinking sheet for the next message only (v0.8.9-rc1). Picking the
@@ -2128,9 +2156,32 @@ class ChatViewModel(
 
     fun setSecondaryModel(endpoint: String, model: String) = comparisonDelegate.setSecondaryModel(endpoint, model)
     fun toggleMcpServer(serverName: String) = modelDelegate.toggleMcpServer(serverName)
+
+    /** A settings chip's "sign in", or its "Start over": see [McpServersDelegate.signIn]. */
+    fun signInMcpServer(
+        serverName: String,
+        openSignIn: (serverName: String, authorizationUrl: String) -> Boolean,
+        onFailed: () -> Unit,
+    ) = mcpServersDelegate.signIn(serverName, openSignIn, onFailed)
+
+    /** A connecting chip's "Cancel sign-in": see [McpServersDelegate.cancelSignIn]. */
+    fun cancelMcpSignIn(serverName: String, onFailed: () -> Unit) =
+        mcpServersDelegate.cancelSignIn(serverName, onFailed)
+
+    /** An MCP sign-in ended: see [McpServersDelegate.onSignInEnded]. */
+    fun onMcpSignInEnded() = mcpServersDelegate.onSignInEnded()
     fun toggleTool(toolName: String) {
         // Per conversation, so it never goes through the global enabled-tools store.
         if (toolName == ToolConstants.SKILLS) skillsToggleDelegate.toggle() else modelDelegate.toggleTool(toolName)
+    }
+
+    /** A settings-line chip's switch: the same toggle the "+" sheet's row flips. */
+    fun toggleSettingChip(chip: SettingChip) {
+        when (chip) {
+            is SettingChip.Tool -> toggleTool(chip.key)
+            is SettingChip.Mcp -> toggleMcpServer(chip.name)
+            is SettingChip.Thinking -> Unit
+        }
     }
 
     /**

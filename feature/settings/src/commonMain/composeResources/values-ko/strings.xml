@@ -333,7 +333,7 @@
     <string name="context_bar_title">컨텍스트 사용량</string>
     <string name="context_bar_desc">컨텍스트 창 사용량 게이지를 표시할 위치</string>
     <string name="context_bar_hidden">숨김</string>
-    <string name="context_bar_above_input">메시지 입력란 위</string>
+    <string name="context_bar_above_input">메시지 입력란 안</string>
     <string name="context_bar_options_sheet">채팅 옵션 메뉴</string>
     <string name="context_bar_overflow_menu">상단 바 메뉴 (⋮)</string>
     <string name="show_image_descriptions">이미지 설명 표시</string>
@@ -859,13 +859,6 @@
     <plurals name="mcp_tool_count">
         <item quantity="other">도구 %1$d개</item>
     </plurals>
-    <string name="mcp_status_connected">연결됨</string>
-    <string name="mcp_status_connecting">연결 중…</string>
-    <string name="mcp_status_needs_sign_in">로그인 필요</string>
-    <string name="mcp_status_needs_setup">웹에서 설정하세요</string>
-    <string name="mcp_status_on_demand">채팅할 때 연결됨</string>
-    <string name="mcp_status_disconnected">연결 안 됨</string>
-    <string name="mcp_status_failed">연결할 수 없음</string>
     <string name="mcp_action_sign_in">로그인</string>
     <string name="mcp_action_connect">연결</string>
     <string name="mcp_action_reconnect">다시 연결</string>

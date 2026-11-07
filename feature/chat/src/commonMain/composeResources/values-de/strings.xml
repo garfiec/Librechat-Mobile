@@ -253,19 +253,10 @@
     <string name="tool_file_search_desc">In hochgeladenen Dateien suchen</string>
     <string name="tool_mcp">MCP</string>
     <string name="tool_mcp_desc">Model-Context-Protocol-Server</string>
-    <string name="cd_web_search_enabled">Websuche aktiviert</string>
     <string name="cd_quoted_excerpt">Zitierter Auszug</string>
-    <string name="cd_remove_quote">Zitat entfernen</string>
     <string name="selection_add_to_chat">Zum Chat hinzufügen</string>
-    <string name="cd_code_enabled">Code-Interpreter aktiviert</string>
-    <string name="cd_file_search_enabled">Dateisuche aktiviert</string>
 
     <!-- Attachments -->
-    <string name="cd_attach_file">Datei anhängen</string>
-    <string name="files_count">Dateien (%1$d)</string>
-    <string name="files_count_with_text">Dateien (%1$d) · %2$d als Text</string>
-    <string name="cd_files_attached">%1$d Dateien angehängt, tippen für Vorschau</string>
-    <string name="cd_files_attached_with_text">%1$d Dateien angehängt, %2$d als Text gesendet, tippen für Vorschau</string>
     <string name="upload_routing_sheet_title">Wie sollen diese gesendet werden?</string>
     <string name="upload_routing_sheet_title_single">Wie soll dies gesendet werden?</string>
     <string name="upload_routing_option_provider">An das Modell</string>
@@ -277,8 +268,6 @@
     <string name="upload_routing_apply_all">Für alle verwenden</string>
     <string name="upload_routing_attach">Anhängen</string>
     <string name="cd_upload_route_text">Als extrahierter Text gesendet</string>
-    <string name="cd_attached_file">Angehängte Datei: %1$s</string>
-    <string name="cd_preview_file">Vorschau von %1$s</string>
     <string name="cd_remove_file">%1$s entfernen</string>
 
     <!-- Agent handoff -->
@@ -553,6 +542,8 @@
     <string name="media_empty_links">Keine Links in dieser Unterhaltung</string>
     <string name="media_empty_artifacts">Keine Artefakte in dieser Unterhaltung</string>
     <string name="context_usage_label">Kontext</string>
+    <string name="context_percent">%1$d %</string>
+    <string name="context_percent_estimate">~%1$d %</string>
     <string name="tool_approval_title">Genehmigung erforderlich</string>
     <string name="tool_approval_arguments">Argumente</string>
     <string name="tool_approval_approve">Genehmigen</string>
@@ -648,13 +639,11 @@
     <string name="tool_memory_desc">Den Assistenten Details aus diesem Chat merken lassen</string>
     <string name="tool_skills">Skills</string>
     <string name="tool_skills_desc">Den Assistenten in diesem Chat deine Skills nutzen lassen</string>
-    <string name="cd_skills_enabled">Skills aktiviert</string>
     <string name="picker_type_prompt">Prompt</string>
     <string name="picker_type_skill">Skill</string>
     <string name="picker_no_matches">Keine Treffer</string>
     <string name="picker_loading_skills">Skills werden geladen…</string>
     <string name="picker_skills_failed">Skills konnten nicht geladen werden</string>
-    <string name="cd_pending_skills">Skills für die nächste Nachricht</string>
     <string name="cd_remove_skill">Skill %1$s entfernen</string>
     <string name="cd_skill_always_applied">Immer angewendeter Skill: %1$s</string>
     <string name="cd_skill_used">Verwendeter Skill: %1$s</string>
@@ -662,7 +651,7 @@
     <string name="skill_call_finished">%1$s ausgeführt</string>
     <string name="skill_call_fallback_name">Skill</string>
     <string name="cd_steer_message">Diese Antwort lenken</string>
-    <string name="cd_cancel_steer">Lenken abbrechen</string>
+    <string name="cd_cancel_steer">Lenken abbrechen: %1$s</string>
     <string name="cd_during_run_options">Festlegen, was Senden jetzt bewirkt</string>
     <string name="during_run_steer">Diese Antwort lenken</string>
     <string name="during_run_queue">Zur Warteschlange hinzufügen</string>
@@ -769,6 +758,7 @@
     <string name="compact_confirm_title">Diese Unterhaltung komprimieren?</string>
     <string name="compact_confirm_body">%1$d % des Kontextfensters sind belegt. Beim Komprimieren wird die bisherige Unterhaltung zu einer kürzeren Notiz zusammengefasst, die das Modell weiter liest – so wird Platz für Neues frei. Es wird nichts gelöscht.</string>
     <string name="compact_confirm_not_now">Nicht jetzt</string>
+    <string name="compact_confirm_see_usage">Belegung ansehen</string>
     <string name="compact_confirm_action">Komprimieren</string>
     <string name="cd_temporary_chat">Temporärer Chat</string>
     <string name="temporary_chat_enforced">Temporärer Chat ist für alle Chats aktiv, festgelegt von deinem Administrator</string>
@@ -894,7 +884,6 @@
     <string name="artifact_library_declined">Nicht geladen: %1$s</string>
     <string name="artifact_library_allowed">Geladen: %1$s</string>
     <string name="artifact_library_change">Ändern</string>
-    <string name="cd_mcp_server_enabled">MCP-Server %1$s aktiviert</string>
     <string name="cd_code_block">Codeblock</string>
     <string name="cd_code_block_language">%1$s-Codeblock</string>
     <string name="log_output_title">Protokollausgabe</string>
@@ -911,7 +900,7 @@
     <string name="mcp_sign_in_needed_unnamed">Ein Tool erfordert deine Anmeldung</string>
     <string name="mcp_sign_in_resumes">Die Antwort wird fortgesetzt, sobald du angemeldet bist.</string>
     <string name="mcp_sign_in_action">Anmelden</string>
-    <string name="mcp_sign_in_failed">Die Anmeldung wurde nicht abgeschlossen. Versuche es erneut über den Tool-Aufruf.</string>
+    <string name="mcp_sign_in_failed">Die Anmeldung wurde nicht abgeschlossen. Versuche es erneut.</string>
     <string name="prompt_filter_title">Filtern &amp; sortieren</string>
     <string name="prompt_sort_recent">Neueste</string>
     <string name="prompt_sort_popular">Beliebt</string>
@@ -1006,6 +995,7 @@
     <string name="code_machine">Maschine</string>
     <string name="code_machine_choose">Maschine wählen</string>
     <string name="code_workspace">Code-Arbeitsbereich</string>
+    <string name="code_workspace_saved_on_send">Deine nächste Nachricht speichert diesen Arbeitsbereich für den Chat.</string>
     <string name="code_workspace_choose">Arbeitsbereich wählen</string>
     <string name="code_workspace_loading">Arbeitsbereich wird geladen…</string>
     <string name="code_workspace_missing">Arbeitsbereich fehlt</string>
@@ -1059,6 +1049,7 @@
     <string name="notice_queue_withdraw_refused">Die eingereihte Nachricht konnte nicht vom Server zurückgezogen werden.</string>
     <string name="notice_queue_withdraw_busy">Die vorherige Nachricht wird noch zurückgezogen. Versuche es gleich noch einmal.</string>
     <string name="notice_queue_edit_overtaken">Die eingereihte Nachricht wurde bereits gesendet, daher wurde deine Änderung nicht übernommen.</string>
+    <string name="notice_queue_edit_waits_for_uploads">Warte, bis deine Anhänge fertig sind, und bearbeite dann die eingereihte Nachricht.</string>
     <string name="notice_queue_server_holds">Der Server hält noch eine Nachricht in der Warteschlange. Versuche es gleich noch einmal.</string>
     <string name="notice_queue_restored_to_composer">Nachrichten in der Warteschlange wurden nicht gesendet und stehen wieder im Eingabefeld.</string>
     <string name="tool_content_loading">Vollständiger Tool-Aufruf wird geladen…</string>
@@ -1077,6 +1068,7 @@
     <string name="code_checkout_registered_chip">Registrierter Checkout</string>
     <string name="code_checkout_registered_info">Der Checkout der Maschine, geteilt mit anderen Chats</string>
     <string name="cd_code_chip">%1$s: %2$s</string>
+    <string name="cd_code_workspace_folded">Code-Arbeitsbereich: %1$s auf %2$s</string>
     <string name="command_finished">Befehl ausgeführt</string>
     <string name="command_exit_code">Exit-Code %1$d</string>
     <string name="command_terminated">beendet durch %1$s</string>
@@ -1177,4 +1169,37 @@
     <string name="cd_run_code_previous">Vorherige Ausführung</string>
     <string name="cd_run_code_next">Nächste Ausführung</string>
     <string name="notice_run_code_failed">Dieser Code konnte nicht ausgeführt werden.</string>
+    <!-- Composer attachment stack and list -->
+    <string name="draft_row_uploading">Wird hochgeladen…</string>
+    <string name="draft_row_failed">Nicht hochgeladen · Zum Wiederholen tippen</string>
+    <string name="draft_row_skill">Skill</string>
+    <string name="draft_row_quote">Zitat</string>
+    <string name="draft_subtitle_join">%1$s · %2$s</string>
+    <string name="cd_cancel_upload">Hochladen von %1$s abbrechen</string>
+    <string name="cd_remove_quote_named">Zitat entfernen: %1$s</string>
+    <string name="cd_retry_upload">Hochladen von %1$s wiederholen</string>
+    <string name="draft_item_removed">%1$s entfernt</string>
+    <string name="setting_chip_set_by">Festgelegt von %1$s</string>
+    <string name="setting_chip_sign_in">· anmelden</string>
+    <string name="setting_chip_connecting_suffix">· verbindet</string>
+    <string name="mcp_chip_cancel_sign_in">Anmeldung abbrechen</string>
+    <string name="mcp_chip_start_over">Neu beginnen</string>
+    <string name="mcp_cancel_sign_in_failed">Die Anmeldung konnte nicht abgebrochen werden. Versuche es erneut.</string>
+    <string name="cd_mcp_sign_in_menu">Anmeldeoptionen</string>
+    <string name="thinking_chip_state_next">Nur nächste Nachricht</string>
+    <string name="cd_context_ring">Kontext belegt: %1$s</string>
+    <string name="draft_quote_removed">Zitat entfernt</string>
+    <string name="action_undo">Rückgängig</string>
+    <plurals name="cd_draft_stack">
+        <item quantity="one">%1$d Element mit dieser Nachricht</item>
+        <item quantity="other">%1$d Elemente mit dieser Nachricht</item>
+    </plurals>
+    <plurals name="draft_item_attached_announcement">
+        <item quantity="one">%1$s angehängt, %2$d Element</item>
+        <item quantity="other">%1$s angehängt, %2$d Elemente</item>
+    </plurals>
+    <plurals name="draft_uploads_failed">
+        <item quantity="one">%1$d Datei wurde nicht hochgeladen. Tippe sie an, um es erneut zu versuchen, oder entferne sie.</item>
+        <item quantity="other">%1$d Dateien wurden nicht hochgeladen. Tippe sie an, um es erneut zu versuchen, oder entferne sie.</item>
+    </plurals>
 </resources>

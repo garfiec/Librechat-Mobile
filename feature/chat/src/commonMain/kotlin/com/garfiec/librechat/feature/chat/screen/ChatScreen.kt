@@ -16,6 +16,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -24,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -47,12 +49,16 @@ import com.garfiec.librechat.feature.chat.components.ChatFloatingTopBar
 import com.garfiec.librechat.feature.chat.components.ChatOptionsPage
 import com.garfiec.librechat.feature.chat.components.ChatRoot
 import com.garfiec.librechat.feature.chat.components.CodeWorkspaceComposer
+import com.garfiec.librechat.feature.chat.components.ComposerChrome
 import com.garfiec.librechat.feature.chat.components.ComposerComparison
 import com.garfiec.librechat.feature.chat.components.ComposerComparisonHint
 import com.garfiec.librechat.feature.chat.components.LandingStarters
 import com.garfiec.librechat.feature.chat.components.LocalCodeRunHost
 import com.garfiec.librechat.feature.chat.components.LocalCodeWorkspaceComposer
+import com.garfiec.librechat.feature.chat.components.LocalOpenFileActions
+import com.garfiec.librechat.feature.chat.components.LocalOpenPdf
 import com.garfiec.librechat.feature.chat.components.LocalPullRequestComposer
+import com.garfiec.librechat.feature.chat.components.LocalThreadScrollHandle
 import com.garfiec.librechat.feature.chat.components.PullRequestComposer
 import com.garfiec.librechat.feature.chat.components.ThinkingSheet
 import com.garfiec.librechat.feature.chat.components.ToolApprovalPanel
@@ -64,7 +70,9 @@ import com.garfiec.librechat.feature.chat.components.mcpapp.rememberLegacyUiReso
 import com.garfiec.librechat.feature.chat.components.mcpapp.rememberMcpApps
 import com.garfiec.librechat.feature.chat.components.rememberChatAttachmentActions
 import com.garfiec.librechat.feature.chat.components.rememberChatOptionsSheetController
+import com.garfiec.librechat.feature.chat.components.rememberDraftAdditions
 import com.garfiec.librechat.feature.chat.components.rememberMcpSignIn
+import com.garfiec.librechat.feature.chat.components.rememberThreadScrollHandle
 import com.garfiec.librechat.feature.chat.components.veil.COMPOSER_SWELL
 import com.garfiec.librechat.feature.chat.components.veil.LocalComposerFlare
 import com.garfiec.librechat.feature.chat.components.veil.LocalModeVeil
@@ -73,7 +81,13 @@ import com.garfiec.librechat.feature.chat.components.veil.rememberModeVeilModifi
 import com.garfiec.librechat.feature.chat.components.veil.rememberModeVeilState
 import com.garfiec.librechat.feature.chat.components.veil.rememberVeilTarget
 import com.garfiec.librechat.feature.chat.prompts.components.VariableInputDialog
+import com.garfiec.librechat.feature.chat.resources.Res
+import com.garfiec.librechat.feature.chat.resources.mcp_cancel_sign_in_failed
+import com.garfiec.librechat.feature.chat.resources.mcp_sign_in_failed
+import com.garfiec.librechat.feature.chat.util.DraftItemTap
+import com.garfiec.librechat.feature.chat.util.DraftUploadProgress
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
+import com.garfiec.librechat.feature.chat.util.draftItemsOf
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.McpAppsViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.McpSignInViewModel
@@ -85,6 +99,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.neutralizeStreamingChurn
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -161,7 +176,19 @@ fun ChatScreen(
     val uiState by chromeFlow.collectAsStateWithLifecycle(initialChrome)
     val updateBannerViewModel: UpdateBannerViewModel = koinViewModel()
     val updateBanner by updateBannerViewModel.pendingUpdate.collectAsStateWithLifecycle()
-    val attachedFiles by viewModel.attachedFiles.collectAsStateWithLifecycle()
+    val attachedFiles = viewModel.attachedFiles.collectAsStateWithLifecycle()
+    // The files without their upload progress: a progress tick changes nothing here, so nothing below
+    // re-maps or recomposes for it. The rings read it as they draw (draftUploadProgress).
+    val draftFiles by remember {
+        derivedStateOf(structuralEqualityPolicy()) { attachedFiles.value.map { it.copy(uploadProgress = null) } }
+    }
+    val draftUploadProgress = remember { DraftUploadProgress { attachedFiles.value } }
+    // Mapped here, not in the uiState combine: the files are their own flow.
+    val draftItems = remember(draftFiles, uiState.pendingManualSkills, uiState.pendingQuotes, uiState.serverUrl) {
+        draftItemsOf(draftFiles, uiState.pendingManualSkills, uiState.pendingQuotes, uiState.serverUrl)
+    }
+    // Above the strip, which leaves composition while the draft is empty, so the first add pops too.
+    val draftAdditions = rememberDraftAdditions(draftItems)
     val prefs by viewModel.chatPreferences.collectAsStateWithLifecycle()
     val promptLibraryRevision by viewModel.promptLibraryRevision.collectAsStateWithLifecycle()
     val showImageDescriptions = prefs.showImageDescriptions
@@ -226,6 +253,31 @@ fun ChatScreen(
     // selector), which keeps dismissing straight to the chat.
     val optionsController = rememberChatOptionsSheetController()
     val thinkingChip = uiState.thinkingChip
+    // Nothing here cancels an OAuth flow: only a connecting chip's "Cancel sign-in" does.
+    val mcpSignInViewModel: McpSignInViewModel = koinViewModel()
+    val mcpSignIn = rememberMcpSignIn(mcpSignInViewModel, snackbarHostState, onSignInEnd = viewModel::onMcpSignInEnded)
+    val mcpSignInFailed = stringResource(Res.string.mcp_sign_in_failed)
+    val mcpCancelSignInFailed = stringResource(Res.string.mcp_cancel_sign_in_failed)
+    val showNotice: (String) -> Unit = { message -> coroutineScope.launch { snackbarHostState.showNotice(message) } }
+    val startMcpSignIn: (String) -> Unit = { serverName ->
+        viewModel.signInMcpServer(
+            serverName = serverName,
+            openSignIn = mcpSignIn.signIn,
+            onFailed = { showNotice(mcpSignInFailed) },
+        )
+    }
+    // A refused cancel leaves the chip reading connecting, so only the snackbar says it didn't land.
+    val cancelMcpSignIn: (String) -> Unit = { serverName ->
+        viewModel.cancelMcpSignIn(serverName, onFailed = { showNotice(mcpCancelSignInFailed) })
+    }
+    val onSettingChipTap = rememberSettingChipTap(
+        chips = uiState.settingChips,
+        snackbarHostState = snackbarHostState,
+        onToggle = viewModel::toggleSettingChip,
+        onShowInSheet = { optionsController.open(ChatOptionsPage.Options, it) },
+        onOpenThinking = { showThinkingSheet = true },
+        onSignIn = startMcpSignIn,
+    )
     // On a phone's comparison tab 1 the composer edits the secondary model, so the selector page and
     // label both follow the active tab. Side by side there is no current tab (the remembered index
     // can be stale from before an unfold), so it is never the secondary one.
@@ -316,6 +368,13 @@ fun ChatScreen(
     )
     val onAttachToCode = attachmentActions.onAttachToCode.takeIf { uiState.codeUploadOffered }
 
+    DraftUndoSnackbarEffect(
+        undo = uiState.pendingDraftUndo,
+        snackbarHostState = snackbarHostState,
+        onUndo = viewModel::undoDraftRemoval,
+        onDrop = viewModel::dropDraftUndo,
+    )
+
     ChatScreenEffects(
         uiState = uiState,
         viewModel = viewModel,
@@ -330,14 +389,10 @@ fun ChatScreen(
         viewModel = viewModel,
         onConversationStart = onConversationStart,
         onNavigateToConversation = onNavigateToConversation,
+        mcpSignInEnding = { mcpSignInViewModel.endsOnReturn },
     )
 
     val sendBlockMessage = uiState.sendBlockReason?.asString()
-
-    // MCP sign-in mid-run (delta.auth): the card's action binds and opens the sign-in here. The run
-    // resumes by itself once the server's callback lands, so success needs nothing further.
-    val mcpSignInViewModel: McpSignInViewModel = koinViewModel()
-    val mcpSignIn = rememberMcpSignIn(mcpSignInViewModel, snackbarHostState)
 
     // MCP Apps: the panel and its approval dialogs live here; rows read the result.
     val mcpAppsViewModel: McpAppsViewModel = koinViewModel()
@@ -371,12 +426,7 @@ fun ChatScreen(
         onOpenMedia = viewModel::openMedia,
         onCloseMedia = viewModel::closeMedia,
         onDownloadAttachment = viewModel::downloadFileBytes,
-        onFileNotice = { message ->
-            coroutineScope.launch {
-                snackbarHostState.currentSnackbarData?.dismiss()
-                snackbarHostState.showSnackbar(message)
-            }
-        },
+        onFileNotice = showNotice,
         promptLibraryRevision = promptLibraryRevision,
         onRefreshPrompts = viewModel::refreshPromptsIfStale,
         siteIcons = prefs.siteIcons,
@@ -436,8 +486,12 @@ fun ChatScreen(
             // Temporary chat's transition: the band and (Material) the retone draw over and behind
             // the landing, the composer and the top bar, which all react to it through LocalModeVeil.
             val modeVeil = rememberModeVeilState(uiState.isTemporaryChat)
+            // Created here, above both the thread and the composer: the composer's chrome hands its
+            // vertical drags to whichever list ChatContent binds.
+            val threadScroll = rememberThreadScrollHandle()
             CompositionLocalProvider(
                 LocalModeVeil provides modeVeil,
+                LocalThreadScrollHandle provides threadScroll,
                 // Run Code on reply fences, behind RUN_CODE.USE (web `MarkdownComponents` `canRunCode`).
                 LocalCodeRunHost provides viewModel.codeRunHost.takeIf { uiState.runCodeEnabled },
             ) {
@@ -475,6 +529,7 @@ fun ChatScreen(
                             topContentPadding = topContentPadding,
                             onShowSecondaryModelSheet = { showSecondaryModelSheet = true },
                             onComparisonTabChange = { activeComparisonTab = it },
+                            activeComparisonTab = activeComparisonTab,
                             projectName = chatProjectName,
                             comparisonWide = comparisonWide,
                             compareSetupPick = compareSetupPick,
@@ -493,6 +548,44 @@ fun ChatScreen(
                     // Everything here is measured together so the list's bottom inset clears it.
                     val askPause = uiState.renderablePendingAction?.takeIf { it.isAskUserQuestion }
                     val toolPause = uiState.renderablePendingAction?.takeIf { it.isToolApproval }
+                    val openPdf = LocalOpenPdf.current
+                    val openFileActions = LocalOpenFileActions.current
+                    val onDraftItemTap: (DraftItemTap) -> Unit = remember(viewModel, openPdf, openFileActions) {
+                        { tap ->
+                            when (tap) {
+                                is DraftItemTap.Retry -> viewModel.retryUpload(tap.file)
+                                is DraftItemTap.ViewImage -> viewModel.openDraftMedia(tap.preview)
+                                is DraftItemTap.OpenPdf -> openPdf(tap.fileId, tap.filename)
+                                is DraftItemTap.OpenFile -> openFileActions(tap.attachment)
+                            }
+                        }
+                    }
+                    val composerChrome = ComposerChrome(
+                        pendingSteers = uiState.pendingSteers,
+                        onCancelSteer = viewModel::cancelSteer,
+                        onInterruptSteer = viewModel::armSteer,
+                        queuedMessages = uiState.displayedMessageQueue,
+                        onEditQueuedMessage = viewModel::editQueued,
+                        onCancelQueuedMessage = viewModel::cancelQueued,
+                        onReorderQueuedMessages = viewModel::reorderQueue,
+                        draftItems = draftItems,
+                        draftUploadProgress = draftUploadProgress,
+                        draftAdditions = draftAdditions,
+                        onRemoveDraftItem = viewModel::removeDraftItem,
+                        onDraftItemTap = onDraftItemTap,
+                        enabledTools = uiState.effectiveEnabledTools,
+                        selectedMcpServerNames = uiState.effectiveMcpServerNames,
+                        settingChips = uiState.settingChips,
+                        onSettingChipTap = onSettingChipTap,
+                        onCancelMcpSignIn = cancelMcpSignIn,
+                        onStartMcpSignInOver = startMcpSignIn,
+                        contextGauge = uiState.contextGaugeDetails,
+                        contextUsageEnabled = uiState.contextUsageEnabled,
+                        onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
+                        onSnoozeCompact = viewModel::snoozeCompactNudge,
+                        compactSuggested = uiState.compactNudgeOnToolsButton,
+                        contextBarPlacement = uiState.contextBarPlacement,
+                    )
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
@@ -615,6 +708,11 @@ fun ChatScreen(
                                             )
                                         }
                                     }
+
+                                    fun send(action: () -> Unit): () -> Unit = {
+                                        action()
+                                        if (dismissKeyboardOnSend) keyboardController?.hide()
+                                    }
                                     CompositionLocalProvider(
                                         LocalComposerFlare provides composerVeil.flare,
                                         LocalCodeWorkspaceComposer provides codeWorkspaceComposer,
@@ -624,60 +722,27 @@ fun ChatScreen(
                                             inputText = uiState.inputText,
                                             isStreaming = isAnyStreaming,
                                             onInputChange = viewModel::onInputChanged,
-                                            onSend = {
-                                                viewModel.sendMessage()
-                                                if (dismissKeyboardOnSend) {
-                                                    keyboardController?.hide()
-                                                }
-                                            },
+                                            onSend = send(viewModel::sendMessage),
                                             onStop = viewModel::stopGeneration,
                                             onOpenTools = { optionsController.open() },
                                             // The mid-stream send button: the ViewModel resolves steer-vs-queue from the
                                             // user's preference and what this run can actually take, so the composer never
                                             // has to. `onQueue` stays the picker's explicit "add to queue".
-                                            onDuringRunSend = {
-                                                viewModel.sendDuringRun()
-                                                if (dismissKeyboardOnSend) {
-                                                    keyboardController?.hide()
-                                                }
-                                            },
-                                            onQueue = {
-                                                viewModel.queueMessage()
-                                                if (dismissKeyboardOnSend) {
-                                                    keyboardController?.hide()
-                                                }
-                                            },
+                                            onDuringRunSend = send(viewModel::sendDuringRun),
+                                            onQueue = send(viewModel::queueMessage),
                                             canQueue = uiState.canQueueFollowUp,
                                             // Explicit "steer this one", from the during-run picker or the send button when
                                             // steering is the standing default.
-                                            onSteer = {
-                                                viewModel.steerMessage()
-                                                if (dismissKeyboardOnSend) {
-                                                    keyboardController?.hide()
-                                                }
-                                            },
-                                            onInterrupt = {
-                                                viewModel.interruptMessage()
-                                                if (dismissKeyboardOnSend) {
-                                                    keyboardController?.hide()
-                                                }
-                                            },
+                                            onSteer = send(viewModel::steerMessage),
+                                            onInterrupt = send(viewModel::interruptMessage),
                                             canSteer = uiState.canSteerNow,
                                             // Built-in search can't be interrupted (provider-hosted tool), so the
                                             // menu says so instead of promising to stop it.
                                             builtInSearchOn = uiState.webSearchRoute == WebSearchRoute.BUILT_IN,
                                             duringRunAction = uiState.effectiveDuringRunAction,
                                             duringRunSendTarget = uiState.duringRunSendTarget,
-                                            pendingSteers = uiState.pendingSteers,
-                                            pendingQuotes = uiState.pendingQuotes,
-                                            onRemoveQuote = viewModel::removePendingQuote,
-                                            pendingManualSkills = uiState.pendingManualSkills,
-                                            onRemoveManualSkill = viewModel::removePendingManualSkill,
-                                            onCancelSteer = viewModel::cancelSteer,
-                                            onInterruptSteer = viewModel::armSteer,
+                                            chrome = composerChrome,
                                             onSetDuringRunAction = viewModel::setDuringRunAction,
-                                            attachedFiles = attachedFiles,
-                                            onRemoveFile = viewModel::removeFile,
                                             onPasteFiles = viewModel::onFilesSelected,
                                             pasteScope = coroutineScope,
                                             promptSuggestions = uiState.availablePrompts,
@@ -691,22 +756,9 @@ fun ChatScreen(
                                             isTranscribing = uiState.isTranscribing,
                                             onStartRecording = onStartRecordingWithPermission,
                                             onStopRecording = viewModel::stopRecording,
-                                            enabledTools = uiState.effectiveEnabledTools,
-                                            pinnedToolKeys = uiState.pinnedToolChips,
-                                            onToggleTool = viewModel::toggleTool,
-                                            thinking = thinkingChip,
-                                            onOpenThinking = { showThinkingSheet = true },
-                                            mcpServers = uiState.mcpServers,
-                                            selectedMcpServerNames = uiState.effectiveMcpServerNames,
                                             selectedModelDisplay = effectiveSelectedModelDisplay,
                                             isCodeInterpreterAvailable = uiState.isCodeInterpreterAvailable,
                                             gates = uiState.chatInputGates,
-                                            contextGauge = uiState.contextGaugeDetails,
-                                            contextUsageEnabled = uiState.contextUsageEnabled,
-                                            onCompact = viewModel::compactConversation.takeIf { uiState.canCompactNow },
-                                            onSnoozeCompact = viewModel::snoozeCompactNudge,
-                                            compactSuggested = uiState.compactNudgeOnToolsButton,
-                                            contextBarPlacement = uiState.contextBarPlacement,
                                             // After a Stop/error pause, the queue waits for an explicit nudge.
                                             queuedPausedCount = uiState.pausedQueueCount,
                                             queueHeldForRefusal = uiState.isQueueHeldForRefusal,
@@ -721,10 +773,6 @@ fun ChatScreen(
                                             comparison = composerComparison,
                                             comparisonHint = composerComparisonHint,
                                             onCancelPendingSend = viewModel::cancelPendingUploadSend,
-                                            queuedMessages = uiState.displayedMessageQueue,
-                                            onEditQueuedMessage = viewModel::editQueued,
-                                            onCancelQueuedMessage = viewModel::cancelQueued,
-                                            onReorderQueuedMessages = viewModel::reorderQueue,
                                             fontSizeMultiplier = fontSizeMultiplier,
                                         )
                                     }

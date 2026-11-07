@@ -2,18 +2,12 @@ package com.garfiec.librechat.feature.chat.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
-import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
-import com.garfiec.librechat.feature.chat.util.ThinkingChip
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
-import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import com.garfiec.librechat.feature.chat.viewmodel.DuringRunSendTarget
-import com.garfiec.librechat.feature.chat.viewmodel.PendingSteerChip
-import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import kotlinx.coroutines.CoroutineScope
 
 /**
@@ -40,16 +34,8 @@ internal expect fun ChatComposer(
     builtInSearchOn: Boolean,
     duringRunAction: DuringRunAction,
     duringRunSendTarget: DuringRunSendTarget,
-    pendingSteers: List<PendingSteerChip>,
-    pendingQuotes: List<String>,
-    onRemoveQuote: (index: Int) -> Unit,
-    pendingManualSkills: List<String>,
-    onRemoveManualSkill: (name: String) -> Unit,
-    onCancelSteer: (steerId: String) -> Unit,
-    onInterruptSteer: (steerId: String) -> Unit,
+    chrome: ComposerChrome,
     onSetDuringRunAction: (DuringRunAction) -> Unit,
-    attachedFiles: List<AttachedFile>,
-    onRemoveFile: (AttachedFile) -> Unit,
     onPasteFiles: (List<Any>) -> Unit,
     pasteScope: CoroutineScope,
     promptSuggestions: List<PromptMentionDisplayData>,
@@ -63,22 +49,9 @@ internal expect fun ChatComposer(
     isTranscribing: Boolean,
     onStartRecording: () -> Unit,
     onStopRecording: () -> Unit,
-    enabledTools: Set<String>,
-    pinnedToolKeys: List<String>,
-    onToggleTool: (String) -> Unit,
-    thinking: ThinkingChip?,
-    onOpenThinking: () -> Unit,
-    mcpServers: List<McpServerDisplayData>,
-    selectedMcpServerNames: Set<String>,
     selectedModelDisplay: String?,
     isCodeInterpreterAvailable: Boolean,
     gates: ChatInputGates,
-    contextGauge: ContextGaugeDetails?,
-    contextUsageEnabled: Boolean,
-    onCompact: (() -> Unit)?,
-    onSnoozeCompact: () -> Unit,
-    compactSuggested: Boolean,
-    contextBarPlacement: ContextBarPlacement,
     queuedPausedCount: Int,
     queueHeldForRefusal: Boolean,
     isTemporaryChat: Boolean,
@@ -91,10 +64,6 @@ internal expect fun ChatComposer(
     comparison: ComposerComparison?,
     comparisonHint: ComposerComparisonHint,
     onCancelPendingSend: () -> Unit,
-    queuedMessages: List<QueuedMessage>,
-    onEditQueuedMessage: (localId: String) -> Unit,
-    onCancelQueuedMessage: (localId: String) -> Unit,
-    onReorderQueuedMessages: (fromIndex: Int, toIndex: Int) -> Unit,
     fontSizeMultiplier: Float,
     modifier: Modifier = Modifier,
 )

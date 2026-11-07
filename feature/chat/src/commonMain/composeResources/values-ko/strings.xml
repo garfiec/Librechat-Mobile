@@ -252,19 +252,10 @@
     <string name="tool_file_search_desc">업로드한 파일에서 검색</string>
     <string name="tool_mcp">MCP</string>
     <string name="tool_mcp_desc">Model Context Protocol 서버</string>
-    <string name="cd_web_search_enabled">웹 검색 사용</string>
     <string name="cd_quoted_excerpt">인용된 발췌문</string>
-    <string name="cd_remove_quote">인용 제거</string>
     <string name="selection_add_to_chat">채팅에 추가</string>
-    <string name="cd_code_enabled">코드 인터프리터 사용</string>
-    <string name="cd_file_search_enabled">파일 검색 사용</string>
 
     <!-- Attachments -->
-    <string name="cd_attach_file">파일 첨부</string>
-    <string name="files_count">파일 (%1$d)</string>
-    <string name="files_count_with_text">파일 (%1$d) · %2$d개 텍스트</string>
-    <string name="cd_files_attached">파일 %1$d개 첨부됨, 탭하여 미리보기</string>
-    <string name="cd_files_attached_with_text">파일 %1$d개 첨부됨, %2$d개는 텍스트로 전송, 탭하여 미리보기</string>
     <string name="upload_routing_sheet_title">이 파일들을 어떻게 보낼까요?</string>
     <string name="upload_routing_sheet_title_single">이 파일을 어떻게 보낼까요?</string>
     <string name="upload_routing_option_provider">모델로 직접</string>
@@ -276,8 +267,6 @@
     <string name="upload_routing_apply_all">모두에 적용</string>
     <string name="upload_routing_attach">첨부</string>
     <string name="cd_upload_route_text">추출된 텍스트로 전송됨</string>
-    <string name="cd_attached_file">첨부된 파일: %1$s</string>
-    <string name="cd_preview_file">%1$s 미리보기</string>
     <string name="cd_remove_file">%1$s 제거</string>
 
     <!-- Agent handoff -->
@@ -547,6 +536,8 @@
     <string name="media_empty_links">이 대화에 링크가 없습니다</string>
     <string name="media_empty_artifacts">이 대화에 아티팩트가 없습니다</string>
     <string name="context_usage_label">컨텍스트</string>
+    <string name="context_percent">%1$d%</string>
+    <string name="context_percent_estimate">약 %1$d%</string>
     <string name="tool_approval_title">승인 필요</string>
     <string name="tool_approval_arguments">인수</string>
     <string name="tool_approval_approve">승인</string>
@@ -642,13 +633,11 @@
     <string name="tool_memory_desc">어시스턴트가 이 채팅의 세부 정보를 기억하도록 허용</string>
     <string name="tool_skills">스킬</string>
     <string name="tool_skills_desc">이 채팅에서 어시스턴트가 내 스킬을 사용하도록 허용</string>
-    <string name="cd_skills_enabled">스킬 사용</string>
     <string name="picker_type_prompt">프롬프트</string>
     <string name="picker_type_skill">스킬</string>
     <string name="picker_no_matches">일치하는 항목 없음</string>
     <string name="picker_loading_skills">스킬 불러오는 중…</string>
     <string name="picker_skills_failed">스킬을 불러올 수 없습니다</string>
-    <string name="cd_pending_skills">다음 메시지에 사용할 스킬</string>
     <string name="cd_remove_skill">스킬 %1$s 제거</string>
     <string name="cd_skill_always_applied">항상 적용되는 스킬: %1$s</string>
     <string name="cd_skill_used">사용한 스킬: %1$s</string>
@@ -656,7 +645,7 @@
     <string name="skill_call_finished">%1$s 실행함</string>
     <string name="skill_call_fallback_name">스킬</string>
     <string name="cd_steer_message">이 응답의 방향 조정</string>
-    <string name="cd_cancel_steer">방향 조정 취소</string>
+    <string name="cd_cancel_steer">방향 조정 취소: %1$s</string>
     <string name="cd_during_run_options">지금 보낼 때의 동작 선택</string>
     <string name="during_run_steer">이 응답의 방향 조정</string>
     <string name="during_run_queue">대기열에 추가</string>
@@ -763,6 +752,7 @@
     <string name="compact_confirm_title">이 대화를 압축할까요?</string>
     <string name="compact_confirm_body">컨텍스트 창의 %1$d%를 사용 중입니다. 압축하면 지금까지의 대화가 모델이 계속 읽는 짧은 메모로 요약되어 앞으로를 위한 공간이 생깁니다. 아무것도 삭제되지 않습니다.</string>
     <string name="compact_confirm_not_now">나중에</string>
+    <string name="compact_confirm_see_usage">사용량 보기</string>
     <string name="compact_confirm_action">압축</string>
     <string name="cd_temporary_chat">임시 채팅</string>
     <string name="temporary_chat_enforced">관리자 설정에 따라 모든 채팅에서 임시 채팅이 켜져 있습니다</string>
@@ -880,7 +870,6 @@
     <string name="artifact_library_declined">불러오지 않음: %1$s</string>
     <string name="artifact_library_allowed">불러옴: %1$s</string>
     <string name="artifact_library_change">변경</string>
-    <string name="cd_mcp_server_enabled">MCP 서버 %1$s 사용 중</string>
     <string name="cd_code_block">코드 블록</string>
     <string name="cd_code_block_language">%1$s 코드 블록</string>
     <string name="log_output_title">로그 출력</string>
@@ -897,7 +886,7 @@
     <string name="mcp_sign_in_needed_unnamed">도구에 로그인해야 합니다</string>
     <string name="mcp_sign_in_resumes">로그인하면 응답이 계속됩니다.</string>
     <string name="mcp_sign_in_action">로그인</string>
-    <string name="mcp_sign_in_failed">로그인이 완료되지 않았습니다. 도구 호출에서 다시 시도하세요.</string>
+    <string name="mcp_sign_in_failed">로그인이 완료되지 않았습니다. 다시 시도하세요.</string>
     <string name="prompt_filter_title">필터 및 정렬</string>
     <string name="prompt_sort_recent">최근</string>
     <string name="prompt_sort_popular">인기</string>
@@ -989,6 +978,7 @@
     <string name="code_machine">머신</string>
     <string name="code_machine_choose">머신 선택</string>
     <string name="code_workspace">코드 작업 공간</string>
+    <string name="code_workspace_saved_on_send">다음 메시지를 보내면 이 작업 공간이 채팅에 저장됩니다.</string>
     <string name="code_workspace_choose">작업 공간 선택</string>
     <string name="code_workspace_loading">작업 공간 불러오는 중…</string>
     <string name="code_workspace_missing">작업 공간 없음</string>
@@ -1040,6 +1030,7 @@
     <string name="notice_queue_withdraw_refused">대기 중인 메시지를 서버에서 철회하지 못했습니다.</string>
     <string name="notice_queue_withdraw_busy">이전 메시지를 아직 철회하는 중입니다. 잠시 후 다시 시도하세요.</string>
     <string name="notice_queue_edit_overtaken">대기 중인 메시지가 이미 전송되어 수정 내용이 적용되지 않았습니다.</string>
+    <string name="notice_queue_edit_waits_for_uploads">첨부 파일 처리가 끝난 뒤 대기 중인 메시지를 수정하세요.</string>
     <string name="notice_queue_server_holds">서버에 아직 대기 중인 메시지가 있습니다. 잠시 후 다시 시도하세요.</string>
     <string name="notice_queue_restored_to_composer">대기 중인 메시지가 전송되지 않아 입력란으로 되돌렸습니다.</string>
     <string name="tool_content_loading">전체 도구 호출을 불러오는 중…</string>
@@ -1058,6 +1049,7 @@
     <string name="code_checkout_registered_chip">등록된 체크아웃</string>
     <string name="code_checkout_registered_info">머신의 체크아웃으로, 다른 채팅과 공유됩니다</string>
     <string name="cd_code_chip">%1$s: %2$s</string>
+    <string name="cd_code_workspace_folded">코드 작업 공간: %2$s의 %1$s</string>
     <string name="command_finished">명령 실행함</string>
     <string name="command_exit_code">종료 코드 %1$d</string>
     <string name="command_terminated">%1$s(으)로 종료됨</string>
@@ -1157,4 +1149,34 @@
     <string name="cd_run_code_previous">이전 실행</string>
     <string name="cd_run_code_next">다음 실행</string>
     <string name="notice_run_code_failed">이 코드를 실행할 수 없습니다.</string>
+    <!-- Composer attachment stack and list -->
+    <string name="draft_row_uploading">업로드 중…</string>
+    <string name="draft_row_failed">업로드되지 않음 · 탭하여 다시 시도</string>
+    <string name="draft_row_skill">스킬</string>
+    <string name="draft_row_quote">인용</string>
+    <string name="draft_subtitle_join">%1$s · %2$s</string>
+    <string name="cd_cancel_upload">%1$s 업로드 취소</string>
+    <string name="cd_remove_quote_named">인용 삭제: %1$s</string>
+    <string name="cd_retry_upload">%1$s 업로드 다시 시도</string>
+    <string name="draft_item_removed">%1$s 삭제됨</string>
+    <string name="setting_chip_set_by">%1$s에서 설정함</string>
+    <string name="setting_chip_sign_in">· 로그인</string>
+    <string name="setting_chip_connecting_suffix">· 연결 중</string>
+    <string name="mcp_chip_cancel_sign_in">로그인 취소</string>
+    <string name="mcp_chip_start_over">처음부터 다시</string>
+    <string name="mcp_cancel_sign_in_failed">로그인을 취소하지 못했습니다. 다시 시도하세요.</string>
+    <string name="cd_mcp_sign_in_menu">로그인 옵션</string>
+    <string name="thinking_chip_state_next">다음 메시지에만</string>
+    <string name="cd_context_ring">사용한 컨텍스트: %1$s</string>
+    <string name="draft_quote_removed">인용 삭제됨</string>
+    <string name="action_undo">실행취소</string>
+    <plurals name="cd_draft_stack">
+        <item quantity="other">이 메시지와 함께 %1$d개</item>
+    </plurals>
+    <plurals name="draft_item_attached_announcement">
+        <item quantity="other">%1$s 첨부됨, %2$d개</item>
+    </plurals>
+    <plurals name="draft_uploads_failed">
+        <item quantity="other">파일 %1$d개가 업로드되지 않았습니다. 탭하여 다시 시도하거나 삭제하세요.</item>
+    </plurals>
 </resources>

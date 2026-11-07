@@ -25,12 +25,15 @@ import com.garfiec.librechat.core.model.request.SteerRequest
 import com.garfiec.librechat.core.model.response.ChatResumeResponse
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
 import com.garfiec.librechat.core.model.response.SteerResponse
+import com.garfiec.librechat.feature.chat.components.AttachedFile
+import com.garfiec.librechat.feature.chat.util.DraftItem
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
@@ -403,7 +406,7 @@ class ChatViewModelQueuedSkillsTest {
             assertThat(vm.uiState.value.pendingManualSkills).containsExactly("pdf-tools")
 
             vm.addPendingManualSkill("translator")
-            vm.removePendingManualSkill("pdf-tools")
+            vm.removeDraftItem(DraftItem.Skill("pdf-tools"))
             vm.commitQueuedEdit()
             runCurrent()
 
@@ -514,6 +517,215 @@ class ChatViewModelQueuedSkillsTest {
         assertThat(request.captured.text).isEqualTo(TEXT)
         assertThat(vm.uiState.value.pendingManualSkills).containsExactly("pdf-tools")
         assertThat(vm.uiState.value.messageQueue).isEmpty()
+    }
+
+    @Test
+    fun `a queued edit shows the item's own quotes and saves what is there`() =
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            vm.addPendingQuote("queued excerpt")
+            vm.onInputChanged(TEXT)
+            vm.queueMessage()
+            runCurrent()
+            val queued = vm.uiState.value.messageQueue.single()
+            assertThat(queued.quotes).containsExactly("queued excerpt")
+            // An excerpt staged for the next new message, before the edit starts.
+            vm.addPendingQuote("draft excerpt")
+
+            vm.editQueued(queued.localId)
+            runCurrent()
+            assertThat(vm.uiState.value.pendingQuotes).containsExactly("queued excerpt")
+
+            vm.removeDraftItem(DraftItem.Quote(0, vm.uiState.value.pendingQuotes[0]))
+            vm.addPendingQuote("edited excerpt")
+            vm.commitQueuedEdit()
+            runCurrent()
+
+            assertThat(vm.uiState.value.messageQueue.single().quotes).containsExactly("edited excerpt")
+            assertThat(vm.uiState.value.pendingQuotes).containsExactly("draft excerpt")
+        }
+
+    @Test
+    fun `cancelling a queued edit gives the item back its quotes and the draft its own`() =
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            vm.addPendingQuote("queued excerpt")
+            vm.onInputChanged(TEXT)
+            vm.queueMessage()
+            runCurrent()
+            vm.addPendingQuote("draft excerpt")
+
+            vm.editQueued(vm.uiState.value.messageQueue.single().localId)
+            runCurrent()
+            vm.addPendingQuote("thrown away")
+            vm.cancelQueuedEdit()
+            runCurrent()
+
+            assertThat(vm.uiState.value.messageQueue.single().quotes).containsExactly("queued excerpt")
+            assertThat(vm.uiState.value.pendingQuotes).containsExactly("draft excerpt")
+        }
+
+    @Test
+    fun `undo puts a removed skill back where it was`() = queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+        listOf("first", "second", "third").forEach(vm::addPendingManualSkill)
+
+        vm.removeDraftItem(DraftItem.Skill("second"))
+        assertThat(vm.uiState.value.pendingManualSkills).containsExactly("first", "third").inOrder()
+        val undo = checkNotNull(vm.uiState.value.pendingDraftUndo)
+
+        vm.undoDraftRemoval(undo.id)
+
+        assertThat(vm.uiState.value.pendingManualSkills).containsExactly("first", "second", "third").inOrder()
+        assertThat(vm.uiState.value.pendingDraftUndo).isNull()
+    }
+
+    @Test
+    fun `a superseded undo neither drops nor restores, and only the current one drops`() =
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            listOf("first", "second", "third").forEach(vm::addPendingManualSkill)
+            vm.removeDraftItem(DraftItem.Skill("first"))
+            val firstId = checkNotNull(vm.uiState.value.pendingDraftUndo).id
+            vm.removeDraftItem(DraftItem.Skill("second"))
+            val second = checkNotNull(vm.uiState.value.pendingDraftUndo)
+            assertThat(second.id).isNotEqualTo(firstId)
+
+            // The first snackbar's effect is cancelled after the second Undo is already pending,
+            // and drops its own id on the way out.
+            vm.dropDraftUndo(firstId)
+            assertThat(vm.uiState.value.pendingDraftUndo).isEqualTo(second)
+
+            // A leftover first snackbar's Undo restores nothing into the second's slot.
+            vm.undoDraftRemoval(firstId)
+            assertThat(vm.uiState.value.pendingManualSkills).containsExactly("third")
+            assertThat(vm.uiState.value.pendingDraftUndo).isEqualTo(second)
+
+            vm.dropDraftUndo(second.id)
+            assertThat(vm.uiState.value.pendingDraftUndo).isNull()
+            vm.undoDraftRemoval(second.id)
+            assertThat(vm.uiState.value.pendingManualSkills).containsExactly("third")
+        }
+
+    @Test
+    fun `undo puts a removed quote back where it was`() = queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+        listOf("one", "two", "three").forEach(vm::addPendingQuote)
+
+        vm.removeDraftItem(DraftItem.Quote(index = 0, text = "one"))
+        vm.undoDraftRemoval(checkNotNull(vm.uiState.value.pendingDraftUndo).id)
+
+        assertThat(vm.uiState.value.pendingQuotes).containsExactly("one", "two", "three").inOrder()
+    }
+
+    @Test
+    fun `undo puts a removed uploaded file back where it was`() = queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+        val first = AttachedFile(uri = "a", name = "a.pdf", fileId = "a", uploadProgress = 1f)
+        val failed = AttachedFile(uri = "b", name = "b.pdf", uploadFailed = true)
+        every { fileHandler.attachedFiles } returns MutableStateFlow(listOf(first, failed))
+
+        vm.removeDraftItem(DraftItem.File(failed, key = "file:b"))
+        vm.undoDraftRemoval(checkNotNull(vm.uiState.value.pendingDraftUndo).id)
+
+        verify { fileHandler.removeFile(failed) }
+        verify { fileHandler.insertAt(1, failed) }
+    }
+
+    @Test
+    fun `a removed file's undo that lapses or is replaced lets the handler forget the file`() =
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            val failed = AttachedFile(uri = "b", name = "b.pdf", uploadFailed = true)
+            val other = AttachedFile(uri = "c", name = "c.pdf", uploadFailed = true)
+            every { fileHandler.attachedFiles } returns MutableStateFlow(listOf(failed, other))
+
+            vm.removeDraftItem(DraftItem.File(failed, key = "file:b"))
+            verify(exactly = 0) { fileHandler.forgetRemoved(any()) }
+            // A later removal replaces its Undo.
+            vm.removeDraftItem(DraftItem.File(other, key = "file:c"))
+            verify(exactly = 1) { fileHandler.forgetRemoved(failed) }
+
+            // The snackbar lapses.
+            vm.dropDraftUndo(checkNotNull(vm.uiState.value.pendingDraftUndo).id)
+            verify(exactly = 1) { fileHandler.forgetRemoved(other) }
+        }
+
+    @Test
+    fun `an undone file removal forgets nothing`() = queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+        val failed = AttachedFile(uri = "b", name = "b.pdf", uploadFailed = true)
+        every { fileHandler.attachedFiles } returns MutableStateFlow(listOf(failed))
+
+        vm.removeDraftItem(DraftItem.File(failed, key = "file:b"))
+        val undo = checkNotNull(vm.uiState.value.pendingDraftUndo)
+        vm.undoDraftRemoval(undo.id)
+        // The snackbar effect's own drop after an Undo finds nothing pending.
+        vm.dropDraftUndo(undo.id)
+
+        verify(exactly = 0) { fileHandler.forgetRemoved(any()) }
+    }
+
+    @Test
+    fun `removing one copy of a file attached twice takes that copy alone and its undo puts it back`() =
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            // One picked file, two tray entries told apart by their entry ids.
+            val first = AttachedFile(uri = "same", name = "a.pdf", fileId = "a1", uploadProgress = 1f, entryId = "e1")
+            val second = first.copy(fileId = "a2", entryId = "e2")
+            every { fileHandler.attachedFiles } returns MutableStateFlow(listOf(first, second))
+
+            vm.removeDraftItem(DraftItem.File(second, key = "file:e2"))
+            vm.undoDraftRemoval(checkNotNull(vm.uiState.value.pendingDraftUndo).id)
+
+            verify { fileHandler.removeFile(second) }
+            verify { fileHandler.insertAt(1, second) }
+        }
+
+    @Test
+    fun `removing a file still uploading cancels it with no undo`() = queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+        val uploading = AttachedFile(uri = "c", name = "c.pdf", uploadProgress = 0.4f)
+        every { fileHandler.attachedFiles } returns MutableStateFlow(listOf(uploading))
+
+        vm.removeDraftItem(DraftItem.File(uploading, key = "file:c"))
+
+        verify { fileHandler.removeFile(uploading) }
+        assertThat(vm.uiState.value.pendingDraftUndo).isNull()
+    }
+
+    @Test
+    fun `a queue takes the message and drops the pending undo`() = queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+        vm.addPendingManualSkill("pdf-tools")
+        vm.addPendingManualSkill("translator")
+        vm.removeDraftItem(DraftItem.Skill("translator"))
+        val undo = checkNotNull(vm.uiState.value.pendingDraftUndo)
+
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+        assertThat(vm.uiState.value.pendingDraftUndo).isNull()
+
+        vm.undoDraftRemoval(undo.id)
+        assertThat(vm.uiState.value.pendingManualSkills).isEmpty()
+    }
+
+    @Test
+    fun `starting a queued edit drops the pending undo`() = queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+        vm.addPendingManualSkill("draft-skill")
+        vm.removeDraftItem(DraftItem.Skill("draft-skill"))
+        val undo = checkNotNull(vm.uiState.value.pendingDraftUndo)
+
+        vm.editQueued(vm.uiState.value.messageQueue.single().localId)
+        runCurrent()
+        assertThat(vm.uiState.value.pendingDraftUndo).isNull()
+
+        vm.undoDraftRemoval(undo.id)
+        assertThat(vm.uiState.value.pendingManualSkills).isEmpty()
+    }
+
+    @Test
+    fun `a conversation switch drops the pending undo`() = queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+        vm.addPendingManualSkill("pdf-tools")
+        vm.removeDraftItem(DraftItem.Skill("pdf-tools"))
+        assertThat(vm.uiState.value.pendingDraftUndo).isNotNull()
+
+        vm.onPendingNavigationHandled()
+
+        assertThat(vm.uiState.value.pendingDraftUndo).isNull()
     }
 
     private fun cleanFinal() = StreamEvent.Final(

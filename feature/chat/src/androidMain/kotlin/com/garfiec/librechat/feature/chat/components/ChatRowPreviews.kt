@@ -12,7 +12,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.ChatLayoutConstants
-import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.model.AskUserQuestionRequest
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.Message
@@ -43,10 +42,6 @@ private fun WakeupRowPreview() = RowsPreviewSurface(UiStyle.MATERIAL) { WakeupHo
 @PreviewNarrowScreens
 @Composable
 private fun AskRecordPreview() = RowsPreviewSurface(UiStyle.MATERIAL) { AskRecordHost() }
-
-@PreviewNarrowScreens
-@Composable
-private fun AttachmentTilePreview() = RowsPreviewSurface(UiStyle.MATERIAL) { AttachmentTileHost() }
 
 @PreviewNarrowScreens
 @Composable
@@ -148,18 +143,6 @@ private fun AskRecordHost() = ThreadContent {
     AskUserQuestionRecordCard(
         question = AskUserQuestionRequest(question = "Which airport should we fly into?"),
         answer = "Orlando International Airport.",
-    )
-}
-
-@Composable
-private fun AttachmentTileHost() {
-    AttachmentChipsRow(
-        attachedFiles = listOf(
-            AttachedFile(uri = "file://report", name = "quarterly-report.pdf", fileId = "f1"),
-            AttachedFile(uri = "file://notes", name = "notes.txt", fileId = "f2"),
-        ),
-        enabledTools = setOf(ToolConstants.SKILLS),
-        onRemoveFile = {},
     )
 }
 

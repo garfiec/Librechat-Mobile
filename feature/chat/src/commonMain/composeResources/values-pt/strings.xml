@@ -254,19 +254,10 @@
     <string name="tool_file_search_desc">Pesquise nos arquivos enviados</string>
     <string name="tool_mcp">MCP</string>
     <string name="tool_mcp_desc">Servidores Model Context Protocol</string>
-    <string name="cd_web_search_enabled">Busca na web ativada</string>
     <string name="cd_quoted_excerpt">Trecho citado</string>
-    <string name="cd_remove_quote">Remover citação</string>
     <string name="selection_add_to_chat">Adicionar à conversa</string>
-    <string name="cd_code_enabled">Interpretador de código ativado</string>
-    <string name="cd_file_search_enabled">Busca em arquivos ativada</string>
 
     <!-- Attachments -->
-    <string name="cd_attach_file">Anexar arquivo</string>
-    <string name="files_count">Arquivos (%1$d)</string>
-    <string name="files_count_with_text">Arquivos (%1$d) · %2$d como texto</string>
-    <string name="cd_files_attached">%1$d arquivos anexados, toque para visualizar</string>
-    <string name="cd_files_attached_with_text">%1$d arquivos anexados, %2$d enviados como texto, toque para visualizar</string>
     <string name="upload_routing_sheet_title">Como estes devem ser enviados?</string>
     <string name="upload_routing_sheet_title_single">Como este deve ser enviado?</string>
     <string name="upload_routing_option_provider">Para o modelo</string>
@@ -278,8 +269,6 @@
     <string name="upload_routing_apply_all">Usar para todos</string>
     <string name="upload_routing_attach">Anexar</string>
     <string name="cd_upload_route_text">Enviado como texto extraído</string>
-    <string name="cd_attached_file">Arquivo anexado: %1$s</string>
-    <string name="cd_preview_file">Visualização de %1$s</string>
     <string name="cd_remove_file">Remover %1$s</string>
 
     <!-- Agent handoff -->
@@ -556,6 +545,8 @@
     <string name="media_empty_links">Nenhum link nesta conversa</string>
     <string name="media_empty_artifacts">Nenhum artefato nesta conversa</string>
     <string name="context_usage_label">Contexto</string>
+    <string name="context_percent">%1$d%</string>
+    <string name="context_percent_estimate">~%1$d%</string>
     <string name="tool_approval_title">Aprovação necessária</string>
     <string name="tool_approval_arguments">Argumentos</string>
     <string name="tool_approval_approve">Aprovar</string>
@@ -651,13 +642,11 @@
     <string name="tool_memory_desc">Permita que o assistente lembre detalhes desta conversa</string>
     <string name="tool_skills">Habilidades</string>
     <string name="tool_skills_desc">Permita que o assistente use suas habilidades nesta conversa</string>
-    <string name="cd_skills_enabled">Habilidades ativadas</string>
     <string name="picker_type_prompt">Prompt</string>
     <string name="picker_type_skill">Habilidade</string>
     <string name="picker_no_matches">Nenhum resultado</string>
     <string name="picker_loading_skills">Carregando habilidades…</string>
     <string name="picker_skills_failed">Não foi possível carregar as habilidades</string>
-    <string name="cd_pending_skills">Habilidades para a próxima mensagem</string>
     <string name="cd_remove_skill">Remover a habilidade %1$s</string>
     <string name="cd_skill_always_applied">Habilidade sempre aplicada: %1$s</string>
     <string name="cd_skill_used">Habilidade usada: %1$s</string>
@@ -665,7 +654,7 @@
     <string name="skill_call_finished">%1$s executada</string>
     <string name="skill_call_fallback_name">habilidade</string>
     <string name="cd_steer_message">Direcionar esta resposta</string>
-    <string name="cd_cancel_steer">Cancelar direcionamento</string>
+    <string name="cd_cancel_steer">Cancelar direcionamento: %1$s</string>
     <string name="cd_during_run_options">Escolha o que o envio faz agora</string>
     <string name="during_run_steer">Direcionar esta resposta</string>
     <string name="during_run_queue">Adicionar à fila</string>
@@ -772,6 +761,7 @@
     <string name="compact_confirm_title">Compactar esta conversa?</string>
     <string name="compact_confirm_body">%1$d% da janela de contexto está em uso. Compactar resume a conversa até aqui em uma nota mais curta que o modelo continua lendo, liberando espaço para o que vem a seguir. Nada é excluído.</string>
     <string name="compact_confirm_not_now">Agora não</string>
+    <string name="compact_confirm_see_usage">Ver uso</string>
     <string name="compact_confirm_action">Compactar</string>
     <string name="cd_temporary_chat">Chat temporário</string>
     <string name="temporary_chat_enforced">O chat temporário está ativado para todas as conversas, definido pelo seu administrador</string>
@@ -904,7 +894,6 @@
     <string name="artifact_library_declined">Não carregado: %1$s</string>
     <string name="artifact_library_allowed">Carregado: %1$s</string>
     <string name="artifact_library_change">Alterar</string>
-    <string name="cd_mcp_server_enabled">Servidor MCP %1$s ativado</string>
     <string name="cd_code_block">Bloco de código</string>
     <string name="cd_code_block_language">Bloco de código %1$s</string>
     <string name="log_output_title">Saída do log</string>
@@ -921,7 +910,7 @@
     <string name="mcp_sign_in_needed_unnamed">Uma ferramenta precisa que você entre</string>
     <string name="mcp_sign_in_resumes">A resposta continua assim que você entrar.</string>
     <string name="mcp_sign_in_action">Entrar</string>
-    <string name="mcp_sign_in_failed">O login não foi concluído. Tente novamente pela chamada da ferramenta.</string>
+    <string name="mcp_sign_in_failed">O login não foi concluído. Tente novamente.</string>
     <string name="prompt_filter_title">Filtrar e ordenar</string>
     <string name="prompt_sort_recent">Recentes</string>
     <string name="prompt_sort_popular">Populares</string>
@@ -1019,6 +1008,7 @@
     <string name="code_machine">Máquina</string>
     <string name="code_machine_choose">Escolher máquina</string>
     <string name="code_workspace">Espaço de trabalho de código</string>
+    <string name="code_workspace_saved_on_send">Sua próxima mensagem salva este espaço de trabalho para esta conversa.</string>
     <string name="code_workspace_choose">Escolher espaço de trabalho</string>
     <string name="code_workspace_loading">Carregando espaço de trabalho…</string>
     <string name="code_workspace_missing">Espaço de trabalho ausente</string>
@@ -1072,6 +1062,7 @@
     <string name="notice_queue_withdraw_refused">Não foi possível retirar esta mensagem na fila do servidor.</string>
     <string name="notice_queue_withdraw_busy">Ainda retirando a mensagem anterior. Tente novamente em instantes.</string>
     <string name="notice_queue_edit_overtaken">Essa mensagem na fila já foi enviada, então sua edição não foi aplicada.</string>
+    <string name="notice_queue_edit_waits_for_uploads">Aguarde seus anexos terminarem e depois edite a mensagem na fila.</string>
     <string name="notice_queue_server_holds">O servidor ainda mantém uma mensagem na fila. Tente novamente em instantes.</string>
     <string name="notice_queue_restored_to_composer">As mensagens na fila não foram enviadas, então voltaram para a caixa de mensagem.</string>
     <string name="tool_content_loading">Carregando a chamada de ferramenta completa…</string>
@@ -1090,6 +1081,7 @@
     <string name="code_checkout_registered_chip">Checkout registrado</string>
     <string name="code_checkout_registered_info">O checkout da máquina, compartilhado com outras conversas</string>
     <string name="cd_code_chip">%1$s: %2$s</string>
+    <string name="cd_code_workspace_folded">Espaço de trabalho de código: %1$s em %2$s</string>
     <string name="command_finished">Comando executado</string>
     <string name="command_exit_code">código de saída %1$d</string>
     <string name="command_terminated">encerrado por %1$s</string>
@@ -1190,4 +1182,37 @@
     <string name="cd_run_code_previous">Execução anterior</string>
     <string name="cd_run_code_next">Próxima execução</string>
     <string name="notice_run_code_failed">Não foi possível executar este código.</string>
+    <!-- Composer attachment stack and list -->
+    <string name="draft_row_uploading">Enviando…</string>
+    <string name="draft_row_failed">Não foi enviado · Toque para tentar de novo</string>
+    <string name="draft_row_skill">Habilidade</string>
+    <string name="draft_row_quote">Citação</string>
+    <string name="draft_subtitle_join">%1$s · %2$s</string>
+    <string name="cd_cancel_upload">Cancelar o envio de %1$s</string>
+    <string name="cd_remove_quote_named">Remover citação: %1$s</string>
+    <string name="cd_retry_upload">Tentar enviar %1$s de novo</string>
+    <string name="draft_item_removed">Removido: %1$s</string>
+    <string name="setting_chip_set_by">Definido por %1$s</string>
+    <string name="setting_chip_sign_in">· fazer login</string>
+    <string name="setting_chip_connecting_suffix">· conectando</string>
+    <string name="mcp_chip_cancel_sign_in">Cancelar login</string>
+    <string name="mcp_chip_start_over">Recomeçar</string>
+    <string name="mcp_cancel_sign_in_failed">Não foi possível cancelar o login. Tente novamente.</string>
+    <string name="cd_mcp_sign_in_menu">Opções de login</string>
+    <string name="thinking_chip_state_next">Só na próxima mensagem</string>
+    <string name="cd_context_ring">Contexto usado: %1$s</string>
+    <string name="draft_quote_removed">Citação removida</string>
+    <string name="action_undo">Desfazer</string>
+    <plurals name="cd_draft_stack">
+        <item quantity="one">%1$d item com esta mensagem</item>
+        <item quantity="other">%1$d itens com esta mensagem</item>
+    </plurals>
+    <plurals name="draft_item_attached_announcement">
+        <item quantity="one">%1$s anexado, %2$d item</item>
+        <item quantity="other">%1$s anexado, %2$d itens</item>
+    </plurals>
+    <plurals name="draft_uploads_failed">
+        <item quantity="one">%1$d arquivo não foi enviado. Toque nele para tentar de novo ou remova-o.</item>
+        <item quantity="other">%1$d arquivos não foram enviados. Toque neles para tentar de novo ou remova-os.</item>
+    </plurals>
 </resources>

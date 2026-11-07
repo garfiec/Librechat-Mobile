@@ -333,7 +333,7 @@
     <string name="context_bar_title">上下文用量</string>
     <string name="context_bar_desc">上下文窗口用量指示器的显示位置</string>
     <string name="context_bar_hidden">隐藏</string>
-    <string name="context_bar_above_input">消息框上方</string>
+    <string name="context_bar_above_input">消息框内</string>
     <string name="context_bar_options_sheet">聊天选项菜单</string>
     <string name="context_bar_overflow_menu">顶栏菜单 (⋮)</string>
     <string name="show_image_descriptions">显示图片描述</string>
@@ -859,13 +859,6 @@
     <plurals name="mcp_tool_count">
         <item quantity="other">%1$d 个工具</item>
     </plurals>
-    <string name="mcp_status_connected">已连接</string>
-    <string name="mcp_status_connecting">正在连接…</string>
-    <string name="mcp_status_needs_sign_in">需要登录</string>
-    <string name="mcp_status_needs_setup">请在网页版中设置</string>
-    <string name="mcp_status_on_demand">聊天时连接</string>
-    <string name="mcp_status_disconnected">未连接</string>
-    <string name="mcp_status_failed">无法连接</string>
     <string name="mcp_action_sign_in">登录</string>
     <string name="mcp_action_connect">连接</string>
     <string name="mcp_action_reconnect">重新连接</string>

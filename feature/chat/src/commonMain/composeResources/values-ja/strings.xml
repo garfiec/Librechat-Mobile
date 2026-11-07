@@ -252,19 +252,10 @@
     <string name="tool_file_search_desc">アップロード済みのファイルを検索</string>
     <string name="tool_mcp">MCP</string>
     <string name="tool_mcp_desc">Model Context Protocolサーバー</string>
-    <string name="cd_web_search_enabled">ウェブ検索が有効</string>
     <string name="cd_quoted_excerpt">引用された抜粋</string>
-    <string name="cd_remove_quote">引用を削除</string>
     <string name="selection_add_to_chat">チャットに追加</string>
-    <string name="cd_code_enabled">コードインタープリターが有効</string>
-    <string name="cd_file_search_enabled">ファイル検索が有効</string>
 
     <!-- Attachments -->
-    <string name="cd_attach_file">ファイルを添付</string>
-    <string name="files_count">ファイル（%1$d）</string>
-    <string name="files_count_with_text">ファイル (%1$d) · %2$d 件はテキスト</string>
-    <string name="cd_files_attached">%1$d 件のファイルが添付されています。タップしてプレビュー</string>
-    <string name="cd_files_attached_with_text">%1$d 件のファイルが添付され、%2$d 件はテキストとして送信されます。タップしてプレビュー</string>
     <string name="upload_routing_sheet_title">これらをどのように送信しますか？</string>
     <string name="upload_routing_sheet_title_single">これをどのように送信しますか？</string>
     <string name="upload_routing_option_provider">モデルへ直接</string>
@@ -276,8 +267,6 @@
     <string name="upload_routing_apply_all">すべてに適用</string>
     <string name="upload_routing_attach">添付</string>
     <string name="cd_upload_route_text">抽出したテキストとして送信</string>
-    <string name="cd_attached_file">添付ファイル: %1$s</string>
-    <string name="cd_preview_file">%1$s のプレビュー</string>
     <string name="cd_remove_file">%1$s を削除</string>
 
     <!-- Agent handoff -->
@@ -547,6 +536,8 @@
     <string name="media_empty_links">この会話にリンクはありません</string>
     <string name="media_empty_artifacts">この会話にアーティファクトはありません</string>
     <string name="context_usage_label">コンテキスト</string>
+    <string name="context_percent">%1$d%</string>
+    <string name="context_percent_estimate">約%1$d%</string>
     <string name="tool_approval_title">承認が必要です</string>
     <string name="tool_approval_arguments">引数</string>
     <string name="tool_approval_approve">承認</string>
@@ -642,13 +633,11 @@
     <string name="tool_memory_desc">このチャットの詳細をアシスタントが記憶できるようにする</string>
     <string name="tool_skills">スキル</string>
     <string name="tool_skills_desc">このチャットでアシスタントがあなたのスキルを使えるようにする</string>
-    <string name="cd_skills_enabled">スキルが有効</string>
     <string name="picker_type_prompt">プロンプト</string>
     <string name="picker_type_skill">スキル</string>
     <string name="picker_no_matches">一致するものはありません</string>
     <string name="picker_loading_skills">スキルを読み込み中…</string>
     <string name="picker_skills_failed">スキルを読み込めませんでした</string>
-    <string name="cd_pending_skills">次のメッセージで使うスキル</string>
     <string name="cd_remove_skill">スキル %1$s を削除</string>
     <string name="cd_skill_always_applied">常に適用されるスキル: %1$s</string>
     <string name="cd_skill_used">使用したスキル: %1$s</string>
@@ -656,7 +645,7 @@
     <string name="skill_call_finished">%1$s を実行しました</string>
     <string name="skill_call_fallback_name">スキル</string>
     <string name="cd_steer_message">この応答を軌道修正</string>
-    <string name="cd_cancel_steer">軌道修正をキャンセル</string>
+    <string name="cd_cancel_steer">軌道修正をキャンセル：%1$s</string>
     <string name="cd_during_run_options">送信時の動作を選択</string>
     <string name="during_run_steer">この応答を軌道修正</string>
     <string name="during_run_queue">キューに追加</string>
@@ -763,6 +752,7 @@
     <string name="compact_confirm_title">この会話を圧縮しますか？</string>
     <string name="compact_confirm_body">コンテキストウィンドウの%1$d%を使用しています。圧縮すると、これまでの会話がモデルが読み続ける短いメモに要約され、この先のための余裕ができます。何も削除されません。</string>
     <string name="compact_confirm_not_now">後で</string>
+    <string name="compact_confirm_see_usage">使用状況を見る</string>
     <string name="compact_confirm_action">圧縮</string>
     <string name="cd_temporary_chat">一時チャット</string>
     <string name="temporary_chat_enforced">管理者の設定により、すべてのチャットで一時チャットがオンになっています</string>
@@ -880,7 +870,6 @@
     <string name="artifact_library_declined">読み込まれていません: %1$s</string>
     <string name="artifact_library_allowed">読み込み済み: %1$s</string>
     <string name="artifact_library_change">変更</string>
-    <string name="cd_mcp_server_enabled">MCP サーバー %1$s 有効</string>
     <string name="cd_code_block">コードブロック</string>
     <string name="cd_code_block_language">%1$s のコードブロック</string>
     <string name="log_output_title">ログ出力</string>
@@ -897,7 +886,7 @@
     <string name="mcp_sign_in_needed_unnamed">ツールへのサインインが必要です</string>
     <string name="mcp_sign_in_resumes">サインインすると応答が続きます。</string>
     <string name="mcp_sign_in_action">サインイン</string>
-    <string name="mcp_sign_in_failed">サインインが完了しませんでした。ツール呼び出しからもう一度お試しください。</string>
+    <string name="mcp_sign_in_failed">サインインが完了しませんでした。もう一度お試しください。</string>
     <string name="prompt_filter_title">絞り込みと並べ替え</string>
     <string name="prompt_sort_recent">新しい順</string>
     <string name="prompt_sort_popular">人気順</string>
@@ -989,6 +978,7 @@
     <string name="code_machine">マシン</string>
     <string name="code_machine_choose">マシンを選択</string>
     <string name="code_workspace">コードワークスペース</string>
+    <string name="code_workspace_saved_on_send">次のメッセージでこのワークスペースがチャットに保存されます。</string>
     <string name="code_workspace_choose">ワークスペースを選択</string>
     <string name="code_workspace_loading">ワークスペースを読み込み中…</string>
     <string name="code_workspace_missing">ワークスペースが見つかりません</string>
@@ -1040,6 +1030,7 @@
     <string name="notice_queue_withdraw_refused">キュー内のメッセージをサーバーから取り消せませんでした。</string>
     <string name="notice_queue_withdraw_busy">前のメッセージの取り消しを処理中です。しばらくしてからもう一度お試しください。</string>
     <string name="notice_queue_edit_overtaken">キュー内のメッセージはすでに送信されたため、編集は適用されませんでした。</string>
+    <string name="notice_queue_edit_waits_for_uploads">添付ファイルの処理が終わってから、キュー内のメッセージを編集してください。</string>
     <string name="notice_queue_server_holds">サーバーにまだキュー内のメッセージがあります。しばらくしてからもう一度お試しください。</string>
     <string name="notice_queue_restored_to_composer">キュー内のメッセージは送信されなかったため、入力欄に戻しました。</string>
     <string name="tool_content_loading">ツール呼び出し全体を読み込み中…</string>
@@ -1058,6 +1049,7 @@
     <string name="code_checkout_registered_chip">登録済みチェックアウト</string>
     <string name="code_checkout_registered_info">マシン上のチェックアウト。他のチャットと共有されます</string>
     <string name="cd_code_chip">%1$s：%2$s</string>
+    <string name="cd_code_workspace_folded">コードワークスペース：%2$s の %1$s</string>
     <string name="command_finished">コマンドを実行しました</string>
     <string name="command_exit_code">終了コード %1$d</string>
     <string name="command_terminated">%1$s により終了</string>
@@ -1157,4 +1149,34 @@
     <string name="cd_run_code_previous">前の実行</string>
     <string name="cd_run_code_next">次の実行</string>
     <string name="notice_run_code_failed">このコードを実行できませんでした。</string>
+    <!-- Composer attachment stack and list -->
+    <string name="draft_row_uploading">アップロード中…</string>
+    <string name="draft_row_failed">アップロードできませんでした · タップして再試行</string>
+    <string name="draft_row_skill">スキル</string>
+    <string name="draft_row_quote">引用</string>
+    <string name="draft_subtitle_join">%1$s · %2$s</string>
+    <string name="cd_cancel_upload">%1$s のアップロードをキャンセル</string>
+    <string name="cd_remove_quote_named">引用を削除: %1$s</string>
+    <string name="cd_retry_upload">%1$s のアップロードを再試行</string>
+    <string name="draft_item_removed">%1$s を削除しました</string>
+    <string name="setting_chip_set_by">%1$s が設定</string>
+    <string name="setting_chip_sign_in">· サインイン</string>
+    <string name="setting_chip_connecting_suffix">· 接続中</string>
+    <string name="mcp_chip_cancel_sign_in">サインインをキャンセル</string>
+    <string name="mcp_chip_start_over">最初からやり直す</string>
+    <string name="mcp_cancel_sign_in_failed">サインインをキャンセルできませんでした。もう一度お試しください。</string>
+    <string name="cd_mcp_sign_in_menu">サインインのオプション</string>
+    <string name="thinking_chip_state_next">次のメッセージのみ</string>
+    <string name="cd_context_ring">使用中のコンテキスト: %1$s</string>
+    <string name="draft_quote_removed">引用を削除しました</string>
+    <string name="action_undo">元に戻す</string>
+    <plurals name="cd_draft_stack">
+        <item quantity="other">このメッセージに %1$d 件</item>
+    </plurals>
+    <plurals name="draft_item_attached_announcement">
+        <item quantity="other">%1$s を添付しました。%2$d 件</item>
+    </plurals>
+    <plurals name="draft_uploads_failed">
+        <item quantity="other">%1$d 件のファイルをアップロードできませんでした。タップして再試行するか、削除してください。</item>
+    </plurals>
 </resources>

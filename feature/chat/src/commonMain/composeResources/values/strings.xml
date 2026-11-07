@@ -259,19 +259,10 @@
     <string name="tool_file_search_desc">Search through uploaded files</string>
     <string name="tool_mcp">MCP</string>
     <string name="tool_mcp_desc">Model Context Protocol servers</string>
-    <string name="cd_web_search_enabled">Web Search enabled</string>
     <string name="cd_quoted_excerpt">Quoted excerpt</string>
-    <string name="cd_remove_quote">Remove quote</string>
     <string name="selection_add_to_chat">Add to chat</string>
-    <string name="cd_code_enabled">Code interpreter enabled</string>
-    <string name="cd_file_search_enabled">File Search enabled</string>
 
     <!-- Attachments -->
-    <string name="cd_attach_file">Attach file</string>
-    <string name="files_count">Files (%1$d)</string>
-    <string name="files_count_with_text">Files (%1$d) · %2$d as text</string>
-    <string name="cd_files_attached">%1$d files attached, tap to preview</string>
-    <string name="cd_files_attached_with_text">%1$d files attached, %2$d sent as text, tap to preview</string>
     <string name="upload_routing_sheet_title">How should these be sent?</string>
     <string name="upload_routing_sheet_title_single">How should this be sent?</string>
     <string name="upload_routing_option_provider">To the model</string>
@@ -283,8 +274,6 @@
     <string name="upload_routing_apply_all">Use for all</string>
     <string name="upload_routing_attach">Attach</string>
     <string name="cd_upload_route_text">Sent as extracted text</string>
-    <string name="cd_attached_file">Attached file: %1$s</string>
-    <string name="cd_preview_file">Preview of %1$s</string>
     <string name="cd_remove_file">Remove %1$s</string>
 
     <!-- Agent handoff -->
@@ -575,6 +564,8 @@
 
     <!-- Context usage gauge (v0.8.7) -->
     <string name="context_usage_label">Context</string>
+    <string name="context_percent">%1$d%</string>
+    <string name="context_percent_estimate">~%1$d%</string>
 
     <!-- Human-in-the-loop pauses (v0.8.8): tool approval + ask_user_question -->
     <string name="tool_approval_title">Approval needed</string>
@@ -675,13 +666,11 @@
     <string name="tool_memory_desc">Let the assistant remember details from this chat</string>
     <string name="tool_skills">Skills</string>
     <string name="tool_skills_desc">Let the assistant use your skills in this chat</string>
-    <string name="cd_skills_enabled">Skills enabled</string>
     <string name="picker_type_prompt">Prompt</string>
     <string name="picker_type_skill">Skill</string>
     <string name="picker_no_matches">No matches</string>
     <string name="picker_loading_skills">Loading skills…</string>
     <string name="picker_skills_failed">Couldn't load skills</string>
-    <string name="cd_pending_skills">Skills for the next message</string>
     <string name="cd_remove_skill">Remove skill %1$s</string>
     <string name="cd_skill_always_applied">Always-applied skill: %1$s</string>
     <string name="cd_skill_used">Skill used: %1$s</string>
@@ -691,7 +680,7 @@
 
     <!-- Mid-run steering (v0.8.8): send into the reply that is still being written -->
     <string name="cd_steer_message">Steer this reply</string>
-    <string name="cd_cancel_steer">Cancel steer</string>
+    <string name="cd_cancel_steer">Cancel steer: %1$s</string>
     <string name="cd_during_run_options">Choose what sending does now</string>
     <string name="during_run_steer">Steer this reply</string>
     <string name="during_run_queue">Add to queue</string>
@@ -800,6 +789,7 @@
     <string name="compact_confirm_title">Compact this conversation?</string>
     <string name="compact_confirm_body">%1$d% of the context window is used. Compacting summarizes the conversation so far into a shorter note the model keeps reading, freeing room for what comes next. Nothing is deleted.</string>
     <string name="compact_confirm_not_now">Not now</string>
+    <string name="compact_confirm_see_usage">See usage</string>
     <string name="compact_confirm_action">Compact</string>
     <string name="notice_rename_failed">Failed to rename conversation</string>
     <string name="notice_rename_not_ready">This chat can't be renamed until its title is ready. Try again once the reply has finished.</string>
@@ -941,7 +931,6 @@
     <string name="artifact_library_declined">Not loaded: %1$s</string>
     <string name="artifact_library_allowed">Loaded: %1$s</string>
     <string name="artifact_library_change">Change</string>
-    <string name="cd_mcp_server_enabled">%1$s MCP server enabled</string>
     <string name="cd_code_block">Code block</string>
     <string name="cd_code_block_language">%1$s code block</string>
     <string name="log_output_title">Log Output</string>
@@ -963,7 +952,7 @@
     <!-- Button on that row that opens the sign-in page -->
     <string name="mcp_sign_in_action">Sign in</string>
     <!-- Snackbar when an MCP sign-in from the chat could not start or the server refused it -->
-    <string name="mcp_sign_in_failed">Sign-in didn't complete. Try again from the tool call.</string>
+    <string name="mcp_sign_in_failed">Sign-in didn't complete. Try again.</string>
     <string name="prompt_filter_title">Filter &amp; Sort</string>
     <string name="prompt_sort_recent">Recent</string>
     <string name="prompt_sort_popular">Popular</string>
@@ -1059,6 +1048,7 @@
     <string name="code_machine">Machine</string>
     <string name="code_machine_choose">Choose machine</string>
     <string name="code_workspace">Code workspace</string>
+    <string name="code_workspace_saved_on_send">Your next message saves this workspace for the chat.</string>
     <string name="code_workspace_choose">Choose workspace</string>
     <string name="code_workspace_loading">Loading workspace…</string>
     <string name="code_workspace_missing">Workspace missing</string>
@@ -1112,6 +1102,7 @@
     <string name="notice_queue_withdraw_refused">Couldn't withdraw this queued message from the server.</string>
     <string name="notice_queue_withdraw_busy">Still finishing the previous withdrawal. Try again in a moment.</string>
     <string name="notice_queue_edit_overtaken">That queued message was already sent, so your edit wasn't applied.</string>
+    <string name="notice_queue_edit_waits_for_uploads">Wait for your attachments to finish, then edit the queued message.</string>
     <string name="notice_queue_server_holds">The server still holds a queued message. Try again in a moment.</string>
     <string name="notice_queue_restored_to_composer">Queued messages weren't sent, so they were put back in the message box.</string>
     <string name="tool_content_loading">Loading the full tool call…</string>
@@ -1130,6 +1121,7 @@
     <string name="code_checkout_registered_chip">Registered checkout</string>
     <string name="code_checkout_registered_info">The machine's checkout, shared with other chats</string>
     <string name="cd_code_chip">%1$s: %2$s</string>
+    <string name="cd_code_workspace_folded">Code workspace: %1$s on %2$s</string>
     <string name="command_finished">Ran command</string>
     <string name="command_exit_code">exit code %1$d</string>
     <string name="command_terminated">terminated by %1$s</string>
@@ -1231,4 +1223,38 @@
     <string name="cd_run_code_previous">Previous run</string>
     <string name="cd_run_code_next">Next run</string>
     <string name="notice_run_code_failed">Couldn't run this code.</string>
+    <!-- Composer attachment strip -->
+    <string name="draft_row_uploading">Uploading…</string>
+    <string name="draft_row_failed">Didn't upload · Tap to retry</string>
+    <string name="draft_row_skill">Skill</string>
+    <string name="draft_row_quote">Quote</string>
+    <string name="draft_subtitle_join">%1$s · %2$s</string>
+    <string name="cd_cancel_upload">Cancel upload of %1$s</string>
+    <string name="cd_remove_quote_named">Remove quote: %1$s</string>
+    <string name="cd_retry_upload">Retry upload of %1$s</string>
+    <string name="draft_item_removed">Removed %1$s</string>
+    <string name="setting_chip_set_by">Set by %1$s</string>
+    <!-- After an MCP server's name on its settings chip when it needs the user to sign in; a tap starts the sign-in -->
+    <string name="setting_chip_sign_in">· sign in</string>
+    <string name="setting_chip_connecting_suffix">· connecting</string>
+    <string name="mcp_chip_cancel_sign_in">Cancel sign-in</string>
+    <string name="mcp_chip_start_over">Start over</string>
+    <string name="mcp_cancel_sign_in_failed">Couldn't cancel sign-in. Try again.</string>
+    <string name="cd_mcp_sign_in_menu">Sign-in options</string>
+    <string name="thinking_chip_state_next">Next message only</string>
+    <string name="cd_context_ring">Context used: %1$s</string>
+    <string name="draft_quote_removed">Quote removed</string>
+    <string name="action_undo">Undo</string>
+    <plurals name="cd_draft_stack">
+        <item quantity="one">%1$d item with this message</item>
+        <item quantity="other">%1$d items with this message</item>
+    </plurals>
+    <plurals name="draft_item_attached_announcement">
+        <item quantity="one">%1$s attached, %2$d item</item>
+        <item quantity="other">%1$s attached, %2$d items</item>
+    </plurals>
+    <plurals name="draft_uploads_failed">
+        <item quantity="one">%1$d file didn't upload. Tap it to retry, or remove it.</item>
+        <item quantity="other">%1$d files didn't upload. Tap them to retry, or remove them.</item>
+    </plurals>
 </resources>

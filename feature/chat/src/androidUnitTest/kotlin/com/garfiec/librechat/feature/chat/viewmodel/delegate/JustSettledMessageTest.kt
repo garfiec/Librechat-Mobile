@@ -33,8 +33,6 @@ import org.junit.Test
  *  - **Cleared at the turn boundary.** A queue drain re-enters `beginStreaming` inline in the same
  *    Main dispatch as the finalize, so the clear landed before Compose saw the flag at all.
  *    Guarded by asserting a following turn OVERWRITES, with no clear in between.
- *
- * This module has no Compose harness, which is why the properties have to be pinned here.
  */
 class JustSettledMessageTest {
 

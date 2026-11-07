@@ -21,6 +21,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -55,19 +57,23 @@ internal fun approvalIcon(option: CodeApprovalOption): ImageVector = when (optio
     CodeApprovalOption.FULL_ACCESS -> Icons.Outlined.Terminal
 }
 
-/** Web's `CodeApprovalMenu`: how much the coding agent may do on its machine without asking. */
+/**
+ * Web's `CodeApprovalMenu`. Icon-only on "Ask before changes", the safest mode, so a mode that does
+ * more always shows its name; named when there is no other mode to pick, as a bare icon then explains nothing.
+ */
 @Composable
 internal fun ApprovalChip(approval: CodeApprovalChip, onSelect: (CodeApprovalOption) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val label = stringResource(approvalLabel(approval.selected))
+    val picks = approval.options.size > 1
     val description = stringResource(Res.string.cd_code_chip, stringResource(Res.string.code_approval_mode), label)
     Box {
         CodeChip(
             icon = approvalIcon(approval.selected),
             label = label,
             description = description,
-            caret = approval.options.size > 1,
-            onClick = if (approval.options.size > 1) ({ expanded = true }) else null,
+            iconOnly = picks && approval.selected == CodeApprovalOption.ASK,
+            onClick = if (picks) ({ expanded = true }) else null,
         )
         AdaptiveDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             Text(
@@ -98,6 +104,8 @@ internal fun ApprovalChip(approval: CodeApprovalChip, onSelect: (CodeApprovalOpt
                         expanded = false
                         onSelect(option)
                     },
+                    // The check alone says nothing to a screen reader.
+                    modifier = Modifier.semantics { selected = option == approval.selected },
                 )
             }
         }

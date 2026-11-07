@@ -1,7 +1,9 @@
 package com.garfiec.librechat.feature.chat.components
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,6 +23,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -28,13 +32,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,6 +53,7 @@ import com.garfiec.librechat.feature.chat.resources.queued_attachment_only
 import com.garfiec.librechat.feature.chat.resources.queued_turn_needs_attention
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedMessage
 import com.garfiec.librechat.feature.chat.viewmodel.QueuedTurnServerState
+import kotlinx.coroutines.isActive
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -62,8 +70,10 @@ import org.jetbrains.compose.resources.stringResource
  * torn down as rows reorder — rather than by per-row nodes (which Compose detaches when a keyed
  * child moves, killing an in-progress gesture). The container hit-tests the grabbed row from
  * measured row bounds and swaps with a neighbour once the finger passes that neighbour's midpoint,
- * so variable-height rows reorder correctly. No external reorderable dependency, no nested scroll
- * to fight: the section is hosted in a bottom-anchored input bar that simply grows upward.
+ * so variable-height rows reorder correctly. No external reorderable dependency.
+ *
+ * Once the long press has picked a row up, the gesture is the section's: the region's own scroll
+ * never starts, so holding the row near an edge scrolls it ([reorderAutoScrollStep]).
  */
 @Composable
 fun QueuedMessagesSection(
@@ -73,6 +83,8 @@ fun QueuedMessagesSection(
     onReorder: (fromIndex: Int, toIndex: Int) -> Unit,
     modifier: Modifier = Modifier,
     fontSizeMultiplier: Float = 1f,
+    /** The scrolling region the section sits in, if any; a reorder drag auto-scrolls it at its edges. */
+    reorderScroll: ReorderScrollRegion? = null,
 ) {
     if (queuedMessages.isEmpty()) return
 
@@ -85,11 +97,66 @@ fun QueuedMessagesSection(
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
     // Snapshot the list for the gesture closure so it always reads the current order.
     val currentQueue by rememberUpdatedState(queuedMessages)
+    val currentOnReorder by rememberUpdatedState(onReorder)
+    // The finger, in this Column's space, and where that space starts in the region's content.
+    var pointerY by remember { mutableFloatStateOf(0f) }
+    var sectionTop by remember { mutableFloatStateOf(0f) }
+
+    // Swap with a neighbour once the dragged row crosses its midpoint. A server-owned neighbour is not
+    // swappable (the reorder is refused for BOTH endpoints); settle the offset only after a swap that
+    // happened, or the row jumps a full row height back under a still finger.
+    fun settleSwap(direction: Float) {
+        val id = draggingId ?: return
+        val list = currentQueue
+        val from = list.indexOfFirst { it.localId == id }
+        if (from < 0) return
+        if (direction > 0 && from < list.lastIndex && list[from + 1].server == null) {
+            val nextHeight = rowHeights[list[from + 1].localId] ?: 0f
+            if (dragOffsetY > nextHeight / 2f) {
+                currentOnReorder(from, from + 1)
+                dragOffsetY -= nextHeight
+            }
+        } else if (direction < 0 && from > 0 && list[from - 1].server == null) {
+            val prevHeight = rowHeights[list[from - 1].localId] ?: 0f
+            if (dragOffsetY < -prevHeight / 2f) {
+                currentOnReorder(from, from - 1)
+                dragOffsetY += prevHeight
+            }
+        }
+    }
+
+    if (draggingId != null && reorderScroll != null) {
+        val density = LocalDensity.current
+        val edgePx = with(density) { REORDER_EDGE.toPx() }
+        val stepPx = with(density) { REORDER_MAX_STEP.toPx() }
+        LaunchedEffect(reorderScroll, edgePx, stepPx) {
+            while (isActive) {
+                withFrameNanos { }
+                val viewport = reorderScroll.viewport() ?: continue
+                val step = reorderAutoScrollStep(
+                    pointerY = sectionTop + pointerY,
+                    viewportTop = viewport.start,
+                    viewportBottom = viewport.endInclusive,
+                    edge = edgePx,
+                    maxStep = stepPx,
+                )
+                if (step == 0f) continue
+                // The content moves under a still finger, so the row moves with it to stay there.
+                val moved = reorderScroll.scrollContentBy(step)
+                if (moved != 0f) {
+                    pointerY += moved
+                    dragOffsetY += moved
+                    settleSwap(moved)
+                }
+            }
+        }
+    }
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
+            .onPlaced { sectionTop = it.positionInParent().y }
             .pointerInput(Unit) {
                 detectDragGesturesAfterLongPress(
                     onDragStart = { offset ->
@@ -104,6 +171,7 @@ fun QueuedMessagesSection(
                             offset.y >= top && offset.y < top + height
                         }?.localId
                         dragOffsetY = 0f
+                        pointerY = offset.y
                     },
                     onDragEnd = {
                         draggingId = null
@@ -115,33 +183,14 @@ fun QueuedMessagesSection(
                     },
                     onDrag = { change, dragAmount ->
                         change.consume()
-                        val id = draggingId ?: return@detectDragGesturesAfterLongPress
-                        val list = currentQueue
-                        val from = list.indexOfFirst { it.localId == id }
-                        if (from < 0) return@detectDragGesturesAfterLongPress
+                        pointerY = change.position.y
+                        if (draggingId == null) return@detectDragGesturesAfterLongPress
                         dragOffsetY += dragAmount.y
-                        // Swap with a neighbour once the finger crosses that neighbour's midpoint.
-                        // A server-owned neighbour is not swappable either — the reorder is
-                        // refused for BOTH endpoints — and settling the offset against a swap that
-                        // did not happen is what makes the row jump a full row height back under a
-                        // stationary finger.
-                        if (dragAmount.y > 0 && from < list.lastIndex && list[from + 1].server == null) {
-                            val nextHeight = rowHeights[list[from + 1].localId] ?: 0f
-                            if (dragOffsetY > nextHeight / 2f) {
-                                onReorder(from, from + 1)
-                                dragOffsetY -= nextHeight
-                            }
-                        } else if (dragAmount.y < 0 && from > 0 && list[from - 1].server == null) {
-                            val prevHeight = rowHeights[list[from - 1].localId] ?: 0f
-                            if (dragOffsetY < -prevHeight / 2f) {
-                                onReorder(from, from - 1)
-                                dragOffsetY += prevHeight
-                            }
-                        }
+                        settleSwap(dragAmount.y)
                     },
                 )
             },
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         queuedMessages.forEach { item ->
             val isDragging = draggingId == item.localId
@@ -184,7 +233,7 @@ private fun QueuedMessageRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onTap)
-                .padding(start = 8.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+                .padding(start = 8.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
         ) {
             // No handle on a server-owned row: the backend runs those in its own sequence, so
             // offering a drag would show an order it will not honour.
@@ -205,7 +254,7 @@ private fun QueuedMessageRow(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     modifier = Modifier.size(16.dp),
                 )
-                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.width(8.dp))
             }
 
             Column(
@@ -266,3 +315,45 @@ private val QueuedMessage.needsAttention: Boolean
         QueuedTurnServerState.Status.Uncertain -> server.reconciliationExpired
         else -> false
     }
+
+/** A scrolling region a reorder drag can scroll. [reversed] is `verticalScroll(reverseScrolling = true)`. */
+@Stable
+class ReorderScrollRegion(val state: ScrollState, val reversed: Boolean) {
+    /** The part of the region's content on screen, in content pixels; null before the first layout. */
+    fun viewport(): ClosedFloatingPointRange<Float>? {
+        val size = state.viewportSize
+        if (size <= 0) return null
+        val top = (if (reversed) state.maxValue - state.value else state.value).toFloat()
+        return top..(top + size)
+    }
+
+    /** Scrolls so the content moves up by [dy] (positive shows what is below); returns how far it went. */
+    suspend fun scrollContentBy(dy: Float): Float =
+        if (reversed) -state.scrollBy(-dy) else state.scrollBy(dy)
+}
+
+/**
+ * How far to scroll the region this frame while a row is held at [pointerY] (content pixels): up to
+ * [maxStep] px, faster the deeper into the [edge] band at either end, or past it. Negative scrolls up.
+ * Nothing in the middle, so a row dropped mid-region doesn't creep.
+ */
+internal fun reorderAutoScrollStep(
+    pointerY: Float,
+    viewportTop: Float,
+    viewportBottom: Float,
+    edge: Float,
+    maxStep: Float,
+): Float {
+    if (edge <= 0f || viewportBottom <= viewportTop) return 0f
+    val fromTop = pointerY - viewportTop
+    val fromBottom = viewportBottom - pointerY
+    return when {
+        fromTop < edge && fromTop <= fromBottom -> -maxStep * ((edge - fromTop) / edge).coerceIn(0f, 1f)
+        fromBottom < edge -> maxStep * ((edge - fromBottom) / edge).coerceIn(0f, 1f)
+        else -> 0f
+    }
+}
+
+/** How close to the region's edge a held row starts scrolling it, and its fastest step per frame. */
+private val REORDER_EDGE = 32.dp
+private val REORDER_MAX_STEP = 12.dp

@@ -339,7 +339,7 @@
     <string name="context_bar_title">Utilisation du contexte</string>
     <string name="context_bar_desc">Où afficher la jauge d'utilisation de la fenêtre de contexte</string>
     <string name="context_bar_hidden">Masquée</string>
-    <string name="context_bar_above_input">Au-dessus de la zone de message</string>
+    <string name="context_bar_above_input">Dans la zone de message</string>
     <string name="context_bar_options_sheet">Menu des options de discussion</string>
     <string name="context_bar_overflow_menu">Menu de la barre supérieure (⋮)</string>
     <string name="show_image_descriptions">Afficher les descriptions d'images</string>
@@ -875,13 +875,6 @@
         <item quantity="one">%1$d outil</item>
         <item quantity="other">%1$d outils</item>
     </plurals>
-    <string name="mcp_status_connected">Connecté</string>
-    <string name="mcp_status_connecting">Connexion…</string>
-    <string name="mcp_status_needs_sign_in">Connexion requise</string>
-    <string name="mcp_status_needs_setup">À configurer sur le web</string>
-    <string name="mcp_status_on_demand">Se connecte pendant vos chats</string>
-    <string name="mcp_status_disconnected">Non connecté</string>
-    <string name="mcp_status_failed">Connexion impossible</string>
     <string name="mcp_action_sign_in">Se connecter</string>
     <string name="mcp_action_connect">Connecter</string>
     <string name="mcp_action_reconnect">Reconnecter</string>

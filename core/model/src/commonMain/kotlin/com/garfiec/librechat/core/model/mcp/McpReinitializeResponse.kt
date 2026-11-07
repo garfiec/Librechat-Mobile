@@ -37,7 +37,11 @@ data class McpReinitializeResponse(
      * already running" from "start one" — a distinction the connection-state model cannot express.
      */
     val authorizationState: String? = null,
-)
+) {
+    /** The provider's sign-in link, when the reconnect needs one: set only with [oauthRequired], never blank. */
+    val authorizationUrl: String?
+        get() = oauthUrl?.takeIf { oauthRequired == true && it.isNotBlank() }
+}
 
 /** Wire values of [McpReinitializeResponse.failureReason]. */
 object McpFailureReasons {

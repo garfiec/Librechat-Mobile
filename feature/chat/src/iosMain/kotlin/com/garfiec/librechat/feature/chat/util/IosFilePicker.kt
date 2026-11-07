@@ -165,6 +165,7 @@ private class DocumentPickerDelegate(
                             mimeType = mimeType,
                             width = cgImage?.let { CGImageGetWidth(it).toInt() },
                             height = cgImage?.let { CGImageGetHeight(it).toInt() },
+                            preview = draftPreviewOf(image),
                         ),
                     )
                 } else {
@@ -237,6 +238,8 @@ private class PhotoPickerDelegate(
                                 mimeType = "image/jpeg",
                                 width = cgImage?.let { CGImageGetWidth(it).toInt() },
                                 height = cgImage?.let { CGImageGetHeight(it).toInt() },
+                                // The asset's original data, often HEIC whatever the type says.
+                                preview = draftPreviewOf(image),
                             )
                         } else {
                             null
@@ -276,6 +279,7 @@ private class CameraDelegate(
             val cgImage = image.CGImage
             val width = cgImage?.let { CGImageGetWidth(it).toInt() }
             val height = cgImage?.let { CGImageGetHeight(it).toInt() }
+            val preview = draftPreviewOf(image)
             val timestamp = NSDate().timeIntervalSince1970.toLong()
             dispatch_async(dispatch_get_main_queue()) {
                 onResult(
@@ -286,6 +290,7 @@ private class CameraDelegate(
                             mimeType = "image/jpeg",
                             width = width,
                             height = height,
+                            preview = preview,
                         ),
                     ),
                 )

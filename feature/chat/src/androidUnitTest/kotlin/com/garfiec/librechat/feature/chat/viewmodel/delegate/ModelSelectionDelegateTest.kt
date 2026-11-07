@@ -7,7 +7,6 @@ import com.garfiec.librechat.core.data.datastore.LastUsedSelection
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
-import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.EndpointConfig
@@ -87,7 +86,6 @@ class ModelSelectionDelegateTest {
         // invalidation collector rather than returning a no-op flow.
         every { it.revision } returns agentRevision
     }
-    private val mcpRepository = mockk<McpRepository>(relaxed = true)
     private val settingsDataStore = mockk<SettingsDataStore>(relaxed = true).also {
         // The tests set the three keys one at a time; production reads them as one snapshot.
         every { it.lastUsedSelection } returns
@@ -133,7 +131,6 @@ class ModelSelectionDelegateTest {
         handle = ModelSelectionHandle(handle),
         configRepository = configRepository,
         agentRepository = agentRepository,
-        mcpRepository = mcpRepository,
         settingsDataStore = settingsDataStore,
         permissionGate = permissionGate,
         connectivityObserver = connectivityObserver,

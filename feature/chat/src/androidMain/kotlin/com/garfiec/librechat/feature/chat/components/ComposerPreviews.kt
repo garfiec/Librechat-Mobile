@@ -65,7 +65,7 @@ private fun ComposerCompareEmptyMaterialPreview() = ComposerSurface(UiStyle.MATE
 
 @PreviewNarrowScreens
 @Composable
-private fun ComposerContextPillPreview() = ComposerSurface(UiStyle.MATERIAL) { ContextPillComposerHost() }
+private fun ComposerContextRingPreview() = ComposerSurface(UiStyle.MATERIAL) { ContextRingComposerHost() }
 
 @PreviewNarrowScreens
 @Composable
@@ -129,7 +129,7 @@ private fun QueueHeldComposerHost() {
         onStop = {},
         onOpenTools = {},
         queueHeldForRefusal = true,
-        queuedMessages = listOf(queuedRefused),
+        chrome = ComposerChrome(queuedMessages = listOf(queuedRefused)),
     )
 }
 
@@ -168,9 +168,9 @@ private fun CompareComposerHost(draft: String = "Which of these sorting algorith
     )
 }
 
-/** The gauge placed above the composer, with a compact suggestion due. */
+/** The context ring at the end of the settings line (the above-the-field placement), with a compact suggestion due. */
 @Composable
-private fun ContextPillComposerHost() {
+private fun ContextRingComposerHost() {
     ChatInput(
         inputText = "",
         isStreaming = false,
@@ -178,10 +178,12 @@ private fun ContextPillComposerHost() {
         onSend = {},
         onStop = {},
         onOpenTools = {},
-        contextGauge = gaugeWithNudge,
-        contextUsageEnabled = true,
-        onCompact = {},
-        contextBarPlacement = ContextBarPlacement.ABOVE_INPUT,
+        chrome = ComposerChrome(
+            contextGauge = gaugeWithNudge,
+            contextUsageEnabled = true,
+            onCompact = {},
+            contextBarPlacement = ContextBarPlacement.ABOVE_INPUT,
+        ),
     )
 }
 
@@ -203,7 +205,7 @@ private fun ToolsSheetHost() {
         onOpenModelSelector = {},
         selectedModelDisplay = "gpt-5.1",
         onDismiss = {},
-        skillsEnabled = true,
+        openTools = setOf(ToolConstants.WEB_SEARCH, ToolConstants.CODE_INTERPRETER, ToolConstants.FILE_SEARCH, ToolConstants.SKILLS),
         contextGauge = gaugeWithNudge,
         contextUsageEnabled = true,
         onCompact = {},

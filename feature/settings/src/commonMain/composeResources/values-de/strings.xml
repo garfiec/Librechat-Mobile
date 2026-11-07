@@ -339,7 +339,7 @@
     <string name="context_bar_title">Kontextauslastung</string>
     <string name="context_bar_desc">Wo die Anzeige der Kontextfenster-Auslastung erscheint</string>
     <string name="context_bar_hidden">Ausgeblendet</string>
-    <string name="context_bar_above_input">Über dem Nachrichtenfeld</string>
+    <string name="context_bar_above_input">Im Nachrichtenfeld</string>
     <string name="context_bar_options_sheet">Chat-Optionsmenü</string>
     <string name="context_bar_overflow_menu">Menü der oberen Leiste (⋮)</string>
     <string name="show_image_descriptions">Bildbeschreibungen anzeigen</string>
@@ -875,13 +875,6 @@
         <item quantity="one">%1$d Tool</item>
         <item quantity="other">%1$d Tools</item>
     </plurals>
-    <string name="mcp_status_connected">Verbunden</string>
-    <string name="mcp_status_connecting">Verbindung wird hergestellt…</string>
-    <string name="mcp_status_needs_sign_in">Anmeldung erforderlich</string>
-    <string name="mcp_status_needs_setup">Im Web einrichten</string>
-    <string name="mcp_status_on_demand">Verbindet sich beim Chatten</string>
-    <string name="mcp_status_disconnected">Nicht verbunden</string>
-    <string name="mcp_status_failed">Keine Verbindung möglich</string>
     <string name="mcp_action_sign_in">Anmelden</string>
     <string name="mcp_action_connect">Verbinden</string>
     <string name="mcp_action_reconnect">Neu verbinden</string>

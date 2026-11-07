@@ -15,6 +15,7 @@ import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.response.FileUploadConfig
 import com.garfiec.librechat.core.model.response.UploadRoute
+import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PdfPasswordPrompt
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PickedFile
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
@@ -71,6 +72,7 @@ class ChatViewModelUploadRoutingTest {
     private val platformDelegateFactory get() = fixture.platformDelegateFactory
     private val serverFileSelectionHandoff get() = fixture.serverFileSelectionHandoff
     private val fileHandler = mockk<PlatformFileHandler>(relaxed = true)
+    private val tray = MutableStateFlow<List<AttachedFile>>(emptyList())
 
     private val endpointConfigs = MutableStateFlow<Map<String, EndpointConfig>>(emptyMap())
     private val availableModels = MutableStateFlow<Map<String, List<String>>>(emptyMap())
@@ -103,7 +105,7 @@ class ChatViewModelUploadRoutingTest {
         every { platformDelegateFactory.createShareConsumer().sharesFor(any()) } returns shares
 
         every { platformDelegateFactory.createFileHandler(any()) } returns fileHandler
-        every { fileHandler.attachedFiles } returns MutableStateFlow(emptyList())
+        every { fileHandler.attachedFiles } returns tray
 
         coEvery { conversationRepository.getConversation(any(), any()) } returns Result.Error(message = "test")
     }
@@ -569,13 +571,8 @@ class ChatViewModelUploadRoutingTest {
             model = AGENT_ID,
             providerAnswer = { provider.await() },
         ) { vm ->
-            vm.retryUpload(
-                com.garfiec.librechat.feature.chat.components.AttachedFile(
-                    uri = "notes.docx",
-                    name = "notes.docx",
-                    type = DOCX,
-                ),
-            )
+            tray.value = listOf(failedDocx)
+            vm.retryUpload(failedDocx)
             runCurrent()
 
             // The delegate re-derives the route from the live selection, and a retry is what the
@@ -588,6 +585,68 @@ class ChatViewModelUploadRoutingTest {
             io.mockk.verify(exactly = 1) { fileHandler.retryUpload(any()) }
         }
     }
+
+    @Test
+    fun `a file removed while its retry waits for the provider stays removed`() {
+        val provider = CompletableDeferred<Result<String?>>()
+        routingTest(
+            endpoint = EndpointConstants.AGENTS,
+            model = AGENT_ID,
+            providerAnswer = { provider.await() },
+        ) { vm ->
+            tray.value = listOf(failedDocx)
+            vm.retryUpload(failedDocx)
+            runCurrent()
+            // The row still reads failed, so its × is live: the user takes it off the message.
+            tray.value = emptyList()
+
+            provider.complete(Result.Success("ollama"))
+            runCurrent()
+            // A retry now would append the file again, and the × row's Undo would put back a second copy.
+            verify(exactly = 0) { fileHandler.retryUpload(any()) }
+        }
+    }
+
+    @Test
+    fun `a second tap on a failed row while its retry waits retries once`() {
+        val provider = CompletableDeferred<Result<String?>>()
+        routingTest(
+            endpoint = EndpointConstants.AGENTS,
+            model = AGENT_ID,
+            providerAnswer = { provider.await() },
+        ) { vm ->
+            tray.value = listOf(failedDocx)
+            vm.retryUpload(failedDocx)
+            vm.retryUpload(failedDocx)
+            runCurrent()
+
+            provider.complete(Result.Success("ollama"))
+            runCurrent()
+            verify(exactly = 1) { fileHandler.retryUpload(any()) }
+        }
+    }
+
+    @Test
+    fun `a retry for a file no longer in the tray does nothing`() =
+        routingTest(endpoint = "anthropic") { vm ->
+            // Taken off the message while its row was still on screen: a retry now would upload it again.
+            tray.value = emptyList()
+            vm.retryUpload(failedDocx)
+            runCurrent()
+            verify(exactly = 0) { fileHandler.retryUpload(any()) }
+        }
+
+    @Test
+    fun `a retry for a row that is not failed does nothing`() =
+        routingTest(endpoint = "anthropic") { vm ->
+            val uploaded = failedDocx.copy(uploadFailed = false, uploadProgress = 1f, fileId = "f1")
+            tray.value = listOf(uploaded)
+            vm.retryUpload(uploaded)
+            runCurrent()
+            verify(exactly = 0) { fileHandler.retryUpload(any()) }
+        }
+
+    private val failedDocx = AttachedFile(uri = "notes.docx", name = "notes.docx", type = DOCX, uploadFailed = true)
 
     @Test
     fun `a code-environment pick goes as picked and turns the code interpreter on`() {

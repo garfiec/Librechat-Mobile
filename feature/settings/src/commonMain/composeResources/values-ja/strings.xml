@@ -333,7 +333,7 @@
     <string name="context_bar_title">コンテキスト使用量</string>
     <string name="context_bar_desc">コンテキストウィンドウ使用量ゲージの表示場所</string>
     <string name="context_bar_hidden">非表示</string>
-    <string name="context_bar_above_input">メッセージ入力欄の上</string>
+    <string name="context_bar_above_input">メッセージ入力欄内</string>
     <string name="context_bar_options_sheet">チャットオプションメニュー</string>
     <string name="context_bar_overflow_menu">トップバーのメニュー (⋮)</string>
     <string name="show_image_descriptions">画像の説明を表示</string>
@@ -859,13 +859,6 @@
     <plurals name="mcp_tool_count">
         <item quantity="other">ツール %1$d 個</item>
     </plurals>
-    <string name="mcp_status_connected">接続済み</string>
-    <string name="mcp_status_connecting">接続中…</string>
-    <string name="mcp_status_needs_sign_in">サインインが必要</string>
-    <string name="mcp_status_needs_setup">Webで設定してください</string>
-    <string name="mcp_status_on_demand">チャット時に接続</string>
-    <string name="mcp_status_disconnected">未接続</string>
-    <string name="mcp_status_failed">接続できません</string>
     <string name="mcp_action_sign_in">サインイン</string>
     <string name="mcp_action_connect">接続</string>
     <string name="mcp_action_reconnect">再接続</string>

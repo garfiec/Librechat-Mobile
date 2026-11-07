@@ -26,6 +26,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.EditNote
@@ -34,7 +35,6 @@ import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SmartToy
@@ -137,7 +137,7 @@ internal val WorkspaceDestination.icon: ImageVector
         WorkspaceDestination.PROMPTS -> Icons.Default.EditNote
         WorkspaceDestination.MCP_SERVERS -> Icons.Default.Hub
         WorkspaceDestination.SCHEDULES -> Icons.Default.Schedule
-        WorkspaceDestination.MEMORIES -> Icons.Default.Psychology
+        WorkspaceDestination.MEMORIES -> Icons.Default.AutoStories
         WorkspaceDestination.BOOKMARKS -> Icons.Default.Bookmark
         WorkspaceDestination.FILES -> Icons.Default.Folder
         WorkspaceDestination.SHARED_LINKS -> Icons.Default.Link

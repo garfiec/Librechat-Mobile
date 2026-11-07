@@ -34,6 +34,7 @@ import com.garfiec.librechat.core.model.queuedturn.QueuedTurnStatus
 import com.garfiec.librechat.core.model.response.ChatAbortResponse
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
 import com.garfiec.librechat.core.model.response.SteerResponse
+import com.garfiec.librechat.feature.chat.util.DraftItem
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -781,6 +782,69 @@ class ChatViewModelQueuedTurnTest {
         assertThat(vm.uiState.value.messageQueue.single().clientRequestId).isEqualTo(queued.clientRequestId)
     }
 
+    /**
+     * The server holds the row's excerpts, so an edit that only swaps them withdraws the row and
+     * claims again with the ones on screen; otherwise the server would run the old ones.
+     */
+    @Test
+    fun `a quote-only edit of a server-owned row claims again with the new quotes`() = queuedTurnTest { vm ->
+        vm.addPendingQuote("old excerpt")
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+        val queued = vm.uiState.value.messageQueue.single()
+        assertThat(queued.server).isNotNull()
+        assertThat(queued.quotes).containsExactly("old excerpt")
+        coEvery { queuedTurnRepository.cancel(queued.server!!.id!!) } answers {
+            serverRows.clear()
+            QueuedTurnOutcome.Committed(
+                AgentQueuedTurnReceipt(
+                    queuedTurnId = queued.server!!.id!!,
+                    clientRequestId = queued.clientRequestId!!,
+                    text = queued.text,
+                    status = QueuedTurnStatus.CANCELLED,
+                ),
+            )
+        }
+        vm.editQueued(queued.localId)
+        runCurrent()
+        assertThat(vm.uiState.value.pendingQuotes).containsExactly("old excerpt")
+
+        vm.removeDraftItem(DraftItem.Quote(0, vm.uiState.value.pendingQuotes[0]))
+        vm.addPendingQuote("new excerpt")
+        vm.commitQueuedEdit()
+        runCurrent()
+
+        coVerify(exactly = 1) { queuedTurnRepository.cancel(any()) }
+        val requests = mutableListOf<EnqueueQueuedTurnRequest>()
+        coVerify(exactly = 2) { queuedTurnRepository.enqueue(capture(requests)) }
+        assertThat(requests[0].quotes).containsExactly("old excerpt")
+        assertThat(requests[1].text).isEqualTo(TEXT)
+        assertThat(requests[1].quotes).containsExactly("new excerpt")
+        assertThat(vm.uiState.value.isEditingQueued).isFalse()
+        assertThat(vm.uiState.value.messageQueue.single().quotes).containsExactly("new excerpt")
+    }
+
+    @Test
+    fun `an edit that keeps a server-owned row's quotes touches nothing`() = queuedTurnTest { vm ->
+        vm.addPendingQuote("kept excerpt")
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+        val queued = vm.uiState.value.messageQueue.single()
+        vm.editQueued(queued.localId)
+        runCurrent()
+
+        vm.commitQueuedEdit()
+        runCurrent()
+
+        coVerify(exactly = 0) { queuedTurnRepository.cancel(any()) }
+        coVerify(exactly = 1) { queuedTurnRepository.enqueue(any()) }
+        assertThat(vm.uiState.value.isEditingQueued).isFalse()
+        assertThat(vm.uiState.value.messageQueue.single().clientRequestId).isEqualTo(queued.clientRequestId)
+        assertThat(vm.uiState.value.messageQueue.single().quotes).containsExactly("kept excerpt")
+    }
+
     @Test
     fun `an edit emptied to nothing withdraws the row`() = queuedTurnTest { vm ->
         vm.onInputChanged(TEXT)
@@ -952,7 +1016,7 @@ class ChatViewModelQueuedTurnTest {
         assertThat(vm.uiState.value.pendingManualSkills).containsExactly("pdf-tools")
 
         vm.addPendingManualSkill("translator")
-        vm.removePendingManualSkill("pdf-tools")
+        vm.removeDraftItem(DraftItem.Skill("pdf-tools"))
         vm.commitQueuedEdit()
         runCurrent()
         coVerify(exactly = 1) { queuedTurnRepository.cancel(any()) }
@@ -1467,6 +1531,7 @@ class ChatViewModelQueuedTurnTest {
         revision = 1,
         position = 1,
         expectedPredecessorCreatedAt = request.expectedPredecessorCreatedAt,
+        quotes = request.quotes,
         manualSkills = request.manualSkills,
     )
 

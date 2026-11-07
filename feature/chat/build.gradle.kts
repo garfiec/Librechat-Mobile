@@ -4,7 +4,15 @@ plugins {
 
 android {
     namespace = "com.garfiec.librechat.feature.chat"
+    testOptions {
+        // The Robolectric Compose tests need the merged manifest (ui-test-manifest's activity) and
+        // the Compose resources on the host-JVM unit-test classpath.
+        unitTests.isIncludeAndroidResources = true
+    }
 }
+
+// One JVM runs the whole suite and MockK's inline mocks stay reachable across classes: 512 MB OOMs.
+tasks.withType<Test>().configureEach { maxHeapSize = "2g" }
 
 kotlin {
     sourceSets {
@@ -32,6 +40,10 @@ kotlin {
             // A real SseClient over a mocked transport, for tests of what the stream client and the
             // ViewModel do together — a stubbed event flow cannot show how a connection ends.
             implementation(libs.ktor.client.mock)
+            // Compose UI tests on the JVM (Robolectric), for semantics and focus that CI must run.
+            implementation(libs.robolectric)
+            implementation(libs.compose.ui.test)
+            implementation(libs.compose.ui.test.manifest)
         }
         named("androidInstrumentedTest").dependencies {
             implementation(libs.junit)

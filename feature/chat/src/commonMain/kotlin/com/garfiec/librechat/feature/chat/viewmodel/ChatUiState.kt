@@ -20,6 +20,7 @@ import com.garfiec.librechat.core.model.config.EndpointDropParams
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecSkills
 import com.garfiec.librechat.core.model.config.ModelSpecs
+import com.garfiec.librechat.core.model.config.displayLabel
 import com.garfiec.librechat.core.model.config.paramSettingsKey
 import com.garfiec.librechat.core.model.config.supportsUrlContext
 import com.garfiec.librechat.core.model.content.Compaction
@@ -53,6 +54,9 @@ import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.ParameterTarget
 import com.garfiec.librechat.feature.chat.util.PendingUsage
 import com.garfiec.librechat.feature.chat.util.PtcTrace
+import com.garfiec.librechat.feature.chat.util.SETTING_TOOL_ORDER
+import com.garfiec.librechat.feature.chat.util.SettingChipInputs
+import com.garfiec.librechat.feature.chat.util.SettingChips
 import com.garfiec.librechat.feature.chat.util.SkillPickRules
 import com.garfiec.librechat.feature.chat.util.ThinkingChip
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
@@ -102,6 +106,11 @@ data class ChatUiState(
     val selection: ModelSelectionState = ModelSelectionState(),
     val content: MessagesState = MessagesState(),
     val avatars: ReplyAvatarsState = ReplyAvatarsState(),
+    /**
+     * Mapped by the ViewModel's `uiState` combine from [settingChipInputs]. Empty on the backing
+     * state, which delegates read.
+     */
+    val settingChips: SettingChips = SettingChips.EMPTY,
     val conversation: ConversationMetaState = ConversationMetaState(),
     val error: String? = null,
     // Model comparison state
@@ -214,6 +223,7 @@ data class ChatUiState(
     val editingQueuedItem: QueuedEditSession? get() = composer.editingQueuedItem
     val isAwaitingUploadSend: Boolean get() = composer.isAwaitingUploadSend
     val pendingQuotes: List<String> get() = composer.pendingQuotes
+    val pendingDraftUndo: DraftUndo? get() = composer.pendingDraftUndo
     val pendingManualSkills: List<String> get() = composer.pendingManualSkills
     val skillsToggle: Boolean get() = selection.skillsToggle
     val skillCatalog: List<CatalogSkill>? get() = presetPrompts.skillCatalog
@@ -679,26 +689,48 @@ data class ChatUiState(
         }
 
     /**
-     * The server's [pinnedTools] mapped to mobile tool keys and filtered to those mobile
-     * recognizes AND whose own enable-gate is currently satisfied, preserving config order.
-     * Rendered as inline quick-toggle chips on the input bar. Empty for the agents endpoint
-     * (ephemeral tools are hidden there) and for any unsupported key (`artifacts`, `mcp`, …).
+     * Whether [toolKey]'s own gate is open: the role, the server's capability and the model let it
+     * run here. The same gates the "+" sheet offers its rows on, and the only ones the settings line
+     * shows a chip by, so a stored toggle the server can't run never appears there.
      */
-    val pinnedToolChips: List<String>
+    fun toolGateOpen(toolKey: String): Boolean = when (toolKey) {
+        ToolConstants.WEB_SEARCH -> webSearchAvailable
+        ToolConstants.URL_CONTEXT -> urlContextProviderGate
+        ToolConstants.FILE_SEARCH -> fileSearchEnabled
+        ToolConstants.CODE_INTERPRETER -> isCodeInterpreterAvailable && runCodeEnabled
+        ToolConstants.MEMORY -> isMemoryToolAvailable
+        ToolConstants.SKILLS -> isSkillsToolAvailable
+        else -> false
+    }
+
+    /** The tools whose gate is open ([toolGateOpen]): the "+" sheet's rows and the settings line's candidates. */
+    val openTools: Set<String> get() = SETTING_TOOL_ORDER.filterTo(mutableSetOf(), ::toolGateOpen)
+
+    /**
+     * What the composer's settings line is built from ([settingChipsOf]). Read by the ViewModel's
+     * `uiState` combine, which puts the result on [settingChips], only when one of
+     * [settingChipSlices] changed: a new read here from another slice must be added there.
+     */
+    val settingChipSlices: List<Any?>
+        get() = listOf(selection, gates, comparisonState, prefs, account, composer.pendingReasoningOverride)
+
+    /** See [settingChipSlices]. */
+    val settingChipInputs: SettingChipInputs
         get() {
-            if (!toolbarShown || pinnedTools.isEmpty()) return emptyList()
-            return pinnedTools.mapNotNull { key ->
-                when (key) {
-                    ToolConstants.WEB_SEARCH -> ToolConstants.WEB_SEARCH.takeIf { webSearchAvailable }
-                    ToolConstants.URL_CONTEXT -> ToolConstants.URL_CONTEXT.takeIf { urlContextProviderGate }
-                    ToolConstants.FILE_SEARCH -> ToolConstants.FILE_SEARCH.takeIf { fileSearchEnabled }
-                    ToolConstants.EXECUTE_CODE, ToolConstants.CODE_INTERPRETER ->
-                        ToolConstants.CODE_INTERPRETER.takeIf { isCodeInterpreterAvailable && runCodeEnabled }
-                    ToolConstants.MEMORY -> ToolConstants.MEMORY.takeIf { isMemoryToolAvailable }
-                    ToolConstants.SKILLS -> ToolConstants.SKILLS.takeIf { isSkillsToolAvailable }
-                    else -> null
-                }
-            }.distinct()
+            val shown = toolbarShown
+            return SettingChipInputs(
+                toolbarShown = shown,
+                toolsOn = if (shown) effectiveEnabledTools else emptySet(),
+                openTools = if (shown) openTools else emptySet(),
+                pinned = pinnedTools,
+                lockedTools = lockedTools,
+                mcpServers = mcpServers,
+                mcpOn = effectiveMcpServerNames,
+                lockedMcpServers = lockedMcpServers,
+                mcpAllowed = mcpServersEnabled,
+                specLabel = activeSpec?.displayLabel,
+                thinking = thinkingChip,
+            )
         }
 
     /**
@@ -1007,6 +1039,20 @@ data class ChatUiState(
             agentProvider = routingAgentProvider,
             serverVersion = gates.backendVersion,
         )
+    }
+
+    /**
+     * The route a failed upload goes again with: [stored] while it still works for the live
+     * selection (a code upload, the route the selection would pick, or either while both are open),
+     * else routed afresh, so a native PDF isn't replayed to a provider that ignores it.
+     */
+    fun retryUploadRoute(stored: UploadRoute?, mimeType: String?): UploadRoute {
+        val live = uploadRouteFor(mimeType)
+        return when {
+            stored == null -> live
+            stored == UploadRoute.CODE || stored == live || uploadRouteIsAmbiguous(mimeType) -> stored
+            else -> live
+        }
     }
 
     /**

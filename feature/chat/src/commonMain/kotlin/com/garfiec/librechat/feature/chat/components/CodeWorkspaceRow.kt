@@ -1,10 +1,7 @@
 package com.garfiec.librechat.feature.chat.components
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,18 +14,10 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DriveFileMove
-import androidx.compose.material.icons.filled.AccountTree
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Computer
-import androidx.compose.material.icons.filled.ForkRight
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material.icons.outlined.CopyAll
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.FolderOff
-import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,11 +36,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveAssistChip
 import com.garfiec.librechat.core.ui.components.AdaptiveChipDefaults
@@ -64,6 +56,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoice
 import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_code_chip
+import com.garfiec.librechat.feature.chat.resources.cd_code_workspace_folded
 import com.garfiec.librechat.feature.chat.resources.code_branch
 import com.garfiec.librechat.feature.chat.resources.code_branch_info
 import com.garfiec.librechat.feature.chat.resources.code_checkout_auto
@@ -78,8 +71,6 @@ import com.garfiec.librechat.feature.chat.resources.code_checkout_worktree_info
 import com.garfiec.librechat.feature.chat.resources.code_linked_worktrees
 import com.garfiec.librechat.feature.chat.resources.code_linked_worktrees_info
 import com.garfiec.librechat.feature.chat.resources.code_machine
-import com.garfiec.librechat.feature.chat.resources.code_machine_choose
-import com.garfiec.librechat.feature.chat.resources.code_machines_selected
 import com.garfiec.librechat.feature.chat.resources.code_workspace
 import com.garfiec.librechat.feature.chat.resources.code_workspace_agent_status
 import com.garfiec.librechat.feature.chat.resources.code_workspace_choose
@@ -90,13 +81,14 @@ import com.garfiec.librechat.feature.chat.resources.code_workspace_locked_recove
 import com.garfiec.librechat.feature.chat.resources.code_workspace_missing
 import com.garfiec.librechat.feature.chat.resources.code_workspace_refresh
 import com.garfiec.librechat.feature.chat.resources.code_workspace_required_for
+import com.garfiec.librechat.feature.chat.resources.code_workspace_saved_on_send
 import com.garfiec.librechat.feature.chat.resources.code_workspace_unavailable
 import com.garfiec.librechat.feature.chat.resources.code_workspace_unsupported
 import com.garfiec.librechat.feature.chat.resources.code_workspace_used_by
 import com.garfiec.librechat.feature.chat.resources.code_workspace_without
 import com.garfiec.librechat.feature.chat.resources.code_workspace_without_info
 import com.garfiec.librechat.feature.chat.resources.code_workspaces_selected
-import com.garfiec.librechat.feature.chat.viewmodel.CodeApprovalChip
+import com.garfiec.librechat.feature.chat.resources.draft_subtitle_join
 import com.garfiec.librechat.feature.chat.viewmodel.CodeApprovalOption
 import com.garfiec.librechat.feature.chat.viewmodel.CodeCheckoutMode
 import com.garfiec.librechat.feature.chat.viewmodel.CodeFootnote
@@ -129,125 +121,162 @@ class CodeWorkspaceComposer(
     val onSelectApprovalMode: (CodeApprovalOption) -> Unit = {},
 )
 
-/**
- * Provided by the chat screen around its composer, so both platform composers draw the row without
- * threading it through their signatures. Null draws nothing.
- */
+/** Provided around the composer so both platform composers draw the workspace chips and notice. Null draws nothing. */
 val LocalCodeWorkspaceComposer = compositionLocalOf<CodeWorkspaceComposer?> { null }
 
-/** Web's `max-w-[12rem]` on a machine, workspace or branch name. Translated labels are never capped. */
-private val CHIP_NAME_MAX_WIDTH = 192.dp
+/** The line's chip names two of them ("workspace · machine") on a line that scrolls. */
+private val LINE_NAME_MAX_WIDTH = 256.dp
+
+internal fun codeWorkspaceLineLeading(composer: CodeWorkspaceComposer?): (@Composable () -> Unit)? =
+    if (composer?.state?.onSettingsLine == true) ({ CodeWorkspaceLineChips(composer) }) else null
 
 /**
- * The attached-machine controls above the pinned tools: machine, workspace, branch and checkout
- * chips, and the lines that say what a held send is waiting on. Draws [CodeWorkspaceComposer.state]
- * and nothing more; every decision is the delegate's.
+ * The workspace chip keeps this place in every state; what needs the user is its tint and
+ * [CodeWorkspaceNotice]. Draws [CodeWorkspaceComposer.state] only; every decision is the delegate's.
  */
 @Composable
-internal fun CodeWorkspaceRow(composer: CodeWorkspaceComposer, modifier: Modifier = Modifier) {
+private fun CodeWorkspaceLineChips(composer: CodeWorkspaceComposer) {
+    val state = composer.state
+    if (state.shown) LineWorkspaceChip(state, composer)
+    state.approval?.let { ApprovalChip(it, composer.onSelectApprovalMode) }
+}
+
+@Composable
+private fun LineWorkspaceChip(state: CodeWorkspaceUiState, composer: CodeWorkspaceComposer) {
+    val chip = state.workspace
+    val transition = state.transition?.takeIf { it.renamesChip }
+    val workspace = when {
+        transition != null -> transitionLabel(transition)
+        else -> when (chip.label) {
+            CodeWorkspaceChipLabel.NAME -> chip.name.orEmpty()
+            CodeWorkspaceChipLabel.COUNT -> pluralStringResource(Res.plurals.code_workspaces_selected, chip.count, chip.count)
+            CodeWorkspaceChipLabel.CHOOSE -> stringResource(Res.string.code_workspace_choose)
+            CodeWorkspaceChipLabel.NONE -> stringResource(Res.string.code_workspace_without)
+            CodeWorkspaceChipLabel.LOADING -> stringResource(Res.string.code_workspace_loading)
+            CodeWorkspaceChipLabel.MISSING -> stringResource(Res.string.code_workspace_missing)
+            CodeWorkspaceChipLabel.UNAVAILABLE -> stringResource(Res.string.code_workspace_unavailable)
+            CodeWorkspaceChipLabel.UNSUPPORTED -> stringResource(Res.string.code_workspace_unsupported)
+            CodeWorkspaceChipLabel.GENERIC -> stringResource(Res.string.code_workspace)
+        }
+    }
+    val machine = if (transition == null) state.lineMachineName() else null
+    val description = if (machine != null) {
+        stringResource(Res.string.cd_code_workspace_folded, workspace, machine)
+    } else {
+        stringResource(Res.string.cd_code_chip, stringResource(Res.string.code_workspace), workspace)
+    }
+    val icon = when {
+        transition != null -> Icons.AutoMirrored.Filled.DriveFileMove
+        chip.label == CodeWorkspaceChipLabel.NONE || chip.label == CodeWorkspaceChipLabel.MISSING ||
+            chip.label == CodeWorkspaceChipLabel.UNAVAILABLE || chip.label == CodeWorkspaceChipLabel.CHOOSE ->
+            Icons.Outlined.FolderOff
+        else -> Icons.Outlined.Folder
+    }
+    val tint = when {
+        state.attention -> MaterialTheme.colorScheme.error
+        // Not saved yet: the next message seals it, as its sheet says.
+        chip.label == CodeWorkspaceChipLabel.CHOOSE || !state.locked -> MaterialTheme.colorScheme.primary
+        else -> null
+    }
+    var detailsOpen by remember { mutableStateOf(false) }
+    val details = sealedDetails(state)
+    val tap: (() -> Unit)? = when {
+        chip.opensSheet -> ({ composer.onOpenSheet(null) })
+        details.isNotEmpty() || chip.refreshes -> ({ detailsOpen = true })
+        else -> null
+    }
+    Box {
+        CodeChip(
+            icon = icon,
+            // The workspace first, so a label cut short loses the machine, not what the chat works in.
+            label = listOfNotNull(workspace, machine).joinToString(" · "),
+            description = description,
+            isName = chip.label == CodeWorkspaceChipLabel.NAME && transition == null,
+            tint = tint,
+            onClick = tap,
+        )
+        AdaptiveDropdownMenu(expanded = detailsOpen, onDismissRequest = { detailsOpen = false }) {
+            details.forEach { (title, body) ->
+                Column(modifier = Modifier.widthIn(max = 280.dp).padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    Text(title, style = MaterialTheme.typography.labelLarge)
+                    if (body != null) {
+                        Text(body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+            if (chip.refreshes) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.code_workspace_refresh)) },
+                    leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+                    onClick = {
+                        detailsOpen = false
+                        composer.onRefresh()
+                    },
+                )
+            }
+        }
+        // A window of its own, in the chip's box so the line's spacing doesn't count it.
+        CodeWorkspaceSheetHost(composer)
+    }
+}
+
+@Composable
+private fun sealedDetails(state: CodeWorkspaceUiState): List<Pair<String, String?>> = buildList {
+    state.branch?.let {
+        val title = stringResource(Res.string.draft_subtitle_join, stringResource(Res.string.code_branch), it)
+        add(title to stringResource(Res.string.code_branch_info))
+    }
+    state.checkout?.let { checkout ->
+        val (label, info) = when (checkout.mode) {
+            CodeCheckoutMode.AUTO -> Res.string.code_checkout_auto_chip to Res.string.code_checkout_auto_info
+            CodeCheckoutMode.WORKTREE -> Res.string.code_checkout_worktree to Res.string.code_checkout_worktree_info
+            CodeCheckoutMode.REGISTERED -> Res.string.code_checkout_registered_chip to Res.string.code_checkout_registered_info
+        }
+        add(
+            stringResource(Res.string.draft_subtitle_join, stringResource(Res.string.code_checkout_mode), stringResource(label)) to
+                stringResource(info),
+        )
+    }
+    if (state.linkedWorktrees) {
+        add(stringResource(Res.string.code_linked_worktrees) to stringResource(Res.string.code_linked_worktrees_info))
+    }
+    if (state.footnote == CodeFootnote.WITHOUT_WORKSPACE) {
+        add(stringResource(Res.string.code_workspace_without) to stringResource(Res.string.code_workspace_without_info))
+    }
+}
+
+@Composable
+private fun CodeWorkspaceSheetHost(composer: CodeWorkspaceComposer) {
+    val state = composer.state
+    if (!state.sheetOpen) return
+    val transition = state.transition
+    if (transition != null) TransitionSheet(transition, composer) else CodeWorkspaceSheet(composer)
+}
+
+@Composable
+internal fun CodeWorkspaceNotice(composer: CodeWorkspaceComposer) {
     val state = composer.state
     val confirming = state.confirming
-    when {
-        // A healthy saved chat hides its workspace chips; the approval mode still applies to it.
-        !state.visible -> ApprovalOnlyRow(state.approval, composer.onSelectApprovalMode, modifier)
-        confirming != null -> ConfirmingRow(confirming, composer.onRetryReconcile, modifier = modifier)
-        else -> WorkspaceRowContent(composer, modifier)
+    if (confirming != null) {
+        ConfirmingRow(confirming, composer.onRetryReconcile, modifier = Modifier.padding(horizontal = 12.dp))
+        return
     }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ApprovalOnlyRow(approval: CodeApprovalChip?, onSelect: (CodeApprovalOption) -> Unit, modifier: Modifier = Modifier) {
-    if (approval == null) return
-    FlowRow(modifier = modifier.fillMaxWidth()) { ApprovalChip(approval, onSelect) }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun WorkspaceRowContent(composer: CodeWorkspaceComposer, modifier: Modifier = Modifier) {
-    val state = composer.state
-    Column(modifier = modifier.fillMaxWidth()) {
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            state.machine?.let { machine -> MachineChip(machine.name, machine.count, machine.choices, composer) }
-            WorkspaceChip(state, composer)
-            state.branch?.let { branch ->
-                InfoChip(
-                    icon = Icons.Default.AccountTree,
-                    label = branch,
-                    description = stringResource(Res.string.cd_code_chip, stringResource(Res.string.code_branch), branch),
-                    info = stringResource(Res.string.code_branch_info),
-                    isName = true,
-                )
-            }
-            state.checkout?.let { checkout ->
-                val label = stringResource(
-                    when (checkout.mode) {
-                        CodeCheckoutMode.AUTO -> Res.string.code_checkout_auto_chip
-                        CodeCheckoutMode.WORKTREE -> Res.string.code_checkout_worktree
-                        CodeCheckoutMode.REGISTERED -> Res.string.code_checkout_registered_chip
-                    },
-                )
-                val description =
-                    stringResource(Res.string.cd_code_chip, stringResource(Res.string.code_checkout_mode), label)
-                CodeChip(
-                    icon = checkoutIcon(checkout.mode),
-                    label = label,
-                    description = description,
-                    caret = checkout.pickable,
-                    onClick = if (checkout.pickable) ({ composer.onOpenSheet(null) }) else null,
-                )
-            }
-            state.approval?.let { ApprovalChip(it, composer.onSelectApprovalMode) }
-            if (state.linkedWorktrees) {
-                val label = stringResource(Res.string.code_linked_worktrees)
-                InfoChip(
-                    icon = Icons.Default.ForkRight,
-                    label = label,
-                    description = label,
-                    info = stringResource(Res.string.code_linked_worktrees_info),
-                    isName = false,
-                )
-            }
-        }
-        val lines = buildList {
-            if (state.graphRequirement) add(stringResource(Res.string.code_workspace_graph_requirement))
-            state.requirements.forEach { add(requirementText(it)) }
-            if (state.selectionConflict) add(stringResource(Res.string.code_workspace_graph_selection_conflict))
-            state.checkoutSummaries.forEach { summary ->
-                val mode = stringResource(
-                    if (summary.mode == CodeCheckoutMode.WORKTREE) {
-                        Res.string.code_checkout_worktree
-                    } else {
-                        Res.string.code_checkout_registered_chip
-                    },
-                )
-                add(listOf(summary.machine, summary.workspace, mode).joinToString(" · "))
-            }
-            when (state.footnote) {
-                CodeFootnote.LOCKED_RECOVERY -> add(stringResource(Res.string.code_workspace_locked_recovery))
-                CodeFootnote.WITHOUT_WORKSPACE -> add(stringResource(Res.string.code_workspace_without_info))
-                null -> Unit
-            }
-        }
-        if (lines.isNotEmpty()) {
-            Text(
-                text = lines.joinToString("\n"),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .padding(top = 4.dp, start = 4.dp)
-                    .semantics { liveRegion = LiveRegionMode.Polite },
-            )
-        }
-        // The sheet is a window of its own; placed here so the row stays one emitter.
-        if (state.sheetOpen) {
-            val transition = state.transition
-            if (transition != null) TransitionSheet(transition, composer) else CodeWorkspaceSheet(composer)
-        }
+    val lines = buildList {
+        if (state.graphRequirement) add(stringResource(Res.string.code_workspace_graph_requirement))
+        state.requirements.forEach { add(requirementText(it)) }
+        if (state.selectionConflict) add(stringResource(Res.string.code_workspace_graph_selection_conflict))
+        if (state.footnote == CodeFootnote.LOCKED_RECOVERY) add(stringResource(Res.string.code_workspace_locked_recovery))
     }
+    if (lines.isEmpty()) return
+    Text(
+        text = lines.joinToString("\n"),
+        style = MaterialTheme.typography.bodySmall,
+        color = if (state.attention) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .semantics { liveRegion = LiveRegionMode.Polite },
+    )
 }
 
 @Composable
@@ -266,169 +295,58 @@ private fun requirementText(requirement: CodeRequirement): String =
         stringResource(Res.string.code_workspace_agent_status, requirement.agents, requirement.machine, status)
     }
 
-@Composable
-private fun MachineChip(
-    name: String?,
-    count: Int,
-    choices: List<com.garfiec.librechat.feature.chat.viewmodel.CodeMachineChoice>,
-    composer: CodeWorkspaceComposer,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val label = when {
-        name != null -> name
-        count > 1 -> pluralStringResource(Res.plurals.code_machines_selected, count, count)
-        else -> stringResource(Res.string.code_machine_choose)
-    }
-    val description = stringResource(Res.string.cd_code_chip, stringResource(Res.string.code_machine), label)
-    Box {
-        CodeChip(
-            icon = Icons.Default.Computer,
-            label = label,
-            description = description,
-            caret = choices.isNotEmpty(),
-            isName = name != null,
-            onClick = if (choices.isNotEmpty()) ({ expanded = true }) else null,
-        )
-        AdaptiveDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            Text(
-                text = stringResource(Res.string.code_machine),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
-            choices.forEach { choice ->
-                DropdownMenuItem(
-                    text = { Text(choice.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                    leadingIcon = { Icon(Icons.Default.Computer, contentDescription = null) },
-                    trailingIcon = if (choice.selected) {
-                        { Icon(Icons.Default.Check, contentDescription = null) }
-                    } else {
-                        null
-                    },
-                    onClick = {
-                        expanded = false
-                        composer.onOpenSheet(choice.id)
-                    },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun WorkspaceChip(state: CodeWorkspaceUiState, composer: CodeWorkspaceComposer) {
-    val chip = state.workspace
-    val transition = state.transition?.takeIf { it.renamesChip }
-    val label = when {
-        transition != null -> transitionLabel(transition)
-        else -> when (chip.label) {
-            CodeWorkspaceChipLabel.NAME -> chip.name.orEmpty()
-            CodeWorkspaceChipLabel.COUNT -> pluralStringResource(Res.plurals.code_workspaces_selected, chip.count, chip.count)
-            CodeWorkspaceChipLabel.CHOOSE -> stringResource(Res.string.code_workspace_choose)
-            CodeWorkspaceChipLabel.NONE -> stringResource(Res.string.code_workspace_without)
-            CodeWorkspaceChipLabel.LOADING -> stringResource(Res.string.code_workspace_loading)
-            CodeWorkspaceChipLabel.MISSING -> stringResource(Res.string.code_workspace_missing)
-            CodeWorkspaceChipLabel.UNAVAILABLE -> stringResource(Res.string.code_workspace_unavailable)
-            CodeWorkspaceChipLabel.UNSUPPORTED -> stringResource(Res.string.code_workspace_unsupported)
-            CodeWorkspaceChipLabel.GENERIC -> stringResource(Res.string.code_workspace)
-        }
-    }
-    val icon = when {
-        transition != null -> Icons.AutoMirrored.Filled.DriveFileMove
-        chip.label == CodeWorkspaceChipLabel.NONE || chip.label == CodeWorkspaceChipLabel.MISSING ||
-            chip.label == CodeWorkspaceChipLabel.UNAVAILABLE || chip.label == CodeWorkspaceChipLabel.CHOOSE ->
-            Icons.Outlined.FolderOff
-        else -> Icons.Outlined.Folder
-    }
-    val description = stringResource(Res.string.cd_code_chip, stringResource(Res.string.code_workspace), label)
-    val tint = when {
-        state.attention -> MaterialTheme.colorScheme.error
-        chip.label == CodeWorkspaceChipLabel.CHOOSE -> MaterialTheme.colorScheme.primary
-        else -> null
-    }
-    CodeChip(
-        icon = icon,
-        label = label,
-        description = description,
-        caret = chip.opensSheet,
-        isName = chip.label == CodeWorkspaceChipLabel.NAME,
-        // A locked chat cannot change its decision here: a tap re-reads the machine's status.
-        trailing = if (chip.opensSheet) null else Icons.Default.Refresh,
-        tint = tint,
-        onClick = { if (chip.opensSheet) composer.onOpenSheet(null) else composer.onRefresh() },
-    )
-}
-
-/** A read-only chip whose tap explains it, as web's tooltip does on hover. */
-@Composable
-private fun InfoChip(icon: ImageVector, label: String, description: String, info: String, isName: Boolean) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        CodeChip(
-            icon = icon,
-            label = label,
-            description = description,
-            caret = false,
-            isName = isName,
-            onClick = { expanded = true },
-        )
-        AdaptiveDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            Text(
-                text = info,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier
-                    .widthIn(max = 280.dp)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-            )
-        }
-    }
-}
-
+/** A code chip on the settings line, filled like the line's "on" chips, with no border. */
 @Composable
 internal fun CodeChip(
     icon: ImageVector,
     label: String,
     description: String,
-    caret: Boolean,
     onClick: (() -> Unit)?,
-    /** A user-chosen name, capped in width. A translated label keeps its full length; the row wraps. */
+    /** A user-chosen name, capped in width. A translated label keeps its full length. */
     isName: Boolean = false,
-    trailing: ImageVector? = null,
+    nameMaxWidth: Dp = LINE_NAME_MAX_WIDTH,
     tint: androidx.compose.ui.graphics.Color? = null,
+    /** Draws [icon] alone; [description] still names the label. */
+    iconOnly: Boolean = false,
 ) {
+    val overlay = AdaptiveChipDefaults.overlayTonalChipColors(tint)
+    val iconContent: @Composable () -> Unit = {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize))
+    }
     AdaptiveAssistChip(
         onClick = onClick ?: {},
-        label = {
-            Text(
-                text = label,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = if (isName) Modifier.widthIn(max = CHIP_NAME_MAX_WIDTH) else Modifier,
-            )
-        },
-        modifier = Modifier.semantics {
-            contentDescription = description
-            role = Role.Button
-        },
-        // The composer overlays the list, so the chip needs a container; the tint shows in both styles.
-        colors = AdaptiveChipDefaults.overlayAssistChipColors(tint),
-        leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize)) },
-        trailingIcon = when {
-            trailing != null -> {
-                { Icon(trailing, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize)) }
+        // With nothing to pick, the chip is a label: no ripple, and announced as text rather than a
+        // button a double-tap does nothing with. Drawn in its enabled colours.
+        enabled = onClick != null,
+        // Icon-only, the icon is the label, so M3's label padding centres it.
+        label = if (iconOnly) {
+            iconContent
+        } else {
+            {
+                Text(
+                    text = label,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = if (isName) Modifier.widthIn(max = nameMaxWidth) else Modifier,
+                )
             }
-            caret -> {
-                { Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize)) }
-            }
-            else -> null
         },
+        modifier = if (onClick != null) {
+            Modifier.semantics {
+                contentDescription = description
+                role = Role.Button
+            }
+        } else {
+            Modifier.clearAndSetSemantics { contentDescription = description }
+        },
+        colors = overlay.copy(
+            disabledLabelColor = overlay.labelColor,
+            disabledLeadingIconContentColor = overlay.leadingIconContentColor,
+            disabledTrailingIconContentColor = overlay.trailingIconContentColor,
+        ),
+        border = null,
+        leadingIcon = if (iconOnly) null else iconContent,
     )
-}
-
-private fun checkoutIcon(mode: CodeCheckoutMode): ImageVector = when (mode) {
-    CodeCheckoutMode.AUTO -> Icons.Default.AutoAwesome
-    CodeCheckoutMode.WORKTREE -> Icons.Outlined.CopyAll
-    CodeCheckoutMode.REGISTERED -> Icons.Outlined.Inventory2
 }
 
 /** The workspace picker: one section per machine, radio rows, then "No workspace" and Refresh. */
@@ -448,6 +366,39 @@ private fun CodeWorkspaceSheet(composer: CodeWorkspaceComposer) {
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
             )
+            val state = composer.state
+            if (!state.locked) {
+                Text(
+                    text = stringResource(Res.string.code_workspace_saved_on_send),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 8.dp),
+                )
+            }
+            val machineChoices = state.machine?.choices.orEmpty()
+            if (machineChoices.isNotEmpty()) {
+                AdaptiveSectionHeader(stringResource(Res.string.code_machine), horizontalInset = 24.dp)
+                machineChoices.forEach { choice ->
+                    RadioRow(
+                        title = choice.name,
+                        subtitle = null,
+                        selected = choice.selected,
+                        onClick = { composer.onOpenSheet(choice.id) },
+                    )
+                }
+                AdaptiveDivider(modifier = Modifier.padding(vertical = 8.dp))
+            }
+            state.checkoutSummaries.forEach { summary ->
+                val mode = stringResource(
+                    if (summary.mode == CodeCheckoutMode.WORKTREE) {
+                        Res.string.code_checkout_worktree
+                    } else {
+                        Res.string.code_checkout_registered_chip
+                    },
+                )
+                SheetNote(listOf(summary.machine, summary.workspace, mode).joinToString(" · "))
+            }
+            if (state.linkedWorktrees) SheetNote(stringResource(Res.string.code_linked_worktrees_info))
             sheet.sections.forEach { section ->
                 MachineSection(section, onSelect = composer.onSelectWorkspace, onSetCheckout = composer.onSetCheckout)
             }
@@ -470,6 +421,16 @@ private fun CodeWorkspaceSheet(composer: CodeWorkspaceComposer) {
             }
         }
     }
+}
+
+@Composable
+private fun SheetNote(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
+    )
 }
 
 @Composable

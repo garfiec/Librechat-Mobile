@@ -14,6 +14,7 @@ import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
+import com.garfiec.librechat.feature.chat.util.draftItemsOf
 
 // The chat side of skills: the combined `/` + `$` picker with its typed rows, the picked-skill
 // chips above the composer, the pills on a sent user message, and the skill call card's states.
@@ -93,7 +94,7 @@ private val previewSkills = listOf(
     ),
 )
 
-/** The composer with the picker open on [text] (or closed, showing the picked-skill chips). */
+/** The composer with the picker open on [text] (or closed, the picked skills in the attachment strip). */
 @Composable
 internal fun PickerHost(
     text: String,
@@ -109,7 +110,7 @@ internal fun PickerHost(
         onSend = {},
         onStop = {},
         onOpenTools = {},
-        pendingManualSkills = chips,
+        chrome = ComposerChrome(draftItems = draftItemsOf(emptyList(), chips, emptyList(), serverUrl = "")),
         promptSuggestions = previewPrompts,
         skillSuggestions = skills,
         isLoadingSkills = loading,

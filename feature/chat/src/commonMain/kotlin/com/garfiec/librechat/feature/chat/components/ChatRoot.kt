@@ -196,9 +196,11 @@ fun ChatRoot(
                 defaultContentDescription = stringResource(Res.string.cd_image),
                 actions = { item ->
                     val source = item.attachment
-                    if (source != null) {
+                    when {
+                        // A picked, unsent image: the user's own, still on the device.
+                        item.model != null -> Unit
                         // A generated file: its original bytes, downloaded, never the decoded image.
-                        MediaActionBar(
+                        source != null -> MediaActionBar(
                             item = item,
                             onSave = { fileActions.run(source, FileAction.SAVE) },
                             onShare = { fileActions.run(source, FileAction.SHARE) },
@@ -208,8 +210,7 @@ fun ChatRoot(
                             openInContentDescription = openInDescription,
                             busy = fileActions.busyAction(source),
                         )
-                    } else {
-                        MediaActionBar(
+                        else -> MediaActionBar(
                             item = item,
                             onSave = saveImage,
                             onShare = shareImage,

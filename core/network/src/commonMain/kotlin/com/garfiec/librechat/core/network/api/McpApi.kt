@@ -106,6 +106,17 @@ class McpApi constructor(
         return CookieHelper.setCookieValues(response.headers, MCP_OAUTH_BINDING_COOKIES)
     }
 
+    /**
+     * POST /api/mcp/oauth/cancel/:serverName — fails this user's pending `mcp_oauth` flow for
+     * [serverName], so the status route stops reading it as connecting (web's
+     * `useCancelMCPOAuthMutation`). Answers success when there is no flow to cancel too.
+     */
+    suspend fun cancelOAuth(serverName: String) {
+        client.post {
+            url { appendPathSegments("api", "mcp", "oauth", "cancel", serverName) }
+        }
+    }
+
     suspend fun getConnectionStatus(): Map<String, McpServerStatus> {
         val response: McpConnectionStatusResponse = client.get {
             url { path("api/mcp/connection/status") }

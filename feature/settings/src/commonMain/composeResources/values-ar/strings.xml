@@ -363,7 +363,7 @@
     <string name="context_bar_title">استخدام السياق</string>
     <string name="context_bar_desc">مكان عرض مؤشر استخدام نافذة السياق</string>
     <string name="context_bar_hidden">مخفي</string>
-    <string name="context_bar_above_input">فوق مربع الرسالة</string>
+    <string name="context_bar_above_input">داخل مربع الرسالة</string>
     <string name="context_bar_options_sheet">قائمة خيارات المحادثة</string>
     <string name="context_bar_overflow_menu">قائمة الشريط العلوي (⋮)</string>
     <string name="show_image_descriptions">إظهار أوصاف الصور</string>
@@ -939,13 +939,6 @@
         <item quantity="many">%1$d أداة</item>
         <item quantity="other">%1$d أداة</item>
     </plurals>
-    <string name="mcp_status_connected">متصل</string>
-    <string name="mcp_status_connecting">جارٍ الاتصال…</string>
-    <string name="mcp_status_needs_sign_in">يلزم تسجيل الدخول</string>
-    <string name="mcp_status_needs_setup">أكمل الإعداد على الويب</string>
-    <string name="mcp_status_on_demand">يتصل عند الدردشة</string>
-    <string name="mcp_status_disconnected">غير متصل</string>
-    <string name="mcp_status_failed">تعذّر الاتصال</string>
     <string name="mcp_action_sign_in">تسجيل الدخول</string>
     <string name="mcp_action_connect">اتصال</string>
     <string name="mcp_action_reconnect">إعادة الاتصال</string>

@@ -9,7 +9,6 @@ import com.garfiec.librechat.core.data.datastore.LastUsedSelection
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.AgentRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
-import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.Diag
 import com.garfiec.librechat.core.model.Agent
@@ -18,11 +17,9 @@ import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.ReasoningOverrideKeys
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
-import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.ui.components.ModelParameters
-import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.util.DroppedSpecMemo
 import com.garfiec.librechat.feature.chat.util.SpecSeed
 import com.garfiec.librechat.feature.chat.util.StartChatPick
@@ -71,7 +68,6 @@ class ModelSelectionDelegate(
     private val handle: ModelSelectionHandle,
     private val configRepository: ConfigRepository,
     private val agentRepository: AgentRepository,
-    private val mcpRepository: McpRepository,
     private val settingsDataStore: SettingsDataStore,
     private val permissionGate: PermissionGate,
     private val connectivityObserver: ConnectivityObserver,
@@ -1164,30 +1160,6 @@ class ModelSelectionDelegate(
         }
     }
 
-    fun loadMcpServers() {
-        handle.scope.launch {
-            when (val serversResult = mcpRepository.listServers()) {
-                is Result.Success -> {
-                    val servers = serversResult.data
-                    // Enrich servers with connection status
-                    val statusResult = mcpRepository.getConnectionStatus()
-                    val statusMap = (statusResult as? Result.Success)?.data ?: emptyMap()
-                    val enriched = servers.map { server ->
-                        val status = statusMap[server.name]
-                        server.copy(isConnected = status?.isConnected ?: false)
-                    }
-                    handle.update {
-                        selection = selection.copy(mcpServers = enriched.map { it.toDisplayData() })
-                    }
-                }
-                is Result.Error -> {
-                    Logger.d(serversResult.exception) { "Failed to load MCP servers: ${serversResult.message}" }
-                }
-                is Result.Loading -> { /* no-op */ }
-            }
-        }
-    }
-
     /**
      * Switches an MCP server for this chat. Under a spec only the chat's additions change, and
      * nothing is stored ([ModelSelectionState.toggledSpecMcpServer]); otherwise the user's own
@@ -1268,15 +1240,6 @@ internal fun filterModelsByEndpoint(
             models.isNotEmpty() &&
             (endpointConfigs.isEmpty() || endpoint in endpointConfigs)
     }.mapValues { (_, models) -> models.distinct() }
-
-// --- Display data mapping extensions ---
-
-internal fun McpServer.toDisplayData() = McpServerDisplayData(
-    name = name,
-    title = title,
-    description = description,
-    isConnected = isConnected,
-)
 
 /** The agent's saved reasoning values, by key, as strings: what the Thinking chip shows as its setting. */
 private fun reasoningParameters(modelParameters: JsonElement?): Map<String, String> {

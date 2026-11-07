@@ -10,19 +10,16 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.Compress
 import androidx.compose.material.icons.outlined.DataUsage
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -48,74 +45,14 @@ import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.compact_confirm_action
 import com.garfiec.librechat.feature.chat.resources.compact_confirm_body
 import com.garfiec.librechat.feature.chat.resources.compact_confirm_not_now
+import com.garfiec.librechat.feature.chat.resources.compact_confirm_see_usage
 import com.garfiec.librechat.feature.chat.resources.compact_confirm_title
-import com.garfiec.librechat.feature.chat.resources.compact_nudge_action
 import com.garfiec.librechat.feature.chat.resources.compact_nudge_short
+import com.garfiec.librechat.feature.chat.resources.context_percent
+import com.garfiec.librechat.feature.chat.resources.context_percent_estimate
 import com.garfiec.librechat.feature.chat.resources.context_usage_label
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import org.jetbrains.compose.resources.stringResource
-
-/**
- * Compact context-window usage gauge (v0.8.7). A slim pill with a thin progress bar and a
- * "used / window" percentage; tapping opens a breakdown sheet. The caller gates visibility on
- * `contextUsageEnabled` and a non-null snapshot.
- *
- * When compacting is suggested the pill turns tonal and gains a separate compact control, which
- * opens a confirmation rather than compacting, so a stray tap near the composer does nothing.
- */
-@Composable
-fun ContextUsageGauge(
-    details: ContextGaugeDetails,
-    modifier: Modifier = Modifier,
-    onCompact: (() -> Unit)? = null,
-    onSnoozeCompact: () -> Unit = {},
-) {
-    var showSheet by remember { mutableStateOf(false) }
-    var confirmCompact by remember { mutableStateOf(false) }
-    val usage = details.usage
-    val nudge = details.nudge.takeIf { onCompact != null }
-
-    Surface(
-        onClick = { showSheet = true },
-        shape = RoundedCornerShape(8.dp),
-        color = if (nudge != null) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = modifier,
-    ) {
-        ContextGaugePill(
-            percent = percentOf(usage.usedTokens, usage.windowTokens),
-            usedFraction = usage.usedFraction,
-            isEstimate = details.isEstimate,
-        ) {
-            if (nudge != null) {
-                IconButton(onClick = { confirmCompact = true }, modifier = Modifier.size(32.dp)) {
-                    Icon(
-                        imageVector = Icons.Outlined.Compress,
-                        contentDescription = stringResource(Res.string.compact_nudge_action),
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-            }
-        }
-    }
-
-    if (showSheet) {
-        ContextUsageSheet(details = details, onDismiss = { showSheet = false }, onCompact = onCompact)
-    }
-    if (confirmCompact && nudge != null && onCompact != null) {
-        CompactConfirmDialog(
-            percent = nudge.percent,
-            onDismiss = { confirmCompact = false },
-            onNotNow = {
-                confirmCompact = false
-                onSnoozeCompact()
-            },
-            onCompact = {
-                confirmCompact = false
-                onCompact()
-            },
-        )
-    }
-}
 
 /**
  * Context-usage gauge styled as a top-bar overflow-menu entry: a standard [DropdownMenuItem] (so it
@@ -264,7 +201,7 @@ private fun ContextGaugePill(
     Row(
         modifier = Modifier
             .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -296,7 +233,7 @@ private fun ContextGaugePill(
     }
 }
 
-/** The breakdown in a modal sheet, for surfaces that can open one (the composer pill, the ⋮ menu). */
+/** The breakdown in a modal sheet, for surfaces that can open one (the composer's context ring, the ⋮ menu). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ContextUsageSheet(
@@ -325,7 +262,8 @@ internal fun ContextUsageSheet(
 /**
  * Confirms a compaction started from a suggestion. Every suggestion goes through it: compacting
  * changes what the model reads from then on, so it is never one tap. "Not now" quiets the
- * suggestion for this conversation until usage reaches the next band.
+ * suggestion for this conversation until usage reaches the next band. [onSeeUsage] adds "See usage",
+ * for an entry point whose tap opens this dialog instead of the breakdown (the context ring).
  */
 @Composable
 internal fun CompactConfirmDialog(
@@ -333,19 +271,30 @@ internal fun CompactConfirmDialog(
     onDismiss: () -> Unit,
     onNotNow: () -> Unit,
     onCompact: () -> Unit,
+    onSeeUsage: (() -> Unit)? = null,
 ) {
     AdaptiveAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(Res.string.compact_confirm_title)) },
         text = { Text(stringResource(Res.string.compact_confirm_body, percent)) },
         confirmButton = { AdaptiveTextButton(onClick = onCompact) { Text(stringResource(Res.string.compact_confirm_action)) } },
-        dismissButton = { AdaptiveTextButton(onClick = onNotNow) { Text(stringResource(Res.string.compact_confirm_not_now)) } },
+        dismissButton = {
+            // Two buttons in the slot: both dialog styles lay its children out in their wrapping button row.
+            if (onSeeUsage != null) {
+                AdaptiveTextButton(onClick = onSeeUsage) { Text(stringResource(Res.string.compact_confirm_see_usage)) }
+            }
+            AdaptiveTextButton(onClick = onNotNow) { Text(stringResource(Res.string.compact_confirm_not_now)) }
+        },
     )
 }
 
 private val GAUGE_BAR_WIDTH = 72.dp
 private val GAUGE_BAR_MIN_WIDTH = 24.dp
 
-/** A computed estimate reads as approximate (`~42%`), matching the breakdown's `~used` header. */
+/**
+ * The used percentage as the locale writes it (`42 %` in German and French). A computed estimate
+ * reads as approximate (`~42%`), matching the breakdown's `~used` header.
+ */
+@Composable
 internal fun percentLabel(percent: Int, isEstimate: Boolean): String =
-    if (isEstimate) "~$percent%" else "$percent%"
+    stringResource(if (isEstimate) Res.string.context_percent_estimate else Res.string.context_percent, percent)

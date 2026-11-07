@@ -370,4 +370,12 @@
     <string name="pr_retry">Tentar novamente</string>
     <string name="pr_additions_cd">%1$d linhas adicionadas</string>
     <string name="pr_deletions_cd">%1$d linhas removidas</string>
+    <!-- MCP server status (the MCP servers page, the chat's settings chips and "+" sheet) -->
+    <string name="mcp_status_connected">Conectado</string>
+    <string name="mcp_status_connecting">Conectando…</string>
+    <string name="mcp_status_needs_sign_in">Login necessário</string>
+    <string name="mcp_status_needs_setup">Configure na web</string>
+    <string name="mcp_status_on_demand">Conecta quando você conversa</string>
+    <string name="mcp_status_disconnected">Não conectado</string>
+    <string name="mcp_status_failed">Não foi possível conectar</string>
 </resources>

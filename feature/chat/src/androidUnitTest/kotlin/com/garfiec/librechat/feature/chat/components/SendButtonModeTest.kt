@@ -137,6 +137,16 @@ class SendButtonModeTest {
     }
 
     @Test
+    fun `a failed upload disables the control whatever else the composer holds`() {
+        assertThat(
+            composerCanSend(inputText = "hello", hasAttachments = true, arePicksUnsettled = false, hasFailedUploads = true),
+        ).isFalse()
+        assertThat(
+            composerCanSend(inputText = "", hasAttachments = true, arePicksUnsettled = false, hasFailedUploads = true),
+        ).isFalse()
+    }
+
+    @Test
     fun `an empty composer still cannot send`() {
         assertThat(
             composerCanSend(inputText = "   ", hasAttachments = false, arePicksUnsettled = false),

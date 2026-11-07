@@ -53,6 +53,7 @@ import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_back
 import com.garfiec.librechat.feature.chat.resources.param_set_by_spec
 import com.garfiec.librechat.feature.chat.resources.tool_model_parameters
+import com.garfiec.librechat.feature.chat.util.ToolsSheetFocus
 import com.garfiec.librechat.feature.chat.util.WebSearchKind
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
@@ -68,6 +69,8 @@ private val SubPageFallbackHeight = 560.dp
 /** Everything the Options (tools/attachment) page renders. See [ChatToolsSheetContent]. */
 @Immutable
 data class ChatToolsPageParams(
+    /** The row the page opens at (a settings chip's tap), scrolled into view and marked. */
+    val focus: ToolsSheetFocus? = null,
     val enabledTools: Set<String>,
     val onToggleTool: (String) -> Unit,
     val mcpServers: List<McpServerDisplayData>,
@@ -82,15 +85,9 @@ data class ChatToolsPageParams(
     val selectedModelDisplay: String?,
     /** Both models while comparing; the Model row then names A and B. */
     val comparisonModels: ComparisonModelLabels? = null,
-    val isCodeInterpreterAvailable: Boolean = true,
-    val webSearchEnabled: Boolean = true,
+    /** The tools the sheet offers a row for ([ChatUiState.openTools]). */
+    val openTools: Set<String> = emptySet(),
     val webSearchKind: WebSearchKind = WebSearchKind(WebSearchRoute.LIBRECHAT, null),
-    val urlContextEnabled: Boolean = false,
-    val runCodeEnabled: Boolean = true,
-    val fileSearchEnabled: Boolean = true,
-    val memoryEnabled: Boolean = false,
-    /** Whether to offer the per-conversation Skills toggle. See [ChatUiState.isSkillsToolAvailable]. */
-    val skillsEnabled: Boolean = false,
     val mcpServersEnabled: Boolean = true,
     val gates: ChatInputGates = ChatInputGates(),
     val contextGauge: ContextGaugeDetails? = null,
@@ -261,14 +258,8 @@ fun ChatOptionsBottomSheet(
                         selectedModelDisplay = tools.selectedModelDisplay,
                         comparisonModels = tools.comparisonModels,
                         onDismiss = dismiss,
-                        isCodeInterpreterAvailable = tools.isCodeInterpreterAvailable,
-                        webSearchEnabled = tools.webSearchEnabled,
+                        openTools = tools.openTools,
                         webSearchKind = tools.webSearchKind,
-                        urlContextEnabled = tools.urlContextEnabled,
-                        runCodeEnabled = tools.runCodeEnabled,
-                        fileSearchEnabled = tools.fileSearchEnabled,
-                        memoryEnabled = tools.memoryEnabled,
-                        skillsEnabled = tools.skillsEnabled,
                         mcpServersEnabled = tools.mcpServersEnabled,
                         gates = tools.gates,
                         contextGauge = tools.contextGauge,
@@ -281,6 +272,7 @@ fun ChatOptionsBottomSheet(
                         mcpExpanded = mcpExpanded,
                         onMcpExpandedChange = { mcpExpanded = it },
                         scrollState = optionsScrollState,
+                        focus = tools.focus,
                     )
 
                     ChatOptionsPage.ModelSelector -> ModelSelectorSheetContent(

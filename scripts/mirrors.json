@@ -942,7 +942,7 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpConnectionStatus.kt",
         "symbol": "applyDiscoveryAuthorizationState"
       },
-      "why": "Folds the per-server verdicts from GET /api/mcp/tools onto the connection-status map, so a lapsed OAuth authorization noticed by discovery is reflected before the status route catches up. A web-client rule; the server sends the two halves and never the combination.",
+      "why": "Folds the per-server verdicts from GET /api/mcp/tools onto the connection-status map, so a lapsed OAuth authorization noticed by discovery is reflected before the status route catches up. A web-client rule; the server sends the two halves and never the combination. Both the MCP servers page (McpViewModel) and the chat's MCP chips (McpServersDelegate.load) fold it.",
       "failure_mode": "The fold diverges and a server whose authorization has lapsed keeps rendering as connected until the status route notices independently -- the user's tool calls fail against a server the settings screen says is fine."
     },
     {
@@ -2107,8 +2107,36 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/mcp/McpDisplayStatus.kt",
         "symbol": "mcpDisplayStatus"
       },
-      "why": "Which connection states the MCP servers page shows as connected, connecting, needing sign-in, idle or failed, and so which servers get a Sign in or Retry button and sort first.",
+      "why": "Which connection states the MCP servers page shows as connected, connecting, needing sign-in, idle or failed, and so which servers get a Sign in or Retry button and sort first. The chat reads the same status, from the same discovery-folded map, for its MCP chips on the composer's settings line and the dots in the \"+\" sheet (McpServersDelegate.load): a chip that needs sign-in (or an OAuth server that failed) reads \"· sign in\" and signs in on tap, and an OAuth server that reads connecting reads \"· connecting\" and offers Cancel sign-in / Start over (see mcp-chip-sign-in-tap and mcp-chip-sign-in-cancel).",
       "failure_mode": "A state upstream starts reporting falls through to the wrong label: a server that needs the user's action reads as merely disconnected, or a healthy one as failed. Nothing errors."
+    },
+    {
+      "id": "mcp-chip-sign-in-tap",
+      "upstream": {
+        "file": "client/src/hooks/Input/usePaletteEntries.tsx",
+        "symbol": "selectServer",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/SettingChips.kt",
+        "symbol": "tapFor"
+      },
+      "why": "Web's MCP palette rule for a tap on a server that is not connected: it reinitializes the server (which runs the OAuth flow when one is needed) rather than selecting it, and does nothing while the server is initializing. The chat's settings chips follow it (decisions.md, LOCKED 2026-11-06): a chip that needs sign-in, or an OAuth server that failed, runs McpServersDelegate.signIn (reinitialize, then LocalMcpSignIn), and nothing ever cancels the flow that leaves pending by itself. Watch for web starting to cancel a flow on its own, or routing custom-variable servers differently.",
+      "failure_mode": "Web changes when a tap reconnects or cancels and the chips keep the old rule: a chip reconnects where web would ask for credentials, or keeps a flow web now cancels. Nothing errors."
+    },
+    {
+      "id": "mcp-chip-sign-in-cancel",
+      "upstream": {
+        "file": "client/src/hooks/Input/usePaletteEntries.tsx",
+        "symbol": "getServerModes",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/McpServersDelegate.kt",
+        "symbol": "cancelSignIn"
+      },
+      "why": "Web offers Cancel on a server while it initializes and the flow can be cancelled (statusProps.canCancel, the explicit POST /api/mcp/oauth/cancel/:serverName). The chat's connecting OAuth chip offers the same Cancel sign-in, plus Start over (reinitialize again), from a small menu (ComposerSettingsLine's McpSettingChip, SettingChip.Mcp.signInPending).",
+      "failure_mode": "Web adds or drops a mode for an initializing server and the chip's menu offers something web no longer does, or misses one it added. Nothing errors."
     },
     {
       "id": "mcp-trust-checkbox",

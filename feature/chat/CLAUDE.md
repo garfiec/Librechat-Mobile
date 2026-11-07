@@ -781,7 +781,8 @@ haiku wrote only escapes), so everything converts the escape first.
   `ChatRoot` from `rememberMcpSignIn` + `McpSignInViewModel`), which binds through `:core:data`'s
   `McpOAuthLauncher` and opens `:core:ui`'s `McpOAuthSignInDialog` (system browser before
   v0.8.9-rc1). Nothing launches without the tap. The run resumes on its own once the callback
-  lands, so a success needs no client follow-up. Comparison panes route it too
+  lands, so a success needs no follow-up beyond the status reload every sign-in end triggers
+  (`McpSignInUiState.ended`, for the settings chips' dots). Comparison panes route it too
   (`ComparisonModeDelegate.routeToolCallAuth`), subagent prompts included (below).
   - **A reconnect restores it.** The sync frame's `aggregatedContent` carries no auth, and `onSync`
     replaces the tool calls, so the prompt would be wiped. The server projects the live prompts as
@@ -1025,7 +1026,7 @@ picker beside it (`DuringRunSendMenu`, rendered only when both routes are open) 
 
 **The button's face and its action must come from the same value.** `sendDuringRun()` switches on
 `ChatUiState.duringRunSendTarget`, so the button's icon/label does too (`sendButtonModeFor`, extracted from
-the composable purely so this module — which has no Compose test harness — can assert the mapping). Deriving
+the composable so the mapping is asserted as a pure function). Deriving
 the face from the *preference* instead is a bug that nothing catches: a live `ask_user_question` pause
 overrides the preference, so the button read "add to queue" over a tap that answered the question. Behaviour
 correct, label lying. `duringRunAction` in `ChatInputState` is now the picker's checkmark only.
@@ -1097,6 +1098,43 @@ while attachments are staged, so neither promises something the tap won't do.
   mirror `steer-interrupted-tool-result`). It renders as "Interrupted by your message" in a neutral tone,
   an interrupted search keeps the generic card, and a group header counts it as cancelled, not failed.
 
+## Composer chrome (what sits around the field)
+- **Everything the composer draws around its field is one view-data holder, `ComposerChrome`**,
+  built in `ChatScreen` and threaded through the `ChatComposer` expect, both actuals, `ChatInput` /
+  `IosChatInput` and `ChatInputState.chrome`. A new row adds a field there, never a parameter to
+  those five signatures: the iOS ones only compile in CI.
+- **A vertical drag on the composer scrolls the thread** (`Modifier.passVerticalDragsToThread()` →
+  `LocalThreadScrollHandle`). It watches on the Main pass, so a child that claims the gesture keeps
+  it; the field and the `/` `$` picker don't carry it. A drag is ONE `scroll(MutatePriority.UserInput)`
+  session, so `TailFollower` reads it as the user scrolling away: never one session per delta.
+- Steers and the queue share one region capped at 168dp. Its scroll is enabled only while it
+  overflows; past its edge a drag or fling goes on to the thread (`ThreadHandOffConnection`).
+- Over the composer's transparent top, Material chip fills are opaque
+  (`AdaptiveChipDefaults.overlay*ChipColors`). No composer chip has a caret.
+
+### Attachment strip (files, picked skills, quotes)
+- **What goes with the message is one list, `DraftItems`** (pure `draftItemsOf`). Upload progress
+  stays out of it and out of `ComposerChrome`: the rings read `DraftUploadProgress` as they draw, so
+  a progress tick re-maps nothing. The strip is one sideways-scrolling row, never a second row.
+- **Removal, retry and an upload's outcome name one tray entry (`AttachedFile.key`), never the
+  file**: the same content `Uri` picked twice is two entries.
+- **One Undo is pending at a time** (`ComposerState.pendingDraftUndo`); every write that replaces the
+  draft (`clearComposer`, `applyComposer`, the landing reset) drops it in that same write. A file
+  still uploading is cancelled, with no Undo.
+- **A failed upload holds Send through `UploadIntakeDelegate.withUploadGate`**, checked before and
+  after the upload wait, on every send path. Not `SendBlockReason` (that opens the model sheet) and
+  not `buildSendSpec` (a steer's re-home and an MCP App's message build there and must not be held).
+- **Retry keeps the stored route only while the live selection still offers it**
+  (`ChatUiState.retryUploadRoute`); otherwise it routes afresh.
+- **iOS keeps each entry's picked data until it uploads** (`IosFileHandler.picked`), and
+  `IosFileHandler.prune`, run after every tray or Undo change, is the one rule for what stays. An iOS
+  thumbnail is the picker's small JPEG/PNG preview, never the picked bytes (often HEIC, which Coil
+  can't decode on iOS). A String `uri` is an id, never loaded as an image.
+- **During a queued edit, a recovered draft part belongs to the stashed draft**
+  (`ComposerState.draftRestore`) and joins it when the edit ends. A queued message doesn't open for
+  editing while the draft's files are attaching or uploading: their outcome lands on a tray entry
+  the swap takes away.
+
 ## Chat Tools
 - The user's own toggles: `enabledTools` and `selectedMcpServerNames` are global (stored in
   `SettingsDataStore`, carried into every chat). Web search and URL context are
@@ -1105,7 +1143,28 @@ while attachments are staged, so neither promises something the tap won't do.
   this device left it (`ConversationWebSearchStore`, next section). The Skills toggle is per
   conversation (`SkillsToggleDelegate`).
 - Tool toggles and MCP servers live in the paged "+" options sheet (`ChatToolsSheetContent`),
-  reached from `ChatInput`'s `onOpenTools`, plus the server's pinned chips (`PinnedToolsRow`).
+  reached from the composer's `onOpenTools`. What is on shows on the composer's settings line (next).
+- **The settings line** (`ComposerSettingsLine`) is view data mapped once: `settingChipsOf`
+  (`util/SettingChips.kt`, pure) in the ViewModel's `uiState` combine (`SettingChipsMemo`). Its inputs
+  are re-gathered only when a slice in `ChatUiState.settingChipSlices` is a new instance, so a new
+  read in `settingChipInputs` adds its slice to that list. A tool shows only where its own gate is
+  open (`ChatUiState.toolGateOpen`), in the sheet's `SETTING_TOOL_ORDER`.
+  - **A tap on the line never turns a thing off**: a chip that is on opens the "+" sheet at its row,
+    a pinned tool that is off turns on, a spec-locked one says who set it. Sign-in outranks a lock.
+  - **MCP chips show the MCP servers page's status** (`mcpDisplayStatus` over the status map with
+    discovery's lapsed authorizations folded in; `:core:ui` `mcpStatusLabel` / `mcpStatusColor`). They
+    paint from the list and status routes and re-fold when the slower `GET /api/mcp/tools` lands,
+    which is asked only while the chat shows the tool controls.
+  - **Sign-in follows web's `useMCPServerManager`**: reconnect → `oauthUrl` → `LocalMcpSignIn`.
+    **The app never cancels an OAuth flow by itself** (not on dialog close, browser return or run
+    end): the server keeps one flow per user and server, and another run may be waiting on it. Only
+    the chip's Cancel sign-in cancels. A reconnect waits for a cancel still in flight (the server
+    would replay the flow being cancelled); while either is out, sign-in taps are ignored and those
+    chips are disabled.
+  - **The statuses reload when any sign-in ends, whatever the outcome**, after a cancel, and on every
+    return to the chat (`McpServersDelegate.onForeground`): they change outside the chat.
+- Thinking uses the brain glyph, Memory `AutoStories`, picked skills the sparkle (`AutoAwesome`),
+  wherever they appear.
 - URL context shows only on a Google parameter set and a model the server runs it on
   (`urlContextProviderGate`, `supportsUrlContext`: Gemini 2.5+, not image/live/TTS/audio). The server
   skips it elsewhere with only a debug log. Web shows it on every Google model; the divergence is deliberate.
@@ -1232,9 +1291,13 @@ An agent with stateful code sessions can run files and commands on the user's ow
 `librechat-code` worker). The chat's choice of machine and workspace is a **decision the server seals
 with the first coding turn**: a new chat that sends neither `codeEnvironmentMode` nor `codeWorkspaces`
 is sealed "No workspace" for good. The rules are `:core:model` `code/CodeWorkspaceResolver.kt` (web's
-`useCodeWorkspace`, mirrored); the delegate gathers inputs, polls, and keeps the draft; the composer's
-`CodeWorkspaceRow` (provided through `LocalCodeWorkspaceComposer`, so both platform composers draw it)
-only draws `CodeWorkspaceUiState`.
+`useCodeWorkspace`, mirrored); the delegate gathers inputs, polls, and keeps the draft; the composer
+only draws `CodeWorkspaceUiState` (mapped in `util/CodeWorkspaceView.kt`), through
+`LocalCodeWorkspaceComposer` so both platform composers draw it.
+- **The workspace lives on the settings line, never as a card above the composer**: its chip first,
+  then the approval chip, in every state. What needs the user is a notice under the field
+  (`CodeWorkspaceNotice`). `CodeWorkspaceUiState.visible` (needs the user) is not web's `visible`;
+  polling still follows the resolver's.
 - **Gate on the fields, never the version** (VERSION_GATES.md): `RUN_CODE.USE`, the agents endpoint's
   `execute_code` + `stateful_code_sessions` capabilities, an `attached` machine in
   `statefulCodeSessions.environments`, a reachable agent that routes code there. Capability versions
@@ -1262,8 +1325,8 @@ only draws `CodeWorkspaceUiState`.
   (`PATCH …/decision`, `CodeEnvironmentRepository.moveDecision`), and the answer becomes the saved
   decision. While it is in flight the send waits (web's `replacingDecision`). A `locked` refusal or an
   unknown outcome re-reads the decision; busy and other refusals only say so (`ChatNotice`
-  `CODE_WORKSPACE_MOVE_*`). With the transition version a healthy saved chat is visible (for Detach),
-  as on web.
+  `CODE_WORKSPACE_MOVE_*`). With the transition version a healthy saved chat offers Detach from its
+  folded chip; web shows it as a visible row.
 - **Reconcile after a failed turn**: a send that carried a decision and ended in an error (a `ChatNotice`
   marker is not one; the flag clears when the run ends either way) re-reads the
   saved decision with Send held and "Confirming this chat's workspace decision…" (`CodeConfirming`);
@@ -1274,8 +1337,9 @@ only draws `CodeWorkspaceUiState`.
   "{n} machines" / "{n} code workspaces", explicit checkouts get a line each, and picks that leave an
   agent uncovered show web's `graph_selection_conflict` line. "Linked worktrees" shows for a
   `git_linked_worktree` workspace that is not isolated (Auto on a worktree-capable one isolates).
-- **Code approval mode** (`CodeApproval` in `:core:model`): the chip shows with the row, or on its own
-  for a healthy saved chat. `submissionForSend()` adds `approvalMode` to the submission, so the mode
+- **Code approval mode** (`CodeApproval` in `:core:model`): the chip is on the settings line, icon-only
+  on "Ask before changes" while other modes are on offer, so a mode that does more shows its name.
+  `submissionForSend()` adds `approvalMode` to the submission, so the mode
   rides every send path the decision does; `ask` without a workspace. The mode asked for is this
   chat's pick, else the saved decision's, else (no decision yet) the spec preset's `codeApprovalMode`,
   else the device's last pick (`requestedApprovalMode`, web's `conversation.codeApprovalMode ?? preference`). A follow-up whose mode is not
@@ -1565,7 +1629,7 @@ A server with PII protection stores a user turn filtered (`text` = `[EMAIL]`…)
 `groupContentParts` (`util/ContentSegments.kt`) is ONE pure transform producing both the steer
 segmentation and the activity grouping, memoized at `MessageContentAndActions`. Two passes over the
 same list would eventually disagree about a boundary and render the user's words inside a collapsed
-tool block. It is pure because this module has no Compose test harness.
+tool block. It is pure so its boundaries are asserted directly.
 
 - **Activity groups.** Consecutive reasoning + tool calls fold under one header, terminated by an
   `activity_label` part. A blank label is a *reservation* — invisible, and it only moves the claim
@@ -1868,8 +1932,9 @@ ported from upstream `tokens.ts`; registered in `scripts/mirrors.json`). Two rul
   carries over a reading that replaced it. Otherwise a run that reported nothing pins the previous
   run's value.
 
-The breakdown (`util/ContextBreakdown.kt`, rendered by `ContextUsageGauge.kt`) ports web's
-`Breakdown.tsx`; Totals and Cost come from `util/UsageTotals.kt`. One more load-bearing rule:
+The breakdown (`util/ContextBreakdown.kt`, rendered by `ContextBreakdownCard`) ports web's
+`Breakdown.tsx`; Totals and Cost come from `util/UsageTotals.kt`. Every context percentage goes
+through `percentLabel` (localized: `42 %` in German and French). One more load-bearing rule:
 - **Live usage is attributed to the Final frame's response id, never the tail.** `LiveReplyDelegate`
   folds every `on_token_usage` (buckets included, deduped by `runId:seq`, plus the resume frame's
   `collectedUsage`) into `pendingUsage`, which counts until its reply carries `metadata.usage`.

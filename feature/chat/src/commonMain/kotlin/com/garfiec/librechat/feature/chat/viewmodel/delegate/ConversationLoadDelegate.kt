@@ -23,6 +23,7 @@ import com.garfiec.librechat.feature.chat.util.hasParallelParts
 import com.garfiec.librechat.feature.chat.util.stabilizeMessageInstances
 import com.garfiec.librechat.feature.chat.util.withoutLivePartial
 import com.garfiec.librechat.feature.chat.viewmodel.ChatScreenState
+import com.garfiec.librechat.feature.chat.viewmodel.ComposerSnapshot
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationLoadHandle
 import com.garfiec.librechat.feature.chat.viewmodel.isRealTitle
 import com.garfiec.librechat.feature.chat.viewmodel.isServerCopyOf
@@ -365,6 +366,11 @@ class ConversationLoadDelegate(
         quotes: List<String> = emptyList(),
         manualSkills: List<String> = emptyList(),
     ) {
+        val stashed = handle.state.editingQueuedItem?.stashed
+        if (stashed != null) {
+            restoreUnsentInputToStash(stashed, text, quotes, manualSkills)
+            return
+        }
         handle.update {
             if (inputText.isBlank() || text.isBlank()) {
                 if (text.isNotBlank()) inputText = text
@@ -378,6 +384,35 @@ class ConversationLoadDelegate(
             }
         }
         if (text.isBlank() || handle.state.inputText != text) return
+        val draftKey = handle.state.conversationId ?: newChatDraftKey
+        handle.scope.launch {
+            draftRepository.saveDraft(draftKey, text)
+        }
+    }
+
+    /**
+     * During a queued edit the turn goes back to the stashed draft it came from
+     * (`ComposerState.draftRestore`), its yield rules judged against that draft, not the item on screen.
+     */
+    private fun restoreUnsentInputToStash(
+        stashed: ComposerSnapshot,
+        text: String,
+        quotes: List<String>,
+        manualSkills: List<String>,
+    ) {
+        if (stashed.text.isNotBlank() && text.isNotBlank()) return
+        var restoredText = false
+        handle.update {
+            val textGoesBack = text.isNotBlank() && draftRestore.text.isBlank()
+            restoredText = textGoesBack
+            draftRestore = draftRestore.copy(
+                text = if (textGoesBack) text else draftRestore.text,
+                quotes = if (stashed.quotes.isEmpty()) draftRestore.quotes.ifEmpty { quotes } else draftRestore.quotes,
+                manualSkills = (manualSkills + draftRestore.manualSkills).distinct().take(MAX_MANUAL_SKILLS),
+            )
+        }
+        if (!restoredText) return
+        // The new-message draft on disk, so the text survives process death as the plain restore does.
         val draftKey = handle.state.conversationId ?: newChatDraftKey
         handle.scope.launch {
             draftRepository.saveDraft(draftKey, text)

@@ -411,4 +411,12 @@
     <string name="pr_additions_cd">%1$d lines added</string>
     <!-- Accessibility label for the removed-lines count. %1$d is the number of lines -->
     <string name="pr_deletions_cd">%1$d lines removed</string>
+    <!-- MCP server status (the MCP servers page, the chat's settings chips and "+" sheet) -->
+    <string name="mcp_status_connected">Connected</string>
+    <string name="mcp_status_connecting">Connecting…</string>
+    <string name="mcp_status_needs_sign_in">Sign-in needed</string>
+    <string name="mcp_status_needs_setup">Set up on the web</string>
+    <string name="mcp_status_on_demand">Connects when you chat</string>
+    <string name="mcp_status_disconnected">Not connected</string>
+    <string name="mcp_status_failed">Can't connect</string>
 </resources>

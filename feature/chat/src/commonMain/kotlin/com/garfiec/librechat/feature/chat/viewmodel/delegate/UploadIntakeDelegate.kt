@@ -47,11 +47,19 @@ class UploadIntakeDelegate(
      * Runs [action] once any pending file uploads have finished, guarding against a double-send
      * while a previous wait is still in flight. Shared by the live-send and queue paths so the
      * upload-wait semantics live in one place.
+     *
+     * A failed upload holds it, checked before the wait and again after it, since the wait treats a
+     * failure as settled. The steer re-home and an MCP App's message must not pass here: neither
+     * sends the composer's files.
      */
     fun withUploadGate(text: String, action: (String) -> Unit) {
         if (fileHandler.pendingUploadSendJob?.isActive == true) return
         if (hasUnsettledPicks()) {
             Logger.d { "withUploadGate: refusing send — picked files are not settled yet" }
+            return
+        }
+        if (fileHandler.hasFailedUploads()) {
+            Logger.d { "withUploadGate: holding send — an attachment failed to upload" }
             return
         }
         if (fileHandler.hasPendingUploads()) {
@@ -65,6 +73,10 @@ class UploadIntakeDelegate(
                         // Clear before handing off so the button never shows a spinner over an
                         // already-started send (the success path may set streaming synchronously).
                         setAwaitingUploadSend(false)
+                        if (fileHandler.hasFailedUploads()) {
+                            Logger.d { "withUploadGate: holding send — an upload failed while it waited" }
+                            return@waitForUploadsAndSend
+                        }
                         action(ready)
                     }
                 } finally {
@@ -269,21 +281,33 @@ class UploadIntakeDelegate(
         if (routed.isNotEmpty()) fileHandler.onFilesSelected(routed)
     }
 
-    fun removeFile(file: AttachedFile) = fileHandler.removeFile(file)
+    /** Entries ([AttachedFile.key]) whose [retryUpload] is waiting on the agent's provider. Touched on the main dispatcher only. */
+    private val pendingRetries = mutableSetOf<Any>()
 
     /**
-     * Re-uploads a failed attachment. Resolves the agent's provider first, exactly as the intake
-     * path does: the handler re-derives the route from the live selection, and a retry is the one
-     * action a user takes *after* a failure — the same outage that failed the upload will often
-     * have failed the provider fetch, and routing against an unresolved provider silently sends
-     * every document down the provider path.
+     * Resolves the agent's provider first, as the intake path does. After that wait it goes ahead only
+     * while the same composer still holds the file as failed: a removed file's Undo would otherwise put
+     * back a second copy, and a tray swapped to a queued edit must not gain it.
      */
     fun retryUpload(file: AttachedFile) {
+        if (!isFailedInTray(file) || !pendingRetries.add(file.key)) return
+        val retryFor = handle.state.composer.editingQueuedItem
         handle.scope.launch {
-            awaitAgentProvider()
-            fileHandler.retryUpload(file)
+            try {
+                awaitAgentProvider()
+                if (handle.state.composer.editingQueuedItem != retryFor || !isFailedInTray(file)) {
+                    Logger.d { "retryUpload: dropped — the failed file left the tray while the provider resolved" }
+                    return@launch
+                }
+                fileHandler.retryUpload(file)
+            } finally {
+                pendingRetries.remove(file.key)
+            }
         }
     }
+
+    private fun isFailedInTray(file: AttachedFile): Boolean =
+        fileHandler.attachedFiles.value.any { it.key == file.key && it.uploadFailed }
 
     /** Re-uploads the prompted PDF with its password; routed like [retryUpload], for the same reason. */
     fun submitPdfPassword(password: String) {

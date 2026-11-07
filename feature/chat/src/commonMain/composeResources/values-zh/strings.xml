@@ -252,19 +252,10 @@
     <string name="tool_file_search_desc">在已上传的文件中搜索</string>
     <string name="tool_mcp">MCP</string>
     <string name="tool_mcp_desc">Model Context Protocol 服务器</string>
-    <string name="cd_web_search_enabled">已启用网络搜索</string>
     <string name="cd_quoted_excerpt">引用的摘录</string>
-    <string name="cd_remove_quote">移除引用</string>
     <string name="selection_add_to_chat">添加到对话</string>
-    <string name="cd_code_enabled">已启用代码解释器</string>
-    <string name="cd_file_search_enabled">已启用文件搜索</string>
 
     <!-- Attachments -->
-    <string name="cd_attach_file">附加文件</string>
-    <string name="files_count">文件（%1$d）</string>
-    <string name="files_count_with_text">文件（%1$d）· %2$d 个为文本</string>
-    <string name="cd_files_attached">已附加 %1$d 个文件，点击以预览</string>
-    <string name="cd_files_attached_with_text">已附加 %1$d 个文件，其中 %2$d 个以文本发送，点击以预览</string>
     <string name="upload_routing_sheet_title">这些文件要如何发送？</string>
     <string name="upload_routing_sheet_title_single">此文件要如何发送？</string>
     <string name="upload_routing_option_provider">直接交给模型</string>
@@ -276,8 +267,6 @@
     <string name="upload_routing_apply_all">全部应用</string>
     <string name="upload_routing_attach">附加</string>
     <string name="cd_upload_route_text">已作为提取的文本发送</string>
-    <string name="cd_attached_file">已附加文件：%1$s</string>
-    <string name="cd_preview_file">%1$s 的预览</string>
     <string name="cd_remove_file">移除 %1$s</string>
 
     <!-- Agent handoff -->
@@ -547,6 +536,8 @@
     <string name="media_empty_links">此对话中没有链接</string>
     <string name="media_empty_artifacts">此对话中没有 artifact</string>
     <string name="context_usage_label">上下文</string>
+    <string name="context_percent">%1$d%</string>
+    <string name="context_percent_estimate">约 %1$d%</string>
     <string name="tool_approval_title">需要批准</string>
     <string name="tool_approval_arguments">参数</string>
     <string name="tool_approval_approve">批准</string>
@@ -642,13 +633,11 @@
     <string name="tool_memory_desc">让助手记住此对话中的细节</string>
     <string name="tool_skills">技能</string>
     <string name="tool_skills_desc">允许助手在此对话中使用你的技能</string>
-    <string name="cd_skills_enabled">已启用技能</string>
     <string name="picker_type_prompt">提示词</string>
     <string name="picker_type_skill">技能</string>
     <string name="picker_no_matches">没有匹配项</string>
     <string name="picker_loading_skills">正在加载技能…</string>
     <string name="picker_skills_failed">无法加载技能</string>
-    <string name="cd_pending_skills">下一条消息使用的技能</string>
     <string name="cd_remove_skill">移除技能 %1$s</string>
     <string name="cd_skill_always_applied">始终应用的技能：%1$s</string>
     <string name="cd_skill_used">已使用的技能：%1$s</string>
@@ -656,7 +645,7 @@
     <string name="skill_call_finished">已运行 %1$s</string>
     <string name="skill_call_fallback_name">技能</string>
     <string name="cd_steer_message">引导此回复</string>
-    <string name="cd_cancel_steer">取消引导</string>
+    <string name="cd_cancel_steer">取消引导：%1$s</string>
     <string name="cd_during_run_options">选择现在发送的方式</string>
     <string name="during_run_steer">引导此回复</string>
     <string name="during_run_queue">加入队列</string>
@@ -763,6 +752,7 @@
     <string name="compact_confirm_title">压缩此对话？</string>
     <string name="compact_confirm_body">已使用上下文窗口的 %1$d%。压缩会将目前为止的对话总结为模型继续读取的简短笔记，为接下来的内容腾出空间。不会删除任何内容。</string>
     <string name="compact_confirm_not_now">暂不</string>
+    <string name="compact_confirm_see_usage">查看用量</string>
     <string name="compact_confirm_action">压缩</string>
     <string name="cd_temporary_chat">临时聊天</string>
     <string name="temporary_chat_enforced">管理员已为所有聊天开启临时聊天</string>
@@ -880,7 +870,6 @@
     <string name="artifact_library_declined">未加载：%1$s</string>
     <string name="artifact_library_allowed">已加载：%1$s</string>
     <string name="artifact_library_change">更改</string>
-    <string name="cd_mcp_server_enabled">已启用 MCP 服务器 %1$s</string>
     <string name="cd_code_block">代码块</string>
     <string name="cd_code_block_language">%1$s 代码块</string>
     <string name="log_output_title">日志输出</string>
@@ -897,7 +886,7 @@
     <string name="mcp_sign_in_needed_unnamed">某个工具需要你登录</string>
     <string name="mcp_sign_in_resumes">登录后回复将继续。</string>
     <string name="mcp_sign_in_action">登录</string>
-    <string name="mcp_sign_in_failed">登录未完成。请从工具调用处重试。</string>
+    <string name="mcp_sign_in_failed">登录未完成。请重试。</string>
     <string name="prompt_filter_title">筛选和排序</string>
     <string name="prompt_sort_recent">最近</string>
     <string name="prompt_sort_popular">热门</string>
@@ -989,6 +978,7 @@
     <string name="code_machine">机器</string>
     <string name="code_machine_choose">选择机器</string>
     <string name="code_workspace">代码工作区</string>
+    <string name="code_workspace_saved_on_send">你的下一条消息会为此聊天保存这个工作区。</string>
     <string name="code_workspace_choose">选择工作区</string>
     <string name="code_workspace_loading">正在加载工作区…</string>
     <string name="code_workspace_missing">工作区缺失</string>
@@ -1040,6 +1030,7 @@
     <string name="notice_queue_withdraw_refused">无法从服务器撤回这条排队的消息。</string>
     <string name="notice_queue_withdraw_busy">仍在撤回上一条消息，请稍后再试。</string>
     <string name="notice_queue_edit_overtaken">这条排队的消息已发送，因此你的编辑未生效。</string>
+    <string name="notice_queue_edit_waits_for_uploads">请等附件处理完成后再编辑排队的消息。</string>
     <string name="notice_queue_server_holds">服务器上仍有一条排队的消息，请稍后再试。</string>
     <string name="notice_queue_restored_to_composer">排队的消息未发送，已放回输入框。</string>
     <string name="tool_content_loading">正在加载完整的工具调用…</string>
@@ -1058,6 +1049,7 @@
     <string name="code_checkout_registered_chip">已注册的检出</string>
     <string name="code_checkout_registered_info">机器上的检出，与其他对话共享</string>
     <string name="cd_code_chip">%1$s：%2$s</string>
+    <string name="cd_code_workspace_folded">代码工作区：%2$s 上的 %1$s</string>
     <string name="command_finished">已运行命令</string>
     <string name="command_exit_code">退出码 %1$d</string>
     <string name="command_terminated">被 %1$s 终止</string>
@@ -1157,4 +1149,34 @@
     <string name="cd_run_code_previous">上一次运行</string>
     <string name="cd_run_code_next">下一次运行</string>
     <string name="notice_run_code_failed">无法运行此代码。</string>
+    <!-- Composer attachment stack and list -->
+    <string name="draft_row_uploading">正在上传…</string>
+    <string name="draft_row_failed">未能上传 · 点按重试</string>
+    <string name="draft_row_skill">技能</string>
+    <string name="draft_row_quote">引用</string>
+    <string name="draft_subtitle_join">%1$s · %2$s</string>
+    <string name="cd_cancel_upload">取消上传 %1$s</string>
+    <string name="cd_remove_quote_named">移除引用：%1$s</string>
+    <string name="cd_retry_upload">重新上传 %1$s</string>
+    <string name="draft_item_removed">已移除 %1$s</string>
+    <string name="setting_chip_set_by">由 %1$s 设置</string>
+    <string name="setting_chip_sign_in">· 登录</string>
+    <string name="setting_chip_connecting_suffix">· 正在连接</string>
+    <string name="mcp_chip_cancel_sign_in">取消登录</string>
+    <string name="mcp_chip_start_over">重新开始</string>
+    <string name="mcp_cancel_sign_in_failed">无法取消登录。请重试。</string>
+    <string name="cd_mcp_sign_in_menu">登录选项</string>
+    <string name="thinking_chip_state_next">仅限下一条消息</string>
+    <string name="cd_context_ring">已用上下文：%1$s</string>
+    <string name="draft_quote_removed">已移除引用</string>
+    <string name="action_undo">撤销</string>
+    <plurals name="cd_draft_stack">
+        <item quantity="other">随此消息发送 %1$d 项</item>
+    </plurals>
+    <plurals name="draft_item_attached_announcement">
+        <item quantity="other">已附加 %1$s，共 %2$d 项</item>
+    </plurals>
+    <plurals name="draft_uploads_failed">
+        <item quantity="other">%1$d 个文件未能上传。点按以重试，或将其移除。</item>
+    </plurals>
 </resources>
