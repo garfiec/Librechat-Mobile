@@ -1,17 +1,21 @@
 package com.garfiec.librechat.feature.chat.components
 
-import android.content.ClipDescription
 import android.content.Context
 import android.net.Uri
 import android.webkit.MimeTypeMap
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.content.MediaType
 import androidx.compose.foundation.content.ReceiveContentListener
 import androidx.compose.foundation.content.TransferableContent
 import androidx.compose.foundation.content.consume
 import androidx.compose.foundation.content.contentReceiver
-import androidx.compose.foundation.content.hasMediaType
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.InterceptPlatformTextInput
+import androidx.compose.ui.platform.PlatformTextInputInterceptor
+import androidx.compose.ui.platform.PlatformTextInputMethodRequest
+import androidx.core.view.inputmethod.EditorInfoCompat
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -36,6 +40,31 @@ internal fun Modifier.imageContentReceiver(
     onImages: (List<Any>) -> Unit,
 ): Modifier = contentReceiver(ImageContentListener(context.applicationContext, scope, onImages))
 
+/**
+ * Offers the keyboard of the text field in [content] exactly the image types the composer takes.
+ * Under [imageContentReceiver] Compose offers any type, video included, so a keyboard may send a GIF
+ * as video (refused) or, matching types exactly, offer no stickers. A field without a receiver is
+ * left offering none.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+internal fun OfferImageTypesToKeyboard(content: @Composable () -> Unit) {
+    val interceptor = remember {
+        PlatformTextInputInterceptor { request, nextHandler ->
+            nextHandler.startInputMethod(
+                PlatformTextInputMethodRequest { outAttributes ->
+                    request.createInputConnection(outAttributes).also {
+                        if (EditorInfoCompat.getContentMimeTypes(outAttributes).isNotEmpty()) {
+                            EditorInfoCompat.setContentMimeTypes(outAttributes, RECEIVED_IMAGE_MIME_TYPES)
+                        }
+                    }
+                },
+            )
+        }
+    }
+    InterceptPlatformTextInput(interceptor, content)
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 private class ImageContentListener(
     private val context: Context,
@@ -48,17 +77,19 @@ private class ImageContentListener(
     private val inFlight = mutableSetOf<TransferableContent>()
 
     override fun onReceive(transferableContent: TransferableContent): TransferableContent? {
-        if (!transferableContent.hasMediaType(MediaType.Image)) return transferableContent
         val description = transferableContent.clipMetadata.clipDescription
+        // Refusing here, not after the copy, lets a keyboard fall back to a type the composer takes.
+        val declared = RECEIVED_IMAGE_MIME_TYPES.firstOrNull { description.hasMimeType(it) }
+            ?: return transferableContent
         val uris = mutableListOf<Uri>()
-        // getType is a call into the source app's provider, so types are resolved off the main thread.
+        // getType is a call into the source app's provider, so each item's type is resolved off the main thread.
         val remaining = transferableContent.consume { item -> item.uri?.also { uris += it } != null }
         if (uris.isNotEmpty()) {
             inFlight += transferableContent
             scope.launch {
                 val copies = try {
                     withContext(Dispatchers.IO) {
-                        uris.mapNotNull { uri -> imageType(uri, description)?.let { copyToCache(context, uri, it) } }
+                        uris.mapNotNull { uri -> imageType(uri, declared)?.let { copyToCache(context, uri, it) } }
                     }
                 } finally {
                     inFlight -= transferableContent
@@ -69,18 +100,15 @@ private class ImageContentListener(
         return remaining
     }
 
-    private fun imageType(uri: Uri, description: ClipDescription): String? {
+    /** [uri]'s type if the composer takes it; [declared], the clip's, when the source can't say. */
+    private fun imageType(uri: Uri, declared: String): String? {
         val resolved = try {
             context.contentResolver.getType(uri)
         } catch (e: SecurityException) {
             Logger.w(e) { "Received image: type lookup refused" }
             null
         }
-        return if (resolved != null) {
-            resolved.takeIf { it in RECEIVED_IMAGE_MIME_TYPES }
-        } else {
-            RECEIVED_IMAGE_MIME_TYPES.firstOrNull { description.hasMimeType(it) }
-        }
+        return if (resolved == null) declared else resolved.takeIf { it in RECEIVED_IMAGE_MIME_TYPES }
     }
 }
 

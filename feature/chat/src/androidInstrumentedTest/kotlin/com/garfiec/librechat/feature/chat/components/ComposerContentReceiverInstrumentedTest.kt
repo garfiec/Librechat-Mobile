@@ -58,7 +58,9 @@ class ComposerContentReceiverInstrumentedTest {
             } else {
                 Modifier
             }
-            OutlinedTextField(state = field, modifier = receiver.testTag(FIELD))
+            OfferImageTypesToKeyboard {
+                OutlinedTextField(state = field, modifier = receiver.testTag(FIELD))
+            }
         }
         composeRule.onNodeWithTag(FIELD).performClick()
         composeRule.waitForIdle()
@@ -107,7 +109,7 @@ class ComposerContentReceiverInstrumentedTest {
     fun aKeyboardStickerArrivesAsACachedCopy() {
         setUp(enabled = true)
         val (info, connection) = connect()
-        assertTrue("image/*" in EditorInfoCompat.getContentMimeTypes(info))
+        assertArrayEquals(IMAGE_TYPES, EditorInfoCompat.getContentMimeTypes(info))
 
         val bytes = PNG_BYTES
         val content = InputContentInfoCompat(image(bytes), ClipDescription("sticker", arrayOf("image/png")), null)
@@ -119,6 +121,22 @@ class ComposerContentReceiverInstrumentedTest {
         assertTrue(accepted)
         assertReceivedCopyOf(bytes)
         assertEquals("", field.text.toString())
+    }
+
+    @Test
+    fun aKeyboardCommitOfATypeTheComposerDoesNotTakeIsRefused() {
+        setUp(enabled = true)
+        val (info, connection) = connect()
+
+        val content = InputContentInfoCompat(image(PNG_BYTES), ClipDescription("photo", arrayOf("image/heic")), null)
+        var accepted = true
+        composeRule.runOnUiThread {
+            accepted = InputConnectionCompat.commitContent(connection, info, content, 0, null)
+        }
+
+        assertFalse(accepted)
+        composeRule.waitForIdle()
+        assertTrue(received.isEmpty())
     }
 
     @Test
@@ -163,6 +181,7 @@ class ComposerContentReceiverInstrumentedTest {
 
     private companion object {
         const val FIELD = "field"
+        val IMAGE_TYPES = arrayOf("image/png", "image/gif", "image/webp", "image/jpeg")
         val PNG_BYTES = byteArrayOf(0x89.toByte(), 'P'.code.toByte(), 'N'.code.toByte(), 'G'.code.toByte(), 1, 2, 3)
     }
 }
