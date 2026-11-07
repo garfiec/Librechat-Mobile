@@ -26,9 +26,9 @@ enum class FailureKind {
 
     /**
      * The TLS handshake failed: the server's certificate is self-signed, from a private CA, expired,
-     * or issued for another name. Retrying won't help. Recognised on Android only, from the
-     * certificate exception beneath the TLS failure; iOS reports these as an untyped
-     * `DarwinHttpRequestException` (and its SSE transport as a plain `Exception`).
+     * or issued for another name. Retrying won't help. Recognised from the certificate exception
+     * beneath the TLS failure: Android's own, or on iOS the one `:core:network` maps the Darwin
+     * engine's certificate errors to. The iOS SSE transport reports these as a plain `Exception`.
      */
     Tls,
 
