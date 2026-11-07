@@ -8,10 +8,11 @@ import androidx.room.FtsOptions
  * External-content FTS4 index over [MessageSearchEntity.searchText], kept in sync by the triggers
  * Room generates for a `contentEntity`.
  *
- * FTS4 with `unicode61` is the only full-text setup both drivers have: Android's framework SQLite
- * doesn't guarantee FTS5, and iOS uses the bundled one. `matchInfo = FTS3` drops the `%_docsize`
- * table, which only ranking would read; results are ordered by recency. No `remove_diacritics=2`
- * (SQLite 3.27+, so it fails on API 26–28) and no `prefix=` index.
+ * FTS4 with `unicode61`: the host-JVM tests run Room on Robolectric's framework SQLite, which doesn't
+ * guarantee FTS5 (both apps run the bundled SQLite). `matchInfo = FTS3` drops the `%_docsize`
+ * table, which only ranking would read; results are ordered by recency. Installed databases hold
+ * this exact index, so changing the FTS version or a tokenizer option needs a migration that rebuilds
+ * `messages_fts`.
  *
  * **Never select content from this table.** The index spans every account; reads go MATCH → rowid
  * set → `message_search WHERE accountId = :a`, which is what keeps one account's text out of

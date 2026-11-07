@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.garfiec.librechat.core.common.ChannelPolicy
 import com.garfiec.librechat.core.common.di.KoinQualifiers
 import com.garfiec.librechat.core.data.datastore.CommonTokenDataStore
@@ -31,6 +32,7 @@ import com.garfiec.librechat.core.data.update.NoopAppInstallSource
 import com.garfiec.librechat.core.network.client.RefreshCookieCredentials
 import com.garfiec.librechat.core.network.client.TokenManager
 import io.ktor.client.HttpClient
+import kotlinx.coroutines.CoroutineDispatcher
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.dsl.binds
@@ -59,7 +61,11 @@ actual val dataPlatformModule: Module = module {
 
     // --- Database ---
     single {
+        // The bundled driver, not the framework's: a framework cursor can't read back a row over 2 MB,
+        // and a reply with large tool outputs is one.
         Room.databaseBuilder(androidContext(), LibreChatDatabase::class.java, "librechat.db")
+            .setDriver(BundledSQLiteDriver())
+            .setQueryCoroutineContext(get<CoroutineDispatcher>(KoinQualifiers.IO))
             .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
             .build()
     }

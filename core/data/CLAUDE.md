@@ -204,7 +204,7 @@ the prefetcher.
 
 ## Message search index (`message_search` + `messages_fts`)
 
-FTS4 + `unicode61` (no FTS5 on Android's framework SQLite), external-content over a narrow side table.
+FTS4 + `unicode61` (`MessageSearchFtsEntity` says why), external-content over a narrow side table.
 
 - **Search data never lives on `messages`** (wide rows; overflow pages and a full rewrite on backfill).
   `message_search` holds filter/sort columns and `searchTextOf` output (visible text, then reasoning,
