@@ -108,9 +108,9 @@ data class DrawerUiState(
     val skillsEnabled: Boolean = false,
     /** PROMPTS USE, permissive: the chat menu's Prompts gate. */
     val promptsEnabled: Boolean = true,
-    /** MCP_SERVERS USE, permissive: Settings › Data's MCP servers row gate. */
+    /** MCP_SERVERS USE, permissive: the Workspace tray's MCP servers row gate. */
     val mcpServersEnabled: Boolean = true,
-    /** `canReachMemoriesSettings()`: Settings › Data's Memories row gate. */
+    /** `canReachMemoriesSettings()`: the Workspace tray's Memories row gate. */
     val memoriesEnabled: Boolean = true,
     /** Scheduled chats: the SCHEDULES permission AND the server's `interface.schedules` flag,
      *  which is absent-means-OFF. Default false — the feature is opt-in. */

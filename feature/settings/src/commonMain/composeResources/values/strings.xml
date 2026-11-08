@@ -67,7 +67,6 @@
     <string name="section_search">Search</string>
     <string name="advanced_search">Advanced search</string>
     <string name="advanced_search_desc">For power users. Adds match case, whole word, regex, and role, model and date filters to the Search screen.</string>
-    <string name="section_mcp_servers">MCP Servers</string>
     <string name="section_prefetch">Background prefetch</string>
     <string name="prefetch_enabled">Prefetch conversations</string>
     <string name="prefetch_enabled_desc">Load recent and pinned conversations ahead of time so they open instantly. Runs while the app is idle, and periodically while charging.</string>
@@ -133,7 +132,6 @@
     <string name="prefetch_cache_messages">Cached messages</string>
     <string name="prefetch_cache_messages_value">%1$d messages</string>
     <string name="prefetch_cache_images">Images and files</string>
-    <string name="section_memories">Memories</string>
     <string name="section_presets">Presets</string>
     <string name="section_profile">Profile</string>
     <string name="section_security">Security</string>
@@ -862,17 +860,6 @@
     <string name="date_format_ymd_slash">Year/Month/Day</string>
     <string name="date_format_long">Long</string>
     <string name="date_time_preview">Preview</string>
-    <string name="data_summary_off">Off</string>
-    <string name="data_summary_none">None</string>
-    <string name="data_memories_none">None</string>
-    <plurals name="data_memories_count">
-        <item quantity="one">%1$s saved</item>
-        <item quantity="other">%1$s saved</item>
-    </plurals>
-    <plurals name="data_mcp_servers_count">
-        <item quantity="one">%1$d server</item>
-        <item quantity="other">%1$d servers</item>
-    </plurals>
     <string name="server_user_ca_notice">Trusted via a certificate authority installed on this device</string>
     <string name="export_coming_soon">Export is coming soon</string>
     <string name="mcp_tools_all">All MCP Tools</string>

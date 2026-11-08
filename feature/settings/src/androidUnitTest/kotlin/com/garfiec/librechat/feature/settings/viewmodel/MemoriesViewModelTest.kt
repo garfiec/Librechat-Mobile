@@ -378,7 +378,7 @@ class MemoriesViewModelTest : MemoriesViewModelTestBase() {
         }
     }
 
-    /** The Data row and chat's Manage are permissive while the role loads, so the page can open first. */
+    /** The Workspace row and chat's Manage are permissive while the role loads, so the page can open first. */
     @Test
     fun `a role that arrives without READ or OPT_OUT turns the loaded page into the no-access state`() = runTest {
         coEvery { memoryRepository.getMemories() } returns page(memory("likes_tea"))

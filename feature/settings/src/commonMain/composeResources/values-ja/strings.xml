@@ -64,7 +64,6 @@
     <string name="section_danger_zone">危険な操作</string>
     <string name="section_language_region">言語と地域</string>
     <string name="section_layout">レイアウト</string>
-    <string name="section_mcp_servers">MCPサーバー</string>
     <string name="section_prefetch">バックグラウンドでの事前読み込み</string>
     <string name="prefetch_enabled">会話を事前に読み込む</string>
     <string name="prefetch_enabled_desc">最近の会話とピン留めした会話を事前に読み込み、すぐに開けるようにします。アプリのアイドル中と、充電中に定期的に実行されます。</string>
@@ -130,7 +129,6 @@
     <string name="prefetch_cache_messages">キャッシュ済みのメッセージ</string>
     <string name="prefetch_cache_messages_value">%1$d 件のメッセージ</string>
     <string name="prefetch_cache_images">画像とファイル</string>
-    <string name="section_memories">メモリ</string>
     <string name="section_presets">プリセット</string>
     <string name="section_profile">プロフィール</string>
     <string name="section_security">セキュリティ</string>
@@ -831,15 +829,6 @@
     <string name="date_format_ymd_slash">年/月/日</string>
     <string name="date_format_long">長い形式</string>
     <string name="date_time_preview">プレビュー</string>
-    <string name="data_summary_off">オフ</string>
-    <string name="data_summary_none">なし</string>
-    <string name="data_memories_none">なし</string>
-    <plurals name="data_memories_count">
-        <item quantity="other">%1$s件保存済み</item>
-    </plurals>
-    <plurals name="data_mcp_servers_count">
-        <item quantity="other">%1$d件のサーバー</item>
-    </plurals>
     <string name="ui_style">インターフェースのスタイル</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>

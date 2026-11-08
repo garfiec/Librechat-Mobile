@@ -28,9 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.garfiec.librechat.core.common.extensions.formatLocalizedNumber
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
@@ -44,13 +42,11 @@ import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
-import com.garfiec.librechat.core.ui.datetime.LocalDateTimeFormat
 import com.garfiec.librechat.core.ui.platform.TextFileSaver
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.DataSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.PrefetchActivityViewModel
-import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -62,8 +58,6 @@ fun DataSettingsScreen(
     onNavigateToSharedLinks: () -> Unit,
     onNavigateToArtifactShortcuts: () -> Unit,
     onNavigateToPrefetchSettings: () -> Unit,
-    onNavigateToMemories: () -> Unit,
-    onNavigateToMcpServers: () -> Unit,
     onNavigateToCodeExecution: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -87,8 +81,6 @@ fun DataSettingsScreen(
             onNavigateToSharedLinks = onNavigateToSharedLinks,
             onNavigateToArtifactShortcuts = onNavigateToArtifactShortcuts,
             onNavigateToPrefetchSettings = onNavigateToPrefetchSettings,
-            onNavigateToMemories = onNavigateToMemories,
-            onNavigateToMcpServers = onNavigateToMcpServers,
             onNavigateToCodeExecution = onNavigateToCodeExecution,
             snackbarHostState = snackbarHostState,
             modifier = Modifier
@@ -108,8 +100,6 @@ fun DataSettingsContent(
     onNavigateToSharedLinks: () -> Unit,
     onNavigateToArtifactShortcuts: () -> Unit,
     onNavigateToPrefetchSettings: () -> Unit,
-    onNavigateToMemories: () -> Unit,
-    onNavigateToMcpServers: () -> Unit,
     onNavigateToCodeExecution: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
@@ -182,12 +172,6 @@ fun DataSettingsContent(
         logsSaverResult = null
     }
 
-    // Fires on first show and on every return from the Memories / MCP pages.
-    LifecycleResumeEffect(viewModel) {
-        viewModel.refreshSummaries()
-        onPauseOrDispose { }
-    }
-
     AdaptiveGroupedPage(modifier = modifier) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -250,25 +234,6 @@ fun DataSettingsContent(
                 }
             }
 
-            // Memories and MCP servers each live on their own page; the tab shows a summary row.
-            // MCP's is hidden without its USE permission; Memories' unless the role may reach the
-            // page at all (USE, plus READ or OPT_OUT).
-            if (uiState.serverMemoriesEnabled) {
-                item(key = "memories_header") {
-                    AdaptiveSectionHeader(stringResource(Res.string.section_memories))
-                }
-                adaptiveSection {
-                    row(key = "memories_row") {
-                        SelectorRow(
-                            title = stringResource(Res.string.section_memories),
-                            value = memoriesSummary(uiState.memoriesEnabled, uiState.memoryCount),
-                            onClick = onNavigateToMemories,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        )
-                    }
-                }
-            }
-
             // Web's Data controls › Code execution: the default workspace scope and the user's machines.
             if (uiState.codeExecutionEnabled) {
                 item(key = "code_execution_header") {
@@ -280,22 +245,6 @@ fun DataSettingsContent(
                             title = stringResource(Res.string.code_environments),
                             value = stringResource(Res.string.code_execution_summary),
                             onClick = onNavigateToCodeExecution,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        )
-                    }
-                }
-            }
-
-            if (uiState.mcpServersEnabled) {
-                item(key = "mcp_header") {
-                    AdaptiveSectionHeader(stringResource(Res.string.section_mcp_servers))
-                }
-                adaptiveSection {
-                    row(key = "mcp_row") {
-                        SelectorRow(
-                            title = stringResource(Res.string.section_mcp_servers),
-                            value = mcpSummary(uiState.mcpServerCount),
-                            onClick = onNavigateToMcpServers,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         )
                     }
@@ -425,27 +374,4 @@ internal fun DataExtraActions(
         }
         AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
     }
-}
-
-@Composable
-private fun memoriesSummary(enabled: Boolean?, count: Int?): String {
-    val localeTag = LocalDateTimeFormat.current.localeTag
-    return when {
-        enabled == false -> stringResource(Res.string.data_summary_off)
-        // A count only once the opt-out is known to be on: an opted-out user's count isn't "on".
-        enabled == null || count == null -> ""
-        count == 0 -> stringResource(Res.string.data_memories_none)
-        else -> pluralStringResource(
-            Res.plurals.data_memories_count,
-            count,
-            remember(count, localeTag) { formatLocalizedNumber(count.toDouble(), localeTag) },
-        )
-    }
-}
-
-@Composable
-private fun mcpSummary(count: Int?): String = when (count) {
-    null -> ""
-    0 -> stringResource(Res.string.data_summary_none)
-    else -> pluralStringResource(Res.plurals.data_mcp_servers_count, count, count)
 }

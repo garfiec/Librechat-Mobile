@@ -64,7 +64,6 @@
     <string name="section_danger_zone">Zone de danger</string>
     <string name="section_language_region">Langue et région</string>
     <string name="section_layout">Disposition</string>
-    <string name="section_mcp_servers">Serveurs MCP</string>
     <string name="section_prefetch">Préchargement en arrière-plan</string>
     <string name="prefetch_enabled">Précharger les conversations</string>
     <string name="prefetch_enabled_desc">Charger à l'avance les conversations récentes et épinglées pour qu'elles s'ouvrent instantanément. S'exécute lorsque l'application est inactive, et périodiquement pendant la recharge.</string>
@@ -130,7 +129,6 @@
     <string name="prefetch_cache_messages">Messages en cache</string>
     <string name="prefetch_cache_messages_value">%1$d messages</string>
     <string name="prefetch_cache_images">Images et fichiers</string>
-    <string name="section_memories">Mémoires</string>
     <string name="section_presets">Préréglages</string>
     <string name="section_profile">Profil</string>
     <string name="section_security">Sécurité</string>
@@ -844,17 +842,6 @@
     <string name="date_format_ymd_slash">Année/Mois/Jour</string>
     <string name="date_format_long">Long</string>
     <string name="date_time_preview">Aperçu</string>
-    <string name="data_summary_off">Désactivé</string>
-    <string name="data_summary_none">Aucun</string>
-    <string name="data_memories_none">Aucune</string>
-    <plurals name="data_memories_count">
-        <item quantity="one">%1$s enregistrée</item>
-        <item quantity="other">%1$s enregistrées</item>
-    </plurals>
-    <plurals name="data_mcp_servers_count">
-        <item quantity="one">%1$d serveur</item>
-        <item quantity="other">%1$d serveurs</item>
-    </plurals>
     <string name="ui_style">Style de l'interface</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>

@@ -64,7 +64,6 @@
     <string name="section_danger_zone">Опасная зона</string>
     <string name="section_language_region">Язык и регион</string>
     <string name="section_layout">Макет</string>
-    <string name="section_mcp_servers">Серверы MCP</string>
     <string name="section_prefetch">Фоновая предзагрузка</string>
     <string name="prefetch_enabled">Предзагрузка бесед</string>
     <string name="prefetch_enabled_desc">Заранее загружать последние и закреплённые беседы, чтобы они открывались мгновенно. Работает, пока приложение не занято, и периодически во время зарядки.</string>
@@ -130,7 +129,6 @@
     <string name="prefetch_cache_messages">Сообщения в кэше</string>
     <string name="prefetch_cache_messages_value">Сообщений: %1$d</string>
     <string name="prefetch_cache_images">Изображения и файлы</string>
-    <string name="section_memories">Память</string>
     <string name="section_presets">Пресеты</string>
     <string name="section_profile">Профиль</string>
     <string name="section_security">Безопасность</string>
@@ -870,21 +868,6 @@
     <string name="date_format_ymd_slash">Год/Месяц/День</string>
     <string name="date_format_long">Полный</string>
     <string name="date_time_preview">Предпросмотр</string>
-    <string name="data_summary_off">Выкл.</string>
-    <string name="data_summary_none">Нет</string>
-    <string name="data_memories_none">Нет</string>
-    <plurals name="data_memories_count">
-        <item quantity="one">Сохранено: %1$s</item>
-        <item quantity="few">Сохранено: %1$s</item>
-        <item quantity="many">Сохранено: %1$s</item>
-        <item quantity="other">Сохранено: %1$s</item>
-    </plurals>
-    <plurals name="data_mcp_servers_count">
-        <item quantity="one">Серверов: %1$d</item>
-        <item quantity="few">Серверов: %1$d</item>
-        <item quantity="many">Серверов: %1$d</item>
-        <item quantity="other">Серверов: %1$d</item>
-    </plurals>
     <string name="ui_style">Стиль интерфейса</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>

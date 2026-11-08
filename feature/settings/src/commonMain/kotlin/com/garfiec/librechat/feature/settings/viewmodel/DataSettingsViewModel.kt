@@ -3,33 +3,19 @@ package com.garfiec.librechat.feature.settings.viewmodel
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.BackendVersion
-import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.KeyRepository
-import com.garfiec.librechat.core.data.repository.McpRepository
-import com.garfiec.librechat.core.data.repository.MemoryRepository
-import com.garfiec.librechat.core.data.repository.RoleRepository
-import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
-import com.garfiec.librechat.core.model.permissions.Permission
-import com.garfiec.librechat.core.model.permissions.PermissionType
-import com.garfiec.librechat.core.model.permissions.canOpenMemories
-import com.garfiec.librechat.core.model.permissions.canReachMemoriesSettings
-import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.DataManagementDelegate
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 
 /** One-shot diagnostic-log export payload handed from the ViewModel to the platform file saver. */
 @Immutable
@@ -72,36 +58,18 @@ data class DataSettingsUiState(
      * has no events SharedFlow.
      */
     val logsExportReady: LogsExportPayload? = null,
-    // Summary rows for the Memories and MCP servers pages; null until read.
-    val memoryCount: Int? = null,
-    /**
-     * The user's own opt-out (`user.personalization.memories`), from the repository's shared
-     * flow; off shows the row as "Off". Null while unknown: the row then shows neither "Off" nor a
-     * count, since an opted-out user's count is not what the row means.
-     */
-    val memoriesEnabled: Boolean? = null,
-    val mcpServerCount: Int? = null,
-    // Role-permission gates. `serverMemoriesEnabled` is the role's MEMORIES USE plus READ or
-    // OPT_OUT (the list, or the opt-out switch alone) and is orthogonal to [memoriesEnabled]. Each
-    // hides its row entirely. The memory count needs READ as well; without it the row has no count.
-    val mcpServersEnabled: Boolean = true,
-    val serverMemoriesEnabled: Boolean = true,
     /** `agents.capabilities` has `stateful_code_sessions`, web's gate for Code execution. */
     val codeExecutionEnabled: Boolean = false,
 )
 
-/** Backs the Data tab: conversations, cache, keys, diagnostic logs, and the Memories / MCP summary rows. */
+/** Backs the Data tab: conversations, cache, keys and diagnostic logs. */
 // TooManyFunctions: one-line forwarders to the data delegate.
-@Suppress("LongParameterList", "TooManyFunctions")
+@Suppress("TooManyFunctions")
 class DataSettingsViewModel(
     cacheCleaner: PlatformCacheCleaner,
     conversationRepository: ConversationRepository,
     keyRepository: KeyRepository,
     diagnosticLogRepository: DiagnosticLogRepository,
-    private val mcpRepository: McpRepository,
-    private val memoryRepository: MemoryRepository,
-    roleRepository: RoleRepository,
-    private val permissionGate: PermissionGate,
     configRepository: ConfigRepository,
 ) : ViewModel() {
 
@@ -118,22 +86,17 @@ class DataSettingsViewModel(
     )
 
     /**
-     * Role gates are permissive while the role is null. `archiveAllSupported` is offered unless
-     * the server is KNOWN to predate the route: a dev build reporting the previous release, or one
-     * built past the commit-map pin, is the population most likely to HAVE it. See VERSION_GATES.md.
+     * `archiveAllSupported` is offered unless the server is KNOWN to predate the route: a dev build
+     * reporting the previous release, or one built past the commit-map pin, is the population most
+     * likely to HAVE it. See VERSION_GATES.md.
      */
     val uiState: StateFlow<DataSettingsUiState> = combine(
         _uiState,
-        roleRepository.userPermissions,
         configRepository.detectedBackend,
-        memoryRepository.memoriesEnabled,
         configRepository.endpointConfigs,
-    ) { state, role, backend, memoriesEnabled, endpoints ->
+    ) { state, backend, endpoints ->
         state.copy(
             codeExecutionEnabled = endpoints["agents"]?.capabilities?.contains(STATEFUL_CODE_SESSIONS) == true,
-            memoriesEnabled = memoriesEnabled,
-            mcpServersEnabled = role.hasAccessOrPermissive(PermissionType.MCP_SERVERS, Permission.USE),
-            serverMemoriesEnabled = role.canReachMemoriesSettings(),
             archiveAllSupported = state.archiveAllSupported &&
                 !BackendVersion.featureSupport(backend, minVersion = "0.8.8-rc2").isRuledOut,
         )
@@ -142,54 +105,6 @@ class DataSettingsViewModel(
     init {
         dataDelegate.loadLogsBufferSize()
         dataDelegate.loadCacheSize()
-    }
-
-    /**
-     * Re-reads what the Memories and MCP rows summarise. The screen calls it on every resume, so
-     * the rows catch up after the user edits on either page and comes back. The latest call wins:
-     * one still running may have read the counts before those edits, so it is replaced rather than
-     * left to answer.
-     */
-    fun refreshSummaries() {
-        summariesJob?.cancel()
-        summariesJob = viewModelScope.launch {
-            launch { loadOptOut() }
-            loadRoleGatedCounts()
-        }
-    }
-
-    private var summariesJob: Job? = null
-
-    /**
-     * The opt-out lives on the user profile. Read through the repository so it lands in the flow
-     * the Memories page writes and [uiState] reads; an absent block is the server default (on).
-     */
-    private suspend fun loadOptOut() {
-        val result = memoryRepository.refreshMemoriesPreference()
-        if (result is Result.Error) Logger.d(result.exception) { "Failed to load memories opt-out: ${result.message}" }
-    }
-
-    /**
-     * Gated loads share a single 5-second role-await budget so offline/timeout launches
-     * don't serialize into N×5s. `role?.hasAccess(...) != false` preserves permissive
-     * default: null role → true, missing type/action → true.
-     */
-    private suspend fun loadRoleGatedCounts() {
-        coroutineScope {
-            val role = permissionGate.awaitRole()
-            if (role?.hasAccess(PermissionType.MCP_SERVERS, Permission.USE) != false) {
-                launch {
-                    val result = mcpRepository.listServers()
-                    if (result is Result.Success) _uiState.update { it.copy(mcpServerCount = result.data.size) }
-                }
-            }
-            if (role.canOpenMemories()) {
-                launch {
-                    val result = memoryRepository.getMemories()
-                    if (result is Result.Success) _uiState.update { it.copy(memoryCount = result.data.memories.size) }
-                }
-            }
-        }
     }
 
     fun dismissError() {

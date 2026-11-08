@@ -30,14 +30,11 @@
     layout at `MessageBubble`'s measures (sharing `BubbleShape`). Change one, change the other.
   - `ForkSettingsDialog`: labels come from `fork_mode_*` strings via `forkModeLabel()` /
     `forkModeDescription()`, not from the enum.
-- **Data** (`DataSettingsViewModel`, hosts `DataManagementDelegate`): summary rows for Memories, MCP
-  servers, Shared chats, prefetch, code execution. Summaries reload on every resume (`refreshSummaries`);
-  a resume while a refresh runs replaces it, so a stale count can't land last.
-  - MCP row hidden without MCP_SERVERS USE. Memories row hidden unless `canReachMemoriesSettings()`
-    (USE + READ or OPT_OUT); its count is fetched only with READ (`canOpenMemories()`). It shows nothing
-    while `memoriesEnabled` is null: "Off" only when false, the count only when true.
+- **Data** (`DataSettingsViewModel`, hosts `DataManagementDelegate`): summary rows for Shared chats,
+  prefetch, code execution. Memories and MCP servers open from the drawer's Workspace tray
+  (`:feature:conversations`), not from Settings.
   - `archiveAllSupported` means "the server has not 404'd it" and is ANDed with the version gate in the
-    `uiState` combine, where all role gates are derived.
+    `uiState` combine.
 - **Account** (`AccountSettingsViewModel`, hosts `AccountDelegate` + `TwoFactorSecurityDelegate`): loads
   the profile and balance only. Role-admin rows show only when `isAdmin` (fail-closed).
 
@@ -47,7 +44,7 @@
   re-runs only a `MemoryOperation.Retryable`. A save fails into its own sheet (`saveFailure`), whose Save
   is the retry; no sheet can be closed or opened over one mid-save. Strings in
   `screen/MemoryFailureText.kt`; only a server 400's own sentence is shown verbatim.
-- Gates: the Data row uses `canReachMemoriesSettings()` (opt-out needs no READ), chat's Manage uses
+- Gates: the Workspace row uses `canReachMemoriesSettings()` (opt-out needs no READ), chat's Manage uses
   `canOpenMemories()`. When the list is denied (no READ, or first-load 403): a role that may opt out gets
   `switchOnly` (the list is never requested without READ), others get `noAccess`. After a 403 the switch
   stays only on an explicit OPT_OUT grant (the 403 may mean USE is missing).

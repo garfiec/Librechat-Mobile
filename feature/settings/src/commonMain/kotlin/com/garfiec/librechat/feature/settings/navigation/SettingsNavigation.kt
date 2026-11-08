@@ -58,8 +58,6 @@ fun EntryProviderScope<NavKey>.settingsEntries(
             onNavigateToSharedLinks = { onNavigate(SharedLinks) },
             onNavigateToArtifactShortcuts = { onNavigate(ArtifactShortcuts) },
             onNavigateToPrefetchSettings = { onNavigate(PrefetchSettings) },
-            onNavigateToMemories = { onNavigate(Memories) },
-            onNavigateToMcpServers = { onNavigate(McpServers) },
             onNavigateToCodeExecution = { onNavigate(CodeExecution) },
             onNavigateToPresets = { onNavigate(PresetManager) },
             onNavigateToContextUsage = { onNavigate(ContextUsageSettings) },
