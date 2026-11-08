@@ -53,6 +53,8 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CodeWorkspaceDelegateTest {
@@ -119,12 +121,13 @@ class CodeWorkspaceDelegateTest {
         decisionVersion: Int? = 1,
         moveVersions: Boolean = false,
         lastApproval: String? = null,
+        // Its own scheduler: the status poll waits 10 s between reads, and on the test's scheduler
+        // runTest would keep advancing through it for ever. Unconfined runs each read at once.
+        scope: TestScope = TestScope(UnconfinedTestDispatcher()),
+        clock: Clock = Clock.System,
         body: suspend TestScope.(MutableStateFlow<ChatUiState>, CodeWorkspaceDelegate) -> Unit,
     ) = runTest(UnconfinedTestDispatcher()) {
         val flow = MutableStateFlow(initial)
-        // Its own scheduler: the status poll waits 10 s between reads, and on the test's scheduler
-        // runTest would keep advancing through it for ever. Unconfined runs each read at once.
-        val scope = TestScope(UnconfinedTestDispatcher())
         val config = mockk<ConfigRepository> {
             every { startupConfig } returns MutableStateFlow(
                 StartupConfig(
@@ -143,7 +146,7 @@ class CodeWorkspaceDelegateTest {
             coEvery { lastApprovalMode() } returns lastApproval
         }
         val delegate =
-            CodeWorkspaceDelegate(CodeWorkspaceHandle(ChatStateHandle(flow, scope)), config, roles, environments, prefs)
+            CodeWorkspaceDelegate(CodeWorkspaceHandle(ChatStateHandle(flow, scope)), config, roles, environments, prefs, clock)
         try {
             delegate.start()
             body(flow, delegate)
@@ -180,6 +183,58 @@ class CodeWorkspaceDelegateTest {
                 .isEqualTo(CodeWorkspaceSubmission(mode = CodeEnvironmentMode.WITHOUT_ATTACHED))
             assertThat(delegate.sendsWithoutWorkspace()).isTrue()
             assertThat(flow.value.codeWorkspace.workspace.label).isEqualTo(CodeWorkspaceChipLabel.UNAVAILABLE)
+        }
+    }
+
+    @Test
+    fun `a failed status read holds the send`() {
+        val failed = Result.Error(exception = ApiException(statusCode = 502, message = "bad gateway"))
+        withDelegate(state(), FakeEnvironments(failed)) { flow, delegate ->
+            assertThat(delegate.submissionForSend()).isNull()
+            assertThat(delegate.sendsWithoutWorkspace()).isFalse()
+            assertThat(flow.value.codeWorkspace.holdsSend).isTrue()
+        }
+    }
+
+    @Test
+    fun `a failed re-read holds the send, and the pre-selection returns with the next good read`() {
+        val environments = FakeEnvironments(ready(switchboard))
+        withDelegate(state(), environments) { flow, delegate ->
+            environments.status = Result.Error(exception = ApiException(statusCode = 502, message = "bad gateway"))
+            delegate.refresh()
+            assertThat(environments.statusCalls).isEqualTo(2)
+            assertThat(delegate.submissionForSend()).isNull()
+            assertThat(flow.value.codeWorkspace.workspace.label).isEqualTo(CodeWorkspaceChipLabel.UNAVAILABLE)
+
+            environments.status = ready(switchboard)
+            delegate.refresh()
+            assertThat(delegate.submissionForSend()?.workspaces).containsExactly(CodeWorkspaceSelection(mbp.id, "switchboard"))
+        }
+    }
+
+    @Test
+    fun `a rate-limited status read waits out the backoff before reading again`() {
+        val poll = TestScope(UnconfinedTestDispatcher())
+        val clock = object : Clock {
+            override fun now() = Instant.fromEpochMilliseconds(poll.testScheduler.currentTime)
+        }
+        val limited = Result.Error(exception = ApiException(statusCode = 429, message = "slow down"))
+        val environments = FakeEnvironments(limited)
+        withDelegate(state(), environments, scope = poll, clock = clock) { _, _ ->
+            assertThat(environments.statusCalls).isEqualTo(1)
+            poll.testScheduler.advanceTimeBy(20_000)
+            assertThat(environments.statusCalls).isEqualTo(1)
+            poll.testScheduler.advanceTimeBy(11_000)
+            assertThat(environments.statusCalls).isEqualTo(2)
+        }
+    }
+
+    @Test
+    fun `a machine that answered 404 is gone and sends no workspace`() {
+        val gone = Result.Error(exception = ApiException(statusCode = 404, message = "not found"))
+        withDelegate(state(), FakeEnvironments(gone)) { _, delegate ->
+            assertThat(delegate.submissionForSend())
+                .isEqualTo(CodeWorkspaceSubmission(mode = CodeEnvironmentMode.WITHOUT_ATTACHED))
         }
     }
 

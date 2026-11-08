@@ -98,6 +98,24 @@ class AgentCodeSettingsTest {
     }
 
     @Test
+    fun withNothingSavedThePickerStillSaysWhyNoWorkspacesAreListed() {
+        val settings = AgentCodeSettings.of(saved).copy(workspaceId = "")
+        fun discovery(status: AgentCodeMachineStatus?) =
+            agentCodeSection(settings, config, available = true, codeEnabled = true, status, false)?.attached?.discovery
+        assertEquals(AgentCodeWorkspaceState.LOADING, discovery(null))
+        assertEquals(AgentCodeWorkspaceState.UNAVAILABLE, discovery(AgentCodeMachineStatus(mbp.id, null, failed = true)))
+        assertEquals(
+            AgentCodeWorkspaceState.UNAVAILABLE,
+            discovery(AgentCodeMachineStatus(mbp.id, CodeEnvironmentStatus(mbp.id, "offline"), failed = false)),
+        )
+        assertEquals(
+            AgentCodeWorkspaceState.UNSUPPORTED,
+            discovery(AgentCodeMachineStatus(mbp.id, CodeEnvironmentStatus(mbp.id, "ready", null), failed = false)),
+        )
+        assertNull(discovery(AgentCodeMachineStatus(mbp.id, CodeEnvironmentStatus(mbp.id, "ready", emptyList()), failed = false)))
+    }
+
+    @Test
     fun aManagedMachineHidesTheAttachedFieldsAndNoCapabilityHidesEverything() {
         val onDefault = AgentCodeSettings(statefulSessions = true)
         val view = assertNotNull(agentCodeSection(onDefault, config, available = true, codeEnabled = true, null, false))

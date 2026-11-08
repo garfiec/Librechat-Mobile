@@ -742,10 +742,11 @@ neither `codeEnvironmentMode` nor `codeWorkspaces` is sealed "No workspace" for 
 - A send carries `submissionForSend()`: the decision on a new or undecided chat, nothing on a decided
   one (resending could only be `locked`). A queued spec snapshots it at queue time. Divergence: with
   workspaces to pick and none picked, the send is held; with nothing to pick it sends "No workspace"
-  and says so (`CODE_WORKSPACE_SENT_WITHOUT`).
+  and says so (`CODE_WORKSPACE_SENT_WITHOUT`). A failed status read is not "nothing to pick": only a
+  machine that answered (offline, not ready, no workspaces) or a 404 is.
 - The saved decision is read live (no Room), only when a coding agent is in the chat, and again when
   a run ends. Read the live value before re-fetching (`combine` can hand a superseded `Pending`).
-- Poll every 10 s only while visible and foregrounded; 30 s after a 503/504; never after a 404; read
+- Poll every 10 s only while visible and foregrounded; 30 s after a 429/503/504; never after a 404; read
   once whenever the machine set changes. Compare the poll target before launching: on an immediate
   dispatcher the launch runs inline and re-enters `retarget`.
 - `code_workspace_unavailable` rejections carry their `reason` in the marker;

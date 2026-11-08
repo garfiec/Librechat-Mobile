@@ -173,7 +173,10 @@ private fun AttachedMachineFields(
         selectedKey = attached.workspaceId,
         options = workspaceOptions,
         onSelect = { onEvent(AgentCodeEvent.Workspace(it)) },
-        help = listOfNotNull(savedState, stringResource(Res.string.code_workspace_default_info)).joinToString("\n"),
+        help = listOfNotNull(
+            attached.discovery?.let { workspaceStateLabel(it) },
+            stringResource(Res.string.code_workspace_default_info),
+        ).joinToString("\n"),
     )
     CodeDropdownField(
         label = stringResource(Res.string.repository_instructions),

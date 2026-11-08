@@ -24,7 +24,12 @@ object CodeWorkspaceResolver {
     /** One machine's status poll. */
     sealed interface StatusResult {
         data object Loading : StatusResult
+
+        /** The read failed; says nothing about the machine, so it never sends "No workspace". */
         data object Failed : StatusResult
+
+        /** The server answered 404: the machine is gone. */
+        data object Gone : StatusResult
         data class Loaded(val status: CodeEnvironmentStatus) : StatusResult
     }
 
@@ -464,7 +469,8 @@ object CodeWorkspaceResolver {
         // only when there is nothing to pick at all.
         val implicitWithout = !locked && explicitMode == null &&
             web?.mode == CodeEnvironmentMode.WITHOUT_ATTACHED
-        val nothingToPick = state == State.UNAVAILABLE || state == State.UNSUPPORTED
+        val readFailed = environmentResults.any { statuses[it.environment.id] is StatusResult.Failed }
+        val nothingToPick = (state == State.UNAVAILABLE || state == State.UNSUPPORTED) && !readFailed
         val submission = when {
             web == null -> null
             // The server applies a recorded decision to a turn that sends none.

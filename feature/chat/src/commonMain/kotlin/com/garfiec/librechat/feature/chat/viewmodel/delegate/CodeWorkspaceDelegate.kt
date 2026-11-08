@@ -64,7 +64,7 @@ import kotlin.time.Instant
  *   Until it is known the send waits; if it cannot be read the send carries nothing, which keeps
  *   whatever the server recorded.
  * - **Status is polled every [POLL_MS]** while the row is visible and the app is in front, 30 s
- *   after a 503/504, and never again for a machine that answered 404. One read is always made when
+ *   after a 429/503/504, and never again for a machine that answered 404. One read is always made when
  *   the set of machines changes, since the row's visibility itself depends on it.
  * - **A saved chat's decision changes only through a transition** (move, attach, detach, recover:
  *   `PATCH …/decision`). The send waits while one is in flight, and the server's answer becomes the
@@ -483,12 +483,13 @@ class CodeWorkspaceDelegate(
             val next = when (result) {
                 is Result.Success -> StatusResult.Loaded(result.data)
                 is Result.Error -> {
-                    when ((result.exception as? ApiException)?.statusCode) {
+                    val code = (result.exception as? ApiException)?.statusCode
+                    when (code) {
                         HTTP_NOT_FOUND -> goneMachines.add(id)
-                        HTTP_UNAVAILABLE, HTTP_TIMEOUT -> backoffUntil = clock.now() + BACKOFF_MS.milliseconds
+                        HTTP_TOO_MANY, HTTP_UNAVAILABLE, HTTP_TIMEOUT -> backoffUntil = clock.now() + BACKOFF_MS.milliseconds
                     }
                     Logger.d { "Code machine status failed: ${result.message}" }
-                    StatusResult.Failed
+                    if (code == HTTP_NOT_FOUND) StatusResult.Gone else StatusResult.Failed
                 }
                 Result.Loading -> null
             }
@@ -699,6 +700,7 @@ class CodeWorkspaceDelegate(
         const val BACKOFF_MS = 30_000L
         val MIN_REFETCH = 9.seconds
         const val HTTP_NOT_FOUND = 404
+        const val HTTP_TOO_MANY = 429
         const val HTTP_UNAVAILABLE = 503
         const val HTTP_TIMEOUT = 504
     }

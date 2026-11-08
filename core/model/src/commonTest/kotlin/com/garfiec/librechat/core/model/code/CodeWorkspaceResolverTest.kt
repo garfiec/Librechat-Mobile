@@ -189,6 +189,20 @@ class CodeWorkspaceResolverTest {
     }
 
     @Test
+    fun aFailedStatusReadHoldsTheSendRatherThanSendingNoWorkspace() {
+        val result = CodeWorkspaceResolver.resolve(
+            capabilities(),
+            newChat(),
+            mapOf(dev.id to dev),
+            mapOf(mbp.id to StatusResult.Failed),
+        )
+        assertEquals(State.UNAVAILABLE, result.state)
+        assertNull(result.submission)
+        assertFalse(result.canSubmit)
+        assertFalse(result.sendsWithoutWorkspaceForLackOfChoice)
+    }
+
+    @Test
     fun withoutTheDecisionVersionNothingIsSentWithoutAWorkspace() {
         val offline = StatusResult.Loaded(CodeEnvironmentStatus(mbp.id, "offline"))
         val result = CodeWorkspaceResolver.resolve(

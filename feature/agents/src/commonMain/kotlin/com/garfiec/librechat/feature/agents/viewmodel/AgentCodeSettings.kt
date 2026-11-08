@@ -181,6 +181,8 @@ data class AgentCodeAttachedView(
     val workspaceId: String,
     /** Why the saved default isn't among [workspaces]; null when it is, or none is saved. */
     val workspaceState: AgentCodeWorkspaceState?,
+    /** Why the machine lists no workspaces, saved default or not (web's `workspaceDiscoveryState`); null when ready. */
+    val discovery: AgentCodeWorkspaceState?,
     val repositoryInstructions: String,
     val gitName: String,
     val gitEmail: String,
@@ -228,17 +230,21 @@ internal fun agentCodeSection(
         val loaded = status?.status?.takeIf { it.environmentId == machine.id && it.isReady }
         val workspaces = loaded?.workspaces.orEmpty().map { AgentCodeWorkspaceOption(it.id, it.displayName) }
         val saved = settings.workspaceId
-        val workspaceState = when {
-            saved.isEmpty() || workspaces.any { it.id == saved } -> null
+        val discovery = when {
             status == null || (status.status == null && !status.failed) -> AgentCodeWorkspaceState.LOADING
             loaded == null -> AgentCodeWorkspaceState.UNAVAILABLE
             loaded.workspaces == null -> AgentCodeWorkspaceState.UNSUPPORTED
-            else -> AgentCodeWorkspaceState.MISSING
+            else -> null
+        }
+        val workspaceState = when {
+            saved.isEmpty() || workspaces.any { it.id == saved } -> null
+            else -> discovery ?: AgentCodeWorkspaceState.MISSING
         }
         AgentCodeAttachedView(
             workspaces = workspaces,
             workspaceId = saved,
             workspaceState = workspaceState,
+            discovery = discovery,
             repositoryInstructions = settings.repositoryInstructions ?: RepositoryInstructions.PREFER,
             gitName = settings.gitName,
             gitEmail = settings.gitEmail,

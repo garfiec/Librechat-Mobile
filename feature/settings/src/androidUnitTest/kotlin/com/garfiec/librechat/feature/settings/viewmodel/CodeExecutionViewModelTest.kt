@@ -110,6 +110,32 @@ class CodeExecutionViewModelTest {
     }
 
     @Test
+    fun `an unread saved scope is not shown as the default`() = runTest {
+        coEvery { users.getUser() } returns Result.Error(message = "offline")
+        val model = viewModel()
+        assertThat(model.uiState.value.scope).isNull()
+        assertThat(model.uiState.value.scopeLoadFailed).isTrue()
+
+        coEvery { users.getUser() } returns Result.Success(
+            User(email = "m@x.dev", personalization = UserPersonalization(statefulCodeEnvironment = "conversation")),
+        )
+        model.loadScope()
+        assertThat(model.uiState.value.scopeLoadFailed).isFalse()
+        assertThat(model.uiState.value.scope!!.selected).isEqualTo("conversation")
+    }
+
+    @Test
+    fun `a failed reload after a removal says so and keeps the rows`() = runTest {
+        coEvery { machines.remove("code-1") } returns null
+        val model = viewModel()
+        coEvery { machines.list() } returns Result.Error(message = "offline")
+        model.requestRemoval("code-1")
+        model.confirmRemoval()
+        assertThat(model.uiState.value.loadFailed).isTrue()
+        assertThat(model.uiState.value.machines).hasSize(1)
+    }
+
+    @Test
     fun `pairing shows the one-time command for the chosen shell`() = runTest {
         coEvery { machines.pair("Dev VM", "plane") } returns CodePairingOutcome.Paired(
             CodeEnvironmentPairingResponse(
