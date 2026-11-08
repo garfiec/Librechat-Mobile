@@ -103,7 +103,7 @@ class SafeErrorMessageTest {
     }
 
     @Test
-    fun `cleartext the platform refuses is its own category, with a message that says what to use`() {
+    fun `cleartext the platform refuses is its own category with a message that names https`() {
         val error = IllegalStateException("outer", CleartextBlockedException()).toSafeError()
 
         assertEquals(FailureKind.CleartextBlocked, error.kind)
