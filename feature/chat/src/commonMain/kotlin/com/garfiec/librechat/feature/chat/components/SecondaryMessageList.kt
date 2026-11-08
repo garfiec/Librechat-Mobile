@@ -58,6 +58,8 @@ fun SecondaryMessageList(
     showBubbles: Boolean = false,
     useKatex: Boolean = false,
     bottomContentPadding: Dp = 160.dp,
+    /** Where the jump-to-bottom button floats, as in [MessageList]. */
+    scrollToBottomPadding: Dp? = null,
     /** The user's own name and avatar, so pane B labels their messages as pane A does. */
     userAvatarUrl: String? = null,
     userName: String? = null,
@@ -255,7 +257,7 @@ fun SecondaryMessageList(
                 backdrop = null,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = scrollToBottomButtonPadding(bottomContentPadding)),
+                    .padding(bottom = scrollToBottomPadding ?: scrollToBottomButtonPadding(bottomContentPadding)),
             )
         }
     }

@@ -59,6 +59,8 @@ internal fun ComparisonPanes(
     bottomContentPadding: Dp,
     /** Where the side-by-side cards end; see ChatScreen. */
     paneBottomInset: Dp,
+    /** Where the jump-to-bottom button floats over the composer; see ChatScreen. */
+    scrollToBottomPadding: Dp?,
     onCopyMessage: (String) -> Unit,
     onShowSecondaryModelSheet: () -> Unit,
     onComparisonTabChange: (Int) -> Unit,
@@ -138,6 +140,7 @@ internal fun ComparisonPanes(
     // Side by side, the cards themselves end above the composer, so a list inside one needs only
     // a little room at its foot; the tab pager's lists run under the composer and need all of it.
     val listBottomPadding = if (wide) PaneListBottomPadding else bottomContentPadding
+    val paneScrollToBottomPadding = if (wide) null else scrollToBottomPadding
 
     // Reading room past the last line, so a reply's end can be scrolled up clear of the composer.
     // The same in both panes, so their ends still meet. Measured from pane A's list; both panes are
@@ -227,6 +230,7 @@ internal fun ComparisonPanes(
                 jumpPending = uiState.jumpPending,
                 onSearchScrollHandle = viewModel::onSearchScrollHandled,
                 bottomContentPadding = listBottomPadding,
+                scrollToBottomPadding = paneScrollToBottomPadding,
                 // The comparison container is already padded clear of the floating bar.
                 topContentPadding = 0.dp,
                 syncHold = syncHold,
@@ -268,6 +272,7 @@ internal fun ComparisonPanes(
                 showBubbles = showBubbles,
                 useKatex = useKatex,
                 bottomContentPadding = listBottomPadding,
+                scrollToBottomPadding = paneScrollToBottomPadding,
                 userAvatarUrl = uiState.userAvatarUrl,
                 userName = uiState.userName,
                 listState = secondaryListState,
