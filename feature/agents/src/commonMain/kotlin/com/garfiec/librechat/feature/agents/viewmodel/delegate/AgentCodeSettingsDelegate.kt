@@ -136,11 +136,18 @@ internal class AgentCodeSettingsDelegate(
         update { copy(statefulSessions = enabled) }
         if (!enabled) return
         stateHandle.scope.launch {
-            if (!defaultScopeLoaded) {
-                defaultScope = (users.getUser() as? Result.Success)?.data?.personalization?.statefulCodeEnvironment
-                defaultScopeLoaded = true
-            }
             val allowed = stateHandle.state.statefulCodeConfig?.allowedEnvironments
+            if (!defaultScopeLoaded) {
+                val user = users.getUser()
+                if (user is Result.Success) {
+                    defaultScope = user.data.personalization?.statefulCodeEnvironment
+                    defaultScopeLoaded = true
+                } else if (StatefulCodeScope.USER in StatefulCodeScope.allowed(allowed)) {
+                    // Unread, the scope stays unset (saved as the server's own `user`) and the next
+                    // toggle reads again. Where `user` isn't allowed, unset would be refused on save.
+                    return@launch
+                }
+            }
             update {
                 if (scope != null && scope in StatefulCodeScope.allowed(allowed)) {
                     this

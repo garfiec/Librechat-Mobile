@@ -179,6 +179,20 @@ private fun eventMessage(event: CodeExecutionEvent): StringResource = when (even
 }
 
 private fun LazyListScope.defaultScopeSection(state: CodeExecutionUiState, viewModel: CodeExecutionViewModel) {
+    if (state.scopeLoadFailed) {
+        item(key = "scope_header") { AdaptiveSectionHeader(stringResource(Res.string.default_stateful_workspace)) }
+        item(key = "scope_error") {
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Text(
+                    stringResource(Res.string.memories_use_load_failed),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                AdaptiveTextButton(onClick = viewModel::loadScope) { Text(stringResource(Res.string.code_environment_retry)) }
+            }
+        }
+        return
+    }
     val scope = state.scope ?: return
     item(key = "scope_header") { AdaptiveSectionHeader(stringResource(Res.string.default_stateful_workspace)) }
     adaptiveSection {

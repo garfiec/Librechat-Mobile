@@ -85,6 +85,7 @@ data class CodeExecutionUiState(
     /** Null until the user's saved scope has been read. */
     val scope: CodeScopeSetting? = null,
     val scopeLoaded: Boolean = false,
+    val scopeLoadFailed: Boolean = false,
     val scopeSaving: Boolean = false,
     val loading: Boolean = true,
     val loadFailed: Boolean = false,
@@ -163,10 +164,20 @@ class CodeExecutionViewModel(
 
     init {
         load()
+        loadScope()
+    }
+
+    /** Never shows a fallback as the saved value: a failed read shows as failed, with Retry. */
+    fun loadScope() {
+        state.update { it.copy(scopeLoadFailed = false) }
         viewModelScope.launch {
-            (users.getUser() as? Result.Success)?.data?.personalization?.statefulCodeEnvironment
-                ?.let { savedScope.value = it }
-            state.update { it.copy(scopeLoaded = true) }
+            val user = users.getUser()
+            if (user is Result.Success) {
+                user.data.personalization?.statefulCodeEnvironment?.let { savedScope.value = it }
+                state.update { it.copy(scopeLoaded = true) }
+            } else {
+                state.update { it.copy(scopeLoadFailed = true) }
+            }
         }
     }
 
@@ -186,7 +197,7 @@ class CodeExecutionViewModel(
                     }
                     readStatuses()
                 }
-                else -> state.update { it.copy(loading = false, loadFailed = summaries.value.isEmpty()) }
+                else -> state.update { it.copy(loading = false, loadFailed = true) }
             }
         }
     }
