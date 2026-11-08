@@ -64,7 +64,6 @@
     <string name="section_danger_zone">منطقة الخطر</string>
     <string name="section_language_region">اللغة والمنطقة</string>
     <string name="section_layout">التخطيط</string>
-    <string name="section_mcp_servers">خوادم MCP</string>
     <string name="section_prefetch">التحميل المسبق في الخلفية</string>
     <string name="prefetch_enabled">تحميل المحادثات مسبقًا</string>
     <string name="prefetch_enabled_desc">تحميل المحادثات الحديثة والمثبتة مسبقًا لتُفتح فورًا. يعمل عندما يكون التطبيق خاملًا، ودوريًا أثناء الشحن.</string>
@@ -130,7 +129,6 @@
     <string name="prefetch_cache_messages">الرسائل المخزّنة مؤقتًا</string>
     <string name="prefetch_cache_messages_value">%1$d رسالة</string>
     <string name="prefetch_cache_images">الصور والملفات</string>
-    <string name="section_memories">الذكريات</string>
     <string name="section_presets">الإعدادات المسبقة</string>
     <string name="section_profile">الملف الشخصي</string>
     <string name="section_security">الأمان</string>
@@ -896,25 +894,6 @@
     <string name="date_format_ymd_slash">سنة/شهر/يوم</string>
     <string name="date_format_long">طويل</string>
     <string name="date_time_preview">معاينة</string>
-    <string name="data_summary_off">متوقف</string>
-    <string name="data_summary_none">لا شيء</string>
-    <string name="data_memories_none">لا شيء</string>
-    <plurals name="data_memories_count">
-        <item quantity="zero">المحفوظة: %1$s</item>
-        <item quantity="one">المحفوظة: %1$s</item>
-        <item quantity="two">المحفوظة: %1$s</item>
-        <item quantity="few">المحفوظة: %1$s</item>
-        <item quantity="many">المحفوظة: %1$s</item>
-        <item quantity="other">المحفوظة: %1$s</item>
-    </plurals>
-    <plurals name="data_mcp_servers_count">
-        <item quantity="zero">الخوادم: %1$d</item>
-        <item quantity="one">الخوادم: %1$d</item>
-        <item quantity="two">الخوادم: %1$d</item>
-        <item quantity="few">الخوادم: %1$d</item>
-        <item quantity="many">الخوادم: %1$d</item>
-        <item quantity="other">الخوادم: %1$d</item>
-    </plurals>
     <string name="ui_style">نمط الواجهة</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>

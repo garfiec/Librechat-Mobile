@@ -185,8 +185,6 @@ class ChatConfigDelegate(
                         memoryEnabled = role.hasAccessOrPermissive(PermissionType.MEMORIES, Permission.USE) &&
                             role.hasAccessOrPermissive(PermissionType.MEMORIES, Permission.CREATE) &&
                             role.hasAccessOrPermissive(PermissionType.MEMORIES, Permission.UPDATE),
-                        // The memory card's Manage action opens the Memories page, so it is gated
-                        // like the Data tab row that opens the same page: USE + READ.
                         memoriesPageEnabled = role.canOpenMemories(),
                         skillsEnabled = role.hasAccessOrPermissive(PermissionType.SKILLS, Permission.USE),
                         // Pinned tools (v0.8.7): raw interface list; mapped and gated by settingChipsOf.

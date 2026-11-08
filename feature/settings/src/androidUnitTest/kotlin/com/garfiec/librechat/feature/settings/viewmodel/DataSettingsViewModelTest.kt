@@ -5,22 +5,13 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.KeyRepository
-import com.garfiec.librechat.core.data.repository.McpRepository
-import com.garfiec.librechat.core.data.repository.MemoryRepository
-import com.garfiec.librechat.core.data.repository.RoleRepository
-import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.DiagnosticLogRepository
-import com.garfiec.librechat.core.model.Memory
-import com.garfiec.librechat.core.model.mcp.McpServer
-import com.garfiec.librechat.core.model.permissions.UserRolePermissions
-import com.garfiec.librechat.core.model.response.MemoriesResponse
 import com.garfiec.librechat.feature.settings.util.PlatformCacheCleaner
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,15 +31,9 @@ class DataSettingsViewModelTest {
 
     private val cacheCleaner = mockk<PlatformCacheCleaner>(relaxed = true)
     private val conversationRepository = mockk<ConversationRepository>(relaxed = true)
-    private val mcpRepository = mockk<McpRepository>(relaxed = true)
-    private val memoryRepository = mockk<MemoryRepository>(relaxed = true)
     private val keyRepository = mockk<KeyRepository>(relaxed = true)
-    private val roleRepository = mockk<RoleRepository>(relaxed = true)
-    private val permissionGate = mockk<PermissionGate>(relaxed = true)
     private val configRepository = mockk<ConfigRepository>(relaxed = true)
     private val diagnosticLogRepository = mockk<DiagnosticLogRepository>(relaxed = true)
-
-    private val memoriesEnabled = MutableStateFlow<Boolean?>(null)
 
     private lateinit var viewModel: DataSettingsViewModel
 
@@ -56,20 +41,6 @@ class DataSettingsViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
 
-        // Setup default API responses
-        every { memoryRepository.memoriesEnabled } returns memoriesEnabled
-        coEvery { memoryRepository.refreshMemoriesPreference() } coAnswers {
-            memoriesEnabled.value = true
-            Result.Success(true)
-        }
-        coEvery { mcpRepository.listServers() } returns Result.Success(emptyList())
-        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(emptyMap())
-        coEvery { memoryRepository.getMemories() } returns Result.Success(MemoriesResponse())
-
-        // Permissive-null defaults so existing tests continue to exercise the
-        // same load paths via the `?: != false` idiom.
-        every { roleRepository.userPermissions } returns MutableStateFlow(null)
-        coEvery { permissionGate.awaitRole() } returns null
         every { configRepository.startupConfig } returns MutableStateFlow(null)
         // uiState combines these, so a relaxed (never-emitting) stub would stall it.
         every { configRepository.detectedBackendVersion } returns MutableStateFlow(null)
@@ -87,10 +58,6 @@ class DataSettingsViewModelTest {
         conversationRepository = conversationRepository,
         keyRepository = keyRepository,
         diagnosticLogRepository = diagnosticLogRepository,
-        mcpRepository = mcpRepository,
-        memoryRepository = memoryRepository,
-        roleRepository = roleRepository,
-        permissionGate = permissionGate,
         configRepository = configRepository,
     )
 
@@ -213,189 +180,5 @@ class DataSettingsViewModelTest {
 
         assertThat(viewModel.uiState.value.archiveAllSupported).isFalse()
         assertThat(viewModel.uiState.value.error).contains("doesn't support archiving")
-    }
-
-    @Test
-    fun `summaries are read on refresh, not on creation`() = runTest {
-        coEvery { mcpRepository.listServers() } returns Result.Success(
-            listOf(
-                McpServer(name = "a", url = "http://a"),
-                McpServer(name = "b", url = "http://b"),
-            ),
-        )
-        coEvery { memoryRepository.getMemories() } returns Result.Success(MemoriesResponse())
-        viewModel = createViewModel()
-        advanceUntilIdle()
-        assertThat(viewModel.uiState.value.mcpServerCount).isNull()
-        coVerify(exactly = 0) { mcpRepository.listServers() }
-
-        viewModel.refreshSummaries()
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.mcpServerCount).isEqualTo(2)
-        assertThat(viewModel.uiState.value.memoryCount).isEqualTo(0)
-        assertThat(viewModel.uiState.value.memoriesEnabled).isTrue()
-    }
-
-    @Test
-    fun `the memories opt-out is read through the repository on refresh`() = runTest {
-        coEvery { memoryRepository.refreshMemoriesPreference() } coAnswers {
-            memoriesEnabled.value = false
-            Result.Success(false)
-        }
-        viewModel = createViewModel()
-        viewModel.refreshSummaries()
-        advanceUntilIdle()
-
-        coVerify(exactly = 1) { memoryRepository.refreshMemoriesPreference() }
-        assertThat(viewModel.uiState.value.memoriesEnabled).isFalse()
-    }
-
-    /** The Memories page writes the same flow, so its switch reaches this row without a re-read. */
-    @Test
-    fun `the row follows the shared opt-out flow`() = runTest {
-        viewModel = createViewModel()
-        memoriesEnabled.value = true
-        advanceUntilIdle()
-        assertThat(viewModel.uiState.value.memoriesEnabled).isTrue()
-
-        memoriesEnabled.value = false
-        advanceUntilIdle()
-        assertThat(viewModel.uiState.value.memoriesEnabled).isFalse()
-
-        // Unknown (an account switch reset it) reads neither as "Off" nor as on.
-        memoriesEnabled.value = null
-        advanceUntilIdle()
-        assertThat(viewModel.uiState.value.memoriesEnabled).isNull()
-    }
-
-    /**
-     * An opted-out user whose opt-out could not be read must not see a count, as if memory were on:
-     * unknown stays unknown rather than defaulting to on.
-     */
-    @Test
-    fun `an unread opt-out is unknown, not on, even once the count loads`() = runTest {
-        coEvery { memoryRepository.refreshMemoriesPreference() } returns Result.Error(message = "offline")
-        coEvery { memoryRepository.getMemories() } returns
-            Result.Success(MemoriesResponse(memories = listOf(Memory(key = "a", value = "1"))))
-        viewModel = createViewModel()
-        viewModel.refreshSummaries()
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.memoryCount).isEqualTo(1)
-        assertThat(viewModel.uiState.value.memoriesEnabled).isNull()
-    }
-
-    @Test
-    fun `the memory count is the size of the listed memories`() = runTest {
-        coEvery { memoryRepository.getMemories() } returns Result.Success(
-            MemoriesResponse(
-                memories = listOf(Memory(key = "a", value = "1"), Memory(key = "b", value = "2")),
-                totalTokens = 9,
-                tokenLimit = 100,
-            ),
-        )
-        viewModel = createViewModel()
-        viewModel.refreshSummaries()
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.memoryCount).isEqualTo(2)
-    }
-
-    /** Without READ or OPT_OUT the page has nothing for the role: the row and its count are hidden. */
-    @Test
-    fun `a role without MEMORIES READ or OPT_OUT hides the row and skips the count`() = runTest {
-        val role = UserRolePermissions(
-            name = "USER",
-            permissions = mapOf("MEMORIES" to mapOf("USE" to true, "READ" to false, "OPT_OUT" to false)),
-        )
-        every { roleRepository.userPermissions } returns MutableStateFlow(role)
-        coEvery { permissionGate.awaitRole() } returns role
-        viewModel = createViewModel()
-        viewModel.refreshSummaries()
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.serverMemoriesEnabled).isFalse()
-        assertThat(viewModel.uiState.value.memoryCount).isNull()
-        coVerify(exactly = 0) { memoryRepository.getMemories() }
-    }
-
-    /**
-     * The opt-out route needs USE and OPT_OUT only, so the row stays for the switch; the count needs
-     * the list route, which READ gates, so it is not fetched.
-     */
-    @Test
-    fun `a role with OPT_OUT but no READ keeps the row and skips the count`() = runTest {
-        val role = UserRolePermissions(
-            name = "USER",
-            permissions = mapOf("MEMORIES" to mapOf("USE" to true, "READ" to false, "OPT_OUT" to true)),
-        )
-        every { roleRepository.userPermissions } returns MutableStateFlow(role)
-        coEvery { permissionGate.awaitRole() } returns role
-        viewModel = createViewModel()
-        viewModel.refreshSummaries()
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.serverMemoriesEnabled).isTrue()
-        assertThat(viewModel.uiState.value.memoryCount).isNull()
-        coVerify(exactly = 0) { memoryRepository.getMemories() }
-    }
-
-    @Test
-    fun `a role without MEMORIES USE hides the row even with READ`() = runTest {
-        val role = UserRolePermissions(
-            name = "USER",
-            permissions = mapOf("MEMORIES" to mapOf("USE" to false, "READ" to true)),
-        )
-        every { roleRepository.userPermissions } returns MutableStateFlow(role)
-        coEvery { permissionGate.awaitRole() } returns role
-        viewModel = createViewModel()
-        viewModel.refreshSummaries()
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.serverMemoriesEnabled).isFalse()
-        coVerify(exactly = 0) { memoryRepository.getMemories() }
-    }
-
-    /** An older server whose role JSON has no READ key is permissive, like every other gate. */
-    @Test
-    fun `a role JSON without a READ key keeps the row`() = runTest {
-        val role = UserRolePermissions(
-            name = "USER",
-            permissions = mapOf("MEMORIES" to mapOf("USE" to true)),
-        )
-        every { roleRepository.userPermissions } returns MutableStateFlow(role)
-        coEvery { permissionGate.awaitRole() } returns role
-        viewModel = createViewModel()
-        viewModel.refreshSummaries()
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.serverMemoriesEnabled).isTrue()
-        assertThat(viewModel.uiState.value.memoryCount).isEqualTo(0)
-    }
-
-    /**
-     * A return from the Memories page while the first refresh still runs: that refresh may have read
-     * the count before the edits, so the second one replaces it and its count is what shows.
-     */
-    @Test
-    fun `a refresh while one is running replaces it, so the newer count wins`() = runTest {
-        val stale = CompletableDeferred<Result<MemoriesResponse>>()
-        coEvery { memoryRepository.getMemories() } coAnswers { stale.await() }
-        viewModel = createViewModel()
-        viewModel.refreshSummaries()
-        advanceUntilIdle()
-
-        coEvery { memoryRepository.getMemories() } returns Result.Success(
-            MemoriesResponse(memories = listOf(Memory(key = "a", value = "1"), Memory(key = "b", value = "2"))),
-        )
-        viewModel.refreshSummaries()
-        advanceUntilIdle()
-        // The first one's answer, had it been left running, would land late and put back the old count.
-        stale.complete(Result.Success(MemoriesResponse()))
-        advanceUntilIdle()
-
-        assertThat(viewModel.uiState.value.memoryCount).isEqualTo(2)
-        coVerify(exactly = 2) { memoryRepository.getMemories() }
     }
 }

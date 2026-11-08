@@ -64,7 +64,6 @@
     <string name="section_danger_zone">Gefahrenzone</string>
     <string name="section_language_region">Sprache &amp; Region</string>
     <string name="section_layout">Layout</string>
-    <string name="section_mcp_servers">MCP-Server</string>
     <string name="section_prefetch">Vorabladen im Hintergrund</string>
     <string name="prefetch_enabled">Unterhaltungen vorab laden</string>
     <string name="prefetch_enabled_desc">Aktuelle und angeheftete Unterhaltungen vorab laden, damit sie sofort geöffnet werden. Läuft, während die App inaktiv ist, und regelmäßig beim Laden des Akkus.</string>
@@ -130,7 +129,6 @@
     <string name="prefetch_cache_messages">Zwischengespeicherte Nachrichten</string>
     <string name="prefetch_cache_messages_value">%1$d Nachrichten</string>
     <string name="prefetch_cache_images">Bilder und Dateien</string>
-    <string name="section_memories">Erinnerungen</string>
     <string name="section_presets">Vorlagen</string>
     <string name="section_profile">Profil</string>
     <string name="section_security">Sicherheit</string>
@@ -844,17 +842,6 @@
     <string name="date_format_ymd_slash">Jahr/Monat/Tag</string>
     <string name="date_format_long">Lang</string>
     <string name="date_time_preview">Vorschau</string>
-    <string name="data_summary_off">Aus</string>
-    <string name="data_summary_none">Keine</string>
-    <string name="data_memories_none">Keine</string>
-    <plurals name="data_memories_count">
-        <item quantity="one">%1$s gespeichert</item>
-        <item quantity="other">%1$s gespeichert</item>
-    </plurals>
-    <plurals name="data_mcp_servers_count">
-        <item quantity="one">%1$d Server</item>
-        <item quantity="other">%1$d Server</item>
-    </plurals>
     <string name="ui_style">Oberflächenstil</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>

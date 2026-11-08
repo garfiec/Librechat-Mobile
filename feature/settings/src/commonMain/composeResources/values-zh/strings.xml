@@ -64,7 +64,6 @@
     <string name="section_danger_zone">危险操作区</string>
     <string name="section_language_region">语言和地区</string>
     <string name="section_layout">布局</string>
-    <string name="section_mcp_servers">MCP 服务器</string>
     <string name="section_prefetch">后台预加载</string>
     <string name="prefetch_enabled">预加载对话</string>
     <string name="prefetch_enabled_desc">提前加载最近和已固定的对话，以便即时打开。在应用空闲时运行，充电时也会定期运行。</string>
@@ -130,7 +129,6 @@
     <string name="prefetch_cache_messages">已缓存消息</string>
     <string name="prefetch_cache_messages_value">%1$d 条消息</string>
     <string name="prefetch_cache_images">图片和文件</string>
-    <string name="section_memories">记忆</string>
     <string name="section_presets">预设</string>
     <string name="section_profile">个人资料</string>
     <string name="section_security">安全</string>
@@ -831,15 +829,6 @@
     <string name="date_format_ymd_slash">年/月/日</string>
     <string name="date_format_long">长格式</string>
     <string name="date_time_preview">预览</string>
-    <string name="data_summary_off">关闭</string>
-    <string name="data_summary_none">无</string>
-    <string name="data_memories_none">无</string>
-    <plurals name="data_memories_count">
-        <item quantity="other">已保存 %1$s 条</item>
-    </plurals>
-    <plurals name="data_mcp_servers_count">
-        <item quantity="other">%1$d 个服务器</item>
-    </plurals>
     <string name="ui_style">界面风格</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>

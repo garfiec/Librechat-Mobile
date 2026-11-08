@@ -65,10 +65,6 @@ val settingsModule = module {
             conversationRepository = get(),
             keyRepository = get(),
             diagnosticLogRepository = get(),
-            mcpRepository = get(),
-            memoryRepository = get(),
-            roleRepository = get(),
-            permissionGate = get(),
             configRepository = get(),
         )
     }

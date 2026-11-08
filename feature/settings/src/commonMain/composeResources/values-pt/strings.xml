@@ -64,7 +64,6 @@
     <string name="section_danger_zone">Zona de perigo</string>
     <string name="section_language_region">Idioma e região</string>
     <string name="section_layout">Layout</string>
-    <string name="section_mcp_servers">Servidores MCP</string>
     <string name="section_prefetch">Pré-carregamento em segundo plano</string>
     <string name="prefetch_enabled">Pré-carregar conversas</string>
     <string name="prefetch_enabled_desc">Carrega conversas recentes e fixadas com antecedência para que abram instantaneamente. Executa enquanto o app está ocioso e periodicamente durante o carregamento da bateria.</string>
@@ -130,7 +129,6 @@
     <string name="prefetch_cache_messages">Mensagens em cache</string>
     <string name="prefetch_cache_messages_value">%1$d mensagens</string>
     <string name="prefetch_cache_images">Imagens e arquivos</string>
-    <string name="section_memories">Memórias</string>
     <string name="section_presets">Predefinições</string>
     <string name="section_profile">Perfil</string>
     <string name="section_security">Segurança</string>
@@ -844,17 +842,6 @@
     <string name="date_format_ymd_slash">Ano/Mês/Dia</string>
     <string name="date_format_long">Longo</string>
     <string name="date_time_preview">Pré-visualização</string>
-    <string name="data_summary_off">Desativado</string>
-    <string name="data_summary_none">Nenhum</string>
-    <string name="data_memories_none">Nenhuma</string>
-    <plurals name="data_memories_count">
-        <item quantity="one">%1$s salva</item>
-        <item quantity="other">%1$s salvas</item>
-    </plurals>
-    <plurals name="data_mcp_servers_count">
-        <item quantity="one">%1$d servidor</item>
-        <item quantity="other">%1$d servidores</item>
-    </plurals>
     <string name="ui_style">Estilo da interface</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>

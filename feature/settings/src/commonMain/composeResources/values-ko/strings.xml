@@ -64,7 +64,6 @@
     <string name="section_danger_zone">위험 구역</string>
     <string name="section_language_region">언어 및 지역</string>
     <string name="section_layout">레이아웃</string>
-    <string name="section_mcp_servers">MCP 서버</string>
     <string name="section_prefetch">백그라운드 미리 불러오기</string>
     <string name="prefetch_enabled">대화 미리 불러오기</string>
     <string name="prefetch_enabled_desc">최근 대화와 고정된 대화를 미리 불러와 바로 열리게 합니다. 앱이 유휴 상태일 때, 그리고 충전 중에 주기적으로 실행됩니다.</string>
@@ -130,7 +129,6 @@
     <string name="prefetch_cache_messages">캐시된 메시지</string>
     <string name="prefetch_cache_messages_value">메시지 %1$d개</string>
     <string name="prefetch_cache_images">이미지 및 파일</string>
-    <string name="section_memories">메모리</string>
     <string name="section_presets">프리셋</string>
     <string name="section_profile">프로필</string>
     <string name="section_security">보안</string>
@@ -831,15 +829,6 @@
     <string name="date_format_ymd_slash">년/월/일</string>
     <string name="date_format_long">긴 형식</string>
     <string name="date_time_preview">미리보기</string>
-    <string name="data_summary_off">꺼짐</string>
-    <string name="data_summary_none">없음</string>
-    <string name="data_memories_none">없음</string>
-    <plurals name="data_memories_count">
-        <item quantity="other">%1$s개 저장됨</item>
-    </plurals>
-    <plurals name="data_mcp_servers_count">
-        <item quantity="other">서버 %1$d개</item>
-    </plurals>
     <string name="ui_style">인터페이스 스타일</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>

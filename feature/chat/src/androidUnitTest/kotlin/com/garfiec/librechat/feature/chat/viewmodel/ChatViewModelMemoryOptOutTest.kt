@@ -171,7 +171,7 @@ class ChatViewModelMemoryOptOutTest {
         every { fixture.roleRepository.userPermissions } returns role
 
         optOutTest { vm ->
-            // No role yet: permissive, like the Data tab row that opens the same page.
+            // No role yet: permissive, like the Workspace row that opens the same page.
             assertThat(vm.uiState.value.gates.memoriesPageEnabled).isTrue()
 
             role.value = memoriesRole("USE" to true, "READ" to false)
