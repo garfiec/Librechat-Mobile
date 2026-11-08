@@ -23,7 +23,10 @@ from user input or response content.
 
 An `http://` server address shows a warning that the connection is not encrypted, and the app goes
 no further until you accept it. Plain HTTP is allowed because LibreChat is often self-hosted on a
-home network, but it is never used silently: an address without a scheme becomes `https://`.
+home network, but it is never used silently: an address without a scheme becomes `https://`. On
+iOS, App Transport Security allows it only to local addresses: a domain name needs `https://`, and
+the app says so instead of offering the warning; a public IP gets the warning, then the same message
+when iOS refuses the connection.
 
 On Android, certificates you or your device manager installed are trusted alongside the system's,
 so a server behind a private certificate authority works. When one of those certificates vouched

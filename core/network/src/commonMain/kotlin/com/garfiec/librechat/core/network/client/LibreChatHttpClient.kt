@@ -358,8 +358,8 @@ internal fun HttpRequestRetryConfig.configureRetryPolicy() {
             // Excluded here rather than by install order: this plugin is installed first and so runs
             // outermost, which it must stay for the transient failures it exists to absorb.
             cause !is AccessGatewayException &&
-            // Same for a certificate the device doesn't trust.
-            cause.failureKind() != FailureKind.Tls
+            // Same for a certificate the device doesn't trust, and for cleartext the platform won't send.
+            cause.failureKind().let { it != FailureKind.Tls && it != FailureKind.CleartextBlocked }
     }
     exponentialDelay()
 }

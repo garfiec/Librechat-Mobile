@@ -1,6 +1,8 @@
 package com.garfiec.librechat.feature.auth.viewmodel
 
+import com.garfiec.librechat.core.common.result.FailureKind
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.message
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
 import com.garfiec.librechat.core.data.repository.ConfigRepository
@@ -12,6 +14,7 @@ import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.network.client.HeaderRejection
 import com.garfiec.librechat.core.ui.components.CustomHeaderRow
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.coVerifyOrder
@@ -68,13 +71,15 @@ class ServerUrlViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun createViewModel(addAccount: Boolean) = ServerUrlViewModel(
-        serverDataStore = serverDataStore,
-        serverRepository = serverRepository,
-        configRepository = configRepository,
-        accountSwitcher = accountSwitcher,
-        addAccount = addAccount,
-    )
+    private fun createViewModel(addAccount: Boolean, cleartextBlockedForDomainNames: Boolean = false) =
+        ServerUrlViewModel(
+            serverDataStore = serverDataStore,
+            serverRepository = serverRepository,
+            configRepository = configRepository,
+            accountSwitcher = accountSwitcher,
+            addAccount = addAccount,
+            cleartextBlockedForDomainNames = cleartextBlockedForDomainNames,
+        )
 
     @Test
     fun `normal mode does not publish config when detaching the old session fails`() = runTest(testDispatcher) {
@@ -565,6 +570,63 @@ class ServerUrlViewModelTest {
 
         coVerify(exactly = 1) { accountSwitcher.prepareForSignIn(httpUrl) }
         assertThat(viewModel.uiState.value.url).isEqualTo(httpUrl)
+    }
+
+    @Test
+    fun `where cleartext to a domain name is blocked, an http domain is refused before the prompt`() =
+        runTest(testDispatcher) {
+            val viewModel = createViewModel(addAccount = false, cleartextBlockedForDomainNames = true)
+            advanceUntilIdle()
+
+            viewModel.onUrlChanged("http://chat.example.com:3080")
+            viewModel.validateAndConnect()
+            advanceUntilIdle()
+
+            assertThat(viewModel.uiState.value.showHttpWarning).isFalse()
+            assertThat(viewModel.uiState.value.error).isEqualTo(FailureKind.CleartextBlocked.message())
+            coVerify(exactly = 0) { configRepository.resolveServer(any(), any()) }
+        }
+
+    @Test
+    fun `where cleartext to a domain name is blocked, a local http address still gets the prompt`() =
+        runTest(testDispatcher) {
+            val viewModel = createViewModel(addAccount = false, cleartextBlockedForDomainNames = true)
+            advanceUntilIdle()
+
+            for (url in listOf("http://192.168.1.5:3080", "http://nas", "http://nas.local:3080", "http://[fd00::1]:3080")) {
+                viewModel.dismissHttpWarning()
+                viewModel.onUrlChanged(url)
+                viewModel.validateAndConnect()
+
+                assertWithMessage(url).that(viewModel.uiState.value.showHttpWarning).isTrue()
+                assertWithMessage(url).that(viewModel.uiState.value.error).isNull()
+            }
+        }
+
+    @Test
+    fun `where cleartext is allowed, an http domain gets the prompt`() = runTest(testDispatcher) {
+        val viewModel = createViewModel(addAccount = false)
+        advanceUntilIdle()
+
+        viewModel.onUrlChanged("http://chat.example.com:3080")
+        viewModel.validateAndConnect()
+
+        assertThat(viewModel.uiState.value.showHttpWarning).isTrue()
+        assertThat(viewModel.uiState.value.error).isNull()
+    }
+
+    @Test
+    fun `a dotted DNS name other than local is a qualified domain name, an address or bare name is not`() {
+        val qualified = listOf(
+            "http://chat.example.com", "http://librechat.lan:3080", "http://host.home.arpa/librechat",
+            "http://user@chat.example.com", "http://CHAT.Example.COM.", "http://box.tail1234.ts.net:8080",
+        )
+        val notQualified = listOf(
+            "http://192.168.1.5", "http://10.0.0.5:3080", "http://[::1]:3080", "http://[fd00::1]",
+            "http://nas", "http://nas:3080", "http://nas.local", "http://NAS.LOCAL.:3080", "http://localhost",
+        )
+        for (url in qualified) assertWithMessage(url).that(hostIsQualifiedDomainName(url)).isTrue()
+        for (url in notQualified) assertWithMessage(url).that(hostIsQualifiedDomainName(url)).isFalse()
     }
 
     // --- Subpath or origin ----------------------------------------------------------------------

@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.network.client
 
 import io.ktor.client.engine.darwin.DarwinHttpRequestException
+import platform.Foundation.NSURLErrorAppTransportSecurityRequiresSecureConnection
 import platform.Foundation.NSURLErrorCannotConnectToHost
 import platform.Foundation.NSURLErrorCannotFindHost
 import platform.Foundation.NSURLErrorDNSLookupFailed
@@ -35,6 +36,7 @@ internal fun darwinTransportVerdict(cause: Throwable): TransportVerdict? {
         NSURLErrorDataNotAllowed,
         -> TransportVerdict.Network
         in NSURLErrorServerCertificateNotYetValid..NSURLErrorServerCertificateHasBadDate -> TransportVerdict.Tls
+        NSURLErrorAppTransportSecurityRequiresSecureConnection -> TransportVerdict.CleartextBlocked
         else -> null
     }
 }

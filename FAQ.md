@@ -51,6 +51,8 @@ iOS adds one platform-specific requirement on top of the table above:
 
 Once the CA is trusted on the device, you only need to re-install it if you create a new CA. The server certificate itself (which you replace when it expires) does not need to be installed separately.
 
+Plain HTTP works on iOS only to a local address: the server's local IP, a `.local` name, or a single-label name such as `http://nas`. iOS App Transport Security refuses plain HTTP to a domain name (`http://chat.example.com`) and to public IP addresses, and the app tells you to use `https://` instead.
+
 ### Android
 
 Android imposes no equivalent validity-period cap — multi-year self-signed certificates are accepted as long as the requirements in the common table above are met.

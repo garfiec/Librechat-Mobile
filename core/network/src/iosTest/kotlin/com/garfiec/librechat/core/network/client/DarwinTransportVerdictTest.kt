@@ -36,6 +36,11 @@ class DarwinTransportVerdictTest {
     }
 
     @Test
+    fun cleartextRefusedByAppTransportSecurityReadsAsCleartextBlocked() {
+        assertEquals(TransportVerdict.CleartextBlocked, darwinTransportVerdict(darwin(-1022)))
+    }
+
+    @Test
     fun otherCodesDomainsAndExceptionsAreLeftAlone() {
         assertNull(darwinTransportVerdict(darwin(-1011)))
         assertNull(darwinTransportVerdict(darwin(-1005, domain = "NSPOSIXErrorDomain")))

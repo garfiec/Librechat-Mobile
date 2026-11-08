@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.network.client
 
+import com.garfiec.librechat.core.common.result.CleartextBlockedException
 import com.garfiec.librechat.core.network.api.CodeEnvironmentsApi
 import com.google.common.truth.Truth.assertThat
 import io.ktor.client.HttpClient
@@ -175,6 +176,20 @@ class HttpRetryScopingTest {
         val client = countingClient(engine)
 
         runCatching { client.get("https://example.com/api/config") }
+
+        assertThat(attempts).isEqualTo(1)
+    }
+
+    @Test
+    fun `does not retry a GET the platform refused as cleartext`() = runTest {
+        var attempts = 0
+        val engine = MockEngine {
+            attempts++
+            throw CleartextBlockedException()
+        }
+        val client = countingClient(engine)
+
+        runCatching { client.get("http://chat.example.com/api/config") }
 
         assertThat(attempts).isEqualTo(1)
     }

@@ -5,7 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.identity.cleanServerUrl
 import com.garfiec.librechat.core.common.identity.serverOrigin
+import com.garfiec.librechat.core.common.result.FailureKind
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.message
 import com.garfiec.librechat.core.common.result.suspendRunCatching
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.AccountSwitcher
@@ -78,6 +80,7 @@ class ServerUrlViewModel(
     private val configRepository: ConfigRepository,
     private val accountSwitcher: AccountSwitcher,
     private val addAccount: Boolean = false,
+    private val cleartextBlockedForDomainNames: Boolean = platformBlocksCleartextToDomainNames,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ServerUrlUiState())
@@ -203,6 +206,10 @@ class ServerUrlViewModel(
 
         // Show warning dialog if user enters an HTTP URL
         if (url.startsWith("http://", ignoreCase = true)) {
+            if (cleartextBlockedForDomainNames && hostIsQualifiedDomainName(url)) {
+                _uiState.value = _uiState.value.copy(error = FailureKind.CleartextBlocked.message())
+                return
+            }
             _uiState.value = _uiState.value.copy(showHttpWarning = true)
             return
         }
@@ -362,4 +369,21 @@ class ServerUrlViewModel(
         accountSwitcher.attachPendingConfig(config)
         return null
     }
+}
+
+/**
+ * Whether the platform refuses plain HTTP to a dotted DNS name outside `.local`, as iOS App Transport
+ * Security does. Local IPs, single-label names and `.local` names stay reachable.
+ */
+internal expect val platformBlocksCleartextToDomainNames: Boolean
+
+/**
+ * Whether [url]'s host is a dotted DNS name outside `.local`. IP literals are not: which addresses
+ * iOS counts as external is the platform's call, and the probe reports its refusal.
+ */
+internal fun hostIsQualifiedDomainName(url: String): Boolean {
+    val authority = serverOrigin(url).substringAfter("://").substringAfterLast('@')
+    if (authority.startsWith('[')) return false
+    val host = authority.substringBefore(':').trimEnd('.').lowercase()
+    return '.' in host && !host.all { it.isDigit() || it == '.' } && !host.endsWith(".local")
 }

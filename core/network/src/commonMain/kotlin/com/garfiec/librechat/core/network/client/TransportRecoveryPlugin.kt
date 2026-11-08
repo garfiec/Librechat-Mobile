@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.network.client
 
+import com.garfiec.librechat.core.common.result.CleartextBlockedException
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpClientPlugin
 import io.ktor.client.plugins.HttpSend
@@ -19,6 +20,7 @@ internal enum class TransportVerdict {
     StaleConnection,
     Network,
     Tls,
+    CleartextBlocked,
 }
 
 /**
@@ -73,6 +75,7 @@ internal class TransportRecoveryPlugin private constructor(private val verdict: 
                             }
                             TransportVerdict.Network -> throw TransportIOException(cause)
                             TransportVerdict.Tls -> throw TransportCertificateException(cause)
+                            TransportVerdict.CleartextBlocked -> throw CleartextBlockedException(cause)
                             null -> throw e
                         }
                     }

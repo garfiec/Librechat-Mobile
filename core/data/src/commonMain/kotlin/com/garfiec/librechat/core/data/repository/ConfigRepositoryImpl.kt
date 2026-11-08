@@ -13,6 +13,7 @@ import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.FailureKind
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.failureKind
+import com.garfiec.librechat.core.common.result.message
 import com.garfiec.librechat.core.common.result.safeApiCall
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
@@ -228,6 +229,10 @@ class ConfigRepositoryImpl(
                             "private certificate authority, install that authority's certificate on this device.",
                         kind = FailureKind.Tls,
                     ),
+                )
+                FailureKind.CleartextBlocked -> ProbeFailure(
+                    "cleartext",
+                    Result.Error(e, FailureKind.CleartextBlocked.message(), FailureKind.CleartextBlocked),
                 )
                 // A body that isn't JSON at all — a web page answering 200 at this path (Ktor finds no
                 // transformation for text/html) — is a host that answered, not one that didn't.
