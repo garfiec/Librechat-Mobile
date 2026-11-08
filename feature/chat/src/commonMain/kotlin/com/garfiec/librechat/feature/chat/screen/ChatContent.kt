@@ -67,6 +67,8 @@ internal fun ColumnScope.ChatContent(
     bottomContentPadding: Dp,
     /** Where side-by-side comparison cards end: just above the measured composer. */
     paneBottomInset: Dp,
+    /** Where the jump-to-bottom button floats: just above the measured composer, null before it is. */
+    scrollToBottomPadding: Dp?,
     topContentPadding: Dp,
     onShowSecondaryModelSheet: () -> Unit,
     onComparisonTabChange: (Int) -> Unit,
@@ -129,6 +131,7 @@ internal fun ColumnScope.ChatContent(
             useKatex = useKatex,
             bottomContentPadding = bottomContentPadding,
             paneBottomInset = paneBottomInset,
+            scrollToBottomPadding = scrollToBottomPadding,
             onCopyMessage = { messageId -> copyMessageToClipboard(viewModel, clipboard, messageId) },
             onShowSecondaryModelSheet = onShowSecondaryModelSheet,
             onComparisonTabChange = onComparisonTabChange,
@@ -210,6 +213,7 @@ internal fun ColumnScope.ChatContent(
                         activeToolCalls = uiState.activeToolCalls,
                         streamingSenderName = senderName,
                         bottomContentPadding = bottomContentPadding,
+                        scrollToBottomPadding = scrollToBottomPadding,
                         modifier = Modifier
                             .weight(1f)
                             .then(listPullUpModifier),
@@ -273,6 +277,7 @@ private fun ChatMessageListPane(
     activeToolCalls: List<ActiveToolCall>,
     streamingSenderName: String,
     bottomContentPadding: Dp,
+    scrollToBottomPadding: Dp?,
     listState: LazyListState,
     modifier: Modifier = Modifier,
 ) {
@@ -337,6 +342,7 @@ private fun ChatMessageListPane(
         jumpPending = uiState.jumpPending,
         onSearchScrollHandle = viewModel::onSearchScrollHandled,
         bottomContentPadding = bottomContentPadding,
+        scrollToBottomPadding = scrollToBottomPadding,
         topContentPadding = topContentPadding,
         pendingAction = uiState.renderablePendingAction,
         onNearBottomChange = onNearBottomChange,

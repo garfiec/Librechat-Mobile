@@ -472,6 +472,11 @@ fun ChatScreen(
         val paneBottomInset = with(LocalDensity.current) {
             if (inputBarHeightPx > 0) inputBarHeightPx.toDp() + 8.dp else bottomContentPadding
         }
+        // The jump-to-bottom button sits on the measured composer: the default placement, 30dp
+        // into the list's reserve, overlaps a tall composer.
+        val scrollToBottomPadding = with(LocalDensity.current) {
+            if (inputBarHeightPx > 0) inputBarHeightPx.toDp() + 8.dp else null
+        }
         // Floor the top inset at status bar + one chip row so content clears the bar on the first
         // frame (before onSizeChanged reports the real height), avoiding a content-under-bar flash
         // on each screen entry. Mirrors the bottomContentPadding floor.
@@ -534,6 +539,7 @@ fun ChatScreen(
                             useKatex = useKatex,
                             bottomContentPadding = bottomContentPadding,
                             paneBottomInset = paneBottomInset,
+                            scrollToBottomPadding = scrollToBottomPadding,
                             topContentPadding = topContentPadding,
                             onShowSecondaryModelSheet = { showSecondaryModelSheet = true },
                             onComparisonTabChange = { activeComparisonTab = it },
