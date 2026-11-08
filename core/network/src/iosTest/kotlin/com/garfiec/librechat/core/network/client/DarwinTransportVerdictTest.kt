@@ -9,7 +9,7 @@ import kotlin.test.assertNull
 
 class DarwinTransportVerdictTest {
 
-    private fun darwin(code: Long, domain: String = NSURLErrorDomain) =
+    private fun darwin(code: Long, domain: String = checkNotNull(NSURLErrorDomain)) =
         DarwinHttpRequestException(NSError.errorWithDomain(domain, code, null))
 
     @Test
