@@ -37,7 +37,10 @@ class QueuedTurnRepositoryImpl(
 
     private suspend fun enqueueLive(
         request: EnqueueQueuedTurnRequest,
-    ): QueuedTurnOutcome<AgentQueuedTurnReceipt> = call {
+    ): QueuedTurnOutcome<AgentQueuedTurnReceipt> = call(
+        // An absent v2 route says nothing about v1: this turn falls back alone.
+        latchWhenAbsent = request.codeApprovalMode == null,
+    ) {
         val response = queuedTurnsApi.enqueueQueuedTurn(request)
         // A 2xx with `supported:false` is the announced capability saying no. It reads as an
         // ordinary success, so without this the caller would treat an absent receipt as a
@@ -87,6 +90,7 @@ class QueuedTurnRepositoryImpl(
      * a path where an old server answering 404 is the expected, correct answer.
      */
     private suspend fun <T> call(
+        latchWhenAbsent: Boolean = true,
         block: suspend () -> QueuedTurnOutcome<T>,
     ): QueuedTurnOutcome<T> = apiCallCatching(block) { e ->
         val api = e as? ApiException
@@ -107,7 +111,7 @@ class QueuedTurnRepositoryImpl(
             // that would disable the feature for the whole account after one ephemeral-agent chat,
             // silently and for the rest of the session. An uncoded 404/501 is the route itself
             // being absent, which is a property of the deployment.
-            if (it is QueuedTurnOutcome.Unsupported && code == null) latch()
+            if (it is QueuedTurnOutcome.Unsupported && code == null && latchWhenAbsent) latch()
         }
     }
 

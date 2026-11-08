@@ -163,6 +163,12 @@ data class FeatureGatesState(
      */
     val serverQueueSupported: Boolean = false,
     /**
+     * Whether the server queue takes a turn's code approval mode (`/queued-turns/v2`, v0.8.8).
+     * Fail-closed for the same reason as [serverQueueSupported]: rc2-rc4 route that POST into the
+     * chat router, which fails it without a 404. Closed keeps a turn with a mode in the local drain.
+     */
+    val serverQueueApprovalModeSupported: Boolean = false,
+    /**
      * Whether the server validates a saved agent's upload under the agent's provider rather than
      * `agents` (`resolveUploadEndpoint`, v0.8.8-rc3, #15763). Read by
      * [ChatUiState.fileConfigEndpoint].

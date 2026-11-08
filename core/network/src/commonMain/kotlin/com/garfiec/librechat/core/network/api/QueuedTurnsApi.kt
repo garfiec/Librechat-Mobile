@@ -34,7 +34,15 @@ class QueuedTurnsApi constructor(
      */
     suspend fun enqueueQueuedTurn(request: EnqueueQueuedTurnRequest): EnqueueQueuedTurnResponse =
         client.post {
-            url { path("api/agents/chat/queued-turns") }
+            url {
+                path(
+                    if (request.codeApprovalMode != null) {
+                        "api/agents/chat/queued-turns/v2"
+                    } else {
+                        "api/agents/chat/queued-turns"
+                    },
+                )
+            }
             setBody(request)
         }.bodyUnlessRefused()
 

@@ -1105,6 +1105,12 @@ class ChatViewModel(
                     minVersion = "0.8.8-rc2",
                     landedDate = "2026-08-31",
                 )
+                // queued-turns/v2 (163c1ad93, landed 2026-09-25): dated the day AFTER landing.
+                val serverQueueApprovalMode = BackendVersion.supportsFeature(
+                    detected = detected,
+                    minVersion = "0.8.8",
+                    landedDate = "2026-09-26",
+                )
                 // thinkingDisplay `updates` (40bb16ed, landed 2026-09-28): PRESENT only, dated the day
                 // AFTER landing. Keep in step with AgentCapabilitiesDelegate; see VERSION_GATES.md.
                 val thinkingDisplayUpdates = BackendVersion.supportsFeature(
@@ -1126,6 +1132,7 @@ class ChatViewModel(
                             steeringSupported = supported,
                             subagentThreadsSupported = subagentThreads,
                             serverQueueSupported = serverQueue,
+                            serverQueueApprovalModeSupported = serverQueueApprovalMode,
                             providerScopedUploadsSupported = providerScopedUploads,
                             backendVersion = detected?.version,
                         ),

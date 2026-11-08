@@ -4,7 +4,7 @@ import com.garfiec.librechat.core.model.ReasoningOverride
 import kotlinx.serialization.Serializable
 
 /**
- * Body of `POST /api/agents/chat/queued-turns`.
+ * Body of `POST /api/agents/chat/queued-turns`, or of its `/v2` route when [codeApprovalMode] is set.
  *
  * [clientRequestId] must be STABLE across retries of the same turn — it is the idempotency key the
  * server's UNIQUE index resolves a replay against. It must also address the same content: the
@@ -28,6 +28,11 @@ data class EnqueueQueuedTurnRequest(
     val reasoningOverride: ReasoningOverride? = null,
     val priority: Boolean? = null,
     val expectedPredecessorCreatedAt: Long? = null,
+    /**
+     * The chat's code approval mode, `ask` included. Without it the server runs the turn under the
+     * attached machine's own permissions, which can be Allow. v1 answers 409 to a turn carrying it.
+     */
+    val codeApprovalMode: String? = null,
 )
 
 /** `202` (queued) or `200` (a replay of a row that already settled). */

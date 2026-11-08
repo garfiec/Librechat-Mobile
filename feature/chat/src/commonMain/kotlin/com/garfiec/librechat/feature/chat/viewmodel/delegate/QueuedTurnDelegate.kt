@@ -105,6 +105,7 @@ class QueuedTurnDelegate(
                     manualSkills = spec.manualSkills.ifEmpty { null },
                     reasoningOverride = spec.reasoningOverride,
                     expectedPredecessorCreatedAt = spec.expectedPredecessorCreatedAt,
+                    codeApprovalMode = spec.codeWorkspace?.approvalMode,
                 ),
             )
             // The poll can resolve this id before the POST's own answer arrives. Its evidence is

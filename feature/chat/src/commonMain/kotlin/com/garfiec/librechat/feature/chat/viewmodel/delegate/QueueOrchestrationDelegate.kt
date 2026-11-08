@@ -5,7 +5,6 @@ import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.model.FileReference
-import com.garfiec.librechat.core.model.code.CodeApprovalMode
 import com.garfiec.librechat.core.model.media.resolveFileReferenceUrl
 import com.garfiec.librechat.core.model.queuedturn.AgentQueuedTurnReceipt
 import com.garfiec.librechat.core.model.queuedturn.QueuedTurnFileRef
@@ -125,10 +124,8 @@ class QueueOrchestrationDelegate(
         val state = handle.state
         if (!state.gates.serverQueueSupported) return spec
         if (state.modelSpecs.requiresSpec) return spec
-        // The v1 enqueue route refuses a turn carrying an approval mode (409
-        // QUEUED_TURN_PROTOCOL_REQUIRED) and runs one without it as "Ask before changes". A turn
-        // picked to do more without asking stays in the local queue, which sends it with its mode.
-        if (spec.codeWorkspace?.approvalMode.let { it != null && it != CodeApprovalMode.ASK }) return spec
+        // Without v2 the server would run the turn under the machine's own permissions.
+        if (spec.codeWorkspace?.approvalMode != null && !state.gates.serverQueueApprovalModeSupported) return spec
         if (state.selectedEndpoint != EndpointConstants.AGENTS) return spec
         if (!state.isStreaming) return spec
         val parentMessageId = state.displayMessages.lastOrNull()?.message?.messageId
