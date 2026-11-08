@@ -11,6 +11,14 @@ class AccessGatewayException(
 ) : Exception("Access gateway rejected the request", cause)
 
 /**
+ * The platform refused to send a request over plain HTTP to this host: iOS App Transport Security
+ * allows cleartext only to local-network names and addresses. Retrying won't help; https will.
+ */
+class CleartextBlockedException(
+    cause: Throwable? = null,
+) : Exception("Cleartext HTTP is not permitted for this host", cause)
+
+/**
  * What went wrong, coarsely. Deliberately broad: it exists so the UI can decide whether to offer a
  * retry (and, later, localize) without ever reading an exception message.
  */
@@ -35,6 +43,9 @@ enum class FailureKind {
     /** An access gateway intercepted the request. See [AccessGatewayException]. */
     AccessGateway,
 
+    /** Plain HTTP to a host the platform won't send cleartext to. See [CleartextBlockedException]. */
+    CleartextBlocked,
+
     /** The server answered with an error status and (usually) an explanation of its own. */
     Server,
 
@@ -57,6 +68,8 @@ internal object FailureMessages {
         "or isn't trusted by this device."
     const val GATEWAY = "Your server's access gateway rejected this request. " +
         "Check Server connection in Settings."
+    const val CLEARTEXT_BLOCKED = "iOS requires https:// for this address. " +
+        "Use https, or the server's local IP or .local name."
     const val UNKNOWN = "Something went wrong. Please try again."
 }
 
@@ -104,11 +117,13 @@ internal fun classifyFailure(throwable: Throwable): FailureKind {
     // Bounded: a malformed cause chain must not spin forever.
     repeat(TRAVERSAL_LIMIT) {
         val error = current ?: return FailureKind.Unknown
-        when (error) {
-            is AccessGatewayException -> return FailureKind.AccessGateway
-            is ApiException -> return FailureKind.Server
-            else -> Unit
+        val byType = when (error) {
+            is AccessGatewayException -> FailureKind.AccessGateway
+            is CleartextBlockedException -> FailureKind.CleartextBlocked
+            is ApiException -> FailureKind.Server
+            else -> null
         }
+        if (byType != null) return byType
         val name = error::class.simpleName.orEmpty()
         when {
             name.contains("Timeout") -> return FailureKind.Timeout
@@ -156,5 +171,6 @@ internal fun FailureKind.defaultMessage(): String = when (this) {
     FailureKind.MalformedResponse -> FailureMessages.MALFORMED
     FailureKind.Tls -> FailureMessages.TLS
     FailureKind.AccessGateway -> FailureMessages.GATEWAY
+    FailureKind.CleartextBlocked -> FailureMessages.CLEARTEXT_BLOCKED
     FailureKind.Server, FailureKind.Unknown -> FailureMessages.UNKNOWN
 }

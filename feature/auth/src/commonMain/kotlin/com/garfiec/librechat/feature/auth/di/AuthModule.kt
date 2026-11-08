@@ -15,9 +15,9 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
-// No authPlatformModule: this module's only platform seam is the `SsoWebView` expect/actual
-// composable, which the compiler links. An unimplemented expect is a compile error, so it needs no
-// DI binding and no runtime check.
+// No authPlatformModule: this module's platform seams (the `SsoWebView` composable,
+// `platformBlocksCleartextToDomainNames`) are expect/actuals the compiler links. An unimplemented
+// expect is a compile error, so they need no DI binding and no runtime check.
 val authModule = module {
     // Lambda form (not viewModelOf) for the addAccount mode flag the add-account nav entry passes
     // via parametersOf — see the note below.

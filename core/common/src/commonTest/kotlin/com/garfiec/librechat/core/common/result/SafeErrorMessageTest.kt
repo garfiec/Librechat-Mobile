@@ -103,6 +103,15 @@ class SafeErrorMessageTest {
     }
 
     @Test
+    fun `cleartext the platform refuses is its own category with a message that names https`() {
+        val error = IllegalStateException("outer", CleartextBlockedException()).toSafeError()
+
+        assertEquals(FailureKind.CleartextBlocked, error.kind)
+        assertEquals(FailureMessages.CLEARTEXT_BLOCKED, error.message)
+        assertTrue(error.message!!.contains("https://"))
+    }
+
+    @Test
     fun `a structured upload rejection surfaces the server's own reason`() {
         // v0.8.8-rc1 (upstream 5e464bc9): multer file-filter rejections carry statusCode + a
         // {message} body instead of collapsing to a bare 500, so the reason ("Unsupported file

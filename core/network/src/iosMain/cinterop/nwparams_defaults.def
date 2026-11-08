@@ -22,6 +22,15 @@ static inline nw_parameters_t librechat_make_default_tls_tcp_parameters(void) {
     );
 }
 
+// Plain TCP for http:// servers. NW_PARAMETERS_DISABLE_PROTOCOL is a block-pointer sentinel like
+// the default one, so it has to be passed from C for the same reason.
+static inline nw_parameters_t librechat_make_default_tcp_parameters(void) {
+    return nw_parameters_create_secure_tcp(
+        NW_PARAMETERS_DISABLE_PROTOCOL,
+        NW_PARAMETERS_DEFAULT_CONFIGURATION
+    );
+}
+
 // nw_connection_receive with the content context dropped before Kotlin sees it.
 // Network.framework's predefined contexts (NW_CONNECTION_DEFAULT_MESSAGE_CONTEXT,
 // _FINAL_MESSAGE_CONTEXT, _DEFAULT_STREAM_CONTEXT) are static objects whose class

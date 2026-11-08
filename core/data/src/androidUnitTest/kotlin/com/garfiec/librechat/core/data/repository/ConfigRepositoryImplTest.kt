@@ -8,8 +8,10 @@ import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.common.identity.deriveServerId
 import com.garfiec.librechat.core.common.result.AccessGatewayException
 import com.garfiec.librechat.core.common.result.ApiException
+import com.garfiec.librechat.core.common.result.CleartextBlockedException
 import com.garfiec.librechat.core.common.result.FailureKind
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.common.result.message
 import com.garfiec.librechat.core.data.datastore.ConfigCacheDataStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.logging.LogEnvelope
@@ -345,6 +347,20 @@ class ConfigRepositoryImplTest {
         assertThat(error.kind).isEqualTo(FailureKind.Tls)
         assertThat(error.message).contains("certificate")
         assertThat(logged.single().second.attrs).containsEntry("reason", "tls")
+    }
+
+    @Test
+    fun `cleartext the platform refuses is reported as needing https, not as unreachable`() = runTest {
+        coEvery { configApi.getStartupConfig() } throws CleartextBlockedException()
+        val repo = repository()
+
+        lateinit var result: ServerResolution
+        val logged = captureProbeLogs { result = repo.resolve("http://1.2.3.4:3080") }
+
+        val error = result.error()
+        assertThat(error.kind).isEqualTo(FailureKind.CleartextBlocked)
+        assertThat(error.message).isEqualTo(FailureKind.CleartextBlocked.message())
+        assertThat(logged.single().second.attrs).containsEntry("reason", "cleartext")
     }
 
     /** LibreChat's default port serves plain HTTP; https:// against it is a URL fix, not a certificate one. */

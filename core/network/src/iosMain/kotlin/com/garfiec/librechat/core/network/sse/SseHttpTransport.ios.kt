@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.network.client.SwitchGate
 import com.garfiec.librechat.core.network.client.TokenManager
 import com.garfiec.librechat.core.network.client.refreshBearerFor
 import com.garfiec.librechat.core.network.client.sseCustomHeaderLines
+import com.garfiec.librechat.core.network.sse.nwparams.librechat_make_default_tcp_parameters
 import com.garfiec.librechat.core.network.sse.nwparams.librechat_make_default_tls_tcp_parameters
 import com.garfiec.librechat.core.network.sse.nwparams.librechat_nw_connection_receive
 import kotlinx.cinterop.BetaInteropApi
@@ -82,7 +83,7 @@ import platform.posix.size_tVar
 // addresses Ktor-layer buffering, which is a different layer.
 //
 // This implementation uses Network.framework's NWConnection to open a
-// raw TCP+TLS connection and speak HTTP/1.1 directly, avoiding
+// raw TCP (+TLS for https) connection and speak HTTP/1.1 directly, avoiding
 // NSURLSession entirely for the SSE endpoint only. All other HTTP
 // traffic (JSON requests, auth, conversation list, etc.) continues to
 // use the Darwin engine, which works fine for non-text/* responses.
@@ -175,26 +176,20 @@ actual class SseHttpTransport(
             }
 
         val scheme = url.scheme?.lowercase() ?: "https"
-        // The iOS NWConnection transport only supports HTTPS. Plain HTTP would
-        // require passing NW_PARAMETERS_DISABLE_PROTOCOL for the TLS layer,
-        // which is a non-null block sentinel that we cannot construct from
-        // Kotlin/Native without an Obj-C/Swift shim. Production LibreChat
-        // deployments run HTTPS (Cloudflare, reverse proxies, etc.), so we
-        // refuse non-HTTPS here instead of silently misconfiguring. File an
-        // issue if you actually need plain HTTP support.
-        if (scheme != "https") {
-            close(SseStreamException("iOS SSE transport only supports HTTPS (got scheme=$scheme)"))
+        val secure = scheme == "https"
+        if (!secure && scheme != "http") {
+            close(SseStreamException("unsupported SSE URL scheme: $scheme"))
             return@callbackFlow
         }
         val host = url.host ?: run {
             close(SseStreamException("missing host in SSE URL: $url"))
             return@callbackFlow
         }
-        val port = (url.port?.intValue ?: DEFAULT_HTTPS_PORT).toUShort()
+        val port = (url.port?.intValue ?: if (secure) DEFAULT_HTTPS_PORT else DEFAULT_HTTP_PORT).toUShort()
         val requestPath = requestTarget(fullUrl)
 
         val endpoint = nw_endpoint_create_host(host, port.toString())
-        // Default TLS+TCP parameters for NWConnection must come from a C shim.
+        // Default TLS+TCP (or, for http, plain TCP) parameters for NWConnection must come from a C shim.
         //
         // `nw_parameters_create_secure_tcp` takes two `configure` block-pointer
         // arguments. Apple exposes `NW_PARAMETERS_DEFAULT_CONFIGURATION` (which
@@ -222,13 +217,14 @@ actual class SseHttpTransport(
         // The only fix is a C cinterop shim that calls the macro at C compile
         // time and hands the block pointer directly to Network.framework with
         // no Kotlin code in the middle. That shim lives in
-        // `src/iosMain/cinterop/nwparams_defaults.def` and exposes the
-        // function `librechat_make_default_tls_tcp_parameters`.
-        val parameters: nw_parameters_t = librechat_make_default_tls_tcp_parameters()
-            ?: run {
-                close(SseStreamException("nw_parameters_create_secure_tcp returned null"))
-                return@callbackFlow
-            }
+        // `src/iosMain/cinterop/nwparams_defaults.def` and exposes
+        // `librechat_make_default_tls_tcp_parameters` and `librechat_make_default_tcp_parameters`.
+        val parameters: nw_parameters_t =
+            (if (secure) librechat_make_default_tls_tcp_parameters() else librechat_make_default_tcp_parameters())
+                ?: run {
+                    close(SseStreamException("nw_parameters_create_secure_tcp returned null"))
+                    return@callbackFlow
+                }
 
         val connection: nw_connection_t = nw_connection_create(endpoint, parameters)
             ?: run {
@@ -489,6 +485,7 @@ actual class SseHttpTransport(
 
     private companion object {
         const val DEFAULT_HTTPS_PORT = 443
+        const val DEFAULT_HTTP_PORT = 80
         const val RECEIVE_MAX_LENGTH = 16384
         const val SUCCESS_LOW = 200
         const val SUCCESS_HIGH = 299

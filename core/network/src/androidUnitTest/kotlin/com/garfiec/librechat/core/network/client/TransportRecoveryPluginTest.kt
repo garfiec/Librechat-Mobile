@@ -29,6 +29,7 @@ class TransportRecoveryPluginTest {
     private class Stale : Exception("stale")
     private class Offline : Exception("offline")
     private class BadCertificate : Exception("bad certificate")
+    private class Cleartext : Exception("cleartext")
     private class Other : Exception("other")
 
     private val verdict: (Throwable) -> TransportVerdict? = {
@@ -36,6 +37,7 @@ class TransportRecoveryPluginTest {
             is Stale -> TransportVerdict.StaleConnection
             is Offline -> TransportVerdict.Network
             is BadCertificate -> TransportVerdict.Tls
+            is Cleartext -> TransportVerdict.CleartextBlocked
             else -> null
         }
     }
@@ -102,15 +104,16 @@ class TransportRecoveryPluginTest {
     }
 
     @Test
-    fun `network and certificate failures get types the classifier reads, others pass through`() = runTest {
+    fun `network, certificate and cleartext failures get types the classifier reads`() = runTest {
         suspend fun failureFor(cause: Throwable) = runCatching {
             client(listOf(cause)).post("https://example.com/api/files") { setBody(upload()) }
         }.exceptionOrNull()!!
 
         assertThat(failureFor(Offline()).failureKind()).isEqualTo(FailureKind.Network)
         assertThat(failureFor(BadCertificate()).failureKind()).isEqualTo(FailureKind.Tls)
+        assertThat(failureFor(Cleartext()).failureKind()).isEqualTo(FailureKind.CleartextBlocked)
         assertThat(failureFor(Other())).isInstanceOf(Other::class.java)
-        assertThat(bodies).hasSize(3)
+        assertThat(bodies).hasSize(4)
     }
 
     @Test
