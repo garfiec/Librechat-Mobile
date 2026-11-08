@@ -43,6 +43,7 @@ import com.garfiec.librechat.core.model.response.pickerMimeTypes
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
 import com.garfiec.librechat.core.ui.glass.glassBackdropSource
+import com.garfiec.librechat.core.ui.platform.rememberReduceMotion
 import com.garfiec.librechat.feature.chat.components.AskUserQuestionPanel
 import com.garfiec.librechat.feature.chat.components.ChatComposer
 import com.garfiec.librechat.feature.chat.components.ChatFloatingTopBar
@@ -73,6 +74,9 @@ import com.garfiec.librechat.feature.chat.components.rememberChatOptionsSheetCon
 import com.garfiec.librechat.feature.chat.components.rememberDraftAdditions
 import com.garfiec.librechat.feature.chat.components.rememberMcpSignIn
 import com.garfiec.librechat.feature.chat.components.rememberThreadScrollHandle
+import com.garfiec.librechat.feature.chat.components.sendflight.LocalSendFlight
+import com.garfiec.librechat.feature.chat.components.sendflight.SendFlightLayer
+import com.garfiec.librechat.feature.chat.components.sendflight.SendFlightState
 import com.garfiec.librechat.feature.chat.components.veil.COMPOSER_SWELL
 import com.garfiec.librechat.feature.chat.components.veil.LocalComposerFlare
 import com.garfiec.librechat.feature.chat.components.veil.LocalModeVeil
@@ -200,6 +204,7 @@ fun ChatScreen(
     val sttEngine = prefs.sttEngine
     val sttLanguage = prefs.sttLanguage
     val keyboardController = LocalSoftwareKeyboardController.current
+    val reduceMotion = rememberReduceMotion()
     val fontSizeMultiplier = when (uiState.chatFontSize) {
         ChatFontSize.SMALL -> 0.85f
         ChatFontSize.MEDIUM -> 1.0f
@@ -489,9 +494,12 @@ fun ChatScreen(
             // Created here, above both the thread and the composer: the composer's chrome hands its
             // vertical drags to whichever list ChatContent binds.
             val threadScroll = rememberThreadScrollHandle()
+            val sendFlight = remember { SendFlightState() }
+            sendFlight.enabled = !reduceMotion && !uiState.comparisonState.isEnabled
             CompositionLocalProvider(
                 LocalModeVeil provides modeVeil,
                 LocalThreadScrollHandle provides threadScroll,
+                LocalSendFlight provides sendFlight,
                 // Run Code on reply fences, behind RUN_CODE.USE (web `MarkdownComponents` `canRunCode`).
                 LocalCodeRunHost provides viewModel.codeRunHost.takeIf { uiState.runCodeEnabled },
             ) {
@@ -722,7 +730,10 @@ fun ChatScreen(
                                             inputText = uiState.inputText,
                                             isStreaming = isAnyStreaming,
                                             onInputChange = viewModel::onInputChanged,
-                                            onSend = send(viewModel::sendMessage),
+                                            onSend = send {
+                                                sendFlight.capture(uiState.inputText)
+                                                viewModel.sendMessage()
+                                            },
                                             onStop = viewModel::stopGeneration,
                                             onOpenTools = { optionsController.open() },
                                             // The mid-stream send button: the ViewModel resolves steer-vs-queue from the
@@ -780,6 +791,8 @@ fun ChatScreen(
                             }
                         }
                     }
+
+                    SendFlightLayer(sendFlight, fontSizeMultiplier, Modifier.matchParentSize())
 
                     // Floating top bar overlays the message list (drawn last so it sits above content),
                     // measured so ChatContent can reserve a matching scrollable top inset.

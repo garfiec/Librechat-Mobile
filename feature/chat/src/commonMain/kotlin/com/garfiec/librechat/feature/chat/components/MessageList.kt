@@ -19,6 +19,7 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +46,7 @@ import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
+import com.garfiec.librechat.feature.chat.components.sendflight.LocalSendFlight
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.util.MessageNode
 import com.garfiec.librechat.feature.chat.util.attachmentRecoveries
@@ -195,6 +197,17 @@ fun MessageList(
     val extraEndPx = with(LocalDensity.current) { extraEndSpace.toPx() }
     val coroutineScope = rememberCoroutineScope()
     val follower = rememberTailFollowerState()
+    // The send animation claims the row a send adds, the frame it first composes, before it draws.
+    val sendFlight = LocalSendFlight.current
+    val tailUserIndex = displayMessages.indexOfLast { it.message.isCreatedByUser }
+    if (sendFlight != null) {
+        val tailUser = displayMessages.getOrNull(tailUserIndex)
+        SideEffect { sendFlight.observeTail(tailUser?.message, tailUser?.treeParentKey) }
+    }
+    // The sent message is the user tail, found by position: its id can change (server copy) in a
+    // composition that runs before the rebind.
+    val holdsReply = sendFlight?.holdsReply == true
+    val sentIndex = if (holdsReply) tailUserIndex else -1
     // Height (px) of the floating top bar occluding the list's top edge. The search fine-tune adds
     // this so a focused match settles below the bar rather than flush against (or under) it. Zero
     // for callers without an overlaid bar (e.g. comparison panes), leaving their behavior unchanged.
@@ -679,7 +692,11 @@ fun MessageList(
                     } else {
                     MessageBubble(
                         message = node.message,
-                        modifier = jumpOutline.jumpFlashBackground(flash, flashColor),
+                        modifier = jumpOutline
+                            .jumpFlashBackground(flash, flashColor)
+                            .then(
+                                if (sendFlight != null && sentIndex in 0 until index) sendFlight.revealModifier else Modifier,
+                            ),
                         siblingIndex = node.siblingIndex,
                         siblingCount = node.siblingCount,
                         onSiblingNavigation = { newIndex ->
@@ -768,6 +785,7 @@ fun MessageList(
                                 streamingContent = streamingContent,
                                 senderName = streamingSenderName,
                                 avatar = streamingAvatar,
+                                modifier = sendFlight?.revealModifier ?: Modifier,
                                 fontSizeMultiplier = fontSizeMultiplier,
                                 chatLayoutStyle = chatLayoutStyle,
                                 showAvatars = showAvatars,
@@ -777,94 +795,98 @@ fun MessageList(
                                 // Inside the reply, under its sender row, where the finalized
                                 // message draws the cards that replace them.
                                 pendingSkills = pendingSkills,
+                                waiting = holdsReply,
                             )
                         }
                     }
 
-                    if (renderedToolCalls.isNotEmpty()) {
-                        items(
-                            items = renderedToolCalls,
-                            key = { "tool_call_${it.id}" },
-                            contentType = { "tool_call" },
-                        ) { toolCall ->
-                            CompositionLocalProvider(LocalExpansionScope provides replyScope) {
-                                StreamingToolCallCard(
-                                    toolCall = toolCall,
-                                    modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
+                    // Everything else of the live reply shows once a send's flight has ended.
+                    if (!holdsReply) {
+                        if (renderedToolCalls.isNotEmpty()) {
+                            items(
+                                items = renderedToolCalls,
+                                key = { "tool_call_${it.id}" },
+                                contentType = { "tool_call" },
+                            ) { toolCall ->
+                                CompositionLocalProvider(LocalExpansionScope provides replyScope) {
+                                    StreamingToolCallCard(
+                                        toolCall = toolCall,
+                                        modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
+                                        baseUrl = baseUrl,
+                                        streamingAttachments = streamingWorkspace.inline,
+                                        showImageDescriptions = showImageDescriptions,
+                                        sandboxStarting = toolCall.id in sandboxStartingToolCallIds,
+                                        isLatestStep = toolCall.id == renderedToolCalls.lastOrNull()?.id,
+                                        replyLength = streamingContent.length,
+                                    )
+                                }
+                            }
+                        }
+
+                        if (streamingWorkspace.changes.isNotEmpty()) {
+                            item(key = "streaming_workspace_changes", contentType = "workspace_changes") {
+                                CompositionLocalProvider(LocalExpansionScope provides replyScope) {
+                                    WorkspaceChangesSection(
+                                        changes = streamingWorkspace.changes,
+                                        baseUrl = baseUrl,
+                                        stateKey = "streaming",
+                                        modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
+                                        live = true,
+                                    )
+                                }
+                            }
+                        }
+
+                        // Live office-doc previews (v0.8.6) once ready. Pending and failed ones are rows
+                        // under their tool call, or here when no rendered call claims them; see
+                        // isInlineOfficePreview.
+                        val streamingCallIds = renderedToolCalls.map { it.id }
+                        val officeAttachments = streamingWorkspace.inline.filter(::isInlineOfficePreview)
+                        if (officeAttachments.isNotEmpty() ||
+                            unclaimedOfficePreviewRows(streamingWorkspace.inline, streamingCallIds).isNotEmpty()
+                        ) {
+                            item(key = "streaming_office_previews") {
+                                OfficePreviewAttachments(
+                                    attachments = streamingWorkspace.inline,
+                                    renderedToolCallIds = streamingCallIds,
                                     baseUrl = baseUrl,
-                                    streamingAttachments = streamingWorkspace.inline,
-                                    showImageDescriptions = showImageDescriptions,
-                                    sandboxStarting = toolCall.id in sandboxStartingToolCallIds,
-                                    isLatestStep = toolCall.id == renderedToolCalls.lastOrNull()?.id,
-                                    replyLength = streamingContent.length,
-                                )
-                            }
-                        }
-                    }
-
-                    if (streamingWorkspace.changes.isNotEmpty()) {
-                        item(key = "streaming_workspace_changes", contentType = "workspace_changes") {
-                            CompositionLocalProvider(LocalExpansionScope provides replyScope) {
-                                WorkspaceChangesSection(
-                                    changes = streamingWorkspace.changes,
-                                    baseUrl = baseUrl,
-                                    stateKey = "streaming",
                                     modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
-                                    live = true,
+                                    isDarkTheme = isSurfaceDark(),
                                 )
                             }
                         }
-                    }
 
-                    // Live office-doc previews (v0.8.6) once ready. Pending and failed ones are rows
-                    // under their tool call, or here when no rendered call claims them; see
-                    // isInlineOfficePreview.
-                    val streamingCallIds = renderedToolCalls.map { it.id }
-                    val officeAttachments = streamingWorkspace.inline.filter(::isInlineOfficePreview)
-                    if (officeAttachments.isNotEmpty() ||
-                        unclaimedOfficePreviewRows(streamingWorkspace.inline, streamingCallIds).isNotEmpty()
-                    ) {
-                        item(key = "streaming_office_previews") {
-                            OfficePreviewAttachments(
-                                attachments = streamingWorkspace.inline,
-                                renderedToolCallIds = streamingCallIds,
-                                baseUrl = baseUrl,
-                                modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
-                                isDarkTheme = isSurfaceDark(),
-                            )
-                        }
-                    }
-
-                    val orphanMemory = collectUnrenderedMemoryArtifacts(
-                        streamingWorkspace.inline,
-                        streamingCallIds,
-                    )
-                    if (orphanMemory.isNotEmpty()) {
-                        // Keyed per reply, so the next run's line never restores this one's open state.
-                        item(key = "streaming_memory_artifacts_$streamingSlotKey") {
-                            CompositionLocalProvider(LocalExpansionScope provides replyScope) {
-                                MemoryArtifactsSection(
-                                    artifacts = orphanMemory,
-                                    modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
-                                    stateKey = memoryArtifactsStateKey(streamingWorkspace.inline, fallback = ""),
-                                    onManage = LocalOpenMemories.current,
-                                    live = true,
-                                )
+                        val orphanMemory = collectUnrenderedMemoryArtifacts(
+                            streamingWorkspace.inline,
+                            streamingCallIds,
+                        )
+                        if (orphanMemory.isNotEmpty()) {
+                            // Keyed per reply, so the next run's line never restores this one's open state.
+                            item(key = "streaming_memory_artifacts_$streamingSlotKey") {
+                                CompositionLocalProvider(LocalExpansionScope provides replyScope) {
+                                    MemoryArtifactsSection(
+                                        artifacts = orphanMemory,
+                                        modifier = Modifier.streamingContentColumnPadding(chatLayoutStyle, showAvatars, showBubbles),
+                                        stateKey = memoryArtifactsStateKey(streamingWorkspace.inline, fallback = ""),
+                                        onManage = LocalOpenMemories.current,
+                                        live = true,
+                                    )
+                                }
                             }
                         }
-                    }
 
-                    // Human-review pause (v0.8.8): the run is waiting on the user, whose controls are
-                    // docked by the composer (AskUserQuestionPanel, ToolApprovalPanel). The tail of the
-                    // still-unfinished reply keeps a one-line marker so it reads as waiting rather than
-                    // stalled; the continuation streams back into the bubble above.
-                    if (pendingAction != null) {
-                        item(key = "pending_action_${pendingAction.actionId}") {
-                            val markerModifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                            if (pendingAction.isAskUserQuestion) {
-                                AskUserQuestionWaitingMarker(modifier = markerModifier)
-                            } else {
-                                ToolApprovalWaitingMarker(modifier = markerModifier)
+                        // Human-review pause (v0.8.8): the run is waiting on the user, whose controls are
+                        // docked by the composer (AskUserQuestionPanel, ToolApprovalPanel). The tail of the
+                        // still-unfinished reply keeps a one-line marker so it reads as waiting rather than
+                        // stalled; the continuation streams back into the bubble above.
+                        if (pendingAction != null) {
+                            item(key = "pending_action_${pendingAction.actionId}") {
+                                val markerModifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                                if (pendingAction.isAskUserQuestion) {
+                                    AskUserQuestionWaitingMarker(modifier = markerModifier)
+                                } else {
+                                    ToolApprovalWaitingMarker(modifier = markerModifier)
+                                }
                             }
                         }
                     }

@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.rememberDraftField
+import com.garfiec.librechat.feature.chat.components.sendflight.LocalSendFlight
 import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
 import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
@@ -186,6 +187,7 @@ fun IosChatInput(
                     onValueChange = { field.onValueChange(it, onInputChange) },
                     modifier = Modifier
                         .fillMaxWidth()
+                        .then(LocalSendFlight.current?.fieldModifier ?: Modifier)
                         .heightIn(min = 48.dp, max = 160.dp),
                     placeholder = {
                         ChatInputPlaceholder(
