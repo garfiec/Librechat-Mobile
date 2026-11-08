@@ -76,6 +76,8 @@ import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
+import com.garfiec.librechat.feature.chat.components.sendflight.sendFlightBubble
+import com.garfiec.librechat.feature.chat.components.sendflight.sendFlightHeader
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_close
 import com.garfiec.librechat.feature.chat.resources.cd_expand_table
@@ -240,7 +242,7 @@ private fun ThreadBubble(
             .clickable(interactionSource = null, indication = null) { showActions = !showActions }
             .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = sendFlightHeader(message.messageId, isUser), verticalAlignment = Alignment.CenterVertically) {
             if (showAvatars) {
                 if (isUser) {
                     AvatarImage(
@@ -285,9 +287,12 @@ private fun ThreadBubble(
         }
 
         Column(
-            modifier = Modifier.padding(start = contentPad).then(
-                if (bubbleBg != null) Modifier.background(bubbleBg, BubbleShape).padding(12.dp) else Modifier,
-            ),
+            modifier = Modifier
+                .padding(start = contentPad)
+                .then(sendFlightBubble(message.messageId, isUser, hasBubble = bubbleBg != null))
+                .then(
+                    if (bubbleBg != null) Modifier.background(bubbleBg, BubbleShape).padding(12.dp) else Modifier,
+                ),
         ) {
             MessageContentAndActions(
                 message = message,
@@ -395,13 +400,16 @@ private fun TwoSidedBubble(
         }
 
         Column(
-            modifier = Modifier.weight(1f).then(
-                if (effectiveBg != null) {
-                    Modifier.background(effectiveBg, BubbleShape).padding(12.dp)
-                } else {
-                    Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
-                },
-            ),
+            modifier = Modifier
+                .weight(1f)
+                .then(sendFlightBubble(message.messageId, isUser, hasBubble = effectiveBg != null))
+                .then(
+                    if (effectiveBg != null) {
+                        Modifier.background(effectiveBg, BubbleShape).padding(12.dp)
+                    } else {
+                        Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
+                    },
+                ),
             horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -461,6 +469,7 @@ private fun TwoSidedBubble(
             Spacer(Modifier.width(6.dp))
             AvatarImage(
                 imageUrl = userAvatarUrl,
+                modifier = sendFlightHeader(message.messageId, isUser = true),
                 fallbackText = userName ?: stringResource(Res.string.sender_you),
                 showPersonIcon = userAvatarUrl == null,
                 size = 28.dp,

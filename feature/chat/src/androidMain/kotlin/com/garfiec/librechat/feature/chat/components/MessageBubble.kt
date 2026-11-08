@@ -35,6 +35,8 @@ import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.core.ui.components.AvatarImage
 import com.garfiec.librechat.core.ui.components.BubbleShape
 import com.garfiec.librechat.core.ui.components.EndpointAvatar
+import com.garfiec.librechat.feature.chat.components.sendflight.sendFlightBubble
+import com.garfiec.librechat.feature.chat.components.sendflight.sendFlightHeader
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import kotlinx.coroutines.delay
@@ -220,6 +222,7 @@ private fun ThreadMessageBubble(
     ) {
         // Sender row with avatar
         Row(
+            modifier = sendFlightHeader(message.messageId, isUser),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (showAvatars) {
@@ -283,6 +286,7 @@ private fun ThreadMessageBubble(
         Column(
             modifier = Modifier
                 .padding(start = contentStartPadding)
+                .then(sendFlightBubble(message.messageId, isUser, hasBubble = threadBubbleBackground != null))
                 .then(
                     if (threadBubbleBackground != null) {
                         Modifier
@@ -444,6 +448,7 @@ private fun TwoSidedMessageBubble(
         Column(
             modifier = Modifier
                 .weight(1f)
+                .then(sendFlightBubble(message.messageId, isUser, hasBubble = effectiveBubbleBackground != null))
                 .then(
                     if (effectiveBubbleBackground != null) {
                         Modifier
@@ -526,6 +531,7 @@ private fun TwoSidedMessageBubble(
             Spacer(modifier = Modifier.width(6.dp))
             AvatarImage(
                 imageUrl = userAvatarUrl,
+                modifier = sendFlightHeader(message.messageId, isUser = true),
                 fallbackText = userName ?: stringResource(Res.string.sender_you),
                 showPersonIcon = userAvatarUrl == null,
                 size = 28.dp,

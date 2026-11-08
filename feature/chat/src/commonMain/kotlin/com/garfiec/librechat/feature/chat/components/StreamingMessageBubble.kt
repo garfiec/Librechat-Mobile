@@ -44,6 +44,8 @@ import org.jetbrains.compose.resources.stringResource
  * [pendingSkills] are the skills the turn picked, each a "Running X" row at the top of the reply's
  * content, under the sender row: where the finalized message draws the skill cards the server
  * prepends, so the swap doesn't move them past the header.
+ *
+ * While [waiting], the bubble shows only its waiting dots, whatever has streamed.
  */
 @Composable
 fun StreamingMessageBubble(
@@ -58,6 +60,7 @@ fun StreamingMessageBubble(
     useKatex: Boolean = false,
     streamingThinking: String = "",
     pendingSkills: List<String> = emptyList(),
+    waiting: Boolean = false,
 ) {
     if (chatLayoutStyle == ChatLayoutConstants.TWO_SIDED) {
         TwoSidedStreamingBubble(
@@ -70,6 +73,7 @@ fun StreamingMessageBubble(
             useKatex = useKatex,
             streamingThinking = streamingThinking,
             pendingSkills = pendingSkills,
+            waiting = waiting,
             modifier = modifier,
         )
     } else {
@@ -83,6 +87,7 @@ fun StreamingMessageBubble(
             useKatex = useKatex,
             streamingThinking = streamingThinking,
             pendingSkills = pendingSkills,
+            waiting = waiting,
             modifier = modifier,
         )
     }
@@ -99,6 +104,7 @@ private fun ThreadStreamingBubble(
     useKatex: Boolean,
     streamingThinking: String,
     pendingSkills: List<String>,
+    waiting: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val liveCd = streamingLiveDescription(streamingContent)
@@ -158,22 +164,26 @@ private fun ThreadStreamingBubble(
                     contentDescription = liveCd
                 },
         ) {
-            StreamingPendingSkills(pendingSkills)
-            StreamingThinking(streamingThinking, fontSizeMultiplier, useKatex)
-            if (streamingContent.isNotBlank()) {
-                // Routed through TextContentPart so artifact directives render as cards while the
-                // reply streams (#302) — an unclosed artifact shows its source via IncompleteArtifact.
-                // It also owns the cursor — a cursor placed here as a sibling lands on a line of its
-                // own instead of after the last word.
-                TextContentPart(
-                    text = streamingContent,
-                    fontSizeMultiplier = fontSizeMultiplier,
-                    useKatex = useKatex,
-                    streaming = true,
-                    trailingCursor = true,
-                )
-            } else {
+            if (waiting) {
                 StreamingWaitIndicator()
+            } else {
+                StreamingPendingSkills(pendingSkills)
+                StreamingThinking(streamingThinking, fontSizeMultiplier, useKatex)
+                if (streamingContent.isNotBlank()) {
+                    // Routed through TextContentPart so artifact directives render as cards while the
+                    // reply streams (#302) — an unclosed artifact shows its source via IncompleteArtifact.
+                    // It also owns the cursor — a cursor placed here as a sibling lands on a line of its
+                    // own instead of after the last word.
+                    TextContentPart(
+                        text = streamingContent,
+                        fontSizeMultiplier = fontSizeMultiplier,
+                        useKatex = useKatex,
+                        streaming = true,
+                        trailingCursor = true,
+                    )
+                } else {
+                    StreamingWaitIndicator()
+                }
             }
         }
     }
@@ -190,6 +200,7 @@ private fun TwoSidedStreamingBubble(
     useKatex: Boolean,
     streamingThinking: String,
     pendingSkills: List<String>,
+    waiting: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val liveCd = streamingLiveDescription(streamingContent)
@@ -250,22 +261,26 @@ private fun TwoSidedStreamingBubble(
                 },
             )
             Spacer(modifier = Modifier.height(4.dp))
-            StreamingPendingSkills(pendingSkills)
-            StreamingThinking(streamingThinking, fontSizeMultiplier, useKatex)
-            if (streamingContent.isNotBlank()) {
-                // Routed through TextContentPart so artifact directives render as cards while the
-                // reply streams (#302) — an unclosed artifact shows its source via IncompleteArtifact.
-                // It also owns the cursor — a cursor placed here as a sibling lands on a line of its
-                // own instead of after the last word.
-                TextContentPart(
-                    text = streamingContent,
-                    fontSizeMultiplier = fontSizeMultiplier,
-                    useKatex = useKatex,
-                    streaming = true,
-                    trailingCursor = true,
-                )
-            } else {
+            if (waiting) {
                 StreamingWaitIndicator()
+            } else {
+                StreamingPendingSkills(pendingSkills)
+                StreamingThinking(streamingThinking, fontSizeMultiplier, useKatex)
+                if (streamingContent.isNotBlank()) {
+                    // Routed through TextContentPart so artifact directives render as cards while the
+                    // reply streams (#302) — an unclosed artifact shows its source via IncompleteArtifact.
+                    // It also owns the cursor — a cursor placed here as a sibling lands on a line of its
+                    // own instead of after the last word.
+                    TextContentPart(
+                        text = streamingContent,
+                        fontSizeMultiplier = fontSizeMultiplier,
+                        useKatex = useKatex,
+                        streaming = true,
+                        trailingCursor = true,
+                    )
+                } else {
+                    StreamingWaitIndicator()
+                }
             }
         }
     }

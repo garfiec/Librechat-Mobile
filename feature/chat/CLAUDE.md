@@ -1112,6 +1112,13 @@ while attachments are staged, so neither promises something the tap won't do.
 - Over the composer's transparent top, Material chip fills are opaque
   (`AdaptiveChipDefaults.overlay*ChipColors`). No composer chip has a caret.
 
+### Send flight (`components/sendflight/`)
+- A flight reads places its modifiers register: the field (`fieldModifier`, both composers), the box,
+  each user bubble (`sendFlightBubble`, before its background) and sender line (`sendFlightHeader`),
+  the user text and the wait dots. A new user-message layout on either platform carries both bubble
+  and header modifiers; without `sendFlightBubble` the real message shows under the copy in flight.
+  A flight that can't place something ends at once, so no row stays hidden.
+
 ### Attachment strip (files, picked skills, quotes)
 - **What goes with the message is one list, `DraftItems`** (pure `draftItemsOf`). Upload progress
   stays out of it and out of `ComposerChrome`: the rings read `DraftUploadProgress` as they draw, so

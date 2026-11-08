@@ -59,6 +59,7 @@ internal fun CollapsibleUserText(
     enabled: Boolean,
     stateKey: String,
     fontSizeMultiplier: Float,
+    modifier: Modifier = Modifier,
     forceExpanded: Boolean = false,
     content: @Composable () -> Unit,
 ) {
@@ -66,7 +67,7 @@ internal fun CollapsibleUserText(
     var overflowing by remember { mutableStateOf(false) }
     val clampable = enabled && !expanded && !forceExpanded
     // One content() call site whatever the setting, so turning it on or off keeps the content's state.
-    Column {
+    Column(modifier) {
         // A Column, not a Box: the message body is several stacked children.
         Column(
             modifier = if (!enabled) {
