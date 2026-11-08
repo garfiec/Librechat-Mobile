@@ -178,6 +178,15 @@ class QueuedTurnRepositoryClassificationTest {
     }
 
     @Test
+    fun `an absent v2 route sends that turn local without latching v1`() = runTest {
+        failing(404, """{"message":"Endpoint not found"}""")
+
+        assertThat(repository.enqueue(request.copy(codeApprovalMode = "ask")))
+            .isEqualTo(QueuedTurnOutcome.Unsupported)
+        assertThat(repository.isUnsupported()).isFalse()
+    }
+
+    @Test
     fun `a latched route is not asked again`() = runTest {
         failing(404, """{"message":"Endpoint not found"}""")
         repository.enqueue(request)

@@ -16,11 +16,22 @@ import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.LastUsedSelection
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
+import com.garfiec.librechat.core.data.repository.CodeDecisionMove
+import com.garfiec.librechat.core.data.repository.CodeEnvironmentRepository
+import com.garfiec.librechat.core.data.repository.SavedCodeDecision
+import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.PendingSteer
 import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.StreamEvent
+import com.garfiec.librechat.core.model.code.CodeApprovalMode
+import com.garfiec.librechat.core.model.code.CodeEnvironmentMode
+import com.garfiec.librechat.core.model.code.CodeEnvironmentStatus
+import com.garfiec.librechat.core.model.code.CodeWorkspaceDescriptor
+import com.garfiec.librechat.core.model.code.CodeWorkspaceSelection
+import com.garfiec.librechat.core.model.code.PublicCodeEnvironment
+import com.garfiec.librechat.core.model.code.StatefulCodeSessionsConfig
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.config.StartupConfig
@@ -326,6 +337,78 @@ class ChatViewModelQueuedTurnTest {
         assertThat(vm.uiState.value.messageQueue.single().server).isNull()
         coVerify(exactly = 0) { queuedTurnRepository.enqueue(any()) }
         coVerify(exactly = 0) { queuedTurnRepository.list(any(), any()) }
+    }
+
+    /** A chat on a coding agent with an attached machine, so every turn carries an approval mode. */
+    private fun arrangeCodeChat(serverVersion: String, buildClass: BackendBuildClass) {
+        val machine = PublicCodeEnvironment(id = "mbp", name = "mbp", type = "attached")
+        every { configRepository.detectedBackend } returns MutableStateFlow(DetectedBackend(serverVersion, buildClass))
+        every { configRepository.detectedBackendVersion } returns MutableStateFlow(serverVersion)
+        every { configRepository.startupConfig } returns
+            MutableStateFlow(StartupConfig(codeEnvironmentDecisionVersion = 1))
+        every { configRepository.endpointConfigs } returns MutableStateFlow(
+            mapOf(
+                ENDPOINT to EndpointConfig(
+                    capabilities = listOf("execute_code", "stateful_code_sessions"),
+                    statefulCodeSessions = StatefulCodeSessionsConfig(
+                        environments = listOf(machine),
+                        approvalsEnabled = true,
+                        approvalModes = listOf(CodeApprovalMode.ASK),
+                    ),
+                ),
+            ),
+        )
+        coEvery { fixture.agentRepository.getAgents(any()) } returns Result.Success(
+            listOf(
+                Agent(
+                    id = AGENT_ID,
+                    name = "Dev",
+                    tools = listOf("execute_code"),
+                    statefulCodeSessions = true,
+                    codeEnvironmentId = machine.id,
+                    codeWorkspaceId = "repo",
+                ),
+            ),
+        )
+        val selection = CodeWorkspaceSelection(machine.id, "repo")
+        fixture.codeEnvironmentRepository = object : CodeEnvironmentRepository {
+            override suspend fun status(environmentId: String): Result<CodeEnvironmentStatus> =
+                Result.Success(CodeEnvironmentStatus(machine.id, "ready", listOf(CodeWorkspaceDescriptor(id = "repo"))))
+            override suspend fun savedDecision(conversationId: String): Result<SavedCodeDecision> =
+                Result.Success(SavedCodeDecision(mode = CodeEnvironmentMode.ATTACHED, workspaces = listOf(selection)))
+            override suspend fun moveDecision(
+                conversationId: String,
+                from: List<CodeWorkspaceSelection>,
+                to: List<CodeWorkspaceSelection>,
+            ): CodeDecisionMove = CodeDecisionMove.Failed(unknownOutcome = false)
+        }
+    }
+
+    @Test
+    fun `a queued Ask turn reaches the server queue carrying its mode`() = queuedTurnTest(
+        arrange = { arrangeCodeChat("0.8.8", BackendBuildClass.OFFICIAL) },
+    ) { vm ->
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+
+        val request = slot<EnqueueQueuedTurnRequest>()
+        coVerify(exactly = 1) { queuedTurnRepository.enqueue(capture(request)) }
+        assertThat(request.captured.codeApprovalMode).isEqualTo(CodeApprovalMode.ASK)
+    }
+
+    @Test
+    fun `a turn with a mode stays local on a server without the v2 queue`() = queuedTurnTest(
+        arrange = { arrangeCodeChat("0.8.8-rc3", BackendBuildClass.RC) },
+    ) { vm ->
+        vm.onInputChanged(TEXT)
+        vm.queueMessage()
+        runCurrent()
+
+        coVerify(exactly = 0) { queuedTurnRepository.enqueue(any()) }
+        val queued = vm.uiState.value.messageQueue.single()
+        assertThat(queued.server).isNull()
+        assertThat(queued.codeWorkspace?.approvalMode).isEqualTo(CodeApprovalMode.ASK)
     }
 
     @Test

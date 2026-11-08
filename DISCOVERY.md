@@ -1610,10 +1610,11 @@ POST   /api/agents/chat/queued-turns/v2   (v0.8.8, 163c1ad9 #16326) accepts `cod
                                             it and the capability gains `protocolVersion: 2`. v1 answers **409**
                                             `QUEUED_TURN_PROTOCOL_REQUIRED` only when `codeApprovalMode` is sent.
                                             The enqueue 500 code is renamed `QUEUED_TURN_FAILED` →
-                                            `QUEUED_TURN_ENQUEUE_FAILED`. Mobile stays on v1 and never puts
-                                            `codeApprovalMode` on an enqueue: a follow-up whose turn carries a
-                                            mode other than `ask` stays in the local queue, which sends it as an
-                                            ordinary turn with its mode (`serverOwnedSpec`). v2 not used.
+                                            `QUEUED_TURN_ENQUEUE_FAILED`. Mobile posts a turn carrying a mode,
+                                            `ask` included, to v2 with `codeApprovalMode`; a turn with no mode
+                                            goes to v1. A queued turn without a mode runs under the machine's
+                                            own permissions. Below v0.8.8 a turn with a mode stays in the local
+                                            queue (see VERSION_GATES.md). (BUILT)
 POST   /api/skills/:id/files/*relativePath
                                           (v0.8.8, 7caa98ff #16362) conditional per-file replace. See the Skills
                                             family block above for the contract; offered only when the read

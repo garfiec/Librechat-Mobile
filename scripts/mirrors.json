@@ -6272,16 +6272,16 @@
     {
       "id": "queued-turn-approval-mode",
       "upstream": {
-        "file": "packages/api/src/agents/queuedTurnHttp.ts",
-        "symbol": "handleAgentQueuedTurnEnqueue",
+        "file": "packages/data-provider/src/data-service.ts",
+        "symbol": "enqueueAgentQueuedTurn",
         "mode": "block"
       },
       "kotlin": {
-        "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/viewmodel/delegate/QueueOrchestrationDelegate.kt",
-        "symbol": "serverOwnedSpec"
+        "file": "core/network/src/commonMain/kotlin/com/garfiec/librechat/core/network/api/QueuedTurnsApi.kt",
+        "symbol": "enqueueQueuedTurn"
       },
-      "why": "The v1 queued-turn route 409s a turn carrying codeApprovalMode, so a follow-up picked to do more than ask stays in the local queue.",
-      "failure_mode": "If v1 starts accepting the mode, local queueing is merely conservative; if the rule widens, server-queued follow-ups 409."
+      "why": "A turn carrying codeApprovalMode, ask included, is posted to queued-turns/v2; v1 409s it, and a turn queued without it runs under the attached machine's own permissions.",
+      "failure_mode": "If the routing rule changes, queued follow-ups either 409 or run edits and commands without the approval the chat asks for."
     },
     {
       "id": "code-worker-setup-command",
