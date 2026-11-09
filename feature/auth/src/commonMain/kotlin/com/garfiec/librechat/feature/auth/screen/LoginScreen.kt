@@ -151,15 +151,18 @@ fun LoginScreen(
             // (ALLOW_EMAIL_LOGIN=false, #14180) — it 403s the login POST, so offer only the
             // social providers below. Fail-open: the flag defaults true until config resolves.
             if (uiState.emailLoginEnabled) {
+                val usernameLogin = uiState.usernameLogin
                 AdaptiveOutlinedTextField(
                     value = uiState.email,
                     onValueChange = viewModel::onEmailChanged,
-                    label = { Text(stringResource(Res.string.email_label)) },
+                    label = { Text(stringResource(if (usernameLogin) Res.string.username_label else Res.string.email_label)) },
                     modifier = Modifier.fillMaxWidth().testTag("login_email")
-                        .semantics { contentType = ContentType.Username + ContentType.EmailAddress },
+                        .semantics {
+                            contentType = if (usernameLogin) ContentType.Username else ContentType.Username + ContentType.EmailAddress
+                        },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Email,
+                        keyboardType = if (usernameLogin) KeyboardType.Text else KeyboardType.Email,
                         autoCorrectEnabled = false,
                     ).withIosTextContentType(IosTextContentType.Username),
                     enabled = !uiState.isLoading,
@@ -205,10 +208,12 @@ fun LoginScreen(
                     Text(stringResource(if (uiState.isLoading) Res.string.progress_signing_in else Res.string.continue_button))
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                if (uiState.passwordResetEnabled) {
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                TextButton(onClick = onNavigateToForgotPassword) {
-                    Text(stringResource(Res.string.forgot_password))
+                    TextButton(onClick = onNavigateToForgotPassword) {
+                        Text(stringResource(Res.string.forgot_password))
+                    }
                 }
             }
 
@@ -220,31 +225,33 @@ fun LoginScreen(
                 }
             }
 
-            val socialLogins = uiState.socialLogins
-            if (uiState.socialLoginEnabled && socialLogins.isNotEmpty()) {
+            val socialProviders = uiState.socialProviders
+            if (socialProviders.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
 
-                AdaptiveDivider(modifier = Modifier.fillMaxWidth())
+                if (uiState.emailLoginEnabled) {
+                    AdaptiveDivider(modifier = Modifier.fillMaxWidth())
 
-                Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                Text(
-                    text = stringResource(Res.string.or_continue_with),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                    Text(
+                        text = stringResource(Res.string.or_continue_with),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
 
-                socialLogins.forEach { provider ->
+                socialProviders.forEach { provider ->
                     AdaptiveOutlinedButton(
-                        onClick = { viewModel.onSsoProviderSelected(provider) },
+                        onClick = { viewModel.onSsoProviderSelected(provider.id) },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !uiState.isLoading,
                     ) {
-                        Text(oAuthProviderLabel(provider))
+                        Text(provider.label ?: oAuthProviderLabel(provider.id))
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                 }
@@ -286,6 +293,7 @@ internal fun oAuthProviderLabel(provider: String): String {
         "facebook" -> "Facebook"
         "apple" -> "Apple"
         "openid" -> "OpenID"
+        "saml" -> "SAML"
         else -> provider.replaceFirstChar { it.uppercase() }
     }
     return stringResource(Res.string.continue_with_provider, name)

@@ -5,9 +5,8 @@
   `TwoFactorSetup(tempToken)`, `VerifyEmail(email)`, `ResetPassword(userId, token)`, `Terms`,
   `SsoLogin(provider)`; entries via `authEntries()`. Flow: `ServerUrl` → `Login` → (2FA if `tempToken`) →
   `onAuthComplete`. One ViewModel per screen, all on `AuthRepository`.
-- A stored server URL skips `ServerUrl` on launch. `openidAutoRedirect` redirects instead of showing the form.
-- No LDAP username mode: the login field is always an email field (`LdapConfig.username` unused); username
-  LDAP still works since the field accepts any text.
+- A stored server URL skips `ServerUrl` on launch.
+- Login shows only what `GET /api/config` turns on, mapped once in `LoginViewModel` from `authServerConfig`.
 
 ## Server URL: cleaning and origin fallback
 - **The field cleans a pasted web-UI address** (`cleanServerUrl`, `:core:common`): drops fragment, query and one
@@ -122,7 +121,7 @@
   so never in add-account mode.
 
 ## Password managers
-- **Android** (autofill framework): Login email `Username + EmailAddress`; Register/Reset `NewUsername`/
+- **Android** (autofill framework): Login email `Username + EmailAddress` (`Username` alone in LDAP username mode); Register/Reset `NewUsername`/
   `NewPassword`; password fields recognised from `PasswordVisualTransformation`. Register calls
   `LocalAutofillManager.commit()` itself because it returns to Login, whose fields keep the session open.
 - **iOS** (`KeyboardOptions.withIosTextContentType()`, `:core:ui`): `.username` on email fields, `.newPassword`
