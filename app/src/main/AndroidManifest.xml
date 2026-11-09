@@ -135,6 +135,16 @@
                 <data android:mimeType="*/*" />
             </intent-filter>
         </activity>
+        <!-- intoExisting keys the task on the intent's data URI, so each artifact keeps one task and
+             one Recents card. Rotating or folding would otherwise
+             reload the page and lose its state. Launched only by our own shortcuts. -->
+        <activity
+            android:name=".artifact.ArtifactAppActivity"
+            android:exported="false"
+            android:documentLaunchMode="intoExisting"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.LibreChat" />
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

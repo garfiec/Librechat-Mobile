@@ -1,13 +1,11 @@
 package com.garfiec.librechat.shared.navigation
 
-import com.garfiec.librechat.feature.chat.navigation.ArtifactShortcutViewer
 import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.settings.navigation.CodeSetup
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.assertTrue
 
 class DeepLinksTest {
 
@@ -15,12 +13,11 @@ class DeepLinksTest {
         DeepLinkUri(host = host, pathSegments = listOfNotNull(path), query = query)
 
     @Test
-    fun conversationValidUuid_routesToChatRequiringAuth() {
+    fun conversationValidUuid_routesToChat() {
         // conversationId is a server-generated uuidv4, not a Mongo ObjectID.
         val id = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
         val resolution = DeepLinks.resolve(uri("conversation", id))
         val route = assertIs<DeepLinkResolution.Route>(resolution)
-        assertTrue(route.requiresAuth)
         assertEquals(id, assertIs<Chat>(route.target).conversationId)
     }
 
@@ -50,7 +47,6 @@ class DeepLinksTest {
         val withSpec = assertIs<DeepLinkResolution.Route>(
             DeepLinks.resolve(uri("model", query = mapOf("endpoint" to "openAI", "model" to "gpt-4o", "spec" to "fast"))),
         )
-        assertTrue(withSpec.requiresAuth)
         assertEquals(NewChat(endpoint = "openAI", model = "gpt-4o", spec = "fast"), withSpec.target)
 
         val raw = assertIs<DeepLinkResolution.Route>(
@@ -68,12 +64,9 @@ class DeepLinksTest {
     }
 
     @Test
-    fun artifactValidUuid_routesToViewerOpenLoggedOut() {
+    fun artifactValidUuid_opensAsItsOwnApp() {
         val id = "3f2504e0-4f89-41d3-9a0c-0305e82c3301"
-        val resolution = DeepLinks.resolve(uri("artifact", id))
-        val route = assertIs<DeepLinkResolution.Route>(resolution)
-        assertTrue(!route.requiresAuth) // device-scoped snapshot renders without a session
-        assertEquals(id, assertIs<ArtifactShortcutViewer>(route.target).snapshotId)
+        assertEquals(DeepLinkResolution.ArtifactApp(id), DeepLinks.resolve(uri("artifact", id)))
     }
 
     @Test
@@ -101,10 +94,10 @@ class DeepLinksTest {
     }
 
     @Test
-    fun codeSetup_routesAValidAttemptRequiringAuth() {
+    fun codeSetup_routesAValidAttempt() {
         val id = "a".repeat(42) + "-"
         assertEquals(
-            DeepLinkResolution.Route(CodeSetup(id), requiresAuth = true),
+            DeepLinkResolution.Route(CodeSetup(id)),
             DeepLinks.resolve(uri("code-setup", id)),
         )
         assertEquals(DeepLinkResolution.None, DeepLinks.resolve(uri("code-setup", "too-short")))

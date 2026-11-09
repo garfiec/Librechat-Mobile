@@ -14,6 +14,7 @@ import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import androidx.core.net.toUri
+import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.model.ArtifactShortcut
 import com.garfiec.librechat.core.model.displayGlyph
 import com.garfiec.librechat.core.model.displayLabel
@@ -28,8 +29,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Clock
 
-/** Fully-qualified launcher activity — referenced by string because :app isn't visible from here. */
+/** Fully-qualified activities, referenced by string because :app isn't visible from here. */
 private const val MAIN_ACTIVITY = "com.garfiec.librechat.MainActivity"
+private const val ARTIFACT_APP_ACTIVITY = "com.garfiec.librechat.artifact.ArtifactAppActivity"
 
 /** Adaptive-icon canvas edge in px; sized for xxhdpi so the launcher downscales rather than upscales. */
 private const val ICON_SIZE_PX = 324
@@ -93,15 +95,11 @@ suspend fun requestPinArtifactShortcut(
     val appContext = context.applicationContext
     ensurePinReceiver(appContext)
 
-    val intent = Intent(Intent.ACTION_VIEW, "librechat://artifact/${shortcut.id}".toUri())
-        // Explicit component so the launcher routes straight to us regardless of other VIEW handlers.
-        .setClassName(context.packageName, MAIN_ACTIVITY)
-
     val icon = withContext(Dispatchers.Default) { renderIcon(shortcut) }
     val info = ShortcutInfoCompat.Builder(context, shortcut.id)
         .setShortLabel(shortcut.displayLabel)
         .setIcon(IconCompat.createWithAdaptiveBitmap(icon))
-        .setIntent(intent)
+        .setIntent(artifactAppIntent(context, shortcut.id))
         .build()
 
     pendingPins[shortcut.id] = PendingPin(shortcut, save)
@@ -129,6 +127,43 @@ suspend fun requestPinArtifactShortcut(
     return dispatched
 }
 
+/**
+ * Opens a pinned artifact as its own app. The data URI is the task's identity
+ * (`documentLaunchMode="intoExisting"`), so each artifact gets one task of its own.
+ */
+fun artifactAppIntent(context: Context, snapshotId: String): Intent =
+    Intent(Intent.ACTION_VIEW, artifactUri(snapshotId).toUri()).setClassName(context.packageName, ARTIFACT_APP_ACTIVITY)
+
+private fun artifactUri(snapshotId: String) = "librechat://artifact/$snapshotId"
+
+/**
+ * Points icons pinned to open inside [MAIN_ACTIVITY] at the artifact's own app, off the main thread.
+ * An update leaves out the icon, which the launcher keeps.
+ */
+fun retargetPinnedArtifactShortcuts(context: Context) {
+    val appContext = context.applicationContext
+    pinScope.launch {
+        runCatching {
+            val legacy = ShortcutManagerCompat.getShortcuts(appContext, ShortcutManagerCompat.FLAG_MATCH_PINNED)
+                .filter { shortcut ->
+                    val intent = shortcut.intents.lastOrNull()
+                    intent?.component?.className == MAIN_ACTIVITY && intent.data?.toString() == artifactUri(shortcut.id)
+                }
+            if (legacy.isNotEmpty()) {
+                ShortcutManagerCompat.updateShortcuts(
+                    appContext,
+                    legacy.map { old ->
+                        ShortcutInfoCompat.Builder(appContext, old.id)
+                            .setShortLabel(old.shortLabel)
+                            .setIntent(artifactAppIntent(appContext, old.id))
+                            .build()
+                    },
+                )
+            }
+        }.onFailure { Logger.w(it) { "Couldn't retarget pinned artifact shortcuts" } }
+    }
+}
+
 /** Snapshots the artifact primitives plus the user-chosen label/emoji into a storable model. */
 fun buildArtifactShortcut(
     id: String,
@@ -153,7 +188,7 @@ fun buildArtifactShortcut(
  * background with a centered glyph — the user's emoji when set, otherwise a type-representative emoji.
  * Full-bleed so the launcher's adaptive mask can crop to any shape.
  */
-private fun renderIcon(shortcut: ArtifactShortcut): Bitmap {
+internal fun renderIcon(shortcut: ArtifactShortcut): Bitmap {
     val glyph = shortcut.displayGlyph
     val bitmap = Bitmap.createBitmap(ICON_SIZE_PX, ICON_SIZE_PX, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)

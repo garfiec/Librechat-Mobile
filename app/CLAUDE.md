@@ -20,12 +20,13 @@ links, share-intent routing and phone/tablet branching. The shared module owns t
 ## Deep links
 - Scheme `librechat://`; hosts `conversation/{id}`, `artifact/{uuid}`, `oauth`.
 - **Single source of truth**: `DeepLinks.resolve()` (`:shared/commonMain`) → `DeepLinkResolution`
-  (`Route(target, requiresAuth)` / `Consumed` / `None`). Add a link as one branch there; do NOT reintroduce a
+  (`Route` / `ArtifactApp` / `Consumed` / `None`). Add a link as one branch there; do NOT reintroduce a
   per-host allowlist here.
 - `MainActivity.handleDeepLink()` (and `onNewIntent`) resolves to accept/drop (`DeepLinkUriAdapter.kt`), then
-  `LibreChatNavHost` resolves again to place the target. `requiresAuth` links go to login when signed out;
-  artifact links open signed out. `oauth` is `Consumed` (sign-in is in-app WebView); keep the mapping so links
-  from older builds still bring the app forward.
+  `LibreChatNavHost` resolves again to place the target; a `Route` goes to login when signed out. `ArtifactApp`
+  never reaches the nav host: a pinned artifact runs in `ArtifactAppActivity`, its own task, signed in or not.
+  `oauth` is `Consumed` (sign-in is in-app WebView); keep the mapping so links from older builds still bring
+  the app forward.
 
 ## Share intents
 - `MainActivity.handleShareIntent()` only **stages** on `ShareIntentConsumer`. `LibreChatNavHost` reads

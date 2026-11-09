@@ -96,7 +96,7 @@ expect fun rememberAddArtifactToHomeScreen(): ((artifact: Artifact, label: Strin
 
 private enum class ArtifactTab { CODE, PREVIEW }
 
-private fun isPreviewableType(type: String): Boolean =
+internal fun isPreviewableType(type: String): Boolean =
     when (ArtifactType.from(type)) {
         ArtifactType.MERMAID,
         ArtifactType.REACT,

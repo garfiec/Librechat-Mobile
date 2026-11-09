@@ -155,7 +155,6 @@ private const val HYGIENE_UNRECORDED = "__unrecorded__"
 fun LibreChatNavHost(
     modifier: Modifier = Modifier,
     appLocaleTag: String? = null,
-    hasPendingDeepLink: Boolean = false,
     navHostViewModel: NavHostViewModel = koinViewModel(),
     drawerViewModel: DrawerViewModel = koinViewModel(),
     content: (@Composable (Navigator, NavHostViewModel, Modifier) -> Unit)? = null,
@@ -209,15 +208,13 @@ fun LibreChatNavHost(
 
     // Redirect to auth if not logged in — once per saved-state lifecycle, NOT on every recreation.
     // LaunchedEffect(Unit) restarts on each Activity recreation (config change / process-death restore,
-    // see the hygiene note below), but by then the back stack is already restored — possibly to a
-    // logged-out-viewable deep-link target (an artifact viewer atop the auth base). Re-firing would
-    // clear() that away, so a rememberSaveable latch makes this run only on a genuinely fresh start.
-    // Also skipped while a deep link is pending: the deep-link handler owns the initial stack then.
+    // see the hygiene note below), but by then the back stack is already restored mid auth flow;
+    // re-firing would clear() it back to the first screen.
     var initialAuthRedirectDone by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         if (!initialAuthRedirectDone) {
             initialAuthRedirectDone = true
-            if (!navHostViewModel.isLoggedIn.value && !hasPendingDeepLink) {
+            if (!navHostViewModel.isLoggedIn.value) {
                 navigator.navigateToAuth()
             }
         }
