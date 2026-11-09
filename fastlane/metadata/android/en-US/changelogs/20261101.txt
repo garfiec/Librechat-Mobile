@@ -1,0 +1,9 @@
+- /mcp lists MCP servers in the composer picker
+- /prompt, /skill and $ scope the composer picker to one type
+- Choose the Artifacts mode from Settings or a long-press on its tile
+- Add web search keys to the agent editor
+- Bring a sent turn in step by step instead of flying it off the composer
+- Let users enter an MCP server's own variables
+- Offer the servers your accounts use on the server URL page
+- Let users add their own web search keys
+- And 32 more; see the release notes on GitHub.
