@@ -39,7 +39,6 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
-import com.garfiec.librechat.feature.chat.components.sendflight.LocalSendFlight
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.mikepenz.markdown.model.MarkdownAnnotator
@@ -252,8 +251,6 @@ internal fun StreamingWaitIndicator(modifier: Modifier = Modifier) {
 
     Row(
         modifier = modifier
-            // A send's hand-off flies a dot into these; they show once it lands.
-            .then(LocalSendFlight.current?.waitDotsModifier ?: Modifier)
             .padding(vertical = 4.dp)
             .semantics { contentDescription = generatingCd },
         verticalAlignment = Alignment.CenterVertically,

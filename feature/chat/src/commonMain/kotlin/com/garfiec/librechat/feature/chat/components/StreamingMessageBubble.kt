@@ -24,6 +24,8 @@ import com.garfiec.librechat.core.common.ChatLayoutConstants
 import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.core.ui.components.BubbleShape
 import com.garfiec.librechat.core.ui.components.EndpointAvatar
+import com.garfiec.librechat.feature.chat.components.sendflight.sendFlightReplyBody
+import com.garfiec.librechat.feature.chat.components.sendflight.sendFlightReplyHeader
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_assistant_responding
 import com.garfiec.librechat.feature.chat.resources.cd_generating_response
@@ -118,6 +120,7 @@ private fun ThreadStreamingBubble(
     ) {
         // Sender row with avatar
         Row(
+            modifier = sendFlightReplyHeader(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (showAvatars) {
@@ -147,6 +150,7 @@ private fun ThreadStreamingBubble(
             modifier = Modifier
                 .padding(start = contentStartPadding)
                 .fillMaxWidth()
+                .then(sendFlightReplyBody())
                 .then(
                     if (showBubbles) {
                         Modifier
@@ -222,6 +226,7 @@ private fun TwoSidedStreamingBubble(
                 provider = avatar?.provider,
                 fallbackText = senderName,
                 size = 28.dp,
+                modifier = sendFlightReplyHeader(),
             )
             Spacer(modifier = Modifier.width(6.dp))
         }
@@ -229,6 +234,7 @@ private fun TwoSidedStreamingBubble(
         Column(
             modifier = Modifier
                 .weight(1f)
+                .then(sendFlightReplyHeader())
                 .then(
                     if (showBubbles) {
                         Modifier
@@ -261,25 +267,27 @@ private fun TwoSidedStreamingBubble(
                 },
             )
             Spacer(modifier = Modifier.height(4.dp))
-            if (waiting) {
-                StreamingWaitIndicator()
-            } else {
-                StreamingPendingSkills(pendingSkills)
-                StreamingThinking(streamingThinking, fontSizeMultiplier, useKatex)
-                if (streamingContent.isNotBlank()) {
-                    // Routed through TextContentPart so artifact directives render as cards while the
-                    // reply streams (#302) — an unclosed artifact shows its source via IncompleteArtifact.
-                    // It also owns the cursor — a cursor placed here as a sibling lands on a line of its
-                    // own instead of after the last word.
-                    TextContentPart(
-                        text = streamingContent,
-                        fontSizeMultiplier = fontSizeMultiplier,
-                        useKatex = useKatex,
-                        streaming = true,
-                        trailingCursor = true,
-                    )
-                } else {
+            Column(modifier = sendFlightReplyBody()) {
+                if (waiting) {
                     StreamingWaitIndicator()
+                } else {
+                    StreamingPendingSkills(pendingSkills)
+                    StreamingThinking(streamingThinking, fontSizeMultiplier, useKatex)
+                    if (streamingContent.isNotBlank()) {
+                        // Routed through TextContentPart so artifact directives render as cards while the
+                        // reply streams (#302) — an unclosed artifact shows its source via IncompleteArtifact.
+                        // It also owns the cursor — a cursor placed here as a sibling lands on a line of its
+                        // own instead of after the last word.
+                        TextContentPart(
+                            text = streamingContent,
+                            fontSizeMultiplier = fontSizeMultiplier,
+                            useKatex = useKatex,
+                            streaming = true,
+                            trailingCursor = true,
+                        )
+                    } else {
+                        StreamingWaitIndicator()
+                    }
                 }
             }
         }
