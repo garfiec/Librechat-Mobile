@@ -26,21 +26,32 @@ class IosSwitchCacheCleaner : SwitchCacheCleaner {
                 storage.cookies?.forEach { cookie ->
                     (cookie as? NSHTTPCookie)?.let { storage.deleteCookie(it) }
                 }
-                // Deferred + timeout rather than suspending on the WebKit callback directly: this
-                // runs inside the closed SwitchGate under NonCancellable, so a completion handler
-                // WebKit never invokes (its data-store process dying mid-operation) would otherwise
-                // never resume — the gate never reopens and every request in the app parks forever.
-                // complete() is idempotent, so a callback firing after the timeout is harmless.
-                val done = CompletableDeferred<Unit>()
-                WKWebsiteDataStore.defaultDataStore().removeDataOfTypes(
-                    dataTypes = WKWebsiteDataStore.allWebsiteDataTypes(),
-                    modifiedSince = NSDate.dateWithTimeIntervalSince1970(0.0),
-                ) { done.complete(Unit) }
-                if (withTimeoutOrNull(WEBKIT_CLEAR_TIMEOUT_MS) { done.await() } == null) {
-                    Logger.w { "Switch cache clear: WebKit data wipe timed out; continuing switch" }
-                }
+                clearWebKitData()
             }
         }.onFailure { Logger.w(it) { "Switch cache clear failed" } }
+    }
+
+    // The shared cookie storage keeps what the sign-in response just set (gateway, proxy); the SSO
+    // WebView's store is non-persistent, so there is no provider session in it to drop.
+    override suspend fun clearOnIdentityChange() {
+        runCatching { withContext(Dispatchers.Main) { clearWebKitData() } }
+            .onFailure { Logger.w(it) { "Identity-change cache clear failed" } }
+    }
+
+    private suspend fun clearWebKitData() {
+        // Deferred + timeout rather than suspending on the WebKit callback directly: a switch runs
+        // this inside the closed SwitchGate under NonCancellable, so a completion handler WebKit never
+        // invokes (its data-store process dying mid-operation) would otherwise never resume — the
+        // gate never reopens and every request in the app parks forever. complete() is idempotent,
+        // so a callback firing after the timeout is harmless.
+        val done = CompletableDeferred<Unit>()
+        WKWebsiteDataStore.defaultDataStore().removeDataOfTypes(
+            dataTypes = WKWebsiteDataStore.allWebsiteDataTypes(),
+            modifiedSince = NSDate.dateWithTimeIntervalSince1970(0.0),
+        ) { done.complete(Unit) }
+        if (withTimeoutOrNull(WEBKIT_CLEAR_TIMEOUT_MS) { done.await() } == null) {
+            Logger.w { "Switch cache clear: WebKit data wipe timed out; continuing" }
+        }
     }
 
     private companion object {

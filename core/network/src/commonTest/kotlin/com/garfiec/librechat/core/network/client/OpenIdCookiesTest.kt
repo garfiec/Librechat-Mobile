@@ -24,6 +24,15 @@ class OpenIdCookiesTest {
     }
 
     @Test
+    fun namesListsEachCookieInAJarHeaderOnce() {
+        assertEquals(
+            setOf("refreshToken", "connect.sid", "flag"),
+            CookieHelper.names(" refreshToken=a=b; connect.sid=s%3Ax;; flag; refreshToken=c "),
+        )
+        assertEquals(emptySet(), CookieHelper.names(null))
+    }
+
+    @Test
     fun partialOpenIdCaptureIsNotANormalSession() {
         assertNull(CookieHelper.capture("refreshToken=idp-refresh; token_provider=openid"))
         assertNull(CookieHelper.capture("token_provider=openid; openid_user_id=marker"))

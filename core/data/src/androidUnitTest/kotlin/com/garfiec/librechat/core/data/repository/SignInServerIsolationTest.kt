@@ -132,6 +132,7 @@ class SignInServerIsolationTest {
         assertThat(h.tokens.store[refreshKeyOf(accountB.value)]).isEqualTo("b-refresh")
         assertThat(h.switcher.pendingAdd).isNull()
         coVerify(exactly = 0) { h.purger.purge(any()) }
+        assertThat(h.switcher.signInReauthenticatesActive()).isFalse()
 
         try {
             val response = h.client.get("/api/convos")

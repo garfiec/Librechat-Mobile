@@ -50,6 +50,10 @@ class SsoLoginViewModel(
     /** The server this screen signs into: the pending add target when set, else the live one. */
     val serverUrl: String = accountSwitcher.pendingAdd?.serverUrl ?: serverDataStore.getBaseUrl()
 
+    /** Whether the round-trip may reuse the provider's session: only to re-authenticate the account
+     *  whose session ended. Any other sign-in must reach the provider's account chooser. */
+    val keepProviderSession: Boolean = accountSwitcher.signInReauthenticatesActive()
+
     private var tokenConsumed = false
 
     fun onTokenCapture(cookies: AuthCookies) {

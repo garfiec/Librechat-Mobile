@@ -53,6 +53,18 @@ class AccountSwitcherAddTest {
     }
 
     @Test
+    fun `a sign-in re-authenticates the active account except during an add`() = runTest(testDispatcher) {
+        val h = harness()
+        assertThat(h.switcher.signInReauthenticatesActive()).isTrue()
+
+        h.switcher.beginAdd(serverB)
+        assertThat(h.switcher.signInReauthenticatesActive()).isFalse()
+
+        h.switcher.cancelAdd()
+        assertThat(h.switcher.signInReauthenticatesActive()).isTrue()
+    }
+
+    @Test
     fun `beginAdd purges stale staging and rebinds the active account`() = runTest(testDispatcher) {
         val h = harness()
         h.tokenManager.stagedAccess = "stale-abandoned-login" // an earlier killed sign-in

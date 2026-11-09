@@ -125,6 +125,14 @@ class AccountSwitcher(
         private set
 
     /**
+     * Whether a sign-in now re-authenticates the active roster account whose session ended (expiry,
+     * renewal block, declined terms, 2FA setup) rather than starting a new identity. Logout, remove
+     * and [prepareForSignIn] clear the active account, and add-account sets [pendingAdd].
+     */
+    fun signInReauthenticatesActive(): Boolean =
+        pendingAdd == null && activeAccountProvider.currentAccountId() != null
+
+    /**
      * Enter normal sign-in on [serverUrl], ending any identity left behind by a sign-in route.
      * Clear the old credentials and persisted binding before publishing the new URL, under the same
      * barrier as account switches. Roster entries and account data remain available for re-auth.

@@ -74,6 +74,10 @@ object CookieHelper {
         if (kept.isNotEmpty() || added.isNotEmpty()) headers.append(HttpHeaders.Cookie, (kept + added).joinToString("; "))
     }
 
+    /** The distinct names in a `Cookie` header (as a WebView jar's `getCookie` returns it). */
+    fun names(cookieHeader: String?): Set<String> =
+        cookieSegments(cookieHeader.orEmpty()).map { it.cookieName() }.filter { it.isNotEmpty() }.toSet()
+
     fun extractRefreshToken(headers: Headers): String? {
         return responseCookies(headers).firstOrNull { it.name == "refreshToken" }?.value
     }

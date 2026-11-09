@@ -14,4 +14,11 @@ package com.garfiec.librechat.core.data.repository
  */
 fun interface SwitchCacheCleaner {
     suspend fun clearOnSwitch()
+
+    /**
+     * A sign-in resolved to an account other than the active one. Must clear every WebView cookie
+     * and web storage (a provider session left there would be reused by the next SSO re-auth); may
+     * keep an HTTP client's shared cookie store, which holds what the sign-in response just set.
+     */
+    suspend fun clearOnIdentityChange() = clearOnSwitch()
 }

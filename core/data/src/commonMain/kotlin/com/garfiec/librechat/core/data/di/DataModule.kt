@@ -256,6 +256,8 @@ val dataModule = module {
             claimReconciler = get(),
             serverUrlProvider = get(),
             tokenManager = get(),
+            activeAccountProvider = get(),
+            switchCacheCleaner = get(),
             ioDispatcher = get(KoinQualifiers.IO),
         )
     }

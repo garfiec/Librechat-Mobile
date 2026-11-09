@@ -60,6 +60,15 @@ class SsoLoginViewModelTest {
     }
 
     @Test
+    fun `keeps the provider session only to re-authenticate the account whose session ended`() = runTest {
+        every { accountSwitcher.signInReauthenticatesActive() } returns true
+        assertThat(createViewModel().keepProviderSession).isTrue()
+
+        every { accountSwitcher.signInReauthenticatesActive() } returns false
+        assertThat(createViewModel().keepProviderSession).isFalse()
+    }
+
+    @Test
     fun `serverUrl is the pending add target when an add is in progress`() = runTest {
         val pending = mockk<PendingAddSession>(relaxed = true)
         every { pending.serverUrl } returns ADD_SERVER

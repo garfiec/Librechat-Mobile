@@ -243,10 +243,10 @@ class Navigator(
     }
 
     /**
-     * Sign-in for the account still bound (one signed out for 2FA setup): [Login] over [ServerUrl], as
-     * backing out of setup leaves it. Reported more than once (the startup route, then each 401 of a
-     * cold start), so it leaves the auth flow alone once the user is past the bare server screen, and,
-     * like [navigateToAuth], resets an add-account flow that belongs to the ended session.
+     * Sign-in for the account still bound (expired, or signed out for 2FA setup): [Login] over
+     * [ServerUrl], as backing out of setup leaves it. Reported more than once (the startup route, then
+     * each 401 of a cold start), so it leaves the auth flow alone once the user is past the bare server
+     * screen, and, like [navigateToAuth], resets an add-account flow that belongs to the ended session.
      */
     fun navigateToSignIn() {
         val pastServerScreen = backStack.size > 1 || currentRoute != ServerUrl
