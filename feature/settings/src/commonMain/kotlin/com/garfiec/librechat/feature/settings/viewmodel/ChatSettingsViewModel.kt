@@ -20,6 +20,7 @@ import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.data.datastore.WebSearchPreference
 import com.garfiec.librechat.core.data.repository.FileRepository
+import com.garfiec.librechat.core.model.ArtifactsMode
 import com.garfiec.librechat.core.model.response.clientImageResize
 import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.SpeechSettingsFactory
@@ -200,6 +201,10 @@ class ChatSettingsViewModel(
 
     fun setArtifactDisplayMode(mode: ArtifactDisplayMode) {
         prefsController.setArtifactDisplayMode(mode)
+    }
+
+    fun setArtifactsMode(mode: ArtifactsMode) {
+        prefsController.setArtifactsMode(mode)
     }
 
     // ── Fork settings ──────────────────────────────────────────────

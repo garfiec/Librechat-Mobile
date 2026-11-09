@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.model.Agent
+import com.garfiec.librechat.core.model.ArtifactsMode
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
@@ -103,6 +104,8 @@ data class ModelSelectionState(
      * conversation maps to. Only sent while `ChatUiState.isSkillsToolAvailable` holds.
      */
     val skillsToggle: Boolean = false,
+    /** The mode the Artifacts toggle sends (Settings, or a long-press on its tile); app-wide. */
+    val artifactsMode: ArtifactsMode = ArtifactsMode.DEFAULT,
     /**
      * Whether the detected backend is v0.8.5+ and therefore accepts the `xhigh`
      * and `max` values in the reasoning-effort and effort dropdowns. False on

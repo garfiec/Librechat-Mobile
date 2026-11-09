@@ -2,6 +2,7 @@ package com.garfiec.librechat.core.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -40,6 +41,7 @@ import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 /**
  * A tile that is one switch: [icon], [label] (up to two lines) and a one-line [stateLabel] such as
  * "On" or "Set by …". A [locked] tile is announced disabled, shows a lock glyph and doesn't toggle.
+ * [onLongClick] opens the tile's settings, announced with [onLongClickLabel].
  * Filled solid in both styles, as [AdaptiveTile]; [checked] fills it with the primary container in
  * Material and the control accent in Liquid Glass.
  */
@@ -52,6 +54,8 @@ fun AdaptiveToggleTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     locked: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
+    onLongClickLabel: String? = null,
 ) {
     val glass = isLiquidGlass
     val scheme = MaterialTheme.colorScheme
@@ -66,7 +70,16 @@ fun AdaptiveToggleTile(
         else -> scheme.onPrimaryContainer
     }
     val stateColor = if (checked) contentColor else GlassControlColors.secondaryLabel
-    val click = if (locked) Modifier else Modifier.clickable(role = Role.Switch, onClick = onClick)
+    val click = when {
+        locked -> Modifier
+        onLongClick != null -> Modifier.combinedClickable(
+            role = Role.Switch,
+            onLongClickLabel = onLongClickLabel,
+            onLongClick = onLongClick,
+            onClick = onClick,
+        )
+        else -> Modifier.clickable(role = Role.Switch, onClick = onClick)
+    }
     Row(
         modifier = modifier
             .clip(TileShape)

@@ -42,6 +42,9 @@ import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.data.datastore.WebSearchPreference
+import com.garfiec.librechat.core.model.ArtifactsMode
+import com.garfiec.librechat.core.ui.artifacts.artifactsModeDescription
+import com.garfiec.librechat.core.ui.artifacts.artifactsModeName
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
@@ -55,6 +58,8 @@ import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
+import com.garfiec.librechat.core.ui.resources.artifacts_mode_intro
+import com.garfiec.librechat.core.ui.resources.artifacts_mode_title
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.ChatLayoutSettingsViewModel
@@ -62,6 +67,7 @@ import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ContextUsageSettingsViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import com.garfiec.librechat.core.ui.resources.Res as CoreUiRes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -193,6 +199,8 @@ fun ChatSettingsContent(
                         ),
                         librariesSummary = artifactLibrariesSummary(artifactLibraries),
                         onOpenArtifactViewerDialog = { openDialog = ChatSettingDialog.ARTIFACT_VIEWER },
+                        artifactsMode = uiState.artifactsMode,
+                        onOpenArtifactsModeDialog = { openDialog = ChatSettingDialog.ARTIFACTS_MODE },
                         onOpenRenderInlineDialog = { openDialog = ChatSettingDialog.RENDER_INLINE },
                         onOpenLibrariesDialog = { openDialog = ChatSettingDialog.ARTIFACT_LIBRARIES },
                     )
@@ -389,6 +397,19 @@ fun ChatSettingsContent(
                         ArtifactDisplayMode.FULLSCREEN -> stringResource(Res.string.artifact_mode_fullscreen_desc)
                     }
                 },
+            )
+        }
+
+        if (openDialog == ChatSettingDialog.ARTIFACTS_MODE) {
+            RadioSelectionDialog(
+                title = stringResource(CoreUiRes.string.artifacts_mode_title),
+                description = stringResource(CoreUiRes.string.artifacts_mode_intro),
+                options = ArtifactsMode.entries,
+                selected = uiState.artifactsMode,
+                onSave = saveAndClose(viewModel::setArtifactsMode),
+                onDismiss = dismissDialog,
+                optionLabel = { artifactsModeName(it) },
+                optionDescription = { artifactsModeDescription(it) },
             )
         }
 

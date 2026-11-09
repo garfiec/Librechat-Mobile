@@ -15,6 +15,7 @@ import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.data.datastore.WebSearchPreference
+import com.garfiec.librechat.core.model.ArtifactsMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -58,6 +59,7 @@ private data class AdditionalPreferences(
     val latexRenderer: LatexRenderer = LatexRenderer.KATEX,
     val inlineArtifactPrefs: InlineArtifactPrefs = InlineArtifactPrefs(),
     val artifactDisplayPrefs: ArtifactDisplayPrefs = ArtifactDisplayPrefs(),
+    val artifactsMode: ArtifactsMode = ArtifactsMode.DEFAULT,
     val starredModelsDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
     val chatHeaderContent: ChatHeaderContent = ChatHeaderContent.TITLE,
     val chatHeaderAlignment: ChatHeaderAlignment = ChatHeaderAlignment.LEFT,
@@ -135,6 +137,9 @@ class ChatPreferencesController(
     private val artifactDisplayPrefsFlow: StateFlow<ArtifactDisplayPrefs> = settingsDataStore.artifactDisplayPrefs
         .stateIn(scope, SharingStarted.Eagerly, ArtifactDisplayPrefs())
 
+    private val artifactsModePref: StateFlow<ArtifactsMode> = settingsDataStore.artifactsMode
+        .stateIn(scope, SharingStarted.Eagerly, ArtifactsMode.DEFAULT)
+
     private val starredModelsDisplayPref: StateFlow<StarredModelsDisplay> = settingsDataStore.starredModelsDisplay
         .stateIn(scope, SharingStarted.Eagerly, StarredModelsDisplay.GROUPED)
 
@@ -170,6 +175,8 @@ class ChatPreferencesController(
         additional.copy(inlineArtifactPrefs = inlineArtifact)
     }.combine(artifactDisplayPrefsFlow) { additional, artifactDisplay ->
         additional.copy(artifactDisplayPrefs = artifactDisplay)
+    }.combine(artifactsModePref) { additional, artifactsMode ->
+        additional.copy(artifactsMode = artifactsMode)
     }.combine(starredModelsDisplayPref) { additional, starredDisplay ->
         additional.copy(starredModelsDisplay = starredDisplay)
     }.combine(chatHeaderContentPref) { additional, headerContent ->
@@ -236,6 +243,7 @@ class ChatPreferencesController(
             latexRenderer = additional.latexRenderer,
             inlineArtifactPrefs = additional.inlineArtifactPrefs,
             artifactDisplayPrefs = additional.artifactDisplayPrefs,
+            artifactsMode = additional.artifactsMode,
             starredModelsDisplay = additional.starredModelsDisplay,
             chatHeaderContent = additional.chatHeaderContent,
             chatHeaderAlignment = additional.chatHeaderAlignment,
@@ -342,5 +350,9 @@ class ChatPreferencesController(
 
     fun setArtifactDisplayMode(mode: ArtifactDisplayMode) {
         scope.launch { settingsDataStore.setArtifactDisplayMode(mode) }
+    }
+
+    fun setArtifactsMode(mode: ArtifactsMode) {
+        scope.launch { settingsDataStore.setArtifactsMode(mode) }
     }
 }

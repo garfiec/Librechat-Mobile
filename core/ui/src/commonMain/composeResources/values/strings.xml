@@ -450,4 +450,12 @@
     <string name="web_search_keys_remove_failed">Couldn't remove your keys. Try again.</string>
     <string name="web_search_keys_cancel">Cancel</string>
     <string name="web_search_keys_save">Save</string>
+    <string name="artifacts_mode_title">Artifact style</string>
+    <string name="artifacts_mode_intro">Artifacts are documents, diagrams, web pages and small apps the AI makes for you to open and try. This sets what the AI is taught about making them while Artifacts is on.</string>
+    <string name="artifacts_mode_default">Standard</string>
+    <string name="artifacts_mode_default_desc">Works well for most things you'll ask for. Recommended.</string>
+    <string name="artifacts_mode_shadcnui">Polished apps</string>
+    <string name="artifacts_mode_shadcnui_desc">Also teaches the AI a set of ready-made buttons, forms and cards (shadcn/ui) for better-looking interactive apps. Every message gets longer for the AI to read, so replies can be slower.</string>
+    <string name="artifacts_mode_custom">Only my instructions</string>
+    <string name="artifacts_mode_custom_desc">Turns off the built-in guidance, so the AI follows only the custom instructions you've written. It may not make artifacts unless your instructions explain how.</string>
 </resources>

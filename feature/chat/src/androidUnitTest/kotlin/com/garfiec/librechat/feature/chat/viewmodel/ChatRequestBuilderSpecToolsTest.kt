@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 import com.garfiec.librechat.core.common.ToolConstants
+import com.garfiec.librechat.core.model.ArtifactsMode
 import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
@@ -40,6 +41,7 @@ class ChatRequestBuilderSpecToolsTest {
         specTools: SpecTools? = null,
         webSearch: Boolean = false,
         userTools: Set<String> = setOf(ToolConstants.CODE_INTERPRETER),
+        artifactsMode: ArtifactsMode = ArtifactsMode.DEFAULT,
     ) = ChatUiState(
         selection = ModelSelectionState(
             choice = choice,
@@ -48,6 +50,7 @@ class ChatRequestBuilderSpecToolsTest {
             selectedMcpServerNames = setOf("mine"),
             modelParameters = ModelParameters.DEFAULT.copy(webSearch = webSearch),
             specTools = specTools,
+            artifactsMode = artifactsMode,
         ),
         gates = FeatureGatesState(librechatSearchReady = true),
     )
@@ -137,9 +140,19 @@ class ChatRequestBuilderSpecToolsTest {
     }
 
     @Test
+    fun `the Artifacts toggle sends the mode the user chose`() {
+        ArtifactsMode.entries.forEach { mode ->
+            val state =
+                state(ModelChoice.Raw("openAI", "gpt-4o"), userTools = setOf(ToolConstants.ARTIFACTS), artifactsMode = mode)
+
+            assertEquals(mode.wire, assertNotNull(ChatRequestBuilder { state }.buildEphemeralAgent()).artifacts)
+        }
+    }
+
+    @Test
     fun `a spec's artifacts mode wins and locks the toggle on`() {
         val added = SpecTools("shadcn", added = setOf(ToolConstants.ARTIFACTS))
-        val state = state(ModelChoice.Spec("shadcn", "openAI", "gpt-4o"), added)
+        val state = state(ModelChoice.Spec("shadcn", "openAI", "gpt-4o"), added, artifactsMode = ArtifactsMode.CUSTOM)
 
         assertEquals("shadcnui", assertNotNull(ChatRequestBuilder { state }.buildEphemeralAgent()).artifacts)
         assertTrue(ToolConstants.ARTIFACTS in state.lockedTools)

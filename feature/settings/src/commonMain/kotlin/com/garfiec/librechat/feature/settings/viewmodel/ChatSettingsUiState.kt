@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.data.datastore.WebSearchPreference
+import com.garfiec.librechat.core.model.ArtifactsMode
 import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.feature.settings.screen.DeviceVoiceInfo
 
@@ -89,4 +90,6 @@ data class ChatSettingsUiState(
     val inlineArtifactPrefs: InlineArtifactPrefs = InlineArtifactPrefs(),
     // Artifact viewer presentation (bottom sheet vs full screen + selector visibility)
     val artifactDisplayPrefs: ArtifactDisplayPrefs = ArtifactDisplayPrefs(),
+    // What the Artifacts tool is taught when on; app-wide, read by chat's request
+    val artifactsMode: ArtifactsMode = ArtifactsMode.DEFAULT,
 )

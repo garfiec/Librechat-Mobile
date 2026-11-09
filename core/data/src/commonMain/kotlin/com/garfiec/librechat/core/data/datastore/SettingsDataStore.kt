@@ -13,6 +13,7 @@ import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.common.identity.flatMapAccountOrEmpty
 import com.garfiec.librechat.core.data.prefetch.PrefetchRunOutcome
 import com.garfiec.librechat.core.data.prefetch.ScheduledRunRecord
+import com.garfiec.librechat.core.model.ArtifactsMode
 import com.garfiec.librechat.core.model.ModelRef
 import com.garfiec.librechat.core.model.usage.ContextDetailPreset
 import com.garfiec.librechat.core.model.usage.ContextDetailSections
@@ -374,6 +375,11 @@ class SettingsDataStore(
 
     val enabledTools: Flow<Set<String>> = dataStore.data.map { prefs ->
         prefs[KEY_ENABLED_TOOLS]?.split(",")?.filter { it.isNotBlank() }?.toSet() ?: emptySet()
+    }
+
+    /** The mode the Artifacts tool sends while it is on; app-wide, like [enabledTools]. */
+    val artifactsMode: Flow<ArtifactsMode> = dataStore.data.map { prefs ->
+        ArtifactsMode.fromWire(prefs[KEY_ARTIFACTS_MODE]) ?: ArtifactsMode.DEFAULT
     }
 
     /**
@@ -895,6 +901,10 @@ class SettingsDataStore(
         }
     }
 
+    suspend fun setArtifactsMode(mode: ArtifactsMode) {
+        dataStore.edit { prefs -> prefs[KEY_ARTIFACTS_MODE] = mode.wire }
+    }
+
     companion object {
         /**
          * Sentinel meaning "follow the device locale" — the default until the user picks a
@@ -974,6 +984,7 @@ class SettingsDataStore(
         private val KEY_DISMISSED_VERSION_WARNING = stringPreferencesKey("dismissed_version_warning")
         private val KEY_SELECTED_MCP_SERVERS = stringPreferencesKey("selected_mcp_servers")
         private val KEY_ENABLED_TOOLS = stringPreferencesKey("enabled_tools")
+        private val KEY_ARTIFACTS_MODE = stringPreferencesKey("artifacts_mode")
     }
 }
 

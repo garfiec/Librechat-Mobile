@@ -66,8 +66,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
+import com.garfiec.librechat.core.model.ArtifactsMode
 import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
 import com.garfiec.librechat.core.model.media.IconSource
+import com.garfiec.librechat.core.ui.artifacts.artifactsModeName
 import com.garfiec.librechat.core.ui.components.AdaptiveCheckbox
 import com.garfiec.librechat.core.ui.components.AdaptiveFilledTonalButton
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
@@ -85,6 +87,7 @@ import com.garfiec.librechat.core.ui.components.rememberListDragSelection
 import com.garfiec.librechat.core.ui.mcp.mcpStatusColor
 import com.garfiec.librechat.core.ui.mcp.mcpStatusLabel
 import com.garfiec.librechat.core.ui.platform.rememberReduceMotion
+import com.garfiec.librechat.core.ui.resources.artifacts_mode_title
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -101,6 +104,7 @@ import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
+import com.garfiec.librechat.core.ui.resources.Res as CoreUiRes
 
 /** What the Options page says about the selection: the Model cell's icon and lines, and who locks spec tools. */
 @Immutable
@@ -190,6 +194,10 @@ fun ChatToolsSheetContent(
     webSearchKeys: WebSearchKeysRow? = null,
     /** Opens the search key sheet, from the row or a Web Search tile that has no search to run without keys. */
     onOpenWebSearchKeys: () -> Unit = {},
+    /** The Artifacts tile's mode, named on its state line when it isn't the default. */
+    artifactsMode: ArtifactsMode = ArtifactsMode.DEFAULT,
+    /** Opens the mode choice, on a long-press of the Artifacts tile. */
+    onOpenArtifactsMode: () -> Unit = {},
 ) {
     val dragSelection = rememberListDragSelection()
     val expandMcp by rememberUpdatedState(onMcpExpandedChange)
@@ -273,6 +281,8 @@ fun ChatToolsSheetContent(
                     lockedTools = gates.lockedTools,
                     lockedBy = selection.lockedBy,
                     webSearchKind = webSearchKind,
+                    artifactsMode = artifactsMode,
+                    onOpenArtifactsMode = onOpenArtifactsMode,
                     onToggleTool = { key ->
                         if (key == ToolConstants.WEB_SEARCH && key !in enabledTools && webSearchKeys?.opensOnTurnOn == true) {
                             onOpenWebSearchKeys()
@@ -595,10 +605,14 @@ private fun ToolGrid(
     lockedTools: Set<String>,
     lockedBy: String?,
     webSearchKind: WebSearchKind,
+    artifactsMode: ArtifactsMode,
+    onOpenArtifactsMode: () -> Unit,
     onToggleTool: (String) -> Unit,
     focus: ToolsSheetFocus?,
 ) {
     val searchName = webSearchName(webSearchKind)
+    val artifactsModeName = artifactsMode.takeIf { it != ArtifactsMode.DEFAULT }?.let { artifactsModeName(it) }
+    val artifactsStyle = stringResource(CoreUiRes.string.artifacts_mode_title)
     val setBy = lockedByText(lockedBy)
     val on = stringResource(Res.string.tool_state_on)
     val off = stringResource(Res.string.tool_state_off)
@@ -624,6 +638,7 @@ private fun ToolGrid(
                             locked -> setBy
                             !checked -> off
                             key == ToolConstants.WEB_SEARCH -> searchName ?: on
+                            key == ToolConstants.ARTIFACTS -> artifactsModeName ?: on
                             else -> on
                         },
                         onClick = { onToggleTool(key) },
@@ -631,6 +646,8 @@ private fun ToolGrid(
                             .weight(1f)
                             .fillMaxHeight(),
                         locked = locked,
+                        onLongClick = onOpenArtifactsMode.takeIf { key == ToolConstants.ARTIFACTS },
+                        onLongClickLabel = artifactsStyle.takeIf { key == ToolConstants.ARTIFACTS },
                     )
                 }
                 if (pair.size == 1) Spacer(modifier = Modifier.weight(1f))

@@ -402,4 +402,12 @@
     <string name="web_search_keys_remove_failed">Deine Schlüssel konnten nicht entfernt werden. Versuche es erneut.</string>
     <string name="web_search_keys_cancel">Abbrechen</string>
     <string name="web_search_keys_save">Speichern</string>
+    <string name="artifacts_mode_title">Artefakt-Stil</string>
+    <string name="artifacts_mode_intro">Artefakte sind Dokumente, Diagramme, Webseiten und kleine Apps, die die KI für dich erstellt, damit du sie öffnen und ausprobieren kannst. Hier legst du fest, was die KI darüber lernt, solange Artefakte aktiviert sind.</string>
+    <string name="artifacts_mode_default">Standard</string>
+    <string name="artifacts_mode_default_desc">Passt für fast alles, worum du bittest. Empfohlen.</string>
+    <string name="artifacts_mode_shadcnui">Ausgefeilte Apps</string>
+    <string name="artifacts_mode_shadcnui_desc">Bringt der KI zusätzlich fertige Buttons, Formulare und Karten (shadcn/ui) für schönere interaktive Apps bei. Jede Nachricht wird für die KI länger, daher können Antworten langsamer kommen.</string>
+    <string name="artifacts_mode_custom">Nur meine Anweisungen</string>
+    <string name="artifacts_mode_custom_desc">Schaltet die eingebaute Anleitung aus, sodass die KI nur deinen eigenen benutzerdefinierten Anweisungen folgt. Ohne Erklärung darin erstellt sie eventuell keine Artefakte.</string>
 </resources>

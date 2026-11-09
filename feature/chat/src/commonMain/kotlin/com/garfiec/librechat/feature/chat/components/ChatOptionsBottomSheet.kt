@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,16 +39,20 @@ import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.model.Agent
+import com.garfiec.librechat.core.model.ArtifactsMode
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.endpoint.KeyState
+import com.garfiec.librechat.core.ui.artifacts.ArtifactsModeChoices
 import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.ModelParameterContent
 import com.garfiec.librechat.core.ui.components.ModelParameters
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
+import com.garfiec.librechat.core.ui.resources.artifacts_mode_intro
+import com.garfiec.librechat.core.ui.resources.artifacts_mode_title
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_back
@@ -63,6 +68,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
 import com.garfiec.librechat.feature.chat.viewmodel.ToolsHiddenReason
 import org.jetbrains.compose.resources.stringResource
+import com.garfiec.librechat.core.ui.resources.Res as CoreUiRes
 
 /** Duration of the page slide + resize. */
 private const val PageSwapMillis = 250
@@ -114,6 +120,8 @@ data class ChatToolsPageParams(
     /** The LibreChat search key row; null hides it. */
     val webSearchKeys: WebSearchKeysRow? = null,
     val onOpenWebSearchKeys: () -> Unit = {},
+    val artifactsMode: ArtifactsMode = ArtifactsMode.DEFAULT,
+    val onSetArtifactsMode: (ArtifactsMode) -> Unit = {},
 )
 
 /**
@@ -302,6 +310,8 @@ fun ChatOptionsBottomSheet(
                         onSetUpMcpServer = tools.onSetUpMcpServer,
                         webSearchKeys = tools.webSearchKeys,
                         onOpenWebSearchKeys = tools.onOpenWebSearchKeys,
+                        artifactsMode = tools.artifactsMode,
+                        onOpenArtifactsMode = { goTo(ChatOptionsPage.ArtifactsMode) },
                     )
 
                     ChatOptionsPage.ModelSelector -> ModelSelectorSheetContent(
@@ -374,6 +384,29 @@ fun ChatOptionsBottomSheet(
                                 .padding(horizontal = 24.dp)
                                 .navigationBarsPadding()
                                 .imePadding(),
+                        )
+                    }
+
+                    ChatOptionsPage.ArtifactsMode -> Column(
+                        modifier = Modifier
+                            .verticalScroll(rememberScrollState())
+                            .navigationBarsPadding()
+                            .padding(bottom = 16.dp),
+                    ) {
+                        SheetPageBackRow(title = stringResource(CoreUiRes.string.artifacts_mode_title), onBack = back)
+                        Text(
+                            text = stringResource(CoreUiRes.string.artifacts_mode_intro),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                        )
+                        ArtifactsModeChoices(
+                            selected = tools.artifactsMode,
+                            onSelect = { mode ->
+                                tools.onSetArtifactsMode(mode)
+                                afterPick()
+                            },
+                            modifier = Modifier.padding(horizontal = 20.dp),
                         )
                     }
                 }

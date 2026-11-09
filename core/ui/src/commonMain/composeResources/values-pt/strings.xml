@@ -408,4 +408,12 @@
     <string name="web_search_keys_remove_failed">Não foi possível remover suas chaves. Tente de novo.</string>
     <string name="web_search_keys_cancel">Cancelar</string>
     <string name="web_search_keys_save">Salvar</string>
+    <string name="artifacts_mode_title">Estilo dos artefatos</string>
+    <string name="artifacts_mode_intro">Artefatos são documentos, diagramas, páginas web e pequenos apps que a IA cria para você abrir e testar. Isto define o que a IA aprende sobre como criá-los enquanto Artefatos está ativado.</string>
+    <string name="artifacts_mode_default">Padrão</string>
+    <string name="artifacts_mode_default_desc">Funciona bem para quase tudo o que você pedir. Recomendado.</string>
+    <string name="artifacts_mode_shadcnui">Apps caprichados</string>
+    <string name="artifacts_mode_shadcnui_desc">Também ensina à IA um conjunto de botões, formulários e cartões prontos (shadcn/ui) para apps interativos mais bonitos. Cada mensagem fica mais longa para a IA ler, então as respostas podem demorar mais.</string>
+    <string name="artifacts_mode_custom">Só minhas instruções</string>
+    <string name="artifacts_mode_custom_desc">Desativa a orientação embutida, e a IA segue apenas as instruções personalizadas que você escreveu. Ela pode não criar artefatos se suas instruções não explicarem como.</string>
 </resources>

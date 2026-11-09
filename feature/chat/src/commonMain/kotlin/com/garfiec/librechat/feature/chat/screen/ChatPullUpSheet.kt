@@ -529,6 +529,11 @@ internal fun BoxScope.ChatPullUpSheetOverlay(
                 onSetUpMcpServer = onSetUpMcpServer,
                 webSearchKeys = uiState.webSearchKeysRow,
                 onOpenWebSearchKeys = onOpenWebSearchKeys,
+                artifactsMode = uiState.selection.artifactsMode,
+                onOpenArtifactsMode = {
+                    optionsController.open(ChatOptionsPage.ArtifactsMode)
+                    hide()
+                },
             )
         }
     }

@@ -50,6 +50,7 @@ import com.garfiec.librechat.core.data.share.ShareLinkController
 import com.garfiec.librechat.core.data.share.ShareLinkControllerFactory
 import com.garfiec.librechat.core.data.util.PermissionGate
 import com.garfiec.librechat.core.logging.Diag
+import com.garfiec.librechat.core.model.ArtifactsMode
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.MinimalFeedback
@@ -1213,6 +1214,12 @@ class ChatViewModel(
             }
         }
 
+        viewModelScope.launch {
+            settingsDataStore.artifactsMode.distinctUntilChanged().collect { mode ->
+                _uiState.update { it.copy(selection = it.selection.copy(artifactsMode = mode)) }
+            }
+        }
+
         presetPromptDelegate.loadPresets()
         // Favorites is user-personal (not server-permission-gated upstream); load eagerly
         // so the chat-side pin stars and Settings → Favorites stay in sync from cold start.
@@ -1765,6 +1772,8 @@ class ChatViewModel(
                     mcpServers = current.mcpServers,
                     selectedMcpServerNames = current.selectedMcpServerNames,
                     enabledTools = current.enabledTools,
+                    // App-wide, behind distinctUntilChanged: dropped here it would never come back.
+                    artifactsMode = current.selection.artifactsMode,
                 ),
                 presetPrompts = current.presetPrompts,
                 voice = VoiceState(serverSttEnabled = current.serverSttEnabled),
@@ -2197,6 +2206,13 @@ class ChatViewModel(
     /** See [McpServersDelegate.removeUserVars]; in the ViewModel's scope like [saveMcpVariables]. */
     suspend fun removeMcpVariables(serverName: String): Boolean =
         viewModelScope.async { mcpServersDelegate.removeUserVars(serverName) }.await()
+
+    /** Saves the Artifacts mode app-wide and turns Artifacts on, since picking a mode means using it. */
+    fun setArtifactsMode(mode: ArtifactsMode) {
+        _uiState.update { it.copy(selection = it.selection.copy(artifactsMode = mode)) }
+        viewModelScope.launch { settingsDataStore.setArtifactsMode(mode) }
+        if (ToolConstants.ARTIFACTS !in _uiState.value.selection.effectiveTools) toggleTool(ToolConstants.ARTIFACTS)
+    }
 
     fun toggleTool(toolName: String) {
         // Per conversation, so it never goes through the global enabled-tools store.

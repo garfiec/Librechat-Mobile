@@ -21,6 +21,9 @@ enum class ChatOptionsPage {
     Options,
     ModelSelector,
     ModelParameters,
+
+    /** The Artifacts mode choice, opened by a long-press on the Artifacts tile. */
+    ArtifactsMode,
 }
 
 /**
