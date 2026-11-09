@@ -409,4 +409,7 @@
     <string name="agent_git_identity_info">이 에이전트가 실행하는 Git 명령의 작성자와 커미터로 사용됩니다. 자격 증명은 따로 설정합니다.</string>
     <string name="code_background">백그라운드 실행</string>
     <string name="code_background_info">모델이 백그라운드에서 코드를 실행할 수 있습니다. 실행 중에도 대화가 계속되며 모델은 나중에 결과를 가져옵니다. 출력과 파일은 원래 실행에 계속 첨부됩니다.</string>
+    <string name="web_search_keys_add_action">검색 키 추가</string>
+    <string name="web_search_keys_manage_action">검색 키 관리</string>
+    <string name="marketplace_set_up">설정</string>
 </resources>

@@ -64,6 +64,7 @@ import com.garfiec.librechat.feature.agents.resources.cd_pin_tool
 import com.garfiec.librechat.feature.agents.resources.cd_tool_icon
 import com.garfiec.librechat.feature.agents.resources.cd_unpin_tool
 import com.garfiec.librechat.feature.agents.resources.close
+import com.garfiec.librechat.feature.agents.resources.marketplace_set_up
 import com.garfiec.librechat.feature.agents.resources.tools_filter_all
 import com.garfiec.librechat.feature.agents.resources.tools_filter_builtin
 import com.garfiec.librechat.feature.agents.resources.tools_filter_favorites
@@ -325,6 +326,12 @@ private fun MarketplaceRow(
                     imageVector = Icons.Default.Check,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
+                )
+            } else if (item.needsSetup) {
+                Text(
+                    text = stringResource(Res.string.marketplace_set_up),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
         }

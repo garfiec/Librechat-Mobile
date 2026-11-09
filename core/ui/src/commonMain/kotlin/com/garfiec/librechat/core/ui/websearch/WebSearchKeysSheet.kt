@@ -1,4 +1,4 @@
-package com.garfiec.librechat.feature.chat.components
+package com.garfiec.librechat.core.ui.websearch
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -41,15 +41,24 @@ import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.SecretTextField
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
-import com.garfiec.librechat.feature.chat.resources.*
-import com.garfiec.librechat.feature.chat.resources.Res
-import com.garfiec.librechat.feature.chat.util.SearchKeyCategory
-import com.garfiec.librechat.feature.chat.util.SearchKeyField
-import com.garfiec.librechat.feature.chat.util.WebSearchKeysState
-import com.garfiec.librechat.feature.chat.util.searchKeySectionFields
-import com.garfiec.librechat.feature.chat.util.searchKeysComplete
-import com.garfiec.librechat.feature.chat.util.sheetCategories
-import com.garfiec.librechat.feature.chat.util.webSearchKeysAuth
+import com.garfiec.librechat.core.ui.resources.Res
+import com.garfiec.librechat.core.ui.resources.web_search_keys_api_key
+import com.garfiec.librechat.core.ui.resources.web_search_keys_api_key_optional
+import com.garfiec.librechat.core.ui.resources.web_search_keys_body
+import com.garfiec.librechat.core.ui.resources.web_search_keys_cancel
+import com.garfiec.librechat.core.ui.resources.web_search_keys_keep_hint
+import com.garfiec.librechat.core.ui.resources.web_search_keys_none
+import com.garfiec.librechat.core.ui.resources.web_search_keys_pinned
+import com.garfiec.librechat.core.ui.resources.web_search_keys_remove
+import com.garfiec.librechat.core.ui.resources.web_search_keys_remove_failed
+import com.garfiec.librechat.core.ui.resources.web_search_keys_save
+import com.garfiec.librechat.core.ui.resources.web_search_keys_save_failed
+import com.garfiec.librechat.core.ui.resources.web_search_keys_section_providers
+import com.garfiec.librechat.core.ui.resources.web_search_keys_section_rerankers
+import com.garfiec.librechat.core.ui.resources.web_search_keys_section_scrapers
+import com.garfiec.librechat.core.ui.resources.web_search_keys_title
+import com.garfiec.librechat.core.ui.resources.web_search_keys_url
+import com.garfiec.librechat.core.ui.resources.web_search_keys_url_optional
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -193,7 +202,7 @@ internal fun WebSearchKeysSheetContent(
                 Spacer(modifier = Modifier.weight(1f))
             }
             AdaptiveOutlinedButton(onClick = onDismiss, enabled = !busy) {
-                Text(stringResource(Res.string.cancel))
+                Text(stringResource(Res.string.web_search_keys_cancel))
             }
             AdaptiveButton(
                 onClick = {
@@ -203,7 +212,7 @@ internal fun WebSearchKeysSheetContent(
                 enabled = !busy && canSave,
             ) {
                 if (saving) ButtonProgress()
-                Text(stringResource(Res.string.save))
+                Text(stringResource(Res.string.web_search_keys_save))
             }
         }
     }

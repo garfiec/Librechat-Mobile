@@ -415,4 +415,7 @@
     <string name="agent_git_identity_info">Applied as the author and committer for Git commands run by this agent. Credentials are configured separately.</string>
     <string name="code_background">Background execution</string>
     <string name="code_background_info">Lets the model run code in the background: the conversation goes on while it runs, and the model picks up the result later. Output and files still attach to the original run.</string>
+    <string name="web_search_keys_add_action">Add search keys</string>
+    <string name="web_search_keys_manage_action">Manage search keys</string>
+    <string name="marketplace_set_up">Set up</string>
 </resources>

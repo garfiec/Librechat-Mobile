@@ -391,4 +391,21 @@
     <string name="mcp_vars_keep">Conservar</string>
     <string name="mcp_vars_save_failed">No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.</string>
     <string name="mcp_vars_remove_failed">No se pudieron quitar tus valores. Inténtalo de nuevo.</string>
+    <string name="web_search_keys_title">Claves de búsqueda</string>
+    <string name="web_search_keys_body">La búsqueda de LibreChat funciona con tus propias claves. Se guardan en tu servidor de LibreChat.</string>
+    <string name="web_search_keys_keep_hint">Deja un campo vacío para conservar la clave que guardaste.</string>
+    <string name="web_search_keys_section_providers">Proveedor de búsqueda</string>
+    <string name="web_search_keys_section_scrapers">Lector de páginas</string>
+    <string name="web_search_keys_section_rerankers">Reordenador</string>
+    <string name="web_search_keys_pinned">Elegido por tu servidor</string>
+    <string name="web_search_keys_none">Ninguno</string>
+    <string name="web_search_keys_api_key">Clave de API de %1$s</string>
+    <string name="web_search_keys_api_key_optional">Clave de API de %1$s (opcional)</string>
+    <string name="web_search_keys_url">URL de %1$s</string>
+    <string name="web_search_keys_url_optional">URL de %1$s (opcional)</string>
+    <string name="web_search_keys_remove">Quitar claves</string>
+    <string name="web_search_keys_save_failed">No se pudieron guardar tus claves. Inténtalo de nuevo.</string>
+    <string name="web_search_keys_remove_failed">No se pudieron quitar tus claves. Inténtalo de nuevo.</string>
+    <string name="web_search_keys_cancel">Cancelar</string>
+    <string name="web_search_keys_save">Guardar</string>
 </resources>

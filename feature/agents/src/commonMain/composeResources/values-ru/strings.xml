@@ -412,4 +412,7 @@
     <string name="agent_git_identity_info">Используется как автор и коммиттер для команд Git, выполняемых агентом. Учётные данные настраиваются отдельно.</string>
     <string name="code_background">Фоновое выполнение</string>
     <string name="code_background_info">Модель может выполнять код в фоне: разговор продолжается, пока код работает, а модель получает результат позже. Вывод и файлы остаются привязанными к исходному запуску.</string>
+    <string name="web_search_keys_add_action">Добавить ключи поиска</string>
+    <string name="web_search_keys_manage_action">Управлять ключами поиска</string>
+    <string name="marketplace_set_up">Настроить</string>
 </resources>

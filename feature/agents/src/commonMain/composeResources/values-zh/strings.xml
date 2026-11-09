@@ -409,4 +409,7 @@
     <string name="agent_git_identity_info">用作此智能体运行的 Git 命令的作者和提交者。凭据需另行配置。</string>
     <string name="code_background">后台执行</string>
     <string name="code_background_info">允许模型在后台运行代码：代码运行时对话继续进行，模型稍后获取结果。输出和文件仍附加到原始运行。</string>
+    <string name="web_search_keys_add_action">添加搜索密钥</string>
+    <string name="web_search_keys_manage_action">管理搜索密钥</string>
+    <string name="marketplace_set_up">设置</string>
 </resources>

@@ -30,6 +30,8 @@ kotlin {
             implementation(libs.lifecycle.runtime.compose.kmp)
             // The share sheet's QR code.
             implementation(libs.qrose)
+            // The admin's pinned search providers in the served `webSearch` config.
+            implementation(libs.kotlinx.serialization.json)
         }
         androidMain.dependencies {
             // Activity-result launchers: the gallery-save permission request (API < 29) and
@@ -39,10 +41,6 @@ kotlin {
         }
         iosMain.dependencies {
             implementation(libs.kermit)
-        }
-        commonTest.dependencies {
-            // Builds the raw `customParams.paramDefinitions` the reasoning resolver reads.
-            implementation(libs.kotlinx.serialization.json)
         }
         iosTest.dependencies {
             implementation(libs.compose.multiplatform.ui.test)

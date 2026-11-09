@@ -1275,20 +1275,6 @@
     <string name="web_search_keys_fallback">Using %1$s's search until you add keys</string>
     <string name="web_search_keys_add">Add your search keys</string>
     <string name="web_search_keys_title">Search keys</string>
-    <string name="web_search_keys_body">LibreChat search runs with your own keys. They're stored on your LibreChat server.</string>
-    <string name="web_search_keys_keep_hint">Leave a field empty to keep the key you saved.</string>
-    <string name="web_search_keys_section_providers">Search provider</string>
-    <string name="web_search_keys_section_scrapers">Page reader</string>
-    <string name="web_search_keys_section_rerankers">Reranker</string>
-    <string name="web_search_keys_pinned">Chosen by your server</string>
-    <string name="web_search_keys_none">None</string>
-    <string name="web_search_keys_api_key">%1$s API key</string>
-    <string name="web_search_keys_api_key_optional">%1$s API key (optional)</string>
-    <string name="web_search_keys_url">%1$s URL</string>
-    <string name="web_search_keys_url_optional">%1$s URL (optional)</string>
-    <string name="web_search_keys_remove">Remove keys</string>
-    <string name="web_search_keys_save_failed">Couldn't save your keys. Try again.</string>
-    <string name="web_search_keys_remove_failed">Couldn't remove your keys. Try again.</string>
     <string name="prompt_editor_creating">Creating…</string>
     <string name="prompt_editor_saving">Saving…</string>
 </resources>

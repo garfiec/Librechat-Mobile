@@ -16,6 +16,7 @@ import com.garfiec.librechat.core.model.AgentFile
 import com.garfiec.librechat.core.model.mcp.McpTool
 import com.garfiec.librechat.feature.agents.util.ContentReader
 import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentCodeSources
+import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentToolKeySources
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.every
@@ -84,7 +85,7 @@ class AgentEditorUnsavedChangesTest {
         agentRepository = agentRepository,
         configRepository = configRepository,
         mcpRepository = mockk<McpRepository>(relaxed = true),
-        agentToolsRepository = mockk<AgentToolsRepository>(relaxed = true),
+        toolKeys = AgentToolKeySources(mockk<AgentToolsRepository>(relaxed = true), mockk(relaxed = true)),
         fileRepository = mockk<FileRepository>(relaxed = true),
         skillsRepository = mockk<SkillsRepository>(relaxed = true),
         roleRepository = roleRepository,

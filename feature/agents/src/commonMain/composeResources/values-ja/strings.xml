@@ -409,4 +409,7 @@
     <string name="agent_git_identity_info">このエージェントが実行する Git コマンドの作成者とコミッターとして使われます。認証情報は別途設定します。</string>
     <string name="code_background">バックグラウンド実行</string>
     <string name="code_background_info">モデルがバックグラウンドでコードを実行できるようにします。実行中も会話は続き、モデルは後で結果を受け取ります。出力とファイルは元の実行に添付されたままです。</string>
+    <string name="web_search_keys_add_action">検索キーを追加</string>
+    <string name="web_search_keys_manage_action">検索キーを管理</string>
+    <string name="marketplace_set_up">設定する</string>
 </resources>

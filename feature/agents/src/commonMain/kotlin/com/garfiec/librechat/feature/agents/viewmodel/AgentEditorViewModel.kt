@@ -7,7 +7,6 @@ import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.common.result.ApiException
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.AgentRepository
-import com.garfiec.librechat.core.data.repository.AgentToolsRepository
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.McpRepository
@@ -27,10 +26,12 @@ import com.garfiec.librechat.core.model.config.paramSettingsKey
 import com.garfiec.librechat.core.model.mcp.McpTool
 import com.garfiec.librechat.core.model.request.FunctionTool
 import com.garfiec.librechat.core.ui.components.PdfPasswordPromptUi
+import com.garfiec.librechat.core.ui.websearch.WebSearchKeysState
 import com.garfiec.librechat.feature.agents.AgentActionDisplayData
 import com.garfiec.librechat.feature.agents.AgentHandoffDisplayData
 import com.garfiec.librechat.feature.agents.AgentToolDisplayData
 import com.garfiec.librechat.feature.agents.components.ModelOption
+import com.garfiec.librechat.feature.agents.components.WebSearchKeysAction
 import com.garfiec.librechat.feature.agents.components.model.AgentAdvancedSettings
 import com.garfiec.librechat.feature.agents.components.model.AgentCapabilities
 import com.garfiec.librechat.feature.agents.components.model.AgentSharingState
@@ -51,10 +52,13 @@ import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentCodeSources
 import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentFilesDelegate
 import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentLoaderDelegate
 import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentSaveDelegate
+import com.garfiec.librechat.feature.agents.viewmodel.delegate.AgentToolKeySources
 import com.garfiec.librechat.feature.agents.viewmodel.delegate.CodeToolAuthDelegate
 import com.garfiec.librechat.feature.agents.viewmodel.delegate.MarketplaceFilter
 import com.garfiec.librechat.feature.agents.viewmodel.delegate.ToolsMarketplaceDelegate
+import com.garfiec.librechat.feature.agents.viewmodel.delegate.WebSearchKeysDelegate
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -180,7 +184,7 @@ data class AgentEditorUiState(
      * `/api/agents/tools` to list the plugin, which is what hides it on pre-feature servers.
      */
     val isAskUserQuestionAvailable: Boolean = true,
-    /** Whether web search is configured on this server (startupConfig.webSearch != null). */
+    /** Whether the server offers web search to agents (the agents endpoint's capabilities; fail-open). */
     val isWebSearchAvailable: Boolean = false,
     /** The agents endpoint's `file_search` capability, fail-open on an empty list. */
     val isFileSearchAvailable: Boolean = true,
@@ -303,6 +307,9 @@ data class AgentEditorUiState(
     // Tool auth (Code Interpreter key entry)
     val codeToolAuthState: ToolAuthState = ToolAuthState.Unknown,
     val showCodeAuthDialog: Boolean = false,
+    /** The server's answer on the user's own web search keys; null until it answers (or when it failed). */
+    val webSearchKeys: WebSearchKeysState? = null,
+    val showWebSearchKeysSheet: Boolean = false,
     // Per-capability file attachments
     val codeFiles: List<AgentFile> = emptyList(),
     val knowledgeFiles: List<AgentFile> = emptyList(),
@@ -351,6 +358,12 @@ data class AgentEditorUiState(
      */
     val isCodeInterpreterOffered: Boolean get() = isCodeInterpreterAvailable && canUseRunCode
     val isWebSearchOffered: Boolean get() = isWebSearchAvailable && canUseWebSearch
+
+    /** The server leaves web search keys to the user and this user has none: turning it on asks for them. */
+    val webSearchNeedsKeys: Boolean get() = webSearchKeys?.let { it.offered && !it.authenticated } == true
+
+    val webSearchKeysAction: WebSearchKeysAction?
+        get() = webSearchKeys?.takeIf { it.offered }?.let { if (it.authenticated) WebSearchKeysAction.MANAGE else WebSearchKeysAction.ADD }
     val isFileSearchOffered: Boolean get() = isFileSearchAvailable && canUseFileSearch
 
     /**
@@ -396,7 +409,7 @@ class AgentEditorViewModel(
     private val agentRepository: AgentRepository,
     private val configRepository: ConfigRepository,
     private val mcpRepository: McpRepository,
-    private val agentToolsRepository: AgentToolsRepository,
+    toolKeys: AgentToolKeySources,
     private val fileRepository: FileRepository,
     private val skillsRepository: SkillsRepository,
     private val roleRepository: RoleRepository,
@@ -476,7 +489,13 @@ class AgentEditorViewModel(
 
     private val codeAuthDelegate = CodeToolAuthDelegate(
         stateHandle = stateHandle,
-        agentToolsRepository = agentToolsRepository,
+        agentToolsRepository = toolKeys.tools,
+    )
+
+    private val webSearchKeysDelegate = WebSearchKeysDelegate(
+        stateHandle = stateHandle,
+        webSearchReadiness = toolKeys.webSearch,
+        configRepository = configRepository,
     )
 
     private val capabilitiesDelegate = AgentCapabilitiesDelegate(
@@ -523,6 +542,7 @@ class AgentEditorViewModel(
         capabilitiesDelegate.observeAvailability()
         codeSettingsDelegate.start()
         codeAuthDelegate.verifyCodeToolAuth()
+        webSearchKeysDelegate.observe()
         if (editAgentId != null) {
             loaderDelegate.loadAgent(editAgentId)
             actionsDelegate.loadActions()
@@ -664,9 +684,17 @@ class AgentEditorViewModel(
         stateHandle.update { copy(fileSearchEnabled = enabled) }
     }
 
-    fun onWebSearchToggled(enabled: Boolean) {
-        stateHandle.update { copy(webSearchEnabled = enabled) }
-    }
+    fun onWebSearchToggled(enabled: Boolean) = webSearchKeysDelegate.onWebSearchToggled(enabled)
+
+    fun openWebSearchKeys() = webSearchKeysDelegate.openSheet()
+
+    fun dismissWebSearchKeys() = webSearchKeysDelegate.dismissSheet()
+
+    /** In the ViewModel's scope, so a save the sheet started still lands if the sheet leaves first. */
+    suspend fun saveWebSearchKeys(auth: Map<String, String>): Boolean =
+        viewModelScope.async { webSearchKeysDelegate.saveKeys(auth) }.await()
+
+    suspend fun removeWebSearchKeys(): Boolean = viewModelScope.async { webSearchKeysDelegate.removeKeys() }.await()
 
     fun onFileContextToggled(enabled: Boolean) {
         stateHandle.update { copy(fileContextEnabled = enabled) }
