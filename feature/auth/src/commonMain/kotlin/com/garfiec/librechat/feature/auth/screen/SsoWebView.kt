@@ -16,12 +16,14 @@ import com.garfiec.librechat.core.model.auth.AuthCookies
  *  `refreshToken` on the server's own origin; this view reads it out of that jar and reports it
  *  via [onTokenCapture].
  *
- *  This view owns the jar's whole lifecycle, because the clear has to be ordered against the load
- *  and only the side that owns both can guarantee that. Every sign-in starts from an empty jar, not
- *  merely one without the server's `refreshToken`: the provider's own session cookie is what makes
- *  the round-trip re-select an identity the user never chose, and clearing it is the only way to
- *  guarantee the account chooser is reached. iOS gets this by construction from its non-persistent
- *  store; Android has to ask for it.
+ *  This view owns the jar's lifecycle, because the clear has to be ordered against the load and
+ *  only the side that owns both can guarantee that. A sign-in starts from an empty jar: the
+ *  provider's own session cookie makes the round-trip re-select an identity the user never chose,
+ *  and clearing it is the only way to guarantee the account chooser is reached. The exception is
+ *  [keepProviderSession], set only to re-authenticate the account whose session ended: the server's
+ *  cookies are expired and the provider's kept, so the provider can skip its login form. iOS
+ *  always starts empty, by construction, from its non-persistent store. [signedIn] is whether the
+ *  captured token completed a sign-in; Android wipes the jar when the view goes without one.
  *
  *  Exactly one of [onTokenCapture], [onOAuthError] or [onCaptureFail] fires per round-trip.
  *  [onCaptureFail] is the primary failure signal — since upstream dropped `failureMessage`, a
@@ -30,6 +32,8 @@ import com.garfiec.librechat.core.model.auth.AuthCookies
 expect fun SsoWebView(
     serverUrl: String,
     provider: String,
+    keepProviderSession: Boolean,
+    signedIn: Boolean,
     onTokenCapture: (AuthCookies) -> Unit,
     onOAuthError: (String?) -> Unit,
     onCaptureFail: () -> Unit,

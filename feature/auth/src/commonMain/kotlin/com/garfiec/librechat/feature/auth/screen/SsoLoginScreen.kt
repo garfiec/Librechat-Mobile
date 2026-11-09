@@ -53,6 +53,8 @@ fun SsoLoginScreen(
         SsoWebView(
             serverUrl = viewModel.serverUrl,
             provider = provider,
+            keepProviderSession = viewModel.keepProviderSession,
+            signedIn = uiState.isLoggedIn,
             onTokenCapture = viewModel::onTokenCapture,
             onOAuthError = viewModel::onOAuthError,
             onCaptureFail = viewModel::onCaptureFailed,

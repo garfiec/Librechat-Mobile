@@ -74,11 +74,9 @@ data class SessionExpiredNotice(
 sealed interface SessionRoute {
     data object SignIn : SessionRoute
 
-    /**
-     * Sign-in to the active account, which is signed out until it sets up the 2FA its server
-     * requires: its sign-in screen (which names it and runs the setup), not the server screen.
-     */
-    data object SignInForTwoFactorSetup : SessionRoute
+    /** Sign-in for the active account, still bound but without a session (expired, signed out to
+     *  sign in again or set up 2FA): its Login, never the server screen, whose Connect detaches it. */
+    data object SignInActiveAccount : SessionRoute
 
     /** The chat of the account now active. */
     data object Chat : SessionRoute
@@ -191,7 +189,7 @@ class NavHostViewModel(
             sessionRevision.update { it + 1 }
             // Lowered before the route event goes out, as in [onSessionEnded].
             _isLoggedIn.value = false
-            _sessionRoute.trySend(SessionRoute.SignIn)
+            _sessionRoute.trySend(SessionRoute.SignInActiveAccount)
         }
 
     /**
@@ -500,13 +498,16 @@ class NavHostViewModel(
         // Signed out to set up 2FA, not expired: stay on it, at its sign-in, which runs the setup again.
         if (accountSwitcher.awaitsTwoFactorSetup(activeAccountId())) {
             _isLoggedIn.value = false
-            _sessionRoute.trySend(SessionRoute.SignInForTwoFactorSetup)
+            _sessionRoute.trySend(SessionRoute.SignInActiveAccount)
             return false
         }
         // Read before the failover moves the active pointer off the expired account.
         val expiredLabel = expiredAccountLabel().orEmpty()
         val switched = accountSwitcher.failOverFromActive() as? FailoverResult.Switched
         _isLoggedIn.value = switched != null
+        // The first frame routed to the server screen; an expired account that is still bound signs
+        // in again from its own sign-in screen.
+        if (switched == null && activeAccountId() != null) _sessionRoute.trySend(SessionRoute.SignInActiveAccount)
         if (switched != null) {
             failoverTarget = switched.entry.accountId
             _sessionExpiredNotice.value = SessionExpiredNotice(expiredLabel, switchedTo = switched.entry.displayLabel)
@@ -554,9 +555,14 @@ class NavHostViewModel(
                 if (expiredLabel != null && wasLoggedIn) {
                     _sessionExpiredNotice.value = SessionExpiredNotice(expiredLabel)
                 }
-                // The route channel is conflated: a cold start's 401s land here right after the startup
-                // route, so this must not overwrite the 2FA account's sign-in with the server screen.
-                _sessionRoute.trySend(if (awaitsSetup) SessionRoute.SignInForTwoFactorSetup else SessionRoute.SignIn)
+                // A sign-out (logout, remove-last) cleared the active account; an expiry or ban keeps it.
+                // A logged-out start already routed a bound account to its sign-in, and the channel is
+                // conflated: its 401s must neither overwrite that route nor re-push Login over a server
+                // screen the user backed out to.
+                when {
+                    activeAccountId() == null -> _sessionRoute.trySend(SessionRoute.SignIn)
+                    wasLoggedIn -> _sessionRoute.trySend(SessionRoute.SignInActiveAccount)
+                }
             }
         }
     }

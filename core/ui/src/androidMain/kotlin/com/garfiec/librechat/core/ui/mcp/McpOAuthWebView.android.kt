@@ -143,8 +143,9 @@ internal actual fun McpOAuthWebView(
 /**
  * Drops what the sign-in left in the process-wide jar: the seeded `oauth_session` binding and the
  * provider's own session, which would otherwise outlive the flow. The whole jar, because the
- * provider's hosts aren't known and nothing else keeps state there: SSO wipes it itself before
- * signing in, account switching wipes it, and the other WebViews load local content.
+ * provider's hosts aren't known and nothing else needs state there: the provider session SSO keeps
+ * for a re-auth only spares a login form, account switching wipes the jar, and the other WebViews
+ * load local content.
  */
 private fun clearSignInCookies() {
     CookieManager.getInstance().removeAllCookies { CookieManager.getInstance().flush() }

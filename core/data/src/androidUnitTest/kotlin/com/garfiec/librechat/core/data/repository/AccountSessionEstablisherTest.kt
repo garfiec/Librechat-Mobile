@@ -1,5 +1,8 @@
 package com.garfiec.librechat.core.data.repository
 
+import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
+import com.garfiec.librechat.core.common.identity.deriveAccountId
+import com.garfiec.librechat.core.common.identity.deriveServerId
 import com.garfiec.librechat.core.data.datastore.AccountRegistry
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.network.client.ServerUrlProvider
@@ -13,6 +16,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import kotlin.test.assertEquals
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AccountSessionEstablisherTest {
@@ -21,12 +25,16 @@ class AccountSessionEstablisherTest {
     private val claimReconciler = mockk<AccountClaimReconciler>(relaxed = true)
     private val serverUrlProvider = mockk<ServerUrlProvider>(relaxed = true)
     private val tokenManager = mockk<TokenManager>(relaxed = true)
+    private val activeAccountProvider = InMemoryActiveAccountProvider()
+    private val switchCacheCleaner = RecordingSwitchCacheCleaner()
 
     private val establisher = AccountSessionEstablisher(
         accountRegistry = accountRegistry,
         claimReconciler = claimReconciler,
         serverUrlProvider = serverUrlProvider,
         tokenManager = tokenManager,
+        activeAccountProvider = activeAccountProvider,
+        switchCacheCleaner = switchCacheCleaner,
         ioDispatcher = UnconfinedTestDispatcher(),
     )
 
@@ -84,5 +92,30 @@ class AccountSessionEstablisherTest {
             tokenManager.onAccountResolved(accountId.value)
             accountRegistry.upsertActive(any())
         }
+    }
+
+    @Test
+    fun reauthOfTheSameAccountKeepsWebViewState() = runTest {
+        coEvery { serverUrlProvider.awaitBaseUrl() } returns "https://chat.example.com"
+        val user = mockk<User>(relaxed = true)
+        every { user.id } returns "mongoUserId"
+        activeAccountProvider.set(deriveAccountId(deriveServerId("https://chat.example.com"), "mongoUserId"))
+
+        establisher.establish(user)
+
+        assertEquals(0, switchCacheCleaner.clearCount)
+    }
+
+    /** Otherwise the next re-auth of the new account would reuse the previous one's provider session. */
+    @Test
+    fun signingInAsAnotherAccountClearsWebViewState() = runTest {
+        coEvery { serverUrlProvider.awaitBaseUrl() } returns "https://chat.example.com"
+        val user = mockk<User>(relaxed = true)
+        every { user.id } returns "mongoUserId"
+        activeAccountProvider.set(deriveAccountId(deriveServerId("https://chat.example.com"), "someoneElse"))
+
+        establisher.establish(user)
+
+        assertEquals(1, switchCacheCleaner.clearCount)
     }
 }

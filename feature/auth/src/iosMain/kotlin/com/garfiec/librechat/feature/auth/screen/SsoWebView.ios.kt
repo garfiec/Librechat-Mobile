@@ -209,6 +209,9 @@ private class SsoNavigationDelegate(
 actual fun SsoWebView(
     serverUrl: String,
     provider: String,
+    // Unused: the store below is non-persistent, so there is no provider session to keep or wipe.
+    keepProviderSession: Boolean,
+    signedIn: Boolean,
     onTokenCapture: (AuthCookies) -> Unit,
     onOAuthError: (String?) -> Unit,
     onCaptureFail: () -> Unit,

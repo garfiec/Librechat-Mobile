@@ -1,8 +1,5 @@
 package com.garfiec.librechat.core.ui.components
 
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 import android.view.Window
 import android.view.WindowManager
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -11,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.SecureFlagPolicy
+import com.garfiec.librechat.core.ui.platform.findActivity
 
 @Composable
 internal actual fun SecureWindowEffect(secure: Boolean) {
@@ -41,10 +39,4 @@ private class WindowSecureFlag(private val window: Window) : SecureFlagTarget {
                 window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
             }
         }
-}
-
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
 }

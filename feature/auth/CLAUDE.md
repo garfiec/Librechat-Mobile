@@ -31,12 +31,14 @@
   `/api/oauth`).
 - **One cookie jar for the whole round-trip** is required: from v0.8.8-rc3 the server binds OAuth `state` to a
   cookie set at authorize and checked at callback.
-- `SsoWebView` owns the jar. Android wipes it **whole** before every round-trip, issuing the load from
-  `removeAllCookies`' callback so the wipe can't race it. Whole, because the provider's session cookie is
-  process-global and outlives sign-out, so the flow would silently complete as whoever was last signed in. The
-  whole-jar wipe is safe: nothing else in it holds a session, and `AndroidSwitchCacheCleaner` already clears
-  it whole on every account switch. iOS uses `nonPersistentDataStore()`. The token cookie is expired again at capture (with `HttpOnly`, or Chromium
-  refuses the overwrite).
+- `SsoWebView` owns the jar, and Android issues the load from its clear's callback so the clear can't race
+  it. It wipes the jar **whole** before every round-trip, because the provider's session cookie is
+  process-global and outlives sign-out, so the flow would silently complete as whoever was last signed in.
+  The one exception is `keepProviderSession` (`AccountSwitcher.signInReauthenticatesActive()`): re-signing
+  in the still-bound active account expires every cookie on the server's origin and keeps the provider's,
+  so the provider can skip its form. A round-trip that ends without a completed sign-in wipes the jar whole, and so
+  do account switches and a sign-in that resolves to another account. iOS uses `nonPersistentDataStore()`.
+  The token cookie is expired again at capture (with `HttpOnly`, or Chromium refuses the overwrite).
 - `SsoNavigationGate` (commonMain) cancels the server's post-callback redirect: the web app would
   `silentRefresh()`, and the backend rotates `refreshTokenHash` on every refresh, so the second caller 401s.
   It arms only for GET callbacks. Apple and SAML callbacks are POST, invisible to `shouldOverrideUrlLoading` /
