@@ -230,6 +230,16 @@ class FileToolCallsTest {
     }
 
     @Test
+    fun a_very_long_field_is_read_from_partial_and_complete_json() {
+        // Far past the K/N recursion limit of any thread stack the tests or the app run on.
+        val plain = "x".repeat(100_000)
+        assertEquals(plain, parseJsonField("{\"path\":\"a.txt\",\"content\":\"$plain", "content"))
+        val escaped = "\\n".repeat(50_000)
+        assertEquals("\n".repeat(50_000), parseJsonField("{\"content\":\"$escaped", "content"))
+        assertEquals(listOf(plain), parseJsonFieldOccurrences("{\"content\":\"$plain\"}", "content"))
+    }
+
+    @Test
     fun unicode_escapes_decode_and_partial_ones_wait() {
         assertEquals("café", unescapeJsonString("caf\\u00e9"))
         assertEquals("caf", unescapeJsonString("caf\\u00"))
