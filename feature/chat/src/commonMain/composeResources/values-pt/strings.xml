@@ -641,6 +641,12 @@
     <string name="picker_no_matches">Nenhum resultado</string>
     <string name="picker_loading_skills">Carregando habilidades…</string>
     <string name="picker_skills_failed">Não foi possível carregar as habilidades</string>
+    <string name="picker_scope_prompts">Buscando prompts</string>
+    <string name="picker_scope_skills">Buscando habilidades</string>
+    <string name="picker_chip_prompts">Prompts</string>
+    <string name="picker_chip_skills">Habilidades</string>
+    <string name="picker_skills_unavailable">Habilidades não estão disponíveis neste chat</string>
+    <string name="cd_picker_leave_scope">Mostrar prompts e habilidades</string>
     <string name="cd_remove_skill">Remover a habilidade %1$s</string>
     <string name="cd_skill_always_applied">Habilidade sempre aplicada: %1$s</string>
     <string name="cd_skill_used">Habilidade usada: %1$s</string>

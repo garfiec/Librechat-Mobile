@@ -26,6 +26,24 @@ private fun SkillPickerFailedGlassPreview() = SkillsSurface(UiStyle.LIQUID_GLASS
     PickerHost("\$pd", skills = emptyList(), failed = true)
 }
 
+@PreviewNarrowScreens
+@Composable
+private fun SkillPickerSkillScopeMaterialPreview() = SkillsSurface(UiStyle.MATERIAL) { PickerHost("/skill ") }
+
+@PreviewNarrowScreens
+@Composable
+private fun SkillPickerSkillScopeGlassPreview() = SkillsSurface(UiStyle.LIQUID_GLASS) { PickerHost("/skill ") }
+
+@PreviewNarrowScreens
+@Composable
+private fun SkillPickerPromptScopeMaterialPreview() = SkillsSurface(UiStyle.MATERIAL) { PickerHost("/prompt sum") }
+
+@PreviewNarrowScreens
+@Composable
+private fun SkillPickerSkillsUnavailableMaterialPreview() = SkillsSurface(UiStyle.MATERIAL) {
+    PickerHost("/skill ", skills = emptyList(), canPickSkills = false)
+}
+
 /** Ten long names: the server's cap. */
 @PreviewNarrowScreens
 @Composable

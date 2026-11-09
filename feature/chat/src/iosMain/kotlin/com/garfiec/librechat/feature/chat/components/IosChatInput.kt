@@ -20,6 +20,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
@@ -120,6 +124,7 @@ fun IosChatInput(
         onSend = onSend,
         onStop = onStop,
         onSelectPickerItem = onPickerSelect,
+        onPickerTextChange = onInputChange,
         onQueue = onQueue,
         onDuringRunSend = onDuringRunSend,
         onSteer = onSteer,
@@ -177,6 +182,17 @@ fun IosChatInput(
                 // inputText reaches here a frame or more after each keystroke; the field keeps its own
                 // text and takes only the ViewModel's own writes (STT, prompt insertion, the clear on send).
                 val field = rememberDraftField(inputText)
+                val commandStyle = pickerCommandStyle()
+                val pickerCommandToken = remember(commandStyle, canPickSkills) {
+                    VisualTransformation { text ->
+                        val range = pickerCommandRange(text.text, canPickSkills)
+                            ?: return@VisualTransformation TransformedText(text, OffsetMapping.Identity)
+                        val styled = AnnotatedString.Builder(text).apply {
+                            addStyle(commandStyle, range.first, range.last + 1)
+                        }.toAnnotatedString()
+                        TransformedText(styled, OffsetMapping.Identity)
+                    }
+                }
                 val compactComparison = comparison?.takeIf { it.compact }
                 val comparisonCollapsed = compactComparison?.collapsedFor(field.value.text) == true
                 val comparisonCollapse by animateComposerComparisonCollapse(comparisonCollapsed)
@@ -200,6 +216,7 @@ fun IosChatInput(
                     },
                     suffix = { ComposerAffixAnchor() },
                     textStyle = MaterialTheme.typography.bodyLarge,
+                    visualTransformation = pickerCommandToken,
                     colors = ChatInputDefaults.textFieldColors(),
                     keyboardOptions = ChatInputDefaults.keyboardOptions,
                     keyboardActions = KeyboardActions.Default,

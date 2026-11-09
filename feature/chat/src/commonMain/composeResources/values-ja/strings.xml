@@ -632,6 +632,12 @@
     <string name="picker_no_matches">一致するものはありません</string>
     <string name="picker_loading_skills">スキルを読み込み中…</string>
     <string name="picker_skills_failed">スキルを読み込めませんでした</string>
+    <string name="picker_scope_prompts">プロンプトを検索中</string>
+    <string name="picker_scope_skills">スキルを検索中</string>
+    <string name="picker_chip_prompts">プロンプト</string>
+    <string name="picker_chip_skills">スキル</string>
+    <string name="picker_skills_unavailable">このチャットではスキルを使用できません</string>
+    <string name="cd_picker_leave_scope">プロンプトとスキルを表示</string>
     <string name="cd_remove_skill">スキル %1$s を削除</string>
     <string name="cd_skill_always_applied">常に適用されるスキル: %1$s</string>
     <string name="cd_skill_used">使用したスキル: %1$s</string>

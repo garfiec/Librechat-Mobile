@@ -21,15 +21,19 @@ import com.garfiec.librechat.feature.chat.util.draftItemsOf
 
 @PreviewNarrowScreens
 @Composable
-private fun SkillPickerMixedMaterialPreview() = SkillsSurface(UiStyle.MATERIAL) { PickerHost("\$pd") }
+private fun SkillPickerDollarMaterialPreview() = SkillsSurface(UiStyle.MATERIAL) { PickerHost("\$pd") }
 
 @PreviewNarrowScreens
 @Composable
-private fun SkillPickerMixedGlassPreview() = SkillsSurface(UiStyle.LIQUID_GLASS) { PickerHost("\$pd") }
+private fun SkillPickerDollarGlassPreview() = SkillsSurface(UiStyle.LIQUID_GLASS) { PickerHost("\$pd") }
 
 @PreviewNarrowScreens
 @Composable
 private fun SkillPickerSlashMaterialPreview() = SkillsSurface(UiStyle.MATERIAL) { PickerHost("/") }
+
+@PreviewNarrowScreens
+@Composable
+private fun SkillPickerSlashGlassPreview() = SkillsSurface(UiStyle.LIQUID_GLASS) { PickerHost("/") }
 
 @PreviewNarrowScreens
 @Composable
@@ -101,6 +105,7 @@ internal fun PickerHost(
     skills: List<PickerSkill> = previewSkills,
     loading: Boolean = false,
     failed: Boolean = false,
+    canPickSkills: Boolean = true,
     chips: List<String> = listOf("brand-voice", "quarterly-report-formatting-house-style"),
 ) {
     ChatInput(
@@ -115,7 +120,7 @@ internal fun PickerHost(
         skillSuggestions = skills,
         isLoadingSkills = loading,
         skillsLoadFailed = failed,
-        canPickSkills = true,
+        canPickSkills = canPickSkills,
     )
 }
 

@@ -218,6 +218,8 @@ fun CommonChatInputCore(
     fontSizeMultiplier: Float = 1f,
     /** A row picked from the `/` and `$` list: a prompt or a skill. */
     onSelectPickerItem: (ComposerPickerItem) -> Unit = {},
+    /** The picker's scope chips and close replace the composer text with a command. */
+    onPickerTextChange: (String) -> Unit = {},
     leadingButtons: @Composable RowScope.(compact: Boolean) -> Unit = {},
     trailingButtons: @Composable RowScope.(compact: Boolean) -> Unit = {},
     bottomContent: @Composable BoxScope.() -> Unit = {},
@@ -275,11 +277,14 @@ fun CommonChatInputCore(
                 pickerQuery?.let { buildPickerRows(it, state.promptSuggestions, state.skillSuggestions) }.orEmpty()
             }
             PromptSuggestionList(
+                picker = pickerQuery,
                 rows = pickerRows,
-                isOpen = pickerQuery != null,
-                hasCandidates = state.promptSuggestions.isNotEmpty() || state.skillSuggestions.isNotEmpty(),
+                hasPrompts = state.promptSuggestions.isNotEmpty(),
+                hasSkills = state.skillSuggestions.isNotEmpty(),
+                canPickSkills = state.canPickSkills,
                 isLoadingSkills = state.isLoadingSkills,
                 onSelect = onSelectPickerItem,
+                onPickerTextChange = onPickerTextChange,
                 skillsLoadFailed = state.skillsLoadFailed,
                 onRetrySkills = onRetrySkills,
             )
