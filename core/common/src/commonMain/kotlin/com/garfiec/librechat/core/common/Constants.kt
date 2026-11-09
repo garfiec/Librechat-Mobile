@@ -28,6 +28,10 @@ object ToolConstants {
     /** The `skills` agent capability key: without it the server injects no skills into any run
      *  (upstream `resolveAgentScopedSkillIds`). Doubles as the `ephemeralAgent.skills` flag. */
     const val SKILLS = "skills"
+
+    /** The `artifacts` agent capability key and the chat's Artifacts toggle, sent as
+     *  `ephemeralAgent.artifacts` with a mode, not a boolean. */
+    const val ARTIFACTS = "artifacts"
     const val FILE_SEARCH = "file_search"
     const val EXECUTE_CODE = "execute_code"
     const val PROGRAMMATIC_TOOLS = "programmatic_tools"

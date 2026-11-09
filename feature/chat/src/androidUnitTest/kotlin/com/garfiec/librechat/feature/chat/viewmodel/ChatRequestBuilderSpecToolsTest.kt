@@ -28,17 +28,23 @@ class ChatRequestBuilderSpecToolsTest {
     )
     private val plain = ModelSpec(name = "plain", preset = Preset(endpoint = "openAI", model = "gpt-4o"))
     private val locked = tools.copy(name = "locked", hideBadgeRow = true, artifacts = JsonPrimitive(true))
-    private val specs = ModelSpecs(list = listOf(tools, plain, locked))
+    private val shadcn = plain.copy(name = "shadcn", artifacts = JsonPrimitive("shadcnui"))
+    private val specs = ModelSpecs(list = listOf(tools, plain, locked, shadcn))
 
     /**
      * The user's own toggles: code execution, their MCP server, and web search in the parameters.
      * LibreChat search is set up on the server.
      */
-    private fun state(choice: ModelChoice, specTools: SpecTools? = null, webSearch: Boolean = false) = ChatUiState(
+    private fun state(
+        choice: ModelChoice,
+        specTools: SpecTools? = null,
+        webSearch: Boolean = false,
+        userTools: Set<String> = setOf(ToolConstants.CODE_INTERPRETER),
+    ) = ChatUiState(
         selection = ModelSelectionState(
             choice = choice,
             modelSpecs = specs,
-            enabledTools = setOf(ToolConstants.CODE_INTERPRETER),
+            enabledTools = userTools,
             selectedMcpServerNames = setOf("mine"),
             modelParameters = ModelParameters.DEFAULT.copy(webSearch = webSearch),
             specTools = specTools,
@@ -120,5 +126,29 @@ class ChatRequestBuilderSpecToolsTest {
         assertEquals(true, agent.executeCode)
         assertEquals(true, agent.webSearch)
         assertEquals(listOf("mine"), agent.mcp)
+        assertNull(agent.artifacts)
+    }
+
+    @Test
+    fun `the Artifacts toggle sends the default mode`() {
+        val state = state(ModelChoice.Raw("openAI", "gpt-4o"), userTools = setOf(ToolConstants.ARTIFACTS))
+
+        assertEquals("default", assertNotNull(ChatRequestBuilder { state }.buildEphemeralAgent()).artifacts)
+    }
+
+    @Test
+    fun `a spec's artifacts mode wins and locks the toggle on`() {
+        val added = SpecTools("shadcn", added = setOf(ToolConstants.ARTIFACTS))
+        val state = state(ModelChoice.Spec("shadcn", "openAI", "gpt-4o"), added)
+
+        assertEquals("shadcnui", assertNotNull(ChatRequestBuilder { state }.buildEphemeralAgent()).artifacts)
+        assertTrue(ToolConstants.ARTIFACTS in state.lockedTools)
+    }
+
+    @Test
+    fun `the Artifacts toggle off sends no artifacts`() {
+        val state = state(ModelChoice.Raw("openAI", "gpt-4o"), userTools = setOf(ToolConstants.FILE_SEARCH))
+
+        assertNull(assertNotNull(ChatRequestBuilder { state }.buildEphemeralAgent()).artifacts)
     }
 }

@@ -1,6 +1,8 @@
 package com.garfiec.librechat.feature.chat.viewmodel
 
 import com.garfiec.librechat.core.common.EndpointConstants
+import com.garfiec.librechat.core.common.ToolConstants
+import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.response.UploadRoute
 import com.google.common.truth.Truth.assertThat
@@ -95,5 +97,45 @@ class ChatUiStateUploadRouteTest {
             configs = mapOf(EndpointConstants.AGENTS to EndpointConfig(capabilities = listOf("tools"))),
         )
         assertThat(noContext.retryUploadRoute(UploadRoute.TEXT, pdf)).isEqualTo(UploadRoute.PROVIDER)
+    }
+
+    @Test
+    fun `file search is offered for documents only, and never chosen for them`() {
+        val openAi = state(endpoint = "openAI")
+
+        assertThat(openAi.fileSearchUploadOffered).isTrue()
+        assertThat(openAi.uploadRoutesFor(docx)).containsExactly(UploadRoute.TEXT, UploadRoute.FILE_SEARCH).inOrder()
+        assertThat(openAi.uploadRoutesFor("image/png")).containsExactly(UploadRoute.PROVIDER)
+        assertThat(openAi.uploadRouteFor(docx)).isNotEqualTo(UploadRoute.FILE_SEARCH)
+    }
+
+    @Test
+    fun `file search follows the role, the capability and a saved agent's tools`() {
+        val noRole = state(endpoint = "openAI").let { it.copy(gates = it.gates.copy(fileSearchEnabled = false)) }
+        assertThat(noRole.fileSearchUploadOffered).isFalse()
+
+        val noCapability = state(
+            endpoint = "openAI",
+            configs = mapOf(EndpointConstants.AGENTS to EndpointConfig(capabilities = listOf("tools", "context"))),
+        )
+        assertThat(noCapability.fileSearchUploadOffered).isFalse()
+
+        fun agent(tools: List<String>) = ChatUiState(
+            selection = ModelSelectionState(
+                choice = ModelChoice.Raw(EndpointConstants.AGENTS, "agent_1"),
+                agents = listOf(Agent(id = "agent_1", tools = tools)),
+            ),
+        )
+        assertThat(agent(listOf(ToolConstants.FILE_SEARCH)).fileSearchUploadOffered).isTrue()
+        assertThat(agent(listOf(ToolConstants.EXECUTE_CODE)).fileSearchUploadOffered).isFalse()
+    }
+
+    @Test
+    fun `a retry keeps file search only while the selection offers it`() {
+        val openAi = state(endpoint = "openAI")
+        assertThat(openAi.retryUploadRoute(UploadRoute.FILE_SEARCH, docx)).isEqualTo(UploadRoute.FILE_SEARCH)
+
+        val noRole = openAi.copy(gates = openAi.gates.copy(fileSearchEnabled = false))
+        assertThat(noRole.retryUploadRoute(UploadRoute.FILE_SEARCH, docx)).isEqualTo(UploadRoute.TEXT)
     }
 }

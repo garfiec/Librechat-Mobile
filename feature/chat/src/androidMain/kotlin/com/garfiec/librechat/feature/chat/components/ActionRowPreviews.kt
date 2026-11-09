@@ -97,19 +97,22 @@ private fun UploadRoutingHost() {
     var files by remember {
         mutableStateOf(
             listOf(
-                PendingUploadFile(PickedFile(Unit, "quarterly-report.pdf", "application/pdf"), UploadRoute.PROVIDER, true),
-                PendingUploadFile(PickedFile(Unit, "notes.docx", "application/msword"), UploadRoute.TEXT, true),
+                PendingUploadFile(PickedFile(Unit, "quarterly-report.pdf", "application/pdf"), UploadRoute.PROVIDER, ALL_ROUTES),
+                PendingUploadFile(PickedFile(Unit, "notes.docx", "application/msword"), UploadRoute.FILE_SEARCH, ALL_ROUTES),
+                PendingUploadFile(PickedFile(Unit, "photo.png", "image/png"), UploadRoute.PROVIDER, listOf(UploadRoute.PROVIDER)),
             ),
         )
     }
     UploadRoutingContent(
         files = files,
         onRouteChange = { i, route -> files = files.mapIndexed { j, f -> if (j == i) f.copy(route = route) else f } },
-        onApplyToAll = { route -> files = files.map { it.copy(route = route) } },
+        onApplyToAll = { route -> files = files.map { if (route in it.routes) it.copy(route = route) else it } },
         onConfirm = {},
         onDismiss = {},
     )
 }
+
+private val ALL_ROUTES = listOf(UploadRoute.PROVIDER, UploadRoute.TEXT, UploadRoute.FILE_SEARCH)
 
 @Composable
 private fun FeedbackActionsHost() {

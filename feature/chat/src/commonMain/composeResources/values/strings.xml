@@ -240,25 +240,18 @@
     <string name="tool_server_files">Server</string>
     <string name="tool_model">Model</string>
     <string name="tool_model_parameters">Model Parameters</string>
-    <string name="tool_model_parameters_desc">Adjust temperature, tokens, and more</string>
+    <string name="params_title_lane_a">Parameters · Model A</string>
     <string name="param_set_by_spec">This model's settings are set by the server and can't be changed here.</string>
     <string name="tool_set_by_spec">Turned on for this model by the server</string>
     <string name="tool_web_search">Web Search</string>
-    <string name="tool_web_search_desc">Search the web for information</string>
     <string name="web_search_librechat">LibreChat search</string>
     <string name="web_search_checking">Checking LibreChat search…</string>
     <string name="web_search_built_in">%1$s's built-in search</string>
     <string name="web_search_built_in_plain">Built-in search</string>
-    <string name="web_search_set_by_spec">%1$s, turned on for this model by the server</string>
     <string name="web_searched">Searched the web</string>
     <string name="tool_url_context">URL Context</string>
-    <string name="tool_url_context_desc">Let the model read URLs and YouTube you reference</string>
     <string name="tool_code">Code</string>
-    <string name="tool_code_desc">Run and analyze code</string>
     <string name="tool_file_search">File Search</string>
-    <string name="tool_file_search_desc">Search through uploaded files</string>
-    <string name="tool_mcp">MCP</string>
-    <string name="tool_mcp_desc">Model Context Protocol servers</string>
     <string name="cd_quoted_excerpt">Quoted excerpt</string>
     <string name="selection_add_to_chat">Add to chat</string>
 
@@ -267,6 +260,8 @@
     <string name="upload_routing_sheet_title_single">How should this be sent?</string>
     <string name="upload_routing_option_provider">To the model</string>
     <string name="upload_routing_option_text">As text</string>
+    <string name="upload_route_file_search">Search it when needed</string>
+    <string name="upload_route_file_search_why">Long documents are indexed so the model looks up the parts it needs.</string>
     <string name="upload_routing_why_provider">The model reads the file itself.</string>
     <string name="upload_routing_why_text">The server reads the file and sends its text.</string>
     <string name="upload_routing_why_provider_only">This model can only take this file directly.</string>
@@ -663,9 +658,8 @@
     <string name="cd_expand_ask_user_question">Expand question details</string>
     <string name="cd_collapse_ask_user_question">Collapse question details</string>
     <string name="tool_memory">Memory</string>
-    <string name="tool_memory_desc">Let the assistant remember details from this chat</string>
     <string name="tool_skills">Skills</string>
-    <string name="tool_skills_desc">Let the assistant use your skills in this chat</string>
+    <string name="tool_artifacts">Artifacts</string>
     <string name="picker_type_prompt">Prompt</string>
     <string name="picker_type_skill">Skill</string>
     <string name="picker_no_matches">No matches</string>
@@ -1212,7 +1206,6 @@
         <item quantity="one">+%1$d earlier call</item>
         <item quantity="other">+%1$d earlier calls</item>
     </plurals>
-    <string name="tool_code_environment">Code</string>
     <string name="cd_upload_route_code">Uploaded to the code environment</string>
     <string name="run_code">Run</string>
     <string name="run_code_running">Running</string>
@@ -1256,5 +1249,24 @@
     <plurals name="draft_uploads_failed">
         <item quantity="one">%1$d file didn't upload. Tap it to retry, or remove it.</item>
         <item quantity="other">%1$d files didn't upload. Tap them to retry, or remove them.</item>
+    </plurals>
+    <string name="attach_code_environment">Upload to code environment</string>
+    <string name="mcp_servers_title">MCP servers</string>
+    <string name="tools_from_agent_title">This agent picks its own tools</string>
+    <string name="tools_from_agent_body">Web search, code and MCP servers come from the agent's settings.</string>
+    <string name="tools_from_spec">This model's tools are set by the server.</string>
+    <string name="tool_state_on">On</string>
+    <string name="tool_state_off">Off</string>
+    <plurals name="section_tools">
+        <item quantity="one">Tools · %1$d on</item>
+        <item quantity="other">Tools · %1$d on</item>
+    </plurals>
+    <plurals name="mcp_servers_on">
+        <item quantity="one">%1$d of %2$d on</item>
+        <item quantity="other">%1$d of %2$d on</item>
+    </plurals>
+    <plurals name="mcp_needs_sign_in">
+        <item quantity="one">%1$d needs sign-in</item>
+        <item quantity="other">%1$d need sign-in</item>
     </plurals>
 </resources>

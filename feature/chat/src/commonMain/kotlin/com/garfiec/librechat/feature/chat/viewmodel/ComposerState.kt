@@ -137,7 +137,7 @@ sealed interface RemovedDraftItem {
 
 /**
  * One file in a staged routing batch: the pick itself, the route currently selected for it, and
- * whether the user may change that.
+ * the routes it may take (`ChatUiState.uploadRoutesFor`).
  *
  * [choosable] is false for files with only one usable mode (an image, or a type the server cannot
  * extract). Those still ride along so the batch stays whole and the sheet can show what will
@@ -147,8 +147,10 @@ sealed interface RemovedDraftItem {
 data class PendingUploadFile(
     val file: PickedFile,
     val route: UploadRoute,
-    val choosable: Boolean,
-)
+    val routes: List<UploadRoute>,
+) {
+    val choosable: Boolean get() = routes.size > 1
+}
 
 /**
  * A staged batch of picked files awaiting a routing decision.

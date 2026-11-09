@@ -48,6 +48,13 @@ internal val ModelSpec.presetTools: Set<String>
         if (preset?.urlContext == true) add(ToolConstants.URL_CONTEXT)
     }
 
+/**
+ * The Artifacts toggle while the spec sets an artifacts mode. The server never reads the spec's
+ * mode, so the request sends it ([ModelSpec.artifactsMode]) and the toggle locks like [forcedTools].
+ */
+internal val ModelSpec.specArtifacts: Set<String>
+    get() = if (artifactsMode != null) setOf(ToolConstants.ARTIFACTS) else emptySet()
+
 /** The MCP servers this spec adds to every request, the same way. */
 internal val ModelSpec.forcedMcpServers: Set<String>
     get() = mcpServers.orEmpty().toSet()

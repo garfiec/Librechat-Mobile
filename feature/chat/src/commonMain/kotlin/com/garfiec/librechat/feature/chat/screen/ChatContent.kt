@@ -16,6 +16,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.model.config.displayLabel
 import com.garfiec.librechat.core.model.config.labelFor
+import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.model.media.resolveIconSource
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
@@ -351,30 +352,30 @@ private fun ChatMessageListPane(
 }
 
 /**
- * The new chat's icon, as web's landing draws it (`ConvoIcon`): the selected spec's ([iconSource]: its
+ * The selection's icon, as web's landing draws it (`ConvoIcon`): the selected spec's ([iconSource]: its
  * `iconURL`, its preset's, its agent's avatar, else its endpoint's brand), the selected agent's avatar
- * (the agents glyph without one), else the selected endpoint's brand. Null, before anything is
- * selected, keeps the app tile.
+ * (the agents glyph without one), else the selected endpoint's brand. Null before anything is
+ * selected. The landing hero and the "+" sheet's Model cell both draw it.
  */
-internal fun ChatUiState.landingHeroIcon(): LandingHeroIcon? {
+internal fun ChatUiState.selectionIcon(): IconSource? {
     val spec = modelSpecs?.list?.find { it.name == selectedSpec }
-    val icon = when {
+    return when {
         spec != null -> spec.iconSource(agents, serverUrl, endpointConfigs)
-        selectedEndpoint.isBlank() -> return null
+        selectedEndpoint.isBlank() -> null
         // No agent yet is the selection before seeding, not a choice to draw.
-        selectedEndpoint == EndpointConstants.AGENTS ->
-            return if (selectedModel == null) {
-                null
-            } else {
-                LandingHeroIcon(
-                    endpointName = EndpointConstants.AGENTS,
-                    iconUrl = selectedAgent()?.avatarUrl?.let { resolveAvatarUrl(it, serverUrl) },
-                )
-            }
+        selectedEndpoint == EndpointConstants.AGENTS -> selectedModel?.let {
+            IconSource(
+                endpointName = EndpointConstants.AGENTS,
+                imageUrl = selectedAgent()?.avatarUrl?.let { resolveAvatarUrl(it, serverUrl) },
+            )
+        }
         else -> resolveIconSource(null, selectedEndpoint, serverUrl, endpointConfigs)
     }
-    return LandingHeroIcon(endpointName = icon.endpointName, iconUrl = icon.imageUrl, provider = icon.provider)
 }
+
+/** The new chat's icon: [selectionIcon]; null keeps the app tile. */
+internal fun ChatUiState.landingHeroIcon(): LandingHeroIcon? =
+    selectionIcon()?.let { LandingHeroIcon(endpointName = it.endpointName, iconUrl = it.imageUrl, provider = it.provider) }
 
 /**
  * The name a reply in progress goes by until the server's saved one replaces it: the agent's name

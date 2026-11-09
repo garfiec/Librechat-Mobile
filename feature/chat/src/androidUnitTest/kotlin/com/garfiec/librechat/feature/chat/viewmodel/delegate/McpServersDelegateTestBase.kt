@@ -23,6 +23,9 @@ import kotlinx.coroutines.test.advanceUntilIdle
 abstract class McpServersDelegateTestBase {
 
     protected val mcpRepository = mockk<McpRepository>()
+
+    /** The servers the delegate turned on through the toggle path. */
+    protected val toggled = mutableListOf<String>()
     protected val github = McpServer(name = "github", title = "GitHub")
     protected val servers = listOf(
         McpServer(name = "linear"),
@@ -58,7 +61,7 @@ abstract class McpServersDelegateTestBase {
             stateFlow = MutableStateFlow(initial),
             scope = TestScope(StandardTestDispatcher(testScheduler)),
         )
-        return handle to McpServersDelegate(ModelSelectionHandle(handle), mcpRepository)
+        return handle to McpServersDelegate(ModelSelectionHandle(handle), mcpRepository, toggleMcpServer = { toggled += it })
     }
 
     protected fun ChatStateHandle.statuses() = state.mcpServers.associate { it.name to it.status }

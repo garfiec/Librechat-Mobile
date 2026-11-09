@@ -264,13 +264,14 @@ class IosFileHandler(
     override fun submitPdfPassword(prompt: PdfPasswordPrompt, password: String) {
         if (!pdfPrompts.take(prompt)) return
         val fileData = prompt.file.ref as? IosFileData ?: return
+        val stored = _attachedFiles.value.firstOrNull { it.key == prompt.chipKey }?.route
         _attachedFiles.update { list -> list.filter { it.key != prompt.chipKey } }
         prune()
-        // Routed against the live selection, as the Android handler's password retry is.
+        // Keeps the chip's route while the live selection still offers it, as a retry does.
         upload(
             key = Uuid.random().toString(),
             data = fileData,
-            route = handle.state.uploadRouteFor(fileData.mimeType),
+            route = handle.state.retryUploadRoute(stored, fileData.mimeType),
             pdfPassword = password,
         )
     }

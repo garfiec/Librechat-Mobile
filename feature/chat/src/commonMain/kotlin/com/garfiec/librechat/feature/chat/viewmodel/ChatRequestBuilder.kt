@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.viewmodel
 
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
+import com.garfiec.librechat.core.model.ArtifactsMode
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import kotlinx.serialization.json.JsonObject
@@ -49,13 +50,18 @@ class ChatRequestBuilder(
         val mcpServers = state.effectiveMcpServerNames.toList().ifEmpty { null }
         // Web search rides here only as LibreChat's search; the built-in one is a parameter.
         val webSearchEnabled = state.webSearchRoute == WebSearchRoute.LIBRECHAT
-        val tools = state.selection.effectiveTools - ToolConstants.URL_CONTEXT
+        val inUse = state.selection.effectiveTools
+        val tools = inUse - ToolConstants.URL_CONTEXT - ToolConstants.ARTIFACTS
         val enabledTools = if (webSearchEnabled) tools else tools - ToolConstants.WEB_SEARCH
         // The conversation's own toggle, sent only where it is offered: a model spec that
         // configures skills overrides it server-side, and without the capability or role the
         // server ignores it.
         val skillsOn = state.skillsToggle && state.isSkillsToolAvailable
+        // A spec's mode wins; the toggle only ever sends the default mode.
         val artifacts = state.activeSpec?.artifactsMode
+            ?: ArtifactsMode.DEFAULT.wire.takeIf {
+                ToolConstants.ARTIFACTS in inUse && state.toolGateOpen(ToolConstants.ARTIFACTS)
+            }
 
         val hasAnything = mcpServers != null || enabledTools.isNotEmpty() || skillsOn || artifacts != null
         if (!hasAnything) return null

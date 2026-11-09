@@ -351,9 +351,10 @@ class FileAttachmentDelegate(
 
     fun submitPdfPassword(prompt: PdfPasswordPrompt, password: String) {
         if (!pdfPrompts.take(prompt)) return
+        val stored = _attachedFiles.value.firstOrNull { it.key == prompt.chipKey }?.route
         _attachedFiles.update { currentList -> currentList.filter { it.key != prompt.chipKey } }
-        // Routed against the live selection: the locked attempt never uploaded under its route.
-        uploadFile(prompt.file, handle.state.uploadRouteFor(prompt.file.mimeType), pdfPassword = password)
+        // Keeps the chip's route while the live selection still offers it, as a retry does.
+        uploadFile(prompt.file, handle.state.retryUploadRoute(stored, prompt.file.mimeType), pdfPassword = password)
     }
 
     fun dismissPdfPassword() {

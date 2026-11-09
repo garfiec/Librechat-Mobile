@@ -642,7 +642,7 @@ Never show both at once. While paused, `AskUserQuestionPanel` replaces the compo
 - `enabledTools` and `selectedMcpServerNames` are global. Web search and URL context are
   `ModelParameters` fields: per chat, they last through model changes within it, and every new chat
   starts with both off. The Skills toggle is per conversation (`SkillsToggleDelegate`). The parameters
-  sheet has no Web Search row (`hiddenKeys`).
+  sheet has no Web Search or URL Context row (`hiddenKeys`).
 - **The settings line** (`ComposerSettingsLine`) is view data mapped once: `settingChipsOf`
   (`util/SettingChips.kt`, pure) in the `uiState` combine (`SettingChipsMemo`). Inputs are re-gathered
   only when a slice in `ChatUiState.settingChipSlices` is a new instance, so a new read in
@@ -840,9 +840,9 @@ declares the `<queries>` intents. Google's engines are force-queryable, so a mis
 no-GMS ROMs and a Pixel can't catch it: test with `scripts/verify-speech-services.py`.
 
 ## Upload to Code Environment (legacy upload UX)
-With `fileConfig.legacyFileUploadUX: true` (global or per endpoint, `resolveEndpointFileConfig`), a
-Code attach card (`codeUploadOffered`) sends every pick, of any type and images included, as
-`UploadRoute.CODE` (`tool_resource=execute_code`), with no routing sheet; a retry keeps it. It also
+With `fileConfig.legacyFileUploadUX: true` (global or per endpoint, `resolveEndpointFileConfig`), the
+"+" sheet's "Upload to code environment" row (`codeUploadOffered`) sends every pick, of any type and
+images included, as `UploadRoute.CODE` (`tool_resource=execute_code`), with no routing sheet; a retry keeps it. It also
 needs the `execute_code` capability, RUN_CODE.USE (the server refuses without it), and either
 ephemeral tools or a saved agent whose `tools` include `execute_code`. With ephemeral tools a pick
 also turns the code interpreter on. The routing sheet never offers CODE.

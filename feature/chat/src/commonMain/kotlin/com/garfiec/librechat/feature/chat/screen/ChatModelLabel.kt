@@ -83,6 +83,24 @@ internal fun chatModelLabel(
 }
 
 /**
+ * The "+" sheet's Model cell second line: the model the selection runs (an agent's own model, never
+ * its id), or null when it would only repeat [title].
+ */
+internal fun selectionModelSubtitle(
+    selectedEndpoint: String?,
+    selectedModel: String?,
+    agents: List<Agent>,
+    title: String?,
+): String? {
+    val model = if (selectedEndpoint == EndpointConstants.AGENTS) {
+        agents.find { it.id == selectedModel }?.model
+    } else {
+        selectedModel
+    }
+    return model?.takeIf { it.isNotBlank() && it != title }
+}
+
+/**
  * A Compare lane's label: [chatModelLabel]'s (the [spec]'s label when the lane is a spec), or
  * "Select model" for a lane with no model. Every Compare surface (composer, panes, tabs, selectors,
  * options sheet) names a lane through this, so the same lane never reads two ways.

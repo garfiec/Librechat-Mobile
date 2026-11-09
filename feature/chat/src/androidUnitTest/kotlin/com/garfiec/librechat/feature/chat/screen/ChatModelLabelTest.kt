@@ -153,4 +153,20 @@ class ChatModelLabelTest {
         assertThat(result.agentName).isNull()
         assertThat(result.displayModel).isEqualTo(fallback)
     }
+
+    @Test
+    fun modelSubtitleNamesASpecsModelButNotARawModelTwice() {
+        assertThat(selectionModelSubtitle("openAI", "gpt-5.1", emptyList(), title = "Research Assistant"))
+            .isEqualTo("gpt-5.1")
+        assertThat(selectionModelSubtitle("openAI", "gpt-5.1", emptyList(), title = "gpt-5.1")).isNull()
+        assertThat(selectionModelSubtitle("openAI", null, emptyList(), title = null)).isNull()
+    }
+
+    @Test
+    fun modelSubtitleForAnAgentIsItsModelNeverItsId() {
+        val agents = listOf(Agent(id = "agent_1", name = "Trip planner", model = "claude-opus-4-5"))
+        assertThat(selectionModelSubtitle(EndpointConstants.AGENTS, "agent_1", agents, title = "Trip planner"))
+            .isEqualTo("claude-opus-4-5")
+        assertThat(selectionModelSubtitle(EndpointConstants.AGENTS, "agent_2", agents, title = "Agent")).isNull()
+    }
 }

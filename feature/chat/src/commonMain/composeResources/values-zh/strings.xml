@@ -233,25 +233,18 @@
     <string name="tool_server_files">服务器</string>
     <string name="tool_model">模型</string>
     <string name="tool_model_parameters">模型参数</string>
-    <string name="tool_model_parameters_desc">调整温度、token 等参数</string>
+    <string name="params_title_lane_a">参数 · 模型 A</string>
     <string name="param_set_by_spec">此模型的设置由服务器决定，无法在此更改。</string>
     <string name="tool_set_by_spec">服务器已为此模型开启</string>
     <string name="tool_web_search">网络搜索</string>
-    <string name="tool_web_search_desc">在网络上搜索信息</string>
     <string name="web_search_librechat">LibreChat 搜索</string>
     <string name="web_search_checking">正在检查 LibreChat 搜索…</string>
     <string name="web_search_built_in">%1$s 内置搜索</string>
     <string name="web_search_built_in_plain">内置搜索</string>
-    <string name="web_search_set_by_spec">%1$s,服务器已为此模型开启</string>
     <string name="web_searched">已搜索网络</string>
     <string name="tool_url_context">URL 上下文</string>
-    <string name="tool_url_context_desc">让模型读取你引用的 URL 和 YouTube 视频</string>
     <string name="tool_code">代码</string>
-    <string name="tool_code_desc">运行和分析代码</string>
     <string name="tool_file_search">文件搜索</string>
-    <string name="tool_file_search_desc">在已上传的文件中搜索</string>
-    <string name="tool_mcp">MCP</string>
-    <string name="tool_mcp_desc">Model Context Protocol 服务器</string>
     <string name="cd_quoted_excerpt">引用的摘录</string>
     <string name="selection_add_to_chat">添加到对话</string>
 
@@ -260,6 +253,8 @@
     <string name="upload_routing_sheet_title_single">此文件要如何发送？</string>
     <string name="upload_routing_option_provider">直接交给模型</string>
     <string name="upload_routing_option_text">作为文本</string>
+    <string name="upload_route_file_search">需要时检索</string>
+    <string name="upload_route_file_search_why">长文档会被编入索引，模型按需查找所需部分。</string>
     <string name="upload_routing_why_provider">由模型直接读取文件。</string>
     <string name="upload_routing_why_text">由服务器读取文件并发送其文本。</string>
     <string name="upload_routing_why_provider_only">此模型只能直接接收此文件。</string>
@@ -630,9 +625,8 @@
     <string name="cd_expand_ask_user_question">展开问题详情</string>
     <string name="cd_collapse_ask_user_question">收起问题详情</string>
     <string name="tool_memory">记忆</string>
-    <string name="tool_memory_desc">让助手记住此对话中的细节</string>
     <string name="tool_skills">技能</string>
-    <string name="tool_skills_desc">允许助手在此对话中使用你的技能</string>
+    <string name="tool_artifacts">Artifacts</string>
     <string name="picker_type_prompt">提示词</string>
     <string name="picker_type_skill">技能</string>
     <string name="picker_no_matches">没有匹配项</string>
@@ -1138,7 +1132,6 @@
     <plurals name="ptc_trace_earlier">
         <item quantity="other">另有 %1$d 个更早的调用</item>
     </plurals>
-    <string name="tool_code_environment">代码</string>
     <string name="cd_upload_route_code">已上传到代码环境</string>
     <string name="run_code">运行</string>
     <string name="run_code_running">运行中</string>
@@ -1178,5 +1171,21 @@
     </plurals>
     <plurals name="draft_uploads_failed">
         <item quantity="other">%1$d 个文件未能上传。点按以重试，或将其移除。</item>
+    </plurals>
+    <string name="attach_code_environment">上传到代码环境</string>
+    <string name="mcp_servers_title">MCP 服务器</string>
+    <string name="tools_from_agent_title">此智能体自行选择工具</string>
+    <string name="tools_from_agent_body">网页搜索、代码和 MCP 服务器取决于智能体的设置。</string>
+    <string name="tools_from_spec">此模型的工具由服务器设置。</string>
+    <string name="tool_state_on">开</string>
+    <string name="tool_state_off">关</string>
+    <plurals name="section_tools">
+        <item quantity="other">工具 · 已开启 %1$d 个</item>
+    </plurals>
+    <plurals name="mcp_servers_on">
+        <item quantity="other">已开启 %1$d / %2$d</item>
+    </plurals>
+    <plurals name="mcp_needs_sign_in">
+        <item quantity="other">%1$d 个需要登录</item>
     </plurals>
 </resources>

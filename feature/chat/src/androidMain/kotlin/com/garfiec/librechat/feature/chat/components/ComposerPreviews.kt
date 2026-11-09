@@ -10,7 +10,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
 import com.garfiec.librechat.core.model.ui.UiStyle
@@ -87,14 +86,6 @@ private fun ContextMenuItemPreview() = ComposerSurface(UiStyle.MATERIAL) {
         ContextUsageMenuItem(details = gaugeWithNudge, onClick = {})
     }
 }
-
-@PreviewNarrowScreens
-@Composable
-private fun ToolsSheetMaterialPreview() = ComposerSurface(UiStyle.MATERIAL) { ToolsSheetHost() }
-
-@PreviewNarrowScreens
-@Composable
-private fun ToolsSheetGlassPreview() = ComposerSurface(UiStyle.LIQUID_GLASS) { ToolsSheetHost() }
 
 @Composable
 private fun ComposerSurface(style: UiStyle, content: @Composable () -> Unit) {
@@ -187,35 +178,8 @@ private fun ContextRingComposerHost() {
     )
 }
 
-@Composable
-private fun ToolsSheetHost() {
-    var expanded by remember { mutableStateOf(false) }
-    ChatToolsSheetContent(
-        // Skills on, so the per-conversation row renders in its checked state.
-        enabledTools = setOf(ToolConstants.SKILLS),
-        onToggleTool = {},
-        mcpServers = emptyList(),
-        selectedMcpServerNames = emptySet(),
-        onToggleMcpServer = {},
-        onAttachFiles = {},
-        onTakePhoto = {},
-        onPickPhotos = {},
-        onAttachFromServer = {},
-        onOpenModelParameters = {},
-        onOpenModelSelector = {},
-        selectedModelDisplay = "gpt-5.1",
-        onDismiss = {},
-        openTools = setOf(ToolConstants.WEB_SEARCH, ToolConstants.CODE_INTERPRETER, ToolConstants.FILE_SEARCH, ToolConstants.SKILLS),
-        contextGauge = gaugeWithNudge,
-        contextUsageEnabled = true,
-        onCompact = {},
-        contextGaugeExpanded = expanded,
-        onContextGaugeExpandedChange = { expanded = it },
-    )
-}
-
 /** 82% of a 128k window, with a compact suggestion due. */
-private val gaugeWithNudge = ContextGaugeDetails(
+internal val gaugeWithNudge = ContextGaugeDetails(
     model = ContextBreakdownModel(
         usage = ContextUsage(
             breakdown = TokenBudgetBreakdown(

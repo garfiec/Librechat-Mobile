@@ -22,6 +22,13 @@ enum class UploadRoute {
      * [resolveUploadRoute] and never offered by the per-file routing sheet.
      */
     CODE,
+
+    /**
+     * `tool_resource=file_search` — the server embeds the file for retrieval, and the turn reads it
+     * through the File Search tool. Only ever the user's pick in the per-file routing sheet; never
+     * chosen by [resolveUploadRoute] (web offers it as an opt-in too).
+     */
+    FILE_SEARCH,
 }
 
 /**
@@ -32,6 +39,7 @@ fun UploadRoute.toolResource(): String? = when (this) {
     UploadRoute.PROVIDER -> null
     UploadRoute.TEXT -> "context"
     UploadRoute.CODE -> "execute_code"
+    UploadRoute.FILE_SEARCH -> "file_search"
 }
 
 /**
