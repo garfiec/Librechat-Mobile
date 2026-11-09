@@ -47,7 +47,7 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * The composer's combined `/` + `$` picker on the skill side: the lazy catalog load, what a skill
+ * The composer's `/` and `$` picker on the skill side: the lazy catalog load, what a skill
  * pick does to the composer, and a streamed turn whose final message gains its skill cards at the
  * front. Driven through the real ViewModel.
  */
@@ -134,6 +134,18 @@ class ChatViewModelSkillPickerTest {
         // The override turns id-off off; the shared skill is off by default; the page-2 skill
         // is the user's own and on.
         assertThat(vm.uiState.value.pickerSkills.map { it.name }).containsExactly("pdf-tools", "brand-voice").inOrder()
+    }
+
+    @Test
+    fun `the prompt scope loads no skills, the skill scope does`() = pickerTest { vm ->
+        vm.onInputChanged("/prompt ")
+        vm.onInputChanged("/prompt summ arize")
+        runCurrent()
+        coVerify(exactly = 0) { fixture.skillsRepository.listSkills(any(), any(), any(), any()) }
+
+        vm.onInputChanged("/skill ")
+        runCurrent()
+        coVerify(exactly = 1) { fixture.skillsRepository.listSkills(any(), any(), any(), null) }
     }
 
     @Test
@@ -455,8 +467,19 @@ class ChatViewModelSkillPickerTest {
     }
 
     @Test
-    fun `a prompt pick from either trigger does what slash always did`() = pickerTest { vm ->
-        vm.onInputChanged("\$fir")
+    fun `a skill pick from the skill scope clears the command and its spaced query`() = pickerTest { vm ->
+        vm.onInputChanged("/skill pdf to")
+        runCurrent()
+        vm.selectPickerItem(ComposerPickerItem.Skill(PickerSkill(name = "pdf-tools", title = "PDF tools", description = null)))
+        runCurrent()
+
+        assertThat(vm.uiState.value.inputText).isEmpty()
+        assertThat(vm.uiState.value.pendingManualSkills).containsExactly("pdf-tools")
+    }
+
+    @Test
+    fun `a prompt pick from the prompt scope does what slash always did`() = pickerTest { vm ->
+        vm.onInputChanged("/prompt fir")
         runCurrent()
         vm.selectPickerItem(ComposerPickerItem.Prompt(vm.uiState.value.availablePrompts.single()))
         runCurrent()

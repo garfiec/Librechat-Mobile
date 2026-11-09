@@ -74,6 +74,7 @@ import com.garfiec.librechat.feature.chat.components.CodeRunHost
 import com.garfiec.librechat.feature.chat.components.ParsedMarkdownCache
 import com.garfiec.librechat.feature.chat.components.PausePanelAutoAdvance
 import com.garfiec.librechat.feature.chat.components.parsePickerQuery
+import com.garfiec.librechat.feature.chat.components.pickerListsSkills
 import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
@@ -1261,11 +1262,11 @@ class ChatViewModel(
 
     fun onInputChanged(text: String) {
         val canPickSkills = _uiState.value.canPickSkills
-        val pickerWasOpen = parsePickerQuery(_uiState.value.inputText, canPickSkills) != null
+        val wasListingSkills = pickerListsSkills(_uiState.value.inputText, canPickSkills)
         _uiState.update { it.copy(composer = it.composer.copy(inputText = text)) }
         // Opening the picker starts the load (loadSkillCatalogWhenPickerOpens); typing on in an
         // open one only picks up a catalog gone stale, never retries a failed load.
-        if (pickerWasOpen && canPickSkills && parsePickerQuery(text, canPickSkills) != null) {
+        if (wasListingSkills && pickerListsSkills(text, canPickSkills)) {
             skillPickerDelegate.ensureLoaded(newTrigger = false)
         }
         persistComposerDraft(text)
@@ -1288,18 +1289,18 @@ class ChatViewModel(
     }
 
     /**
-     * Starts the skill catalog load whenever the picker is on screen where a skill could be
-     * picked: a leading `/` or `$` and [ChatUiState.canPickSkills]. Driven by the state rather
-     * than by a keystroke, so the picker also loads when its text arrives another way (a restored
-     * draft, a failed send's text put back) or when the gate opens under a trigger already typed
-     * (the role or config arriving late, a switch away from an assistants endpoint).
+     * Starts the skill catalog load whenever a picker listing skills is on screen where a skill
+     * could be picked: a leading `/`, `/skill ` or `$` and [ChatUiState.canPickSkills]. Driven by
+     * the state rather than by a keystroke, so the picker also loads when its text arrives another
+     * way (a restored draft, a failed send's text put back) or when the gate opens under a trigger
+     * already typed (the role or config arriving late, a switch away from an assistants endpoint).
      */
     private fun loadSkillCatalogWhenPickerOpens() {
         viewModelScope.launch {
             _uiState
                 // Only the slices the gate reads, so a streaming flush costs a few reference compares.
                 .distinctUntilChangedBy { Triple(it.composer.inputText, it.gates, it.selection) }
-                .map { it.canPickSkills && parsePickerQuery(it.inputText, canPickSkills = true) != null }
+                .map { pickerListsSkills(it.inputText, it.canPickSkills) }
                 .distinctUntilChanged()
                 .collect { open -> if (open) skillPickerDelegate.ensureLoaded(newTrigger = true) }
         }
@@ -1673,7 +1674,7 @@ class ChatViewModel(
         keyStatusDelegate.resettle()
         // Skills may have changed on the Skills screen while this chat was behind it.
         val state = _uiState.value
-        skillPickerDelegate.refreshOnReturn(pickerOpen = parsePickerQuery(state.inputText, state.canPickSkills) != null)
+        skillPickerDelegate.refreshOnReturn(pickerOpen = pickerListsSkills(state.inputText, state.canPickSkills))
         // A chip's tap acts on its server's status, which may have changed elsewhere meanwhile (the
         // MCP servers page, another chat's tool call, a browser sign-in finished there).
         mcpServersDelegate.onForeground(signInEnding = mcpSignInEnding)
@@ -2091,10 +2092,10 @@ class ChatViewModel(
     fun handleSlashCommand(displayData: PromptMentionDisplayData) = presetPromptDelegate.handleSlashCommand(displayData)
 
     /**
-     * A row picked from the composer's `/` and `$` list. A prompt runs as a slash command. A
-     * skill becomes a pending chip (which also turns the conversation's Skills on) and the
-     * `/query` or `$query` the composer holds is cleared — the list only opens when the trigger
-     * leads the input, so the whole text is the query.
+     * A row picked from the composer's picker. A prompt runs as a slash command. A skill becomes a
+     * pending chip (which also turns the conversation's Skills on) and the command and query the
+     * composer holds are cleared: the list only opens when its trigger leads the input, so the whole
+     * text is the command.
      */
     fun selectPickerItem(item: ComposerPickerItem) {
         when (item) {

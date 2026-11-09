@@ -650,6 +650,12 @@
     <string name="picker_no_matches">Нет совпадений</string>
     <string name="picker_loading_skills">Загрузка навыков…</string>
     <string name="picker_skills_failed">Не удалось загрузить навыки</string>
+    <string name="picker_scope_prompts">Поиск промптов</string>
+    <string name="picker_scope_skills">Поиск навыков</string>
+    <string name="picker_chip_prompts">Промпты</string>
+    <string name="picker_chip_skills">Навыки</string>
+    <string name="picker_skills_unavailable">В этом чате навыки недоступны</string>
+    <string name="cd_picker_leave_scope">Показать промпты и навыки</string>
     <string name="cd_remove_skill">Убрать навык %1$s</string>
     <string name="cd_skill_always_applied">Всегда применяемый навык: %1$s</string>
     <string name="cd_skill_used">Использован навык: %1$s</string>

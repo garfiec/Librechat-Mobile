@@ -632,6 +632,12 @@
     <string name="picker_no_matches">没有匹配项</string>
     <string name="picker_loading_skills">正在加载技能…</string>
     <string name="picker_skills_failed">无法加载技能</string>
+    <string name="picker_scope_prompts">正在搜索提示词</string>
+    <string name="picker_scope_skills">正在搜索技能</string>
+    <string name="picker_chip_prompts">提示词</string>
+    <string name="picker_chip_skills">技能</string>
+    <string name="picker_skills_unavailable">此聊天中无法使用技能</string>
+    <string name="cd_picker_leave_scope">显示提示词和技能</string>
     <string name="cd_remove_skill">移除技能 %1$s</string>
     <string name="cd_skill_always_applied">始终应用的技能：%1$s</string>
     <string name="cd_skill_used">已使用的技能：%1$s</string>

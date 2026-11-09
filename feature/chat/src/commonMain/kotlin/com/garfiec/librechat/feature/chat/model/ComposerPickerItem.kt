@@ -3,7 +3,7 @@ package com.garfiec.librechat.feature.chat.model
 import androidx.compose.runtime.Immutable
 
 /**
- * A skill as a row of the composer's `/` and `$` picker.
+ * A skill as a row of the composer's picker.
  *
  * [name] is what a pick stages and what the turn sends (`manualSkills` carries names, not ids);
  * [title] is what the row shows (`displayTitle ?: name`).
@@ -16,10 +16,10 @@ data class PickerSkill(
 )
 
 /**
- * One row of the combined picker. Prompts and skills share the list; every row says which it is.
+ * One row of the composer's picker.
  *
- * The list is a Switchboard extra: web keeps `/` (prompts) and `$` (skills) apart. Here either
- * trigger opens one list holding both, the trigger's own type first.
+ * Web keeps `/` (prompts) and `$` (skills) apart. Here `/` lists both, each row saying which it is;
+ * `/prompt `, `/skill ` and `$` list one type.
  */
 @Immutable
 sealed interface ComposerPickerItem {

@@ -662,6 +662,12 @@
     <string name="picker_no_matches">لا توجد نتائج مطابقة</string>
     <string name="picker_loading_skills">جارٍ تحميل المهارات…</string>
     <string name="picker_skills_failed">تعذّر تحميل المهارات</string>
+    <string name="picker_scope_prompts">البحث في المطالبات</string>
+    <string name="picker_scope_skills">البحث في المهارات</string>
+    <string name="picker_chip_prompts">المطالبات</string>
+    <string name="picker_chip_skills">المهارات</string>
+    <string name="picker_skills_unavailable">المهارات غير متاحة في هذه المحادثة</string>
+    <string name="cd_picker_leave_scope">عرض المطالبات والمهارات</string>
     <string name="cd_remove_skill">إزالة المهارة %1$s</string>
     <string name="cd_skill_always_applied">مهارة مطبّقة دائمًا: %1$s</string>
     <string name="cd_skill_used">المهارة المستخدمة: %1$s</string>

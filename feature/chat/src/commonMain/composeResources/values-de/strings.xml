@@ -638,6 +638,12 @@
     <string name="picker_no_matches">Keine Treffer</string>
     <string name="picker_loading_skills">Skills werden geladen…</string>
     <string name="picker_skills_failed">Skills konnten nicht geladen werden</string>
+    <string name="picker_scope_prompts">Prompts durchsuchen</string>
+    <string name="picker_scope_skills">Skills durchsuchen</string>
+    <string name="picker_chip_prompts">Prompts</string>
+    <string name="picker_chip_skills">Skills</string>
+    <string name="picker_skills_unavailable">In diesem Chat sind keine Skills verfügbar</string>
+    <string name="cd_picker_leave_scope">Prompts und Skills anzeigen</string>
     <string name="cd_remove_skill">Skill %1$s entfernen</string>
     <string name="cd_skill_always_applied">Immer angewendeter Skill: %1$s</string>
     <string name="cd_skill_used">Verwendeter Skill: %1$s</string>
