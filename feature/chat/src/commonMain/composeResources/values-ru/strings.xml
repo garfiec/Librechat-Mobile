@@ -655,7 +655,11 @@
     <string name="picker_chip_prompts">Промпты</string>
     <string name="picker_chip_skills">Навыки</string>
     <string name="picker_skills_unavailable">В этом чате навыки недоступны</string>
-    <string name="cd_picker_leave_scope">Показать промпты и навыки</string>
+    <string name="picker_type_mcp">MCP</string>
+    <string name="picker_scope_mcp">Поиск MCP-серверов</string>
+    <string name="picker_chip_mcp">MCP</string>
+    <string name="picker_mcp_unavailable">В этом чате MCP-серверы недоступны</string>
+    <string name="cd_picker_leave_scope">Показать промпты, навыки и MCP-серверы</string>
     <string name="cd_remove_skill">Убрать навык %1$s</string>
     <string name="cd_skill_always_applied">Всегда применяемый навык: %1$s</string>
     <string name="cd_skill_used">Использован навык: %1$s</string>

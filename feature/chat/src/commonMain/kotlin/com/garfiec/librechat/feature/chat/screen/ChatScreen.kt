@@ -86,6 +86,9 @@ import com.garfiec.librechat.feature.chat.components.veil.VeilReaction
 import com.garfiec.librechat.feature.chat.components.veil.rememberModeVeilModifier
 import com.garfiec.librechat.feature.chat.components.veil.rememberModeVeilState
 import com.garfiec.librechat.feature.chat.components.veil.rememberVeilTarget
+import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
+import com.garfiec.librechat.feature.chat.model.McpPick
+import com.garfiec.librechat.feature.chat.model.pickerMcpServersOf
 import com.garfiec.librechat.feature.chat.prompts.components.VariableInputDialog
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.mcp_cancel_sign_in_failed
@@ -582,6 +585,21 @@ fun ChatScreen(
                             }
                         }
                     }
+                    val pickerMcpServers = remember(
+                        uiState.mcpServers,
+                        uiState.effectiveMcpServerNames,
+                        uiState.lockedMcpServers,
+                        uiState.toolbarShown,
+                        uiState.mcpServersEnabled,
+                    ) {
+                        pickerMcpServersOf(
+                            servers = uiState.mcpServers,
+                            on = uiState.effectiveMcpServerNames,
+                            locked = uiState.lockedMcpServers,
+                            toolbarShown = uiState.toolbarShown,
+                            mcpAllowed = uiState.mcpServersEnabled,
+                        )
+                    }
                     val composerChrome = ComposerChrome(
                         pendingSteers = uiState.pendingSteers,
                         onCancelSteer = viewModel::cancelSteer,
@@ -599,6 +617,7 @@ fun ChatScreen(
                         selectedMcpServerNames = uiState.effectiveMcpServerNames,
                         settingChips = uiState.settingChips,
                         onSettingChipTap = onSettingChipTap,
+                        pickerMcpServers = pickerMcpServers,
                         onCancelMcpSignIn = cancelMcpSignIn,
                         onStartMcpSignInOver = startMcpSignIn,
                         contextGauge = uiState.contextGaugeDetails,
@@ -776,7 +795,17 @@ fun ChatScreen(
                                             skillsLoadFailed = uiState.skillsLoadFailed && uiState.canPickSkills,
                                             canPickSkills = uiState.canPickSkills,
                                             onRetrySkills = viewModel::retrySkillCatalog,
-                                            onPickerSelect = viewModel::selectPickerItem,
+                                            onPickerSelect = { item ->
+                                                viewModel.selectPickerItem(item)
+                                                // As the + sheet's MCP row: a sign-in turns the server on once connected.
+                                                if (item is ComposerPickerItem.Mcp) {
+                                                    when (item.mcp.pick) {
+                                                        McpPick.SIGN_IN -> startSheetMcpSignIn(item.mcp.server.name)
+                                                        McpPick.SET_UP -> mcpVariablesServer = item.mcp.server.name
+                                                        McpPick.TOGGLE, McpPick.NONE -> Unit
+                                                    }
+                                                }
+                                            },
                                             isRecording = uiState.isRecording,
                                             isTranscribing = uiState.isTranscribing,
                                             onStartRecording = onStartRecordingWithPermission,

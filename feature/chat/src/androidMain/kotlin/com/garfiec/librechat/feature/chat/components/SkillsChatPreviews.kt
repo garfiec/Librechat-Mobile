@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
+import com.garfiec.librechat.feature.chat.model.PickerMcpServer
 import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.util.draftItemsOf
@@ -107,6 +108,7 @@ internal fun PickerHost(
     failed: Boolean = false,
     canPickSkills: Boolean = true,
     chips: List<String> = listOf("brand-voice", "quarterly-report-formatting-house-style"),
+    mcp: List<PickerMcpServer> = emptyList(),
 ) {
     ChatInput(
         inputText = text,
@@ -115,7 +117,10 @@ internal fun PickerHost(
         onSend = {},
         onStop = {},
         onOpenTools = {},
-        chrome = ComposerChrome(draftItems = draftItemsOf(emptyList(), chips, emptyList(), serverUrl = "")),
+        chrome = ComposerChrome(
+            draftItems = draftItemsOf(emptyList(), chips, emptyList(), serverUrl = ""),
+            pickerMcpServers = mcp,
+        ),
         promptSuggestions = previewPrompts,
         skillSuggestions = skills,
         isLoadingSkills = loading,

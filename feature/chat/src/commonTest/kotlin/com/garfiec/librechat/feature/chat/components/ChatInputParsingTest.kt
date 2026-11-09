@@ -1,6 +1,9 @@
 package com.garfiec.librechat.feature.chat.components
 
+import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
 import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
+import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
+import com.garfiec.librechat.feature.chat.model.PickerMcpServer
 import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import kotlin.test.Test
@@ -313,6 +316,7 @@ class ChatInputParsingTest {
         assertEquals(true, pickerListsSkills("/skill ", canPickSkills = true))
         assertEquals(true, pickerListsSkills("\$", canPickSkills = true))
         assertEquals(false, pickerListsSkills("/prompt ", canPickSkills = true))
+        assertEquals(false, pickerListsSkills("/mcp ", canPickSkills = true))
         assertEquals(false, pickerListsSkills("/skill ", canPickSkills = false))
         assertEquals(false, pickerListsSkills("hello", canPickSkills = true))
     }
@@ -324,5 +328,47 @@ class ChatInputParsingTest {
             listOf("prompt:1"),
             buildPickerRows(PickerQuery(PickerScope.PROMPTS, "code review "), groups, emptyList()).keys(),
         )
+    }
+
+    // ── MCP servers: `/mcp ` ─────────────────────────────────────────────
+
+    private fun server(name: String, title: String? = null, description: String? = null) = PickerMcpServer(
+        server = McpServerDisplayData(name, title, description, McpDisplayStatus.CONNECTED),
+        on = false,
+        locked = false,
+    )
+
+    @Test
+    fun theMcpCommandListsServersAndIsDrawnAsAToken() {
+        assertEquals(PickerQuery(PickerScope.MCP, "git hub", commandLength = 4), parsePickerQuery("/MCP git hub"))
+        assertEquals(PickerScope.MCP, parsePickerQuery("/mcp ", canPickSkills = false)?.scope)
+        assertEquals(0 until 4, pickerCommandRange("/mcp gi", canPickSkills = false))
+        assertNull(parsePickerQuery("/mcps "))
+    }
+
+    @Test
+    fun serversCloseTheMixedListAfterPromptsAndSkills() {
+        val rows = buildPickerRows(
+            PickerQuery(scope = null, query = "git"),
+            prompts = listOf(group("p1", "Git commit message")),
+            skills = listOf(skill("git-flow")),
+            mcpServers = listOf(server("github", title = "GitHub"), server("linear")),
+        )
+        assertEquals(listOf("prompt:p1", "skill:git-flow", "mcp:github"), rows.keys())
+    }
+
+    @Test
+    fun theMcpScopeMatchesTitleDescriptionAndNameAndListsNothingElse() {
+        val servers = listOf(
+            server("gh", title = "GitHub"),
+            server("tracker", title = "Linear", description = "issues and projects"),
+            server("files-srv"),
+        )
+        fun keys(query: String) =
+            buildPickerRows(PickerQuery(PickerScope.MCP, query), listOf(group("p", "GitHub prompt")), emptyList(), servers).keys()
+        assertEquals(listOf("mcp:gh"), keys("github"))
+        assertEquals(listOf("mcp:tracker"), keys("issues "))
+        assertEquals(listOf("mcp:files-srv"), keys("files"))
+        assertEquals(3, keys("").size)
     }
 }

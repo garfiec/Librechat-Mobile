@@ -637,7 +637,11 @@
     <string name="picker_chip_prompts">프롬프트</string>
     <string name="picker_chip_skills">스킬</string>
     <string name="picker_skills_unavailable">이 채팅에서는 스킬을 사용할 수 없습니다</string>
-    <string name="cd_picker_leave_scope">프롬프트와 스킬 보기</string>
+    <string name="picker_type_mcp">MCP</string>
+    <string name="picker_scope_mcp">MCP 서버 검색 중</string>
+    <string name="picker_chip_mcp">MCP</string>
+    <string name="picker_mcp_unavailable">이 채팅에서는 MCP 서버를 사용할 수 없습니다</string>
+    <string name="cd_picker_leave_scope">프롬프트, 스킬, MCP 서버 보기</string>
     <string name="cd_remove_skill">스킬 %1$s 제거</string>
     <string name="cd_skill_always_applied">항상 적용되는 스킬: %1$s</string>
     <string name="cd_skill_used">사용한 스킬: %1$s</string>
