@@ -289,7 +289,7 @@ private fun ThreadBubble(
         Column(
             modifier = Modifier
                 .padding(start = contentPad)
-                .then(sendFlightBubble(message.messageId, isUser, hasBubble = bubbleBg != null))
+                .then(sendFlightBubble(message.messageId, isUser))
                 .then(
                     if (bubbleBg != null) Modifier.background(bubbleBg, BubbleShape).padding(12.dp) else Modifier,
                 ),
@@ -402,7 +402,7 @@ private fun TwoSidedBubble(
         Column(
             modifier = Modifier
                 .weight(1f)
-                .then(sendFlightBubble(message.messageId, isUser, hasBubble = effectiveBg != null))
+                .then(sendFlightBubble(message.messageId, isUser))
                 .then(
                     if (effectiveBg != null) {
                         Modifier.background(effectiveBg, BubbleShape).padding(12.dp)

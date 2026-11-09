@@ -1,78 +1,58 @@
 package com.garfiec.librechat.feature.chat.components.sendflight
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.onPlaced
-import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.Message
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeMark
 import kotlin.time.TimeSource
 
 /**
- * The chat screen's send animation: the message buds off the composer box, floats into its row, and
- * hands off to the reply's waiting dots. Null outside the chat screen (shared chats); in Compare it
- * is provided but [SendFlightState.enabled] is off.
+ * The chat screen's send animation. The new turn comes in top to bottom, each part sliding up as it
+ * fades in: the user's sender line, their message, the reply's sender line, then the reply itself.
+ * Null outside the chat screen (shared chats); in Compare it is provided but
+ * [SendFlightState.enabled] is off.
  */
 internal val LocalSendFlight = staticCompositionLocalOf<SendFlightState?> { null }
 
-/**
- * Where everything a flight touches sits on screen, and the one flight in the air. The places are
- * plain fields read at draw time, so registering them never recomposes anything.
- */
+/** The one send being animated. Its fractions are read at draw time, so nothing recomposes per frame. */
 @Stable
 internal class SendFlightState {
     /** Off under reduced motion and in Compare; set by the screen every composition. */
     var enabled: Boolean = true
 
-    internal var layer: LayoutCoordinates? = null
-    internal var field: LayoutCoordinates? = null
-    internal var box: LayoutCoordinates? = null
-    internal var waitDots: LayoutCoordinates? = null
     private var tailUserId: String? = null
-    private val bubbles = HashMap<String, Pair<LayoutCoordinates, Boolean>>()
-    private val texts = HashMap<String, LayoutCoordinates>()
 
     var flight: Flight? by mutableStateOf(null)
         private set
 
-    val fieldModifier: Modifier = Modifier.onPlaced { field = it }
-    val boxModifier: Modifier = Modifier.onPlaced { box = it }
-    val waitDotsModifier: Modifier = Modifier
-        .onPlaced { waitDots = it }
-        .graphicsLayer { alpha = if (flight?.holdsWaitDots == true) 0f else 1f }
-
-    /** The send button was tapped with [text] in the field: get ready to fly it once its row shows. */
+    /** The send button was tapped with [text] in the field: animate its turn once its row shows. */
     fun capture(text: String) {
         flight = null
-        if (!enabled) return
-        val layer = layer?.takeIf { it.isAttached } ?: return
-        val field = field?.takeIf { it.isAttached } ?: return
-        val box = box?.takeIf { it.isAttached } ?: return
-        start(
-            text = text,
-            fieldRect = layer.localBoundingBoxOf(field, clipBounds = false),
-            boxRect = layer.localBoundingBoxOf(box, clipBounds = false),
-        )
+        if (enabled) start(text)
     }
 
-    internal fun start(text: String, fieldRect: Rect, boxRect: Rect, capturedAt: TimeMark = TimeSource.Monotonic.markNow()) {
-        val words = wordRanges(text)
-        if (words.isEmpty() || words.size > MAX_WORDS) return
-        flight = Flight(text, words, fieldRect, boxRect, knownTailId = tailUserId, capturedAt = capturedAt)
+    internal fun start(text: String, capturedAt: TimeMark = TimeSource.Monotonic.markNow()) {
+        if (text.isBlank()) return
+        flight = Flight(text, knownTailId = tailUserId, capturedAt = capturedAt)
     }
 
     /** The thread's last user message and its slot, seen after every thread composition. */
@@ -86,8 +66,6 @@ internal class SendFlightState {
         if (claimed != null) {
             // The server's copy can replace the optimistic row under a new id in the same slot.
             if (tail != null && slot == f.slot && tail.messageId != claimed && isSentRow(f.text, claimed, tail)) {
-                bubbles.remove(claimed)?.let { bubbles[tail.messageId] = it }
-                texts.remove(claimed)?.let { texts[tail.messageId] = it }
                 f.messageId = tail.messageId
             }
             return
@@ -101,149 +79,146 @@ internal class SendFlightState {
     }
 
     internal fun end(f: Flight) {
-        if (flight !== f) return
-        flight = null
-        bubbles.clear()
-        texts.clear()
+        if (flight === f) flight = null
     }
-
-    /** Hides the flying message's body until the copy lands on it; its sender line has [headerModifier]. */
-    fun bubbleModifier(messageId: String, hasBubble: Boolean): Modifier = Modifier
-        .onPlaced { if (flight != null) bubbles[messageId] = it to hasBubble }
-        .graphicsLayer { alpha = bodyFraction(messageId) }
-
-    /** Brings the flying message's sender line in while it flies, so the copy lands under it. */
-    fun headerModifier(messageId: String): Modifier = Modifier.graphicsLayer {
-        val shown = headerFraction(messageId)
-        alpha = shown
-        translationY = (shown - 1f) * HEADER_DROP.toPx()
-    }
-
-    internal fun bodyFraction(messageId: String): Float {
-        val f = flight
-        return if (f != null && f.messageId == messageId) f.land.value else 1f
-    }
-
-    /** Follows the drop, not a clock of its own, so it is in by [HEADER_IN_BY] of the way whatever the drop's speed. */
-    internal fun headerFraction(messageId: String): Float {
-        val f = flight
-        if (f == null || f.messageId != messageId) return 1f
-        return FastOutSlowInEasing.transform((f.flyY.value / HEADER_IN_BY).coerceIn(0f, 1f))
-    }
-
-    fun textModifier(messageId: String): Modifier = Modifier.onPlaced {
-        if (flight != null) texts[messageId] = it
-    }
-
-    /** While a message flies, the reply behind it shows only its waiting dots. */
-    val holdsReply: Boolean get() = flight != null
 
     /**
-     * Put on the live reply and any row after the sent message: invisible while the message is in
-     * the air, then faded and lifted in as it lands. Alpha only, so the list's layout and the tail
-     * follower see the real size throughout.
+     * While true the live reply shows only its waiting dots and the rest of the reply stays out of
+     * the list, so the turn keeps its height until the reply's own step.
      */
-    val revealModifier: Modifier = Modifier.graphicsLayer {
-        val reveal = revealFraction()
-        alpha = reveal
-        translationY = (1f - reveal) * REPLY_RISE.toPx()
+    val holdsReply: Boolean get() = flight?.replyBodyShown == false
+
+    internal fun nameFraction(messageId: String): Float = sentPart(messageId) { it.name }
+
+    internal fun messageFraction(messageId: String): Float = sentPart(messageId) { it.message }
+
+    internal fun replyHeaderFraction(): Float = replyPart { it.replyHeader }
+
+    internal fun replyBodyFraction(): Float = replyPart { it.replyBody }
+
+    private inline fun sentPart(messageId: String, part: (Flight) -> Animatable<Float, *>): Float {
+        val f = flight
+        return if (f != null && f.messageId == messageId) part(f).value else 1f
     }
 
-    internal fun revealFraction(): Float {
-        val f = flight ?: return 1f
-        if (f.messageId == null) return 1f
-        return if (f.replyShown) f.reveal.value.coerceIn(0f, 1f) else 0f
-    }
+    // Hidden from the tap until the row is claimed, so the reply never shows ahead of the message.
+    private inline fun replyPart(part: (Flight) -> Animatable<Float, *>): Float = flight?.let(part)?.value ?: 1f
 
-    /** How far the box's top edge is pulled up, read where the box draws. */
-    fun recoilPx(): Float = flight?.let { if (it.snapped) it.recoil.value else it.recoilPx } ?: 0f
+    fun nameModifier(messageId: String): Modifier = Modifier.entering(NAME_RISE) { nameFraction(messageId) }
 
-    internal fun rectOf(coordinates: LayoutCoordinates?): Rect? {
-        val layer = layer?.takeIf { it.isAttached } ?: return null
-        val target = coordinates?.takeIf { it.isAttached } ?: return null
-        return layer.localBoundingBoxOf(target, clipBounds = false)
-    }
+    fun messageModifier(messageId: String): Modifier = Modifier.entering(MESSAGE_RISE) { messageFraction(messageId) }
 
-    internal fun targetOf(f: Flight): Target? {
-        val id = f.messageId ?: return null
-        val text = rectOf(texts[id]) ?: return null
-        val (bubbleCoordinates, hasBubble) = bubbles[id] ?: return Target(text, text, hasBubble = false)
-        val bubble = rectOf(bubbleCoordinates) ?: return null
-        return Target(bubble, text, hasBubble)
-    }
+    /** The reply's sender line (avatar and name), and any row after the sent message. */
+    val replyHeaderModifier: Modifier = Modifier.entering(REPLY_RISE) { replyHeaderFraction() }
 
-    internal class Target(val bubble: Rect, val text: Rect, val hasBubble: Boolean)
+    val replyBodyModifier: Modifier = Modifier.entering(REPLY_RISE) { replyBodyFraction() }
 
     companion object {
-        /** A row that shows later than this after the tap lands without flying (a held send). */
+        /** A row that shows later than this after the tap appears without the animation (a held send). */
         val CLAIM_WINDOW = 600.milliseconds
 
-        /** Past this the words would cost more to draw than the flight is worth. */
-        const val MAX_WORDS = 150
-
+        private val NAME_RISE = 12.dp
+        private val MESSAGE_RISE = 24.dp
         private val REPLY_RISE = 16.dp
-        private val HEADER_DROP = 4.dp
-        private const val HEADER_IN_BY = 0.6f
     }
 }
 
-/** One message in the air. The animatables are its timeline; the layouts are measured once claimed. */
+/** Alpha and a rise only: the list's layout and the tail follower see the real sizes throughout. */
+private fun Modifier.entering(rise: Dp, fraction: () -> Float): Modifier = graphicsLayer {
+    val shown = fraction().coerceIn(0f, 1f)
+    alpha = shown
+    translationY = (1f - shown) * rise.toPx()
+}
+
+/** One send being animated. Each part runs 0 → 1 in the order the turn reads. */
 @Stable
 internal class Flight(
     val text: String,
-    val words: List<IntRange>,
-    val fieldRect: Rect,
-    val boxRect: Rect,
     val knownTailId: String?,
     val capturedAt: TimeMark,
 ) {
     var messageId: String? by mutableStateOf(null)
     var slot: String? = null
 
-    /** 0 → 1 while the text rises out of the field and takes the bubble's shape. */
-    val rise = Animatable(0f)
-    val flyX = Animatable(0f)
-    val flyY = Animatable(0f)
-    val wobble = Animatable(0f)
-    val recoil = Animatable(0f)
+    val name = Animatable(0f)
+    val message = Animatable(0f)
+    val replyHeader = Animatable(0f)
+    val replyBody = Animatable(0f)
 
-    /** 0 → 1 as the real message body takes over from the copy. */
-    val land = Animatable(0f)
-    val sheen = Animatable(0f)
-    val dotX = Animatable(0f)
-    val dotY = Animatable(0f)
-    val split = Animatable(0f)
-
-    var snapped by mutableStateOf(false)
-    var replyShown by mutableStateOf(false)
-
-    /** 0 → 1 as the reply's row grows in under the landed message. */
-    val reveal = Animatable(0f)
-    var recoilPx by mutableFloatStateOf(0f)
-    var landed by mutableStateOf(false)
-    var dotStart: Offset? by mutableStateOf(null)
-    var splitting by mutableStateOf(false)
-    var holdsWaitDots by mutableStateOf(true)
-
-    /** State: the layer first draws before the layouts exist, and must draw again once they do. */
-    var start: TextLayoutResult? by mutableStateOf(null)
-    var end: TextLayoutResult? = null
-    var wordLayouts: List<TextLayoutResult> = emptyList()
+    /** State: the thread lets the reply's content in when its step starts. */
+    var replyBodyShown by mutableStateOf(false)
 }
+
+/** Runs the animation of each send; put it once in the screen that provides [LocalSendFlight]. */
+@Composable
+internal fun SendFlightEffect(state: SendFlightState) {
+    val flight = state.flight ?: return
+    LaunchedEffect(flight) {
+        try {
+            withTimeoutOrNull(SendFlightState.CLAIM_WINDOW) {
+                snapshotFlow { flight.messageId }.first { it != null }
+            } ?: return@LaunchedEffect
+            play(flight)
+        } finally {
+            state.end(flight)
+        }
+    }
+}
+
+private suspend fun play(f: Flight) = coroutineScope {
+    launch { f.name.animateTo(1f, step()) }
+    pause(MESSAGE_AT_MS)
+    launch { f.message.animateTo(1f, step()) }
+    pause(REPLY_AT_MS - MESSAGE_AT_MS)
+    launch { f.replyHeader.animateTo(1f, step()) }
+    pause(REPLY_BODY_AT_MS - REPLY_AT_MS)
+    f.replyBodyShown = true
+    f.replyBody.animateTo(1f, step())
+}
+
+private fun step() = tween<Float>(STEP_MS, easing = Emphasized)
+
+/** On the animation clock, not `delay`, so the system's animator scale stretches the waits with the steps. */
+private suspend fun pause(ms: Int) {
+    Animatable(0f).animateTo(1f, tween(ms, easing = LinearEasing))
+}
+
+/** Material 3's emphasized easing. */
+private val Emphasized = CubicBezierEasing(0.2f, 0f, 0f, 1f)
+
+private const val STEP_MS = 500
+private const val MESSAGE_AT_MS = 120
+private const val REPLY_AT_MS = 650
+private const val REPLY_BODY_AT_MS = 850
 
 /**
- * Put on a message's bubble (before its background), so a flight can land on it. While the message
- * flies this hides what it wraps, so a user row keeps everything but its [sendFlightHeader] parts inside it.
+ * Whether [tail], the thread's last user message, is the one a send of [sentText] just added: a user
+ * row that wasn't the tail when the send was captured ([knownTailId]) and carries the same words.
  */
+internal fun isSentRow(sentText: String, knownTailId: String?, tail: Message?): Boolean =
+    tail != null &&
+        tail.isCreatedByUser &&
+        tail.messageId != knownTailId &&
+        tail.text.trim() == sentText.trim()
+
+/** Put on a user message's bubble (everything of the row but its sender line). */
 @Composable
-internal fun sendFlightBubble(messageId: String, isUser: Boolean, hasBubble: Boolean): Modifier {
+internal fun sendFlightBubble(messageId: String, isUser: Boolean): Modifier {
     val flight = LocalSendFlight.current
-    return if (flight != null && isUser) flight.bubbleModifier(messageId, hasBubble) else Modifier
+    return if (flight != null && isUser) flight.messageModifier(messageId) else Modifier
 }
 
-/** Put on a message's sender line (avatar, name, time) outside its bubble, so it arrives before the copy lands. */
+/** Put on a user message's sender line (avatar, name, time) outside its bubble. */
 @Composable
 internal fun sendFlightHeader(messageId: String, isUser: Boolean): Modifier {
     val flight = LocalSendFlight.current
-    return if (flight != null && isUser) flight.headerModifier(messageId) else Modifier
+    return if (flight != null && isUser) flight.nameModifier(messageId) else Modifier
 }
+
+/** Put on the live reply's sender line (avatar and name). */
+@Composable
+internal fun sendFlightReplyHeader(): Modifier = LocalSendFlight.current?.replyHeaderModifier ?: Modifier
+
+/** Put on the live reply's content under its sender line. */
+@Composable
+internal fun sendFlightReplyBody(): Modifier = LocalSendFlight.current?.replyBodyModifier ?: Modifier

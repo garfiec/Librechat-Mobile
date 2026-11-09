@@ -609,12 +609,12 @@ Never show both at once. While paused, `AskUserQuestionPanel` replaces the compo
 - Over the composer's transparent top, Material chip fills are opaque
   (`AdaptiveChipDefaults.overlay*ChipColors`). No composer chip has a caret.
 
-### Send flight (`components/sendflight/`)
-- A flight reads places its modifiers register: the field (`fieldModifier`, both composers), the box,
-  each user bubble (`sendFlightBubble`, before its background) and sender line (`sendFlightHeader`),
-  the user text and the wait dots. A new user-message layout on either platform carries both bubble
-  and header modifiers; without `sendFlightBubble` the real message shows under the copy in flight.
-  A flight that can't place something ends at once, so no row stays hidden.
+### Send animation (`components/sendflight/`)
+- A send's turn comes in through four modifiers, in order: the user's sender line (`sendFlightHeader`)
+  and bubble (`sendFlightBubble`, before its background), then the live reply's sender line
+  (`sendFlightReplyHeader`) and content (`sendFlightReplyBody`). A new user-message or live-reply
+  layout on either platform carries its pair, with everything else inside one of them, or that part
+  appears unanimated.
 
 ### Attachment strip (files, picked skills, quotes)
 - **What goes with the message is one list, `DraftItems`** (pure `draftItemsOf`), drawn as one

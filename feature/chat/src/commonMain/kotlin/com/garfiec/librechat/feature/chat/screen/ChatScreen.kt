@@ -76,7 +76,7 @@ import com.garfiec.librechat.feature.chat.components.rememberDraftAdditions
 import com.garfiec.librechat.feature.chat.components.rememberMcpSignIn
 import com.garfiec.librechat.feature.chat.components.rememberThreadScrollHandle
 import com.garfiec.librechat.feature.chat.components.sendflight.LocalSendFlight
-import com.garfiec.librechat.feature.chat.components.sendflight.SendFlightLayer
+import com.garfiec.librechat.feature.chat.components.sendflight.SendFlightEffect
 import com.garfiec.librechat.feature.chat.components.sendflight.SendFlightState
 import com.garfiec.librechat.feature.chat.components.veil.COMPOSER_SWELL
 import com.garfiec.librechat.feature.chat.components.veil.LocalComposerFlare
@@ -804,7 +804,7 @@ fun ChatScreen(
                         }
                     }
 
-                    SendFlightLayer(sendFlight, fontSizeMultiplier, Modifier.matchParentSize())
+                    SendFlightEffect(sendFlight)
 
                     // Floating top bar overlays the message list (drawn last so it sits above content),
                     // measured so ChatContent can reserve a matching scrollable top inset.

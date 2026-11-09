@@ -61,7 +61,6 @@ import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.theme.isSurfaceDark
 import com.garfiec.librechat.feature.chat.components.mcpapp.McpAppRows
-import com.garfiec.librechat.feature.chat.components.sendflight.LocalSendFlight
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.ContentGroup
@@ -427,10 +426,6 @@ internal fun MessageContentAndActions(
                         enabled = isUser && LocalCollapseLongUserMessages.current && editSession == null,
                         stateKey = message.messageId,
                         fontSizeMultiplier = fontSizeMultiplier,
-                        modifier = LocalSendFlight.current
-                            ?.takeIf { isUser }
-                            ?.textModifier(message.messageId)
-                            ?: Modifier,
                         forceExpanded = isCurrentSearchMatch,
                     ) {
                         val contentParts = message.content

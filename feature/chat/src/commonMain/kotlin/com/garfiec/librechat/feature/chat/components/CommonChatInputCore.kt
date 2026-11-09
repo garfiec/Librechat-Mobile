@@ -68,7 +68,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawOutline
-import androidx.compose.ui.graphics.drawscope.inset
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -89,7 +88,6 @@ import com.garfiec.librechat.core.ui.glass.drawInsetOutlineStroke
 import com.garfiec.librechat.core.ui.glass.glassSurface
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
-import com.garfiec.librechat.feature.chat.components.sendflight.LocalSendFlight
 import com.garfiec.librechat.feature.chat.components.veil.LocalComposerFlare
 import com.garfiec.librechat.feature.chat.components.veil.retonedSurface
 import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
@@ -233,7 +231,6 @@ fun CommonChatInputCore(
     // Liquid Glass drops Material's fade: the glass capsule already separates the composer.
     val glass = rememberGlassStyle()
     val glassBackdrop = LocalGlassBackdrop.current
-    val sendFlight = LocalSendFlight.current
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -303,7 +300,6 @@ fun CommonChatInputCore(
                         .fillMaxWidth()
                         // A parent sees its children's focus: the box's border follows the field's.
                         .onFocusChanged { boxFocused = it.hasFocus }
-                        .then(sendFlight?.boxModifier ?: Modifier)
                         .then(
                             if (glass != null) {
                                 Modifier
@@ -322,18 +318,15 @@ fun CommonChatInputCore(
                                     }
                             } else {
                                 Modifier.drawBehind {
-                                    // A message budding off the box pulls its top edge up with it.
-                                    inset(0f, -(sendFlight?.recoilPx() ?: 0f), 0f, 0f) {
-                                        val amount = temporaryAmount.value
-                                        val outline = ComposerBoxShape.createOutline(size, layoutDirection, this)
-                                        drawOutline(outline, lerp(boxFill, temporaryWash.compositeOver(boxFill), amount))
-                                        val border = if (boxFocused) {
-                                            lerp(boxFocusedBorder, temporaryAccent, amount)
-                                        } else {
-                                            lerp(boxBorder, temporaryBorder.compositeOver(boxFill), amount)
-                                        }
-                                        drawInsetOutlineStroke(ComposerBoxShape, border, 1.dp.toPx())
+                                    val amount = temporaryAmount.value
+                                    val outline = ComposerBoxShape.createOutline(size, layoutDirection, this)
+                                    drawOutline(outline, lerp(boxFill, temporaryWash.compositeOver(boxFill), amount))
+                                    val border = if (boxFocused) {
+                                        lerp(boxFocusedBorder, temporaryAccent, amount)
+                                    } else {
+                                        lerp(boxBorder, temporaryBorder.compositeOver(boxFill), amount)
                                     }
+                                    drawInsetOutlineStroke(ComposerBoxShape, border, 1.dp.toPx())
                                 }
                             },
                         )

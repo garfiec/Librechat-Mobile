@@ -30,7 +30,6 @@ import com.garfiec.librechat.core.ui.components.pressBounce
 import com.garfiec.librechat.core.ui.components.rememberDraftTextField
 import com.garfiec.librechat.core.ui.components.rememberPressBounce
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
-import com.garfiec.librechat.feature.chat.components.sendflight.LocalSendFlight
 import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
 import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
@@ -184,7 +183,6 @@ fun ChatInput(
                     state = field.state,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .then(LocalSendFlight.current?.fieldModifier ?: Modifier)
                         .heightIn(min = 48.dp, max = 160.dp)
                         .focusRequester(focusRequester)
                         .semantics {

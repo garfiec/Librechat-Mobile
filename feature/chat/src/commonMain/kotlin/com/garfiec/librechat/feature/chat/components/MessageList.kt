@@ -695,7 +695,7 @@ fun MessageList(
                         modifier = jumpOutline
                             .jumpFlashBackground(flash, flashColor)
                             .then(
-                                if (sendFlight != null && sentIndex in 0 until index) sendFlight.revealModifier else Modifier,
+                                if (sendFlight != null && sentIndex in 0 until index) sendFlight.replyHeaderModifier else Modifier,
                             ),
                         siblingIndex = node.siblingIndex,
                         siblingCount = node.siblingCount,
@@ -785,7 +785,6 @@ fun MessageList(
                                 streamingContent = streamingContent,
                                 senderName = streamingSenderName,
                                 avatar = streamingAvatar,
-                                modifier = sendFlight?.revealModifier ?: Modifier,
                                 fontSizeMultiplier = fontSizeMultiplier,
                                 chatLayoutStyle = chatLayoutStyle,
                                 showAvatars = showAvatars,
@@ -800,7 +799,7 @@ fun MessageList(
                         }
                     }
 
-                    // Everything else of the live reply shows once a send's flight has ended.
+                    // The live reply's other rows join the list when a send's reply content comes in.
                     if (!holdsReply) {
                         if (renderedToolCalls.isNotEmpty()) {
                             items(
