@@ -24,7 +24,6 @@ import com.garfiec.librechat.feature.chat.components.rememberAttachmentFileActio
 import com.garfiec.librechat.feature.chat.prompts.PromptEditorScreen
 import com.garfiec.librechat.feature.chat.prompts.PromptsLibraryScreen
 import com.garfiec.librechat.feature.chat.screen.ArtifactFullscreenScreen
-import com.garfiec.librechat.feature.chat.screen.ArtifactShortcutViewerScreen
 import com.garfiec.librechat.feature.chat.screen.ChatScreen
 import com.garfiec.librechat.feature.chat.screen.ConversationMediaScreen
 import com.garfiec.librechat.feature.chat.screen.NewChatScreen
@@ -106,13 +105,6 @@ val NewChat.handoffKey: String? get() = chatHandoffKey(conversationId = null, ch
  * (potentially large) content is handed off in-memory via [ArtifactViewerHandoff].
  */
 @Serializable data class ArtifactFullscreen(val identifier: String, val version: Int) : ChatRoute
-
-/**
- * Viewer for a home-screen-pinned artifact, opened by tapping its launcher icon
- * (`librechat://artifact/{snapshotId}`). Unlike [ArtifactFullscreen] it loads a self-contained Room
- * snapshot by [snapshotId], so it survives cold start / process death and works while logged out.
- */
-@Serializable data class ArtifactShortcutViewer(val snapshotId: String) : ChatRoute
 
 /**
  * The in-app viewer for one of the ACTIVE account's shared links, by [shareId]. A link on another
@@ -219,13 +211,6 @@ fun EntryProviderScope<NavKey>.chatEntries(
                 )
             }
         }
-    }
-    entry<ArtifactShortcutViewer> { key ->
-        // No pin provider here: a launcher-opened artifact can't be re-pinned from its own screen.
-        ArtifactShortcutViewerScreen(
-            snapshotId = key.snapshotId,
-            onBack = onBack,
-        )
     }
     entry<PromptsLibrary> {
         // The chat entry is off-composition while the library is up, so the text is staged here and
@@ -343,7 +328,6 @@ val chatSerializersModule = SerializersModule {
         subclass(PromptEditor::class, PromptEditor.serializer())
         subclass(ConversationMedia::class, ConversationMedia.serializer())
         subclass(ArtifactFullscreen::class, ArtifactFullscreen.serializer())
-        subclass(ArtifactShortcutViewer::class, ArtifactShortcutViewer.serializer())
         subclass(SharedChat::class, SharedChat.serializer())
     }
 }

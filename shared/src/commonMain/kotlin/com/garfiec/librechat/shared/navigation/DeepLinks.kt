@@ -2,7 +2,6 @@ package com.garfiec.librechat.shared.navigation
 
 import androidx.navigation3.runtime.NavKey
 import com.garfiec.librechat.core.model.code.CodeSetupAttempt
-import com.garfiec.librechat.feature.chat.navigation.ArtifactShortcutViewer
 import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.settings.navigation.CodeSetup
@@ -20,16 +19,18 @@ data class DeepLinkUri(
 )
 
 /**
- * The outcome of resolving a deep link. A sealed result (not a bare `NavKey?`) so the three
- * genuinely different link kinds are each expressible: navigate, accept-but-don't-navigate, ignore.
+ * The outcome of resolving a deep link. A sealed result (not a bare `NavKey?`) so each link kind is
+ * expressible: navigate, open outside the nav host, accept-but-don't-navigate, ignore.
  */
 sealed interface DeepLinkResolution {
+    /** Navigate to [target]; logged out, the link lands on login instead. */
+    data class Route(val target: NavKey) : DeepLinkResolution
+
     /**
-     * Navigate to [target]. [requiresAuth] links redirect to login when logged out (a conversation
-     * or a model-preselect chat is useless without a session); non-auth links open even logged out
-     * (a device-scoped artifact snapshot renders from local Room).
+     * A home-screen-pinned artifact. It opens in its own task outside the nav host, logged in or
+     * not, since the snapshot renders from local Room.
      */
-    data class Route(val target: NavKey, val requiresAuth: Boolean) : DeepLinkResolution
+    data class ArtifactApp(val snapshotId: String) : DeepLinkResolution
 
     /**
      * Accepted — the app should come to the foreground — but there is nothing to place on the back
@@ -73,24 +74,24 @@ object DeepLinks {
             ?.takeIf { UUID_PATTERN.matches(it) }
             ?.let { id ->
                 val message = uri.query["message"]?.takeIf { UUID_PATTERN.matches(it) }
-                DeepLinkResolution.Route(Chat(id, targetMessageId = message), requiresAuth = true)
+                DeepLinkResolution.Route(Chat(id, targetMessageId = message))
             }
             ?: DeepLinkResolution.None
 
         "artifact" -> uri.pathSegments.firstOrNull()
             ?.takeIf { UUID_PATTERN.matches(it) }
-            ?.let { DeepLinkResolution.Route(ArtifactShortcutViewer(it), requiresAuth = false) }
+            ?.let { DeepLinkResolution.ArtifactApp(it) }
             ?: DeepLinkResolution.None
 
         // Home-screen model shortcut (librechat://model?endpoint=<endpoint>&model=<model>[&spec=<spec>]): the payload
         // rides on the NewChat route so it replaces a bare landing NewChat (dedup-by-value) and re-seeds
-        // even when already on the landing. Auth-required — a model preselect is useless without a session.
+        // even when already on the landing.
         "model" -> {
             val endpoint = uri.query["endpoint"]
             val model = uri.query["model"]
             if (!endpoint.isNullOrBlank() && !model.isNullOrBlank()) {
                 val spec = uri.query["spec"]?.takeIf { it.isNotBlank() }
-                DeepLinkResolution.Route(NewChat(endpoint = endpoint, model = model, spec = spec), requiresAuth = true)
+                DeepLinkResolution.Route(NewChat(endpoint = endpoint, model = model, spec = spec))
             } else {
                 DeepLinkResolution.None
             }
@@ -101,7 +102,7 @@ object DeepLinks {
         // page loads it for the active account, which must be the one that started the setup.
         "code-setup" -> uri.pathSegments.firstOrNull()
             ?.let(CodeSetupAttempt::idFrom)
-            ?.let { DeepLinkResolution.Route(CodeSetup(it), requiresAuth = true) }
+            ?.let { DeepLinkResolution.Route(CodeSetup(it)) }
             ?: DeepLinkResolution.None
 
         // OAuth redirect (librechat://oauth): token comes back via cookie, not the URI — see [Consumed].

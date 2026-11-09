@@ -40,18 +40,11 @@ fun LibreChatNavHost(
     onSharedLinkConsume: () -> Unit = {},
     appLocaleTag: String? = null,
 ) {
-    // Resolve the pending link once (both the auth-suppression flag and the handler below use it).
     val resolution = remember(deepLinkUri) { deepLinkUri?.let { DeepLinks.resolve(it.toDeepLinkUri()) } }
 
     SharedLibreChatNavHost(
         modifier = modifier,
         appLocaleTag = appLocaleTag,
-        // Cold-start deep links are set before setContent, so this is true on the first composition
-        // when a link is pending that is *valid without auth* — the shared host then skips its initial
-        // auth redirect and lets the handler below own the stack (so a logged-out target isn't wiped by
-        // an auth clear). Auth-required and non-routable links must NOT suppress it: the former should
-        // land on login, the latter would strand a logged-out user on an un-authed screen.
-        hasPendingDeepLink = resolution is DeepLinkResolution.Route && !resolution.requiresAuth,
     ) { navigator, navHostViewModel, mod ->
         // Handle deep links
         val currentOnDeepLinkConsume by rememberUpdatedState(onDeepLinkConsume)
@@ -60,14 +53,10 @@ fun LibreChatNavHost(
             when (resolution) {
                 is DeepLinkResolution.Route -> {
                     val target = resolution.target
-                    val loggedIn = navHostViewModel.isLoggedIn.value
                     when {
-                        // Auth-required target while logged out → login. (Resuming to the target
-                        // after login is a follow-up; this at least never lands on a broken screen.)
-                        resolution.requiresAuth && !loggedIn -> navigator.navigateToAuth()
-                        // Open-logged-out target (device-scoped artifact) sits atop an auth base so
-                        // backing out lands on login; rebuilds the stack so repeat taps can't pile up.
-                        !loggedIn -> navigator.navigateToDeepLinkLoggedOut(target)
+                        // Logged out → login. (Resuming to the target after login is a follow-up;
+                        // this at least never lands on a broken screen.)
+                        !navHostViewModel.isLoggedIn.value -> navigator.navigateToAuth()
                         // Switching chats replaces the current chat entry so back returns to NewChat.
                         target is Chat -> target.conversationId?.let { id ->
                             val messageId = target.targetMessageId
@@ -86,7 +75,8 @@ fun LibreChatNavHost(
                     }
                 }
                 // OAuth redirect: the login screen consumes the refresh-token cookie; nothing to route.
-                DeepLinkResolution.Consumed, null -> Unit
+                // MainActivity hands artifact links to ArtifactAppActivity; none reaches the nav host.
+                is DeepLinkResolution.ArtifactApp, DeepLinkResolution.Consumed, null -> Unit
                 DeepLinkResolution.None -> Logger.w { "Ignoring non-routable deep link: $uri" }
             }
             currentOnDeepLinkConsume()

@@ -14,7 +14,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -27,20 +26,17 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
-import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -48,18 +44,16 @@ import androidx.lifecycle.repeatOnLifecycle
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.identity.ShareLinkMatcher
 import com.garfiec.librechat.core.common.network.ConnectivityObserver
-import com.garfiec.librechat.core.data.datastore.DateTimePrefsStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
-import com.garfiec.librechat.core.data.datastore.ThemeDataStore
-import com.garfiec.librechat.core.data.datastore.ThemeMode
 import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.model.SHORTCUT_CANDIDATE_FACTOR
 import com.garfiec.librechat.core.model.offeredSpecs
 import com.garfiec.librechat.core.model.reconciledWith
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
-import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import com.garfiec.librechat.feature.chat.ShareIntentConsumer
 import com.garfiec.librechat.feature.chat.SharedContent
+import com.garfiec.librechat.feature.chat.components.artifact.artifactAppIntent
+import com.garfiec.librechat.feature.chat.components.artifact.retargetPinnedArtifactShortcuts
 import com.garfiec.librechat.navigation.LibreChatNavHost
 import com.garfiec.librechat.navigation.toDeepLinkUri
 import com.garfiec.librechat.shared.navigation.AppShortcuts
@@ -74,12 +68,12 @@ import org.koin.android.ext.android.inject
 private const val KEY_PENDING_DEEP_LINK = "pending_deep_link"
 private const val KEY_PENDING_SHARED_LINK = "pending_shared_link"
 
+private enum class IntentOutcome { Handled, ArtifactApp }
+
 class MainActivity : ComponentActivity() {
 
     private val connectivityObserver: ConnectivityObserver by inject()
-    private val themeDataStore: ThemeDataStore by inject()
     private val settingsDataStore: SettingsDataStore by inject()
-    private val dateTimePrefsStore: DateTimePrefsStore by inject()
     private val configRepository: ConfigRepository by inject()
 
     private var deepLinkUri by mutableStateOf<Uri?>(null)
@@ -87,7 +81,6 @@ class MainActivity : ComponentActivity() {
     /** Shared-in text that is exactly one `/share/` link, waiting for the nav host to route it. */
     private var sharedLinkText by mutableStateOf<String?>(null)
 
-    @Suppress("LongMethod") // debt: 101 lines
     @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -100,7 +93,12 @@ class MainActivity : ComponentActivity() {
         // the theme/locale warm-up gate below — it would otherwise be lost, since deepLinkUri isn't saved
         // state and the back stack has nothing to restore yet. A consumed link was already nulled.
         if (savedInstanceState == null) {
-            handleIntent(intent)
+            retargetPinnedArtifactShortcuts(this)
+            // Started only to hand a pinned artifact to its own app: there is no Switchboard to show.
+            if (handleIntent(intent) == IntentOutcome.ArtifactApp) {
+                finishAndRemoveTask()
+                return
+            }
         } else {
             deepLinkUri = savedInstanceState.getString(KEY_PENDING_DEEP_LINK)?.toUri()
             sharedLinkText = savedInstanceState.getString(KEY_PENDING_SHARED_LINK)
@@ -127,102 +125,50 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val isConnected by connectivityObserver.isConnected.collectAsStateWithLifecycle(initialValue = true)
-            // Hold off drawing themed content until the persisted theme has resolved, so a
-            // dark-mode user on a light-system device never sees a one-frame flash of the wrong
-            // theme. The system window background covers the sub-frame gap.
-            val themeReady by themeDataStore.isReady.collectAsStateWithLifecycle()
-            val themeMode by themeDataStore.themeMode.collectAsStateWithLifecycle(initialValue = themeDataStore.initialThemeMode)
-            val accentColorArgb by themeDataStore.accentColor.collectAsStateWithLifecycle(
-                initialValue = themeDataStore.initialAccentColor,
-            )
-            // The server's accent (interface.theme) outranks the user's while "Use server accent" is on;
-            // wallpaper colours outrank both inside LibreChatTheme.
-            val serverAccent by themeDataStore.serverAccent.collectAsStateWithLifecycle(
-                initialValue = themeDataStore.initialServerAccent,
-            )
-            val useDynamicColor by themeDataStore.useDynamicColor.collectAsStateWithLifecycle(
-                initialValue = themeDataStore.initialUseDynamicColor,
-            )
-            val storedUiStyle by themeDataStore.uiStyle.collectAsStateWithLifecycle(
-                initialValue = themeDataStore.initialUiStyle,
-            )
-            // Gate on the language warm-up too so a persisted non-system language is applied
-            // before the first frame (no flash of the system locale before switching).
-            val localeReady by settingsDataStore.isReady.collectAsStateWithLifecycle()
-            val selectedLanguage by settingsDataStore.selectedLanguage.collectAsStateWithLifecycle(
-                initialValue = settingsDataStore.initialSelectedLanguage,
-            )
-            // And on the date/time warm-up, so a non-default format is in place for the first timestamp.
-            val dateTimeReady by dateTimePrefsStore.isReady.collectAsStateWithLifecycle()
-            // The DEFAULT_LANGUAGE sentinel ("system") maps to no override → keep the device locale.
-            val appLocale = selectedLanguage.takeIf { it != SettingsDataStore.DEFAULT_LANGUAGE }
-            val darkTheme = when (themeMode) {
-                ThemeMode.LIGHT -> false
-                ThemeMode.DARK -> true
-                ThemeMode.SYSTEM -> isSystemInDarkTheme()
-            }
-
-            // Update system bar icon colors to match the app's resolved theme.
-            // When light theme: dark icons on light background (isAppearanceLight = true).
-            // When dark theme: light icons on dark background (isAppearanceLight = false).
-            // This ensures correct visibility even when the user overrides the system theme.
-            SideEffect {
-                val insetsController = WindowCompat.getInsetsController(window, window.decorView)
-                insetsController.isAppearanceLightStatusBars = !darkTheme
-                insetsController.isAppearanceLightNavigationBars = !darkTheme
-            }
-
-            if (themeReady && localeReady && dateTimeReady) {
-                LibreChatTheme(
-                    darkTheme = darkTheme,
-                    accentColor = Color(serverAccent?.activeSeed ?: accentColorArgb),
-                    useDynamicColor = useDynamicColor,
-                    uiStyle = storedUiStyle,
+            SwitchboardTheme(window) { appLocale ->
+                Surface(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clearFocusOnTap()
+                        .semantics { testTagsAsResourceId = true },
                 ) {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clearFocusOnTap()
-                            .semantics { testTagsAsResourceId = true },
-                    ) {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            AnimatedVisibility(
-                                visible = !isConnected,
-                                enter = expandVertically(),
-                                exit = shrinkVertically(),
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(MaterialTheme.colorScheme.errorContainer)
-                                        .windowInsetsPadding(WindowInsets.statusBars)
-                                        .padding(vertical = 6.dp, horizontal = 16.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        text = stringResource(R.string.no_connection),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onErrorContainer,
-                                    )
-                                }
-                            }
-                            LibreChatNavHost(
-                                deepLinkUri = deepLinkUri,
-                                onDeepLinkConsume = { deepLinkUri = null },
-                                sharedLinkText = sharedLinkText,
-                                onSharedLinkConsume = { sharedLinkText = null },
-                                appLocaleTag = appLocale,
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        AnimatedVisibility(
+                            visible = !isConnected,
+                            enter = expandVertically(),
+                            exit = shrinkVertically(),
+                        ) {
+                            Box(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .then(
-                                        if (!isConnected) {
-                                            Modifier.consumeWindowInsets(WindowInsets.statusBars)
-                                        } else {
-                                            Modifier
-                                        },
-                                    ),
-                            )
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.errorContainer)
+                                    .windowInsetsPadding(WindowInsets.statusBars)
+                                    .padding(vertical = 6.dp, horizontal = 16.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.no_connection),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                )
+                            }
                         }
+                        LibreChatNavHost(
+                            deepLinkUri = deepLinkUri,
+                            onDeepLinkConsume = { deepLinkUri = null },
+                            sharedLinkText = sharedLinkText,
+                            onSharedLinkConsume = { sharedLinkText = null },
+                            appLocaleTag = appLocale,
+                            modifier = Modifier
+                                .weight(1f)
+                                .then(
+                                    if (!isConnected) {
+                                        Modifier.consumeWindowInsets(WindowInsets.statusBars)
+                                    } else {
+                                        Modifier
+                                    },
+                                ),
+                        )
                     }
                 }
             }
@@ -255,16 +201,17 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
     }
 
-    private fun handleIntent(intent: Intent?) {
-        if (intent == null) return
+    private fun handleIntent(intent: Intent?): IntentOutcome {
+        if (intent == null) return IntentOutcome.Handled
 
         when {
             intent.action == Intent.ACTION_SEND -> handleShareIntent(intent)
             intent.action == Intent.ACTION_SEND_MULTIPLE -> handleShareMultipleIntent(intent)
             intent.action == Intent.ACTION_VIEW && intent.data?.scheme == ContentResolver.SCHEME_CONTENT ->
                 handleOpenWithIntent(intent)
-            else -> handleDeepLink(intent)
+            else -> return handleDeepLink(intent)
         }
+        return IntentOutcome.Handled
     }
 
     private fun handleOpenWithIntent(intent: Intent) {
@@ -273,17 +220,20 @@ class MainActivity : ComponentActivity() {
         ShareIntentConsumer.setPendingShare(SharedContent(fileUris = listOf(uri)))
     }
 
-    private fun handleDeepLink(intent: Intent) {
-        intent.data?.let { uri ->
-            if (uri.scheme != DeepLinks.SCHEME) return@let
-            // Same resolver the nav host uses — the accept decision and the routing decision can't
-            // drift because they're one source of truth. Anything it doesn't route is dropped here.
-            if (DeepLinks.resolve(uri.toDeepLinkUri()) is DeepLinkResolution.None) {
-                Logger.w { "Ignoring unhandled deep link: $uri" }
-            } else {
-                deepLinkUri = uri
+    private fun handleDeepLink(intent: Intent): IntentOutcome {
+        val uri = intent.data?.takeIf { it.scheme == DeepLinks.SCHEME } ?: return IntentOutcome.Handled
+        // Same resolver the nav host uses — the accept decision and the routing decision can't
+        // drift because they're one source of truth. Anything it doesn't route is dropped here.
+        when (val resolution = DeepLinks.resolve(uri.toDeepLinkUri())) {
+            DeepLinkResolution.None -> Logger.w { "Ignoring unhandled deep link: $uri" }
+            // Icons pinned by older builds still target this activity.
+            is DeepLinkResolution.ArtifactApp -> {
+                startActivity(artifactAppIntent(this, resolution.snapshotId))
+                return IntentOutcome.ArtifactApp
             }
+            else -> deepLinkUri = uri
         }
+        return IntentOutcome.Handled
     }
 
     private fun handleShareIntent(intent: Intent) {
