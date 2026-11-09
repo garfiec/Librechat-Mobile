@@ -16,7 +16,7 @@ class ChatOptionsSheetControllerTest {
         ChatOptionsSheetController.Saver.restore(value)!!
 
     @Test
-    fun `a sub-page reached from Options keeps Options as the entry, so back returns there`() {
+    fun `a sub-page reached from Options keeps Options as the entry so back returns there`() {
         val controller = ChatOptionsSheetController()
         controller.open(ChatOptionsPage.Options)
         controller.open(ChatOptionsPage.ModelSelector)
@@ -26,7 +26,7 @@ class ChatOptionsSheetControllerTest {
     }
 
     @Test
-    fun `a sheet opened on Parameters has it as the entry, so back closes`() {
+    fun `a sheet opened on Parameters has it as the entry so back closes`() {
         val controller = ChatOptionsSheetController()
         controller.open(ChatOptionsPage.ModelParameters)
 
