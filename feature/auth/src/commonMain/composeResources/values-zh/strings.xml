@@ -119,4 +119,9 @@
     <string name="auth_error_tenant_required">此服务器需要知道你所属的组织。请使用你所在组织对应的服务器地址。</string>
     <string name="login_two_factor_setup_required">此服务器现在要求 %1$s 启用两步验证。请登录以进行设置。</string>
     <string name="use_another_account">使用其他账户</string>
+    <string name="server_url_known_servers">你的服务器</string>
+    <string name="server_url_known_server_cd">连接到 %1$s</string>
+    <plurals name="server_url_known_server_accounts">
+        <item quantity="other">%1$d 个账户</item>
+    </plurals>
 </resources>

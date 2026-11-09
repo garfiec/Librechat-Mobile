@@ -27,6 +27,7 @@ val authModule = module {
             serverRepository = get(),
             configRepository = get(),
             accountSwitcher = get(),
+            accountRoster = get(),
             addAccount = params.getOrNull() ?: false,
         )
     }
