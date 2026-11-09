@@ -3,6 +3,7 @@ package com.garfiec.librechat.core.network.api
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.response.Category
+import com.garfiec.librechat.core.network.client.ServerProbeKey
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -16,6 +17,13 @@ class ConfigApi constructor(
     suspend fun getStartupConfig(): StartupConfig =
         client.get {
             url { path("api/config") }
+        }.body()
+
+    /** The server check: stops at a redirect with [ServerRedirectException] instead of following it. */
+    suspend fun probeStartupConfig(): StartupConfig =
+        client.get {
+            url { path("api/config") }
+            attributes.put(ServerProbeKey, Unit)
         }.body()
 
     private val lenientJson = Json {

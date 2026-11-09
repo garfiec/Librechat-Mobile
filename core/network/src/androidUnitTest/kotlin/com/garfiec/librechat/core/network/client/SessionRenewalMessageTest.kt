@@ -14,6 +14,7 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlinx.coroutines.Dispatchers
@@ -80,8 +81,11 @@ class SessionRenewalMessageTest {
 
     /** The real factory, so the production plugin order is what runs. */
     private fun clientAnswering(body: String, tokenManager: TokenManager): HttpClient =
+        clientWith(tokenManager) { respond(body, HttpStatusCode.Unauthorized, jsonHeaders) }
+
+    private fun clientWith(tokenManager: TokenManager, handler: MockRequestHandler): HttpClient =
         LibreChatHttpClient.create(
-            engineFactory = engineFactory { respond(body, HttpStatusCode.Unauthorized, jsonHeaders) },
+            engineFactory = engineFactory(handler),
             json = Json { ignoreUnknownKeys = true },
             tokenManager = tokenManager,
             serverUrlProvider = FakeServerUrlProvider(),
@@ -117,5 +121,38 @@ class SessionRenewalMessageTest {
         assertThat(tokenManager.refreshes).isEqualTo(0)
         assertThat(api.message).isEqualTo("Invalid credentials")
         assertThat(api.serverAuthored).isTrue()
+    }
+
+    private fun redirectingTo(location: String) = clientWith(BlockedTokenManager()) {
+        respond("", HttpStatusCode.PermanentRedirect, headersOf(HttpHeaders.Location, location))
+    }
+
+    private suspend fun HttpClient.postFailure(): ApiException {
+        val thrown = runCatching { post("https://chat.example.com/api/auth/login") }.exceptionOrNull()
+        return thrown as? ApiException ?: error("expected ApiException, got $thrown")
+    }
+
+    @Test
+    fun `a POST redirected to another server names that server, without its path or query`() = runTest {
+        val api = redirectingTo("https://www.chat.example.com:8443/api/auth/login?meta=eyJhbGci").postFailure()
+
+        assertThat(api.message).isEqualTo(
+            "This server has moved to https://www.chat.example.com:8443. " +
+                "Sign in again at that address.",
+        )
+        assertThat(api.serverAuthored).isFalse()
+    }
+
+    @Test
+    fun `a POST redirected to a forward-auth portal keeps the plain status`() = runTest {
+        val api = redirectingTo("https://auth.example.com/login?rd=https%3A%2F%2Fchat.example.com").postFailure()
+
+        assertThat(api.message).isEqualTo("Request failed (HTTP 308)")
+    }
+
+    /** Upstream's `redirect('/login')` arms; the refresh classifier reads those, not this message. */
+    @Test
+    fun `a redirect to a path on the same server keeps the plain status`() = runTest {
+        assertThat(redirectingTo("/login").postFailure().message).isEqualTo("Request failed (HTTP 308)")
     }
 }
