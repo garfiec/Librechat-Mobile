@@ -1318,4 +1318,22 @@
         <item quantity="many">%1$d خادمًا يحتاج إلى تسجيل الدخول</item>
         <item quantity="other">%1$d خادم يحتاج إلى تسجيل الدخول</item>
     </plurals>
+    <string name="web_search_keys_setup">إعداد بحث LibreChat</string>
+    <string name="web_search_keys_fallback">يُستخدم بحث %1$s حتى تضيف مفاتيحك</string>
+    <string name="web_search_keys_add">أضف مفاتيح البحث الخاصة بك</string>
+    <string name="web_search_keys_title">مفاتيح البحث</string>
+    <string name="web_search_keys_body">يعمل بحث LibreChat بمفاتيحك الخاصة. تُحفظ على خادم LibreChat الخاص بك.</string>
+    <string name="web_search_keys_keep_hint">اترك الحقل فارغًا للإبقاء على المفتاح المحفوظ.</string>
+    <string name="web_search_keys_section_providers">مزوّد البحث</string>
+    <string name="web_search_keys_section_scrapers">قارئ الصفحات</string>
+    <string name="web_search_keys_section_rerankers">إعادة الترتيب</string>
+    <string name="web_search_keys_pinned">اختاره خادمك</string>
+    <string name="web_search_keys_none">لا شيء</string>
+    <string name="web_search_keys_api_key">مفتاح API لـ %1$s</string>
+    <string name="web_search_keys_api_key_optional">مفتاح API لـ %1$s (اختياري)</string>
+    <string name="web_search_keys_url">عنوان URL لـ %1$s</string>
+    <string name="web_search_keys_url_optional">عنوان URL لـ %1$s (اختياري)</string>
+    <string name="web_search_keys_remove">إزالة المفاتيح</string>
+    <string name="web_search_keys_save_failed">تعذّر حفظ مفاتيحك. حاول مرة أخرى.</string>
+    <string name="web_search_keys_remove_failed">تعذّرت إزالة مفاتيحك. حاول مرة أخرى.</string>
 </resources>

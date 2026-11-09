@@ -132,4 +132,18 @@ class AgentSerializationTest {
         assertEquals(true, decoded.endAfterTools)
         assertEquals(listOf("Hi"), decoded.conversationStarters)
     }
+
+    @Test
+    fun webSearchToolAuthKeepsWhichKeysAreTheUsers() {
+        val body = """{"authenticated":false,"authTypes":[["providers","user_provided"],""" +
+            """["scrapers","user_provided"],["rerankers","system_defined"]],"rerankerType":"none"}"""
+
+        val decoded = json.decodeFromString(ToolAuthResult.serializer(), body)
+
+        assertEquals(false, decoded.authenticated)
+        assertEquals(listOf("providers", "scrapers"), decoded.userProvidedCategories)
+        assertEquals("none", decoded.rerankerType)
+        assertNull(decoded.searchProvider)
+        assertNull(decoded.scraperProvider)
+    }
 }

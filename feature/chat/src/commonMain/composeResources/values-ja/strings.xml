@@ -1188,4 +1188,22 @@
     <plurals name="mcp_needs_sign_in">
         <item quantity="other">%1$d 件はサインインが必要です</item>
     </plurals>
+    <string name="web_search_keys_setup">LibreChat 検索を設定</string>
+    <string name="web_search_keys_fallback">キーを追加するまで %1$s の検索を使用中</string>
+    <string name="web_search_keys_add">検索キーを追加</string>
+    <string name="web_search_keys_title">検索キー</string>
+    <string name="web_search_keys_body">LibreChat 検索はあなた自身のキーで動作します。キーは LibreChat サーバーに保存されます。</string>
+    <string name="web_search_keys_keep_hint">保存済みのキーをそのまま使うには、欄を空のままにしてください。</string>
+    <string name="web_search_keys_section_providers">検索プロバイダー</string>
+    <string name="web_search_keys_section_scrapers">ページリーダー</string>
+    <string name="web_search_keys_section_rerankers">リランカー</string>
+    <string name="web_search_keys_pinned">サーバーで指定済み</string>
+    <string name="web_search_keys_none">なし</string>
+    <string name="web_search_keys_api_key">%1$s API キー</string>
+    <string name="web_search_keys_api_key_optional">%1$s API キー（任意）</string>
+    <string name="web_search_keys_url">%1$s URL</string>
+    <string name="web_search_keys_url_optional">%1$s URL（任意）</string>
+    <string name="web_search_keys_remove">キーを削除</string>
+    <string name="web_search_keys_save_failed">キーを保存できませんでした。もう一度お試しください。</string>
+    <string name="web_search_keys_remove_failed">キーを削除できませんでした。もう一度お試しください。</string>
 </resources>

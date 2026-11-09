@@ -41,6 +41,7 @@ internal fun ChatOptionsSheetHost(
     /** An MCP row's sign-in, the settings line's with the server turned on once it connects. */
     onSignInMcpServer: (String) -> Unit,
     onCancelMcpSignIn: (String) -> Unit,
+    onOpenWebSearchKeys: () -> Unit,
     onNavigateToProviderKeys: (endpointName: String?) -> Unit,
     onShowSavePresetDialog: () -> Unit,
     /** Compare setup's staged picks: during setup the Model page stages into them. */
@@ -94,7 +95,7 @@ internal fun ChatOptionsSheetHost(
             selection = optionsSelection,
             toolsHiddenReason = uiState.toolsHiddenReason,
             comparisonModels = comparisonModelLabels(uiState),
-            openTools = uiState.openTools,
+            openTools = uiState.sheetTools,
             webSearchKind = uiState.webSearchKind,
             mcpServersEnabled = uiState.mcpServersEnabled,
             gates = uiState.chatInputGates,
@@ -107,6 +108,8 @@ internal fun ChatOptionsSheetHost(
             onContextGaugeExpandedChange = viewModel::setContextGaugeExpanded,
             onSignInMcpServer = onSignInMcpServer,
             onCancelMcpSignIn = onCancelMcpSignIn,
+            webSearchKeys = uiState.webSearchKeysRow,
+            onOpenWebSearchKeys = onOpenWebSearchKeys,
         ),
         // While comparing, the page edits whichever lane its A/B pair picks, starting on the active
         // tab's; the sheet itself needs no comparison branch.

@@ -1266,4 +1266,22 @@
         <item quantity="many">%1$d требуют входа</item>
         <item quantity="other">%1$d требуют входа</item>
     </plurals>
+    <string name="web_search_keys_setup">Настроить поиск LibreChat</string>
+    <string name="web_search_keys_fallback">Используется поиск %1$s, пока вы не добавите ключи</string>
+    <string name="web_search_keys_add">Добавьте свои ключи поиска</string>
+    <string name="web_search_keys_title">Ключи поиска</string>
+    <string name="web_search_keys_body">Поиск LibreChat работает с вашими собственными ключами. Они хранятся на вашем сервере LibreChat.</string>
+    <string name="web_search_keys_keep_hint">Оставьте поле пустым, чтобы сохранить прежний ключ.</string>
+    <string name="web_search_keys_section_providers">Поисковый сервис</string>
+    <string name="web_search_keys_section_scrapers">Чтение страниц</string>
+    <string name="web_search_keys_section_rerankers">Ранжирование</string>
+    <string name="web_search_keys_pinned">Выбрано вашим сервером</string>
+    <string name="web_search_keys_none">Нет</string>
+    <string name="web_search_keys_api_key">API-ключ %1$s</string>
+    <string name="web_search_keys_api_key_optional">API-ключ %1$s (необязательно)</string>
+    <string name="web_search_keys_url">URL %1$s</string>
+    <string name="web_search_keys_url_optional">URL %1$s (необязательно)</string>
+    <string name="web_search_keys_remove">Удалить ключи</string>
+    <string name="web_search_keys_save_failed">Не удалось сохранить ключи. Попробуйте ещё раз.</string>
+    <string name="web_search_keys_remove_failed">Не удалось удалить ключи. Попробуйте ещё раз.</string>
 </resources>

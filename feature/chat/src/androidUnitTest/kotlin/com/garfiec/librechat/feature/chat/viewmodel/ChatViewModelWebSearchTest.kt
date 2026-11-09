@@ -102,21 +102,135 @@ class ChatViewModelWebSearchTest {
     }
 
     @Test
-    fun `a server with no search provider is never asked for keys`() {
+    fun `a server with no search provider is asked for keys and holds no send for the answer`() {
+        // Per-user keys: the server pins no provider, so it serves no webSearch config.
         startupConfig.value = StartupConfig()
+        coEvery { fixture.agentToolsRepository.verifyToolAuth(ToolConstants.WEB_SEARCH) } coAnswers {
+            delay(5_000)
+            Result.Success(ToolAuthResult(authenticated = false, authTypes = USER_KEYS))
+        }
         webSearchTest { vm ->
-            assertThat(vm.uiState.value.gates.librechatSearchReady).isFalse()
-            coVerify(exactly = 0) { fixture.agentToolsRepository.verifyToolAuth(ToolConstants.WEB_SEARCH) }
+            assertThat(vm.uiState.value.gates.librechatSearchChecking).isFalse()
+
+            sendWithSearch(vm)
+
+            assertThat(topLevel.single()).isTrue()
+            coVerify(exactly = 1) { fixture.agentToolsRepository.verifyToolAuth(ToolConstants.WEB_SEARCH) }
         }
     }
 
     @Test
-    fun `a config without search clears an earlier server's answer`() = webSearchTest { vm ->
+    fun `a config without search is asked for its own answer`() = webSearchTest { vm ->
         assertThat(vm.uiState.value.gates.librechatSearchReady).isTrue()
 
+        fixture.webSearchAuthenticated = false
         startupConfig.value = StartupConfig()
         runCurrent()
 
+        assertThat(vm.uiState.value.gates.librechatSearchReady).isFalse()
+        coVerify(exactly = 2) { fixture.agentToolsRepository.verifyToolAuth(ToolConstants.WEB_SEARCH) }
+    }
+
+    @Test
+    fun `the keys the server leaves to the user reach the gates with the pinned provider`() {
+        coEvery { fixture.agentToolsRepository.verifyToolAuth(ToolConstants.WEB_SEARCH) } returns
+            Result.Success(ToolAuthResult(authenticated = false, authTypes = USER_KEYS, rerankerType = "none"))
+        webSearchTest { vm ->
+            val keys = vm.uiState.value.gates.webSearchKeys
+
+            assertThat(keys?.userCategories).containsExactly("providers", "scrapers").inOrder()
+            assertThat(keys?.authenticated).isFalse()
+            assertThat(keys?.pinnedSearchProvider).isEqualTo("serper")
+        }
+    }
+
+    @Test
+    fun `while the built-in search stands in the keys row names it`() {
+        startupConfig.value = StartupConfig()
+        coEvery { fixture.agentToolsRepository.verifyToolAuth(ToolConstants.WEB_SEARCH) } returns
+            Result.Success(ToolAuthResult(authenticated = false, authTypes = USER_KEYS))
+        webSearchTest { vm ->
+            vm.onModelSelected(ENDPOINT, MODEL)
+            assertThat(vm.uiState.value.webSearchKeysRow?.fallbackProvider).isNull()
+
+            vm.toggleTool(ToolConstants.WEB_SEARCH)
+
+            val row = vm.uiState.value.webSearchKeysRow
+            assertThat(row?.authenticated).isFalse()
+            assertThat(row?.fallbackProvider).isEqualTo("OpenAI")
+        }
+    }
+
+    @Test
+    fun `on an endpoint with no built-in search the tile shows and turning it on asks for keys`() {
+        startupConfig.value = StartupConfig()
+        every { fixture.configRepository.endpointConfigs } returns
+            MutableStateFlow(mapOf(ENDPOINT to EndpointConfig(), CUSTOM to EndpointConfig()))
+        every { fixture.configRepository.availableModels } returns
+            MutableStateFlow(mapOf(ENDPOINT to listOf(MODEL), CUSTOM to listOf(CUSTOM_MODEL)))
+        coEvery { fixture.agentToolsRepository.verifyToolAuth(ToolConstants.WEB_SEARCH) } returns
+            Result.Success(ToolAuthResult(authenticated = false, authTypes = USER_KEYS))
+        webSearchTest { vm ->
+            vm.onModelSelected(CUSTOM, CUSTOM_MODEL)
+            val state = vm.uiState.value
+
+            assertThat(state.webSearchTarget).isEqualTo(WebSearchRoute.NONE)
+            assertThat(state.sheetTools).contains(ToolConstants.WEB_SEARCH)
+            assertThat(state.openTools).doesNotContain(ToolConstants.WEB_SEARCH)
+            assertThat(state.webSearchKeysRow?.opensOnTurnOn).isTrue()
+        }
+    }
+
+    @Test
+    fun `saved keys are checked again and LibreChat search is turned on`() {
+        startupConfig.value = StartupConfig()
+        fixture.webSearchAuthenticated = false
+        coEvery { fixture.agentToolsRepository.installToolKey(ToolConstants.WEB_SEARCH, any()) } answers {
+            fixture.webSearchAuthenticated = true
+            Result.Success(Unit)
+        }
+        webSearchTest { vm ->
+            vm.onModelSelected(ENDPOINT, MODEL)
+
+            val keys = mapOf("selectedProvider" to "serper", "serperApiKey" to "k")
+            val saved = vm.saveWebSearchKeys(keys)
+            runCurrent()
+
+            assertThat(saved).isTrue()
+            assertThat(vm.uiState.value.gates.librechatSearchReady).isTrue()
+            assertThat(vm.uiState.value.webSearchRoute).isEqualTo(WebSearchRoute.LIBRECHAT)
+            coVerify { fixture.agentToolsRepository.installToolKey(ToolConstants.WEB_SEARCH, keys) }
+        }
+    }
+
+    @Test
+    fun `a save the server refuses leaves web search off and reports it`() {
+        startupConfig.value = StartupConfig()
+        fixture.webSearchAuthenticated = false
+        coEvery { fixture.agentToolsRepository.installToolKey(ToolConstants.WEB_SEARCH, any()) } returns
+            Result.Error(message = "500")
+        webSearchTest { vm ->
+            vm.onModelSelected(ENDPOINT, MODEL)
+
+            val saved = vm.saveWebSearchKeys(mapOf("serperApiKey" to "k"))
+
+            assertThat(saved).isFalse()
+            assertThat(vm.uiState.value.modelParameters.webSearch).isNotEqualTo(true)
+        }
+    }
+
+    @Test
+    fun `removed keys are checked again`() = webSearchTest { vm ->
+        assertThat(vm.uiState.value.gates.librechatSearchReady).isTrue()
+        coEvery { fixture.agentToolsRepository.removeToolKey(ToolConstants.WEB_SEARCH, any()) } answers {
+            fixture.webSearchAuthenticated = false
+            Result.Success(Unit)
+        }
+
+        val removed = vm.removeWebSearchKeys()
+        runCurrent()
+
+        assertThat(removed).isTrue()
         assertThat(vm.uiState.value.gates.librechatSearchReady).isFalse()
     }
 
@@ -376,5 +490,12 @@ class ChatViewModelWebSearchTest {
         const val CONVERSATION = "ws-1"
         val SEARCH_CONFIG: JsonObject = buildJsonObject { put("searchProvider", "serper") }
         val OTHER_SEARCH_CONFIG: JsonObject = buildJsonObject { put("searchProvider", "searxng") }
+        const val CUSTOM = "Mistral"
+        const val CUSTOM_MODEL = "mistral-large"
+        val USER_KEYS = listOf(
+            listOf("providers", "user_provided"),
+            listOf("scrapers", "user_provided"),
+            listOf("rerankers", "system_defined"),
+        )
     }
 }

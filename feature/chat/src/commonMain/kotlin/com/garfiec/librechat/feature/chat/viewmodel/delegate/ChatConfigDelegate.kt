@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
 import com.garfiec.librechat.core.data.repository.WebSearchReadinessRepository
 import com.garfiec.librechat.core.model.Attachment
+import com.garfiec.librechat.core.model.ToolAuthResult
 import com.garfiec.librechat.core.model.config.InterfaceConfig
 import com.garfiec.librechat.core.model.config.isForcedTemporaryRetention
 import com.garfiec.librechat.core.model.config.landingHeadingIsGreeting
@@ -22,6 +23,7 @@ import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
 import com.garfiec.librechat.core.model.permissions.canOpenMemories
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
+import com.garfiec.librechat.feature.chat.util.webSearchKeysState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatConfigHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import kotlinx.coroutines.delay
@@ -31,6 +33,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 
 /**
  * Loads the server/account configuration that gates the chat UI: the current user's profile
@@ -198,41 +201,58 @@ class ChatConfigDelegate(
     }
 
     /**
-     * Keeps `gates.librechatSearchReady` in step with the server, the account and the role: true
-     * only when the config names a search provider and the server's key check passes. An answer is
-     * remembered per account and config ([WebSearchReadinessRepository]), so a chat opened after
-     * the first one has it at once. Until there is one it reads false with
-     * `librechatSearchChecking` set, so a send that would run LibreChat search runs none; a check
-     * that failed rather than answered is retried, and once the retries run out the hold lifts
-     * while it keeps asking once a minute.
+     * Keeps `gates.librechatSearchReady` and `gates.webSearchKeys` in step with the server, the
+     * account and the role: ready only when the server's key check passes, asked whenever the role
+     * and interface allow LibreChat search, whether or not the config names a search provider. An
+     * answer is remembered per account and config ([WebSearchReadinessRepository]), so a chat opened
+     * after the first one has it at once. Only a config that names a provider holds sends for it:
+     * until there is an answer `librechatSearchChecking` is set, so a send that would run LibreChat
+     * search runs none; a check that failed rather than answered is retried, and once the retries run
+     * out the hold lifts while it keeps asking once a minute. A recheck after keys are saved or
+     * removed keeps the last answer's keys (`webSearchKeys`) but reads not ready until the new one.
      */
     fun loadWebSearchReadiness() {
         handle.scope.launch {
+            var last: ReadinessKey? = null
             // Every config, not just a change of "configured": another server with search set up
             // too must be asked for its own keys. The StateFlow already skips identical configs.
             combine(
                 configRepository.startupConfig,
                 roleRepository.userPermissions,
                 webSearchReadiness.account,
-            ) { config, role, account ->
-                config?.webSearch?.takeIf { librechatSearchAllowed(role, config.interfaceConfig) } to account
-            }.distinctUntilChanged().collectLatest { (searchConfig, _) ->
-                // Unknown, not unusable, while cached() waits out another screen's check.
-                handle.update { gates = gates.copy(librechatSearchChecking = searchConfig != null) }
-                val cached = searchConfig?.let { webSearchReadiness.cached(it) }
-                handle.update {
-                    gates = gates.copy(
-                        librechatSearchReady = cached == true,
-                        librechatSearchChecking = searchConfig != null && cached == null,
-                    )
+                webSearchReadiness.changes,
+            ) { config, role, account, changes ->
+                ReadinessKey(
+                    asks = config != null && librechatSearchAllowed(role, config.interfaceConfig),
+                    searchConfig = config?.webSearch,
+                    account = account,
+                    changes = changes,
+                )
+            }.distinctUntilChanged().collectLatest { key ->
+                val recheck = last?.copy(changes = key.changes) == key
+                last = key
+                if (!key.asks) {
+                    handle.update {
+                        gates = gates.copy(librechatSearchReady = false, librechatSearchChecking = false, webSearchKeys = null)
+                    }
+                    return@collectLatest
                 }
-                if (searchConfig == null || cached != null) return@collectLatest
+                val searchConfig = key.searchConfig
+                val holds = searchConfig != null
+                // Unknown, not unusable, while cached() waits out another screen's check.
+                if (!recheck) handle.update { gates = gates.copy(librechatSearchChecking = holds) }
+                val cached = webSearchReadiness.cached(searchConfig)
+                if (cached != null || !recheck) {
+                    applyWebSearchAnswer(cached, searchConfig)
+                } else {
+                    handle.update { gates = gates.copy(librechatSearchReady = false, librechatSearchChecking = holds) }
+                }
+                if (cached != null) return@collectLatest
                 var attempt = 0
                 while (true) {
-                    val ready = webSearchReadiness.check(searchConfig)
-                    if (ready != null) {
-                        if (!ready) Logger.d { "LibreChat web search is configured but not authenticated" }
-                        handle.update { gates = gates.copy(librechatSearchReady = ready, librechatSearchChecking = false) }
+                    val answer = webSearchReadiness.check(searchConfig)
+                    if (answer != null) {
+                        applyWebSearchAnswer(answer, searchConfig)
                         return@collectLatest
                     }
                     if (attempt == WEB_SEARCH_CHECK_RETRY_MS.size) {
@@ -245,6 +265,31 @@ class ChatConfigDelegate(
                 }
             }
         }
+    }
+
+    /** Null [answer] = not known yet: not ready, and a config that names a provider holds sends. */
+    private fun applyWebSearchAnswer(answer: ToolAuthResult?, searchConfig: JsonObject?) {
+        handle.update {
+            gates = gates.copy(
+                librechatSearchReady = answer?.authenticated == true,
+                librechatSearchChecking = searchConfig != null && answer == null,
+                webSearchKeys = answer?.let { webSearchKeysState(it, searchConfig) },
+            )
+        }
+    }
+
+    /** Saves the user's search keys ([auth] in web's form); the readiness check then asks again. */
+    suspend fun saveWebSearchKeys(auth: Map<String, String>): Boolean {
+        val result = webSearchReadiness.saveKeys(auth)
+        if (result is Result.Error) Logger.w(result.exception) { "Saving web search keys failed" }
+        return result is Result.Success
+    }
+
+    /** Removes the user's search keys; the readiness check then asks again. */
+    suspend fun removeWebSearchKeys(): Boolean {
+        val result = webSearchReadiness.removeKeys()
+        if (result is Result.Error) Logger.w(result.exception) { "Removing web search keys failed" }
+        return result is Result.Success
     }
 
     /**
@@ -289,6 +334,14 @@ private data class GateInputs(
     val version: String?,
     val dropParamsMap: Map<String, JsonElement>?,
     val compactionEnabled: Boolean?,
+)
+
+/** What the web-search key check depends on; [changes] alone differing is a recheck. */
+private data class ReadinessKey(
+    val asks: Boolean,
+    val searchConfig: JsonObject?,
+    val account: String?,
+    val changes: Int,
 )
 
 /** One gate for both the control (`gates.webSearchEnabled`) and whether `loadWebSearchReadiness` asks. */

@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.model.config.CurrencyConfig
 import com.garfiec.librechat.core.model.config.DEFAULT_STEER_ARM_CONFIRMATION_TIMEOUT_MS
 import com.garfiec.librechat.core.model.queuedturn.QUEUED_TURN_RECONCILIATION_MS
+import com.garfiec.librechat.feature.chat.util.WebSearchKeysState
 import kotlinx.serialization.json.JsonElement
 
 /**
@@ -52,21 +53,24 @@ data class FeatureGatesState(
      */
     val webSearchPermitted: Boolean = true,
     /**
-     * Whether LibreChat's own web search is set up: `/api/config` serves `webSearch` (only when a
-     * search provider is configured) and the server's key check passes
-     * (`GET /api/agents/tools/web_search/auth`). Fails closed: false until there is an answer
-     * (`ChatConfigDelegate.loadWebSearchReadiness`). Keys each user must enter read as not set up
-     * (web asks for them; mobile has no screen for that), so those chats use the provider's built-in
-     * search. Not caught: a key that is present but wrong, or a provider that is down. Read with
+     * Whether LibreChat's own web search is set up: the server's key check passes
+     * (`GET /api/agents/tools/web_search/auth`), asked whether or not `/api/config` serves `webSearch`
+     * (it does only when the admin pins a provider). Fails closed: false until there is an answer
+     * (`ChatConfigDelegate.loadWebSearchReadiness`). Until the user enters keys the server leaves to
+     * them ([webSearchKeys], the "+" sheet's key row), chats use the provider's built-in search. Not
+     * caught: a key that is present but wrong, or a provider that is down. Read with
      * [webSearchEnabled] through `ChatUiState.webSearchRoute`.
      */
     val librechatSearchReady: Boolean = false,
     /**
      * The key check behind [librechatSearchReady] is out (or retrying) for a config that names a
      * search provider. A send that would run LibreChat search runs none meanwhile
-     * (`WebSearchRoute.CHECKING`) instead of switching to the built-in one.
+     * (`WebSearchRoute.CHECKING`) instead of switching to the built-in one. Never set for a config
+     * without `webSearch`: there a send doesn't wait for the check.
      */
     val librechatSearchChecking: Boolean = false,
+    /** The key check's answer behind [librechatSearchReady], with the pinned providers; null until it answers. */
+    val webSearchKeys: WebSearchKeysState? = null,
     val runCodeEnabled: Boolean = true,
     val fileSearchEnabled: Boolean = true,
     val bookmarksEnabled: Boolean = true,

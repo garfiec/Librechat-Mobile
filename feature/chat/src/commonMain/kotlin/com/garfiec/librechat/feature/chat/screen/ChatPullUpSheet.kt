@@ -410,6 +410,7 @@ internal fun BoxScope.ChatPullUpSheetOverlay(
     onAttachToCode: (() -> Unit)?,
     onSignInMcpServer: (String) -> Unit,
     onCancelMcpSignIn: (String) -> Unit,
+    onOpenWebSearchKeys: () -> Unit,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val hide: () -> Unit = { coroutineScope.launch { state.hide() } }
@@ -509,7 +510,7 @@ internal fun BoxScope.ChatPullUpSheetOverlay(
                 toolsHiddenReason = uiState.toolsHiddenReason,
                 comparisonModels = comparisonModelLabels(uiState),
                 onDismiss = hide,
-                openTools = uiState.openTools,
+                openTools = uiState.sheetTools,
                 webSearchKind = uiState.webSearchKind,
                 mcpServersEnabled = uiState.mcpServersEnabled,
                 gates = uiState.chatInputGates,
@@ -524,6 +525,8 @@ internal fun BoxScope.ChatPullUpSheetOverlay(
                 onMcpExpandedChange = { mcpExpanded = it },
                 onSignInMcpServer = onSignInMcpServer,
                 onCancelMcpSignIn = onCancelMcpSignIn,
+                webSearchKeys = uiState.webSearchKeysRow,
+                onOpenWebSearchKeys = onOpenWebSearchKeys,
             )
         }
     }

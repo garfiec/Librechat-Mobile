@@ -66,6 +66,7 @@ import com.garfiec.librechat.feature.chat.components.ToolApprovalPanel
 import com.garfiec.librechat.feature.chat.components.ToolContentHost
 import com.garfiec.librechat.feature.chat.components.UpdateAvailableBanner
 import com.garfiec.librechat.feature.chat.components.UploadRoutingSheet
+import com.garfiec.librechat.feature.chat.components.WebSearchKeysSheet
 import com.garfiec.librechat.feature.chat.components.addToChatSelectionItem
 import com.garfiec.librechat.feature.chat.components.mcpapp.rememberLegacyUiResources
 import com.garfiec.librechat.feature.chat.components.mcpapp.rememberMcpApps
@@ -214,6 +215,7 @@ fun ChatScreen(
     val coroutineScope = rememberCoroutineScope()
     var showPresetPicker by remember { mutableStateOf(false) }
     var showThinkingSheet by rememberSaveable { mutableStateOf(false) }
+    var showWebSearchKeys by rememberSaveable { mutableStateOf(false) }
     var showSavePresetDialog by remember { mutableStateOf(false) }
     var showSecondaryModelSheet by remember { mutableStateOf(false) }
     var activeComparisonTab by remember { mutableIntStateOf(0) }
@@ -845,6 +847,7 @@ fun ChatScreen(
                 onAttachToCode = onAttachToCode,
                 onSignInMcpServer = startSheetMcpSignIn,
                 onCancelMcpSignIn = cancelMcpSignIn,
+                onOpenWebSearchKeys = { showWebSearchKeys = true },
             )
 
             val pendingRouting = uiState.composer.pendingUploadRouting
@@ -873,10 +876,21 @@ fun ChatScreen(
         onAttachToCode = onAttachToCode,
         onSignInMcpServer = startSheetMcpSignIn,
         onCancelMcpSignIn = cancelMcpSignIn,
+        onOpenWebSearchKeys = { showWebSearchKeys = true },
         onNavigateToProviderKeys = onNavigateToProviderKeys,
         onShowSavePresetDialog = { showSavePresetDialog = true },
         compareSetupPick = compareSetupPick,
     )
+
+    val webSearchKeys = uiState.gates.webSearchKeys
+    if (showWebSearchKeys && webSearchKeys != null) {
+        WebSearchKeysSheet(
+            keys = webSearchKeys,
+            onSave = viewModel::saveWebSearchKeys,
+            onRemove = viewModel::removeWebSearchKeys,
+            onDismiss = { showWebSearchKeys = false },
+        )
+    }
 
     // Closes itself when the chip goes away (a model switch, a spec, a comparison).
     if (showThinkingSheet && thinkingChip != null) {
