@@ -35,8 +35,6 @@ import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.VpnKey
-import androidx.compose.material3.CardColors
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -70,10 +68,10 @@ import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
 import com.garfiec.librechat.core.model.media.IconSource
-import com.garfiec.librechat.core.ui.components.AdaptiveCard
 import com.garfiec.librechat.core.ui.components.AdaptiveCheckbox
 import com.garfiec.librechat.core.ui.components.AdaptiveFilledTonalButton
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
+import com.garfiec.librechat.core.ui.components.AdaptiveTile
 import com.garfiec.librechat.core.ui.components.AdaptiveToggleTile
 import com.garfiec.librechat.core.ui.components.DragSelectRowShape
 import com.garfiec.librechat.core.ui.components.EndpointIcon
@@ -384,10 +382,6 @@ private val TileShape = RoundedCornerShape(16.dp)
 private val AttachCardMinHeight = 80.dp
 private val CellMinHeight = 60.dp
 
-@Composable
-private fun tileColors(): CardColors =
-    CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
-
 /**
  * Camera, Photos, Files and Server: four equal cards side by side, filling the row, each at least
  * 80dp tall; a label wraps to two lines at 320dp and the row's cards share one height.
@@ -414,7 +408,7 @@ private fun AttachRow(
         horizontalArrangement = Arrangement.spacedBy(TileGap),
     ) {
         options.forEach { (icon, labelRes, action) ->
-            AdaptiveCard(
+            AdaptiveTile(
                 onClick = {
                     action()
                     onDismiss()
@@ -423,8 +417,6 @@ private fun AttachRow(
                     .weight(1f)
                     .fillMaxHeight()
                     .heightIn(min = AttachCardMinHeight),
-                shape = TileShape,
-                colors = tileColors(),
             ) {
                 Column(
                     modifier = Modifier.fillMaxSize().padding(8.dp),
@@ -461,11 +453,9 @@ private fun ModelRow(
             .padding(horizontal = TileInset),
         horizontalArrangement = Arrangement.spacedBy(TileGap),
     ) {
-        AdaptiveCard(
+        AdaptiveTile(
             onClick = onOpenModelSelector,
             modifier = Modifier.weight(1f).heightIn(min = CellMinHeight),
-            shape = TileShape,
-            colors = tileColors(),
         ) {
             Row(
                 modifier = Modifier
@@ -525,11 +515,9 @@ private fun ModelRow(
             }
         }
         if (onOpenModelParameters != null) {
-            AdaptiveCard(
+            AdaptiveTile(
                 onClick = onOpenModelParameters,
                 modifier = Modifier.width(CellMinHeight).fillMaxHeight(),
-                shape = TileShape,
-                colors = tileColors(),
             ) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Icon(
@@ -560,11 +548,9 @@ internal fun WebSearchKeysActionRow(row: WebSearchKeysRow, onClick: () -> Unit) 
 /** A full-width labelled action on the page's tile surface (the code upload, Parameters without a picker). */
 @Composable
 private fun SheetActionRow(icon: ImageVector, label: String, onClick: () -> Unit, supporting: String? = null) {
-    AdaptiveCard(
+    AdaptiveTile(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth().padding(horizontal = TileInset),
-        shape = TileShape,
-        colors = tileColors(),
     ) {
         Row(
             modifier = Modifier
@@ -656,10 +642,8 @@ private fun ToolGrid(
 /** Where the tools come from when the page shows none: the agent's settings, or the spec's. */
 @Composable
 private fun ToolsHiddenNote(reason: ToolsHiddenReason) {
-    AdaptiveCard(
+    AdaptiveTile(
         modifier = Modifier.fillMaxWidth().padding(horizontal = TileInset),
-        shape = TileShape,
-        colors = tileColors(),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
