@@ -361,10 +361,12 @@ internal fun parseJsonFieldOccurrences(args: String?, field: String): List<Strin
 /**
  * `"field":"value"`, tolerating a missing closing quote and a dangling escape at the end. `\z`
  * stands in for JavaScript's `$` (end of text); the JVM's `$` also matches before a final newline.
+ * The repeat must stay possessive (`*+`): Kotlin/Native's regex engine recurses once per repetition
+ * of a greedy group, so a long file's content would overflow the thread stack on iOS.
  */
 private fun fieldRegex(field: String): Regex =
     // Only ever called with literal identifiers, so the field needs no escaping.
-    Regex("\"" + field + "\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)(?:\"|\\\\?\\z)")
+    Regex("\"" + field + "\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*+)(?:\"|\\\\?\\z)")
 
 /**
  * Upstream `unescapeJsonString`: the JSON string escapes, with a stream-boundary incompletion (a
