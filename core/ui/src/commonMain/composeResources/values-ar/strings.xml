@@ -426,4 +426,12 @@
     <string name="web_search_keys_remove_failed">تعذّرت إزالة مفاتيحك. حاول مرة أخرى.</string>
     <string name="web_search_keys_cancel">إلغاء</string>
     <string name="web_search_keys_save">حفظ</string>
+    <string name="artifacts_mode_title">نمط العناصر التفاعلية</string>
+    <string name="artifacts_mode_intro">العناصر التفاعلية هي مستندات ومخططات وصفحات ويب وتطبيقات صغيرة ينشئها الذكاء الاصطناعي لتفتحها وتجربها. يحدد هذا الإعداد ما يتعلمه الذكاء الاصطناعي عن إنشائها عندما تكون العناصر التفاعلية مفعّلة.</string>
+    <string name="artifacts_mode_default">قياسي</string>
+    <string name="artifacts_mode_default_desc">يناسب معظم ما ستطلبه. موصى به.</string>
+    <string name="artifacts_mode_shadcnui">تطبيقات مصقولة</string>
+    <string name="artifacts_mode_shadcnui_desc">يعلّم الذكاء الاصطناعي أيضًا مجموعة جاهزة من الأزرار والنماذج والبطاقات (shadcn/ui) لتطبيقات تفاعلية أجمل. تصبح كل رسالة أطول على الذكاء الاصطناعي، لذا قد تتأخر الردود.</string>
+    <string name="artifacts_mode_custom">تعليماتي فقط</string>
+    <string name="artifacts_mode_custom_desc">يوقف الإرشادات المدمجة، فيتبع الذكاء الاصطناعي التعليمات المخصصة التي كتبتها فقط. قد لا ينشئ عناصر ما لم تشرح تعليماتك ذلك.</string>
 </resources>

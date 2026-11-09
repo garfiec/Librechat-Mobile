@@ -396,4 +396,12 @@
     <string name="web_search_keys_remove_failed">키를 삭제하지 못했습니다. 다시 시도하세요.</string>
     <string name="web_search_keys_cancel">취소</string>
     <string name="web_search_keys_save">저장</string>
+    <string name="artifacts_mode_title">아티팩트 스타일</string>
+    <string name="artifacts_mode_intro">아티팩트는 AI가 만들어 주는 문서, 다이어그램, 웹 페이지, 작은 앱으로, 열어서 사용해 볼 수 있습니다. 아티팩트가 켜져 있을 때 AI에게 만드는 방법을 무엇으로 알려줄지 정합니다.</string>
+    <string name="artifacts_mode_default">표준</string>
+    <string name="artifacts_mode_default_desc">대부분의 요청에 잘 맞습니다. 권장.</string>
+    <string name="artifacts_mode_shadcnui">완성도 높은 앱</string>
+    <string name="artifacts_mode_shadcnui_desc">보기 좋은 대화형 앱을 위해 미리 만들어진 버튼, 양식, 카드(shadcn/ui)도 AI에게 알려 줍니다. AI가 읽을 메시지가 길어져 응답이 느려질 수 있습니다.</string>
+    <string name="artifacts_mode_custom">내 지침만</string>
+    <string name="artifacts_mode_custom_desc">기본 안내를 끄고, AI는 직접 작성한 사용자 지정 지침만 따릅니다. 지침에 방법이 없으면 아티팩트를 만들지 않을 수 있습니다.</string>
 </resources>

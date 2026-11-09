@@ -54,6 +54,7 @@ internal enum class ChatSettingDialog {
     WEB_SEARCH_FIRST,
     CHAT_HEADER,
     ARTIFACT_VIEWER,
+    ARTIFACTS_MODE,
     RENDER_INLINE,
     ARTIFACT_LIBRARIES,
 }

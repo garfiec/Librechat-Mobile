@@ -2,6 +2,7 @@ package com.garfiec.librechat.feature.chat.viewmodel
 
 import androidx.lifecycle.viewModelScope
 import com.garfiec.librechat.core.common.result.Result
+import com.garfiec.librechat.core.model.ArtifactsMode
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.endpoint.KeyState
 import io.mockk.coEvery
@@ -56,6 +57,23 @@ class ChatViewModelLandingResetTest {
             advanceUntilIdle()
 
             assertEquals(mapOf(KEYED to KeyState.Unset), vm.uiState.value.endpointKeyStates)
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
+
+    @Test
+    fun `the next new chat keeps the Artifacts mode the user chose`() = runTest(testDispatcher) {
+        every { fixture.settingsDataStore.artifactsMode } returns MutableStateFlow(ArtifactsMode.SHADCN_UI)
+        val vm = fixture.build(defaultDispatcher = testDispatcher)
+        try {
+            advanceUntilIdle()
+            assertEquals(ArtifactsMode.SHADCN_UI, vm.uiState.value.selection.artifactsMode)
+
+            vm.onPendingNavigationHandled()
+            advanceUntilIdle()
+
+            assertEquals(ArtifactsMode.SHADCN_UI, vm.uiState.value.selection.artifactsMode)
         } finally {
             vm.viewModelScope.cancel()
         }

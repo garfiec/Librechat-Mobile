@@ -396,4 +396,12 @@
     <string name="web_search_keys_remove_failed">无法移除你的密钥，请重试。</string>
     <string name="web_search_keys_cancel">取消</string>
     <string name="web_search_keys_save">保存</string>
+    <string name="artifacts_mode_title">Artifacts 样式</string>
+    <string name="artifacts_mode_intro">Artifact 是 AI 为你制作的文档、图表、网页和小应用，可以打开试用。开启 Artifacts 时，这里决定 AI 学习哪些制作方法。</string>
+    <string name="artifacts_mode_default">标准</string>
+    <string name="artifacts_mode_default_desc">适合你提出的大多数请求。推荐。</string>
+    <string name="artifacts_mode_shadcnui">精美应用</string>
+    <string name="artifacts_mode_shadcnui_desc">额外教给 AI 一套现成的按钮、表单和卡片（shadcn/ui），做出更好看的交互应用。AI 需要阅读的消息变长，回复可能更慢。</string>
+    <string name="artifacts_mode_custom">仅我的指令</string>
+    <string name="artifacts_mode_custom_desc">关闭内置指导，AI 只遵循你自己编写的自定义指令。如果你的指令没有说明做法，它可能不会制作 Artifact。</string>
 </resources>

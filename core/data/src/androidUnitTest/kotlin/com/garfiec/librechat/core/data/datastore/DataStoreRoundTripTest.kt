@@ -16,6 +16,7 @@ import com.garfiec.librechat.core.common.identity.AccountId
 import com.garfiec.librechat.core.common.identity.ActiveAccountProvider
 import com.garfiec.librechat.core.common.identity.InMemoryActiveAccountProvider
 import com.garfiec.librechat.core.data.prefetch.PrefetchDepth
+import com.garfiec.librechat.core.model.ArtifactsMode
 import com.garfiec.librechat.core.model.ModelRef
 import com.garfiec.librechat.core.model.usage.ContextDetailPreset
 import com.garfiec.librechat.core.model.usage.ModelTokenomics
@@ -66,6 +67,17 @@ class DataStoreRoundTripTest {
         ds: DataStore<Preferences>,
         accountProvider: ActiveAccountProvider = resolvedAccountProvider(),
     ) = SettingsDataStore(ds, accountProvider, CoroutineScope(testDispatcher), testDispatcher)
+
+    @Test
+    fun settingsDataStore_artifactsModeDefaultsAndRoundTrips() = runTest(testDispatcher) {
+        val store = settingsStore(createDataStore("settings-artifacts-mode"))
+
+        assertThat(store.artifactsMode.first()).isEqualTo(ArtifactsMode.DEFAULT)
+        store.setArtifactsMode(ArtifactsMode.SHADCN_UI)
+        assertThat(store.artifactsMode.first()).isEqualTo(ArtifactsMode.SHADCN_UI)
+        store.setArtifactsMode(ArtifactsMode.CUSTOM)
+        assertThat(store.artifactsMode.first()).isEqualTo(ArtifactsMode.CUSTOM)
+    }
 
     // --- ServerDataStore ---
 

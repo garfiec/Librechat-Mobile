@@ -408,4 +408,12 @@
     <string name="web_search_keys_remove_failed">Impossible de supprimer vos clés. Réessayez.</string>
     <string name="web_search_keys_cancel">Annuler</string>
     <string name="web_search_keys_save">Enregistrer</string>
+    <string name="artifacts_mode_title">Style des artefacts</string>
+    <string name="artifacts_mode_intro">Les artefacts sont des documents, diagrammes, pages web et petites applis que l'IA crée pour que vous les ouvriez et les essayiez. Ce réglage définit ce qu'on apprend à l'IA pour les créer quand Artefacts est activé.</string>
+    <string name="artifacts_mode_default">Standard</string>
+    <string name="artifacts_mode_default_desc">Convient à presque tout ce que vous demanderez. Recommandé.</string>
+    <string name="artifacts_mode_shadcnui">Applis soignées</string>
+    <string name="artifacts_mode_shadcnui_desc">Apprend aussi à l'IA un ensemble de boutons, formulaires et cartes prêts à l'emploi (shadcn/ui) pour des applis interactives plus belles. Chaque message est plus long à lire pour l'IA, les réponses peuvent donc être plus lentes.</string>
+    <string name="artifacts_mode_custom">Mes instructions uniquement</string>
+    <string name="artifacts_mode_custom_desc">Désactive les consignes intégrées : l'IA suit seulement les instructions personnalisées que vous avez écrites. Elle peut ne pas créer d'artefacts si vos instructions n'expliquent pas comment.</string>
 </resources>

@@ -8,19 +8,25 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayPrefs
+import com.garfiec.librechat.core.model.ArtifactsMode
+import com.garfiec.librechat.core.ui.artifacts.artifactsModeName
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.resources.artifacts_mode_title
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
+import com.garfiec.librechat.core.ui.resources.Res as CoreUiRes
 
 @Composable
 internal fun ArtifactSettingsSection(
     displayPrefs: ArtifactDisplayPrefs,
     inlineArtifactSummary: String,
     librariesSummary: String,
+    artifactsMode: ArtifactsMode,
     onOpenArtifactViewerDialog: () -> Unit,
     onOpenRenderInlineDialog: () -> Unit,
     onOpenLibrariesDialog: () -> Unit,
+    onOpenArtifactsModeDialog: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -46,6 +52,12 @@ internal fun ArtifactSettingsSection(
                 title = stringResource(Res.string.artifact_libraries_title),
                 value = librariesSummary,
                 onClick = onOpenLibrariesDialog,
+            )
+
+            SelectorRow(
+                title = stringResource(CoreUiRes.string.artifacts_mode_title),
+                value = artifactsModeName(artifactsMode),
+                onClick = onOpenArtifactsModeDialog,
             )
         }
         AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))

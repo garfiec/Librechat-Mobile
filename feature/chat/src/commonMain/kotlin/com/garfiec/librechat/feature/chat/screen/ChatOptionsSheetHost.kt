@@ -84,6 +84,8 @@ internal fun ChatOptionsSheetHost(
             focus = controller.focus,
             enabledTools = uiState.effectiveEnabledTools,
             onToggleTool = viewModel::toggleTool,
+            artifactsMode = uiState.selection.artifactsMode,
+            onSetArtifactsMode = viewModel::setArtifactsMode,
             mcpServers = uiState.mcpServers,
             selectedMcpServerNames = uiState.effectiveMcpServerNames,
             onToggleMcpServer = viewModel::toggleMcpServer,

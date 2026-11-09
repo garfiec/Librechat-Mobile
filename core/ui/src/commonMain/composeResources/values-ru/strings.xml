@@ -414,4 +414,12 @@
     <string name="web_search_keys_remove_failed">Не удалось удалить ключи. Попробуйте ещё раз.</string>
     <string name="web_search_keys_cancel">Отмена</string>
     <string name="web_search_keys_save">Сохранить</string>
+    <string name="artifacts_mode_title">Стиль артефактов</string>
+    <string name="artifacts_mode_intro">Артефакты — это документы, диаграммы, веб-страницы и небольшие приложения, которые ИИ создаёт, чтобы вы могли их открыть и попробовать. Здесь задаётся, чему ИИ учат о их создании, пока артефакты включены.</string>
+    <string name="artifacts_mode_default">Стандартный</string>
+    <string name="artifacts_mode_default_desc">Подходит почти для всего, о чём вы попросите. Рекомендуется.</string>
+    <string name="artifacts_mode_shadcnui">Красивые приложения</string>
+    <string name="artifacts_mode_shadcnui_desc">Дополнительно учит ИИ набору готовых кнопок, форм и карточек (shadcn/ui) для более красивых интерактивных приложений. Каждое сообщение становится длиннее для ИИ, поэтому ответы могут приходить медленнее.</string>
+    <string name="artifacts_mode_custom">Только мои инструкции</string>
+    <string name="artifacts_mode_custom_desc">Отключает встроенные указания: ИИ следует только вашим собственным инструкциям. Без объяснения в них он может не создавать артефакты.</string>
 </resources>

@@ -2,7 +2,6 @@ package com.garfiec.librechat.feature.chat.viewmodel
 
 import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.data.endpoint.EndpointDispatch
-import com.garfiec.librechat.core.model.ArtifactsMode
 import com.garfiec.librechat.core.model.request.EphemeralAgent
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import kotlinx.serialization.json.JsonObject
@@ -57,9 +56,9 @@ class ChatRequestBuilder(
         // configures skills overrides it server-side, and without the capability or role the
         // server ignores it.
         val skillsOn = state.skillsToggle && state.isSkillsToolAvailable
-        // A spec's mode wins; the toggle only ever sends the default mode.
+        // A spec's mode wins over the user's.
         val artifacts = state.activeSpec?.artifactsMode
-            ?: ArtifactsMode.DEFAULT.wire.takeIf {
+            ?: state.selection.artifactsMode.wire.takeIf {
                 ToolConstants.ARTIFACTS in inUse && state.toolGateOpen(ToolConstants.ARTIFACTS)
             }
 

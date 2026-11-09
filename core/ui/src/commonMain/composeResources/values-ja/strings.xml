@@ -396,4 +396,12 @@
     <string name="web_search_keys_remove_failed">キーを削除できませんでした。もう一度お試しください。</string>
     <string name="web_search_keys_cancel">キャンセル</string>
     <string name="web_search_keys_save">保存</string>
+    <string name="artifacts_mode_title">アーティファクトのスタイル</string>
+    <string name="artifacts_mode_intro">アーティファクトとは、AI が作成する文書・図・ウェブページ・小さなアプリで、開いて試すことができます。アーティファクトがオンのとき、作り方について AI に何を教えるかを設定します。</string>
+    <string name="artifacts_mode_default">標準</string>
+    <string name="artifacts_mode_default_desc">ほとんどの依頼に適しています。おすすめ。</string>
+    <string name="artifacts_mode_shadcnui">洗練されたアプリ</string>
+    <string name="artifacts_mode_shadcnui_desc">ボタン・フォーム・カードなどの既製部品 (shadcn/ui) も AI に教え、見栄えのよいインタラクティブなアプリにします。AI が読むメッセージが長くなるため、返答が遅くなることがあります。</string>
+    <string name="artifacts_mode_custom">自分の指示のみ</string>
+    <string name="artifacts_mode_custom_desc">組み込みのガイドをオフにし、AI はあなたが書いたカスタム指示だけに従います。指示に作り方がないと、アーティファクトを作らないことがあります。</string>
 </resources>
