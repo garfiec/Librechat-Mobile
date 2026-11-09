@@ -23,6 +23,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -46,6 +47,7 @@ import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.endpoint.KeyState
 import com.garfiec.librechat.core.ui.artifacts.ArtifactsModeChoices
 import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
+import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.ModelParameterContent
 import com.garfiec.librechat.core.ui.components.ModelParameters
@@ -199,6 +201,11 @@ fun ChatOptionsBottomSheet(
     tools: ChatToolsPageParams,
     selector: ModelSelectorPageParams,
     parameters: ModelParametersPageParams,
+    /**
+     * The chat's snackbar, shown again inside the sheet: the sheet is its own window, so the chat's
+     * host draws under it and a notice raised from the sheet (a failed MCP sign-in) would be unseen.
+     */
+    snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
 ) {
     // Held here, not in ChatToolsSheetContent: AnimatedContent drops the Options page from
@@ -410,6 +417,10 @@ fun ChatOptionsBottomSheet(
                         )
                     }
                 }
+            }
+            // The selector shows its error inline; the snackbar there would repeat it.
+            if (page != ChatOptionsPage.ModelSelector) {
+                AdaptiveSnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.chat.screen
 
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -47,6 +48,7 @@ internal fun ChatOptionsSheetHost(
     onShowSavePresetDialog: () -> Unit,
     /** Compare setup's staged picks: during setup the Model page stages into them. */
     compareSetupPick: CompareSetupPick,
+    snackbarHostState: SnackbarHostState,
 ) {
     // A send-block auto-opens the standalone selector; close this one so they can't stack. Gate on
     // the flag (not just its change) to also catch it being already true when this sheet opens.
@@ -80,6 +82,7 @@ internal fun ChatOptionsSheetHost(
         entryPage = controller.entryPage ?: page,
         onPageChange = controller::open,
         onDismiss = controller::close,
+        snackbarHostState = snackbarHostState,
         tools = ChatToolsPageParams(
             focus = controller.focus,
             enabledTools = uiState.effectiveEnabledTools,
