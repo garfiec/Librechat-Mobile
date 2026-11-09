@@ -1230,4 +1230,22 @@
         <item quantity="many">%1$d demandent une connexion</item>
         <item quantity="other">%1$d demandent une connexion</item>
     </plurals>
+    <string name="web_search_keys_setup">Configurer la recherche LibreChat</string>
+    <string name="web_search_keys_fallback">Recherche de %1$s utilisée en attendant vos clés</string>
+    <string name="web_search_keys_add">Ajoutez vos clés de recherche</string>
+    <string name="web_search_keys_title">Clés de recherche</string>
+    <string name="web_search_keys_body">La recherche LibreChat fonctionne avec vos propres clés. Elles sont stockées sur votre serveur LibreChat.</string>
+    <string name="web_search_keys_keep_hint">Laissez un champ vide pour conserver la clé enregistrée.</string>
+    <string name="web_search_keys_section_providers">Fournisseur de recherche</string>
+    <string name="web_search_keys_section_scrapers">Lecteur de pages</string>
+    <string name="web_search_keys_section_rerankers">Reclassement</string>
+    <string name="web_search_keys_pinned">Choisi par votre serveur</string>
+    <string name="web_search_keys_none">Aucun</string>
+    <string name="web_search_keys_api_key">Clé API %1$s</string>
+    <string name="web_search_keys_api_key_optional">Clé API %1$s (facultative)</string>
+    <string name="web_search_keys_url">URL %1$s</string>
+    <string name="web_search_keys_url_optional">URL %1$s (facultative)</string>
+    <string name="web_search_keys_remove">Supprimer les clés</string>
+    <string name="web_search_keys_save_failed">Impossible d'enregistrer vos clés. Réessayez.</string>
+    <string name="web_search_keys_remove_failed">Impossible de supprimer vos clés. Réessayez.</string>
 </resources>

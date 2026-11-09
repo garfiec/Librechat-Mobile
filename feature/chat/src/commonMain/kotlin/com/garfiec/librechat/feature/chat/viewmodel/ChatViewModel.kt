@@ -142,6 +142,7 @@ import com.garfiec.librechat.feature.chat.viewmodel.delegate.ToolPartHydrationDe
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.UploadIntakeDelegate
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -2188,6 +2189,23 @@ class ChatViewModel(
         // Per conversation, so it never goes through the global enabled-tools store.
         if (toolName == ToolConstants.SKILLS) skillsToggleDelegate.toggle() else modelDelegate.toggleTool(toolName)
     }
+
+    /**
+     * Saves the user's LibreChat search keys ([auth] in web's form) and, once saved, turns Web Search
+     * on through [toggleTool] if it is off. Runs in the ViewModel's scope, so closing the key sheet
+     * doesn't cancel it; false when the server refused.
+     */
+    suspend fun saveWebSearchKeys(auth: Map<String, String>): Boolean = viewModelScope.async {
+        chatConfigDelegate.saveWebSearchKeys(auth).also { saved ->
+            if (saved && ToolConstants.WEB_SEARCH !in _uiState.value.selection.effectiveTools) {
+                toggleTool(ToolConstants.WEB_SEARCH)
+            }
+        }
+    }.await()
+
+    /** Removes the user's LibreChat search keys; false when the server refused. */
+    suspend fun removeWebSearchKeys(): Boolean =
+        viewModelScope.async { chatConfigDelegate.removeWebSearchKeys() }.await()
 
     /** A settings-line chip's switch: the same toggle the "+" sheet's row flips. */
     fun toggleSettingChip(chip: SettingChip) {

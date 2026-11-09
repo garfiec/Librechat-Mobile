@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -92,6 +93,7 @@ import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.util.KeyHint
 import com.garfiec.librechat.feature.chat.util.SETTING_TOOL_ORDER
 import com.garfiec.librechat.feature.chat.util.ToolsSheetFocus
+import com.garfiec.librechat.feature.chat.util.WebSearchKeysRow
 import com.garfiec.librechat.feature.chat.util.WebSearchKind
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
@@ -184,6 +186,10 @@ fun ChatToolsSheetContent(
     /** Signs a server in from its row, turning it on once it connects; null offers no sign-in. */
     onSignInMcpServer: ((String) -> Unit)? = null,
     onCancelMcpSignIn: ((String) -> Unit)? = null,
+    /** The LibreChat search key row under the tool grid; null hides it. */
+    webSearchKeys: WebSearchKeysRow? = null,
+    /** Opens the search key sheet, from the row or a Web Search tile that has no search to run without keys. */
+    onOpenWebSearchKeys: () -> Unit = {},
 ) {
     val dragSelection = rememberListDragSelection()
     val expandMcp by rememberUpdatedState(onMcpExpandedChange)
@@ -267,8 +273,25 @@ fun ChatToolsSheetContent(
                     lockedTools = gates.lockedTools,
                     lockedBy = selection.lockedBy,
                     webSearchKind = webSearchKind,
-                    onToggleTool = onToggleTool,
+                    onToggleTool = { key ->
+                        if (key == ToolConstants.WEB_SEARCH && key !in enabledTools && webSearchKeys?.opensOnTurnOn == true) {
+                            onOpenWebSearchKeys()
+                            onDismiss()
+                        } else {
+                            onToggleTool(key)
+                        }
+                    },
                     focus = focus,
+                )
+            }
+            if (webSearchKeys != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                WebSearchKeysActionRow(
+                    row = webSearchKeys,
+                    onClick = {
+                        onOpenWebSearchKeys()
+                        onDismiss()
+                    },
                 )
             }
         } else if (toolsHiddenReason != null) {
@@ -511,9 +534,24 @@ private fun ModelRow(
     }
 }
 
+/** The search key row: set-up wording until the user's keys work, then the providers they run. */
+@Composable
+internal fun WebSearchKeysActionRow(row: WebSearchKeysRow, onClick: () -> Unit) {
+    SheetActionRow(
+        icon = Icons.Default.VpnKey,
+        label = stringResource(if (row.authenticated) Res.string.web_search_keys_title else Res.string.web_search_keys_setup),
+        supporting = when {
+            row.authenticated -> row.summary
+            row.fallbackProvider != null -> stringResource(Res.string.web_search_keys_fallback, row.fallbackProvider)
+            else -> stringResource(Res.string.web_search_keys_add)
+        },
+        onClick = onClick,
+    )
+}
+
 /** A full-width labelled action on the page's tile surface (the code upload, Parameters without a picker). */
 @Composable
-private fun SheetActionRow(icon: ImageVector, label: String, onClick: () -> Unit) {
+private fun SheetActionRow(icon: ImageVector, label: String, onClick: () -> Unit, supporting: String? = null) {
     AdaptiveCard(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth().padding(horizontal = TileInset),
@@ -529,13 +567,23 @@ private fun SheetActionRow(icon: ImageVector, label: String, onClick: () -> Unit
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelLarge,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (supporting != null) {
+                    Text(
+                        text = supporting,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,

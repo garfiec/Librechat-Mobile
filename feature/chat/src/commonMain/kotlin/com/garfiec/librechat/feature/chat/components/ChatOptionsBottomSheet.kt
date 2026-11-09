@@ -56,6 +56,7 @@ import com.garfiec.librechat.feature.chat.resources.params_title_lane_a
 import com.garfiec.librechat.feature.chat.resources.tool_model
 import com.garfiec.librechat.feature.chat.resources.tool_model_parameters
 import com.garfiec.librechat.feature.chat.util.ToolsSheetFocus
+import com.garfiec.librechat.feature.chat.util.WebSearchKeysRow
 import com.garfiec.librechat.feature.chat.util.WebSearchKind
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
@@ -108,6 +109,9 @@ data class ChatToolsPageParams(
     /** An MCP row's "Sign in" (the server turns on once it connects) and "Cancel sign-in". */
     val onSignInMcpServer: ((String) -> Unit)? = null,
     val onCancelMcpSignIn: ((String) -> Unit)? = null,
+    /** The LibreChat search key row; null hides it. */
+    val webSearchKeys: WebSearchKeysRow? = null,
+    val onOpenWebSearchKeys: () -> Unit = {},
 )
 
 /**
@@ -293,6 +297,8 @@ fun ChatOptionsBottomSheet(
                         focus = tools.focus,
                         onSignInMcpServer = tools.onSignInMcpServer,
                         onCancelMcpSignIn = tools.onCancelMcpSignIn,
+                        webSearchKeys = tools.webSearchKeys,
+                        onOpenWebSearchKeys = tools.onOpenWebSearchKeys,
                     )
 
                     ChatOptionsPage.ModelSelector -> ModelSelectorSheetContent(

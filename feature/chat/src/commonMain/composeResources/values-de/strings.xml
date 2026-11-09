@@ -1214,4 +1214,22 @@
         <item quantity="one">%1$d braucht eine Anmeldung</item>
         <item quantity="other">%1$d brauchen eine Anmeldung</item>
     </plurals>
+    <string name="web_search_keys_setup">LibreChat-Suche einrichten</string>
+    <string name="web_search_keys_fallback">Suche von %1$s, bis du Schlüssel hinzufügst</string>
+    <string name="web_search_keys_add">Eigene Suchschlüssel hinzufügen</string>
+    <string name="web_search_keys_title">Suchschlüssel</string>
+    <string name="web_search_keys_body">Die LibreChat-Suche läuft mit deinen eigenen Schlüsseln. Sie werden auf deinem LibreChat-Server gespeichert.</string>
+    <string name="web_search_keys_keep_hint">Lass ein Feld leer, um den gespeicherten Schlüssel zu behalten.</string>
+    <string name="web_search_keys_section_providers">Suchanbieter</string>
+    <string name="web_search_keys_section_scrapers">Seitenleser</string>
+    <string name="web_search_keys_section_rerankers">Reranker</string>
+    <string name="web_search_keys_pinned">Von deinem Server festgelegt</string>
+    <string name="web_search_keys_none">Keiner</string>
+    <string name="web_search_keys_api_key">%1$s-API-Schlüssel</string>
+    <string name="web_search_keys_api_key_optional">%1$s-API-Schlüssel (optional)</string>
+    <string name="web_search_keys_url">%1$s-URL</string>
+    <string name="web_search_keys_url_optional">%1$s-URL (optional)</string>
+    <string name="web_search_keys_remove">Schlüssel entfernen</string>
+    <string name="web_search_keys_save_failed">Deine Schlüssel konnten nicht gespeichert werden. Versuche es erneut.</string>
+    <string name="web_search_keys_remove_failed">Deine Schlüssel konnten nicht entfernt werden. Versuche es erneut.</string>
 </resources>

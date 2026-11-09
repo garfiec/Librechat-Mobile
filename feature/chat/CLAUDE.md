@@ -679,14 +679,18 @@ and never send both** (the server runs both on OpenAI and custom endpoints).
   the server unset it); a comparison → LibreChat search when it can (lane B only gets the primary's
   tools); else `AppPreferences.WebSearchFirst`, falling back to the other, else hidden.
 - **LibreChat search counts only when ready** (`librechatSearchReady`: the agents `capabilities`
-  include `web_search` (a missing or empty list counts), config `webSearch`, and
-  `GET /api/agents/tools/web_search/auth` → `authenticated`; cached per account in
-  `WebSearchReadinessRepository`; a failure caches nothing and retries; an answer after an account
-  switch is dropped). Strict because the server adds the tool without checking keys.
+  include `web_search` (a missing or empty list counts) and
+  `GET /api/agents/tools/web_search/auth` → `authenticated`, asked whether or not config serves
+  `webSearch`; cached per account in `WebSearchReadinessRepository`; a failure caches nothing and
+  retries; an answer after an account switch is dropped). Strict because the server adds the tool
+  without checking keys.
 - **While that check is out, a send that would use LibreChat search runs none**
-  (`WebSearchRoute.CHECKING`), so the search never depends on timing. Only LibreChat-search sends are
-  held, not built-in ones. Once the readiness retries are exhausted the hold lifts and the other
-  search runs (the check keeps going once a minute).
+  (`WebSearchRoute.CHECKING`), so the search never depends on timing, but only where config serves
+  `webSearch`. Only LibreChat-search sends are held, not built-in ones. Once the readiness retries
+  are exhausted the hold lifts and the other search runs (the check keeps going once a minute).
+- **Keys the server leaves to the user** (`authTypes` `user_provided`) are entered only in
+  `WebSearchKeysSheet`, opened from the "+" sheet. Save and remove go through
+  `WebSearchReadinessRepository`, so every chat's cached answer is invalidated.
 - `interface.webSearch` rules out LibreChat search only; the built-in needs just `WEB_SEARCH.USE`.
 - Built-in exists on openAI, azureOpenAI, anthropic, google and a custom endpoint whose parameter set
   (`paramSettingsKey`) is `anthropic`, `google` or `openrouter` or whose name contains `openrouter`

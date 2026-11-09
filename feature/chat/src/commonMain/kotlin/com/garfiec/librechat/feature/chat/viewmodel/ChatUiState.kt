@@ -60,6 +60,7 @@ import com.garfiec.librechat.feature.chat.util.SettingChips
 import com.garfiec.librechat.feature.chat.util.SkillPickRules
 import com.garfiec.librechat.feature.chat.util.ThinkingChip
 import com.garfiec.librechat.feature.chat.util.ToolDecisionDraft
+import com.garfiec.librechat.feature.chat.util.WebSearchKeysRow
 import com.garfiec.librechat.feature.chat.util.WebSearchKind
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.util.builtInSearchProvider
@@ -73,6 +74,7 @@ import com.garfiec.librechat.feature.chat.util.requiresSpec
 import com.garfiec.librechat.feature.chat.util.resolveLandingStarters
 import com.garfiec.librechat.feature.chat.util.skillPickRules
 import com.garfiec.librechat.feature.chat.util.stoppedReplyId
+import com.garfiec.librechat.feature.chat.util.summary
 import com.garfiec.librechat.feature.chat.util.thinkingChip
 import com.garfiec.librechat.feature.chat.util.webSearchRoute
 
@@ -706,6 +708,31 @@ data class ChatUiState(
 
     /** The tools whose gate is open ([toolGateOpen]): the "+" sheet's rows and the settings line's candidates. */
     val openTools: Set<String> get() = SETTING_TOOL_ORDER.filterTo(mutableSetOf(), ::toolGateOpen)
+
+    /**
+     * The "+" sheet's tiles: [openTools], plus Web Search where only the user's own keys would make it
+     * run ([WebSearchKeysRow.opensOnTurnOn]); turning it on there opens the key sheet. The settings
+     * line keeps [openTools].
+     */
+    val sheetTools: Set<String>
+        get() = if (webSearchKeysRow?.opensOnTurnOn == true) openTools + ToolConstants.WEB_SEARCH else openTools
+
+    /**
+     * The "+" sheet's LibreChat search key row, or null where it doesn't show: the server leaves at
+     * least one key category to the user, and LibreChat search could run here (role, interface,
+     * capability, a send with ephemeral tools).
+     */
+    val webSearchKeysRow: WebSearchKeysRow?
+        get() {
+            val keys = gates.webSearchKeys?.takeIf { it.offered } ?: return null
+            if (!showEphemeralTools || !webSearchEnabled || !librechatSearchCapable) return null
+            if (keys.authenticated) return WebSearchKeysRow(authenticated = true, summary = keys.summary())
+            return WebSearchKeysRow(
+                authenticated = false,
+                fallbackProvider = builtInSearchProvider?.displayName?.takeIf { webSearchRoute == WebSearchRoute.BUILT_IN },
+                opensOnTurnOn = webSearchTarget == WebSearchRoute.NONE && ToolConstants.WEB_SEARCH !in lockedTools,
+            )
+        }
 
     /**
      * What the composer's settings line is built from ([settingChipsOf]). Read by the ViewModel's
