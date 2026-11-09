@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -17,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,17 +35,13 @@ import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.glass.GlassControlColors
-import com.garfiec.librechat.core.ui.glass.GlassDefaults
-import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
-import com.garfiec.librechat.core.ui.glass.glassSurface
-import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
-import com.garfiec.librechat.core.ui.theme.LocalDarkTheme
+import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 
 /**
  * A tile that is one switch: [icon], [label] (up to two lines) and a one-line [stateLabel] such as
  * "On" or "Set by …". A [locked] tile is announced disabled, shows a lock glyph and doesn't toggle.
- * Material fills it with the primary container when [checked]; Liquid Glass draws a glass panel,
- * tinted with the control accent when [checked].
+ * Filled solid in both styles, as [AdaptiveTile]; [checked] fills it with the primary container in
+ * Material and the control accent in Liquid Glass.
  */
 @Composable
 fun AdaptiveToggleTile(
@@ -55,28 +53,24 @@ fun AdaptiveToggleTile(
     modifier: Modifier = Modifier,
     locked: Boolean = false,
 ) {
-    val style = rememberGlassStyle()
+    val glass = isLiquidGlass
     val scheme = MaterialTheme.colorScheme
-    val surface = if (style == null) {
-        Modifier.background(if (checked) scheme.primaryContainer else scheme.surfaceContainerHigh)
-    } else {
-        Modifier
-            .glassSurface(style, ToggleTileShape, LocalGlassBackdrop.current)
-            .background(
-                if (checked) GlassControlColors.tint else GlassDefaults.panelThickening(scheme.surface, LocalDarkTheme.current),
-            )
+    val fill = when {
+        !checked -> tileFill()
+        glass -> GlassControlColors.tint
+        else -> scheme.primaryContainer
     }
     val contentColor = when {
         !checked -> scheme.onSurface
-        style == null -> scheme.onPrimaryContainer
-        else -> Color.White
+        glass -> Color.White
+        else -> scheme.onPrimaryContainer
     }
     val stateColor = if (checked) contentColor else GlassControlColors.secondaryLabel
     val click = if (locked) Modifier else Modifier.clickable(role = Role.Switch, onClick = onClick)
     Row(
         modifier = modifier
-            .clip(ToggleTileShape)
-            .then(surface)
+            .clip(TileShape)
+            .background(fill)
             .semantics(mergeDescendants = true) {
                 role = Role.Switch
                 toggleableState = ToggleableState(checked)
@@ -113,4 +107,29 @@ fun AdaptiveToggleTile(
     }
 }
 
-private val ToggleTileShape = RoundedCornerShape(16.dp)
+/**
+ * A tile on a sheet's page, one button when [onClick] is set. Solid in both styles: the sheet is
+ * already glass, and a glass tile on it would double the effect.
+ */
+@Composable
+fun AdaptiveTile(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier
+            .clip(TileShape)
+            .background(tileFill())
+            .then(if (onClick == null) Modifier else Modifier.clickable(role = Role.Button, onClick = onClick)),
+    ) {
+        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) { content() }
+    }
+}
+
+@Composable
+@ReadOnlyComposable
+private fun tileFill(): Color =
+    if (isLiquidGlass) GlassControlColors.cell else MaterialTheme.colorScheme.surfaceContainerHigh
+
+private val TileShape = RoundedCornerShape(16.dp)
