@@ -16,7 +16,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Hub
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,11 +30,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -39,20 +46,33 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveSuggestionChip
+import com.garfiec.librechat.core.ui.components.InitialTile
+import com.garfiec.librechat.core.ui.components.TileStatusDot
+import com.garfiec.librechat.core.ui.mcp.mcpStatusColor
+import com.garfiec.librechat.core.ui.mcp.mcpStatusLabel
 import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
+import com.garfiec.librechat.feature.chat.model.McpPick
+import com.garfiec.librechat.feature.chat.model.PickerMcpServer
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_picker_leave_scope
+import com.garfiec.librechat.feature.chat.resources.mcp_set_up_action
+import com.garfiec.librechat.feature.chat.resources.mcp_sign_in_action
+import com.garfiec.librechat.feature.chat.resources.picker_chip_mcp
 import com.garfiec.librechat.feature.chat.resources.picker_chip_prompts
 import com.garfiec.librechat.feature.chat.resources.picker_chip_skills
 import com.garfiec.librechat.feature.chat.resources.picker_loading_skills
+import com.garfiec.librechat.feature.chat.resources.picker_mcp_unavailable
 import com.garfiec.librechat.feature.chat.resources.picker_no_matches
+import com.garfiec.librechat.feature.chat.resources.picker_scope_mcp
 import com.garfiec.librechat.feature.chat.resources.picker_scope_prompts
 import com.garfiec.librechat.feature.chat.resources.picker_scope_skills
 import com.garfiec.librechat.feature.chat.resources.picker_skills_failed
 import com.garfiec.librechat.feature.chat.resources.picker_skills_unavailable
+import com.garfiec.librechat.feature.chat.resources.picker_type_mcp
 import com.garfiec.librechat.feature.chat.resources.picker_type_prompt
 import com.garfiec.librechat.feature.chat.resources.picker_type_skill
 import com.garfiec.librechat.feature.chat.resources.retry
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 private val MAX_LIST_HEIGHT = 220.dp
@@ -65,14 +85,14 @@ private val SCOPE_HEADER_HEIGHT = 48.dp
  * Rendered inline in the composer column rather than as a popup or dropdown, so it participates in
  * the same insets as the input itself and cannot be clipped or hidden behind the keyboard.
  *
- * The mixed list tags every row with its type and, when both types have items, opens with chips that
- * write a scope's command into the field ([onPickerTextChange]). A scoped list says which type it
- * searches, with a close that goes back to `/`, and drops the tags. With no rows the mixed list
- * says "No matches" when there was something to search ([hasPrompts], [hasSkills]) and stays hidden
- * otherwise, so a leading `/` in a chat with no prompts and no skills draws nothing; a scoped list
- * always answers. While the skill catalog loads ([isLoadingSkills]) a loading row closes a list that
- * holds skills; when it failed ([skillsLoadFailed]) a retry row replaces "No matches", which a
- * missing catalog can't vouch for.
+ * The mixed list tags every row with its type and, when two or more types have items, opens with
+ * a chip per type that writes its scope's command into the field ([onPickerTextChange]). A scoped
+ * list says which type it searches, with a close that goes back to `/`, and drops the tags. With no
+ * rows the mixed list says "No matches" when there was something to search ([hasPrompts],
+ * [hasSkills], [hasMcp]) and stays hidden otherwise, so a leading `/` in a chat with nothing to
+ * pick draws nothing; a scoped list always answers. While the skill catalog loads
+ * ([isLoadingSkills]) a loading row closes a list that holds skills; when it failed
+ * ([skillsLoadFailed]) a retry row replaces "No matches", which a missing catalog can't vouch for.
  */
 @Suppress("LongParameterList")
 @Composable
@@ -81,6 +101,7 @@ fun PromptSuggestionList(
     rows: List<ComposerPickerItem>,
     hasPrompts: Boolean,
     hasSkills: Boolean,
+    hasMcp: Boolean,
     canPickSkills: Boolean,
     isLoadingSkills: Boolean,
     onSelect: (ComposerPickerItem) -> Unit,
@@ -91,13 +112,18 @@ fun PromptSuggestionList(
 ) {
     if (picker == null) return
     val scope = picker.scope
-    val listsSkills = scope != PickerScope.PROMPTS
+    val listsSkills = scope == null || scope == PickerScope.SKILLS
     val loading = listsSkills && isLoadingSkills
     val showFailed = listsSkills && skillsLoadFailed && !isLoadingSkills
-    val skillsUnavailable = scope == PickerScope.SKILLS && !canPickSkills
-    val showChips = scope == null && hasPrompts && hasSkills
-    val showNoMatches = rows.isEmpty() && !loading && !showFailed && !skillsUnavailable &&
-        (scope != null || hasPrompts || hasSkills)
+    val unavailable = when (scope) {
+        PickerScope.SKILLS -> Res.string.picker_skills_unavailable.takeIf { !canPickSkills }
+        PickerScope.MCP -> Res.string.picker_mcp_unavailable.takeIf { !hasMcp }
+        else -> null
+    }
+    val chipTypes = ChipTypes(prompts = hasPrompts, skills = hasSkills, mcp = hasMcp)
+        .takeIf { scope == null && it.count >= 2 }
+    val showNoMatches = rows.isEmpty() && !loading && !showFailed && unavailable == null &&
+        (scope != null || hasPrompts || hasSkills || hasMcp)
     if (scope == null && rows.isEmpty() && !showNoMatches && !loading && !showFailed) return
 
     Surface(
@@ -117,8 +143,8 @@ fun PromptSuggestionList(
                 picker = picker,
                 rows = rows,
                 tagged = scope == null,
-                showChips = showChips,
-                skillsUnavailable = skillsUnavailable,
+                chipTypes = chipTypes,
+                unavailable = unavailable,
                 showNoMatches = showNoMatches,
                 loading = loading,
                 showFailed = showFailed,
@@ -137,8 +163,8 @@ private fun PickerItems(
     picker: PickerQuery,
     rows: List<ComposerPickerItem>,
     tagged: Boolean,
-    showChips: Boolean,
-    skillsUnavailable: Boolean,
+    chipTypes: ChipTypes?,
+    unavailable: StringResource?,
     showNoMatches: Boolean,
     loading: Boolean,
     showFailed: Boolean,
@@ -151,17 +177,17 @@ private fun PickerItems(
     val listState = rememberLazyListState()
     LaunchedEffect(picker) { listState.scrollToItem(0) }
     LazyColumn(state = listState, modifier = Modifier.heightIn(max = maxHeight)) {
-        if (showChips) {
+        if (chipTypes != null) {
             item(key = "chips", contentType = "picker-chips") {
-                ScopeChips(onPickerTextChange = onPickerTextChange)
+                ScopeChips(types = chipTypes, onPickerTextChange = onPickerTextChange)
             }
         }
         items(rows, key = { it.key }, contentType = { "picker-row" }) { row ->
             PickerRow(row = row, tagged = tagged, onClick = { onSelect(row) })
         }
-        if (skillsUnavailable) {
-            item(key = "skills-unavailable", contentType = "picker-note") {
-                PickerNote(text = stringResource(Res.string.picker_skills_unavailable))
+        if (unavailable != null) {
+            item(key = "unavailable", contentType = "picker-note") {
+                PickerNote(text = stringResource(unavailable))
             }
         }
         if (showNoMatches) {
@@ -187,6 +213,7 @@ private fun ScopeHeader(scope: PickerScope, onLeave: () -> Unit) {
     val (icon, label) = when (scope) {
         PickerScope.PROMPTS -> promptCategoryIcon(null) to stringResource(Res.string.picker_scope_prompts)
         PickerScope.SKILLS -> SkillGlyph to stringResource(Res.string.picker_scope_skills)
+        PickerScope.MCP -> Icons.Default.Hub to stringResource(Res.string.picker_scope_mcp)
     }
     Row(
         modifier = Modifier
@@ -223,8 +250,13 @@ private fun ScopeHeader(scope: PickerScope, onLeave: () -> Unit) {
     }
 }
 
+/** Which types the mixed list's chips offer: those with something to pick. */
+private data class ChipTypes(val prompts: Boolean, val skills: Boolean, val mcp: Boolean) {
+    val count: Int get() = listOf(prompts, skills, mcp).count { it }
+}
+
 @Composable
-private fun ScopeChips(onPickerTextChange: (String) -> Unit) {
+private fun ScopeChips(types: ChipTypes, onPickerTextChange: (String) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -232,14 +264,24 @@ private fun ScopeChips(onPickerTextChange: (String) -> Unit) {
             .padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        AdaptiveSuggestionChip(
-            onClick = { onPickerTextChange("/prompt ") },
-            label = { ChipLabel(stringResource(Res.string.picker_chip_prompts), command = "/prompt") },
-        )
-        AdaptiveSuggestionChip(
-            onClick = { onPickerTextChange("$") },
-            label = { ChipLabel(stringResource(Res.string.picker_chip_skills), command = "$") },
-        )
+        if (types.prompts) {
+            AdaptiveSuggestionChip(
+                onClick = { onPickerTextChange("/prompt ") },
+                label = { ChipLabel(stringResource(Res.string.picker_chip_prompts), command = "/prompt") },
+            )
+        }
+        if (types.skills) {
+            AdaptiveSuggestionChip(
+                onClick = { onPickerTextChange("$") },
+                label = { ChipLabel(stringResource(Res.string.picker_chip_skills), command = "$") },
+            )
+        }
+        if (types.mcp) {
+            AdaptiveSuggestionChip(
+                onClick = { onPickerTextChange("/mcp ") },
+                label = { ChipLabel(stringResource(Res.string.picker_chip_mcp), command = "/mcp") },
+            )
+        }
     }
 }
 
@@ -271,40 +313,129 @@ private fun PickerRow(
     tagged: Boolean,
     onClick: () -> Unit,
 ) {
-    val icon: ImageVector
-    val title: String
-    val description: String?
-    val typeLabel: String
     when (row) {
-        is ComposerPickerItem.Prompt -> {
-            icon = promptCategoryIcon(row.prompt.category)
-            title = row.prompt.name
+        is ComposerPickerItem.Prompt -> InsertRow(
+            icon = promptCategoryIcon(row.prompt.category),
+            title = row.prompt.name,
             // Falls back to the prompt body so a group with no oneliner still shows what it does —
             // the web client leaves this slot empty entirely.
-            description = row.prompt.oneliner?.takeIf { it.isNotBlank() } ?: row.prompt.promptText
-            typeLabel = stringResource(Res.string.picker_type_prompt)
-        }
-        is ComposerPickerItem.Skill -> {
-            icon = SkillGlyph
-            title = row.skill.title
-            description = row.skill.description
-            typeLabel = stringResource(Res.string.picker_type_skill)
-        }
+            description = row.prompt.oneliner?.takeIf { it.isNotBlank() } ?: row.prompt.promptText,
+            typeLabel = stringResource(Res.string.picker_type_prompt).takeIf { tagged },
+            onClick = onClick,
+        )
+        is ComposerPickerItem.Skill -> InsertRow(
+            icon = SkillGlyph,
+            title = row.skill.title,
+            description = row.skill.description,
+            typeLabel = stringResource(Res.string.picker_type_skill).takeIf { tagged },
+            onClick = onClick,
+        )
+        is ComposerPickerItem.Mcp -> McpPickerRow(mcp = row.mcp, tagged = tagged, onClick = onClick)
     }
+}
+
+/** A mixed list tags each row ([typeLabel]): the types sit together, and a pick does different things. */
+@Composable
+private fun InsertRow(icon: ImageVector, title: String, description: String?, typeLabel: String?, onClick: () -> Unit) {
+    PickerRowLayout(
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .semantics { role = Role.Button },
+        leading = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp),
+            )
+        },
+        title = title,
+        description = description,
+        typeLabel = typeLabel,
+    )
+}
+
+/**
+ * A server's row: its connection under its name, and what a tap does at the end ("Sign in",
+ * "Set up", a check while on, a lock when the spec keeps it on). A row whose tap would do nothing
+ * ([McpPick.NONE]: locked and ready, or a sign-in already out) is disabled.
+ */
+@Composable
+private fun McpPickerRow(mcp: PickerMcpServer, tagged: Boolean, onClick: () -> Unit) {
+    val server = mcp.server
+    val pick = mcp.pick
+    val status = stringResource(mcpStatusLabel(server.status))
+    val description = server.description?.takeIf { it.isNotBlank() }
+    val ringColor = ChatInputDefaults.containerColor
+    PickerRowLayout(
+        modifier = Modifier
+            .clickable(enabled = pick != McpPick.NONE, onClick = onClick)
+            .semantics {
+                if (pick == McpPick.TOGGLE || (pick == McpPick.NONE && mcp.locked)) {
+                    role = Role.Checkbox
+                    toggleableState = ToggleableState(mcp.on || mcp.locked)
+                } else {
+                    role = Role.Button
+                }
+                if (pick == McpPick.NONE) disabled()
+            },
+        leading = {
+            InitialTile(seed = server.name, label = server.label, size = 20.dp) {
+                TileStatusDot(color = mcpStatusColor(server.status), ringColor = ringColor)
+            }
+        },
+        title = server.label,
+        description = if (description != null) "$status · $description" else status,
+        typeLabel = stringResource(Res.string.picker_type_mcp).takeIf { tagged },
+        trailing = {
+            when {
+                pick == McpPick.SIGN_IN -> RowAction(stringResource(Res.string.mcp_sign_in_action))
+                pick == McpPick.SET_UP -> RowAction(stringResource(Res.string.mcp_set_up_action))
+                mcp.locked -> RowStateIcon(Icons.Default.Lock)
+                mcp.on -> RowStateIcon(Icons.Default.Check, tint = MaterialTheme.colorScheme.primary)
+            }
+        },
+    )
+}
+
+@Composable
+private fun RowAction(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        maxLines = 1,
+        modifier = Modifier.padding(start = 8.dp),
+    )
+}
+
+@Composable
+private fun RowStateIcon(icon: ImageVector, tint: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        tint = tint,
+        modifier = Modifier.padding(start = 8.dp).size(18.dp),
+    )
+}
+
+@Composable
+private fun PickerRowLayout(
+    leading: @Composable () -> Unit,
+    title: String,
+    description: String?,
+    typeLabel: String?,
+    modifier: Modifier = Modifier,
+    trailing: @Composable () -> Unit = {},
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .semantics { role = Role.Button }
+            .then(modifier)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp),
-        )
+        leading()
         Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
             Text(
                 text = title,
@@ -323,8 +454,8 @@ private fun PickerRow(
                 )
             }
         }
-        // A mixed list tags each row: the two types sit together, and a pick does different things.
-        if (tagged) {
+        trailing()
+        if (typeLabel != null) {
             Text(
                 text = typeLabel,
                 style = MaterialTheme.typography.labelSmall,

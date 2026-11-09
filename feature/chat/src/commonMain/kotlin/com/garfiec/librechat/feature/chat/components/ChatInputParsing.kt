@@ -1,16 +1,17 @@
 package com.garfiec.librechat.feature.chat.components
 
 import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
+import com.garfiec.librechat.feature.chat.model.PickerMcpServer
 import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 
 /** The one type a scoped picker lists. */
-enum class PickerScope { PROMPTS, SKILLS }
+enum class PickerScope { PROMPTS, SKILLS, MCP }
 
 /**
- * An open picker: the [scope] it lists (null = prompts and skills together) and the [query] typed
- * after its command. The first [commandLength] characters of the text are the command the field
- * draws as a token (`/skill`, `/prompt`, `$`); 0 for the plain `/`.
+ * An open picker: the [scope] it lists (null = every type together) and the [query] typed after its
+ * command. The first [commandLength] characters of the text are the command the field draws as a
+ * token (`/skill`, `/prompt`, `/mcp`, `$`); 0 for the plain `/`.
  */
 data class PickerQuery(val scope: PickerScope?, val query: String, val commandLength: Int = 0)
 
@@ -19,6 +20,7 @@ private val SCOPE_COMMANDS = mapOf(
     "prompts" to PickerScope.PROMPTS,
     "skill" to PickerScope.SKILLS,
     "skills" to PickerScope.SKILLS,
+    "mcp" to PickerScope.MCP,
 )
 
 /**
@@ -26,10 +28,10 @@ private val SCOPE_COMMANDS = mapOf(
  *
  * The trigger must lead the input, so a date, path or fraction (`1/2`) and a price mid-sentence
  * (`$5`) never open it.
- * - `/` lists prompts and skills together. A space closes it, which is how the user dismisses it
- *   without clearing what they typed.
- * - `/prompt ` and `/skill ` (plural or any case) list one type, and their query may hold spaces.
- *   `/skill ` opens even where no skill can be picked, so the list can say so.
+ * - `/` lists prompts, skills and MCP servers together. A space closes it, which is how the user
+ *   dismisses it without clearing what they typed.
+ * - `/prompt `, `/skill ` (either plural or any case) and `/mcp ` list one type, and their query
+ *   may hold spaces. `/skill ` and `/mcp ` open even where none can be picked, so the list can say so.
  * - `$` lists skills, only where a skill could be picked ([canPickSkills], which is
  *   `ChatUiState.canPickSkills`, the persisted agent's skill scope included): elsewhere it is just
  *   the start of a price or a ticker. A space closes it, so a price still types freely.
@@ -53,7 +55,8 @@ fun parsePickerQuery(text: String, canPickSkills: Boolean): PickerQuery? = when 
 
 /** Whether the picker [text] opens lists skills, which is when the skill catalog is needed. */
 fun pickerListsSkills(text: String, canPickSkills: Boolean): Boolean =
-    canPickSkills && parsePickerQuery(text, canPickSkills).let { it != null && it.scope != PickerScope.PROMPTS }
+    canPickSkills &&
+        parsePickerQuery(text, canPickSkills)?.let { it.scope == null || it.scope == PickerScope.SKILLS } == true
 
 /** The command a scoped picker's text starts with, which the field draws as a token. */
 fun pickerCommandRange(text: String, canPickSkills: Boolean): IntRange? =
@@ -101,24 +104,39 @@ private fun rankSkills(query: String, skills: List<PickerSkill>): List<PickerSki
         keys = listOf({ it.searchLabel() }, { it.name }),
     )
 
+private fun PickerMcpServer.searchLabel(): String =
+    server.description?.takeIf { it.isNotBlank() }?.let { "${server.label}: $it" } ?: server.label
+
+private fun rankMcpServers(query: String, servers: List<PickerMcpServer>): List<PickerMcpServer> =
+    matchSorter(
+        items = servers,
+        query = query,
+        keys = listOf({ it.searchLabel() }, { it.server.name }),
+    )
+
 /**
  * The rows the open [picker] shows, each type ranked against the query. The mixed list holds
- * prompts then skills, capped at [MAX_SUGGESTIONS]; a scoped list holds every match of its type.
+ * prompts, then skills, then MCP servers, capped at [MAX_SUGGESTIONS]; a scoped list holds every
+ * match of its type.
  *
- * [skills] arrive already narrowed to what may be picked here (see `pickableSkills`).
+ * [skills] arrive already narrowed to what may be picked here (see `pickableSkills`), and
+ * [mcpServers] are empty where none can be picked.
  */
 fun buildPickerRows(
     picker: PickerQuery,
     prompts: List<PromptMentionDisplayData>,
     skills: List<PickerSkill>,
+    mcpServers: List<PickerMcpServer> = emptyList(),
 ): List<ComposerPickerItem> {
     // A scoped query may end in the space before the next word, which no label would contain.
     val query = picker.query.trim()
     fun promptRows() = rankPrompts(query, prompts).map { ComposerPickerItem.Prompt(it) }
     fun skillRows() = rankSkills(query, skills).map { ComposerPickerItem.Skill(it) }
+    fun mcpRows() = rankMcpServers(query, mcpServers).map { ComposerPickerItem.Mcp(it) }
     return when (picker.scope) {
-        null -> (promptRows() + skillRows()).take(MAX_SUGGESTIONS)
+        null -> (promptRows() + skillRows() + mcpRows()).take(MAX_SUGGESTIONS)
         PickerScope.PROMPTS -> promptRows()
         PickerScope.SKILLS -> skillRows()
+        PickerScope.MCP -> mcpRows()
     }
 }

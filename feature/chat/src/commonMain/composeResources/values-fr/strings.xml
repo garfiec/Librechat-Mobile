@@ -646,7 +646,11 @@
     <string name="picker_chip_prompts">Invites</string>
     <string name="picker_chip_skills">Compétences</string>
     <string name="picker_skills_unavailable">Les compétences ne sont pas disponibles dans ce chat</string>
-    <string name="cd_picker_leave_scope">Afficher les invites et les compétences</string>
+    <string name="picker_type_mcp">MCP</string>
+    <string name="picker_scope_mcp">Recherche de serveurs MCP</string>
+    <string name="picker_chip_mcp">MCP</string>
+    <string name="picker_mcp_unavailable">Les serveurs MCP ne sont pas disponibles dans ce chat</string>
+    <string name="cd_picker_leave_scope">Afficher les invites, les compétences et les serveurs MCP</string>
     <string name="cd_remove_skill">Retirer la compétence %1$s</string>
     <string name="cd_skill_always_applied">Compétence toujours appliquée : %1$s</string>
     <string name="cd_skill_used">Compétence utilisée : %1$s</string>

@@ -76,6 +76,7 @@ import com.garfiec.librechat.feature.chat.components.PausePanelAutoAdvance
 import com.garfiec.librechat.feature.chat.components.parsePickerQuery
 import com.garfiec.librechat.feature.chat.components.pickerListsSkills
 import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
+import com.garfiec.librechat.feature.chat.model.McpPick
 import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
@@ -2093,8 +2094,9 @@ class ChatViewModel(
 
     /**
      * A row picked from the composer's picker. A prompt runs as a slash command. A skill becomes a
-     * pending chip (which also turns the conversation's Skills on) and the command and query the
-     * composer holds are cleared: the list only opens when its trigger leads the input, so the whole
+     * pending chip (which also turns the conversation's Skills on), and an MCP server switches when
+     * its pick is [McpPick.TOGGLE] (the screen starts a sign-in or set-up). Both clear the command and
+     * query the composer holds: the list only opens when its trigger leads the input, so the whole
      * text is the command.
      */
     fun selectPickerItem(item: ComposerPickerItem) {
@@ -2103,6 +2105,10 @@ class ChatViewModel(
             is ComposerPickerItem.Skill -> {
                 if (parsePickerQuery(_uiState.value.inputText, _uiState.value.canPickSkills) != null) onInputChanged("")
                 addPendingManualSkill(item.skill.name)
+            }
+            is ComposerPickerItem.Mcp -> {
+                if (parsePickerQuery(_uiState.value.inputText, _uiState.value.canPickSkills) != null) onInputChanged("")
+                if (item.mcp.pick == McpPick.TOGGLE) toggleMcpServer(item.mcp.server.name)
             }
         }
     }

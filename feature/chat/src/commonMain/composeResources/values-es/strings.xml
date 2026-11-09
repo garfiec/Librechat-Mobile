@@ -646,7 +646,11 @@
     <string name="picker_chip_prompts">Prompts</string>
     <string name="picker_chip_skills">Habilidades</string>
     <string name="picker_skills_unavailable">Las habilidades no están disponibles en este chat</string>
-    <string name="cd_picker_leave_scope">Mostrar prompts y habilidades</string>
+    <string name="picker_type_mcp">MCP</string>
+    <string name="picker_scope_mcp">Buscando servidores MCP</string>
+    <string name="picker_chip_mcp">MCP</string>
+    <string name="picker_mcp_unavailable">Los servidores MCP no están disponibles en este chat</string>
+    <string name="cd_picker_leave_scope">Mostrar prompts, habilidades y servidores MCP</string>
     <string name="cd_remove_skill">Quitar la habilidad %1$s</string>
     <string name="cd_skill_always_applied">Habilidad aplicada siempre: %1$s</string>
     <string name="cd_skill_used">Habilidad usada: %1$s</string>

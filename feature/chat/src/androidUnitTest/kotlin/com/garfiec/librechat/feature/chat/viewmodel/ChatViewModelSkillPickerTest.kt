@@ -15,6 +15,7 @@ import com.garfiec.librechat.core.model.StreamEvent
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.content.AgentToolCall
 import com.garfiec.librechat.core.model.content.MessageContentPart
+import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.response.ChatStatusResponse
 import com.garfiec.librechat.core.model.response.SkillListResponse
@@ -22,6 +23,8 @@ import com.garfiec.librechat.feature.chat.components.SKILL_TOOL_NAME
 import com.garfiec.librechat.feature.chat.components.parsePickerQuery
 import com.garfiec.librechat.feature.chat.components.pendingSkillRows
 import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
+import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
+import com.garfiec.librechat.feature.chat.model.PickerMcpServer
 import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
 import com.google.common.truth.Truth.assertThat
@@ -485,6 +488,30 @@ class ChatViewModelSkillPickerTest {
         runCurrent()
         assertThat(vm.uiState.value.inputText).isEqualTo("body of First")
         assertThat(vm.uiState.value.pendingManualSkills).isEmpty()
+    }
+
+    @Test
+    fun `an MCP pick clears the command and switches the server, a sign-in pick only clears`() = pickerTest { vm ->
+        fun pick(status: McpDisplayStatus, on: Boolean) = ComposerPickerItem.Mcp(
+            PickerMcpServer(McpServerDisplayData("github", "GitHub", null, status), on = on, locked = false),
+        )
+        vm.onInputChanged("/mcp git hub")
+        runCurrent()
+        vm.selectPickerItem(pick(McpDisplayStatus.CONNECTED, on = false))
+        runCurrent()
+        assertThat(vm.uiState.value.inputText).isEmpty()
+        assertThat(vm.uiState.value.effectiveMcpServerNames).containsExactly("github")
+
+        vm.onInputChanged("/mcp git")
+        vm.selectPickerItem(pick(McpDisplayStatus.CONNECTED, on = true))
+        runCurrent()
+        assertThat(vm.uiState.value.effectiveMcpServerNames).isEmpty()
+
+        vm.onInputChanged("/mcp git")
+        vm.selectPickerItem(pick(McpDisplayStatus.NEEDS_SIGN_IN, on = false))
+        runCurrent()
+        assertThat(vm.uiState.value.inputText).isEmpty()
+        assertThat(vm.uiState.value.effectiveMcpServerNames).isEmpty()
     }
 
     // ─── the streamed turn ───────────────────────────────────────────
