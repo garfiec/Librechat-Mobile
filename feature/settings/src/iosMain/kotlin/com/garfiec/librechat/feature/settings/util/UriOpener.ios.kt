@@ -9,7 +9,7 @@ private object IosUriOpener : UriOpener {
         val url = NSURL.URLWithString(uri) ?: return false
         val app = UIApplication.sharedApplication
         if (!app.canOpenURL(url)) return false
-        app.openURL(url)
+        app.openURL(url, options = emptyMap<Any?, Any>(), completionHandler = null)
         return true
     }
 }
