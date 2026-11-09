@@ -41,6 +41,7 @@ internal fun ChatOptionsSheetHost(
     /** An MCP row's sign-in, the settings line's with the server turned on once it connects. */
     onSignInMcpServer: (String) -> Unit,
     onCancelMcpSignIn: (String) -> Unit,
+    onSetUpMcpServer: (String) -> Unit,
     onOpenWebSearchKeys: () -> Unit,
     onNavigateToProviderKeys: (endpointName: String?) -> Unit,
     onShowSavePresetDialog: () -> Unit,
@@ -108,6 +109,7 @@ internal fun ChatOptionsSheetHost(
             onContextGaugeExpandedChange = viewModel::setContextGaugeExpanded,
             onSignInMcpServer = onSignInMcpServer,
             onCancelMcpSignIn = onCancelMcpSignIn,
+            onSetUpMcpServer = onSetUpMcpServer,
             webSearchKeys = uiState.webSearchKeysRow,
             onOpenWebSearchKeys = onOpenWebSearchKeys,
         ),

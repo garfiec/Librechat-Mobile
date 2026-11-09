@@ -12,7 +12,9 @@ import com.garfiec.librechat.core.data.repository.McpOAuthLauncher
 import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
+import com.garfiec.librechat.core.data.repository.serversMissingUserVars
 import com.garfiec.librechat.core.model.ResourceType
+import com.garfiec.librechat.core.model.mcp.McpFailureReasons
 import com.garfiec.librechat.core.model.mcp.McpOAuthLaunch
 import com.garfiec.librechat.core.model.mcp.McpOAuthOutcome
 import com.garfiec.librechat.core.model.mcp.McpServer
@@ -23,6 +25,7 @@ import com.garfiec.librechat.core.model.mcp.applyDiscoveryAuthorizationState
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -47,6 +50,10 @@ data class McpUiState(
     val showToolsSheet: Boolean = false,
     /** The server whose sheet is open, by stored name. */
     val selectedServerName: String? = null,
+    /** Servers still owed one of their user variables (`auth-values`), which read as needing setup. */
+    val missingUserVars: Set<String> = emptySet(),
+    /** The server whose variables sheet is open, by stored name. */
+    val variablesServerName: String? = null,
     val successMessage: String? = null,
     /**
      * An MCP server that answered a reinitialize by asking the user to authorize it
@@ -80,6 +87,10 @@ data class McpUiState(
 ) {
     /** The open server's row; null once it is gone (deleted, or dropped by a reload), which closes its sheet. */
     val selectedRow: McpServerRow? get() = selectedServerName?.let { name -> allRows.firstOrNull { it.name == name } }
+
+    /** The variables sheet's server; null once it is gone, which closes the sheet. */
+    val variablesRow: McpServerRow?
+        get() = variablesServerName?.let { name -> allRows.firstOrNull { it.name == name && it.userVars.isNotEmpty() } }
 
     val selectedTools: List<McpTool>
         get() = selectedServerName?.let { name -> tools.filter { it.serverName == name } }.orEmpty()
@@ -138,6 +149,7 @@ class McpViewModel(
                 reinitializing = state.reinitializingServers,
                 permissions = state.permissions,
                 baseUrl = baseUrl,
+                missingUserVars = state.missingUserVars,
             )
             // The filter outlives the servers needing attention: once none do, show everything.
             val attentionOnly = state.attentionOnly && allRows.any { it.status.needsAttention }
@@ -178,6 +190,9 @@ class McpViewModel(
                         // snackbar, so a successful load is what retires it.
                         error = if (_uiState.value.servers.isEmpty()) null else _uiState.value.error,
                     )
+                    // Read before copying: the reads suspend, and a snapshot taken first would undo other loads.
+                    val missing = mcpRepository.serversMissingUserVars(result.data)
+                    _uiState.value = _uiState.value.copy(missingUserVars = missing)
                 }
                 is Result.Error -> {
                     _uiState.value = _uiState.value.copy(
@@ -301,8 +316,11 @@ class McpViewModel(
                     // proceed until the user authorizes it. Reporting it as "initialized
                     // successfully" leaves the user staring at a server that never connects.
                     val oauthUrl = response.authorizationUrl
+                    // Owed variables open their sheet rather than echoing the server's message.
+                    val needsVariables = response.failureReason == McpFailureReasons.MISSING_CUSTOM_USER_VARS &&
+                        _uiState.value.servers.any { it.name == serverName && it.customUserVars.isNotEmpty() }
                     val message = when {
-                        oauthUrl != null -> null
+                        oauthUrl != null || needsVariables -> null
                         response.connectionDeferred == true -> DEFERRED_MARKER
                         else -> response.message ?: if (response.success) {
                             "Server initialized successfully"
@@ -314,6 +332,9 @@ class McpViewModel(
                         reinitializingServers = _uiState.value.reinitializingServers - serverName,
                         successMessage = message,
                         pendingOAuth = oauthUrl?.let { McpOAuthPrompt(serverName, it) },
+                        variablesServerName = if (needsVariables) serverName else _uiState.value.variablesServerName,
+                        // In place of the server sheet, as openVariables does.
+                        selectedServerName = if (needsVariables) null else _uiState.value.selectedServerName,
                     )
                     loadServers()
                     loadConnectionStatus()
@@ -394,6 +415,51 @@ class McpViewModel(
         loadConnectionStatus()
         loadTools()
     }
+
+    /** A card's or server sheet's "Set up" / "Variables". */
+    fun openVariables(serverName: String) {
+        // In place of the server sheet: two modal sheets stacked would leave this one behind it.
+        _uiState.value = _uiState.value.copy(variablesServerName = serverName, selectedServerName = null)
+    }
+
+    fun dismissVariables() {
+        _uiState.value = _uiState.value.copy(variablesServerName = null)
+    }
+
+    /** The variables sheet's Set / Not set; null when the read failed. */
+    suspend fun userVarFlags(serverName: String): Map<String, Boolean>? =
+        (mcpRepository.getUserVarFlags(serverName) as? Result.Success)?.data
+
+    /**
+     * Saves the sheet's [values] (none: connect only), then reconnects, as saving drops the
+     * connection. In the ViewModel's scope, so closing the sheet doesn't cancel it.
+     */
+    suspend fun saveVariables(serverName: String, values: Map<String, String>): Boolean = viewModelScope.async {
+        if (values.isNotEmpty()) {
+            val result = mcpRepository.saveUserVars(serverName, values)
+            if (result is Result.Error) {
+                Logger.d(result.exception) { "Failed to save MCP variables: ${result.message}" }
+                return@async false
+            }
+        }
+        reinitializeServer(serverName)
+        true
+    }.await()
+
+    /** Deletes the server's variables (the server revokes its OAuth tokens too) and reloads. */
+    suspend fun removeVariables(serverName: String): Boolean = viewModelScope.async {
+        when (val result = mcpRepository.removeUserVars(serverName)) {
+            is Result.Success -> {
+                loadAll()
+                true
+            }
+            is Result.Error -> {
+                Logger.d(result.exception) { "Failed to remove MCP variables: ${result.message}" }
+                false
+            }
+            Result.Loading -> false
+        }
+    }.await()
 
     fun showToolsSheet() {
         _uiState.value = _uiState.value.copy(showToolsSheet = true)

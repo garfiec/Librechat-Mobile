@@ -109,6 +109,8 @@ data class ChatToolsPageParams(
     /** An MCP row's "Sign in" (the server turns on once it connects) and "Cancel sign-in". */
     val onSignInMcpServer: ((String) -> Unit)? = null,
     val onCancelMcpSignIn: ((String) -> Unit)? = null,
+    /** An MCP row's "Set up": its variables sheet. */
+    val onSetUpMcpServer: ((String) -> Unit)? = null,
     /** The LibreChat search key row; null hides it. */
     val webSearchKeys: WebSearchKeysRow? = null,
     val onOpenWebSearchKeys: () -> Unit = {},
@@ -297,6 +299,7 @@ fun ChatOptionsBottomSheet(
                         focus = tools.focus,
                         onSignInMcpServer = tools.onSignInMcpServer,
                         onCancelMcpSignIn = tools.onCancelMcpSignIn,
+                        onSetUpMcpServer = tools.onSetUpMcpServer,
                         webSearchKeys = tools.webSearchKeys,
                         onOpenWebSearchKeys = tools.onOpenWebSearchKeys,
                     )

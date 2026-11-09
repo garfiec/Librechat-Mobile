@@ -374,8 +374,21 @@
     <string name="mcp_status_connected">Connecté</string>
     <string name="mcp_status_connecting">Connexion…</string>
     <string name="mcp_status_needs_sign_in">Connexion requise</string>
-    <string name="mcp_status_needs_setup">À configurer sur le web</string>
+    <string name="mcp_status_needs_setup">Configuration requise</string>
     <string name="mcp_status_on_demand">Se connecte pendant vos chats</string>
     <string name="mcp_status_disconnected">Non connecté</string>
     <string name="mcp_status_failed">Connexion impossible</string>
+    <string name="mcp_vars_title">Configurer %1$s</string>
+    <string name="mcp_vars_body">%1$s a besoin de ces informations pour se connecter. Elles sont enregistrées dans votre compte sur le serveur, pas sur ce téléphone.</string>
+    <string name="mcp_vars_keep_hint">Laissez un champ vide pour conserver la valeur enregistrée.</string>
+    <string name="mcp_vars_set">Défini</string>
+    <string name="mcp_vars_not_set">Non défini</string>
+    <string name="mcp_vars_save_connect">Enregistrer et connecter</string>
+    <string name="mcp_vars_connect">Connecter</string>
+    <string name="mcp_vars_cancel">Annuler</string>
+    <string name="mcp_vars_remove">Supprimer</string>
+    <string name="mcp_vars_remove_confirm">Supprimer vos valeurs pour %1$s ? Vous en serez aussi déconnecté.</string>
+    <string name="mcp_vars_keep">Conserver</string>
+    <string name="mcp_vars_save_failed">Échec de l'enregistrement. Vérifiez votre connexion et réessayez.</string>
+    <string name="mcp_vars_remove_failed">Impossible de supprimer vos valeurs. Réessayez.</string>
 </resources>

@@ -2243,7 +2243,7 @@
       },
       "kotlin": {
         "file": "feature/agents/src/commonMain/kotlin/com/garfiec/librechat/feature/agents/util/AgentDescriptionMarkup.kt",
-        "symbol": "AGENT_DESCRIPTION_TAGS / isAgentDescriptionHtml; HtmlDescription.kt safeHref and HtmlRenderer.tag"
+        "symbol": "AGENT_DESCRIPTION_TAGS / isAgentDescriptionHtml; core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/text/ConfigHtml.kt safeHref and HtmlRenderer.tag"
       },
       "why": "Which tags an agent description may use as HTML (a, strong, b, em, i, br, code, span, p, div, ul, ol, li) and which links survive (CONFIG_HTML_SAFE_URI: http(s), mailto, tel, or relative). Detection (a description is HTML only when it starts with an allowlisted tag, decisions C7) is the separate agent-description-html-detection entry; the card strips it with core/common HtmlText.kt htmlToPlainText.",
       "failure_mode": "Upstream widens or narrows the allowlist or the safe-URI rule, and the same description renders differently on the web and in the app: a tag the web styles shows as bare text, or a link the web drops becomes tappable here. Nothing errors."

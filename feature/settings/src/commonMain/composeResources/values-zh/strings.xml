@@ -850,6 +850,8 @@
     </plurals>
     <string name="mcp_action_sign_in">登录</string>
     <string name="mcp_action_connect">连接</string>
+    <string name="mcp_action_set_up">设置</string>
+    <string name="mcp_action_variables">变量</string>
     <string name="mcp_action_reconnect">重新连接</string>
     <string name="mcp_action_edit">编辑</string>
     <string name="mcp_view_only">仅查看</string>
@@ -863,7 +865,7 @@
     <string name="mcp_tools_title">工具</string>
     <string name="mcp_tools_filter_hint">筛选工具</string>
     <string name="mcp_tools_no_match">没有匹配的工具</string>
-    <string name="mcp_needs_setup_detail">此服务器需要只有你能提供的信息，例如你自己的 API 密钥。请在 LibreChat 网站上添加，然后重新连接。</string>
+    <string name="mcp_needs_setup_detail">此服务器需要只有你能提供的信息（例如你自己的 API 密钥）才能连接。</string>
     <string name="mcp_editor_section_about">简介</string>
     <string name="mcp_editor_section_connection">连接</string>
     <string name="mcp_editor_section_sign_in">登录</string>

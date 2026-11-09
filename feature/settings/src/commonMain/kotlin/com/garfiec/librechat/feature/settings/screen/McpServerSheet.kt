@@ -70,6 +70,7 @@ internal fun McpServerSheet(
     onReconnect: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onVariables: () -> Unit,
     modifier: Modifier = Modifier,
     appLocation: McpAppLocationConsent? = null,
     onAppLocationChange: (allowed: Boolean) -> Unit = {},
@@ -94,7 +95,13 @@ internal fun McpServerSheet(
     ) {
         LazyColumn(Modifier.fillMaxWidth()) {
             item(key = "header", contentType = "header") {
-                McpServerSheetHeader(row, onReconnect = onReconnect, onEdit = onEdit, onDelete = onDelete)
+                McpServerSheetHeader(
+                    row,
+                    onReconnect = onReconnect,
+                    onEdit = onEdit,
+                    onDelete = onDelete,
+                    onVariables = onVariables,
+                )
             }
             // Only once an App of this server asked; never asked has nothing to change.
             if (appLocation != null && appLocation != McpAppLocationConsent.NOT_ASKED) {
@@ -165,6 +172,7 @@ internal fun McpServerSheetHeader(
     onReconnect: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onVariables: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val presentation = row.status.presentation(statusColors())
@@ -226,14 +234,20 @@ internal fun McpServerSheetHeader(
             )
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            val action = row.status.cardAction()
-            if (action != null) {
+            val action = row.cardAction()
+            if (action == McpCardAction.SET_UP) {
+                AdaptiveFilledTonalButton(onClick = onVariables) { Text(stringResource(action.label)) }
+            } else if (action != null) {
                 AdaptiveFilledTonalButton(onClick = onReconnect) { Text(stringResource(action.label)) }
             } else {
                 AdaptiveOutlinedButton(onClick = onReconnect) {
                     Icon(Icons.Default.Refresh, contentDescription = null)
                     Text(stringResource(Res.string.mcp_action_reconnect), modifier = Modifier.padding(start = 8.dp))
                 }
+            }
+            // Set up already opens the same sheet.
+            if (row.userVars.isNotEmpty() && action != McpCardAction.SET_UP) {
+                AdaptiveOutlinedButton(onClick = onVariables) { Text(stringResource(Res.string.mcp_action_variables)) }
             }
             if (row.access.canEdit) {
                 AdaptiveOutlinedButton(onClick = onEdit) { Text(stringResource(Res.string.mcp_action_edit)) }

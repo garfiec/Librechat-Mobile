@@ -904,6 +904,7 @@
     <string name="mcp_sign_in_needed_unnamed">Uma ferramenta precisa que você entre</string>
     <string name="mcp_sign_in_resumes">A resposta continua assim que você entrar.</string>
     <string name="mcp_sign_in_action">Entrar</string>
+    <string name="mcp_set_up_action">Configurar</string>
     <string name="mcp_sign_in_failed">O login não foi concluído. Tente novamente.</string>
     <string name="prompt_filter_title">Filtrar e ordenar</string>
     <string name="prompt_sort_recent">Recentes</string>

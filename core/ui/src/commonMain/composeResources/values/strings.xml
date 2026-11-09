@@ -415,8 +415,22 @@
     <string name="mcp_status_connected">Connected</string>
     <string name="mcp_status_connecting">Connecting…</string>
     <string name="mcp_status_needs_sign_in">Sign-in needed</string>
-    <string name="mcp_status_needs_setup">Set up on the web</string>
+    <string name="mcp_status_needs_setup">Needs setup</string>
     <string name="mcp_status_on_demand">Connects when you chat</string>
     <string name="mcp_status_disconnected">Not connected</string>
     <string name="mcp_status_failed">Can't connect</string>
+    <!-- The MCP variables sheet: values a server needs from each user (a personal token), from the chat's "+" sheet and the MCP servers page. %1$s is the server's name -->
+    <string name="mcp_vars_title">Set up %1$s</string>
+    <string name="mcp_vars_body">%1$s needs these before it can connect. They're saved to your account on the server, not on this phone.</string>
+    <string name="mcp_vars_keep_hint">Leave a field empty to keep what's saved.</string>
+    <string name="mcp_vars_set">Set</string>
+    <string name="mcp_vars_not_set">Not set</string>
+    <string name="mcp_vars_save_connect">Save and connect</string>
+    <string name="mcp_vars_connect">Connect</string>
+    <string name="mcp_vars_cancel">Cancel</string>
+    <string name="mcp_vars_remove">Remove</string>
+    <string name="mcp_vars_remove_confirm">Remove your values for %1$s? This also signs you out of it.</string>
+    <string name="mcp_vars_keep">Keep</string>
+    <string name="mcp_vars_save_failed">Couldn't save. Check your connection and try again.</string>
+    <string name="mcp_vars_remove_failed">Couldn't remove your values. Try again.</string>
 </resources>

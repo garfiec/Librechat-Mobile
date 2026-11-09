@@ -5,9 +5,14 @@ import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.repository.McpRepository
 import com.garfiec.librechat.core.data.repository.PermissionsRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
+import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
+import com.garfiec.librechat.core.model.mcp.McpFailureReasons
+import com.garfiec.librechat.core.model.mcp.McpReinitializeResponse
 import com.garfiec.librechat.core.model.mcp.McpServer
+import com.garfiec.librechat.core.model.mcp.McpServerStatus
 import com.garfiec.librechat.core.model.mcp.McpTool
 import com.garfiec.librechat.core.model.mcp.McpToolCatalog
+import com.garfiec.librechat.core.model.mcp.McpUserVar
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -117,5 +122,70 @@ class McpViewModelServerSheetTest {
         val vm = vm()
 
         assertThat(vm.uiState.value.serverTitles).containsExactly("github_ab12", "GitHub", "linear", "linear")
+    }
+
+    private val token = McpUserVar("GH_TOKEN", "Token", "")
+
+    private fun owedVariables() {
+        servers.value = listOf(McpServer(name = "github", dbId = "1", customUserVars = listOf(token)))
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(mapOf("github" to McpServerStatus()))
+        coEvery { mcpRepository.getUserVarFlags("github") } returns Result.Success(mapOf("GH_TOKEN" to false))
+    }
+
+    @Test
+    fun `a server owed its variables needs setup and sorts first`() = runTest {
+        owedVariables()
+
+        val row = vm().uiState.value.rows.first()
+
+        assertThat(row.status).isEqualTo(McpDisplayStatus.NEEDS_SETUP)
+        assertThat(row.userVars).containsExactly(token)
+    }
+
+    @Test
+    fun `a reconnect refused for missing variables opens their sheet instead of the server's message`() = runTest {
+        owedVariables()
+        coEvery { mcpRepository.reinitialize("github") } returns Result.Success(
+            McpReinitializeResponse(
+                success = false,
+                message = "MCP server 'github' requires user-provided variable(s) [GH_TOKEN] which are not set",
+                failureReason = McpFailureReasons.MISSING_CUSTOM_USER_VARS,
+                missingUserVars = listOf("GH_TOKEN"),
+            ),
+        )
+        val vm = vm()
+
+        vm.reinitializeServer("github")
+
+        assertThat(vm.uiState.value.variablesRow?.name).isEqualTo("github")
+        assertThat(vm.uiState.value.successMessage).isNull()
+    }
+
+    @Test
+    fun `opening the variables from the server sheet replaces it, and saving reconnects`() = runTest {
+        owedVariables()
+        coEvery { mcpRepository.saveUserVars("github", any()) } returns Result.Success(Unit)
+        coEvery { mcpRepository.reinitialize("github") } returns Result.Success(McpReinitializeResponse(success = true))
+        val vm = vm()
+        vm.openServer("github")
+
+        vm.openVariables("github")
+        val saved = vm.saveVariables("github", mapOf("GH_TOKEN" to "secret"))
+
+        assertThat(vm.uiState.value.selectedServerName).isNull()
+        assertThat(saved).isTrue()
+        coVerify { mcpRepository.saveUserVars("github", mapOf("GH_TOKEN" to "secret")) }
+        coVerify { mcpRepository.reinitialize("github") }
+    }
+
+    @Test
+    fun `a refused save keeps the sheet's fields and doesn't reconnect`() = runTest {
+        owedVariables()
+        coEvery { mcpRepository.saveUserVars("github", any()) } returns Result.Error(message = "denied")
+        val vm = vm()
+
+        assertThat(vm.saveVariables("github", mapOf("GH_TOKEN" to "secret"))).isFalse()
+
+        coVerify(exactly = 0) { mcpRepository.reinitialize(any()) }
     }
 }

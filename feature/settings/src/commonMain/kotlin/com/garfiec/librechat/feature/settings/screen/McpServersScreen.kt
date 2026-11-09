@@ -63,6 +63,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.components.topbar.MaterialBarStyle
 import com.garfiec.librechat.core.ui.mcp.McpOAuthSignInDialog
+import com.garfiec.librechat.core.ui.mcp.McpVariablesSheet
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.MCP_SEARCH_THRESHOLD
@@ -201,6 +202,7 @@ fun McpServersScreen(
                                 row = row,
                                 onOpen = { viewModel.openServer(row.name) },
                                 onReconnect = { viewModel.reinitializeServer(row.name) },
+                                onSetUp = { viewModel.openVariables(row.name) },
                                 modifier = Modifier.animateItem(),
                             )
                         }
@@ -286,6 +288,18 @@ fun McpServersScreen(
                 onEditServer(row.name)
             },
             onDelete = { pendingDelete = row },
+            onVariables = { viewModel.openVariables(row.name) },
+        )
+    }
+
+    uiState.variablesRow?.let { row ->
+        McpVariablesSheet(
+            serverLabel = row.title,
+            vars = row.userVars,
+            loadFlags = { viewModel.userVarFlags(row.name) },
+            onSave = { viewModel.saveVariables(row.name, it) },
+            onRemove = { viewModel.removeVariables(row.name) },
+            onDismiss = viewModel::dismissVariables,
         )
     }
 

@@ -14,7 +14,7 @@ enum class McpDisplayStatus {
     /** The user has to authorize it with the provider. Reconnecting starts that. */
     NEEDS_SIGN_IN,
 
-    /** Waiting on per-user variables, which only the web can set today. */
+    /** Waiting on per-user variables ([McpServer.customUserVars]) the user hasn't saved. */
     NEEDS_SETUP,
 
     /** Connects inside a chat request only; disconnected the rest of the time by design. */
@@ -28,15 +28,21 @@ enum class McpDisplayStatus {
     ;
 
     /** A state the user can fix from the list, which therefore sorts first. */
-    val needsAttention: Boolean get() = this == NEEDS_SIGN_IN || this == FAILED
+    val needsAttention: Boolean get() = this == NEEDS_SIGN_IN || this == FAILED || this == NEEDS_SETUP
 }
 
 /**
  * [status] is the entry from the connection-status map after `applyDiscoveryAuthorizationState`,
  * so a lapsed authorization noticed by tool discovery already reads as needing sign-in.
- * [isReinitializing] is a reconnect the user started from this screen.
+ * [isReinitializing] is a reconnect the user started from this screen. [userVarsMissing]: some of
+ * [McpServer.customUserVars] aren't saved (`auth-values`); the status route can't say so itself.
  */
-fun mcpDisplayStatus(server: McpServer, status: McpServerStatus?, isReinitializing: Boolean): McpDisplayStatus {
+fun mcpDisplayStatus(
+    server: McpServer,
+    status: McpServerStatus?,
+    isReinitializing: Boolean,
+    userVarsMissing: Boolean = false,
+): McpDisplayStatus {
     if (isReinitializing) return McpDisplayStatus.CONNECTING
     if (status == null) return if (server.requestScoped) McpDisplayStatus.ON_DEMAND else McpDisplayStatus.UNKNOWN
     val authorization = status.authorizationState
@@ -44,6 +50,8 @@ fun mcpDisplayStatus(server: McpServer, status: McpServerStatus?, isReinitializi
         status.connectionState == "connecting" || authorization == McpAuthorizationStates.AUTHORIZING ->
             McpDisplayStatus.CONNECTING
         status.isConnected -> McpDisplayStatus.CONNECTED
+        // Ahead of sign-in: reinitialize refuses a server owed variables before it starts OAuth.
+        userVarsMissing -> McpDisplayStatus.NEEDS_SETUP
         // Upstream reads requiresOAuth only while disconnected: an errored OAuth server is a failure.
         (status.requiresOAuth && status.connectionState != "error") ||
             authorization == McpAuthorizationStates.NEEDS_AUTHORIZATION -> McpDisplayStatus.NEEDS_SIGN_IN

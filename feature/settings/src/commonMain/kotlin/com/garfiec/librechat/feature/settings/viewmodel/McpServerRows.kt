@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerStatus
+import com.garfiec.librechat.core.model.mcp.McpUserVar
 import com.garfiec.librechat.core.model.mcp.mcpDisplayStatus
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 
@@ -21,6 +22,8 @@ data class McpServerRow(
     val error: String?,
     val toolCount: Int,
     val access: McpServerAccess,
+    /** What the user enters before it connects; non-empty offers the variables sheet. */
+    val userVars: List<McpUserVar> = emptyList(),
 )
 
 /** The list's rows: servers that need the user first, then by title. */
@@ -31,6 +34,7 @@ fun mcpServerRows(
     reinitializing: Set<String>,
     permissions: Map<String, Int>?,
     baseUrl: String,
+    missingUserVars: Set<String> = emptySet(),
 ): List<McpServerRow> = servers
     .map { server ->
         val status = connectionStatus[server.name]
@@ -42,10 +46,16 @@ fun mcpServerRows(
             description = server.description?.takeIf { it.isNotBlank() },
             url = server.url,
             iconUrl = resolveAvatarUrl(server.iconPath, baseUrl),
-            status = mcpDisplayStatus(server, status, server.name in reinitializing),
+            status = mcpDisplayStatus(
+                server,
+                status,
+                isReinitializing = server.name in reinitializing,
+                userVarsMissing = server.name in missingUserVars,
+            ),
             error = status?.error?.takeIf { it.isNotBlank() } ?: server.error?.takeIf { it.isNotBlank() },
             toolCount = toolCounts[server.name] ?: 0,
             access = mcpServerAccess(server, permissions),
+            userVars = server.customUserVars,
         )
     }
     .sortedWith(compareBy<McpServerRow> { !it.status.needsAttention }.thenBy { it.title.lowercase() })

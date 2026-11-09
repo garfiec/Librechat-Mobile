@@ -35,4 +35,6 @@ data class McpServer(
      * legitimately disconnected the rest of the time.
      */
     val requestScoped: Boolean = false,
+    /** What each user must enter before it connects, in the server's declared order. */
+    val customUserVars: List<McpUserVar> = emptyList(),
 )

@@ -61,4 +61,13 @@ class McpRepositoryImpl(
 
     override suspend fun getConnectionStatus(): Result<Map<String, McpServerStatus>> =
         safeApiCall { mcpApi.getConnectionStatus() }
+
+    override suspend fun getUserVarFlags(serverName: String): Result<Map<String, Boolean>> =
+        safeApiCall { mcpApi.getUserVarFlags(serverName) }
+
+    override suspend fun saveUserVars(serverName: String, values: Map<String, String>): Result<Unit> =
+        safeApiCall { mcpApi.saveUserVars(serverName, values.filterValues { it.isNotBlank() }) }
+
+    override suspend fun removeUserVars(serverName: String): Result<Unit> =
+        safeApiCall { mcpApi.removeUserVars(serverName) }
 }

@@ -864,6 +864,8 @@
     </plurals>
     <string name="mcp_action_sign_in">Se connecter</string>
     <string name="mcp_action_connect">Connecter</string>
+    <string name="mcp_action_set_up">Configurer</string>
+    <string name="mcp_action_variables">Variables</string>
     <string name="mcp_action_reconnect">Reconnecter</string>
     <string name="mcp_action_edit">Modifier</string>
     <string name="mcp_view_only">Lecture seule</string>
@@ -877,7 +879,7 @@
     <string name="mcp_tools_title">Outils</string>
     <string name="mcp_tools_filter_hint">Filtrer les outils</string>
     <string name="mcp_tools_no_match">Aucun outil ne correspond</string>
-    <string name="mcp_needs_setup_detail">Ce serveur a besoin d’informations que vous seul pouvez fournir, comme votre propre clé API. Ajoutez-les sur le site LibreChat, puis reconnectez-vous.</string>
+    <string name="mcp_needs_setup_detail">Ce serveur a besoin d'informations que vous seul pouvez fournir, comme votre propre clé API, avant de pouvoir se connecter.</string>
     <string name="mcp_editor_section_about">À propos</string>
     <string name="mcp_editor_section_connection">Connexion</string>
     <string name="mcp_editor_section_sign_in">Authentification</string>

@@ -850,6 +850,8 @@
     </plurals>
     <string name="mcp_action_sign_in">サインイン</string>
     <string name="mcp_action_connect">接続</string>
+    <string name="mcp_action_set_up">設定</string>
+    <string name="mcp_action_variables">変数</string>
     <string name="mcp_action_reconnect">再接続</string>
     <string name="mcp_action_edit">編集</string>
     <string name="mcp_view_only">閲覧のみ</string>
@@ -863,7 +865,7 @@
     <string name="mcp_tools_title">ツール</string>
     <string name="mcp_tools_filter_hint">ツールを絞り込む</string>
     <string name="mcp_tools_no_match">一致するツールはありません</string>
-    <string name="mcp_needs_setup_detail">このサーバーには、あなた自身のAPIキーなど、あなただけが入力できる情報が必要です。LibreChatのWebサイトで追加してから再接続してください。</string>
+    <string name="mcp_needs_setup_detail">このサーバーに接続するには、ご自身の API キーなど、あなたにしか入力できない情報が必要です。</string>
     <string name="mcp_editor_section_about">概要</string>
     <string name="mcp_editor_section_connection">接続</string>
     <string name="mcp_editor_section_sign_in">サインイン</string>

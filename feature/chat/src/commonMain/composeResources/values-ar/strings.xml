@@ -950,6 +950,7 @@
     <string name="mcp_sign_in_needed_unnamed">تحتاج أداة إلى تسجيل دخولك</string>
     <string name="mcp_sign_in_resumes">يستمر الرد بمجرد تسجيل دخولك.</string>
     <string name="mcp_sign_in_action">تسجيل الدخول</string>
+    <string name="mcp_set_up_action">إعداد</string>
     <string name="mcp_sign_in_failed">لم يكتمل تسجيل الدخول. حاول مرة أخرى.</string>
     <string name="prompt_filter_title">التصفية والفرز</string>
     <string name="prompt_sort_recent">الأحدث</string>
