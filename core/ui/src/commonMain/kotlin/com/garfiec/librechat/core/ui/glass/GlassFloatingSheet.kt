@@ -53,7 +53,9 @@ import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import com.garfiec.librechat.core.ui.components.PlatformBackHandler
+import com.garfiec.librechat.core.ui.components.predictiveBackSheet
+import com.garfiec.librechat.core.ui.components.predictiveBackSheetContent
+import com.garfiec.librechat.core.ui.components.rememberSheetPredictiveBack
 import com.garfiec.librechat.core.ui.theme.LocalDarkTheme
 import kotlinx.coroutines.launch
 
@@ -123,7 +125,13 @@ internal fun GlassFloatingSheet(
             settleBack()
         }
     }
-    PlatformBackHandler(enabled = true, onBack = dismiss)
+    val back = rememberSheetPredictiveBack(enabled = true) {
+        dismiss()
+        // Held open by the caller: grow back. Otherwise it slides away shrunk, as M3's does.
+        if (!dismissing) reset()
+    }
+    // Also when a hold that started during the slide brings the sheet back up.
+    LaunchedEffect(dismissing) { if (!dismissing) back.reset() }
 
     // Scrollable content first takes back any pull it gave the sheet, and hands its unused downward
     // scroll at the top (a pull past the start of the list) to the sheet.
@@ -182,6 +190,7 @@ internal fun GlassFloatingSheet(
                         val hiddenOffset = panelHeight + SheetMargin.toPx() + bottomInset.getBottom(this)
                         translationY = (1f - shown.value) * hiddenOffset + dragged.coerceAtLeast(0f)
                     }
+                    .predictiveBackSheet(back)
                     .glassSheetPanel(style, backdrop, thickening)
                     .draggable(
                         state = rememberDraggableState { delta -> dragged = (dragged + delta).coerceAtLeast(0f) },
@@ -196,11 +205,13 @@ internal fun GlassFloatingSheet(
                 // What an M3 sheet provides from its container; without it, text that relies on the
                 // ambient content colour renders in the default black, unreadable on dark glass.
                 CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
-                    // Centred as M3's sheet does: its default handle is a bare pill with no width of its own.
-                    if (dragHandle != null) {
-                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) { dragHandle() }
+                    Column(Modifier.fillMaxWidth().predictiveBackSheetContent(back)) {
+                        // Centred as M3's sheet does: its default handle is a bare pill with no width of its own.
+                        if (dragHandle != null) {
+                            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) { dragHandle() }
+                        }
+                        content()
                     }
-                    content()
                 }
             }
         }
