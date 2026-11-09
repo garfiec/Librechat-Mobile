@@ -2185,6 +2185,19 @@ class ChatViewModel(
 
     /** An MCP sign-in ended: see [McpServersDelegate.onSignInEnded]. */
     fun onMcpSignInEnded() = mcpServersDelegate.onSignInEnded()
+
+    /** The variables sheet's Set / Not set: see [McpServersDelegate.userVarFlags]. */
+    suspend fun mcpVariableFlags(serverName: String): Map<String, Boolean>? =
+        mcpServersDelegate.userVarFlags(serverName)
+
+    /** Runs in the ViewModel's scope, so closing the sheet doesn't cancel it: see [McpServersDelegate.saveUserVars]. */
+    suspend fun saveMcpVariables(serverName: String, values: Map<String, String>): Boolean =
+        viewModelScope.async { mcpServersDelegate.saveUserVars(serverName, values) }.await()
+
+    /** See [McpServersDelegate.removeUserVars]; in the ViewModel's scope like [saveMcpVariables]. */
+    suspend fun removeMcpVariables(serverName: String): Boolean =
+        viewModelScope.async { mcpServersDelegate.removeUserVars(serverName) }.await()
+
     fun toggleTool(toolName: String) {
         // Per conversation, so it never goes through the global enabled-tools store.
         if (toolName == ToolConstants.SKILLS) skillsToggleDelegate.toggle() else modelDelegate.toggleTool(toolName)

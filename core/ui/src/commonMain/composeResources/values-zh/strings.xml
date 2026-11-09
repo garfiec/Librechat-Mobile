@@ -362,8 +362,21 @@
     <string name="mcp_status_connected">已连接</string>
     <string name="mcp_status_connecting">正在连接…</string>
     <string name="mcp_status_needs_sign_in">需要登录</string>
-    <string name="mcp_status_needs_setup">请在网页版中设置</string>
+    <string name="mcp_status_needs_setup">需要设置</string>
     <string name="mcp_status_on_demand">聊天时连接</string>
     <string name="mcp_status_disconnected">未连接</string>
     <string name="mcp_status_failed">无法连接</string>
+    <string name="mcp_vars_title">设置 %1$s</string>
+    <string name="mcp_vars_body">%1$s 需要这些信息才能连接。它们保存在你服务器上的账户中，而不是这部手机上。</string>
+    <string name="mcp_vars_keep_hint">留空即可保留已保存的值。</string>
+    <string name="mcp_vars_set">已设置</string>
+    <string name="mcp_vars_not_set">未设置</string>
+    <string name="mcp_vars_save_connect">保存并连接</string>
+    <string name="mcp_vars_connect">连接</string>
+    <string name="mcp_vars_cancel">取消</string>
+    <string name="mcp_vars_remove">移除</string>
+    <string name="mcp_vars_remove_confirm">移除你为 %1$s 设置的值？这也会让你退出该服务器的登录。</string>
+    <string name="mcp_vars_keep">保留</string>
+    <string name="mcp_vars_save_failed">无法保存。请检查网络连接后重试。</string>
+    <string name="mcp_vars_remove_failed">无法移除你的值。请重试。</string>
 </resources>

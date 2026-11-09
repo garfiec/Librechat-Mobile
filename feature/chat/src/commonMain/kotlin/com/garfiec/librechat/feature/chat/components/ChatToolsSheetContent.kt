@@ -186,6 +186,8 @@ fun ChatToolsSheetContent(
     /** Signs a server in from its row, turning it on once it connects; null offers no sign-in. */
     onSignInMcpServer: ((String) -> Unit)? = null,
     onCancelMcpSignIn: ((String) -> Unit)? = null,
+    /** Opens a server's variables sheet (this sheet closes); null offers no setup. */
+    onSetUpMcpServer: ((String) -> Unit)? = null,
     /** The LibreChat search key row under the tool grid; null hides it. */
     webSearchKeys: WebSearchKeysRow? = null,
     /** Opens the search key sheet, from the row or a Web Search tile that has no search to run without keys. */
@@ -336,6 +338,12 @@ fun ChatToolsSheetContent(
                         locked = locked,
                         onSignIn = onSignInMcpServer?.let { { it(server.name) } },
                         onCancelSignIn = onCancelMcpSignIn?.let { { it(server.name) } },
+                        onSetUp = onSetUpMcpServer?.let {
+                            {
+                                it(server.name)
+                                onDismiss()
+                            }
+                        },
                     )
                 }
             }
@@ -734,7 +742,7 @@ private fun McpSectionHeader(
  * The checkbox only shows the state. A selected server always toggles off from the row, whatever its status,
  * so nothing keeps an unusable server in the chat. Any server that needs sign-in shows "Sign in" (or "Cancel
  * sign-in" while pending) as its own button; on an unselected or locked one the row tap signs in, and a pending
- * one doesn't toggle. A server that needs user variables has no setup step here.
+ * one doesn't toggle. A server owed user variables shows "Set up" the same way, opening its variables sheet.
  */
 @Composable
 private fun McpServerToggleRow(
@@ -747,13 +755,16 @@ private fun McpServerToggleRow(
     locked: Boolean = false,
     onSignIn: (() -> Unit)? = null,
     onCancelSignIn: (() -> Unit)? = null,
+    onSetUp: (() -> Unit)? = null,
 ) {
     val reduceMotion = rememberReduceMotion()
-    val signIn = onSignIn.takeIf { server.signsInOnTap }
+    val setUp = onSetUp.takeIf { server.setsUpOnTap }
+    val signIn = onSignIn.takeIf { server.signsInOnTap && setUp == null }
     val cancelSignIn = onCancelSignIn.takeIf { server.signInPending }
-    val toggles = (isSelected && !locked) || (signIn == null && cancelSignIn == null)
+    val toggles = (isSelected && !locked) || (signIn == null && cancelSignIn == null && setUp == null)
     val rowClick: (() -> Unit)? = when {
         toggles && !locked -> onToggle
+        setUp != null -> setUp
         signIn != null -> signIn.takeIf { !server.signInBusy }
         else -> null
     }
@@ -810,6 +821,7 @@ private fun McpServerToggleRow(
             )
         }
         when {
+            setUp != null -> McpRowButton(Res.string.mcp_set_up_action, setUp, enabled = true)
             signIn != null -> McpRowButton(Res.string.mcp_sign_in_action, signIn, enabled = !server.signInBusy)
             cancelSignIn != null ->
                 McpRowButton(Res.string.mcp_chip_cancel_sign_in, cancelSignIn, enabled = !server.signInBusy)

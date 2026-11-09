@@ -10,8 +10,12 @@ class McpDisplayStatusTest {
     private val server = McpServer(name = "docs")
     private val scoped = server.copy(requestScoped = true)
 
-    private fun status(server: McpServer = this.server, isReinitializing: Boolean = false, status: McpServerStatus?) =
-        mcpDisplayStatus(server, status, isReinitializing)
+    private fun status(
+        server: McpServer = this.server,
+        isReinitializing: Boolean = false,
+        userVarsMissing: Boolean = false,
+        status: McpServerStatus?,
+    ) = mcpDisplayStatus(server, status, isReinitializing, userVarsMissing)
 
     @Test
     fun connected() {
@@ -58,6 +62,24 @@ class McpDisplayStatusTest {
         )
     }
 
+    /** The status route reads a server owed variables as plain disconnected, and an errored one as failed. */
+    @Test
+    fun unset_user_variables_need_setup_until_it_connects() {
+        assertEquals(McpDisplayStatus.NEEDS_SETUP, status(userVarsMissing = true, status = McpServerStatus()))
+        assertEquals(
+            McpDisplayStatus.NEEDS_SETUP,
+            status(userVarsMissing = true, status = McpServerStatus(connectionState = "error")),
+        )
+        assertEquals(
+            McpDisplayStatus.CONNECTED,
+            status(userVarsMissing = true, status = McpServerStatus(connectionState = "connected")),
+        )
+        assertEquals(
+            McpDisplayStatus.NEEDS_SETUP,
+            status(userVarsMissing = true, status = McpServerStatus(requiresOAuth = true)),
+        )
+    }
+
     @Test
     fun a_request_scoped_server_idle_between_chats_is_not_a_fault() {
         assertEquals(McpDisplayStatus.ON_DEMAND, status(status = McpServerStatus(requestScoped = true)))
@@ -94,7 +116,7 @@ class McpDisplayStatusTest {
     fun only_states_fixable_from_the_list_need_attention() {
         assertTrue(McpDisplayStatus.NEEDS_SIGN_IN.needsAttention)
         assertTrue(McpDisplayStatus.FAILED.needsAttention)
+        assertTrue(McpDisplayStatus.NEEDS_SETUP.needsAttention)
         assertFalse(McpDisplayStatus.ON_DEMAND.needsAttention)
-        assertFalse(McpDisplayStatus.NEEDS_SETUP.needsAttention)
     }
 }

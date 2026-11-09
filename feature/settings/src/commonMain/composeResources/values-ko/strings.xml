@@ -850,6 +850,8 @@
     </plurals>
     <string name="mcp_action_sign_in">로그인</string>
     <string name="mcp_action_connect">연결</string>
+    <string name="mcp_action_set_up">설정</string>
+    <string name="mcp_action_variables">변수</string>
     <string name="mcp_action_reconnect">다시 연결</string>
     <string name="mcp_action_edit">편집</string>
     <string name="mcp_view_only">보기 전용</string>
@@ -863,7 +865,7 @@
     <string name="mcp_tools_title">도구</string>
     <string name="mcp_tools_filter_hint">도구 필터</string>
     <string name="mcp_tools_no_match">일치하는 도구 없음</string>
-    <string name="mcp_needs_setup_detail">이 서버에는 본인의 API 키처럼 사용자만 제공할 수 있는 정보가 필요합니다. LibreChat 웹사이트에서 추가한 후 다시 연결하세요.</string>
+    <string name="mcp_needs_setup_detail">이 서버에 연결하려면 본인의 API 키처럼 사용자만 입력할 수 있는 정보가 필요합니다.</string>
     <string name="mcp_editor_section_about">정보</string>
     <string name="mcp_editor_section_connection">연결</string>
     <string name="mcp_editor_section_sign_in">로그인</string>

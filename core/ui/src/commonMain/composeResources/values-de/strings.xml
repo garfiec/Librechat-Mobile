@@ -368,8 +368,21 @@
     <string name="mcp_status_connected">Verbunden</string>
     <string name="mcp_status_connecting">Verbindung wird hergestellt…</string>
     <string name="mcp_status_needs_sign_in">Anmeldung erforderlich</string>
-    <string name="mcp_status_needs_setup">Im Web einrichten</string>
+    <string name="mcp_status_needs_setup">Einrichtung nötig</string>
     <string name="mcp_status_on_demand">Verbindet sich beim Chatten</string>
     <string name="mcp_status_disconnected">Nicht verbunden</string>
     <string name="mcp_status_failed">Keine Verbindung möglich</string>
+    <string name="mcp_vars_title">%1$s einrichten</string>
+    <string name="mcp_vars_body">%1$s braucht diese Angaben, bevor es sich verbinden kann. Sie werden in deinem Konto auf dem Server gespeichert, nicht auf diesem Telefon.</string>
+    <string name="mcp_vars_keep_hint">Lass ein Feld leer, um den gespeicherten Wert zu behalten.</string>
+    <string name="mcp_vars_set">Festgelegt</string>
+    <string name="mcp_vars_not_set">Nicht festgelegt</string>
+    <string name="mcp_vars_save_connect">Speichern und verbinden</string>
+    <string name="mcp_vars_connect">Verbinden</string>
+    <string name="mcp_vars_cancel">Abbrechen</string>
+    <string name="mcp_vars_remove">Entfernen</string>
+    <string name="mcp_vars_remove_confirm">Deine Werte für %1$s entfernen? Dabei wirst du auch dort abgemeldet.</string>
+    <string name="mcp_vars_keep">Behalten</string>
+    <string name="mcp_vars_save_failed">Speichern fehlgeschlagen. Prüfe deine Verbindung und versuche es erneut.</string>
+    <string name="mcp_vars_remove_failed">Deine Werte konnten nicht entfernt werden. Versuche es erneut.</string>
 </resources>

@@ -392,8 +392,21 @@
     <string name="mcp_status_connected">متصل</string>
     <string name="mcp_status_connecting">جارٍ الاتصال…</string>
     <string name="mcp_status_needs_sign_in">يلزم تسجيل الدخول</string>
-    <string name="mcp_status_needs_setup">أكمل الإعداد على الويب</string>
+    <string name="mcp_status_needs_setup">يحتاج إلى إعداد</string>
     <string name="mcp_status_on_demand">يتصل عند الدردشة</string>
     <string name="mcp_status_disconnected">غير متصل</string>
     <string name="mcp_status_failed">تعذّر الاتصال</string>
+    <string name="mcp_vars_title">إعداد %1$s</string>
+    <string name="mcp_vars_body">يحتاج %1$s إلى هذه البيانات قبل أن يتصل. تُحفظ في حسابك على الخادم، وليس على هذا الهاتف.</string>
+    <string name="mcp_vars_keep_hint">اترك الحقل فارغًا للإبقاء على القيمة المحفوظة.</string>
+    <string name="mcp_vars_set">محدّد</string>
+    <string name="mcp_vars_not_set">غير محدّد</string>
+    <string name="mcp_vars_save_connect">حفظ واتصال</string>
+    <string name="mcp_vars_connect">اتصال</string>
+    <string name="mcp_vars_cancel">إلغاء</string>
+    <string name="mcp_vars_remove">إزالة</string>
+    <string name="mcp_vars_remove_confirm">هل تريد إزالة قيمك لـ %1$s؟ سيؤدي ذلك أيضًا إلى تسجيل خروجك منه.</string>
+    <string name="mcp_vars_keep">إبقاء</string>
+    <string name="mcp_vars_save_failed">تعذّر الحفظ. تحقّق من اتصالك وحاول مرة أخرى.</string>
+    <string name="mcp_vars_remove_failed">تعذّرت إزالة قيمك. حاول مرة أخرى.</string>
 </resources>

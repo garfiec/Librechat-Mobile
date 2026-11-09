@@ -945,6 +945,8 @@
     <string name="mcp_sign_in_resumes">The reply continues once you're signed in.</string>
     <!-- Button on that row that opens the sign-in page -->
     <string name="mcp_sign_in_action">Sign in</string>
+    <!-- An MCP row's button for a server owed values from the user (a personal token): opens its variables sheet -->
+    <string name="mcp_set_up_action">Set up</string>
     <!-- Snackbar when an MCP sign-in from the chat could not start or the server refused it -->
     <string name="mcp_sign_in_failed">Sign-in didn't complete. Try again.</string>
     <string name="prompt_filter_title">Filter &amp; Sort</string>

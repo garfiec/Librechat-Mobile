@@ -362,8 +362,21 @@
     <string name="mcp_status_connected">接続済み</string>
     <string name="mcp_status_connecting">接続中…</string>
     <string name="mcp_status_needs_sign_in">サインインが必要</string>
-    <string name="mcp_status_needs_setup">Webで設定してください</string>
+    <string name="mcp_status_needs_setup">設定が必要</string>
     <string name="mcp_status_on_demand">チャット時に接続</string>
     <string name="mcp_status_disconnected">未接続</string>
     <string name="mcp_status_failed">接続できません</string>
+    <string name="mcp_vars_title">%1$s を設定</string>
+    <string name="mcp_vars_body">%1$s に接続するには、次の情報が必要です。この端末ではなく、サーバー上のアカウントに保存されます。</string>
+    <string name="mcp_vars_keep_hint">保存済みの値を残すには、空欄のままにしてください。</string>
+    <string name="mcp_vars_set">設定済み</string>
+    <string name="mcp_vars_not_set">未設定</string>
+    <string name="mcp_vars_save_connect">保存して接続</string>
+    <string name="mcp_vars_connect">接続</string>
+    <string name="mcp_vars_cancel">キャンセル</string>
+    <string name="mcp_vars_remove">削除</string>
+    <string name="mcp_vars_remove_confirm">%1$s の値を削除しますか？このサーバーからもサインアウトします。</string>
+    <string name="mcp_vars_keep">残す</string>
+    <string name="mcp_vars_save_failed">保存できませんでした。接続を確認して、もう一度お試しください。</string>
+    <string name="mcp_vars_remove_failed">値を削除できませんでした。もう一度お試しください。</string>
 </resources>

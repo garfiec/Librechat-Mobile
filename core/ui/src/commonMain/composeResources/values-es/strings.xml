@@ -374,8 +374,21 @@
     <string name="mcp_status_connected">Conectado</string>
     <string name="mcp_status_connecting">Conectando…</string>
     <string name="mcp_status_needs_sign_in">Requiere iniciar sesión</string>
-    <string name="mcp_status_needs_setup">Configúralo en la web</string>
+    <string name="mcp_status_needs_setup">Requiere configuración</string>
     <string name="mcp_status_on_demand">Se conecta cuando chateas</string>
     <string name="mcp_status_disconnected">No conectado</string>
     <string name="mcp_status_failed">No se puede conectar</string>
+    <string name="mcp_vars_title">Configurar %1$s</string>
+    <string name="mcp_vars_body">%1$s necesita estos datos para poder conectarse. Se guardan en tu cuenta del servidor, no en este teléfono.</string>
+    <string name="mcp_vars_keep_hint">Deja un campo vacío para conservar lo guardado.</string>
+    <string name="mcp_vars_set">Configurado</string>
+    <string name="mcp_vars_not_set">Sin configurar</string>
+    <string name="mcp_vars_save_connect">Guardar y conectar</string>
+    <string name="mcp_vars_connect">Conectar</string>
+    <string name="mcp_vars_cancel">Cancelar</string>
+    <string name="mcp_vars_remove">Quitar</string>
+    <string name="mcp_vars_remove_confirm">¿Quitar tus valores de %1$s? También cerrarás sesión en él.</string>
+    <string name="mcp_vars_keep">Conservar</string>
+    <string name="mcp_vars_save_failed">No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.</string>
+    <string name="mcp_vars_remove_failed">No se pudieron quitar tus valores. Inténtalo de nuevo.</string>
 </resources>

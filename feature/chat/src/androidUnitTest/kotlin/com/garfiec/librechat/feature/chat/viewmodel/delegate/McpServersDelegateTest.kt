@@ -8,6 +8,7 @@ import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerDiscovery
 import com.garfiec.librechat.core.model.mcp.McpServerStatus
 import com.garfiec.librechat.core.model.mcp.McpToolCatalog
+import com.garfiec.librechat.core.model.mcp.McpUserVar
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
 import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
@@ -574,5 +575,57 @@ class McpServersDelegateTest : McpServersDelegateTestBase() {
         // As the MCP servers page reads it (applyDiscoveryAuthorizationState), not FAILED.
         assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.NEEDS_SIGN_IN)
         assertThat(handle.state.mcpServers.single().requiresOAuth).isTrue()
+    }
+
+    private val token = McpUserVar("GH_TOKEN", "Token", "")
+    private val owed = McpServer(name = "owed", customUserVars = listOf(token))
+
+    /** The status route reads a server owed variables as plain disconnected; auth-values says why. */
+    @Test
+    fun aServerOwedItsVariablesReadsNeedsSetupAndCarriesItsFields() = runTest {
+        val saved = McpServer(name = "saved", customUserVars = listOf(token))
+        coEvery { mcpRepository.listServers() } returns Result.Success(listOf(owed, saved))
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(
+            mapOf("owed" to McpServerStatus(), "saved" to McpServerStatus()),
+        )
+        coEvery { mcpRepository.getUserVarFlags("owed") } returns Result.Success(mapOf("GH_TOKEN" to false))
+        coEvery { mcpRepository.getUserVarFlags("saved") } returns Result.Success(mapOf("GH_TOKEN" to true))
+        val (handle, delegate) = newDelegate()
+
+        delegate.load()
+        advanceUntilIdle()
+
+        assertThat(handle.statuses()).containsExactly(
+            "owed", McpDisplayStatus.NEEDS_SETUP,
+            "saved", McpDisplayStatus.DISCONNECTED,
+        )
+        assertThat(handle.state.mcpServers.first().setsUpOnTap).isTrue()
+        assertThat(handle.state.mcpServers.first().userVars).containsExactly(token)
+    }
+
+    @Test
+    fun removingVariablesTurnsTheServerOffAndReloads() = runTest {
+        coEvery { mcpRepository.listServers() } returns Result.Success(listOf(owed))
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(mapOf("owed" to McpServerStatus()))
+        coEvery { mcpRepository.getUserVarFlags("owed") } returns Result.Success(mapOf("GH_TOKEN" to true))
+        coEvery { mcpRepository.removeUserVars("owed") } returns Result.Success(Unit)
+        val (_, delegate) = newDelegate(
+            modelChat.copy(selection = modelChat.selection.copy(selectedMcpServerNames = setOf("owed"))),
+        )
+
+        assertThat(delegate.removeUserVars("owed")).isTrue()
+        advanceUntilIdle()
+
+        assertThat(toggled).containsExactly("owed")
+        coVerify(exactly = 1) { mcpRepository.listServers() }
+    }
+
+    @Test
+    fun connectingWithoutTypingSavesNothing() = runTest {
+        val (_, delegate) = newDelegate()
+
+        assertThat(delegate.saveUserVars("owed", emptyMap())).isTrue()
+
+        coVerify(exactly = 0) { mcpRepository.saveUserVars(any(), any()) }
     }
 }

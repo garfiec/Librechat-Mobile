@@ -892,6 +892,8 @@
     </plurals>
     <string name="mcp_action_sign_in">Войти</string>
     <string name="mcp_action_connect">Подключить</string>
+    <string name="mcp_action_set_up">Настроить</string>
+    <string name="mcp_action_variables">Переменные</string>
     <string name="mcp_action_reconnect">Переподключить</string>
     <string name="mcp_action_edit">Изменить</string>
     <string name="mcp_view_only">Только просмотр</string>
@@ -905,7 +907,7 @@
     <string name="mcp_tools_title">Инструменты</string>
     <string name="mcp_tools_filter_hint">Фильтр инструментов</string>
     <string name="mcp_tools_no_match">Нет подходящих инструментов</string>
-    <string name="mcp_needs_setup_detail">Этому серверу нужны данные, которые можете указать только вы, например ваш API-ключ. Добавьте их на сайте LibreChat и переподключитесь.</string>
+    <string name="mcp_needs_setup_detail">Этому серверу нужны данные, которые можете указать только вы, например ваш собственный ключ API, прежде чем он сможет подключиться.</string>
     <string name="mcp_editor_section_about">Описание</string>
     <string name="mcp_editor_section_connection">Подключение</string>
     <string name="mcp_editor_section_sign_in">Вход</string>

@@ -920,6 +920,8 @@
     </plurals>
     <string name="mcp_action_sign_in">تسجيل الدخول</string>
     <string name="mcp_action_connect">اتصال</string>
+    <string name="mcp_action_set_up">إعداد</string>
+    <string name="mcp_action_variables">المتغيرات</string>
     <string name="mcp_action_reconnect">إعادة الاتصال</string>
     <string name="mcp_action_edit">تعديل</string>
     <string name="mcp_view_only">عرض فقط</string>
@@ -933,7 +935,7 @@
     <string name="mcp_tools_title">الأدوات</string>
     <string name="mcp_tools_filter_hint">تصفية الأدوات</string>
     <string name="mcp_tools_no_match">لا توجد أدوات مطابقة</string>
-    <string name="mcp_needs_setup_detail">يحتاج هذا الخادم إلى بيانات لا يمكن أن يقدمها غيرك، مثل مفتاح API الخاص بك. أضفها على موقع LibreChat ثم أعد الاتصال.</string>
+    <string name="mcp_needs_setup_detail">يحتاج هذا الخادم إلى بيانات لا يقدّمها سواك، مثل مفتاح API الخاص بك، قبل أن يتصل.</string>
     <string name="mcp_editor_section_about">حول</string>
     <string name="mcp_editor_section_connection">الاتصال</string>
     <string name="mcp_editor_section_sign_in">تسجيل الدخول</string>

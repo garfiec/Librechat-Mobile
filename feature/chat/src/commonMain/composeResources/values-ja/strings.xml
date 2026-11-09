@@ -880,6 +880,7 @@
     <string name="mcp_sign_in_needed_unnamed">ツールへのサインインが必要です</string>
     <string name="mcp_sign_in_resumes">サインインすると応答が続きます。</string>
     <string name="mcp_sign_in_action">サインイン</string>
+    <string name="mcp_set_up_action">設定</string>
     <string name="mcp_sign_in_failed">サインインが完了しませんでした。もう一度お試しください。</string>
     <string name="prompt_filter_title">絞り込みと並べ替え</string>
     <string name="prompt_sort_recent">新しい順</string>

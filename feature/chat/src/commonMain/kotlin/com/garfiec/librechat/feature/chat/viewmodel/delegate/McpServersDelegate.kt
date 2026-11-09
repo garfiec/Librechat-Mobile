@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.McpRepository
+import com.garfiec.librechat.core.data.repository.serversMissingUserVars
 import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
 import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerDiscovery
@@ -54,6 +55,9 @@ class McpServersDelegate(
     /** The last load's list and status map (null: that read failed), for a later discovery read to re-fold. */
     private var painted: Pair<List<McpServer>, Map<String, McpServerStatus>?>? = null
 
+    /** The last load's servers still owed user variables ([serversMissingUserVars]). */
+    private var missingUserVars: Set<String> = emptySet()
+
     /** Discovery waits for `toolbarShown`: the route runs a full catalog load and no chat without tool controls reads it. */
     private var discoveryWanted = false
 
@@ -98,10 +102,13 @@ class McpServersDelegate(
                 status.cancel()
                 return@coroutineScope
             }
+            val missing = async { mcpRepository.serversMissingUserVars(serversResult.data) }
             val statusMap = (status.await() as? Result.Success)?.data
+            val missingNow = missing.await()
             if (generation != loadGeneration) return@coroutineScope
             val listChanged = painted?.first?.map { it.name } != serversResult.data.map { it.name }
             painted = serversResult.data to statusMap
+            missingUserVars = missingNow
             paint(serversResult.data, statusMap)
             if (discover || listChanged) {
                 discoveryWanted = serversResult.data.isNotEmpty()
@@ -135,7 +142,12 @@ class McpServersDelegate(
         val servers = listed.map { server ->
             val status = folded[server.name]
             server.toDisplayData(
-                status = mcpDisplayStatus(server, status, isReinitializing = false),
+                status = mcpDisplayStatus(
+                    server,
+                    status,
+                    isReinitializing = false,
+                    userVarsMissing = server.name in missingUserVars,
+                ),
                 requiresOAuth = status?.requiresOAuth == true,
                 signInBusy = signInBusy,
             )
@@ -250,6 +262,33 @@ class McpServersDelegate(
         onFailed()
     }
 
+    /** Which of [serverName]'s variables are saved, for the variables sheet; null when the read failed. */
+    suspend fun userVarFlags(serverName: String): Map<String, Boolean>? =
+        (mcpRepository.getUserVarFlags(serverName) as? Result.Success)?.data
+
+    /**
+     * Saves the variables sheet's [values] (none: the user only connects). False when the server refused;
+     * the caller then reconnects through [signIn], which selects the server once it connects.
+     */
+    suspend fun saveUserVars(serverName: String, values: Map<String, String>): Boolean {
+        if (values.isEmpty()) return true
+        val result = mcpRepository.saveUserVars(serverName, values)
+        if (result is Result.Error) Logger.d(result.exception) { "Failed to save MCP variables: ${result.message}" }
+        return result is Result.Success
+    }
+
+    /** Deletes [serverName]'s variables, turns the server off in this chat (as web does) and reloads. */
+    suspend fun removeUserVars(serverName: String): Boolean {
+        val result = mcpRepository.removeUserVars(serverName)
+        if (result is Result.Error) {
+            Logger.d(result.exception) { "Failed to remove MCP variables: ${result.message}" }
+            return false
+        }
+        if (serverName in handle.state.effectiveMcpServerNames) toggleMcpServer(serverName)
+        load()
+        return true
+    }
+
     /** Never cancels: a closed or refused sign-in leaves its flow pending, shown as connecting, as on web. */
     fun onSignInEnded() {
         load()
@@ -292,4 +331,5 @@ internal fun McpServer.toDisplayData(
     status = status,
     requiresOAuth = requiresOAuth,
     signInBusy = signInBusy,
+    userVars = customUserVars,
 )

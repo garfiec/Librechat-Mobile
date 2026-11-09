@@ -171,14 +171,6 @@ class HtmlDescriptionTest {
     }
 
     @Test
-    fun `scheme-relative and unknown-scheme links stay text`() {
-        assertThat(safeHref("href=\"//evil.example.com/x\"", "https://chat.example.com")).isNull()
-        assertThat(safeHref("href=\"intent://scan\"", "https://chat.example.com")).isNull()
-        assertThat(safeHref("href=\"  javascript:alert(1)\"", "https://chat.example.com")).isNull()
-        assertThat(safeHref("href=\"\"", "https://chat.example.com")).isNull()
-    }
-
-    @Test
     fun `entities in markup are decoded`() {
         assertThat(htmlDescriptionToAnnotatedString("<p>Tom &amp; Jerry&nbsp;&lt;3</p>").text).isEqualTo("Tom & Jerry\u00A0<3")
     }

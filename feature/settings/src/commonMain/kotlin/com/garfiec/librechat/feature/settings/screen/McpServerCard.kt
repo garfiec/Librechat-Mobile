@@ -53,7 +53,12 @@ internal enum class McpCardAction(val label: StringResource) {
     SIGN_IN(Res.string.mcp_action_sign_in),
     RETRY(Res.string.action_retry),
     CONNECT(Res.string.mcp_action_connect),
+    SET_UP(Res.string.mcp_action_set_up),
 }
+
+/** As [McpDisplayStatus.cardAction], plus "Set up" for a server owed variables the app can take. */
+internal fun McpServerRow.cardAction(): McpCardAction? =
+    if (status == McpDisplayStatus.NEEDS_SETUP && userVars.isNotEmpty()) McpCardAction.SET_UP else status.cardAction()
 
 internal fun McpDisplayStatus.cardAction(): McpCardAction? = when (this) {
     McpDisplayStatus.NEEDS_SIGN_IN -> McpCardAction.SIGN_IN
@@ -88,6 +93,7 @@ internal fun McpServerCard(
     row: McpServerRow,
     onOpen: () -> Unit,
     onReconnect: () -> Unit,
+    onSetUp: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val presentation = row.status.presentation(statusColors())
@@ -142,12 +148,12 @@ internal fun McpServerCard(
                     }
                 }
             }
-            val action = row.status.cardAction()
+            val action = row.cardAction()
             if (action != null) {
                 // Capped so a long translation ("Erneut versuchen") wraps inside the button instead of
                 // squeezing the title beside it to a sliver on a narrow screen.
                 AdaptiveFilledTonalButton(
-                    onClick = onReconnect,
+                    onClick = if (action == McpCardAction.SET_UP) onSetUp else onReconnect,
                     modifier = Modifier.align(Alignment.CenterVertically).widthIn(max = ACTION_MAX_WIDTH),
                 ) {
                     Text(stringResource(action.label), maxLines = 2, textAlign = TextAlign.Center)

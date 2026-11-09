@@ -380,8 +380,21 @@
     <string name="mcp_status_connected">Подключён</string>
     <string name="mcp_status_connecting">Подключение…</string>
     <string name="mcp_status_needs_sign_in">Нужен вход</string>
-    <string name="mcp_status_needs_setup">Настройте в веб-версии</string>
+    <string name="mcp_status_needs_setup">Нужна настройка</string>
     <string name="mcp_status_on_demand">Подключается во время чата</string>
     <string name="mcp_status_disconnected">Не подключён</string>
     <string name="mcp_status_failed">Не удаётся подключиться</string>
+    <string name="mcp_vars_title">Настройка: %1$s</string>
+    <string name="mcp_vars_body">%1$s нужны эти данные для подключения. Они хранятся в вашей учётной записи на сервере, а не на этом телефоне.</string>
+    <string name="mcp_vars_keep_hint">Оставьте поле пустым, чтобы сохранить текущее значение.</string>
+    <string name="mcp_vars_set">Задано</string>
+    <string name="mcp_vars_not_set">Не задано</string>
+    <string name="mcp_vars_save_connect">Сохранить и подключить</string>
+    <string name="mcp_vars_connect">Подключить</string>
+    <string name="mcp_vars_cancel">Отмена</string>
+    <string name="mcp_vars_remove">Удалить</string>
+    <string name="mcp_vars_remove_confirm">Удалить ваши значения для %1$s? Вы также выйдете из этого сервера.</string>
+    <string name="mcp_vars_keep">Оставить</string>
+    <string name="mcp_vars_save_failed">Не удалось сохранить. Проверьте подключение и повторите попытку.</string>
+    <string name="mcp_vars_remove_failed">Не удалось удалить ваши значения. Повторите попытку.</string>
 </resources>

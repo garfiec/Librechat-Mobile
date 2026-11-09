@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.mcp.McpDisplayStatus
 import com.garfiec.librechat.core.model.mcp.McpTool
+import com.garfiec.librechat.core.model.mcp.McpUserVar
 import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
@@ -23,6 +24,7 @@ internal fun sampleMcpRow(
     toolCount: Int = 0,
     error: String? = null,
     canEdit: Boolean = true,
+    userVars: List<McpUserVar> = emptyList(),
 ) = McpServerRow(
     name = title.lowercase(),
     title = title,
@@ -34,6 +36,7 @@ internal fun sampleMcpRow(
     error = error,
     toolCount = toolCount,
     access = McpServerAccess(canEdit = canEdit, canDelete = canEdit),
+    userVars = userVars,
 )
 
 private val everyStatus = listOf(
@@ -47,7 +50,11 @@ private val everyStatus = listOf(
     ),
     sampleMcpRow("Company docs", McpDisplayStatus.ON_DEMAND, canEdit = false),
     sampleMcpRow("Calendar", McpDisplayStatus.CONNECTING),
-    sampleMcpRow("Notion", McpDisplayStatus.NEEDS_SETUP),
+    sampleMcpRow(
+        "Notion",
+        McpDisplayStatus.NEEDS_SETUP,
+        userVars = listOf(McpUserVar("NOTION_TOKEN", "Integration token", "")),
+    ),
     sampleMcpRow("Filesystem", McpDisplayStatus.DISCONNECTED, canEdit = false),
 )
 
@@ -81,8 +88,8 @@ private fun McpSheetHeaderHost(dark: Boolean, style: UiStyle) {
     LibreChatTheme(darkTheme = dark, uiStyle = style) {
         Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.padding(vertical = 16.dp)) {
-                McpServerSheetHeader(row = everyStatus[1], onReconnect = {}, onEdit = {}, onDelete = {})
-                McpServerSheetHeader(row = everyStatus[2], onReconnect = {}, onEdit = {}, onDelete = {})
+                McpServerSheetHeader(row = everyStatus[1], onReconnect = {}, onEdit = {}, onDelete = {}, onVariables = {})
+                McpServerSheetHeader(row = everyStatus[2], onReconnect = {}, onEdit = {}, onDelete = {}, onVariables = {})
                 listOf(
                     McpTool(name = "create_issue", description = "Create a new issue in a GitHub repository"),
                     McpTool(name = "get_file_contents", description = "Read a file or directory from a repository"),
@@ -98,7 +105,7 @@ private fun McpCardsHost(dark: Boolean, style: UiStyle) {
         Surface(color = MaterialTheme.colorScheme.background) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(16.dp)) {
                 everyStatus.forEach { row ->
-                    McpServerCard(row = row, onOpen = {}, onReconnect = {})
+                    McpServerCard(row = row, onOpen = {}, onReconnect = {}, onSetUp = {})
                 }
             }
         }

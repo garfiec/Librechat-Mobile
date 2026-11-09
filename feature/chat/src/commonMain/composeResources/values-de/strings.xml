@@ -894,6 +894,7 @@
     <string name="mcp_sign_in_needed_unnamed">Ein Tool erfordert deine Anmeldung</string>
     <string name="mcp_sign_in_resumes">Die Antwort wird fortgesetzt, sobald du angemeldet bist.</string>
     <string name="mcp_sign_in_action">Anmelden</string>
+    <string name="mcp_set_up_action">Einrichten</string>
     <string name="mcp_sign_in_failed">Die Anmeldung wurde nicht abgeschlossen. Versuche es erneut.</string>
     <string name="prompt_filter_title">Filtern &amp; sortieren</string>
     <string name="prompt_sort_recent">Neueste</string>

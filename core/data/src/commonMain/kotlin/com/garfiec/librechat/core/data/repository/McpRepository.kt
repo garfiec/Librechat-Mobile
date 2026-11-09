@@ -9,6 +9,9 @@ import com.garfiec.librechat.core.model.mcp.McpServer
 import com.garfiec.librechat.core.model.mcp.McpServerStatus
 import com.garfiec.librechat.core.model.mcp.McpServerType
 import com.garfiec.librechat.core.model.mcp.McpToolCatalog
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 
 /** Repository for MCP server management. Uses serverName as unique identifier for operations. */
 interface McpRepository {
@@ -55,4 +58,30 @@ interface McpRepository {
 
     suspend fun getTools(): Result<McpToolCatalog>
     suspend fun getConnectionStatus(): Result<Map<String, McpServerStatus>>
+
+    /** Which of [serverName]'s user variables this user has saved, by key (see `McpApi.getUserVarFlags`). */
+    suspend fun getUserVarFlags(serverName: String): Result<Map<String, Boolean>>
+
+    /** Saves the non-blank [values]; a blank one would erase the saved value (see `McpApi.saveUserVars`). */
+    suspend fun saveUserVars(serverName: String, values: Map<String, String>): Result<Unit>
+
+    /** Deletes this user's variables for [serverName], and its OAuth tokens with them. */
+    suspend fun removeUserVars(serverName: String): Result<Unit>
+}
+
+/**
+ * The servers among [servers] still owed one of their [McpServer.customUserVars], read in parallel.
+ * A server whose read fails is left out, so it shows its plain connection status.
+ */
+suspend fun McpRepository.serversMissingUserVars(servers: List<McpServer>): Set<String> = coroutineScope {
+    servers.filter { it.customUserVars.isNotEmpty() }
+        .map { server ->
+            async {
+                val flags = (getUserVarFlags(server.name) as? Result.Success)?.data ?: return@async null
+                server.name.takeIf { server.customUserVars.any { flags[it.key] != true } }
+            }
+        }
+        .awaitAll()
+        .filterNotNull()
+        .toSet()
 }

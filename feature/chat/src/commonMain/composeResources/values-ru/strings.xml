@@ -922,6 +922,7 @@
     <string name="mcp_sign_in_needed_unnamed">Инструмент требует входа</string>
     <string name="mcp_sign_in_resumes">Ответ продолжится, как только вы войдёте.</string>
     <string name="mcp_sign_in_action">Войти</string>
+    <string name="mcp_set_up_action">Настроить</string>
     <string name="mcp_sign_in_failed">Вход не завершён. Попробуйте снова.</string>
     <string name="prompt_filter_title">Фильтр и сортировка</string>
     <string name="prompt_sort_recent">Недавние</string>

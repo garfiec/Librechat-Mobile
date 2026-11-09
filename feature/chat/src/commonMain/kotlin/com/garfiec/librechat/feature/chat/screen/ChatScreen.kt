@@ -43,6 +43,7 @@ import com.garfiec.librechat.core.model.response.pickerMimeTypes
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
 import com.garfiec.librechat.core.ui.glass.glassBackdropSource
+import com.garfiec.librechat.core.ui.mcp.McpVariablesSheet
 import com.garfiec.librechat.core.ui.platform.rememberReduceMotion
 import com.garfiec.librechat.feature.chat.components.AskUserQuestionPanel
 import com.garfiec.librechat.feature.chat.components.ChatComposer
@@ -216,6 +217,7 @@ fun ChatScreen(
     var showPresetPicker by remember { mutableStateOf(false) }
     var showThinkingSheet by rememberSaveable { mutableStateOf(false) }
     var showWebSearchKeys by rememberSaveable { mutableStateOf(false) }
+    var mcpVariablesServer by rememberSaveable { mutableStateOf<String?>(null) }
     var showSavePresetDialog by remember { mutableStateOf(false) }
     var showSecondaryModelSheet by remember { mutableStateOf(false) }
     var activeComparisonTab by remember { mutableIntStateOf(0) }
@@ -847,6 +849,7 @@ fun ChatScreen(
                 onAttachToCode = onAttachToCode,
                 onSignInMcpServer = startSheetMcpSignIn,
                 onCancelMcpSignIn = cancelMcpSignIn,
+                onSetUpMcpServer = { mcpVariablesServer = it },
                 onOpenWebSearchKeys = { showWebSearchKeys = true },
             )
 
@@ -876,6 +879,7 @@ fun ChatScreen(
         onAttachToCode = onAttachToCode,
         onSignInMcpServer = startSheetMcpSignIn,
         onCancelMcpSignIn = cancelMcpSignIn,
+        onSetUpMcpServer = { mcpVariablesServer = it },
         onOpenWebSearchKeys = { showWebSearchKeys = true },
         onNavigateToProviderKeys = onNavigateToProviderKeys,
         onShowSavePresetDialog = { showSavePresetDialog = true },
@@ -889,6 +893,24 @@ fun ChatScreen(
             onSave = viewModel::saveWebSearchKeys,
             onRemove = viewModel::removeWebSearchKeys,
             onDismiss = { showWebSearchKeys = false },
+        )
+    }
+
+    // Closes itself when the server leaves the list (an account or server switch).
+    val mcpVariablesFor = mcpVariablesServer?.let { name -> uiState.mcpServers.firstOrNull { it.name == name } }
+    if (mcpVariablesFor != null) {
+        McpVariablesSheet(
+            serverLabel = mcpVariablesFor.label,
+            vars = mcpVariablesFor.userVars,
+            loadFlags = { viewModel.mcpVariableFlags(mcpVariablesFor.name) },
+            onSave = { values ->
+                // Saving drops the connection; the sheet's sign-in reconnects and turns the server on.
+                viewModel.saveMcpVariables(mcpVariablesFor.name, values).also { saved ->
+                    if (saved) startSheetMcpSignIn(mcpVariablesFor.name)
+                }
+            },
+            onRemove = { viewModel.removeMcpVariables(mcpVariablesFor.name) },
+            onDismiss = { mcpVariablesServer = null },
         )
     }
 
