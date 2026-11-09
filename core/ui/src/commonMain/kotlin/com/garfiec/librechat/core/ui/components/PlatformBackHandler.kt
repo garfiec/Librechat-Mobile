@@ -21,6 +21,13 @@ import androidx.compose.ui.backhandler.BackHandler
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun PlatformBackHandler(enabled: Boolean, onBack: () -> Unit) {
+    BackClaim(enabled)
+    BackHandler(enabled = enabled, onBack = onBack)
+}
+
+/** Holds a claim on [LocalBackClaims] while [enabled]; every back handler under the shell needs one. */
+@Composable
+internal fun BackClaim(enabled: Boolean) {
     val claims = LocalBackClaims.current
     if (enabled && claims != null) {
         DisposableEffect(claims) {
@@ -28,13 +35,13 @@ fun PlatformBackHandler(enabled: Boolean, onBack: () -> Unit) {
             onDispose { claims.release() }
         }
     }
-    BackHandler(enabled = enabled, onBack = onBack)
 }
 
 /**
- * How many [PlatformBackHandler]s under the shell are enabled. The phone shell turns the drawer's
- * swipe off while any is: on iOS the drawer's drag otherwise takes the edge swipe that means back,
- * so a dirty editor would open the drawer (and could be left through it) instead of asking to discard.
+ * How many back handlers ([PlatformBackHandler], [rememberSheetPredictiveBack]) under the shell are
+ * enabled. The phone shell turns the drawer's swipe off while any is: on iOS the drawer's drag
+ * otherwise takes the edge swipe that means back, so a dirty editor would open the drawer (and could
+ * be left through it) instead of asking to discard.
  */
 @Stable
 class BackClaims {
