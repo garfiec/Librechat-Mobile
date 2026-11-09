@@ -15,6 +15,8 @@
     <string name="login_title">Anmelden</string>
     <string name="email_label">E-Mail</string>
     <string name="password_label">Passwort</string>
+    <string name="cd_show_password">Passwort anzeigen</string>
+    <string name="cd_hide_password">Passwort ausblenden</string>
     <string name="continue_button">Weiter</string>
     <string name="forgot_password">Passwort vergessen?</string>
     <string name="no_account_sign_up">Noch kein Konto? Registrieren</string>

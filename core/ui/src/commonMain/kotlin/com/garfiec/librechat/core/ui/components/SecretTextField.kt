@@ -70,16 +70,36 @@ fun SecretTextField(
         minLines = minLines,
         maxLines = maxLines,
         trailingIcon = {
-            IconButton(
-                onClick = { onRevealedChange(!revealed) },
-                enabled = enabled,
+            SecretRevealButton(
+                revealed = revealed,
+                onRevealedChange = onRevealedChange,
                 modifier = revealButtonModifier,
-            ) {
-                Icon(
-                    imageVector = if (revealed) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                    contentDescription = stringResource(if (revealed) hideDescription else showDescription),
-                )
-            }
+                enabled = enabled,
+                showDescription = showDescription,
+                hideDescription = hideDescription,
+            )
         },
     )
+}
+
+/** The eye button that asks to show or hide a masked field; [SecretTextField]'s trailing icon. */
+@Composable
+fun SecretRevealButton(
+    revealed: Boolean,
+    onRevealedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    showDescription: StringResource = Res.string.cd_show_secret,
+    hideDescription: StringResource = Res.string.cd_hide_secret,
+) {
+    IconButton(
+        onClick = { onRevealedChange(!revealed) },
+        enabled = enabled,
+        modifier = modifier,
+    ) {
+        Icon(
+            imageVector = if (revealed) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+            contentDescription = stringResource(if (revealed) hideDescription else showDescription),
+        )
+    }
 }

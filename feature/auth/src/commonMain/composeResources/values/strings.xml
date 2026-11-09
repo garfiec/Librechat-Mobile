@@ -15,6 +15,8 @@
     <string name="login_title">Sign in</string>
     <string name="email_label">Email</string>
     <string name="password_label">Password</string>
+    <string name="cd_show_password">Show password</string>
+    <string name="cd_hide_password">Hide password</string>
     <string name="continue_button">Continue</string>
     <string name="forgot_password">Forgot password?</string>
     <string name="no_account_sign_up">Don't have an account? Sign up</string>
