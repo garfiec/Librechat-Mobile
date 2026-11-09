@@ -34,7 +34,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
-import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.IosTextContentType
 import com.garfiec.librechat.core.ui.components.withIosTextContentType
@@ -171,17 +170,9 @@ fun RegisterScreen(
         AdaptiveButton(
             onClick = viewModel::register,
             modifier = Modifier.fillMaxWidth(),
-            enabled = !uiState.isLoading,
+            loading = uiState.isLoading,
         ) {
-            if (uiState.isLoading) {
-                AdaptiveCircularProgressIndicator(
-                    modifier = Modifier.height(20.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    strokeWidth = 2.dp,
-                )
-            } else {
-                Text(stringResource(Res.string.sign_up))
-            }
+            Text(stringResource(if (uiState.isLoading) Res.string.progress_creating_account else Res.string.sign_up))
         }
 
         Spacer(modifier = Modifier.height(16.dp))

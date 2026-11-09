@@ -24,7 +24,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
-import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
@@ -140,13 +139,11 @@ fun VerifyEmailScreen(
             AdaptiveOutlinedButton(
                 onClick = viewModel::resendVerification,
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isLoading && uiState.resendCooldownSeconds == 0,
+                enabled = uiState.resendCooldownSeconds == 0,
+                loading = uiState.isLoading,
             ) {
                 if (uiState.isLoading) {
-                    AdaptiveCircularProgressIndicator(
-                        modifier = Modifier.height(20.dp),
-                        strokeWidth = 2.dp,
-                    )
+                    Text(stringResource(Res.string.progress_sending))
                 } else if (uiState.resendCooldownSeconds > 0) {
                     Text(stringResource(Res.string.resend_in_seconds, uiState.resendCooldownSeconds))
                 } else {

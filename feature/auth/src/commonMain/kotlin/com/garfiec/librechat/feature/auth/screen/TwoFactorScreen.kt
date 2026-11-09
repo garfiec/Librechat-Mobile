@@ -30,7 +30,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
-import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.OTP_LENGTH
@@ -145,21 +144,14 @@ fun TwoFactorScreen(
             AdaptiveButton(
                 onClick = viewModel::submit,
                 modifier = Modifier.fillMaxWidth().testTag("twofa_verify"),
-                enabled = !uiState.isLoading && if (uiState.isBackupMode) {
+                enabled = if (uiState.isBackupMode) {
                     uiState.backupCode.isNotBlank()
                 } else {
                     uiState.code.length == OTP_LENGTH
                 },
+                loading = uiState.isLoading,
             ) {
-                if (uiState.isLoading) {
-                    AdaptiveCircularProgressIndicator(
-                        modifier = Modifier.height(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp,
-                    )
-                } else {
-                    Text(stringResource(Res.string.verify))
-                }
+                Text(stringResource(if (uiState.isLoading) Res.string.progress_verifying else Res.string.verify))
             }
 
             Spacer(modifier = Modifier.height(16.dp))

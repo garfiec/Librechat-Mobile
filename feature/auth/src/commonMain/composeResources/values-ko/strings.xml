@@ -124,4 +124,13 @@
     <plurals name="server_url_known_server_accounts">
         <item quantity="other">계정 %1$d개</item>
     </plurals>
+    <string name="progress_connecting">연결 중…</string>
+    <string name="progress_signing_in">로그인 중…</string>
+    <string name="progress_creating_account">계정 만드는 중…</string>
+    <string name="progress_sending">보내는 중…</string>
+    <string name="progress_resetting_password">비밀번호 재설정 중…</string>
+    <string name="progress_verifying">확인 중…</string>
+    <string name="progress_accepting">동의하는 중…</string>
+    <string name="progress_starting">시작하는 중…</string>
+    <string name="progress_finishing">완료하는 중…</string>
 </resources>

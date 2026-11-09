@@ -45,6 +45,12 @@ fun AdaptiveCircularProgressIndicator(
         return
     }
     val spokeColor = if (color == ProgressIndicatorDefaults.circularColor) MaterialTheme.colorScheme.onSurfaceVariant else color
+    GlassActivityIndicator(spokeColor, modifier)
+}
+
+/** The iOS activity indicator in exactly [color], even when that is the accent. */
+@Composable
+internal fun GlassActivityIndicator(color: Color, modifier: Modifier = Modifier) {
     val step = rememberInfiniteTransition(label = "activity").animateValue(
         initialValue = 0,
         targetValue = SPOKES,
@@ -61,7 +67,7 @@ fun AdaptiveCircularProgressIndicator(
             val age = (lead - i + SPOKES) % SPOKES
             rotate(degrees = i * 360f / SPOKES) {
                 drawLine(
-                    color = spokeColor.copy(alpha = 1f - age * FADE_PER_SPOKE),
+                    color = color.copy(alpha = 1f - age * FADE_PER_SPOKE),
                     start = Offset(center.x, center.y - radius * SPOKE_INNER),
                     end = Offset(center.x, center.y - radius + width / 2),
                     strokeWidth = width,

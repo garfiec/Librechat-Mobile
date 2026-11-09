@@ -174,17 +174,10 @@ fun TermsScreen(
                         AdaptiveButton(
                             onClick = viewModel::acceptTerms,
                             modifier = Modifier.weight(1f),
-                            enabled = !uiState.isAccepting && !declining,
+                            enabled = !declining,
+                            loading = uiState.isAccepting,
                         ) {
-                            if (uiState.isAccepting) {
-                                AdaptiveCircularProgressIndicator(
-                                    modifier = Modifier.height(20.dp),
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    strokeWidth = 2.dp,
-                                )
-                            } else {
-                                Text(stringResource(Res.string.i_accept))
-                            }
+                            Text(stringResource(if (uiState.isAccepting) Res.string.progress_accepting else Res.string.i_accept))
                         }
                     }
                 }
