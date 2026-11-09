@@ -884,6 +884,7 @@ fun ChatScreen(
         onNavigateToProviderKeys = onNavigateToProviderKeys,
         onShowSavePresetDialog = { showSavePresetDialog = true },
         compareSetupPick = compareSetupPick,
+        snackbarHostState = snackbarHostState,
     )
 
     val webSearchKeys = uiState.gates.webSearchKeys
