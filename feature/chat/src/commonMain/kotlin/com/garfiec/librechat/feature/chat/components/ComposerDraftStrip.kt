@@ -91,6 +91,7 @@ import com.garfiec.librechat.feature.chat.resources.draft_row_quote
 import com.garfiec.librechat.feature.chat.resources.draft_row_skill
 import com.garfiec.librechat.feature.chat.resources.draft_row_uploading
 import com.garfiec.librechat.feature.chat.resources.draft_subtitle_join
+import com.garfiec.librechat.feature.chat.resources.tool_file_search
 import com.garfiec.librechat.feature.chat.util.DraftItem
 import com.garfiec.librechat.feature.chat.util.DraftItemTap
 import com.garfiec.librechat.feature.chat.util.DraftItems
@@ -473,6 +474,7 @@ private fun draftItemSubtitle(item: DraftItem): String = when (item) {
             when (file.route) {
                 UploadRoute.TEXT -> stringResource(Res.string.draft_subtitle_join, type, stringResource(Res.string.cd_upload_route_text))
                 UploadRoute.CODE -> stringResource(Res.string.draft_subtitle_join, type, stringResource(Res.string.cd_upload_route_code))
+                UploadRoute.FILE_SEARCH -> stringResource(Res.string.draft_subtitle_join, type, stringResource(Res.string.tool_file_search))
                 UploadRoute.PROVIDER, null -> type
             }
         }

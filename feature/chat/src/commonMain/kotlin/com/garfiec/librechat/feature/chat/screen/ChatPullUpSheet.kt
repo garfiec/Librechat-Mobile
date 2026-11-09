@@ -408,6 +408,8 @@ internal fun BoxScope.ChatPullUpSheetOverlay(
     onPickPhotos: () -> Unit,
     onAttachFromServer: () -> Unit,
     onAttachToCode: (() -> Unit)?,
+    onSignInMcpServer: (String) -> Unit,
+    onCancelMcpSignIn: (String) -> Unit,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val hide: () -> Unit = { coroutineScope.launch { state.hide() } }
@@ -503,6 +505,8 @@ internal fun BoxScope.ChatPullUpSheetOverlay(
                     hide()
                 },
                 selectedModelDisplay = selectedModelDisplay,
+                selection = rememberOptionsSelection(uiState, selectedModelDisplay),
+                toolsHiddenReason = uiState.toolsHiddenReason,
                 comparisonModels = comparisonModelLabels(uiState),
                 onDismiss = hide,
                 openTools = uiState.openTools,
@@ -518,6 +522,8 @@ internal fun BoxScope.ChatPullUpSheetOverlay(
                 onContextGaugeExpandedChange = viewModel::setContextGaugeExpanded,
                 mcpExpanded = mcpExpanded,
                 onMcpExpandedChange = { mcpExpanded = it },
+                onSignInMcpServer = onSignInMcpServer,
+                onCancelMcpSignIn = onCancelMcpSignIn,
             )
         }
     }

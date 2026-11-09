@@ -40,6 +40,26 @@ class UploadRoutingTest {
         serverVersion: String? = null,
     ) = resolveUploadRoute(mime, endpoint, endpointType, agentProvider, serverVersion)
 
+    @Test
+    fun fileSearchUploadsCarryTheFileSearchToolResource() {
+        assertEquals("file_search", UploadRoute.FILE_SEARCH.toolResource())
+    }
+
+    @Test
+    fun fileSearchIsNeverChosenAutomatically() {
+        val mimes = listOf(png, pdf, docx, xlsx, csv, txt, md, pptx, epub, zip, mp4, mp3, unknownBinary, null)
+        val endpoints = listOf("anthropic", "openAI", "google", "bedrock", "ollama", "agents", "Groq", null)
+        for (mime in mimes) {
+            for (endpoint in endpoints) {
+                assertTrue(route(mime, endpoint) != UploadRoute.FILE_SEARCH, "$mime on $endpoint")
+                assertTrue(
+                    route(mime, endpoint, endpointType = "custom", agentProvider = "ollama") != UploadRoute.FILE_SEARCH,
+                    "$mime on $endpoint (custom, agent)",
+                )
+            }
+        }
+    }
+
     // ---------------------------------------------------------------- images
 
     @Test

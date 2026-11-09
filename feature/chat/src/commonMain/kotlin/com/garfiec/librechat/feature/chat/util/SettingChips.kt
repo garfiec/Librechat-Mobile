@@ -25,18 +25,10 @@ sealed interface SettingChip {
         val label: String get() = server.label
         val status: McpDisplayStatus get() = server.status
 
-        private val requiresOAuth: Boolean get() = server.requiresOAuth
+        /** [McpServerDisplayData.signsInOnTap], which the "+" sheet's MCP section counts too. */
+        val signsInOnTap: Boolean get() = server.signsInOnTap
 
-        /** Needs sign-in, or an OAuth server that failed: a tap signs in (web's MCP palette rule). */
-        val signsInOnTap: Boolean
-            get() = status == McpDisplayStatus.NEEDS_SIGN_IN || (requiresOAuth && status == McpDisplayStatus.FAILED)
-
-        /**
-         * An OAuth flow is open, maybe finished in the browser, maybe abandoned. The app never cancels
-         * it by itself: a run elsewhere may be waiting on the same flow.
-         */
-        val signInPending: Boolean
-            get() = requiresOAuth && status == McpDisplayStatus.CONNECTING
+        val signInPending: Boolean get() = server.signInPending
 
         /** A reconnect or cancel is out ([signInBusy]) and would ignore this chip's tap, so it is disabled. */
         val waitsForSignIn: Boolean
@@ -137,7 +129,7 @@ internal class SettingChipsMemo {
     }
 }
 
-/** A pinned key as mobile names the tool, or null for one it has no toggle for (`artifacts`, …). */
+/** A pinned key as mobile names the tool (`execute_code` is the code interpreter), or null for one it has no toggle for. */
 fun pinnedToolKey(key: String): String? = when (key) {
     ToolConstants.EXECUTE_CODE, ToolConstants.CODE_INTERPRETER -> ToolConstants.CODE_INTERPRETER
     in SETTING_TOOL_ORDER -> key
@@ -152,6 +144,7 @@ val SETTING_TOOL_ORDER: List<String> = listOf(
     ToolConstants.FILE_SEARCH,
     ToolConstants.MEMORY,
     ToolConstants.SKILLS,
+    ToolConstants.ARTIFACTS,
 )
 
 /** The row the "+" sheet opens on, scrolled into view and marked, for a settings chip's tap. */

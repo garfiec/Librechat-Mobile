@@ -25,6 +25,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoice
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.viewmodel.PendingUploadFile
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -100,7 +101,7 @@ internal fun UploadRoutingContent(
             )
         }
 
-        if (files.count { it.choosable } > 1) {
+        if (files.count { UploadRoute.PROVIDER in it.routes && UploadRoute.TEXT in it.routes } > 1) {
             // The two choices wrap under the label as a pair, and apart only when even a line of
             // their own is too narrow.
             FlowRow(
@@ -150,13 +151,12 @@ private fun UploadRoutingRow(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        // A file with one usable mode shows the two delivery modes, disabled, with that one selected.
+        val routes = if (staged.choosable) SHEET_ROUTES.filter { it in staged.routes } else DELIVERY_ROUTES
         AdaptiveSegmentedChoice(
-            options = listOf(
-                stringResource(Res.string.upload_routing_option_provider),
-                stringResource(Res.string.upload_routing_option_text),
-            ),
-            selectedIndex = SHEET_ROUTES.indexOf(staged.route).coerceAtLeast(0),
-            onSelect = { onRouteChange(SHEET_ROUTES[it]) },
+            options = routes.map { stringResource(it.sheetLabel()) },
+            selectedIndex = routes.indexOf(staged.route).coerceAtLeast(0),
+            onSelect = { onRouteChange(routes[it]) },
             modifier = Modifier.fillMaxWidth(),
             enabled = staged.choosable,
         )
@@ -168,15 +168,34 @@ private fun UploadRoutingRow(
     }
 }
 
-/** One line saying what will actually happen — the thing "to the model" / "as text" doesn't say. */
+/**
+ * One line saying what will actually happen — the thing "to the model" / "as text" doesn't say.
+ * Whether the model can read the file is judged on the two delivery modes alone: file search
+ * being on offer doesn't make the other mode readable.
+ */
 @Composable
-private fun routeExplanation(staged: PendingUploadFile): String = when {
-    !staged.choosable && staged.route == UploadRoute.PROVIDER ->
-        stringResource(Res.string.upload_routing_why_provider_only)
-    !staged.choosable -> stringResource(Res.string.upload_routing_why_text_only)
-    staged.route == UploadRoute.PROVIDER -> stringResource(Res.string.upload_routing_why_provider)
-    else -> stringResource(Res.string.upload_routing_why_text)
+private fun routeExplanation(staged: PendingUploadFile): String {
+    val deliveryChoice = DELIVERY_ROUTES.all { it in staged.routes }
+    return when {
+        staged.route == UploadRoute.FILE_SEARCH -> stringResource(Res.string.upload_route_file_search_why)
+        !deliveryChoice && staged.route == UploadRoute.PROVIDER ->
+            stringResource(Res.string.upload_routing_why_provider_only)
+        !deliveryChoice -> stringResource(Res.string.upload_routing_why_text_only)
+        staged.route == UploadRoute.PROVIDER -> stringResource(Res.string.upload_routing_why_provider)
+        else -> stringResource(Res.string.upload_routing_why_text)
+    }
 }
 
-/** The two routes the sheet chooses between; [UploadRoute.CODE] is only ever an explicit pick. */
-private val SHEET_ROUTES = listOf(UploadRoute.PROVIDER, UploadRoute.TEXT)
+private fun UploadRoute.sheetLabel(): StringResource = when (this) {
+    UploadRoute.TEXT -> Res.string.upload_routing_option_text
+    UploadRoute.FILE_SEARCH -> Res.string.upload_route_file_search
+    UploadRoute.PROVIDER, UploadRoute.CODE -> Res.string.upload_routing_option_provider
+}
+
+private val DELIVERY_ROUTES = listOf(UploadRoute.PROVIDER, UploadRoute.TEXT)
+
+/**
+ * Every route the sheet can offer, in order; each row shows the ones its file may take.
+ * [UploadRoute.CODE] is only ever an explicit pick.
+ */
+private val SHEET_ROUTES = DELIVERY_ROUTES + UploadRoute.FILE_SEARCH

@@ -89,7 +89,16 @@ class SettingChipsTest {
 
     @Test
     fun unknownPinnedKeysAreIgnored() {
-        assertTrue(settingChipsOf(inputs(pinned = listOf("artifacts", "mcp"))).isEmpty)
+        assertTrue(settingChipsOf(inputs(pinned = listOf("mcp", "shadcnui"))).isEmpty)
+    }
+
+    @Test
+    fun aPinnedArtifactsKeyIsTheArtifactsTool() {
+        assertEquals(ToolConstants.ARTIFACTS, pinnedToolKey(ToolConstants.ARTIFACTS))
+
+        val chips = settingChipsOf(inputs(pinned = listOf(ToolConstants.ARTIFACTS))).chips
+
+        assertEquals(listOf<SettingChip>(SettingChip.Tool(ToolConstants.ARTIFACTS, SettingChipState.PINNED_OFF, pinned = true)), chips)
     }
 
     @Test

@@ -14,4 +14,15 @@ data class McpServerDisplayData(
     val signInBusy: Boolean = false,
 ) {
     val label: String get() = title?.takeIf { it.isNotBlank() } ?: name
+
+    /** Needs sign-in, or an OAuth server that failed: a tap signs in (web's MCP palette rule). */
+    val signsInOnTap: Boolean
+        get() = status == McpDisplayStatus.NEEDS_SIGN_IN || (requiresOAuth && status == McpDisplayStatus.FAILED)
+
+    /**
+     * An OAuth flow is open, maybe finished in the browser, maybe abandoned. The app never cancels
+     * it by itself: a run elsewhere may be waiting on the same flow.
+     */
+    val signInPending: Boolean
+        get() = requiresOAuth && status == McpDisplayStatus.CONNECTING
 }

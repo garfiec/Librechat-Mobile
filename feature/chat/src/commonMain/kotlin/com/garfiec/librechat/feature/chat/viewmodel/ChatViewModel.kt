@@ -339,7 +339,8 @@ class ChatViewModel(
         initialModel = initialModel,
         initialSpec = initialSpec,
     )
-    private val mcpServersDelegate = McpServersDelegate(ModelSelectionHandle(stateHandle), mcpRepository)
+    private val mcpServersDelegate =
+        McpServersDelegate(ModelSelectionHandle(stateHandle), mcpRepository, toggleMcpServer = modelDelegate::toggleMcpServer)
     private val skillsToggleDelegate = SkillsToggleDelegate(SkillsToggleHandle(stateHandle), settingsDataStore)
 
     // The attached-machine workspace a chat's coding agents run on, and what each send carries.
@@ -695,6 +696,7 @@ class ChatViewModel(
         awaitAgentProvider = { modelDelegate.awaitSelectedAgentProvider() },
         // Only the EXPOSED combine folds serverDataStore.currentUrlFlow into prefs.serverUrl.
         serverUrl = { uiState.value.serverUrl },
+        turnOnToolForUpload = ::turnOnToolForUpload,
     )
 
     private val chatConfigDelegate = ChatConfigDelegate(
@@ -2016,19 +2018,23 @@ class ChatViewModel(
     // File attachments
     fun onFilesSelected(platformRefs: List<Any>) = uploadIntakeDelegate.intakePickedFiles(platformRefs, prompt = true)
 
-    /**
-     * "Upload to Code Environment" picks ([ChatUiState.codeUploadOffered]). Like web, this also turns
-     * the code interpreter on for a chat with ephemeral tools, or the file would reach a run with
-     * no tool to read it (a saved agent already has it: that is what offers the row).
-     */
+    /** "Upload to Code Environment" picks ([ChatUiState.codeUploadOffered]); see [turnOnToolForUpload]. */
     fun onCodeFilesSelected(platformRefs: List<Any>) {
-        val state = _uiState.value
-        if (!state.codeUploadOffered) return
-        if (state.toolbarShown && ToolConstants.CODE_INTERPRETER !in state.selection.effectiveTools) {
-            modelDelegate.toggleTool(ToolConstants.CODE_INTERPRETER)
-        }
+        if (!_uiState.value.codeUploadOffered) return
+        turnOnToolForUpload(ToolConstants.CODE_INTERPRETER)
         uploadIntakeDelegate.intakeCodeFiles(platformRefs)
     }
+
+    /**
+     * Turns [tool] on for a file routed to it, as web does, before the upload starts so a send
+     * parked on it carries the tool: on for ephemeral tools (a session addition under a spec); a
+     * saved agent already has it, which is what offered the route.
+     */
+    private fun turnOnToolForUpload(tool: String) {
+        val state = _uiState.value
+        if (state.toolbarShown && tool !in state.selection.effectiveTools) modelDelegate.toggleTool(tool)
+    }
+
     fun setPendingUploadRoute(index: Int, route: UploadRoute) = uploadIntakeDelegate.setPendingUploadRoute(index, route)
     fun setAllPendingUploadRoutes(route: UploadRoute) = uploadIntakeDelegate.setAllPendingUploadRoutes(route)
     fun confirmPendingUploadRouting() = uploadIntakeDelegate.confirmPendingUploadRouting()
@@ -2164,14 +2170,15 @@ class ChatViewModel(
     fun setSecondaryModel(endpoint: String, model: String) = comparisonDelegate.setSecondaryModel(endpoint, model)
     fun toggleMcpServer(serverName: String) = modelDelegate.toggleMcpServer(serverName)
 
-    /** A settings chip's "sign in", or its "Start over": see [McpServersDelegate.signIn]. */
+    /** A settings chip's "sign in" or "Start over", or the "+" sheet's "Sign in": see [McpServersDelegate.signIn]. */
     fun signInMcpServer(
         serverName: String,
         openSignIn: (serverName: String, authorizationUrl: String) -> Boolean,
         onFailed: () -> Unit,
-    ) = mcpServersDelegate.signIn(serverName, openSignIn, onFailed)
+        selectWhenConnected: Boolean = false,
+    ) = mcpServersDelegate.signIn(serverName, openSignIn, onFailed, selectWhenConnected)
 
-    /** A connecting chip's "Cancel sign-in": see [McpServersDelegate.cancelSignIn]. */
+    /** A connecting chip's or "+" sheet row's "Cancel sign-in": see [McpServersDelegate.cancelSignIn]. */
     fun cancelMcpSignIn(serverName: String, onFailed: () -> Unit) =
         mcpServersDelegate.cancelSignIn(serverName, onFailed)
 

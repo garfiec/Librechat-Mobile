@@ -185,6 +185,110 @@ class McpServersDelegateTest : McpServersDelegateTestBase() {
     }
 
     @Test
+    fun aSheetSignInTurnsTheServerOnOnceAReloadReadsItConnected() = runTest {
+        coEvery { mcpRepository.listServers() } returns Result.Success(servers)
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
+        stubPendingFlowOnReconnect()
+        val (_, delegate) = newDelegate()
+        delegate.load()
+        advanceUntilIdle()
+
+        delegate.signIn("github", { _, _ -> true }, {}, selectWhenConnected = true)
+        advanceUntilIdle()
+        delegate.onSignInEnded()
+        advanceUntilIdle()
+        // Still connecting: not on before it connects.
+        assertThat(toggled).isEmpty()
+
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(signedIn)
+        returnToTheChat(delegate)
+        assertThat(toggled).containsExactly("github")
+
+        // Once only: a later reload leaves the user's choice alone.
+        returnToTheChat(delegate)
+        assertThat(toggled).containsExactly("github")
+    }
+
+    @Test
+    fun aFailedSheetSignInTurnsNothingOnWhenTheServerConnectsLater() = runTest {
+        coEvery { mcpRepository.listServers() } returns Result.Success(servers)
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
+        coEvery { mcpRepository.reinitialize("github") } returns Result.Error(message = "502")
+        val (_, delegate) = newDelegate()
+        delegate.load()
+        advanceUntilIdle()
+
+        delegate.signIn("github", { _, _ -> true }, {}, selectWhenConnected = true)
+        advanceUntilIdle()
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(signedIn)
+        returnToTheChat(delegate)
+
+        assertThat(toggled).isEmpty()
+    }
+
+    @Test
+    fun aCancelledSheetSignInTurnsNothingOnWhenTheServerConnectsLater() = runTest {
+        coEvery { mcpRepository.listServers() } returns Result.Success(servers)
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
+        stubPendingFlowOnReconnect()
+        val (_, delegate) = newDelegate()
+        delegate.load()
+        advanceUntilIdle()
+        delegate.signIn("github", { _, _ -> true }, {}, selectWhenConnected = true)
+        advanceUntilIdle()
+        delegate.onSignInEnded()
+        advanceUntilIdle()
+
+        delegate.cancelSignIn("github") {}
+        advanceUntilIdle()
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(signedIn)
+        returnToTheChat(delegate)
+
+        assertThat(toggled).isEmpty()
+    }
+
+    @Test
+    fun aChipSignInElsewhereKeepsAPendingSheetSignInsSelect() = runTest {
+        coEvery { mcpRepository.listServers() } returns Result.Success(servers)
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
+        stubPendingFlowOnReconnect()
+        coEvery { mcpRepository.reinitialize("sentry") } returns Result.Success(McpReinitializeResponse(success = true))
+        val (_, delegate) = newDelegate()
+        delegate.load()
+        advanceUntilIdle()
+        delegate.signIn("github", { _, _ -> true }, {}, selectWhenConnected = true)
+        advanceUntilIdle()
+        delegate.onSignInEnded()
+        advanceUntilIdle()
+
+        delegate.signIn("sentry", { _, _ -> true }, {})
+        advanceUntilIdle()
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(signedIn)
+        returnToTheChat(delegate)
+
+        assertThat(toggled).containsExactly("github")
+    }
+
+    @Test
+    fun aChipSignInNeverTurnsTheServerOn() = runTest {
+        coEvery { mcpRepository.listServers() } returns Result.Success(servers)
+        coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)
+        coEvery { mcpRepository.reinitialize("github") } coAnswers {
+            coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(signedIn)
+            Result.Success(McpReinitializeResponse(success = true))
+        }
+        val (handle, delegate) = newDelegate()
+        delegate.load()
+        advanceUntilIdle()
+
+        delegate.signIn("github", { _, _ -> true }, {})
+        advanceUntilIdle()
+
+        assertThat(handle.statuses()["github"]).isEqualTo(McpDisplayStatus.CONNECTED)
+        assertThat(toggled).isEmpty()
+    }
+
+    @Test
     fun aLoadStartedBeforeTheSignInDoesNotPaintOverIt() = runTest {
         coEvery { mcpRepository.listServers() } returns Result.Success(servers)
         coEvery { mcpRepository.getConnectionStatus() } returns Result.Success(needsSignIn)

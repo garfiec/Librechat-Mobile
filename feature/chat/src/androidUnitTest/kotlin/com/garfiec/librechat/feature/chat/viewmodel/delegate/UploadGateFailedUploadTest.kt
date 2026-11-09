@@ -1,10 +1,17 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
+import com.garfiec.librechat.core.common.ToolConstants
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
+import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
+import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
+import com.garfiec.librechat.feature.chat.viewmodel.PendingUploadFile
+import com.garfiec.librechat.feature.chat.viewmodel.PendingUploadRouting
 import com.garfiec.librechat.feature.chat.viewmodel.UploadIntakeHandle
+import com.garfiec.librechat.feature.chat.viewmodel.UploadRoutingContext
 import com.google.common.truth.Truth.assertThat
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -25,8 +32,11 @@ class UploadGateFailedUploadTest {
     private val failed = AttachedFile(uri = "b", name = "b.pdf", uploadFailed = true)
     private val uploading = AttachedFile(uri = "c", name = "c.pdf", uploadProgress = 0.3f)
 
+    private val turnedOn = mutableListOf<String>()
+
     private fun gateTest(
         initial: List<AttachedFile>,
+        state: ChatUiState = ChatUiState(),
         body: TestScope.(
             FakeFileHandler,
             UploadIntakeDelegate,
@@ -34,7 +44,7 @@ class UploadGateFailedUploadTest {
             MutableList<String>,
         ) -> Unit,
     ) = runTest(UnconfinedTestDispatcher()) {
-        val flow = MutableStateFlow(ChatUiState())
+        val flow = MutableStateFlow(state)
         val scope = TestScope(testScheduler)
         val files = FakeFileHandler(initial)
         val delegate = UploadIntakeDelegate(
@@ -43,6 +53,7 @@ class UploadGateFailedUploadTest {
             settingsDataStore = mockk<SettingsDataStore>(relaxed = true),
             awaitAgentProvider = {},
             serverUrl = { "" },
+            turnOnToolForUpload = { turnedOn += it },
         )
         val sent = mutableListOf<String>()
         try {
@@ -93,5 +104,59 @@ class UploadGateFailedUploadTest {
         delegate.withUploadGate("hello") { sent += it }
 
         assertThat(sent).containsExactly("hello")
+    }
+
+    private val openAi = ChatUiState(selection = ModelSelectionState(choice = ModelChoice.Raw("openAI", "gpt-4o")))
+    private val notes = PickedFile(ref = "notes", name = "notes.docx", mimeType = "application/msword")
+
+    private fun stageFileSearchPick(flow: MutableStateFlow<ChatUiState>) {
+        val routes = listOf(UploadRoute.PROVIDER, UploadRoute.TEXT, UploadRoute.FILE_SEARCH)
+        flow.value = flow.value.copy(
+            composer = flow.value.composer.copy(
+                pendingUploadRouting = PendingUploadRouting(
+                    files = listOf(PendingUploadFile(notes, UploadRoute.FILE_SEARCH, routes)),
+                    context = UploadRoutingContext(endpoint = "openAI", endpointType = null, agentProvider = null),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `a file-search pick turns File Search on at confirm, before its upload starts`() =
+        gateTest(emptyList(), openAi) { files, delegate, flow, _ ->
+            stageFileSearchPick(flow)
+            delegate.confirmPendingUploadRouting()
+
+            assertThat(files.files.value.single().route).isEqualTo(UploadRoute.FILE_SEARCH)
+            assertThat(turnedOn).containsExactly(ToolConstants.FILE_SEARCH)
+        }
+
+    @Test
+    fun `a file-search pick no longer offered at confirm is routed as auto would, without the tool`() =
+        gateTest(emptyList(), openAi) { files, delegate, flow, _ ->
+            stageFileSearchPick(flow)
+            flow.value = flow.value.copy(gates = flow.value.gates.copy(fileSearchEnabled = false))
+            delegate.confirmPendingUploadRouting()
+
+            assertThat(files.files.value.single().route).isEqualTo(flow.value.uploadRouteFor(notes.mimeType))
+            assertThat(turnedOn).isEmpty()
+        }
+
+    @Test
+    fun `a retried file-search upload turns File Search on`() {
+        val failedSearch = AttachedFile(
+            uri = "d",
+            name = "d.pdf",
+            type = "application/pdf",
+            uploadFailed = true,
+            route = UploadRoute.FILE_SEARCH,
+        )
+        gateTest(listOf(failedSearch), openAi) { files, delegate, _, _ ->
+            delegate.retryUpload(failedSearch)
+            runCurrent()
+
+            assertThat(files.retried).containsExactly(failedSearch)
+            assertThat(turnedOn).containsExactly(ToolConstants.FILE_SEARCH)
+        }
     }
 }

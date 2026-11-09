@@ -3,13 +3,16 @@ package com.garfiec.librechat.feature.chat.screen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import com.garfiec.librechat.core.model.config.displayLabel
 import com.garfiec.librechat.feature.chat.components.ChatOptionsBottomSheet
 import com.garfiec.librechat.feature.chat.components.ChatOptionsSheetController
 import com.garfiec.librechat.feature.chat.components.ChatToolsPageParams
 import com.garfiec.librechat.feature.chat.components.ComparisonLane
 import com.garfiec.librechat.feature.chat.components.ModelParametersPageParams
 import com.garfiec.librechat.feature.chat.components.ModelSelectorPageParams
+import com.garfiec.librechat.feature.chat.components.OptionsSelection
 import com.garfiec.librechat.feature.chat.components.localizedStreamError
+import com.garfiec.librechat.feature.chat.util.keyHint
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
 
@@ -35,6 +38,9 @@ internal fun ChatOptionsSheetHost(
     onPickPhotos: () -> Unit,
     onAttachFromServer: () -> Unit,
     onAttachToCode: (() -> Unit)?,
+    /** An MCP row's sign-in, the settings line's with the server turned on once it connects. */
+    onSignInMcpServer: (String) -> Unit,
+    onCancelMcpSignIn: (String) -> Unit,
     onNavigateToProviderKeys: (endpointName: String?) -> Unit,
     onShowSavePresetDialog: () -> Unit,
     /** Compare setup's staged picks: during setup the Model page stages into them. */
@@ -56,6 +62,7 @@ internal fun ChatOptionsSheetHost(
         }
 
     val error = uiState.error?.let { localizedStreamError(it) }
+    val optionsSelection = rememberOptionsSelection(uiState, selectedModelDisplay)
     val comparison = rememberComparisonSelectorRouting(
         uiState = uiState,
         initialTarget = if (isSecondaryTab) ComparisonLane.B else ComparisonLane.A,
@@ -68,6 +75,7 @@ internal fun ChatOptionsSheetHost(
 
     ChatOptionsBottomSheet(
         page = page,
+        entryPage = controller.entryPage ?: page,
         onPageChange = controller::open,
         onDismiss = controller::close,
         tools = ChatToolsPageParams(
@@ -83,6 +91,8 @@ internal fun ChatOptionsSheetHost(
             onAttachFromServer = onAttachFromServer,
             onAttachToCode = onAttachToCode,
             selectedModelDisplay = selectedModelDisplay,
+            selection = optionsSelection,
+            toolsHiddenReason = uiState.toolsHiddenReason,
             comparisonModels = comparisonModelLabels(uiState),
             openTools = uiState.openTools,
             webSearchKind = uiState.webSearchKind,
@@ -95,6 +105,8 @@ internal fun ChatOptionsSheetHost(
             contextBarPlacement = uiState.contextBarPlacement,
             contextGaugeExpanded = uiState.contextGaugeExpanded,
             onContextGaugeExpandedChange = viewModel::setContextGaugeExpanded,
+            onSignInMcpServer = onSignInMcpServer,
+            onCancelMcpSignIn = onCancelMcpSignIn,
         ),
         // While comparing, the page edits whichever lane its A/B pair picks, starting on the active
         // tab's; the sheet itself needs no comparison branch.
@@ -151,6 +163,30 @@ internal fun ChatOptionsSheetHost(
                 onShowSavePresetDialog()
             },
             setBySpec = uiState.parametersSetBySpec,
+            comparing = uiState.comparisonState.isEnabled,
         ),
     )
+}
+
+/** Remembered on exactly the inputs it reads: `uiState` emits per SSE delta and per parameter edit. */
+@Composable
+internal fun rememberOptionsSelection(uiState: ChatUiState, title: String?): OptionsSelection {
+    val selection = uiState.selection
+    return remember(
+        selection.choice,
+        selection.modelSpecs,
+        selection.endpointConfigs,
+        selection.endpointKeyStates,
+        selection.agents,
+        uiState.serverUrl,
+        title,
+    ) {
+        val spec = uiState.activeSpec
+        OptionsSelection(
+            modelIcon = uiState.selectionIcon(),
+            modelSubtitle = selectionModelSubtitle(uiState.selectedEndpoint, uiState.selectedModel, uiState.agents, title),
+            modelKeyHint = uiState.endpointKeyStates[uiState.selectedEndpoint].keyHint(),
+            lockedBy = spec?.displayLabel?.takeIf(String::isNotBlank),
+        )
+    }
 }

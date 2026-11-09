@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 /**
  * An in-memory [PlatformFileHandler]: the tray is [files], uploads are whatever a test writes there.
+ * A pick or a retry puts its entry in the tray as uploading, as both real handlers do synchronously.
  * Records what the attachment list asked of it ([removed], [inserted], [retried]).
  */
 internal class FakeFileHandler(initial: List<AttachedFile> = emptyList()) : PlatformFileHandler {
@@ -20,7 +21,9 @@ internal class FakeFileHandler(initial: List<AttachedFile> = emptyList()) : Plat
     val retried = mutableListOf<AttachedFile>()
 
     override fun describe(platformRefs: List<Any>): List<PickedFile> = emptyList()
-    override fun onFilesSelected(files: List<RoutedFile>) = Unit
+    override fun onFilesSelected(files: List<RoutedFile>) {
+        this.files.value += files.map { AttachedFile(uri = it.file.ref, name = it.file.name, type = it.file.mimeType, route = it.route) }
+    }
 
     override fun removeFile(file: AttachedFile) {
         removed += file
@@ -29,6 +32,7 @@ internal class FakeFileHandler(initial: List<AttachedFile> = emptyList()) : Plat
 
     override fun retryUpload(file: AttachedFile) {
         retried += file
+        files.value = files.value.updateEntry(file.key) { it.copy(uploadFailed = false, uploadProgress = null, fileId = null) }
     }
 
     override fun insertAt(index: Int, file: AttachedFile) {

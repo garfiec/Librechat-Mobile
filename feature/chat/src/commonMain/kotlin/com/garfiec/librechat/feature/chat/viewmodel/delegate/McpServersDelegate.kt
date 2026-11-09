@@ -23,6 +23,8 @@ import kotlinx.coroutines.launch
 class McpServersDelegate(
     private val handle: ModelSelectionHandle,
     private val mcpRepository: McpRepository,
+    /** [ModelSelectionDelegate.toggleMcpServer]: how a sheet sign-in turns its server on. */
+    private val toggleMcpServer: (String) -> Unit,
 ) {
     /**
      * Bumped by every load, sign-in start and cancel; an older generation paints nothing. The
@@ -32,6 +34,12 @@ class McpServersDelegate(
     private var loadJob: Job? = null
 
     private var signingIn: String? = null
+
+    /**
+     * A sheet sign-in's server, turned on once a reload reads it connected (web: sign in, then
+     * select). Kept while it reads connecting; dropped by any other end.
+     */
+    private var selectOnConnect: String? = null
 
     private var loaded = false
 
@@ -132,8 +140,20 @@ class McpServersDelegate(
                 signInBusy = signInBusy,
             )
         }
-        if (servers == handle.state.mcpServers) return
-        handle.update { selection = selection.copy(mcpServers = servers) }
+        if (servers != handle.state.mcpServers) handle.update { selection = selection.copy(mcpServers = servers) }
+        if (statusMap != null && signingIn == null) selectIfConnected(servers)
+    }
+
+    private fun selectIfConnected(servers: List<McpServerDisplayData>) {
+        val name = selectOnConnect ?: return
+        when (servers.firstOrNull { it.name == name }?.status) {
+            McpDisplayStatus.CONNECTING -> return
+            McpDisplayStatus.CONNECTED -> {
+                selectOnConnect = null
+                if (name !in handle.state.effectiveMcpServerNames) toggleMcpServer(name)
+            }
+            else -> selectOnConnect = null
+        }
     }
 
     private fun paintSignInBusy() {
@@ -170,9 +190,13 @@ class McpServersDelegate(
         /** Whether the sign-in opened; false while another one is binding or on screen. */
         openSignIn: (serverName: String, authorizationUrl: String) -> Boolean,
         onFailed: () -> Unit,
+        /** The "+" sheet's sign-in: turn the server on once it connects. A chip's never does. */
+        selectWhenConnected: Boolean = false,
     ) {
         if (signingIn != null) return
         signingIn = serverName
+        // A chip's sign-in leaves another server's pending sheet select alone.
+        if (selectWhenConnected) selectOnConnect = serverName
         val cancelling = pendingCancel
         loadGeneration++
         discoveryJob?.cancel()
@@ -199,7 +223,7 @@ class McpServersDelegate(
                     val authorizationUrl = response.authorizationUrl
                     when {
                         authorizationUrl == null -> {
-                            if (!response.success && response.connectionDeferred != true) onFailed()
+                            if (!response.success && response.connectionDeferred != true) failed(serverName, onFailed)
                             false
                         }
                         openSignIn(serverName, authorizationUrl) -> true
@@ -211,7 +235,7 @@ class McpServersDelegate(
                 }
                 is Result.Error -> {
                     Logger.d(result.exception) { "Failed to reconnect MCP server for sign-in: ${result.message}" }
-                    onFailed()
+                    failed(serverName, onFailed)
                     false
                 }
                 is Result.Loading -> false
@@ -219,6 +243,11 @@ class McpServersDelegate(
             // An opened sign-in reloads through onSignInEnded once it ends.
             if (!opened) load()
         }
+    }
+
+    private fun failed(serverName: String, onFailed: () -> Unit) {
+        if (selectOnConnect == serverName) selectOnConnect = null
+        onFailed()
     }
 
     /** Never cancels: a closed or refused sign-in leaves its flow pending, shown as connecting, as on web. */
@@ -229,6 +258,7 @@ class McpServersDelegate(
     /** The user's "Cancel sign-in" (web's `cancelOAuthFlow`); reloads whether or not it landed. */
     fun cancelSignIn(serverName: String, onFailed: () -> Unit) {
         if (signInBusy) return
+        if (selectOnConnect == serverName) selectOnConnect = null
         val generation = ++loadGeneration
         val cancelled = CompletableDeferred<Unit>()
         pendingCancel = cancelled

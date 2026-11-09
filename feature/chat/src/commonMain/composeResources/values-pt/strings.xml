@@ -235,25 +235,18 @@
     <string name="tool_server_files">Servidor</string>
     <string name="tool_model">Modelo</string>
     <string name="tool_model_parameters">Parâmetros do modelo</string>
-    <string name="tool_model_parameters_desc">Ajuste temperatura, tokens e mais</string>
+    <string name="params_title_lane_a">Parâmetros · Modelo A</string>
     <string name="param_set_by_spec">As configurações deste modelo são definidas pelo servidor e não podem ser alteradas aqui.</string>
     <string name="tool_set_by_spec">Ativado pelo servidor para este modelo</string>
     <string name="tool_web_search">Busca na web</string>
-    <string name="tool_web_search_desc">Pesquise informações na web</string>
     <string name="web_search_librechat">Pesquisa do LibreChat</string>
     <string name="web_search_checking">Verificando a pesquisa do LibreChat…</string>
     <string name="web_search_built_in">Pesquisa integrada do %1$s</string>
     <string name="web_search_built_in_plain">Pesquisa integrada</string>
-    <string name="web_search_set_by_spec">%1$s, ativada pelo servidor para este modelo</string>
     <string name="web_searched">Pesquisou na web</string>
     <string name="tool_url_context">Contexto de URL</string>
-    <string name="tool_url_context_desc">Permita que o modelo leia URLs e vídeos do YouTube que você mencionar</string>
     <string name="tool_code">Código</string>
-    <string name="tool_code_desc">Executar e analisar código</string>
     <string name="tool_file_search">Busca em arquivos</string>
-    <string name="tool_file_search_desc">Pesquise nos arquivos enviados</string>
-    <string name="tool_mcp">MCP</string>
-    <string name="tool_mcp_desc">Servidores Model Context Protocol</string>
     <string name="cd_quoted_excerpt">Trecho citado</string>
     <string name="selection_add_to_chat">Adicionar à conversa</string>
 
@@ -262,6 +255,8 @@
     <string name="upload_routing_sheet_title_single">Como este deve ser enviado?</string>
     <string name="upload_routing_option_provider">Para o modelo</string>
     <string name="upload_routing_option_text">Como texto</string>
+    <string name="upload_route_file_search">Pesquisar quando necessário</string>
+    <string name="upload_route_file_search_why">Documentos longos são indexados para que o modelo consulte as partes de que precisa.</string>
     <string name="upload_routing_why_provider">O modelo lê o próprio arquivo.</string>
     <string name="upload_routing_why_text">O servidor lê o arquivo e envia o texto dele.</string>
     <string name="upload_routing_why_provider_only">Este modelo só aceita este arquivo diretamente.</string>
@@ -639,9 +634,8 @@
     <string name="cd_expand_ask_user_question">Expandir detalhes da pergunta</string>
     <string name="cd_collapse_ask_user_question">Recolher detalhes da pergunta</string>
     <string name="tool_memory">Memória</string>
-    <string name="tool_memory_desc">Permita que o assistente lembre detalhes desta conversa</string>
     <string name="tool_skills">Habilidades</string>
-    <string name="tool_skills_desc">Permita que o assistente use suas habilidades nesta conversa</string>
+    <string name="tool_artifacts">Artefatos</string>
     <string name="picker_type_prompt">Prompt</string>
     <string name="picker_type_skill">Habilidade</string>
     <string name="picker_no_matches">Nenhum resultado</string>
@@ -1171,7 +1165,6 @@
         <item quantity="one">+%1$d chamada anterior</item>
         <item quantity="other">+%1$d chamadas anteriores</item>
     </plurals>
-    <string name="tool_code_environment">Código</string>
     <string name="cd_upload_route_code">Enviado para o ambiente de código</string>
     <string name="run_code">Executar</string>
     <string name="run_code_running">Executando</string>
@@ -1214,5 +1207,27 @@
     <plurals name="draft_uploads_failed">
         <item quantity="one">%1$d arquivo não foi enviado. Toque nele para tentar de novo ou remova-o.</item>
         <item quantity="other">%1$d arquivos não foram enviados. Toque neles para tentar de novo ou remova-os.</item>
+    </plurals>
+    <string name="attach_code_environment">Enviar para o ambiente de código</string>
+    <string name="mcp_servers_title">Servidores MCP</string>
+    <string name="tools_from_agent_title">Este agente escolhe as próprias ferramentas</string>
+    <string name="tools_from_agent_body">A pesquisa na web, o código e os servidores MCP vêm das configurações do agente.</string>
+    <string name="tools_from_spec">As ferramentas deste modelo são definidas pelo servidor.</string>
+    <string name="tool_state_on">Ativado</string>
+    <string name="tool_state_off">Desativado</string>
+    <plurals name="section_tools">
+        <item quantity="one">Ferramentas · %1$d ativada</item>
+        <item quantity="many">Ferramentas · %1$d ativadas</item>
+        <item quantity="other">Ferramentas · %1$d ativadas</item>
+    </plurals>
+    <plurals name="mcp_servers_on">
+        <item quantity="one">%1$d de %2$d ativado</item>
+        <item quantity="many">%1$d de %2$d ativados</item>
+        <item quantity="other">%1$d de %2$d ativados</item>
+    </plurals>
+    <plurals name="mcp_needs_sign_in">
+        <item quantity="one">%1$d precisa de login</item>
+        <item quantity="many">%1$d precisam de login</item>
+        <item quantity="other">%1$d precisam de login</item>
     </plurals>
 </resources>

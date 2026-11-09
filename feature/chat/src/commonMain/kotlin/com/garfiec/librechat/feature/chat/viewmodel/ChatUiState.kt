@@ -700,6 +700,7 @@ data class ChatUiState(
         ToolConstants.CODE_INTERPRETER -> isCodeInterpreterAvailable && runCodeEnabled
         ToolConstants.MEMORY -> isMemoryToolAvailable
         ToolConstants.SKILLS -> isSkillsToolAvailable
+        ToolConstants.ARTIFACTS -> agentCapabilityAllows(ToolConstants.ARTIFACTS)
         else -> false
     }
 
@@ -750,6 +751,14 @@ data class ChatUiState(
      */
     val toolbarShown: Boolean
         get() = showEphemeralTools && !selection.toolsHiddenBySpec
+
+    /** Why the tool controls are hidden, for the "+" sheet's note in their place; null while they show. */
+    val toolsHiddenReason: ToolsHiddenReason?
+        get() = when {
+            !showEphemeralTools -> ToolsHiddenReason.AGENT
+            selection.toolsHiddenBySpec -> ToolsHiddenReason.SPEC
+            else -> null
+        }
 
     /**
      * Whether a follow-up may be queued mid-stream: only on an existing single-stream
@@ -992,6 +1001,39 @@ data class ChatUiState(
         }
 
     /**
+     * Whether the routing sheet offers "Search it when needed" (web `useAttachItems`' file-search
+     * row): FILE_SEARCH.USE, the `file_search` capability, and a selection whose run can read the
+     * file: a saved agent whose `tools` include `file_search`, or ephemeral tools that can turn the
+     * tool on (shown, or already in use under a spec that hides them).
+     */
+    val fileSearchUploadOffered: Boolean
+        get() {
+            if (!toolGateOpen(ToolConstants.FILE_SEARCH) || !agentCapabilityAllows(ToolConstants.FILE_SEARCH)) return false
+            if (selectedEndpoint != EndpointConstants.AGENTS) {
+                return toolbarShown || ToolConstants.FILE_SEARCH in selection.effectiveTools
+            }
+            val agent = selection.agents.firstOrNull { it.id == selectedModel } ?: return false
+            return agent.tools?.contains(ToolConstants.FILE_SEARCH) == true
+        }
+
+    /**
+     * The routes the sheet offers [mimeType], in the sheet's order: both delivery modes while
+     * [uploadRouteIsAmbiguous], else the one [uploadRouteFor] picks, plus [UploadRoute.FILE_SEARCH]
+     * for a non-image document while [fileSearchUploadOffered].
+     */
+    fun uploadRoutesFor(mimeType: String?): List<UploadRoute> = buildList {
+        if (uploadRouteIsAmbiguous(mimeType)) {
+            add(UploadRoute.PROVIDER)
+            add(UploadRoute.TEXT)
+        } else {
+            add(uploadRouteFor(mimeType))
+        }
+        if (fileSearchUploadOffered && isTextExtractable(mimeType, serverVersion = gates.backendVersion)) {
+            add(UploadRoute.FILE_SEARCH)
+        }
+    }
+
+    /**
      * The delivery mode [mimeType] would get on the current selection, resolved against the
      * provider actually behind it — the agent's own provider on the agents endpoint, the
      * endpoint's `type` for a custom endpoint whose name is just an admin's label.
@@ -1043,16 +1085,13 @@ data class ChatUiState(
 
     /**
      * The route a failed upload goes again with: [stored] while it still works for the live
-     * selection (a code upload, the route the selection would pick, or either while both are open),
-     * else routed afresh, so a native PDF isn't replayed to a provider that ignores it.
+     * selection (a code upload, or one of [uploadRoutesFor]), else routed afresh, so a native PDF
+     * isn't replayed to a provider that ignores it.
      */
-    fun retryUploadRoute(stored: UploadRoute?, mimeType: String?): UploadRoute {
-        val live = uploadRouteFor(mimeType)
-        return when {
-            stored == null -> live
-            stored == UploadRoute.CODE || stored == live || uploadRouteIsAmbiguous(mimeType) -> stored
-            else -> live
-        }
+    fun retryUploadRoute(stored: UploadRoute?, mimeType: String?): UploadRoute = when {
+        stored == UploadRoute.CODE -> stored
+        stored != null && stored in uploadRoutesFor(mimeType) -> stored
+        else -> uploadRouteFor(mimeType)
     }
 
     /**

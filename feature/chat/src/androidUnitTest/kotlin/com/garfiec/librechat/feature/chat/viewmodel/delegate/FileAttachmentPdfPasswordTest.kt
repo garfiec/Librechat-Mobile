@@ -9,6 +9,8 @@ import com.garfiec.librechat.core.model.FileObject
 import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ErrorOnlyHandle
+import com.garfiec.librechat.feature.chat.viewmodel.ModelChoice
+import com.garfiec.librechat.feature.chat.viewmodel.ModelSelectionState
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -93,6 +95,24 @@ class FileAttachmentPdfPasswordTest {
 
         assertThat(delegate.pdfPasswordPrompts.value).isEmpty()
         assertThat(delegate.attachedFiles.value.single().fileId).isEqualTo("f1")
+    }
+
+    @Test
+    fun `the password re-upload keeps a file-search route the selection still offers`() {
+        every { handle.state } returns ChatUiState(selection = ModelSelectionState(choice = ModelChoice.Raw("openAI", "gpt-4o")))
+        uploadAnswers(null, locked(incorrect = false))
+        uploadAnswers("hunter2", Result.Error(exception = IllegalStateException(), message = "x"))
+
+        delegate.onFilesSelected(listOf(RoutedFile(picked, UploadRoute.FILE_SEARCH)))
+        delegate.submitPdfPassword(delegate.pdfPasswordPrompts.value.single(), "hunter2")
+
+        coVerify(exactly = 1) {
+            fileRepository.uploadFile(
+                bytes = any(), filename = any(), type = any(), fileId = any(), endpoint = any(),
+                model = any(), agentId = any(), toolResource = "file_search", messageFile = any(),
+                width = any(), height = any(), onProgress = any(), pdfPassword = "hunter2",
+            )
+        }
     }
 
     @Test

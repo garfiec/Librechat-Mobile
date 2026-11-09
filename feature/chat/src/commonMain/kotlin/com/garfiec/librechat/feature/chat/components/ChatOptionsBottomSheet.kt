@@ -52,12 +52,15 @@ import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_back
 import com.garfiec.librechat.feature.chat.resources.param_set_by_spec
+import com.garfiec.librechat.feature.chat.resources.params_title_lane_a
+import com.garfiec.librechat.feature.chat.resources.tool_model
 import com.garfiec.librechat.feature.chat.resources.tool_model_parameters
 import com.garfiec.librechat.feature.chat.util.ToolsSheetFocus
 import com.garfiec.librechat.feature.chat.util.WebSearchKind
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.viewmodel.ChatInputGates
 import com.garfiec.librechat.feature.chat.viewmodel.ContextGaugeDetails
+import com.garfiec.librechat.feature.chat.viewmodel.ToolsHiddenReason
 import org.jetbrains.compose.resources.stringResource
 
 /** Duration of the page slide + resize. */
@@ -83,6 +86,9 @@ data class ChatToolsPageParams(
     /** "Upload to Code Environment" (legacy upload UX); null hides it. */
     val onAttachToCode: (() -> Unit)? = null,
     val selectedModelDisplay: String?,
+    val selection: OptionsSelection = OptionsSelection(),
+    /** Why the tool controls are hidden; a note takes their place. */
+    val toolsHiddenReason: ToolsHiddenReason? = null,
     /** Both models while comparing; the Model row then names A and B. */
     val comparisonModels: ComparisonModelLabels? = null,
     /** The tools the sheet offers a row for ([ChatUiState.openTools]). */
@@ -99,6 +105,9 @@ data class ChatToolsPageParams(
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     val contextGaugeExpanded: Boolean = false,
     val onContextGaugeExpandedChange: (Boolean) -> Unit = {},
+    /** An MCP row's "Sign in" (the server turns on once it connects) and "Cancel sign-in". */
+    val onSignInMcpServer: ((String) -> Unit)? = null,
+    val onCancelMcpSignIn: ((String) -> Unit)? = null,
 )
 
 /**
@@ -155,6 +164,8 @@ data class ModelParametersPageParams(
     val onSaveAsPreset: () -> Unit = {},
     /** The server sets the parameters (an enforced spec): the page shows them read-only. */
     val setBySpec: Boolean = false,
+    /** Comparing: the page edits Model A's parameters on either tab, and its title says so. */
+    val comparing: Boolean = false,
 )
 
 /**
@@ -167,6 +178,8 @@ data class ModelParametersPageParams(
 @Composable
 fun ChatOptionsBottomSheet(
     page: ChatOptionsPage,
+    /** The page the sheet opened on: Back there dismisses, and a model pick returns to Options only from Options. */
+    entryPage: ChatOptionsPage,
     onPageChange: (ChatOptionsPage) -> Unit,
     onDismiss: () -> Unit,
     tools: ChatToolsPageParams,
@@ -206,7 +219,10 @@ fun ChatOptionsBottomSheet(
         onDismiss()
     }
     val back: () -> Unit = {
-        if (page == ChatOptionsPage.Options) dismiss() else goTo(ChatOptionsPage.Options)
+        if (page == entryPage) dismiss() else goTo(ChatOptionsPage.Options)
+    }
+    val afterPick: () -> Unit = {
+        if (entryPage == ChatOptionsPage.Options) goTo(ChatOptionsPage.Options) else dismiss()
     }
 
     AdaptiveModalBottomSheet(
@@ -218,7 +234,7 @@ fun ChatOptionsBottomSheet(
         // Inside the sheet: on Android the content is its own dialog window, so an outer handler
         // never sees its back events. Takes precedence over Material3's back-to-dismiss so a
         // sub-page pops to Options. Never fires on iOS — hence the header back arrows.
-        PlatformBackHandler(enabled = page != ChatOptionsPage.Options, onBack = back)
+        PlatformBackHandler(enabled = page != entryPage, onBack = back)
 
         BoxWithConstraints {
             // Sub-pages need a bounded height for the selector's weight(1f) LazyColumn; Options and
@@ -256,6 +272,8 @@ fun ChatOptionsBottomSheet(
                         onOpenModelParameters = { goTo(ChatOptionsPage.ModelParameters) },
                         onOpenModelSelector = { goTo(ChatOptionsPage.ModelSelector) },
                         selectedModelDisplay = tools.selectedModelDisplay,
+                        selection = tools.selection,
+                        toolsHiddenReason = tools.toolsHiddenReason,
                         comparisonModels = tools.comparisonModels,
                         onDismiss = dismiss,
                         openTools = tools.openTools,
@@ -273,6 +291,8 @@ fun ChatOptionsBottomSheet(
                         onMcpExpandedChange = { mcpExpanded = it },
                         scrollState = optionsScrollState,
                         focus = tools.focus,
+                        onSignInMcpServer = tools.onSignInMcpServer,
+                        onCancelMcpSignIn = tools.onCancelMcpSignIn,
                     )
 
                     ChatOptionsPage.ModelSelector -> ModelSelectorSheetContent(
@@ -287,11 +307,11 @@ fun ChatOptionsBottomSheet(
                         agentsLoaded = selector.agentsLoaded,
                         onSpecSelect = { spec ->
                             selector.onSpecSelect(spec)
-                            goTo(ChatOptionsPage.Options)
+                            afterPick()
                         },
                         onModelSelect = { endpoint, model ->
                             selector.onModelSelect(endpoint, model)
-                            goTo(ChatOptionsPage.Options)
+                            afterPick()
                         },
                         onSetApiKey = selector.onSetApiKey,
                         modifier = Modifier.height(subPageHeight),
@@ -306,9 +326,10 @@ fun ChatOptionsBottomSheet(
                         onToggleSpecFavorite = selector.onToggleSpecFavorite,
                         starredDisplay = selector.starredDisplay,
                         endpointKeyStates = selector.endpointKeyStates,
+                        showTitle = false,
                         header = {
                             Column {
-                                SheetPageBackRow(title = null, onBack = back)
+                                SheetPageBackRow(title = stringResource(Res.string.tool_model), onBack = back)
                                 selector.comparisonHeader?.invoke()
                             }
                         },
@@ -316,7 +337,9 @@ fun ChatOptionsBottomSheet(
 
                     ChatOptionsPage.ModelParameters -> Column {
                         SheetPageBackRow(
-                            title = stringResource(Res.string.tool_model_parameters),
+                            title = stringResource(
+                                if (parameters.comparing) Res.string.params_title_lane_a else Res.string.tool_model_parameters,
+                            ),
                             onBack = back,
                         )
                         ModelParameterContent(
@@ -336,8 +359,8 @@ fun ChatOptionsBottomSheet(
                             },
                             // The back row above replaces the content's own title.
                             showHeader = false,
-                            // The tools' web-search control is the one switch for both searches.
-                            hiddenKeys = setOf(ToolConstants.WEB_SEARCH),
+                            // The Web Search and URL Context tool tiles are the only switches for those.
+                            hiddenKeys = setOf(ToolConstants.WEB_SEARCH, ToolConstants.URL_CONTEXT),
                             modifier = Modifier
                                 .padding(horizontal = 24.dp)
                                 .navigationBarsPadding()

@@ -238,25 +238,18 @@
     <string name="tool_server_files">الخادم</string>
     <string name="tool_model">النموذج</string>
     <string name="tool_model_parameters">معاملات النموذج</string>
-    <string name="tool_model_parameters_desc">ضبط درجة الحرارة والرموز والمزيد</string>
+    <string name="params_title_lane_a">المعاملات · النموذج A</string>
     <string name="param_set_by_spec">يحدد الخادم إعدادات هذا النموذج، ولا يمكن تغييرها هنا.</string>
     <string name="tool_set_by_spec">فعّله الخادم لهذا النموذج</string>
     <string name="tool_web_search">البحث على الويب</string>
-    <string name="tool_web_search_desc">البحث على الويب عن المعلومات</string>
     <string name="web_search_librechat">بحث LibreChat</string>
     <string name="web_search_checking">جارٍ التحقق من بحث LibreChat…</string>
     <string name="web_search_built_in">البحث المدمج في %1$s</string>
     <string name="web_search_built_in_plain">البحث المدمج</string>
-    <string name="web_search_set_by_spec">%1$s، فعّله الخادم لهذا النموذج</string>
     <string name="web_searched">تم البحث على الويب</string>
     <string name="tool_url_context">سياق URL</string>
-    <string name="tool_url_context_desc">السماح للنموذج بقراءة عناوين URL ومقاطع YouTube التي تشير إليها</string>
     <string name="tool_code">الكود</string>
-    <string name="tool_code_desc">تشغيل الكود وتحليله</string>
     <string name="tool_file_search">البحث في الملفات</string>
-    <string name="tool_file_search_desc">البحث في الملفات المرفوعة</string>
-    <string name="tool_mcp">MCP</string>
-    <string name="tool_mcp_desc">خوادم بروتوكول سياق النموذج (MCP)</string>
     <string name="cd_quoted_excerpt">مقتطف مقتبس</string>
     <string name="selection_add_to_chat">إضافة إلى المحادثة</string>
 
@@ -265,6 +258,8 @@
     <string name="upload_routing_sheet_title_single">كيف تريد إرسال هذا الملف؟</string>
     <string name="upload_routing_option_provider">إلى النموذج</string>
     <string name="upload_routing_option_text">كنص</string>
+    <string name="upload_route_file_search">البحث فيه عند الحاجة</string>
+    <string name="upload_route_file_search_why">تُفهرَس المستندات الطويلة ليبحث النموذج عن الأجزاء التي يحتاجها.</string>
     <string name="upload_routing_why_provider">يقرأ النموذج الملف بنفسه.</string>
     <string name="upload_routing_why_text">يقرأ الخادم الملف ويرسل نصه.</string>
     <string name="upload_routing_why_provider_only">لا يقبل هذا النموذج هذا الملف إلا مباشرةً.</string>
@@ -660,9 +655,8 @@
     <string name="cd_expand_ask_user_question">توسيع تفاصيل السؤال</string>
     <string name="cd_collapse_ask_user_question">طي تفاصيل السؤال</string>
     <string name="tool_memory">الذاكرة</string>
-    <string name="tool_memory_desc">السماح للمساعد بتذكر تفاصيل من هذه المحادثة</string>
     <string name="tool_skills">المهارات</string>
-    <string name="tool_skills_desc">السماح للمساعد باستخدام مهاراتك في هذه المحادثة</string>
+    <string name="tool_artifacts">العناصر التفاعلية</string>
     <string name="picker_type_prompt">مطالبة</string>
     <string name="picker_type_skill">مهارة</string>
     <string name="picker_no_matches">لا توجد نتائج مطابقة</string>
@@ -1238,7 +1232,6 @@
         <item quantity="many">+%1$d استدعاءً سابقًا</item>
         <item quantity="other">+%1$d استدعاء سابق</item>
     </plurals>
-    <string name="tool_code_environment">الشيفرة</string>
     <string name="cd_upload_route_code">مرفوع إلى بيئة الشيفرة</string>
     <string name="run_code">تشغيل</string>
     <string name="run_code_running">قيد التشغيل</string>
@@ -1293,5 +1286,36 @@
         <item quantity="few">لم تُرفع %1$d ملفات. انقر عليها لإعادة المحاولة، أو أزلها.</item>
         <item quantity="many">لم يُرفع %1$d ملفًا. انقر عليها لإعادة المحاولة، أو أزلها.</item>
         <item quantity="other">لم يُرفع %1$d ملف. انقر عليها لإعادة المحاولة، أو أزلها.</item>
+    </plurals>
+    <string name="attach_code_environment">رفع إلى بيئة الشيفرة</string>
+    <string name="mcp_servers_title">خوادم MCP</string>
+    <string name="tools_from_agent_title">هذا الوكيل يختار أدواته بنفسه</string>
+    <string name="tools_from_agent_body">البحث في الويب والشيفرة وخوادم MCP تأتي من إعدادات الوكيل.</string>
+    <string name="tools_from_spec">يحدد الخادم أدوات هذا النموذج.</string>
+    <string name="tool_state_on">مفعّل</string>
+    <string name="tool_state_off">متوقف</string>
+    <plurals name="section_tools">
+        <item quantity="zero">الأدوات · لا شيء مفعّل</item>
+        <item quantity="one">الأدوات · %1$d مفعّلة</item>
+        <item quantity="two">الأدوات · %1$d مفعّلتان</item>
+        <item quantity="few">الأدوات · %1$d مفعّلة</item>
+        <item quantity="many">الأدوات · %1$d مفعّلة</item>
+        <item quantity="other">الأدوات · %1$d مفعّلة</item>
+    </plurals>
+    <plurals name="mcp_servers_on">
+        <item quantity="zero">%1$d من %2$d مفعّل</item>
+        <item quantity="one">%1$d من %2$d مفعّل</item>
+        <item quantity="two">%1$d من %2$d مفعّل</item>
+        <item quantity="few">%1$d من %2$d مفعّلة</item>
+        <item quantity="many">%1$d من %2$d مفعّلًا</item>
+        <item quantity="other">%1$d من %2$d مفعّل</item>
+    </plurals>
+    <plurals name="mcp_needs_sign_in">
+        <item quantity="zero">لا يحتاج أي خادم إلى تسجيل الدخول</item>
+        <item quantity="one">خادم واحد يحتاج إلى تسجيل الدخول</item>
+        <item quantity="two">خادمان يحتاجان إلى تسجيل الدخول</item>
+        <item quantity="few">%1$d خوادم تحتاج إلى تسجيل الدخول</item>
+        <item quantity="many">%1$d خادمًا يحتاج إلى تسجيل الدخول</item>
+        <item quantity="other">%1$d خادم يحتاج إلى تسجيل الدخول</item>
     </plurals>
 </resources>

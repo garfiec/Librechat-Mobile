@@ -38,6 +38,10 @@ class ChatOptionsSheetController {
     var openPage: ChatOptionsPage? by mutableStateOf(null)
         private set
 
+    /** The page the sheet opened on; Back there closes the sheet instead of returning to Options. */
+    var entryPage: ChatOptionsPage? by mutableStateOf(null)
+        private set
+
     /**
      * The row the Options page scrolls to and marks as it opens: a settings chip's tool or MCP server.
      * Not saved: it is for the tap that opened the sheet.
@@ -50,12 +54,14 @@ class ChatOptionsSheetController {
      * at [focus]'s row when given.
      */
     fun open(page: ChatOptionsPage = ChatOptionsPage.Options, focus: ToolsSheetFocus? = null) {
+        if (openPage == null) entryPage = page
         openPage = page
         this.focus = focus
     }
 
     fun close() {
         openPage = null
+        entryPage = null
         focus = null
     }
 
@@ -66,15 +72,23 @@ class ChatOptionsSheetController {
          * ViewModel; this state is screen-local, so it must be saved.
          */
         val Saver: Saver<ChatOptionsSheetController, String> = Saver(
-            save = { it.openPage?.name ?: CLOSED_KEY },
+            save = { controller ->
+                controller.openPage?.let { "${it.name}$SEPARATOR${(controller.entryPage ?: it).name}" } ?: CLOSED_KEY
+            },
             restore = { key ->
                 ChatOptionsSheetController().apply {
-                    ChatOptionsPage.entries.find { it.name == key }?.let { openPage = it }
+                    val open = key.substringBefore(SEPARATOR).toPage() ?: return@apply
+                    openPage = open
+                    // A value saved without an entry page restores as opened on its open page.
+                    entryPage = key.substringAfter(SEPARATOR, "").toPage() ?: open
                 }
             },
         )
 
         private const val CLOSED_KEY = "closed"
+        private const val SEPARATOR = '|'
+
+        private fun String.toPage(): ChatOptionsPage? = ChatOptionsPage.entries.find { it.name == this }
     }
 }
 

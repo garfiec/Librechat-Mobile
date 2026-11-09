@@ -290,7 +290,7 @@ internal fun lockedByMessage(lockedBy: String?): StringResource =
     if (lockedBy != null) Res.string.setting_chip_set_by else Res.string.tool_set_by_spec
 
 @Composable
-private fun lockedByText(lockedBy: String?): String = stringResource(lockedByMessage(lockedBy), lockedBy.orEmpty())
+internal fun lockedByText(lockedBy: String?): String = stringResource(lockedByMessage(lockedBy), lockedBy.orEmpty())
 
 /** While compacting is suggested a tap opens the compact confirmation, whose "See usage" reaches the breakdown without snoozing. */
 @Composable

@@ -16,6 +16,7 @@ import com.garfiec.librechat.feature.chat.util.forcedMcpServers
 import com.garfiec.librechat.feature.chat.util.forcedTools
 import com.garfiec.librechat.feature.chat.util.presetTools
 import com.garfiec.librechat.feature.chat.util.requiresSpec
+import com.garfiec.librechat.feature.chat.util.specArtifacts
 
 /**
  * Endpoint/model selection, per-request tool + MCP config, model parameters, and the
@@ -123,13 +124,14 @@ data class ModelSelectionState(
     val toolsHiddenBySpec: Boolean get() = activeSpec?.hideBadgeRow == true
 
     /**
-     * The tools the spec turns on, which can't be turned off here: its tool flags, and under
+     * The tools the spec turns on, which can't be turned off here: its tool flags and artifacts, and under
      * `enforce` its preset's too ([presetTools]). Empty off a spec.
      */
     val lockedTools: Set<String>
         get() {
             val spec = activeSpec ?: return emptySet()
-            return if (modelSpecs.requiresSpec) spec.forcedTools + spec.presetTools else spec.forcedTools
+            val forced = spec.forcedTools + spec.specArtifacts
+            return if (modelSpecs.requiresSpec) forced + spec.presetTools else forced
         }
 
     /** The MCP servers the spec adds, likewise. */

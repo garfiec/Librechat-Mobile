@@ -10,7 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
@@ -18,8 +17,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.ParameterDefinition
 import com.garfiec.librechat.core.model.ParameterType
@@ -260,7 +265,12 @@ fun ModelParameterContent(
             val currentValue = parameters.getValueForKey(definition.key)
             val differs = parameters.valueDiffersFromDefault(definition)
 
-            ReadOnlyGate(readOnly) {
+            ReadOnlyGate(
+                readOnly = readOnly,
+                label = definition.localizedLabel(),
+                value = if (readOnly) definition.readOnlyValue(currentValue) else "",
+                isToggle = definition.type == ParameterType.SWITCH || definition.type == ParameterType.CHECKBOX,
+            ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -388,7 +398,7 @@ fun ModelParameterContent(
             }
 
                 if (differs && !readOnly) {
-                    TextButton(
+                    AdaptiveTextButton(
                         onClick = {
                             onChange(parameters.resetKeyToDefault(definition))
                         },
@@ -432,14 +442,45 @@ fun ModelParameterContent(
 
 private const val READ_ONLY_ALPHA = 0.38f
 
+/** What a read-only control reads out as its value: the option label or tags the control shows, not the wire value. */
+@Composable
+private fun ParameterDefinition.readOnlyValue(currentValue: String): String = when (type) {
+    ParameterType.DROPDOWN, ParameterType.ENUM_SLIDER -> {
+        val selected = currentValue.ifEmpty { default ?: options?.firstOrNull().orEmpty() }
+        localizedOptionLabels()[selected] ?: selected
+    }
+    ParameterType.TAGS -> currentValue.split("\n").filter(String::isNotBlank).joinToString(", ")
+    else -> currentValue.ifEmpty { default.orEmpty() }
+}
+
 /**
  * Dims [content] and covers it with a layer that takes its touches, so the controls never see one.
- * The layer consumes nothing, so a drag that starts on it still scrolls the sheet. Values still
- * read out.
+ * The layer consumes nothing, so a drag that starts on it still scrolls the sheet. Its semantics
+ * replace the controls', so a screen reader hears the label, the value and "disabled", with no action.
  */
 @Composable
-private fun ReadOnlyGate(readOnly: Boolean, content: @Composable () -> Unit) {
-    Box(modifier = if (readOnly) Modifier.alpha(READ_ONLY_ALPHA) else Modifier) {
+private fun ReadOnlyGate(
+    readOnly: Boolean,
+    label: String,
+    value: String,
+    isToggle: Boolean,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = if (readOnly) {
+            Modifier.alpha(READ_ONLY_ALPHA).clearAndSetSemantics {
+                contentDescription = label
+                if (isToggle) {
+                    toggleableState = ToggleableState(value.toBooleanStrictOrNull() == true)
+                } else if (value.isNotEmpty()) {
+                    stateDescription = value
+                }
+                disabled()
+            }
+        } else {
+            Modifier
+        },
+    ) {
         content()
         if (readOnly) {
             Box(

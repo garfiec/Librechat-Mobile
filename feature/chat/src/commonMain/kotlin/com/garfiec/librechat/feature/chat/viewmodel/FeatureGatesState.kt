@@ -216,3 +216,6 @@ data class ChatInputGates(
     /** MCP servers the active model spec adds, likewise ([ChatUiState.lockedMcpServers]). */
     val lockedMcpServers: Set<String> = emptySet(),
 )
+
+/** Why [ChatUiState.toolbarShown] is false: an agent brings its own tools, a `hideBadgeRow` spec sets them. */
+enum class ToolsHiddenReason { AGENT, SPEC }

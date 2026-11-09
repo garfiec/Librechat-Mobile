@@ -223,8 +223,8 @@ rule 2, Material branch first, glass values from `GlassControlColors`/`GlassDefa
 - **PDF** (`pdf/`, androidMain): `PdfDocumentHolder` (closed by the owning composable) and
   `PdfPageContent` serve both `:feature:chat`'s viewer and `:feature:files`' preview: fix render/recycle
   logic here; there are no feature copies.
-- **Dynamic parameters** (`components/Dynamic*.kt`): `DynamicParameterPanel` dispatches
-  `ParameterDefinition`s to stateless controls (caller holds `Map<String, String>`). `DynamicSlider` step count is
+- **Dynamic parameters** (`components/Dynamic*.kt`): `ModelParameterContent` dispatches
+  `ParameterDefinition`s to stateless controls. `DynamicSlider` step count is
   `((max - min) / step).toInt()`: the step must divide the range evenly or values drift.
 
 ## Compose Performance Rules

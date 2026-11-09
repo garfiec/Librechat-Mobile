@@ -235,25 +235,18 @@
     <string name="tool_server_files">Serveur</string>
     <string name="tool_model">Modèle</string>
     <string name="tool_model_parameters">Paramètres du modèle</string>
-    <string name="tool_model_parameters_desc">Ajuster la température, les jetons et plus encore</string>
+    <string name="params_title_lane_a">Paramètres · Modèle A</string>
     <string name="param_set_by_spec">Les réglages de ce modèle sont définis par le serveur et ne peuvent pas être modifiés ici.</string>
     <string name="tool_set_by_spec">Activé par le serveur pour ce modèle</string>
     <string name="tool_web_search">Recherche web</string>
-    <string name="tool_web_search_desc">Rechercher des informations sur le web</string>
     <string name="web_search_librechat">Recherche LibreChat</string>
     <string name="web_search_checking">Vérification de la recherche LibreChat…</string>
     <string name="web_search_built_in">Recherche intégrée de %1$s</string>
     <string name="web_search_built_in_plain">Recherche intégrée</string>
-    <string name="web_search_set_by_spec">%1$s, activée par le serveur pour ce modèle</string>
     <string name="web_searched">Recherche sur le web effectuée</string>
     <string name="tool_url_context">Contexte d'URL</string>
-    <string name="tool_url_context_desc">Permettre au modèle de lire les URL et vidéos YouTube que vous mentionnez</string>
     <string name="tool_code">Code</string>
-    <string name="tool_code_desc">Exécuter et analyser du code</string>
     <string name="tool_file_search">Recherche de fichiers</string>
-    <string name="tool_file_search_desc">Rechercher dans les fichiers téléversés</string>
-    <string name="tool_mcp">MCP</string>
-    <string name="tool_mcp_desc">Serveurs Model Context Protocol</string>
     <string name="cd_quoted_excerpt">Extrait cité</string>
     <string name="selection_add_to_chat">Ajouter à la discussion</string>
 
@@ -262,6 +255,8 @@
     <string name="upload_routing_sheet_title_single">Comment l'envoyer ?</string>
     <string name="upload_routing_option_provider">Au modèle</string>
     <string name="upload_routing_option_text">En texte</string>
+    <string name="upload_route_file_search">Y chercher au besoin</string>
+    <string name="upload_route_file_search_why">Les longs documents sont indexés pour que le modèle consulte les passages dont il a besoin.</string>
     <string name="upload_routing_why_provider">Le modèle lit lui-même le fichier.</string>
     <string name="upload_routing_why_text">Le serveur lit le fichier et envoie son texte.</string>
     <string name="upload_routing_why_provider_only">Ce modèle ne peut recevoir ce fichier que directement.</string>
@@ -639,9 +634,8 @@
     <string name="cd_expand_ask_user_question">Développer les détails de la question</string>
     <string name="cd_collapse_ask_user_question">Réduire les détails de la question</string>
     <string name="tool_memory">Mémoire</string>
-    <string name="tool_memory_desc">Permettre à l'assistant de retenir des détails de cette discussion</string>
     <string name="tool_skills">Compétences</string>
-    <string name="tool_skills_desc">Permettre à l'assistant d'utiliser vos compétences dans cette discussion</string>
+    <string name="tool_artifacts">Artefacts</string>
     <string name="picker_type_prompt">Invite</string>
     <string name="picker_type_skill">Compétence</string>
     <string name="picker_no_matches">Aucun résultat</string>
@@ -1171,7 +1165,6 @@
         <item quantity="one">+%1$d appel précédent</item>
         <item quantity="other">+%1$d appels précédents</item>
     </plurals>
-    <string name="tool_code_environment">Code</string>
     <string name="cd_upload_route_code">Envoyé dans l’environnement de code</string>
     <string name="run_code">Exécuter</string>
     <string name="run_code_running">Exécution</string>
@@ -1214,5 +1207,27 @@
     <plurals name="draft_uploads_failed">
         <item quantity="one">%1$d fichier n'a pas été envoyé. Touchez-le pour réessayer, ou retirez-le.</item>
         <item quantity="other">%1$d fichiers n'ont pas été envoyés. Touchez-les pour réessayer, ou retirez-les.</item>
+    </plurals>
+    <string name="attach_code_environment">Importer dans l'environnement de code</string>
+    <string name="mcp_servers_title">Serveurs MCP</string>
+    <string name="tools_from_agent_title">Cet agent choisit ses propres outils</string>
+    <string name="tools_from_agent_body">La recherche web, le code et les serveurs MCP viennent des réglages de l'agent.</string>
+    <string name="tools_from_spec">Les outils de ce modèle sont définis par le serveur.</string>
+    <string name="tool_state_on">Activé</string>
+    <string name="tool_state_off">Désactivé</string>
+    <plurals name="section_tools">
+        <item quantity="one">Outils · %1$d activé</item>
+        <item quantity="many">Outils · %1$d activés</item>
+        <item quantity="other">Outils · %1$d activés</item>
+    </plurals>
+    <plurals name="mcp_servers_on">
+        <item quantity="one">%1$d sur %2$d activé</item>
+        <item quantity="many">%1$d sur %2$d activés</item>
+        <item quantity="other">%1$d sur %2$d activés</item>
+    </plurals>
+    <plurals name="mcp_needs_sign_in">
+        <item quantity="one">%1$d demande une connexion</item>
+        <item quantity="many">%1$d demandent une connexion</item>
+        <item quantity="other">%1$d demandent une connexion</item>
     </plurals>
 </resources>

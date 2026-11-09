@@ -264,13 +264,17 @@ fun ChatScreen(
     val mcpSignInFailed = stringResource(Res.string.mcp_sign_in_failed)
     val mcpCancelSignInFailed = stringResource(Res.string.mcp_cancel_sign_in_failed)
     val showNotice: (String) -> Unit = { message -> coroutineScope.launch { snackbarHostState.showNotice(message) } }
-    val startMcpSignIn: (String) -> Unit = { serverName ->
+    val signInMcpServer: (String, Boolean) -> Unit = { serverName, selectWhenConnected ->
         viewModel.signInMcpServer(
             serverName = serverName,
             openSignIn = mcpSignIn.signIn,
             onFailed = { showNotice(mcpSignInFailed) },
+            selectWhenConnected = selectWhenConnected,
         )
     }
+    val startMcpSignIn: (String) -> Unit = { signInMcpServer(it, false) }
+    // The "+" sheet's sign-in turns the server on once it connects (web's sign in, then select).
+    val startSheetMcpSignIn: (String) -> Unit = { signInMcpServer(it, true) }
     // A refused cancel leaves the chip reading connecting, so only the snackbar says it didn't land.
     val cancelMcpSignIn: (String) -> Unit = { serverName ->
         viewModel.cancelMcpSignIn(serverName, onFailed = { showNotice(mcpCancelSignInFailed) })
@@ -839,6 +843,8 @@ fun ChatScreen(
                 onPickPhotos = attachmentActions.onPickPhotos,
                 onAttachFromServer = onAttachFromServer,
                 onAttachToCode = onAttachToCode,
+                onSignInMcpServer = startSheetMcpSignIn,
+                onCancelMcpSignIn = cancelMcpSignIn,
             )
 
             val pendingRouting = uiState.composer.pendingUploadRouting
@@ -865,6 +871,8 @@ fun ChatScreen(
         onPickPhotos = attachmentActions.onPickPhotos,
         onAttachFromServer = onAttachFromServer,
         onAttachToCode = onAttachToCode,
+        onSignInMcpServer = startSheetMcpSignIn,
+        onCancelMcpSignIn = cancelMcpSignIn,
         onNavigateToProviderKeys = onNavigateToProviderKeys,
         onShowSavePresetDialog = { showSavePresetDialog = true },
         compareSetupPick = compareSetupPick,

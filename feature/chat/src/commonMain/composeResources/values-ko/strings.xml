@@ -233,25 +233,18 @@
     <string name="tool_server_files">서버</string>
     <string name="tool_model">모델</string>
     <string name="tool_model_parameters">모델 매개변수</string>
-    <string name="tool_model_parameters_desc">온도, 토큰 등 조정</string>
+    <string name="params_title_lane_a">매개변수 · 모델 A</string>
     <string name="param_set_by_spec">이 모델의 설정은 서버에서 정하므로 여기서 변경할 수 없습니다.</string>
     <string name="tool_set_by_spec">이 모델에 대해 서버에서 켜 두었습니다</string>
     <string name="tool_web_search">웹 검색</string>
-    <string name="tool_web_search_desc">웹에서 정보 검색</string>
     <string name="web_search_librechat">LibreChat 검색</string>
     <string name="web_search_checking">LibreChat 검색 확인 중…</string>
     <string name="web_search_built_in">%1$s 기본 제공 검색</string>
     <string name="web_search_built_in_plain">기본 제공 검색</string>
-    <string name="web_search_set_by_spec">%1$s, 이 모델에 대해 서버에서 켜 두었습니다</string>
     <string name="web_searched">웹을 검색함</string>
     <string name="tool_url_context">URL 컨텍스트</string>
-    <string name="tool_url_context_desc">참조한 URL과 YouTube를 모델이 읽도록 허용</string>
     <string name="tool_code">코드</string>
-    <string name="tool_code_desc">코드 실행 및 분석</string>
     <string name="tool_file_search">파일 검색</string>
-    <string name="tool_file_search_desc">업로드한 파일에서 검색</string>
-    <string name="tool_mcp">MCP</string>
-    <string name="tool_mcp_desc">Model Context Protocol 서버</string>
     <string name="cd_quoted_excerpt">인용된 발췌문</string>
     <string name="selection_add_to_chat">채팅에 추가</string>
 
@@ -260,6 +253,8 @@
     <string name="upload_routing_sheet_title_single">이 파일을 어떻게 보낼까요?</string>
     <string name="upload_routing_option_provider">모델로 직접</string>
     <string name="upload_routing_option_text">텍스트로</string>
+    <string name="upload_route_file_search">필요할 때 검색</string>
+    <string name="upload_route_file_search_why">긴 문서는 색인되어 모델이 필요한 부분만 찾아봅니다.</string>
     <string name="upload_routing_why_provider">모델이 파일을 직접 읽습니다.</string>
     <string name="upload_routing_why_text">서버가 파일을 읽고 텍스트를 보냅니다.</string>
     <string name="upload_routing_why_provider_only">이 모델은 이 파일을 직접 전달받는 방식만 지원합니다.</string>
@@ -630,9 +625,8 @@
     <string name="cd_expand_ask_user_question">질문 세부정보 펼치기</string>
     <string name="cd_collapse_ask_user_question">질문 세부정보 접기</string>
     <string name="tool_memory">메모리</string>
-    <string name="tool_memory_desc">어시스턴트가 이 채팅의 세부 정보를 기억하도록 허용</string>
     <string name="tool_skills">스킬</string>
-    <string name="tool_skills_desc">이 채팅에서 어시스턴트가 내 스킬을 사용하도록 허용</string>
+    <string name="tool_artifacts">아티팩트</string>
     <string name="picker_type_prompt">프롬프트</string>
     <string name="picker_type_skill">스킬</string>
     <string name="picker_no_matches">일치하는 항목 없음</string>
@@ -1138,7 +1132,6 @@
     <plurals name="ptc_trace_earlier">
         <item quantity="other">이전 호출 %1$d개 더</item>
     </plurals>
-    <string name="tool_code_environment">코드</string>
     <string name="cd_upload_route_code">코드 환경에 업로드됨</string>
     <string name="run_code">실행</string>
     <string name="run_code_running">실행 중</string>
@@ -1178,5 +1171,21 @@
     </plurals>
     <plurals name="draft_uploads_failed">
         <item quantity="other">파일 %1$d개가 업로드되지 않았습니다. 탭하여 다시 시도하거나 삭제하세요.</item>
+    </plurals>
+    <string name="attach_code_environment">코드 환경에 업로드</string>
+    <string name="mcp_servers_title">MCP 서버</string>
+    <string name="tools_from_agent_title">이 에이전트는 도구를 직접 선택합니다</string>
+    <string name="tools_from_agent_body">웹 검색, 코드, MCP 서버는 에이전트 설정을 따릅니다.</string>
+    <string name="tools_from_spec">이 모델의 도구는 서버가 설정합니다.</string>
+    <string name="tool_state_on">켜짐</string>
+    <string name="tool_state_off">꺼짐</string>
+    <plurals name="section_tools">
+        <item quantity="other">도구 · %1$d개 켜짐</item>
+    </plurals>
+    <plurals name="mcp_servers_on">
+        <item quantity="other">%2$d개 중 %1$d개 켜짐</item>
+    </plurals>
+    <plurals name="mcp_needs_sign_in">
+        <item quantity="other">%1$d개는 로그인이 필요합니다</item>
     </plurals>
 </resources>
