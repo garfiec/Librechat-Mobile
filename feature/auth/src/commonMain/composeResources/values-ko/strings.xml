@@ -15,6 +15,8 @@
     <string name="login_title">로그인</string>
     <string name="email_label">이메일</string>
     <string name="password_label">비밀번호</string>
+    <string name="cd_show_password">비밀번호 표시</string>
+    <string name="cd_hide_password">비밀번호 숨기기</string>
     <string name="continue_button">계속</string>
     <string name="forgot_password">비밀번호를 잊으셨나요?</string>
     <string name="no_account_sign_up">계정이 없으신가요? 회원가입</string>

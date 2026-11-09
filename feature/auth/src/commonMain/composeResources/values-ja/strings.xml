@@ -15,6 +15,8 @@
     <string name="login_title">サインイン</string>
     <string name="email_label">メールアドレス</string>
     <string name="password_label">パスワード</string>
+    <string name="cd_show_password">パスワードを表示</string>
+    <string name="cd_hide_password">パスワードを非表示</string>
     <string name="continue_button">続行</string>
     <string name="forgot_password">パスワードをお忘れですか？</string>
     <string name="no_account_sign_up">アカウントをお持ちでないですか？サインアップ</string>

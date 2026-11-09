@@ -21,7 +21,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
@@ -31,8 +34,11 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
@@ -40,6 +46,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.IosTextContentType
+import com.garfiec.librechat.core.ui.components.SecretRevealButton
 import com.garfiec.librechat.core.ui.components.withIosTextContentType
 import com.garfiec.librechat.feature.auth.diagnostics.DiagnosticLogLink
 import com.garfiec.librechat.feature.auth.resources.*
@@ -170,13 +177,28 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // Plain remember scoped to the field, so it always first composes masked: Compose keeps a text
+                // field's first Password semantics, so one first composed revealed is never a password again.
+                var passwordRevealed by remember { mutableStateOf(false) }
+                // ON_PAUSE, not ON_STOP, so the app-switcher snapshot never shows it (see SecretTextField).
+                LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { passwordRevealed = false }
                 AdaptiveOutlinedTextField(
                     value = uiState.password,
                     onValueChange = viewModel::onPasswordChanged,
                     label = { Text(stringResource(Res.string.password_label)) },
                     modifier = Modifier.fillMaxWidth().testTag("login_password"),
                     singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
+                    visualTransformation = if (passwordRevealed) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        SecretRevealButton(
+                            revealed = passwordRevealed,
+                            onRevealedChange = { passwordRevealed = it },
+                            modifier = Modifier.testTag("login_password_reveal"),
+                            enabled = !uiState.isLoading,
+                            showDescription = Res.string.cd_show_password,
+                            hideDescription = Res.string.cd_hide_password,
+                        )
+                    },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         autoCorrectEnabled = false,

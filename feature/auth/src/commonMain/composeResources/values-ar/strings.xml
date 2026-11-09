@@ -15,6 +15,8 @@
     <string name="login_title">تسجيل الدخول</string>
     <string name="email_label">البريد الإلكتروني</string>
     <string name="password_label">كلمة المرور</string>
+    <string name="cd_show_password">إظهار كلمة المرور</string>
+    <string name="cd_hide_password">إخفاء كلمة المرور</string>
     <string name="continue_button">متابعة</string>
     <string name="forgot_password">هل نسيت كلمة المرور؟</string>
     <string name="no_account_sign_up">ليس لديك حساب؟ سجّل الآن</string>
