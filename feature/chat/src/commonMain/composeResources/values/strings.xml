@@ -1287,4 +1287,6 @@
     <string name="web_search_keys_remove">Remove keys</string>
     <string name="web_search_keys_save_failed">Couldn't save your keys. Try again.</string>
     <string name="web_search_keys_remove_failed">Couldn't remove your keys. Try again.</string>
+    <string name="prompt_editor_creating">Creating…</string>
+    <string name="prompt_editor_saving">Saving…</string>
 </resources>

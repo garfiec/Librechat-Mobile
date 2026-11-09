@@ -1248,4 +1248,6 @@
     <string name="web_search_keys_remove">Remover chaves</string>
     <string name="web_search_keys_save_failed">Não foi possível salvar suas chaves. Tente de novo.</string>
     <string name="web_search_keys_remove_failed">Não foi possível remover suas chaves. Tente de novo.</string>
+    <string name="prompt_editor_creating">Criando…</string>
+    <string name="prompt_editor_saving">Salvando…</string>
 </resources>

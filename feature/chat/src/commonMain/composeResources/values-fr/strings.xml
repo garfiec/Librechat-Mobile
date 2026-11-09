@@ -1248,4 +1248,6 @@
     <string name="web_search_keys_remove">Supprimer les clés</string>
     <string name="web_search_keys_save_failed">Impossible d'enregistrer vos clés. Réessayez.</string>
     <string name="web_search_keys_remove_failed">Impossible de supprimer vos clés. Réessayez.</string>
+    <string name="prompt_editor_creating">Création…</string>
+    <string name="prompt_editor_saving">Enregistrement…</string>
 </resources>

@@ -1232,4 +1232,6 @@
     <string name="web_search_keys_remove">Schlüssel entfernen</string>
     <string name="web_search_keys_save_failed">Deine Schlüssel konnten nicht gespeichert werden. Versuche es erneut.</string>
     <string name="web_search_keys_remove_failed">Deine Schlüssel konnten nicht entfernt werden. Versuche es erneut.</string>
+    <string name="prompt_editor_creating">Wird erstellt…</string>
+    <string name="prompt_editor_saving">Wird gespeichert…</string>
 </resources>

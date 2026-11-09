@@ -1336,4 +1336,6 @@
     <string name="web_search_keys_remove">إزالة المفاتيح</string>
     <string name="web_search_keys_save_failed">تعذّر حفظ مفاتيحك. حاول مرة أخرى.</string>
     <string name="web_search_keys_remove_failed">تعذّرت إزالة مفاتيحك. حاول مرة أخرى.</string>
+    <string name="prompt_editor_creating">جارٍ الإنشاء…</string>
+    <string name="prompt_editor_saving">جارٍ الحفظ…</string>
 </resources>
