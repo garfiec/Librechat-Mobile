@@ -641,6 +641,10 @@
     <string name="picker_scope_mcp">正在搜索 MCP 服务器</string>
     <string name="picker_chip_mcp">MCP</string>
     <string name="picker_mcp_unavailable">此聊天中无法使用 MCP 服务器</string>
+    <string name="picker_scope_models">搜索模型</string>
+    <string name="picker_chip_models">模型</string>
+    <string name="picker_models_unavailable">此对话中无法更改模型</string>
+    <string name="picker_models_comparing">比较时无法在此切换模型</string>
     <string name="cd_picker_leave_scope">显示提示词、技能和 MCP 服务器</string>
     <string name="cd_remove_skill">移除技能 %1$s</string>
     <string name="cd_skill_always_applied">始终应用的技能：%1$s</string>

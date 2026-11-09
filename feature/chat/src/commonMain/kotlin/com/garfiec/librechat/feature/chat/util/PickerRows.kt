@@ -138,6 +138,8 @@ data class PickerInputs(
     /** The user's section toggles by expand key; an absent key is closed unless it holds the selected spec. */
     val expandedGroups: Map<String, Boolean> = emptyMap(),
     val endpointKeyStates: Map<String, KeyState> = emptyMap(),
+    /** Opens every section whatever [expandedGroups] says: the composer's `/model ` list has no headers to tap. */
+    val expandAll: Boolean = false,
 )
 
 internal const val MY_AGENTS_EXPAND_KEY = "agents:mine"
@@ -200,7 +202,7 @@ private class PickerRowBuilder(private val inputs: PickerInputs) {
         return rows
     }
 
-    private fun isOpen(key: String): Boolean = inputs.expandedGroups[key] ?: (key == selectedSectionKey)
+    private fun isOpen(key: String): Boolean = inputs.expandAll || (inputs.expandedGroups[key] ?: (key == selectedSectionKey))
 
     // Grouped specs sit in sections named after their group, so the sections come from the
     // unsearched lists. With the Starred section off, starred specs lead each section instead.

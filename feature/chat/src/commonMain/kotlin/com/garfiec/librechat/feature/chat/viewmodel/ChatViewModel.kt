@@ -73,6 +73,7 @@ import com.garfiec.librechat.feature.chat.components.AttachedFile
 import com.garfiec.librechat.feature.chat.components.CodeRunHost
 import com.garfiec.librechat.feature.chat.components.ParsedMarkdownCache
 import com.garfiec.librechat.feature.chat.components.PausePanelAutoAdvance
+import com.garfiec.librechat.feature.chat.components.PickerScope
 import com.garfiec.librechat.feature.chat.components.parsePickerQuery
 import com.garfiec.librechat.feature.chat.components.pickerListsSkills
 import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
@@ -81,6 +82,7 @@ import com.garfiec.librechat.feature.chat.model.PresetDisplayData
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
 import com.garfiec.librechat.feature.chat.util.AskAnswerDraft
 import com.garfiec.librechat.feature.chat.util.DraftItem
+import com.garfiec.librechat.feature.chat.util.ModelPick
 import com.garfiec.librechat.feature.chat.util.ReplyAvatarMemo
 import com.garfiec.librechat.feature.chat.util.SettingChip
 import com.garfiec.librechat.feature.chat.util.SettingChipsMemo
@@ -1264,7 +1266,10 @@ class ChatViewModel(
     fun onInputChanged(text: String) {
         val canPickSkills = _uiState.value.canPickSkills
         val wasListingSkills = pickerListsSkills(_uiState.value.inputText, canPickSkills)
+        val wasListingModels = parsePickerQuery(_uiState.value.inputText, canPickSkills)?.scope == PickerScope.MODEL
         _uiState.update { it.copy(composer = it.composer.copy(inputText = text)) }
+        // `/model ` is a model selector too, so it takes the selector's self-heals as it opens.
+        if (!wasListingModels && parsePickerQuery(text, canPickSkills)?.scope == PickerScope.MODEL) prepareModelSelector()
         // Opening the picker starts the load (loadSkillCatalogWhenPickerOpens); typing on in an
         // open one only picks up a catalog gone stale, never retries a failed load.
         if (wasListingSkills && pickerListsSkills(text, canPickSkills)) {
@@ -2094,8 +2099,9 @@ class ChatViewModel(
 
     /**
      * A row picked from the composer's picker. A prompt runs as a slash command. A skill becomes a
-     * pending chip (which also turns the conversation's Skills on), and an MCP server switches when
-     * its pick is [McpPick.TOGGLE] (the screen starts a sign-in or set-up). Both clear the command and
+     * pending chip (which also turns the conversation's Skills on), an MCP server switches when
+     * its pick is [McpPick.TOGGLE] (the screen starts a sign-in or set-up), and a model is picked as
+     * in the model sheet (the screen opens a missing key). All but a prompt clear the command and
      * query the composer holds: the list only opens when its trigger leads the input, so the whole
      * text is the command.
      */
@@ -2109,6 +2115,15 @@ class ChatViewModel(
             is ComposerPickerItem.Mcp -> {
                 if (parsePickerQuery(_uiState.value.inputText, _uiState.value.canPickSkills) != null) onInputChanged("")
                 if (item.mcp.pick == McpPick.TOGGLE) toggleMcpServer(item.mcp.server.name)
+            }
+            is ComposerPickerItem.Model -> {
+                if (parsePickerQuery(_uiState.value.inputText, _uiState.value.canPickSkills) != null) onInputChanged("")
+                when (val pick = item.model.pick) {
+                    is ModelPick.Spec -> onSpecSelected(pick.spec)
+                    is ModelPick.Raw -> onModelSelected(pick.endpoint, pick.model)
+                    // The screen opens Provider API Keys.
+                    is ModelPick.AddKey -> Unit
+                }
             }
         }
     }

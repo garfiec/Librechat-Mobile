@@ -70,7 +70,7 @@ private fun PickerMixedWithMcpMaterialPreview() = SkillsSurface(UiStyle.MATERIAL
 @Composable
 private fun PickerMcpUnavailableMaterialPreview() = SkillsSurface(UiStyle.MATERIAL) { PickerHost("/mcp ") }
 
-private val previewMcpServers = listOf(
+internal val previewMcpServers = listOf(
     PickerMcpServer(
         McpServerDisplayData("github", "GitHub", "Repos, issues and pull requests", McpDisplayStatus.CONNECTED),
         on = true,

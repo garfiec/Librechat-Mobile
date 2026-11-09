@@ -6,6 +6,9 @@ import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.model.PickerMcpServer
 import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
+import com.garfiec.librechat.feature.chat.util.HeaderLabel
+import com.garfiec.librechat.feature.chat.util.ModelPick
+import com.garfiec.librechat.feature.chat.util.PickerModel
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -370,5 +373,63 @@ class ChatInputParsingTest {
         assertEquals(listOf("mcp:tracker"), keys("issues "))
         assertEquals(listOf("mcp:files-srv"), keys("files"))
         assertEquals(3, keys("").size)
+    }
+
+    private fun model(name: String, group: String?) = PickerModel(
+        key = "model:$group::$name",
+        title = name,
+        description = null,
+        group = group?.let { HeaderLabel.Text(it) },
+        icon = null,
+        selected = false,
+        starred = false,
+        keyHint = null,
+        pick = ModelPick.Raw(group.orEmpty(), name),
+    )
+
+    @Test
+    fun theModelCommandOpensItsScopeAndIsDrawnAsAToken() {
+        assertEquals(PickerQuery(PickerScope.MODEL, "gpt 4", commandLength = 6), parsePickerQuery("/Model gpt 4"))
+        assertEquals(0 until 6, pickerCommandRange("/model ", canPickSkills = false))
+        assertNull(parsePickerQuery("/models "))
+    }
+
+    @Test
+    fun modelsAreListedOnlyUnderTheModelCommand() {
+        val models = listOf(model("gpt-4o", "OpenAI"))
+        val prompts = listOf(group("p1", "gpt helper"))
+        val mixed = buildPickerRows(PickerQuery(scope = null, query = "gpt"), prompts, emptyList(), models = models)
+        assertEquals(listOf("prompt:p1"), mixed.keys())
+        val scoped = buildPickerRows(PickerQuery(PickerScope.MODEL, "gpt"), prompts, emptyList(), models = models)
+        assertEquals(listOf("model:model:OpenAI::gpt-4o"), scoped.keys())
+    }
+
+    @Test
+    fun theModelScopeMatchesTheModelBeforeItsSection() {
+        val models = listOf(
+            model("claude-sonnet", "Anthropic"),
+            model("open-mixtral", "Mistral"),
+            model("gpt-4o", "OpenAI"),
+        )
+        fun titles(query: String) =
+            buildPickerRows(PickerQuery(PickerScope.MODEL, query), emptyList(), emptyList(), models = models)
+                .map { (it as ComposerPickerItem.Model).model.title }
+        assertEquals(listOf("open-mixtral", "gpt-4o"), titles("open "))
+        assertEquals(listOf("claude-sonnet"), titles("anthropic"))
+        assertEquals(3, titles("").size)
+    }
+
+    @Test
+    fun anEndpointWaitingForItsKeyIsFoundByTheModelsItHides() {
+        val keyless = model("OpenAI", group = null).copy(
+            pick = ModelPick.AddKey("openAI"),
+            hiddenModels = listOf("gpt-4o", "o3"),
+        )
+        val models = listOf(model("gpt-oss", "Groq"), keyless)
+        fun titles(query: String) =
+            buildPickerRows(PickerQuery(PickerScope.MODEL, query), emptyList(), emptyList(), models = models)
+                .map { (it as ComposerPickerItem.Model).model.title }
+        assertEquals(listOf("gpt-oss", "OpenAI"), titles("gpt"))
+        assertEquals(listOf("OpenAI"), titles("o3"))
     }
 }

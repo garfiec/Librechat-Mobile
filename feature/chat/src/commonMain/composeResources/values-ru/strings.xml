@@ -659,6 +659,10 @@
     <string name="picker_scope_mcp">Поиск MCP-серверов</string>
     <string name="picker_chip_mcp">MCP</string>
     <string name="picker_mcp_unavailable">В этом чате MCP-серверы недоступны</string>
+    <string name="picker_scope_models">Поиск моделей</string>
+    <string name="picker_chip_models">Модели</string>
+    <string name="picker_models_unavailable">В этом чате нельзя сменить модель</string>
+    <string name="picker_models_comparing">Во время сравнения модели здесь не переключаются</string>
     <string name="cd_picker_leave_scope">Показать промпты, навыки и MCP-серверы</string>
     <string name="cd_remove_skill">Убрать навык %1$s</string>
     <string name="cd_skill_always_applied">Всегда применяемый навык: %1$s</string>

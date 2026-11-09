@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.model
 
 import androidx.compose.runtime.Immutable
+import com.garfiec.librechat.feature.chat.util.PickerModel
 
 /**
  * A skill as a row of the composer's picker.
@@ -60,8 +61,8 @@ fun pickerMcpServersOf(
  * One row of the composer's picker.
  *
  * Web keeps `$` (skills) apart and reaches MCP servers from its tools palette. Here `/` lists
- * prompts, skills and MCP servers, each row saying which it is; `/prompt `, `/skill `, `$` and
- * `/mcp ` list one type.
+ * prompts, skills and MCP servers, each row saying which it is; `/prompt `, `/skill `, `$`, `/mcp `
+ * and `/model ` list one type.
  */
 @Immutable
 sealed interface ComposerPickerItem {
@@ -82,5 +83,11 @@ sealed interface ComposerPickerItem {
     @Immutable
     data class Mcp(val mcp: PickerMcpServer) : ComposerPickerItem {
         override val key: String get() = "mcp:${mcp.server.name}"
+    }
+
+    /** A pick switches the chat's model as the model sheet does ([PickerModel.pick]). */
+    @Immutable
+    data class Model(val model: PickerModel) : ComposerPickerItem {
+        override val key: String get() = "model:${model.key}"
     }
 }

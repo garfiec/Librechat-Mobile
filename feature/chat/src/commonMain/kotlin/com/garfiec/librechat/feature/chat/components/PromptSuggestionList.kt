@@ -6,6 +6,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -20,6 +21,8 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +39,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
@@ -46,6 +50,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveSuggestionChip
+import com.garfiec.librechat.core.ui.components.EndpointIcon
 import com.garfiec.librechat.core.ui.components.InitialTile
 import com.garfiec.librechat.core.ui.components.TileStatusDot
 import com.garfiec.librechat.core.ui.mcp.mcpStatusColor
@@ -55,15 +60,23 @@ import com.garfiec.librechat.feature.chat.model.McpPick
 import com.garfiec.librechat.feature.chat.model.PickerMcpServer
 import com.garfiec.librechat.feature.chat.resources.Res
 import com.garfiec.librechat.feature.chat.resources.cd_picker_leave_scope
+import com.garfiec.librechat.feature.chat.resources.cd_selected
 import com.garfiec.librechat.feature.chat.resources.mcp_set_up_action
 import com.garfiec.librechat.feature.chat.resources.mcp_sign_in_action
+import com.garfiec.librechat.feature.chat.resources.model_selector_key_expired
+import com.garfiec.librechat.feature.chat.resources.model_selector_my_agents
+import com.garfiec.librechat.feature.chat.resources.model_selector_needs_key
 import com.garfiec.librechat.feature.chat.resources.picker_chip_mcp
+import com.garfiec.librechat.feature.chat.resources.picker_chip_models
 import com.garfiec.librechat.feature.chat.resources.picker_chip_prompts
 import com.garfiec.librechat.feature.chat.resources.picker_chip_skills
 import com.garfiec.librechat.feature.chat.resources.picker_loading_skills
 import com.garfiec.librechat.feature.chat.resources.picker_mcp_unavailable
+import com.garfiec.librechat.feature.chat.resources.picker_models_comparing
+import com.garfiec.librechat.feature.chat.resources.picker_models_unavailable
 import com.garfiec.librechat.feature.chat.resources.picker_no_matches
 import com.garfiec.librechat.feature.chat.resources.picker_scope_mcp
+import com.garfiec.librechat.feature.chat.resources.picker_scope_models
 import com.garfiec.librechat.feature.chat.resources.picker_scope_prompts
 import com.garfiec.librechat.feature.chat.resources.picker_scope_skills
 import com.garfiec.librechat.feature.chat.resources.picker_skills_failed
@@ -72,6 +85,10 @@ import com.garfiec.librechat.feature.chat.resources.picker_type_mcp
 import com.garfiec.librechat.feature.chat.resources.picker_type_prompt
 import com.garfiec.librechat.feature.chat.resources.picker_type_skill
 import com.garfiec.librechat.feature.chat.resources.retry
+import com.garfiec.librechat.feature.chat.util.HeaderLabel
+import com.garfiec.librechat.feature.chat.util.KeyHint
+import com.garfiec.librechat.feature.chat.util.ModelPickerBlock
+import com.garfiec.librechat.feature.chat.util.PickerModel
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -86,13 +103,15 @@ private val SCOPE_HEADER_HEIGHT = 48.dp
  * the same insets as the input itself and cannot be clipped or hidden behind the keyboard.
  *
  * The mixed list tags every row with its type and, when two or more types have items, opens with
- * a chip per type that writes its scope's command into the field ([onPickerTextChange]). A scoped
- * list says which type it searches, with a close that goes back to `/`, and drops the tags. With no
- * rows the mixed list says "No matches" when there was something to search ([hasPrompts],
- * [hasSkills], [hasMcp]) and stays hidden otherwise, so a leading `/` in a chat with nothing to
- * pick draws nothing; a scoped list always answers. While the skill catalog loads
- * ([isLoadingSkills]) a loading row closes a list that holds skills; when it failed
- * ([skillsLoadFailed]) a retry row replaces "No matches", which a missing catalog can't vouch for.
+ * a chip per type that writes its scope's command into the field ([onPickerTextChange]). Models
+ * have a chip wherever they can be switched ([modelBlock] null) but rows only under `/model `. A
+ * scoped list says which type it searches, with a close that goes back to `/`, and drops the type
+ * tags (a model row keeps its section). With no rows the mixed list says "No matches" when there
+ * was something to search ([hasPrompts], [hasSkills], [hasMcp]) and stays hidden otherwise, so a
+ * leading `/` in a chat with nothing to pick draws nothing; a scoped list always answers. While the
+ * skill catalog loads ([isLoadingSkills]) a loading row closes a list that holds skills; when it
+ * failed ([skillsLoadFailed]) a retry row replaces "No matches", which a missing catalog can't vouch
+ * for.
  */
 @Suppress("LongParameterList")
 @Composable
@@ -102,6 +121,7 @@ fun PromptSuggestionList(
     hasPrompts: Boolean,
     hasSkills: Boolean,
     hasMcp: Boolean,
+    modelBlock: ModelPickerBlock?,
     canPickSkills: Boolean,
     isLoadingSkills: Boolean,
     onSelect: (ComposerPickerItem) -> Unit,
@@ -118,9 +138,14 @@ fun PromptSuggestionList(
     val unavailable = when (scope) {
         PickerScope.SKILLS -> Res.string.picker_skills_unavailable.takeIf { !canPickSkills }
         PickerScope.MCP -> Res.string.picker_mcp_unavailable.takeIf { !hasMcp }
+        PickerScope.MODEL -> when (modelBlock) {
+            ModelPickerBlock.NO_PICKER -> Res.string.picker_models_unavailable
+            ModelPickerBlock.COMPARING -> Res.string.picker_models_comparing
+            null -> null
+        }
         else -> null
     }
-    val chipTypes = ChipTypes(prompts = hasPrompts, skills = hasSkills, mcp = hasMcp)
+    val chipTypes = ChipTypes(prompts = hasPrompts, skills = hasSkills, mcp = hasMcp, models = modelBlock == null)
         .takeIf { scope == null && it.count >= 2 }
     val showNoMatches = rows.isEmpty() && !loading && !showFailed && unavailable == null &&
         (scope != null || hasPrompts || hasSkills || hasMcp)
@@ -214,6 +239,7 @@ private fun ScopeHeader(scope: PickerScope, onLeave: () -> Unit) {
         PickerScope.PROMPTS -> promptCategoryIcon(null) to stringResource(Res.string.picker_scope_prompts)
         PickerScope.SKILLS -> SkillGlyph to stringResource(Res.string.picker_scope_skills)
         PickerScope.MCP -> Icons.Default.Hub to stringResource(Res.string.picker_scope_mcp)
+        PickerScope.MODEL -> Icons.Outlined.SmartToy to stringResource(Res.string.picker_scope_models)
     }
     Row(
         modifier = Modifier
@@ -251,8 +277,8 @@ private fun ScopeHeader(scope: PickerScope, onLeave: () -> Unit) {
 }
 
 /** Which types the mixed list's chips offer: those with something to pick. */
-private data class ChipTypes(val prompts: Boolean, val skills: Boolean, val mcp: Boolean) {
-    val count: Int get() = listOf(prompts, skills, mcp).count { it }
+private data class ChipTypes(val prompts: Boolean, val skills: Boolean, val mcp: Boolean, val models: Boolean) {
+    val count: Int get() = listOf(prompts, skills, mcp, models).count { it }
 }
 
 @Composable
@@ -280,6 +306,12 @@ private fun ScopeChips(types: ChipTypes, onPickerTextChange: (String) -> Unit) {
             AdaptiveSuggestionChip(
                 onClick = { onPickerTextChange("/mcp ") },
                 label = { ChipLabel(stringResource(Res.string.picker_chip_mcp), command = "/mcp") },
+            )
+        }
+        if (types.models) {
+            AdaptiveSuggestionChip(
+                onClick = { onPickerTextChange("/model ") },
+                label = { ChipLabel(stringResource(Res.string.picker_chip_models), command = "/model") },
             )
         }
     }
@@ -331,7 +363,63 @@ private fun PickerRow(
             onClick = onClick,
         )
         is ComposerPickerItem.Mcp -> McpPickerRow(mcp = row.mcp, tagged = tagged, onClick = onClick)
+        is ComposerPickerItem.Model -> ModelPickerRow(model = row.model, onClick = onClick)
     }
+}
+
+/**
+ * A spec, agent or model: its icon, its section at the end (as the sheet groups it), a star when
+ * starred and a check on the chat's current one.
+ */
+@Composable
+private fun ModelPickerRow(model: PickerModel, onClick: () -> Unit) {
+    val keyText = when (model.keyHint) {
+        KeyHint.NEEDS_KEY -> stringResource(Res.string.model_selector_needs_key)
+        KeyHint.EXPIRED -> stringResource(Res.string.model_selector_key_expired)
+        null -> null
+    }
+    val selectedLabel = stringResource(Res.string.cd_selected)
+    PickerRowLayout(
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .semantics {
+                role = Role.Button
+                selected = model.selected
+            },
+        leading = {
+            val icon = model.icon
+            if (icon != null) {
+                EndpointIcon(
+                    endpointName = icon.endpointName,
+                    iconUrl = icon.imageUrl,
+                    provider = icon.provider,
+                    size = 20.dp,
+                    contentDescription = null,
+                    glyphTint = MaterialTheme.colorScheme.onSurface,
+                )
+            } else {
+                Spacer(Modifier.size(20.dp))
+            }
+        },
+        title = model.title,
+        description = keyText ?: model.description,
+        typeLabel = when (val group = model.group) {
+            HeaderLabel.MyAgents -> stringResource(Res.string.model_selector_my_agents)
+            is HeaderLabel.Text -> group.text
+            HeaderLabel.Starred, null -> null
+        },
+        trailing = {
+            if (model.starred) RowStateIcon(Icons.Default.Star)
+            if (model.selected) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = selectedLabel,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 8.dp).size(18.dp),
+                )
+            }
+        },
+    )
 }
 
 /** A mixed list tags each row ([typeLabel]): the types sit together, and a pick does different things. */

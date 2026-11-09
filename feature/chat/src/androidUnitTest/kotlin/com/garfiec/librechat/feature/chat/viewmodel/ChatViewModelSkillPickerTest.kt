@@ -26,6 +26,8 @@ import com.garfiec.librechat.feature.chat.model.ComposerPickerItem
 import com.garfiec.librechat.feature.chat.model.McpServerDisplayData
 import com.garfiec.librechat.feature.chat.model.PickerMcpServer
 import com.garfiec.librechat.feature.chat.model.PickerSkill
+import com.garfiec.librechat.feature.chat.util.ModelPick
+import com.garfiec.librechat.feature.chat.util.PickerModel
 import com.garfiec.librechat.feature.chat.viewmodel.delegate.PlatformFileHandler
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -512,6 +514,24 @@ class ChatViewModelSkillPickerTest {
         runCurrent()
         assertThat(vm.uiState.value.inputText).isEmpty()
         assertThat(vm.uiState.value.effectiveMcpServerNames).isEmpty()
+    }
+
+    @Test
+    fun `a model pick clears the command and switches the model, a key pick only clears`() = pickerTest { vm ->
+        fun pick(pick: ModelPick) = ComposerPickerItem.Model(
+            PickerModel("k", "m", null, null, null, selected = false, starred = false, keyHint = null, pick = pick),
+        )
+        vm.onInputChanged("/model mini")
+        vm.selectPickerItem(pick(ModelPick.Raw("openAI", "gpt-4o-mini")))
+        runCurrent()
+        assertThat(vm.uiState.value.inputText).isEmpty()
+        assertThat(vm.uiState.value.selectedModel).isEqualTo("gpt-4o-mini")
+
+        vm.onInputChanged("/model fast")
+        vm.selectPickerItem(pick(ModelPick.AddKey("anthropic")))
+        runCurrent()
+        assertThat(vm.uiState.value.inputText).isEmpty()
+        assertThat(vm.uiState.value.selectedModel).isEqualTo("gpt-4o-mini")
     }
 
     // ─── the streamed turn ───────────────────────────────────────────

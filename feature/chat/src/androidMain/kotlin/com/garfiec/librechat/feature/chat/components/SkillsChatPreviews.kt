@@ -15,6 +15,8 @@ import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import com.garfiec.librechat.feature.chat.model.PickerMcpServer
 import com.garfiec.librechat.feature.chat.model.PickerSkill
 import com.garfiec.librechat.feature.chat.model.PromptMentionDisplayData
+import com.garfiec.librechat.feature.chat.util.ModelPickerBlock
+import com.garfiec.librechat.feature.chat.util.PickerModel
 import com.garfiec.librechat.feature.chat.util.draftItemsOf
 
 // The chat side of skills: the combined `/` + `$` picker with its typed rows, the picked-skill
@@ -109,6 +111,8 @@ internal fun PickerHost(
     canPickSkills: Boolean = true,
     chips: List<String> = listOf("brand-voice", "quarterly-report-formatting-house-style"),
     mcp: List<PickerMcpServer> = emptyList(),
+    models: List<PickerModel> = emptyList(),
+    modelBlock: ModelPickerBlock? = ModelPickerBlock.NO_PICKER,
 ) {
     ChatInput(
         inputText = text,
@@ -120,6 +124,8 @@ internal fun PickerHost(
         chrome = ComposerChrome(
             draftItems = draftItemsOf(emptyList(), chips, emptyList(), serverUrl = ""),
             pickerMcpServers = mcp,
+            pickerModels = models,
+            pickerModelBlock = modelBlock,
         ),
         promptSuggestions = previewPrompts,
         skillSuggestions = skills,

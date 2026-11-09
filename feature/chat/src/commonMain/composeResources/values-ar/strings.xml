@@ -671,6 +671,10 @@
     <string name="picker_scope_mcp">البحث في خوادم MCP</string>
     <string name="picker_chip_mcp">MCP</string>
     <string name="picker_mcp_unavailable">خوادم MCP غير متاحة في هذه المحادثة</string>
+    <string name="picker_scope_models">البحث في النماذج</string>
+    <string name="picker_chip_models">النماذج</string>
+    <string name="picker_models_unavailable">لا يمكن تغيير النموذج في هذه المحادثة</string>
+    <string name="picker_models_comparing">لا يمكن تبديل النماذج هنا أثناء المقارنة</string>
     <string name="cd_picker_leave_scope">عرض المطالبات والمهارات وخوادم MCP</string>
     <string name="cd_remove_skill">إزالة المهارة %1$s</string>
     <string name="cd_skill_always_applied">مهارة مطبّقة دائمًا: %1$s</string>

@@ -62,6 +62,7 @@ import com.garfiec.librechat.feature.chat.components.LocalOpenFileActions
 import com.garfiec.librechat.feature.chat.components.LocalOpenPdf
 import com.garfiec.librechat.feature.chat.components.LocalPullRequestComposer
 import com.garfiec.librechat.feature.chat.components.LocalThreadScrollHandle
+import com.garfiec.librechat.feature.chat.components.PickerScope
 import com.garfiec.librechat.feature.chat.components.PullRequestComposer
 import com.garfiec.librechat.feature.chat.components.ThinkingSheet
 import com.garfiec.librechat.feature.chat.components.ToolApprovalPanel
@@ -71,6 +72,7 @@ import com.garfiec.librechat.feature.chat.components.UploadRoutingSheet
 import com.garfiec.librechat.feature.chat.components.addToChatSelectionItem
 import com.garfiec.librechat.feature.chat.components.mcpapp.rememberLegacyUiResources
 import com.garfiec.librechat.feature.chat.components.mcpapp.rememberMcpApps
+import com.garfiec.librechat.feature.chat.components.parsePickerQuery
 import com.garfiec.librechat.feature.chat.components.rememberChatAttachmentActions
 import com.garfiec.librechat.feature.chat.components.rememberChatOptionsSheetController
 import com.garfiec.librechat.feature.chat.components.rememberDraftAdditions
@@ -95,8 +97,12 @@ import com.garfiec.librechat.feature.chat.resources.mcp_cancel_sign_in_failed
 import com.garfiec.librechat.feature.chat.resources.mcp_sign_in_failed
 import com.garfiec.librechat.feature.chat.util.DraftItemTap
 import com.garfiec.librechat.feature.chat.util.DraftUploadProgress
+import com.garfiec.librechat.feature.chat.util.ModelPick
+import com.garfiec.librechat.feature.chat.util.ModelPickerBlock
+import com.garfiec.librechat.feature.chat.util.PickerInputs
 import com.garfiec.librechat.feature.chat.util.WebSearchRoute
 import com.garfiec.librechat.feature.chat.util.draftItemsOf
+import com.garfiec.librechat.feature.chat.util.pickerModelsOf
 import com.garfiec.librechat.feature.chat.viewmodel.ChatViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.McpAppsViewModel
 import com.garfiec.librechat.feature.chat.viewmodel.McpSignInViewModel
@@ -600,6 +606,38 @@ fun ChatScreen(
                             mcpAllowed = uiState.mcpServersEnabled,
                         )
                     }
+                    val pickerModelBlock = when {
+                        !uiState.modelPickerShown -> ModelPickerBlock.NO_PICKER
+                        uiState.comparisonState.isEnabled || uiState.comparisonState.isSettingUp ->
+                            ModelPickerBlock.COMPARING
+                        else -> null
+                    }
+                    // Mapped only while `/model ` is open, so a closed list maps nothing.
+                    val pickerModelInputs = if (
+                        pickerModelBlock == null &&
+                        parsePickerQuery(uiState.inputText, uiState.canPickSkills)?.scope == PickerScope.MODEL
+                    ) {
+                        PickerInputs(
+                            endpointConfigs = uiState.endpointConfigs,
+                            availableModels = uiState.availableModels,
+                            agents = uiState.agents,
+                            agentsLoaded = uiState.agentsLoaded,
+                            modelSpecs = uiState.modelSpecs,
+                            modelSelect = uiState.modelSelectEnabled,
+                            selectedEndpoint = uiState.selectedEndpoint,
+                            selectedModel = uiState.selectedModel,
+                            selectedSpec = uiState.selectedSpec,
+                            favoriteAgentIds = uiState.favoriteAgentIds,
+                            favoriteModelKeys = uiState.favoriteModelKeys,
+                            favoriteSpecNames = uiState.favoriteSpecNames,
+                            endpointKeyStates = uiState.endpointKeyStates,
+                        )
+                    } else {
+                        null
+                    }
+                    val pickerModels = remember(pickerModelInputs, uiState.serverUrl) {
+                        pickerModelInputs?.let { pickerModelsOf(it, uiState.serverUrl) }.orEmpty()
+                    }
                     val composerChrome = ComposerChrome(
                         pendingSteers = uiState.pendingSteers,
                         onCancelSteer = viewModel::cancelSteer,
@@ -618,6 +656,8 @@ fun ChatScreen(
                         settingChips = uiState.settingChips,
                         onSettingChipTap = onSettingChipTap,
                         pickerMcpServers = pickerMcpServers,
+                        pickerModels = pickerModels,
+                        pickerModelBlock = pickerModelBlock,
                         onCancelMcpSignIn = cancelMcpSignIn,
                         onStartMcpSignInOver = startMcpSignIn,
                         contextGauge = uiState.contextGaugeDetails,
@@ -804,6 +844,9 @@ fun ChatScreen(
                                                         McpPick.SET_UP -> mcpVariablesServer = item.mcp.server.name
                                                         McpPick.TOGGLE, McpPick.NONE -> Unit
                                                     }
+                                                }
+                                                if (item is ComposerPickerItem.Model) {
+                                                    (item.model.pick as? ModelPick.AddKey)?.let { onNavigateToProviderKeys(it.endpoint) }
                                                 }
                                             },
                                             isRecording = uiState.isRecording,
