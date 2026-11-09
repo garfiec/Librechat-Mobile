@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.data.repository.PendingAddSession
 import com.garfiec.librechat.core.model.LoginOutcome
 import com.garfiec.librechat.core.model.User
 import com.garfiec.librechat.core.model.config.InterfaceConfig
+import com.garfiec.librechat.core.model.config.LdapConfig
 import com.garfiec.librechat.core.model.config.PrivacyPolicyConfig
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.config.TermsOfServiceConfig
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -99,6 +101,21 @@ class LoginViewModelTest {
         advanceUntilIdle()
         assertThat(viewModel.uiState.value.policyLinks)
             .isEqualTo(PolicyLinks(privacyPolicyUrl = "https://x.example/p"))
+    }
+
+    @Test
+    fun `fetches the server config when nothing has loaded it`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        coVerify(exactly = 1) { configRepository.fetchStartupConfig() }
+    }
+
+    @Test
+    fun `leaves an already-loaded config alone`() = runTest {
+        configFlow.value = StartupConfig()
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        coVerify(exactly = 0) { configRepository.fetchStartupConfig() }
     }
 
     @Test
@@ -421,33 +438,160 @@ class LoginViewModelTest {
         assertThat(viewModel.uiState.value.error).isEqualTo("Login failed")
     }
 
-    @Test
-    fun `startup config updates registration and social login settings`() = runTest {
+    private val defaultSocialLogins = listOf("google", "facebook", "openid", "github", "discord", "saml")
+
+    private fun TestScope.stateFor(config: StartupConfig): LoginUiState {
+        configFlow.value = config
         viewModel = createViewModel()
         advanceUntilIdle()
+        return viewModel.uiState.value
+    }
 
-        configFlow.value = StartupConfig(
-            registrationEnabled = true,
-            socialLoginEnabled = true,
-            socialLogins = listOf("google", "github"),
+    @Test
+    fun `startup config updates registration`() = runTest {
+        assertThat(stateFor(StartupConfig(registrationEnabled = true)).registrationEnabled).isTrue()
+    }
+
+    @Test
+    fun `the server's default provider list shows only the providers it configured`() = runTest {
+        val state = stateFor(
+            StartupConfig(socialLoginEnabled = true, socialLogins = defaultSocialLogins, googleLoginEnabled = true),
         )
-        advanceUntilIdle()
 
-        val state = viewModel.uiState.value
-        assertThat(state.registrationEnabled).isTrue()
-        assertThat(state.socialLoginEnabled).isTrue()
-        assertThat(state.socialLogins).containsExactly("google", "github")
+        assertThat(state.socialProviders).containsExactly(SocialProvider("google"))
+    }
+
+    @Test
+    fun `providers keep the server's order and drop unknown names`() = runTest {
+        val state = stateFor(
+            StartupConfig(
+                socialLoginEnabled = true,
+                socialLogins = listOf("github", "ldap", "google"),
+                googleLoginEnabled = true,
+                githubLoginEnabled = true,
+            ),
+        )
+
+        assertThat(state.socialProviders.map { it.id }).containsExactly("github", "google").inOrder()
+    }
+
+    @Test
+    fun `with OpenID and SAML both set up the server hides SAML, and so do we`() = runTest {
+        val state = stateFor(
+            StartupConfig(
+                socialLoginEnabled = true,
+                socialLogins = defaultSocialLogins,
+                openidLoginEnabled = true,
+                openidLabel = "Continue with OpenID",
+                samlLoginEnabled = false,
+            ),
+        )
+
+        assertThat(state.socialProviders).containsExactly(SocialProvider("openid", label = "Continue with OpenID"))
+    }
+
+    @Test
+    fun `social login on with no provider configured shows no social section`() = runTest {
+        val state = stateFor(StartupConfig(socialLoginEnabled = true, socialLogins = defaultSocialLogins))
+
+        assertThat(state.socialProviders).isEmpty()
+    }
+
+    @Test
+    fun `social login off hides configured providers`() = runTest {
+        val state = stateFor(
+            StartupConfig(socialLoginEnabled = false, socialLogins = defaultSocialLogins, googleLoginEnabled = true),
+        )
+
+        assertThat(state.socialProviders).isEmpty()
+    }
+
+    @Test
+    fun `a custom OpenID label is used as given, and a blank SAML label falls back to ours`() = runTest {
+        val state = stateFor(
+            StartupConfig(
+                socialLoginEnabled = true,
+                socialLogins = listOf("openid", "saml"),
+                openidLoginEnabled = true,
+                openidLabel = "Sign in with Acme SSO",
+                samlLoginEnabled = true,
+                samlLabel = "",
+            ),
+        )
+
+        assertThat(state.socialProviders).containsExactly(
+            SocialProvider("openid", label = "Sign in with Acme SSO"),
+            SocialProvider("saml", label = null),
+        ).inOrder()
     }
 
     @Test
     fun `startup config with null socialLogins defaults to empty`() = runTest {
-        viewModel = createViewModel()
+        assertThat(stateFor(StartupConfig(socialLoginEnabled = true, socialLogins = null)).socialProviders).isEmpty()
+    }
+
+    @Test
+    fun `forgot password shows only when the server allows password reset`() = runTest {
+        assertThat(stateFor(StartupConfig(passwordResetEnabled = false)).passwordResetEnabled).isFalse()
+        assertThat(stateFor(StartupConfig(passwordResetEnabled = true)).passwordResetEnabled).isTrue()
+    }
+
+    @Test
+    fun `forgot password stays hidden with email login off`() = runTest {
+        val state = stateFor(StartupConfig(emailLoginEnabled = false, passwordResetEnabled = true))
+
+        assertThat(state.passwordResetEnabled).isFalse()
+    }
+
+    @Test
+    fun `LDAP username mode asks for a username`() = runTest {
+        assertThat(stateFor(StartupConfig()).usernameLogin).isFalse()
+        assertThat(stateFor(StartupConfig(ldap = LdapConfig(enabled = true, username = true))).usernameLogin).isTrue()
+
+        viewModel.onPasswordChanged("pw")
+        viewModel.login()
         advanceUntilIdle()
 
-        configFlow.value = StartupConfig(socialLogins = null)
+        assertThat(viewModel.uiState.value.error).isEqualTo("Please enter username and password")
+    }
+
+    private val autoRedirectConfig = StartupConfig(openidLoginEnabled = true, openidAutoRedirect = true)
+
+    @Test
+    fun `OpenID auto-redirect opens the provider without a tap, even with social login off`() = runTest {
+        every { ssoRiskDataStore.acknowledged } returns flowOf(true)
+
+        val state = stateFor(autoRedirectConfig.copy(socialLoginEnabled = false))
+
+        assertThat(state.ssoProvider).isEqualTo("openid")
+    }
+
+    @Test
+    fun `OpenID auto-redirect goes through the in-app-browser warning first`() = runTest {
+        val state = stateFor(autoRedirectConfig)
+
+        assertThat(state.pendingSsoProvider).isEqualTo("openid")
+        assertThat(state.ssoProvider).isNull()
+    }
+
+    @Test
+    fun `OpenID auto-redirect fires once, so backing out of SSO stays on the form`() = runTest {
+        every { ssoRiskDataStore.acknowledged } returns flowOf(true)
+        stateFor(autoRedirectConfig)
+        viewModel.consumeSsoNavigation()
+
+        configFlow.value = autoRedirectConfig.copy(registrationEnabled = true)
         advanceUntilIdle()
 
-        assertThat(viewModel.uiState.value.socialLogins).isEmpty()
+        assertThat(viewModel.uiState.value.ssoProvider).isNull()
+        assertThat(viewModel.uiState.value.pendingSsoProvider).isNull()
+    }
+
+    @Test
+    fun `auto-redirect needs OpenID itself enabled`() = runTest {
+        every { ssoRiskDataStore.acknowledged } returns flowOf(true)
+
+        assertThat(stateFor(StartupConfig(openidAutoRedirect = true)).ssoProvider).isNull()
     }
 
     @Test

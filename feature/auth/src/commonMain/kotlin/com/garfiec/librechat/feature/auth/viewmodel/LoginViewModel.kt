@@ -45,12 +45,15 @@ data class LoginUiState(
     /** A coded sign-in refusal the screen words itself; shown instead of [error] when set. */
     val refusal: AuthRefusal? = null,
     val registrationEnabled: Boolean = false,
-    val socialLoginEnabled: Boolean = false,
-    val socialLogins: List<String> = emptyList(),
+    /** The sign-in buttons to show, in the server's order. */
+    val socialProviders: List<SocialProvider> = emptyList(),
     // ALLOW_EMAIL_LOGIN (upstream #14180): when the server disables email/password login it now
     // enforces it with a 403 on POST /api/auth/login. Fail-open to true so the form shows until
     // config confirms otherwise. Drives hiding the email/password form.
     val emailLoginEnabled: Boolean = true,
+    /** Off unless the server allows reset: its reset routes 403 otherwise. */
+    val passwordResetEnabled: Boolean = false,
+    val usernameLogin: Boolean = false,
     /** Set while the in-app-browser warning is up; carries the provider the user picked. */
     val pendingSsoProvider: String? = null,
     val ssoProvider: String? = null,
@@ -86,6 +89,37 @@ data class PolicyLinks(
     }
 }
 
+/** One social sign-in button: [id] is the `/oauth/<id>` route; a null [label] means "Continue with <name>". */
+@Immutable
+data class SocialProvider(val id: String, val label: String? = null)
+
+/**
+ * The server sends its full `socialLogins` list (a default of six when unset) but registers a
+ * strategy only for providers with credentials, so each name shows only behind its own flag, as
+ * upstream `SocialLoginRender` does.
+ */
+internal fun socialProviders(config: StartupConfig): List<SocialProvider> {
+    if (!config.socialLoginEnabled) return emptyList()
+    return config.socialLogins.orEmpty().mapNotNull { id ->
+        val enabled = when (id) {
+            "google" -> config.googleLoginEnabled
+            "facebook" -> config.facebookLoginEnabled
+            "github" -> config.githubLoginEnabled
+            "discord" -> config.discordLoginEnabled
+            "apple" -> config.appleLoginEnabled
+            "openid" -> config.openidLoginEnabled
+            "saml" -> config.samlLoginEnabled
+            else -> false
+        }
+        val label = when (id) {
+            "openid" -> config.openidLabel
+            "saml" -> config.samlLabel
+            else -> null
+        }
+        SocialProvider(id, label?.takeIf { it.isNotBlank() }).takeIf { enabled }
+    }
+}
+
 class LoginViewModel(
     private val authRepository: AuthRepository,
     private val configRepository: ConfigRepository,
@@ -98,6 +132,20 @@ class LoginViewModel(
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
+    /**
+     * `openidAutoRedirect` fires once per screen: backing out of SSO returns to this ViewModel and
+     * must leave the user on the form, as the web's `redirect=false` does.
+     */
+    private var autoRedirected = false
+
+    /**
+     * Latched synchronously on the tap, because the acknowledgement read that follows suspends.
+     * Two taps would otherwise each resolve and each set `ssoProvider`, and since the screen
+     * consumes that field back to null between them, both would navigate — stacking two SSO
+     * routes, two WebViews and two round-trips over the one cookie jar they share.
+     */
+    private var ssoSelectionInFlight = false
+
     init {
         // In an add-account flow this screen signs into the PENDING server while another account is
         // live, so its feature flags (registration, social logins) must come from the pending
@@ -107,12 +155,22 @@ class LoginViewModel(
             authServerConfig(configRepository, accountSwitcher, serverDataStore).collect { (config, url) ->
                 _uiState.value = _uiState.value.copy(
                     registrationEnabled = config.registrationEnabled,
-                    socialLoginEnabled = config.socialLoginEnabled,
-                    socialLogins = config.socialLogins.orEmpty(),
+                    socialProviders = socialProviders(config),
                     emailLoginEnabled = config.emailLoginEnabled,
+                    passwordResetEnabled = config.emailLoginEnabled && config.passwordResetEnabled,
+                    usernameLogin = config.ldap?.username == true,
                     policyLinks = PolicyLinks.from(config, url),
                 )
+                if (config.openidLoginEnabled && config.openidAutoRedirect && !autoRedirected) {
+                    autoRedirected = true
+                    onSsoProviderSelected("openid")
+                }
             }
+        }
+        // Reached straight from a logged-out cold start (an expired account still bound), nothing has
+        // loaded the server's config, and without it the provider buttons never show. Cache first.
+        if (accountSwitcher.pendingAdd == null && configRepository.startupConfig.value == null) {
+            viewModelScope.launch { configRepository.fetchStartupConfig() }
         }
         observeCertificateTrust(serverDataStore, certificateTrust)
         observeTwoFactorSetupMarkers(serverDataStore)
@@ -147,14 +205,6 @@ class LoginViewModel(
             }
         }
     }
-
-    /**
-     * Latched synchronously on the tap, because the acknowledgement read that follows suspends.
-     * Two taps would otherwise each resolve and each set `ssoProvider`, and since the screen
-     * consumes that field back to null between them, both would navigate — stacking two SSO
-     * routes, two WebViews and two round-trips over the one cookie jar they share.
-     */
-    private var ssoSelectionInFlight = false
 
     /**
      * Social sign-in runs in an in-app browser, which some providers disallow. Warn once, then
@@ -209,7 +259,8 @@ class LoginViewModel(
     fun login() {
         val state = _uiState.value.copy(offerDiagnosticLog = false)
         if (state.email.isBlank() || state.password.isBlank()) {
-            _uiState.value = state.copy(error = "Please enter email and password")
+            val field = if (state.usernameLogin) "username" else "email"
+            _uiState.value = state.copy(error = "Please enter $field and password")
             return
         }
 
