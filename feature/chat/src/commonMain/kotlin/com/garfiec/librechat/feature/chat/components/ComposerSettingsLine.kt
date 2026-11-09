@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -308,6 +309,7 @@ internal fun ContextRing(state: ContextRingState, modifier: Modifier = Modifier)
     Box(
         modifier = modifier
             .minimumInteractiveComponentSize()
+            .clip(CircleShape)
             .clickable(role = Role.Button) { if (nudge != null) confirmCompact = true else showSheet = true }
             .semantics(mergeDescendants = true) {
                 contentDescription = description
