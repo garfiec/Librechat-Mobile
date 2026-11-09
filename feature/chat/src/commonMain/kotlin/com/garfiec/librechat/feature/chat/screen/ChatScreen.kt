@@ -691,10 +691,18 @@ fun ChatScreen(
                             }
                             if (askPause == null && !uiState.showsComparisonPanes(comparisonWide)) {
                                 LandingStarters(
-                                    starters = uiState.landingStarters,
+                                    // Hidden rows keep their space, so outside the landing they would
+                                    // sit invisibly over the thread and inflate the measured bar.
+                                    starters = if (uiState.hasLandingStarters) uiState.landingStarters else emptyList(),
                                     visible = uiState.showsLandingStarters,
                                     onSend = viewModel::sendStarter,
                                     onEdit = viewModel::editStarter,
+                                    // Weighted, so the composer and its `/` picker are measured first and
+                                    // the starters' kept space never squeezes the field. They cover the
+                                    // landing, so they carry its pull-up drag too.
+                                    modifier = Modifier
+                                        .weight(1f, fill = false)
+                                        .then(pullUp.landingModifier),
                                 )
                             }
                             toolPause?.let { pause ->
