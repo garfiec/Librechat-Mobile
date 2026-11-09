@@ -36,7 +36,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
-import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
@@ -201,17 +200,9 @@ fun LoginScreen(
                 AdaptiveButton(
                     onClick = viewModel::login,
                     modifier = Modifier.fillMaxWidth().testTag("login_submit"),
-                    enabled = !uiState.isLoading,
+                    loading = uiState.isLoading,
                 ) {
-                    if (uiState.isLoading) {
-                        AdaptiveCircularProgressIndicator(
-                            modifier = Modifier.height(20.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp,
-                        )
-                    } else {
-                        Text(stringResource(Res.string.continue_button))
-                    }
+                    Text(stringResource(if (uiState.isLoading) Res.string.progress_signing_in else Res.string.continue_button))
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))

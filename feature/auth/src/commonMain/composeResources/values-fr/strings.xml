@@ -125,4 +125,13 @@
         <item quantity="one">%1$d compte</item>
         <item quantity="other">%1$d comptes</item>
     </plurals>
+    <string name="progress_connecting">Connexion au serveur…</string>
+    <string name="progress_signing_in">Connexion…</string>
+    <string name="progress_creating_account">Création du compte…</string>
+    <string name="progress_sending">Envoi…</string>
+    <string name="progress_resetting_password">Réinitialisation…</string>
+    <string name="progress_verifying">Vérification…</string>
+    <string name="progress_accepting">Acceptation…</string>
+    <string name="progress_starting">Démarrage…</string>
+    <string name="progress_finishing">Finalisation…</string>
 </resources>

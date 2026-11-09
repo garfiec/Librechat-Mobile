@@ -1206,4 +1206,6 @@
     <string name="web_search_keys_remove">キーを削除</string>
     <string name="web_search_keys_save_failed">キーを保存できませんでした。もう一度お試しください。</string>
     <string name="web_search_keys_remove_failed">キーを削除できませんでした。もう一度お試しください。</string>
+    <string name="prompt_editor_creating">作成中…</string>
+    <string name="prompt_editor_saving">保存中…</string>
 </resources>

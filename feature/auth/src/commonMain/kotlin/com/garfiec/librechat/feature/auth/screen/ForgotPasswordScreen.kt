@@ -25,7 +25,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
-import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
@@ -125,17 +124,10 @@ fun ForgotPasswordScreen(
                 AdaptiveButton(
                     onClick = viewModel::requestReset,
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !uiState.isLoading && uiState.email.isNotBlank(),
+                    enabled = uiState.email.isNotBlank(),
+                    loading = uiState.isLoading,
                 ) {
-                    if (uiState.isLoading) {
-                        AdaptiveCircularProgressIndicator(
-                            modifier = Modifier.height(20.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp,
-                        )
-                    } else {
-                        Text(stringResource(Res.string.send_reset_link))
-                    }
+                    Text(stringResource(if (uiState.isLoading) Res.string.progress_sending else Res.string.send_reset_link))
                 }
 
                 if (uiState.error != null && uiState.offerDiagnosticLog) {

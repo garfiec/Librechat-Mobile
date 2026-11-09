@@ -124,4 +124,13 @@
     <plurals name="server_url_known_server_accounts">
         <item quantity="other">アカウント %1$d 件</item>
     </plurals>
+    <string name="progress_connecting">接続中…</string>
+    <string name="progress_signing_in">サインイン中…</string>
+    <string name="progress_creating_account">アカウントを作成中…</string>
+    <string name="progress_sending">送信中…</string>
+    <string name="progress_resetting_password">パスワードをリセット中…</string>
+    <string name="progress_verifying">確認中…</string>
+    <string name="progress_accepting">同意を送信中…</string>
+    <string name="progress_starting">開始中…</string>
+    <string name="progress_finishing">完了しています…</string>
 </resources>

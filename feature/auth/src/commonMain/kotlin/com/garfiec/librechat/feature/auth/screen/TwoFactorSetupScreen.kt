@@ -41,7 +41,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveCheckbox
-import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveFilledTonalButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
@@ -188,26 +187,13 @@ private fun Heading(text: String) {
 }
 
 @Composable
-private fun LoadingLabel(isLoading: Boolean, label: String) {
-    if (isLoading) {
-        AdaptiveCircularProgressIndicator(
-            modifier = Modifier.size(20.dp),
-            color = MaterialTheme.colorScheme.onPrimary,
-            strokeWidth = 2.dp,
-        )
-    } else {
-        Text(label)
-    }
-}
-
-@Composable
 private fun StartPhase(isLoading: Boolean, onStart: () -> Unit) {
     AdaptiveButton(
         onClick = onStart,
-        enabled = !isLoading,
+        loading = isLoading,
         modifier = Modifier.fillMaxWidth().testTag("twofa_setup_start"),
     ) {
-        LoadingLabel(isLoading, stringResource(Res.string.two_factor_setup_begin))
+        Text(stringResource(if (isLoading) Res.string.progress_starting else Res.string.two_factor_setup_begin))
     }
 }
 
@@ -299,10 +285,11 @@ private fun VerifyPhase(
         LaunchedEffect(state.codeAttempt) { focusRequester.requestFocus() }
         AdaptiveButton(
             onClick = onVerify,
-            enabled = !state.isLoading && state.code.length == OTP_LENGTH,
+            enabled = state.code.length == OTP_LENGTH,
+            loading = state.isLoading,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            LoadingLabel(state.isLoading, stringResource(Res.string.verify))
+            Text(stringResource(if (state.isLoading) Res.string.progress_verifying else Res.string.verify))
         }
         AdaptiveTextButton(onClick = onBackToAuthenticator, enabled = !state.isLoading) {
             Text(stringResource(Res.string.back))
@@ -393,10 +380,11 @@ private fun BackupCodesPhase(
         }
         AdaptiveButton(
             onClick = onComplete,
-            enabled = state.codesSaved && !state.isLoading,
+            enabled = state.codesSaved,
+            loading = state.isLoading,
             modifier = Modifier.fillMaxWidth().testTag("twofa_setup_complete"),
         ) {
-            LoadingLabel(state.isLoading, stringResource(Res.string.two_factor_setup_complete))
+            Text(stringResource(if (state.isLoading) Res.string.progress_finishing else Res.string.two_factor_setup_complete))
         }
     }
 }

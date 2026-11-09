@@ -124,4 +124,13 @@
     <plurals name="server_url_known_server_accounts">
         <item quantity="other">%1$d 个账户</item>
     </plurals>
+    <string name="progress_connecting">正在连接…</string>
+    <string name="progress_signing_in">正在登录…</string>
+    <string name="progress_creating_account">正在创建账户…</string>
+    <string name="progress_sending">正在发送…</string>
+    <string name="progress_resetting_password">正在重置密码…</string>
+    <string name="progress_verifying">正在验证…</string>
+    <string name="progress_accepting">正在接受…</string>
+    <string name="progress_starting">正在开始…</string>
+    <string name="progress_finishing">正在完成…</string>
 </resources>

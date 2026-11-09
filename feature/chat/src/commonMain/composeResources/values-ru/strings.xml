@@ -1284,4 +1284,6 @@
     <string name="web_search_keys_remove">Удалить ключи</string>
     <string name="web_search_keys_save_failed">Не удалось сохранить ключи. Попробуйте ещё раз.</string>
     <string name="web_search_keys_remove_failed">Не удалось удалить ключи. Попробуйте ещё раз.</string>
+    <string name="prompt_editor_creating">Создание…</string>
+    <string name="prompt_editor_saving">Сохранение…</string>
 </resources>

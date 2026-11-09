@@ -1206,4 +1206,6 @@
     <string name="web_search_keys_remove">移除密钥</string>
     <string name="web_search_keys_save_failed">无法保存你的密钥，请重试。</string>
     <string name="web_search_keys_remove_failed">无法移除你的密钥，请重试。</string>
+    <string name="prompt_editor_creating">正在创建…</string>
+    <string name="prompt_editor_saving">正在保存…</string>
 </resources>

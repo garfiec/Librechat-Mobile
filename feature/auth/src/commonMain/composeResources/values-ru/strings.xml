@@ -127,4 +127,13 @@
         <item quantity="many">%1$d аккаунтов</item>
         <item quantity="other">%1$d аккаунта</item>
     </plurals>
+    <string name="progress_connecting">Подключение…</string>
+    <string name="progress_signing_in">Вход…</string>
+    <string name="progress_creating_account">Создание аккаунта…</string>
+    <string name="progress_sending">Отправка…</string>
+    <string name="progress_resetting_password">Сброс пароля…</string>
+    <string name="progress_verifying">Проверка…</string>
+    <string name="progress_accepting">Принятие…</string>
+    <string name="progress_starting">Запуск…</string>
+    <string name="progress_finishing">Завершение…</string>
 </resources>

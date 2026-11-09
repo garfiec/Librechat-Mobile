@@ -47,7 +47,6 @@ import com.garfiec.librechat.core.network.client.HeaderRejection
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveCard
-import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
@@ -183,17 +182,10 @@ fun ServerUrlScreen(
             AdaptiveButton(
                 onClick = viewModel::validateAndConnect,
                 modifier = Modifier.fillMaxWidth().testTag("server_url_connect"),
-                enabled = !uiState.isLoading && uiState.url.isNotBlank(),
+                enabled = uiState.url.isNotBlank(),
+                loading = uiState.isLoading,
             ) {
-                if (uiState.isLoading) {
-                    AdaptiveCircularProgressIndicator(
-                        modifier = Modifier.height(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp,
-                    )
-                } else {
-                    Text(stringResource(Res.string.server_url_connect))
-                }
+                Text(stringResource(if (uiState.isLoading) Res.string.progress_connecting else Res.string.server_url_connect))
             }
 
             if (uiState.error != null && !uiState.isLoading) {

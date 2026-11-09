@@ -129,4 +129,13 @@
         <item quantity="many">%1$d حسابًا</item>
         <item quantity="other">%1$d حساب</item>
     </plurals>
+    <string name="progress_connecting">جارٍ الاتصال…</string>
+    <string name="progress_signing_in">جارٍ تسجيل الدخول…</string>
+    <string name="progress_creating_account">جارٍ إنشاء الحساب…</string>
+    <string name="progress_sending">جارٍ الإرسال…</string>
+    <string name="progress_resetting_password">جارٍ إعادة تعيين كلمة المرور…</string>
+    <string name="progress_verifying">جارٍ التحقق…</string>
+    <string name="progress_accepting">جارٍ القبول…</string>
+    <string name="progress_starting">جارٍ البدء…</string>
+    <string name="progress_finishing">جارٍ الإنهاء…</string>
 </resources>
