@@ -7,6 +7,7 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.client.request.HttpRequestData
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.post
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
@@ -53,5 +54,23 @@ class KtorRedirectContractTest {
         assertThat(redirected.headers[HttpHeaders.Authorization]).isNull()
         // ...and forwards everything else, including a credential it has no way to recognise as one.
         assertThat(redirected.headers["CF-Access-Client-Id"]).isEqualTo("id-value")
+    }
+
+    /**
+     * Why a server that redirects breaks sign-in: the probe's GET follows, every POST gets the raw 3xx
+     * back. [ServerProbePlugin] and the validator's redirect message exist because of this.
+     */
+    @Test
+    fun `ktor does not follow a redirect for a POST`() = runTest {
+        val seen = mutableListOf<HttpRequestData>()
+        val engine = MockEngine { request ->
+            seen += request
+            respond("", HttpStatusCode.PermanentRedirect, headersOf(HttpHeaders.Location, "https://www.example.com/api/auth/login"))
+        }
+
+        val response = HttpClient(engine).post("https://example.com/api/auth/login")
+
+        assertThat(response.status).isEqualTo(HttpStatusCode.PermanentRedirect)
+        assertThat(seen).hasSize(1)
     }
 }

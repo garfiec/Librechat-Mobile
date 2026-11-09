@@ -26,7 +26,10 @@ data class VersionCheckResult(
 
 /** Outcome of [ConfigRepository.resolveServer]. */
 sealed interface ServerResolution {
-    /** [url] is the candidate that served LibreChat, exactly as it was passed in. */
+    /**
+     * [url] is the address that served LibreChat: a candidate exactly as it was passed in, or the
+     * address that candidate's `/api/config` redirected to.
+     */
     data class Resolved(val url: String, val config: StartupConfig) : ServerResolution
 
     data class Failed(val error: Result.Error) : ServerResolution

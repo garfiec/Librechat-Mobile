@@ -20,9 +20,11 @@ import com.garfiec.librechat.core.model.config.BuildInfo
 import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.network.api.ConfigApi
 import com.garfiec.librechat.core.network.client.PendingRequestIdentity
+import com.garfiec.librechat.core.network.client.ServerRedirectException
 import com.google.common.truth.Truth.assertThat
 import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.statement.HttpResponse
+import io.ktor.http.Url
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -77,7 +79,7 @@ class ConfigRepositoryImplTest {
 
     @Test
     fun `resolving validates without publishing in-memory state or writing the cache`() = runTest {
-        coEvery { configApi.getStartupConfig() } returns validConfig
+        coEvery { configApi.probeStartupConfig() } returns validConfig
         val repo = repository()
 
         val result = repo.resolve("https://b.example.com")
@@ -91,7 +93,7 @@ class ConfigRepositoryImplTest {
 
     @Test
     fun `a cancelled probe propagates instead of reporting an unreachable server`() = runTest {
-        coEvery { configApi.getStartupConfig() } coAnswers { awaitCancellation() }
+        coEvery { configApi.probeStartupConfig() } coAnswers { awaitCancellation() }
         val repo = repository()
         var result: ServerResolution? = null
 
@@ -105,7 +107,7 @@ class ConfigRepositoryImplTest {
 
     @Test
     fun `a non-LibreChat response is rejected`() = runTest {
-        coEvery { configApi.getStartupConfig() } returns StartupConfig(serverDomain = "")
+        coEvery { configApi.probeStartupConfig() } returns StartupConfig(serverDomain = "")
         val repo = repository()
 
         val result = repo.resolve("https://b.example.com")
@@ -116,7 +118,7 @@ class ConfigRepositoryImplTest {
     /** A web page answering 200 at the path: Ktor has no transformation for text/html into the config. */
     @Test
     fun `a web page where the config should be is not LibreChat, not an unreachable server`() = runTest {
-        coEvery { configApi.getStartupConfig() } throws webPage()
+        coEvery { configApi.probeStartupConfig() } throws webPage()
         val repo = repository()
 
         val result = repo.resolve("https://b.example.com")
@@ -285,7 +287,7 @@ class ConfigRepositoryImplTest {
      */
     @Test
     fun `a gateway rejection is reported as a gateway problem, not an unreachable server`() = runTest {
-        coEvery { configApi.getStartupConfig() } throws AccessGatewayException()
+        coEvery { configApi.probeStartupConfig() } throws AccessGatewayException()
         val repo = repository()
 
         val error = repo.resolve("https://b.example.com").error()
@@ -319,7 +321,7 @@ class ConfigRepositoryImplTest {
 
     @Test
     fun `an unreachable server is logged with its reason and without the host`() = runTest {
-        coEvery { configApi.getStartupConfig() } throws ConnectException("Failed to connect")
+        coEvery { configApi.probeStartupConfig() } throws ConnectException("Failed to connect")
         val repo = repository()
 
         val logged = captureProbeLogs { repo.resolve("https://b.example.com") }
@@ -334,7 +336,7 @@ class ConfigRepositoryImplTest {
 
     @Test
     fun `an untrusted certificate is reported as a certificate problem, not as unreachable`() = runTest {
-        coEvery { configApi.getStartupConfig() } throws
+        coEvery { configApi.probeStartupConfig() } throws
             SSLHandshakeException("java.security.cert.CertPathValidatorException: Trust anchor not found").apply {
                 initCause(CertificateException("java.security.cert.CertPathValidatorException: Trust anchor not found"))
             }
@@ -351,7 +353,7 @@ class ConfigRepositoryImplTest {
 
     @Test
     fun `cleartext the platform refuses is reported as needing https, not as unreachable`() = runTest {
-        coEvery { configApi.getStartupConfig() } throws CleartextBlockedException()
+        coEvery { configApi.probeStartupConfig() } throws CleartextBlockedException()
         val repo = repository()
 
         lateinit var result: ServerResolution
@@ -366,7 +368,7 @@ class ConfigRepositoryImplTest {
     /** LibreChat's default port serves plain HTTP; https:// against it is a URL fix, not a certificate one. */
     @Test
     fun `https against a plain-HTTP port is reported as unreachable, not as a certificate problem`() = runTest {
-        coEvery { configApi.getStartupConfig() } throws
+        coEvery { configApi.probeStartupConfig() } throws
             SSLHandshakeException("SSL handshake aborted: Failure in SSL library, usually a protocol error WRONG_VERSION_NUMBER")
         val repo = repository()
 
@@ -379,7 +381,7 @@ class ConfigRepositoryImplTest {
 
     @Test
     fun `a server that answers with an error status is logged with that status`() = runTest {
-        coEvery { configApi.getStartupConfig() } throws ApiException(502, "Bad gateway")
+        coEvery { configApi.probeStartupConfig() } throws ApiException(502, "Bad gateway")
         val repo = repository()
 
         val logged = captureProbeLogs { repo.resolve("https://b.example.com") }
@@ -392,7 +394,7 @@ class ConfigRepositoryImplTest {
 
     @Test
     fun `a successful server check logs nothing here`() = runTest {
-        coEvery { configApi.getStartupConfig() } returns validConfig
+        coEvery { configApi.probeStartupConfig() } returns validConfig
         val repo = repository()
 
         val logged = captureProbeLogs { repo.resolve("https://b.example.com") }
@@ -409,7 +411,7 @@ class ConfigRepositoryImplTest {
     private fun answering(vararg byBase: Pair<String, () -> StartupConfig>): MutableList<String> {
         val tried = mutableListOf<String>()
         val answers = byBase.toMap()
-        coEvery { configApi.getStartupConfig() } coAnswers {
+        coEvery { configApi.probeStartupConfig() } coAnswers {
             val base = probedBase()
             tried += base
             answers.getValue(base)()
@@ -420,7 +422,7 @@ class ConfigRepositoryImplTest {
     @Test
     fun `each candidate is probed under its own pending identity, carrying the headers`() = runTest {
         val seen = mutableListOf<Pair<String, Map<String, String>>>()
-        coEvery { configApi.getStartupConfig() } coAnswers {
+        coEvery { configApi.probeStartupConfig() } coAnswers {
             val identity = currentCoroutineContext()[PendingRequestIdentity]!!.identity()
             seen += identity.baseUrl to identity.customHeaders
             if (identity.baseUrl == typed) throw ApiException(404, "Not Found") else validConfig
@@ -525,6 +527,87 @@ class ConfigRepositoryImplTest {
         val repo = repository()
 
         assertThat(repo.resolve(typed, origin).error().kind).isEqualTo(FailureKind.AccessGateway)
+    }
+
+    // --- A server that redirects ----------------------------------------------------------------
+
+    private fun redirectsTo(location: String): () -> StartupConfig = { throw ServerRedirectException(Url(location)) }
+
+    @Test
+    fun `an address that redirects resolves to the server that answered, probed with the headers`() = runTest {
+        val seen = mutableListOf<Pair<String, Map<String, String>>>()
+        coEvery { configApi.probeStartupConfig() } coAnswers {
+            val identity = currentCoroutineContext()[PendingRequestIdentity]!!.identity()
+            seen += identity.baseUrl to identity.customHeaders
+            if (identity.baseUrl == "https://example.com") {
+                throw ServerRedirectException(Url("https://www.example.com/api/config"))
+            }
+            validConfig
+        }
+        val repo = repository()
+
+        val result = repo.resolve("https://example.com", headers = mapOf("CF-Access-Client-Id" to "id"))
+
+        assertThat(result).isEqualTo(ServerResolution.Resolved("https://www.example.com", validConfig))
+        assertThat(seen).containsExactly(
+            "https://example.com" to mapOf("CF-Access-Client-Id" to "id"),
+            "https://www.example.com" to mapOf("CF-Access-Client-Id" to "id"),
+        ).inOrder()
+    }
+
+    @Test
+    fun `a redirect keeps the subpath it names and drops its query`() = runTest {
+        answering(
+            "https://example.com/lc" to redirectsTo("https://www.example.com/chat/api/config?ref=1"),
+            "https://www.example.com/chat" to { validConfig },
+        )
+
+        assertThat(repository().resolve("https://example.com/lc"))
+            .isEqualTo(ServerResolution.Resolved("https://www.example.com/chat", validConfig))
+    }
+
+    @Test
+    fun `a chain of redirects is followed to the end`() = runTest {
+        val tried = answering(
+            "http://example.com" to redirectsTo("https://example.com/api/config"),
+            "https://example.com" to redirectsTo("https://www.example.com/api/config"),
+            "https://www.example.com" to { validConfig },
+        )
+
+        assertThat(repository().resolve("http://example.com"))
+            .isEqualTo(ServerResolution.Resolved("https://www.example.com", validConfig))
+        assertThat(tried).hasSize(3)
+    }
+
+    @Test
+    fun `a redirect loop fails instead of probing forever`() = runTest {
+        val tried = answering(
+            "https://a.example.com" to redirectsTo("https://b.example.com/api/config"),
+            "https://b.example.com" to redirectsTo("https://a.example.com/api/config"),
+        )
+
+        val result = repository().resolve("https://a.example.com")
+
+        assertThat(result.error().message).contains("redirects too many times")
+        assertThat(tried).containsExactly("https://a.example.com", "https://b.example.com").inOrder()
+    }
+
+    @Test
+    fun `a redirect away from the config path is not LibreChat, and the origin is still tried`() = runTest {
+        val tried = answering(typed to redirectsTo("https://example.com/login"), origin to { validConfig })
+
+        assertThat(repository().resolve(typed, origin)).isEqualTo(ServerResolution.Resolved(origin, validConfig))
+        assertThat(tried).containsExactly(typed, origin).inOrder()
+    }
+
+    @Test
+    fun `when the redirect target fails, its error is the one reported`() = runTest {
+        answering(
+            "https://example.com" to redirectsTo("https://www.example.com/api/config"),
+            "https://www.example.com" to { throw IOException("Connection refused") },
+        )
+
+        assertThat(repository().resolve("https://example.com").error().message).contains("Could not reach")
     }
 
     @Test

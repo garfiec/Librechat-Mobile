@@ -24,7 +24,11 @@ import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.model.response.Category
 import com.garfiec.librechat.core.network.api.ConfigApi
 import com.garfiec.librechat.core.network.client.PendingRequestIdentity
+import com.garfiec.librechat.core.network.client.ServerRedirectException
 import io.ktor.client.plugins.HttpRequestTimeoutException
+import io.ktor.http.URLBuilder
+import io.ktor.http.Url
+import io.ktor.http.encodedPath
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.channels.BufferOverflow
@@ -138,9 +142,7 @@ class ConfigRepositoryImpl(
     ): ServerResolution {
         var typedFailure: ProbeFailure? = null
         candidates.forEachIndexed { index, candidate ->
-            val outcome = withContext(PendingRequestIdentity(candidate, headers = { headers }, bearer = { null })) {
-                fetchCandidateConfig()
-            }
+            val (address, outcome) = probeFollowingRedirects(candidate, headers)
             val failure = when (outcome) {
                 is ProbeOutcome.Valid -> {
                     if (index > 0) {
@@ -148,9 +150,10 @@ class ConfigRepositoryImpl(
                             "server found at the origin of the entered address"
                         }
                     }
-                    return ServerResolution.Resolved(candidate, outcome.config)
+                    return ServerResolution.Resolved(address, outcome.config)
                 }
                 is ProbeFailure -> outcome
+                is ProbeOutcome.Redirected -> tooManyRedirects()
             }
             val tryNext = index < candidates.lastIndex && failure.tryAnotherPath
             probeFailed(failure, candidateLabel(index), fellBack = tryNext)
@@ -158,6 +161,44 @@ class ConfigRepositoryImpl(
             if (!tryNext) return ServerResolution.Failed(pickError(typed, failure))
         }
         return ServerResolution.Failed(Result.Error(message = "Please enter a server URL"))
+    }
+
+    /**
+     * Probes [candidate] and, while it redirects, the address it redirects to, each under its own
+     * pending identity so the gateway headers go with it. Returns the address that answered last.
+     */
+    private suspend fun probeFollowingRedirects(
+        candidate: String,
+        headers: Map<String, String>,
+    ): Pair<String, ProbeOutcome> {
+        var address = candidate
+        val visited = mutableSetOf<String>()
+        while (visited.add(address) && visited.size <= MAX_SERVER_REDIRECTS + 1) {
+            val outcome = withContext(PendingRequestIdentity(address, headers = { headers }, bearer = { null })) {
+                fetchCandidateConfig()
+            }
+            if (outcome !is ProbeOutcome.Redirected) return address to outcome
+            address = outcome.base
+        }
+        return address to tooManyRedirects()
+    }
+
+    private fun tooManyRedirects(): ProbeFailure =
+        ProbeFailure("redirect_loop", Result.Error(message = "This address redirects too many times."))
+
+    /**
+     * The server's address from where its `/api/config` was redirected to: the Location minus that
+     * path, query and fragment, so a subpath deployment keeps its subpath. Null when the redirect
+     * leads anywhere else, such as a sign-in page.
+     */
+    private fun serverBaseOf(location: Url): String? {
+        val path = location.encodedPath.trimEnd('/')
+        if (!path.endsWith(CONFIG_PATH)) return null
+        return URLBuilder(location).apply {
+            encodedPath = path.removeSuffix(CONFIG_PATH)
+            parameters.clear()
+            fragment = ""
+        }.buildString().trimEnd('/')
     }
 
     /**
@@ -172,6 +213,7 @@ class ConfigRepositoryImpl(
 
     private sealed interface ProbeOutcome {
         data class Valid(val config: StartupConfig) : ProbeOutcome
+        data class Redirected(val base: String) : ProbeOutcome
     }
 
     /**
@@ -189,8 +231,10 @@ class ConfigRepositoryImpl(
         return try {
             // Maps its own failures instead of going through safeApiCall, so it takes
             // safeApiCall's dispatcher hop explicitly (#326).
-            val config = withContext(dispatcher) { configApi.getStartupConfig() }
+            val config = withContext(dispatcher) { configApi.probeStartupConfig() }
             if (!isValidLibreChatConfig(config)) notLibreChat(null) else ProbeOutcome.Valid(config)
+        } catch (e: ServerRedirectException) {
+            serverBaseOf(e.location)?.let { ProbeOutcome.Redirected(it) } ?: notLibreChat(e)
         } catch (e: SerializationException) {
             notLibreChat(e)
         } catch (e: ApiException) {
@@ -539,6 +583,10 @@ class ConfigRepositoryImpl(
     }
 
     private companion object {
+        const val CONFIG_PATH = "/api/config"
+
+        /** Enough for http → https → www. */
+        const val MAX_SERVER_REDIRECTS = 3
         const val NOT_LIBRECHAT_MESSAGE = "This doesn't appear to be a LibreChat server"
         val ACTIONABLE_KINDS = setOf(FailureKind.AccessGateway, FailureKind.Tls)
     }
