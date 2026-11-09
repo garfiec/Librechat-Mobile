@@ -4,7 +4,7 @@ import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.model.config.CurrencyConfig
 import com.garfiec.librechat.core.model.config.DEFAULT_STEER_ARM_CONFIRMATION_TIMEOUT_MS
 import com.garfiec.librechat.core.model.queuedturn.QUEUED_TURN_RECONCILIATION_MS
-import com.garfiec.librechat.feature.chat.util.WebSearchKeysState
+import com.garfiec.librechat.core.ui.websearch.WebSearchKeysState
 import kotlinx.serialization.json.JsonElement
 
 /**

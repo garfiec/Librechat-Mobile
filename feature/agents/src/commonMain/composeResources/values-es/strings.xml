@@ -410,4 +410,7 @@
     <string name="agent_git_identity_info">Se usa como autor y confirmador de los comandos de Git que ejecuta este agente. Las credenciales se configuran aparte.</string>
     <string name="code_background">Ejecución en segundo plano</string>
     <string name="code_background_info">Permite que el modelo ejecute código en segundo plano: la conversación sigue mientras se ejecuta y el modelo recoge el resultado más tarde. La salida y los archivos siguen adjuntos a la ejecución original.</string>
+    <string name="web_search_keys_add_action">Añadir claves de búsqueda</string>
+    <string name="web_search_keys_manage_action">Gestionar claves de búsqueda</string>
+    <string name="marketplace_set_up">Configurar</string>
 </resources>

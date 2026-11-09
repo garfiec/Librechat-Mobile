@@ -55,6 +55,8 @@ data class MarketplaceItem(
     val iconUrl: String? = null,
     /** MCP server this tool belongs to; null for every other kind. Also the group header. */
     val serverName: String? = null,
+    /** Picking it asks for the user's keys first (web search without them). */
+    val needsSetup: Boolean = false,
 ) {
     /** Stable list key — [id] alone collides across kinds (a skill and a tool may share a name). */
     val itemKey: String get() = "${kind.favoriteType.wireName}:$id"

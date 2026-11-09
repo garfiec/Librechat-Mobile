@@ -23,7 +23,7 @@ import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.permissions.canCreateSharedLinks
 import com.garfiec.librechat.core.model.permissions.canOpenMemories
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
-import com.garfiec.librechat.feature.chat.util.webSearchKeysState
+import com.garfiec.librechat.core.ui.websearch.webSearchKeysState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatConfigHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import kotlinx.coroutines.delay

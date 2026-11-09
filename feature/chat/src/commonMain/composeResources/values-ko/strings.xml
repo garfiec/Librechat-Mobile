@@ -1193,20 +1193,6 @@
     <string name="web_search_keys_fallback">키를 추가할 때까지 %1$s 검색 사용 중</string>
     <string name="web_search_keys_add">검색 키 추가</string>
     <string name="web_search_keys_title">검색 키</string>
-    <string name="web_search_keys_body">LibreChat 검색은 내 키로 실행됩니다. 키는 LibreChat 서버에 저장됩니다.</string>
-    <string name="web_search_keys_keep_hint">저장한 키를 유지하려면 칸을 비워 두세요.</string>
-    <string name="web_search_keys_section_providers">검색 제공자</string>
-    <string name="web_search_keys_section_scrapers">페이지 리더</string>
-    <string name="web_search_keys_section_rerankers">재정렬기</string>
-    <string name="web_search_keys_pinned">서버에서 지정됨</string>
-    <string name="web_search_keys_none">없음</string>
-    <string name="web_search_keys_api_key">%1$s API 키</string>
-    <string name="web_search_keys_api_key_optional">%1$s API 키(선택)</string>
-    <string name="web_search_keys_url">%1$s URL</string>
-    <string name="web_search_keys_url_optional">%1$s URL(선택)</string>
-    <string name="web_search_keys_remove">키 삭제</string>
-    <string name="web_search_keys_save_failed">키를 저장하지 못했습니다. 다시 시도하세요.</string>
-    <string name="web_search_keys_remove_failed">키를 삭제하지 못했습니다. 다시 시도하세요.</string>
     <string name="prompt_editor_creating">만드는 중…</string>
     <string name="prompt_editor_saving">저장하는 중…</string>
 </resources>

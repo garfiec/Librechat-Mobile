@@ -266,6 +266,8 @@ internal fun AgentEditorForm(
             AgentWebSearchSection(
                 enabled = uiState.webSearchEnabled,
                 onToggle = viewModel::onWebSearchToggled,
+                keysAction = uiState.webSearchKeysAction,
+                onKeys = viewModel::openWebSearchKeys,
             )
 
             Spacer(modifier = Modifier.height(8.dp))

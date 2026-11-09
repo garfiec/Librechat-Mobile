@@ -379,4 +379,21 @@
     <string name="mcp_vars_keep">保留</string>
     <string name="mcp_vars_save_failed">无法保存。请检查网络连接后重试。</string>
     <string name="mcp_vars_remove_failed">无法移除你的值。请重试。</string>
+    <string name="web_search_keys_title">搜索密钥</string>
+    <string name="web_search_keys_body">LibreChat 搜索使用你自己的密钥运行。密钥保存在你的 LibreChat 服务器上。</string>
+    <string name="web_search_keys_keep_hint">留空即可保留已保存的密钥。</string>
+    <string name="web_search_keys_section_providers">搜索服务</string>
+    <string name="web_search_keys_section_scrapers">网页读取</string>
+    <string name="web_search_keys_section_rerankers">重排序</string>
+    <string name="web_search_keys_pinned">由服务器指定</string>
+    <string name="web_search_keys_none">无</string>
+    <string name="web_search_keys_api_key">%1$s API 密钥</string>
+    <string name="web_search_keys_api_key_optional">%1$s API 密钥（可选）</string>
+    <string name="web_search_keys_url">%1$s URL</string>
+    <string name="web_search_keys_url_optional">%1$s URL（可选）</string>
+    <string name="web_search_keys_remove">移除密钥</string>
+    <string name="web_search_keys_save_failed">无法保存你的密钥，请重试。</string>
+    <string name="web_search_keys_remove_failed">无法移除你的密钥，请重试。</string>
+    <string name="web_search_keys_cancel">取消</string>
+    <string name="web_search_keys_save">保存</string>
 </resources>

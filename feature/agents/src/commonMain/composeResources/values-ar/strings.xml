@@ -414,4 +414,7 @@
     <string name="agent_git_identity_info">تُستخدم كمؤلف ومودِع لأوامر Git التي ينفذها هذا الوكيل. تُضبط بيانات الاعتماد بشكل منفصل.</string>
     <string name="code_background">التنفيذ في الخلفية</string>
     <string name="code_background_info">يتيح للنموذج تشغيل الشيفرة في الخلفية: تستمر المحادثة أثناء التشغيل، ويستلم النموذج النتيجة لاحقًا. تبقى المخرجات والملفات مرفقة بالتشغيل الأصلي.</string>
+    <string name="web_search_keys_add_action">إضافة مفاتيح البحث</string>
+    <string name="web_search_keys_manage_action">إدارة مفاتيح البحث</string>
+    <string name="marketplace_set_up">إعداد</string>
 </resources>

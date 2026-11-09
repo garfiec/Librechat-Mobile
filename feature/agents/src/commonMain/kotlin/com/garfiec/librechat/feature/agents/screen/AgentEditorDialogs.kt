@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.DiscardChangesDialog
+import com.garfiec.librechat.core.ui.websearch.WebSearchKeysSheet
 import com.garfiec.librechat.feature.agents.components.AgentVersionHistory
 import com.garfiec.librechat.feature.agents.components.ToolAuthDialog
 import com.garfiec.librechat.feature.agents.components.ToolsMarketplaceDialog
@@ -106,6 +107,16 @@ internal fun AgentEditorDialogs(
             onToggleItem = viewModel::onMarketplaceItemToggled,
             onToggleFavorite = viewModel::onMarketplaceFavoriteToggled,
             onDismiss = onDismissToolDialog,
+        )
+    }
+
+    val webSearchKeys = uiState.webSearchKeys
+    if (uiState.showWebSearchKeysSheet && webSearchKeys != null) {
+        WebSearchKeysSheet(
+            keys = webSearchKeys,
+            onSave = viewModel::saveWebSearchKeys,
+            onRemove = viewModel::removeWebSearchKeys,
+            onDismiss = viewModel::dismissWebSearchKeys,
         )
     }
 

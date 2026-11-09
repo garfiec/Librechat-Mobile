@@ -410,4 +410,7 @@
     <string name="agent_git_identity_info">Wird als Autor und Committer für Git-Befehle dieses Agenten verwendet. Zugangsdaten werden separat eingerichtet.</string>
     <string name="code_background">Ausführung im Hintergrund</string>
     <string name="code_background_info">Das Modell kann Code im Hintergrund ausführen: Die Unterhaltung geht weiter, während er läuft, und das Modell holt das Ergebnis später ab. Ausgaben und Dateien bleiben der ursprünglichen Ausführung zugeordnet.</string>
+    <string name="web_search_keys_add_action">Suchschlüssel hinzufügen</string>
+    <string name="web_search_keys_manage_action">Suchschlüssel verwalten</string>
+    <string name="marketplace_set_up">Einrichten</string>
 </resources>

@@ -45,6 +45,7 @@ import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
 import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.core.ui.mcp.McpVariablesSheet
 import com.garfiec.librechat.core.ui.platform.rememberReduceMotion
+import com.garfiec.librechat.core.ui.websearch.WebSearchKeysSheet
 import com.garfiec.librechat.feature.chat.components.AskUserQuestionPanel
 import com.garfiec.librechat.feature.chat.components.ChatComposer
 import com.garfiec.librechat.feature.chat.components.ChatFloatingTopBar
@@ -67,7 +68,6 @@ import com.garfiec.librechat.feature.chat.components.ToolApprovalPanel
 import com.garfiec.librechat.feature.chat.components.ToolContentHost
 import com.garfiec.librechat.feature.chat.components.UpdateAvailableBanner
 import com.garfiec.librechat.feature.chat.components.UploadRoutingSheet
-import com.garfiec.librechat.feature.chat.components.WebSearchKeysSheet
 import com.garfiec.librechat.feature.chat.components.addToChatSelectionItem
 import com.garfiec.librechat.feature.chat.components.mcpapp.rememberLegacyUiResources
 import com.garfiec.librechat.feature.chat.components.mcpapp.rememberMcpApps

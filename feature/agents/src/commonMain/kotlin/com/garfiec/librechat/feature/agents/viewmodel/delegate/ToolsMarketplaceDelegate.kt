@@ -126,7 +126,7 @@ fun AgentEditorUiState.marketplaceCatalog(): List<MarketplaceItem> = buildList {
         add(builtin(ToolConstants.FILE_SEARCH, MarketplaceBuiltinLabel.FILE_SEARCH))
     }
     if (isWebSearchOffered) {
-        add(builtin(ToolConstants.WEB_SEARCH, MarketplaceBuiltinLabel.WEB_SEARCH))
+        add(builtin(ToolConstants.WEB_SEARCH, MarketplaceBuiltinLabel.WEB_SEARCH).copy(needsSetup = webSearchNeedsKeys))
     }
     add(builtin(FILE_CONTEXT, MarketplaceBuiltinLabel.FILE_CONTEXT))
 

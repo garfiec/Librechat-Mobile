@@ -410,4 +410,7 @@
     <string name="agent_git_identity_info">Usada como autor e committer dos comandos Git executados por este agente. As credenciais são configuradas separadamente.</string>
     <string name="code_background">Execução em segundo plano</string>
     <string name="code_background_info">Permite que o modelo execute código em segundo plano: a conversa continua enquanto ele roda, e o modelo obtém o resultado depois. Saídas e arquivos continuam anexados à execução original.</string>
+    <string name="web_search_keys_add_action">Adicionar chaves de pesquisa</string>
+    <string name="web_search_keys_manage_action">Gerenciar chaves de pesquisa</string>
+    <string name="marketplace_set_up">Configurar</string>
 </resources>
