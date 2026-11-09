@@ -7,6 +7,8 @@ import com.garfiec.librechat.feature.chat.util.DraftItem
 import com.garfiec.librechat.feature.chat.util.DraftItemTap
 import com.garfiec.librechat.feature.chat.util.DraftItems
 import com.garfiec.librechat.feature.chat.util.DraftUploadProgress
+import com.garfiec.librechat.feature.chat.util.ModelPickerBlock
+import com.garfiec.librechat.feature.chat.util.PickerModel
 import com.garfiec.librechat.feature.chat.util.SettingChip
 import com.garfiec.librechat.feature.chat.util.SettingChips
 import com.garfiec.librechat.feature.chat.util.draftItemsOf
@@ -50,6 +52,10 @@ data class ComposerChrome(
     val onSettingChipTap: (SettingChip) -> Unit = {},
     /** The MCP servers the `/` picker lists; empty where none can be picked here. */
     val pickerMcpServers: List<PickerMcpServer> = emptyList(),
+    /** What `/model ` lists; mapped only while it is open, so empty otherwise. */
+    val pickerModels: List<PickerModel> = emptyList(),
+    /** Why `/model ` can't switch the model here, or null when it can. The default suits a host with no model picker. */
+    val pickerModelBlock: ModelPickerBlock? = ModelPickerBlock.NO_PICKER,
     /** "Cancel sign-in" in a connecting MCP chip's menu: the server's explicit OAuth cancel. */
     val onCancelMcpSignIn: (serverName: String) -> Unit = {},
     /** "Start over" in a connecting MCP chip's menu: reconnect it and open the sign-in again. */

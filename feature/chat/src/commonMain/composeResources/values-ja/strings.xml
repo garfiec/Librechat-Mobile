@@ -641,6 +641,10 @@
     <string name="picker_scope_mcp">MCP サーバーを検索中</string>
     <string name="picker_chip_mcp">MCP</string>
     <string name="picker_mcp_unavailable">このチャットでは MCP サーバーを使用できません</string>
+    <string name="picker_scope_models">モデルを検索</string>
+    <string name="picker_chip_models">モデル</string>
+    <string name="picker_models_unavailable">このチャットではモデルを変更できません</string>
+    <string name="picker_models_comparing">比較中はここでモデルを切り替えられません</string>
     <string name="cd_picker_leave_scope">プロンプト、スキル、MCP サーバーを表示</string>
     <string name="cd_remove_skill">スキル %1$s を削除</string>
     <string name="cd_skill_always_applied">常に適用されるスキル: %1$s</string>

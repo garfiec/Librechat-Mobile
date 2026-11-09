@@ -274,15 +274,20 @@ fun CommonChatInputCore(
                 parsePickerQuery(state.inputText, state.canPickSkills)
             }
             val pickerMcp = state.chrome.pickerMcpServers
-            val pickerRows = remember(pickerQuery, state.promptSuggestions, state.skillSuggestions, pickerMcp) {
-                pickerQuery?.let { buildPickerRows(it, state.promptSuggestions, state.skillSuggestions, pickerMcp) }.orEmpty()
-            }
+            val pickerModels = state.chrome.pickerModels
+            val pickerRows =
+                remember(pickerQuery, state.promptSuggestions, state.skillSuggestions, pickerMcp, pickerModels) {
+                    pickerQuery?.let {
+                        buildPickerRows(it, state.promptSuggestions, state.skillSuggestions, pickerMcp, pickerModels)
+                    }.orEmpty()
+                }
             PromptSuggestionList(
                 picker = pickerQuery,
                 rows = pickerRows,
                 hasPrompts = state.promptSuggestions.isNotEmpty(),
                 hasSkills = state.skillSuggestions.isNotEmpty(),
                 hasMcp = pickerMcp.isNotEmpty(),
+                modelBlock = state.chrome.pickerModelBlock,
                 canPickSkills = state.canPickSkills,
                 isLoadingSkills = state.isLoadingSkills,
                 onSelect = onSelectPickerItem,

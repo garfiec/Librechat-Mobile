@@ -647,6 +647,10 @@
     <string name="picker_scope_mcp">MCP-Server suchen</string>
     <string name="picker_chip_mcp">MCP</string>
     <string name="picker_mcp_unavailable">In diesem Chat sind keine MCP-Server verfügbar</string>
+    <string name="picker_scope_models">Modelle suchen</string>
+    <string name="picker_chip_models">Modelle</string>
+    <string name="picker_models_unavailable">Das Modell kann in diesem Chat nicht geändert werden</string>
+    <string name="picker_models_comparing">Beim Vergleichen lassen sich Modelle hier nicht wechseln</string>
     <string name="cd_picker_leave_scope">Prompts, Skills und MCP-Server anzeigen</string>
     <string name="cd_remove_skill">Skill %1$s entfernen</string>
     <string name="cd_skill_always_applied">Immer angewendeter Skill: %1$s</string>

@@ -650,6 +650,10 @@
     <string name="picker_scope_mcp">Recherche de serveurs MCP</string>
     <string name="picker_chip_mcp">MCP</string>
     <string name="picker_mcp_unavailable">Les serveurs MCP ne sont pas disponibles dans ce chat</string>
+    <string name="picker_scope_models">Recherche de modèles</string>
+    <string name="picker_chip_models">Modèles</string>
+    <string name="picker_models_unavailable">Le modèle ne peut pas être changé dans ce chat</string>
+    <string name="picker_models_comparing">Impossible de changer de modèle ici pendant une comparaison</string>
     <string name="cd_picker_leave_scope">Afficher les invites, les compétences et les serveurs MCP</string>
     <string name="cd_remove_skill">Retirer la compétence %1$s</string>
     <string name="cd_skill_always_applied">Compétence toujours appliquée : %1$s</string>
