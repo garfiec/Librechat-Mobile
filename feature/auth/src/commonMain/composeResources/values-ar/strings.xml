@@ -119,4 +119,14 @@
     <string name="auth_error_tenant_required">يحتاج هذا الخادم إلى معرفة المؤسسة التي تنتمي إليها. استخدم عنوان مؤسستك لهذا الخادم.</string>
     <string name="login_two_factor_setup_required">يتطلب هذا الخادم الآن المصادقة الثنائية لـ %1$s. سجّل الدخول لإعدادها.</string>
     <string name="use_another_account">استخدم حسابًا آخر</string>
+    <string name="server_url_known_servers">خوادمك</string>
+    <string name="server_url_known_server_cd">الاتصال بـ %1$s</string>
+    <plurals name="server_url_known_server_accounts">
+        <item quantity="zero">%1$d حساب</item>
+        <item quantity="one">حساب واحد</item>
+        <item quantity="two">حسابان</item>
+        <item quantity="few">%1$d حسابات</item>
+        <item quantity="many">%1$d حسابًا</item>
+        <item quantity="other">%1$d حساب</item>
+    </plurals>
 </resources>

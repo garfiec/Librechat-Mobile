@@ -1,21 +1,26 @@
 package com.garfiec.librechat.feature.auth.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
@@ -28,21 +33,28 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.data.repository.HeaderWriteFailure
 import com.garfiec.librechat.core.network.client.HeaderRejection
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
+import com.garfiec.librechat.core.ui.components.AdaptiveCard
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
+import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.CustomHeaderRow
 import com.garfiec.librechat.core.ui.components.CustomHeaderRowError
 import com.garfiec.librechat.core.ui.components.CustomHeadersEditor
+import com.garfiec.librechat.core.ui.components.InitialTile
 import com.garfiec.librechat.core.ui.components.testTagsAsResourceIdSubtree
 import com.garfiec.librechat.core.ui.resources.server_headers_load_error
 import com.garfiec.librechat.core.ui.resources.server_headers_no_server
@@ -52,7 +64,9 @@ import com.garfiec.librechat.feature.auth.diagnostics.DiagnosticLogLink
 import com.garfiec.librechat.feature.auth.resources.*
 import com.garfiec.librechat.feature.auth.resources.Res
 import com.garfiec.librechat.feature.auth.viewmodel.HeaderFieldError
+import com.garfiec.librechat.feature.auth.viewmodel.KnownServer
 import com.garfiec.librechat.feature.auth.viewmodel.ServerUrlViewModel
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import com.garfiec.librechat.core.ui.resources.Res as UiRes
@@ -187,10 +201,87 @@ fun ServerUrlScreen(
                 DiagnosticLogLink()
             }
 
+            KnownServersSection(
+                servers = uiState.knownServers,
+                enabled = !uiState.isLoading,
+                onSelect = viewModel::connectTo,
+            )
+
             UseAnotherAccountButton(onUseAnotherAccount, modifier = Modifier.padding(top = 8.dp))
         }
 
         BackAffordanceOverlay(onBack)
+    }
+}
+
+/** One tap to a server an account on this device already uses. */
+@Composable
+internal fun KnownServersSection(
+    servers: List<KnownServer>,
+    enabled: Boolean,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (servers.isEmpty()) return
+    Column(modifier = modifier.fillMaxWidth().testTag("server_url_known_servers")) {
+        AdaptiveSectionHeader(
+            title = stringResource(Res.string.server_url_known_servers),
+            horizontalInset = 12.dp,
+        )
+        AdaptiveCard(modifier = Modifier.fillMaxWidth().alpha(if (enabled) 1f else DisabledAlpha)) {
+            servers.forEachIndexed { index, server ->
+                if (index > 0) AdaptiveDivider()
+                KnownServerRow(server, enabled, onClick = { onSelect(server.url) })
+            }
+        }
+    }
+}
+
+private const val DisabledAlpha = 0.38f
+
+@Composable
+private fun KnownServerRow(server: KnownServer, enabled: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clickable(
+                enabled = enabled,
+                onClickLabel = stringResource(Res.string.server_url_known_server_cd, server.label),
+                role = Role.Button,
+                onClick = onClick,
+            )
+            .padding(start = 12.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)
+            .testTag("server_url_known_server"),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        InitialTile(seed = server.url, label = server.host, size = 36.dp)
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = server.label,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = pluralStringResource(
+                    Res.plurals.server_url_known_server_accounts,
+                    server.accountCount,
+                    server.accountCount,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp),
+        )
     }
 }
 
