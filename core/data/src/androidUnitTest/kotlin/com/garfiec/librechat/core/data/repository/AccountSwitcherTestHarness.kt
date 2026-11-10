@@ -48,6 +48,12 @@ internal class RecordingTokenManager : TokenManager {
     override suspend fun clearTokens() = Unit
     override suspend fun getAccessTokenFor(accountId: String): String? =
         if (accountId in expiredAccounts) null else "access-$accountId"
+
+    /** Accounts whose stored session has passed its end date: still in storage, no longer live. */
+    val lapsedAccounts = mutableSetOf<String>()
+
+    override suspend fun hasLiveSession(accountId: String): Boolean =
+        getAccessTokenFor(accountId) != null && accountId !in lapsedAccounts
     override suspend fun getStagedAccessToken(): String? = stagedAccess
     override suspend fun clearStagedTokens() {
         stagedAccess = null

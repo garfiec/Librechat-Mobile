@@ -1,5 +1,8 @@
 package com.garfiec.librechat.core.data.datastore
 
+import com.garfiec.librechat.core.model.auth.AuthCookies
+import com.garfiec.librechat.core.model.auth.OpenIdMarkers
+import com.garfiec.librechat.core.model.auth.SessionCredentials
 import com.garfiec.librechat.core.network.client.RefreshResult
 import com.google.common.truth.Truth.assertThat
 import io.ktor.client.HttpClient
@@ -17,14 +20,18 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import org.junit.Test
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlin.time.Clock
 
 /**
  * Verifies the account-keying of [CommonTokenDataStore]: keys are namespaced by the active account,
  * the sync mirror seeds the right bearer at construction, and the identity hooks migrate/clear the
  * keyed slots. Uses a plain in-memory key/value store so no `EncryptedSharedPreferences`/Keychain.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, ExperimentalEncodingApi::class)
 class CommonTokenDataStoreAccountKeyingTest {
 
     private val noRefresh: Lazy<HttpClient> = lazy { error("refresh client not expected in this test") }
@@ -467,5 +474,56 @@ class CommonTokenDataStoreAccountKeyingTest {
 
         assertThat(emissions).isEqualTo(0)
         job.cancel()
+    }
+
+    private fun jwt(secondsFromNow: Long): String {
+        val exp = Clock.System.now().toEpochMilliseconds() / 1000 + secondsFromNow
+        val encoder = Base64.UrlSafe.withPadding(Base64.PaddingOption.ABSENT)
+        val header = encoder.encode("""{"alg":"HS256"}""".encodeToByteArray())
+        val payload = encoder.encode("""{"id":"u1","exp":$exp}""".encodeToByteArray())
+        return "$header.$payload.sig"
+    }
+
+    private fun session(access: String, refresh: String, openId: OpenIdMarkers? = null): String =
+        Json.encodeToString(SessionCredentials(access, AuthCookies(refresh, openId)))
+
+    @Test
+    fun `a slot whose refresh token has passed its exp holds no live session`() = runTest {
+        val store = FakeTokenStore(
+            noRefresh,
+            seed = mapOf(
+                ACTIVE_ACCOUNT_KEY to "acctA",
+                sessionKeyOf("acctA") to session(jwt(900), refresh = jwt(3_600)),
+                sessionKeyOf("lapsed") to session(jwt(-900), refresh = jwt(-60)),
+                accessKeyOf("legacy") to jwt(-900),
+                refreshKeyOf("legacy") to jwt(-60),
+            ),
+        )
+
+        assertThat(store.hasLiveSession("acctA")).isTrue()
+        assertThat(store.hasLiveSession("lapsed")).isFalse()
+        assertThat(store.hasLiveSession("legacy")).isFalse()
+        assertThat(store.hasLiveSession("missing")).isFalse()
+        // Read-only: the slot stays, so a wrong device clock never signs anyone out for good.
+        assertThat(store.persistedRefresh("lapsed")).isNotNull()
+    }
+
+    @Test
+    fun `a slot whose session end is unknown or still ahead stays live`() = runTest {
+        val store = FakeTokenStore(
+            noRefresh,
+            seed = mapOf(
+                ACTIVE_ACCOUNT_KEY to "acctA",
+                sessionKeyOf("acctA") to session(jwt(900), refresh = jwt(3_600)),
+                sessionKeyOf("opaque") to session(jwt(-900), refresh = "opaque-refresh"),
+                sessionKeyOf("openid") to session(jwt(-900), refresh = jwt(-60), openId = OpenIdMarkers("marker")),
+                // The last refresh before the session's end mints an access token that outlives it.
+                sessionKeyOf("lastAccess") to session(jwt(600), refresh = jwt(-60)),
+            ),
+        )
+
+        assertThat(store.hasLiveSession("opaque")).isTrue()
+        assertThat(store.hasLiveSession("openid")).isTrue()
+        assertThat(store.hasLiveSession("lastAccess")).isTrue()
     }
 }
