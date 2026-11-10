@@ -51,7 +51,10 @@ import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoice
 import com.garfiec.librechat.core.ui.components.DiscardChangesDialog
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
+import com.garfiec.librechat.core.ui.components.MaskedSecretKeyboardOptions
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
+import com.garfiec.librechat.core.ui.components.UrlKeyboardOptions
+import com.garfiec.librechat.core.ui.components.VerbatimKeyboardOptions
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.core.ui.components.excludeFromAutofill
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
@@ -204,6 +207,7 @@ internal fun McpServerEditorForm(
             onValueChange = { value -> onChange { it.copy(url = value) } },
             label = { Text(stringResource(Res.string.mcp_url_label)) },
             singleLine = true,
+            keyboardOptions = UrlKeyboardOptions,
             enabled = enabled,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -282,6 +286,7 @@ private fun ApiKeyFields(
                 label = { Text(stringResource(Res.string.mcp_header_name_label)) },
                 placeholder = { Text(stringResource(Res.string.mcp_header_name_placeholder)) },
                 singleLine = true,
+                keyboardOptions = VerbatimKeyboardOptions,
                 enabled = enabled,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -293,6 +298,7 @@ private fun ApiKeyFields(
                 label = { Text(stringResource(Res.string.mcp_api_key_label)) },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = MaskedSecretKeyboardOptions,
                 isError = uiState.apiKeyReentryRequired,
                 supportingText = if (uiState.apiKeyReentryRequired) {
                     { Text(stringResource(Res.string.mcp_api_key_reentry_required)) }
@@ -320,6 +326,7 @@ private fun OAuthFields(
             onValueChange = { value -> onChange { it.copy(oauthClientId = value) } },
             label = { Text(stringResource(Res.string.mcp_oauth_client_id)) },
             singleLine = true,
+            keyboardOptions = VerbatimKeyboardOptions,
             enabled = enabled,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -329,6 +336,7 @@ private fun OAuthFields(
             label = { Text(stringResource(Res.string.mcp_oauth_client_secret)) },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = MaskedSecretKeyboardOptions,
             // Flag this field, not the form: the secret is masked, so nothing about it looks wrong.
             isError = uiState.oauthSecretReentryRequired,
             supportingText = if (uiState.oauthSecretReentryRequired) {
@@ -344,6 +352,7 @@ private fun OAuthFields(
             onValueChange = { value -> onChange { it.copy(oauthAuthUrl = value) } },
             label = { Text(stringResource(Res.string.mcp_oauth_auth_url)) },
             singleLine = true,
+            keyboardOptions = UrlKeyboardOptions,
             enabled = enabled,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -352,6 +361,7 @@ private fun OAuthFields(
             onValueChange = { value -> onChange { it.copy(oauthTokenUrl = value) } },
             label = { Text(stringResource(Res.string.mcp_oauth_token_url)) },
             singleLine = true,
+            keyboardOptions = UrlKeyboardOptions,
             enabled = enabled,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -361,6 +371,7 @@ private fun OAuthFields(
             label = { Text(stringResource(Res.string.mcp_oauth_scope)) },
             placeholder = { Text(stringResource(Res.string.mcp_oauth_scope_placeholder)) },
             singleLine = true,
+            keyboardOptions = VerbatimKeyboardOptions,
             enabled = enabled,
             modifier = Modifier.fillMaxWidth(),
         )

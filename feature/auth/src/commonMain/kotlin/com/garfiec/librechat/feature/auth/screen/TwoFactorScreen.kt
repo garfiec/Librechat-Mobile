@@ -34,6 +34,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.OTP_LENGTH
 import com.garfiec.librechat.core.ui.components.OtpCodeInput
+import com.garfiec.librechat.core.ui.components.VerbatimKeyboardOptions
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarIcons
@@ -208,6 +209,7 @@ private fun BackupCodeInput(
         modifier = modifier.fillMaxWidth().testTag("twofa_backup_code"),
         enabled = enabled,
         singleLine = true,
+        keyboardOptions = VerbatimKeyboardOptions,
         label = { Text(stringResource(Res.string.backup_code_label)) },
     )
 }

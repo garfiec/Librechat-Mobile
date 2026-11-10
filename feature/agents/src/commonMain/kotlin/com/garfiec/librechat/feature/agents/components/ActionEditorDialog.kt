@@ -47,6 +47,8 @@ import com.garfiec.librechat.core.ui.components.AdaptiveDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.UrlKeyboardOptions
+import com.garfiec.librechat.core.ui.components.VerbatimKeyboardOptions
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.agents.AgentActionDisplayData
 import com.garfiec.librechat.feature.agents.resources.*
@@ -218,6 +220,7 @@ internal fun ActionEditorDialog(
                     textStyle = MaterialTheme.typography.bodySmall.copy(
                         fontFamily = FontFamily.Monospace,
                     ),
+                    keyboardOptions = VerbatimKeyboardOptions,
                     minLines = 8,
                     maxLines = 20,
                     modifier = Modifier.fillMaxWidth(),
@@ -270,6 +273,7 @@ internal fun ActionEditorDialog(
                     label = { Text(stringResource(Res.string.label_privacy_policy_url)) },
                     placeholder = { Text("https://example.com/privacy") },
                     singleLine = true,
+                    keyboardOptions = UrlKeyboardOptions,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }

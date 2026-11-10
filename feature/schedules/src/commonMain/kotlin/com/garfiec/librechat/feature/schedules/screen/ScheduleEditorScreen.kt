@@ -42,6 +42,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.core.ui.components.DiscardChangesDialog
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
+import com.garfiec.librechat.core.ui.components.VerbatimKeyboardOptions
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarAction
@@ -264,6 +265,7 @@ private fun EditorBody(
             label = { Text(stringResource(Res.string.schedule_cron_expression)) },
             supportingText = { Text(stringResource(Res.string.schedule_cron_hint)) },
             singleLine = true,
+            keyboardOptions = VerbatimKeyboardOptions,
             enabled = enabled,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -318,6 +320,7 @@ private fun EditorBody(
         onValueChange = { value -> onChange { it.copy(timezone = value) } },
         label = { Text(stringResource(Res.string.schedule_timezone)) },
         singleLine = true,
+        keyboardOptions = VerbatimKeyboardOptions,
         enabled = enabled,
         modifier = Modifier.fillMaxWidth(),
     )

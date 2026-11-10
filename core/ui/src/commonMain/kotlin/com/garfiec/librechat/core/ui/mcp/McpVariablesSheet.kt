@@ -44,6 +44,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.SecretTextField
+import com.garfiec.librechat.core.ui.components.VerbatimKeyboardOptions
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.core.ui.resources.Res
 import com.garfiec.librechat.core.ui.resources.mcp_vars_body
@@ -299,6 +300,7 @@ private fun VariableField(
                 enabled = enabled,
                 label = { Text(variable.title) },
                 singleLine = true,
+                keyboardOptions = VerbatimKeyboardOptions,
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
             )
         }

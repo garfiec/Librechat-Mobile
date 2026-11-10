@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -38,6 +39,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -54,6 +56,7 @@ import com.garfiec.librechat.core.ui.components.CustomHeaderRow
 import com.garfiec.librechat.core.ui.components.CustomHeaderRowError
 import com.garfiec.librechat.core.ui.components.CustomHeadersEditor
 import com.garfiec.librechat.core.ui.components.InitialTile
+import com.garfiec.librechat.core.ui.components.UrlKeyboardOptions
 import com.garfiec.librechat.core.ui.components.testTagsAsResourceIdSubtree
 import com.garfiec.librechat.core.ui.resources.server_headers_load_error
 import com.garfiec.librechat.core.ui.resources.server_headers_no_server
@@ -144,6 +147,8 @@ fun ServerUrlScreen(
                 supportingText = uiState.error?.let { error ->
                     { Text(text = error, color = MaterialTheme.colorScheme.error) }
                 },
+                keyboardOptions = UrlKeyboardOptions.copy(imeAction = ImeAction.Go),
+                keyboardActions = KeyboardActions(onGo = { if (uiState.url.isNotBlank()) viewModel.validateAndConnect() }),
                 enabled = !uiState.isLoading,
             )
 

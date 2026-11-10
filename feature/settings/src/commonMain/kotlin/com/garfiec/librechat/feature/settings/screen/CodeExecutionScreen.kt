@@ -49,6 +49,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoice
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
+import com.garfiec.librechat.core.ui.components.UrlKeyboardOptions
 import com.garfiec.librechat.core.ui.components.adaptiveSection
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
@@ -340,6 +341,7 @@ private fun LazyListScope.setupSection(state: CodeExecutionUiState, viewModel: C
                 onValueChange = viewModel::setSetupLink,
                 label = { Text(stringResource(Res.string.code_setup_link)) },
                 singleLine = true,
+                keyboardOptions = UrlKeyboardOptions,
                 isError = state.setupLinkInvalid,
                 supportingText = if (state.setupLinkInvalid) {
                     { Text(stringResource(Res.string.code_setup_link_invalid)) }

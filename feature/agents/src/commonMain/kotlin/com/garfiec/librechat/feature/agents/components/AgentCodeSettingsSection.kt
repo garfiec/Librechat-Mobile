@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -30,6 +29,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveExposedDropdownMenu
 import com.garfiec.librechat.core.ui.components.AdaptiveExposedDropdownMenuBox
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
+import com.garfiec.librechat.core.ui.components.VerbatimKeyboardOptions
 import com.garfiec.librechat.feature.agents.resources.Res
 import com.garfiec.librechat.feature.agents.resources.agent_git_email
 import com.garfiec.librechat.feature.agents.resources.agent_git_identity
@@ -201,7 +201,7 @@ private fun AttachedMachineFields(
             label = { Text(stringResource(Res.string.agent_git_email)) },
             singleLine = true,
             isError = attached.gitIdentityError,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            keyboardOptions = VerbatimKeyboardOptions.copy(keyboardType = KeyboardType.Email),
             modifier = Modifier.fillMaxWidth(),
         )
         if (attached.gitIdentityError) {

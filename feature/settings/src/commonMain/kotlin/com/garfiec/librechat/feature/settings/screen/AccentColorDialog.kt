@@ -35,6 +35,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.HueSlider
 import com.garfiec.librechat.core.ui.components.SaturationValuePanel
+import com.garfiec.librechat.core.ui.components.VerbatimKeyboardOptions
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.core.ui.components.hsvColor
 import com.garfiec.librechat.core.ui.components.parseHexColor
@@ -162,6 +163,7 @@ internal fun AccentColorDialog(
                     },
                     label = { Text(stringResource(Res.string.accent_color_hex)) },
                     singleLine = true,
+                    keyboardOptions = VerbatimKeyboardOptions,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
