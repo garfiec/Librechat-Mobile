@@ -62,9 +62,8 @@ fun LibreChatApp(modifier: Modifier = Modifier) {
     val themeReady by themeDataStore.isReady.collectAsState()
     val themeMode by themeDataStore.themeMode.collectAsState(initial = themeDataStore.initialThemeMode)
     val accentColorArgb by themeDataStore.accentColor.collectAsState(initial = themeDataStore.initialAccentColor)
-    // The server's accent (interface.theme) outranks the user's while "Use server accent" is on;
-    // wallpaper colours outrank both inside LibreChatTheme.
-    val serverAccent by themeDataStore.serverAccent.collectAsState(initial = themeDataStore.initialServerAccent)
+    // The server's colours (interface.theme) replace the accent and wallpaper colours while picked.
+    val serverTheme by themeDataStore.serverTheme.collectAsState(initial = themeDataStore.initialServerTheme)
     val useDynamicColor by themeDataStore.useDynamicColor.collectAsState(initial = themeDataStore.initialUseDynamicColor)
     val storedUiStyle by themeDataStore.uiStyle.collectAsState(initial = themeDataStore.initialUiStyle)
 
@@ -89,9 +88,10 @@ fun LibreChatApp(modifier: Modifier = Modifier) {
     if (themeReady && localeReady && dateTimeReady) {
         LibreChatTheme(
             darkTheme = darkTheme,
-            accentColor = Color(serverAccent?.activeSeed ?: accentColorArgb),
+            accentColor = Color(accentColorArgb),
             useDynamicColor = useDynamicColor,
             uiStyle = storedUiStyle,
+            serverTheme = serverTheme?.painted,
         ) {
             Box(modifier.fillMaxSize().clearFocusOnTap()) {
                 LibreChatNavHost(appLocaleTag = appLocale)

@@ -139,10 +139,10 @@
     <string name="accent_color_hex">16進数</string>
     <string name="use_wallpaper_colors">壁紙の色を使用</string>
     <string name="use_wallpaper_colors_desc">アプリのアクセントをシステムの壁紙に合わせます（Material You）</string>
-    <string name="use_server_accent">サーバーのアクセントを使用</string>
-    <string name="use_server_accent_desc">このアクセントはサーバーが全員に設定しています。オフにすると自分のアクセントを使用できます。</string>
+    <string name="colors_from_server">サーバーから</string>
+    <string name="colors_switchboard_detail">自分のカラー</string>
     <string name="accent_set_by_server">サーバーが設定（%1$s）</string>
-    <string name="accent_set_by_server_note">自分のアクセントを選ぶには「サーバーのアクセントを使用」をオフにしてください。</string>
+    <string name="accent_set_by_server_note">自分のアクセントを使うには「カラー」で Switchboard を選んでください。</string>
 
     <!-- Settings rows -->
     <string name="language">言語</string>

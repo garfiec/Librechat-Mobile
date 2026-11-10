@@ -32,10 +32,9 @@ internal fun SwitchboardTheme(window: Window, content: @Composable (appLocaleTag
     val accentColorArgb by themeDataStore.accentColor.collectAsStateWithLifecycle(
         initialValue = themeDataStore.initialAccentColor,
     )
-    // The server's accent (interface.theme) outranks the user's while "Use server accent" is on;
-    // wallpaper colours outrank both inside LibreChatTheme.
-    val serverAccent by themeDataStore.serverAccent.collectAsStateWithLifecycle(
-        initialValue = themeDataStore.initialServerAccent,
+    // The server's colours (interface.theme) replace the accent and wallpaper colours while picked.
+    val serverTheme by themeDataStore.serverTheme.collectAsStateWithLifecycle(
+        initialValue = themeDataStore.initialServerTheme,
     )
     val useDynamicColor by themeDataStore.useDynamicColor.collectAsStateWithLifecycle(
         initialValue = themeDataStore.initialUseDynamicColor,
@@ -69,9 +68,10 @@ internal fun SwitchboardTheme(window: Window, content: @Composable (appLocaleTag
     if (themeReady && localeReady && dateTimeReady) {
         LibreChatTheme(
             darkTheme = darkTheme,
-            accentColor = Color(serverAccent?.activeSeed ?: accentColorArgb),
+            accentColor = Color(accentColorArgb),
             useDynamicColor = useDynamicColor,
             uiStyle = storedUiStyle,
+            serverTheme = serverTheme?.painted,
         ) {
             content(appLocale)
         }

@@ -139,10 +139,10 @@
     <string name="accent_color_hex">16진수</string>
     <string name="use_wallpaper_colors">배경화면 색상 사용</string>
     <string name="use_wallpaper_colors_desc">앱 강조 색상을 시스템 배경화면에 맞춥니다 (Material You)</string>
-    <string name="use_server_accent">서버 강조 색상 사용</string>
-    <string name="use_server_accent_desc">서버가 모든 사용자에게 이 강조 색상을 지정합니다. 직접 고르려면 끄세요.</string>
+    <string name="colors_from_server">서버에서 제공</string>
+    <string name="colors_switchboard_detail">내 색상</string>
     <string name="accent_set_by_server">서버에서 설정함(%1$s)</string>
-    <string name="accent_set_by_server_note">직접 고르려면 '서버 강조 색상 사용'을 끄세요.</string>
+    <string name="accent_set_by_server_note">직접 강조 색상을 고르려면 '색상'에서 Switchboard를 선택하세요.</string>
 
     <!-- Settings rows -->
     <string name="language">언어</string>

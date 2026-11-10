@@ -139,10 +139,10 @@
     <string name="accent_color_hex">Hex</string>
     <string name="use_wallpaper_colors">Utiliser les couleurs du fond d'écran</string>
     <string name="use_wallpaper_colors_desc">Adapter l'accentuation de l'application au fond d'écran du système (Material You)</string>
-    <string name="use_server_accent">Utiliser l'accentuation du serveur</string>
-    <string name="use_server_accent_desc">Votre serveur choisit cette accentuation pour tout le monde. Désactivez cette option pour utiliser la vôtre.</string>
+    <string name="colors_from_server">De votre serveur</string>
+    <string name="colors_switchboard_detail">Vos couleurs</string>
     <string name="accent_set_by_server">Définie par votre serveur (%1$s)</string>
-    <string name="accent_set_by_server_note">Désactivez « Utiliser l'accentuation du serveur » pour choisir la vôtre.</string>
+    <string name="accent_set_by_server_note">Choisissez Switchboard sous « Couleurs » pour utiliser votre propre accentuation.</string>
 
     <!-- Settings rows -->
     <string name="language">Langue</string>
