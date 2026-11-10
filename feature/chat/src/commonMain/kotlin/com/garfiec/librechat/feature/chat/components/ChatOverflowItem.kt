@@ -57,35 +57,12 @@ internal data class ChatOverflowGates(
     val hasPullRequest: Boolean = false,
     /** MCP Apps running minimized (the panel is down). */
     val openApps: Int = 0,
+    /** Find in chat is on the side rail, so the menu leaves it out. */
+    val findInRail: Boolean = false,
 )
 
 internal fun chatOverflowSections(gates: ChatOverflowGates): List<List<ChatOverflowItem>> = with(gates) {
-    val tools = buildList {
-        // At the top: the way back to Apps whose cards may have scrolled far away.
-        if (openApps > 0) add(ChatOverflowItem.OPEN_APPS)
-        if (conversationId != null) add(ChatOverflowItem.SEARCH)
-        if (hasShowAllMedia) add(ChatOverflowItem.SHOW_ALL_MEDIA)
-        // Hidden when the server disables `interface.presets` (or `interface.modelSelect`), matching
-        // web's Header.tsx presets menu.
-        if (presetsEnabled) {
-            add(ChatOverflowItem.LOAD_PRESET)
-            add(ChatOverflowItem.SAVE_PRESET)
-        }
-        if (hasPromptsLibrary && promptsEnabled) add(ChatOverflowItem.PROMPTS_LIBRARY)
-        if (multiConvoEnabled) add(ChatOverflowItem.COMPARE)
-        // Availability is a precondition, so reaching this means there is a trace to read.
-        if (traceViewerAvailable) add(ChatOverflowItem.TRACE)
-        if (contextBarPlacement == ContextBarPlacement.OVERFLOW_MENU &&
-            contextUsageEnabled &&
-            contextUsage != null &&
-            contextUsage.usedTokens > 0
-        ) {
-            add(ChatOverflowItem.CONTEXT_USAGE)
-        }
-        if (contextBarPlacement == ContextBarPlacement.OVERFLOW_MENU && compactNudgeVisible) {
-            add(ChatOverflowItem.COMPACT)
-        }
-    }
+    val tools = toolItems()
     val conversation = if (conversationId == null) {
         emptyList()
     } else {
@@ -103,4 +80,90 @@ internal fun chatOverflowSections(gates: ChatOverflowGates): List<List<ChatOverf
     }
     val destructive = if (conversationId == null) emptyList() else listOf(ChatOverflowItem.DELETE)
     listOf(tools, conversation, destructive).filter { it.isNotEmpty() }
+}
+
+private fun ChatOverflowGates.toolItems(): List<ChatOverflowItem> = buildList {
+    // At the top: the way back to Apps whose cards may have scrolled far away.
+    if (openApps > 0) add(ChatOverflowItem.OPEN_APPS)
+    if (conversationId != null && !findInRail) add(ChatOverflowItem.SEARCH)
+    if (hasShowAllMedia) add(ChatOverflowItem.SHOW_ALL_MEDIA)
+    // Hidden when the server disables `interface.presets` (or `interface.modelSelect`), matching
+    // web's Header.tsx presets menu.
+    if (presetsEnabled) {
+        add(ChatOverflowItem.LOAD_PRESET)
+        add(ChatOverflowItem.SAVE_PRESET)
+    }
+    if (hasPromptsLibrary && promptsEnabled) add(ChatOverflowItem.PROMPTS_LIBRARY)
+    if (multiConvoEnabled) add(ChatOverflowItem.COMPARE)
+    // Availability is a precondition, so reaching this means there is a trace to read.
+    if (traceViewerAvailable) add(ChatOverflowItem.TRACE)
+    if (contextBarPlacement == ContextBarPlacement.OVERFLOW_MENU &&
+        contextUsageEnabled &&
+        contextUsage != null &&
+        contextUsage.usedTokens > 0
+    ) {
+        add(ChatOverflowItem.CONTEXT_USAGE)
+    }
+    if (contextBarPlacement == ContextBarPlacement.OVERFLOW_MENU && compactNudgeVisible) {
+        add(ChatOverflowItem.COMPACT)
+    }
+}
+
+/** A control of the chat's top bar, or of its side rail. */
+internal enum class ChatBarItem {
+    PULL_REQUEST,
+    NEW_CHAT,
+    FIND,
+    BACKGROUND_TASKS,
+    TEMPORARY_CHAT,
+    OVERFLOW,
+    CONTEXT_RING,
+}
+
+/** What the bar's controls read. */
+internal data class ChatBarGates(
+    /** The bar draws as the side rail (the window has vertical bars). */
+    val rail: Boolean,
+    val conversationId: String?,
+    val hasNewChat: Boolean,
+    val showTempChatToggle: Boolean,
+    /** A wide pane's pull request chip; the rail leaves the pull request in the menu. */
+    val showPullRequestChip: Boolean,
+    /** The conversation has background tasks to show. */
+    val backgroundTasksVisible: Boolean,
+    val contextUsageEnabled: Boolean,
+    val contextBarPlacement: ContextBarPlacement,
+    val usedTokens: Int,
+)
+
+/** The bar's controls in order: [actions] along the bar or down the rail's top, [status] at the rail's bottom. */
+internal data class ChatBarItems(val actions: List<ChatBarItem>, val status: List<ChatBarItem>)
+
+internal fun chatBarItems(gates: ChatBarGates): ChatBarItems = if (gates.rail) gates.railItems() else gates.barItems()
+
+private fun ChatBarGates.barItems(): ChatBarItems {
+    val actions = buildList {
+        if (showPullRequestChip) add(ChatBarItem.PULL_REQUEST)
+        if (backgroundTasksVisible) add(ChatBarItem.BACKGROUND_TASKS)
+        if (showTempChatToggle) add(ChatBarItem.TEMPORARY_CHAT)
+        add(ChatBarItem.OVERFLOW)
+    }
+    return ChatBarItems(actions, status = emptyList())
+}
+
+private fun ChatBarGates.railItems(): ChatBarItems {
+    val actions = buildList {
+        // First: the rail never moves its first action into the overflow menu.
+        if (hasNewChat) add(ChatBarItem.NEW_CHAT)
+        if (conversationId != null) add(ChatBarItem.FIND)
+        if (showTempChatToggle) add(ChatBarItem.TEMPORARY_CHAT)
+        add(ChatBarItem.OVERFLOW)
+    }
+    val status = buildList {
+        if (backgroundTasksVisible) add(ChatBarItem.BACKGROUND_TASKS)
+        if (contextUsageEnabled && contextBarPlacement != ContextBarPlacement.HIDDEN && usedTokens > 0) {
+            add(ChatBarItem.CONTEXT_RING)
+        }
+    }
+    return ChatBarItems(actions, status)
 }

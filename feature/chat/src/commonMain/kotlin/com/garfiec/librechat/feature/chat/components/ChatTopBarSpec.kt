@@ -19,6 +19,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarMenuItem
 import com.garfiec.librechat.core.ui.components.topbar.BarMenuSection
 import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
 import com.garfiec.librechat.core.ui.components.topbar.BarRename
+import com.garfiec.librechat.core.ui.components.topbar.BarTint
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.components.topbar.BarTitleAlignment
 import com.garfiec.librechat.core.ui.components.topbar.BarTitleStyle
@@ -32,6 +33,7 @@ import com.garfiec.librechat.feature.chat.resources.action_duplicate
 import com.garfiec.librechat.feature.chat.resources.action_rename
 import com.garfiec.librechat.feature.chat.resources.action_search
 import com.garfiec.librechat.feature.chat.resources.action_show_all_media
+import com.garfiec.librechat.feature.chat.resources.background_tasks_cd_chip
 import com.garfiec.librechat.feature.chat.resources.cancel
 import com.garfiec.librechat.feature.chat.resources.cd_more_options
 import com.garfiec.librechat.feature.chat.resources.cd_open_drawer
@@ -43,6 +45,7 @@ import com.garfiec.librechat.feature.chat.resources.delete
 import com.garfiec.librechat.feature.chat.resources.dialog_title_rename
 import com.garfiec.librechat.feature.chat.resources.load_preset
 import com.garfiec.librechat.feature.chat.resources.mcp_app_open_apps
+import com.garfiec.librechat.feature.chat.resources.new_chat
 import com.garfiec.librechat.feature.chat.resources.prompts_library
 import com.garfiec.librechat.feature.chat.resources.save_as_preset
 import com.garfiec.librechat.feature.chat.resources.select_model
@@ -54,10 +57,11 @@ import org.jetbrains.compose.resources.stringResource
 import com.garfiec.librechat.core.ui.resources.Res as CoreRes
 
 /**
- * The chat top bar as data, for the Liquid Glass renderers. Mirrors the Material bar's chips: the
- * drawer button, the configurable title/model bubble, the pull request chip on a wide pane
- * ([showPullRequestChip]), the temporary-chat toggle and the overflow menu (from the same
- * [chatOverflowSections] list the Material dropdown renders).
+ * The chat top bar as data, for the Liquid Glass renderers and, in either style, the side rail
+ * ([rail]). Mirrors the Material bar's chips: the drawer button, the configurable title/model bubble,
+ * the pull request chip on a wide pane ([showPullRequestChip]), background tasks, the
+ * temporary-chat toggle and the overflow menu (from the same [chatOverflowSections] list the Material
+ * dropdown renders). The rail's controls and order come from [chatBarItems].
  */
 @Composable
 internal fun rememberChatTopBarSpec(
@@ -69,6 +73,9 @@ internal fun rememberChatTopBarSpec(
     showTempChatToggle: Boolean,
     showPullRequestChip: Boolean = false,
     openApps: Int = 0,
+    rail: Boolean = false,
+    backgroundTasks: BackgroundTasksState? = null,
+    contextRing: ContextRingState? = null,
 ): AdaptiveTopBarSpec {
     // The actions capsule holds the toggle, so the band crosses it where it starts.
     val veil = LocalModeVeil.current
@@ -150,35 +157,82 @@ internal fun rememberChatTopBarSpec(
         null
     }
 
-    val actions = buildList {
-        pullRequestChip?.let(::add)
-        if (showTempChatToggle) {
-            add(
-                BarAction.Toggle(
-                    id = "temporary_chat",
-                    iconOff = BarIcons.Visible,
-                    iconOn = BarIcons.Hidden,
-                    label = stringResource(
-                        if (uiState.temporaryChatEnforced) Res.string.temporary_chat_enforced else Res.string.cd_temporary_chat,
-                    ),
-                    checked = uiState.isTemporaryChat,
-                    onCheckedChange = { actions.onToggleTemporaryChat() },
-                    checkedTint = ChatInputDefaults.temporaryAccent,
-                    onAnchor = reportToggle,
-                ),
+    val items = chatBarItems(
+        ChatBarGates(
+            rail = rail,
+            conversationId = conversationId,
+            hasNewChat = actions.onNewChat != null,
+            showTempChatToggle = showTempChatToggle,
+            showPullRequestChip = pullRequestChip != null,
+            backgroundTasksVisible = backgroundTasks?.visible == true,
+            contextUsageEnabled = uiState.contextUsageEnabled,
+            contextBarPlacement = uiState.contextBarPlacement,
+            usedTokens = contextRing?.details?.usage?.usedTokens ?: 0,
+        ),
+    )
+    val barAction: @Composable (ChatBarItem) -> BarAction? = { item ->
+        when (item) {
+            ChatBarItem.PULL_REQUEST -> pullRequestChip
+            ChatBarItem.NEW_CHAT -> actions.onNewChat?.let { onNewChat ->
+                BarAction.Icon(id = "new_chat", icon = BarIcons.NewChat, label = stringResource(Res.string.new_chat), onClick = onNewChat)
+            }
+            ChatBarItem.FIND -> BarAction.Icon(
+                id = "find",
+                icon = BarIcons.Search,
+                label = stringResource(Res.string.action_search),
+                onClick = actions.onFind,
             )
-        }
-        add(
-            BarAction.Menu(
+            ChatBarItem.BACKGROUND_TASKS -> backgroundTasks?.let { tasks -> backgroundTasksAction(tasks) }
+            ChatBarItem.TEMPORARY_CHAT -> BarAction.Toggle(
+                id = "temporary_chat",
+                iconOff = BarIcons.Visible,
+                iconOn = BarIcons.Hidden,
+                label = stringResource(
+                    if (uiState.temporaryChatEnforced) Res.string.temporary_chat_enforced else Res.string.cd_temporary_chat,
+                ),
+                checked = uiState.isTemporaryChat,
+                onCheckedChange = { actions.onToggleTemporaryChat() },
+                checkedTint = ChatInputDefaults.temporaryAccent,
+                onAnchor = reportToggle,
+            )
+            ChatBarItem.OVERFLOW -> BarAction.Menu(
                 id = "overflow",
                 icon = BarIcons.More,
                 label = stringResource(Res.string.cd_more_options),
                 sections = menuSections,
-            ),
-        )
+            )
+            ChatBarItem.CONTEXT_RING -> contextRing?.let { ring ->
+                BarAction.Custom(id = "context_ring", label = stringResource(Res.string.context_usage_label)) { ContextRing(ring) }
+            }
+        }
     }
+    val barActions = items.actions.mapNotNull { barAction(it) }
+    val statusActions = items.status.mapNotNull { barAction(it) }
 
-    return AdaptiveTopBarSpec(navigation = navigation, title = title, actions = actions, actionsFlare = capsuleVeil.flare)
+    return AdaptiveTopBarSpec(
+        navigation = navigation,
+        title = title,
+        actions = barActions,
+        actionsFlare = capsuleVeil.flare,
+        bottomActions = statusActions,
+    )
+}
+
+/**
+ * Background tasks as a bar icon: the running count as its badge, red while a result failed to arrive.
+ * The native iOS bar draws no badge, so the label says the count.
+ */
+@Composable
+private fun backgroundTasksAction(tasks: BackgroundTasksState): BarAction.Icon {
+    val running = tasks.uiState.runningCount
+    return BarAction.Icon(
+        id = "background_tasks",
+        icon = BarIcons.BackgroundTasks,
+        label = stringResource(Res.string.background_tasks_cd_chip, running),
+        tint = if (tasks.alert) BarTint.DESTRUCTIVE else BarTint.DEFAULT,
+        badge = running.takeIf { it > 0 }?.toString(),
+        onClick = tasks::openSheet,
+    )
 }
 
 @Composable

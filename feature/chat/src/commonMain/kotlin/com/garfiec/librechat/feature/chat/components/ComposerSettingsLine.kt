@@ -148,7 +148,7 @@ internal data class ContextRingState(
 
 internal fun ComposerChrome.contextRing(): ContextRingState? {
     val details = contextGauge ?: return null
-    if (contextBarPlacement != ContextBarPlacement.ABOVE_INPUT || !contextUsageEnabled) return null
+    if (contextBarPlacement != ContextBarPlacement.ABOVE_INPUT || !contextUsageEnabled || contextRingInRail) return null
     if (details.usage.usedTokens <= 0) return null
     return ContextRingState(details, onCompact, onSnoozeCompact)
 }

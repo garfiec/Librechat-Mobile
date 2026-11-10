@@ -44,8 +44,6 @@ import com.garfiec.librechat.core.ui.navigation.FullWidthRoute
 import com.garfiec.librechat.core.ui.navigation.LocalSidebarAsideRequests
 import com.garfiec.librechat.core.ui.navigation.SidebarAsideRequests
 import com.garfiec.librechat.feature.auth.navigation.AddAccountServerUrl
-import com.garfiec.librechat.feature.chat.navigation.NewChat
-import com.garfiec.librechat.feature.chat.navigation.isPlainLanding
 import com.garfiec.librechat.feature.conversations.navigation.Projects
 import com.garfiec.librechat.feature.settings.navigation.SettingsTabbed
 import kotlinx.coroutines.launch
@@ -198,12 +196,7 @@ fun TabletLayout(
                     val sidebar: @Composable (Modifier) -> Unit = { sidebarModifier ->
                         SidebarScaffold(
                             isOpen = isSidebarOpen,
-                            onNewChat = {
-                                // A project's landing is not the plain one, so New chat still leaves it.
-                                if ((navigator.currentRoute as? NewChat)?.isPlainLanding != true) {
-                                    navigator.navigateToTopLevel(NewChat())
-                                }
-                            },
+                            onNewChat = navigator::navigateToNewChat,
                             onConversationClick = { conversationId ->
                                 navigator.navigateToChat(conversationId)
                             },

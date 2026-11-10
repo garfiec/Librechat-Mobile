@@ -44,6 +44,8 @@ import com.garfiec.librechat.core.model.response.pickerMimeTypes
 import com.garfiec.librechat.core.notifications.ReplyNotificationAsk
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.PdfPasswordDialog
+import com.garfiec.librechat.core.ui.components.topbar.AdaptiveRailBox
+import com.garfiec.librechat.core.ui.components.topbar.RailTopBar
 import com.garfiec.librechat.core.ui.glass.glassBackdropSource
 import com.garfiec.librechat.core.ui.mcp.McpVariablesSheet
 import com.garfiec.librechat.core.ui.platform.rememberReduceMotion
@@ -160,6 +162,8 @@ fun ChatScreen(
     onConversationStart: ((conversationId: String, isTemporary: Boolean) -> Unit)? = null,
     onNavigateToConversation: ((String) -> Unit)? = null,
     onOpenDrawer: (() -> Unit)? = null,
+    /** Starts a new chat, as the drawer's New chat does; shown in the side rail. Null leaves it out. */
+    onNewChat: (() -> Unit)? = null,
     onNavigateToPromptsLibrary: (() -> Unit)? = null,
     onNavigateBack: (() -> Unit)? = null,
     /** Opens the "Show all media" gallery for the current conversation. Null (and the menu item
@@ -515,7 +519,8 @@ fun ChatScreen(
                 // Run Code on reply fences, behind RUN_CODE.USE (web `MarkdownComponents` `canRunCode`).
                 LocalCodeRunHost provides viewModel.codeRunHost.takeIf { uiState.runCodeEnabled },
             ) {
-                Box(
+                // On vertical bars (iPhone Duo) the floating bar's controls stand in a side rail over the chat.
+                AdaptiveRailBox(
                     Modifier
                         .fillMaxSize()
                         .glassBackdropSource(pullUp.backdrop.takeIf { pullUp.visible })
@@ -658,6 +663,7 @@ fun ChatScreen(
                         onSnoozeCompact = viewModel::snoozeCompactNudge,
                         compactSuggested = uiState.compactNudgeOnToolsButton,
                         contextBarPlacement = uiState.contextBarPlacement,
+                        contextRingInRail = inRail,
                     )
                     Box(
                         modifier = Modifier
@@ -887,31 +893,35 @@ fun ChatScreen(
 
                     // Floating top bar overlays the message list (drawn last so it sits above content),
                     // measured so ChatContent can reserve a matching scrollable top inset.
-                    ChatFloatingTopBar(
-                        uiState = uiState,
-                        viewModel = viewModel,
-                        onLoadPreset = {
-                            viewModel.reloadPresetsIfFailed()
-                            showPresetPicker = true
-                        },
-                        onSavePreset = { showSavePresetDialog = true },
-                        onRename = viewModel::showRenameDialog,
-                        onOpenDrawer = onOpenDrawer,
-                        onShowAllMedia = onShowAllMedia,
-                        onOpenPromptsLibrary = onNavigateToPromptsLibrary,
-                        // The same 600dp of chat pane that splits Compare and the pause panels.
-                        widePane = comparisonWide,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .onSizeChanged { topBarHeightPx = it.height }
-                            .onGloballyPositioned { bar ->
-                                // The native iOS bar's toggle has no Compose layout: aim at its usual slot.
-                                val bounds = bar.boundsInRoot()
-                                modeVeil.reportFallbackOrigin(
-                                    Offset(bounds.right - fallbackToggleEnd, bounds.bottom - fallbackToggleBottom),
-                                )
+                    RailTopBar {
+                        ChatFloatingTopBar(
+                            uiState = uiState,
+                            viewModel = viewModel,
+                            onLoadPreset = {
+                                viewModel.reloadPresetsIfFailed()
+                                showPresetPicker = true
                             },
-                    )
+                            onSavePreset = { showSavePresetDialog = true },
+                            onRename = viewModel::showRenameDialog,
+                            onOpenDrawer = onOpenDrawer,
+                            onShowAllMedia = onShowAllMedia,
+                            onOpenPromptsLibrary = onNavigateToPromptsLibrary,
+                            // The same 600dp of chat pane that splits Compare and the pause panels.
+                            widePane = comparisonWide,
+                            railMode = inRail,
+                            onNewChat = onNewChat,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .onSizeChanged { topBarHeightPx = it.height }
+                                .onGloballyPositioned { bar ->
+                                    // The native iOS bar's toggle has no Compose layout: aim at its usual slot.
+                                    val bounds = bar.boundsInRoot()
+                                    modeVeil.reportFallbackOrigin(
+                                        Offset(bounds.right - fallbackToggleEnd, bounds.bottom - fallbackToggleBottom),
+                                    )
+                                },
+                        )
+                    }
                 }
             }
 
@@ -1077,6 +1087,7 @@ fun NewChatScreen(
     chatProjectId: String? = null,
     chatProjectName: String? = null,
     onOpenDrawer: (() -> Unit)? = null,
+    onNewChat: (() -> Unit)? = null,
     onNavigateToPromptsLibrary: (() -> Unit)? = null,
     onAttachFromServer: () -> Unit = {},
     onOpenWhatsNew: () -> Unit = {},
@@ -1092,6 +1103,7 @@ fun NewChatScreen(
         chatProjectName = chatProjectName,
         onConversationStart = onConversationStart,
         onOpenDrawer = onOpenDrawer,
+        onNewChat = onNewChat,
         onNavigateToPromptsLibrary = onNavigateToPromptsLibrary,
         onNavigateToProviderKeys = onNavigateToProviderKeys,
         onAttachFromServer = onAttachFromServer,
