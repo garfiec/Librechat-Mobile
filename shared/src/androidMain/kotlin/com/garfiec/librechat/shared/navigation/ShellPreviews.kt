@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.common.datetime.DateGroup
 import com.garfiec.librechat.core.common.datetime.DateTimeFormatPrefs
 import com.garfiec.librechat.core.model.ui.UiStyle
+import com.garfiec.librechat.core.ui.components.usesSidebarLayout
 import com.garfiec.librechat.core.ui.datetime.ProvideDateTimeFormat
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme

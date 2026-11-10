@@ -1,6 +1,7 @@
 package com.garfiec.librechat.shared.navigation
 
 import androidx.compose.ui.unit.dp
+import com.garfiec.librechat.core.ui.components.usesSidebarLayout
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue

@@ -32,13 +32,12 @@ import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.Banner
 import com.garfiec.librechat.core.ui.components.BannerDisplay
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
+import com.garfiec.librechat.core.ui.components.SidebarWidth
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
 import com.garfiec.librechat.feature.auth.navigation.AddAccountServerUrl
 import com.garfiec.librechat.feature.chat.navigation.NewChat
@@ -48,24 +47,6 @@ import com.garfiec.librechat.feature.conversations.navigation.Search
 import com.garfiec.librechat.feature.settings.navigation.SettingsTabbed
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
-
-private val SidebarWidth = 320.dp
-
-/**
- * Whether a window this size gets [TabletLayout], whose sidebar pushes the content aside, rather than
- * [PhoneLayout]'s drawer over it. Both platform hosts decide with this, so they can't diverge.
- *
- * The sidebar has to leave the content a phone's width, or every screen beside it lays out narrower
- * than the smallest phone. A short window (a phone on its side) keeps the drawer: the sidebar's
- * header and footer would leave its list no room.
- */
-fun usesSidebarLayout(windowWidth: Dp, windowHeight: Dp): Boolean =
-    windowWidth - SidebarWidth >= MinContentWidth && windowHeight >= MinSidebarWindowHeight
-
-private val MinContentWidth = 360.dp
-
-// The compact-height window size class's upper bound.
-private val MinSidebarWindowHeight = 480.dp
 
 /** Velocity (px/s) above which a fling commits the gesture regardless of position. */
 private const val FLING_VELOCITY_THRESHOLD = 800f
