@@ -69,7 +69,7 @@ class TextToSpeechDelegateTest {
         delegate.readAloud("m1")
         runCurrent()
 
-        delegate.maybeAutoReadResponse("A new reply")
+        delegate.maybeAutoReadResponse("reply-2", "A new reply")
         runCurrent()
         assertThat(flow.value.voice.currentlyReadingMessageId).isEqualTo("m1")
 
@@ -85,13 +85,13 @@ class TextToSpeechDelegateTest {
         delegate.readAloud("m1")
         runCurrent()
 
-        delegate.maybeAutoReadResponse("A new reply")
+        delegate.maybeAutoReadResponse("reply-2", "A new reply")
         runCurrent()
 
         assertThat(speech.requests.map { it.text }).containsExactly("Text of m1", "A new reply").inOrder()
         assertThat(speech.requests[0].cancelled).isTrue()
         assertThat(speech.requests[1].cancelled).isFalse()
-        assertThat(flow.value.voice.currentlyReadingMessageId).startsWith("auto_read_")
+        assertThat(flow.value.voice.currentlyReadingMessageId).isEqualTo("reply-2")
     }
 
     @Test

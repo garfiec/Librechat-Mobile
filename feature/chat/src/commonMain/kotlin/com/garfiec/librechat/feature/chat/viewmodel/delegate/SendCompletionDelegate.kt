@@ -263,8 +263,12 @@ class SendCompletionDelegate(
         // Same rule as manual Read Aloud (speechTextOf): never speak the reasoning. The streamed
         // text can still carry a legacy `:::thinking … :::` block inline.
         val spokenText = LegacyThinking.split(completedResponseText)?.answer ?: completedResponseText
-        if (shouldAutoRead && spokenText.isNotBlank()) {
-            tts.maybeAutoReadResponse(stripCitations(spokenText))
+        // A user already typing or dictating the next message isn't read over; the mic would hear it.
+        val composing = handle.state.inputText.isNotBlank() || handle.state.isRecording || handle.state.isTranscribing
+        if (shouldAutoRead && spokenText.isNotBlank() && !composing) {
+            // Read under the reply's own id, so its row shows Stop.
+            val readingId = event.resolvedResponseMessage()?.messageId ?: AUTO_READ_ID
+            tts.maybeAutoReadResponse(readingId, stripCitations(spokenText))
         }
     }
 
@@ -383,6 +387,9 @@ class SendCompletionDelegate(
          */
         const val ABORT_TITLE_READ_ATTEMPTS = 3
         const val ABORT_TITLE_RETRY_DELAY_MS = 2_000L
+
+        /** Reads a final frame that names no reply. No row matches it, so no row shows Stop. */
+        const val AUTO_READ_ID = "auto_read"
     }
 }
 

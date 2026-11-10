@@ -21,8 +21,6 @@ import platform.AVFAudio.AVSpeechBoundary
 import platform.AVFAudio.AVSpeechSynthesizer
 import platform.AVFAudio.AVSpeechSynthesizerDelegateProtocol
 import platform.AVFAudio.AVSpeechUtterance
-import platform.Foundation.NSDate
-import platform.Foundation.timeIntervalSince1970
 import platform.darwin.NSObject
 
 class IosTts(
@@ -174,13 +172,10 @@ class IosTts(
         handle.update { voice = voice.copy(currentlyReadingMessageId = null) }
     }
 
-    override fun maybeAutoReadResponse(responseText: String) {
-        if (handle.state.inputText.isNotBlank()) return
-
+    override fun maybeAutoReadResponse(messageId: String, responseText: String) {
         handle.scope.launch {
-            val autoRead = settingsDataStore.autoReadEnabled.first()
-            if (!autoRead) return@launch
-            startRead("auto_read_${NSDate().timeIntervalSince1970().toLong()}", responseText)
+            if (!settingsDataStore.autoReadEnabled.first()) return@launch
+            startRead(messageId, responseText)
         }
     }
 
