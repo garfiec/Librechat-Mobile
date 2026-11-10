@@ -57,8 +57,7 @@ fun resolveIconSource(
         val named = icon?.takeUnless { it == endpoint }?.let(::resolveProviderId)
         return IconSource(icon ?: endpoint, null, named ?: endpointBrand(endpoint, endpointConfigs))
     }
-    val url = if (icon.startsWith("//")) "https:$icon" else resolveAvatarUrl(icon, serverUrl)
-    return IconSource(endpoint, url, endpointBrand(endpoint, endpointConfigs))
+    return IconSource(endpoint, iconImageUrl(icon, serverUrl), endpointBrand(endpoint, endpointConfigs))
 }
 
 /**
@@ -81,3 +80,10 @@ fun ModelSpec.iconValue(agentAvatar: String? = null): String? = listOf(
     agentAvatar.takeIf { preset?.endpoint == EndpointConstants.AGENTS && preset.agentId != null },
     preset?.endpoint,
 ).firstOrNull { !it.isNullOrBlank() }
+
+/**
+ * Where an image icon value loads from: a protocol-relative `//host/…` over https, a relative path
+ * joined to [serverUrl] ([resolveAvatarUrl]), an absolute URL as is.
+ */
+fun iconImageUrl(icon: String?, serverUrl: String): String? =
+    if (icon?.startsWith("//") == true) "https:$icon" else resolveAvatarUrl(icon, serverUrl)

@@ -43,8 +43,9 @@ object ModelParamPayload {
      * [provider] are the configured names `dropParams` is keyed on. They differ only for a custom
      * endpoint (or an agent on one).
      *
-     * **Only the keys of that set go out, and the server unsets every stored field a request leaves
-     * out** (`getUnsetFields`, `packages/api/src/conversations/save.ts`). A value lost on the way here,
+     * **Only the keys of that set, and its [EndpointParameterRegistry.wireOnlyDefinitions], go out, and
+     * the server unsets every stored field a request leaves out** (`getUnsetFields`,
+     * `packages/api/src/conversations/save.ts`). A value lost on the way here,
      * a key missing from the set or sent under another provider's spelling, is erased from the
      * conversation on the next send, including one set on web.
      *
@@ -76,8 +77,9 @@ object ModelParamPayload {
             model = model,
             dropParams = dropParams,
         )
+        val wireOnly = EndpointParameterRegistry.wireOnlyDefinitions(settingsEndpoint, settingsProvider, model, dropParams)
         val out = LinkedHashMap<String, JsonElement>()
-        for (definition in definitions) {
+        for (definition in definitions + wireOnly) {
             val key = definition.key
             val raw = params.getValueForKey(key)
             // Skip any value the server would apply on its own: a blank (unset), the composer baseline

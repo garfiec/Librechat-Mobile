@@ -3943,8 +3943,8 @@
         "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
         "symbol": "providerAssetFiles"
       },
-      "why": "Which providers have art on the user's server and its file name (`providerAssetFiles`, loaded from `{server}/assets/<file>`), and each provider's `label` (`ProviderId.label`, the monogram letter and content description). No logo art is bundled in the app. Since v0.8.9-rc1 web draws every provider as an inline mark and references none of these files; they are the legacy files `client/public/assets/` still ships, so mobile depends on that directory, which no entry can watch. Anthropic, Azure, Bedrock, xAI, Moonshot and Vercel have no file and draw a monogram. Not ported: the model-level refinement (`byModel`) and the model-maker override (`modelMakers`, `getProviderIconDef`), so a model id naming its maker (`meta-llama/…`) draws the host's brand on mobile and the maker's mark on web.",
-      "failure_mode": "A new provider draws the monogram (or the generic glyph) until mapped; a label change shows a different monogram letter. A file removed from `client/public/assets/` 404s and silently falls to the monogram."
+      "why": "Which providers have art on the user's server and its file name (`providerAssetFiles`, loaded from `{server}/assets/<file>`), and each provider's `label` (`ProviderId.label`, the content description). No logo art is bundled in the app. Since v0.8.9-rc1 web draws every provider as an inline mark and references none of these files; they are the legacy files `client/public/assets/` still ships, each watched by its own `provider-asset-*` entry. Anthropic, Azure, Bedrock, xAI, Moonshot and Vercel have no file and draw a tinted two-letter monogram (`ProviderId.monogram`, unique per provider); web draws its own marks for them, which mobile doesn't bundle (brand terms, F-Droid non-free assets). Not ported: the model-level refinement (`byModel`) and the model-maker override (`modelMakers`, `getProviderIconDef`), so a model id naming its maker (`meta-llama/…`) draws the host's brand on mobile and the maker's mark on web.",
+      "failure_mode": "A new provider draws the monogram (or the generic glyph) until mapped. A file removed from `client/public/assets/` 404s and silently falls to the monogram."
     },
     {
       "id": "provider-icon-assets",
@@ -3959,6 +3959,266 @@
       },
       "why": "Production builds copy `client/public/assets/` into the served `dist/assets/`, relative to the server's base URL as web's `base: ''` relative srcs resolve. Mobile loads every provider's art from there (`providerAssetFiles`), though web itself no longer does (v0.8.9-rc1 inline marks).",
       "failure_mode": "If the build stops copying public assets, or serves them elsewhere, every provider silently draws its monogram."
+    },
+    {
+      "id": "provider-asset-openai",
+      "upstream": {
+        "file": "client/public/assets/openai.svg",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetFiles"
+      },
+      "why": "Mobile draws OpenAI's art from `{server}/assets/openai.svg`. No web code references it at v0.8.9-rc1 (web draws inline marks), so upstream can delete or replace it without any web change.",
+      "failure_mode": "Deleted: the provider silently draws its monogram tile. Replaced: mobile shows the new art, which may no longer match web's mark."
+    },
+    {
+      "id": "provider-asset-google",
+      "upstream": {
+        "file": "client/public/assets/google.svg",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetFiles"
+      },
+      "why": "Mobile draws Google's art from `{server}/assets/google.svg`. No web code references it at v0.8.9-rc1 (web draws inline marks), so upstream can delete or replace it without any web change.",
+      "failure_mode": "Deleted: the provider silently draws its monogram tile. Replaced: mobile shows the new art, which may no longer match web's mark."
+    },
+    {
+      "id": "provider-asset-anyscale",
+      "upstream": {
+        "file": "client/public/assets/anyscale.png",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetFiles"
+      },
+      "why": "Mobile draws Anyscale's art from `{server}/assets/anyscale.png`. No web code references it at v0.8.9-rc1 (web draws inline marks), so upstream can delete or replace it without any web change.",
+      "failure_mode": "Deleted: the provider silently draws its monogram tile. Replaced: mobile shows the new art, which may no longer match web's mark."
+    },
+    {
+      "id": "provider-asset-apipie",
+      "upstream": {
+        "file": "client/public/assets/apipie.png",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetFiles"
+      },
+      "why": "Mobile draws APIpie's art from `{server}/assets/apipie.png`. No web code references it at v0.8.9-rc1 (web draws inline marks), so upstream can delete or replace it without any web change.",
+      "failure_mode": "Deleted: the provider silently draws its monogram tile. Replaced: mobile shows the new art, which may no longer match web's mark."
+    },
+    {
+      "id": "provider-asset-cohere",
+      "upstream": {
+        "file": "client/public/assets/cohere.png",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetFiles"
+      },
+      "why": "Mobile draws Cohere's art from `{server}/assets/cohere.png`. No web code references it at v0.8.9-rc1 (web draws inline marks), so upstream can delete or replace it without any web change.",
+      "failure_mode": "Deleted: the provider silently draws its monogram tile. Replaced: mobile shows the new art, which may no longer match web's mark."
+    },
+    {
+      "id": "provider-asset-deepseek",
+      "upstream": {
+        "file": "client/public/assets/deepseek.svg",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetFiles"
+      },
+      "why": "Mobile draws DeepSeek's art from `{server}/assets/deepseek.svg`. No web code references it at v0.8.9-rc1 (web draws inline marks), so upstream can delete or replace it without any web change.",
+      "failure_mode": "Deleted: the provider silently draws its monogram tile. Replaced: mobile shows the new art, which may no longer match web's mark."
+    },
+    {
+      "id": "provider-asset-fireworks",
+      "upstream": {
+        "file": "client/public/assets/fireworks.png",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetFiles"
+      },
+      "why": "Mobile draws Fireworks's art from `{server}/assets/fireworks.png`. No web code references it at v0.8.9-rc1 (web draws inline marks), so upstream can delete or replace it without any web change.",
+      "failure_mode": "Deleted: the provider silently draws its monogram tile. Replaced: mobile shows the new art, which may no longer match web's mark."
+    },
+    {
+      "id": "provider-asset-groq",
+      "upstream": {
+        "file": "client/public/assets/groq.png",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetFiles"
+      },
+      "why": "Mobile draws Groq's art from `{server}/assets/groq.png`. No web code references it at v0.8.9-rc1 (web draws inline marks), so upstream can delete or replace it without any web change.",
+      "failure_mode": "Deleted: the provider silently draws its monogram tile. Replaced: mobile shows the new art, which may no longer match web's mark."
+    },
+    {
+      "id": "provider-asset-helicone",
+      "upstream": {
+        "file": "client/public/assets/helicone.svg",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetFiles"
+      },
+      "why": "Mobile draws Helicone's art from `{server}/assets/helicone.svg`. No web code references it at v0.8.9-rc1 (web draws inline marks), so upstream can delete or replace it without any web change.",
+      "failure_mode": "Deleted: the provider silently draws its monogram tile. Replaced: mobile shows the new art, which may no longer match web's mark."
+    },
+    {
+      "id": "provider-asset-huggingface",
+      "upstream": {
+        "file": "client/public/assets/huggingface.svg",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetFiles"
+      },
+      "why": "Mobile draws Hugging Face's art from `{server}/assets/huggingface.svg`. No web code references it at v0.8.9-rc1 (web draws inline marks), so upstream can delete or replace it without any web change.",
+      "failure_mode": "Deleted: the provider silently draws its monogram tile. Replaced: mobile shows the new art, which may no longer match web's mark."
+    },
+    {
+      "id": "provider-asset-lemonade",
+      "upstream": {
+        "file": "client/public/assets/lemonade.png",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetFiles"
+      },
+      "why": "Mobile draws AMD Lemonade's art from `{server}/assets/lemonade.png`. No web code references it at v0.8.9-rc1 (web draws inline marks), so upstream can delete or replace it without any web change.",
+      "failure_mode": "Deleted: the provider silently draws its monogram tile. Replaced: mobile shows the new art, which may no longer match web's mark."
+    },
+    {
+      "id": "provider-asset-mistral",
+      "upstream": {
+        "file": "client/public/assets/mistral.png",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetFiles"
+      },
+      "why": "Mobile draws Mistral's art from `{server}/assets/mistral.png`. No web code references it at v0.8.9-rc1 (web draws inline marks), so upstream can delete or replace it without any web change.",
+      "failure_mode": "Deleted: the provider silently draws its monogram tile. Replaced: mobile shows the new art, which may no longer match web's mark."
+    },
+    {
+      "id": "provider-asset-mlx",
+      "upstream": {
+        "file": "client/public/assets/mlx.png",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetFiles"
+      },
+      "why": "Mobile draws MLX's art from `{server}/assets/mlx.png`. No web code references it at v0.8.9-rc1 (web draws inline marks), so upstream can delete or replace it without any web change.",
+      "failure_mode": "Deleted: the provider silently draws its monogram tile. Replaced: mobile shows the new art, which may no longer match web's mark."
+    },
+    {
+      "id": "provider-asset-ollama",
+      "upstream": {
+        "file": "client/public/assets/ollama.png",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetFiles"
+      },
+      "why": "Mobile draws Ollama's art from `{server}/assets/ollama.png`. No web code references it at v0.8.9-rc1 (web draws inline marks), so upstream can delete or replace it without any web change.",
+      "failure_mode": "Deleted: the provider silently draws its monogram tile. Replaced: mobile shows the new art, which may no longer match web's mark."
+    },
+    {
+      "id": "provider-asset-openrouter",
+      "upstream": {
+        "file": "client/public/assets/openrouter.png",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetFiles"
+      },
+      "why": "Mobile draws OpenRouter's art from `{server}/assets/openrouter.png`. No web code references it at v0.8.9-rc1 (web draws inline marks), so upstream can delete or replace it without any web change.",
+      "failure_mode": "Deleted: the provider silently draws its monogram tile. Replaced: mobile shows the new art, which may no longer match web's mark."
+    },
+    {
+      "id": "provider-asset-perplexity",
+      "upstream": {
+        "file": "client/public/assets/perplexity.png",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetFiles"
+      },
+      "why": "Mobile draws Perplexity's art from `{server}/assets/perplexity.png`. No web code references it at v0.8.9-rc1 (web draws inline marks), so upstream can delete or replace it without any web change.",
+      "failure_mode": "Deleted: the provider silently draws its monogram tile. Replaced: mobile shows the new art, which may no longer match web's mark."
+    },
+    {
+      "id": "provider-asset-qwen",
+      "upstream": {
+        "file": "client/public/assets/qwen.svg",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetFiles"
+      },
+      "why": "Mobile draws Qwen's art from `{server}/assets/qwen.svg`. No web code references it at v0.8.9-rc1 (web draws inline marks), so upstream can delete or replace it without any web change.",
+      "failure_mode": "Deleted: the provider silently draws its monogram tile. Replaced: mobile shows the new art, which may no longer match web's mark."
+    },
+    {
+      "id": "provider-asset-shuttleai",
+      "upstream": {
+        "file": "client/public/assets/shuttleai.png",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetFiles"
+      },
+      "why": "Mobile draws ShuttleAI's art from `{server}/assets/shuttleai.png`. No web code references it at v0.8.9-rc1 (web draws inline marks), so upstream can delete or replace it without any web change.",
+      "failure_mode": "Deleted: the provider silently draws its monogram tile. Replaced: mobile shows the new art, which may no longer match web's mark."
+    },
+    {
+      "id": "provider-asset-together",
+      "upstream": {
+        "file": "client/public/assets/together.png",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetFiles"
+      },
+      "why": "Mobile draws Together AI's art from `{server}/assets/together.png`. No web code references it at v0.8.9-rc1 (web draws inline marks), so upstream can delete or replace it without any web change.",
+      "failure_mode": "Deleted: the provider silently draws its monogram tile. Replaced: mobile shows the new art, which may no longer match web's mark."
+    },
+    {
+      "id": "provider-asset-unify",
+      "upstream": {
+        "file": "client/public/assets/unify.webp",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/ProviderIcons.kt",
+        "symbol": "providerAssetFiles"
+      },
+      "why": "Mobile draws Unify's art from `{server}/assets/unify.webp`. No web code references it at v0.8.9-rc1 (web draws inline marks), so upstream can delete or replace it without any web change.",
+      "failure_mode": "Deleted: the provider silently draws its monogram tile. Replaced: mobile shows the new art, which may no longer match web's mark."
     },
     {
       "id": "endpoint-icon-rule",
@@ -3997,7 +4257,7 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/util/ReplyAvatars.kt",
         "symbol": "replyIconSource"
       },
-      "why": "What a reply's avatar draws: an image `iconURL` is loaded; any other value counts only as an endpoint key (`getIconEndpoint`), and that endpoint's configured image `iconURL` is loaded, else its brand drawn, so a spec icon naming a provider (`groq`) draws the reply's endpoint, unlike the picker. The streaming reply and Compare's lane B use the same rule (`ModelSpec.replyIconSource`). Web passes `model` for the model-maker override, which mobile doesn't port.",
+      "why": "What a reply's avatar draws: an image `iconURL` is loaded; any other value counts only as an endpoint key (`getIconEndpoint`), and that endpoint's configured image `iconURL` is loaded, else its brand drawn, so a spec icon naming a provider (`groq`) draws the reply's endpoint, unlike the picker. An agents reply draws its agent's avatar (found by the message's `model`, else the chat's agent, as `useMessageActions` does) ahead of the endpoint's image. The streaming reply and Compare's lane B use the same rule (`ModelSpec.replyIconSource`). Web passes `model` for the model-maker override, which mobile doesn't port.",
       "failure_mode": "If web changes the rule, mobile's reply avatars disagree with web's, or with the drawer row for the same chat."
     },
     {
@@ -4036,8 +4296,22 @@
         "file": "feature/chat/src/commonMain/kotlin/com/garfiec/librechat/feature/chat/screen/ChatContent.kt",
         "symbol": "ChatUiState.landingHeroIcon"
       },
-      "why": "What the new chat's hero draws: the selected spec's icon by the `SpecIcon` rule, else the agent's avatar, else the endpoint's brand.",
+      "why": "What the new chat's hero draws: the selected spec's icon by the `SpecIcon` rule, else the agent's avatar, else the endpoint's configured `iconURL` (`iconURL || configured` in `useProviderIcon`), else its brand. The \"+\" sheet's Model cell draws the same icon.",
       "failure_mode": "If web changes the precedence, mobile's landing hero draws a different icon from web's."
+    },
+    {
+      "id": "entity-endpoint-mark",
+      "upstream": {
+        "file": "client/src/components/Endpoints/EntityEndpointMark.tsx",
+        "symbol": "isEntityEndpoint",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/media/IconUrls.kt",
+        "symbol": "resolveIconSource"
+      },
+      "why": "Which icon values draw an entity's mark instead of a provider's (`SpecIcon`, `GroupIcon`): `agents`, `assistants` and `azureAssistants`. Mobile draws the agents mark for `agents` only; it has no Assistants endpoints.",
+      "failure_mode": "If upstream adds an entity endpoint, a spec or group icon naming it draws that name's brand or the generic glyph on mobile and an entity mark on web."
     },
     {
       "id": "picker-user-key",
@@ -4518,6 +4792,20 @@
       },
       "why": "The keys Bedrock knows. Any other key is moved into `additionalModelRequestFields` and sent to AWS, so the Bedrock variant lists hold only what upstream lists. Claude effort is `effort` (sent as `output_config.effort`); the parser deletes `reasoning_effort` for Claude.",
       "failure_mode": "A control sends a key the parser forwards to AWS (which may reject the request) or deletes (the control does nothing)."
+    },
+    {
+      "id": "bedrock-input-schema-keys",
+      "upstream": {
+        "file": "packages/data-provider/src/bedrock.ts",
+        "symbol": "bedrockInputSchema",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/ui/src/commonMain/kotlin/com/garfiec/librechat/core/ui/components/EndpointParameterRegistry.kt",
+        "symbol": "EndpointParameterRegistry.wireOnlyDefinitions"
+      },
+      "why": "The fields a Bedrock conversation stores, for every model: it keeps `stop`, `maxTokens` and `topK` though web's panels show them only for some variants. A spec preset or a reopened chat still carries them, and the server unsets any stored field a request omits, so `wireOnlyDefinitions` sends the ones a variant's list leaves out.",
+      "failure_mode": "If the schema drops a key, mobile sends a field the server discards. If it adds one a panel hides, a spec's value for it is erased on the next mobile send."
     },
     {
       "id": "conversation-unset-fields",

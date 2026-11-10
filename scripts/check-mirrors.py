@@ -34,6 +34,7 @@ is, not a reason to skip.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -114,11 +115,19 @@ def resolve(upstream: Path, rev: str) -> str:
 
 
 def file_at(upstream: Path, rev: str, path: str) -> str | None:
+    """The file's text at `rev`, or None when it doesn't exist there. A binary file (a PNG the
+    client loads from the server) reads as its size and sha256, so a change is still caught."""
     proc = subprocess.run(
         ["git", "-C", str(upstream), "show", f"{rev}:{path}"],
-        capture_output=True, text=True,
+        capture_output=True,
     )
-    return proc.stdout if proc.returncode == 0 else None
+    if proc.returncode != 0:
+        return None
+    try:
+        return proc.stdout.decode("utf-8")
+    except UnicodeDecodeError:
+        digest = hashlib.sha256(proc.stdout).hexdigest()
+        return f"<binary file, {len(proc.stdout)} bytes, sha256 {digest}>\n"
 
 
 # -------------------------------------------------------------------------- extraction

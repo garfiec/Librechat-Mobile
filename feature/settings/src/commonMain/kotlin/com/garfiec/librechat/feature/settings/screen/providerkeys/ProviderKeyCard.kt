@@ -19,6 +19,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,9 +30,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.model.endpoint.KeyState
+import com.garfiec.librechat.core.model.media.iconImageUrl
 import com.garfiec.librechat.core.ui.components.AdaptiveCard
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
 import com.garfiec.librechat.core.ui.components.EndpointIcon
+import com.garfiec.librechat.core.ui.components.LocalServerUrl
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.provider_keys_retry_check_cd
 import com.garfiec.librechat.feature.settings.state.providerkeys.ProviderKeyEntry
@@ -67,7 +70,7 @@ internal fun ProviderKeyCard(
             leading = {
                 EndpointIcon(
                     endpointName = entry.endpointName,
-                    iconUrl = entry.iconUrl,
+                    iconUrl = rememberJoinedIconUrl(entry.iconUrl),
                     provider = entry.iconProvider,
                     size = IconSize,
                     glyphTint = MaterialTheme.colorScheme.onSurface,
@@ -192,3 +195,10 @@ private val IconSize = 32.dp
 private const val NAME_PLACEHOLDER_FRACTION = 0.6f
 private val MinRowHeight = 72.dp
 private val RetryProgressSize = 20.dp
+
+/** [iconUrl] as a loadable URL: a relative configured `iconURL` joined to the server, as the chat picker does. */
+@Composable
+internal fun rememberJoinedIconUrl(iconUrl: String?): String? {
+    val serverUrl = LocalServerUrl.current
+    return remember(iconUrl, serverUrl) { if (serverUrl == null) iconUrl else iconImageUrl(iconUrl, serverUrl) }
+}

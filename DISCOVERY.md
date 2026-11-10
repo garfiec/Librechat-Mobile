@@ -201,7 +201,9 @@ GET  /api/prompts/groups/:id/resolve[?version=N] → a group's live text (v0.8.9
 - `GET /api/endpoints` entries carry `providerId` (v0.8.8-rc2+) for a custom endpoint: the brand the
   server derives from its `iconURL`, `baseURL` host, `provider` and name (`EndpointConfig.providerId`).
   Mobile loads that brand's art at runtime from the server's static `{server}/assets/<file>`
-  (`feature/chat/CLAUDE.md` "Brand art").
+  (`feature/chat/CLAUDE.md` "Brand art"). Since v0.8.9-rc1 web draws every provider as an inline
+  mark and no longer references `/assets/`; the files still ship, each watched by a
+  `provider-asset-*` mirror.
 - Favorites schema: each entry has exactly one of `{ agentId }`, `{ model, endpoint }`,
   or `{ spec }` — three mutually exclusive variants enforced by the server
   (`FavoritesController.js`: "Each favorite must have either agentId, model+endpoint, or spec";

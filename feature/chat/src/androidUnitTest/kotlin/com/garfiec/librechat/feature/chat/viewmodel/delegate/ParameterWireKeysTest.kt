@@ -153,6 +153,23 @@ class ParameterWireKeysTest {
         assertThat(sent["top_p"]?.jsonPrimitive?.content).isEqualTo("0.3")
     }
 
+    @Test
+    fun bedrockSpecsSendTheSchemaKeysTheirPanelHides() {
+        val mistral = payload(
+            specState(Preset(endpoint = "bedrock", model = "mistral.mistral-large-2407-v1:0", stop = listOf("END"), topK = 40)),
+        )
+        val general = payload(
+            specState(Preset(endpoint = "bedrock", model = "meta.llama3-70b-instruct-v1:0", stop = listOf("END"), maxTokensCamel = 900)),
+        )
+        val zai = payload(specState(Preset(endpoint = "bedrock", model = "zai.glm-4.6", stop = listOf("END", "STOP"))))
+
+        assertThat(mistral["stop"].toString()).isEqualTo("""["END"]""")
+        assertThat(mistral["topK"]?.jsonPrimitive?.content).isEqualTo("40")
+        assertThat(general["stop"].toString()).isEqualTo("""["END"]""")
+        assertThat(general["maxTokens"]?.jsonPrimitive?.content).isEqualTo("900")
+        assertThat(zai["stop"].toString()).isEqualTo("""["END","STOP"]""")
+    }
+
     // --- Save → load: the saved preset carries the provider's spelling, so web reads it back ---
 
     private val wire = Json { explicitNulls = false }
