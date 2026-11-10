@@ -14,11 +14,13 @@ import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
 import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ComparisonState
+import com.garfiec.librechat.feature.chat.viewmodel.ComposerState
 import com.garfiec.librechat.feature.chat.viewmodel.ConversationMetaState
 import com.garfiec.librechat.feature.chat.viewmodel.MessageTreeHandle
 import com.garfiec.librechat.feature.chat.viewmodel.MessagesState
 import com.garfiec.librechat.feature.chat.viewmodel.NewChatSelectionHandoff
 import com.garfiec.librechat.feature.chat.viewmodel.SendCompletionHandle
+import com.garfiec.librechat.feature.chat.viewmodel.VoiceState
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -115,7 +117,7 @@ class SendCompletionDelegateTest {
             originAccount = null,
         )
 
-        verify(exactly = 1) { tts.maybeAutoReadResponse("The answer.") }
+        verify(exactly = 1) { tts.maybeAutoReadResponse(any(), "The answer.") }
     }
 
     @Test
@@ -133,7 +135,55 @@ class SendCompletionDelegateTest {
             originAccount = null,
         )
 
-        verify(exactly = 0) { tts.maybeAutoReadResponse(any()) }
+        verify(exactly = 0) { tts.maybeAutoReadResponse(any(), any()) }
+    }
+
+    @Test
+    fun `auto-read reads under the reply's own id, so the reply shows Stop`() = runTest(StandardTestDispatcher()) {
+        val (delegate, _) = delegateWith(this)
+
+        delegate.onFinal(
+            event = StreamEvent.Final(
+                responseMessage = Message(
+                    messageId = "reply-1",
+                    conversationId = AbortFrameFixtures.CONVERSATION_ID,
+                    text = "The answer.",
+                ),
+            ),
+            conversationId = null,
+            completedResponseText = "The answer.",
+            shouldAutoRead = true,
+            isNewConversation = false,
+            isHandedOffNewChat = false,
+            isComparison = false,
+            originAccount = null,
+        )
+
+        verify(exactly = 1) { tts.maybeAutoReadResponse("reply-1", "The answer.") }
+    }
+
+    @Test
+    fun `auto-read stays silent while the user is dictating or typing`() = runTest(StandardTestDispatcher()) {
+        val composing = listOf(
+            baseState().copy(voice = VoiceState(isRecording = true)),
+            baseState().copy(voice = VoiceState(isTranscribing = true)),
+            baseState().copy(composer = ComposerState(inputText = "my next question")),
+        )
+        for (state in composing) {
+            val (delegate, _) = delegateWith(this, state)
+            delegate.onFinal(
+                event = StreamEvent.Final(),
+                conversationId = null,
+                completedResponseText = "The answer.",
+                shouldAutoRead = true,
+                isNewConversation = false,
+                isHandedOffNewChat = false,
+                isComparison = false,
+                originAccount = null,
+            )
+        }
+
+        verify(exactly = 0) { tts.maybeAutoReadResponse(any(), any()) }
     }
 
     @Test

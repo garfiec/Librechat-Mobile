@@ -1,6 +1,7 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import android.content.Context
+import android.speech.tts.TextToSpeech
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.SpeechRepository
@@ -23,22 +24,37 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
+import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowTextToSpeech
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class TextToSpeechDelegateTest {
 
     private val speech = SuspendingSpeechRepository()
 
-    private fun TestScope.start(autoRead: Boolean = false): Pair<MutableStateFlow<ChatUiState>, TextToSpeechDelegate> {
+    private fun TestScope.start(
+        autoRead: Boolean = false,
+        source: String = SettingsDataStore.TTS_SOURCE_SERVER,
+        context: Context = mockk(relaxed = true),
+    ): Pair<MutableStateFlow<ChatUiState>, TextToSpeechDelegate> {
         val settings = mockk<SettingsDataStore>(relaxed = true) {
-            every { ttsSource } returns flowOf(SettingsDataStore.TTS_SOURCE_SERVER)
+            every { ttsSource } returns flowOf(source)
+            every { ttsSpeechRate } returns flowOf(1f)
+            every { ttsPitch } returns flowOf(1f)
+            every { ttsVoiceName } returns flowOf("")
             every { autoReadEnabled } returns flowOf(autoRead)
             every { selectedVoiceId } returns flowOf(null)
         }
         val flow = MutableStateFlow(ChatUiState())
         val delegate = TextToSpeechDelegate(
             handle = TtsHandle(ChatStateHandle(flow, backgroundScope)),
-            appContext = mockk<Context>(relaxed = true),
+            appContext = context,
             speechRepository = speech,
             settingsDataStore = settings,
             ioDispatcher = StandardTestDispatcher(testScheduler),
@@ -53,7 +69,7 @@ class TextToSpeechDelegateTest {
         delegate.readAloud("m1")
         runCurrent()
 
-        delegate.maybeAutoReadResponse("A new reply")
+        delegate.maybeAutoReadResponse("reply-2", "A new reply")
         runCurrent()
         assertThat(flow.value.voice.currentlyReadingMessageId).isEqualTo("m1")
 
@@ -69,13 +85,38 @@ class TextToSpeechDelegateTest {
         delegate.readAloud("m1")
         runCurrent()
 
-        delegate.maybeAutoReadResponse("A new reply")
+        delegate.maybeAutoReadResponse("reply-2", "A new reply")
         runCurrent()
 
         assertThat(speech.requests.map { it.text }).containsExactly("Text of m1", "A new reply").inOrder()
         assertThat(speech.requests[0].cancelled).isTrue()
         assertThat(speech.requests[1].cancelled).isFalse()
-        assertThat(flow.value.voice.currentlyReadingMessageId).startsWith("auto_read_")
+        assertThat(flow.value.voice.currentlyReadingMessageId).isEqualTo("reply-2")
+    }
+
+    @Test
+    fun `a Stop before the device engine is ready keeps it silent`() = runTest {
+        val (_, delegate) = start(source = SettingsDataStore.TTS_SOURCE_DEVICE, context = RuntimeEnvironment.getApplication())
+        delegate.readAloud("m1")
+        runCurrent()
+        val engine = shadowOf(ShadowTextToSpeech.getLastTextToSpeechInstance())
+
+        delegate.stopReading()
+        engine.onInitListener.onInit(TextToSpeech.SUCCESS)
+
+        assertThat(engine.spokenTextList).isEmpty()
+    }
+
+    @Test
+    fun `a device read speaks once the engine is ready`() = runTest {
+        val (_, delegate) = start(source = SettingsDataStore.TTS_SOURCE_DEVICE, context = RuntimeEnvironment.getApplication())
+        delegate.readAloud("m1")
+        runCurrent()
+        val engine = shadowOf(ShadowTextToSpeech.getLastTextToSpeechInstance())
+
+        engine.onInitListener.onInit(TextToSpeech.SUCCESS)
+
+        assertThat(engine.spokenTextList).containsExactly("Text of m1")
     }
 
     private class SuspendingSpeechRepository : SpeechRepository {

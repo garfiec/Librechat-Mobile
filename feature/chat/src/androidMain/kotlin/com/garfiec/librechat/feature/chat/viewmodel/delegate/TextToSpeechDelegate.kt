@@ -130,6 +130,9 @@ class TextToSpeechDelegate(
         voiceName: String,
     ) {
         getOrInitTts {
+            // A first engine starts after this read's job has ended, so Stop (or a newer read) can
+            // only reach it through the reading id.
+            if (handle.state.currentlyReadingMessageId != messageId) return@getOrInitTts
             val engine = ttsEngine ?: return@getOrInitTts
             engine.setSpeechRate(speechRate)
             engine.setPitch(pitch)
@@ -246,22 +249,13 @@ class TextToSpeechDelegate(
     }
 
     /**
-     * Checks the auto-read preference and, if enabled, reads the completed AI
-     * response aloud via TTS. Skips auto-read when the user has already started
-     * typing a new message (inputText is not blank).
-     *
-     * Uses a synthetic message ID ("auto_read") because the real message ID
-     * may not be available yet (Room observer hasn't emitted the final message).
-     * It runs after every completed send, so a read already playing is touched only once auto-read is
-     * known to be on.
+     * Reads a completed reply under [messageId] when auto-read is on. It runs after every completed
+     * send, so a read already playing is touched only once auto-read is known to be on.
      */
-    fun maybeAutoReadResponse(responseText: String) {
-        // Don't auto-read if the user has already started typing
-        if (handle.state.inputText.isNotBlank()) return
-
+    fun maybeAutoReadResponse(messageId: String, responseText: String) {
         handle.scope.launch {
             if (!settingsDataStore.autoReadEnabled.first()) return@launch
-            startRead("auto_read_${System.currentTimeMillis()}", responseText)
+            startRead(messageId, responseText)
         }
     }
 

@@ -8,6 +8,7 @@ class AndroidTts(
 ) : PlatformTts {
     override fun readAloud(messageId: String) = delegate.readAloud(messageId)
     override fun stopReading() = delegate.stopReading()
-    override fun maybeAutoReadResponse(responseText: String) = delegate.maybeAutoReadResponse(responseText)
+    override fun maybeAutoReadResponse(messageId: String, responseText: String) =
+        delegate.maybeAutoReadResponse(messageId, responseText)
     override fun release() = delegate.release()
 }

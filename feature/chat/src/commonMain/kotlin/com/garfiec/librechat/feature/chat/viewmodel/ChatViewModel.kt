@@ -2050,7 +2050,11 @@ class ChatViewModel(
     fun stopReading() = ttsDelegate.stopReading()
 
     // Voice input
-    fun startRecording() = voiceDelegate.startRecording()
+    /** The mic would transcribe a read in progress, so dictation stops it first. */
+    fun startRecording() {
+        ttsDelegate.stopReading()
+        voiceDelegate.startRecording()
+    }
     fun stopRecording() = voiceDelegate.stopRecording()
     fun cancelRecording() = voiceDelegate.cancelRecording()
     fun onDeviceSpeechResult(transcribedText: String) = voiceDelegate.onDeviceSpeechResult(transcribedText)
