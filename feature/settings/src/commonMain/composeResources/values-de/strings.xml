@@ -426,7 +426,6 @@
     <!-- STT detail dialog -->
     <string name="stt_engine_label">Erkennungs-Engine</string>
     <string name="stt_language_label">Diktiersprache</string>
-    <string name="stt_default">Standard</string>
     <string name="stt_engine_browser">Integriert</string>
     <string name="stt_engine_external">Server</string>
     <string name="stt_hint_browser">Verwendet die integrierte Spracherkennung deines Geräts für die Live-Transkription.</string>

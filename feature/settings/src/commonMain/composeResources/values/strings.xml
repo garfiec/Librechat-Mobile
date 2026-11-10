@@ -434,7 +434,6 @@
     <!-- STT detail dialog -->
     <string name="stt_engine_label">Recognition engine</string>
     <string name="stt_language_label">Speech language</string>
-    <string name="stt_default">Default</string>
     <string name="stt_engine_browser">Built-in</string>
     <string name="stt_engine_external">Server</string>
     <string name="stt_hint_browser">Uses your device's built-in speech recognizer for live transcription.</string>

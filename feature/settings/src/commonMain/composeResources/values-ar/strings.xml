@@ -454,7 +454,6 @@
     <!-- STT detail dialog -->
     <string name="stt_engine_label">محرك التعرف</string>
     <string name="stt_language_label">لغة الكلام</string>
-    <string name="stt_default">افتراضي</string>
     <string name="stt_engine_browser">مدمج</string>
     <string name="stt_engine_external">الخادم</string>
     <string name="stt_hint_browser">يستخدم أداة التعرف على الكلام المدمجة في جهازك للنسخ المباشر.</string>

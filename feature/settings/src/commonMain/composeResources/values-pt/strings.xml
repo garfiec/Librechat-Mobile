@@ -426,7 +426,6 @@
     <!-- STT detail dialog -->
     <string name="stt_engine_label">Mecanismo de reconhecimento</string>
     <string name="stt_language_label">Idioma da fala</string>
-    <string name="stt_default">Padrão</string>
     <string name="stt_engine_browser">Integrado</string>
     <string name="stt_engine_external">Servidor</string>
     <string name="stt_hint_browser">Usa o reconhecimento de voz integrado do seu dispositivo para transcrição ao vivo.</string>

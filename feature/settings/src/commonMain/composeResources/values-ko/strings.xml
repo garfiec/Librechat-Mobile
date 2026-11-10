@@ -419,7 +419,6 @@
     <!-- STT detail dialog -->
     <string name="stt_engine_label">인식 엔진</string>
     <string name="stt_language_label">음성 언어</string>
-    <string name="stt_default">기본값</string>
     <string name="stt_engine_browser">내장</string>
     <string name="stt_engine_external">서버</string>
     <string name="stt_hint_browser">기기에 내장된 음성 인식을 사용하여 실시간으로 받아씁니다.</string>

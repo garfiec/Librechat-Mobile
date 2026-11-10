@@ -263,7 +263,7 @@ class ChatSettingsViewModelTest {
         viewModel = createViewModel()
         advanceUntilIdle()
 
-        viewModel.selectServerVoice(TtsVoice(id = "nova", name = "Nova"))
+        viewModel.selectServerVoice("nova")
         advanceUntilIdle()
 
         coVerify { settingsDataStore.setSelectedVoiceId("nova") }

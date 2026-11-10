@@ -419,7 +419,6 @@
     <!-- STT detail dialog -->
     <string name="stt_engine_label">認識エンジン</string>
     <string name="stt_language_label">音声入力の言語</string>
-    <string name="stt_default">デフォルト</string>
     <string name="stt_engine_browser">内蔵</string>
     <string name="stt_engine_external">サーバー</string>
     <string name="stt_hint_browser">デバイス内蔵の音声認識を使用してリアルタイムで文字起こしします。</string>

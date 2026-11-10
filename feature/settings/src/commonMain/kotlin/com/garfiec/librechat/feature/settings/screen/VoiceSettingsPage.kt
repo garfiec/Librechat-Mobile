@@ -32,7 +32,6 @@ import com.garfiec.librechat.core.common.speech.sttLanguageOptions
 import com.garfiec.librechat.core.common.speech.sttSupportsLiveRecognition
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.model.speech.SttEngine
-import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.core.ui.components.AdaptiveFilledTonalButton
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.adaptiveSection
@@ -96,7 +95,7 @@ internal class VoiceSettingsActions(
     val onSpeechLanguage: (String) -> Unit,
     val onReadAloud: (Boolean) -> Unit,
     val onSource: (String) -> Unit,
-    val onServerVoice: (TtsVoice) -> Unit,
+    val onServerVoice: (String) -> Unit,
     val onDeviceVoice: (String) -> Unit,
     val onSpeed: (Float) -> Unit,
     val onPitch: (Float) -> Unit,
@@ -234,7 +233,7 @@ private fun DeviceVoiceRow(state: ChatSettingsUiState, onSelect: (String) -> Uni
 }
 
 @Composable
-private fun ServerVoiceRow(state: ChatSettingsUiState, onSelect: (TtsVoice) -> Unit) {
+private fun ServerVoiceRow(state: ChatSettingsUiState, onSelect: (String) -> Unit) {
     if (state.availableVoices.isEmpty()) {
         SettingsRow(
             title = stringResource(Res.string.tts_voice_label),
@@ -244,11 +243,11 @@ private fun ServerVoiceRow(state: ChatSettingsUiState, onSelect: (TtsVoice) -> U
     }
     SettingsChoiceRow(
         title = stringResource(Res.string.tts_voice_label),
-        value = state.selectedVoice?.name ?: stringResource(Res.string.stt_default),
+        value = state.selectedVoice?.name.orEmpty(),
         options = state.availableVoices.map { voice ->
             voice.id to listOfNotNull(voice.name, voice.provider).joinToString(" · ")
         },
-        onSelect = { id -> state.availableVoices.firstOrNull { it.id == id }?.let(onSelect) },
+        onSelect = onSelect,
     )
 }
 

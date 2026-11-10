@@ -28,7 +28,6 @@ import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.core.model.response.clientImageResize
-import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.SpeechSettingsFactory
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -250,7 +249,7 @@ class ChatSettingsViewModel(
     fun setSttOnDevice(enabled: Boolean) = prefsController.setSttOnDevice(enabled)
     fun setAutoReadEnabled(enabled: Boolean) = prefsController.setAutoReadEnabled(enabled)
     fun setTtsSource(source: String) = prefsController.setTtsSource(source)
-    fun selectServerVoice(voice: TtsVoice) = prefsController.setServerVoice(voice.id)
+    fun selectServerVoice(voiceId: String) = prefsController.setServerVoice(voiceId)
     fun selectDeviceVoice(voiceName: String) = prefsController.setDeviceVoice(voiceName)
     fun setTtsSpeechRate(rate: Float) = prefsController.setTtsSpeechRate(rate)
     fun setTtsPitch(pitch: Float) = prefsController.setTtsPitch(pitch)

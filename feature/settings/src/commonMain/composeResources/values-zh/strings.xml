@@ -419,7 +419,6 @@
     <!-- STT detail dialog -->
     <string name="stt_engine_label">识别引擎</string>
     <string name="stt_language_label">语音语言</string>
-    <string name="stt_default">默认</string>
     <string name="stt_engine_browser">内置</string>
     <string name="stt_engine_external">服务器</string>
     <string name="stt_hint_browser">使用设备内置的语音识别进行实时转写。</string>

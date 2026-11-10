@@ -426,7 +426,6 @@
     <!-- STT detail dialog -->
     <string name="stt_engine_label">Moteur de reconnaissance</string>
     <string name="stt_language_label">Langue de dictée</string>
-    <string name="stt_default">Par défaut</string>
     <string name="stt_engine_browser">Intégré</string>
     <string name="stt_engine_external">Serveur</string>
     <string name="stt_hint_browser">Utilise le moteur de reconnaissance vocale intégré de votre appareil pour la transcription en direct.</string>
