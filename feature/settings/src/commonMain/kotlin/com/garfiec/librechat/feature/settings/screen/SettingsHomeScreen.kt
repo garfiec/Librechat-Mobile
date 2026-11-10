@@ -31,6 +31,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -115,7 +116,9 @@ fun SettingsHomeScreen(
     val account by accountViewModel.uiState.collectAsStateWithLifecycle()
     val general by generalViewModel.uiState.collectAsStateWithLifecycle()
     val appearance by appearanceViewModel.uiState.collectAsStateWithLifecycle()
-    val prefetch by prefetchViewModel.uiState.collectAsStateWithLifecycle()
+    // Only the status is read here, so the rest of the offline-reading state doesn't recompose the home.
+    val prefetchState = prefetchViewModel.uiState.collectAsStateWithLifecycle()
+    val prefetchStatus by remember { derivedStateOf { prefetchState.value.status } }
 
     // Back from Account or Provider keys (or the web, via another app) the card and the Models & keys
     // row show a changed name, avatar or key count.
@@ -151,7 +154,7 @@ fun SettingsHomeScreen(
             stringResource(Res.string.settings_home_models_summary)
         },
         language = "$language · ${dateTimeSample()}",
-        privacy = stringResource(Res.string.settings_home_offline_reading, prefetch.status.label()),
+        privacy = stringResource(Res.string.settings_home_offline_reading, prefetchStatus.label()),
         about = if (serverVersion != null) {
             stringResource(Res.string.settings_home_about_summary, general.appVersion, serverVersion)
         } else {
