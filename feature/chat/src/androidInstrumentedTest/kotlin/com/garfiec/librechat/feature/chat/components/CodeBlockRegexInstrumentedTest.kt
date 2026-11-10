@@ -1,6 +1,8 @@
 package com.garfiec.librechat.feature.chat.components
 
+import androidx.compose.material3.darkColorScheme
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.garfiec.librechat.core.ui.theme.SyntaxColors
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -17,7 +19,7 @@ class CodeBlockRegexInstrumentedTest {
     @Test
     fun every_string_rule_compiles_and_matches_on_icu() {
         val body = "a".repeat(LONG)
-        val palette = SyntaxPalette.DARK
+        val palette = SyntaxPalette(SyntaxColors.switchboard(darkColorScheme(), dark = true))
         val stringStyle = palette.styleOf(TokenKind.STRING)
         for (language in LANGUAGES) {
             val code = "x = \"say \\\"hi\\\"\" + '$body'"
