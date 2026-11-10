@@ -93,20 +93,21 @@ class RailHeadingIosTest {
     }
 
     @Test
-    fun aPaneOffsetByABackSwipeGetsItsRailBackOnceItSettles() = runComposeUiTest {
-        // The page a back swipe reveals in the content pane starts offset toward the start edge by its layer alone.
+    fun aPageOffsetByABackSwipeInTheNavPaneKeepsItsRail() = runComposeUiTest {
+        // The nav pane beside the sidebar, laid out as TabletLayout does; the page a back swipe reveals in it
+        // starts offset toward the start edge by its layer alone.
         var offset by mutableStateOf(-96f)
         setContent {
             CompositionLocalProvider(LocalWindowFeatures provides duoBars) {
                 Box(Modifier.fillMaxSize()) {
-                    Box(
-                        Modifier.align(Alignment.TopEnd).fillMaxHeight().fillMaxWidth(PANE_SHARE)
-                            .graphicsLayer { translationX = offset.dp.toPx() },
-                    ) { Screen() }
+                    AdaptiveRailPane(Modifier.align(Alignment.TopEnd).fillMaxHeight().fillMaxWidth(PANE_SHARE)) {
+                        Box(Modifier.fillMaxSize().graphicsLayer { translationX = offset.dp.toPx() }) { Screen() }
+                    }
                 }
             }
         }
-        assertFalse(titleIsHeading())
+        assertBarControlsShown()
+        assertTrue(titleIsHeading())
 
         runOnIdle { offset = 0f }
 
