@@ -1,7 +1,9 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
+import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.SpeechRepository
+import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.core.ui.media.AudioClipPlayer
 import com.garfiec.librechat.feature.chat.util.serverVoiceToUse
 import com.garfiec.librechat.feature.chat.util.synthesizeInSegments
@@ -45,6 +47,13 @@ class IosTts(
 
     /** The utterance of the current device read; only its end means the read is done. */
     private var finalUtterance: AVSpeechUtterance? = null
+
+    /** The server's voice list from the last successful read, so a read-aloud doesn't wait on it again. */
+    private var serverVoices: List<TtsVoice>? = null
+
+    private suspend fun offeredServerVoices(): Result<List<TtsVoice>> =
+        serverVoices?.let { Result.Success(it) }
+            ?: speechRepository.getVoices().also { if (it is Result.Success) serverVoices = it.data }
 
     private val delegate = object : NSObject(), AVSpeechSynthesizerDelegateProtocol {
         @ObjCSignatureOverride
@@ -96,10 +105,7 @@ class IosTts(
 
         readJob = handle.scope.launch {
             if (settingsDataStore.ttsSource.first() == "server") {
-                readAloudViaServer(
-                    text,
-                    serverVoiceToUse(settingsDataStore.selectedVoiceId.first(), speechRepository::getVoices),
-                )
+                readAloudViaServer(text)
             } else {
                 val speech = DeviceSpeech(
                     rate = settingsDataStore.ttsSpeechRate.first(),
@@ -140,7 +146,8 @@ class IosTts(
      * whatever is past `speech.tts.maxInputChars` without an error) and plays each segment's audio in
      * order, fetching only the next one while one plays. A failed request lets what arrived finish.
      */
-    private suspend fun readAloudViaServer(text: String, serverVoice: String?) = coroutineScope {
+    private suspend fun readAloudViaServer(text: String) = coroutineScope {
+        val serverVoice = serverVoiceToUse(settingsDataStore.selectedVoiceId.first(), ::offeredServerVoices)
         val clips = Channel<ByteArray>(capacity = 1)
         val playback = launch {
             for (clip in clips) {
