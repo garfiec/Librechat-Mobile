@@ -124,6 +124,10 @@ internal enum class ChatBarItem {
 internal data class ChatBarGates(
     /** The bar draws as the side rail (the window has vertical bars). */
     val rail: Boolean,
+    /** The chat has a drawer to open (a phone's drawer, or the tablet sidebar's toggle). */
+    val hasDrawer: Boolean,
+    /** The app's sidebar is open beside the chat and a swipe closes it. */
+    val sidebarOpen: Boolean,
     val conversationId: String?,
     val hasNewChat: Boolean,
     val showTempChatToggle: Boolean,
@@ -136,8 +140,11 @@ internal data class ChatBarGates(
     val usedTokens: Int,
 )
 
-/** The bar's controls in order: [actions] along the bar or down the rail's top, [status] at the rail's bottom. */
-internal data class ChatBarItems(val actions: List<ChatBarItem>, val status: List<ChatBarItem>)
+/**
+ * The bar's controls in order: [drawer] (the drawer button leads), [actions] along the bar or down the
+ * rail's top, [status] at the rail's bottom.
+ */
+internal data class ChatBarItems(val drawer: Boolean, val actions: List<ChatBarItem>, val status: List<ChatBarItem>)
 
 internal fun chatBarItems(gates: ChatBarGates): ChatBarItems = if (gates.rail) gates.railItems() else gates.barItems()
 
@@ -148,7 +155,7 @@ private fun ChatBarGates.barItems(): ChatBarItems {
         if (showTempChatToggle) add(ChatBarItem.TEMPORARY_CHAT)
         add(ChatBarItem.OVERFLOW)
     }
-    return ChatBarItems(actions, status = emptyList())
+    return ChatBarItems(drawer = hasDrawer, actions = actions, status = emptyList())
 }
 
 private fun ChatBarGates.railItems(): ChatBarItems {
@@ -165,5 +172,6 @@ private fun ChatBarGates.railItems(): ChatBarItems {
             add(ChatBarItem.CONTEXT_RING)
         }
     }
-    return ChatBarItems(actions, status)
+    // Beside the open sidebar the rail leads with nothing: the drawer it would open is on screen.
+    return ChatBarItems(drawer = hasDrawer && !sidebarOpen, actions = actions, status = status)
 }

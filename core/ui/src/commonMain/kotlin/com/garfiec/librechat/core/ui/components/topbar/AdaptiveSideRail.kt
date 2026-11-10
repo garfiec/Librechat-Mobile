@@ -32,6 +32,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -397,6 +398,12 @@ internal val LocalRailSlot = staticCompositionLocalOf<RailSlot?> { null }
 
 /** The slot of the scaffold whose body this is, for a scaffold nested in it to report to. */
 internal val LocalRailParent = staticCompositionLocalOf<RailSlot?> { null }
+
+/**
+ * True while the app's sidebar is open beside this content and a swipe closes it. A side rail then
+ * leads with no drawer button: the drawer it would open is already on screen.
+ */
+val LocalSidebarOpen = compositionLocalOf { false }
 
 /** A bar in rail mode: its spec goes to the rail; the title stays here as a heading, above [belowBar]. */
 @Composable

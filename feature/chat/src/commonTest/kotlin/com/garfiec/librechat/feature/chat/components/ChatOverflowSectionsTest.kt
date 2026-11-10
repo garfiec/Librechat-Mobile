@@ -67,6 +67,8 @@ class ChatOverflowSectionsTest {
 
     private fun bar(
         rail: Boolean = true,
+        hasDrawer: Boolean = true,
+        sidebarOpen: Boolean = false,
         conversationId: String? = "c1",
         hasNewChat: Boolean = true,
         showTempChatToggle: Boolean = false,
@@ -77,7 +79,7 @@ class ChatOverflowSectionsTest {
         usedTokens: Int = 250,
     ) = chatBarItems(
         ChatBarGates(
-            rail, conversationId, hasNewChat, showTempChatToggle, showPullRequestChip, backgroundTasksVisible,
+            rail, hasDrawer, sidebarOpen, conversationId, hasNewChat, showTempChatToggle, showPullRequestChip, backgroundTasksVisible,
             contextUsageEnabled, contextBarPlacement, usedTokens,
         ),
     )
@@ -208,6 +210,19 @@ class ChatOverflowSectionsTest {
     fun railLeavesOutFindOnTheLandingAndNewChatWithoutAHandler() {
         assertEquals(listOf(NEW_CHAT, TEMPORARY_CHAT, OVERFLOW), bar(conversationId = null, showTempChatToggle = true).actions)
         assertEquals(listOf(FIND, OVERFLOW), bar(hasNewChat = false).actions)
+    }
+
+    @Test
+    fun railLeadsWithNoDrawerButtonBesideTheOpenSidebar() {
+        assertTrue(bar().drawer)
+        assertFalse(bar(sidebarOpen = true).drawer)
+        assertFalse(bar(hasDrawer = false).drawer)
+    }
+
+    @Test
+    fun horizontalBarKeepsTheSidebarToggleWhileTheSidebarIsOpen() {
+        assertTrue(bar(rail = false, sidebarOpen = true).drawer)
+        assertFalse(bar(rail = false, hasDrawer = false).drawer)
     }
 
     @Test

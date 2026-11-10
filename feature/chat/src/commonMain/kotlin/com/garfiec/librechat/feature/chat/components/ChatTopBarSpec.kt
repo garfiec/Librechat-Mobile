@@ -23,6 +23,7 @@ import com.garfiec.librechat.core.ui.components.topbar.BarTint
 import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.components.topbar.BarTitleAlignment
 import com.garfiec.librechat.core.ui.components.topbar.BarTitleStyle
+import com.garfiec.librechat.core.ui.components.topbar.LocalSidebarOpen
 import com.garfiec.librechat.core.ui.resources.bookmarks
 import com.garfiec.librechat.feature.chat.components.veil.LocalModeVeil
 import com.garfiec.librechat.feature.chat.components.veil.VeilReaction
@@ -86,10 +87,6 @@ internal fun rememberChatTopBarSpec(
         reaction = VeilReaction.NUDGE,
         anchor = toggleAnchor,
     )
-    val navigation = onOpenDrawer?.let {
-        BarNavigation(BarIcons.Menu, stringResource(Res.string.cd_open_drawer), it)
-    }
-
     val alignment = when (uiState.chatHeaderAlignment) {
         ChatHeaderAlignment.LEFT -> BarTitleAlignment.LEADING
         ChatHeaderAlignment.CENTER -> BarTitleAlignment.CENTER
@@ -160,6 +157,8 @@ internal fun rememberChatTopBarSpec(
     val items = chatBarItems(
         ChatBarGates(
             rail = rail,
+            hasDrawer = onOpenDrawer != null,
+            sidebarOpen = LocalSidebarOpen.current,
             conversationId = conversationId,
             hasNewChat = actions.onNewChat != null,
             showTempChatToggle = showTempChatToggle,
@@ -170,6 +169,9 @@ internal fun rememberChatTopBarSpec(
             usedTokens = contextRing?.details?.usage?.usedTokens ?: 0,
         ),
     )
+    val navigation = onOpenDrawer?.takeIf { items.drawer }?.let {
+        BarNavigation(BarIcons.Menu, stringResource(Res.string.cd_open_drawer), it)
+    }
     val barAction: @Composable (ChatBarItem) -> BarAction? = { item ->
         when (item) {
             ChatBarItem.PULL_REQUEST -> pullRequestChip

@@ -41,9 +41,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.model.Banner
 import com.garfiec.librechat.core.ui.components.BannerDisplay
-import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.components.MinContentWidth
+import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.components.SidebarWidth
+import com.garfiec.librechat.core.ui.components.topbar.LocalSidebarOpen
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
 import com.garfiec.librechat.core.ui.navigation.FullWidthRoute
 import com.garfiec.librechat.core.ui.navigation.LocalSidebarAsideRequests
@@ -294,6 +295,8 @@ fun TabletLayout(
                     onToggleDrawer = {
                         navHostViewModel.toggleTabletSidebar()
                     },
+                    // Without the swipe nothing else closes the sidebar on iOS, so the button stays.
+                    sidebarOpen = isSidebarOpen && gestureEnabled,
                 )
             },
             // The page colour behind both slots: without it the margin around Liquid Glass's floating
@@ -349,6 +352,7 @@ private fun MainContent(
     onToggleDrawer: () -> Unit,
     modifier: Modifier = Modifier,
     asideRequests: SidebarAsideRequests? = null,
+    sidebarOpen: Boolean = false,
 ) {
     Column(modifier = modifier) {
         if (showBanner) {
@@ -361,7 +365,10 @@ private fun MainContent(
                 onDismiss = onDismissBanner,
             )
         }
-        CompositionLocalProvider(LocalSidebarAsideRequests provides asideRequests) {
+        CompositionLocalProvider(
+            LocalSidebarAsideRequests provides asideRequests,
+            LocalSidebarOpen provides sidebarOpen,
+        ) {
             navDisplay(onToggleDrawer, Modifier.fillMaxSize())
         }
     }
