@@ -43,7 +43,7 @@ fun ModelsSettingsPage(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val account by accountViewModel.uiState.collectAsStateWithLifecycle()
-    var openDialog by remember { mutableStateOf<ChatSettingDialog?>(null) }
+    var choosingNewChatStart by remember { mutableStateOf(false) }
 
     // The Provider Keys row's summary loads the first time this page is composed resumed (a
     // recomposed page replays ON_RESUME to its new observer), and re-reads on each resume the entry
@@ -90,7 +90,7 @@ fun ModelsSettingsPage(
                     SettingsRow(
                         title = stringResource(Res.string.new_chat_start_title),
                         summary = newChatStartLabel(uiState.preferLastUsedModel),
-                        onClick = { openDialog = ChatSettingDialog.NEW_CHAT_START },
+                        onClick = { choosingNewChatStart = true },
                     )
                 }
             }
@@ -114,20 +114,19 @@ fun ModelsSettingsPage(
             item(key = "bottom_gap") { Spacer(modifier = Modifier.height(32.dp)) }
         }
 
-        when (openDialog) {
-            ChatSettingDialog.NEW_CHAT_START -> RadioSelectionDialog(
+        if (choosingNewChatStart) {
+            RadioSelectionDialog(
                 title = stringResource(Res.string.new_chat_start_title),
                 description = stringResource(Res.string.new_chat_start_desc),
                 options = listOf(false, true),
                 selected = uiState.preferLastUsedModel,
                 onSave = {
                     viewModel.setPreferLastUsedModel(it)
-                    openDialog = null
+                    choosingNewChatStart = false
                 },
-                onDismiss = { openDialog = null },
+                onDismiss = { choosingNewChatStart = false },
                 optionLabel = { newChatStartLabel(it) },
             )
-            else -> Unit
         }
     }
 }

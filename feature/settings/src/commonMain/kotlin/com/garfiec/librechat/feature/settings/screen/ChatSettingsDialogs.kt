@@ -49,7 +49,6 @@ internal enum class ChatSettingDialog {
     LATEX_RENDERER,
     DURING_RUN_ACTION,
     UPLOAD_ROUTING,
-    NEW_CHAT_START,
     WEB_SEARCH_FIRST,
     ARTIFACTS_MODE,
     RENDER_INLINE,

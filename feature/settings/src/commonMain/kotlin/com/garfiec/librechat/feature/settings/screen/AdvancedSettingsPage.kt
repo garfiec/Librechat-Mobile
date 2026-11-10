@@ -257,7 +257,7 @@ fun AdvancedSettingsPage(
                 }
             },
         )
-        else -> Unit
+        null -> Unit
     }
 
     if (showClearLogsDialog) {
