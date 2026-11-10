@@ -38,6 +38,8 @@ class WindowFeaturesTest {
 
         assertEquals(84.dp, right.overlap(left = 0.dp, width = 466.dp, windowWidth = 466.dp))
         assertEquals(84.dp, right.copy(side = BarSide.LEFT).overlap(left = 0.dp, width = 466.dp, windowWidth = 466.dp))
+        // A sheet its caller fills to the width of the inner screen is not capped at SheetMaxWidth.
+        assertEquals(84.dp, right.overlap(left = 0.dp, width = 951.dp, windowWidth = 951.dp))
     }
 
     @Test

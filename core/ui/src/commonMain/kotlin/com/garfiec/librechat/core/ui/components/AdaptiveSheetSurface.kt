@@ -17,27 +17,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.findRootCoordinates
-import androidx.compose.ui.layout.onPlaced
-import androidx.compose.ui.layout.positionInRoot
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.glass.GlassBackdrop
 import com.garfiec.librechat.core.ui.glass.GlassDefaults
 import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.SheetMargin
 import com.garfiec.librechat.core.ui.glass.glassSheetPanel
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
-import com.garfiec.librechat.core.ui.platform.LocalWindowFeatures
-import com.garfiec.librechat.core.ui.platform.insetOf
-import com.garfiec.librechat.core.ui.platform.overlap
+import com.garfiec.librechat.core.ui.platform.rememberBarColumnCover
 import com.garfiec.librechat.core.ui.theme.LocalDarkTheme
 
 /**
@@ -55,31 +43,13 @@ fun AdaptiveSheetSurface(
 ) {
     val style = rememberGlassStyle()
     if (style == null) {
-        // A sheet capped short of the window's width can stop short of the bar column: pad only what it covers.
-        val bars = LocalWindowFeatures.current.verticalBars
-        val density = LocalDensity.current
-        // The whole column until placed.
-        var covered by remember { mutableStateOf<Dp?>(null) }
-        val measure = if (bars != null) {
-            Modifier.onPlaced { coordinates ->
-                with(density) {
-                    covered = bars.overlap(
-                        left = coordinates.positionInRoot().x.toDp(),
-                        width = coordinates.size.width.toDp(),
-                        windowWidth = coordinates.findRootCoordinates().size.width.toDp(),
-                    )
-                }
-            }
-        } else {
-            Modifier
-        }
-        val inset = remember(bars, covered) { bars.insetOf(covered ?: bars?.columnWidth ?: 0.dp) }
+        val barColumn = rememberBarColumnCover()
         Surface(
             color = BottomSheetDefaults.ContainerColor,
             shape = BottomSheetDefaults.ExpandedShape,
-            modifier = modifier.then(measure),
+            modifier = modifier.then(barColumn.modifier),
         ) {
-            Column(Modifier.fillMaxWidth().windowInsetsPadding(inset), content = content)
+            Column(Modifier.fillMaxWidth().windowInsetsPadding(barColumn.inset), content = content)
         }
         return
     }

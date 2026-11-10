@@ -4,9 +4,15 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.findRootCoordinates
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
@@ -63,17 +69,34 @@ val WindowInsets.Companion.verticalBarColumn: WindowInsets
     }
 
 /**
- * [WindowInsets.Companion.verticalBarColumn] cut to the part a sheet centred in the window and at most
- * [maxWidth] wide covers: on a wide window a capped sheet can stop short of the column.
+ * [inset] is the part of the bar column covered by the layout [modifier] measures, so a sheet capped
+ * short of a wide window pads only what it covers, and a full-width one the whole column. Until
+ * placed, it is the whole column.
  */
+internal class BarColumnCover(val inset: WindowInsets, val modifier: Modifier)
+
 @Composable
-internal fun WindowInsets.Companion.verticalBarColumnUnder(maxWidth: Dp): WindowInsets {
+internal fun rememberBarColumnCover(): BarColumnCover {
     val bars = LocalWindowFeatures.current.verticalBars
-    val windowWidth = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() }
-    return remember(bars, windowWidth, maxWidth) {
-        val width = minOf(windowWidth, maxWidth)
-        bars.insetOf(bars?.overlap(left = (windowWidth - width) / 2, width = width, windowWidth = windowWidth) ?: 0.dp)
+    val density = LocalDensity.current
+    var covered by remember { mutableStateOf<Dp?>(null) }
+    val modifier = remember(bars, density) {
+        if (bars == null) {
+            Modifier
+        } else {
+            Modifier.onPlaced { coordinates ->
+                with(density) {
+                    covered = bars.overlap(
+                        left = coordinates.positionInRoot().x.toDp(),
+                        width = coordinates.size.width.toDp(),
+                        windowWidth = coordinates.findRootCoordinates().size.width.toDp(),
+                    )
+                }
+            }
+        }
     }
+    val inset = remember(bars, covered) { bars.insetOf(covered ?: bars?.columnWidth ?: 0.dp) }
+    return BarColumnCover(inset, modifier)
 }
 
 /**
