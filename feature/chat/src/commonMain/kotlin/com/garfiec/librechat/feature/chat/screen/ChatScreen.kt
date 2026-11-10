@@ -774,21 +774,22 @@ fun ChatScreen(
                                             onSelectApprovalMode = viewModel::selectCodeApprovalMode,
                                         )
                                     }
-                                    // The pull request row: narrow panes only (a wide one has the bar chip),
-                                    // out of the way of a tool-approval pause, and folded to its glyph
+                                    // The pull request row: narrow panes and the rail only (a wide bar has the
+                                    // chip), out of the way of a tool-approval pause, and folded to its glyph
                                     // while a run streams.
                                     val pullRequestState = uiState.pullRequest
                                     val toolPausePending = toolPause != null
+                                    val barHasPullRequestChip = comparisonWide && !this@AdaptiveRailBox.inRail
                                     val pullRequestComposer = remember(
                                         pullRequestState,
-                                        comparisonWide,
+                                        barHasPullRequestChip,
                                         toolPausePending,
                                         isAnyStreaming,
                                         viewModel,
                                     ) {
                                         val pr = pullRequestState.pullRequest
                                         val presentation = pullRequestState.presentation
-                                        if (comparisonWide || toolPausePending || pr == null || presentation == null) {
+                                        if (barHasPullRequestChip || toolPausePending || pr == null || presentation == null) {
                                             null
                                         } else {
                                             PullRequestComposer(
