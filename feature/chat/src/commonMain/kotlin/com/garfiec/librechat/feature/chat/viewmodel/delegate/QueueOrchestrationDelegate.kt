@@ -128,8 +128,9 @@ class QueueOrchestrationDelegate(
      * and the worker re-posts it to the chat route without one, `agents/triggers/host.ts`); rc1's
      * `restoreAgentTriggerModelSpec` (`packages/api/src/modelSpecs/continuation.ts`) puts the
      * conversation's spec back only when its preset names this agent and no other spec shares its
-     * name. Anything else is refused with "No model spec selected", so it stays in the local drain,
-     * which sends the spec.
+     * name. Anything else is accepted, then refused on the re-post with "No model spec selected" (an
+     * error frame the worker retries), and the row is left claimed, blocking the chat's server queue.
+     * So it stays in the local drain, which sends the spec.
      */
     private fun serverOwnedSpec(spec: QueuedMessage): QueuedMessage {
         val state = handle.state

@@ -1138,7 +1138,7 @@
         "symbol": "enforcedSpecRestored"
       },
       "why": "Under `enforce`, a queued turn re-posted without a `spec` runs only when this restores the conversation's spec: an agents spec whose preset `agent_id` is the turn's agent, with a name no other spec shares. `enforcedSpecRestored` copies those conditions to decide which follow-ups may go to the server queue.",
-      "failure_mode": "Upstream narrows the restore and mobile keeps handing those follow-ups to the server, where they are refused with \"No model spec selected\" after the app may be gone. Or it widens and mobile keeps them local, where they are lost with the app."
+      "failure_mode": "Upstream narrows the restore and mobile keeps handing those follow-ups to the server, which accepts them, refuses the re-post with \"No model spec selected\" and leaves the row claimed, blocking that chat's server queue. Or it widens and mobile keeps them local, where they are lost with the app."
     },
     {
       "id": "oauth-browser-flow-routes",
