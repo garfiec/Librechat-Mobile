@@ -6624,6 +6624,244 @@
       },
       "why": "Which fences take a block index (not math, mermaid or single-line) and the `${messageId}_${partIndex ?? 0}_${blockIndex ?? 0}_${toolId}` key (client/src/utils/map.ts mapToolCalls) stored runs are matched by.",
       "failure_mode": "A run's output shows under a different block than on web, or a block's stored runs never show."
+    },
+    {
+      "id": "theme-color-tokens",
+      "upstream": {
+        "file": "packages/data-provider/src/theme.ts",
+        "symbol": "themeColorTokens",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/theme/ThemeRole.kt",
+        "symbol": "ThemeRole"
+      },
+      "why": "Every colour role a server theme may name. A role missing here is dropped from the server's theme as unknown. Generated: rerun scripts/generate-theme-palettes.py, which fails on a token it cannot place.",
+      "failure_mode": "A role upstream added is ignored: the app paints the stock value where the server's theme names its own."
+    },
+    {
+      "id": "theme-renamed-tokens",
+      "upstream": {
+        "file": "packages/data-provider/src/theme.ts",
+        "symbol": "renamedThemeColorTokens",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/theme/ThemeRole.kt",
+        "symbol": "ThemeRole.RENAMED"
+      },
+      "why": "Role names a release shipped and a later one renamed; a theme written with the old name keeps its value. Generated: rerun scripts/generate-theme-palettes.py, which fails on a token it cannot place.",
+      "failure_mode": "A theme naming a role by its old name loses that colour."
+    },
+    {
+      "id": "theme-stock-light",
+      "upstream": {
+        "file": "packages/data-provider/src/themes/default.ts",
+        "symbol": "defaultTheme",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/theme/ThemeRole.kt",
+        "symbol": "ThemeRole.libreChatLight"
+      },
+      "why": "The stock light palette every server theme is laid over. Generated: rerun scripts/generate-theme-palettes.py, which fails on a token it cannot place.",
+      "failure_mode": "Roles a server theme leaves out paint an old stock colour that the web no longer shows."
+    },
+    {
+      "id": "theme-stock-dark",
+      "upstream": {
+        "file": "packages/data-provider/src/themes/dark.ts",
+        "symbol": "darkTheme",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/theme/ThemeRole.kt",
+        "symbol": "ThemeRole.libreChatDark"
+      },
+      "why": "The stock dark palette every server theme is laid over. Generated: rerun scripts/generate-theme-palettes.py, which fails on a token it cannot place.",
+      "failure_mode": "Roles a server theme leaves out paint an old stock colour that the web no longer shows."
+    },
+    {
+      "id": "theme-clickhouse-palette",
+      "upstream": {
+        "file": "packages/client/src/theme/themes/clickhouse.ts",
+        "symbol": "clickHouseLightTheme",
+        "mode": "file"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/theme/ClickHousePalette.kt",
+        "symbol": "ClickHousePalette"
+      },
+      "why": "The bundled `clickhouse` theme lives in the web client, never on the wire: a server naming it sends only the name. Watches the whole file, since the light and dark maps and the appearance (not yet read) are all here. Generated: rerun scripts/generate-theme-palettes.py, which fails on a token it cannot place.",
+      "failure_mode": "A server on `theme: clickhouse` paints an outdated ClickHouse palette."
+    },
+    {
+      "id": "theme-bundled-names",
+      "upstream": {
+        "file": "packages/data-provider/src/theme.ts",
+        "symbol": "bundledThemeNames",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/theme/ServerTheme.kt",
+        "symbol": "bundledTheme"
+      },
+      "why": "The names `interface.theme` may give instead of a definition. Each needs its palette mirrored (only `clickhouse` has one; `librechat` is the stock palette).",
+      "failure_mode": "A new bundled name reads as Invalid and the server's theme is ignored."
+    },
+    {
+      "id": "theme-definition-validation",
+      "upstream": {
+        "file": "packages/data-provider/src/theme.ts",
+        "symbol": "collectThemeIssues",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/theme/ServerTheme.kt",
+        "symbol": "readServerTheme / readMode"
+      },
+      "why": "Which inline definitions the client paints and which it ignores: fields, version, modes, colour token names and values. Appearance and brand values are checked for shape only.",
+      "failure_mode": "The app ignores a theme the web paints (it shows Switchboard's own look instead), or paints one the web ignores."
+    },
+    {
+      "id": "theme-rgb-format",
+      "upstream": {
+        "file": "packages/data-provider/src/theme.ts",
+        "symbol": "isThemeRGB",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/theme/ServerTheme.kt",
+        "symbol": "parseThemeRgb"
+      },
+      "why": "The \"R G B\" colour format of every theme role.",
+      "failure_mode": "A theme in a new colour format reads as Invalid and is ignored."
+    },
+    {
+      "id": "theme-resolve",
+      "upstream": {
+        "file": "packages/data-provider/src/themes/registry.ts",
+        "symbol": "resolveTheme",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/theme/ServerThemeResolver.kt",
+        "symbol": "resolve"
+      },
+      "why": "How the web fills the roles a theme leaves out: stock palette, theme roles, then each one-off fallback in this function. Ported rule for rule.",
+      "failure_mode": "A partial server theme resolves a role differently from the web: the app paints the stock colour where the browser follows the theme's own source role, or the reverse. Nothing errors; ServerThemeUpstreamParityTest only catches it once its expectations are regenerated."
+    },
+    {
+      "id": "theme-layer-role-sources",
+      "upstream": {
+        "file": "packages/data-provider/src/themes/registry.ts",
+        "symbol": "layerRoleSources",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/theme/ServerThemeResolver.kt",
+        "symbol": "LAYER_SOURCES"
+      },
+      "why": "Layering roles (page canvas, sidebar, composer, menu, card...) and the surface each followed before it had a name.",
+      "failure_mode": "A partial server theme resolves a role differently from the web: the app paints the stock colour where the browser follows the theme's own source role, or the reverse. Nothing errors; ServerThemeUpstreamParityTest only catches it once its expectations are regenerated."
+    },
+    {
+      "id": "theme-overlay-fallback-sources",
+      "upstream": {
+        "file": "packages/data-provider/src/themes/registry.ts",
+        "symbol": "overlayFallbackSources",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/theme/ServerThemeResolver.kt",
+        "symbol": "OVERLAY_SOURCES"
+      },
+      "why": "Tooltip, error alert and category icon roles and the role each was painted in before.",
+      "failure_mode": "A partial server theme resolves a role differently from the web: the app paints the stock colour where the browser follows the theme's own source role, or the reverse. Nothing errors; ServerThemeUpstreamParityTest only catches it once its expectations are regenerated."
+    },
+    {
+      "id": "theme-primary-ink-roles",
+      "upstream": {
+        "file": "packages/data-provider/src/themes/registry.ts",
+        "symbol": "primaryInkRoles",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/theme/ServerThemeResolver.kt",
+        "symbol": "PRIMARY_INK_ROLES"
+      },
+      "why": "Inks split out of the primary text colour.",
+      "failure_mode": "A partial server theme resolves a role differently from the web: the app paints the stock colour where the browser follows the theme's own source role, or the reverse. Nothing errors; ServerThemeUpstreamParityTest only catches it once its expectations are regenerated."
+    },
+    {
+      "id": "theme-mark-neighbourhood",
+      "upstream": {
+        "file": "packages/data-provider/src/themes/registry.ts",
+        "symbol": "MARK_NEIGHBOURHOOD",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/theme/ServerThemeResolver.kt",
+        "symbol": "MARK_NEIGHBOURHOOD"
+      },
+      "why": "The roles whose presence keeps the verified mark in the theme's success fill.",
+      "failure_mode": "A partial server theme resolves a role differently from the web: the app paints the stock colour where the browser follows the theme's own source role, or the reverse. Nothing errors; ServerThemeUpstreamParityTest only catches it once its expectations are regenerated."
+    },
+    {
+      "id": "theme-focus-fallbacks",
+      "upstream": {
+        "file": "packages/data-provider/src/themes/registry.ts",
+        "symbol": "focusFallbacks",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/theme/ServerThemeResolver.kt",
+        "symbol": "resolve (FOCUS_OUTLINE, FOCUS_CONTROL, BORDER_FIELD_FOCUS)"
+      },
+      "why": "Focus roles for a theme that predates them.",
+      "failure_mode": "A partial server theme resolves a role differently from the web: the app paints the stock colour where the browser follows the theme's own source role, or the reverse. Nothing errors; ServerThemeUpstreamParityTest only catches it once its expectations are regenerated."
+    },
+    {
+      "id": "theme-pressed-fallbacks",
+      "upstream": {
+        "file": "packages/data-provider/src/themes/registry.ts",
+        "symbol": "pressedFallbacks",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/theme/ServerThemeResolver.kt",
+        "symbol": "resolve (SURFACE_PRESSED, SURFACE_INVERTED_PRESSED)"
+      },
+      "why": "Pressed fills for a theme that predates them.",
+      "failure_mode": "A partial server theme resolves a role differently from the web: the app paints the stock colour where the browser follows the theme's own source role, or the reverse. Nothing errors; ServerThemeUpstreamParityTest only catches it once its expectations are regenerated."
+    },
+    {
+      "id": "theme-primary-button-fallbacks",
+      "upstream": {
+        "file": "packages/data-provider/src/themes/registry.ts",
+        "symbol": "primaryButtonFallbacks",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/theme/ServerThemeResolver.kt",
+        "symbol": "resolve (BUTTON_PRIMARY, BUTTON_PRIMARY_HOVER)"
+      },
+      "why": "The primary Button fills for a theme that predates them.",
+      "failure_mode": "A partial server theme resolves a role differently from the web: the app paints the stock colour where the browser follows the theme's own source role, or the reverse. Nothing errors; ServerThemeUpstreamParityTest only catches it once its expectations are regenerated."
+    },
+    {
+      "id": "theme-control-border-fallback",
+      "upstream": {
+        "file": "packages/data-provider/src/themes/registry.ts",
+        "symbol": "controlBorderFallback",
+        "mode": "block"
+      },
+      "kotlin": {
+        "file": "core/model/src/commonMain/kotlin/com/garfiec/librechat/core/model/config/theme/ServerThemeResolver.kt",
+        "symbol": "resolve (BORDER_CONTROL)"
+      },
+      "why": "The control outline for a theme that predates it.",
+      "failure_mode": "A partial server theme resolves a role differently from the web: the app paints the stock colour where the browser follows the theme's own source role, or the reverse. Nothing errors; ServerThemeUpstreamParityTest only catches it once its expectations are regenerated."
     }
   ]
 }

@@ -5,6 +5,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import com.garfiec.librechat.core.model.config.theme.ThemeRole
 import com.garfiec.librechat.core.model.files.FileKind
 
 /**
@@ -18,7 +19,7 @@ data class ThemeTokens(
     val status: StatusColors,
     /** `series-1..8`, in slot order. */
     val series: List<Color>,
-    /** A fill for every [FileKind], each carrying a white glyph at 4.5:1. */
+    /** A fill for every [FileKind], under a white glyph: Switchboard's at 4.5:1, a server's as it gives them, like the web. */
     val fileKinds: Map<FileKind, Color>,
 ) {
     init {
@@ -44,6 +45,46 @@ data class ThemeTokens(
                 fileKinds = FileKind.entries.associateWith { FileKindColors.switchboard(it, dark) },
             )
         }
+
+        /**
+         * A server theme's tokens, from its colours resolved for one mode (24-bit RGB for every role).
+         * File kinds the web has no role for keep Switchboard's fill.
+         */
+        fun server(colors: Map<ThemeRole, Int>, dark: Boolean): ThemeTokens = ThemeTokens(
+            status = StatusColors(
+                success = colors.color(ThemeRole.STATUS_SUCCESS),
+                info = colors.color(ThemeRole.STATUS_INFO),
+                warning = colors.color(ThemeRole.STATUS_WARNING),
+                neutral = colors.color(ThemeRole.STATUS_NEUTRAL),
+                error = colors.color(ThemeRole.STATUS_ERROR),
+            ),
+            series = SERVER_SERIES.map(colors::color),
+            fileKinds = FileKind.entries.associateWith { kind ->
+                SERVER_FILE_ROLES[kind]?.let(colors::color) ?: FileKindColors.switchboard(kind, dark)
+            },
+        )
+
+        private val SERVER_SERIES = listOf(
+            ThemeRole.SERIES_1,
+            ThemeRole.SERIES_2,
+            ThemeRole.SERIES_3,
+            ThemeRole.SERIES_4,
+            ThemeRole.SERIES_5,
+            ThemeRole.SERIES_6,
+            ThemeRole.SERIES_7,
+            ThemeRole.SERIES_8,
+        )
+
+        private val SERVER_FILE_ROLES = mapOf(
+            FileKind.DOCUMENT to ThemeRole.FILE_DOCUMENT,
+            FileKind.PDF to ThemeRole.FILE_DOCUMENT,
+            FileKind.TEXT to ThemeRole.FILE_DOCUMENT,
+            FileKind.SPREADSHEET to ThemeRole.FILE_SHEET,
+            FileKind.CODE to ThemeRole.FILE_CODE,
+            FileKind.AUDIO to ThemeRole.FILE_AUDIO,
+            FileKind.VIDEO to ThemeRole.FILE_VIDEO,
+            FileKind.FILE to ThemeRole.FILE_GENERIC,
+        )
 
         private const val SUCCESS_SLOT = 7
         private const val WARNING_SLOT = 4
