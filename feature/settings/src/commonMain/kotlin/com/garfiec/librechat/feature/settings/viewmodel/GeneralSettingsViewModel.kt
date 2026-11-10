@@ -52,6 +52,8 @@ data class GeneralSettingsUiState(
      * The About section shows an explicit "Unknown" in that case rather than hiding the row.
      */
     val serverVersion: String? = null,
+    /** `StartupConfig.adminPanelURL` when the server sets one: Administration's Admin panel row. */
+    val adminPanelUrl: String? = null,
 )
 
 /** Dialog flags held apart from the observed preferences they are merged with. */
@@ -68,7 +70,7 @@ private data class GeneralPrefs(
     val advancedSearch: Boolean,
 )
 
-/** Backs the General tab: language, date & time, tablet gesture, and About. No network loads. */
+/** Backs Language & region, About, Administration's admin panel link and the sidebar gesture. No network loads. */
 class GeneralSettingsViewModel(
     private val settingsDataStore: SettingsDataStore,
     private val dateTimePrefsStore: DateTimePrefsStore,
@@ -114,6 +116,7 @@ class GeneralSettingsViewModel(
             serverTrustedViaUserCa = server.trustedViaUserCa,
             buildInfo = config?.buildInfo,
             serverVersion = version,
+            adminPanelUrl = config?.adminPanelURL?.takeIf { it.isNotBlank() },
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, initial)
 

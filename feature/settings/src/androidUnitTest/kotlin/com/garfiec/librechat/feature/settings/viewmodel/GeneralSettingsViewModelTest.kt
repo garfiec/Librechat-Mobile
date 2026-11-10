@@ -12,6 +12,7 @@ import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.ServerDataStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.ConfigRepository
+import com.garfiec.librechat.core.model.config.StartupConfig
 import com.garfiec.librechat.core.network.client.CertificateAuthority
 import com.garfiec.librechat.core.network.client.CertificateTrustRegistry
 import com.google.common.truth.Truth.assertThat
@@ -42,6 +43,7 @@ class GeneralSettingsViewModelTest {
     private val selectedLanguageFlow = MutableStateFlow(SettingsDataStore.DEFAULT_LANGUAGE)
     private val dateTimePrefsFlow = MutableStateFlow(DateTimeFormatPrefs())
     private val version = MutableStateFlow<String?>(null)
+    private val startupConfig = MutableStateFlow<StartupConfig?>(null)
     private val certificateTrust = CertificateTrustRegistry()
     private val preferenceStore = mockk<PreferenceStore>(relaxed = true) {
         every { observe(AppPreferences.AdvancedSearch) } returns MutableStateFlow(false)
@@ -56,7 +58,7 @@ class GeneralSettingsViewModelTest {
         every { dateTimePrefsStore.prefs } returns dateTimePrefsFlow
         coEvery { dateTimePrefsStore.set(any()) } answers { dateTimePrefsFlow.value = firstArg() }
         every { serverDataStore.currentUrlFlow } returns MutableStateFlow("https://chat.example.com")
-        every { configRepository.startupConfig } returns MutableStateFlow(null)
+        every { configRepository.startupConfig } returns startupConfig
         every { configRepository.detectedBackendVersion } returns version
     }
 
@@ -165,5 +167,20 @@ class GeneralSettingsViewModelTest {
         advanceUntilIdle()
 
         coVerify { settingsDataStore.setTabletSidebarGestureEnabled(false) }
+    }
+
+    @Test
+    fun `the admin panel link follows the server's adminPanelURL`() = runTest {
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.adminPanelUrl).isNull()
+
+        startupConfig.value = StartupConfig(adminPanelURL = "https://admin.example.com")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.adminPanelUrl).isEqualTo("https://admin.example.com")
+
+        startupConfig.value = StartupConfig(adminPanelURL = " ")
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.adminPanelUrl).isNull()
     }
 }

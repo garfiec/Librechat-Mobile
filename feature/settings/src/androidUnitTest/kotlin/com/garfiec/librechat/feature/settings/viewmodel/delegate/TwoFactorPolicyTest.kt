@@ -19,4 +19,12 @@ class TwoFactorPolicyTest {
         assertThat(isTwoFactorRequiredFor(false, "local")).isFalse()
         assertThat(isTwoFactorRequiredFor(null, "local")).isFalse()
     }
+
+    @Test
+    fun `2FA applies to password, LDAP and unknown providers`() {
+        assertThat(isTwoFactorPolicyProvider("local")).isTrue()
+        assertThat(isTwoFactorPolicyProvider("ldap")).isTrue()
+        assertThat(isTwoFactorPolicyProvider(null)).isTrue()
+        assertThat(isTwoFactorPolicyProvider("google")).isFalse()
+    }
 }

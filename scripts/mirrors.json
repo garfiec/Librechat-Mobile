@@ -4654,8 +4654,8 @@
         "file": "feature/settings/src/commonMain/kotlin/com/garfiec/librechat/feature/settings/viewmodel/delegate/TwoFactorSecurityDelegate.kt",
         "symbol": "TWO_FACTOR_POLICY_PROVIDERS"
       },
-      "why": "The account providers enforced 2FA applies to (local, ldap). Disable 2FA is hidden only for them while twoFactorAuthenticationRequired is on, because only for them does the server refuse it.",
-      "failure_mode": "Upstream adds a provider: Disable 2FA stays visible for it and fails with a 403 when tapped."
+      "why": "The account providers 2FA applies to (local, ldap). Account › Security offers 2FA only to them (web's isTwoFactorPolicyProvider), and Disable 2FA is hidden for them while twoFactorAuthenticationRequired is on, because only for them does the server refuse it.",
+      "failure_mode": "Upstream adds a provider: its accounts get no 2FA row, and Disable 2FA stays visible for it and fails with a 403 when tapped."
     },
     {
       "id": "mcp-oauth-csrf-cookie",

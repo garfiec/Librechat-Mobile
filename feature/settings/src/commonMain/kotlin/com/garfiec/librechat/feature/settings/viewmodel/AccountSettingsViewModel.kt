@@ -29,6 +29,7 @@ import com.garfiec.librechat.feature.settings.viewmodel.delegate.EmailChangeNoti
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.ProviderKeysSummary
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.ProviderKeysSummaryDelegate
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.TwoFactorSecurityDelegate
+import com.garfiec.librechat.feature.settings.viewmodel.delegate.isTwoFactorPolicyProvider
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.isTwoFactorRequiredFor
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
@@ -62,8 +63,8 @@ data class AccountSettingsUiState(
      * See [profileLoadError].
      */
     val error: String? = null,
-    /** True only when the authenticated user's system role is ADMIN. Gates the
-     *  admin role-skills row fail-CLOSED (defaults false until the profile loads). */
+    /** True only when the authenticated user's system role is ADMIN. Gates Administration
+     *  fail-CLOSED (defaults false until the profile loads). */
     val isAdmin: Boolean = false,
     // Balance
     /**
@@ -104,6 +105,8 @@ data class AccountSettingsUiState(
      * account's provider; the server then refuses to disable it, so the action is hidden.
      */
     val canDisableTwoFactor: Boolean = true,
+    /** The 2FA row: a loaded account whose provider 2FA applies to. See [isTwoFactorPolicyProvider]. */
+    val showTwoFactor: Boolean = false,
     /** The Provider Keys row's summary; null hides the row (no endpoint takes a user-provided value). */
     val providerKeysSummary: ProviderKeysSummary = ProviderKeysSummary.Hidden,
     // Email change (v0.8.9-rc1)
@@ -160,7 +163,7 @@ internal fun BalanceUiState.presentedFor(config: StartupConfig?): BalanceUiState
     )
 }
 
-/** Backs the Account tab: profile, avatar, balance, two-factor, sign out and account deletion. */
+/** Backs the Account page and the Settings home's profile card: profile, avatar, balance, two-factor, sign out and account deletion. */
 @Suppress("LongParameterList", "TooManyFunctions") // one-line forwarders to the two delegates
 class AccountSettingsViewModel(
     userRepository: UserRepository,
@@ -216,6 +219,7 @@ class AccountSettingsViewModel(
                 balance = state.balance.presentedFor(config),
                 providerKeysSummary = providerKeysSummary,
                 canDisableTwoFactor = !isTwoFactorRequiredFor(config?.twoFactorAuthenticationRequired, state.user?.provider),
+                showTwoFactor = state.user != null && isTwoFactorPolicyProvider(state.user.provider),
                 canChangeEmail = isEmailChangeAvailable(config, state.user?.provider, backend),
                 showPasskeys = showPasskeys,
                 passkeyCount = state.passkeyCount.takeIf { showPasskeys },

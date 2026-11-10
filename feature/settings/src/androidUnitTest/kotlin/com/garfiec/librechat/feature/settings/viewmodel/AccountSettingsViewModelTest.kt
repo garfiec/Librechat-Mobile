@@ -477,6 +477,21 @@ class AccountSettingsViewModelTest {
     }
 
     @Test
+    fun `2FA is offered to password, LDAP and unknown accounts only, once the profile loads`() = runTest {
+        coEvery { userRepository.getUser() } returns Result.Error(message = "Network error")
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.showTwoFactor).isFalse()
+
+        for ((provider, shown) in listOf("local" to true, "ldap" to true, null to true, "openid" to false)) {
+            coEvery { userRepository.getUser() } returns Result.Success(testUser.copy(provider = provider))
+            viewModel.retry()
+            advanceUntilIdle()
+            assertThat(viewModel.uiState.value.showTwoFactor).isEqualTo(shown)
+        }
+    }
+
+    @Test
     fun `retry reloads user profile`() = runTest {
         coEvery { userRepository.getUser() } returns Result.Success(testUser)
 
