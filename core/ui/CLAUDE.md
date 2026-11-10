@@ -42,8 +42,10 @@ Material 3 theme and shared Compose components for all feature modules. Purely p
 ### Secrets and autofill
 - `SecretTextField`: use it (not a new reveal toggle) for a non-login secret (API keys, tokens, PDF
   passwords). Reveal is hoisted so the caller can re-mask on ON_PAUSE.
-- `Modifier.excludeFromAutofill()`: for such masked secret fields (Android only).
+- `Modifier.excludeFromAutofill()`: `SecretTextField` applies it; add it only to a masked field outside it (Android only).
 - `KeyboardOptions.withIosTextContentType()`: iOS `textContentType` roles; no-op on Android.
+- A field whose text must arrive as typed passes `UrlKeyboardOptions` (URLs) or `VerbatimKeyboardOptions`
+  (codes, identifiers, JSON); Compose otherwise leaves autocorrect on.
 
 ### Keyboard dismissal (`components/ClearFocusOnTap.kt`)
 `Modifier.clearFocusOnTap()` clears focus on a tap nothing else handled (both platforms). iOS has no Back key, so without

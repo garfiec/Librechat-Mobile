@@ -13,6 +13,7 @@ class LibreChatRuleSetProvider : RuleSetProvider {
             listOf(
                 AccountScopedDaoRule(config),
                 AlertDialogNestedScrollRule(config),
+                MaskedFieldKeyboardRule(config),
             ),
         )
 }

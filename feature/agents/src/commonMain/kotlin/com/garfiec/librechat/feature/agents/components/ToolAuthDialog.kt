@@ -13,13 +13,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
-import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
-import com.garfiec.librechat.core.ui.components.MaskedSecretKeyboardOptions
+import com.garfiec.librechat.core.ui.components.SecretTextField
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
-import com.garfiec.librechat.core.ui.components.excludeFromAutofill
 import com.garfiec.librechat.feature.agents.resources.*
 import com.garfiec.librechat.feature.agents.resources.Res
 import org.jetbrains.compose.resources.stringResource
@@ -46,6 +45,8 @@ fun ToolAuthDialog(
     onRevoke: (() -> Unit)? = null,
 ) {
     var value by remember { mutableStateOf(initialValue) }
+    var revealed by remember { mutableStateOf(false) }
+    LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { revealed = false }
     AdaptiveAlertDialog(
         modifier = Modifier.clearFocusOnTap(),
         onDismissRequest = onDismiss,
@@ -60,14 +61,13 @@ fun ToolAuthDialog(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
-                AdaptiveOutlinedTextField(
+                SecretTextField(
                     value = value,
                     onValueChange = { value = it },
+                    revealed = revealed,
+                    onRevealedChange = { revealed = it },
                     label = { Text(fieldLabel) },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = MaskedSecretKeyboardOptions,
-                    modifier = Modifier.fillMaxWidth().excludeFromAutofill(),
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         },
