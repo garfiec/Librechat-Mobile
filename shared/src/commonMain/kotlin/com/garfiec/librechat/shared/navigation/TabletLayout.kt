@@ -65,12 +65,12 @@ fun TabletLayout(
     // The sidebar is an authenticated surface, same rule as PhoneLayout's drawer gestures: a
     // logged-out deep link (artifact viewer atop the auth base) is not in the auth flow either.
     val showSidebar = isLoggedIn && !navigator.isInAuthFlow
-    // Search's list and preview pane need the whole width (an unfolded Fold leaves it under the
-    // two-pane threshold beside the sidebar), so the sidebar steps aside while Search is on top.
-    // Nothing is persisted: closing Search brings it back as it was.
-    val searchOpen = navigator.currentRoute is Search
+    // Search's list and preview pane, and the Settings home's list and page, need the whole width (an
+    // unfolded Fold leaves them under the two-pane threshold beside the sidebar), so the sidebar steps
+    // aside while either is on top. Nothing is persisted: leaving brings it back as it was.
+    val sidebarAside = navigator.currentRoute.let { it is Search || it is SettingsTabbed }
     val sidebarReveal by animateFloatAsState(
-        targetValue = if (searchOpen) 0f else 1f,
+        targetValue = if (sidebarAside) 0f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
         label = "sidebarReveal",
     )
@@ -106,7 +106,7 @@ fun TabletLayout(
 
     // Back press closes sidebar before navigating away. Gated on the sidebar being shown: armed while
     // hidden, it swallows back on the root auth screen and silently persists the sidebar closed.
-    PlatformBackHandler(enabled = showSidebar && isSidebarOpen && !searchOpen) {
+    PlatformBackHandler(enabled = showSidebar && isSidebarOpen && !sidebarAside) {
         navHostViewModel.setTabletSidebarOpen(false)
     }
 
@@ -131,7 +131,7 @@ fun TabletLayout(
     }
 
     if (showSidebar) {
-        val swipeModifier = if (gestureEnabled && !searchOpen) {
+        val swipeModifier = if (gestureEnabled && !sidebarAside) {
             Modifier.pointerInput(sidebarWidthPx, dragSign) {
                 val velocityTracker = VelocityTracker()
                 detectHorizontalDragGestures(
