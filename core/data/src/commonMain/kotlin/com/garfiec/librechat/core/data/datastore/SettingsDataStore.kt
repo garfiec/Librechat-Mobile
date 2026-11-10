@@ -107,10 +107,6 @@ class SettingsDataStore(
         ChatHeaderAlignment.fromString(prefs[KEY_CHAT_HEADER_ALIGNMENT])
     }
 
-    val autoScrollEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
-        prefs[KEY_AUTO_SCROLL_ENABLED] ?: true
-    }
-
     /**
      * Whether a reply's reasoning block starts expanded. The web's "Open Thinking Dropdowns by
      * Default", and like it off by default: hiding reasoning outright was never an option here,
@@ -423,12 +419,6 @@ class SettingsDataStore(
     suspend fun setChatHeaderAlignment(alignment: ChatHeaderAlignment) {
         dataStore.edit { prefs ->
             prefs[KEY_CHAT_HEADER_ALIGNMENT] = alignment.toStorageString()
-        }
-    }
-
-    suspend fun setAutoScrollEnabled(enabled: Boolean) {
-        dataStore.edit { prefs ->
-            prefs[KEY_AUTO_SCROLL_ENABLED] = enabled
         }
     }
 
@@ -928,7 +918,6 @@ class SettingsDataStore(
         private val KEY_STARRED_MODELS_DISPLAY = stringPreferencesKey("starred_models_display")
         private val KEY_CHAT_HEADER_CONTENT = stringPreferencesKey("chat_header_content")
         private val KEY_CHAT_HEADER_ALIGNMENT = stringPreferencesKey("chat_header_alignment")
-        private val KEY_AUTO_SCROLL_ENABLED = booleanPreferencesKey("auto_scroll_enabled")
         private val KEY_SHOW_THINKING_BLOCKS = booleanPreferencesKey("show_thinking_blocks")
         private val KEY_CONTEXT_BAR_PLACEMENT = stringPreferencesKey("context_bar_placement")
         private val KEY_DURING_RUN_ACTION = stringPreferencesKey("during_run_action")
