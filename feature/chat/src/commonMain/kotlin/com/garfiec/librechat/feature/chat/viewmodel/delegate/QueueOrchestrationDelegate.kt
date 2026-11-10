@@ -14,6 +14,7 @@ import com.garfiec.librechat.feature.chat.util.isImageType
 import com.garfiec.librechat.feature.chat.util.requiresSpec
 import com.garfiec.librechat.feature.chat.util.storedAgainst
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
+import com.garfiec.librechat.feature.chat.viewmodel.ChatUiState
 import com.garfiec.librechat.feature.chat.viewmodel.ChatRequestBuilder
 import com.garfiec.librechat.feature.chat.viewmodel.ComposerSnapshot
 import com.garfiec.librechat.feature.chat.viewmodel.DraftRestore
@@ -113,17 +114,27 @@ class QueueOrchestrationDelegate(
      * `clientRequestId` is minted here and not taken from [QueuedMessage.localId]: localId
      * survives an edit, and reusing an id for different text is a 409.
      *
-     * Never under `enforce` ([requiresSpec]). The server's queued turn carries no spec: the enqueue
-     * schema has no such field (upstream v0.8.8 `packages/data-provider/src/types/queuedTurns.ts`),
-     * and the worker re-posts the turn to the chat route without one
-     * (`packages/api/src/agents/triggers/host.ts`), where `buildEndpointOption` refuses it with
-     * "No model spec selected", whatever spec the composer held. The local drain sends the spec and
-     * runs the send preflight.
+     * Under `enforce` ([requiresSpec]) only for a served agents spec on v0.8.9-rc1+
+     * ([enforcedSpecRestored]). The queued turn carries no spec (the enqueue schema has no such field,
+     * and the worker re-posts it to the chat route without one, `agents/triggers/host.ts`); rc1's
+     * `restoreAgentTriggerModelSpec` (`packages/api/src/modelSpecs/continuation.ts`) puts the
+     * conversation's spec back only when its preset names this agent and no other spec shares its
+     * name. Anything else is refused with "No model spec selected", so it stays in the local drain,
+     * which sends the spec.
      */
+    private fun ChatUiState.enforcedSpecRestored(): Boolean {
+        if (!gates.serverQueueEnforcedAgentSpecSupported) return false
+        val active = activeSpec ?: return false
+        val preset = active.preset ?: return false
+        return preset.endpoint == EndpointConstants.AGENTS &&
+            preset.agentId == selectedModel &&
+            modelSpecs?.list.orEmpty().count { it.name == active.name } == 1
+    }
+
     private fun serverOwnedSpec(spec: QueuedMessage): QueuedMessage {
         val state = handle.state
         if (!state.gates.serverQueueSupported) return spec
-        if (state.modelSpecs.requiresSpec) return spec
+        if (state.modelSpecs.requiresSpec && !state.enforcedSpecRestored()) return spec
         // Without v2 the server would run the turn under the machine's own permissions.
         if (spec.codeWorkspace?.approvalMode != null && !state.gates.serverQueueApprovalModeSupported) return spec
         if (state.selectedEndpoint != EndpointConstants.AGENTS) return spec

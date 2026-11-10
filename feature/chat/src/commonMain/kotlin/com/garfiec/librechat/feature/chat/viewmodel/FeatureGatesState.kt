@@ -173,6 +173,12 @@ data class FeatureGatesState(
      */
     val serverQueueApprovalModeSupported: Boolean = false,
     /**
+     * Whether the server restores an enforced agents spec on a queued turn
+     * (`restoreAgentTriggerModelSpec`, v0.8.9-rc1). Below it the worker's re-post has no spec and
+     * `enforce` refuses it, so under `enforce` a follow-up stays in the local drain. Fail-closed.
+     */
+    val serverQueueEnforcedAgentSpecSupported: Boolean = false,
+    /**
      * Whether the server validates a saved agent's upload under the agent's provider rather than
      * `agents` (`resolveUploadEndpoint`, v0.8.8-rc3, #15763). Read by
      * [ChatUiState.fileConfigEndpoint].

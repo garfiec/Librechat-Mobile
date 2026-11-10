@@ -1119,6 +1119,12 @@ class ChatViewModel(
                     minVersion = "0.8.8",
                     landedDate = "2026-09-26",
                 )
+                // restoreAgentTriggerModelSpec (20701bed0, landed 2026-10-22): dated the day AFTER landing.
+                val serverQueueEnforcedAgentSpec = BackendVersion.supportsFeature(
+                    detected = detected,
+                    minVersion = "0.8.9-rc1",
+                    landedDate = "2026-10-23",
+                )
                 // thinkingDisplay `updates` (40bb16ed, landed 2026-09-28): PRESENT only, dated the day
                 // AFTER landing. Keep in step with AgentCapabilitiesDelegate; see VERSION_GATES.md.
                 val thinkingDisplayUpdates = BackendVersion.supportsFeature(
@@ -1141,6 +1147,7 @@ class ChatViewModel(
                             subagentThreadsSupported = subagentThreads,
                             serverQueueSupported = serverQueue,
                             serverQueueApprovalModeSupported = serverQueueApprovalMode,
+                            serverQueueEnforcedAgentSpecSupported = serverQueueEnforcedAgentSpec,
                             providerScopedUploadsSupported = providerScopedUploads,
                             backendVersion = detected?.version,
                         ),

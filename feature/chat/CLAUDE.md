@@ -170,8 +170,10 @@ rows). A cached conversation with no spec is refetched once per account and proc
 the fetched config, not the selection; a failed refresh retries on the next open.
 - Compare's second lane follows the same rule though the server checks only the primary: its picker
   and quick picks list no raw rows (`SendBlockReason.SelectSecondaryModel`).
-- A follow-up queued during an agents run stays on the local drain
-  (`QueueOrchestrationDelegate.serverOwnedSpec`): the server's queued turn carries no `spec`.
+- A follow-up queued during an agents run goes to the server queue only on v0.8.9-rc1+ for a served
+  agents spec whose preset names the chat's agent and whose name is unique: the queued turn carries
+  no `spec` and only those are restored server-side. Anything else stays on the local drain
+  (`QueueOrchestrationDelegate.serverOwnedSpec`).
 
 **A user-key endpoint with no key is refused before sending** (`SendBlockReason.ApiKeyRequired`);
 the send goes through while the key state is loading or unknown. With no picker the reason is text only.
