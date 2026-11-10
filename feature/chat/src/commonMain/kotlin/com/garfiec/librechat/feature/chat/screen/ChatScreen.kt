@@ -53,6 +53,7 @@ import com.garfiec.librechat.core.ui.platform.verticalBarColumn
 import com.garfiec.librechat.core.ui.theme.chatColors
 import com.garfiec.librechat.core.ui.websearch.WebSearchKeysSheet
 import com.garfiec.librechat.feature.chat.components.AskUserQuestionPanel
+import com.garfiec.librechat.feature.chat.components.CONTEXT_RING_ACTION_ID
 import com.garfiec.librechat.feature.chat.components.ChatComposer
 import com.garfiec.librechat.feature.chat.components.ChatFloatingTopBar
 import com.garfiec.librechat.feature.chat.components.ChatOptionsPage
@@ -663,7 +664,8 @@ fun ChatScreen(
                         onSnoozeCompact = viewModel::snoozeCompactNudge,
                         compactSuggested = uiState.compactNudgeOnToolsButton,
                         contextBarPlacement = uiState.contextBarPlacement,
-                        contextRingInRail = inRail,
+                        // A rail shortened by the keyboard drops the ring; the composer then draws it.
+                        contextRingInRail = railShowsBottomAction(CONTEXT_RING_ACTION_ID),
                     )
                     Box(
                         modifier = Modifier

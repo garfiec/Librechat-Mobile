@@ -204,7 +204,7 @@ internal fun rememberChatTopBarSpec(
                 sections = menuSections,
             )
             ChatBarItem.CONTEXT_RING -> contextRing?.let { ring ->
-                BarAction.Custom(id = "context_ring", label = stringResource(Res.string.context_usage_label)) { ContextRing(ring) }
+                BarAction.Custom(id = CONTEXT_RING_ACTION_ID, label = stringResource(Res.string.context_usage_label)) { ContextRing(ring) }
             }
         }
     }
@@ -219,6 +219,9 @@ internal fun rememberChatTopBarSpec(
         bottomActions = statusActions,
     )
 }
+
+/** The context ring's id in the rail's bottom group. */
+internal const val CONTEXT_RING_ACTION_ID = "context_ring"
 
 /**
  * Background tasks as a bar icon: the running count as its badge, red while a result failed to arrive.

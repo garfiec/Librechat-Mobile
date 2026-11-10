@@ -169,11 +169,16 @@ class AdaptiveSideRailTest {
         val bottom = listOf(icon("tasks"), ring)
 
         // 152 + 12 + 44 = 208 keeps one bottom item; a point less keeps none.
-        assertEquals(listOf("tasks"), railGroups(spec(actions, bottom), 208.dp, 8.dp, "").bottom.map { it.id })
-        assertEquals(emptyList(), railGroups(spec(actions, bottom), 207.dp, 8.dp, "").bottom)
+        val one = railGroups(spec(actions, bottom), 208.dp, 8.dp, "")
+        assertEquals(listOf("tasks"), one.bottom.map { it.id })
+        assertEquals(setOf("ring"), one.dropped)
+        val none = railGroups(spec(actions, bottom), 207.dp, 8.dp, "")
+        assertEquals(emptyList(), none.bottom)
+        assertEquals(setOf("tasks", "ring"), none.dropped)
         // 152 + 12 + 44 + 8 + 44 = 260 keeps both.
         val roomy = railGroups(spec(actions, bottom), 260.dp, 8.dp, "")
         assertEquals(listOf("tasks", "ring"), roomy.bottom.map { it.id })
+        assertEquals(emptySet(), roomy.dropped)
         assertEquals(listOf("a", "more"), roomy.top.map { it.id })
     }
 

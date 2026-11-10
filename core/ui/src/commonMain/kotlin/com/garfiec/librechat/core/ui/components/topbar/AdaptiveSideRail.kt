@@ -93,9 +93,15 @@ internal const val RAIL_OVERFLOW_ID = "rail_overflow"
  *
  * Fills the column's height and keeps below the system zone at its top and above the home indicator,
  * wherever it is placed. Place it on [VerticalBars.side] with absolute alignment; the column ignores RTL.
+ * [onBottomDrop] hears the ids of the bottom actions the rail leaves out, so the screen can show them itself.
  */
 @Composable
-fun AdaptiveSideRail(spec: AdaptiveTopBarSpec, bars: VerticalBars, modifier: Modifier = Modifier) {
+fun AdaptiveSideRail(
+    spec: AdaptiveTopBarSpec,
+    bars: VerticalBars,
+    modifier: Modifier = Modifier,
+    onBottomDrop: (Set<String>) -> Unit = {},
+) {
     val glass = rememberGlassStyle()
     val backdrop = LocalGlassBackdrop.current
     val overflowLabel = stringResource(Res.string.topbar_more_options)
@@ -126,6 +132,8 @@ fun AdaptiveSideRail(spec: AdaptiveTopBarSpec, bars: VerticalBars, modifier: Mod
             val prominentExtra = if (prominent != null) (ProminentGap - gap).coerceAtLeast(0.dp) else 0.dp
             val groups = railGroups(compact, maxHeight - prominentExtra, gap, overflowLabel)
             val top = groups.top
+            val dropped = groups.dropped
+            SideEffect { onBottomDrop(dropped) }
             Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
                 compact.navigation?.let { navigation ->
                     RailNavigation(navigation, glass, backdrop)
@@ -252,8 +260,8 @@ internal fun railSlots(
     return ((room + itemGap) / (itemSize + itemGap)).toInt()
 }
 
-/** What [AdaptiveSideRail] draws: the top group's actions and the bottom group's. */
-internal class RailGroups(val top: List<BarAction>, val bottom: List<BarAction>)
+/** What [AdaptiveSideRail] draws: the top group's actions and the bottom group's, and the ids of the bottom ones left out. */
+internal class RailGroups(val top: List<BarAction>, val bottom: List<BarAction>, val dropped: Set<String>)
 
 /**
  * The rail's groups in [available] height with [itemGap] between items. The bottom group keeps as many
@@ -268,7 +276,7 @@ internal fun railGroups(spec: AdaptiveTopBarSpec, available: Dp, itemGap: Dp, ov
         val slots = railSlots(available, RailItemSize, itemGap, RailGroupGap, hasNavigation, bottom.size)
         val top = railTopActions(spec.actions, slots, overflowLabel)
         if (bottom.isEmpty() || railHeight(hasNavigation, top.size, bottom.size, itemGap) <= available) {
-            return RailGroups(top, bottom)
+            return RailGroups(top, bottom, spec.bottomActions.drop(bottom.size).mapTo(HashSet()) { it.id })
         }
         bottom = bottom.dropLast(1)
     }
@@ -409,6 +417,7 @@ internal fun BoxScope.SlotRail(slot: RailSlot, bars: VerticalBars?) {
             spec = spec,
             bars = bars,
             modifier = Modifier.align(if (bars.side == BarSide.RIGHT) AbsoluteAlignment.TopRight else AbsoluteAlignment.TopLeft),
+            onBottomDrop = { slot.droppedBottomIds = it },
         )
     }
 }
@@ -437,7 +446,10 @@ class RailBoxScope internal constructor(
     internal val slot: RailSlot,
     /** The box draws a rail: its top bar is a heading, and what the bar holds is in the rail. */
     val inRail: Boolean,
-) : BoxScope by box
+) : BoxScope by box {
+    /** The rail holds the bottom action [id]: false once the rail is too short for it, so the screen shows it itself. */
+    fun railShowsBottomAction(id: String): Boolean = inRail && id !in slot.droppedBottomIds
+}
 
 /** Hands the [AdaptiveTopBar] in [bar] to this box's rail while [RailBoxScope.inRail]; else it draws as usual. */
 @Composable
@@ -461,6 +473,9 @@ internal class RailSlot(val parent: RailSlot?) {
         private set
 
     val superseded: Boolean get() = childClaims > 0
+
+    /** The ids of the bottom actions the drawn rail has no room for; none until it measures. */
+    var droppedBottomIds by mutableStateOf<Set<String>>(emptySet())
 
     fun claim(owner: Any, spec: AdaptiveTopBarSpec) {
         this.owner = owner
