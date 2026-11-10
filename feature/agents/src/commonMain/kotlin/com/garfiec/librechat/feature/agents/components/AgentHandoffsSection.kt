@@ -44,6 +44,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveExposedDropdownMenu
 import com.garfiec.librechat.core.ui.components.AdaptiveExposedDropdownMenuBox
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
+import com.garfiec.librechat.core.ui.components.VerbatimKeyboardOptions
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.feature.agents.AgentHandoffDisplayData
 import com.garfiec.librechat.feature.agents.resources.*
@@ -303,6 +304,7 @@ private fun HandoffEdgeDialog(
                     onValueChange = { promptKey = it },
                     label = { Text(stringResource(Res.string.handoff_edge_prompt_key)) },
                     singleLine = true,
+                    keyboardOptions = VerbatimKeyboardOptions,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {

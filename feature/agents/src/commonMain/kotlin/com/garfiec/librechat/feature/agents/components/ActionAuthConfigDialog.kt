@@ -29,6 +29,9 @@ import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveRadioButton
+import com.garfiec.librechat.core.ui.components.MaskedSecretKeyboardOptions
+import com.garfiec.librechat.core.ui.components.UrlKeyboardOptions
+import com.garfiec.librechat.core.ui.components.VerbatimKeyboardOptions
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
 import com.garfiec.librechat.core.ui.components.excludeFromAutofill
 import com.garfiec.librechat.feature.agents.resources.*
@@ -134,6 +137,7 @@ internal fun AuthConfigDialog(
                             } else {
                                 PasswordVisualTransformation()
                             },
+                            keyboardOptions = MaskedSecretKeyboardOptions,
                             modifier = Modifier.fillMaxWidth().excludeFromAutofill(),
                         )
 
@@ -165,6 +169,7 @@ internal fun AuthConfigDialog(
                                 label = { Text(stringResource(Res.string.label_custom_auth_header)) },
                                 placeholder = { Text("X-Api-Key") },
                                 singleLine = true,
+                                keyboardOptions = VerbatimKeyboardOptions,
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         }
@@ -190,6 +195,7 @@ internal fun AuthConfigDialog(
                                 Text(if (isEditing) HIDDEN_PLACEHOLDER else "client-id")
                             },
                             singleLine = true,
+                            keyboardOptions = VerbatimKeyboardOptions,
                             modifier = Modifier.fillMaxWidth(),
                         )
 
@@ -206,6 +212,7 @@ internal fun AuthConfigDialog(
                             } else {
                                 PasswordVisualTransformation()
                             },
+                            keyboardOptions = MaskedSecretKeyboardOptions,
                             modifier = Modifier.fillMaxWidth().excludeFromAutofill(),
                         )
 
@@ -215,6 +222,7 @@ internal fun AuthConfigDialog(
                             label = { Text(stringResource(Res.string.label_authorization_url)) },
                             placeholder = { Text("https://auth.example.com/authorize") },
                             singleLine = true,
+                            keyboardOptions = UrlKeyboardOptions,
                             modifier = Modifier.fillMaxWidth(),
                         )
 
@@ -224,6 +232,7 @@ internal fun AuthConfigDialog(
                             label = { Text(stringResource(Res.string.label_token_url)) },
                             placeholder = { Text("https://auth.example.com/token") },
                             singleLine = true,
+                            keyboardOptions = UrlKeyboardOptions,
                             modifier = Modifier.fillMaxWidth(),
                         )
 
@@ -233,6 +242,7 @@ internal fun AuthConfigDialog(
                             label = { Text(stringResource(Res.string.label_scope)) },
                             placeholder = { Text("openid profile") },
                             singleLine = true,
+                            keyboardOptions = VerbatimKeyboardOptions,
                             modifier = Modifier.fillMaxWidth(),
                         )
 

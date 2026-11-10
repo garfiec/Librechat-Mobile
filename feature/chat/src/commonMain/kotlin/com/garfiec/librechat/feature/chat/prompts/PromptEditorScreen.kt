@@ -34,6 +34,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
 import com.garfiec.librechat.core.ui.components.DiscardChangesDialog
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
+import com.garfiec.librechat.core.ui.components.VerbatimKeyboardOptions
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
 import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
 import com.garfiec.librechat.core.ui.components.topbar.BarAction
@@ -152,6 +153,7 @@ fun PromptEditorScreen(
                 inputTransformation = CommandInputTransformation,
                 label = { Text(stringResource(Res.string.prompt_command_label)) },
                 lineLimits = TextFieldLineLimits.SingleLine,
+                keyboardOptions = VerbatimKeyboardOptions,
                 prefix = { Text("/") },
                 placeholder = { Text(stringResource(Res.string.prompt_command_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),

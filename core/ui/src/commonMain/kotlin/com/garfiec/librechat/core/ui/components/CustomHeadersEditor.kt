@@ -279,6 +279,7 @@ private fun HeaderNameField(
         label = { Text(stringResource(Res.string.server_headers_name)) },
         modifier = modifier.testTag("server_header_name_$index"),
         singleLine = true,
+        keyboardOptions = VerbatimKeyboardOptions,
         enabled = enabled,
         isError = rejection == CustomHeaderRowError.InvalidName ||
             rejection == CustomHeaderRowError.ReservedName,

@@ -1,7 +1,6 @@
 package com.garfiec.librechat.core.ui.components
 
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -10,7 +9,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import com.garfiec.librechat.core.ui.resources.Res
@@ -63,8 +61,7 @@ fun SecretTextField(
         supportingText = supportingText,
         isError = isError,
         visualTransformation = if (revealed) VisualTransformation.None else PasswordVisualTransformation(),
-        // Keeps the IME from learning, suggesting or autocorrecting the secret.
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = imeAction),
+        keyboardOptions = MaskedSecretKeyboardOptions.copy(imeAction = imeAction),
         keyboardActions = keyboardActions,
         singleLine = singleLine,
         minLines = minLines,

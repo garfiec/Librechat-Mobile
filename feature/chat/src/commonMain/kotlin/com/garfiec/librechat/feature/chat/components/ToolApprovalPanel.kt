@@ -73,6 +73,7 @@ import com.garfiec.librechat.core.ui.components.AdaptiveFilterChip
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
+import com.garfiec.librechat.core.ui.components.VerbatimKeyboardOptions
 import com.garfiec.librechat.core.ui.components.rememberDraftField
 import com.garfiec.librechat.feature.chat.resources.*
 import com.garfiec.librechat.feature.chat.resources.Res
@@ -632,6 +633,7 @@ private fun ToolCallBody(
                 modifier = Modifier.fillMaxWidth().bringIntoViewRequester(fieldRequester),
                 textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                 label = { Text(stringResource(Res.string.tool_approval_edited_arguments)) },
+                keyboardOptions = VerbatimKeyboardOptions,
                 isError = invalid,
                 supportingText = if (invalid) {
                     { Text(stringResource(Res.string.tool_approval_invalid_json)) }

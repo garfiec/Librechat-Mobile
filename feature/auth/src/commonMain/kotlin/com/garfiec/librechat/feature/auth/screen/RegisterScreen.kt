@@ -36,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.IosTextContentType
+import com.garfiec.librechat.core.ui.components.VerbatimKeyboardOptions
 import com.garfiec.librechat.core.ui.components.withIosTextContentType
 import com.garfiec.librechat.feature.auth.diagnostics.DiagnosticLogLink
 import com.garfiec.librechat.feature.auth.resources.*
@@ -102,6 +103,7 @@ fun RegisterScreen(
             label = { Text(stringResource(Res.string.username_label)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
+            keyboardOptions = VerbatimKeyboardOptions,
             enabled = !uiState.isLoading,
         )
 
