@@ -10,17 +10,22 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -65,7 +70,7 @@ internal data class SidebarSpan(val width: Dp, val contentGap: Dp)
 
 /**
  * Where the sidebar ends and the content starts in a [windowWidth]-wide window. Flat, the sidebar is
- * [SidebarWidth] plus [startInset] (the glass panel's cutout padding). While a vertical [fold] is
+ * [SidebarWidth] plus [startInset] (the sidebar's start-edge inset padding). While a vertical [fold] is
  * active the sidebar ends where the fold's band starts and the content begins after the band, as long
  * as the panel keeps [MinFoldSidebarWidth] and the content [MinContentWidth]. The fold is in window
  * coordinates and physical, so RTL, which puts the sidebar on the right, measures from the other side.
@@ -135,13 +140,9 @@ fun TabletLayout(
 
     val density = LocalDensity.current
     val layoutDirection = LocalLayoutDirection.current
-    // The glass panel keeps out of a start-edge cutout (GlassSidebarPanel pads it). The sidebar widens
-    // by that inset, so the panel inside it stays SidebarWidth rather than giving the inset up.
-    val startInset = if (glass != null) {
-        WindowInsets.safeDrawing.asPaddingValues().calculateStartPadding(layoutDirection)
-    } else {
-        0.dp
-    }
+    // Either style's sidebar keeps out of a start-edge inset (a cutout, or the bar column in RTL), and
+    // widens by it so the drawer inside it stays SidebarWidth rather than giving the inset up.
+    val startInset = WindowInsets.safeDrawing.asPaddingValues().calculateStartPadding(layoutDirection)
     // This layout fills the window on both hosts, so the fold's window coordinates are its own.
     val windowWidth = with(density) { LocalWindowInfo.current.containerSize.width.toDp() }
     val span = sidebarSpanFor(windowWidth, LocalWindowFeatures.current.fold, layoutDirection, startInset)
@@ -161,6 +162,7 @@ fun TabletLayout(
 
     // How far the sidebar is open: 0 = closed, 1 = open. A fraction, so a width change resizes it.
     val sidebarOpen = remember { Animatable(0f, visibilityThreshold = SIDEBAR_FRACTION_THRESHOLD) }
+    val sidebarShown by remember { derivedStateOf { sidebarOpen.value * sidebarReveal > 0f } }
     var initialStateApplied by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
@@ -267,7 +269,14 @@ fun TabletLayout(
                         )
                     }
                     if (glass == null) {
-                        sidebar(Modifier.fillMaxWidth().fillMaxHeight())
+                        // The drawer's colour runs under the inset; its content starts after it.
+                        sidebar(
+                            Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight()
+                                .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)),
+                        )
                         VerticalDivider(
                             color = MaterialTheme.colorScheme.outlineVariant,
                         )
@@ -297,6 +306,12 @@ fun TabletLayout(
                     },
                     // Without the swipe nothing else closes the sidebar on iOS, so the button stays.
                     sidebarOpen = isSidebarOpen && gestureEnabled,
+                    // Off the start edge while the sidebar is out, so it leaves that edge's inset to the sidebar.
+                    modifier = if (sidebarShown) {
+                        Modifier.consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start))
+                    } else {
+                        Modifier
+                    },
                 )
             },
             // The page colour behind both slots: without it the margin around Liquid Glass's floating

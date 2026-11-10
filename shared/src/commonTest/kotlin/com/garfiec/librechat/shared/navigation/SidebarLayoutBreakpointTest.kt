@@ -104,6 +104,16 @@ class SidebarLayoutBreakpointTest {
     }
 
     @Test
+    fun rtlBarColumn_widensTheSidebarFlatAndStillEndsItAtTheFold() {
+        // Inner landscape in RTL: the 84pt bar column is on the right, the sidebar's start edge.
+        assertEquals(SidebarSpan(404.dp, 0.dp), sidebarSpanFor(951.dp, null, LayoutDirection.Rtl, 84.dp))
+        assertEquals(
+            SidebarSpan(455.5.dp, 40.dp),
+            sidebarSpanFor(951.dp, verticalFold(455.5.dp, 495.5.dp), LayoutDirection.Rtl, 84.dp),
+        )
+    }
+
+    @Test
     fun horizontalFold_changesNothing() {
         val fold = FoldRegion(
             bounds = DpRect(0.dp, 455.5.dp, 669.dp, 495.5.dp),
