@@ -118,7 +118,6 @@
     <string name="prefetch_cache_messages">Mensajes en caché</string>
     <string name="prefetch_cache_messages_value">%1$d mensajes</string>
     <string name="prefetch_cache_images">Imágenes y archivos</string>
-    <string name="section_presets">Preajustes</string>
     <string name="section_profile">Perfil</string>
     <string name="section_security">Seguridad</string>
     <string name="section_speech">Voz</string>
@@ -257,8 +256,6 @@
     </plurals>
     <string name="cd_token_balance">Saldo de tokens: %1$s créditos</string>
     <string name="chat_group_display">Visualización</string>
-    <string name="chat_group_behavior">Comportamiento</string>
-    <string name="chat_group_header_context">Encabezado y contexto</string>
 
     <!-- Chat settings -->
     <string name="chat_layout">Diseño del chat</string>
@@ -301,7 +298,7 @@
     <string name="font_size_small">Pequeño</string>
     <string name="font_size_medium">Mediano</string>
     <string name="font_size_large">Grande</string>
-    <string name="latex_renderer">Renderizador de LaTeX</string>
+    <string name="latex_renderer">Representación matemática</string>
     <string name="latex_katex">KaTeX (renderizado)</string>
     <string name="latex_katex_desc">Renderizado completo de LaTeX mediante WebView</string>
     <string name="latex_native">Texto sin formato (rápido)</string>
@@ -421,14 +418,12 @@
         <item quantity="other">%1$d conversaciones archivadas</item>
     </plurals>
     <string name="archived_conversations">Conversaciones archivadas</string>
-    <string name="clear_cache_with_size">Borrar caché (%1$s)</string>
     <string name="clear_cache">Borrar caché</string>
     <string name="dialog_title_clear_conversations">Borrar todas las conversaciones</string>
     <string name="dialog_clear_conversations_message">Esto eliminará permanentemente todas tus conversaciones. Esta acción no se puede deshacer.</string>
     <string name="clear_all">Borrar todo</string>
     <!-- Diagnostic logs (issue #96) -->
     <string name="export_diagnostic_logs">Exportar registros de diagnóstico</string>
-    <string name="export_diagnostic_logs_with_size">Exportar registros de diagnóstico (%1$s)</string>
     <string name="exporting_logs">Exportando…</string>
     <string name="clear_diagnostic_logs">Borrar registros de diagnóstico</string>
     <string name="clearing_logs">Borrando…</string>
@@ -1067,4 +1062,24 @@
     <string name="admin_panel">Panel de administración</string>
     <string name="admin_panel_desc">Se abre en tu navegador</string>
     <string name="api_keys_load_failed">No se pudieron cargar las claves de API</string>
+    <string name="category_voice">Voz</string>
+    <string name="category_models_keys">Modelos y claves</string>
+    <string name="category_advanced">Avanzado</string>
+    <string name="settings_home_voice_summary">Dictado y lectura de respuestas en voz alta</string>
+    <string name="settings_home_models_summary">Favoritos, claves de proveedores, modelos destacados</string>
+    <string name="settings_home_advanced_summary">Representación, subidas, servidor, registros</string>
+    <string name="advanced_intro">Para usuarios avanzados. Los valores predeterminados sirven a la mayoría.</string>
+    <string name="advanced_chat_settings">Ajustes avanzados de chat</string>
+    <string name="advanced_chat_settings_summary">Durante la generación, subidas, ajustes preestablecidos</string>
+    <string name="advanced_data_settings">Ajustes avanzados de datos</string>
+    <string name="advanced_data_settings_summary">Registros, entornos de código</string>
+    <string name="section_messages">Mensajes</string>
+    <string name="section_your_chats">Tus chats</string>
+    <string name="section_on_this_phone">En este teléfono</string>
+    <string name="section_privacy">Privacidad</string>
+    <string name="section_server">Servidor</string>
+    <string name="section_developer">Desarrollador</string>
+    <string name="section_troubleshooting">Solución de problemas</string>
+    <string name="offline_reading">Lectura sin conexión</string>
+    <string name="clear_cache_summary">%1$s de imágenes y archivos temporales</string>
 </resources>

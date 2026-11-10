@@ -3,8 +3,9 @@
 ## Structure
 - Sealed `SettingsRoute : NavKey`. `SettingsTabbed` is the home (`SettingsHomeScreen`: profile card +
   category rows); keep its name, saved back stacks restore by it. Each category is a `XxxSettingsPage`
-  with no Scaffold of its own, opened by `SettingsCategory(key)` (Appearance by `AppearanceSettings`)
-  inside `SettingsPageScaffold`. Sub-pages are `SettingsRoute` objects declared in
+  with no Scaffold of its own, opened by `SettingsCategory(key)` (Appearance by `AppearanceSettings`,
+  Advanced by `AdvancedSettings(section)`) inside `SettingsPageScaffold`. Power settings live only on
+  Advanced; a category with some ends in an `AdvancedSettingsLink` to its section. Sub-pages are `SettingsRoute` objects declared in
   `navigation/*Navigation.kt` but wired through `SettingsNavigation.kt`.
 - Delegates take a `SettingsStateHandle<S>` typed to their host ViewModel's state, so a delegate moves
   with the page that uses it.
@@ -23,21 +24,22 @@
     active server changes. App roots paint `serverAccent?.activeSeed ?: accentColor`; wallpaper colours
     win over both. "Use server accent" is per server (absent = on), its row shows only while the server
     sets an accent; while on, the Accent row dims and a picked colour is kept for when it goes off.
-- **Chat** (`ChatSettingsViewModel`, hosts the platform speech delegate): `ChatPreferencesController`
-  merges the ~30 prefs into `ChatSettingsUiState` (`combine` tops out at five flows). Errors show in the
-  page's own snackbar. The Flagged libraries dialog uses `ArtifactLibraryConsentStore` directly; Ask
-  calls `forget`, which drops only the remembered answer (one-time answers aren't listed, so it leaves
-  them).
+- **Chats, Voice, Models & keys, Advanced** (`ChatSettingsViewModel`, hosts the platform speech
+  delegate): `ChatPreferencesController` merges the ~30 prefs into `ChatSettingsUiState` (`combine` tops
+  out at five flows); `gates` holds the server gates rows follow, each copying chat's or web's rule.
+  Speech errors show in Voice's snackbar. The Flagged libraries dialog uses `ArtifactLibraryConsentStore`
+  directly; Ask calls `forget`, which drops only the remembered answer (one-time answers aren't listed,
+  so it leaves them).
   - `ChatLayoutSettingsScreen`: `:feature:chat` is out of reach, so its preview redraws the message
     layout at `MessageBubble`'s measures (sharing `BubbleShape`). Change one, change the other.
-- **Data** (`DataSettingsViewModel`, hosts `DataManagementDelegate`): summary rows for Shared chats,
-  prefetch, code execution. Memories and MCP servers open from the drawer's Workspace tray
+- **Privacy & data, Advanced's code environments and troubleshooting** (`DataSettingsViewModel`, hosts
+  `DataManagementDelegate`). Memories and MCP servers open from the drawer's Workspace tray
   (`:feature:conversations`), not from Settings.
   - `archiveAllSupported` means "the server has not 404'd it" and is ANDed with the version gate in the
     `uiState` combine.
 - **Account** (`AccountSettingsViewModel`, hosts `AccountDelegate` + `TwoFactorSecurityDelegate`): loads
-  the profile and balance only; the home's profile card uses it too. Administration (role-admin rows)
-  shows only when `isAdmin` (fail-closed).
+  the profile and balance only; the home's profile card and Models & keys' provider keys row use it
+  too. Administration (role-admin rows) shows only when `isAdmin` (fail-closed).
 
 ## Memories (`MemoriesScreen`, `MemoriesViewModel`, `MemoriesUiState.kt`)
 - The VM owns search, partition chips, role gates (permissive) and the sheet draft (`MemoryEditorState`).
@@ -103,7 +105,7 @@
   with Retry, never the empty state.
 
 ## Code execution (`CodeExecutionScreen`, `CodeSetupScreen`)
-- Data row shows when `agents.capabilities` has `stateful_code_sessions`.
+- Advanced's Code environments row shows when `agents.capabilities` has `stateful_code_sessions`.
 - Default workspace: `PATCH /api/user/preferences`, optimistic, reverted if refused; a disallowed saved
   scope is listed disabled.
 - Machines (network-direct): polled every 10 s while resumed; File changes / Commands only with
@@ -150,7 +152,7 @@
 - The key value exists only in the creation response; `ApiKeyCreateDialog` must show it immediately.
 
 ## Server connection (`ServerHeadersDialog`, `ServerHeadersViewModel`)
-Edits the **active** server's static request headers (Account › Server connection). Pre-login
+Edits the **active** server's static request headers (Advanced › Server). Pre-login
 `ServerUrlScreen` renders the same `CustomHeadersEditor` (`:core:ui`).
 - The dialog is stateless; forwarding the ViewModel trips detekt-compose `ViewModelForwarding`.
 - The screen closes it on `saved`, so an unpersisted save keeps the typed rows. Dismissing while

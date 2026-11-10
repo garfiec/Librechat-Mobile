@@ -118,7 +118,6 @@
     <string name="prefetch_cache_messages">Сообщения в кэше</string>
     <string name="prefetch_cache_messages_value">Сообщений: %1$d</string>
     <string name="prefetch_cache_images">Изображения и файлы</string>
-    <string name="section_presets">Пресеты</string>
     <string name="section_profile">Профиль</string>
     <string name="section_security">Безопасность</string>
     <string name="section_speech">Речь</string>
@@ -269,8 +268,6 @@
     </plurals>
     <string name="cd_token_balance">Баланс токенов: %1$s кредитов</string>
     <string name="chat_group_display">Отображение</string>
-    <string name="chat_group_behavior">Поведение</string>
-    <string name="chat_group_header_context">Заголовок и контекст</string>
 
     <!-- Chat settings -->
     <string name="chat_layout">Макет чата</string>
@@ -313,7 +310,7 @@
     <string name="font_size_small">Мелкий</string>
     <string name="font_size_medium">Средний</string>
     <string name="font_size_large">Крупный</string>
-    <string name="latex_renderer">Отрисовщик LaTeX</string>
+    <string name="latex_renderer">Отображение формул</string>
     <string name="latex_katex">KaTeX (с отрисовкой)</string>
     <string name="latex_katex_desc">Полная отрисовка LaTeX через WebView</string>
     <string name="latex_native">Обычный текст (быстро)</string>
@@ -435,14 +432,12 @@
         <item quantity="other">Архивировано %1$d беседы</item>
     </plurals>
     <string name="archived_conversations">Архивированные беседы</string>
-    <string name="clear_cache_with_size">Очистить кэш (%1$s)</string>
     <string name="clear_cache">Очистить кэш</string>
     <string name="dialog_title_clear_conversations">Очистить все беседы</string>
     <string name="dialog_clear_conversations_message">Это безвозвратно удалит все ваши беседы. Это действие нельзя отменить.</string>
     <string name="clear_all">Очистить все</string>
     <!-- Diagnostic logs (issue #96) -->
     <string name="export_diagnostic_logs">Экспортировать диагностические журналы</string>
-    <string name="export_diagnostic_logs_with_size">Экспортировать диагностические журналы (%1$s)</string>
     <string name="exporting_logs">Экспорт…</string>
     <string name="clear_diagnostic_logs">Очистить диагностические журналы</string>
     <string name="clearing_logs">Очистка…</string>
@@ -1098,4 +1093,24 @@
     <string name="admin_panel">Панель администратора</string>
     <string name="admin_panel_desc">Открывается в браузере</string>
     <string name="api_keys_load_failed">Не удалось загрузить API-ключи</string>
+    <string name="category_voice">Голос</string>
+    <string name="category_models_keys">Модели и ключи</string>
+    <string name="category_advanced">Дополнительно</string>
+    <string name="settings_home_voice_summary">Диктовка и чтение ответов вслух</string>
+    <string name="settings_home_models_summary">Избранное, ключи провайдеров, отмеченные модели</string>
+    <string name="settings_home_advanced_summary">Отображение, загрузки, сервер, журналы</string>
+    <string name="advanced_intro">Для опытных пользователей. Большинству подходят значения по умолчанию.</string>
+    <string name="advanced_chat_settings">Дополнительные настройки чатов</string>
+    <string name="advanced_chat_settings_summary">Во время ответа, загрузки, пресеты</string>
+    <string name="advanced_data_settings">Дополнительные настройки данных</string>
+    <string name="advanced_data_settings_summary">Журналы, среды выполнения кода</string>
+    <string name="section_messages">Сообщения</string>
+    <string name="section_your_chats">Ваши чаты</string>
+    <string name="section_on_this_phone">На этом устройстве</string>
+    <string name="section_privacy">Конфиденциальность</string>
+    <string name="section_server">Сервер</string>
+    <string name="section_developer">Для разработчиков</string>
+    <string name="section_troubleshooting">Устранение неполадок</string>
+    <string name="offline_reading">Чтение офлайн</string>
+    <string name="clear_cache_summary">%1$s изображений и временных файлов</string>
 </resources>

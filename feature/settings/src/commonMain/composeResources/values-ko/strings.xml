@@ -118,7 +118,6 @@
     <string name="prefetch_cache_messages">캐시된 메시지</string>
     <string name="prefetch_cache_messages_value">메시지 %1$d개</string>
     <string name="prefetch_cache_images">이미지 및 파일</string>
-    <string name="section_presets">프리셋</string>
     <string name="section_profile">프로필</string>
     <string name="section_security">보안</string>
     <string name="section_speech">음성</string>
@@ -251,8 +250,6 @@
     </plurals>
     <string name="cd_token_balance">토큰 잔액: %1$s 크레딧</string>
     <string name="chat_group_display">표시</string>
-    <string name="chat_group_behavior">동작</string>
-    <string name="chat_group_header_context">헤더 &amp; 컨텍스트</string>
 
     <!-- Chat settings -->
     <string name="chat_layout">채팅 레이아웃</string>
@@ -295,7 +292,7 @@
     <string name="font_size_small">작게</string>
     <string name="font_size_medium">보통</string>
     <string name="font_size_large">크게</string>
-    <string name="latex_renderer">LaTeX 렌더러</string>
+    <string name="latex_renderer">수식 렌더링</string>
     <string name="latex_katex">KaTeX (렌더링)</string>
     <string name="latex_katex_desc">WebView를 통한 완전한 LaTeX 렌더링</string>
     <string name="latex_native">일반 텍스트 (빠름)</string>
@@ -414,14 +411,12 @@
         <item quantity="other">대화 %1$d개를 보관했습니다</item>
     </plurals>
     <string name="archived_conversations">보관된 대화</string>
-    <string name="clear_cache_with_size">캐시 지우기 (%1$s)</string>
     <string name="clear_cache">캐시 지우기</string>
     <string name="dialog_title_clear_conversations">모든 대화 지우기</string>
     <string name="dialog_clear_conversations_message">모든 대화를 영구적으로 삭제합니다. 이 작업은 되돌릴 수 없습니다.</string>
     <string name="clear_all">모두 지우기</string>
     <!-- Diagnostic logs (issue #96) -->
     <string name="export_diagnostic_logs">진단 로그 내보내기</string>
-    <string name="export_diagnostic_logs_with_size">진단 로그 내보내기 (%1$s)</string>
     <string name="exporting_logs">내보내는 중…</string>
     <string name="clear_diagnostic_logs">진단 로그 지우기</string>
     <string name="clearing_logs">지우는 중…</string>
@@ -1050,4 +1045,24 @@
     <string name="admin_panel">관리자 패널</string>
     <string name="admin_panel_desc">브라우저에서 열립니다</string>
     <string name="api_keys_load_failed">API 키를 불러오지 못했습니다</string>
+    <string name="category_voice">음성</string>
+    <string name="category_models_keys">모델 및 키</string>
+    <string name="category_advanced">고급</string>
+    <string name="settings_home_voice_summary">받아쓰기 및 답변 소리 내어 읽기</string>
+    <string name="settings_home_models_summary">즐겨찾기, 제공자 키, 별표한 모델</string>
+    <string name="settings_home_advanced_summary">렌더링, 업로드, 서버, 로그</string>
+    <string name="advanced_intro">고급 사용자용입니다. 대부분은 기본값으로 충분합니다.</string>
+    <string name="advanced_chat_settings">고급 채팅 설정</string>
+    <string name="advanced_chat_settings_summary">생성 중 동작, 업로드, 프리셋</string>
+    <string name="advanced_data_settings">고급 데이터 설정</string>
+    <string name="advanced_data_settings_summary">로그, 코드 환경</string>
+    <string name="section_messages">메시지</string>
+    <string name="section_your_chats">내 채팅</string>
+    <string name="section_on_this_phone">이 기기</string>
+    <string name="section_privacy">개인정보 보호</string>
+    <string name="section_server">서버</string>
+    <string name="section_developer">개발자</string>
+    <string name="section_troubleshooting">문제 해결</string>
+    <string name="offline_reading">오프라인 읽기</string>
+    <string name="clear_cache_summary">이미지 및 임시 파일 %1$s</string>
 </resources>

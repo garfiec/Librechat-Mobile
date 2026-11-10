@@ -73,14 +73,6 @@ private fun AboutInfoPreview() = PreviewSurface(UiStyle.MATERIAL) { AboutInfoHos
 
 @PreviewNarrowScreens
 @Composable
-private fun DataButtonsPreview() = PreviewSurface(UiStyle.MATERIAL) { DataButtonsHost() }
-
-@PreviewNarrowScreens
-@Composable
-private fun DataButtonsGlassPreview() = PreviewSurface(UiStyle.LIQUID_GLASS) { DataButtonsHost() }
-
-@PreviewNarrowScreens
-@Composable
 private fun SpeechButtonsPreview() = PreviewSurface(UiStyle.MATERIAL) { SpeechDetailButtons({}, {}) }
 
 @PreviewNarrowScreens
@@ -224,37 +216,16 @@ private fun PrefetchSettingsHost() {
 
 @Composable
 private fun AboutInfoHost() {
-    AboutInfo(
-        serverUrl = "https://chat.example.com",
-        serverTrustedViaUserCa = false,
-        appVersion = "2026.10.17",
-        gitSha = "e5932e9f3",
-        serverVersion = null,
-        buildInfo = BuildInfo(commitShort = "4f1c2ab", branch = "main", buildDate = "2026-10-01"),
-    )
-}
-
-@Composable
-private fun DataButtonsHost() {
     Column {
-        DataSettingsSection(
-            isClearing = false,
-            onClearAllChats = {},
-            archiveAllSupported = true,
-            isArchivingAll = false,
-            onArchiveAllChats = {},
-            onViewArchive = {},
-            logsBufferBytes = 0,
-            isLogsExporting = false,
-            isLogsClearing = false,
-            onExportLogs = {},
-            onClearLogs = {},
+        AboutInfo(
+            serverUrl = "https://chat.example.com",
+            appVersion = "2026.10.17",
+            serverVersion = null,
         )
-        DataExtraActions(
-            onArtifactShortcutsClick = {},
-            onClearCacheClick = {},
-            isCacheClearing = false,
-            cacheSizeBytes = null,
+        ServerDetails(
+            gitSha = "e5932e9f3",
+            serverTrustedViaUserCa = true,
+            buildInfo = BuildInfo(commitShort = "4f1c2ab", branch = "main", buildDate = "2026-10-01"),
         )
     }
 }

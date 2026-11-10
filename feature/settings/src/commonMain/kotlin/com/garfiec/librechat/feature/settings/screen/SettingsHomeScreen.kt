@@ -17,9 +17,12 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -77,6 +80,7 @@ fun SettingsHomeScreen(
     onNavigateBack: () -> Unit,
     onOpenAppearance: () -> Unit,
     onOpenCategory: (SettingsCategoryKey) -> Unit,
+    onOpenAdvancedSettings: () -> Unit,
     modifier: Modifier = Modifier,
     accountViewModel: AccountSettingsViewModel = koinViewModel(),
     generalViewModel: GeneralSettingsViewModel = koinViewModel(),
@@ -133,6 +137,7 @@ fun SettingsHomeScreen(
             showAdministration = account.isAdmin,
             onOpenAppearance = onOpenAppearance,
             onOpenCategory = onOpenCategory,
+            onOpenAdvancedSettings = onOpenAdvancedSettings,
             contentPadding = contentPadding,
         )
     }
@@ -145,6 +150,7 @@ internal fun SettingsHomeContent(
     showAdministration: Boolean,
     onOpenAppearance: () -> Unit,
     onOpenCategory: (SettingsCategoryKey) -> Unit,
+    onOpenAdvancedSettings: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
@@ -176,12 +182,30 @@ internal fun SettingsHomeContent(
                         onClick = { onOpenCategory(SettingsCategoryKey.CHATS) },
                     )
                 }
+                row(key = "voice") {
+                    SettingsRow(
+                        title = stringResource(Res.string.category_voice),
+                        summary = stringResource(Res.string.settings_home_voice_summary),
+                        icon = Icons.Default.RecordVoiceOver,
+                        tileTint = SettingsTileTint.TERTIARY,
+                        onClick = { onOpenCategory(SettingsCategoryKey.VOICE) },
+                    )
+                }
+                row(key = "models") {
+                    SettingsRow(
+                        title = stringResource(Res.string.category_models_keys),
+                        summary = stringResource(Res.string.settings_home_models_summary),
+                        icon = Icons.Default.Key,
+                        tileTint = SettingsTileTint.PRIMARY,
+                        onClick = { onOpenCategory(SettingsCategoryKey.MODELS) },
+                    )
+                }
                 row(key = "language") {
                     SettingsRow(
                         title = stringResource(Res.string.section_language_region),
                         summary = summaries.language,
                         icon = Icons.Default.Language,
-                        tileTint = SettingsTileTint.TERTIARY,
+                        tileTint = SettingsTileTint.SECONDARY,
                         onClick = { onOpenCategory(SettingsCategoryKey.LANGUAGE) },
                     )
                 }
@@ -190,7 +214,7 @@ internal fun SettingsHomeContent(
                         title = stringResource(Res.string.category_privacy_data),
                         summary = summaries.privacy,
                         icon = Icons.Default.Shield,
-                        tileTint = SettingsTileTint.PRIMARY,
+                        tileTint = SettingsTileTint.TERTIARY,
                         onClick = { onOpenCategory(SettingsCategoryKey.PRIVACY_DATA) },
                     )
                 }
@@ -206,6 +230,14 @@ internal fun SettingsHomeContent(
                             onClick = { onOpenCategory(SettingsCategoryKey.ADMINISTRATION) },
                         )
                     }
+                }
+                row(key = "advanced") {
+                    SettingsRow(
+                        title = stringResource(Res.string.category_advanced),
+                        summary = stringResource(Res.string.settings_home_advanced_summary),
+                        icon = Icons.Default.Tune,
+                        onClick = onOpenAdvancedSettings,
+                    )
                 }
                 row(key = "about") {
                     SettingsRow(

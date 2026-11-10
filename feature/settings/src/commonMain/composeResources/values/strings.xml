@@ -121,7 +121,6 @@
     <string name="prefetch_cache_messages">Cached messages</string>
     <string name="prefetch_cache_messages_value">%1$d messages</string>
     <string name="prefetch_cache_images">Images and files</string>
-    <string name="section_presets">Presets</string>
     <string name="section_profile">Profile</string>
     <string name="section_security">Security</string>
     <string name="section_speech">Speech</string>
@@ -267,8 +266,6 @@
 
     <!-- Chat settings -->
     <string name="chat_group_display">Display</string>
-    <string name="chat_group_behavior">Behavior</string>
-    <string name="chat_group_header_context">Header &amp; context</string>
     <string name="chat_layout">Chat layout</string>
     <string name="chat_layout_thread">Thread</string>
     <string name="chat_layout_two_sided">Two-sided chat</string>
@@ -309,7 +306,7 @@
     <string name="font_size_small">Small</string>
     <string name="font_size_medium">Medium</string>
     <string name="font_size_large">Large</string>
-    <string name="latex_renderer">LaTeX renderer</string>
+    <string name="latex_renderer">Math rendering</string>
     <string name="latex_katex">KaTeX (rendered)</string>
     <string name="latex_katex_desc">Full LaTeX rendering via WebView</string>
     <string name="latex_native">Plain text (fast)</string>
@@ -417,9 +414,9 @@
     <!-- Revoke keys dialog -->
 
     <!-- Data settings -->
-    <string name="clear_all_conversations">Clear all conversations</string>
+    <string name="clear_all_conversations">Delete all chats</string>
     <string name="clearing">Clearing…</string>
-    <string name="archive_all_conversations">Archive all conversations</string>
+    <string name="archive_all_conversations">Archive all chats</string>
     <string name="archiving_all">Archiving…</string>
     <string name="dialog_title_archive_all">Archive all conversations?</string>
     <string name="dialog_archive_all_message">Every conversation moves to Archived. You can still open them there, and you can unarchive any of them later.</string>
@@ -428,15 +425,13 @@
         <item quantity="one">Archived %1$d conversation</item>
         <item quantity="other">Archived %1$d conversations</item>
     </plurals>
-    <string name="archived_conversations">Archived conversations</string>
-    <string name="clear_cache_with_size">Clear cache (%1$s)</string>
+    <string name="archived_conversations">Archived chats</string>
     <string name="clear_cache">Clear cache</string>
     <string name="dialog_title_clear_conversations">Clear all conversations</string>
     <string name="dialog_clear_conversations_message">This will permanently delete all your conversations. This action cannot be undone.</string>
     <string name="clear_all">Clear all</string>
     <!-- Diagnostic logs (issue #96) -->
     <string name="export_diagnostic_logs">Export diagnostic logs</string>
-    <string name="export_diagnostic_logs_with_size">Export diagnostic logs (%1$s)</string>
     <string name="exporting_logs">Exporting…</string>
     <string name="clear_diagnostic_logs">Clear diagnostic logs</string>
     <string name="clearing_logs">Clearing…</string>
@@ -1080,4 +1075,24 @@
     <string name="admin_panel">Admin panel</string>
     <string name="admin_panel_desc">Opens in your browser</string>
     <string name="api_keys_load_failed">Couldn't load API keys</string>
+    <string name="category_voice">Voice</string>
+    <string name="category_models_keys">Models &amp; keys</string>
+    <string name="category_advanced">Advanced</string>
+    <string name="settings_home_voice_summary">Dictation and reading replies aloud</string>
+    <string name="settings_home_models_summary">Favorites, provider keys, starred models</string>
+    <string name="settings_home_advanced_summary">Rendering, uploads, server, logs</string>
+    <string name="advanced_intro">For power users. The defaults suit most people.</string>
+    <string name="advanced_chat_settings">Advanced chat settings</string>
+    <string name="advanced_chat_settings_summary">While generating, uploads, presets</string>
+    <string name="advanced_data_settings">Advanced data settings</string>
+    <string name="advanced_data_settings_summary">Logs, code environments</string>
+    <string name="section_messages">Messages</string>
+    <string name="section_your_chats">Your chats</string>
+    <string name="section_on_this_phone">On this phone</string>
+    <string name="section_privacy">Privacy</string>
+    <string name="section_server">Server</string>
+    <string name="section_developer">Developer</string>
+    <string name="section_troubleshooting">Troubleshooting</string>
+    <string name="offline_reading">Offline reading</string>
+    <string name="clear_cache_summary">%1$s of images and temporary files</string>
 </resources>

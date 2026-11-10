@@ -118,7 +118,6 @@
     <string name="prefetch_cache_messages">已缓存消息</string>
     <string name="prefetch_cache_messages_value">%1$d 条消息</string>
     <string name="prefetch_cache_images">图片和文件</string>
-    <string name="section_presets">预设</string>
     <string name="section_profile">个人资料</string>
     <string name="section_security">安全</string>
     <string name="section_speech">语音</string>
@@ -251,8 +250,6 @@
     </plurals>
     <string name="cd_token_balance">Token 余额：%1$s 额度</string>
     <string name="chat_group_display">显示</string>
-    <string name="chat_group_behavior">行为</string>
-    <string name="chat_group_header_context">标题栏与上下文</string>
 
     <!-- Chat settings -->
     <string name="chat_layout">聊天布局</string>
@@ -295,7 +292,7 @@
     <string name="font_size_small">小</string>
     <string name="font_size_medium">中</string>
     <string name="font_size_large">大</string>
-    <string name="latex_renderer">LaTeX 渲染器</string>
+    <string name="latex_renderer">数学公式渲染</string>
     <string name="latex_katex">KaTeX（渲染）</string>
     <string name="latex_katex_desc">通过 WebView 完整渲染 LaTeX</string>
     <string name="latex_native">纯文本（快速）</string>
@@ -414,14 +411,12 @@
         <item quantity="other">已归档 %1$d 个对话</item>
     </plurals>
     <string name="archived_conversations">已归档对话</string>
-    <string name="clear_cache_with_size">清除缓存 (%1$s)</string>
     <string name="clear_cache">清除缓存</string>
     <string name="dialog_title_clear_conversations">清除所有对话</string>
     <string name="dialog_clear_conversations_message">这将永久删除你的所有对话。此操作无法撤销。</string>
     <string name="clear_all">全部清除</string>
     <!-- Diagnostic logs (issue #96) -->
     <string name="export_diagnostic_logs">导出诊断日志</string>
-    <string name="export_diagnostic_logs_with_size">导出诊断日志（%1$s）</string>
     <string name="exporting_logs">导出中…</string>
     <string name="clear_diagnostic_logs">清除诊断日志</string>
     <string name="clearing_logs">清除中…</string>
@@ -1050,4 +1045,24 @@
     <string name="admin_panel">管理面板</string>
     <string name="admin_panel_desc">在浏览器中打开</string>
     <string name="api_keys_load_failed">无法加载 API 密钥</string>
+    <string name="category_voice">语音</string>
+    <string name="category_models_keys">模型和密钥</string>
+    <string name="category_advanced">高级</string>
+    <string name="settings_home_voice_summary">语音输入和朗读回复</string>
+    <string name="settings_home_models_summary">收藏、提供商密钥、星标模型</string>
+    <string name="settings_home_advanced_summary">渲染、上传、服务器、日志</string>
+    <string name="advanced_intro">供高级用户使用。默认设置适合大多数人。</string>
+    <string name="advanced_chat_settings">高级聊天设置</string>
+    <string name="advanced_chat_settings_summary">生成期间、上传、预设</string>
+    <string name="advanced_data_settings">高级数据设置</string>
+    <string name="advanced_data_settings_summary">日志、代码环境</string>
+    <string name="section_messages">消息</string>
+    <string name="section_your_chats">你的聊天</string>
+    <string name="section_on_this_phone">此设备上</string>
+    <string name="section_privacy">隐私</string>
+    <string name="section_server">服务器</string>
+    <string name="section_developer">开发者</string>
+    <string name="section_troubleshooting">故障排除</string>
+    <string name="offline_reading">离线阅读</string>
+    <string name="clear_cache_summary">图片和临时文件 %1$s</string>
 </resources>

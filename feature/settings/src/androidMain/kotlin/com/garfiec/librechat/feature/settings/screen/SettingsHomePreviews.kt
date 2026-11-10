@@ -41,6 +41,7 @@ private fun SettingsHomeHost() {
         showAdministration = true,
         onOpenAppearance = {},
         onOpenCategory = {},
+        onOpenAdvancedSettings = {},
     )
 }
 

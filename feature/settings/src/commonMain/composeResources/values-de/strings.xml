@@ -118,7 +118,6 @@
     <string name="prefetch_cache_messages">Zwischengespeicherte Nachrichten</string>
     <string name="prefetch_cache_messages_value">%1$d Nachrichten</string>
     <string name="prefetch_cache_images">Bilder und Dateien</string>
-    <string name="section_presets">Vorlagen</string>
     <string name="section_profile">Profil</string>
     <string name="section_security">Sicherheit</string>
     <string name="section_speech">Sprache</string>
@@ -257,8 +256,6 @@
     </plurals>
     <string name="cd_token_balance">Token-Guthaben: %1$s Credits</string>
     <string name="chat_group_display">Anzeige</string>
-    <string name="chat_group_behavior">Verhalten</string>
-    <string name="chat_group_header_context">Kopfzeile &amp; Kontext</string>
 
     <!-- Chat settings -->
     <string name="chat_layout">Chat-Layout</string>
@@ -301,7 +298,7 @@
     <string name="font_size_small">Klein</string>
     <string name="font_size_medium">Mittel</string>
     <string name="font_size_large">Groß</string>
-    <string name="latex_renderer">LaTeX-Renderer</string>
+    <string name="latex_renderer">Formeldarstellung</string>
     <string name="latex_katex">KaTeX (gerendert)</string>
     <string name="latex_katex_desc">Vollständiges LaTeX-Rendering über WebView</string>
     <string name="latex_native">Reiner Text (schnell)</string>
@@ -421,14 +418,12 @@
         <item quantity="other">%1$d Unterhaltungen archiviert</item>
     </plurals>
     <string name="archived_conversations">Archivierte Unterhaltungen</string>
-    <string name="clear_cache_with_size">Cache leeren (%1$s)</string>
     <string name="clear_cache">Cache leeren</string>
     <string name="dialog_title_clear_conversations">Alle Unterhaltungen löschen</string>
     <string name="dialog_clear_conversations_message">Dies löscht alle deine Unterhaltungen dauerhaft. Diese Aktion kann nicht rückgängig gemacht werden.</string>
     <string name="clear_all">Alle löschen</string>
     <!-- Diagnostic logs (issue #96) -->
     <string name="export_diagnostic_logs">Diagnoseprotokolle exportieren</string>
-    <string name="export_diagnostic_logs_with_size">Diagnoseprotokolle exportieren (%1$s)</string>
     <string name="exporting_logs">Wird exportiert…</string>
     <string name="clear_diagnostic_logs">Diagnoseprotokolle löschen</string>
     <string name="clearing_logs">Wird gelöscht…</string>
@@ -1066,4 +1061,24 @@
     <string name="admin_panel">Admin-Bereich</string>
     <string name="admin_panel_desc">Wird im Browser geöffnet</string>
     <string name="api_keys_load_failed">API-Schlüssel konnten nicht geladen werden</string>
+    <string name="category_voice">Stimme</string>
+    <string name="category_models_keys">Modelle &amp; Schlüssel</string>
+    <string name="category_advanced">Erweitert</string>
+    <string name="settings_home_voice_summary">Diktieren und Antworten vorlesen</string>
+    <string name="settings_home_models_summary">Favoriten, Anbieterschlüssel, markierte Modelle</string>
+    <string name="settings_home_advanced_summary">Darstellung, Uploads, Server, Protokolle</string>
+    <string name="advanced_intro">Für erfahrene Nutzer. Die Standardwerte passen für die meisten.</string>
+    <string name="advanced_chat_settings">Erweiterte Chat-Einstellungen</string>
+    <string name="advanced_chat_settings_summary">Während der Antwort, Uploads, Voreinstellungen</string>
+    <string name="advanced_data_settings">Erweiterte Dateneinstellungen</string>
+    <string name="advanced_data_settings_summary">Protokolle, Code-Umgebungen</string>
+    <string name="section_messages">Nachrichten</string>
+    <string name="section_your_chats">Deine Chats</string>
+    <string name="section_on_this_phone">Auf diesem Gerät</string>
+    <string name="section_privacy">Datenschutz</string>
+    <string name="section_server">Server</string>
+    <string name="section_developer">Entwickler</string>
+    <string name="section_troubleshooting">Fehlerbehebung</string>
+    <string name="offline_reading">Offline lesen</string>
+    <string name="clear_cache_summary">%1$s an Bildern und temporären Dateien</string>
 </resources>

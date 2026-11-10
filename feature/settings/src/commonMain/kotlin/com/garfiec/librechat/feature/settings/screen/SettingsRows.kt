@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 
 /** The colour pair behind a row's icon tile, taken from the theme's container roles. */
@@ -194,6 +195,39 @@ private fun SettingsTileTint.colors(): Pair<Color, Color> {
         SettingsTileTint.SECONDARY -> scheme.secondaryContainer to scheme.onSecondaryContainer
         SettingsTileTint.TERTIARY -> scheme.tertiaryContainer to scheme.onTertiaryContainer
         SettingsTileTint.ERROR -> scheme.errorContainer to scheme.onErrorContainer
+    }
+}
+
+/**
+ * The outlined link that ends a category page and opens Advanced at that category's section: power
+ * settings stay one tap away without sitting among the everyday ones.
+ */
+@Composable
+internal fun AdvancedSettingsLink(
+    title: String,
+    summary: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AdaptiveOutlinedButton(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp),
+        contentPadding = SettingsRowPadding,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = title, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = summary,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+        )
     }
 }
 

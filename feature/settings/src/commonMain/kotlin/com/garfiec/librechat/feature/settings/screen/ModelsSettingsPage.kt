@@ -1,0 +1,148 @@
+package com.garfiec.librechat.feature.settings.screen
+
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.VpnKey
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
+import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
+import com.garfiec.librechat.core.ui.components.adaptiveSection
+import com.garfiec.librechat.feature.settings.resources.*
+import com.garfiec.librechat.feature.settings.resources.Res
+import com.garfiec.librechat.feature.settings.viewmodel.AccountSettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.delegate.ProviderKeysSummary
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
+
+/** Settings › Models & keys: favorites, your provider keys, and how the model picker starts and sorts. */
+@Composable
+fun ModelsSettingsPage(
+    onNavigateToFavorites: () -> Unit,
+    onNavigateToProviderKeys: () -> Unit,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(),
+    viewModel: ChatSettingsViewModel = koinViewModel(),
+    accountViewModel: AccountSettingsViewModel = koinViewModel(),
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val account by accountViewModel.uiState.collectAsStateWithLifecycle()
+    var openDialog by remember { mutableStateOf<ChatSettingDialog?>(null) }
+
+    // The Provider Keys row's summary loads the first time this page is composed resumed (a
+    // recomposed page replays ON_RESUME to its new observer), and re-reads on each resume the entry
+    // itself goes through: back from Provider Keys, or from another app.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, accountViewModel) {
+        var replaying = true
+        val observer = LifecycleEventObserver { _, event ->
+            if (event != Lifecycle.Event.ON_RESUME) return@LifecycleEventObserver
+            if (replaying) accountViewModel.loadProviderKeysSummary() else accountViewModel.refreshProviderKeysSummary()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        replaying = false
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    AdaptiveGroupedPage(modifier = modifier.fillMaxSize()) {
+        LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = contentPadding) {
+            item(key = "top_gap") { Spacer(modifier = Modifier.height(16.dp)) }
+            adaptiveSection {
+                row(key = "favorites") {
+                    SettingsRow(
+                        icon = Icons.Default.Star,
+                        title = stringResource(Res.string.favorites),
+                        summary = stringResource(Res.string.favorites_subtitle),
+                        onClick = onNavigateToFavorites,
+                    )
+                }
+                // Hidden when no reachable endpoint takes a user-provided value: the page would be empty.
+                // Shown while the endpoint configs haven't loaded, so the page's load error and Retry stay reachable.
+                val providerKeys = account.providerKeysSummary
+                if (providerKeys != ProviderKeysSummary.Hidden) {
+                    row(key = "provider_keys") {
+                        SettingsRow(
+                            icon = Icons.Default.VpnKey,
+                            title = stringResource(Res.string.provider_keys_title),
+                            // The general line until every endpoint has answered, then the count.
+                            summary = if (providerKeys is ProviderKeysSummary.Count) {
+                                pluralStringResource(
+                                    Res.plurals.provider_keys_row_summary,
+                                    providerKeys.totalCount,
+                                    providerKeys.setCount,
+                                    providerKeys.totalCount,
+                                )
+                            } else {
+                                stringResource(Res.string.provider_keys_subtitle)
+                            },
+                            onClick = onNavigateToProviderKeys,
+                        )
+                    }
+                }
+            }
+            item(key = "picker_gap") { Spacer(modifier = Modifier.height(24.dp)) }
+            adaptiveSection {
+                row(key = "new_chat_start") {
+                    SettingsRow(
+                        title = stringResource(Res.string.new_chat_start_title),
+                        summary = newChatStartLabel(uiState.preferLastUsedModel),
+                        onClick = { openDialog = ChatSettingDialog.NEW_CHAT_START },
+                    )
+                }
+                row(key = "starred_models") {
+                    SettingsRow(
+                        title = stringResource(Res.string.starred_models_title),
+                        summary = starredModelsDisplayLabel(uiState.starredModelsDisplay),
+                        onClick = { openDialog = ChatSettingDialog.STARRED_MODELS },
+                    )
+                }
+            }
+            item(key = "bottom_gap") { Spacer(modifier = Modifier.height(32.dp)) }
+        }
+
+        when (openDialog) {
+            ChatSettingDialog.NEW_CHAT_START -> RadioSelectionDialog(
+                title = stringResource(Res.string.new_chat_start_title),
+                description = stringResource(Res.string.new_chat_start_desc),
+                options = listOf(false, true),
+                selected = uiState.preferLastUsedModel,
+                onSave = {
+                    viewModel.setPreferLastUsedModel(it)
+                    openDialog = null
+                },
+                onDismiss = { openDialog = null },
+                optionLabel = { newChatStartLabel(it) },
+            )
+            ChatSettingDialog.STARRED_MODELS -> RadioSelectionDialog(
+                title = stringResource(Res.string.starred_models_title),
+                description = stringResource(Res.string.starred_models_desc),
+                options = StarredModelsDisplay.entries,
+                selected = uiState.starredModelsDisplay,
+                onSave = {
+                    viewModel.setStarredModelsDisplay(it)
+                    openDialog = null
+                },
+                onDismiss = { openDialog = null },
+                optionLabel = { starredModelsDisplayLabel(it) },
+            )
+            else -> Unit
+        }
+    }
+}

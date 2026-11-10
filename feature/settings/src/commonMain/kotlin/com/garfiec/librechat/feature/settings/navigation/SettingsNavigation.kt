@@ -55,6 +55,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
             onNavigateBack = onBack,
             onOpenAppearance = { onNavigate(AppearanceSettings) },
             onOpenCategory = { onNavigate(SettingsCategory(it)) },
+            onOpenAdvancedSettings = { onNavigate(AdvancedSettings()) },
         )
     }
     settingsCategoryEntry(
@@ -84,6 +85,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
             onReturnAfterSave = onProviderKeyReturn,
         )
     }
+    advancedSettingsEntry(onNavigate = onNavigate, onBack = onBack)
     favoritesEntry(onBack = onBack)
     passkeysEntry(onBack = onBack)
     roleSkillsAdminEntry(onBack = onBack)
@@ -102,6 +104,7 @@ val settingsSerializersModule = SerializersModule {
     polymorphic(NavKey::class) {
         subclass(SettingsTabbed::class, SettingsTabbed.serializer())
         subclass(SettingsCategory::class, SettingsCategory.serializer())
+        subclass(AdvancedSettings::class, AdvancedSettings.serializer())
         subclass(SharedLinks::class, SharedLinks.serializer())
         subclass(PresetManager::class, PresetManager.serializer())
         subclass(ApiKeys::class, ApiKeys.serializer())

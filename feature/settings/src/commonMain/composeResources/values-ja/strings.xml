@@ -118,7 +118,6 @@
     <string name="prefetch_cache_messages">キャッシュ済みのメッセージ</string>
     <string name="prefetch_cache_messages_value">%1$d 件のメッセージ</string>
     <string name="prefetch_cache_images">画像とファイル</string>
-    <string name="section_presets">プリセット</string>
     <string name="section_profile">プロフィール</string>
     <string name="section_security">セキュリティ</string>
     <string name="section_speech">音声</string>
@@ -251,8 +250,6 @@
     </plurals>
     <string name="cd_token_balance">トークン残高: %1$s クレジット</string>
     <string name="chat_group_display">表示</string>
-    <string name="chat_group_behavior">動作</string>
-    <string name="chat_group_header_context">ヘッダーとコンテキスト</string>
 
     <!-- Chat settings -->
     <string name="chat_layout">チャットレイアウト</string>
@@ -295,7 +292,7 @@
     <string name="font_size_small">小</string>
     <string name="font_size_medium">中</string>
     <string name="font_size_large">大</string>
-    <string name="latex_renderer">LaTeXレンダラー</string>
+    <string name="latex_renderer">数式の表示</string>
     <string name="latex_katex">KaTeX（レンダリング）</string>
     <string name="latex_katex_desc">WebView経由で完全なLaTeXをレンダリング</string>
     <string name="latex_native">プレーンテキスト（高速）</string>
@@ -414,14 +411,12 @@
         <item quantity="other">%1$d 件の会話をアーカイブしました</item>
     </plurals>
     <string name="archived_conversations">アーカイブ済みの会話</string>
-    <string name="clear_cache_with_size">キャッシュをクリア (%1$s)</string>
     <string name="clear_cache">キャッシュをクリア</string>
     <string name="dialog_title_clear_conversations">すべての会話をクリア</string>
     <string name="dialog_clear_conversations_message">すべての会話を完全に削除します。この操作は取り消せません。</string>
     <string name="clear_all">すべてクリア</string>
     <!-- Diagnostic logs (issue #96) -->
     <string name="export_diagnostic_logs">診断ログをエクスポート</string>
-    <string name="export_diagnostic_logs_with_size">診断ログをエクスポート（%1$s）</string>
     <string name="exporting_logs">エクスポート中…</string>
     <string name="clear_diagnostic_logs">診断ログをクリア</string>
     <string name="clearing_logs">クリア中…</string>
@@ -1050,4 +1045,24 @@
     <string name="admin_panel">管理パネル</string>
     <string name="admin_panel_desc">ブラウザで開きます</string>
     <string name="api_keys_load_failed">APIキーを読み込めませんでした</string>
+    <string name="category_voice">音声</string>
+    <string name="category_models_keys">モデルとキー</string>
+    <string name="category_advanced">詳細設定</string>
+    <string name="settings_home_voice_summary">音声入力と返信の読み上げ</string>
+    <string name="settings_home_models_summary">お気に入り、プロバイダーキー、スター付きモデル</string>
+    <string name="settings_home_advanced_summary">表示、アップロード、サーバー、ログ</string>
+    <string name="advanced_intro">上級者向けです。ほとんどの方は初期設定のままで問題ありません。</string>
+    <string name="advanced_chat_settings">チャットの詳細設定</string>
+    <string name="advanced_chat_settings_summary">生成中の動作、アップロード、プリセット</string>
+    <string name="advanced_data_settings">データの詳細設定</string>
+    <string name="advanced_data_settings_summary">ログ、コード環境</string>
+    <string name="section_messages">メッセージ</string>
+    <string name="section_your_chats">自分のチャット</string>
+    <string name="section_on_this_phone">この端末</string>
+    <string name="section_privacy">プライバシー</string>
+    <string name="section_server">サーバー</string>
+    <string name="section_developer">開発者</string>
+    <string name="section_troubleshooting">トラブルシューティング</string>
+    <string name="offline_reading">オフラインで読む</string>
+    <string name="clear_cache_summary">画像と一時ファイル %1$s</string>
 </resources>

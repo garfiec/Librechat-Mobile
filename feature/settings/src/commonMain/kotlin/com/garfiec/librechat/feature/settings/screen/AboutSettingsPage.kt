@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.ManageSearch
 import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,7 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -62,11 +60,8 @@ fun AboutSettingsPage(
                 row(key = "about_info") {
                     AboutInfo(
                         serverUrl = uiState.serverUrl,
-                        serverTrustedViaUserCa = uiState.serverTrustedViaUserCa,
                         appVersion = uiState.appVersion,
-                        gitSha = uiState.gitSha,
                         serverVersion = uiState.serverVersion,
-                        buildInfo = uiState.buildInfo,
                     )
                 }
                 row(key = "privacy_policy") {
@@ -114,22 +109,6 @@ fun AboutSettingsPage(
                 }
             }
 
-            // Advanced search sits here until the Advanced page takes it.
-            item(key = "search_header") {
-                AdaptiveSectionHeader(stringResource(Res.string.section_search))
-            }
-            adaptiveSection {
-                row(key = "advanced_search") {
-                    SettingsSwitchRow(
-                        icon = Icons.Default.ManageSearch,
-                        title = stringResource(Res.string.advanced_search),
-                        description = stringResource(Res.string.advanced_search_desc),
-                        checked = uiState.advancedSearchEnabled,
-                        onCheckedChange = viewModel::setAdvancedSearchEnabled,
-                    )
-                }
-            }
-
             item { Spacer(modifier = Modifier.height(32.dp)) }
         }
     }
@@ -138,11 +117,8 @@ fun AboutSettingsPage(
 @Composable
 internal fun AboutInfo(
     serverUrl: String,
-    serverTrustedViaUserCa: Boolean,
     appVersion: String,
-    gitSha: String,
     serverVersion: String?,
-    buildInfo: BuildInfo?,
 ) {
     Column {
         Column(
@@ -151,10 +127,6 @@ internal fun AboutInfo(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             AboutRow(stringResource(Res.string.app_version_label), appVersion)
-            if (gitSha.isNotBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                AboutRow(stringResource(Res.string.app_build_label), gitSha)
-            }
             Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -173,15 +145,6 @@ internal fun AboutInfo(
                     modifier = Modifier.weight(1f, fill = false),
                 )
             }
-            if (serverTrustedViaUserCa) {
-                Text(
-                    text = stringResource(Res.string.server_user_ca_notice),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.End,
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                )
-            }
             // Resolved LibreChat server version. Always shown — "Unknown" when it can't be
             // determined (LibreChat has no version endpoint; we infer it from the build commit).
             Spacer(modifier = Modifier.height(8.dp))
@@ -189,19 +152,46 @@ internal fun AboutInfo(
                 label = stringResource(Res.string.server_version_label),
                 value = serverVersion ?: stringResource(Res.string.server_version_unknown),
             )
-            // Server build metadata (v0.8.6) — only when the server reports it.
+        }
+        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
+    }
+}
+
+/** Whether [ServerDetails] has anything to show. */
+internal fun hasServerDetails(gitSha: String, serverTrustedViaUserCa: Boolean, buildInfo: BuildInfo?): Boolean =
+    gitSha.isNotBlank() || serverTrustedViaUserCa || buildInfo?.let {
+        !(it.commitShort ?: it.commit).isNullOrBlank() || !it.branch.isNullOrBlank() || !it.buildDate.isNullOrBlank()
+    } == true
+
+/** Advanced › Server: the app's build, the server's build metadata (v0.8.6) and how its certificate is trusted. */
+@Composable
+internal fun ServerDetails(
+    gitSha: String,
+    serverTrustedViaUserCa: Boolean,
+    buildInfo: BuildInfo?,
+) {
+    Column {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (gitSha.isNotBlank()) AboutRow(stringResource(Res.string.app_build_label), gitSha)
             val commit = buildInfo?.commitShort ?: buildInfo?.commit
-            if (!commit.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                AboutRow(stringResource(Res.string.server_build_commit_label), commit)
-            }
+            if (!commit.isNullOrBlank()) AboutRow(stringResource(Res.string.server_build_commit_label), commit)
             buildInfo?.branch?.takeIf { it.isNotBlank() }?.let { branch ->
-                Spacer(modifier = Modifier.height(8.dp))
                 AboutRow(stringResource(Res.string.server_build_branch_label), branch)
             }
             buildInfo?.buildDate?.takeIf { it.isNotBlank() }?.let { buildDate ->
-                Spacer(modifier = Modifier.height(8.dp))
                 AboutRow(stringResource(Res.string.server_build_date_label), buildDate)
+            }
+            if (serverTrustedViaUserCa) {
+                Text(
+                    text = stringResource(Res.string.server_user_ca_notice),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
         AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
