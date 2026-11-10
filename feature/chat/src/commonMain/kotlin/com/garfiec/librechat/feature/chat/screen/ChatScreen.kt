@@ -241,7 +241,7 @@ fun ChatScreen(
     var showSavePresetDialog by remember { mutableStateOf(false) }
     var showSecondaryModelSheet by remember { mutableStateOf(false) }
     // Above both context rings (rail and composer), so a dialog stays up while the ring moves between them.
-    val contextRingDialogs = remember(uiState.conversationId) { ContextRingDialogs() }
+    val contextRingDialogs = remember { ContextRingDialogs() }
     var activeComparisonTab by remember { mutableIntStateOf(0) }
     val compareSetupPick = rememberCompareSetupPick(uiState.comparisonState.isSettingUp)
     val compareSetupActions = remember(viewModel) { viewModel.compareSetupActions() }
