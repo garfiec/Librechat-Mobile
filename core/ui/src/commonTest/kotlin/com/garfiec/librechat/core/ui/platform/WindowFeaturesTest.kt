@@ -25,6 +25,31 @@ class WindowFeaturesTest {
     ) = windowFeaturesFromHost(barEdge, leftInset, rightInset, topLeftZone, topRightZone, fold, foldMargins, regularWidth)
 
     @Test
+    fun aCappedSheetCentredOnTheInnerScreenCoversNoneOfTheColumn() {
+        val bars = VerticalBars(BarSide.RIGHT, columnWidth = 84.dp, systemZoneHeight = 124.dp)
+
+        // A 640dp sheet centred in 951dp spans 155.5 to 795.5; the column starts at 867.
+        assertEquals(0.dp, bars.overlap(left = 155.5.dp, width = 640.dp, windowWidth = 951.dp))
+    }
+
+    @Test
+    fun aFullWidthSheetCoversTheWholeColumnOnEitherSide() {
+        val right = VerticalBars(BarSide.RIGHT, columnWidth = 84.dp, systemZoneHeight = 174.dp)
+
+        assertEquals(84.dp, right.overlap(left = 0.dp, width = 466.dp, windowWidth = 466.dp))
+        assertEquals(84.dp, right.copy(side = BarSide.LEFT).overlap(left = 0.dp, width = 466.dp, windowWidth = 466.dp))
+    }
+
+    @Test
+    fun aSheetReachingIntoTheColumnCoversOnlyThatPart() {
+        val bars = VerticalBars(BarSide.RIGHT, columnWidth = 84.dp, systemZoneHeight = 174.dp)
+
+        // 680dp wide: a centred 640dp sheet ends at 660, 64dp into a column starting at 596.
+        assertEquals(64.dp, bars.overlap(left = 20.dp, width = 640.dp, windowWidth = 680.dp))
+        assertEquals(64.dp, bars.copy(side = BarSide.LEFT).overlap(left = 20.dp, width = 640.dp, windowWidth = 680.dp))
+    }
+
+    @Test
     fun coverPortraitHasTheColumnOnTheRight() {
         val bars = host(barEdge = TRAILING, rightInset = 84.0, topRightZone = 174.0).verticalBars
 

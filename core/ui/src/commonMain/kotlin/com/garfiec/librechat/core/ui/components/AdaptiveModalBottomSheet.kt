@@ -25,7 +25,7 @@ import com.garfiec.librechat.core.ui.glass.GlassFloatingSheet
 import com.garfiec.librechat.core.ui.glass.GlassPortal
 import com.garfiec.librechat.core.ui.glass.GlassSheetHost
 import com.garfiec.librechat.core.ui.glass.LocalGlassSheetHost
-import com.garfiec.librechat.core.ui.platform.verticalBarColumn
+import com.garfiec.librechat.core.ui.platform.verticalBarColumnUnder
 import com.garfiec.librechat.core.ui.theme.isLiquidGlass
 import kotlinx.coroutines.launch
 
@@ -177,6 +177,7 @@ private fun AdaptiveModalBottomSheetImpl(
         )
         return
     }
+    val barColumn = WindowInsets.verticalBarColumnUnder(BottomSheetDefaults.SheetMaxWidth)
     ModalBottomSheet(
         onDismissRequest = onMaterialHide,
         modifier = modifier,
@@ -186,8 +187,9 @@ private fun AdaptiveModalBottomSheetImpl(
         containerColor = if (glass) MaterialTheme.colorScheme.surfaceContainerLow else BottomSheetDefaults.ContainerColor,
         tonalElevation = if (glass) 0.dp else BottomSheetDefaults.Elevation,
         dragHandle = dragHandle,
-        // M3 insets only top and bottom: the sheet spans the bar column, its content doesn't.
-        contentWindowInsets = { BottomSheetDefaults.windowInsets.union(WindowInsets.verticalBarColumn) },
+        // M3 insets only top and bottom. The sheet is capped at SheetMaxWidth and centred, so its content
+        // keeps out of only the part of the bar column it covers.
+        contentWindowInsets = { BottomSheetDefaults.windowInsets.union(barColumn) },
         properties = secureSheetProperties(windowSecure),
     ) {
         // Provides a local and emits nothing, so the content still lays out in the sheet's own column.

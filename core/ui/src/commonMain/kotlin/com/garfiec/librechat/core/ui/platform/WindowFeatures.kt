@@ -5,6 +5,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
@@ -57,14 +59,38 @@ val LocalWindowFeatures = compositionLocalOf { WindowFeatures() }
 val WindowInsets.Companion.verticalBarColumn: WindowInsets
     @Composable get() {
         val bars = LocalWindowFeatures.current.verticalBars
-        return remember(bars) {
-            when {
-                bars == null -> WindowInsets(0.dp)
-                bars.side == BarSide.LEFT -> WindowInsets(left = bars.columnWidth)
-                else -> WindowInsets(right = bars.columnWidth)
-            }
-        }
+        return remember(bars) { bars.insetOf(bars?.columnWidth ?: 0.dp) }
     }
+
+/**
+ * [WindowInsets.Companion.verticalBarColumn] cut to the part a sheet centred in the window and at most
+ * [maxWidth] wide covers: on a wide window a capped sheet can stop short of the column.
+ */
+@Composable
+internal fun WindowInsets.Companion.verticalBarColumnUnder(maxWidth: Dp): WindowInsets {
+    val bars = LocalWindowFeatures.current.verticalBars
+    val windowWidth = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() }
+    return remember(bars, windowWidth, maxWidth) {
+        val width = minOf(windowWidth, maxWidth)
+        bars.insetOf(bars?.overlap(left = (windowWidth - width) / 2, width = width, windowWidth = windowWidth) ?: 0.dp)
+    }
+}
+
+/**
+ * How much of the column a layout from [left] to [left] + [width] of a [windowWidth]-wide window
+ * covers: none when it stops short of the column, [VerticalBars.columnWidth] when it spans it.
+ */
+internal fun VerticalBars.overlap(left: Dp, width: Dp, windowWidth: Dp): Dp = when (side) {
+    BarSide.LEFT -> columnWidth - left
+    BarSide.RIGHT -> left + width - (windowWidth - columnWidth)
+}.coerceIn(0.dp, columnWidth)
+
+/** An inset of [amount] on the bar side; zero without bars. */
+internal fun VerticalBars?.insetOf(amount: Dp): WindowInsets = when (this?.side) {
+    null -> WindowInsets(0.dp)
+    BarSide.LEFT -> WindowInsets(left = amount)
+    BarSide.RIGHT -> WindowInsets(right = amount)
+}
 
 /** `UIVerticalBarEdge.unspecified`: the system draws its bars horizontally. */
 private const val BAR_EDGE_UNSPECIFIED = 0
