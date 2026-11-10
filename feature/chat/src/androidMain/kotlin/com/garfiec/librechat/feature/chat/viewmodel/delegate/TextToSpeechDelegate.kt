@@ -130,6 +130,9 @@ class TextToSpeechDelegate(
         voiceName: String,
     ) {
         getOrInitTts {
+            // A first engine starts after this read's job has ended, so Stop (or a newer read) can
+            // only reach it through the reading id.
+            if (handle.state.currentlyReadingMessageId != messageId) return@getOrInitTts
             val engine = ttsEngine ?: return@getOrInitTts
             engine.setSpeechRate(speechRate)
             engine.setPitch(pitch)
