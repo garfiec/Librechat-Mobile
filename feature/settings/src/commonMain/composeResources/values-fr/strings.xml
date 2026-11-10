@@ -784,7 +784,10 @@
     <string name="date_format_ymd_dash">Année-Mois-Jour</string>
     <string name="date_format_ymd_slash">Année/Mois/Jour</string>
     <string name="date_format_long">Long</string>
-    <string name="date_time_preview">Aperçu</string>
+    <string name="date_time_style_relative_desc">« il y a 3 heures » pendant le premier mois, puis la date. Touchez un horodatage pour voir l’heure exacte.</string>
+    <string name="date_time_style_smart_desc">L’heure si c’est aujourd’hui, puis Hier ou le jour de la semaine, puis la date. Touchez un horodatage pour voir l’heure exacte.</string>
+    <string name="date_time_style_absolute_desc">Toujours la date et l’heure complètes.</string>
+    <string name="date_time_date_format_note">Également utilisé pour les dates de votre liste de discussions et des cartes.</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
     <string name="ui_style_note_simulated">Liquid Glass est simulé sur cette version d'iOS. iOS 26 ou version ultérieure l'affiche nativement.</string>

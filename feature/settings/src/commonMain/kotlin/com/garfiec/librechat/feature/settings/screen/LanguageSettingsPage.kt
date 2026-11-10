@@ -23,6 +23,7 @@ import org.koin.compose.viewmodel.koinViewModel
 /** Settings › Language & region: the app's language, and how dates and times read. */
 @Composable
 fun LanguageSettingsPage(
+    onNavigateToDateTime: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     viewModel: GeneralSettingsViewModel = koinViewModel(),
@@ -48,7 +49,7 @@ fun LanguageSettingsPage(
                     icon = Icons.Default.Schedule,
                     title = stringResource(Res.string.date_time_title),
                     summary = dateTimeSummary(),
-                    onClick = viewModel::showDateTimeDialog,
+                    onClick = onNavigateToDateTime,
                 )
             }
         }
@@ -59,13 +60,6 @@ fun LanguageSettingsPage(
             selectedLanguage = uiState.selectedLanguage,
             onLanguageSelect = viewModel::setLanguage,
             onDismiss = viewModel::dismissLanguageDialog,
-        )
-    }
-    if (uiState.showDateTimeDialog) {
-        DateTimeSettingsDialog(
-            prefs = uiState.dateTimePrefs,
-            onSave = viewModel::saveDateTimePrefs,
-            onDismiss = viewModel::dismissDateTimeDialog,
         )
     }
 }

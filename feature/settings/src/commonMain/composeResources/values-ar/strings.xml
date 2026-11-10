@@ -840,7 +840,10 @@
     <string name="date_format_ymd_dash">سنة-شهر-يوم</string>
     <string name="date_format_ymd_slash">سنة/شهر/يوم</string>
     <string name="date_format_long">طويل</string>
-    <string name="date_time_preview">معاينة</string>
+    <string name="date_time_style_relative_desc">«قبل 3 ساعات» خلال الشهر الأول، ثم التاريخ. اضغط على الطابع الزمني لرؤية الوقت الدقيق.</string>
+    <string name="date_time_style_smart_desc">الوقت لرسائل اليوم، ثم «أمس» أو اسم اليوم، ثم التاريخ. اضغط على الطابع الزمني لرؤية الوقت الدقيق.</string>
+    <string name="date_time_style_absolute_desc">التاريخ والوقت كاملين دائمًا.</string>
+    <string name="date_time_date_format_note">يُستخدم أيضًا للتواريخ في قائمة المحادثات وعلى البطاقات.</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
     <string name="ui_style_note_simulated">تتم محاكاة Liquid Glass في إصدار iOS هذا. يعرضه iOS 26 أو الأحدث بشكل أصلي.</string>

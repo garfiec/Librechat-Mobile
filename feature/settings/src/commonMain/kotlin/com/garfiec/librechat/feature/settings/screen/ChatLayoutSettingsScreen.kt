@@ -37,8 +37,6 @@ import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
 import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
-import com.garfiec.librechat.core.ui.components.AdaptivePillChoice
-import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.AvatarImage
 import com.garfiec.librechat.core.ui.components.BubbleShape
 import com.garfiec.librechat.core.ui.components.EndpointAvatar
@@ -106,8 +104,6 @@ internal fun ChatAppearanceContent(
         adaptiveSection {
             row(key = "preview") { ChatAppearancePreview(state) }
         }
-        // The pills sit on the page rather than in a cell: a cell clips to its rounded shape, and the
-        // glass thumb's swell overhangs the control further than a cell's padding.
         item(key = "layout") {
             PillGroup(
                 label = stringResource(Res.string.chat_appearance_layout),
@@ -169,40 +165,6 @@ internal fun ChatAppearanceContent(
             }
         }
         item(key = "bottom_gap") { Spacer(modifier = Modifier.height(32.dp)) }
-    }
-}
-
-@Composable
-private fun PillGroup(
-    label: String,
-    options: List<String>,
-    selectedIndex: Int,
-    onSelect: (Int) -> Unit,
-    description: String? = null,
-    enabled: Boolean = true,
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        AdaptiveSectionHeader(label)
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            AdaptivePillChoice(
-                options = options,
-                selectedIndex = selectedIndex,
-                onSelect = onSelect,
-                enabled = enabled,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            if (description != null) {
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
-            }
-        }
     }
 }
 

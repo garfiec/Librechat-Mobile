@@ -17,8 +17,8 @@
 - **Language & region, About** (`GeneralSettingsViewModel`): DataStore + `/api/config` only, no network
   loads. About is web's About tab plus diagnostic logs: build and server details, Copy diagnostics and
   the logs stay there for every user, never on Advanced.
-  - `DateTimeSettingsDialog`: Save writes all three choices in one DataStore edit. The row shows only
-    a summary; keep new date options in the dialog, not on the page.
+  - Date & time (`DateTimeSettingsScreen`) saves each tap through `DateTimePrefsStore.update`. The
+    Language & region row shows only a summary; new date options go on that page.
 - **Appearance** (`AppearanceSettingsPage`, `AppearanceSettingsViewModel`, ThemeDataStore only).
   - **Server accent** (`interface.theme`): `DeploymentThemeSync` (`:core:data`) caches the active
     server's accent in `ThemeDataStore.serverAccent`, writing only from a config tagged with the active

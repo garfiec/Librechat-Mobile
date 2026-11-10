@@ -812,7 +812,10 @@
     <string name="date_format_ymd_dash">Год-Месяц-День</string>
     <string name="date_format_ymd_slash">Год/Месяц/День</string>
     <string name="date_format_long">Полный</string>
-    <string name="date_time_preview">Предпросмотр</string>
+    <string name="date_time_style_relative_desc">«3 часа назад» в течение первого месяца, затем дата. Нажмите на время, чтобы увидеть точное.</string>
+    <string name="date_time_style_smart_desc">Сегодня — время, затем «Вчера» или день недели, потом дата. Нажмите на время, чтобы увидеть точное.</string>
+    <string name="date_time_style_absolute_desc">Всегда полная дата и время.</string>
+    <string name="date_time_date_format_note">Также используется для дат в списке чатов и на карточках.</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
     <string name="ui_style_note_simulated">В этой версии iOS эффект Liquid Glass имитируется. В iOS 26 и новее он отображается нативно.</string>

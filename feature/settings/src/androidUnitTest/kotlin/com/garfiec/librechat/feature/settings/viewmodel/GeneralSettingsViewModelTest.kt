@@ -66,7 +66,9 @@ class GeneralSettingsViewModelTest {
         every { settingsDataStore.artifactDisplayPrefs } returns artifactDisplayFlow
         every { settingsDataStore.autoReadEnabled } returns autoReadFlow
         every { dateTimePrefsStore.prefs } returns dateTimePrefsFlow
-        coEvery { dateTimePrefsStore.set(any()) } answers { dateTimePrefsFlow.value = firstArg() }
+        coEvery { dateTimePrefsStore.update(any()) } answers {
+            dateTimePrefsFlow.value = firstArg<(DateTimeFormatPrefs) -> DateTimeFormatPrefs>()(dateTimePrefsFlow.value)
+        }
         every { serverDataStore.currentUrlFlow } returns MutableStateFlow("https://chat.example.com")
         every { configRepository.startupConfig } returns startupConfig
         every { configRepository.detectedBackendVersion } returns version
@@ -163,34 +165,16 @@ class GeneralSettingsViewModelTest {
     }
 
     @Test
-    fun `saveDateTimePrefs writes all three choices and dismisses dialog`() = runTest {
+    fun `updateDateTimePrefs changes only the field it is given`() = runTest {
+        dateTimePrefsFlow.value = DateTimeFormatPrefs(TimestampStyle.SMART, ClockFormat.H24, DateFormatStyle.YMD_DASH)
         val viewModel = createViewModel()
         advanceUntilIdle()
 
-        viewModel.showDateTimeDialog()
-        advanceUntilIdle()
-        assertThat(viewModel.uiState.value.showDateTimeDialog).isTrue()
-
-        val chosen = DateTimeFormatPrefs(TimestampStyle.SMART, ClockFormat.H24, DateFormatStyle.YMD_DASH)
-        viewModel.saveDateTimePrefs(chosen)
+        viewModel.updateDateTimePrefs { it.copy(date = DateFormatStyle.DMY_DOT) }
         advanceUntilIdle()
 
-        coVerify(exactly = 1) { dateTimePrefsStore.set(chosen) }
-        assertThat(viewModel.uiState.value.dateTimePrefs).isEqualTo(chosen)
-        assertThat(viewModel.uiState.value.showDateTimeDialog).isFalse()
-    }
-
-    @Test
-    fun `dismissing the date-time dialog writes nothing`() = runTest {
-        val viewModel = createViewModel()
-        advanceUntilIdle()
-
-        viewModel.showDateTimeDialog()
-        viewModel.dismissDateTimeDialog()
-        advanceUntilIdle()
-
-        coVerify(exactly = 0) { dateTimePrefsStore.set(any()) }
-        assertThat(viewModel.uiState.value.showDateTimeDialog).isFalse()
+        assertThat(viewModel.uiState.value.dateTimePrefs)
+            .isEqualTo(DateTimeFormatPrefs(TimestampStyle.SMART, ClockFormat.H24, DateFormatStyle.DMY_DOT))
     }
 
     @Test

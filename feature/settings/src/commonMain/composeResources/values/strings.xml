@@ -801,7 +801,10 @@
     <string name="date_format_ymd_dash">Year-Month-Day</string>
     <string name="date_format_ymd_slash">Year/Month/Day</string>
     <string name="date_format_long">Long</string>
-    <string name="date_time_preview">Preview</string>
+    <string name="date_time_style_relative_desc">“3 hours ago” for the first month, then the date. Tap a timestamp to see the exact time.</string>
+    <string name="date_time_style_smart_desc">The time today, then Yesterday or the weekday, then the date. Tap a timestamp to see the exact time.</string>
+    <string name="date_time_style_absolute_desc">Always the full date and time.</string>
+    <string name="date_time_date_format_note">Also used for dates in your chat list and on cards.</string>
     <string name="server_user_ca_notice">Trusted via a certificate authority installed on this device</string>
     <string name="mcp_tools_all">All MCP Tools</string>
     <string name="mcp_server_unknown">Unknown</string>

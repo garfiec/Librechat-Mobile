@@ -770,7 +770,10 @@
     <string name="date_format_ymd_dash">年-月-日</string>
     <string name="date_format_ymd_slash">年/月/日</string>
     <string name="date_format_long">长格式</string>
-    <string name="date_time_preview">预览</string>
+    <string name="date_time_style_relative_desc">第一个月内显示为“3 小时前”，之后显示日期。点按时间戳可查看确切时间。</string>
+    <string name="date_time_style_smart_desc">今天显示时间，之后显示“昨天”或星期几，再往后显示日期。点按时间戳可查看确切时间。</string>
+    <string name="date_time_style_absolute_desc">始终显示完整的日期和时间。</string>
+    <string name="date_time_date_format_note">也用于聊天列表和卡片中的日期。</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
     <string name="ui_style_note_simulated">此 iOS 版本上的 Liquid Glass 为模拟效果。iOS 26 或更高版本会原生绘制。</string>

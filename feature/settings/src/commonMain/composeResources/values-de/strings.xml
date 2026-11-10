@@ -784,7 +784,10 @@
     <string name="date_format_ymd_dash">Jahr-Monat-Tag</string>
     <string name="date_format_ymd_slash">Jahr/Monat/Tag</string>
     <string name="date_format_long">Lang</string>
-    <string name="date_time_preview">Vorschau</string>
+    <string name="date_time_style_relative_desc">„vor 3 Stunden“ im ersten Monat, danach das Datum. Tippe auf einen Zeitstempel, um die genaue Uhrzeit zu sehen.</string>
+    <string name="date_time_style_smart_desc">Heute die Uhrzeit, dann Gestern oder der Wochentag, danach das Datum. Tippe auf einen Zeitstempel, um die genaue Uhrzeit zu sehen.</string>
+    <string name="date_time_style_absolute_desc">Immer das vollständige Datum mit Uhrzeit.</string>
+    <string name="date_time_date_format_note">Gilt auch für Datumsangaben in der Chatliste und auf Karten.</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
     <string name="ui_style_note_simulated">Liquid Glass wird auf dieser iOS-Version simuliert. Ab iOS 26 wird es nativ dargestellt.</string>

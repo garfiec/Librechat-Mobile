@@ -106,6 +106,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
     codeExecutionEntries(onNavigate = onNavigate, onBack = onBack)
     contextUsageSettingsEntry(onBack = onBack)
     chatLayoutSettingsEntry(onBack = onBack)
+    dateTimeSettingsEntry(onBack = onBack)
     whatsNewEntry(onBack = onBack)
     releaseNotesEntry(onBack = onBack)
 }
@@ -133,6 +134,7 @@ val settingsSerializersModule = SerializersModule {
         subclass(CodeSetup::class, CodeSetup.serializer())
         subclass(ContextUsageSettings::class, ContextUsageSettings.serializer())
         subclass(ChatLayoutSettings::class, ChatLayoutSettings.serializer())
+        subclass(DateTimeSettings::class, DateTimeSettings.serializer())
         subclass(AppearanceSettings::class, AppearanceSettings.serializer())
         subclass(WhatsNew::class, WhatsNew.serializer())
         subclass(ReleaseNotes::class, ReleaseNotes.serializer())

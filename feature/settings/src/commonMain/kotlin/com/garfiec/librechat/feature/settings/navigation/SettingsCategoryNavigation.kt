@@ -153,7 +153,10 @@ internal fun SettingsPaneContent(
                 contentPadding = contentPadding,
                 snackbarHostState = snackbarHostState,
             )
-            SettingsCategoryKey.LANGUAGE -> LanguageSettingsPage(contentPadding = contentPadding)
+            SettingsCategoryKey.LANGUAGE -> LanguageSettingsPage(
+                onNavigateToDateTime = { onNavigate(DateTimeSettings) },
+                contentPadding = contentPadding,
+            )
             SettingsCategoryKey.ADMINISTRATION -> AdministrationSettingsPage(
                 onNavigateToRoleSkillsAdmin = { onNavigate(RoleSkillsAdmin) },
                 onNavigateToRoleMemoriesAdmin = { onNavigate(RoleMemoriesAdmin) },
