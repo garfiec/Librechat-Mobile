@@ -45,6 +45,7 @@ fun PrivacySettingsPage(
     val chat by chatViewModel.uiState.collectAsStateWithLifecycle()
     var confirming by remember { mutableStateOf<PrivacyConfirm?>(null) }
 
+    LaunchedEffect(Unit) { viewModel.loadCacheSize() }
     LaunchedEffect(uiState.error) {
         val error = uiState.error ?: return@LaunchedEffect
         snackbarHostState.showSnackbar(message = error)

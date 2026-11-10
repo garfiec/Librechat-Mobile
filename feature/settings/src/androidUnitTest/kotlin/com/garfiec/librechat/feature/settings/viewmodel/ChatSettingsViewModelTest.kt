@@ -254,6 +254,18 @@ class ChatSettingsViewModelTest {
     }
 
     @Test
+    fun `device voices load when the Voice page asks, once`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        verify(exactly = 0) { speechSettingsContract.loadDeviceVoices() }
+
+        viewModel.loadDeviceVoices()
+        viewModel.loadDeviceVoices()
+
+        verify(exactly = 1) { speechSettingsContract.loadDeviceVoices() }
+    }
+
+    @Test
     fun `a device preview speaks with the saved speed, pitch and voice`() = runTest {
         viewModel = createViewModel()
         advanceUntilIdle()

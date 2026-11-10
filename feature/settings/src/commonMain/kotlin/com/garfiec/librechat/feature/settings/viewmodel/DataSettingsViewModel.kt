@@ -98,8 +98,10 @@ class DataSettingsViewModel(
 
     init {
         dataDelegate.loadLogsBufferSize()
-        dataDelegate.loadCacheSize()
     }
+
+    /** Measures the cache for Privacy's Clear cache row. */
+    fun loadCacheSize() = dataDelegate.loadCacheSize()
 
     fun dismissError() {
         _uiState.update { it.copy(error = null) }

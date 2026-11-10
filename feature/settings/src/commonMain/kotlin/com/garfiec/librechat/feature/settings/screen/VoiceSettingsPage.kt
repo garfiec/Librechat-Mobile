@@ -57,7 +57,10 @@ fun VoiceSettingsPage(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     // A config or voices fetch that failed at launch must not hide the server voice for the session.
-    LaunchedEffect(Unit) { viewModel.retrySpeechConfig() }
+    LaunchedEffect(Unit) {
+        viewModel.retrySpeechConfig()
+        viewModel.loadDeviceVoices()
+    }
     // Preview and playback failures land here.
     val speechErrorText = uiState.error?.let { speechFailureText(it) }
     LaunchedEffect(uiState.error) {

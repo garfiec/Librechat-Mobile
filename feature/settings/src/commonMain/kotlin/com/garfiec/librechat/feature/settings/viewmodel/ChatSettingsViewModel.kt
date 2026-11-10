@@ -121,15 +121,22 @@ class ChatSettingsViewModel(
         }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+    private var deviceVoicesRequested = false
+
     init {
         // Also loads the server voices, once the config says the server has TTS.
         speechDelegate.loadSpeechConfig()
-        speechDelegate.loadDeviceVoices()
-        loadImageResizePolicy()
     }
 
-    /** Whether the server's admin decides image resizing (`fileConfig.clientImageResize.enabled`). */
-    private fun loadImageResizePolicy() {
+    /** Lists the device's voices for Voice; once per ViewModel, as each call binds a new Android TTS engine. */
+    fun loadDeviceVoices() {
+        if (deviceVoicesRequested) return
+        deviceVoicesRequested = true
+        speechDelegate.loadDeviceVoices()
+    }
+
+    /** Whether the server's admin decides image resizing (`fileConfig.clientImageResize.enabled`), for Advanced. */
+    fun loadImageResizePolicy() {
         viewModelScope.launch {
             val config = (fileRepository.getFileConfig() as? Result.Success)?.data ?: return@launch
             val policy = config.clientImageResize(userPreference = true)

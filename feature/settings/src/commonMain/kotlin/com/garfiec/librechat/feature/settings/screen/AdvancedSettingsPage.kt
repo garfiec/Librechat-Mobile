@@ -93,7 +93,10 @@ fun AdvancedSettingsPage(
     }
 
     // The Server engine is offered only once the speech config says the server transcribes.
-    LaunchedEffect(Unit) { chatViewModel.retrySpeechConfig() }
+    LaunchedEffect(Unit) {
+        chatViewModel.retrySpeechConfig()
+        chatViewModel.loadImageResizePolicy()
+    }
     LaunchedEffect(data.error) {
         val error = data.error ?: return@LaunchedEffect
         snackbarHostState.showSnackbar(message = error)
