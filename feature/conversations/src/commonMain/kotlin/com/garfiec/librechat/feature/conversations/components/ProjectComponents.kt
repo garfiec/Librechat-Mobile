@@ -18,13 +18,11 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -232,14 +230,17 @@ internal fun projectInitial(name: String): String {
 /**
  * Create/edit sheet for a project: a name and an optional description. [initialName] empty is a
  * create. [onConfirm] gets the trimmed name and description; a blank description comes back empty,
- * which the caller turns into "none" on create and "clear it" on edit.
+ * which the caller turns into "none" on create and "clear it" on edit. The sheet stays up, every way
+ * out held and the confirm button spinning, until the caller answers through `onResult`: saved closes
+ * it, failed keeps the text and shows [failureMessage] above the buttons (a snackbar would sit behind
+ * the sheet) until a field changes.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProjectEditorSheet(
     title: String,
     confirmLabel: String,
-    onConfirm: (name: String, description: String) -> Unit,
+    failureMessage: String,
+    onConfirm: (name: String, description: String, onResult: (saved: Boolean) -> Unit) -> Unit,
     onDismiss: () -> Unit,
     initialName: String = "",
     initialDescription: String = "",
@@ -248,11 +249,14 @@ fun ProjectEditorSheet(
 ) {
     var name by rememberSaveable { mutableStateOf(initialName.take(ChatProjectLimits.MAX_NAME_LENGTH)) }
     var description by rememberSaveable { mutableStateOf(initialDescription) }
+    var saving by remember { mutableStateOf(false) }
+    var failed by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     AdaptiveModalBottomSheet(
         modifier = Modifier.clearFocusOnTap(),
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        onDismissRequest = { if (!saving) onDismiss() },
+        interceptDismiss = saving,
+        skipPartiallyExpanded = true,
         dragHandle = { LowProfileDragHandle() },
     ) {
         Column(
@@ -267,14 +271,20 @@ fun ProjectEditorSheet(
             AdaptiveOutlinedTextField(
                 value = name,
                 // The server cuts a longer name silently, so stop where it would.
-                onValueChange = { name = it.take(ChatProjectLimits.MAX_NAME_LENGTH) },
+                onValueChange = {
+                    name = it.take(ChatProjectLimits.MAX_NAME_LENGTH)
+                    failed = false
+                },
                 modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
                 singleLine = true,
                 label = { Text(stringResource(Res.string.project_name_label)) },
             )
             AdaptiveOutlinedTextField(
                 value = description,
-                onValueChange = { description = it.take(maxDescriptionLength) },
+                onValueChange = {
+                    description = it.take(maxDescriptionLength)
+                    failed = false
+                },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 maxLines = 4,
@@ -294,15 +304,31 @@ fun ProjectEditorSheet(
                     }
                 },
             )
+            if (failed) {
+                Text(
+                    text = failureMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                )
+            }
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                AdaptiveTextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) }
+                AdaptiveTextButton(onClick = onDismiss, enabled = !saving) { Text(stringResource(Res.string.cancel)) }
                 AdaptiveButton(
                     enabled = name.isNotBlank() && description.trim().length <= maxDescriptionLength,
-                    onClick = { onConfirm(name.trim(), description.trim()) },
+                    loading = saving,
+                    onClick = {
+                        saving = true
+                        failed = false
+                        onConfirm(name.trim(), description.trim()) { saved ->
+                            saving = false
+                            if (saved) onDismiss() else failed = true
+                        }
+                    },
                 ) { Text(confirmLabel) }
             }
         }

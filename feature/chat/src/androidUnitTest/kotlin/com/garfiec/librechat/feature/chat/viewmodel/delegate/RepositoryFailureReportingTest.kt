@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.MessageRepository
 import com.garfiec.librechat.core.data.repository.PresetRepository
 import com.garfiec.librechat.core.data.repository.PromptRepository
+import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.PromptGroup
 import com.garfiec.librechat.feature.chat.viewmodel.ChatNotice
 import com.garfiec.librechat.feature.chat.viewmodel.ChatStateHandle
@@ -100,5 +101,29 @@ class RepositoryFailureReportingTest {
 
         assertThat(flow.value.error).isEqualTo(ChatNotice.PROMPT_RESOLVE_FAILED.marker())
         assertThat(flow.value.composer.inputText).isEqualTo("/ext")
+    }
+
+    @Test
+    fun `a failed preset load is a failure, not no presets, and reopening the picker retries it`() {
+        val presetRepository = mockk<PresetRepository>()
+        coEvery { presetRepository.getAll() } returns Result.Error(message = "offline")
+        val flow = MutableStateFlow(ChatUiState())
+        val delegate = PresetPromptDelegate(
+            handle = PresetPromptHandle(
+                ChatStateHandle(flow, CoroutineScope(Dispatchers.Unconfined)),
+                persistDraft = {},
+            ),
+            presetRepository = presetRepository,
+            promptRepository = mockk<PromptRepository>(relaxed = true),
+        )
+
+        delegate.loadPresets()
+        assertThat(flow.value.presetPrompts.presetsLoadFailed).isTrue()
+
+        coEvery { presetRepository.getAll() } returns Result.Success(listOf(Preset(presetId = "p1", title = "Mine")))
+        delegate.reloadPresetsIfFailed()
+
+        assertThat(flow.value.presetPrompts.presetsLoadFailed).isFalse()
+        assertThat(flow.value.presets.map { it.title }).containsExactly("Mine")
     }
 }

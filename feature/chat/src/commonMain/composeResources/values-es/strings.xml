@@ -381,6 +381,7 @@
     <!-- Preset picker -->
     <string name="select_preset">Seleccionar preajuste</string>
     <string name="no_presets_saved">Aún no hay preajustes guardados</string>
+    <string name="presets_load_failed">No se pudieron cargar tus preajustes.</string>
     <string name="cd_edit_preset">Editar %1$s</string>
     <string name="cd_delete_preset">Eliminar %1$s</string>
     <string name="preset_endpoint">Endpoint: %1$s</string>

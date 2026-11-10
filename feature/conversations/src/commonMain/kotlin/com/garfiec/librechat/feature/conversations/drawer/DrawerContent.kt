@@ -193,6 +193,8 @@ import com.garfiec.librechat.feature.conversations.resources.cd_unread_reply
 import com.garfiec.librechat.feature.conversations.resources.drawer_filter_messages_note
 import com.garfiec.librechat.feature.conversations.resources.drawer_filters_on
 import com.garfiec.librechat.feature.conversations.resources.drawer_finished_chats
+import com.garfiec.librechat.feature.conversations.resources.drawer_folder_load_failed
+import com.garfiec.librechat.feature.conversations.resources.drawer_projects_load_failed
 import com.garfiec.librechat.feature.conversations.resources.drawer_running_chats
 import com.garfiec.librechat.feature.conversations.resources.favorite
 import com.garfiec.librechat.feature.conversations.resources.favorites
@@ -200,12 +202,14 @@ import com.garfiec.librechat.feature.conversations.resources.new_chat
 import com.garfiec.librechat.feature.conversations.resources.no_conversations_found
 import com.garfiec.librechat.feature.conversations.resources.pinned
 import com.garfiec.librechat.feature.conversations.resources.project_create_confirm
+import com.garfiec.librechat.feature.conversations.resources.project_create_failed
 import com.garfiec.librechat.feature.conversations.resources.project_edit
 import com.garfiec.librechat.feature.conversations.resources.project_move_down
 import com.garfiec.librechat.feature.conversations.resources.project_move_up
 import com.garfiec.librechat.feature.conversations.resources.project_new
 import com.garfiec.librechat.feature.conversations.resources.project_new_chat_in
 import com.garfiec.librechat.feature.conversations.resources.project_unassigned
+import com.garfiec.librechat.feature.conversations.resources.project_update_failed
 import com.garfiec.librechat.feature.conversations.resources.projects
 import com.garfiec.librechat.feature.conversations.resources.projects_all
 import com.garfiec.librechat.feature.conversations.resources.remove_favorite
@@ -294,6 +298,7 @@ fun DrawerContent(
     val searchFieldText by viewModel.searchQuery.collectAsStateWithLifecycle()
     val projects by viewModel.projects.collectAsStateWithLifecycle()
     val inlineProjectChats by viewModel.inlineProjectChats.collectAsStateWithLifecycle()
+    val projectsLoadFailed by viewModel.projectsLoadFailed.collectAsStateWithLifecycle()
     val projectLimits by viewModel.projectLimits.collectAsStateWithLifecycle()
     val libraryTab by viewModel.drawerLibraryTab.collectAsStateWithLifecycle()
     val workspace by viewModel.workspace.collectAsStateWithLifecycle()
@@ -405,6 +410,8 @@ fun DrawerContent(
         onPin = viewModel::pinConversation,
         projects = projects,
         onLoadProjects = { viewModel.reloadProjects() },
+        projectsLoadFailed = projectsLoadFailed,
+        onRetryProjects = { viewModel.reloadProjects(force = true) },
         onMoveToProject = viewModel::moveConversationToProject,
         onCreateProjectAndAssign = viewModel::createProjectAndAssign,
         onOpenProjectsIndex = onOpenProjectsIndex,
@@ -494,6 +501,9 @@ fun DrawerContent(
     onPin: (String, Boolean) -> Unit = { _, _ -> },
     projects: List<ChatProject> = emptyList(),
     onLoadProjects: () -> Unit = {},
+    projectsLoadFailed: Boolean = false,
+    /** Reloads the folders and the open folder's chats: the Projects tab's Retry. */
+    onRetryProjects: () -> Unit = {},
     onMoveToProject: (String, String?) -> Unit = { _, _ -> },
     onCreateProjectAndAssign: (String, String) -> Unit = { _, _ -> },
     // Projects tab (segmented toggle above the list): the folder list + inline chat accordion, plus
@@ -507,9 +517,14 @@ fun DrawerContent(
     // Switchboard-only custom folder order: a folder was picked up / dropped in its new place.
     onPickUpProject: () -> Unit = {},
     onReorderProjects: (orderedIds: List<String>) -> Unit = {},
-    onCreateProject: (String, String) -> Unit = { _, _ -> },
+    onCreateProject: (name: String, description: String, onResult: (saved: Boolean) -> Unit) -> Unit = { _, _, _ -> },
     projectDescriptionLimit: Int = ChatProjectLimits.DEFAULT_MAX_DESCRIPTION_LENGTH,
-    onEditProject: (String, String, String) -> Unit = { _, _, _ -> },
+    onEditProject: (
+        projectId: String,
+        name: String,
+        description: String,
+        onResult: (saved: Boolean) -> Unit,
+    ) -> Unit = { _, _, _, _ -> },
     onDeleteProject: (String) -> Unit = {},
     onNewChatInProject: (projectId: String, projectName: String) -> Unit = { _, _ -> },
     onShare: (String) -> Unit = {},
@@ -1066,6 +1081,10 @@ fun DrawerContent(
                                 onClear = { onFiltersChange(DrawerFilters.None) },
                             )
                         }
+                    } else if (uiState.showsEmptyList) {
+                        item(key = "list_empty") {
+                            ListEmptyState(loadFailed = uiState.listLoad == ListLoad.FAILED, onRetry = onRefresh)
+                        }
                     }
                     uiState.groupedConversations.forEach { (group, displayItems) ->
                         drawerHeader(glass, key = "header_${group.key}") {
@@ -1155,6 +1174,8 @@ fun DrawerContent(
         if (showProjects) {
             DrawerProjectsList(
                 projects = projects,
+                loadFailed = projectsLoadFailed,
+                onRetry = onRetryProjects,
                 inlineProjectChats = inlineProjectChats,
                 onToggleProject = onToggleProject,
                 onPickUpProject = onPickUpProject,
@@ -1436,14 +1457,16 @@ private val NewChatStartPadding = 16.dp
 @Composable
 private fun DrawerProjectsList(
     projects: List<ChatProject>,
+    loadFailed: Boolean,
+    onRetry: () -> Unit,
     inlineProjectChats: InlineProjectChatsState,
     onToggleProject: (String) -> Unit,
     onPickUpProject: () -> Unit,
     onReorderProjects: (orderedIds: List<String>) -> Unit,
     onOpenProjectsIndex: () -> Unit,
-    onCreateProject: (name: String, description: String) -> Unit,
+    onCreateProject: (name: String, description: String, onResult: (saved: Boolean) -> Unit) -> Unit,
     descriptionLimit: Int,
-    onEditProject: (projectId: String, name: String, description: String) -> Unit,
+    onEditProject: (projectId: String, name: String, description: String, onResult: (saved: Boolean) -> Unit) -> Unit,
     onNewChatInProject: (projectId: String, projectName: String) -> Unit,
     onDeleteProject: (String) -> Unit,
     renderChat: @Composable (String, DrawerConversationDisplayData) -> Unit,
@@ -1453,8 +1476,8 @@ private fun DrawerProjectsList(
     var editTarget by remember { mutableStateOf<ChatProject?>(null) }
     var deleteTarget by remember { mutableStateOf<ChatProject?>(null) }
 
-    // Expanded body for the open folder: a spinner while its page loads, an empty note, or the chat
-    // rows. Single-expand, so inlineProjectChats always holds the currently open folder's chats.
+    // Expanded body for the open folder: a spinner while its page loads, a failure with Retry, an empty
+    // note, or the chat rows. Single-expand, so inlineProjectChats always holds the open folder's chats.
     val expandedChats: @Composable (String) -> Unit = { projectId ->
         when {
             inlineProjectChats.isLoading -> {
@@ -1464,6 +1487,9 @@ private fun DrawerProjectsList(
                 ) {
                     AdaptiveCircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 }
+            }
+            inlineProjectChats.loadFailed -> {
+                DrawerLoadFailedRow(message = stringResource(Res.string.drawer_folder_load_failed), onRetry = onRetry)
             }
             inlineProjectChats.conversations.isEmpty() -> {
                 val project = projects.firstOrNull { it.id == projectId }
@@ -1573,6 +1599,12 @@ private fun DrawerProjectsList(
             )
         }
 
+        if (loadFailed && projects.isEmpty()) {
+            item(key = "projects_load_failed") {
+                DrawerLoadFailedRow(message = stringResource(Res.string.drawer_projects_load_failed), onRetry = onRetry)
+            }
+        }
+
         items(items = shownProjects, key = { it.id }) { folder ->
             val held = reorder.heldId == folder.id
             val index = indexOf[folder.id] ?: -1
@@ -1618,11 +1650,9 @@ private fun DrawerProjectsList(
         ProjectEditorSheet(
             title = stringResource(Res.string.project_new),
             confirmLabel = stringResource(Res.string.project_create_confirm),
+            failureMessage = stringResource(Res.string.project_create_failed),
             maxDescriptionLength = descriptionLimit,
-            onConfirm = { name, description ->
-                onCreateProject(name, description)
-                showCreateDialog = false
-            },
+            onConfirm = onCreateProject,
             onDismiss = { showCreateDialog = false },
         )
     }
@@ -1633,11 +1663,9 @@ private fun DrawerProjectsList(
             confirmLabel = stringResource(Res.string.save),
             initialName = target.name,
             initialDescription = target.description.orEmpty(),
+            failureMessage = stringResource(Res.string.project_update_failed),
             maxDescriptionLength = descriptionLimit,
-            onConfirm = { name, description ->
-                onEditProject(target.id, name, description)
-                editTarget = null
-            },
+            onConfirm = { name, description, onResult -> onEditProject(target.id, name, description, onResult) },
             onDismiss = { editTarget = null },
         )
     }

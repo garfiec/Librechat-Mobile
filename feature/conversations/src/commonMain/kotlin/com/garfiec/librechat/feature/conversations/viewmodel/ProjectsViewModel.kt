@@ -40,7 +40,8 @@ data class ProjectsUiState(
     val projects: List<ChatProject> = emptyList(),
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
-    val error: String? = null,
+    /** The last first page failed: with no projects held, the error state stands in for the list. */
+    val loadFailed: Boolean = false,
     val nextCursor: String? = null,
     val hasMore: Boolean = true,
     /** Lives only as long as this ViewModel: there is no saved sort preference yet. */
@@ -90,7 +91,6 @@ class ProjectsViewModel(
     private val pager = CursorPager(
         scope = viewModelScope,
         idOf = ChatProject::id,
-        onError = { message -> _uiState.update { it.copy(error = message) } },
     ) { cursor, limit ->
         val state = _uiState.value
         if (state.sort == ProjectSort.CUSTOM) {
@@ -127,6 +127,7 @@ class ProjectsViewModel(
                         shownQuery = if (settled) requestedQuery else it.shownQuery,
                         isLoading = paging.isLoading,
                         isRefreshing = paging.isRefreshing,
+                        loadFailed = paging.firstPageFailed,
                         nextCursor = paging.nextCursor,
                         hasMore = paging.nextCursor != null,
                     )
@@ -183,15 +184,13 @@ class ProjectsViewModel(
         }
     }
 
-    fun createProject(name: String, description: String) = actions.create(name, description)
+    fun createProject(name: String, description: String, onResult: (saved: Boolean) -> Unit) =
+        actions.create(name, description, onResult)
 
-    fun editProject(projectId: String, name: String, description: String) = actions.edit(projectId, name, description)
+    fun editProject(projectId: String, name: String, description: String, onResult: (saved: Boolean) -> Unit) =
+        actions.edit(projectId, name, description, onResult)
 
     fun deleteProject(projectId: String) = actions.delete(projectId)
-
-    fun dismissError() {
-        _uiState.update { it.copy(error = null) }
-    }
 
     private companion object {
         const val SEARCH_DEBOUNCE_MS = 500L

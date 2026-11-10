@@ -893,7 +893,10 @@ fun ChatScreen(
                     ChatFloatingTopBar(
                         uiState = uiState,
                         viewModel = viewModel,
-                        onLoadPreset = { showPresetPicker = true },
+                        onLoadPreset = {
+                            viewModel.reloadPresetsIfFailed()
+                            showPresetPicker = true
+                        },
                         onSavePreset = { showSavePresetDialog = true },
                         onRename = viewModel::showRenameDialog,
                         onOpenDrawer = onOpenDrawer,

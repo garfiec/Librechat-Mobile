@@ -379,6 +379,7 @@
     <!-- Preset picker -->
     <string name="select_preset">Vorlage auswählen</string>
     <string name="no_presets_saved">Noch keine Vorlagen gespeichert</string>
+    <string name="presets_load_failed">Deine Vorlagen konnten nicht geladen werden.</string>
     <string name="cd_edit_preset">%1$s bearbeiten</string>
     <string name="cd_delete_preset">%1$s löschen</string>
     <string name="preset_endpoint">Endpunkt: %1$s</string>

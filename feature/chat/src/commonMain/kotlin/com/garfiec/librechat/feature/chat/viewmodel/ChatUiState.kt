@@ -395,6 +395,7 @@ data class ChatUiState(
     val arePicksUnsettled: Boolean
         get() = composer.pendingUploadRouting != null || composer.isResolvingPickedFiles
     val presets: List<PresetDisplayData> get() = presetPrompts.presets
+    val presetsLoadFailed: Boolean get() = presetPrompts.presetsLoadFailed
     val availablePrompts: List<PromptMentionDisplayData> get() = presetPrompts.availablePrompts
     val pendingVariablePrompt: PendingVariablePrompt? get() = presetPrompts.pendingVariablePrompt
     val isRecording: Boolean get() = voice.isRecording

@@ -11,6 +11,7 @@ import com.garfiec.librechat.core.data.datastore.DrawerPinsStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.AllProjects
 import com.garfiec.librechat.core.data.repository.ConfigRepository
+import com.garfiec.librechat.core.data.repository.ConversationRepository
 import com.garfiec.librechat.core.data.repository.ProjectRepository
 import com.garfiec.librechat.core.data.repository.PullRequestRepository
 import com.garfiec.librechat.core.model.ChatProject
@@ -25,6 +26,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.resetMain
@@ -40,6 +42,7 @@ class DrawerProjectReorderTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val projectRepository = mockk<ProjectRepository>(relaxed = true)
+    private val conversationRepository = mockk<ConversationRepository>(relaxed = true)
     private val account = AccountId("srv:user")
     private val accountProvider = InMemoryActiveAccountProvider(AccountState.Resolved(account))
 
@@ -49,12 +52,15 @@ class DrawerProjectReorderTest {
         Result.Success(AllProjects(ids.map(::project), isComplete = complete))
 
     private fun viewModel() = DrawerViewModel(
-        conversationRepository = mockk(relaxed = true),
+        conversationRepository = conversationRepository,
         roleRepository = mockk(relaxed = true),
         tagRepository = mockk(relaxed = true),
         projectRepository = projectRepository,
         configRepository = mockk<ConfigRepository>(relaxed = true) {
             every { detectedBackendVersion } returns MutableStateFlow(null)
+            every { endpointConfigs } returns MutableStateFlow(emptyMap())
+            every { startupConfig } returns MutableStateFlow(null)
+            every { serverUrl } returns flowOf("https://srv")
         },
         shareLinkControllerFactory = mockk(relaxed = true),
         conversationExporter = mockk(relaxed = true),
@@ -154,5 +160,33 @@ class DrawerProjectReorderTest {
         runCurrent()
 
         coVerify(exactly = 0) { projectRepository.saveProjectOrder(AccountId("srv:other"), any()) }
+    }
+
+    @Test
+    fun `a failed projects load says so until one lands`() = drawerTest { vm ->
+        coEvery { projectRepository.listAllProjectsInCustomOrder(any()) } returns Result.Error(message = "offline")
+        vm.loadProjects()
+        runCurrent()
+
+        assertThat(vm.projectsLoadFailed.value).isTrue()
+
+        coEvery { projectRepository.listAllProjectsInCustomOrder(any()) } returns all("a")
+        vm.loadProjects()
+        runCurrent()
+
+        assertThat(vm.projectsLoadFailed.value).isFalse()
+    }
+
+    @Test
+    fun `an open folder whose chats fail to load says so, not empty`() = drawerTest { vm ->
+        coEvery { conversationRepository.getConversationsForProject("a", any(), any(), any(), any()) } returns
+            Result.Error(message = "offline")
+        backgroundScope.launch { vm.inlineProjectChats.collect {} }
+
+        vm.toggleProjectExpanded("a")
+        runCurrent()
+
+        assertThat(vm.inlineProjectChats.value.loadFailed).isTrue()
+        assertThat(vm.inlineProjectChats.value.isLoading).isFalse()
     }
 }

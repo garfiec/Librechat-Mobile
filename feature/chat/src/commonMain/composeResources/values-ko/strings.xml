@@ -374,6 +374,7 @@
     <!-- Preset picker -->
     <string name="select_preset">프리셋 선택</string>
     <string name="no_presets_saved">아직 저장된 프리셋이 없습니다</string>
+    <string name="presets_load_failed">프리셋을 불러오지 못했습니다.</string>
     <string name="cd_edit_preset">%1$s 편집</string>
     <string name="cd_delete_preset">%1$s 삭제</string>
     <string name="preset_endpoint">엔드포인트: %1$s</string>
