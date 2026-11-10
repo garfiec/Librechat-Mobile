@@ -381,7 +381,7 @@ class MessageEditingDelegate(
                 modelParams = modelParams,
                 editedContent = editedContent,
                 addedConvo = addedConvo,
-                reasoningOverride = reasoningOverride?.takeIf { state.acceptsReasoning(it) },
+                reasoningOverride = reasoningOverride?.takeIf { state.replaysReasoning(it) },
                 // A compaction runs no model turn, so it decides nothing.
                 codeWorkspace = if (compact == true) null else codeWorkspace()?.takeUnless { it == CodeWorkspaceSubmission.NONE },
             ),

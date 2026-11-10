@@ -5221,7 +5221,7 @@
         "symbol": "ReasoningSettingResolver.resolve"
       },
       "why": "Which reasoning key and values a one-turn reasoningOverride may carry for an endpoint and model. The server runs the same function on the request, so the Thinking chip and the send-time check must agree with it.",
-      "failure_mode": "The chip offers a level the server answers with a 400 invalid-reasoning-override (the send fails), or hides itself for a model that takes one. Nothing fails to decode."
+      "failure_mode": "The chip offers a level the server refuses with an `Invalid reasoning override` SSE error frame on a 200 (the send fails), or hides itself for a model that takes one. Nothing fails to decode."
     },
     {
       "id": "reasoning-setting-per-model",

@@ -86,11 +86,27 @@ class ReasoningCatalogDelegateTest {
         assertThat(flow.value.composer.pendingReasoningOverride).isNull()
     }
 
+    /** Web's `Reasoning.tsx` clears a staged choice on any change of agent, endpoint or model. */
     @Test
-    fun `a switch to a model that keeps the level keeps the choice`() = delegateTest(state("openAI", "gpt-5")) { flow, _ ->
-        flow.select("openAI", "o3")
+    fun `a switch to another model drops the choice even when it takes the level`() =
+        delegateTest(state("openAI", "gpt-5")) { flow, _ ->
+            flow.select("openAI", "o3")
+            runCurrent()
+            assertThat(flow.value.composer.pendingReasoningOverride).isNull()
+        }
+
+    /** A queued edit swaps the model and its own staged choice in one emission. */
+    @Test
+    fun `a choice arriving with the new model stays`() = delegateTest(state("openAI", "gpt-5")) { flow, _ ->
+        val low = ReasoningOverride.level("reasoning_effort", "low")
+        flow.update {
+            it.copy(
+                selection = it.selection.copy(choice = ModelChoice.Raw("openAI", "o3")),
+                composer = it.composer.copy(pendingReasoningOverride = low),
+            )
+        }
         runCurrent()
-        assertThat(flow.value.composer.pendingReasoningOverride).isEqualTo(high)
+        assertThat(flow.value.composer.pendingReasoningOverride).isEqualTo(low)
     }
 
     @Test

@@ -726,14 +726,18 @@ and never send both** (the server runs both on OpenAI and custom endpoints).
 
 ### Per-turn thinking (`reasoningOverride`, v0.8.9-rc1)
 - `ReasoningSettingResolver` (`:core:ui`) ports upstream `resolveReasoningSettingForTarget`, which the
-  server also runs: any difference is a 400. It keeps its own key table, not
+  server also runs: a difference fails the send (an `Invalid reasoning override` SSE error frame on a
+  200, not a 400). It keeps its own key table, not
   `EndpointParameterRegistry`'s. Mirrored.
 - The chip shows only with: server ≥ 0.8.9-rc1, `interface.parameters` on, not assistants, not
   comparing, a resolved target (a saved agent's provider and model), a key an enforced spec's preset
-  doesn't set, and levels (a `thinkingBudget` model gets none). `hideBadgeRow` doesn't hide it.
+  doesn't set, and levels (a `thinkingBudget` model gets none). `hideBadgeRow` doesn't hide it. Under
+  `enforce` a kept spec the config doesn't serve (`showInMenu: false`) hides it: its locked keys can't
+  be known. Web shows it there and the send fails.
 - One message only: a staged choice rides that send or its `QueuedMessage`, and makes a mid-run send
-  queue, never steer. A model switch drops it only once the new setting is known and refuses it.
-  Edit/regenerate/continue send the user message's own `reasoningOverride`.
+  queue, never steer. A switch of endpoint, agent or model drops it, as web does; a changed setting
+  drops one it refuses once known. Edit/regenerate/continue send the user message's own
+  `reasoningOverride` when the model takes it and no enforced spec locks the key, chip shown or not.
 - **OpenRouter catalog:** an endpoint whose efforts come from the catalog (`usesCatalog`) offers none
   until `ReasoningCatalogDelegate` has it; it refetches at the server's `expiresInMs` and retries
   failures. A model the catalog doesn't list keeps the generic list.

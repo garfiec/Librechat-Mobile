@@ -822,11 +822,14 @@ data class ChatUiState(
      * upstream gates it on `interface.parameters` alone, like the parameters panel.
      */
     val reasoningSetting: ReasoningSetting?
-        get() = composerReasoningSetting(
+        get() = reasoningSettingFor(parametersEnabled = parametersEnabled, comparing = comparisonState.isEnabled)
+
+    private fun reasoningSettingFor(parametersEnabled: Boolean, comparing: Boolean): ReasoningSetting? =
+        composerReasoningSetting(
             backendVersion = gates.backendVersion,
             parametersEnabled = parametersEnabled,
             endpointSupportsIt = quotesSupportedOnEndpoint,
-            comparing = comparisonState.isEnabled,
+            comparing = comparing,
             target = reasoningTarget(
                 selectedEndpoint = selectedEndpoint,
                 selectedModel = selectedModel,
@@ -836,6 +839,7 @@ data class ChatUiState(
             endpointConfigs = endpointConfigs,
             catalog = selection.reasoningCatalog,
             enforcedPreset = activeSpec?.preset?.takeIf { selection.modelSpecs.requiresSpec },
+            enforcedSpecUnserved = parametersSetBySpec && activeSpec == null,
         )
 
     /** The composer's Thinking chip, or null when it is hidden. */
@@ -853,6 +857,13 @@ data class ChatUiState(
     /** Whether [override] can be sent for the current selection; the server 400s one it can't. */
     fun acceptsReasoning(override: ReasoningOverride): Boolean =
         ReasoningSettingResolver.isSupported(override, reasoningSetting)
+
+    /**
+     * Whether a past turn's [override] can be replayed (edit, regenerate, continue): what the model
+     * and an enforced spec allow, whether or not the composer shows the chip (web's `overrideReasoning`).
+     */
+    fun replaysReasoning(override: ReasoningOverride): Boolean =
+        ReasoningSettingResolver.isSupported(override, reasoningSettingFor(parametersEnabled = true, comparing = false))
 
     /**
      * What the composer's send control will actually do mid-run: the user's preference, degraded

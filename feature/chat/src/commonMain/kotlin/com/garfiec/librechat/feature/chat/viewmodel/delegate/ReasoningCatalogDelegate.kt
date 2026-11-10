@@ -25,8 +25,9 @@ import kotlin.time.Clock
  *   and refetches when the server's lifetime runs out, so a list is never held longer than the
  *   server holds it. While unknown (loading, failed, expired) the efforts are hidden. A failure is
  *   retried with backoff.
- * - **The staged choice.** When the target or its resolved setting changes, a pending choice the
- *   new setting refuses is dropped. Not while the catalog is unknown: that says nothing about the
+ * - **The staged choice.** A switch of endpoint, agent or model drops it (web's `Reasoning.tsx`), unless
+ *   the same emission brings its own (a queued edit's). When the resolved setting changes, a pending
+ *   choice it refuses is dropped. Not while the catalog is unknown: that says nothing about the
  *   choice, which is checked again once the catalog lands.
  */
 class ReasoningCatalogDelegate(
@@ -58,6 +59,20 @@ class ReasoningCatalogDelegate(
                 .map { state -> state.reasoningSetting to state.isCatalogPending() }
                 .distinctUntilChanged()
                 .collect { (_, pending) -> if (!pending) dropRefusedChoice() }
+        }
+        handle.scope.launch {
+            var last: Pair<Pair<String, String?>, ReasoningOverride?>? = null
+            handle.stateFlow
+                .map { (it.selectedEndpoint to it.selectedModel) to it.composer.pendingReasoningOverride }
+                .distinctUntilChanged()
+                .collect { current ->
+                    val previous = last
+                    last = current
+                    val (target, pending) = current
+                    if (previous != null && previous.first != target && pending != null && pending == previous.second) {
+                        handle.update { if (pendingReasoningOverride == pending) pendingReasoningOverride = null }
+                    }
+                }
         }
     }
 
