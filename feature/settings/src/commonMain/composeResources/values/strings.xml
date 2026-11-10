@@ -164,10 +164,11 @@
     <string name="accent_color_hex">Hex</string>
     <string name="use_wallpaper_colors">Use wallpaper colors</string>
     <string name="use_wallpaper_colors_desc">Match the app accent to your system wallpaper (Material You)</string>
-    <string name="use_server_accent">Use server accent</string>
-    <string name="use_server_accent_desc">Your server picks this accent for everyone. Turn off to use your own.</string>
+    <string name="colors_title">Colors</string>
+    <string name="colors_from_server">From your server</string>
+    <string name="colors_switchboard_detail">Your colors</string>
     <string name="accent_set_by_server">Set by your server (%1$s)</string>
-    <string name="accent_set_by_server_note">Turn off Use server accent to pick your own.</string>
+    <string name="accent_set_by_server_note">Pick Switchboard under Colors to use your own accent.</string>
     <string name="ui_style">Interface style</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>

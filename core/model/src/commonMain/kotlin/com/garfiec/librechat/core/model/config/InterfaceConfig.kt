@@ -45,7 +45,7 @@ data class InterfaceConfig(
     val retentionMode: String? = null,
     /**
      * Deployment theme (v0.8.9-rc1): a bundled theme name or an inline definition, applied to every
-     * user. Kept raw; read the accent through [readDeploymentAccent], never by hand.
+     * user. Kept raw; read it through [com.garfiec.librechat.core.model.config.theme.readServerTheme], never by hand.
      */
     val theme: JsonElement? = null,
     // --- v0.8.7 detection / gating ---

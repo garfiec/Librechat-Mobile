@@ -161,10 +161,11 @@
     <string name="accent_color_hex">十六进制</string>
     <string name="use_wallpaper_colors">使用壁纸取色</string>
     <string name="use_wallpaper_colors_desc">让应用强调色与系统壁纸保持一致（Material You）</string>
-    <string name="use_server_accent">使用服务器强调色</string>
-    <string name="use_server_accent_desc">你的服务器为所有人设定了此强调色。关闭后可使用你自己的。</string>
+    <string name="colors_title">颜色</string>
+    <string name="colors_from_server">来自你的服务器</string>
+    <string name="colors_switchboard_detail">你的颜色</string>
     <string name="accent_set_by_server">由服务器设定（%1$s）</string>
-    <string name="accent_set_by_server_note">关闭“使用服务器强调色”即可选择你自己的强调色。</string>
+    <string name="accent_set_by_server_note">在“颜色”中选择 Switchboard 即可使用你自己的强调色。</string>
 
     <!-- Settings rows -->
     <string name="language">语言</string>

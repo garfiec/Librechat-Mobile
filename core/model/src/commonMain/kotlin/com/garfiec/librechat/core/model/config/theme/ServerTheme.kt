@@ -6,8 +6,9 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.doubleOrNull
 
 /**
- * A server theme's colours as it names them, per mode, in 24-bit RGB. Roles this client doesn't
- * know are already dropped and renamed ones carried to their current name; [resolve] fills the rest.
+ * A server theme's colours as it names them, per mode, in 24-bit RGB, under the name people see (a
+ * bundled theme's brand name, not its id). Roles this client doesn't know are already dropped and
+ * renamed ones carried to their current name; [resolve] fills the rest.
  */
 data class ServerThemeDefinition(
     val name: String,
@@ -42,8 +43,8 @@ fun readServerTheme(theme: JsonElement?): ServerThemeRead = when {
 }
 
 private fun bundledTheme(name: String): ServerThemeRead = when (name) {
-    LIBRECHAT -> ServerThemeRead.Theme(ServerThemeDefinition(LIBRECHAT, light = emptyMap(), dark = emptyMap()))
-    CLICKHOUSE -> ServerThemeRead.Theme(ServerThemeDefinition(CLICKHOUSE, ClickHousePalette.light, ClickHousePalette.dark))
+    LIBRECHAT -> ServerThemeRead.Theme(ServerThemeDefinition("LibreChat", light = emptyMap(), dark = emptyMap()))
+    CLICKHOUSE -> ServerThemeRead.Theme(ServerThemeDefinition("ClickHouse", ClickHousePalette.light, ClickHousePalette.dark))
     else -> invalid("Unknown bundled theme \"$name\"")
 }
 
