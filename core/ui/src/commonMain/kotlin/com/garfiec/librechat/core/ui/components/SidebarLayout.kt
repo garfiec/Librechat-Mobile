@@ -6,7 +6,6 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/** The width of the sidebar the sidebar layout puts beside the content. */
 val SidebarWidth = 320.dp
 
 private val MinContentWidth = 360.dp

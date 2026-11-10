@@ -61,7 +61,6 @@ fun VoiceSettingsPage(
         viewModel.retrySpeechConfig()
         viewModel.loadDeviceVoices()
     }
-    // Preview and playback failures land here.
     val speechErrorText = uiState.error?.let { speechFailureText(it) }
     LaunchedEffect(uiState.error) {
         val text = speechErrorText ?: return@LaunchedEffect

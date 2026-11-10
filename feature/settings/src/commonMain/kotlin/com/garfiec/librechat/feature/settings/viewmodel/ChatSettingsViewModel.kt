@@ -41,11 +41,8 @@ import kotlinx.coroutines.launch
 /** Which server-gated rows the Chats and Advanced pages show; each follows the gate chat or web uses. */
 @Immutable
 data class ChatSettingsGates(
-    /** Chat's context gauge: a server from v0.8.7-rc1 whose `interface.contextUsage` isn't off. */
     val contextUsage: Boolean = false,
-    /** Web's presets menu: `interface.presets && interface.modelSelect`. */
     val presets: Boolean = true,
-    /** Web's API keys settings: the REMOTE_AGENTS USE permission. */
     val apiKeys: Boolean = true,
 )
 

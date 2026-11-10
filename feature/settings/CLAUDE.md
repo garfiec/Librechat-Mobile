@@ -5,8 +5,9 @@
   category rows); keep its name, saved back stacks restore by it. Each category is a `XxxSettingsPage`
   with no Scaffold of its own, opened by `SettingsCategory(key)` (Appearance by `AppearanceSettings`,
   Advanced by `AdvancedSettings(section)`) inside `SettingsPageScaffold`. Power settings live only on
-  Advanced; a category with some ends in an `AdvancedSettingsLink` to its section. Sub-pages are `SettingsRoute` objects declared in
-  `navigation/*Navigation.kt` but wired through `SettingsNavigation.kt`.
+  Advanced; a category with some ends in an `AdvancedSettingsLink` to its section. Sub-pages are
+  `SettingsRoute` objects declared in `navigation/*Navigation.kt` but wired through
+  `SettingsNavigation.kt`.
 - Delegates take a `SettingsStateHandle<S>` typed to their host ViewModel's state, so a delegate moves
   with the page that uses it.
 - Logout / delete account (`AccountDelegate`) set `isLoggedOut` / `isAccountDeleted`; the screen then

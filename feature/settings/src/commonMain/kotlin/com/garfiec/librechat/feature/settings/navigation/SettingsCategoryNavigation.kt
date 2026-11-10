@@ -39,7 +39,6 @@ import org.jetbrains.compose.resources.stringResource
 @Serializable
 enum class SettingsCategoryKey { ACCOUNT, CHATS, VOICE, MODELS, LANGUAGE, PRIVACY_DATA, ADMINISTRATION, ABOUT }
 
-/** One Settings category's page. */
 @Serializable data class SettingsCategory(val category: SettingsCategoryKey) : SettingsPaneRoute
 
 /** Appearance, each category and Advanced, each in its own route's bar. */

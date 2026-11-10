@@ -288,7 +288,6 @@ internal fun AboutInfo(
     }
 }
 
-/** Whether [ServerDetails] has anything to show. */
 internal fun hasServerDetails(gitSha: String, serverTrustedViaUserCa: Boolean, buildInfo: BuildInfo?): Boolean =
     gitSha.isNotBlank() || serverTrustedViaUserCa || buildInfo?.let {
         !(it.commitShort ?: it.commit).isNullOrBlank() || !it.branch.isNullOrBlank() || !it.buildDate.isNullOrBlank()

@@ -99,7 +99,6 @@ internal fun Modifier.settingsRowClick(onClick: () -> Unit, selected: Boolean?, 
         clickable(enabled = enabled, role = Role.Button, onClick = onClick)
     }
 
-/** The trailing arrow of a row that opens something. */
 @Composable
 internal fun SettingsChevron(
     modifier: Modifier = Modifier,
