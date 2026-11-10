@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -85,6 +87,7 @@ import com.garfiec.librechat.core.ui.components.rememberMenuDragSelection
 import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.glassSurface
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
+import com.garfiec.librechat.core.ui.platform.verticalBarColumn
 import com.garfiec.librechat.core.ui.theme.LocalGlassLevel
 
 private val ControlSize = 44.dp
@@ -110,12 +113,16 @@ fun AdaptiveTopBar(
     belowBar: (@Composable () -> Unit)? = null,
 ) {
     val rail = LocalRailSlot.current
+    // The bar's own row keeps out of the bar column; what's below it gets the column's inset here.
+    val insetBelowBar = belowBar?.let { content ->
+        @Composable { Box(Modifier.windowInsetsPadding(WindowInsets.verticalBarColumn)) { content() } }
+    }
     // A dialog or sheet window composed inside a top bar slot has bars of its own, not the screen's.
     if (rail != null && !rail.superseded && !LocalInSeparateWindow.current) {
-        RailHeading(spec, rail, materialStyle, belowBar, modifier)
+        RailHeading(spec, rail, materialStyle, insetBelowBar, modifier)
         return
     }
-    HorizontalTopBar(spec.forHorizontalBar(), materialStyle, belowBar, modifier)
+    HorizontalTopBar(spec.forHorizontalBar(), materialStyle, insetBelowBar, modifier)
 }
 
 @Composable
@@ -500,6 +507,7 @@ private fun SimulatedGlassTopBarContent(spec: AdaptiveTopBarSpec) {
             .fillMaxWidth()
             .consumeUnhandledTouches()
             .statusBarsPadding()
+            .windowInsetsPadding(WindowInsets.verticalBarColumn)
             .padding(horizontal = 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

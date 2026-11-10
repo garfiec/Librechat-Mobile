@@ -133,7 +133,10 @@ Rules — follow these when writing or reviewing UI:
    state. While `LocalWindowFeatures` has vertical bars (iPhone Duo), an `AdaptiveTopBar` in an
    `AdaptiveScaffold`'s `topBar` draws its controls as an `AdaptiveSideRail` in the bar column and its
    title as a heading; one outside a scaffold stays horizontal. Key Duo layout on `LocalWindowFeatures`,
-   never on a device model, and use absolute left/right for the column's side.
+   never on a device model, and use absolute left/right for the column's side. Content that skips the
+   horizontal safe-drawing inset (a raw `Scaffold` body, the bar slots, a status-bar-only overlay) pads
+   `windowInsetsPadding(WindowInsets.verticalBarColumn)`, never an `AdaptiveScaffold` body, whose
+   padding already holds the column; backgrounds keep filling under it.
 8. **Escape hatch, used sparingly.** Bespoke chrome (chat composer, chat top bar, drawer / sidebar,
    chat backdrop plumbing) may branch on `isLiquidGlass`. A branch that shows up a second time belongs
    in a new `Adaptive*` component.

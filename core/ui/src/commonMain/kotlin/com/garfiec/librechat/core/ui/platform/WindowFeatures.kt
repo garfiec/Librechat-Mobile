@@ -1,7 +1,10 @@
 package com.garfiec.librechat.core.ui.platform
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
@@ -43,6 +46,25 @@ data class WindowFeatures(
 )
 
 val LocalWindowFeatures = compositionLocalOf { WindowFeatures() }
+
+/**
+ * The bar column as an inset on its physical side, zero without vertical bars (Android, other iPhones).
+ * Pad with it (`windowInsetsPadding`) only content that skips the horizontal safe-drawing inset, and
+ * never inside an `AdaptiveScaffold` body: that padding already holds the column but consumes nothing,
+ * so the column would be padded twice. Under an ancestor that consumed the column it pads nothing.
+ * Like every inset it ignores where its layout sits, so a pane away from the bar side pads too.
+ */
+val WindowInsets.Companion.verticalBarColumn: WindowInsets
+    @Composable get() {
+        val bars = LocalWindowFeatures.current.verticalBars
+        return remember(bars) {
+            when {
+                bars == null -> WindowInsets(0.dp)
+                bars.side == BarSide.LEFT -> WindowInsets(left = bars.columnWidth)
+                else -> WindowInsets(right = bars.columnWidth)
+            }
+        }
+    }
 
 /** `UIVerticalBarEdge.unspecified`: the system draws its bars horizontally. */
 private const val BAR_EDGE_UNSPECIFIED = 0

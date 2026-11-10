@@ -25,6 +25,7 @@ import com.garfiec.librechat.core.ui.glass.LocalGlassBackdrop
 import com.garfiec.librechat.core.ui.glass.SheetMargin
 import com.garfiec.librechat.core.ui.glass.glassSheetPanel
 import com.garfiec.librechat.core.ui.glass.rememberGlassStyle
+import com.garfiec.librechat.core.ui.platform.verticalBarColumn
 import com.garfiec.librechat.core.ui.theme.LocalDarkTheme
 
 /**
@@ -43,7 +44,7 @@ fun AdaptiveSheetSurface(
     val style = rememberGlassStyle()
     if (style == null) {
         Surface(color = BottomSheetDefaults.ContainerColor, shape = BottomSheetDefaults.ExpandedShape, modifier = modifier) {
-            Column(Modifier.fillMaxWidth(), content = content)
+            Column(Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.verticalBarColumn), content = content)
         }
         return
     }
