@@ -38,6 +38,8 @@ import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
 
+internal actual val avatarUploadSupported: Boolean = true
+
 @Composable
 internal actual fun AvatarUploadDialog(
     currentAvatarUrl: String?,

@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.settings.screen
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -41,7 +43,8 @@ import org.jetbrains.compose.resources.stringResource
 internal fun AccountInfoSection(
     user: UserDisplayData?,
     profileLoadError: StringResource?,
-    onAvatarClick: () -> Unit,
+    /** Null where the avatar can't be changed: the avatar is then not a button and the camera hides. */
+    onAvatarClick: (() -> Unit)?,
     onRetry: () -> Unit,
 ) {
     when {
@@ -76,7 +79,7 @@ private fun AccountInfo(
     name: String,
     email: String,
     avatarUrl: String?,
-    onAvatarClick: () -> Unit,
+    onAvatarClick: (() -> Unit)?,
 ) {
     Row(
         modifier = Modifier
@@ -87,9 +90,9 @@ private fun AccountInfo(
         Surface(
             modifier = Modifier
                 .size(48.dp)
-                .clip(CircleShape),
+                .clip(CircleShape)
+                .then(if (onAvatarClick != null) Modifier.clickable(role = Role.Button, onClick = onAvatarClick) else Modifier),
             color = MaterialTheme.colorScheme.primaryContainer,
-            onClick = onAvatarClick,
         ) {
             if (avatarUrl != null) {
                 AsyncImage(
@@ -127,12 +130,14 @@ private fun AccountInfo(
                 )
             }
         }
-        IconButton(onClick = onAvatarClick) {
-            Icon(
-                imageVector = Icons.Default.CameraAlt,
-                contentDescription = stringResource(Res.string.cd_change_avatar),
-                modifier = Modifier.size(20.dp),
-            )
+        if (onAvatarClick != null) {
+            IconButton(onClick = onAvatarClick) {
+                Icon(
+                    imageVector = Icons.Default.CameraAlt,
+                    contentDescription = stringResource(Res.string.cd_change_avatar),
+                    modifier = Modifier.size(20.dp),
+                )
+            }
         }
     }
 }

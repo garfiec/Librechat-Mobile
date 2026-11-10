@@ -234,9 +234,13 @@ private fun dateFormatStyleLabel(style: DateFormatStyle): String = when (style) 
 
 /** The settings-row subtitle: a live absolute sample plus the style name, e.g. "05.08.2026 20:58 · Relative". */
 @Composable
-internal fun dateTimeSummary(): String {
+internal fun dateTimeSummary(): String =
+    "${dateTimeSample()} · ${timestampStyleLabel(LocalDateTimeFormat.current.prefs.style)}"
+
+/** The current time in the chosen absolute format, e.g. "05.08.2026 20:58". */
+@Composable
+internal fun dateTimeSample(): String {
     val format = LocalDateTimeFormat.current
     val reference = LocalRelativeTimeReference.current
-    val sample = remember(format, reference) { format.formatAbsolute(reference.now, reference.timeZone) }
-    return "$sample · ${timestampStyleLabel(format.prefs.style)}"
+    return remember(format, reference) { format.formatAbsolute(reference.now, reference.timeZone) }
 }

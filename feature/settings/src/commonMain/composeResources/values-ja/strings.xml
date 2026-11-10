@@ -48,14 +48,12 @@
     <string name="section_about">情報</string>
     <string name="section_updates">アップデート</string>
     <string name="section_appearance">外観</string>
-    <string name="appearance_theme_and_style">テーマとスタイル</string>
     <!-- The switch in the interface style previews: an in-joke, "go outside". -->
     <string name="ui_style_preview_switch">草に触れよう</string>
     <string name="section_balance">残高</string>
     <string name="section_conversations">会話</string>
     <string name="section_danger_zone">危険な操作</string>
     <string name="section_language_region">言語と地域</string>
-    <string name="section_layout">レイアウト</string>
     <string name="section_prefetch">バックグラウンドでの事前読み込み</string>
     <string name="prefetch_enabled">会話を事前に読み込む</string>
     <string name="prefetch_enabled_desc">最近の会話とピン留めした会話を事前に読み込み、すぐに開けるようにします。アプリのアイドル中と、充電中に定期的に実行されます。</string>
@@ -133,10 +131,7 @@
     <string name="title_settings">設定</string>
 
     <!-- Tabbed settings tabs -->
-    <string name="tab_general">一般</string>
-    <string name="tab_chat">チャット</string>
-    <string name="tab_account">アカウント</string>
-    <string name="tab_data">データ</string>
+    <string name="category_account">アカウント</string>
 
     <!-- Theme -->
     <string name="theme_system">システムのデフォルト</string>
@@ -809,7 +804,6 @@
     <string name="date_format_ymd_slash">年/月/日</string>
     <string name="date_format_long">長い形式</string>
     <string name="date_time_preview">プレビュー</string>
-    <string name="ui_style">インターフェースのスタイル</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
     <string name="ui_style_note_simulated">このバージョンのiOSではLiquid Glassをシミュレートしています。iOS 26以降ではネイティブに描画されます。</string>
@@ -822,8 +816,6 @@
     <string name="server_user_ca_notice">このデバイスにインストールされた認証局によって信頼されています</string>
     <string name="mcp_tools_all">すべての MCP ツール</string>
     <string name="mcp_server_unknown">不明</string>
-    <string name="avatar_upload_unavailable_ios">iOS ではアバターのアップロードはまだ利用できません。</string>
-    <string name="dialog_ok">OK</string>
     <plurals name="mcp_tool_count">
         <item quantity="other">ツール %1$d 個</item>
     </plurals>
@@ -875,7 +867,7 @@
     <string name="shared_chats_refresh_failed">共有したチャットを更新できませんでした</string>
     <string name="shared_chats_delete_failed">リンクを削除できませんでした</string>
     <string name="passkeys_title">パスキー</string>
-    <string name="passkeys_row_subtitle">画面ロックまたはセキュリティキーでサインイン</string>
+    <string name="passkeys_row_subtitle">ウェブで追加したパスキーを管理</string>
     <plurals name="passkeys_row_count">
         <item quantity="other">パスキー %1$d 件</item>
     </plurals>
@@ -1047,4 +1039,19 @@
     <string name="accent_name_red">赤</string>
     <string name="accent_name_pink">ピンク</string>
     <string name="accent_name_slate">スレート</string>
+    <string name="category_chats">チャット</string>
+    <string name="category_privacy_data">プライバシーとデータ</string>
+    <string name="category_administration">管理</string>
+    <string name="settings_home_chats_summary">メッセージ、アーティファクト、コンテキスト使用量</string>
+    <string name="settings_home_admin_summary">スキルとメモリの権限</string>
+    <string name="settings_home_offline_reading">オフライン閲覧：%1$s</string>
+    <string name="settings_home_about_summary">%1$s · サーバー %2$s</string>
+    <string name="appearance_section_theme">テーマ</string>
+    <string name="appearance_section_style">スタイル</string>
+    <string name="appearance_section_color">カラー</string>
+    <string name="appearance_chat_appearance">チャットの外観</string>
+    <string name="appearance_section_tablet_layout">タブレットのレイアウト</string>
+    <string name="accent_using_wallpaper">壁紙の色を使用中</string>
+    <string name="admin_panel">管理パネル</string>
+    <string name="admin_panel_desc">ブラウザで開きます</string>
 </resources>

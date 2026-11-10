@@ -1,21 +1,17 @@
 package com.garfiec.librechat.feature.settings.screen
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.ButtonDefaults
@@ -40,9 +36,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.data.repository.HeaderWriteFailure
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
-import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
-import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.OtpVerificationDialog
@@ -66,16 +60,14 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import com.garfiec.librechat.core.ui.resources.Res as UiRes
 
-/** The Account tab's content, without a Scaffold or top bar. */
+/** Settings › Account: profile, balance, security, connected accounts, sign out and deletion. */
 @Composable
-fun AccountSettingsContent(
+fun AccountSettingsPage(
     onLogout: () -> Unit,
     onNavigateToApiKeys: () -> Unit,
     onNavigateToPasskeys: () -> Unit,
     onNavigateToFavorites: () -> Unit,
     onNavigateToProviderKeys: () -> Unit,
-    onNavigateToRoleSkillsAdmin: () -> Unit,
-    onNavigateToRoleMemoriesAdmin: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
@@ -99,9 +91,9 @@ fun AccountSettingsContent(
     // next open would present a truncated credential as the configured one.
     var showServerHeadersDialog by rememberSaveable { mutableStateOf(false) }
 
-    // The Provider Keys row's summary loads once, the first time this tab is composed resumed (the
-    // pager also lays it out beside the visible tab, and again on scrolling back, each replaying
-    // ON_RESUME to the new observer), and re-reads on each resume the entry itself goes through:
+    // The Provider Keys row's summary loads once, the first time this page is composed resumed (a
+    // recomposed page replays ON_RESUME to its new observer), and re-reads on each resume the entry
+    // itself goes through:
     // back from Provider Keys (NavDisplay holds an animating scene at STARTED) or from another app.
     // That same resume re-reads the profile, so an email confirmed in the browser (or an avatar or
     // name changed on the web) shows up, along with the passkey count.
@@ -192,12 +184,11 @@ fun AccountSettingsContent(
         null -> null
     }
 
-    AdaptiveGroupedPage(modifier = modifier) {
+    AdaptiveGroupedPage(modifier = modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = contentPadding,
         ) {
-            // Account section
             item(key = "account_header") {
                 AdaptiveSectionHeader(stringResource(Res.string.section_profile))
             }
@@ -206,7 +197,7 @@ fun AccountSettingsContent(
                     AccountInfoSection(
                         user = uiState.user,
                         profileLoadError = uiState.profileLoadError,
-                        onAvatarClick = viewModel::showAvatarDialog,
+                        onAvatarClick = viewModel::showAvatarDialog.takeIf { avatarUploadSupported },
                         onRetry = viewModel::retry,
                     )
                 }
@@ -221,13 +212,6 @@ fun AccountSettingsContent(
                         )
                     }
                 }
-                // Sign out — grouped with the profile it acts on, kept out of the Danger Zone.
-                row(key = "sign_out") {
-                    SignOutButton(
-                        isDeleting = uiState.isDeletingAccount,
-                        onLogoutClick = { showLogoutDialog = true },
-                    )
-                }
             }
 
             // Balance section — only when the server tracks balances
@@ -240,35 +224,24 @@ fun AccountSettingsContent(
                 }
             }
 
-            // Security section
-            item(key = "security_header") {
-                AdaptiveSectionHeader(stringResource(Res.string.section_security))
+            if (uiState.showTwoFactor || uiState.showPasskeys) {
+                item(key = "security_header") {
+                    AdaptiveSectionHeader(stringResource(Res.string.section_security))
+                }
             }
             adaptiveSection {
-                row(key = "server_connection_row") {
-                    SettingsRow(
-                        icon = Icons.Default.Dns,
-                        title = stringResource(Res.string.section_server_connection),
-                        summary = stringResource(Res.string.server_connection_subtitle),
-                        onClick = {
-                            showServerHeadersDialog = true
-                            // The ViewModel loads once per server, so a read that failed would keep this
-                            // editor warning about a store that has since recovered — with no way to get
-                            // it to look again short of restarting the app.
-                            serverHeadersViewModel.reload()
-                        },
-                    )
+                // Federated accounts sign in through their identity provider, which never asks for this code.
+                if (uiState.showTwoFactor) {
+                    row(key = "security_settings") {
+                        SecuritySection(
+                            isTwoFactorEnabled = uiState.isTwoFactorEnabled,
+                            isLoading = uiState.isTwoFactorLoading,
+                            canDisableTwoFactor = uiState.canDisableTwoFactor,
+                            onToggleTwoFactor = viewModel::toggleTwoFactor,
+                            onRegenerateBackupCodes = viewModel::requestRegenerateBackupCodes,
+                        )
+                    }
                 }
-                row(key = "security_settings") {
-                    SecuritySection(
-                        isTwoFactorEnabled = uiState.isTwoFactorEnabled,
-                        isLoading = uiState.isTwoFactorLoading,
-                        canDisableTwoFactor = uiState.canDisableTwoFactor,
-                        onToggleTwoFactor = viewModel::toggleTwoFactor,
-                        onRegenerateBackupCodes = viewModel::requestRegenerateBackupCodes,
-                    )
-                }
-                // Between 2FA and API Keys, as web's registry orders them (2FA, backup codes, passkeys).
                 if (uiState.showPasskeys) {
                     row(key = "passkeys_row") {
                         val count = uiState.passkeyCount
@@ -283,6 +256,41 @@ fun AccountSettingsContent(
                             onClick = onNavigateToPasskeys,
                         )
                     }
+                }
+            }
+
+            // Connected accounts: web's Settings › Account › Connected accounts section.
+            if (pullRequestAccount.visible) {
+                item(key = "connections_header") {
+                    AdaptiveSectionHeader(stringResource(Res.string.section_connected_accounts))
+                }
+                adaptiveSection {
+                    row(key = "pull_request_account") {
+                        PullRequestAccountRow(
+                            state = pullRequestAccount,
+                            onClick = pullRequestAccountViewModel::onRowClick,
+                        )
+                    }
+                }
+            }
+
+            // Server connection, API keys, provider keys and Favorites stay reachable here until the
+            // Advanced and Models & keys pages take them.
+            item(key = "interim_gap") { Spacer(modifier = Modifier.height(24.dp)) }
+            adaptiveSection {
+                row(key = "server_connection_row") {
+                    SettingsRow(
+                        icon = Icons.Default.Dns,
+                        title = stringResource(Res.string.section_server_connection),
+                        summary = stringResource(Res.string.server_connection_subtitle),
+                        onClick = {
+                            showServerHeadersDialog = true
+                            // The ViewModel loads once per server, so a read that failed would keep this
+                            // editor warning about a store that has since recovered — with no way to get
+                            // it to look again short of restarting the app.
+                            serverHeadersViewModel.reload()
+                        },
+                    )
                 }
                 row(key = "api_keys_row") {
                     SettingsRow(
@@ -323,40 +331,18 @@ fun AccountSettingsContent(
                         onClick = onNavigateToFavorites,
                     )
                 }
-                // Admin-only: role skill and memory access. Fail-CLOSED — shown only for ADMIN.
-                if (uiState.isAdmin) {
-                    row(key = "role_skills_admin_row") {
-                        SettingsRow(
-                            // Skills' own icon, as on the Skills page: Star is Favorites, the row above.
-                            icon = Icons.Default.Extension,
-                            title = stringResource(Res.string.role_skills_settings_row),
-                            summary = stringResource(Res.string.role_skills_description),
-                            onClick = onNavigateToRoleSkillsAdmin,
-                        )
-                    }
-                    row(key = "role_memories_admin_row") {
-                        SettingsRow(
-                            icon = Icons.Default.Lightbulb,
-                            title = stringResource(Res.string.role_memories_settings_row),
-                            summary = stringResource(Res.string.role_memories_description),
-                            onClick = onNavigateToRoleMemoriesAdmin,
-                        )
-                    }
-                }
             }
 
-            // Connected accounts: web's Settings › Account › Connected accounts section.
-            if (pullRequestAccount.visible) {
-                item(key = "connections_header") {
-                    AdaptiveSectionHeader(stringResource(Res.string.section_connected_accounts))
-                }
-                adaptiveSection {
-                    row(key = "pull_request_account") {
-                        PullRequestAccountRow(
-                            state = pullRequestAccount,
-                            onClick = pullRequestAccountViewModel::onRowClick,
-                        )
-                    }
+            item(key = "sign_out_gap") { Spacer(modifier = Modifier.height(24.dp)) }
+            adaptiveSection {
+                row(key = "sign_out") {
+                    SettingsRow(
+                        icon = Icons.AutoMirrored.Filled.Logout,
+                        title = stringResource(Res.string.action_sign_out),
+                        onClick = { showLogoutDialog = true },
+                        enabled = !uiState.isDeletingAccount,
+                        showChevron = false,
+                    )
                 }
             }
 
@@ -366,10 +352,13 @@ fun AccountSettingsContent(
                     AdaptiveSectionHeader(stringResource(Res.string.section_danger_zone))
                 }
                 adaptiveSection {
-                    row(key = "danger_actions") {
-                        DangerZone(
-                            isDeleting = uiState.isDeletingAccount,
-                            onDeleteClick = { showDeleteDialog = true },
+                    row(key = "delete_account") {
+                        SettingsRow(
+                            icon = Icons.Default.DeleteForever,
+                            title = stringResource(Res.string.delete_account),
+                            onClick = { showDeleteDialog = true },
+                            enabled = !uiState.isDeletingAccount,
+                            destructive = true,
                         )
                     }
                 }
@@ -593,49 +582,5 @@ fun AccountSettingsContent(
                 useOtpToggleLabel = stringResource(Res.string.otp_use_otp_code),
             )
         }
-    }
-}
-
-@Composable
-private fun SignOutButton(
-    isDeleting: Boolean,
-    onLogoutClick: () -> Unit,
-) {
-    // Sign out closes out the profile group; the divider below it separates the
-    // whole Profile section (info + sign out) from Balance.
-    Column {
-        AdaptiveOutlinedButton(
-            onClick = onLogoutClick,
-            enabled = !isDeleting,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-        ) {
-            Text(stringResource(Res.string.action_sign_out))
-        }
-        AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
-    }
-}
-
-@Composable
-private fun DangerZone(
-    isDeleting: Boolean,
-    onDeleteClick: () -> Unit,
-) {
-    AdaptiveOutlinedButton(
-        onClick = onDeleteClick,
-        enabled = !isDeleting,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = MaterialTheme.colorScheme.error,
-        ),
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.error.copy(alpha = if (isDeleting) 0.12f else 1f),
-        ),
-    ) {
-        Text(stringResource(Res.string.delete_account))
     }
 }

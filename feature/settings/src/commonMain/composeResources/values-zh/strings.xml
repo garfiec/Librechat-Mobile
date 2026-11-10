@@ -48,14 +48,12 @@
     <string name="section_about">关于</string>
     <string name="section_updates">更新</string>
     <string name="section_appearance">外观</string>
-    <string name="appearance_theme_and_style">主题与样式</string>
     <!-- The switch in the interface style previews: an in-joke, "go outside". -->
     <string name="ui_style_preview_switch">去摸摸草</string>
     <string name="section_balance">余额</string>
     <string name="section_conversations">对话</string>
     <string name="section_danger_zone">危险操作区</string>
     <string name="section_language_region">语言和地区</string>
-    <string name="section_layout">布局</string>
     <string name="section_prefetch">后台预加载</string>
     <string name="prefetch_enabled">预加载对话</string>
     <string name="prefetch_enabled_desc">提前加载最近和已固定的对话，以便即时打开。在应用空闲时运行，充电时也会定期运行。</string>
@@ -133,10 +131,7 @@
     <string name="title_settings">设置</string>
 
     <!-- Tabbed settings tabs -->
-    <string name="tab_general">通用</string>
-    <string name="tab_chat">聊天</string>
-    <string name="tab_account">账户</string>
-    <string name="tab_data">数据</string>
+    <string name="category_account">账户</string>
 
     <!-- Theme -->
     <string name="theme_system">跟随系统</string>
@@ -809,7 +804,6 @@
     <string name="date_format_ymd_slash">年/月/日</string>
     <string name="date_format_long">长格式</string>
     <string name="date_time_preview">预览</string>
-    <string name="ui_style">界面风格</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
     <string name="ui_style_note_simulated">此 iOS 版本上的 Liquid Glass 为模拟效果。iOS 26 或更高版本会原生绘制。</string>
@@ -822,8 +816,6 @@
     <string name="server_user_ca_notice">通过此设备上安装的证书颁发机构获得信任</string>
     <string name="mcp_tools_all">所有 MCP 工具</string>
     <string name="mcp_server_unknown">未知</string>
-    <string name="avatar_upload_unavailable_ios">iOS 暂不支持上传头像。</string>
-    <string name="dialog_ok">确定</string>
     <plurals name="mcp_tool_count">
         <item quantity="other">%1$d 个工具</item>
     </plurals>
@@ -875,7 +867,7 @@
     <string name="shared_chats_refresh_failed">无法刷新已分享的对话</string>
     <string name="shared_chats_delete_failed">无法删除链接</string>
     <string name="passkeys_title">通行密钥</string>
-    <string name="passkeys_row_subtitle">使用屏幕锁定或安全密钥登录</string>
+    <string name="passkeys_row_subtitle">管理在网页上添加的通行密钥</string>
     <plurals name="passkeys_row_count">
         <item quantity="other">%1$d 个通行密钥</item>
     </plurals>
@@ -1047,4 +1039,19 @@
     <string name="accent_name_red">红色</string>
     <string name="accent_name_pink">粉色</string>
     <string name="accent_name_slate">石板灰</string>
+    <string name="category_chats">聊天</string>
+    <string name="category_privacy_data">隐私与数据</string>
+    <string name="category_administration">管理</string>
+    <string name="settings_home_chats_summary">消息、工件、上下文用量</string>
+    <string name="settings_home_admin_summary">技能和记忆权限</string>
+    <string name="settings_home_offline_reading">离线阅读：%1$s</string>
+    <string name="settings_home_about_summary">%1$s · 服务器 %2$s</string>
+    <string name="appearance_section_theme">主题</string>
+    <string name="appearance_section_style">风格</string>
+    <string name="appearance_section_color">颜色</string>
+    <string name="appearance_chat_appearance">聊天外观</string>
+    <string name="appearance_section_tablet_layout">平板布局</string>
+    <string name="accent_using_wallpaper">正在使用壁纸颜色</string>
+    <string name="admin_panel">管理面板</string>
+    <string name="admin_panel_desc">在浏览器中打开</string>
 </resources>

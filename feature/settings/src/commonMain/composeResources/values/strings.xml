@@ -48,14 +48,12 @@
     <string name="section_about">About</string>
     <string name="section_updates">Updates</string>
     <string name="section_appearance">Appearance</string>
-    <string name="appearance_theme_and_style">Theme &amp; style</string>
     <!-- The switch in the interface style previews: an in-joke, "go outside". -->
     <string name="ui_style_preview_switch">Touch grass</string>
     <string name="section_balance">Balance</string>
     <string name="section_conversations">Conversations</string>
     <string name="section_danger_zone">Danger zone</string>
     <string name="section_language_region">Language &amp; region</string>
-    <string name="section_layout">Layout</string>
     <string name="section_search">Search</string>
     <string name="advanced_search">Advanced search</string>
     <string name="advanced_search_desc">For power users. Adds match case, whole word, regex, and role, model and date filters to the Search screen.</string>
@@ -136,10 +134,7 @@
     <string name="title_settings">Settings</string>
 
     <!-- Tabbed settings tabs -->
-    <string name="tab_general">General</string>
-    <string name="tab_chat">Chat</string>
-    <string name="tab_account">Account</string>
-    <string name="tab_data">Data</string>
+    <string name="category_account">Account</string>
 
     <!-- Theme -->
     <string name="theme_system">System default</string>
@@ -156,7 +151,6 @@
     <string name="use_server_accent_desc">Your server picks this accent for everyone. Turn off to use your own.</string>
     <string name="accent_set_by_server">Set by your server (%1$s)</string>
     <string name="accent_set_by_server_note">Turn off Use server accent to pick your own.</string>
-    <string name="ui_style">Interface style</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
     <string name="ui_style_note_simulated">Liquid Glass is simulated on this iOS version. iOS 26 or later draws it natively.</string>
@@ -844,8 +838,6 @@
     <string name="server_user_ca_notice">Trusted via a certificate authority installed on this device</string>
     <string name="mcp_tools_all">All MCP Tools</string>
     <string name="mcp_server_unknown">Unknown</string>
-    <string name="avatar_upload_unavailable_ios">Avatar upload is not yet available on iOS.</string>
-    <string name="dialog_ok">OK</string>
     <plurals name="mcp_tool_count">
         <item quantity="one">%1$d tool</item>
         <item quantity="other">%1$d tools</item>
@@ -902,7 +894,7 @@
 
     <!-- Passkeys (v0.8.9-rc1, management only) -->
     <string name="passkeys_title">Passkeys</string>
-    <string name="passkeys_row_subtitle">Sign in with your screen lock or a security key</string>
+    <string name="passkeys_row_subtitle">Manage passkeys added on the web</string>
     <plurals name="passkeys_row_count">
         <item quantity="one">%1$d passkey</item>
         <item quantity="other">%1$d passkeys</item>
@@ -1077,4 +1069,19 @@
     <string name="accent_name_red">Red</string>
     <string name="accent_name_pink">Pink</string>
     <string name="accent_name_slate">Slate</string>
+    <string name="category_chats">Chats</string>
+    <string name="category_privacy_data">Privacy &amp; data</string>
+    <string name="category_administration">Administration</string>
+    <string name="settings_home_chats_summary">Messages, artifacts, context usage</string>
+    <string name="settings_home_admin_summary">Skill and memory permissions</string>
+    <string name="settings_home_offline_reading">Offline reading: %1$s</string>
+    <string name="settings_home_about_summary">%1$s · Server %2$s</string>
+    <string name="appearance_section_theme">Theme</string>
+    <string name="appearance_section_style">Style</string>
+    <string name="appearance_section_color">Color</string>
+    <string name="appearance_chat_appearance">Chat appearance</string>
+    <string name="appearance_section_tablet_layout">Tablet layout</string>
+    <string name="accent_using_wallpaper">Using wallpaper colors</string>
+    <string name="admin_panel">Admin panel</string>
+    <string name="admin_panel_desc">Opens in your browser</string>
 </resources>

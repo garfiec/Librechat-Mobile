@@ -48,14 +48,12 @@
     <string name="section_about">حول</string>
     <string name="section_updates">التحديثات</string>
     <string name="section_appearance">المظهر</string>
-    <string name="appearance_theme_and_style">السمة والنمط</string>
     <!-- The switch in the interface style previews: an in-joke, "go outside". -->
     <string name="ui_style_preview_switch">المس العشب</string>
     <string name="section_balance">الرصيد</string>
     <string name="section_conversations">المحادثات</string>
     <string name="section_danger_zone">منطقة الخطر</string>
     <string name="section_language_region">اللغة والمنطقة</string>
-    <string name="section_layout">التخطيط</string>
     <string name="section_prefetch">التحميل المسبق في الخلفية</string>
     <string name="prefetch_enabled">تحميل المحادثات مسبقًا</string>
     <string name="prefetch_enabled_desc">تحميل المحادثات الحديثة والمثبتة مسبقًا لتُفتح فورًا. يعمل عندما يكون التطبيق خاملًا، ودوريًا أثناء الشحن.</string>
@@ -133,10 +131,7 @@
     <string name="title_settings">الإعدادات</string>
 
     <!-- Tabbed settings tabs -->
-    <string name="tab_general">عام</string>
-    <string name="tab_chat">المحادثة</string>
-    <string name="tab_account">الحساب</string>
-    <string name="tab_data">البيانات</string>
+    <string name="category_account">الحساب</string>
 
     <!-- Theme -->
     <string name="theme_system">افتراضي النظام</string>
@@ -879,7 +874,6 @@
     <string name="date_format_ymd_slash">سنة/شهر/يوم</string>
     <string name="date_format_long">طويل</string>
     <string name="date_time_preview">معاينة</string>
-    <string name="ui_style">نمط الواجهة</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
     <string name="ui_style_note_simulated">تتم محاكاة Liquid Glass في إصدار iOS هذا. يعرضه iOS 26 أو الأحدث بشكل أصلي.</string>
@@ -892,8 +886,6 @@
     <string name="server_user_ca_notice">موثوق عبر جهة إصدار شهادات مثبّتة على هذا الجهاز</string>
     <string name="mcp_tools_all">كل أدوات MCP</string>
     <string name="mcp_server_unknown">غير معروف</string>
-    <string name="avatar_upload_unavailable_ios">رفع الصورة الرمزية غير متاح بعد على iOS.</string>
-    <string name="dialog_ok">حسنًا</string>
     <plurals name="mcp_tool_count">
         <item quantity="zero">%1$d أداة</item>
         <item quantity="one">أداة واحدة</item>
@@ -950,7 +942,7 @@
     <string name="shared_chats_refresh_failed">تعذّر تحديث محادثاتك المشتركة</string>
     <string name="shared_chats_delete_failed">تعذّر حذف الرابط</string>
     <string name="passkeys_title">مفاتيح المرور</string>
-    <string name="passkeys_row_subtitle">سجّل الدخول بقفل الشاشة أو بمفتاح أمان</string>
+    <string name="passkeys_row_subtitle">إدارة مفاتيح المرور المضافة على الويب</string>
     <plurals name="passkeys_row_count">
         <item quantity="zero">لا توجد مفاتيح مرور</item>
         <item quantity="one">مفتاح مرور واحد</item>
@@ -1127,4 +1119,19 @@
     <string name="accent_name_red">أحمر</string>
     <string name="accent_name_pink">وردي</string>
     <string name="accent_name_slate">رمادي أردوازي</string>
+    <string name="category_chats">المحادثات</string>
+    <string name="category_privacy_data">الخصوصية والبيانات</string>
+    <string name="category_administration">الإدارة</string>
+    <string name="settings_home_chats_summary">الرسائل والعناصر واستخدام السياق</string>
+    <string name="settings_home_admin_summary">أذونات المهارات والذاكرة</string>
+    <string name="settings_home_offline_reading">القراءة دون اتصال: %1$s</string>
+    <string name="settings_home_about_summary">%1$s · الخادم %2$s</string>
+    <string name="appearance_section_theme">السمة</string>
+    <string name="appearance_section_style">النمط</string>
+    <string name="appearance_section_color">اللون</string>
+    <string name="appearance_chat_appearance">مظهر المحادثة</string>
+    <string name="appearance_section_tablet_layout">تخطيط الجهاز اللوحي</string>
+    <string name="accent_using_wallpaper">تُستخدم ألوان الخلفية</string>
+    <string name="admin_panel">لوحة الإدارة</string>
+    <string name="admin_panel_desc">يُفتح في متصفحك</string>
 </resources>

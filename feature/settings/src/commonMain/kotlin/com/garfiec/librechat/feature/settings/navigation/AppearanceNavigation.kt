@@ -5,11 +5,14 @@ import androidx.navigation3.runtime.NavKey
 import com.garfiec.librechat.feature.settings.screen.AppearanceSettingsScreen
 import kotlinx.serialization.Serializable
 
-/** Settings → General → Appearance: theme, interface style, accent colour. */
+/** Settings › Appearance: theme, interface style, colour, chat appearance and the tablet sidebar. */
 @Serializable data object AppearanceSettings : SettingsRoute
 
-fun EntryProviderScope<NavKey>.appearanceSettingsEntry(onBack: () -> Unit) {
+fun EntryProviderScope<NavKey>.appearanceSettingsEntry(onNavigate: (NavKey) -> Unit, onBack: () -> Unit) {
     entry<AppearanceSettings> {
-        AppearanceSettingsScreen(onNavigateBack = onBack)
+        AppearanceSettingsScreen(
+            onNavigateBack = onBack,
+            onNavigateToChatLayout = { onNavigate(ChatLayoutSettings) },
+        )
     }
 }

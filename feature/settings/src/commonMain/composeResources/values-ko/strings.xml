@@ -48,14 +48,12 @@
     <string name="section_about">정보</string>
     <string name="section_updates">업데이트</string>
     <string name="section_appearance">화면 설정</string>
-    <string name="appearance_theme_and_style">테마 및 스타일</string>
     <!-- The switch in the interface style previews: an in-joke, "go outside". -->
     <string name="ui_style_preview_switch">잔디 좀 만지기</string>
     <string name="section_balance">잔액</string>
     <string name="section_conversations">대화</string>
     <string name="section_danger_zone">위험 구역</string>
     <string name="section_language_region">언어 및 지역</string>
-    <string name="section_layout">레이아웃</string>
     <string name="section_prefetch">백그라운드 미리 불러오기</string>
     <string name="prefetch_enabled">대화 미리 불러오기</string>
     <string name="prefetch_enabled_desc">최근 대화와 고정된 대화를 미리 불러와 바로 열리게 합니다. 앱이 유휴 상태일 때, 그리고 충전 중에 주기적으로 실행됩니다.</string>
@@ -133,10 +131,7 @@
     <string name="title_settings">설정</string>
 
     <!-- Tabbed settings tabs -->
-    <string name="tab_general">일반</string>
-    <string name="tab_chat">채팅</string>
-    <string name="tab_account">계정</string>
-    <string name="tab_data">데이터</string>
+    <string name="category_account">계정</string>
 
     <!-- Theme -->
     <string name="theme_system">시스템 기본값</string>
@@ -809,7 +804,6 @@
     <string name="date_format_ymd_slash">년/월/일</string>
     <string name="date_format_long">긴 형식</string>
     <string name="date_time_preview">미리보기</string>
-    <string name="ui_style">인터페이스 스타일</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
     <string name="ui_style_note_simulated">이 iOS 버전에서는 Liquid Glass를 시뮬레이션합니다. iOS 26 이상에서는 기본으로 렌더링됩니다.</string>
@@ -822,8 +816,6 @@
     <string name="server_user_ca_notice">이 기기에 설치된 인증 기관을 통해 신뢰됨</string>
     <string name="mcp_tools_all">모든 MCP 도구</string>
     <string name="mcp_server_unknown">알 수 없음</string>
-    <string name="avatar_upload_unavailable_ios">iOS에서는 아직 아바타를 업로드할 수 없습니다.</string>
-    <string name="dialog_ok">확인</string>
     <plurals name="mcp_tool_count">
         <item quantity="other">도구 %1$d개</item>
     </plurals>
@@ -875,7 +867,7 @@
     <string name="shared_chats_refresh_failed">공유한 채팅을 새로고침하지 못했습니다</string>
     <string name="shared_chats_delete_failed">링크를 삭제하지 못했습니다</string>
     <string name="passkeys_title">패스키</string>
-    <string name="passkeys_row_subtitle">화면 잠금 또는 보안 키로 로그인</string>
+    <string name="passkeys_row_subtitle">웹에서 추가한 패스키 관리</string>
     <plurals name="passkeys_row_count">
         <item quantity="other">패스키 %1$d개</item>
     </plurals>
@@ -1047,4 +1039,19 @@
     <string name="accent_name_red">빨강</string>
     <string name="accent_name_pink">분홍</string>
     <string name="accent_name_slate">슬레이트</string>
+    <string name="category_chats">채팅</string>
+    <string name="category_privacy_data">개인정보 및 데이터</string>
+    <string name="category_administration">관리</string>
+    <string name="settings_home_chats_summary">메시지, 아티팩트, 컨텍스트 사용량</string>
+    <string name="settings_home_admin_summary">스킬 및 메모리 권한</string>
+    <string name="settings_home_offline_reading">오프라인 읽기: %1$s</string>
+    <string name="settings_home_about_summary">%1$s · 서버 %2$s</string>
+    <string name="appearance_section_theme">테마</string>
+    <string name="appearance_section_style">스타일</string>
+    <string name="appearance_section_color">색상</string>
+    <string name="appearance_chat_appearance">채팅 모양</string>
+    <string name="appearance_section_tablet_layout">태블릿 레이아웃</string>
+    <string name="accent_using_wallpaper">배경화면 색상 사용 중</string>
+    <string name="admin_panel">관리자 패널</string>
+    <string name="admin_panel_desc">브라우저에서 열립니다</string>
 </resources>

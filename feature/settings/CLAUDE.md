@@ -1,20 +1,22 @@
 # feature:settings
 
 ## Structure
-- `SettingsScreen`: sealed `SettingsRoute : NavKey`, primary route `SettingsTabbed` (tabs General, Chat,
-  Account, Data; each tab has its own ViewModel). Sub-pages are `SettingsRoute` objects declared in
+- Sealed `SettingsRoute : NavKey`. `SettingsTabbed` is the home (`SettingsHomeScreen`: profile card +
+  category rows); keep its name, saved back stacks restore by it. Each category is a `XxxSettingsPage`
+  with no Scaffold of its own, opened by `SettingsCategory(key)` (Appearance by `AppearanceSettings`)
+  inside `SettingsPageScaffold`. Sub-pages are `SettingsRoute` objects declared in
   `navigation/*Navigation.kt` but wired through `SettingsNavigation.kt`.
 - Delegates take a `SettingsStateHandle<S>` typed to their host ViewModel's state, so a delegate moves
   with the page that uses it.
 - Logout / delete account (`AccountDelegate`) set `isLoggedOut` / `isAccountDeleted`; the screen then
   calls `onLogout`.
 
-## Tabs
-- **General** (`GeneralSettingsViewModel`): DataStore + `/api/config` only, no network loads.
-  - `DateTimeSettingsDialog`: Save writes all three choices in one DataStore edit. The tab row shows only
-    a summary; keep new date options in the dialog, not on the tab.
-  - `AppearanceSettingsScreen` (route `AppearanceSettings`, `AppearanceSettingsViewModel`, ThemeDataStore
-    only), reached from one summary row.
+## Pages
+- **Language & region, About** (`GeneralSettingsViewModel`): DataStore + `/api/config` only, no network
+  loads.
+  - `DateTimeSettingsDialog`: Save writes all three choices in one DataStore edit. The row shows only
+    a summary; keep new date options in the dialog, not on the page.
+- **Appearance** (`AppearanceSettingsPage`, `AppearanceSettingsViewModel`, ThemeDataStore only).
   - **Server accent** (`interface.theme`): `DeploymentThemeSync` (`:core:data`) caches the active
     server's accent in `ThemeDataStore.serverAccent`, writing only from a config tagged with the active
     server (`ConfigRepository.startupConfigForServer`) and clearing another server's accent when the
@@ -23,7 +25,7 @@
     sets an accent; while on, the Accent row dims and a picked colour is kept for when it goes off.
 - **Chat** (`ChatSettingsViewModel`, hosts the platform speech delegate): `ChatPreferencesController`
   merges the ~30 prefs into `ChatSettingsUiState` (`combine` tops out at five flows). Errors show in the
-  tab's own snackbar. The Flagged libraries dialog uses `ArtifactLibraryConsentStore` directly; Ask
+  page's own snackbar. The Flagged libraries dialog uses `ArtifactLibraryConsentStore` directly; Ask
   calls `forget`, which drops only the remembered answer (one-time answers aren't listed, so it leaves
   them).
   - `ChatLayoutSettingsScreen`: `:feature:chat` is out of reach, so its preview redraws the message
@@ -34,7 +36,8 @@
   - `archiveAllSupported` means "the server has not 404'd it" and is ANDed with the version gate in the
     `uiState` combine.
 - **Account** (`AccountSettingsViewModel`, hosts `AccountDelegate` + `TwoFactorSecurityDelegate`): loads
-  the profile and balance only. Role-admin rows show only when `isAdmin` (fail-closed).
+  the profile and balance only; the home's profile card uses it too. Administration (role-admin rows)
+  shows only when `isAdmin` (fail-closed).
 
 ## Memories (`MemoriesScreen`, `MemoriesViewModel`, `MemoriesUiState.kt`)
 - The VM owns search, partition chips, role gates (permissive) and the sheet draft (`MemoryEditorState`).
@@ -126,7 +129,7 @@
 - `PullRequestAccountViewModel` over `PullRequestConnectionRepository`; shown when
   `pullRequestConnectionKnowable` and `showsPullRequestAccount` (upstream `hasPullRequestConnect`: a
   grant exists, or `pullRequestsConnect` is set and the status hasn't said `configured: false`). The
-  status is re-read when the gate opens, on each return to the tab, on an account switch and after
+  status is re-read when the gate opens, on each return to the page, on an account switch and after
   every connect or disconnect.
 - Connect: `GET /oauth/connect`, then `McpOAuthSignInDialog` with those cookies. No bind step and no
   system-browser fallback (the callback refuses a browser without them). A 404 hides the row for the
@@ -140,7 +143,7 @@
   message. Field codes go under their field, the rest inside the dialog. A wrong password clears only
   the password. 429 holds Send for `Retry-After`, else 2 min.
   Never retry: each attempt mails the old address.
-- The Account tab re-reads the profile on every resume after the first (`refreshOnReturn`) and says
+- The Account page re-reads the profile on every resume after the first (`refreshOnReturn`) and says
   "Email address updated" only when a link was sent in this ViewModel's life.
 
 ## API keys (`ApiKeysScreen`)

@@ -24,7 +24,6 @@ import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.advanced_search
 import com.garfiec.librechat.feature.settings.resources.advanced_search_desc
-import com.garfiec.librechat.feature.settings.resources.appearance_theme_and_style
 import com.garfiec.librechat.feature.settings.resources.client_image_resize
 import com.garfiec.librechat.feature.settings.resources.client_image_resize_enforced
 import com.garfiec.librechat.feature.settings.resources.delete_account
@@ -104,7 +103,7 @@ private fun SettingsRowsHost() {
             adaptiveSection {
                 row(key = "nav") {
                     SettingsRow(
-                        title = stringResource(Res.string.appearance_theme_and_style),
+                        title = stringResource(Res.string.section_appearance),
                         summary = "Dark · Material",
                         icon = Icons.Default.Palette,
                         tileTint = SettingsTileTint.PRIMARY,

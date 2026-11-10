@@ -48,14 +48,12 @@
     <string name="section_about">Acerca de</string>
     <string name="section_updates">Actualizaciones</string>
     <string name="section_appearance">Apariencia</string>
-    <string name="appearance_theme_and_style">Tema y estilo</string>
     <!-- The switch in the interface style previews: an in-joke, "go outside". -->
     <string name="ui_style_preview_switch">Sal a tocar pasto</string>
     <string name="section_balance">Saldo</string>
     <string name="section_conversations">Conversaciones</string>
     <string name="section_danger_zone">Zona de peligro</string>
     <string name="section_language_region">Idioma y región</string>
-    <string name="section_layout">Diseño</string>
     <string name="section_prefetch">Precarga en segundo plano</string>
     <string name="prefetch_enabled">Precargar conversaciones</string>
     <string name="prefetch_enabled_desc">Carga con antelación las conversaciones recientes y fijadas para que se abran al instante. Se ejecuta mientras la app está inactiva y periódicamente mientras el dispositivo se está cargando.</string>
@@ -133,10 +131,7 @@
     <string name="title_settings">Ajustes</string>
 
     <!-- Tabbed settings tabs -->
-    <string name="tab_general">General</string>
-    <string name="tab_chat">Chat</string>
-    <string name="tab_account">Cuenta</string>
-    <string name="tab_data">Datos</string>
+    <string name="category_account">Cuenta</string>
 
     <!-- Theme -->
     <string name="theme_system">Sistema</string>
@@ -823,7 +818,6 @@
     <string name="date_format_ymd_slash">Año/Mes/Día</string>
     <string name="date_format_long">Largo</string>
     <string name="date_time_preview">Vista previa</string>
-    <string name="ui_style">Estilo de la interfaz</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
     <string name="ui_style_note_simulated">Liquid Glass se simula en esta versión de iOS. iOS 26 o posterior lo muestra de forma nativa.</string>
@@ -836,8 +830,6 @@
     <string name="server_user_ca_notice">De confianza mediante una autoridad de certificación instalada en este dispositivo</string>
     <string name="mcp_tools_all">Todas las herramientas MCP</string>
     <string name="mcp_server_unknown">Desconocido</string>
-    <string name="avatar_upload_unavailable_ios">La subida de avatares aún no está disponible en iOS.</string>
-    <string name="dialog_ok">Aceptar</string>
     <plurals name="mcp_tool_count">
         <item quantity="one">%1$d herramienta</item>
         <item quantity="other">%1$d herramientas</item>
@@ -890,7 +882,7 @@
     <string name="shared_chats_refresh_failed">No se pudieron actualizar tus chats compartidos</string>
     <string name="shared_chats_delete_failed">No se pudo eliminar el enlace</string>
     <string name="passkeys_title">Llaves de acceso</string>
-    <string name="passkeys_row_subtitle">Inicia sesión con el bloqueo de pantalla o una llave de seguridad</string>
+    <string name="passkeys_row_subtitle">Gestiona las llaves de acceso añadidas en la web</string>
     <plurals name="passkeys_row_count">
         <item quantity="one">%1$d llave de acceso</item>
         <item quantity="many">%1$d de llaves de acceso</item>
@@ -1064,4 +1056,19 @@
     <string name="accent_name_red">Rojo</string>
     <string name="accent_name_pink">Rosa</string>
     <string name="accent_name_slate">Pizarra</string>
+    <string name="category_chats">Chats</string>
+    <string name="category_privacy_data">Privacidad y datos</string>
+    <string name="category_administration">Administración</string>
+    <string name="settings_home_chats_summary">Mensajes, artefactos, uso del contexto</string>
+    <string name="settings_home_admin_summary">Permisos de habilidades y memoria</string>
+    <string name="settings_home_offline_reading">Lectura sin conexión: %1$s</string>
+    <string name="settings_home_about_summary">%1$s · Servidor %2$s</string>
+    <string name="appearance_section_theme">Tema</string>
+    <string name="appearance_section_style">Estilo</string>
+    <string name="appearance_section_color">Color</string>
+    <string name="appearance_chat_appearance">Apariencia del chat</string>
+    <string name="appearance_section_tablet_layout">Diseño para tableta</string>
+    <string name="accent_using_wallpaper">Usando los colores del fondo de pantalla</string>
+    <string name="admin_panel">Panel de administración</string>
+    <string name="admin_panel_desc">Se abre en tu navegador</string>
 </resources>

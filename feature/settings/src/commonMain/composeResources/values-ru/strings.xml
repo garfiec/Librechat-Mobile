@@ -48,14 +48,12 @@
     <string name="section_about">О приложении</string>
     <string name="section_updates">Обновления</string>
     <string name="section_appearance">Внешний вид</string>
-    <string name="appearance_theme_and_style">Тема и стиль</string>
     <!-- The switch in the interface style previews: an in-joke, "go outside". -->
     <string name="ui_style_preview_switch">Потрогай траву</string>
     <string name="section_balance">Баланс</string>
     <string name="section_conversations">Беседы</string>
     <string name="section_danger_zone">Опасная зона</string>
     <string name="section_language_region">Язык и регион</string>
-    <string name="section_layout">Макет</string>
     <string name="section_prefetch">Фоновая предзагрузка</string>
     <string name="prefetch_enabled">Предзагрузка бесед</string>
     <string name="prefetch_enabled_desc">Заранее загружать последние и закреплённые беседы, чтобы они открывались мгновенно. Работает, пока приложение не занято, и периодически во время зарядки.</string>
@@ -133,10 +131,7 @@
     <string name="title_settings">Настройки</string>
 
     <!-- Tabbed settings tabs -->
-    <string name="tab_general">Общие</string>
-    <string name="tab_chat">Чат</string>
-    <string name="tab_account">Аккаунт</string>
-    <string name="tab_data">Данные</string>
+    <string name="category_account">Аккаунт</string>
 
     <!-- Theme -->
     <string name="theme_system">Системная</string>
@@ -851,7 +846,6 @@
     <string name="date_format_ymd_slash">Год/Месяц/День</string>
     <string name="date_format_long">Полный</string>
     <string name="date_time_preview">Предпросмотр</string>
-    <string name="ui_style">Стиль интерфейса</string>
     <string name="ui_style_material">Material</string>
     <string name="ui_style_liquid_glass">Liquid Glass</string>
     <string name="ui_style_note_simulated">В этой версии iOS эффект Liquid Glass имитируется. В iOS 26 и новее он отображается нативно.</string>
@@ -864,8 +858,6 @@
     <string name="server_user_ca_notice">Доверие через центр сертификации, установленный на этом устройстве</string>
     <string name="mcp_tools_all">Все инструменты MCP</string>
     <string name="mcp_server_unknown">Неизвестный</string>
-    <string name="avatar_upload_unavailable_ios">Загрузка аватара пока недоступна на iOS.</string>
-    <string name="dialog_ok">ОК</string>
     <plurals name="mcp_tool_count">
         <item quantity="one">%1$d инструмент</item>
         <item quantity="few">%1$d инструмента</item>
@@ -920,7 +912,7 @@
     <string name="shared_chats_refresh_failed">Не удалось обновить общие чаты</string>
     <string name="shared_chats_delete_failed">Не удалось удалить ссылку</string>
     <string name="passkeys_title">Ключи доступа</string>
-    <string name="passkeys_row_subtitle">Вход с помощью блокировки экрана или ключа безопасности</string>
+    <string name="passkeys_row_subtitle">Управление ключами доступа, добавленными в веб-версии</string>
     <plurals name="passkeys_row_count">
         <item quantity="one">%1$d ключ доступа</item>
         <item quantity="few">%1$d ключа доступа</item>
@@ -1095,4 +1087,19 @@
     <string name="accent_name_red">Красный</string>
     <string name="accent_name_pink">Розовый</string>
     <string name="accent_name_slate">Грифельный</string>
+    <string name="category_chats">Чаты</string>
+    <string name="category_privacy_data">Конфиденциальность и данные</string>
+    <string name="category_administration">Администрирование</string>
+    <string name="settings_home_chats_summary">Сообщения, артефакты, использование контекста</string>
+    <string name="settings_home_admin_summary">Права на навыки и память</string>
+    <string name="settings_home_offline_reading">Чтение офлайн: %1$s</string>
+    <string name="settings_home_about_summary">%1$s · Сервер %2$s</string>
+    <string name="appearance_section_theme">Тема</string>
+    <string name="appearance_section_style">Стиль</string>
+    <string name="appearance_section_color">Цвет</string>
+    <string name="appearance_chat_appearance">Вид чата</string>
+    <string name="appearance_section_tablet_layout">Макет для планшета</string>
+    <string name="accent_using_wallpaper">Используются цвета обоев</string>
+    <string name="admin_panel">Панель администратора</string>
+    <string name="admin_panel_desc">Открывается в браузере</string>
 </resources>
