@@ -3,7 +3,6 @@ package com.garfiec.librechat.feature.settings.viewmodel
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore
@@ -22,6 +21,8 @@ import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.model.ArtifactsMode
 import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.model.config.contextGaugeEnabled
+import com.garfiec.librechat.core.model.config.presetsMenuEnabled
 import com.garfiec.librechat.core.model.permissions.Permission
 import com.garfiec.librechat.core.model.permissions.PermissionType
 import com.garfiec.librechat.core.model.permissions.UserRolePermissions
@@ -55,16 +56,11 @@ internal fun chatSettingsGates(
 ): ChatSettingsGates {
     val iface = config?.interfaceConfig
     return ChatSettingsGates(
-        contextUsage = backendVersion != null &&
-            BackendVersion.isCompatibleOrNewer(backendVersion, CONTEXT_GAUGE_MIN_VERSION) &&
-            (iface?.contextUsage ?: true),
-        presets = (iface?.presets ?: true) && (iface?.modelSelect ?: true),
+        contextUsage = iface.contextGaugeEnabled(backendVersion),
+        presets = iface.presetsMenuEnabled(),
         apiKeys = role.hasAccessOrPermissive(PermissionType.REMOTE_AGENTS, Permission.USE),
     )
 }
-
-/** Must match chat's context gauge gate (`ChatConfigDelegate`). */
-private const val CONTEXT_GAUGE_MIN_VERSION = "0.8.7-rc1"
 
 /** Backs Chats, Voice, Models & keys, Privacy's website icons and Advanced's chat rows. */
 // TooManyFunctions: the members are one-line forwarders to controllers, one per setting, so the

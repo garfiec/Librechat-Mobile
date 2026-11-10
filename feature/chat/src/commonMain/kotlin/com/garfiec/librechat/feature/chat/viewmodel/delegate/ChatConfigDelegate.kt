@@ -1,7 +1,6 @@
 package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import co.touchlab.kermit.Logger
-import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.common.result.getOrNull
 import com.garfiec.librechat.core.data.repository.ConfigRepository
@@ -13,8 +12,10 @@ import com.garfiec.librechat.core.data.repository.WebSearchReadinessRepository
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.ToolAuthResult
 import com.garfiec.librechat.core.model.config.InterfaceConfig
+import com.garfiec.librechat.core.model.config.contextGaugeEnabled
 import com.garfiec.librechat.core.model.config.isForcedTemporaryRetention
 import com.garfiec.librechat.core.model.config.landingHeadingIsGreeting
+import com.garfiec.librechat.core.model.config.presetsMenuEnabled
 import com.garfiec.librechat.core.model.config.queuedTurnReconciliationTimeoutMs
 import com.garfiec.librechat.core.model.config.steerArmConfirmationTimeoutMs
 import com.garfiec.librechat.core.model.permissions.Permission
@@ -138,14 +139,6 @@ class ChatConfigDelegate(
                 val role = inputs.role
                 val iface = inputs.iface
                 val version = inputs.version
-                // Context gauge needs the on_context_usage SSE + /api/endpoints/token-config that
-                // drive it; both ship in v0.8.7-rc1. Fail-closed on older/unknown. The later
-                // /api/endpoints/context-projection (upstream fdc7e64bb, rc1 → final) is only an
-                // optional seed — ContextProjectionDelegate drops a failed projection and leaves
-                // the gauge to the SSE, the same arrangement used on the 0.8.8 line where the
-                // projection POST is deliberately suppressed.
-                val contextGaugeSupported = version != null &&
-                    BackendVersion.isCompatibleOrNewer(version, "0.8.7-rc1")
 
                 // Effective gate = role permission AND interface flag, both fail-open
                 // (null role → permissive; absent/omitted flag → enabled).
@@ -172,11 +165,11 @@ class ChatConfigDelegate(
                         // Interface-only gates (no role permission counterpart on web).
                         modelSelectEnabled = iface?.modelSelect ?: true,
                         parametersEnabled = iface?.parameters ?: true,
-                        // Web gates the presets menu on `presets && modelSelect` (Header.tsx).
-                        presetsEnabled = (iface?.presets ?: true) && (iface?.modelSelect ?: true),
+                        presetsEnabled = iface.presetsMenuEnabled(),
                         feedbackEnabled = iface?.feedback ?: true,
-                        // Context-usage gauge (v0.8.7): interface flag AND backend support.
-                        contextUsageEnabled = contextGaugeSupported && (iface?.contextUsage ?: true),
+                        // Not gated on /api/endpoints/context-projection: ContextProjectionDelegate
+                        // treats it as an optional seed and leaves the gauge to the SSE on failure.
+                        contextUsageEnabled = iface.contextGaugeEnabled(version),
                         costEnabled = iface?.contextCost == true,
                         currency = iface?.currency,
                         // The inline memory tools WRITE, so the composer toggle needs the full
