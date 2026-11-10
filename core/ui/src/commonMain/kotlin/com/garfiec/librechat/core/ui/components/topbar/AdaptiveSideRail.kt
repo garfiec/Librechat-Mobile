@@ -73,6 +73,7 @@ private val RailEndPadding = 8.dp
 private val MaterialItemGap = 8.dp
 private val GlassItemGap = 0.dp
 private val RailGroupGap = 12.dp
+private val ProminentGap = 8.dp
 private val HeadingMinHeight = 56.dp
 
 internal const val RAIL_OVERFLOW_ID = "rail_overflow"
@@ -82,7 +83,8 @@ internal const val RAIL_OVERFLOW_ID = "rail_overflow"
  * [AdaptiveTopBarSpec.actions] in order, a gap, and [AdaptiveTopBarSpec.bottomActions] at the bottom.
  * Text actions show their compact icons. When the column is too short, actions move into the ⋯ menu
  * (the spec's trailing menu, or a new one) from the last one up; the navigation control, the first
- * action and the bottom group always stay.
+ * action and the bottom group always stay. The first action is the primary one and is drawn apart and
+ * filled ([railProminentAction]).
  *
  * Fills the column's height and keeps below the system zone at its top and above the home indicator,
  * wherever it is placed. Place it on [VerticalBars.side] with absolute alignment; the column ignores RTL.
@@ -109,8 +111,11 @@ fun AdaptiveSideRail(spec: AdaptiveTopBarSpec, bars: VerticalBars, modifier: Mod
                 .padding(bottom = RailEndPadding)
                 .consumeUnhandledTouches(),
         ) {
+            val prominent = railProminentAction(compact.actions)
+            // Glass sets the primary action apart from the group's capsule; Material's items are already spaced.
+            val prominentExtra = if (prominent != null) (ProminentGap - gap).coerceAtLeast(0.dp) else 0.dp
             val slots = railSlots(
-                available = maxHeight,
+                available = maxHeight - prominentExtra,
                 itemSize = RailItemSize,
                 itemGap = gap,
                 groupGap = RailGroupGap,
@@ -123,7 +128,14 @@ fun AdaptiveSideRail(spec: AdaptiveTopBarSpec, bars: VerticalBars, modifier: Mod
                     RailNavigation(navigation, glass, backdrop)
                     if (top.isNotEmpty()) Spacer(Modifier.height(RailGroupGap))
                 }
-                RailGroup(top, glass, backdrop, gap)
+                val rest = if (prominent != null) {
+                    RailProminentAction(prominent, glass, backdrop)
+                    top.drop(1)
+                } else {
+                    top
+                }
+                if (prominent != null && rest.isNotEmpty()) Spacer(Modifier.height(ProminentGap))
+                RailGroup(rest, glass, backdrop, gap)
                 Spacer(Modifier.weight(1f))
                 RailGroup(compact.bottomActions, glass, backdrop, gap)
             }
@@ -149,16 +161,56 @@ private fun RailNavigation(navigation: BarNavigation, glass: GlassStyle?, backdr
     }
 }
 
+/**
+ * The primary action: a circle filled in the accent while it can be tapped, apart from the group's
+ * capsule in Glass. Disabled or busy, it takes the plain circle, so its spinner stays visible.
+ */
+@Composable
+private fun RailProminentAction(action: BarAction.Icon, glass: GlassStyle?, backdrop: GlassBackdrop?) {
+    val scheme = MaterialTheme.colorScheme
+    val filled = action.enabled && !action.busy
+    Box(
+        modifier = Modifier.size(RailItemSize).then(
+            when {
+                filled -> Modifier.background(glass?.accent ?: scheme.primary, CircleShape)
+                glass != null -> Modifier.glassSurface(glass, CircleShape, backdrop)
+                else -> Modifier.background(scheme.surfaceContainerHigh, CircleShape)
+            },
+        ),
+        contentAlignment = Alignment.Center,
+    ) {
+        val colors = if (filled) {
+            BarActionColors(default = scheme.onPrimary, accent = scheme.onPrimary, glass = glass != null)
+        } else {
+            railActionColors(glass)
+        }
+        BarActionButton(action, colors)
+    }
+}
+
+/**
+ * The rail's primary action: the first action, which never overflows, when it is a plain button that
+ * isn't destructive. A menu, toggle or live control first in line keeps the group's look.
+ */
+internal fun railProminentAction(actions: List<BarAction>): BarAction.Icon? =
+    (actions.firstOrNull() as? BarAction.Icon)?.takeIf { it.tint != BarTint.DESTRUCTIVE }
+
+@Composable
+private fun railActionColors(glass: GlassStyle?): BarActionColors {
+    val scheme = MaterialTheme.colorScheme
+    return if (glass != null) {
+        BarActionColors(default = scheme.onSurface, accent = scheme.primary, glass = true)
+    } else {
+        BarActionColors(default = Color.Unspecified, accent = scheme.primary)
+    }
+}
+
 /** Glass groups the controls in one capsule, as the system's vertical bars do; Material gives each a tonal circle. */
 @Composable
 private fun RailGroup(actions: List<BarAction>, glass: GlassStyle?, backdrop: GlassBackdrop?, gap: Dp) {
     if (actions.isEmpty()) return
     val scheme = MaterialTheme.colorScheme
-    val colors = if (glass != null) {
-        BarActionColors(default = scheme.onSurface, accent = scheme.primary, glass = true)
-    } else {
-        BarActionColors(default = Color.Unspecified, accent = scheme.primary)
-    }
+    val colors = railActionColors(glass)
     Column(
         modifier = if (glass != null) Modifier.glassSurface(glass, CircleShape, backdrop) else Modifier,
         verticalArrangement = Arrangement.spacedBy(gap),

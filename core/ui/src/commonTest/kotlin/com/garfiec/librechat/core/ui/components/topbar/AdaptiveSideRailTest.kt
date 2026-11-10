@@ -6,6 +6,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
@@ -107,6 +108,32 @@ class AdaptiveSideRailTest {
 
         val menu = assertIs<BarAction.Menu>(top.last())
         assertEquals(listOf(listOf("b"), listOf("name"), listOf("c")), menu.sections.map { section -> section.items.map { it.id } })
+    }
+
+    @Test
+    fun theFirstPlainActionIsTheProminentOne() {
+        val newChat = icon("new_chat")
+
+        assertSame(newChat, railProminentAction(listOf(newChat, icon("find"), more)))
+        // Disabled or busy it is still the primary action; only its fill waits.
+        assertEquals("save", railProminentAction(listOf(icon("save").copy(enabled = false)))?.id)
+    }
+
+    @Test
+    fun aMenuToggleOrDestructiveActionFirstIsNotProminent() {
+        val toggle = BarAction.Toggle(
+            id = "star",
+            iconOff = BarIcons.Star,
+            iconOn = BarIcons.StarFilled,
+            label = "Favourite",
+            checked = false,
+            onCheckedChange = {},
+        )
+
+        assertNull(railProminentAction(listOf(more)))
+        assertNull(railProminentAction(listOf(toggle, icon("a"))))
+        assertNull(railProminentAction(listOf(icon("delete").copy(tint = BarTint.DESTRUCTIVE), icon("a"))))
+        assertNull(railProminentAction(emptyList()))
     }
 
     @Test

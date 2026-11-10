@@ -38,7 +38,10 @@ private val tasks = BarAction.Icon(
     onClick = {},
 )
 
-/** Six actions, a text action and a menu: more than a short column holds, so the last ones overflow. */
+/**
+ * Six actions, a text action and a menu: more than a short column holds, so the last ones overflow.
+ * The first (Edit) is the primary action, filled and, in Glass, apart from the group's capsule.
+ */
 private val busySpec = AdaptiveTopBarSpec(
     navigation = BarNavigation(BarIcons.Back, "Back") {},
     title = BarTitle("Research assistant for quarterly market reports"),
