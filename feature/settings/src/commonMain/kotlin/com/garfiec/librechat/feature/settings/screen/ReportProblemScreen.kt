@@ -156,7 +156,6 @@ internal fun ReportProblemContent(
         title = stringResource(Res.string.report_problem_title),
         // Through the same check as system back, which never fires on iOS.
         onNavigateBack = onBack,
-        // The bottom bar rides above the keyboard.
         modifier = modifier.imePadding().clearFocusOnTap(),
         snackbarHostState = snackbarHostState,
         bottomBar = { ContinueBar(enabled = uiState.canContinue, loading = uiState.preparing, onContinue = onContinue) },
@@ -256,7 +255,6 @@ private fun ReportSheetFrame(
     }
 }
 
-/** A sheet body: a scrolling column under a title. */
 @Composable
 private fun ReportSheetBody(
     title: String,

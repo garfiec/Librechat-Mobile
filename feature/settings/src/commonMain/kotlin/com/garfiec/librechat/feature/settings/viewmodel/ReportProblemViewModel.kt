@@ -135,7 +135,6 @@ class ReportProblemViewModel(
         }
     }
 
-    /** System back and the top bar's back (the only back on iOS). */
     fun onBackRequested() = _uiState.update {
         if (it.hasDraftToLose) it.copy(showDiscardConfirm = true) else it.copy(exitRequested = true)
     }
