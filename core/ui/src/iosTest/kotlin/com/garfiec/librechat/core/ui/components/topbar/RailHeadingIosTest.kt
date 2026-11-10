@@ -116,6 +116,28 @@ class RailHeadingIosTest {
     }
 
     @Test
+    fun aPaneNestedInAScreenGetsItsRailOnceItReachesTheBarSide() = runComposeUiTest {
+        // A pane a screen lays out itself, outside the nav pane, drawn offset toward the start edge by its layer alone.
+        var offset by mutableStateOf(-96f)
+        setContent {
+            CompositionLocalProvider(LocalWindowFeatures provides duoBars) {
+                Box(Modifier.fillMaxSize()) {
+                    Box(
+                        Modifier.align(Alignment.TopEnd).fillMaxHeight().fillMaxWidth(PANE_SHARE)
+                            .graphicsLayer { translationX = offset.dp.toPx() },
+                    ) { Screen() }
+                }
+            }
+        }
+        assertFalse(titleIsHeading())
+
+        runOnIdle { offset = 0f }
+
+        assertBarControlsShown()
+        assertTrue(titleIsHeading())
+    }
+
+    @Test
     fun aRailBoxOnVerticalBarsHandsItsTopBarToTheRail() = runComposeUiTest {
         var inRail = false
         setContent {
