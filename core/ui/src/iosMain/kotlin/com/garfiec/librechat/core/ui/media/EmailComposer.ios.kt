@@ -13,8 +13,6 @@ import platform.MessageUI.MFMailComposeViewController
 import platform.MessageUI.MFMailComposeViewControllerDelegateProtocol
 import platform.darwin.NSObject
 
-internal const val REPORT_ATTACHMENTS_DIR = "report_attachments"
-
 /**
  * The open composer's delegate. UIKit holds `mailComposeDelegate` weakly, so without this the
  * delegate is freed while the composer is up and its result never arrives.
@@ -34,8 +32,7 @@ private suspend fun composeEmail(draft: EmailDraft, onResult: (EmailComposeResul
         onResult(EmailComposeResult.NoMailApp)
         return
     }
-    val attachment = draft.attachment
-    val data = attachment?.let { withContext(Dispatchers.Default) { it.bytes.toNSData() } }
+    val attachment = draft.attachment?.let { it to withContext(Dispatchers.Default) { it.bytes.toNSData() } }
     val from = currentTopmostViewController()
     if (from == null) {
         onResult(EmailComposeResult.Cancelled)
@@ -45,9 +42,7 @@ private suspend fun composeEmail(draft: EmailDraft, onResult: (EmailComposeResul
     composer.setToRecipients(listOf(draft.to))
     composer.setSubject(draft.subject)
     composer.setMessageBody(draft.body, isHTML = false)
-    if (attachment != null && data != null) {
-        composer.addAttachmentData(data, mimeType = attachment.mimeType, fileName = attachment.fileName)
-    }
+    attachment?.let { (file, data) -> composer.addAttachmentData(data, mimeType = file.mimeType, fileName = file.fileName) }
     val delegate = MailComposeDelegate(onResult)
     mailComposeDelegate = delegate
     composer.mailComposeDelegate = delegate

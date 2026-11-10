@@ -198,9 +198,10 @@ class FileAttachmentDelegate(
 
                 // Rename the file extension to match the detected/re-encoded MIME type.
                 val uploadFilename = fixFilenameExtension(filename, mimeType)
+                val uploadLogName = LogRedactor.redactFileName(uploadFilename)
                 if (uploadFilename != filename) {
                     Logger.d {
-                        "uploadFile: renamed file from $logName to ${LogRedactor.redactFileName(uploadFilename)} " +
+                        "uploadFile: renamed file from $logName to $uploadLogName " +
                             "to match MIME type '$mimeType'"
                     }
                 }
@@ -224,7 +225,7 @@ class FileAttachmentDelegate(
                 }
 
                 if (actualIsImage) {
-                    Logger.d { "uploadFile: image dimensions ${imageWidth}x$imageHeight for ${LogRedactor.redactFileName(uploadFilename)}" }
+                    Logger.d { "uploadFile: image dimensions ${imageWidth}x$imageHeight for $uploadLogName" }
                 }
 
                 // Generate a UUID for the file_id -- the backend requires this field
@@ -236,7 +237,7 @@ class FileAttachmentDelegate(
                 Logger.d {
                     "uploadFile: sending to server -- fileId=$fileId, endpoint=${state.selectedEndpoint}, " +
                         "model=${state.selectedModel}, isAgent=$isAgent, mimeType=$mimeType, " +
-                        "filename=${LogRedactor.redactFileName(uploadFilename)}, route=$effectiveRoute (requested=$route), " +
+                        "filename=$uploadLogName, route=$effectiveRoute (requested=$route), " +
                         "agentProvider=${state.selectedAgentProvider}, " +
                         "endpointType=${state.endpointConfigs[state.selectedEndpoint]?.type}"
                 }

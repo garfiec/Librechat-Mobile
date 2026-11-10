@@ -142,12 +142,12 @@ class ReportProblemViewModelTest {
         viewModel.setText("It froze")
         viewModel.onComposeResult(EmailComposeResult.Cancelled)
         with(viewModel.uiState.value) {
-            assertThat(mailOpened || showSendAnotherWay || exitRequested || showDiscardConfirm).isFalse()
+            assertThat(mailOpened || sheet != null || exitRequested || showDiscardConfirm).isFalse()
             assertThat(text).isEqualTo("It froze")
         }
 
         viewModel.onComposeResult(EmailComposeResult.NoMailApp)
-        assertThat(viewModel.uiState.value.showSendAnotherWay).isTrue()
+        assertThat(viewModel.uiState.value.sheet).isEqualTo(ReportSheet.SEND_ANOTHER_WAY)
 
         viewModel.onComposeResult(EmailComposeResult.Sent)
         assertThat(viewModel.uiState.value.exitRequested).isTrue()

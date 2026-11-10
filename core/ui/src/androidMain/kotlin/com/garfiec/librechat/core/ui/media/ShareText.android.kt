@@ -24,20 +24,24 @@ internal fun shareText(context: Context, text: String, subject: String? = null) 
 }
 
 @Composable
-actual fun rememberShareTextWithFile(): (text: String, subject: String?, attachment: EmailAttachment) -> Unit {
+actual fun rememberShareTextWithFile(): (text: String, subject: String?, attachment: EmailAttachment?) -> Unit {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     return remember(context, scope) {
         { text, subject, attachment ->
-            scope.launch {
-                val uri = writeReportAttachmentOrToast(context, attachment) ?: return@launch
-                val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = attachment.mimeType
-                    putExtra(Intent.EXTRA_TEXT, text)
-                    if (subject != null) putExtra(Intent.EXTRA_SUBJECT, subject)
-                    grantStream(uri)
+            if (attachment == null) {
+                shareText(context, text, subject)
+            } else {
+                scope.launch {
+                    val uri = writeMailAttachmentOrToast(context, attachment) ?: return@launch
+                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = attachment.mimeType
+                        putExtra(Intent.EXTRA_TEXT, text)
+                        if (subject != null) putExtra(Intent.EXTRA_SUBJECT, subject)
+                        grantStream(uri)
+                    }
+                    context.startActivity(Intent.createChooser(sendIntent, null))
                 }
-                context.startActivity(Intent.createChooser(sendIntent, null))
             }
         }
     }

@@ -12,7 +12,6 @@ import com.garfiec.librechat.core.ui.preview.DialogPreviewHost
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
 import com.garfiec.librechat.feature.settings.viewmodel.ReportProblemUiState
-import com.garfiec.librechat.feature.settings.viewmodel.SUPPORT_EMAIL
 
 private val details = listOf(
     "Switchboard version: 2026.11.1",
@@ -83,7 +82,6 @@ private fun DetailsContent() = ReportDetailsSheetContent(details = details, onSa
 
 @Composable
 private fun AnotherWayContent(logIncluded: Boolean) = SendAnotherWaySheetContent(
-    address = SUPPORT_EMAIL,
     logIncluded = logIncluded,
     onCopyAddress = {},
     onShare = {},

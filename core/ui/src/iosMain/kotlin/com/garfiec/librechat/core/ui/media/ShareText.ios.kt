@@ -20,20 +20,26 @@ internal fun shareText(text: String, subject: String? = null) {
 }
 
 @Composable
-actual fun rememberShareTextWithFile(): (text: String, subject: String?, attachment: EmailAttachment) -> Unit {
+actual fun rememberShareTextWithFile(): (text: String, subject: String?, attachment: EmailAttachment?) -> Unit {
     val scope = rememberCoroutineScope()
     return remember(scope) {
         { text, subject, attachment ->
-            scope.launch {
-                val path = writeTempFile(attachment.bytes, attachment.fileName, attachment.mimeType, REPORT_ATTACHMENTS_DIR)
-                    ?: return@launch
-                val viewController = currentTopmostViewController() ?: return@launch
-                val items = listOf(withSubject(text, subject), NSURL.fileURLWithPath(path))
-                presentSheet(UIActivityViewController(activityItems = items, applicationActivities = null), viewController)
+            if (attachment == null) {
+                shareText(text, subject)
+            } else {
+                scope.launch {
+                    val path = writeTempFile(attachment.bytes, attachment.fileName, attachment.mimeType, MAIL_ATTACHMENTS_DIR)
+                        ?: return@launch
+                    val viewController = currentTopmostViewController() ?: return@launch
+                    val items = listOf(withSubject(text, subject), NSURL.fileURLWithPath(path))
+                    presentSheet(UIActivityViewController(activityItems = items, applicationActivities = null), viewController)
+                }
             }
         }
     }
 }
+
+private const val MAIL_ATTACHMENTS_DIR = "mail_attachments"
 
 // UIKit sets a subject only through a UIActivityItemSource, so it leads the text instead.
 private fun withSubject(text: String, subject: String?): String =

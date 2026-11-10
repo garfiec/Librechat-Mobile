@@ -27,6 +27,8 @@ internal const val SUPPORT_EMAIL = "appsupport@garfiec.com"
 
 enum class ReportKind { PROBLEM, SUGGESTION }
 
+enum class ReportSheet { DETAILS, SEND_ANOTHER_WAY }
+
 @Immutable
 data class ReportProblemUiState(
     val kind: ReportKind = ReportKind.PROBLEM,
@@ -38,8 +40,7 @@ data class ReportProblemUiState(
     val preparing: Boolean = false,
     val mailOpened: Boolean = false,
     val showDiscardConfirm: Boolean = false,
-    val showDetailsSheet: Boolean = false,
-    val showSendAnotherWay: Boolean = false,
+    val sheet: ReportSheet? = null,
     val exitRequested: Boolean = false,
     /** A read log waiting for the platform file saver (the details sheet's Save a copy). */
     val logExport: LogsExportPayload? = null,
@@ -84,11 +85,9 @@ class ReportProblemViewModel(
 
     fun setIncludeLog(include: Boolean) = _uiState.update { it.copy(includeLog = include) }
 
-    fun showDetails() = _uiState.update { it.copy(showDetailsSheet = true) }
+    fun showDetails() = _uiState.update { it.copy(sheet = ReportSheet.DETAILS) }
 
-    fun dismissDetails() = _uiState.update { it.copy(showDetailsSheet = false) }
-
-    fun dismissSendAnotherWay() = _uiState.update { it.copy(showSendAnotherWay = false) }
+    fun dismissSheet() = _uiState.update { it.copy(sheet = null) }
 
     /**
      * The email as it will be sent. The log is read only when it is included; an empty or unreadable
@@ -131,7 +130,7 @@ class ReportProblemViewModel(
             EmailComposeResult.Opened -> _uiState.update { it.copy(mailOpened = true) }
             EmailComposeResult.Sent -> _uiState.update { it.copy(exitRequested = true) }
             EmailComposeResult.Cancelled -> Unit
-            EmailComposeResult.NoMailApp -> _uiState.update { it.copy(showSendAnotherWay = true) }
+            EmailComposeResult.NoMailApp -> _uiState.update { it.copy(sheet = ReportSheet.SEND_ANOTHER_WAY) }
         }
     }
 

@@ -3,6 +3,7 @@ package com.garfiec.librechat.feature.settings.screen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,13 +31,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
-import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.AdaptiveSegmentedChoice
 import com.garfiec.librechat.core.ui.components.AdaptiveSnackbarHost
@@ -46,14 +47,8 @@ import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.PlatformBackHandler
 import com.garfiec.librechat.core.ui.components.adaptiveSection
 import com.garfiec.librechat.core.ui.components.clearFocusOnTap
-import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBar
-import com.garfiec.librechat.core.ui.components.topbar.AdaptiveTopBarSpec
-import com.garfiec.librechat.core.ui.components.topbar.BarIcons
-import com.garfiec.librechat.core.ui.components.topbar.BarNavigation
-import com.garfiec.librechat.core.ui.components.topbar.BarTitle
 import com.garfiec.librechat.core.ui.glass.GlassControlColors
 import com.garfiec.librechat.core.ui.media.rememberEmailComposer
-import com.garfiec.librechat.core.ui.media.rememberShareText
 import com.garfiec.librechat.core.ui.media.rememberShareTextWithFile
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
@@ -61,6 +56,7 @@ import com.garfiec.librechat.feature.settings.util.rememberClipboardWriter
 import com.garfiec.librechat.feature.settings.viewmodel.ReportKind
 import com.garfiec.librechat.feature.settings.viewmodel.ReportProblemUiState
 import com.garfiec.librechat.feature.settings.viewmodel.ReportProblemViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.ReportSheet
 import com.garfiec.librechat.feature.settings.viewmodel.SUPPORT_EMAIL
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -76,7 +72,6 @@ fun ReportProblemScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnBack by rememberUpdatedState(onBack)
     val composeEmail = rememberEmailComposer()
-    val shareText = rememberShareText()
     val shareTextWithFile = rememberShareTextWithFile()
     val clipboard = rememberClipboardWriter()
     val scope = rememberCoroutineScope()
@@ -99,8 +94,6 @@ fun ReportProblemScreen(
         snackbarHostState = snackbarHostState,
     )
 
-    // One host at a time: the page's draws behind an open sheet's scrim.
-    val sheetOpen = uiState.showDetailsSheet || uiState.showSendAnotherWay
     ReportProblemContent(
         uiState = uiState,
         onBack = viewModel::onBackRequested,
@@ -109,23 +102,22 @@ fun ReportProblemScreen(
         onIncludeLogChange = viewModel::setIncludeLog,
         onViewDetails = viewModel::showDetails,
         onContinue = { scope.launch { composeEmail(viewModel.buildDraft(), viewModel::onComposeResult) } },
-        snackbarHostState = snackbarHostState.takeUnless { sheetOpen },
+        // One host at a time: the page's draws behind an open sheet's scrim.
+        snackbarHostState = snackbarHostState.takeIf { uiState.sheet == null },
         modifier = modifier,
     )
 
-    if (uiState.showDetailsSheet) {
-        ReportSheet(onDismiss = viewModel::dismissDetails, snackbarHostState = snackbarHostState) {
+    when (uiState.sheet) {
+        null -> Unit
+        ReportSheet.DETAILS -> ReportSheetFrame(onDismiss = viewModel::dismissSheet, snackbarHostState = snackbarHostState) {
             ReportDetailsSheetContent(
                 details = uiState.details,
                 onSaveCopy = viewModel::saveLogCopy,
-                onDone = viewModel::dismissDetails,
+                onDone = viewModel::dismissSheet,
             )
         }
-    }
-    if (uiState.showSendAnotherWay) {
-        ReportSheet(onDismiss = viewModel::dismissSendAnotherWay, snackbarHostState = snackbarHostState) {
+        ReportSheet.SEND_ANOTHER_WAY -> ReportSheetFrame(onDismiss = viewModel::dismissSheet, snackbarHostState = snackbarHostState) {
             SendAnotherWaySheetContent(
-                address = SUPPORT_EMAIL,
                 logIncluded = uiState.includeLog && uiState.logBytes > 0,
                 onCopyAddress = {
                     clipboard.copy(SUPPORT_EMAIL, title)
@@ -134,19 +126,14 @@ fun ReportProblemScreen(
                 onShare = {
                     scope.launch {
                         val draft = viewModel.buildDraft()
-                        val attachment = draft.attachment
-                        if (attachment != null) {
-                            shareTextWithFile(draft.body, draft.subject, attachment)
-                        } else {
-                            shareText(draft.body, draft.subject)
-                        }
+                        shareTextWithFile(draft.body, draft.subject, draft.attachment)
                     }
                 },
                 onCopyText = {
                     clipboard.copy(viewModel.reportText(), title)
                     scope.launch { snackbarHostState.showSnackbar(copiedMsg) }
                 },
-                onClose = viewModel::dismissSendAnotherWay,
+                onClose = viewModel::dismissSheet,
             )
         }
     }
@@ -165,30 +152,21 @@ internal fun ReportProblemContent(
     snackbarHostState: SnackbarHostState?,
     modifier: Modifier = Modifier,
 ) {
-    AdaptiveScaffold(
+    SettingsPageScaffold(
+        title = stringResource(Res.string.report_problem_title),
+        // Through the same check as system back, which never fires on iOS.
+        onNavigateBack = onBack,
         // The bottom bar rides above the keyboard.
         modifier = modifier.imePadding().clearFocusOnTap(),
-        containerColor = GlassControlColors.groupedBackground,
-        snackbarHost = { snackbarHostState?.let { AdaptiveSnackbarHost(it) } },
-        topBar = {
-            AdaptiveTopBar(
-                spec = AdaptiveTopBarSpec(
-                    // Through the same check as system back, which never fires on iOS.
-                    navigation = BarNavigation(BarIcons.Back, stringResource(Res.string.cd_back), onBack),
-                    title = BarTitle(stringResource(Res.string.report_problem_title)),
-                    actions = emptyList(),
-                ),
-            )
-        },
+        snackbarHostState = snackbarHostState,
         bottomBar = { ContinueBar(enabled = uiState.canContinue, loading = uiState.preparing, onContinue = onContinue) },
     ) { padding ->
         SettingsListPage(contentPadding = padding) {
             item(key = "kind") {
+                val problem = stringResource(Res.string.report_kind_problem)
+                val suggestion = stringResource(Res.string.report_kind_suggestion)
                 AdaptiveSegmentedChoice(
-                    options = listOf(
-                        stringResource(Res.string.report_kind_problem),
-                        stringResource(Res.string.report_kind_suggestion),
-                    ),
+                    options = remember(problem, suggestion) { listOf(problem, suggestion) },
                     selectedIndex = uiState.kind.ordinal,
                     onSelect = { onKindChange(ReportKind.entries[it]) },
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
@@ -265,7 +243,7 @@ private fun ContinueBar(enabled: Boolean, loading: Boolean, onContinue: () -> Un
 /** A sheet of this page, with its own snackbar host above the scrim. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ReportSheet(
+private fun ReportSheetFrame(
     onDismiss: () -> Unit,
     snackbarHostState: SnackbarHostState,
     content: @Composable () -> Unit,
@@ -278,6 +256,27 @@ private fun ReportSheet(
     }
 }
 
+/** A sheet body: a scrolling column under a title. */
+@Composable
+private fun ReportSheetBody(
+    title: String,
+    spacing: Dp,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .navigationBarsPadding()
+            .padding(horizontal = 24.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(spacing),
+    ) {
+        Text(text = title, style = MaterialTheme.typography.titleLarge)
+        content()
+    }
+}
+
 /** What's sent: the details text exactly as the email carries it, and what the log holds. */
 @Composable
 internal fun ReportDetailsSheetContent(
@@ -286,15 +285,7 @@ internal fun ReportDetailsSheetContent(
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .navigationBarsPadding()
-            .padding(horizontal = 24.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Text(text = stringResource(Res.string.report_sheet_title), style = MaterialTheme.typography.titleLarge)
+    ReportSheetBody(title = stringResource(Res.string.report_sheet_title), spacing = 16.dp, modifier = modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(text = stringResource(Res.string.report_details_title), style = MaterialTheme.typography.titleSmall)
             Text(
@@ -326,7 +317,6 @@ internal fun ReportDetailsSheetContent(
 /** Shown when no mail app takes the report: the address to copy, a share, and the text to paste. */
 @Composable
 internal fun SendAnotherWaySheetContent(
-    address: String,
     logIncluded: Boolean,
     onCopyAddress: () -> Unit,
     onShare: () -> Unit,
@@ -334,22 +324,14 @@ internal fun SendAnotherWaySheetContent(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .navigationBarsPadding()
-            .padding(horizontal = 24.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(text = stringResource(Res.string.report_another_way_title), style = MaterialTheme.typography.titleLarge)
+    ReportSheetBody(title = stringResource(Res.string.report_another_way_title), spacing = 12.dp, modifier = modifier) {
         Text(
             text = stringResource(Res.string.report_another_way_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         SettingsRow(
-            title = address,
+            title = SUPPORT_EMAIL,
             summary = stringResource(Res.string.report_tap_to_copy),
             icon = Icons.Default.ContentCopy,
             onClick = onCopyAddress,

@@ -17,8 +17,8 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 
-/** Must match the `report_attachments` cache-path in the app's `file_provider_paths.xml`. */
-private const val REPORT_ATTACHMENTS_DIR = "report_attachments"
+/** Must match the `mail_attachments` cache-path in the app's `file_provider_paths.xml`. */
+private const val MAIL_ATTACHMENTS_DIR = "mail_attachments"
 
 @Composable
 actual fun rememberEmailComposer(): (draft: EmailDraft, onResult: (EmailComposeResult) -> Unit) -> Unit {
@@ -30,7 +30,7 @@ actual fun rememberEmailComposer(): (draft: EmailDraft, onResult: (EmailComposeR
 }
 
 private suspend fun composeEmail(context: Context, draft: EmailDraft): EmailComposeResult {
-    val uri = draft.attachment?.let { writeReportAttachmentOrToast(context, it) ?: return EmailComposeResult.Cancelled }
+    val uri = draft.attachment?.let { writeMailAttachmentOrToast(context, it) ?: return EmailComposeResult.Cancelled }
     return try {
         context.startActivity(buildEmailIntent(draft, uri))
         EmailComposeResult.Opened
@@ -60,9 +60,9 @@ internal fun Intent.grantStream(uri: Uri) {
  * Writes [attachment] alone into its own cache folder (not `shared_files`, whose sweep would delete
  * it while a mail app may still read it) and returns its content URI, or toasts and returns null.
  */
-internal suspend fun writeReportAttachmentOrToast(context: Context, attachment: EmailAttachment): Uri? = try {
+internal suspend fun writeMailAttachmentOrToast(context: Context, attachment: EmailAttachment): Uri? = try {
     withContext(Dispatchers.IO) {
-        val dir = File(context.cacheDir, REPORT_ATTACHMENTS_DIR)
+        val dir = File(context.cacheDir, MAIL_ATTACHMENTS_DIR)
         dir.listFiles()?.forEach { it.delete() }
         dir.mkdirs()
         val file = File(dir, sanitizeFilename(attachment.fileName)).apply { writeBytes(attachment.bytes) }
