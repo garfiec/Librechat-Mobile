@@ -50,6 +50,7 @@ import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
@@ -537,6 +538,7 @@ internal fun RailHeading(
                     overflow = TextOverflow.Ellipsis,
                     textAlign = if (title.alignment == BarTitleAlignment.CENTER) TextAlign.Center else null,
                     modifier = Modifier
+                        .semantics { heading() }
                         .then(if (title.alignment == BarTitleAlignment.FILL) Modifier.fillMaxWidth() else Modifier)
                         .then(chip?.let { Modifier.glassSurface(it, CircleShape, LocalGlassBackdrop.current) } ?: Modifier)
                         .then(if (onTitleClick != null) Modifier.clickable(onClick = onTitleClick) else Modifier)
