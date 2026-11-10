@@ -25,7 +25,8 @@ actual fun rememberShareTextWithFile(): (text: String, subject: String?, attachm
     return remember(scope) {
         { text, subject, attachment ->
             scope.launch {
-                val path = writeReportAttachment(attachment) ?: return@launch
+                val path = writeTempFile(attachment.bytes, attachment.fileName, attachment.mimeType, REPORT_ATTACHMENTS_DIR)
+                    ?: return@launch
                 val viewController = currentTopmostViewController() ?: return@launch
                 val items = listOf(withSubject(text, subject), NSURL.fileURLWithPath(path))
                 presentSheet(UIActivityViewController(activityItems = items, applicationActivities = null), viewController)

@@ -73,6 +73,8 @@ class ReportProblemViewModelTest {
             .isEqualTo("Switchboard problem: " + "a".repeat(59) + "…")
         assertThat(reportSubject(ReportKind.PROBLEM, "b".repeat(60)))
             .isEqualTo("Switchboard problem: " + "b".repeat(60))
+        assertThat(reportSubject(ReportKind.PROBLEM, "c".repeat(59) + "\uD83D\uDE00 more"))
+            .isEqualTo("Switchboard problem: " + "c".repeat(59) + "…")
     }
 
     @Test
@@ -124,6 +126,17 @@ class ReportProblemViewModelTest {
     }
 
     @Test
+    fun `editing after the mail app opened asks again on back`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.setText("It froze")
+        viewModel.onComposeResult(EmailComposeResult.Opened)
+        viewModel.setText("It froze after I switched servers")
+        viewModel.onBackRequested()
+        assertThat(viewModel.uiState.value.showDiscardConfirm).isTrue()
+        assertThat(viewModel.uiState.value.exitRequested).isFalse()
+    }
+
+    @Test
     fun `compose results route to the right outcome`() = runTest {
         val viewModel = createViewModel()
         viewModel.setText("It froze")
@@ -150,7 +163,7 @@ class ReportProblemViewModelTest {
         assertThat(draft.subject).isEqualTo("Switchboard problem: It froze")
         assertThat(draft.body).endsWith("Diagnostic log: attached")
         val attachment = checkNotNull(draft.attachment)
-        assertThat(attachment.fileName).matches("switchboard-logs-\\d{4}-\\d{2}-\\d{2}\\.log")
+        assertThat(attachment.fileName).matches("switchboard-logs-\\d+\\.log")
         assertThat(attachment.mimeType).isEqualTo("text/plain")
         assertThat(attachment.bytes.decodeToString()).isEqualTo(FakeLogRepository.LOG)
         assertThat(viewModel.uiState.value.preparing).isFalse()

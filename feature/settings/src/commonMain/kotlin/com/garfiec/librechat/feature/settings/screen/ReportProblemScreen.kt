@@ -89,7 +89,7 @@ fun ReportProblemScreen(
         if (uiState.exitRequested) currentOnBack()
     }
     // Only while there is a draft to lose, so a blank form keeps the predictive-back preview.
-    PlatformBackHandler(enabled = uiState.text.isNotBlank() && !uiState.mailOpened, onBack = viewModel::onBackRequested)
+    PlatformBackHandler(enabled = uiState.hasDraftToLose, onBack = viewModel::onBackRequested)
     if (uiState.showDiscardConfirm) {
         DiscardChangesDialog(onDiscard = viewModel::discardChanges, onDismiss = viewModel::dismissDiscardConfirmation)
     }
@@ -126,7 +126,7 @@ fun ReportProblemScreen(
         ReportSheet(onDismiss = viewModel::dismissSendAnotherWay, snackbarHostState = snackbarHostState) {
             SendAnotherWaySheetContent(
                 address = SUPPORT_EMAIL,
-                logIncluded = uiState.includeLog,
+                logIncluded = uiState.includeLog && uiState.logBytes > 0,
                 onCopyAddress = {
                     clipboard.copy(SUPPORT_EMAIL, title)
                     scope.launch { snackbarHostState.showSnackbar(addressCopiedMsg) }

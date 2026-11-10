@@ -13,15 +13,14 @@ import com.garfiec.librechat.core.logging.diagnosticLogFileName
 import com.garfiec.librechat.core.ui.media.EmailAttachment
 import com.garfiec.librechat.core.ui.media.EmailComposeResult
 import com.garfiec.librechat.core.ui.media.EmailDraft
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Clock
+import kotlinx.coroutines.withContext
 
 /** Where every report goes, on every distribution channel. */
 internal const val SUPPORT_EMAIL = "appsupport@garfiec.com"
@@ -46,6 +45,9 @@ data class ReportProblemUiState(
     val logExport: LogsExportPayload? = null,
 ) {
     val canContinue: Boolean get() = text.isNotBlank() && !preparing
+
+    /** Typed text that hasn't been handed to a mail app since it last changed; back asks first. */
+    val hasDraftToLose: Boolean get() = text.isNotBlank() && !mailOpened
 }
 
 /**
@@ -78,7 +80,7 @@ class ReportProblemViewModel(
 
     fun setKind(kind: ReportKind) = _uiState.update { it.copy(kind = kind) }
 
-    fun setText(text: String) = _uiState.update { it.copy(text = text) }
+    fun setText(text: String) = _uiState.update { it.copy(text = text, mailOpened = false) }
 
     fun setIncludeLog(include: Boolean) = _uiState.update { it.copy(includeLog = include) }
 
@@ -94,22 +96,28 @@ class ReportProblemViewModel(
      */
     suspend fun buildDraft(): EmailDraft {
         _uiState.update { it.copy(preparing = true) }
-        val state = _uiState.value
-        val log = if (state.includeLog) {
-            suspendRunCatching { diagnosticLogRepository.exportText() }
-                .onFailure { e -> Logger.w(e) { "Failed to read the diagnostic log for a report" } }
-                .getOrNull()
-                ?.takeIf { it.isNotEmpty() }
-        } else {
-            null
+        try {
+            val state = _uiState.value
+            val log = if (state.includeLog) {
+                suspendRunCatching {
+                    diagnosticLogRepository.exportText()
+                        .takeIf { it.isNotEmpty() }
+                        ?.let { withContext(Dispatchers.Default) { it.encodeToByteArray() } }
+                }
+                    .onFailure { e -> Logger.w(e) { "Failed to read the diagnostic log for a report" } }
+                    .getOrNull()
+            } else {
+                null
+            }
+            return EmailDraft(
+                to = SUPPORT_EMAIL,
+                subject = reportSubject(state.kind, state.text),
+                body = reportBody(state.text, state.details, logIncluded = log != null),
+                attachment = log?.let { EmailAttachment(diagnosticLogFileName(), "text/plain", it) },
+            )
+        } finally {
+            _uiState.update { it.copy(preparing = false) }
         }
-        _uiState.update { it.copy(preparing = false) }
-        return EmailDraft(
-            to = SUPPORT_EMAIL,
-            subject = reportSubject(state.kind, state.text),
-            body = reportBody(state.text, state.details, logIncluded = log != null),
-            attachment = log?.let { EmailAttachment(reportLogFileName(), "text/plain", it.encodeToByteArray()) },
-        )
     }
 
     /** Subject and body for pasting into another app, which carries no log. */
@@ -129,7 +137,7 @@ class ReportProblemViewModel(
 
     /** System back and the top bar's back (the only back on iOS). */
     fun onBackRequested() = _uiState.update {
-        if (it.text.isNotBlank() && !it.mailOpened) it.copy(showDiscardConfirm = true) else it.copy(exitRequested = true)
+        if (it.hasDraftToLose) it.copy(showDiscardConfirm = true) else it.copy(exitRequested = true)
     }
 
     fun discardChanges() = _uiState.update { it.copy(showDiscardConfirm = false, exitRequested = true) }
@@ -157,12 +165,13 @@ internal fun reportSubject(kind: ReportKind, text: String): String {
         ReportKind.SUGGESTION -> "Switchboard suggestion: "
     }
     val firstLine = text.trim().lineSequence().first().trim()
-    val cut = if (firstLine.length > SUBJECT_MAX) firstLine.take(SUBJECT_MAX).trimEnd() + "…" else firstLine
+    val cut = if (firstLine.length > SUBJECT_MAX) {
+        firstLine.take(SUBJECT_MAX).let { if (it.last().isHighSurrogate()) it.dropLast(1) else it }.trimEnd() + "…"
+    } else {
+        firstLine
+    }
     return prefix + cut
 }
 
 internal fun reportBody(text: String, details: String, logIncluded: Boolean): String =
     text.trim() + "\n\n——\n" + details + "\nDiagnostic log: " + if (logIncluded) "attached" else "not included"
-
-private fun reportLogFileName(): String =
-    "switchboard-logs-${Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date}.log"
