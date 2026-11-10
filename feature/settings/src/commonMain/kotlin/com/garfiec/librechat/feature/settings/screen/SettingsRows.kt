@@ -17,11 +17,16 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -30,6 +35,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
+import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedButton
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
 import com.garfiec.librechat.core.ui.components.adaptiveSelectedRowColor
@@ -201,6 +207,39 @@ private fun SettingsTileTint.colors(): Pair<Color, Color> {
         SettingsTileTint.SECONDARY -> scheme.secondaryContainer to scheme.onSecondaryContainer
         SettingsTileTint.TERTIARY -> scheme.tertiaryContainer to scheme.onTertiaryContainer
         SettingsTileTint.ERROR -> scheme.errorContainer to scheme.onErrorContainer
+    }
+}
+
+/** A title and its current value; a tap lists the choices, given as (key, label) pairs. */
+@Composable
+internal fun SettingsChoiceRow(
+    title: String,
+    value: String,
+    options: List<Pair<String, String>>,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    disabledKeys: Set<String> = emptySet(),
+    enabled: Boolean = true,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box(modifier = modifier) {
+        SettingsRow(
+            title = title,
+            summary = value,
+            onClick = { if (enabled) expanded = true },
+        )
+        AdaptiveDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { (key, label) ->
+                DropdownMenuItem(
+                    text = { Text(label) },
+                    enabled = key !in disabledKeys,
+                    onClick = {
+                        expanded = false
+                        onSelect(key)
+                    },
+                )
+            }
+        }
     }
 }
 

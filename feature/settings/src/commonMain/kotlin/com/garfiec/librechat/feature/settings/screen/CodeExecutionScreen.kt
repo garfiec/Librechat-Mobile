@@ -1,7 +1,6 @@
 package com.garfiec.librechat.feature.settings.screen
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -41,7 +39,6 @@ import com.garfiec.librechat.core.model.code.StatefulCodeScope
 import com.garfiec.librechat.core.ui.components.AdaptiveAlertDialog
 import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveCircularProgressIndicator
-import com.garfiec.librechat.core.ui.components.AdaptiveDropdownMenu
 import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
 import com.garfiec.librechat.core.ui.components.AdaptiveOutlinedTextField
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
@@ -197,7 +194,7 @@ private fun LazyListScope.defaultScopeSection(state: CodeExecutionUiState, viewM
     item(key = "scope_header") { AdaptiveSectionHeader(stringResource(Res.string.default_stateful_workspace)) }
     adaptiveSection {
         row(key = "scope_row") {
-            ChoiceRow(
+            SettingsChoiceRow(
                 title = stringResource(Res.string.default_stateful_workspace),
                 value = scopeLabel(scope.selected),
                 options = scope.options.map { it to scopeLabel(it) },
@@ -275,7 +272,7 @@ private fun PairingForm(
         modifier = Modifier.fillMaxWidth(),
     )
     if (state.controlPlanes.size > 1) {
-        ChoiceRow(
+        SettingsChoiceRow(
             title = stringResource(Res.string.code_environment_control_plane),
             value = state.controlPlanes.firstOrNull { it.id == state.pairPlaneId }?.name.orEmpty(),
             options = state.controlPlanes.map { it.id to it.name },
@@ -381,7 +378,7 @@ private fun MachineRow(
             }
         }
         machine.permissions.forEach { control ->
-            ChoiceRow(
+            SettingsChoiceRow(
                 title = stringResource(
                     if (control.category == CodePermissionCategory.FILE_WRITE) {
                         Res.string.code_environment_file_write
@@ -442,36 +439,4 @@ private fun InfoText(text: String, padded: Boolean = true) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = if (padded) Modifier.padding(horizontal = 16.dp, vertical = 8.dp) else Modifier,
     )
-}
-
-/** A title and its current value; a tap lists the choices. */
-@Composable
-private fun ChoiceRow(
-    title: String,
-    value: String,
-    options: List<Pair<String, String>>,
-    disabledKeys: Set<String>,
-    enabled: Boolean,
-    onSelect: (String) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        SettingsRow(
-            title = title,
-            summary = value,
-            onClick = { if (enabled) expanded = true },
-        )
-        AdaptiveDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.forEach { (key, label) ->
-                DropdownMenuItem(
-                    text = { Text(label) },
-                    enabled = key !in disabledKeys,
-                    onClick = {
-                        expanded = false
-                        onSelect(key)
-                    },
-                )
-            }
-        }
-    }
 }
