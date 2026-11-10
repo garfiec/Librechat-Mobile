@@ -323,6 +323,12 @@
     <string name="drawer_filter_no_match_body">Prueba un intervalo de fechas más largo o menos filtros.</string>
     <string name="drawer_filter_clear">Borrar filtros</string>
     <string name="drawer_filter_load_failed">No se pudieron cargar los chats filtrados. Desliza hacia abajo para reintentar.</string>
+    <string name="projects_load_failed">No se pudieron cargar tus proyectos. Revisa tu conexión e inténtalo de nuevo.</string>
+    <string name="project_chats_load_failed">No se pudieron cargar los chats de este proyecto</string>
+    <string name="drawer_load_failed">No se pudieron cargar tus chats.</string>
+    <string name="drawer_projects_load_failed">No se pudieron cargar los proyectos</string>
+    <string name="drawer_folder_load_failed">No se pudieron cargar los chats</string>
+    <string name="drawer_load_retry">Reintentar</string>
     <string name="drawer_filter_messages_note">Los resultados de mensajes no se filtran.</string>
     <string name="cd_remove_named_filter">Quitar filtro %1$s</string>
     <!-- Project errors -->

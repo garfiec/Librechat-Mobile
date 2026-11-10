@@ -263,6 +263,24 @@ class ConversationListStateHolderTest {
     }
 
     @Test
+    fun `a failed first page is a failure, and one that lands empty is loaded`() = runTest {
+        every { conversationRepository.observeConversations(any()) } returns
+            MutableStateFlow<Result<List<Conversation>>>(Result.Success(emptyList()))
+        coEvery { conversationRepository.loadNextPage(cursor = null) } returns Result.Error(IllegalStateException("offline"))
+        val holder = ConversationListStateHolder(conversationRepository, scope, dayBoundaries = emptyFlow())
+        assertThat(holder.listLoad.value).isEqualTo(ListLoad.PENDING)
+        advanceUntilIdle()
+
+        assertThat(holder.listLoad.value).isEqualTo(ListLoad.FAILED)
+
+        coEvery { conversationRepository.loadNextPage(cursor = null) } returns Result.Success(null)
+        holder.refreshConversations()
+        advanceUntilIdle()
+
+        assertThat(holder.listLoad.value).isEqualTo(ListLoad.LOADED)
+    }
+
+    @Test
     fun `a failed filtered load says so instead of reading as no matches`() = runTest {
         every { conversationRepository.observeConversations(any()) } returns MutableStateFlow(Result.Success(convos))
         val filters = ConversationListFilters(sharedOnly = true)

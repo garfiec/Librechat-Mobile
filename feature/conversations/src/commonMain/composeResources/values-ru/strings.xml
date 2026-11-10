@@ -329,6 +329,12 @@
     <string name="drawer_filter_no_match_body">Выберите более длинный период или меньше фильтров.</string>
     <string name="drawer_filter_clear">Сбросить фильтры</string>
     <string name="drawer_filter_load_failed">Не удалось загрузить отфильтрованные чаты. Потяните вниз, чтобы повторить.</string>
+    <string name="projects_load_failed">Не удалось загрузить ваши проекты. Проверьте подключение и попробуйте ещё раз.</string>
+    <string name="project_chats_load_failed">Не удалось загрузить чаты этого проекта</string>
+    <string name="drawer_load_failed">Не удалось загрузить ваши чаты.</string>
+    <string name="drawer_projects_load_failed">Не удалось загрузить проекты</string>
+    <string name="drawer_folder_load_failed">Не удалось загрузить чаты</string>
+    <string name="drawer_load_retry">Повторить</string>
     <string name="drawer_filter_messages_note">Результаты по сообщениям не фильтруются.</string>
     <string name="cd_remove_named_filter">Удалить фильтр %1$s</string>
     <!-- Project errors -->

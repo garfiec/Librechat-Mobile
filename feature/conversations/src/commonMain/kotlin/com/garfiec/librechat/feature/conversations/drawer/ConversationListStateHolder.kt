@@ -72,6 +72,9 @@ class ConversationListStateHolder(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
+    private val _listLoad = MutableStateFlow(ListLoad.PENDING)
+    val listLoad: StateFlow<ListLoad> = _listLoad.asStateFlow()
+
     private var searchObserverJob: Job? = null
 
     /**
@@ -171,9 +174,11 @@ class ConversationListStateHolder(
         return if (result is Result.Success) {
             nextCursor = result.data
             _hasMore.value = result.data != null
+            if (cursor == null) _listLoad.value = ListLoad.LOADED
             true
         } else {
             Logger.w((result as? Result.Error)?.exception) { "Failed to load conversations page" }
+            if (cursor == null) _listLoad.value = ListLoad.FAILED
             false
         }
     }
@@ -350,6 +355,7 @@ class ConversationListStateHolder(
         _hasMore.value = true
         _isLoadingMore.value = false
         _isRefreshing.value = false
+        _listLoad.value = ListLoad.PENDING
         observeSearchQuery()
     }
 
@@ -360,3 +366,6 @@ class ConversationListStateHolder(
      */
     private fun List<Conversation>.withoutPinned(): List<Conversation> = filterNot { it.pinned == true }
 }
+
+/** The unfiltered drawer list's first page: not answered yet, answered, or failed. */
+enum class ListLoad { PENDING, LOADED, FAILED }

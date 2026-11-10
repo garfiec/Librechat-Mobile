@@ -2093,6 +2093,7 @@ class ChatViewModel(
     // Presets and prompts
     fun savePreset(name: String) = presetPromptDelegate.savePreset(name)
     fun loadPreset(displayData: PresetDisplayData) = presetPromptDelegate.loadPreset(displayData)
+    fun reloadPresetsIfFailed() = presetPromptDelegate.reloadPresetsIfFailed()
     fun deletePreset(presetId: String) = presetPromptDelegate.deletePreset(presetId)
     fun editPreset(preset: Preset) = presetPromptDelegate.editPreset(preset)
     fun handleSlashCommand(displayData: PromptMentionDisplayData) = presetPromptDelegate.handleSlashCommand(displayData)

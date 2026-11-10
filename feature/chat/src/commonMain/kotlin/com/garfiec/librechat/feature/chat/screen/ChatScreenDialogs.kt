@@ -60,6 +60,8 @@ internal fun ChatScreenDialogs(
     if (showPresetPicker) {
         PresetPicker(
             presets = uiState.presets,
+            loadFailed = uiState.presetsLoadFailed,
+            onRetry = viewModel::reloadPresetsIfFailed,
             onPresetSelect = { preset ->
                 viewModel.loadPreset(preset)
                 onSetShowPresetPicker(false)

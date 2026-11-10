@@ -389,6 +389,7 @@
     <!-- Preset picker -->
     <string name="select_preset">Выбрать пресет</string>
     <string name="no_presets_saved">Пока нет сохранённых пресетов</string>
+    <string name="presets_load_failed">Не удалось загрузить ваши пресеты.</string>
     <string name="cd_edit_preset">Изменить %1$s</string>
     <string name="cd_delete_preset">Удалить %1$s</string>
     <string name="preset_endpoint">Конечная точка: %1$s</string>

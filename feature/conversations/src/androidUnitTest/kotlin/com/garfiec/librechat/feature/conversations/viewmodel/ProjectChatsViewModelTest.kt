@@ -428,4 +428,22 @@ class ProjectChatsViewModelTest {
         advanceUntilIdle()
         assertThat(vm.uiState.value.descriptionLimit).isEqualTo(300)
     }
+
+    @Test
+    fun `a failed first load is a failure, and its Retry brings back the chats and the project`() = runTest(testDispatcher) {
+        coEvery { chats() } returns Result.Error(message = "offline")
+        coEvery { projectRepository.getProject("p1") } returns Result.Error(message = "offline")
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        assertThat(vm.uiState.value.loadFailed).isTrue()
+
+        coEvery { chats() } returns page()
+        coEvery { projectRepository.getProject("p1") } returns Result.Success(ChatProject(id = "p1", name = "Thesis"))
+        vm.refresh()
+        advanceUntilIdle()
+
+        assertThat(vm.uiState.value.loadFailed).isFalse()
+        assertThat(vm.uiState.value.project?.name).isEqualTo("Thesis")
+    }
 }

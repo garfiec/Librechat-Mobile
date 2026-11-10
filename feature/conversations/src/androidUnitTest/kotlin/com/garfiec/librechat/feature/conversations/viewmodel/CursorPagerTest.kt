@@ -19,10 +19,12 @@ class CursorPagerTest {
     private class FakeServer(private val total: Int) {
         val calls = mutableListOf<Call>()
         var gate: CompletableDeferred<Unit>? = null
+        var down = false
 
         suspend fun fetch(cursor: String?, limit: Int?): Result<CursorPage<String>> {
             calls += Call(cursor, limit)
             gate?.await()
+            if (down) return Result.Error(message = "offline")
             val from = cursor?.toInt() ?: 0
             val to = (from + (limit ?: 25).coerceAtMost(100)).coerceAtMost(total)
             return Result.Success(CursorPage((from until to).map { "r$it" }, to.takeIf { it < total }?.toString()))
@@ -103,5 +105,21 @@ class CursorPagerTest {
         assertThat(pager.items.value).containsNoneOf("r1", "r3")
         assertThat(pager.state.value.nextCursor).isEqualTo("25")
         assertThat(server.calls).isEmpty()
+    }
+
+    @Test
+    fun `a failed first page is marked failed until a first page lands`() = runTest {
+        val server = FakeServer(total = 0).apply { down = true }
+        val pager = pager(server)
+
+        pager.load()
+        advanceUntilIdle()
+        assertThat(pager.state.value.firstPageFailed).isTrue()
+
+        server.down = false
+        pager.reloadQuietly()
+        advanceUntilIdle()
+        assertThat(pager.state.value.firstPageFailed).isFalse()
+        assertThat(pager.items.value).isEmpty()
     }
 }

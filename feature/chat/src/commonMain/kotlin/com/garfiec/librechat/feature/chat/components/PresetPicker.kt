@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveModalBottomSheet
+import com.garfiec.librechat.core.ui.components.AdaptiveTextButton
 import com.garfiec.librechat.core.ui.components.ListDragSelection
 import com.garfiec.librechat.core.ui.components.LowProfileDragHandle
 import com.garfiec.librechat.core.ui.components.dragSelectExclude
@@ -48,6 +49,8 @@ fun PresetPicker(
     modifier: Modifier = Modifier,
     onEditPreset: (PresetDisplayData) -> Unit = {},
     onDeletePreset: (PresetDisplayData) -> Unit = {},
+    loadFailed: Boolean = false,
+    onRetry: () -> Unit = {},
 ) {
     val sheetState = rememberModalBottomSheetState()
 
@@ -70,7 +73,20 @@ fun PresetPicker(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
             )
 
-            if (presets.isEmpty()) {
+            if (presets.isEmpty() && loadFailed) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(Res.string.presets_load_failed),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    AdaptiveTextButton(onClick = onRetry) { Text(stringResource(Res.string.retry)) }
+                }
+            } else if (presets.isEmpty()) {
                 Text(
                     text = stringResource(Res.string.no_presets_saved),
                     style = MaterialTheme.typography.bodyMedium,
