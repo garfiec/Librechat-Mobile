@@ -71,7 +71,6 @@ import com.garfiec.librechat.feature.settings.viewmodel.PrefetchActivityViewMode
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.ProviderKeysSummary
 import com.garfiec.librechat.feature.settings.viewmodel.displayHostOf
 import kotlinx.serialization.json.Json
-import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -152,13 +151,7 @@ fun SettingsHomeScreen(
             if (homeChats.autoReadEnabled) Res.string.settings_home_read_aloud_on else Res.string.settings_home_read_aloud_off,
         ),
         models = if (providerKeys is ProviderKeysSummary.Count) {
-            val count = pluralStringResource(
-                Res.plurals.provider_keys_row_summary,
-                providerKeys.totalCount,
-                providerKeys.setCount,
-                providerKeys.totalCount,
-            )
-            stringResource(Res.string.settings_home_provider_keys, count)
+            stringResource(Res.string.settings_home_provider_keys, providerKeysCountLabel(providerKeys))
         } else {
             stringResource(Res.string.settings_home_models_summary)
         },

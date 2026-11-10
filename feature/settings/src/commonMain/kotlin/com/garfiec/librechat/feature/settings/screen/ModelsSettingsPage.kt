@@ -75,12 +75,7 @@ fun ModelsSettingsPage(
                             title = stringResource(Res.string.provider_keys_title),
                             // The general line until every endpoint has answered, then the count.
                             summary = if (providerKeys is ProviderKeysSummary.Count) {
-                                pluralStringResource(
-                                    Res.plurals.provider_keys_row_summary,
-                                    providerKeys.totalCount,
-                                    providerKeys.setCount,
-                                    providerKeys.totalCount,
-                                )
+                                providerKeysCountLabel(providerKeys)
                             } else {
                                 stringResource(Res.string.provider_keys_subtitle)
                             },
@@ -136,3 +131,12 @@ fun ModelsSettingsPage(
         }
     }
 }
+
+/** "N of M set": how many of the endpoints that take a user key have one. */
+@Composable
+internal fun providerKeysCountLabel(count: ProviderKeysSummary.Count): String = pluralStringResource(
+    Res.plurals.provider_keys_row_summary,
+    count.totalCount,
+    count.setCount,
+    count.totalCount,
+)
