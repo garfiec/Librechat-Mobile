@@ -4,7 +4,6 @@ import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.media.IconSource
-import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.feature.chat.util.replyIconSource
 
 /**
@@ -44,12 +43,8 @@ private fun ChatUiState.replyAvatarFor(
     endpointConfigs: Map<String, EndpointConfig>,
 ): IconSource {
     val spec = specName?.let { name -> modelSpecs?.list?.find { it.name == name } }
-    return when {
-        spec != null -> spec.replyIconSource(endpoint, agents, serverUrl, endpointConfigs)
-        endpoint == EndpointConstants.AGENTS && model != null -> IconSource(
-            endpoint,
-            resolveAvatarUrl(agents.find { it.id == model }?.avatarUrl, serverUrl),
-        )
-        else -> replyIconSource(null, endpoint, serverUrl, endpointConfigs)
-    }
+    if (spec != null) return spec.replyIconSource(endpoint, agents, serverUrl, endpointConfigs)
+    val agentAvatar = agents.takeIf { endpoint == EndpointConstants.AGENTS && model != null }
+        ?.find { it.id == model }?.avatarUrl?.takeIf { it.isNotBlank() }
+    return replyIconSource(null, endpoint, serverUrl, endpointConfigs, agentAvatar)
 }

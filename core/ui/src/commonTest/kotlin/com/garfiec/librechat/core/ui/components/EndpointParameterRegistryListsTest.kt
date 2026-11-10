@@ -60,9 +60,33 @@ class EndpointParameterRegistryListsTest {
         listOf(mistral, cohere, general, moonshot, zai).forEach { list ->
             assertTrue("tags" !in list && "imageDetail" !in list, list.toString())
         }
-        listOf(mistral, cohere, general).forEach { assertTrue("stop" !in it, it.toString()) }
+        listOf(mistral, cohere, general, zai).forEach { assertTrue("stop" !in it, it.toString()) }
         assertTrue("promptCacheTtl" in general)
         assertTrue("stop" in moonshot && "reasoning_effort" in moonshot)
+    }
+
+    @Test
+    fun bedrockSchemaKeysHiddenFromAPanelAreStillSent() {
+        fun wireOnly(model: String) =
+            EndpointParameterRegistry.wireOnlyDefinitions("bedrock", provider = null, model = model).map { it.key }.toSet()
+
+        assertEquals(setOf("stop", "topK"), wireOnly("mistral.mistral-large-2407-v1:0"))
+        assertEquals(setOf("stop", "topK"), wireOnly("cohere.command-r-plus-v1:0"))
+        assertEquals(setOf("stop", "maxTokens", "topK"), wireOnly("meta.llama3-70b-instruct-v1:0"))
+        assertEquals(setOf("stop", "maxTokens", "topK"), wireOnly("zai.glm-4.6"))
+        assertEquals(setOf("topK"), wireOnly("moonshot.kimi-k2-thinking"))
+        assertEquals(emptySet(), wireOnly("anthropic.claude-sonnet-4-5-20250929-v1:0"))
+        assertEquals(
+            setOf("stop", "topK"),
+            EndpointParameterRegistry.wireOnlyDefinitions("agents", provider = "bedrock", model = "mistral.mistral-large-2407-v1:0")
+                .map { it.key }.toSet(),
+        )
+        assertEquals(emptyList(), EndpointParameterRegistry.wireOnlyDefinitions("openAI", provider = null, model = "gpt-4.1"))
+        assertEquals(
+            setOf("topK"),
+            EndpointParameterRegistry.wireOnlyDefinitions("bedrock", null, "mistral.mistral-large-2407-v1:0", dropParams = listOf("stop"))
+                .map { it.key }.toSet(),
+        )
     }
 
     @Test

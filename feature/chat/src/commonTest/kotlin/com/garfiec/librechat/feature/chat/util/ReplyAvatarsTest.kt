@@ -1,9 +1,12 @@
 package com.garfiec.librechat.feature.chat.util
 
+import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.media.IconSource
 import com.garfiec.librechat.core.model.media.ProviderId
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -71,6 +74,52 @@ class ReplyAvatarsTest {
             IconSource("agents", null, null),
             reply("r", endpoint = "openAI", iconUrl = "agents").replyAvatar(null, server, withAgents),
         )
+    }
+
+    private val agents = listOf(
+        Agent(id = "a1", avatar = buildJsonObject { put("filepath", "/images/a1.png") }),
+        Agent(id = "a2"),
+    )
+
+    private fun agentReply(model: String?, iconUrl: String? = null) =
+        Message(messageId = "r", conversationId = "c", endpoint = "agents", model = model, iconURL = iconUrl)
+
+    @Test
+    fun an_agent_reply_draws_the_agents_avatar() {
+        assertEquals(
+            IconSource("agents", "$server/images/a1.png", null),
+            agentReply("a1").replyAvatar(null, server, configs, agents),
+        )
+        assertEquals("$server/images/a1.png", agentReply("a1", iconUrl = "agents").replyAvatar(null, server, configs, agents)?.imageUrl)
+    }
+
+    @Test
+    fun an_agent_reply_without_a_model_takes_the_chats_agent() {
+        assertEquals("$server/images/a1.png", agentReply(null).replyAvatar(null, server, configs, agents, fallbackAgentId = "a1")?.imageUrl)
+    }
+
+    @Test
+    fun an_agent_without_an_avatar_or_one_not_listed_draws_the_agents_mark() {
+        assertEquals(IconSource("agents", null, null), agentReply("a2").replyAvatar(null, server, configs, agents))
+        assertEquals(
+            IconSource("agents", null, null),
+            agentReply("gone").replyAvatar(null, server, configs, agents, fallbackAgentId = "a1"),
+        )
+    }
+
+    @Test
+    fun an_agent_avatar_is_drawn_only_for_an_agents_reply() {
+        val notAgents = reply("r").copy(model = "a1")
+        assertEquals(ProviderId.OPENROUTER, notAgents.replyAvatar(null, server, configs, agents)?.provider)
+        assertNull(notAgents.replyAvatar(null, server, configs, agents)?.imageUrl)
+    }
+
+    @Test
+    fun the_memo_redoes_when_the_agents_arrive() {
+        val memo = ReplyAvatarMemo()
+        val path = listOf(node(agentReply("a1")))
+        assertNull(memo.resolve(path, null, server, configs, emptyList(), null)[0].avatar?.imageUrl)
+        assertEquals("$server/images/a1.png", memo.resolve(path, null, server, configs, agents, null)[0].avatar?.imageUrl)
     }
 
     @Test

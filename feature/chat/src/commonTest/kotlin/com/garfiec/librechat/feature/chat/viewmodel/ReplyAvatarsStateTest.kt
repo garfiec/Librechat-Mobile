@@ -4,6 +4,7 @@ import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.Message
+import com.garfiec.librechat.core.model.Preset
 import com.garfiec.librechat.core.model.config.ModelSpec
 import com.garfiec.librechat.core.model.config.ModelSpecs
 import com.garfiec.librechat.core.model.media.ProviderId
@@ -56,6 +57,51 @@ class ReplyAvatarsStateTest {
         val agents = listOf(Agent(id = "a1", avatar = buildJsonObject { put("filepath", "/images/a1.png") }))
         val avatars = state(ModelChoice.Raw(EndpointConstants.AGENTS, "a1"), agents = agents).replyAvatars(server)
         assertEquals("$server/images/a1.png", avatars.streaming?.imageUrl)
+    }
+
+    @Test
+    fun an_agents_saved_reply_draws_what_its_streaming_reply_did() {
+        val agents = listOf(Agent(id = "a1", avatar = buildJsonObject { put("filepath", "/images/a1.png") }))
+        val chat = state(ModelChoice.Raw(EndpointConstants.AGENTS, "a1"), agents = agents)
+        val saved = Message(messageId = "r", conversationId = "c", endpoint = EndpointConstants.AGENTS, model = "a1")
+
+        assertEquals(
+            chat.replyAvatars(server).streaming,
+            saved.replyAvatar(EndpointConstants.AGENTS, server, configs, agents, fallbackAgentId = "a1"),
+        )
+    }
+
+    @Test
+    fun an_agent_specs_saved_reply_draws_what_its_streaming_reply_did() {
+        val agents = listOf(Agent(id = "a1", avatar = buildJsonObject { put("filepath", "/images/a1.png") }))
+        val spec = ModelSpec(name = "helper", preset = Preset(endpoint = "agents", agentId = "a1"))
+        val specs = ModelSpecs(list = listOf(spec))
+        val chat = state(ModelChoice.Spec("helper", EndpointConstants.AGENTS, "a1"), specs, agents = agents)
+        // The server saves an agent spec without its own icon as `iconURL: "agents"`.
+        val saved =
+            Message(messageId = "r", conversationId = "c", endpoint = EndpointConstants.AGENTS, model = "a1", iconURL = "agents")
+
+        assertEquals("$server/images/a1.png", chat.replyAvatars(server).streaming?.imageUrl)
+        assertEquals(
+            chat.replyAvatars(server).streaming?.imageUrl,
+            saved.replyAvatar(EndpointConstants.AGENTS, server, configs, agents, fallbackAgentId = "a1")?.imageUrl,
+        )
+    }
+
+    @Test
+    fun an_agent_spec_named_icon_streams_the_agents_avatar_its_saved_reply_draws() {
+        val agents = listOf(Agent(id = "a1", avatar = buildJsonObject { put("filepath", "/images/a1.png") }))
+        val spec = ModelSpec(name = "helper", iconURL = "groq", preset = Preset(endpoint = "agents", agentId = "a1"))
+        val specs = ModelSpecs(list = listOf(spec))
+        val chat = state(ModelChoice.Spec("helper", EndpointConstants.AGENTS, "a1"), specs, agents = agents)
+        val saved =
+            Message(messageId = "r", conversationId = "c", endpoint = EndpointConstants.AGENTS, model = "a1", iconURL = "groq")
+
+        assertEquals("$server/images/a1.png", chat.replyAvatars(server).streaming?.imageUrl)
+        assertEquals(
+            chat.replyAvatars(server).streaming,
+            saved.replyAvatar(EndpointConstants.AGENTS, server, configs, agents, fallbackAgentId = "a1"),
+        )
     }
 
     @Test

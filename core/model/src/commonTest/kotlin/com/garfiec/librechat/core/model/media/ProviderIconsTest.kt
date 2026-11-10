@@ -155,9 +155,16 @@ class ProviderIconsTest {
     fun labelsAndMonograms() {
         assertEquals("Together AI", ProviderId.TOGETHER.label)
         assertEquals("Hugging Face", ProviderId.HUGGINGFACE.label)
-        assertEquals("X", ProviderId.XAI.monogram)
-        assertEquals("A", ProviderId.ANTHROPIC.monogram)
-        assertEquals("D", ProviderId.DEEPSEEK.monogram)
-        ProviderId.entries.forEach { assertEquals(1, it.monogram.length, it.id) }
+        assertEquals("xA", ProviderId.XAI.monogram)
+        assertEquals("An", ProviderId.ANTHROPIC.monogram)
+        assertEquals("Az", ProviderId.AZURE.monogram)
+        assertEquals("Br", ProviderId.BEDROCK.monogram)
+        ProviderId.entries.forEach { assertEquals(2, it.monogram.length, it.id) }
+    }
+
+    @Test
+    fun noTwoProvidersShareAMonogram() {
+        val byMonogram = ProviderId.entries.groupBy { it.monogram.lowercase() }
+        assertEquals(emptyMap(), byMonogram.filterValues { it.size > 1 })
     }
 }

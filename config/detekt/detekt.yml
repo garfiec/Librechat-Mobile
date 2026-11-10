@@ -22,6 +22,7 @@ complexity:
     thresholdInEnums: 10
     ignoreAnnotatedFunctions:
       - "Preview"
+      - "PreviewNarrowScreens"
   NestedBlockDepth:
     threshold: 5
   CyclomaticComplexMethod:

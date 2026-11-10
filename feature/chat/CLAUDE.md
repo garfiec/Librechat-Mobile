@@ -232,14 +232,16 @@ web's `EndpointIcon` rule: a non-image `iconURL` counts only when it is an endpo
 `endpointConfigs` to `resolveIconSource`/`SpecIcons` and `EndpointIcon(provider = …)` wherever
 configs are in reach, or a custom endpoint draws a monogram. **No third-party logo art is bundled**
 (brand terms; F-Droid NonFreeAssets): art loads from the user's server at `{server}/assets/<file>`
-(`providerAssetUrl`, subpath-aware), else a monogram tile. Never tint loaded art (near-black art sits
-on a light tile in a dark theme). Web's `byModel` and `modelMakers` refinements aren't ported.
+(`providerAssetUrl`, subpath-aware), else a two-letter monogram tile, unique per provider. Never tint
+loaded art (near-black art sits on a light tile in a dark theme). Web's `byModel` and `modelMakers`
+refinements aren't ported.
 
 **Reply avatars are view data.** A bubble never resolves its own icon: `ChatViewModel`'s `uiState`
 combine fills `MessageNode.avatar` (`util/ReplyAvatars.kt`), because the server URL and configs
-arrive on their own flows; `ReplyAvatarMemo` skips the walk while path, URL and configs are unchanged.
-The rule is web's `MessageIcon`, not the picker's: a non-image `iconURL` counts only as an endpoint
-key. The streaming reply and Compare lane B (`ChatUiState.avatars`) use the same rule
+arrive on their own flows; `ReplyAvatarMemo` skips the walk while path, URL, configs and agents are
+unchanged. The rule is web's `MessageIcon`, not the picker's: a non-image `iconURL` counts only as an
+endpoint key, and an agents reply draws its agent's avatar (the server saves no avatar in `iconURL`).
+The streaming reply and Compare lane B (`ChatUiState.avatars`) use the same rule
 (`ModelSpec.replyIconSource`), so a reply keeps its icon when saved.
 
 **Model spec fields.** Fields decoded but unused, or not decoded, are deliberate; don't "fix" them in

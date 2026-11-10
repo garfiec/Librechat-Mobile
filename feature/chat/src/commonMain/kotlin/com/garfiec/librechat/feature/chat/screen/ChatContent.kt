@@ -17,6 +17,7 @@ import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.model.config.displayLabel
 import com.garfiec.librechat.core.model.config.labelFor
 import com.garfiec.librechat.core.model.media.IconSource
+import com.garfiec.librechat.core.model.media.isImageUrl
 import com.garfiec.librechat.core.model.media.resolveAvatarUrl
 import com.garfiec.librechat.core.model.media.resolveIconSource
 import com.garfiec.librechat.core.ui.components.LoadingIndicator
@@ -354,8 +355,9 @@ private fun ChatMessageListPane(
 /**
  * The selection's icon, as web's landing draws it (`ConvoIcon`): the selected spec's ([iconSource]: its
  * `iconURL`, its preset's, its agent's avatar, else its endpoint's brand), the selected agent's avatar
- * (the agents glyph without one), else the selected endpoint's brand. Null before anything is
- * selected. The landing hero and the "+" sheet's Model cell both draw it.
+ * (the agents glyph without one), else the selected endpoint's configured `iconURL` (`iconURL ||
+ * configured`), else its brand. Null before anything is selected. The landing hero and the "+" sheet's
+ * Model cell both draw it.
  */
 internal fun ChatUiState.selectionIcon(): IconSource? {
     val spec = modelSpecs?.list?.find { it.name == selectedSpec }
@@ -369,7 +371,12 @@ internal fun ChatUiState.selectionIcon(): IconSource? {
                 imageUrl = selectedAgent()?.avatarUrl?.let { resolveAvatarUrl(it, serverUrl) },
             )
         }
-        else -> resolveIconSource(null, selectedEndpoint, serverUrl, endpointConfigs)
+        else -> resolveIconSource(
+            endpointConfigs[selectedEndpoint]?.iconURL?.takeIf(::isImageUrl),
+            selectedEndpoint,
+            serverUrl,
+            endpointConfigs,
+        )
     }
 }
 

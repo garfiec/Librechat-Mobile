@@ -101,6 +101,26 @@ object EndpointParameterRegistry {
         baseDefinitions(endpoint, extendedEffortSupported = true, provider, model, dropParams = emptyList())
             .firstOrNull { it.key in spellings }?.key
 
+    /**
+     * Keys the provider's input schema keeps but its panel leaves out, sent without being shown. The
+     * server unsets every stored field a request omits, so a key missing from both [getDefinitions] and
+     * here is erased from what web set. Bedrock only: `bedrockInputSchema` (mirror
+     * `bedrock-input-schema-keys`) keeps `stop`, `maxTokens` and `topK` for every model.
+     */
+    fun wireOnlyDefinitions(
+        endpoint: String,
+        provider: String?,
+        model: String?,
+        dropParams: List<String> = emptyList(),
+    ): List<ParameterDefinition> {
+        val settingsKey = settingsKeyFor(endpoint, provider)
+        if (settingsKey != "bedrock") return emptyList()
+        val shown = bedrockParamsForModel(model, extendedEffortSupported = true).mapTo(mutableSetOf()) { it.key }
+        val dropped = resolveDropParamsUIKeys(dropParams, settingsKey)
+        return listOf(bedrockStop(), bedrockMaxOutputTokens(), bedrockTopK())
+            .filter { it.key !in shown && it.key !in dropped }
+    }
+
     /** Top P's spellings: openAI-like sets use `top_p`, the native providers `topP`. */
     val TOP_P_KEYS = listOf("top_p", "topP")
 

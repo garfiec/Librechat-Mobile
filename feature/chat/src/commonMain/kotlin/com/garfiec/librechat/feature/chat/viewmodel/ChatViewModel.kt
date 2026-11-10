@@ -640,14 +640,16 @@ class ChatViewModel(
             account = state.account.copy(
                 userAvatarUrl = resolveAvatarUrl(state.account.userAvatarUrl, url),
             ),
-            // Reply avatars, resolved here for the same reason: the URL and the endpoint configs
-            // (a custom endpoint's served providerId) each arrive on their own flow.
+            // Reply avatars, resolved here for the same reason: the URL, the endpoint configs (a custom
+            // endpoint's served providerId) and the agents (an agent's avatar) each arrive on their own flow.
             content = hydrated.content.copy(
                 displayMessages = replyAvatarMemo.resolve(
                     hydrated.content.displayMessages,
                     state.selectedEndpoint,
                     url,
                     state.endpointConfigs,
+                    state.agents,
+                    fallbackAgentId = state.selectedModel.takeIf { state.selectedEndpoint == EndpointConstants.AGENTS },
                 ),
             ),
             avatars = state.replyAvatars(url),

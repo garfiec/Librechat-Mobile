@@ -47,7 +47,7 @@ data class ProviderKeyEntry(
 ) {
     private val icon = providerKeyIcon(endpointName, config)
 
-    /** The endpoint's configured image icon, as given: a relative path is not joined to the server. */
+    /** The endpoint's configured image icon, as given: the row joins a relative path to the server. */
     val iconUrl: String? get() = icon.imageUrl
 
     /** The brand the row draws when there is no image, including a custom endpoint's served `providerId`. */

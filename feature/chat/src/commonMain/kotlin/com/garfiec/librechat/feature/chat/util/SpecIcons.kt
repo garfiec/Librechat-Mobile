@@ -1,5 +1,6 @@
 package com.garfiec.librechat.feature.chat.util
 
+import com.garfiec.librechat.core.common.EndpointConstants
 import com.garfiec.librechat.core.model.Agent
 import com.garfiec.librechat.core.model.EndpointConfig
 import com.garfiec.librechat.core.model.config.ModelSpec
@@ -26,7 +27,11 @@ fun ModelSpec.replyIconSource(
     agents: List<Agent>,
     serverUrl: String,
     endpointConfigs: Map<String, EndpointConfig>?,
-): IconSource = replyIconSource(iconValue(agentAvatar(agents)), endpoint, serverUrl, endpointConfigs)
+): IconSource {
+    val avatar = agentAvatar(agents)
+    val replyAvatar = avatar?.takeIf { endpoint == EndpointConstants.AGENTS && it.isNotBlank() }
+    return replyIconSource(iconValue(avatar), endpoint, serverUrl, endpointConfigs, replyAvatar)
+}
 
 private fun ModelSpec.agentAvatar(agents: List<Agent>): String? =
     preset?.agentId?.let { id -> agents.firstOrNull { it.id == id }?.avatarUrl }

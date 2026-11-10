@@ -159,6 +159,17 @@ class LandingTextTest {
     }
 
     @Test
+    fun aRawModelOnAnEndpointWithAnImageIconDrawsTheImage() {
+        val pictured = state(null).copy(
+            selection = ModelSelectionState(
+                choice = ModelChoice.Raw("Gateway", "m"),
+                endpointConfigs = mapOf("Gateway" to EndpointConfig(iconURL = "/images/gw.png", providerId = "deepseek")),
+            ),
+        )
+        assertThat(pictured.landingHeroIcon()).isEqualTo(LandingHeroIcon("Gateway", "https://srv/images/gw.png", ProviderId.DEEPSEEK))
+    }
+
+    @Test
     fun anAgentDrawsItsAvatarElseTheAgentsGlyph() {
         val withAvatar = state(null).copy(
             selection = ModelSelectionState(choice = ModelChoice.Raw(EndpointConstants.AGENTS, "a1"), agents = listOf(agent)),

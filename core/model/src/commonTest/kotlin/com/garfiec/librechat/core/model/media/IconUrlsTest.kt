@@ -149,6 +149,14 @@ class IconUrlsTest {
         assertEquals("$SERVER/assets/openai.svg", Conversation(endpoint = "openAI").resolveEndpointIconUrl(configs, SERVER))
     }
 
+    @Test
+    fun anIconImageJoinsTheServerLikeThePicker() {
+        assertEquals("$SERVER/images/gw.png", iconImageUrl("/images/gw.png", SERVER))
+        assertEquals("https://cdn.example/gw.png", iconImageUrl("//cdn.example/gw.png", SERVER))
+        assertEquals("https://cdn.example/gw.png", iconImageUrl("https://cdn.example/gw.png", SERVER))
+        assertNull(iconImageUrl(null, SERVER))
+    }
+
     private companion object {
         const val SERVER = "https://srv"
     }

@@ -91,7 +91,7 @@ private object FailedProviderAssets {
 /**
  * Renders an endpoint icon. Precedence: an image [iconUrl] (a custom endpoint's `iconURL`), then the
  * provider's art as served by the user's own server ([providerAssetUrl] against [LocalServerUrl]),
- * then a monogram tile of the provider's label. The provider is [provider] when given (resolved by
+ * then the provider's monogram tile. The provider is [provider] when given (resolved by
  * `resolveProviderIcon`, e.g. from the server's `providerId`), else [endpointProvider]. Agents draw
  * the agents glyph; a name resolving to no provider draws a generic Material glyph.
  *
@@ -235,14 +235,18 @@ private fun ProviderMark(
     }
 }
 
-/** A neutral round tile with the provider label's first letter; read out as [contentDescription], if any. */
+/**
+ * A round tile with the provider's [ProviderId.monogram], on its [monogramTint] when it has one, else
+ * neutral; read out as [contentDescription], if any.
+ */
 @Composable
 private fun ProviderMonogram(provider: ProviderId, size: Dp, contentDescription: String?, modifier: Modifier = Modifier) {
     val density = LocalDensity.current
+    val tint = monogramTint[provider]
     Box(
         modifier = modifier
             .size(size)
-            .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
+            .background(tint ?: MaterialTheme.colorScheme.surfaceVariant, CircleShape)
             .then(
                 if (contentDescription != null) {
                     Modifier.semantics { this.contentDescription = contentDescription }
@@ -262,15 +266,25 @@ private fun ProviderMonogram(provider: ProviderId, size: Dp, contentDescription:
                     lineHeight = with(unscaled) { (size * MONOGRAM_TEXT_FRACTION).toSp() },
                     fontWeight = FontWeight.SemiBold,
                 ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (tint != null) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
             )
         }
     }
 }
 
+/** Tiles for the providers with no served art. Each tint must hold white text at 5:1 or more, on both themes. */
+private val monogramTint: Map<ProviderId, Color> = mapOf(
+    ProviderId.ANTHROPIC to Color(0xFF9C5B36),
+    ProviderId.AZURE to Color(0xFF1F5FBF),
+    ProviderId.BEDROCK to Color(0xFF1F6F5E),
+    ProviderId.XAI to Color(0xFF2E3440),
+    ProviderId.MOONSHOT to Color(0xFF5A4BC2),
+    ProviderId.VERCEL to Color(0xFF000000),
+)
+
 private const val AVATAR_ART_INSET_FRACTION = 0.15f
-private const val MONOGRAM_TEXT_FRACTION = 0.5f
+private const val MONOGRAM_TEXT_FRACTION = 0.4f
 private val TILE_INSET_LARGE_THRESHOLD = 20.dp
 
 /** Without a server every provider draws its monogram; agents and an unknown name keep their glyphs. */

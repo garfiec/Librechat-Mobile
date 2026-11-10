@@ -62,32 +62,47 @@ private fun AgentSpecLandingGlassPreview() = PreviewSurface(UiStyle.LIQUID_GLASS
  */
 @PreviewNarrowScreens
 @Composable
-private fun CompactSpecLandingPreview() = PreviewSurface(UiStyle.MATERIAL) {
-    Box(Modifier.height(PreviewKeyboardUpHeight)) {
-        LandingHost(
-            title = "Research Assistant",
-            description = "Finds and summarises sources, with citations. Ask it about a paper, a person or a field, " +
-                "and it reads what it finds before it answers, so the summary says where each claim came from.",
-            agentName = null,
-            caption = null,
-            heroIcon = LandingHeroIcon(endpointName = "anthropic", iconUrl = null),
-            bottomPadding = PreviewStartersHeight,
-        )
-    }
-}
+private fun CompactSpecLandingPreview() = PreviewSurface(UiStyle.MATERIAL) { SpecLandingIconHost(compact = true) }
+
+@PreviewNarrowScreens
+@Composable
+private fun CompactSpecLandingGlassPreview() = PreviewSurface(UiStyle.LIQUID_GLASS) { SpecLandingIconHost(compact = true) }
 
 /** A temporary chat on a spec with its own icon: temporary chat's glyph leads, not the spec's. */
 @PreviewNarrowScreens
 @Composable
-private fun TemporarySpecLandingPreview() = PreviewSurface(UiStyle.MATERIAL) {
-    LandingHost(
-        isTemporaryChat = true,
-        title = "Research Assistant",
-        description = "Finds and summarises sources, with citations.",
-        agentName = null,
-        caption = null,
-        heroIcon = LandingHeroIcon(endpointName = "anthropic", iconUrl = null),
-    )
+private fun TemporarySpecLandingPreview() = PreviewSurface(UiStyle.MATERIAL) { SpecLandingIconHost(compact = false) }
+
+@PreviewNarrowScreens
+@Composable
+private fun TemporarySpecLandingGlassPreview() = PreviewSurface(UiStyle.LIQUID_GLASS) { SpecLandingIconHost(compact = false) }
+
+/** [compact]: the keyboard-up landing with starters docked; else a temporary chat on the spec. */
+@Composable
+private fun SpecLandingIconHost(compact: Boolean) {
+    val heroIcon = LandingHeroIcon(endpointName = "anthropic", iconUrl = null)
+    if (compact) {
+        Box(Modifier.height(PreviewKeyboardUpHeight)) {
+            LandingHost(
+                title = "Research Assistant",
+                description = "Finds and summarises sources, with citations. Ask it about a paper, a person or a field, " +
+                    "and it reads what it finds before it answers, so the summary says where each claim came from.",
+                agentName = null,
+                caption = null,
+                heroIcon = heroIcon,
+                bottomPadding = PreviewStartersHeight,
+            )
+        }
+    } else {
+        LandingHost(
+            isTemporaryChat = true,
+            title = "Research Assistant",
+            description = "Finds and summarises sources, with citations.",
+            agentName = null,
+            caption = null,
+            heroIcon = heroIcon,
+        )
+    }
 }
 
 @PreviewNarrowScreens

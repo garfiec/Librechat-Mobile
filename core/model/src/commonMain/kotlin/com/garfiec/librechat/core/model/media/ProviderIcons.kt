@@ -203,6 +203,36 @@ val ProviderId.label: String
         ProviderId.VERCEL -> "Vercel"
     }
 
-/** The letter a provider's monogram tile shows: its [label]'s first, upper-cased. */
+/**
+ * The two letters a provider's monogram tile shows, unique per provider: labels share first letters,
+ * and any provider whose served art fails to load draws its tile.
+ */
 val ProviderId.monogram: String
-    get() = label.first().uppercase()
+    get() = when (this) {
+        ProviderId.OPENAI -> "OA"
+        ProviderId.ANTHROPIC -> "An"
+        ProviderId.GOOGLE -> "Go"
+        ProviderId.AZURE -> "Az"
+        ProviderId.BEDROCK -> "Br"
+        ProviderId.XAI -> "xA"
+        ProviderId.MOONSHOT -> "Mo"
+        ProviderId.ANYSCALE -> "As"
+        ProviderId.APIPIE -> "Ap"
+        ProviderId.COHERE -> "Co"
+        ProviderId.DEEPSEEK -> "DS"
+        ProviderId.FIREWORKS -> "Fw"
+        ProviderId.GROQ -> "Gq"
+        ProviderId.HELICONE -> "He"
+        ProviderId.HUGGINGFACE -> "HF"
+        ProviderId.LEMONADE -> "Le"
+        ProviderId.MISTRAL -> "Mi"
+        ProviderId.MLX -> "ML"
+        ProviderId.OLLAMA -> "Ol"
+        ProviderId.OPENROUTER -> "OR"
+        ProviderId.PERPLEXITY -> "Px"
+        ProviderId.QWEN -> "Qw"
+        ProviderId.SHUTTLEAI -> "Sh"
+        ProviderId.TOGETHER -> "To"
+        ProviderId.UNIFY -> "Un"
+        ProviderId.VERCEL -> "Ve"
+    }
