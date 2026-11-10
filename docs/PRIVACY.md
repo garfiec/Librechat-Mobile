@@ -1,6 +1,6 @@
 # Switchboard Privacy Policy
 
-**Effective date:** October 29, 2026
+**Effective date:** November 9, 2026
 **Applies to:** Switchboard for Android and iOS, in every distribution channel listed in section 3.
 **Developer:** Garfiec Apps ("we", "us"). Contact: appsupport@garfiec.com.
 
@@ -124,7 +124,7 @@ non-persistent store that is discarded afterwards (iOS).
 | Pinned artifact snapshots (Android home-screen shortcuts) | Local database and your launcher | App-private storage | You remove the shortcut or uninstall |
 | Images, downloaded files, camera captures, shared-in files, temporary speech audio | Cache directory (image cache up to 250 MB on Android) | App-private storage | Settings → Data → Clear cache; on account switch (images); OS cache eviction; uninstall |
 | Preferences (theme, chat layout, speech settings, update-check state, per-model usage counts used for home-screen shortcuts, "not now" snoozes) | Preferences store | App-private storage | Uninstall; individual settings reset in Settings |
-| Diagnostic log (section 8) | App-private files, max 4 MiB, entries older than 7 days dropped | Redacted before it is written | Settings → Data → Clear logs; uninstall |
+| Diagnostic log (section 8) | App-private files, max 4 MiB, entries older than 7 days dropped | Redacted before it is written | Settings → About → Clear diagnostic logs; uninstall |
 | Most-used models | Published as launcher / quick-action shortcuts whose labels are model names | Visible on your home screen's long-press menu | Sign out (shortcuts are cleared) |
 
 **Backups.** On Android the app opts out of system backups (`allowBackup="false"`), so none of the
@@ -215,7 +215,8 @@ Only during single sign-on, as described in section 4. The app does not contact 
 ### 6.6 Operating-system features you trigger
 
 Sharing a message, exporting a conversation or saving a diagnostic log hands the data to the system
-share sheet or file picker, and from there to the app or location you choose. Opening a link opens
+share sheet or file picker, and from there to the app or location you choose. Report a problem hands
+your report to your own email app, which sends it only when you tap Send there. Opening a link opens
 your browser. These are your actions, and the receiving app's policy applies.
 
 ## 7. Crash and performance statistics collected by the platforms
@@ -254,12 +255,21 @@ OS version, a coarse device model such as "Google Pixel 8"), and crash stack tra
 is written, a redaction pass runs over every entry: message and conversation content and server
 response bodies are dropped entirely; email addresses, tokens, hostnames and IDs are replaced with
 short one-way hashes so that repeated occurrences can be correlated but the originals cannot be
-recovered. The log is capped at 4 MiB and entries older than seven days are discarded.
+recovered. The names of files you attach, upload or download are hashed the same way when they are
+logged; only a short file extension such as ".pdf" is kept. The log is capped at 4 MiB and entries
+older than seven days are discarded.
 
-**The log never leaves your device on its own.** Settings → Data lets you view its size, save or
+**The log never leaves your device on its own.** Settings → About lets you view its size, save or
 share it, and clear it. If you choose to send it to us (for example attached to a bug report or
 email), we receive what the file contains and your email address or GitHub identity. We keep it
 only as long as needed to investigate the issue, and no longer than 90 days, and do not share it.
+
+**Report a problem** (Settings → About) opens your own email app with a message addressed to
+appsupport@garfiec.com. It contains the description you typed, the app, server and device versions
+(not your server address) and, unless you switch it off, the diagnostic log as an attachment. The
+screen shows what will be included before you continue. Nothing is sent until you tap Send in your
+email app, and the app itself sends nothing. If you send it, we receive the message, the log if
+attached, and the email address you send from, and handle them as described above.
 
 ## 9. Permissions
 
@@ -295,7 +305,7 @@ Switchboard ignores that server setting and loads nothing.
 - *Sign out* deletes that account's tokens and its cached conversations, messages, drafts and tags,
   and clears the model shortcuts.
 - *Settings → Data → Clear cache* empties images, downloads and temporary files.
-- *Settings → Data → Clear logs* deletes the diagnostic log.
+- *Settings → About → Clear diagnostic logs* deletes the diagnostic log.
 - *Uninstalling* removes everything, except that on iOS Keychain items (tokens, if you did not sign
   out, and the server address) persist in the system Keychain until overwritten or cleared.
 
@@ -371,7 +381,8 @@ build ships.
 
 ## 17. Contact
 
-Garfiec Apps: appsupport@garfiec.com. Bug reports and questions about the app can also be opened
+Garfiec Apps: appsupport@garfiec.com, or Settings → About → Report a problem in the app, which fills in
+an email to that address for you. Bug reports and questions about the app can also be opened
 at https://github.com/garfiec/Librechat-Mobile/issues (GitHub's privacy statement applies there).
 Questions about data held on a LibreChat server go to that server's operator.
 

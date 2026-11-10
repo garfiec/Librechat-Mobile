@@ -1,5 +1,6 @@
 package com.garfiec.librechat.core.logging
 
+import platform.Foundation.NSBundle
 import platform.UIKit.UIDevice
 
 internal class IosPlatformInfo : PlatformInfo {
@@ -11,4 +12,11 @@ internal class IosPlatformInfo : PlatformInfo {
     override val osName: String = device.systemName ?: "iOS"
     override val osVersion: String = device.systemVersion ?: "unknown"
     override val deviceModel: String = device.model ?: "unknown"
+
+    // TestFlight builds carry a sandbox receipt, App Store builds a production one, others none.
+    override val installSource: String = when (NSBundle.mainBundle.appStoreReceiptURL?.lastPathComponent) {
+        "sandboxReceipt" -> "TestFlight"
+        "receipt" -> "App Store"
+        else -> "Xcode or sideloaded"
+    }
 }

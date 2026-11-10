@@ -7,6 +7,7 @@ import com.garfiec.librechat.core.common.identity.currentAccountId
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.ChatRepository
 import com.garfiec.librechat.core.data.repository.DraftRepository
+import com.garfiec.librechat.core.logging.redact.LogRedactor
 import com.garfiec.librechat.core.model.Message
 import com.garfiec.librechat.core.model.ReasoningOverride
 import com.garfiec.librechat.core.model.StreamEvent
@@ -119,7 +120,7 @@ class SendDispatchDelegate(
         if (dropped.isNotEmpty()) {
             Logger.w {
                 "buildSendSpec: ${dropped.size} attachment(s) not yet uploaded, excluded from send: " +
-                    dropped.joinToString { it.name }
+                    dropped.joinToString { LogRedactor.redactFileName(it.name) }
             }
         }
         if (text.isBlank() && files.isEmpty()) return null

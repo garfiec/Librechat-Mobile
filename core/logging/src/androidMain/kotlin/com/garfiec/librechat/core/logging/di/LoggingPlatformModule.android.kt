@@ -16,5 +16,5 @@ private class AndroidLogDirProvider(private val context: Context) : LogDirProvid
 
 actual val loggingPlatformModule: Module = module {
     single<LogDirProvider> { AndroidLogDirProvider(androidContext()) }
-    single<PlatformInfo> { AndroidPlatformInfo() }
+    single<PlatformInfo> { AndroidPlatformInfo(androidContext()) }
 }

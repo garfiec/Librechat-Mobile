@@ -4,4 +4,5 @@
     <cache-path name="shared_images" path="shared_images/" />
     <cache-path name="shared_files" path="shared_files/" />
     <cache-path name="camera_photos" path="camera_photos/" />
+    <cache-path name="mail_attachments" path="mail_attachments/" />
 </paths>

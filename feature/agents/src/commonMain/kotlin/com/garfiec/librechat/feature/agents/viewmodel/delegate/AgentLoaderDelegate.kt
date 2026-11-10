@@ -64,10 +64,10 @@ class AgentLoaderDelegate(
                     loadedAgentTools = agent.tools
                     Logger.d {
                         "AgentEditor: Loaded agent fields BEFORE mapping - " +
-                            "name=${agent.name}, description=${agent.description}, " +
-                            "instructions=${agent.instructions}, model=${agent.model}, " +
+                            "name=${agent.name.orEmpty().length} chars, description=${agent.description.orEmpty().length} chars, " +
+                            "instructions=${agent.instructions.orEmpty().length} chars, model=${agent.model}, " +
                             "provider=${agent.provider}, category=${agent.category}, tools=${agent.tools}, " +
-                            "conversationStarters=${agent.conversationStarters}, avatarUrl=${agent.avatarUrl}, " +
+                            "conversationStarters=${agent.conversationStarters.size}, avatarUrl=${agent.avatarUrl}, " +
                             "artifacts=${agent.artifacts}, recursionLimit=${agent.recursionLimit}, " +
                             "hideSequentialOutputs=${agent.hideSequentialOutputs}, endAfterTools=${agent.endAfterTools}, " +
                             "isPublic=${agent.isPublic}, isCollaborative=${agent.isCollaborative}, " +
@@ -85,10 +85,10 @@ class AgentLoaderDelegate(
                     filesDelegate.remergeLoadedFiles()
                     Logger.d {
                         "AgentEditor: UI state AFTER mapping - " +
-                            "name=${newState.name}, description=${newState.description}, " +
-                            "instructions=${newState.instructions}, model=${newState.model}, " +
+                            "name=${newState.name.length} chars, description=${newState.description.length} chars, " +
+                            "instructions=${newState.instructions.length} chars, model=${newState.model}, " +
                             "provider=${newState.provider}, category=${newState.category}, selectedTools=${newState.selectedTools}, " +
-                            "conversationStarters=${newState.conversationStarters}, avatarUrl=${newState.avatarUrl}, " +
+                            "conversationStarters=${newState.conversationStarters.size}, avatarUrl=${newState.avatarUrl}, " +
                             "codeInterpreterEnabled=${newState.codeInterpreterEnabled}, fileSearchEnabled=${newState.fileSearchEnabled}, " +
                             "capabilities=${newState.capabilities}, advancedSettings=${newState.advancedSettings}, " +
                             "sharingState=${newState.sharingState}, chainAgentIds=${newState.chainAgentIds}, " +

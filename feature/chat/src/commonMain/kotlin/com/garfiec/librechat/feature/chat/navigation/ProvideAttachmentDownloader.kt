@@ -7,6 +7,7 @@ import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.FileRepository
 import com.garfiec.librechat.core.data.repository.UserRepository
+import com.garfiec.librechat.core.logging.redact.LogRedactor
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.model.files.isCodeDownloadFallback
 import com.garfiec.librechat.feature.chat.components.LocalAttachmentDownloader
@@ -33,7 +34,9 @@ internal fun ProvideAttachmentDownloader(content: @Composable () -> Unit) {
             when (val result = fileRepository.downloadAttachment(attachment, userId)) {
                 is Result.Success -> result.data
                 is Result.Error -> {
-                    Logger.e(result.exception) { "Failed to download ${attachment.filename}: ${result.message}" }
+                    Logger.e(result.exception) {
+                        "Failed to download ${attachment.filename?.let(LogRedactor::redactFileName)}: ${result.message}"
+                    }
                     null
                 }
                 is Result.Loading -> null

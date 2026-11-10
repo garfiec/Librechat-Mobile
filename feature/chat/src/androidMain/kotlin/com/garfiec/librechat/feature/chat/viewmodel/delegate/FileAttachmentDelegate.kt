@@ -8,6 +8,7 @@ import com.garfiec.librechat.core.common.extensions.formatByteSize
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.pdf.PdfPasswordProtectedException
 import com.garfiec.librechat.core.data.repository.FileRepository
+import com.garfiec.librechat.core.logging.redact.LogRedactor
 import com.garfiec.librechat.core.model.response.UploadRoute
 import com.garfiec.librechat.core.model.response.clientImageResize
 import com.garfiec.librechat.core.model.response.effectiveFileSizeLimit
@@ -96,10 +97,11 @@ class FileAttachmentDelegate(
         val uri = picked.ref as Uri
 
         val filename = picked.name
+        val logName = LogRedactor.redactFileName(filename)
         val preliminaryMimeType = picked.mimeType ?: guessMimeType(filename)
         val isImage = preliminaryMimeType.startsWith("image/")
 
-        Logger.d { "uploadFile: uri=$uri, filename=$filename, preliminaryMimeType=$preliminaryMimeType, isImage=$isImage" }
+        Logger.d { "uploadFile: $logName, preliminaryMimeType=$preliminaryMimeType, isImage=$isImage" }
 
         // Add to the pending list with "uploading" state
         val pendingFile = AttachedFile(
@@ -122,19 +124,19 @@ class FileAttachmentDelegate(
                 // Read file bytes
                 val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
                 if (bytes == null) {
-                    Logger.e { "uploadFile: could not read bytes from URI: $uri" }
+                    Logger.e { "uploadFile: could not read bytes from $logName" }
                     markUploadFailed(key)
                     handle.setError(ChatNotice.UPLOAD_UNREADABLE.marker(filename))
                     return@launch
                 }
 
-                Logger.d { "uploadFile: read ${bytes.size} bytes from $filename" }
+                Logger.d { "uploadFile: read ${bytes.size} bytes from $logName" }
 
                 // Detect actual MIME type from file content magic bytes.
                 val detectedMimeType = detectMimeTypeFromBytes(bytes)
                 var mimeType = if (detectedMimeType != null && detectedMimeType != preliminaryMimeType) {
                     Logger.w {
-                        "uploadFile: MIME type mismatch for $filename -- ContentResolver " +
+                        "uploadFile: MIME type mismatch for $logName -- ContentResolver " +
                             "reported '$preliminaryMimeType' but actual content is '$detectedMimeType'. Using detected type."
                     }
                     detectedMimeType
@@ -185,7 +187,7 @@ class FileAttachmentDelegate(
                 // with a clear message instead of after a long upload the server rejects. Fires for
                 // non-images and for images the re-encode couldn't shrink under the limit.
                 if (sizeLimit != null && uploadBytes.size > sizeLimit) {
-                    Logger.w { "uploadFile: $filename is ${uploadBytes.size} bytes, over server limit of $sizeLimit" }
+                    Logger.w { "uploadFile: $logName is ${uploadBytes.size} bytes, over server limit of $sizeLimit" }
                     markUploadFailed(key)
                     // State only the limit — not the file's own size. The limit is the actionable
                     // number, and rounding both to the same MB precision could otherwise print a
@@ -196,8 +198,12 @@ class FileAttachmentDelegate(
 
                 // Rename the file extension to match the detected/re-encoded MIME type.
                 val uploadFilename = fixFilenameExtension(filename, mimeType)
+                val uploadLogName = LogRedactor.redactFileName(uploadFilename)
                 if (uploadFilename != filename) {
-                    Logger.d { "uploadFile: renamed file from '$filename' to '$uploadFilename' to match MIME type '$mimeType'" }
+                    Logger.d {
+                        "uploadFile: renamed file from $logName to $uploadLogName " +
+                            "to match MIME type '$mimeType'"
+                    }
                 }
 
                 // The route was chosen from the picker's provisional MIME type. If reading the
@@ -219,7 +225,7 @@ class FileAttachmentDelegate(
                 }
 
                 if (actualIsImage) {
-                    Logger.d { "uploadFile: image dimensions ${imageWidth}x$imageHeight for $uploadFilename" }
+                    Logger.d { "uploadFile: image dimensions ${imageWidth}x$imageHeight for $uploadLogName" }
                 }
 
                 // Generate a UUID for the file_id -- the backend requires this field
@@ -231,7 +237,7 @@ class FileAttachmentDelegate(
                 Logger.d {
                     "uploadFile: sending to server -- fileId=$fileId, endpoint=${state.selectedEndpoint}, " +
                         "model=${state.selectedModel}, isAgent=$isAgent, mimeType=$mimeType, " +
-                        "filename=$uploadFilename, route=$effectiveRoute (requested=$route), " +
+                        "filename=$uploadLogName, route=$effectiveRoute (requested=$route), " +
                         "agentProvider=${state.selectedAgentProvider}, " +
                         "endpointType=${state.endpointConfigs[state.selectedEndpoint]?.type}"
                 }
@@ -255,7 +261,8 @@ class FileAttachmentDelegate(
                     is Result.Success -> {
                         val fileObject = result.data
                         Logger.d {
-                            "uploadFile: success -- serverFileId=${fileObject.fileId}, filepath=${fileObject.filepath}, " +
+                            "uploadFile: success -- serverFileId=${fileObject.fileId}, " +
+                                "filepath=${LogRedactor.redactFileName(fileObject.filepath)}, " +
                                 "type=${fileObject.type}, ${fileObject.width}x${fileObject.height}"
                         }
                         // Atomically update the attached file with server data
@@ -287,7 +294,7 @@ class FileAttachmentDelegate(
                         handle.setError(ChatNotice.uploadFailed(filename, result.message))
                     }
                     is Result.Loading -> {
-                        Logger.w { "uploadFile: unexpected Result.Loading received for $filename" }
+                        Logger.w { "uploadFile: unexpected Result.Loading received for $logName" }
                     }
                 }
             } catch (e: CancellationException) {
@@ -295,7 +302,7 @@ class FileAttachmentDelegate(
                 // upload as failed (matches safeApiCall behavior in core/common).
                 throw e
             } catch (e: Exception) {
-                Logger.e(e) { "uploadFile: unexpected exception for $filename" }
+                Logger.e(e) { "uploadFile: unexpected exception for $logName" }
                 markUploadFailed(key)
                 handle.setError(ChatNotice.uploadFailed(filename, e.message))
             }

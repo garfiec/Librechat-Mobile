@@ -10,6 +10,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":core:network"))
+            implementation(project(":core:logging"))
             implementation(libs.kermit)
             implementation(libs.coil3.compose)
         }

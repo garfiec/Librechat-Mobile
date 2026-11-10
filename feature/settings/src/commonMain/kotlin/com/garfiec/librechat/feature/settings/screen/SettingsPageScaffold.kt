@@ -32,6 +32,7 @@ internal fun SettingsPageScaffold(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState? = null,
+    bottomBar: @Composable () -> Unit = {},
     content: @Composable (contentPadding: PaddingValues) -> Unit,
 ) {
     AdaptiveScaffold(
@@ -48,6 +49,7 @@ internal fun SettingsPageScaffold(
                 ),
             )
         },
+        bottomBar = bottomBar,
         content = content,
     )
 }

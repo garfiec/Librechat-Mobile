@@ -70,9 +70,11 @@ internal fun aboutDiagnostics(
     serverVersion: String?,
     buildInfo: BuildInfo?,
     device: String,
+    installSource: String,
 ): String = listOf(
     "Switchboard version: $appVersion",
     "Switchboard build: ${gitSha.ifBlank { DIAGNOSTICS_MISSING }}",
+    "Install source: $installSource",
     "LibreChat version: ${serverVersion ?: DIAGNOSTICS_MISSING}",
     "Commit: ${buildInfo?.commit?.takeIf { it.isNotBlank() } ?: DIAGNOSTICS_MISSING}",
     "Branch: ${buildInfo?.branch?.takeIf { it.isNotBlank() } ?: DIAGNOSTICS_MISSING}",
@@ -81,6 +83,14 @@ internal fun aboutDiagnostics(
 ).joinToString("\n")
 
 private const val DIAGNOSTICS_MISSING = "—"
+
+/** The Device line of [aboutDiagnostics]. */
+internal fun diagnosticsDevice(platformInfo: PlatformInfo): String =
+    "${platformInfo.osName} ${platformInfo.osVersion} · ${platformInfo.deviceModel}"
+
+/** The Install source line of [aboutDiagnostics]: the build's channel, then what installed it. */
+internal fun diagnosticsInstallSource(appInfo: AppInfo, platformInfo: PlatformInfo): String =
+    listOfNotNull(appInfo.channel.wireName, platformInfo.installSource).joinToString(" · ")
 
 /** The chat and voice preferences the Settings home summarizes. */
 data class HomeChatPrefs(
@@ -113,7 +123,8 @@ class GeneralSettingsViewModel(
     platformInfo: PlatformInfo,
 ) : ViewModel() {
 
-    private val device = "${platformInfo.osName} ${platformInfo.osVersion} · ${platformInfo.deviceModel}"
+    private val device = diagnosticsDevice(platformInfo)
+    private val installSource = diagnosticsInstallSource(appInfo, platformInfo)
 
     private val showLanguageDialog = MutableStateFlow(false)
 
@@ -156,7 +167,7 @@ class GeneralSettingsViewModel(
             serverVersion = version,
             adminPanelUrl = config?.adminPanelURL?.takeIf { it.isNotBlank() },
             homeChats = prefs.homeChats,
-            diagnostics = aboutDiagnostics(initial.appVersion, initial.gitSha, version, config?.buildInfo, device),
+            diagnostics = aboutDiagnostics(initial.appVersion, initial.gitSha, version, config?.buildInfo, device, installSource),
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, initial)
 

@@ -1,6 +1,7 @@
 package com.garfiec.librechat.core.network.api
 
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.logging.redact.LogRedactor
 import com.garfiec.librechat.core.model.FileObject
 import com.garfiec.librechat.core.model.request.DeleteFilesRequest
 import com.garfiec.librechat.core.model.response.DeleteFilesResponse
@@ -74,8 +75,9 @@ class FilesApi constructor(
         val wireType = uploadMimeType(type) ?: type
         Logger.d("FilesApi") {
             val reported = if (wireType != type) " (platform reported $type)" else ""
-            "uploadFile: filename=$filename, type=$wireType$reported, size=${bytes.size} bytes, fileId=$fileId, " +
-                "endpoint=$endpoint, model=$model, agentId=$agentId, messageFile=$messageFile, width=$width, height=$height"
+            "uploadFile: filename=${LogRedactor.redactFileName(filename)}, type=$wireType$reported, " +
+                "size=${bytes.size} bytes, fileId=$fileId, endpoint=$endpoint, model=$model, " +
+                "agentId=$agentId, messageFile=$messageFile, width=$width, height=$height"
         }
 
         val multipart = MultiPartFormDataContent(
@@ -131,7 +133,7 @@ class FilesApi constructor(
         }.body()
 
         Logger.d("FilesApi") {
-            "uploadFile success: fileId=${response.fileId}, filepath=${response.filepath}, " +
+            "uploadFile success: fileId=${response.fileId}, filepath=${LogRedactor.redactFileName(response.filepath)}, " +
                 "type=${response.type}, width=${response.width}, height=${response.height}"
         }
         return response

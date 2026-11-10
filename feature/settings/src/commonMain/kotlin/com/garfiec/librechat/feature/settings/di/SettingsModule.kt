@@ -22,6 +22,7 @@ import com.garfiec.librechat.feature.settings.viewmodel.PrefetchSettingsViewMode
 import com.garfiec.librechat.feature.settings.viewmodel.PresetManagerViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.PullRequestAccountViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ReleaseNotesViewModel
+import com.garfiec.librechat.feature.settings.viewmodel.ReportProblemViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.RoleMemoriesAdminViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.RoleSkillsAdminViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ServerHeadersViewModel
@@ -113,6 +114,7 @@ val settingsModule = module {
     viewModelOf(::UpdateCheckViewModel)
     viewModelOf(::WhatsNewViewModel)
     viewModelOf(::ReleaseNotesViewModel)
+    viewModelOf(::ReportProblemViewModel)
 
     // viewModelOf has no overload that accepts ParametersHolder, so the runtime
     // endpointName parameter forces the lambda DSL. The SavedStateHandle comes from the

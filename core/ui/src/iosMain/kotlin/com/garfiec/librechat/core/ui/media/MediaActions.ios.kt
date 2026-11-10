@@ -19,6 +19,7 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.skia.EncodedImageFormat
 import org.jetbrains.skia.Image
 import platform.Foundation.NSData
+import platform.Foundation.NSFileManager
 import platform.Foundation.NSTemporaryDirectory
 import platform.Foundation.NSURL
 import platform.Foundation.create
@@ -88,18 +89,27 @@ private suspend fun shareFile(bytes: ByteArray, filename: String, mime: String?)
     }
 }
 
-/** Writes [bytes] to a temp file named for the file, off the main thread; its path, or null. */
+/**
+ * Writes [bytes] to a temp file named for the file, off the main thread; its path, or null. With a
+ * [folder], the file goes alone into that temp subfolder, emptied first.
+ */
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
-internal suspend fun writeTempFile(bytes: ByteArray, filename: String, mime: String?): String? {
-    val tempPath = NSTemporaryDirectory() + ensureExtension(sanitizeFilename(filename), mime)
-    val wrote = withContext(Dispatchers.Default) {
-        bytes.toNSData().writeToFile(tempPath, atomically = true)
+internal suspend fun writeTempFile(bytes: ByteArray, filename: String, mime: String?, folder: String? = null): String? =
+    withContext(Dispatchers.Default) {
+        val dir = if (folder == null) {
+            NSTemporaryDirectory()
+        } else {
+            val path = NSTemporaryDirectory() + folder
+            NSFileManager.defaultManager.removeItemAtPath(path, null)
+            NSFileManager.defaultManager.createDirectoryAtPath(path, withIntermediateDirectories = true, attributes = null, error = null)
+            "$path/"
+        }
+        val tempPath = dir + ensureExtension(sanitizeFilename(filename), mime)
+        tempPath.takeIf { bytes.toNSData().writeToFile(tempPath, atomically = true) }
     }
-    return tempPath.takeIf { wrote }
-}
 
 /** Strips path separators so a server-supplied filename can't escape the temp dir. */
-private fun sanitizeFilename(filename: String): String =
+internal fun sanitizeFilename(filename: String): String =
     filename.substringAfterLast('/').substringAfterLast('\\').ifBlank { "file" }
 
 /**

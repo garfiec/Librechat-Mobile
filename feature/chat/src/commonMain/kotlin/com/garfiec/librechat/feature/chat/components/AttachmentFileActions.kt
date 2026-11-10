@@ -9,6 +9,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.staticCompositionLocalOf
 import co.touchlab.kermit.Logger
+import com.garfiec.librechat.core.logging.redact.LogRedactor
 import com.garfiec.librechat.core.model.Attachment
 import com.garfiec.librechat.core.ui.media.FileAction
 import com.garfiec.librechat.core.ui.media.rememberOpenFileIn
@@ -27,7 +28,9 @@ import org.jetbrains.compose.resources.stringResource
  * [ChatRoot], which hosts the sheet so it outlives the chip that asked for it.
  */
 val LocalOpenFileActions = staticCompositionLocalOf<(Attachment) -> Unit> {
-    { attachment -> Logger.w { "LocalOpenFileActions not provided; dropping ${attachment.filename}" } }
+    { attachment ->
+        Logger.w { "LocalOpenFileActions not provided; dropping ${attachment.filename?.let(LogRedactor::redactFileName)}" }
+    }
 }
 
 /**
