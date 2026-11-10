@@ -88,13 +88,14 @@ data class QueuedMessage(
     val modelParameters: ModelParameters = ModelParameters.DEFAULT,
     /**
      * The top-level `web_search` sent: whether the provider's built-in search is the one the control
-     * runs ([ChatUiState.webSearchRoute]) when the turn was composed. LibreChat's search rides in
+     * runs ([ChatUiState.webSearchRoute]) when the turn is sent. LibreChat's search rides in
      * [ephemeralAgent] instead, and the two are never both set.
      */
     val webSearch: Boolean = false,
     /**
-     * Non-default model params (provider-keyed) serialized for the wire, snapshotted at enqueue time
-     * so a queued send carries the params it was composed with. Null when nothing was customized.
+     * Non-default model params (provider-keyed) serialized for the wire from [modelParameters]. Like
+     * [webSearch] and [ephemeralAgent], a drain re-derives it under the config of that moment
+     * (`SendDispatchDelegate.rebuiltForDrain`). Null when nothing was customized.
      */
     val modelParamsPayload: JsonObject? = null,
     val ephemeralAgent: EphemeralAgent? = null,

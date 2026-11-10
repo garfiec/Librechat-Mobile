@@ -192,7 +192,8 @@ list, hidden specs included, and checks the endpoint only.
 
 It applies at every writer of a stored selection: conversation load (`applyResolvedConversationModel`),
 config change on an open chat (`withSpecsRefreshed`), preset load (adopting the spec's own pair when
-the preset names none), a queued turn restored or drained (`applyComposer`, `doSendWithSpec`) and
+the preset names none), a queued turn restored or drained (`applyComposer`, `doSendWithSpec`, which
+re-derives the drained turn's tools, parameters and web-search route on the held choice) and
 Compare's picked lane B. The preflight accepts any kept name; the three spec refusals
 (`isSpecRefusal`) open the picker with "Select a model" beside the server's sentence.
 - The seeder's own landing pick (`seededAgainst`) holds only specs served on that pair; one no longer

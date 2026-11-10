@@ -51,6 +51,11 @@ import kotlinx.serialization.json.JsonPrimitive
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import com.garfiec.librechat.core.model.ToolAuthResult
+import com.garfiec.librechat.feature.chat.util.WebSearchRoute
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.coroutines.test.advanceTimeBy
 
 /**
  * Skill chips on the local queue, in a non-agent chat (where skills are mostly used, and where a
@@ -256,6 +261,68 @@ class ChatViewModelQueuedSkillsTest {
             vm.editQueued(queued)
             runCurrent()
             assertThat(vm.uiState.value.selection.choice).isEqualTo(ModelChoice.Raw(ENDPOINT, MODEL))
+        }
+    }
+
+    /** The drain holds the item's spec as the server would, and sends what that choice sends. */
+    @Test
+    fun `a drained turn whose spec moved away sends none of the spec's tools`() {
+        val curated = ModelSpec(name = "curated", preset = Preset(endpoint = ENDPOINT, model = MODEL))
+        val config = MutableStateFlow<StartupConfig?>(StartupConfig(modelSpecs = ModelSpecs(list = listOf(curated))))
+        every { fixture.configRepository.startupConfig } returns config
+        every { fixture.settingsDataStore.lastUsedSelection } returns MutableStateFlow(LastUsedSelection.NONE)
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            vm.onSpecSelected(curated)
+            runCurrent()
+            vm.toggleTool(ToolConstants.FILE_SEARCH)
+            vm.onInputChanged(TEXT)
+            vm.queueMessage()
+            runCurrent()
+            assertThat(vm.uiState.value.messageQueue.single().ephemeralAgent?.fileSearch).isTrue()
+
+            config.value = StartupConfig(
+                modelSpecs = ModelSpecs(list = listOf(curated.copy(preset = Preset(endpoint = "elsewhere", model = MODEL)))),
+            )
+            runCurrent()
+            resumedStream.emit(cleanFinal())
+            runCurrent()
+
+            assertThat(vm.uiState.value.messageQueue).isEmpty()
+            assertThat(sent.last().ephemeralAgent?.fileSearch).isNull()
+        }
+    }
+
+    /** A turn queued while LibreChat search's key check is out runs the search the check answers. */
+    @Test
+    fun `a turn queued during the search key check drains with LibreChat search`() {
+        every { fixture.configRepository.startupConfig } returns MutableStateFlow(
+            StartupConfig(webSearch = buildJsonObject { put("searchProvider", "serper") }),
+        )
+        every { fixture.configRepository.endpointConfigs } returns MutableStateFlow(
+            mapOf(
+                ENDPOINT to EndpointConfig(),
+                EndpointConstants.AGENTS to EndpointConfig(capabilities = listOf(ToolConstants.SKILLS, ToolConstants.WEB_SEARCH)),
+            ),
+        )
+        coEvery { fixture.agentToolsRepository.verifyToolAuth(ToolConstants.WEB_SEARCH) } returnsMany listOf(
+            Result.Error(message = "offline"),
+            Result.Success(ToolAuthResult(authenticated = true)),
+        )
+        queuedSkillsTest(DuringRunAction.QUEUE) { vm ->
+            vm.toggleTool(ToolConstants.WEB_SEARCH)
+            vm.onInputChanged(TEXT)
+            vm.queueMessage()
+            runCurrent()
+            assertThat(vm.uiState.value.webSearchRoute).isEqualTo(WebSearchRoute.CHECKING)
+            assertThat(vm.uiState.value.messageQueue.single().ephemeralAgent?.webSearch).isNull()
+
+            advanceTimeBy(2_001)
+            runCurrent()
+            assertThat(vm.uiState.value.gates.librechatSearchReady).isTrue()
+            resumedStream.emit(cleanFinal())
+            runCurrent()
+
+            assertThat(sent.last().ephemeralAgent?.webSearch).isTrue()
         }
     }
 
