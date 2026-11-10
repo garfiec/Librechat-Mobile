@@ -6,6 +6,7 @@ import com.garfiec.librechat.feature.settings.navigation.CodeSetup
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 
 class DeepLinksTest {
 
@@ -101,5 +102,45 @@ class DeepLinksTest {
             DeepLinks.resolve(uri("code-setup", id)),
         )
         assertEquals(DeepLinkResolution.None, DeepLinks.resolve(uri("code-setup", "too-short")))
+    }
+
+    @Test
+    fun parse_readsHostSegmentsAndDecodedQuery() {
+        val id = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+        assertEquals(
+            DeepLinkUri(host = "conversation", pathSegments = listOf(id), query = mapOf("message" to "m")),
+            DeepLinkUri.parse("librechat://conversation/$id?message=m"),
+        )
+        // Model ids carry ':' and '/'; a spec name can carry spaces.
+        assertEquals(
+            DeepLinkUri(
+                host = "model",
+                pathSegments = emptyList(),
+                query = mapOf("endpoint" to "Open Router", "model" to "meta/llama:70b", "spec" to "my spec"),
+            ),
+            DeepLinkUri.parse("librechat://model?endpoint=Open%20Router&model=meta%2Fllama%3A70b&spec=my%20spec"),
+        )
+    }
+
+    @Test
+    fun parse_acceptsTheSchemeInAnyCase() {
+        // iOS matches URL schemes case-insensitively, so it can hand over either spelling.
+        assertEquals("conversation", DeepLinkUri.parse("LibreChat://conversation/x")?.host)
+    }
+
+    @Test
+    fun parse_refusesOpaqueOtherSchemesAndGarbage() {
+        assertEquals(null, DeepLinkUri.parse("librechat:conversation/x"))
+        assertEquals(null, DeepLinkUri.parse("https://conversation/x"))
+        assertEquals(null, DeepLinkUri.parse("not a url"))
+        assertEquals(null, DeepLinkUri.parse(""))
+    }
+
+    @Test
+    fun parsedConversationLink_routesToThatChat() {
+        val id = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+        val link = assertNotNull(DeepLinkUri.parse("librechat://conversation/$id"))
+        val route = assertIs<DeepLinkResolution.Route>(DeepLinks.resolve(link))
+        assertEquals(id, assertIs<Chat>(route.target).conversationId)
     }
 }

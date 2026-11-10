@@ -1,22 +1,17 @@
 package com.garfiec.librechat.navigation
 
-import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.ui.components.windowUsesSidebarLayout
 import com.garfiec.librechat.feature.chat.ShareIntentConsumer
 import com.garfiec.librechat.feature.chat.SharedContent
 import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.chat.navigation.isPlainLanding
-import com.garfiec.librechat.shared.navigation.DeepLinkResolution
-import com.garfiec.librechat.shared.navigation.DeepLinks
 import com.garfiec.librechat.shared.navigation.NavHostViewModel
 import com.garfiec.librechat.shared.navigation.Navigator
 import com.garfiec.librechat.shared.navigation.PhoneLayout
@@ -26,60 +21,20 @@ import com.garfiec.librechat.shared.navigation.LibreChatNavHost as SharedLibreCh
 
 /**
  * Android-specific entry point that wraps the shared [SharedLibreChatNavHost]
- * with deep link handling, share intent support, and tablet layout branching.
+ * with share intent support and tablet layout branching. Deep links are placed by the shared host.
  */
 @Composable
 fun LibreChatNavHost(
     modifier: Modifier = Modifier,
-    deepLinkUri: Uri? = null,
-    onDeepLinkConsume: () -> Unit = {},
     /** Shared-in text that is exactly one `/share/` link; see [routeSharedInLink]. */
     sharedLinkText: String? = null,
     onSharedLinkConsume: () -> Unit = {},
     appLocaleTag: String? = null,
 ) {
-    val resolution = remember(deepLinkUri) { deepLinkUri?.let { DeepLinks.resolve(it.toDeepLinkUri()) } }
-
     SharedLibreChatNavHost(
         modifier = modifier,
         appLocaleTag = appLocaleTag,
     ) { navigator, navHostViewModel, mod ->
-        // Handle deep links
-        val currentOnDeepLinkConsume by rememberUpdatedState(onDeepLinkConsume)
-        LaunchedEffect(deepLinkUri) {
-            val uri = deepLinkUri ?: return@LaunchedEffect
-            when (resolution) {
-                is DeepLinkResolution.Route -> {
-                    val target = resolution.target
-                    when {
-                        // Logged out → login. (Resuming to the target after login is a follow-up;
-                        // this at least never lands on a broken screen.)
-                        !navHostViewModel.isLoggedIn.value -> navigator.navigateToAuth()
-                        // Switching chats replaces the current chat entry so back returns to NewChat.
-                        target is Chat -> target.conversationId?.let { id ->
-                            val messageId = target.targetMessageId
-                            if (messageId != null) {
-                                navigator.navigateToMessage(id, messageId, query = "")
-                            } else {
-                                navigator.navigateToChat(id)
-                            }
-                        }
-                        // Model shortcut: NewChat carries an endpoint/model payload. Go through top-level
-                        // nav so it replaces a bare landing NewChat (dedup-by-value) and re-seeds even
-                        // when already on the landing.
-                        target is NewChat -> navigator.navigateToTopLevel(target)
-                        // Otherwise push, de-duping a repeat tap of the same target.
-                        navigator.currentRoute != target -> navigator.navigate(target)
-                    }
-                }
-                // OAuth redirect: the login screen consumes the refresh-token cookie; nothing to route.
-                // MainActivity hands artifact links to ArtifactAppActivity; none reaches the nav host.
-                is DeepLinkResolution.ArtifactApp, DeepLinkResolution.Consumed, null -> Unit
-                DeepLinkResolution.None -> Logger.w { "Ignoring non-routable deep link: $uri" }
-            }
-            currentOnDeepLinkConsume()
-        }
-
         val currentOnSharedLinkConsume by rememberUpdatedState(onSharedLinkConsume)
         LaunchedEffect(sharedLinkText) {
             val text = sharedLinkText ?: return@LaunchedEffect

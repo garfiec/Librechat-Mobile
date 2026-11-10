@@ -5,18 +5,35 @@ import com.garfiec.librechat.core.model.code.CodeSetupAttempt
 import com.garfiec.librechat.feature.chat.navigation.Chat
 import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.settings.navigation.CodeSetup
+import io.ktor.http.parseUrl
 
 /**
  * Platform-neutral view of an incoming `librechat://` URI, so [DeepLinks.resolve] — the routing
- * decision — lives in common and can be reused per platform. Android builds this from
- * `android.net.Uri` (see `DeepLinkUriAdapter`); an iOS intake (from `NSURLComponents`) would build
- * the same shape and reuse [DeepLinks.resolve] — not yet wired. Only field extraction is per-platform.
+ * decision — lives in common. Android builds it from `android.net.Uri` (`DeepLinkUriAdapter`); iOS
+ * from the URL string, through [parse].
  */
 data class DeepLinkUri(
     val host: String?,
     val pathSegments: List<String>,
     val query: Map<String, String>,
-)
+) {
+    companion object {
+        /**
+         * Parses a `librechat://host/segments?query` string; null for anything else. Opaque forms
+         * (`librechat:foo`) are refused here, as Android hands them over with no host and they
+         * resolve to nothing there.
+         */
+        fun parse(raw: String): DeepLinkUri? {
+            if (!raw.startsWith("${DeepLinks.SCHEME}://", ignoreCase = true)) return null
+            val url = parseUrl(raw) ?: return null
+            return DeepLinkUri(
+                host = url.host.takeIf { it.isNotEmpty() },
+                pathSegments = url.segments,
+                query = url.parameters.names().associateWith { url.parameters[it].orEmpty() },
+            )
+        }
+    }
+}
 
 /**
  * The outcome of resolving a deep link. A sealed result (not a bare `NavKey?`) so each link kind is

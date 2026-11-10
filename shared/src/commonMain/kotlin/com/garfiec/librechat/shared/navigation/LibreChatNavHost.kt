@@ -92,7 +92,6 @@ import com.garfiec.librechat.feature.auth.navigation.Terms
 import com.garfiec.librechat.feature.auth.navigation.authEntries
 import com.garfiec.librechat.feature.auth.navigation.isAddAccountFlowRoute
 import com.garfiec.librechat.feature.chat.navigation.Chat
-import com.garfiec.librechat.feature.chat.navigation.ModelShortcutBus
 import com.garfiec.librechat.feature.chat.navigation.NewChat
 import com.garfiec.librechat.feature.chat.navigation.chatEntries
 import com.garfiec.librechat.feature.chat.navigation.handoffKey
@@ -147,8 +146,9 @@ private const val HYGIENE_UNRECORDED = "__unrecorded__"
 /**
  * Shared root composable for LibreChat navigation.
  *
- * With no [content], picks [TabletLayout] or [PhoneLayout] from the window (iOS). Android passes
- * [content] to add deep links and share intents, and makes the same [windowUsesSidebarLayout] choice there.
+ * Places links from [DeepLinkInbox] on both platforms. With no [content], picks [TabletLayout] or
+ * [PhoneLayout] from the window (iOS). Android passes [content] to add share intents, and makes the
+ * same [windowUsesSidebarLayout] choice there.
  */
 @Composable
 fun LibreChatNavHost(
@@ -219,16 +219,12 @@ fun LibreChatNavHost(
         }
     }
 
-    // iOS home-screen quick action: the Swift handler pushes the tapped (endpoint, model) onto the
-    // bus; open a NewChat pre-selected on it. Deferred until logged in so a cold launch from a quick
-    // action lands the model once auth resolves. Android sets this bus never — it deep-links instead.
-    val modelShortcutBus = koinInject<ModelShortcutBus>()
-    val pendingModelShortcut by modelShortcutBus.pending.collectAsStateWithLifecycle()
-    LaunchedEffect(pendingModelShortcut, isLoggedIn) {
-        val ref = pendingModelShortcut ?: return@LaunchedEffect
-        if (!isLoggedIn) return@LaunchedEffect
-        navigator.navigateToTopLevel(NewChat(endpoint = ref.endpoint, model = ref.model, spec = ref.spec))
-        modelShortcutBus.consume()
+    val deepLinkInbox = koinInject<DeepLinkInbox>()
+    val pendingDeepLink by deepLinkInbox.pending.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingDeepLink) {
+        val link = pendingDeepLink ?: return@LaunchedEffect
+        navigator.placeDeepLink(DeepLinks.resolve(link), navHostViewModel.isLoggedIn.value)
+        deepLinkInbox.consume(link)
     }
 
     // Track active conversation from nav back stack

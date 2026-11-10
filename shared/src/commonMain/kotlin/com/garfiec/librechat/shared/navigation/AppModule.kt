@@ -7,5 +7,6 @@ import org.koin.dsl.module
 
 val sharedAppModule = module {
     viewModelOf(::NavHostViewModel)
+    single { DeepLinkInbox() }
     single<SerializersModule>(named("navigation")) { navigationSerializersModule }
 }
