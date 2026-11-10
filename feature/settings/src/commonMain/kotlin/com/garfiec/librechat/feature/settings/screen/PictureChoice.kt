@@ -37,7 +37,8 @@ import com.garfiec.librechat.core.ui.components.AdaptiveRadioButton
 
 /**
  * One choice in a picker of previews: [preview] laid out at a phone's width and scaled into the card, so
- * real controls keep their proportions, with [label] and a radio below. The preview never takes a touch.
+ * real controls keep their proportions, with [label] (and [detail] under it) and a radio below. The preview
+ * never takes a touch.
  */
 @Composable
 internal fun PictureChoice(
@@ -45,6 +46,7 @@ internal fun PictureChoice(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    detail: String? = null,
     preview: @Composable () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -90,6 +92,14 @@ internal fun PictureChoice(
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 4.dp),
         )
+        detail?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
 

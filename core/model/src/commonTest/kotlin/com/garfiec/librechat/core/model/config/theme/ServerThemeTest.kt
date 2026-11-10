@@ -31,6 +31,7 @@ class ServerThemeTest {
     @Test
     fun bundledFixture() {
         val definition = assertIs<ServerThemeRead.Theme>(readServerTheme(JsonPrimitive("clickhouse"))).definition
+        assertEquals("ClickHouse", definition.name)
         assertEquals(ThemeRole.entries.toSet(), definition.light.keys)
         assertEquals(ThemeRole.entries.toSet(), definition.dark.keys)
     }
@@ -109,6 +110,7 @@ class ServerThemeTest {
     @Test
     fun librechatIsTheStockPalette() {
         val definition = assertIs<ServerThemeRead.Theme>(readServerTheme(JsonPrimitive("librechat"))).definition
+        assertEquals("LibreChat", definition.name)
         assertEquals(emptyMap(), definition.light)
         assertEquals(emptyMap(), definition.dark)
     }

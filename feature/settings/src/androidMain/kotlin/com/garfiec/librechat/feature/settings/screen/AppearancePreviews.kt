@@ -51,6 +51,7 @@ private fun ThemeSelectorHost(style: UiStyle) {
         uiStyle = style,
         accentColor = DefaultAccentSeed,
         useDynamicColor = false,
+        serverTheme = null,
         onSelect = { selected = it },
     )
 }

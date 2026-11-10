@@ -7,7 +7,9 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.garfiec.librechat.core.model.DEFAULT_ACCENT_SEED_ARGB
-import com.garfiec.librechat.core.model.config.DeploymentAccent
+import com.garfiec.librechat.core.model.config.theme.ServerThemeDefinition
+import com.garfiec.librechat.core.model.config.theme.ServerThemeRead
+import com.garfiec.librechat.core.model.config.theme.readServerTheme
 import com.garfiec.librechat.core.model.ui.UiStyle
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -16,23 +18,27 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlin.concurrent.Volatile
 
 /**
- * The active server's accent (v0.8.9-rc1 `interface.theme`), as last read from its config.
- * [enabled] is the user's "Use server accent" for that server; on unless they turned it off.
+ * The active server's theme (v0.8.9-rc1 `interface.theme`), as last read from its config.
+ * [enabled] is the user's choice of the server's colours over Switchboard's for that server; on
+ * unless they picked Switchboard's.
  */
-data class ServerAccent(
+data class ServerTheme(
     val serverId: String,
-    val name: String,
-    val seedArgb: Int,
+    val definition: ServerThemeDefinition,
     val enabled: Boolean,
 ) {
-    /** The seed to paint with, or null when the user chose their own accent. */
-    val activeSeed: Int? get() = seedArgb.takeIf { enabled }
+    /** The theme to paint with, or null when the user picked Switchboard's colours. */
+    val painted: ServerThemeDefinition? get() = definition.takeIf { enabled }
 }
 
 class ThemeDataStore(
@@ -65,11 +71,11 @@ class ThemeDataStore(
         private set
 
     /**
-     * Initial server accent for the first compose frame: the last one cached, so a cold start and
+     * Initial server theme for the first compose frame: the last one cached, so a cold start and
      * the sign-in screen paint it before `/api/config` answers.
      */
     @Volatile
-    var initialServerAccent: ServerAccent? = null
+    var initialServerTheme: ServerTheme? = null
         private set
 
     /** Initial stored UI style for the first compose frame; null means the platform default. */
@@ -94,7 +100,7 @@ class ThemeDataStore(
                 initialAccentColor = prefs[KEY_ACCENT_COLOR] ?: DEFAULT_ACCENT_COLOR
                 initialUseDynamicColor = prefs[KEY_USE_DYNAMIC_COLOR] ?: false
                 initialUiStyle = prefs[KEY_UI_STYLE].toUiStyleOrNull()
-                initialServerAccent = prefs.toServerAccent()
+                initialServerTheme = prefs.serverThemeKeys()?.read()
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
@@ -127,31 +133,36 @@ class ThemeDataStore(
         prefs[KEY_UI_STYLE].toUiStyleOrNull()
     }
 
-    /** The active server's accent, or null when it sets none (or none has been read yet). */
-    val serverAccent: Flow<ServerAccent?> = dataStore.data.map { prefs -> prefs.toServerAccent() }
+    /**
+     * The active server's theme, or null when it sets none (or none has been read yet). Parsed only
+     * when the theme or the choice changes, not on every write to this file.
+     */
+    val serverTheme: Flow<ServerTheme?> = dataStore.data
+        .map { prefs -> prefs.serverThemeKeys() }
+        .distinctUntilChanged()
+        .map { it?.read() }
 
     /**
-     * Caches [serverId]'s accent as the active one; null clears it (the server withdrew its theme
-     * or has none), which falls back to the user's accent with no prompt. Written by
+     * Caches [serverId]'s raw `interface.theme` as the active one, read back through
+     * [readServerTheme] so a newer reader applies to it; null clears it (the server withdrew its
+     * theme or has none), which falls back to Switchboard's colours with no prompt. Written by
      * `DeploymentThemeSync` only.
      */
-    suspend fun setServerAccent(serverId: String, accent: DeploymentAccent?) {
+    suspend fun setServerTheme(serverId: String, theme: JsonElement?) {
         dataStore.edit { prefs ->
-            if (accent == null) {
-                prefs.remove(KEY_SERVER_ACCENT_SERVER)
-                prefs.remove(KEY_SERVER_ACCENT_SEED)
-                prefs.remove(KEY_SERVER_ACCENT_NAME)
+            if (theme == null) {
+                prefs.remove(KEY_SERVER_THEME_SERVER)
+                prefs.remove(KEY_SERVER_THEME)
             } else {
-                prefs[KEY_SERVER_ACCENT_SERVER] = serverId
-                prefs[KEY_SERVER_ACCENT_SEED] = accent.seedArgb
-                prefs[KEY_SERVER_ACCENT_NAME] = accent.name
+                prefs[KEY_SERVER_THEME_SERVER] = serverId
+                prefs[KEY_SERVER_THEME] = theme.toString()
             }
         }
     }
 
-    /** "Use server accent" for [serverId]. Stored per server; absent means on. */
-    suspend fun setUseServerAccent(serverId: String, enabled: Boolean) {
-        dataStore.edit { prefs -> prefs[serverScopedKey(serverId, USE_SERVER_ACCENT)] = enabled.toString() }
+    /** The server's colours (true) or Switchboard's for [serverId]. Stored per server; absent means the server's. */
+    suspend fun setUseServerTheme(serverId: String, enabled: Boolean) {
+        dataStore.edit { prefs -> prefs[serverScopedKey(serverId, USE_SERVER_THEME)] = enabled.toString() }
     }
 
     suspend fun setThemeMode(mode: ThemeMode) {
@@ -199,20 +210,30 @@ class ThemeDataStore(
         private val KEY_ACCENT_COLOR = intPreferencesKey("accent_color")
         private val KEY_USE_DYNAMIC_COLOR = booleanPreferencesKey("use_dynamic_color")
         private val KEY_UI_STYLE = stringPreferencesKey("ui_style")
-        private val KEY_SERVER_ACCENT_SERVER = stringPreferencesKey("server_accent_server_id")
-        private val KEY_SERVER_ACCENT_SEED = intPreferencesKey("server_accent_seed")
-        private val KEY_SERVER_ACCENT_NAME = stringPreferencesKey("server_accent_name")
-        private const val USE_SERVER_ACCENT = "use_server_accent"
+        private val KEY_SERVER_THEME_SERVER = stringPreferencesKey("server_theme_server_id")
+        private val KEY_SERVER_THEME = stringPreferencesKey("server_theme")
 
-        private fun Preferences.toServerAccent(): ServerAccent? {
-            val serverId = this[KEY_SERVER_ACCENT_SERVER] ?: return null
-            val seed = this[KEY_SERVER_ACCENT_SEED] ?: return null
-            return ServerAccent(
-                serverId = serverId,
-                name = this[KEY_SERVER_ACCENT_NAME].orEmpty(),
-                seedArgb = seed,
-                enabled = this[serverScopedKey(serverId, USE_SERVER_ACCENT)] != "false",
-            )
+        // The key the accent-only switch wrote, so someone who turned that off keeps Switchboard's colours.
+        private const val USE_SERVER_THEME = "use_server_accent"
+
+        /** The cached theme as stored, unparsed: cheap to compare on every write to the file. */
+        private data class StoredServerTheme(val serverId: String, val raw: String, val enabled: Boolean)
+
+        private fun Preferences.serverThemeKeys(): StoredServerTheme? {
+            val serverId = this[KEY_SERVER_THEME_SERVER] ?: return null
+            val raw = this[KEY_SERVER_THEME] ?: return null
+            return StoredServerTheme(serverId, raw, enabled = this[serverScopedKey(serverId, USE_SERVER_THEME)] != "false")
+        }
+
+        /** Null when the cached value no longer reads as a theme, e.g. one this build's reader rejects. */
+        private fun StoredServerTheme.read(): ServerTheme? {
+            val element = try {
+                Json.parseToJsonElement(raw)
+            } catch (_: SerializationException) {
+                return null
+            }
+            val definition = (readServerTheme(element) as? ServerThemeRead.Theme)?.definition ?: return null
+            return ServerTheme(serverId, definition, enabled)
         }
 
         // An unrecognized value (written by a newer build) degrades to the platform default.

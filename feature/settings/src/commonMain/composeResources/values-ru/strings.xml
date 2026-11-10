@@ -139,10 +139,10 @@
     <string name="accent_color_hex">HEX-код</string>
     <string name="use_wallpaper_colors">Использовать цвета обоев</string>
     <string name="use_wallpaper_colors_desc">Подстраивать акцент приложения под системные обои (Material You)</string>
-    <string name="use_server_accent">Использовать акцент сервера</string>
-    <string name="use_server_accent_desc">Ваш сервер задаёт этот акцент для всех. Отключите, чтобы использовать свой.</string>
+    <string name="colors_from_server">С вашего сервера</string>
+    <string name="colors_switchboard_detail">Ваши цвета</string>
     <string name="accent_set_by_server">Задан сервером (%1$s)</string>
-    <string name="accent_set_by_server_note">Отключите «Использовать акцент сервера», чтобы выбрать свой.</string>
+    <string name="accent_set_by_server_note">Выберите Switchboard в разделе «Цвета», чтобы использовать свой акцент.</string>
 
     <!-- Settings rows -->
     <string name="language">Язык</string>
