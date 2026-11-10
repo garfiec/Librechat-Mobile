@@ -2,10 +2,13 @@ package com.garfiec.librechat.feature.chat.viewmodel.delegate
 
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.repository.SpeechRepository
+import com.garfiec.librechat.core.ui.media.AudioClipPlayer
 import com.garfiec.librechat.feature.chat.util.synthesizeInSegments
 import com.garfiec.librechat.feature.chat.viewmodel.TtsHandle
 import kotlinx.cinterop.ObjCSignatureOverride
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import platform.AVFAudio.AVSpeechBoundary
@@ -33,14 +36,13 @@ class IosTts(
 
     private val synthesizer = AVSpeechSynthesizer()
 
+    private val serverAudio = AudioClipPlayer()
+
     /** The read in flight. A server read is a loop of requests, which a Stop must end. */
     private var readJob: Job? = null
 
-    /** The last utterance queued for the current read; only its end means the read is done. */
+    /** The utterance of the current device read; only its end means the read is done. */
     private var finalUtterance: AVSpeechUtterance? = null
-
-    /** True while a server read still has segments to request after [finalUtterance]. */
-    private var moreSegmentsPending = false
 
     private val delegate = object : NSObject(), AVSpeechSynthesizerDelegateProtocol {
         @ObjCSignatureOverride
@@ -48,7 +50,7 @@ class IosTts(
             synthesizer: AVSpeechSynthesizer,
             didFinishSpeechUtterance: AVSpeechUtterance,
         ) {
-            if (didFinishSpeechUtterance === finalUtterance && !moreSegmentsPending) {
+            if (didFinishSpeechUtterance === finalUtterance) {
                 finalUtterance = null
                 handle.update { voice = voice.copy(currentlyReadingMessageId = null) }
             }
@@ -91,16 +93,14 @@ class IosTts(
         handle.update { voice = voice.copy(currentlyReadingMessageId = readingId) }
 
         readJob = handle.scope.launch {
-            val source = settingsDataStore.ttsSource.first()
-            val speech = DeviceSpeech(
-                rate = settingsDataStore.ttsSpeechRate.first(),
-                pitch = settingsDataStore.ttsPitch.first(),
-                voice = deviceVoice(settingsDataStore.ttsVoiceName.first()),
-            )
-            if (source == "server") {
-                readAloudViaServer(text, settingsDataStore.selectedVoiceId.first(), speech)
+            if (settingsDataStore.ttsSource.first() == "server") {
+                readAloudViaServer(text, settingsDataStore.selectedVoiceId.first())
             } else {
-                moreSegmentsPending = false
+                val speech = DeviceSpeech(
+                    rate = settingsDataStore.ttsSpeechRate.first(),
+                    pitch = settingsDataStore.ttsPitch.first(),
+                    voice = deviceVoice(settingsDataStore.ttsVoiceName.first()),
+                )
                 queueUtterance(text, speech)
             }
         }
@@ -132,31 +132,42 @@ class IosTts(
 
     /**
      * Requests [text] from the server in the same capped segments as Android (the server drops
-     * whatever is past `speech.tts.maxInputChars` without an error), queuing each segment as its
-     * request succeeds. The audio itself is not played: AVAudioPlayer needs platform plumbing this
-     * path does not have yet, so each confirmed segment is spoken by the device voice.
+     * whatever is past `speech.tts.maxInputChars` without an error) and plays each segment's audio in
+     * order, fetching the next while one plays.
      */
-    private suspend fun readAloudViaServer(text: String, serverVoice: String?, speech: DeviceSpeech) {
+    private suspend fun readAloudViaServer(text: String, serverVoice: String?) = coroutineScope {
+        val clips = Channel<ByteArray>(Channel.UNLIMITED)
+        val playback = launch {
+            for (clip in clips) {
+                if (!serverAudio.play(clip)) {
+                    clips.cancel()
+                    endRead(error = "Couldn't play the server's audio")
+                    return@launch
+                }
+            }
+            endRead(error = null)
+        }
         val failure = synthesizeInSegments(
             text,
             synthesize = { segment -> speechRepository.synthesizeSpeech(segment, voice = serverVoice) },
-        ) { segment, _, isLast ->
-            moreSegmentsPending = !isLast
-            queueUtterance(segment, speech)
-            true
-        }
+        ) { _, audio, _ -> clips.trySend(audio).isSuccess }
+        clips.close()
         if (failure != null) {
-            // Earlier segments may still be speaking; silence them so the idle button is true.
-            haltSpeech()
-            handle.update {
-                voice = voice.copy(currentlyReadingMessageId = null)
-                error = failure.message ?: "Server TTS request failed"
-            }
+            playback.cancel()
+            serverAudio.stop()
+            endRead(error = failure.message ?: "Server TTS request failed")
+        }
+    }
+
+    private fun endRead(error: String?) {
+        handle.update {
+            voice = voice.copy(currentlyReadingMessageId = null)
+            if (error != null) this.error = error
         }
     }
 
     private fun haltSpeech() {
-        moreSegmentsPending = false
+        serverAudio.stop()
         finalUtterance = null
         if (synthesizer.isSpeaking()) {
             synthesizer.stopSpeakingAtBoundary(AVSpeechBoundary.AVSpeechBoundaryImmediate)

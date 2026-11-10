@@ -4,6 +4,7 @@ import co.touchlab.kermit.Logger
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.repository.ServerSttGate
 import com.garfiec.librechat.core.data.repository.SpeechRepository
+import com.garfiec.librechat.core.ui.media.AudioClipPlayer
 import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.DeviceVoiceInfo
 import com.garfiec.librechat.feature.settings.viewmodel.SettingsStateHandle
@@ -28,6 +29,9 @@ class IosSpeechSettingsDelegate(
 ) : SpeechSettingsContract {
 
     private val synthesizer = AVSpeechSynthesizer()
+
+    private val serverAudio = AudioClipPlayer()
+    private var serverPreviewJob: Job? = null
 
     // Latches the speech config; read here for its TTS flag only (see loadSpeechConfig).
     private val speechConfigGate = ServerSttGate(speechRepository)
@@ -127,15 +131,20 @@ class IosSpeechSettingsDelegate(
     override fun previewServerTts(text: String, voice: String?) {
         stopTtsPreview()
         stateHandle.update { copy(isTtsPreviewPlaying = true) }
-        stateHandle.scope.launch {
+        serverPreviewJob = stateHandle.scope.launch {
             val result = speechRepository.synthesizeSpeech(
                 text = text,
                 voice = voice,
             )
             when (result) {
                 is Result.Success -> {
-                    // Server returns audio bytes; fall back to device TTS for playback
-                    previewDeviceTts(text, 1.0f, 1.0f, null)
+                    val played = serverAudio.play(result.data)
+                    stateHandle.update {
+                        copy(
+                            isTtsPreviewPlaying = false,
+                            error = if (played) error else SpeechFailure.PLAYBACK,
+                        )
+                    }
                 }
                 is Result.Error -> {
                     stateHandle.update {
@@ -159,6 +168,9 @@ class IosSpeechSettingsDelegate(
     }
 
     override fun stopTtsPreview() {
+        serverPreviewJob?.cancel()
+        serverPreviewJob = null
+        serverAudio.stop()
         if (synthesizer.isSpeaking()) {
             synthesizer.stopSpeakingAtBoundary(AVSpeechBoundary.AVSpeechBoundaryImmediate)
         }
@@ -166,6 +178,8 @@ class IosSpeechSettingsDelegate(
     }
 
     override fun release() {
+        serverPreviewJob?.cancel()
+        serverAudio.stop()
         if (synthesizer.isSpeaking()) {
             synthesizer.stopSpeakingAtBoundary(AVSpeechBoundary.AVSpeechBoundaryImmediate)
         }
