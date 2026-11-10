@@ -10,8 +10,10 @@ import kotlin.test.assertFailsWith
 
 class ThemeTokensTest {
 
-    private val lightScheme = lightColorScheme(primary = Color(0xFF123456), outline = Color(0xFF654321), error = Color(0xFFAA0000))
-    private val darkScheme = darkColorScheme(primary = Color(0xFFABCDEF), outline = Color(0xFF777777), error = Color(0xFFFF5555))
+    private val lightScheme =
+        lightColorScheme(primary = Color(0xFF123456), outline = Color(0xFF654321), error = Color(0xFFAA0000))
+    private val darkScheme =
+        darkColorScheme(primary = Color(0xFFABCDEF), outline = Color(0xFF777777), error = Color(0xFFFF5555))
 
     @Test
     fun switchboardStatusKeepsSeriesGreenAndAmberAndSchemeRoles() {
