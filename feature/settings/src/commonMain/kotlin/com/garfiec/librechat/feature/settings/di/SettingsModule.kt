@@ -74,6 +74,8 @@ val settingsModule = module {
             speechSettingsFactory = get(),
             libraryConsent = get(),
             fileRepository = get(),
+            configRepository = get(),
+            roleRepository = get(),
         )
     }
     viewModelOf(::ApiKeysViewModel)

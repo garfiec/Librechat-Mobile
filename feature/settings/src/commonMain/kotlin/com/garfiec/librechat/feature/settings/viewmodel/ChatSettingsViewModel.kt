@@ -1,7 +1,9 @@
 package com.garfiec.librechat.feature.settings.viewmodel
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.garfiec.librechat.core.common.BackendVersion
 import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore
@@ -19,20 +21,57 @@ import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.data.datastore.WebSearchPreference
+import com.garfiec.librechat.core.data.repository.ConfigRepository
 import com.garfiec.librechat.core.data.repository.FileRepository
+import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.model.ArtifactsMode
+import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.model.permissions.Permission
+import com.garfiec.librechat.core.model.permissions.PermissionType
+import com.garfiec.librechat.core.model.permissions.UserRolePermissions
+import com.garfiec.librechat.core.model.permissions.hasAccessOrPermissive
 import com.garfiec.librechat.core.model.response.clientImageResize
 import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.SpeechSettingsFactory
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** Backs the Chat tab: display and behaviour preferences, artifacts and speech. */
+/** Which server-gated rows the Chats and Advanced pages show; each follows the gate chat or web uses. */
+@Immutable
+data class ChatSettingsGates(
+    /** Chat's context gauge: a server from v0.8.7-rc1 whose `interface.contextUsage` isn't off. */
+    val contextUsage: Boolean = false,
+    /** Web's presets menu: `interface.presets && interface.modelSelect`. */
+    val presets: Boolean = true,
+    /** Web's API keys settings: the REMOTE_AGENTS USE permission. */
+    val apiKeys: Boolean = true,
+)
+
+internal fun chatSettingsGates(
+    config: StartupConfig?,
+    backendVersion: String?,
+    role: UserRolePermissions?,
+): ChatSettingsGates {
+    val iface = config?.interfaceConfig
+    return ChatSettingsGates(
+        contextUsage = backendVersion != null &&
+            BackendVersion.isCompatibleOrNewer(backendVersion, CONTEXT_GAUGE_MIN_VERSION) &&
+            (iface?.contextUsage ?: true),
+        presets = (iface?.presets ?: true) && (iface?.modelSelect ?: true),
+        apiKeys = role.hasAccessOrPermissive(PermissionType.REMOTE_AGENTS, Permission.USE),
+    )
+}
+
+/** Must match chat's context gauge gate (`ChatConfigDelegate`). */
+private const val CONTEXT_GAUGE_MIN_VERSION = "0.8.7-rc1"
+
+/** Backs Chats, Voice, Models & keys, Privacy's website icons and Advanced's chat rows. */
 // TooManyFunctions: the members are one-line forwarders to controllers, one per setting, so the
 // count tracks how many settings exist rather than how much this class does.
 @Suppress("TooManyFunctions")
@@ -42,6 +81,8 @@ class ChatSettingsViewModel(
     speechSettingsFactory: SpeechSettingsFactory,
     private val libraryConsent: ArtifactLibraryConsentStore,
     private val fileRepository: FileRepository,
+    configRepository: ConfigRepository,
+    roleRepository: RoleRepository,
 ) : ViewModel() {
 
     /** Raw state for everything not driven by DataStore flows. */
@@ -62,6 +103,13 @@ class ChatSettingsViewModel(
 
     /** The single public UI state that merges DataStore preferences with imperative state. */
     val uiState: StateFlow<ChatSettingsUiState> = prefsController.uiState
+
+    val gates: StateFlow<ChatSettingsGates> = combine(
+        configRepository.startupConfig,
+        configRepository.detectedBackendVersion,
+        roleRepository.userPermissions,
+        ::chatSettingsGates,
+    ).stateIn(viewModelScope, SharingStarted.Eagerly, ChatSettingsGates())
 
     /**
      * Each flagged artifact library with its device-wide answer ([Decision.ASK] when each artifact

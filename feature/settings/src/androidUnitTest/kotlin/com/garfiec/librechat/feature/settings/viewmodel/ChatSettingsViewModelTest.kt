@@ -11,7 +11,12 @@ import com.garfiec.librechat.core.data.datastore.PreferenceStore
 import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.data.datastore.WebSearchPreference
+import com.garfiec.librechat.core.data.repository.ConfigRepository
+import com.garfiec.librechat.core.data.repository.RoleRepository
 import com.garfiec.librechat.core.data.repository.SpeechRepository
+import com.garfiec.librechat.core.model.config.InterfaceConfig
+import com.garfiec.librechat.core.model.config.StartupConfig
+import com.garfiec.librechat.core.model.permissions.UserRolePermissions
 import com.garfiec.librechat.core.model.speech.SpeechConfig
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.SpeechSettingsContract
 import com.garfiec.librechat.feature.settings.viewmodel.delegate.SpeechSettingsFactory
@@ -48,6 +53,15 @@ class ChatSettingsViewModelTest {
     private val webSearchFirstFlow = MutableStateFlow(WebSearchPreference.LIBRECHAT_FIRST)
     private val speechRepository = mockk<SpeechRepository>(relaxed = true)
     private val libraryConsent = mockk<ArtifactLibraryConsentStore>(relaxed = true)
+    private val startupConfig = MutableStateFlow<StartupConfig?>(null)
+    private val backendVersion = MutableStateFlow<String?>(null)
+    private val configRepository = mockk<ConfigRepository>(relaxed = true) {
+        every { startupConfig } returns this@ChatSettingsViewModelTest.startupConfig
+        every { detectedBackendVersion } returns backendVersion
+    }
+    private val roleRepository = mockk<RoleRepository>(relaxed = true) {
+        every { userPermissions } returns MutableStateFlow(null)
+    }
 
     private lateinit var viewModel: ChatSettingsViewModel
 
@@ -106,6 +120,8 @@ class ChatSettingsViewModelTest {
         speechSettingsFactory = SpeechSettingsFactory { speechSettingsContract },
         libraryConsent = libraryConsent,
         fileRepository = io.mockk.mockk(relaxed = true),
+        configRepository = configRepository,
+        roleRepository = roleRepository,
     )
 
     @Test
@@ -214,5 +230,45 @@ class ChatSettingsViewModelTest {
         // The delegate fetches voices only once the config says the server has TTS.
         verify(exactly = 1) { speechSettingsContract.loadSpeechConfig() }
         verify(exactly = 0) { speechSettingsContract.loadVoices() }
+    }
+
+    @Test
+    fun `context usage shows only where chat's gauge does`() = runTest {
+        viewModel = createViewModel()
+        advanceUntilIdle()
+        // Unknown server version: chat hides the gauge, so the row hides too.
+        assertThat(viewModel.gates.value.contextUsage).isFalse()
+
+        backendVersion.value = "0.8.7"
+        advanceUntilIdle()
+        assertThat(viewModel.gates.value.contextUsage).isTrue()
+
+        startupConfig.value = StartupConfig(interfaceConfig = InterfaceConfig(contextUsage = false))
+        advanceUntilIdle()
+        assertThat(viewModel.gates.value.contextUsage).isFalse()
+
+        startupConfig.value = null
+        backendVersion.value = "0.8.6"
+        advanceUntilIdle()
+        assertThat(viewModel.gates.value.contextUsage).isFalse()
+    }
+
+    @Test
+    fun `presets follow interface presets and modelSelect`() {
+        val iface = InterfaceConfig()
+        assertThat(chatSettingsGates(null, null, null).presets).isTrue()
+        assertThat(chatSettingsGates(StartupConfig(interfaceConfig = iface), null, null).presets).isTrue()
+        assertThat(chatSettingsGates(StartupConfig(interfaceConfig = iface.copy(presets = false)), null, null).presets)
+            .isFalse()
+        assertThat(chatSettingsGates(StartupConfig(interfaceConfig = iface.copy(modelSelect = false)), null, null).presets)
+            .isFalse()
+    }
+
+    @Test
+    fun `API keys follow the remote agents USE permission`() {
+        fun role(use: Boolean) = UserRolePermissions(name = "USER", permissions = mapOf("REMOTE_AGENTS" to mapOf("USE" to use)))
+        assertThat(chatSettingsGates(null, null, null).apiKeys).isTrue()
+        assertThat(chatSettingsGates(null, null, role(use = true)).apiKeys).isTrue()
+        assertThat(chatSettingsGates(null, null, role(use = false)).apiKeys).isFalse()
     }
 }
