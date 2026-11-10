@@ -42,6 +42,7 @@ data class ChatColors(
     val codeBody: Color,
     val inlineCode: Color,
     val syntax: SyntaxColors,
+    val diagram: DiagramColors,
 ) {
     companion object {
         fun switchboard(scheme: ColorScheme, dark: Boolean): ChatColors = ChatColors(
@@ -68,10 +69,17 @@ data class ChatColors(
             codeBody = scheme.surfaceContainerHighest,
             inlineCode = scheme.surfaceContainerHigh,
             syntax = SyntaxColors.switchboard(scheme, dark),
+            diagram = DiagramColors(
+                canvas = scheme.surfaceContainerHighest,
+                header = scheme.surfaceContainerHigh,
+                label = scheme.onSurfaceVariant,
+                border = Color.Transparent,
+                mermaidTheme = if (dark) "dark" else "default",
+            ),
         )
 
         /** Upstream v0.8.9-rc1 `client/src` and `packages/client/src`: which role each element paints. */
-        fun server(colors: Map<ThemeRole, Int>): ChatColors {
+        fun server(colors: Map<ThemeRole, Int>, dark: Boolean): ChatColors {
             val inverted = colors.color(ThemeRole.SURFACE_INVERTED)
             val onInverted = colors.color(ThemeRole.TEXT_INVERTED)
             return ChatColors(
@@ -100,6 +108,15 @@ data class ChatColors(
                 codeBody = colors.color(ThemeRole.SURFACE_CODE_BODY),
                 inlineCode = colors.color(ThemeRole.SURFACE_CODE_INLINE),
                 syntax = SyntaxColors.server(colors),
+                // Upstream `Mermaid.tsx`: the theme reaches the frame only; the diagram keeps
+                // Mermaid's own palette.
+                diagram = DiagramColors(
+                    canvas = colors.color(ThemeRole.SURFACE_PRIMARY_ALT),
+                    header = colors.color(ThemeRole.SURFACE_SECONDARY),
+                    label = colors.color(ThemeRole.TEXT_SECONDARY),
+                    border = colors.color(ThemeRole.BORDER_LIGHT),
+                    mermaidTheme = if (dark) "dark" else "neutral",
+                ),
             )
         }
 
@@ -107,6 +124,17 @@ data class ChatColors(
         private const val WEB_DISABLED_ALPHA = 0.1f
     }
 }
+
+/** A Mermaid diagram in a message: its frame, and the built-in Mermaid theme drawn inside it. */
+@Immutable
+data class DiagramColors(
+    val canvas: Color,
+    val header: Color,
+    val label: Color,
+    /** The frame's edge and the line under its header; [Color.Transparent] for none. */
+    val border: Color,
+    val mermaidTheme: String,
+)
 
 /**
  * Code highlighting, one colour per kind of token the app's highlighter finds. Switchboard's are
@@ -201,6 +229,59 @@ data class ChromeColors(
     }
 }
 
+/**
+ * The web's general surface, text and border roles, for a page that takes the host's palette:
+ * an MCP App gets these as its style variables. M3 has no warning role, so Switchboard's
+ * stands in with tertiary.
+ */
+@Immutable
+data class PageColors(
+    val surfacePrimary: Color,
+    val surfaceSecondary: Color,
+    val surfaceTertiary: Color,
+    val surfaceDestructive: Color,
+    val textPrimary: Color,
+    val textSecondary: Color,
+    val textTertiary: Color,
+    val textDestructive: Color,
+    val textWarning: Color,
+    val borderMedium: Color,
+    val borderLight: Color,
+    val borderDestructive: Color,
+) {
+    companion object {
+        fun switchboard(scheme: ColorScheme): PageColors = PageColors(
+            surfacePrimary = scheme.surface,
+            surfaceSecondary = scheme.surfaceContainer,
+            surfaceTertiary = scheme.surfaceContainerHigh,
+            surfaceDestructive = scheme.errorContainer,
+            textPrimary = scheme.onSurface,
+            textSecondary = scheme.onSurfaceVariant,
+            textTertiary = scheme.outline,
+            textDestructive = scheme.error,
+            textWarning = scheme.tertiary,
+            borderMedium = scheme.outline,
+            borderLight = scheme.outlineVariant,
+            borderDestructive = scheme.error,
+        )
+
+        fun server(colors: Map<ThemeRole, Int>): PageColors = PageColors(
+            surfacePrimary = colors.color(ThemeRole.SURFACE_PRIMARY),
+            surfaceSecondary = colors.color(ThemeRole.SURFACE_SECONDARY),
+            surfaceTertiary = colors.color(ThemeRole.SURFACE_TERTIARY),
+            surfaceDestructive = colors.color(ThemeRole.SURFACE_DESTRUCTIVE),
+            textPrimary = colors.color(ThemeRole.TEXT_PRIMARY),
+            textSecondary = colors.color(ThemeRole.TEXT_SECONDARY),
+            textTertiary = colors.color(ThemeRole.TEXT_TERTIARY),
+            textDestructive = colors.color(ThemeRole.TEXT_DESTRUCTIVE),
+            textWarning = colors.color(ThemeRole.TEXT_WARNING),
+            borderMedium = colors.color(ThemeRole.BORDER_MEDIUM),
+            borderLight = colors.color(ThemeRole.BORDER_LIGHT),
+            borderDestructive = colors.color(ThemeRole.BORDER_DESTRUCTIVE),
+        )
+    }
+}
+
 @Composable
 @ReadOnlyComposable
 fun chatColors(): ChatColors = LocalThemeTokens.current.chat
@@ -208,3 +289,7 @@ fun chatColors(): ChatColors = LocalThemeTokens.current.chat
 @Composable
 @ReadOnlyComposable
 fun chromeColors(): ChromeColors = LocalThemeTokens.current.chrome
+
+@Composable
+@ReadOnlyComposable
+fun pageColors(): PageColors = LocalThemeTokens.current.page

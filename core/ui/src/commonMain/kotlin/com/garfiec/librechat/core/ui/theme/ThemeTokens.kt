@@ -24,6 +24,7 @@ data class ThemeTokens(
     val fileKinds: Map<FileKind, Color>,
     val chat: ChatColors,
     val chrome: ChromeColors,
+    val page: PageColors,
 ) {
     init {
         require(series.size == SERIES_SLOTS) { "series needs $SERIES_SLOTS colours, got ${series.size}" }
@@ -48,6 +49,7 @@ data class ThemeTokens(
                 fileKinds = FileKind.entries.associateWith { FileKindColors.switchboard(it, dark) },
                 chat = ChatColors.switchboard(scheme, dark),
                 chrome = ChromeColors.switchboard(scheme),
+                page = PageColors.switchboard(scheme),
             )
         }
 
@@ -67,8 +69,9 @@ data class ThemeTokens(
             fileKinds = FileKind.entries.associateWith { kind ->
                 SERVER_FILE_ROLES[kind]?.let(colors::color) ?: FileKindColors.switchboard(kind, dark)
             },
-            chat = ChatColors.server(colors),
+            chat = ChatColors.server(colors, dark),
             chrome = ChromeColors.server(colors),
+            page = PageColors.server(colors),
         )
 
         private val SERVER_SERIES = listOf(
