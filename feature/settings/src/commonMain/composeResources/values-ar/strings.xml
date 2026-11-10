@@ -282,17 +282,14 @@
     <string name="chat_group_display">العرض</string>
 
     <!-- Chat settings -->
-    <string name="chat_layout">تخطيط المحادثة</string>
     <string name="chat_layout_thread">سلسلة</string>
-    <string name="chat_layout_two_sided">محادثة ثنائية الجانب</string>
+    <string name="chat_layout_two_sided">ثنائي الجانب</string>
     <string name="chat_layout_thread_desc">جميع الرسائل محاذاة لليسار مع الصورة الرمزية والاسم</string>
     <string name="chat_layout_two_sided_desc">رسائل المستخدم على اليمين والوكيل على اليسار</string>
     <string name="show_bubbles">إظهار الفقاعات</string>
     <string name="show_bubbles_desc">إضافة خلفيات فقاعية دائرية للرسائل</string>
     <string name="show_avatars">إظهار الصور الرمزية</string>
     <string name="show_avatars_desc">عرض الصور الرمزية للمستخدم والوكيل بجوار الرسائل</string>
-    <string name="chat_layout_bubbles">فقاعات</string>
-    <string name="chat_layout_avatars">صور رمزية</string>
     <string name="starred_models_title">النماذج المميزة بنجمة</string>
     <string name="starred_models_desc">إظهار نماذجك ووكلائك المثبتين في أعلى محدد النموذج</string>
     <string name="starred_models_off">إيقاف</string>
@@ -308,17 +305,12 @@
     <string name="web_search_first_librechat_desc">بحث خادمك، مع المصادر. يستخدم البحث المدمج في النموذج عندما لا يكون على الخادم بحث مُعدّ.</string>
     <string name="web_search_first_built_in">البحث المدمج أولًا</string>
     <string name="web_search_first_built_in_desc">بحث مزوّد النموذج نفسه (OpenAI وClaude وGemini وOpenRouter). يستخدم بحث LibreChat للنماذج الأخرى.</string>
-    <string name="chat_header_title">ترويسة المحادثة</string>
-    <string name="chat_header_summary_format">%1$s · %2$s</string>
-    <string name="chat_header_content_label">المحتوى</string>
-    <string name="chat_header_content_title_option">عنوان المحادثة</string>
-    <string name="chat_header_content_model">النموذج المحدد</string>
+    <string name="chat_header_content_title_option">العنوان</string>
+    <string name="chat_header_content_model">النموذج</string>
     <string name="chat_header_content_none">لا شيء</string>
-    <string name="chat_header_alignment_label">المحاذاة</string>
     <string name="chat_header_alignment_left">يسار</string>
     <string name="chat_header_alignment_center">وسط</string>
-    <string name="chat_header_alignment_fill">بعرض كامل</string>
-    <string name="font_size">حجم الخط</string>
+    <string name="chat_header_alignment_fill">عرض كامل</string>
     <string name="font_size_small">صغير</string>
     <string name="font_size_medium">متوسط</string>
     <string name="font_size_large">كبير</string>
@@ -1120,6 +1112,16 @@
     <string name="appearance_section_style">النمط</string>
     <string name="appearance_section_color">اللون</string>
     <string name="appearance_chat_appearance">مظهر المحادثة</string>
+    <string name="chat_appearance_layout">التخطيط</string>
+    <string name="chat_appearance_text_size">حجم النص</string>
+    <string name="chat_appearance_title_bar">يعرض شريط العنوان</string>
+    <string name="chat_appearance_title_position">موضع العنوان</string>
+    <string name="chat_appearance_sample_title">يوم في لشبونة</string>
+    <string name="chat_appearance_sample_agent">مخطط الرحلات</string>
+    <string name="chat_appearance_sample_you">أنت</string>
+    <string name="chat_appearance_sample_question">ماذا أزور في لشبونة خلال يوم واحد؟</string>
+    <string name="chat_appearance_sample_answer">ابدأ في بيليم مع فطيرة كاسترد، ثم اركب الترام 28 صعودًا إلى ألفاما، واختم اليوم عند إحدى نقاط المشاهدة لرؤية الغروب.</string>
+    <string name="chat_appearance_sample_thanks">رائع، شكرًا!</string>
     <string name="appearance_section_tablet_layout">تخطيط الجهاز اللوحي</string>
     <string name="accent_using_wallpaper">تُستخدم ألوان الخلفية</string>
     <string name="admin_panel">لوحة الإدارة</string>

@@ -4,7 +4,6 @@ import com.garfiec.librechat.core.common.result.Result
 import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore.Decision
-import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.FlaggedArtifactLibraries
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
 import com.garfiec.librechat.core.data.datastore.PreferenceStore
@@ -71,7 +70,6 @@ class ChatSettingsViewModelTest {
         every { libraryConsent.snapshot } returns MutableStateFlow(null)
 
         // Setup DataStore flows
-        every { settingsDataStore.chatFontSize } returns MutableStateFlow(ChatFontSize.MEDIUM)
         every { settingsDataStore.thinkingOpenByDefault } returns MutableStateFlow(false)
         every { settingsDataStore.autoReadEnabled } returns MutableStateFlow(false)
         every { settingsDataStore.selectedVoiceId } returns MutableStateFlow(null)

@@ -266,17 +266,14 @@
 
     <!-- Chat settings -->
     <string name="chat_group_display">Display</string>
-    <string name="chat_layout">Chat layout</string>
     <string name="chat_layout_thread">Thread</string>
-    <string name="chat_layout_two_sided">Two-sided chat</string>
+    <string name="chat_layout_two_sided">Two-sided</string>
     <string name="chat_layout_thread_desc">All messages aligned left with avatar and name</string>
     <string name="chat_layout_two_sided_desc">User messages on right, agent on left</string>
     <string name="show_bubbles">Show bubbles</string>
     <string name="show_bubbles_desc">Add rounded bubble backgrounds to messages</string>
     <string name="show_avatars">Show avatars</string>
     <string name="show_avatars_desc">Display user and agent avatars next to messages</string>
-    <string name="chat_layout_bubbles">Bubbles</string>
-    <string name="chat_layout_avatars">Avatars</string>
     <string name="starred_models_title">Starred models</string>
     <string name="starred_models_desc">Show your pinned models and agents at the top of the model picker</string>
     <string name="starred_models_off">Off</string>
@@ -292,17 +289,12 @@
     <string name="web_search_first_librechat_desc">Your server's search, with sources. Uses the model's built-in search when the server has none set up.</string>
     <string name="web_search_first_built_in">Built-in search first</string>
     <string name="web_search_first_built_in_desc">The model provider's own search (OpenAI, Claude, Gemini, OpenRouter). Uses LibreChat search for other models.</string>
-    <string name="chat_header_title">Chat header</string>
-    <string name="chat_header_summary_format">%1$s · %2$s</string>
-    <string name="chat_header_content_label">Content</string>
-    <string name="chat_header_content_title_option">Conversation title</string>
-    <string name="chat_header_content_model">Selected model</string>
+    <string name="chat_header_content_title_option">Title</string>
+    <string name="chat_header_content_model">Model</string>
     <string name="chat_header_content_none">Nothing</string>
-    <string name="chat_header_alignment_label">Alignment</string>
     <string name="chat_header_alignment_left">Left</string>
     <string name="chat_header_alignment_center">Center</string>
-    <string name="chat_header_alignment_fill">Fill width</string>
-    <string name="font_size">Font size</string>
+    <string name="chat_header_alignment_fill">Full width</string>
     <string name="font_size_small">Small</string>
     <string name="font_size_medium">Medium</string>
     <string name="font_size_large">Large</string>
@@ -1070,6 +1062,16 @@
     <string name="appearance_section_style">Style</string>
     <string name="appearance_section_color">Color</string>
     <string name="appearance_chat_appearance">Chat appearance</string>
+    <string name="chat_appearance_layout">Layout</string>
+    <string name="chat_appearance_text_size">Text size</string>
+    <string name="chat_appearance_title_bar">Title bar shows</string>
+    <string name="chat_appearance_title_position">Title position</string>
+    <string name="chat_appearance_sample_title">A day in Lisbon</string>
+    <string name="chat_appearance_sample_agent">Trip planner</string>
+    <string name="chat_appearance_sample_you">You</string>
+    <string name="chat_appearance_sample_question">What should I see in Lisbon in one day?</string>
+    <string name="chat_appearance_sample_answer">Start in Belém with a custard tart, ride tram 28 up to Alfama, and end at a viewpoint for the sunset.</string>
+    <string name="chat_appearance_sample_thanks">Perfect, thanks!</string>
     <string name="appearance_section_tablet_layout">Tablet layout</string>
     <string name="accent_using_wallpaper">Using wallpaper colors</string>
     <string name="admin_panel">Admin panel</string>

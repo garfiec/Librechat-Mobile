@@ -46,14 +46,12 @@ import com.garfiec.librechat.feature.settings.resources.Res
 import org.jetbrains.compose.resources.stringResource
 
 internal enum class ChatSettingDialog {
-    FONT_SIZE,
     LATEX_RENDERER,
     DURING_RUN_ACTION,
     UPLOAD_ROUTING,
     STARRED_MODELS,
     NEW_CHAT_START,
     WEB_SEARCH_FIRST,
-    CHAT_HEADER,
     ARTIFACT_VIEWER,
     ARTIFACTS_MODE,
     RENDER_INLINE,
@@ -194,61 +192,6 @@ internal fun <T> RadioSelectionDialog(
         },
         confirmButton = {
             AdaptiveTextButton(onClick = { onSave(current) }) {
-                Text(stringResource(Res.string.action_save))
-            }
-        },
-        dismissButton = {
-            AdaptiveTextButton(onClick = onDismiss) {
-                Text(stringResource(Res.string.action_cancel))
-            }
-        },
-    )
-}
-
-/** Combined chat-header dialog: content (title/model/none) + bubble alignment in one place. */
-@Composable
-internal fun ChatHeaderSettingsDialog(
-    content: ChatHeaderContent,
-    alignment: ChatHeaderAlignment,
-    onSave: (ChatHeaderContent, ChatHeaderAlignment) -> Unit,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var currentContent by remember { mutableStateOf(content) }
-    var currentAlignment by remember { mutableStateOf(alignment) }
-
-    AdaptiveAlertDialog(
-        onDismissRequest = onDismiss,
-        scrollableText = false,
-        modifier = modifier,
-        title = { Text(stringResource(Res.string.chat_header_title)) },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                GroupLabel(stringResource(Res.string.chat_header_content_label))
-                RadioGroup(
-                    options = ChatHeaderContent.entries,
-                    selected = currentContent,
-                    onSelect = { currentContent = it },
-                    optionLabel = { chatHeaderContentLabel(it) },
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                GroupLabel(stringResource(Res.string.chat_header_alignment_label))
-                RadioGroup(
-                    options = ChatHeaderAlignment.entries,
-                    selected = currentAlignment,
-                    onSelect = { currentAlignment = it },
-                    optionLabel = { chatHeaderAlignmentLabel(it) },
-                )
-            }
-        },
-        confirmButton = {
-            AdaptiveTextButton(onClick = { onSave(currentContent, currentAlignment) }) {
                 Text(stringResource(Res.string.action_save))
             }
         },

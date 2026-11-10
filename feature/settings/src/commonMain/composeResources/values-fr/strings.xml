@@ -258,17 +258,14 @@
     <string name="chat_group_display">Affichage</string>
 
     <!-- Chat settings -->
-    <string name="chat_layout">Disposition de la discussion</string>
     <string name="chat_layout_thread">Fil</string>
-    <string name="chat_layout_two_sided">Discussion à deux côtés</string>
+    <string name="chat_layout_two_sided">Deux côtés</string>
     <string name="chat_layout_thread_desc">Tous les messages alignés à gauche avec avatar et nom</string>
     <string name="chat_layout_two_sided_desc">Messages de l'utilisateur à droite, agent à gauche</string>
     <string name="show_bubbles">Afficher les bulles</string>
     <string name="show_bubbles_desc">Ajouter des arrière-plans en bulles arrondies aux messages</string>
     <string name="show_avatars">Afficher les avatars</string>
     <string name="show_avatars_desc">Afficher les avatars de l'utilisateur et de l'agent à côté des messages</string>
-    <string name="chat_layout_bubbles">Bulles</string>
-    <string name="chat_layout_avatars">Avatars</string>
     <string name="starred_models_title">Modèles favoris</string>
     <string name="starred_models_desc">Afficher vos modèles et agents épinglés en haut du sélecteur de modèle</string>
     <string name="starred_models_off">Désactivé</string>
@@ -284,17 +281,12 @@
     <string name="web_search_first_librechat_desc">La recherche de votre serveur, avec les sources. Utilise la recherche intégrée du modèle si le serveur n'en a aucune de configurée.</string>
     <string name="web_search_first_built_in">Recherche intégrée d'abord</string>
     <string name="web_search_first_built_in_desc">La recherche propre au fournisseur du modèle (OpenAI, Claude, Gemini, OpenRouter). Utilise la recherche LibreChat pour les autres modèles.</string>
-    <string name="chat_header_title">En-tête de discussion</string>
-    <string name="chat_header_summary_format">%1$s · %2$s</string>
-    <string name="chat_header_content_label">Contenu</string>
-    <string name="chat_header_content_title_option">Titre de la conversation</string>
-    <string name="chat_header_content_model">Modèle sélectionné</string>
+    <string name="chat_header_content_title_option">Titre</string>
+    <string name="chat_header_content_model">Modèle</string>
     <string name="chat_header_content_none">Rien</string>
-    <string name="chat_header_alignment_label">Alignement</string>
     <string name="chat_header_alignment_left">Gauche</string>
     <string name="chat_header_alignment_center">Centre</string>
     <string name="chat_header_alignment_fill">Pleine largeur</string>
-    <string name="font_size">Taille de police</string>
     <string name="font_size_small">Petite</string>
     <string name="font_size_medium">Moyenne</string>
     <string name="font_size_large">Grande</string>
@@ -1057,6 +1049,16 @@
     <string name="appearance_section_style">Style</string>
     <string name="appearance_section_color">Couleur</string>
     <string name="appearance_chat_appearance">Apparence des discussions</string>
+    <string name="chat_appearance_layout">Disposition</string>
+    <string name="chat_appearance_text_size">Taille du texte</string>
+    <string name="chat_appearance_title_bar">La barre de titre affiche</string>
+    <string name="chat_appearance_title_position">Position du titre</string>
+    <string name="chat_appearance_sample_title">Une journée à Lisbonne</string>
+    <string name="chat_appearance_sample_agent">Planificateur de voyage</string>
+    <string name="chat_appearance_sample_you">Vous</string>
+    <string name="chat_appearance_sample_question">Que voir à Lisbonne en une journée ?</string>
+    <string name="chat_appearance_sample_answer">Commencez à Belém avec un pastel de nata, prenez le tram 28 jusqu'à l'Alfama et finissez sur un belvédère au coucher du soleil.</string>
+    <string name="chat_appearance_sample_thanks">Parfait, merci !</string>
     <string name="appearance_section_tablet_layout">Disposition tablette</string>
     <string name="accent_using_wallpaper">Couleurs du fond d’écran utilisées</string>
     <string name="admin_panel">Panneau d’administration</string>

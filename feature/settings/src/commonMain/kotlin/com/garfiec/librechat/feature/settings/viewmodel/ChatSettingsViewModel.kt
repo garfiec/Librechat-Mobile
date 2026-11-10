@@ -9,9 +9,6 @@ import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore.Decision
 import com.garfiec.librechat.core.data.datastore.ArtifactLibraryConsentStore.Subject
-import com.garfiec.librechat.core.data.datastore.ChatFontSize
-import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
-import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.FlaggedArtifactLibraries
@@ -163,20 +160,8 @@ class ChatSettingsViewModel(
         }
     }
 
-    fun setChatFontSize(size: ChatFontSize) {
-        prefsController.setChatFontSize(size)
-    }
-
     fun setStarredModelsDisplay(display: StarredModelsDisplay) {
         prefsController.setStarredModelsDisplay(display)
-    }
-
-    fun setChatHeaderContent(content: ChatHeaderContent) {
-        prefsController.setChatHeaderContent(content)
-    }
-
-    fun setChatHeaderAlignment(alignment: ChatHeaderAlignment) {
-        prefsController.setChatHeaderAlignment(alignment)
     }
 
     fun setThinkingOpenByDefault(open: Boolean) {

@@ -270,17 +270,14 @@
     <string name="chat_group_display">Отображение</string>
 
     <!-- Chat settings -->
-    <string name="chat_layout">Макет чата</string>
     <string name="chat_layout_thread">Лента</string>
-    <string name="chat_layout_two_sided">Двусторонний чат</string>
+    <string name="chat_layout_two_sided">Двусторонний</string>
     <string name="chat_layout_thread_desc">Все сообщения выровнены по левому краю с аватаром и именем</string>
     <string name="chat_layout_two_sided_desc">Сообщения пользователя справа, агента — слева</string>
     <string name="show_bubbles">Показывать пузырьки</string>
     <string name="show_bubbles_desc">Добавлять скруглённый фон-пузырёк к сообщениям</string>
     <string name="show_avatars">Показывать аватары</string>
     <string name="show_avatars_desc">Отображать аватары пользователя и агента рядом с сообщениями</string>
-    <string name="chat_layout_bubbles">Пузырьки</string>
-    <string name="chat_layout_avatars">Аватары</string>
     <string name="starred_models_title">Избранные модели</string>
     <string name="starred_models_desc">Показывать закреплённые модели и агентов в начале списка выбора модели</string>
     <string name="starred_models_off">Выключено</string>
@@ -296,17 +293,12 @@
     <string name="web_search_first_librechat_desc">Поиск вашего сервера, с источниками. Если на сервере поиск не настроен, используется встроенный поиск модели.</string>
     <string name="web_search_first_built_in">Сначала встроенный поиск</string>
     <string name="web_search_first_built_in_desc">Собственный поиск провайдера модели (OpenAI, Claude, Gemini, OpenRouter). Для других моделей используется поиск LibreChat.</string>
-    <string name="chat_header_title">Заголовок чата</string>
-    <string name="chat_header_summary_format">%1$s · %2$s</string>
-    <string name="chat_header_content_label">Содержимое</string>
-    <string name="chat_header_content_title_option">Название беседы</string>
-    <string name="chat_header_content_model">Выбранная модель</string>
+    <string name="chat_header_content_title_option">Название</string>
+    <string name="chat_header_content_model">Модель</string>
     <string name="chat_header_content_none">Ничего</string>
-    <string name="chat_header_alignment_label">Выравнивание</string>
     <string name="chat_header_alignment_left">Слева</string>
     <string name="chat_header_alignment_center">По центру</string>
     <string name="chat_header_alignment_fill">На всю ширину</string>
-    <string name="font_size">Размер шрифта</string>
     <string name="font_size_small">Мелкий</string>
     <string name="font_size_medium">Средний</string>
     <string name="font_size_large">Крупный</string>
@@ -1088,6 +1080,16 @@
     <string name="appearance_section_style">Стиль</string>
     <string name="appearance_section_color">Цвет</string>
     <string name="appearance_chat_appearance">Вид чата</string>
+    <string name="chat_appearance_layout">Макет</string>
+    <string name="chat_appearance_text_size">Размер текста</string>
+    <string name="chat_appearance_title_bar">В строке заголовка</string>
+    <string name="chat_appearance_title_position">Положение заголовка</string>
+    <string name="chat_appearance_sample_title">Один день в Лиссабоне</string>
+    <string name="chat_appearance_sample_agent">Планировщик поездок</string>
+    <string name="chat_appearance_sample_you">Вы</string>
+    <string name="chat_appearance_sample_question">Что посмотреть в Лиссабоне за один день?</string>
+    <string name="chat_appearance_sample_answer">Начните в Белене с пирожного паштел-де-ната, поднимитесь на трамвае 28 в Алфаму и встретьте закат на смотровой площадке.</string>
+    <string name="chat_appearance_sample_thanks">Отлично, спасибо!</string>
     <string name="appearance_section_tablet_layout">Макет для планшета</string>
     <string name="accent_using_wallpaper">Используются цвета обоев</string>
     <string name="admin_panel">Панель администратора</string>

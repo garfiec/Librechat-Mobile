@@ -252,17 +252,14 @@
     <string name="chat_group_display">표시</string>
 
     <!-- Chat settings -->
-    <string name="chat_layout">채팅 레이아웃</string>
     <string name="chat_layout_thread">스레드</string>
-    <string name="chat_layout_two_sided">양방향 채팅</string>
+    <string name="chat_layout_two_sided">양방향</string>
     <string name="chat_layout_thread_desc">모든 메시지가 아바타와 이름과 함께 왼쪽에 정렬됩니다</string>
     <string name="chat_layout_two_sided_desc">사용자 메시지는 오른쪽, 에이전트는 왼쪽에 표시</string>
     <string name="show_bubbles">말풍선 표시</string>
     <string name="show_bubbles_desc">메시지에 둥근 말풍선 배경 추가</string>
     <string name="show_avatars">아바타 표시</string>
     <string name="show_avatars_desc">메시지 옆에 사용자와 에이전트 아바타 표시</string>
-    <string name="chat_layout_bubbles">말풍선</string>
-    <string name="chat_layout_avatars">아바타</string>
     <string name="starred_models_title">즐겨찾기한 모델</string>
     <string name="starred_models_desc">고정한 모델과 에이전트를 모델 선택기 상단에 표시</string>
     <string name="starred_models_off">끔</string>
@@ -278,17 +275,12 @@
     <string name="web_search_first_librechat_desc">서버의 검색으로, 출처를 함께 보여 줍니다. 서버에 설정된 검색이 없으면 모델의 기본 제공 검색을 사용합니다.</string>
     <string name="web_search_first_built_in">기본 제공 검색 우선</string>
     <string name="web_search_first_built_in_desc">모델 제공업체의 자체 검색(OpenAI, Claude, Gemini, OpenRouter)입니다. 다른 모델에서는 LibreChat 검색을 사용합니다.</string>
-    <string name="chat_header_title">채팅 헤더</string>
-    <string name="chat_header_summary_format">%1$s · %2$s</string>
-    <string name="chat_header_content_label">내용</string>
-    <string name="chat_header_content_title_option">대화 제목</string>
-    <string name="chat_header_content_model">선택한 모델</string>
+    <string name="chat_header_content_title_option">제목</string>
+    <string name="chat_header_content_model">모델</string>
     <string name="chat_header_content_none">없음</string>
-    <string name="chat_header_alignment_label">정렬</string>
     <string name="chat_header_alignment_left">왼쪽</string>
     <string name="chat_header_alignment_center">가운데</string>
     <string name="chat_header_alignment_fill">전체 너비</string>
-    <string name="font_size">글자 크기</string>
     <string name="font_size_small">작게</string>
     <string name="font_size_medium">보통</string>
     <string name="font_size_large">크게</string>
@@ -1040,6 +1032,16 @@
     <string name="appearance_section_style">스타일</string>
     <string name="appearance_section_color">색상</string>
     <string name="appearance_chat_appearance">채팅 모양</string>
+    <string name="chat_appearance_layout">레이아웃</string>
+    <string name="chat_appearance_text_size">글자 크기</string>
+    <string name="chat_appearance_title_bar">제목 표시줄 내용</string>
+    <string name="chat_appearance_title_position">제목 위치</string>
+    <string name="chat_appearance_sample_title">리스본에서의 하루</string>
+    <string name="chat_appearance_sample_agent">여행 플래너</string>
+    <string name="chat_appearance_sample_you">나</string>
+    <string name="chat_appearance_sample_question">리스본에서 하루 동안 무엇을 봐야 할까요?</string>
+    <string name="chat_appearance_sample_answer">벨렝에서 에그타르트로 시작해 28번 트램을 타고 알파마로 올라간 뒤, 전망대에서 노을을 보며 마무리하세요.</string>
+    <string name="chat_appearance_sample_thanks">완벽해요, 고마워요!</string>
     <string name="appearance_section_tablet_layout">태블릿 레이아웃</string>
     <string name="accent_using_wallpaper">배경화면 색상 사용 중</string>
     <string name="admin_panel">관리자 패널</string>

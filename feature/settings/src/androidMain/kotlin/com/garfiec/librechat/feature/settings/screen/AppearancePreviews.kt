@@ -9,11 +9,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.garfiec.librechat.core.common.ChatLayoutConstants
+import com.garfiec.librechat.core.data.datastore.ChatFontSize
+import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.data.datastore.ThemeMode
 import com.garfiec.librechat.core.model.ui.UiStyle
 import com.garfiec.librechat.core.ui.preview.PreviewNarrowScreens
 import com.garfiec.librechat.core.ui.theme.DefaultAccentSeed
 import com.garfiec.librechat.core.ui.theme.LibreChatTheme
+import com.garfiec.librechat.feature.settings.viewmodel.ChatLayoutSettingsUiState
 
 @PreviewNarrowScreens
 @Composable
@@ -22,6 +26,15 @@ private fun ThemeSelectorMaterialPreview() = PreviewSurface(UiStyle.MATERIAL) { 
 @PreviewNarrowScreens
 @Composable
 private fun ThemeSelectorGlassPreview() = PreviewSurface(UiStyle.LIQUID_GLASS) { ThemeSelectorHost(UiStyle.LIQUID_GLASS) }
+
+// Two-sided with bubbles at the large text size and the model in the title bar: the longest preview.
+@PreviewNarrowScreens
+@Composable
+private fun ChatAppearanceMaterialPreview() = PreviewSurface(UiStyle.MATERIAL) { ChatAppearanceHost() }
+
+@PreviewNarrowScreens
+@Composable
+private fun ChatAppearanceGlassPreview() = PreviewSurface(UiStyle.LIQUID_GLASS) { ChatAppearanceHost() }
 
 @Composable
 private fun PreviewSurface(style: UiStyle, content: @Composable () -> Unit) {
@@ -39,5 +52,30 @@ private fun ThemeSelectorHost(style: UiStyle) {
         accentColor = DefaultAccentSeed,
         useDynamicColor = false,
         onSelect = { selected = it },
+    )
+}
+
+@Composable
+private fun ChatAppearanceHost() {
+    var state by remember {
+        mutableStateOf(
+            ChatLayoutSettingsUiState(
+                layoutStyle = ChatLayoutConstants.TWO_SIDED,
+                showBubbles = true,
+                fontSize = ChatFontSize.LARGE,
+                headerContent = ChatHeaderContent.MODEL,
+            ),
+        )
+    }
+    ChatAppearanceContent(
+        state = state,
+        actions = ChatAppearanceActions(
+            onLayoutStyle = { state = state.copy(layoutStyle = it) },
+            onFontSize = { state = state.copy(fontSize = it) },
+            onHeaderContent = { state = state.copy(headerContent = it) },
+            onHeaderAlignment = { state = state.copy(headerAlignment = it) },
+            onShowBubbles = { state = state.copy(showBubbles = it) },
+            onShowAvatars = { state = state.copy(showAvatars = it) },
+        ),
     )
 }

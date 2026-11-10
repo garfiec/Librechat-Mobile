@@ -258,17 +258,14 @@
     <string name="chat_group_display">Visualización</string>
 
     <!-- Chat settings -->
-    <string name="chat_layout">Diseño del chat</string>
     <string name="chat_layout_thread">Hilo</string>
-    <string name="chat_layout_two_sided">Chat de dos lados</string>
+    <string name="chat_layout_two_sided">Dos lados</string>
     <string name="chat_layout_thread_desc">Todos los mensajes alineados a la izquierda con avatar y nombre</string>
     <string name="chat_layout_two_sided_desc">Mensajes del usuario a la derecha, del agente a la izquierda</string>
     <string name="show_bubbles">Mostrar burbujas</string>
     <string name="show_bubbles_desc">Añade fondos de burbuja redondeados a los mensajes</string>
     <string name="show_avatars">Mostrar avatares</string>
     <string name="show_avatars_desc">Muestra los avatares del usuario y del agente junto a los mensajes</string>
-    <string name="chat_layout_bubbles">Burbujas</string>
-    <string name="chat_layout_avatars">Avatares</string>
     <string name="starred_models_title">Modelos destacados</string>
     <string name="starred_models_desc">Muestra tus modelos y agentes fijados en la parte superior del selector de modelos</string>
     <string name="starred_models_off">Desactivado</string>
@@ -284,17 +281,12 @@
     <string name="web_search_first_librechat_desc">La búsqueda de tu servidor, con fuentes. Usa la búsqueda integrada del modelo cuando el servidor no tiene ninguna configurada.</string>
     <string name="web_search_first_built_in">Primero la búsqueda integrada</string>
     <string name="web_search_first_built_in_desc">La búsqueda propia del proveedor del modelo (OpenAI, Claude, Gemini, OpenRouter). Usa la búsqueda de LibreChat con otros modelos.</string>
-    <string name="chat_header_title">Encabezado del chat</string>
-    <string name="chat_header_summary_format">%1$s · %2$s</string>
-    <string name="chat_header_content_label">Contenido</string>
-    <string name="chat_header_content_title_option">Título de la conversación</string>
-    <string name="chat_header_content_model">Modelo seleccionado</string>
+    <string name="chat_header_content_title_option">Título</string>
+    <string name="chat_header_content_model">Modelo</string>
     <string name="chat_header_content_none">Nada</string>
-    <string name="chat_header_alignment_label">Alineación</string>
     <string name="chat_header_alignment_left">Izquierda</string>
     <string name="chat_header_alignment_center">Centro</string>
     <string name="chat_header_alignment_fill">Ancho completo</string>
-    <string name="font_size">Tamaño de fuente</string>
     <string name="font_size_small">Pequeño</string>
     <string name="font_size_medium">Mediano</string>
     <string name="font_size_large">Grande</string>
@@ -1057,6 +1049,16 @@
     <string name="appearance_section_style">Estilo</string>
     <string name="appearance_section_color">Color</string>
     <string name="appearance_chat_appearance">Apariencia del chat</string>
+    <string name="chat_appearance_layout">Diseño</string>
+    <string name="chat_appearance_text_size">Tamaño del texto</string>
+    <string name="chat_appearance_title_bar">La barra de título muestra</string>
+    <string name="chat_appearance_title_position">Posición del título</string>
+    <string name="chat_appearance_sample_title">Un día en Lisboa</string>
+    <string name="chat_appearance_sample_agent">Planificador de viajes</string>
+    <string name="chat_appearance_sample_you">Tú</string>
+    <string name="chat_appearance_sample_question">¿Qué debería ver en Lisboa en un día?</string>
+    <string name="chat_appearance_sample_answer">Empieza en Belém con un pastel de nata, sube en el tranvía 28 hasta Alfama y termina en un mirador al atardecer.</string>
+    <string name="chat_appearance_sample_thanks">¡Perfecto, gracias!</string>
     <string name="appearance_section_tablet_layout">Diseño para tableta</string>
     <string name="accent_using_wallpaper">Usando los colores del fondo de pantalla</string>
     <string name="admin_panel">Panel de administración</string>

@@ -35,7 +35,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -54,7 +53,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.garfiec.librechat.core.data.datastore.ChatFontSize
 import com.garfiec.librechat.core.data.datastore.ThemeMode
 import com.garfiec.librechat.core.model.ui.GlassCapability
 import com.garfiec.librechat.core.model.ui.UiStyle
@@ -83,7 +81,6 @@ import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.AppearanceSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.ChatLayoutSettingsViewModel
-import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.GeneralSettingsViewModel
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -116,14 +113,11 @@ fun AppearanceSettingsPage(
     viewModel: AppearanceSettingsViewModel = koinViewModel(),
     generalViewModel: GeneralSettingsViewModel = koinViewModel(),
     chatLayoutViewModel: ChatLayoutSettingsViewModel = koinViewModel(),
-    chatViewModel: ChatSettingsViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val general by generalViewModel.uiState.collectAsStateWithLifecycle()
     val chatLayout by chatLayoutViewModel.uiState.collectAsStateWithLifecycle()
-    val chat by chatViewModel.uiState.collectAsStateWithLifecycle()
     var choosingAccent by rememberSaveable { mutableStateOf(false) }
-    var chatDialog by remember { mutableStateOf<ChatSettingDialog?>(null) }
     // The swipe opens the sidebar of the sidebar layout, so it means nothing while the drawer is in use.
     val usesSidebar = windowUsesSidebarLayout()
 
@@ -198,25 +192,6 @@ fun AppearanceSettingsPage(
                         onClick = onNavigateToChatLayout,
                     )
                 }
-                // Text size and the title bar stay here until the Chat appearance page takes them.
-                row(key = "font_size") {
-                    SettingsRow(
-                        title = stringResource(Res.string.font_size),
-                        summary = fontSizeLabel(chat.chatFontSize),
-                        onClick = { chatDialog = ChatSettingDialog.FONT_SIZE },
-                    )
-                }
-                row(key = "chat_header") {
-                    SettingsRow(
-                        title = stringResource(Res.string.chat_header_title),
-                        summary = stringResource(
-                            Res.string.chat_header_summary_format,
-                            chatHeaderContentLabel(chat.chatHeaderContent),
-                            chatHeaderAlignmentLabel(chat.chatHeaderAlignment),
-                        ),
-                        onClick = { chatDialog = ChatSettingDialog.CHAT_HEADER },
-                    )
-                }
             }
             if (usesSidebar) {
                 item(key = "tablet_header") {
@@ -247,30 +222,6 @@ fun AppearanceSettingsPage(
                 },
                 onDismiss = { choosingAccent = false },
             )
-        }
-        when (chatDialog) {
-            ChatSettingDialog.FONT_SIZE -> RadioSelectionDialog(
-                title = stringResource(Res.string.font_size),
-                options = ChatFontSize.entries,
-                selected = chat.chatFontSize,
-                onSave = {
-                    chatViewModel.setChatFontSize(it)
-                    chatDialog = null
-                },
-                onDismiss = { chatDialog = null },
-                optionLabel = { fontSizeLabel(it) },
-            )
-            ChatSettingDialog.CHAT_HEADER -> ChatHeaderSettingsDialog(
-                content = chat.chatHeaderContent,
-                alignment = chat.chatHeaderAlignment,
-                onSave = { content, alignment ->
-                    chatViewModel.setChatHeaderContent(content)
-                    chatViewModel.setChatHeaderAlignment(alignment)
-                    chatDialog = null
-                },
-                onDismiss = { chatDialog = null },
-            )
-            else -> Unit
         }
     }
 }

@@ -252,17 +252,14 @@
     <string name="chat_group_display">显示</string>
 
     <!-- Chat settings -->
-    <string name="chat_layout">聊天布局</string>
     <string name="chat_layout_thread">线程式</string>
-    <string name="chat_layout_two_sided">双侧聊天</string>
+    <string name="chat_layout_two_sided">双侧</string>
     <string name="chat_layout_thread_desc">所有消息左对齐，带头像和名称</string>
     <string name="chat_layout_two_sided_desc">用户消息靠右，智能体靠左</string>
     <string name="show_bubbles">显示气泡</string>
     <string name="show_bubbles_desc">为消息添加圆角气泡背景</string>
     <string name="show_avatars">显示头像</string>
     <string name="show_avatars_desc">在消息旁显示用户和智能体头像</string>
-    <string name="chat_layout_bubbles">气泡</string>
-    <string name="chat_layout_avatars">头像</string>
     <string name="starred_models_title">星标模型</string>
     <string name="starred_models_desc">在模型选择器顶部显示已固定的模型和智能体</string>
     <string name="starred_models_off">关闭</string>
@@ -278,17 +275,12 @@
     <string name="web_search_first_librechat_desc">你服务器的搜索,附带来源。服务器未设置搜索时,使用模型的内置搜索。</string>
     <string name="web_search_first_built_in">优先内置搜索</string>
     <string name="web_search_first_built_in_desc">模型提供商自己的搜索(OpenAI、Claude、Gemini、OpenRouter)。其他模型使用 LibreChat 搜索。</string>
-    <string name="chat_header_title">聊天标题栏</string>
-    <string name="chat_header_summary_format">%1$s · %2$s</string>
-    <string name="chat_header_content_label">内容</string>
-    <string name="chat_header_content_title_option">对话标题</string>
-    <string name="chat_header_content_model">所选模型</string>
+    <string name="chat_header_content_title_option">标题</string>
+    <string name="chat_header_content_model">模型</string>
     <string name="chat_header_content_none">无</string>
-    <string name="chat_header_alignment_label">对齐方式</string>
     <string name="chat_header_alignment_left">左对齐</string>
     <string name="chat_header_alignment_center">居中</string>
-    <string name="chat_header_alignment_fill">填满宽度</string>
-    <string name="font_size">字体大小</string>
+    <string name="chat_header_alignment_fill">全宽</string>
     <string name="font_size_small">小</string>
     <string name="font_size_medium">中</string>
     <string name="font_size_large">大</string>
@@ -1040,6 +1032,16 @@
     <string name="appearance_section_style">风格</string>
     <string name="appearance_section_color">颜色</string>
     <string name="appearance_chat_appearance">聊天外观</string>
+    <string name="chat_appearance_layout">布局</string>
+    <string name="chat_appearance_text_size">文字大小</string>
+    <string name="chat_appearance_title_bar">标题栏显示</string>
+    <string name="chat_appearance_title_position">标题位置</string>
+    <string name="chat_appearance_sample_title">里斯本一日游</string>
+    <string name="chat_appearance_sample_agent">旅行规划师</string>
+    <string name="chat_appearance_sample_you">你</string>
+    <string name="chat_appearance_sample_question">在里斯本待一天，应该去看什么？</string>
+    <string name="chat_appearance_sample_answer">先在贝伦尝一个葡式蛋挞，再乘 28 路电车上到阿尔法玛，最后在观景台看日落。</string>
+    <string name="chat_appearance_sample_thanks">太好了，谢谢！</string>
     <string name="appearance_section_tablet_layout">平板布局</string>
     <string name="accent_using_wallpaper">正在使用壁纸颜色</string>
     <string name="admin_panel">管理面板</string>

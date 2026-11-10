@@ -2,9 +2,6 @@ package com.garfiec.librechat.feature.settings.viewmodel
 
 import androidx.compose.runtime.Immutable
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayPrefs
-import com.garfiec.librechat.core.data.datastore.ChatFontSize
-import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
-import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
@@ -21,7 +18,6 @@ data class ChatSettingsUiState(
     /** A voice test, preview or playback failure for the snackbar; cleared by [ChatSettingsViewModel.dismissError]. */
     val error: SpeechFailure? = null,
     // Chat preferences
-    val chatFontSize: ChatFontSize = ChatFontSize.MEDIUM,
     /** Whether a reply's reasoning block starts expanded; the block itself is always shown. */
     val thinkingOpenByDefault: Boolean = false,
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
@@ -76,9 +72,6 @@ data class ChatSettingsUiState(
     val clientImageResizePreference: Boolean = true,
     /** The admin's `clientImageResize.enabled` when set (the user's choice is then ignored); null otherwise. */
     val clientImageResizeAdmin: Boolean? = null,
-    // Mobile-only: what the chat floating top bar shows + how its bubble is aligned
-    val chatHeaderContent: ChatHeaderContent = ChatHeaderContent.TITLE,
-    val chatHeaderAlignment: ChatHeaderAlignment = ChatHeaderAlignment.LEFT,
     // Inline artifact rendering (per-type toggles)
     val inlineArtifactPrefs: InlineArtifactPrefs = InlineArtifactPrefs(),
     // Artifact viewer presentation (bottom sheet vs full screen + selector visibility)

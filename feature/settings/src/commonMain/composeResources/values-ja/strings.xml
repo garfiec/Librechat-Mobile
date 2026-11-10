@@ -252,17 +252,14 @@
     <string name="chat_group_display">表示</string>
 
     <!-- Chat settings -->
-    <string name="chat_layout">チャットレイアウト</string>
     <string name="chat_layout_thread">スレッド</string>
-    <string name="chat_layout_two_sided">左右に分かれたチャット</string>
+    <string name="chat_layout_two_sided">左右</string>
     <string name="chat_layout_thread_desc">すべてのメッセージをアバターと名前付きで左揃えに表示</string>
     <string name="chat_layout_two_sided_desc">ユーザーのメッセージを右、エージェントを左に表示</string>
     <string name="show_bubbles">吹き出しを表示</string>
     <string name="show_bubbles_desc">メッセージに角丸の吹き出し背景を追加します</string>
     <string name="show_avatars">アバターを表示</string>
     <string name="show_avatars_desc">メッセージの横にユーザーとエージェントのアバターを表示します</string>
-    <string name="chat_layout_bubbles">吹き出し</string>
-    <string name="chat_layout_avatars">アバター</string>
     <string name="starred_models_title">スター付きモデル</string>
     <string name="starred_models_desc">ピン留めしたモデルとエージェントをモデルピッカーの上部に表示します</string>
     <string name="starred_models_off">オフ</string>
@@ -278,17 +275,12 @@
     <string name="web_search_first_librechat_desc">サーバーの検索(出典付き)。サーバーに検索が設定されていない場合は、モデルの組み込み検索を使います。</string>
     <string name="web_search_first_built_in">組み込み検索を優先</string>
     <string name="web_search_first_built_in_desc">モデル提供元の検索(OpenAI、Claude、Gemini、OpenRouter)。その他のモデルでは LibreChat 検索を使います。</string>
-    <string name="chat_header_title">チャットヘッダー</string>
-    <string name="chat_header_summary_format">%1$s · %2$s</string>
-    <string name="chat_header_content_label">内容</string>
-    <string name="chat_header_content_title_option">会話のタイトル</string>
-    <string name="chat_header_content_model">選択中のモデル</string>
+    <string name="chat_header_content_title_option">タイトル</string>
+    <string name="chat_header_content_model">モデル</string>
     <string name="chat_header_content_none">なし</string>
-    <string name="chat_header_alignment_label">配置</string>
     <string name="chat_header_alignment_left">左</string>
     <string name="chat_header_alignment_center">中央</string>
     <string name="chat_header_alignment_fill">幅いっぱい</string>
-    <string name="font_size">フォントサイズ</string>
     <string name="font_size_small">小</string>
     <string name="font_size_medium">中</string>
     <string name="font_size_large">大</string>
@@ -1040,6 +1032,16 @@
     <string name="appearance_section_style">スタイル</string>
     <string name="appearance_section_color">カラー</string>
     <string name="appearance_chat_appearance">チャットの外観</string>
+    <string name="chat_appearance_layout">レイアウト</string>
+    <string name="chat_appearance_text_size">文字サイズ</string>
+    <string name="chat_appearance_title_bar">タイトルバーの表示</string>
+    <string name="chat_appearance_title_position">タイトルの位置</string>
+    <string name="chat_appearance_sample_title">リスボンの1日</string>
+    <string name="chat_appearance_sample_agent">旅行プランナー</string>
+    <string name="chat_appearance_sample_you">あなた</string>
+    <string name="chat_appearance_sample_question">リスボンで1日過ごすなら、どこを見るべき？</string>
+    <string name="chat_appearance_sample_answer">まずベレンでエッグタルトを味わい、28番トラムでアルファマへ上って、最後は展望台で夕日を眺めましょう。</string>
+    <string name="chat_appearance_sample_thanks">完璧、ありがとう！</string>
     <string name="appearance_section_tablet_layout">タブレットのレイアウト</string>
     <string name="accent_using_wallpaper">壁紙の色を使用中</string>
     <string name="admin_panel">管理パネル</string>

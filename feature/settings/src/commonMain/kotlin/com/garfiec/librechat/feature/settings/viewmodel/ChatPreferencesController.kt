@@ -3,9 +3,6 @@ package com.garfiec.librechat.feature.settings.viewmodel
 import com.garfiec.librechat.core.data.datastore.AppPreferences
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.data.datastore.ArtifactDisplayPrefs
-import com.garfiec.librechat.core.data.datastore.ChatFontSize
-import com.garfiec.librechat.core.data.datastore.ChatHeaderAlignment
-import com.garfiec.librechat.core.data.datastore.ChatHeaderContent
 import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
@@ -22,12 +19,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-
-/** Intermediate holder for the combined DataStore preferences. */
-private data class DataStorePreferences(
-    val chatFontSize: ChatFontSize,
-    val thinkingOpenByDefault: Boolean,
-)
 
 /** Extra DataStore preferences (separate combine since Kotlin combine maxes at 5). */
 private data class ExtraPreferences(
@@ -60,8 +51,6 @@ private data class AdditionalPreferences(
     val artifactDisplayPrefs: ArtifactDisplayPrefs = ArtifactDisplayPrefs(),
     val artifactsMode: ArtifactsMode = ArtifactsMode.DEFAULT,
     val starredModelsDisplay: StarredModelsDisplay = StarredModelsDisplay.GROUPED,
-    val chatHeaderContent: ChatHeaderContent = ChatHeaderContent.TITLE,
-    val chatHeaderAlignment: ChatHeaderAlignment = ChatHeaderAlignment.LEFT,
     val contextBarPlacement: ContextBarPlacement = ContextBarPlacement.OPTIONS_SHEET,
     val duringRunAction: DuringRunAction = DuringRunAction.STEER,
     val uploadRoutingMode: UploadRoutingMode = UploadRoutingMode.AUTO,
@@ -86,13 +75,8 @@ class ChatPreferencesController(
     baseState: StateFlow<ChatSettingsUiState>,
     private val scope: CoroutineScope,
 ) {
-    /** Combined DataStore preferences flow. */
-    private val dataStorePreferences: StateFlow<DataStorePreferences> = combine(
-        settingsDataStore.chatFontSize,
-        settingsDataStore.thinkingOpenByDefault,
-    ) { fontSize, thinkingOpen ->
-        DataStorePreferences(chatFontSize = fontSize, thinkingOpenByDefault = thinkingOpen)
-    }.stateIn(scope, SharingStarted.Eagerly, DataStorePreferences(ChatFontSize.MEDIUM, thinkingOpenByDefault = false))
+    private val thinkingOpenPref: StateFlow<Boolean> = settingsDataStore.thinkingOpenByDefault
+        .stateIn(scope, SharingStarted.Eagerly, false)
 
     private val extraPreferences: StateFlow<ExtraPreferences> = combine(
         settingsDataStore.autoReadEnabled,
@@ -133,12 +117,6 @@ class ChatPreferencesController(
     private val starredModelsDisplayPref: StateFlow<StarredModelsDisplay> = settingsDataStore.starredModelsDisplay
         .stateIn(scope, SharingStarted.Eagerly, StarredModelsDisplay.GROUPED)
 
-    private val chatHeaderContentPref: StateFlow<ChatHeaderContent> = settingsDataStore.chatHeaderContent
-        .stateIn(scope, SharingStarted.Eagerly, ChatHeaderContent.TITLE)
-
-    private val chatHeaderAlignmentPref: StateFlow<ChatHeaderAlignment> = settingsDataStore.chatHeaderAlignment
-        .stateIn(scope, SharingStarted.Eagerly, ChatHeaderAlignment.LEFT)
-
     private val contextBarPlacementPref: StateFlow<ContextBarPlacement> = settingsDataStore.contextBarPlacement
         .stateIn(scope, SharingStarted.Eagerly, ContextBarPlacement.OPTIONS_SHEET)
 
@@ -169,10 +147,6 @@ class ChatPreferencesController(
         additional.copy(artifactsMode = artifactsMode)
     }.combine(starredModelsDisplayPref) { additional, starredDisplay ->
         additional.copy(starredModelsDisplay = starredDisplay)
-    }.combine(chatHeaderContentPref) { additional, headerContent ->
-        additional.copy(chatHeaderContent = headerContent)
-    }.combine(chatHeaderAlignmentPref) { additional, headerAlignment ->
-        additional.copy(chatHeaderAlignment = headerAlignment)
     }.combine(contextBarPlacementPref) { additional, contextBarPlacement ->
         additional.copy(contextBarPlacement = contextBarPlacement)
     }.combine(duringRunActionPref) { additional, duringRunAction ->
@@ -204,15 +178,14 @@ class ChatPreferencesController(
     /** The single public UI state that merges DataStore preferences with imperative state. */
     val uiState: StateFlow<ChatSettingsUiState> = combine(
         baseState,
-        dataStorePreferences,
+        thinkingOpenPref,
         extraPreferences,
         deviceTtsPreferences,
         additionalPreferences,
-    ) { state, prefs, extra, deviceTts, additional ->
+    ) { state, thinkingOpen, extra, deviceTts, additional ->
         val selectedVoice = extra.selectedVoiceId?.let { id -> state.availableVoices.find { it.id == id } }
         state.copy(
-            chatFontSize = prefs.chatFontSize,
-            thinkingOpenByDefault = prefs.thinkingOpenByDefault,
+            thinkingOpenByDefault = thinkingOpen,
             autoReadEnabled = extra.autoRead,
             selectedVoice = selectedVoice,
             showImageDescriptions = extra.showImageDescriptions,
@@ -234,8 +207,6 @@ class ChatPreferencesController(
             artifactDisplayPrefs = additional.artifactDisplayPrefs,
             artifactsMode = additional.artifactsMode,
             starredModelsDisplay = additional.starredModelsDisplay,
-            chatHeaderContent = additional.chatHeaderContent,
-            chatHeaderAlignment = additional.chatHeaderAlignment,
             contextBarPlacement = additional.contextBarPlacement,
             duringRunAction = additional.duringRunAction,
             uploadRoutingMode = additional.uploadRoutingMode,
@@ -249,20 +220,8 @@ class ChatPreferencesController(
 
     // ── Write setters (fire-and-forget; return Unit, not the launched Job) ──
 
-    fun setChatFontSize(size: ChatFontSize) {
-        scope.launch { settingsDataStore.setChatFontSize(size) }
-    }
-
     fun setStarredModelsDisplay(display: StarredModelsDisplay) {
         scope.launch { settingsDataStore.setStarredModelsDisplay(display) }
-    }
-
-    fun setChatHeaderContent(content: ChatHeaderContent) {
-        scope.launch { settingsDataStore.setChatHeaderContent(content) }
-    }
-
-    fun setChatHeaderAlignment(alignment: ChatHeaderAlignment) {
-        scope.launch { settingsDataStore.setChatHeaderAlignment(alignment) }
     }
 
     fun setThinkingOpenByDefault(open: Boolean) {

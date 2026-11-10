@@ -258,17 +258,14 @@
     <string name="chat_group_display">Anzeige</string>
 
     <!-- Chat settings -->
-    <string name="chat_layout">Chat-Layout</string>
     <string name="chat_layout_thread">Thread</string>
-    <string name="chat_layout_two_sided">Zweiseitiger Chat</string>
+    <string name="chat_layout_two_sided">Zweiseitig</string>
     <string name="chat_layout_thread_desc">Alle Nachrichten links ausgerichtet mit Avatar und Name</string>
     <string name="chat_layout_two_sided_desc">Benutzernachrichten rechts, Agent links</string>
     <string name="show_bubbles">Sprechblasen anzeigen</string>
     <string name="show_bubbles_desc">Nachrichten mit abgerundeten Sprechblasen-Hintergründen versehen</string>
     <string name="show_avatars">Avatare anzeigen</string>
     <string name="show_avatars_desc">Benutzer- und Agent-Avatare neben Nachrichten anzeigen</string>
-    <string name="chat_layout_bubbles">Sprechblasen</string>
-    <string name="chat_layout_avatars">Avatare</string>
     <string name="starred_models_title">Markierte Modelle</string>
     <string name="starred_models_desc">Deine angehefteten Modelle und Agenten oben in der Modellauswahl anzeigen</string>
     <string name="starred_models_off">Aus</string>
@@ -284,17 +281,12 @@
     <string name="web_search_first_librechat_desc">Die Suche deines Servers, mit Quellen. Nutzt die integrierte Suche des Modells, wenn auf dem Server keine eingerichtet ist.</string>
     <string name="web_search_first_built_in">Zuerst integrierte Suche</string>
     <string name="web_search_first_built_in_desc">Die eigene Suche des Modellanbieters (OpenAI, Claude, Gemini, OpenRouter). Nutzt bei anderen Modellen die LibreChat-Suche.</string>
-    <string name="chat_header_title">Chat-Kopfzeile</string>
-    <string name="chat_header_summary_format">%1$s · %2$s</string>
-    <string name="chat_header_content_label">Inhalt</string>
-    <string name="chat_header_content_title_option">Unterhaltungstitel</string>
-    <string name="chat_header_content_model">Ausgewähltes Modell</string>
+    <string name="chat_header_content_title_option">Titel</string>
+    <string name="chat_header_content_model">Modell</string>
     <string name="chat_header_content_none">Nichts</string>
-    <string name="chat_header_alignment_label">Ausrichtung</string>
     <string name="chat_header_alignment_left">Links</string>
     <string name="chat_header_alignment_center">Zentriert</string>
     <string name="chat_header_alignment_fill">Volle Breite</string>
-    <string name="font_size">Schriftgröße</string>
     <string name="font_size_small">Klein</string>
     <string name="font_size_medium">Mittel</string>
     <string name="font_size_large">Groß</string>
@@ -1056,6 +1048,16 @@
     <string name="appearance_section_style">Stil</string>
     <string name="appearance_section_color">Farbe</string>
     <string name="appearance_chat_appearance">Chat-Darstellung</string>
+    <string name="chat_appearance_layout">Layout</string>
+    <string name="chat_appearance_text_size">Textgröße</string>
+    <string name="chat_appearance_title_bar">Titelleiste zeigt</string>
+    <string name="chat_appearance_title_position">Titelposition</string>
+    <string name="chat_appearance_sample_title">Ein Tag in Lissabon</string>
+    <string name="chat_appearance_sample_agent">Reiseplaner</string>
+    <string name="chat_appearance_sample_you">Du</string>
+    <string name="chat_appearance_sample_question">Was sollte ich an einem Tag in Lissabon sehen?</string>
+    <string name="chat_appearance_sample_answer">Beginne in Belém mit einem Puddingtörtchen, fahr mit der Tram 28 hinauf nach Alfama und schau dir den Sonnenuntergang von einem Aussichtspunkt an.</string>
+    <string name="chat_appearance_sample_thanks">Perfekt, danke!</string>
     <string name="appearance_section_tablet_layout">Tablet-Layout</string>
     <string name="accent_using_wallpaper">Hintergrundfarben werden verwendet</string>
     <string name="admin_panel">Admin-Bereich</string>

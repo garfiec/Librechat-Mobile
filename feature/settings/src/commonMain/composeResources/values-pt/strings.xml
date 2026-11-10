@@ -258,17 +258,14 @@
     <string name="chat_group_display">Exibição</string>
 
     <!-- Chat settings -->
-    <string name="chat_layout">Layout da conversa</string>
     <string name="chat_layout_thread">Encadeado</string>
-    <string name="chat_layout_two_sided">Conversa em dois lados</string>
+    <string name="chat_layout_two_sided">Dois lados</string>
     <string name="chat_layout_thread_desc">Todas as mensagens alinhadas à esquerda com avatar e nome</string>
     <string name="chat_layout_two_sided_desc">Mensagens do usuário à direita, do agente à esquerda</string>
     <string name="show_bubbles">Mostrar balões</string>
     <string name="show_bubbles_desc">Adicionar fundos de balão arredondados às mensagens</string>
     <string name="show_avatars">Mostrar avatares</string>
     <string name="show_avatars_desc">Exibir avatares do usuário e do agente ao lado das mensagens</string>
-    <string name="chat_layout_bubbles">Balões</string>
-    <string name="chat_layout_avatars">Avatares</string>
     <string name="starred_models_title">Modelos favoritos</string>
     <string name="starred_models_desc">Mostrar seus modelos e agentes fixados no topo do seletor de modelos</string>
     <string name="starred_models_off">Desativado</string>
@@ -284,17 +281,12 @@
     <string name="web_search_first_librechat_desc">A pesquisa do seu servidor, com fontes. Usa a pesquisa integrada do modelo quando o servidor não tem nenhuma configurada.</string>
     <string name="web_search_first_built_in">Pesquisa integrada primeiro</string>
     <string name="web_search_first_built_in_desc">A pesquisa do próprio provedor do modelo (OpenAI, Claude, Gemini, OpenRouter). Usa a pesquisa do LibreChat em outros modelos.</string>
-    <string name="chat_header_title">Cabeçalho da conversa</string>
-    <string name="chat_header_summary_format">%1$s · %2$s</string>
-    <string name="chat_header_content_label">Conteúdo</string>
-    <string name="chat_header_content_title_option">Título da conversa</string>
-    <string name="chat_header_content_model">Modelo selecionado</string>
+    <string name="chat_header_content_title_option">Título</string>
+    <string name="chat_header_content_model">Modelo</string>
     <string name="chat_header_content_none">Nada</string>
-    <string name="chat_header_alignment_label">Alinhamento</string>
     <string name="chat_header_alignment_left">Esquerda</string>
     <string name="chat_header_alignment_center">Centro</string>
     <string name="chat_header_alignment_fill">Largura total</string>
-    <string name="font_size">Tamanho da fonte</string>
     <string name="font_size_small">Pequeno</string>
     <string name="font_size_medium">Médio</string>
     <string name="font_size_large">Grande</string>
@@ -1057,6 +1049,16 @@
     <string name="appearance_section_style">Estilo</string>
     <string name="appearance_section_color">Cor</string>
     <string name="appearance_chat_appearance">Aparência do chat</string>
+    <string name="chat_appearance_layout">Layout</string>
+    <string name="chat_appearance_text_size">Tamanho do texto</string>
+    <string name="chat_appearance_title_bar">A barra de título mostra</string>
+    <string name="chat_appearance_title_position">Posição do título</string>
+    <string name="chat_appearance_sample_title">Um dia em Lisboa</string>
+    <string name="chat_appearance_sample_agent">Planejador de viagens</string>
+    <string name="chat_appearance_sample_you">Você</string>
+    <string name="chat_appearance_sample_question">O que devo ver em Lisboa em um dia?</string>
+    <string name="chat_appearance_sample_answer">Comece em Belém com um pastel de nata, suba no bonde 28 até Alfama e termine em um mirante para ver o pôr do sol.</string>
+    <string name="chat_appearance_sample_thanks">Perfeito, obrigado!</string>
     <string name="appearance_section_tablet_layout">Layout de tablet</string>
     <string name="accent_using_wallpaper">Usando as cores do papel de parede</string>
     <string name="admin_panel">Painel de administração</string>
