@@ -6,6 +6,7 @@ import com.garfiec.librechat.core.data.datastore.ContextBarPlacement
 import com.garfiec.librechat.core.data.datastore.DuringRunAction
 import com.garfiec.librechat.core.data.datastore.InlineArtifactPrefs
 import com.garfiec.librechat.core.data.datastore.LatexRenderer
+import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.data.datastore.UploadRoutingMode
 import com.garfiec.librechat.core.data.datastore.WebSearchPreference
@@ -48,7 +49,7 @@ data class ChatSettingsUiState(
     val ttsSpeechRate: Float = 1.0f,
     val ttsPitch: Float = 1.0f,
     val ttsDeviceVoiceName: String = "",
-    val ttsSource: String = TTS_SOURCE_DEVICE,
+    val ttsSource: String = SettingsDataStore.TTS_SOURCE_DEVICE,
     val availableDeviceVoices: List<DeviceVoiceInfo> = emptyList(),
     // TTS preview
     val isTtsPreviewPlaying: Boolean = false,
@@ -72,10 +73,6 @@ data class ChatSettingsUiState(
     // What the Artifacts tool is taught when on; app-wide, read by chat's request
     val artifactsMode: ArtifactsMode = ArtifactsMode.DEFAULT,
 )
-
-/** The stored `tts_source` values: the device's own engine, or the server's TTS route. */
-internal const val TTS_SOURCE_DEVICE = "device"
-internal const val TTS_SOURCE_SERVER = "server"
 
 /**
  * A device voice offered on the Voice page; [id] is what Settings stores and playback looks up. It must

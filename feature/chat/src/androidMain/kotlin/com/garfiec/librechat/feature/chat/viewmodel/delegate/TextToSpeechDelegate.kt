@@ -106,7 +106,7 @@ class TextToSpeechDelegate(
 
         readJob = handle.scope.launch {
             val source = settingsDataStore.ttsSource.first()
-            if (source == "server") {
+            if (source == SettingsDataStore.TTS_SOURCE_SERVER) {
                 readAloudViaServer(text)
             } else {
                 val rate = settingsDataStore.ttsSpeechRate.first()
@@ -260,7 +260,7 @@ class TextToSpeechDelegate(
             handle.update { voice = voice.copy(currentlyReadingMessageId = syntheticId) }
 
             val source = settingsDataStore.ttsSource.first()
-            if (source == "server") {
+            if (source == SettingsDataStore.TTS_SOURCE_SERVER) {
                 readAloudViaServer(responseText)
             } else {
                 val rate = settingsDataStore.ttsSpeechRate.first()

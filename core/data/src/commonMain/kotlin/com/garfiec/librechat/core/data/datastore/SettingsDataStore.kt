@@ -244,7 +244,7 @@ class SettingsDataStore(
     }
 
     val ttsSource: Flow<String> = dataStore.data.map { prefs ->
-        prefs[KEY_TTS_SOURCE] ?: "device"
+        prefs[KEY_TTS_SOURCE] ?: TTS_SOURCE_DEVICE
     }
 
     val ttsSpeechRate: Flow<Float> = dataStore.data.map { prefs ->
@@ -881,6 +881,10 @@ class SettingsDataStore(
          * `Constants.spec_defaults_key`), kept apart from [SKILLS_TOGGLE_NEW_CHAT_SLOT].
          */
         const val SKILLS_TOGGLE_SPEC_DEFAULTS_SLOT = "__defaults__"
+
+        /** The stored [ttsSource] values: the device's own engine, or the server's TTS route. */
+        const val TTS_SOURCE_DEVICE = "device"
+        const val TTS_SOURCE_SERVER = "server"
 
         private val KEY_SELECTED_LANGUAGE = stringPreferencesKey("selected_language")
         private val KEY_LATEX_RENDERER = stringPreferencesKey("latex_renderer")

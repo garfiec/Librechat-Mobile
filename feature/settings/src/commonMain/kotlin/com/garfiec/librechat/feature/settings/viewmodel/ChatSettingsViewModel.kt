@@ -260,7 +260,7 @@ class ChatSettingsViewModel(
     /** Speaks [text] the way chat playback would, from the saved source, voice, speed and pitch. */
     fun previewVoice(text: String) {
         val state = uiState.value
-        if (state.ttsSource == TTS_SOURCE_SERVER) {
+        if (state.ttsSource == SettingsDataStore.TTS_SOURCE_SERVER) {
             speechDelegate.previewServerTts(text, state.selectedVoice?.id)
         } else {
             val voiceName = state.ttsDeviceVoiceName.ifBlank { null }

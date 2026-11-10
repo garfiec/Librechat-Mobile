@@ -30,6 +30,7 @@ import com.garfiec.librechat.core.common.extensions.formatLocalizedNumber
 import com.garfiec.librechat.core.common.speech.sttEngineSelectsRecognizer
 import com.garfiec.librechat.core.common.speech.sttLanguageOptions
 import com.garfiec.librechat.core.common.speech.sttSupportsLiveRecognition
+import com.garfiec.librechat.core.data.datastore.SettingsDataStore
 import com.garfiec.librechat.core.model.speech.SttEngine
 import com.garfiec.librechat.core.model.speech.TtsVoice
 import com.garfiec.librechat.core.ui.components.AdaptiveFilledTonalButton
@@ -42,8 +43,6 @@ import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsUiState
 import com.garfiec.librechat.feature.settings.viewmodel.ChatSettingsViewModel
 import com.garfiec.librechat.feature.settings.viewmodel.SpeechFailure
-import com.garfiec.librechat.feature.settings.viewmodel.TTS_SOURCE_DEVICE
-import com.garfiec.librechat.feature.settings.viewmodel.TTS_SOURCE_SERVER
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -112,7 +111,7 @@ internal fun VoiceSettingsContent(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
 ) {
-    val deviceSource = state.ttsSource != TTS_SOURCE_SERVER
+    val deviceSource = state.ttsSource != SettingsDataStore.TTS_SOURCE_SERVER
     SettingsListPage(contentPadding = contentPadding, modifier = modifier) {
         item(key = "listening_header") {
             AdaptiveSectionHeader(stringResource(Res.string.section_listening))
@@ -164,8 +163,8 @@ internal fun VoiceSettingsContent(
             if (state.serverTtsEnabled || !deviceSource) {
                 row(key = "tts_source") {
                     val sources = listOf(
-                        TTS_SOURCE_DEVICE to stringResource(Res.string.tts_source_device),
-                        TTS_SOURCE_SERVER to stringResource(Res.string.tts_source_server),
+                        SettingsDataStore.TTS_SOURCE_DEVICE to stringResource(Res.string.tts_source_device),
+                        SettingsDataStore.TTS_SOURCE_SERVER to stringResource(Res.string.tts_source_server),
                     )
                     SettingsChoiceRow(
                         title = stringResource(Res.string.tts_source_label),

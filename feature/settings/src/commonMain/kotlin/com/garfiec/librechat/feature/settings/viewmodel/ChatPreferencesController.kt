@@ -84,7 +84,11 @@ class ChatPreferencesController(
         settingsDataStore.ttsSource,
     ) { autoRead, voiceId, showImgDesc, dismissKeyboard, ttsSource ->
         ExtraPreferences(autoRead, voiceId, showImgDesc, dismissKeyboard, ttsSource)
-    }.stateIn(scope, SharingStarted.Eagerly, ExtraPreferences(false, null, false, true, TTS_SOURCE_DEVICE))
+    }.stateIn(
+        scope,
+        SharingStarted.Eagerly,
+        ExtraPreferences(false, null, false, true, SettingsDataStore.TTS_SOURCE_DEVICE),
+    )
 
     private val deviceTtsPreferences: StateFlow<DeviceTtsPreferences> = combine(
         settingsDataStore.ttsSpeechRate,

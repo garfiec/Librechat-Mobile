@@ -51,7 +51,7 @@ class ChatSettingsViewModelTest {
     private val siteIconsChoiceFlow = MutableStateFlow<Boolean?>(null)
     private val preferLastUsedFlow = MutableStateFlow(false)
     private val webSearchFirstFlow = MutableStateFlow(WebSearchPreference.LIBRECHAT_FIRST)
-    private val ttsSourceFlow = MutableStateFlow(TTS_SOURCE_DEVICE)
+    private val ttsSourceFlow = MutableStateFlow(SettingsDataStore.TTS_SOURCE_DEVICE)
     private val selectedVoiceIdFlow = MutableStateFlow<String?>(null)
     private var speechStateHandle: SettingsStateHandle<ChatSettingsUiState>? = null
     private val speechRepository = mockk<SpeechRepository>(relaxed = true)
@@ -246,7 +246,7 @@ class ChatSettingsViewModelTest {
 
     @Test
     fun `a server preview asks for the chosen server voice`() = runTest {
-        ttsSourceFlow.value = TTS_SOURCE_SERVER
+        ttsSourceFlow.value = SettingsDataStore.TTS_SOURCE_SERVER
         selectedVoiceIdFlow.value = "nova"
         viewModel = createViewModel()
         val voices = listOf(TtsVoice(id = "alloy", name = "alloy"), TtsVoice(id = "nova", name = "nova"))

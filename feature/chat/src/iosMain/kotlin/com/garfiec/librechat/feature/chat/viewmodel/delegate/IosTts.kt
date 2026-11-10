@@ -104,7 +104,7 @@ class IosTts(
         handle.update { voice = voice.copy(currentlyReadingMessageId = readingId) }
 
         readJob = handle.scope.launch {
-            if (settingsDataStore.ttsSource.first() == "server") {
+            if (settingsDataStore.ttsSource.first() == SettingsDataStore.TTS_SOURCE_SERVER) {
                 readAloudViaServer(text)
             } else {
                 val speech = DeviceSpeech(
