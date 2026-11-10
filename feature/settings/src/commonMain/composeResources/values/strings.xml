@@ -311,7 +311,6 @@
     <string name="client_image_resize_desc">Scale large images down before sending them, for faster uploads that use less data</string>
     <string name="client_image_resize_enforced">Your server’s administrator manages this setting</string>
     <string name="context_bar_title">Context usage</string>
-    <string name="context_bar_desc">Where to show the context-window usage gauge</string>
     <string name="context_bar_hidden">Hidden</string>
     <string name="context_bar_above_input">In the message box</string>
     <string name="context_bar_options_sheet">Chat options menu</string>
@@ -323,12 +322,9 @@
 
     <!-- Artifacts -->
     <string name="section_artifacts">Artifacts</string>
-    <string name="artifact_viewer_title">Artifact viewer</string>
-    <string name="artifact_viewer_desc">How an artifact opens when you tap it.</string>
+    <string name="artifacts_open_in">Artifacts open in</string>
     <string name="artifact_mode_bottom_sheet">Bottom sheet</string>
-    <string name="artifact_mode_bottom_sheet_desc">Slides up from the bottom; swipe down to dismiss.</string>
     <string name="artifact_mode_fullscreen">Full screen</string>
-    <string name="artifact_mode_fullscreen_desc">Opens as a full-screen page with more room.</string>
     <string name="artifact_inline_title">Render inline</string>
     <string name="artifact_inline_enabled_count">%1$d of %2$d enabled</string>
     <string name="artifact_libraries_title">Flagged libraries</string>
@@ -760,7 +756,6 @@
     <string name="show_site_icons">Show website icons</string>
     <string name="show_site_icons_desc">Load icons for web search results from Google and other websites</string>
     <string name="context_settings_where">Where it shows</string>
-    <string name="context_settings_placement">Placement</string>
     <string name="context_settings_detail">Detail</string>
     <string name="context_settings_compacting">Compacting</string>
     <string name="context_settings_preview">Preview</string>

@@ -303,7 +303,6 @@
     <string name="client_image_resize_desc">Große Bilder vor dem Senden verkleinern, für schnellere Uploads mit weniger Datenverbrauch</string>
     <string name="client_image_resize_enforced">Die Administration deines Servers verwaltet diese Einstellung</string>
     <string name="context_bar_title">Kontextauslastung</string>
-    <string name="context_bar_desc">Wo die Anzeige der Kontextfenster-Auslastung erscheint</string>
     <string name="context_bar_hidden">Ausgeblendet</string>
     <string name="context_bar_above_input">Im Nachrichtenfeld</string>
     <string name="context_bar_options_sheet">Chat-Optionsmenü</string>
@@ -315,12 +314,9 @@
 
     <!-- Artifacts -->
     <string name="section_artifacts">Artefakte</string>
-    <string name="artifact_viewer_title">Artefakt-Ansicht</string>
-    <string name="artifact_viewer_desc">Wie sich ein Artefakt öffnet, wenn du darauf tippst.</string>
+    <string name="artifacts_open_in">Artefakte öffnen als</string>
     <string name="artifact_mode_bottom_sheet">Einblendung von unten</string>
-    <string name="artifact_mode_bottom_sheet_desc">Gleitet von unten herein; zum Schließen nach unten wischen.</string>
     <string name="artifact_mode_fullscreen">Vollbild</string>
-    <string name="artifact_mode_fullscreen_desc">Öffnet sich als Vollbildseite mit mehr Platz.</string>
     <string name="artifact_inline_title">Eingebettet rendern</string>
     <string name="artifact_inline_enabled_count">%1$d von %2$d aktiviert</string>
     <string name="artifact_libraries_title">Markierte Bibliotheken</string>
@@ -744,7 +740,6 @@
     <string name="show_site_icons">Website-Symbole anzeigen</string>
     <string name="show_site_icons_desc">Symbole für Websuchergebnisse von Google und anderen Websites laden</string>
     <string name="context_settings_where">Wo es angezeigt wird</string>
-    <string name="context_settings_placement">Position</string>
     <string name="context_settings_detail">Detail</string>
     <string name="context_settings_compacting">Komprimieren</string>
     <string name="context_settings_preview">Vorschau</string>

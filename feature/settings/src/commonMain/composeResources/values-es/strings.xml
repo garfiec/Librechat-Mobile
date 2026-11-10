@@ -303,7 +303,6 @@
     <string name="client_image_resize_desc">Reducir las imágenes grandes antes de enviarlas, para subidas más rápidas que usan menos datos</string>
     <string name="client_image_resize_enforced">El administrador de tu servidor gestiona este ajuste</string>
     <string name="context_bar_title">Uso del contexto</string>
-    <string name="context_bar_desc">Dónde mostrar el indicador de uso de la ventana de contexto</string>
     <string name="context_bar_hidden">Oculto</string>
     <string name="context_bar_above_input">En el cuadro de mensaje</string>
     <string name="context_bar_options_sheet">Menú de opciones del chat</string>
@@ -315,12 +314,9 @@
 
     <!-- Artifacts -->
     <string name="section_artifacts">Artefactos</string>
-    <string name="artifact_viewer_title">Visor de artefactos</string>
-    <string name="artifact_viewer_desc">Cómo se abre un artefacto al tocarlo.</string>
+    <string name="artifacts_open_in">Abrir artefactos en</string>
     <string name="artifact_mode_bottom_sheet">Panel inferior</string>
-    <string name="artifact_mode_bottom_sheet_desc">Se desliza desde abajo; desliza hacia abajo para cerrarlo.</string>
     <string name="artifact_mode_fullscreen">Pantalla completa</string>
-    <string name="artifact_mode_fullscreen_desc">Se abre como una página a pantalla completa con más espacio.</string>
     <string name="artifact_inline_title">Renderizar en línea</string>
     <string name="artifact_inline_enabled_count">%1$d de %2$d activados</string>
     <string name="artifact_libraries_title">Bibliotecas señaladas</string>
@@ -744,7 +740,6 @@
     <string name="show_site_icons">Mostrar iconos de sitios web</string>
     <string name="show_site_icons_desc">Carga los iconos de los resultados de búsqueda web desde Google y otros sitios</string>
     <string name="context_settings_where">Dónde se muestra</string>
-    <string name="context_settings_placement">Ubicación</string>
     <string name="context_settings_detail">Detalle</string>
     <string name="context_settings_compacting">Compactación</string>
     <string name="context_settings_preview">Vista previa</string>

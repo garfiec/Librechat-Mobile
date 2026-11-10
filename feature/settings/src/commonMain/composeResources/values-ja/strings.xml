@@ -297,7 +297,6 @@
     <string name="client_image_resize_desc">大きな画像を送信前に縮小し、アップロードを速くしてデータ使用量を減らします</string>
     <string name="client_image_resize_enforced">この設定はサーバーの管理者が管理しています</string>
     <string name="context_bar_title">コンテキスト使用量</string>
-    <string name="context_bar_desc">コンテキストウィンドウ使用量ゲージの表示場所</string>
     <string name="context_bar_hidden">非表示</string>
     <string name="context_bar_above_input">メッセージ入力欄内</string>
     <string name="context_bar_options_sheet">チャットオプションメニュー</string>
@@ -309,12 +308,9 @@
 
     <!-- Artifacts -->
     <string name="section_artifacts">アーティファクト</string>
-    <string name="artifact_viewer_title">アーティファクトビューアー</string>
-    <string name="artifact_viewer_desc">アーティファクトをタップしたときの開き方。</string>
+    <string name="artifacts_open_in">アーティファクトの開き方</string>
     <string name="artifact_mode_bottom_sheet">ボトムシート</string>
-    <string name="artifact_mode_bottom_sheet_desc">下からスライドして表示され、下にスワイプすると閉じます。</string>
     <string name="artifact_mode_fullscreen">全画面</string>
-    <string name="artifact_mode_fullscreen_desc">より広い全画面ページとして開きます。</string>
     <string name="artifact_inline_title">インラインで表示</string>
     <string name="artifact_inline_enabled_count">%2$d 件中 %1$d 件が有効</string>
     <string name="artifact_libraries_title">注意が必要なライブラリ</string>
@@ -730,7 +726,6 @@
     <string name="show_site_icons">サイトのアイコンを表示</string>
     <string name="show_site_icons_desc">ウェブ検索結果のアイコンを Google などのサイトから読み込みます</string>
     <string name="context_settings_where">表示場所</string>
-    <string name="context_settings_placement">配置</string>
     <string name="context_settings_detail">詳細度</string>
     <string name="context_settings_compacting">圧縮</string>
     <string name="context_settings_preview">プレビュー</string>

@@ -303,7 +303,6 @@
     <string name="client_image_resize_desc">Reduzir imagens grandes antes de enviá-las, para envios mais rápidos que usam menos dados</string>
     <string name="client_image_resize_enforced">O administrador do seu servidor gerencia esta configuração</string>
     <string name="context_bar_title">Uso do contexto</string>
-    <string name="context_bar_desc">Onde mostrar o indicador de uso da janela de contexto</string>
     <string name="context_bar_hidden">Oculto</string>
     <string name="context_bar_above_input">Na caixa de mensagem</string>
     <string name="context_bar_options_sheet">Menu de opções da conversa</string>
@@ -315,12 +314,9 @@
 
     <!-- Artifacts -->
     <string name="section_artifacts">Artefatos</string>
-    <string name="artifact_viewer_title">Visualizador de artefatos</string>
-    <string name="artifact_viewer_desc">Como um artefato abre quando você toca nele.</string>
+    <string name="artifacts_open_in">Abrir artefatos em</string>
     <string name="artifact_mode_bottom_sheet">Painel inferior</string>
-    <string name="artifact_mode_bottom_sheet_desc">Desliza a partir da parte inferior; deslize para baixo para fechar.</string>
     <string name="artifact_mode_fullscreen">Tela cheia</string>
-    <string name="artifact_mode_fullscreen_desc">Abre como uma página em tela cheia com mais espaço.</string>
     <string name="artifact_inline_title">Renderizar embutido</string>
     <string name="artifact_inline_enabled_count">%1$d de %2$d ativados</string>
     <string name="artifact_libraries_title">Bibliotecas sinalizadas</string>
@@ -744,7 +740,6 @@
     <string name="show_site_icons">Mostrar ícones dos sites</string>
     <string name="show_site_icons_desc">Carregar os ícones dos resultados da pesquisa na web do Google e de outros sites</string>
     <string name="context_settings_where">Onde aparece</string>
-    <string name="context_settings_placement">Posição</string>
     <string name="context_settings_detail">Detalhe</string>
     <string name="context_settings_compacting">Compactação</string>
     <string name="context_settings_preview">Prévia</string>

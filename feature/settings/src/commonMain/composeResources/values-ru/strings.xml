@@ -315,7 +315,6 @@
     <string name="client_image_resize_desc">Уменьшать большие изображения перед отправкой: загрузка быстрее и расходует меньше трафика</string>
     <string name="client_image_resize_enforced">Этим параметром управляет администратор вашего сервера</string>
     <string name="context_bar_title">Использование контекста</string>
-    <string name="context_bar_desc">Где показывать индикатор заполнения контекстного окна</string>
     <string name="context_bar_hidden">Скрыт</string>
     <string name="context_bar_above_input">В поле сообщения</string>
     <string name="context_bar_options_sheet">Меню параметров чата</string>
@@ -327,12 +326,9 @@
 
     <!-- Artifacts -->
     <string name="section_artifacts">Артефакты</string>
-    <string name="artifact_viewer_title">Просмотр артефактов</string>
-    <string name="artifact_viewer_desc">Как открывается артефакт при нажатии.</string>
+    <string name="artifacts_open_in">Как открывать артефакты</string>
     <string name="artifact_mode_bottom_sheet">Нижняя панель</string>
-    <string name="artifact_mode_bottom_sheet_desc">Выдвигается снизу; смахните вниз, чтобы закрыть.</string>
     <string name="artifact_mode_fullscreen">Полный экран</string>
-    <string name="artifact_mode_fullscreen_desc">Открывается на полноэкранной странице с большим пространством.</string>
     <string name="artifact_inline_title">Встроенное отображение</string>
     <string name="artifact_inline_enabled_count">Включено %1$d из %2$d</string>
     <string name="artifact_libraries_title">Отмеченные библиотеки</string>
@@ -772,7 +768,6 @@
     <string name="show_site_icons">Показывать значки сайтов</string>
     <string name="show_site_icons_desc">Загружать значки результатов веб-поиска с Google и других сайтов</string>
     <string name="context_settings_where">Где показывать</string>
-    <string name="context_settings_placement">Расположение</string>
     <string name="context_settings_detail">Подробность</string>
     <string name="context_settings_compacting">Сжатие</string>
     <string name="context_settings_preview">Предпросмотр</string>

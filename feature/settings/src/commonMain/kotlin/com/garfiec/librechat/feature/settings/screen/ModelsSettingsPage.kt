@@ -4,10 +4,13 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.VpnKey
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -20,8 +23,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.garfiec.librechat.core.data.datastore.StarredModelsDisplay
 import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
+import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.adaptiveSection
 import com.garfiec.librechat.feature.settings.resources.*
 import com.garfiec.librechat.feature.settings.resources.Res
@@ -106,11 +109,21 @@ fun ModelsSettingsPage(
                         onClick = { openDialog = ChatSettingDialog.NEW_CHAT_START },
                     )
                 }
+            }
+            item(key = "starred_header") {
+                AdaptiveSectionHeader(stringResource(Res.string.starred_models_title))
+            }
+            adaptiveSection {
                 row(key = "starred_models") {
-                    SettingsRow(
-                        title = stringResource(Res.string.starred_models_title),
-                        summary = starredModelsDisplayLabel(uiState.starredModelsDisplay),
-                        onClick = { openDialog = ChatSettingDialog.STARRED_MODELS },
+                    Text(
+                        text = stringResource(Res.string.starred_models_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp),
+                    )
+                    StarredModelsChoice(
+                        selected = uiState.starredModelsDisplay,
+                        onSelect = viewModel::setStarredModelsDisplay,
                     )
                 }
             }
@@ -129,18 +142,6 @@ fun ModelsSettingsPage(
                 },
                 onDismiss = { openDialog = null },
                 optionLabel = { newChatStartLabel(it) },
-            )
-            ChatSettingDialog.STARRED_MODELS -> RadioSelectionDialog(
-                title = stringResource(Res.string.starred_models_title),
-                description = stringResource(Res.string.starred_models_desc),
-                options = StarredModelsDisplay.entries,
-                selected = uiState.starredModelsDisplay,
-                onSave = {
-                    viewModel.setStarredModelsDisplay(it)
-                    openDialog = null
-                },
-                onDismiss = { openDialog = null },
-                optionLabel = { starredModelsDisplayLabel(it) },
             )
             else -> Unit
         }

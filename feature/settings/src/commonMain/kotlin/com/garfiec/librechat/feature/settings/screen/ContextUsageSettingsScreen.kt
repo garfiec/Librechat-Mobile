@@ -20,9 +20,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -66,7 +63,6 @@ fun ContextUsageSettingsScreen(
     viewModel: ContextUsageSettingsViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var choosingPlacement by remember { mutableStateOf(false) }
 
     AdaptiveScaffold(
         modifier = modifier,
@@ -87,11 +83,7 @@ fun ContextUsageSettingsScreen(
                 item(key = "where_header") { AdaptiveSectionHeader(stringResource(Res.string.context_settings_where)) }
                 adaptiveSection {
                     row(key = "placement") {
-                        SettingsRow(
-                            title = stringResource(Res.string.context_settings_placement),
-                            summary = contextBarPlacementLabel(state.placement),
-                            onClick = { choosingPlacement = true },
-                        )
+                        ContextPlacementChoice(selected = state.placement, onSelect = viewModel::setPlacement)
                     }
                 }
 
@@ -117,21 +109,6 @@ fun ContextUsageSettingsScreen(
                 }
             }
         }
-    }
-
-    if (choosingPlacement) {
-        RadioSelectionDialog(
-            title = stringResource(Res.string.context_bar_title),
-            description = stringResource(Res.string.context_bar_desc),
-            options = ContextBarPlacement.entries,
-            selected = state.placement,
-            onSave = {
-                viewModel.setPlacement(it)
-                choosingPlacement = false
-            },
-            onDismiss = { choosingPlacement = false },
-            optionLabel = { contextBarPlacementLabel(it) },
-        )
     }
 }
 

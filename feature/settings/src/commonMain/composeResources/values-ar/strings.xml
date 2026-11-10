@@ -327,7 +327,6 @@
     <string name="client_image_resize_desc">تصغير الصور الكبيرة قبل إرسالها لرفع أسرع يستهلك بيانات أقل</string>
     <string name="client_image_resize_enforced">يدير مسؤول الخادم هذا الإعداد</string>
     <string name="context_bar_title">استخدام السياق</string>
-    <string name="context_bar_desc">مكان عرض مؤشر استخدام نافذة السياق</string>
     <string name="context_bar_hidden">مخفي</string>
     <string name="context_bar_above_input">داخل مربع الرسالة</string>
     <string name="context_bar_options_sheet">قائمة خيارات المحادثة</string>
@@ -339,12 +338,9 @@
 
     <!-- Artifacts -->
     <string name="section_artifacts">العناصر التفاعلية</string>
-    <string name="artifact_viewer_title">عارض العناصر التفاعلية</string>
-    <string name="artifact_viewer_desc">كيف يُفتح العنصر التفاعلي عند النقر عليه.</string>
+    <string name="artifacts_open_in">طريقة فتح العناصر التفاعلية</string>
     <string name="artifact_mode_bottom_sheet">لوحة سفلية</string>
-    <string name="artifact_mode_bottom_sheet_desc">تنزلق من الأسفل؛ اسحب لأسفل للإغلاق.</string>
     <string name="artifact_mode_fullscreen">ملء الشاشة</string>
-    <string name="artifact_mode_fullscreen_desc">يُفتح كصفحة بملء الشاشة بمساحة أكبر.</string>
     <string name="artifact_inline_title">العرض المضمّن</string>
     <string name="artifact_inline_enabled_count">%1$d من %2$d مفعّلة</string>
     <string name="artifact_libraries_title">المكتبات المُعلَّمة</string>
@@ -800,7 +796,6 @@
     <string name="show_site_icons">إظهار أيقونات المواقع</string>
     <string name="show_site_icons_desc">تحميل أيقونات نتائج البحث على الويب من Google ومواقع أخرى</string>
     <string name="context_settings_where">مكان العرض</string>
-    <string name="context_settings_placement">الموضع</string>
     <string name="context_settings_detail">التفاصيل</string>
     <string name="context_settings_compacting">الضغط</string>
     <string name="context_settings_preview">معاينة</string>

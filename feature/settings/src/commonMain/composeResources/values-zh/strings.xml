@@ -297,7 +297,6 @@
     <string name="client_image_resize_desc">发送前缩小大图，上传更快且更省流量</string>
     <string name="client_image_resize_enforced">此设置由服务器管理员管理</string>
     <string name="context_bar_title">上下文用量</string>
-    <string name="context_bar_desc">上下文窗口用量指示器的显示位置</string>
     <string name="context_bar_hidden">隐藏</string>
     <string name="context_bar_above_input">消息框内</string>
     <string name="context_bar_options_sheet">聊天选项菜单</string>
@@ -309,12 +308,9 @@
 
     <!-- Artifacts -->
     <string name="section_artifacts">Artifacts</string>
-    <string name="artifact_viewer_title">Artifact 查看器</string>
-    <string name="artifact_viewer_desc">点按 artifact 时的打开方式。</string>
+    <string name="artifacts_open_in">Artifact 打开方式</string>
     <string name="artifact_mode_bottom_sheet">底部面板</string>
-    <string name="artifact_mode_bottom_sheet_desc">从底部滑出；向下滑动即可关闭。</string>
     <string name="artifact_mode_fullscreen">全屏</string>
-    <string name="artifact_mode_fullscreen_desc">以全屏页面打开，空间更大。</string>
     <string name="artifact_inline_title">内嵌渲染</string>
     <string name="artifact_inline_enabled_count">已启用 %1$d / %2$d</string>
     <string name="artifact_libraries_title">需留意的库</string>
@@ -730,7 +726,6 @@
     <string name="show_site_icons">显示网站图标</string>
     <string name="show_site_icons_desc">从 Google 和其他网站加载网页搜索结果的图标</string>
     <string name="context_settings_where">显示位置</string>
-    <string name="context_settings_placement">位置</string>
     <string name="context_settings_detail">详细程度</string>
     <string name="context_settings_compacting">压缩</string>
     <string name="context_settings_preview">预览</string>

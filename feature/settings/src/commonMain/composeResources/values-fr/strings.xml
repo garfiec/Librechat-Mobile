@@ -303,7 +303,6 @@
     <string name="client_image_resize_desc">Réduire les grandes images avant de les envoyer, pour des envois plus rapides qui consomment moins de données</string>
     <string name="client_image_resize_enforced">L’administrateur de votre serveur gère ce paramètre</string>
     <string name="context_bar_title">Utilisation du contexte</string>
-    <string name="context_bar_desc">Où afficher la jauge d'utilisation de la fenêtre de contexte</string>
     <string name="context_bar_hidden">Masquée</string>
     <string name="context_bar_above_input">Dans la zone de message</string>
     <string name="context_bar_options_sheet">Menu des options de discussion</string>
@@ -315,12 +314,9 @@
 
     <!-- Artifacts -->
     <string name="section_artifacts">Artefacts</string>
-    <string name="artifact_viewer_title">Visionneuse d'artefacts</string>
-    <string name="artifact_viewer_desc">Comment un artefact s'ouvre lorsque vous appuyez dessus.</string>
+    <string name="artifacts_open_in">Ouvrir les artefacts en</string>
     <string name="artifact_mode_bottom_sheet">Panneau inférieur</string>
-    <string name="artifact_mode_bottom_sheet_desc">Glisse depuis le bas ; balayez vers le bas pour fermer.</string>
     <string name="artifact_mode_fullscreen">Plein écran</string>
-    <string name="artifact_mode_fullscreen_desc">S'ouvre en page plein écran avec plus d'espace.</string>
     <string name="artifact_inline_title">Afficher dans la discussion</string>
     <string name="artifact_inline_enabled_count">%1$d sur %2$d activés</string>
     <string name="artifact_libraries_title">Bibliothèques signalées</string>
@@ -744,7 +740,6 @@
     <string name="show_site_icons">Afficher les icônes des sites</string>
     <string name="show_site_icons_desc">Charger les icônes des résultats de recherche web depuis Google et d'autres sites</string>
     <string name="context_settings_where">Où l'afficher</string>
-    <string name="context_settings_placement">Emplacement</string>
     <string name="context_settings_detail">Détail</string>
     <string name="context_settings_compacting">Compactage</string>
     <string name="context_settings_preview">Aperçu</string>

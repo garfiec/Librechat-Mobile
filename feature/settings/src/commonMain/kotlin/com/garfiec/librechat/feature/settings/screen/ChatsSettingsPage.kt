@@ -7,13 +7,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.garfiec.librechat.core.data.datastore.ArtifactDisplayMode
 import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.adaptiveSection
@@ -40,7 +36,6 @@ fun ChatsSettingsPage(
     val gates by viewModel.gates.collectAsStateWithLifecycle()
     val contextUsage by contextUsageViewModel.uiState.collectAsStateWithLifecycle()
     val shortcutsSupported = rememberHomeScreenShortcutsSupported()
-    var choosingArtifactViewer by remember { mutableStateOf(false) }
 
     AdaptiveGroupedPage(modifier = modifier.fillMaxSize()) {
         LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = contentPadding) {
@@ -83,14 +78,13 @@ fun ChatsSettingsPage(
             }
 
             item(key = "artifacts_header") {
-                AdaptiveSectionHeader(stringResource(Res.string.section_artifacts))
+                AdaptiveSectionHeader(stringResource(Res.string.artifacts_open_in))
             }
             adaptiveSection {
                 row(key = "artifact_viewer") {
-                    SettingsRow(
-                        title = stringResource(Res.string.artifact_viewer_title),
-                        summary = artifactDisplayModeLabel(uiState.artifactDisplayPrefs.mode),
-                        onClick = { choosingArtifactViewer = true },
+                    ArtifactViewerChoice(
+                        selected = uiState.artifactDisplayPrefs.mode,
+                        onSelect = viewModel::setArtifactDisplayMode,
                     )
                 }
             }
@@ -129,27 +123,6 @@ fun ChatsSettingsPage(
                     onClick = { onOpenAdvancedSettings(AdvancedSection.CHATS) },
                 )
             }
-        }
-
-        if (choosingArtifactViewer) {
-            RadioSelectionDialog(
-                title = stringResource(Res.string.artifact_viewer_title),
-                description = stringResource(Res.string.artifact_viewer_desc),
-                options = ArtifactDisplayMode.entries,
-                selected = uiState.artifactDisplayPrefs.mode,
-                onSave = {
-                    viewModel.setArtifactDisplayMode(it)
-                    choosingArtifactViewer = false
-                },
-                onDismiss = { choosingArtifactViewer = false },
-                optionLabel = { artifactDisplayModeLabel(it) },
-                optionDescription = {
-                    when (it) {
-                        ArtifactDisplayMode.BOTTOM_SHEET -> stringResource(Res.string.artifact_mode_bottom_sheet_desc)
-                        ArtifactDisplayMode.FULLSCREEN -> stringResource(Res.string.artifact_mode_fullscreen_desc)
-                    }
-                },
-            )
         }
     }
 }

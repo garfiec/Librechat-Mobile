@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -14,12 +13,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,13 +39,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.Hyphens
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -60,7 +50,6 @@ import com.garfiec.librechat.core.ui.components.AdaptiveButton
 import com.garfiec.librechat.core.ui.components.AdaptiveCard
 import com.garfiec.librechat.core.ui.components.AdaptiveDivider
 import com.garfiec.librechat.core.ui.components.AdaptiveGroupedPage
-import com.garfiec.librechat.core.ui.components.AdaptiveRadioButton
 import com.garfiec.librechat.core.ui.components.AdaptiveScaffold
 import com.garfiec.librechat.core.ui.components.AdaptiveSectionHeader
 import com.garfiec.librechat.core.ui.components.AdaptiveSwitch
@@ -265,7 +254,7 @@ internal fun ThemeSelector(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             ThemeMode.entries.forEach { mode ->
-                PreviewOption(
+                PictureChoice(
                     label = when (mode) {
                         ThemeMode.SYSTEM -> stringResource(Res.string.theme_system)
                         ThemeMode.LIGHT -> stringResource(Res.string.theme_light)
@@ -316,7 +305,7 @@ private fun UiStyleSelector(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 UiStyle.entries.forEach { style ->
-                    PreviewOption(
+                    PictureChoice(
                         label = when (style) {
                             UiStyle.MATERIAL -> stringResource(Res.string.ui_style_material)
                             UiStyle.LIQUID_GLASS -> stringResource(Res.string.ui_style_liquid_glass)
@@ -344,64 +333,6 @@ private fun UiStyleSelector(
             }
         }
         AdaptiveDivider(modifier = Modifier.padding(top = 8.dp))
-    }
-}
-
-/**
- * One choice in a picker of previews: [preview] laid out at a phone's width and scaled into the card, so
- * real controls keep their proportions, with [label] and a radio below. The preview never takes a touch.
- */
-@Composable
-private fun PreviewOption(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    preview: @Composable () -> Unit,
-) {
-    val colors = MaterialTheme.colorScheme
-    Column(
-        modifier = modifier
-            .clip(OptionShape)
-            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
-            .padding(4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(PreviewHeight)
-                .border(if (selected) 2.dp else 1.dp, if (selected) colors.primary else colors.outlineVariant, PreviewShape)
-                .padding(if (selected) 2.dp else 1.dp)
-                .clip(PreviewShape),
-        ) {
-            val scale = maxWidth / VirtualWidth
-            Box(
-                modifier = Modifier
-                    .wrapContentSize(Alignment.TopStart, unbounded = true)
-                    .requiredSize(VirtualWidth, maxHeight / scale)
-                    .graphicsLayer {
-                        scaleX = scale
-                        scaleY = scale
-                        transformOrigin = TransformOrigin(0f, 0f)
-                    },
-            ) {
-                preview()
-            }
-            // Over the preview and handling nothing: it takes the hit, so the preview's controls never see
-            // a touch, and the tap falls through to the option's own selectable.
-            Box(modifier = Modifier.matchParentSize().pointerInput(Unit) {})
-        }
-        // The radio above the label rather than beside it: a third of a phone's width leaves a label
-        // beside a radio too little room, and it would break mid-word. A word wider than the cell
-        // ("Predeterminado") is hyphenated where the platform can.
-        AdaptiveRadioButton(selected = selected, onClick = null, modifier = Modifier.padding(top = 8.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge.copy(hyphens = Hyphens.Auto),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 4.dp),
-        )
     }
 }
 
@@ -468,33 +399,11 @@ private fun UiStyleSampleScreen() {
     }
 }
 
-/** A paragraph as rounded bars, one per line, each [widths] of the available width. */
-@Composable
-private fun SampleLines(widths: List<Float>, color: Color) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        widths.forEach { width ->
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(width)
-                    .height(12.dp)
-                    .background(color, CircleShape),
-            )
-        }
-    }
-}
-
 // A brand name: the same in every language.
 private const val APP_NAME = "Switchboard"
 
-private val OptionShape = RoundedCornerShape(16.dp)
 private val SampleBubbleShape = RoundedCornerShape(20.dp)
 private const val SAMPLE_BUBBLE_WIDTH = 0.7f
-private const val SAMPLE_LINE_ALPHA = 0.4f
-private val PreviewShape = RoundedCornerShape(12.dp)
-private val PreviewHeight = 148.dp
-
-// The width the sample is laid out at before it is scaled into its card: a phone's.
-private val VirtualWidth = 360.dp
 
 @Composable
 private fun AccentColorRow(
