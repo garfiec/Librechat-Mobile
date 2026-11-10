@@ -77,22 +77,6 @@ import org.koin.compose.viewmodel.koinViewModel
 /** Dim factor applied to the accent row when wallpaper colors override the custom seed. */
 private const val DISABLED_ALPHA = 0.4f
 
-/** Settings › Appearance in its own bar, for the Appearance route. */
-@Composable
-fun AppearanceSettingsScreen(
-    onNavigateBack: () -> Unit,
-    onNavigateToChatLayout: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    SettingsPageScaffold(
-        title = stringResource(Res.string.section_appearance),
-        onNavigateBack = onNavigateBack,
-        modifier = modifier,
-    ) { contentPadding ->
-        AppearanceSettingsPage(onNavigateToChatLayout = onNavigateToChatLayout, contentPadding = contentPadding)
-    }
-}
-
 /** Settings › Appearance: theme, interface style, colour, how chats look, and the tablet sidebar. */
 @Composable
 fun AppearanceSettingsPage(

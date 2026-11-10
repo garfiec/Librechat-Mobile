@@ -69,7 +69,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(
             )
         }
     }
-    settingsCategoryEntry(
+    settingsPaneEntries(
         onNavigate = onNavigate,
         onBack = onBack,
         onLogout = onLogout,
@@ -96,7 +96,6 @@ fun EntryProviderScope<NavKey>.settingsEntries(
             onReturnAfterSave = onProviderKeyReturn,
         )
     }
-    advancedSettingsEntry(onNavigate = onNavigate, onBack = onBack)
     favoritesEntry(onBack = onBack)
     passkeysEntry(onBack = onBack)
     roleSkillsAdminEntry(onBack = onBack)
@@ -106,7 +105,6 @@ fun EntryProviderScope<NavKey>.settingsEntries(
     codeExecutionEntries(onNavigate = onNavigate, onBack = onBack)
     contextUsageSettingsEntry(onBack = onBack)
     chatLayoutSettingsEntry(onBack = onBack)
-    appearanceSettingsEntry(onNavigate = onNavigate, onBack = onBack)
     whatsNewEntry(onBack = onBack)
     releaseNotesEntry(onBack = onBack)
 }

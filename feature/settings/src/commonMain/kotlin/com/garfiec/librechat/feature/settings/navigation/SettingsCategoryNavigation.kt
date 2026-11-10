@@ -9,15 +9,18 @@ import androidx.navigation3.runtime.NavKey
 import com.garfiec.librechat.feature.settings.resources.Res
 import com.garfiec.librechat.feature.settings.resources.category_account
 import com.garfiec.librechat.feature.settings.resources.category_administration
+import com.garfiec.librechat.feature.settings.resources.category_advanced
 import com.garfiec.librechat.feature.settings.resources.category_chats
 import com.garfiec.librechat.feature.settings.resources.category_models_keys
 import com.garfiec.librechat.feature.settings.resources.category_privacy_data
 import com.garfiec.librechat.feature.settings.resources.category_voice
 import com.garfiec.librechat.feature.settings.resources.section_about
+import com.garfiec.librechat.feature.settings.resources.section_appearance
 import com.garfiec.librechat.feature.settings.resources.section_language_region
 import com.garfiec.librechat.feature.settings.screen.AboutSettingsPage
 import com.garfiec.librechat.feature.settings.screen.AccountSettingsPage
 import com.garfiec.librechat.feature.settings.screen.AdministrationSettingsPage
+import com.garfiec.librechat.feature.settings.screen.AdvancedSettingsPage
 import com.garfiec.librechat.feature.settings.screen.AppearanceSettingsPage
 import com.garfiec.librechat.feature.settings.screen.ChatsSettingsPage
 import com.garfiec.librechat.feature.settings.screen.LanguageSettingsPage
@@ -26,7 +29,11 @@ import com.garfiec.librechat.feature.settings.screen.PrivacySettingsPage
 import com.garfiec.librechat.feature.settings.screen.SettingsPageScaffold
 import com.garfiec.librechat.feature.settings.screen.VoiceSettingsPage
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+
+/** Settings › Appearance: theme, interface style, colour, chat appearance and the tablet sidebar. */
+@Serializable data object AppearanceSettings : SettingsPaneRoute
 
 /** A Settings category with a page of its own. Appearance keeps its own route, [AppearanceSettings]. */
 @Serializable
@@ -35,33 +42,23 @@ enum class SettingsCategoryKey { ACCOUNT, CHATS, VOICE, MODELS, LANGUAGE, PRIVAC
 /** One Settings category's page. */
 @Serializable data class SettingsCategory(val category: SettingsCategoryKey) : SettingsPaneRoute
 
-fun EntryProviderScope<NavKey>.settingsCategoryEntry(
+/** Appearance, each category and Advanced, each in its own route's bar. */
+fun EntryProviderScope<NavKey>.settingsPaneEntries(
     onNavigate: (NavKey) -> Unit,
     onBack: () -> Unit,
     onLogout: () -> Unit,
     onNavigateToArchive: () -> Unit,
 ) {
-    entry<SettingsCategory> { route ->
-        SettingsCategoryScreen(
-            category = route.category,
-            onNavigate = onNavigate,
-            onBack = onBack,
-            onLogout = onLogout,
-            onNavigateToArchive = onNavigateToArchive,
-        )
-    }
+    entry<AppearanceSettings> { SettingsPaneScreen(it, onNavigate, onBack, onLogout, onNavigateToArchive) }
+    entry<SettingsCategory> { SettingsPaneScreen(it, onNavigate, onBack, onLogout, onNavigateToArchive) }
+    entry<AdvancedSettings> { SettingsPaneScreen(it, onNavigate, onBack, onLogout, onNavigateToArchive) }
 }
 
-@Composable
-private fun SettingsCategoryScreen(
-    category: SettingsCategoryKey,
-    onNavigate: (NavKey) -> Unit,
-    onBack: () -> Unit,
-    onLogout: () -> Unit,
-    onNavigateToArchive: () -> Unit,
-) {
-    val snackbarHostState = remember { SnackbarHostState() }
-    val title = when (category) {
+/** The bar title of [this] page, on its route and its row on the Settings home. */
+internal fun SettingsPaneRoute.titleRes(): StringResource = when (this) {
+    AppearanceSettings -> Res.string.section_appearance
+    is AdvancedSettings -> Res.string.category_advanced
+    is SettingsCategory -> when (category) {
         SettingsCategoryKey.ACCOUNT -> Res.string.category_account
         SettingsCategoryKey.CHATS -> Res.string.category_chats
         SettingsCategoryKey.VOICE -> Res.string.category_voice
@@ -71,13 +68,24 @@ private fun SettingsCategoryScreen(
         SettingsCategoryKey.ADMINISTRATION -> Res.string.category_administration
         SettingsCategoryKey.ABOUT -> Res.string.section_about
     }
+}
+
+@Composable
+private fun SettingsPaneScreen(
+    route: SettingsPaneRoute,
+    onNavigate: (NavKey) -> Unit,
+    onBack: () -> Unit,
+    onLogout: () -> Unit,
+    onNavigateToArchive: () -> Unit,
+) {
+    val snackbarHostState = remember { SnackbarHostState() }
     SettingsPageScaffold(
-        title = stringResource(title),
+        title = stringResource(route.titleRes()),
         onNavigateBack = onBack,
         snackbarHostState = snackbarHostState,
     ) { contentPadding ->
         SettingsPaneContent(
-            page = SettingsCategory(category),
+            page = route,
             onNavigate = onNavigate,
             onLogout = onLogout,
             onNavigateToArchive = onNavigateToArchive,
@@ -107,7 +115,14 @@ internal fun SettingsPaneContent(
             onNavigateToChatLayout = { onNavigate(ChatLayoutSettings) },
             contentPadding = contentPadding,
         )
-        is AdvancedSettings -> AdvancedSettingsPane(page.section, onNavigate, contentPadding, snackbarHostState)
+        is AdvancedSettings -> AdvancedSettingsPage(
+            section = page.section,
+            onNavigateToPresets = { onNavigate(PresetManager) },
+            onNavigateToApiKeys = { onNavigate(ApiKeys) },
+            onNavigateToCodeExecution = { onNavigate(CodeExecution) },
+            contentPadding = contentPadding,
+            snackbarHostState = snackbarHostState,
+        )
         is SettingsCategory -> when (page.category) {
             SettingsCategoryKey.ACCOUNT -> AccountSettingsPage(
                 onLogout = onLogout,
