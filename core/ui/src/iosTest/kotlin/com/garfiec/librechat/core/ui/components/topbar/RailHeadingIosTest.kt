@@ -75,6 +75,22 @@ class RailHeadingIosTest {
     }
 
     @Test
+    fun aScaffoldOnVerticalBarsHandsItsBarToTheRail() = runComposeUiTest {
+        setContent { CompositionLocalProvider(LocalWindowFeatures provides duoBars) { Screen() } }
+
+        assertBarControlsShown()
+        assertTrue(titleIsHeading())
+    }
+
+    @Test
+    fun withoutVerticalBarsTheScaffoldDrawsAHorizontalBar() = runComposeUiTest {
+        setContent { Screen() }
+
+        assertBarControlsShown()
+        assertFalse(titleIsHeading())
+    }
+
+    @Test
     fun aPaneOffsetByABackSwipeGetsItsRailBackOnceItSettles() = runComposeUiTest {
         // The page a back swipe reveals in the content pane starts offset toward the start edge by its layer alone.
         var offset by mutableStateOf(-96f)
