@@ -93,6 +93,8 @@ internal actual fun rememberChatStartRecording(
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, languageLocale)
                 }
             }
+            // This path skips startRecording(), which stops a read the mic would otherwise hear.
+            viewModel.stopReading()
             try {
                 speechRecognizerLauncher.launch(intent)
             } catch (_: Exception) {
